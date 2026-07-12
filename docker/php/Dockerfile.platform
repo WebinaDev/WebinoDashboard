@@ -1,0 +1,66 @@
+# Production backend image for multi-site platform (code baked in).
+FROM php:8.3-cli-bookworm
+
+ARG APT_MIRROR=
+ARG FORCE_APT_IPV4=1
+ARG REDIS_PECL_VERSION=6.0.2
+
+COPY docker/php/install-redis.sh /tmp/install-redis.sh
+
+RUN set -eux; \
+    if [ -n "$APT_MIRROR" ]; then \
+      if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i "s|deb.debian.org|${APT_MIRROR}|g" /etc/apt/sources.list.d/debian.sources; \
+      fi; \
+      if [ -f /etc/apt/sources.list ]; then \
+        sed -i "s|deb.debian.org|${APT_MIRROR}|g" /etc/apt/sources.list; \
+      fi; \
+    fi; \
+    if [ "${FORCE_APT_IPV4}" = "1" ]; then \
+      printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "5";\n' \
+        > /etc/apt/apt.conf.d/99webina-build; \
+    fi; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        $PHPIZE_DEPS \
+        git unzip libzip-dev libpq-dev libxml2-dev libsqlite3-dev curl; \
+    docker-php-ext-install dom xml zip pdo_sqlite opcache pcntl; \
+    chmod +x /tmp/install-redis.sh; \
+    REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh; \
+    rm -f /tmp/install-redis.sh; \
+    docker-php-ext-enable redis opcache; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=20000" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/bin/frankenphp /usr/local/bin/frankenphp
+COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/lib/libphp.so /usr/local/lib/libphp.so
+COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/lib/libwatcher-c.so* /usr/local/lib/
+RUN echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf && ldconfig
+
+WORKDIR /var/www/html
+
+COPY backend/composer.json backend/composer.lock ./
+RUN set -eux; \
+    composer config platform.php 8.3.32; \
+    if ! composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader 2>/tmp/composer-install.err; then \
+      printf 'composer.lock stale — running composer update...\n' >&2; \
+      cat /tmp/composer-install.err >&2 || true; \
+      composer update --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader; \
+    fi
+
+COPY backend/ ./
+RUN composer dump-autoload --optimize --no-dev \
+    && mkdir -p database storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache database
+
+COPY docker/php/entrypoint-platform.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080", "--no-reload"]

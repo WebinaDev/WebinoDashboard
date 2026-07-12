@@ -1,0 +1,66 @@
+# WebinoDashboard — run ./install.sh before docker compose up
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/php/Dockerfile
+    working_dir: /var/www/html
+    entrypoint: ["/entrypoint.sh"]
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+
+  next:
+    build:
+      context: .
+      dockerfile: docker/next/Dockerfile
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ""
+      INTERNAL_API_URL: http://backend:8080
+      API_PROXY_TARGET: http://backend:8080
+      AUTH_COOKIE_NAME: webino_auth_token
+    depends_on:
+      - backend
+
+  # HTTP/3 + Brotli reverse proxy: Next.js + /api -> backend
+  web:
+    image: caddy:2-alpine
+    ports:
+      - "3080:80"
+      - "3443:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - backend
+      - next
+
+volumes:
+  redis_data:

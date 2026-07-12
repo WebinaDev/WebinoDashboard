@@ -1,0 +1,32 @@
+{
+	# HTTP/3 (QUIC) enabled by default in Caddy 2
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+:80 {
+	encode zstd gzip
+
+	# Next.js static assets — long-term cache
+	@nextStatic path /_next/static/*
+	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
+
+	# Public fonts and static files
+	@publicStatic path /fonts/* /favicon.svg /icons.svg /placeholder.svg
+	header @publicStatic Cache-Control "public, max-age=31536000, immutable"
+
+	# API — no cache
+	@api path /api/*
+	header @api Cache-Control "no-store"
+
+	# Laravel API
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	# Next.js frontend
+	handle {
+		reverse_proxy next:3000
+	}
+}

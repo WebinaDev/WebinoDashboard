@@ -1,0 +1,47 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
+
+export type ApiOptions = RequestInit & {
+  json?: unknown
+}
+
+function getClientToken(): string | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+  return localStorage.getItem("auth_token")
+}
+
+export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
+  const token = getClientToken()
+  const headers: HeadersInit = {
+    Accept: "application/json",
+    ...(opts.json !== undefined ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(opts.headers ?? {}),
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...opts,
+    headers,
+    credentials: "include",
+    body:
+      opts.json !== undefined
+        ? JSON.stringify(opts.json)
+        : (opts.body as BodyInit | undefined),
+  })
+
+  if (res.status === 204) {
+    return undefined as T
+  }
+
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : null
+
+  if (!res.ok) {
+    const msg =
+      typeof data?.message === "string" ? data.message : `HTTP ${res.status}`
+    throw new Error(msg)
+  }
+
+  return data as T
+}
