@@ -4,10 +4,10 @@ Customer-facing e-commerce and corporate site platform (Laravel + Next.js).
 
 ## Installation
 
-Server installation, control panel, and multi-site management are handled by **[WebinoServer](../WebinoServer)** — not this repository.
+Server installation, control panel, and multi-site management are handled by **[WebinoServerManager](https://github.com/WebinaDev/WebinoServerManager)** — not this repository.
 
 ```bash
-bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)
 ```
 
 Then from the control panel or CLI:
