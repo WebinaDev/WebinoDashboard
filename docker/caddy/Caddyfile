@@ -13,7 +13,7 @@
 	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
 
 	# Public fonts and static files
-	@publicStatic path /fonts/* /favicon.svg /icons.svg /placeholder.svg
+	@publicStatic path /fonts/* /brand/* /placeholder.svg
 	header @publicStatic Cache-Control "public, max-age=31536000, immutable"
 
 	# API — no cache

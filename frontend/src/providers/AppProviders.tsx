@@ -120,14 +120,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       return
     }
     localStorage.setItem("theme_accent", accent)
-    document.body.className = `theme-${accent} min-h-svh bg-background text-foreground antialiased`
-    const locale = readStoredLocale()
-    if (locale === "fa") {
-      document.body.style.fontFamily =
-        "var(--font-yekan), system-ui, sans-serif"
-    } else {
-      document.body.style.fontFamily = ""
-    }
+    document.body.className = `theme-${accent} min-h-svh bg-background text-foreground font-sans antialiased`
   }, [hydrated, accent])
 
   const themeValue = useMemo(

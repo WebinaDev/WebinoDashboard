@@ -1,4 +1,5 @@
 import * as React from "react"
+import Image from "next/image"
 import { ChevronsUpDown, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
@@ -18,12 +19,41 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
+function TeamLogo({
+  logoSrc,
+  logo: Logo,
+  className,
+}: {
+  logoSrc?: string
+  logo?: React.ElementType
+  className?: string
+}) {
+  if (logoSrc) {
+    return (
+      <Image
+        src={logoSrc}
+        alt=""
+        width={16}
+        height={16}
+        className={className ?? "size-4 shrink-0 rounded-sm object-contain"}
+      />
+    )
+  }
+
+  if (Logo) {
+    return <Logo className={className ?? "size-4 shrink-0"} />
+  }
+
+  return null
+}
+
 export function TeamSwitcher({
   teams,
 }: {
   teams: {
     name: string
-    logo: React.ElementType
+    logo?: React.ElementType
+    logoSrc?: string
     plan: string
   }[]
 }) {
@@ -45,8 +75,12 @@ export function TeamSwitcher({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <activeTeam.logo className="size-4" />
+              <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <TeamLogo
+                  logoSrc={activeTeam.logoSrc}
+                  logo={activeTeam.logo}
+                  className="size-6 rounded-sm object-contain"
+                />
               </div>
               <div className="grid flex-1 text-start text-sm leading-tight">
                 <span className="truncate font-semibold">
@@ -72,8 +106,8 @@ export function TeamSwitcher({
                 onClick={() => setActiveTeam(team)}
                 className="gap-2 p-2"
               >
-                <div className="flex size-6 items-center justify-center rounded-sm border">
-                  <team.logo className="size-4 shrink-0" />
+                <div className="flex size-6 items-center justify-center overflow-hidden rounded-sm border">
+                  <TeamLogo logoSrc={team.logoSrc} logo={team.logo} />
                 </div>
                 {team.name}
                 {showKbShortcuts ? (

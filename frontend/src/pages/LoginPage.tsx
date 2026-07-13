@@ -1,6 +1,6 @@
 "use client"
 
-import { GalleryVerticalEnd } from "lucide-react"
+import Image from "next/image"
 import { useTranslation } from "react-i18next"
 
 import { LoginForm } from "@/components/login-02/login-form"
@@ -13,9 +13,14 @@ export default function LoginPage() {
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <div className="flex items-center gap-2 font-medium">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <GalleryVerticalEnd className="size-4" />
-            </div>
+            <Image
+              src="/brand/logo.png"
+              alt=""
+              width={24}
+              height={24}
+              className="size-6 rounded-md"
+              priority
+            />
             {t("common:appName")}
           </div>
         </div>

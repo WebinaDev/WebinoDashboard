@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { GalleryVerticalEnd, type LucideIcon } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 import type { NavSection } from "@/hooks/useDashboardNav"
 import { NavMain } from "@/components/sidebar-07/nav-main"
@@ -43,7 +43,7 @@ export function AppSidebar({
   const teams = [
     {
       name: tenantLabel,
-      logo: GalleryVerticalEnd,
+      logoSrc: "/brand/logo.png",
       plan: tenantPlanLabel,
     },
   ]
