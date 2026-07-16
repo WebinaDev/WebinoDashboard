@@ -22,13 +22,13 @@ webina site create --slug shop1 --domain shop1.example.com --product Webino
 For production multi-tenant rollouts, sites are created from **WebinoERM** (`admin/site-builder/provisions/new`):
 
 1. ERM admin selects business category, type, package, and domain.
-2. ERM issues a `core_licenses` row and calls **WebinoServer** `POST /api/v1/sites` with env injection (`TENANT_LICENSE_KEY`, `TENANT_SEED_JSON`).
-3. WebinoServer runs `webina site create` (Caddy SSL after DNS).
+2. ERM issues a `core_licenses` row and calls **WebinoServerManager** `POST /api/v1/sites` with env injection (`TENANT_LICENSE_KEY`, `TENANT_SEED_JSON`).
+3. WebinoServerManager runs `webina site create` (Caddy SSL after DNS).
 4. ERM calls `POST /api/v1/provision/bootstrap` on the new site to seed tenant, sync modules, and open the setup wizard.
 
 Corporate packages (`agency`, `startup`) receive theme `corporate-demo-v1`, sample CMS pages, blog/portfolio/team content, and consultation sync to ERP.
 
-Configure WebinoServer in ERM under **Hosting & infrastructure** (`webinoserver_panel_url`, API token, `platform_base_domain`).
+Configure WebinoServerManager in ERM under **Hosting & infrastructure** (`webinoserver_panel_url`, API token, `platform_base_domain`).
 
 ## URL structure
 
@@ -100,9 +100,9 @@ frontend/    Next.js — public (site) + admin routes
   app/(site)/   Public SSR pages
   app/admin/    Dashboard under /admin/*
   src/themes/   Visual theme packages
-docker/      Dockerfiles used by WebinoServer to build platform images
+docker/      Dockerfiles used by WebinoServerManager to build platform images
 ```
 
-Platform images are built from this repo when you run `webina product install Webino` on a server managed by WebinoServer.
+Platform images (`docker/php/Dockerfile.platform`) are built when you run `webina product install Webino` on a server managed by WebinoServerManager.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) and [FEATURES.md](FEATURES.md) for product specifications.

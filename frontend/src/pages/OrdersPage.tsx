@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sheet"
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
+import { normalizeUiLocale } from "@/lib/locale"
 
 type OrderRow = {
   id: number
@@ -33,8 +34,9 @@ const STATUSES = [
 ] as const
 
 export default function OrdersPage() {
-  const { t, i18n } = useTranslation(["orders"])
-  const lng = i18n.language.startsWith("fa") ? "fa" : "en"
+  const t = useTranslations("orders")
+  const locale = useLocale()
+  const lng = normalizeUiLocale(locale)
   const [rows, setRows] = useState<OrderRow[]>([])
   const [pick, setPick] = useState<OrderRow | null>(null)
   const [status, setStatus] = useState("")
@@ -69,15 +71,15 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("orders:title")}</h1>
+      <h1 className="text-2xl font-semibold">{t("title")}</h1>
       <div className="rounded-xl border">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
-              <th className="p-3 text-start font-medium">{t("orders:col_id")}</th>
-              <th className="p-3 text-start font-medium">{t("orders:col_status")}</th>
-              <th className="p-3 text-start font-medium">{t("orders:col_total")}</th>
-              <th className="p-3 text-start font-medium">{t("orders:col_date")}</th>
+              <th className="p-3 text-start font-medium">{t("col_id")}</th>
+              <th className="p-3 text-start font-medium">{t("col_status")}</th>
+              <th className="p-3 text-start font-medium">{t("col_total")}</th>
+              <th className="p-3 text-start font-medium">{t("col_date")}</th>
               <th className="p-3" />
             </tr>
           </thead>
@@ -85,7 +87,7 @@ export default function OrdersPage() {
             {rows.length === 0 ? (
               <tr>
                 <td className="text-muted-foreground p-6" colSpan={5}>
-                  {t("orders:empty")}
+                  {t("empty")}
                 </td>
               </tr>
             ) : (
@@ -99,7 +101,7 @@ export default function OrdersPage() {
                   <td className="p-3 text-muted-foreground">{o.created_at}</td>
                   <td className="p-3 text-end">
                     <Button type="button" size="sm" variant="secondary" onClick={() => setPick(o)}>
-                      {t("orders:detail")}
+                      {t("detail")}
                     </Button>
                   </td>
                 </tr>
@@ -113,13 +115,13 @@ export default function OrdersPage() {
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>
-              {t("orders:title")} #{pick?.id}
+              {t("title")} #{pick?.id}
             </SheetTitle>
           </SheetHeader>
           {pick ? (
             <div className="mt-6 flex flex-col gap-4">
               <div className="grid gap-2">
-                <Label>{t("orders:status_label")}</Label>
+                <Label>{t("status_label")}</Label>
                 <select
                   className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
                   value={status}
@@ -140,7 +142,7 @@ export default function OrdersPage() {
                 ))}
               </ul>
               <Button type="button" onClick={() => void saveOrder()}>
-                {t("orders:save")}
+                {t("save")}
               </Button>
             </div>
           ) : null}

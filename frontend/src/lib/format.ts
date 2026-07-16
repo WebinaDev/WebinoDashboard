@@ -1,29 +1,18 @@
+import {
+  formatDate,
+  formatNumber,
+  normalizeUiLocale,
+} from "@/lib/locale"
+
+/** Locale-aware integer formatting (digits follow active language). */
 export function formatInteger(value: number, locale: string): string {
-  const useFaDigits = locale.startsWith("fa")
-  return new Intl.NumberFormat(useFaDigits ? "fa-IR" : "en-US", {
-    maximumFractionDigits: 0,
-    numberingSystem: useFaDigits ? "arabext" : "latn",
-  }).format(value)
+  return formatNumber(value, normalizeUiLocale(locale))
 }
 
 export function formatLocalizedDate(locale: string, date: Date): string {
-  if (locale.startsWith("fa")) {
-    return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-      dateStyle: "medium",
-      numberingSystem: "arabext",
-    }).format(date)
-  }
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date)
+  return formatDate(date, normalizeUiLocale(locale))
 }
 
 export function formatNowDate(locale: string): string {
-  if (locale.startsWith("fa")) {
-    return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-      dateStyle: "medium",
-      numberingSystem: "arabext",
-    }).format(new Date())
-  }
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date()
-  )
+  return formatDate(new Date(), normalizeUiLocale(locale))
 }

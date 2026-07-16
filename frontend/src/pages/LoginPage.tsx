@@ -1,42 +1,28 @@
 "use client"
 
 import Image from "next/image"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
-import { LoginForm } from "@/components/login-02/login-form"
+import { LoginForm } from "@/components/login-04/login-form"
 
 export default function LoginPage() {
-  const { t } = useTranslation(["common"])
+  const t = useTranslations("common")
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-center gap-2 md:justify-start">
-          <div className="flex items-center gap-2 font-medium">
-            <Image
-              src="/brand/logo.png"
-              alt=""
-              width={24}
-              height={24}
-              className="size-6 rounded-md"
-              priority
-            />
-            {t("common:appName")}
-          </div>
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+      <div className="flex w-full max-w-sm flex-col gap-6 md:max-w-3xl">
+        <div className="flex items-center gap-2 self-center font-medium">
+          <Image
+            src="/brand/logo.png"
+            alt=""
+            width={24}
+            height={24}
+            className="size-6 rounded-md"
+            priority
+          />
+          {t("appName")}
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
-            <LoginForm />
-          </div>
-        </div>
-      </div>
-      <div className="relative hidden bg-muted lg:block">
-        <img
-          src="/placeholder.svg"
-          alt=""
-          fetchPriority="low"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
+        <LoginForm />
       </div>
     </div>
   )

@@ -1,7 +1,8 @@
 "use client"
 
 import { Languages, Moon, Sun } from "lucide-react"
-import { useTranslation } from "react-i18next"
+import { useLocale, useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -10,14 +11,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { normalizeUiLocale } from "@/lib/locale"
 import type { Accent } from "@/providers/AppProviders"
 import { useThemeSettings } from "@/providers/AppProviders"
 
 export function LocaleThemeToolbar() {
-  const { i18n, t } = useTranslation()
+  const router = useRouter()
+  const locale = useLocale()
+  const t = useTranslations("common")
   const { mode, setMode, accent, setAccent } = useThemeSettings()
 
-  const lng = i18n.language.startsWith("fa") ? "fa" : "en"
+  const lng = normalizeUiLocale(locale)
+
+  function changeLanguage(nextLocale: "en" | "fa") {
+    document.cookie = `NEXT_LOCALE=${nextLocale};path=/;max-age=31536000`
+    localStorage.setItem("locale", nextLocale)
+    document.documentElement.lang = nextLocale
+    document.documentElement.dir = nextLocale === "fa" ? "rtl" : "ltr"
+    router.refresh()
+  }
 
   const accents: Accent[] = ["zinc", "slate", "blue", "green", "rose", "orange"]
 
@@ -27,15 +39,15 @@ export function LocaleThemeToolbar() {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" type="button">
             <Languages className="size-4" />
-            {lng === "fa" ? t("common:locale_fa") : t("common:locale_en")}
+            {lng === "fa" ? t("locale_fa") : t("locale_en")}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => void i18n.changeLanguage("en")}>
-            {t("common:locale_en")}
+          <DropdownMenuItem onClick={() => changeLanguage("en")}>
+            {t("locale_en")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void i18n.changeLanguage("fa")}>
-            {t("common:locale_fa")}
+          <DropdownMenuItem onClick={() => changeLanguage("fa")}>
+            {t("locale_fa")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -43,13 +55,13 @@ export function LocaleThemeToolbar() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" type="button">
-            {t(`common:accent_${accent}` as never)}
+            {t(`accent_${accent}` as never)}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {accents.map((a) => (
             <DropdownMenuItem key={a} onClick={() => setAccent(a)}>
-              {t(`common:accent_${a}` as never)}
+              {t(`accent_${a}` as never)}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

@@ -1,17 +1,17 @@
 "use client"
 
 import { useEffect } from "react"
-import { useTranslation } from "react-i18next"
+import { useLocale } from "next-intl"
 
-/** Keeps <html lang/dir> and persisted locale aligned with i18n. */
+/** Keeps <html lang/dir> and persisted locale aligned with next-intl. */
 export function useLocaleSync() {
-  const { i18n } = useTranslation()
+  const locale = useLocale()
 
   useEffect(() => {
-    const lng = i18n.resolvedLanguage ?? i18n.language
+    const lng = locale.startsWith("fa") ? "fa" : "en"
     const html = document.documentElement
-    html.setAttribute("lang", lng === "fa" ? "fa" : "en")
+    html.setAttribute("lang", lng)
     html.setAttribute("dir", lng === "fa" ? "rtl" : "ltr")
-    localStorage.setItem("locale", lng === "fa" ? "fa" : "en")
-  }, [i18n])
+    localStorage.setItem("locale", lng)
+  }, [locale])
 }

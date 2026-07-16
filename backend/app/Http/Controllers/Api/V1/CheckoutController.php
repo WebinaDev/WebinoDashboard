@@ -27,12 +27,12 @@ class CheckoutController extends Controller
         ])->first();
 
         if (! $cart) {
-            return response()->json(['message' => 'Cart empty'], 422);
+            return response()->json(['message' => __('api.cart_empty')], 422);
         }
 
         $lines = CartItem::query()->where('cart_id', $cart->id)->with('product')->get();
         if ($lines->isEmpty()) {
-            return response()->json(['message' => 'Cart empty'], 422);
+            return response()->json(['message' => __('api.cart_empty')], 422);
         }
 
         $order = DB::transaction(function () use ($lines, $user, $cart, $checkoutMeta) {

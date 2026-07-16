@@ -18,8 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
             env('AUTH_COOKIE_NAME', 'webino_auth_token'),
         ]);
         $middleware->api(prepend: [
+            \App\Http\Middleware\ForceJsonResponse::class,
+            \App\Http\Middleware\ApiResponseFormatter::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\AuthenticateFromCookie::class,
+        ]);
+        $middleware->api(append: [
+            \App\Http\Middleware\RequireTwoFactor::class,
+            \App\Http\Middleware\ThrottleApiToken::class,
         ]);
         $middleware->alias([
             'module' => EnsureModuleEnabled::class,

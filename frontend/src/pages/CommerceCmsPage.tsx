@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,8 @@ import { api } from "@/lib/api"
 type Page = { id: number; slug: string; title: string; published: boolean; body: string | null }
 
 export default function CommerceCmsPage() {
-  const { t } = useTranslation(["phase2", "common"])
+  const t = useTranslations("phase2")
+  const tCommon = useTranslations("common")
   const [rows, setRows] = useState<Page[]>([])
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
@@ -47,11 +48,11 @@ export default function CommerceCmsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("phase2:cms_title")}</h1>
+      <h1 className="text-2xl font-semibold">{t("cms_title")}</h1>
 
       <form onSubmit={(e) => void onCreate(e)} className="grid max-w-xl gap-3 rounded-lg border p-4">
         <div className="space-y-1">
-          <Label htmlFor="cms-title">{t("phase2:cms_title")}</Label>
+          <Label htmlFor="cms-title">{t("cms_title")}</Label>
           <Input id="cms-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         </div>
         <div className="space-y-1">
@@ -69,12 +70,12 @@ export default function CommerceCmsPage() {
           />
         </div>
         <Button type="submit" disabled={pending}>
-          {t("common:save")}
+          {tCommon("save")}
         </Button>
       </form>
 
       {rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("phase2:cms_empty")}</p>
+        <p className="text-muted-foreground text-sm">{t("cms_empty")}</p>
       ) : (
         <ul className="space-y-3">
           {rows.map((p) => (

@@ -1,7 +1,15 @@
-import { createPage } from "@/lib/create-page"
+import DashboardHome from "@/pages/DashboardHome"
+import { apiServerData } from "@/lib/api-server"
 
-const DashboardHome = createPage(() => import("@/pages/DashboardHome"))
+type Summary = {
+  orders_open: number
+  orders_paid: number
+  products: number
+  revenue_minor: number
+}
 
-export default function HomePage() {
-  return <DashboardHome />
+export default async function HomePage() {
+  const initialSummary = await apiServerData<Summary>("/api/v1/analytics/summary")
+
+  return <DashboardHome initialSummary={initialSummary} />
 }

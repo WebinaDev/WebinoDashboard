@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet"
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
+import { normalizeUiLocale } from "@/lib/locale"
 
 type Category = {
   id: number
@@ -32,8 +33,9 @@ type Product = {
 }
 
 export default function CatalogPage() {
-  const { t, i18n } = useTranslation(["catalog"])
-  const lng = i18n.language.startsWith("fa") ? "fa" : "en"
+  const t = useTranslations("catalog")
+  const locale = useLocale()
+  const lng = normalizeUiLocale(locale)
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<Product[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -101,7 +103,7 @@ export default function CatalogPage() {
   }
 
   async function deleteProduct(id: number) {
-    if (!window.confirm(t("catalog:confirm_delete"))) {
+    if (!window.confirm(t("confirm_delete"))) {
       return
     }
     await api(`/api/v1/products/${id}`, { method: "DELETE" })
@@ -129,11 +131,11 @@ export default function CatalogPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("catalog:title")}</h1>
+      <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       <div>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-medium">{t("catalog:categories_heading")}</h2>
+          <h2 className="text-lg font-medium">{t("categories_heading")}</h2>
           <Button type="button" size="sm" variant="outline" onClick={() => void addCategory()}>
             +
           </Button>
@@ -148,9 +150,9 @@ export default function CatalogPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-medium">{t("catalog:products_heading")}</h2>
+        <h2 className="text-lg font-medium">{t("products_heading")}</h2>
         <Button type="button" size="sm" onClick={() => openNew()}>
-          {t("catalog:new_product")}
+          {t("new_product")}
         </Button>
       </div>
 
@@ -158,10 +160,10 @@ export default function CatalogPage() {
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
-              <th className="p-3 text-start font-medium">{t("catalog:products_heading")}</th>
-              <th className="p-3 text-start font-medium">{t("catalog:sku")}</th>
-              <th className="p-3 text-start font-medium">{t("catalog:price")}</th>
-              <th className="p-3 text-start font-medium">{t("catalog:stock")}</th>
+              <th className="p-3 text-start font-medium">{t("products_heading")}</th>
+              <th className="p-3 text-start font-medium">{t("sku")}</th>
+              <th className="p-3 text-start font-medium">{t("price")}</th>
+              <th className="p-3 text-start font-medium">{t("stock")}</th>
               <th className="p-3" />
             </tr>
           </thead>
@@ -169,7 +171,7 @@ export default function CatalogPage() {
             {items.length === 0 ? (
               <tr>
                 <td className="text-muted-foreground p-6" colSpan={5}>
-                  {t("catalog:empty")}
+                  {t("empty")}
                 </td>
               </tr>
             ) : (
@@ -184,7 +186,7 @@ export default function CatalogPage() {
                       +
                     </Button>
                     <Button type="button" size="sm" variant="outline" onClick={() => openEdit(p)}>
-                      {t("catalog:edit")}
+                      {t("edit")}
                     </Button>
                     <Button
                       type="button"
@@ -193,7 +195,7 @@ export default function CatalogPage() {
                       className="text-destructive"
                       onClick={() => void deleteProduct(p.id)}
                     >
-                      {t("catalog:delete")}
+                      {t("delete")}
                     </Button>
                   </td>
                 </tr>
@@ -206,19 +208,19 @@ export default function CatalogPage() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{editing ? t("catalog:edit") : t("catalog:new_product")}</SheetTitle>
+            <SheetTitle>{editing ? t("edit") : t("new_product")}</SheetTitle>
           </SheetHeader>
           <div className="mt-6 flex flex-col gap-4">
             <div className="grid gap-2">
-              <Label>{t("catalog:name")}</Label>
+              <Label>{t("name")}</Label>
               <Input value={formName} onChange={(e) => setFormName(e.target.value)} />
             </div>
             <div className="grid gap-2">
-              <Label>{t("catalog:sku")}</Label>
+              <Label>{t("sku")}</Label>
               <Input value={formSku} onChange={(e) => setFormSku(e.target.value)} dir="ltr" className="font-mono" />
             </div>
             <div className="grid gap-2">
-              <Label>{t("catalog:category")}</Label>
+              <Label>{t("category")}</Label>
               <select
                 className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
                 value={formCat}
@@ -233,7 +235,7 @@ export default function CatalogPage() {
               </select>
             </div>
             <div className="grid gap-2">
-              <Label>{t("catalog:price")}</Label>
+              <Label>{t("price")}</Label>
               <Input
                 value={formPrice}
                 onChange={(e) => setFormPrice(e.target.value)}
@@ -243,7 +245,7 @@ export default function CatalogPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label>{t("catalog:stock")}</Label>
+              <Label>{t("stock")}</Label>
               <Input
                 value={formStock}
                 onChange={(e) => setFormStock(e.target.value)}
@@ -254,10 +256,10 @@ export default function CatalogPage() {
             </div>
             <div className="flex gap-2">
               <Button type="button" onClick={() => void saveProduct()}>
-                {t("catalog:save")}
+                {t("save")}
               </Button>
               <Button type="button" variant="outline" onClick={() => setSheetOpen(false)}>
-                {t("catalog:cancel_edit")}
+                {t("cancel_edit")}
               </Button>
             </div>
           </div>

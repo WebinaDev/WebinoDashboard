@@ -1,22 +1,15 @@
+import { unwrapApiData } from "@webina/ui"
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
 
 export type ApiOptions = RequestInit & {
   json?: unknown
 }
 
-function getClientToken(): string | null {
-  if (typeof window === "undefined") {
-    return null
-  }
-  return localStorage.getItem("auth_token")
-}
-
 export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
-  const token = getClientToken()
   const headers: HeadersInit = {
     Accept: "application/json",
     ...(opts.json !== undefined ? { "Content-Type": "application/json" } : {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(opts.headers ?? {}),
   }
 
@@ -43,5 +36,5 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     throw new Error(msg)
   }
 
-  return data as T
+  return unwrapApiData<T>(data)
 }

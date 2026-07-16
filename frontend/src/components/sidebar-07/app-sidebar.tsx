@@ -49,11 +49,11 @@ export function AppSidebar({
   ]
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="border-s" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={teams} />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent data-tour="sidebar-nav">
         {navSections.map((section, index) => (
           <NavMain
             key={`${section.groupLabel}-${index}`}

@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
+import { normalizeUiLocale } from "@/lib/locale"
 
 type CartRes = {
   data: {
@@ -19,9 +20,10 @@ type CartRes = {
 }
 
 export default function CartPage() {
-  const { t, i18n } = useTranslation(["cart"])
+  const t = useTranslations("cart")
+  const locale = useLocale()
+  const lng = normalizeUiLocale(locale)
   const [cart, setCart] = useState<CartRes["data"] | null>(null)
-  const lng = i18n.language.startsWith("fa") ? "fa" : "en"
 
   function reload() {
     api<CartRes>("/api/v1/cart")
@@ -42,17 +44,17 @@ export default function CartPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("cart:title")}</h1>
+      <h1 className="text-2xl font-semibold">{t("title")}</h1>
       {lines.length === 0 ? (
-        <p className="text-muted-foreground">{t("cart:empty")}</p>
+        <p className="text-muted-foreground">{t("empty")}</p>
       ) : (
         <div className="rounded-xl border">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">
               <tr>
-                <th className="p-3 text-start font-medium">{t("cart:col_product")}</th>
-                <th className="p-3 text-start font-medium">{t("cart:quantity")}</th>
-                <th className="p-3 text-start font-medium">{t("cart:col_price")}</th>
+                <th className="p-3 text-start font-medium">{t("col_product")}</th>
+                <th className="p-3 text-start font-medium">{t("quantity")}</th>
+                <th className="p-3 text-start font-medium">{t("col_price")}</th>
                 <th className="p-3" />
               </tr>
             </thead>
@@ -71,7 +73,7 @@ export default function CartPage() {
                       variant="outline"
                       onClick={() => void remove(line.product.id)}
                     >
-                      {t("cart:remove")}
+                      {t("remove")}
                     </Button>
                   </td>
                 </tr>

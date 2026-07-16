@@ -5,7 +5,7 @@ import {
   LogOut,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
 import {
   Avatar,
@@ -45,8 +45,8 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { t } = useTranslation(["common"])
-  const { setToken } = useAuth()
+  const t = useTranslations("common")
+  const { setAuthenticated } = useAuth()
   const router = useRouter()
 
   const avatarUrl = user.avatar ?? ""
@@ -57,7 +57,7 @@ export function NavUser({
     } catch {
       // still clear local session
     }
-    setToken(null)
+    setAuthenticated(false)
     router.replace("/login")
   }
 
@@ -106,7 +106,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void logout()}>
               <LogOut />
-              {t("common:logout")}
+              {t("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

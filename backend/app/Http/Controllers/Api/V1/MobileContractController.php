@@ -3,18 +3,18 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\OpenApiController;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** FEATURES Phase 3 — native apps API surface (frozen contracts placeholder). */
+/**
+ * Native-apps contract surface — serves the live OpenAPI document.
+ * Prefer GET /api/v1/openapi.json for new clients.
+ */
 class MobileContractController extends Controller
 {
-    public function show(Request $request): \Illuminate\Http\JsonResponse
+    public function show(Request $request, OpenApiController $openApi): JsonResponse
     {
-        return response()->json([
-            'openapi_version' => '3.1.0',
-            'phase' => 'phase_3',
-            'notes' => 'Replace with generated schema once MVP endpoints are stable.',
-            'base_path' => '/api/v1',
-        ]);
+        return $openApi->show();
     }
 }

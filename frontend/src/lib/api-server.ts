@@ -1,55 +1,68 @@
-import { headers } from "next/headers"
+import { cookies } from "next/headers"
 
-const API_BASE = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"
+import { unwrapApiData } from "@webina/ui"
 
-export type ApiServerOptions = {
-  revalidate?: number | false
-  host?: string
-  json?: unknown
-  method?: string
-}
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
 
-export async function apiServer<T>(path: string, opts: ApiServerOptions = {}): Promise<T> {
-  const hdrs = await headers()
-  const host = opts.host ?? hdrs.get("host") ?? "localhost"
+async function serverFetch(path: string, init?: RequestInit): Promise<unknown | null> {
+  if (!API_BASE) {
+    return null
+  }
 
-  const init: RequestInit = {
-    method: opts.method ?? (opts.json !== undefined ? "POST" : "GET"),
+  const jar = await cookies()
+  const cookieHeader = jar
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ")
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
     headers: {
       Accept: "application/json",
-      Host: host,
-      ...(opts.json !== undefined ? { "Content-Type": "application/json" } : {}),
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      ...(init?.headers ?? {}),
     },
-    ...(opts.json !== undefined ? { body: JSON.stringify(opts.json) } : {}),
-  }
-
-  if (opts.revalidate === false) {
-    init.cache = "no-store"
-  } else if (typeof opts.revalidate === "number") {
-    init.next = { revalidate: opts.revalidate }
-  } else {
-    init.next = { revalidate: 60 }
-  }
-
-  const res = await fetch(`${API_BASE}${path}`, init)
-  const text = await res.text()
-  const data = text ? JSON.parse(text) : null
+    cache: "no-store",
+  })
 
   if (!res.ok) {
-    const msg = typeof data?.message === "string" ? data.message : `HTTP ${res.status}`
-    throw new Error(msg)
+    return null
   }
 
-  return data as T
+  const text = await res.text()
+  if (!text) {
+    return null
+  }
+
+  return JSON.parse(text) as unknown
 }
 
-export async function getPublicTenant() {
-  return apiServer<{
-    data: {
-      name: string
-      store_display_name?: string | null
-      active_theme_slug?: string | null
-      branding?: Record<string, unknown> | null
-    }
+/** Raw JSON response (public site RSC pages). */
+export async function apiServer<T>(path: string): Promise<T | null> {
+  try {
+    return (await serverFetch(path)) as T | null
+  } catch {
+    return null
+  }
+}
+
+/** Unwrapped API `data` payload (authenticated dashboard home). */
+export async function apiServerData<T>(path: string): Promise<T | null> {
+  const raw = await apiServer<unknown>(path)
+  if (raw == null) {
+    return null
+  }
+  return unwrapApiData<T>(raw)
+}
+
+export async function getPublicTenant(): Promise<{
+  data: { name: string; store_display_name?: string | null }
+}> {
+  const res = await apiServer<{
+    data: { name: string; store_display_name?: string | null }
   }>("/api/v1/public/tenant")
+  if (!res) {
+    throw new Error("tenant unavailable")
+  }
+  return res
 }

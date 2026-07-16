@@ -21,16 +21,17 @@ class ProvisionController extends Controller
         $token = (string) $request->header('X-Provision-Token', '');
         $expected = (string) env('TENANT_PROVISION_TOKEN', '');
         if ($expected === '' || ! hash_equals($expected, $token)) {
-            return response()->json(['message' => 'Invalid provision token.'], 403);
+            return response()->json(['message' => __('api.invalid_provision_token')], 403);
         }
 
         $secret = (string) config('services.webino.provision_hmac_secret', '');
-        if ($secret !== '') {
-            $sig = (string) $request->header('X-Provision-Signature', '');
-            $body = $request->getContent();
-            if (! hash_equals(hash_hmac('sha256', $body, $secret), $sig)) {
-                return response()->json(['message' => 'Invalid signature.'], 403);
-            }
+        if ($secret === '') {
+            return response()->json(['message' => __('api.hmac_secret_missing')], 503);
+        }
+        $sig = (string) $request->header('X-Provision-Signature', '');
+        $body = $request->getContent();
+        if ($sig === '' || ! hash_equals(hash_hmac('sha256', $body, $secret), $sig)) {
+            return response()->json(['message' => __('api.invalid_signature')], 403);
         }
 
         $data = $request->validate([
@@ -39,7 +40,7 @@ class ProvisionController extends Controller
 
         $tenant = Tenant::query()->first();
         if (! $tenant) {
-            return response()->json(['message' => 'Tenant not found.'], 404);
+            return response()->json(['message' => __('api.tenant_not_found')], 404);
         }
 
         $seed = $data['seed'];

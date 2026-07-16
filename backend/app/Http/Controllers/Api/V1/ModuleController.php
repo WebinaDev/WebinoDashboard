@@ -60,7 +60,7 @@ class ModuleController extends Controller
 
         if ($data['enabled'] && $def->requires_license && ! $tm->licensed) {
             return response()->json([
-                'message' => 'Module not licensed. Sync CRM license first.',
+                'message' => __('api.module_not_licensed'),
                 'slug' => $slug,
             ], 422);
         }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
 import { api } from "@/lib/api"
 
@@ -11,8 +11,10 @@ type Status = {
   source_configured: boolean
 }
 
-export default function AccountingPlaceholderPage() {
-  const { t } = useTranslation(["nav", "modules", "common"])
+export default function AccountingPage() {
+  const tNav = useTranslations("nav")
+  const tModules = useTranslations("modules")
+  const tCommon = useTranslations("common")
   const [status, setStatus] = useState<Status | null>(null)
 
   useEffect(() => {
@@ -35,29 +37,27 @@ export default function AccountingPlaceholderPage() {
 
   return (
     <div className="rounded-xl border p-6">
-      <h1 className="text-xl font-semibold">{t("nav:accounting")}</h1>
+      <h1 className="text-xl font-semibold">{tNav("accounting")}</h1>
       <p className="text-muted-foreground mt-2 max-w-2xl text-sm">
-        {t("modules:accounting_hint")}
+        {tModules("accounting_hint")}
       </p>
       {status ? (
         <ul className="text-muted-foreground mt-4 max-w-xl list-inside list-disc text-sm">
           <li>
-            {t("modules:accounting_row_license")}:{" "}
-            {status.licensed ? t("common:yes") : t("common:no")}
+            {tModules("accounting_row_license")}:{" "}
+            {status.licensed ? tCommon("yes") : tCommon("no")}
           </li>
           <li>
-            {t("modules:accounting_row_bundle")}:{" "}
-            {status.bundle_present ? t("common:yes") : t("common:no")}
+            {tModules("accounting_row_bundle")}:{" "}
+            {status.bundle_present ? tCommon("yes") : tCommon("no")}
           </li>
           <li>
-            {t("modules:accounting_row_source")}:{" "}
-            {status.source_configured ? t("common:yes") : t("common:no")}
+            {tModules("accounting_row_source")}:{" "}
+            {status.source_configured ? tCommon("yes") : tCommon("no")}
           </li>
         </ul>
       ) : (
-        <p className="text-muted-foreground mt-4 text-sm">
-          {t("common:loading")}
-        </p>
+        <p className="text-muted-foreground mt-4 text-sm">{tCommon("em_dash")}</p>
       )}
     </div>
   )

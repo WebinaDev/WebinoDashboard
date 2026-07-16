@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
 import { AppSidebar } from "@/components/sidebar-07/app-sidebar"
@@ -36,7 +36,9 @@ export default function DashboardLayoutPage({
 }: {
   children: ReactNode
 }) {
-  const { t } = useTranslation(["nav", "dashboard", "sidebar"])
+  const tNav = useTranslations("nav")
+  const tDashboard = useTranslations("dashboard")
+  const tSidebar = useTranslations("sidebar")
   const { navSections } = useDashboardNav()
 
   const { data: user } = useQuery({
@@ -53,13 +55,13 @@ export default function DashboardLayoutPage({
       <AppSidebar
         navSections={navSections}
         projects={[]}
-        projectsGroupLabel={t("nav:projects")}
+        projectsGroupLabel={tNav("projects")}
         user={{
           name: user?.name ?? "…",
           email: user?.email ?? "…",
         }}
         tenantLabel={tenantLabel}
-        tenantPlanLabel={t("sidebar:plan_tenant")}
+        tenantPlanLabel={tSidebar("plan_tenant")}
       />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
@@ -70,12 +72,12 @@ export default function DashboardLayoutPage({
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="/admin">
-                    {t("dashboard:breadcrumb_building")}
+                    {tDashboard("breadcrumb_building")}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{t("dashboard:breadcrumb_current")}</BreadcrumbPage>
+                  <BreadcrumbPage>{tDashboard("breadcrumb_current")}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

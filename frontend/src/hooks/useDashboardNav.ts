@@ -22,7 +22,7 @@ import {
 } from "lucide-react"
 import { useCallback, useMemo } from "react"
 import { usePathname } from "next/navigation"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
 
 import { api } from "@/lib/api"
@@ -83,7 +83,7 @@ function pathActive(pathname: string, path: string): boolean {
 }
 
 export function useDashboardNav() {
-  const { t } = useTranslation(["nav"])
+  const t = useTranslations("nav")
   const pathname = usePathname() ?? ""
 
   const { data: rows = [] } = useQuery({
@@ -151,7 +151,7 @@ export function useDashboardNav() {
         }
         seen.add(meta.path)
         items.push({
-          title: t(`nav:${slug}` as never),
+          title: t(slug as never),
           url: meta.path,
           icon: meta.icon,
           isActive: pathActive(pathname, meta.path),
@@ -160,7 +160,7 @@ export function useDashboardNav() {
 
       if (items.length > 0) {
         sections.push({
-          groupLabel: t(`nav:${sec.labelKey}` as never),
+          groupLabel: t(sec.labelKey as never),
           items,
         })
       }

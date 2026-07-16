@@ -95,7 +95,7 @@ class SetupController extends Controller
         $tenant = $request->user()->tenant;
 
         if (! filled($tenant->name)) {
-            return response()->json(['message' => 'Tenant name is required.'], 422);
+            return response()->json(['message' => __('api.tenant_name_required')], 422);
         }
 
         $tenant->setup_completed = true;

@@ -15,7 +15,7 @@ class ResolvePublicTenant
     {
         $tenant = $this->resolver->resolveFromRequest($request);
         if (! $tenant) {
-            return response()->json(['message' => 'Tenant not found'], 404);
+            return response()->json(['message' => __('api.tenant_not_found')], 404);
         }
 
         $request->attributes->set('public_tenant', $tenant);

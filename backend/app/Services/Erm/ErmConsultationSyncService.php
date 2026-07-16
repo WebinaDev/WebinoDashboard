@@ -40,16 +40,24 @@ class ErmConsultationSyncService
             $secret = (string) config('services.webino.license_hmac_secret', '');
         }
 
+        if ($secret === '' || $raw === false) {
+            Log::warning('ERM consultation sync skipped: HMAC secret not configured', ['id' => $consultation->id]);
+
+            return false;
+        }
+
+        if ($token === '') {
+            Log::warning('ERM consultation sync skipped: missing site token', ['id' => $consultation->id]);
+
+            return false;
+        }
+
         $headers = [
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
+            'X-Site-Token' => $token,
+            'X-Webino-Signature' => hash_hmac('sha256', $raw, $secret),
         ];
-        if ($token !== '') {
-            $headers['X-Site-Token'] = $token;
-        }
-        if ($secret !== '' && $raw !== false) {
-            $headers['X-Webino-Signature'] = hash_hmac('sha256', $raw, $secret);
-        }
 
         try {
             $res = Http::timeout(20)

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +27,10 @@ type Props = {
   idField?: string
 }
 
+function siteAdminKey(key: string): string {
+  return key.startsWith("site_admin:") ? key.slice("site_admin:".length) : key
+}
+
 export function AdminResourcePage({
   titleKey,
   listPath,
@@ -34,7 +38,8 @@ export function AdminResourcePage({
   fields,
   idField = "id",
 }: Props) {
-  const { t } = useTranslation(["site_admin", "common"])
+  const t = useTranslations("site_admin")
+  const tCommon = useTranslations("common")
   const [rows, setRows] = useState<Row[]>([])
   const [form, setForm] = useState<Record<string, string | boolean>>({})
   const [pending, setPending] = useState(false)
@@ -72,14 +77,14 @@ export function AdminResourcePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t(titleKey as never)}</h1>
+      <h1 className="text-2xl font-semibold">{t(siteAdminKey(titleKey) as never)}</h1>
 
       {fields.length > 0 ? (
       <form onSubmit={(e) => void onCreate(e)} className="grid max-w-xl gap-3 rounded-lg border p-4">
-        <p className="text-muted-foreground text-sm">{t("site_admin:new_item")}</p>
+        <p className="text-muted-foreground text-sm">{t("new_item")}</p>
         {fields.map((f) => (
           <div key={f.key} className="space-y-1">
-            <Label htmlFor={f.key}>{t(f.labelKey as never)}</Label>
+            <Label htmlFor={f.key}>{t(siteAdminKey(f.labelKey) as never)}</Label>
             {f.type === "textarea" ? (
               <textarea
                 id={f.key}
@@ -104,7 +109,7 @@ export function AdminResourcePage({
           </div>
         ))}
         <Button type="submit" disabled={pending}>
-          {t("common:save")}
+          {tCommon("save")}
         </Button>
       </form>
       ) : null}
@@ -118,11 +123,11 @@ export function AdminResourcePage({
                 <span className="bg-muted rounded px-2 py-0.5 text-xs">{String(row.status)}</span>
               ) : null}
               {row.erp_consultation_id ? (
-                <span className="border rounded px-2 py-0.5 text-xs">{t("site_admin:synced_erp")}</span>
+                <span className="border rounded px-2 py-0.5 text-xs">{t("synced_erp")}</span>
               ) : null}
               {row.published === true || row.published === false ? (
                 <span className="bg-muted rounded px-2 py-0.5 text-xs">
-                  {row.published ? t("site_admin:published") : t("site_admin:draft")}
+                  {row.published ? t("published") : t("draft")}
                 </span>
               ) : null}
             </div>
@@ -130,7 +135,7 @@ export function AdminResourcePage({
         ))}
       </ul>
       {rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("site_admin:empty")}</p>
+        <p className="text-muted-foreground text-sm">{t("empty")}</p>
       ) : null}
     </div>
   )

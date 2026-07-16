@@ -13,7 +13,7 @@ class EnsureModuleEnabled
     {
         $user = $request->user();
         if (! $user || ! $user->tenant_id) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+            return response()->json(['message' => __('api.unauthorized')], 401);
         }
 
         $active = TenantModule::query()
@@ -24,8 +24,10 @@ class EnsureModuleEnabled
 
         if (! $active) {
             return response()->json([
-                'message' => 'Module disabled for tenant.',
-                'module' => $slug,
+                'message' => __('api.module_disabled'),
+                'errors' => [
+                    'module' => $slug,
+                ],
             ], 403);
         }
 

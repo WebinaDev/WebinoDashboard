@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\Api\V1\AcademyCourseController;
 use App\Http\Controllers\Api\V1\AccountingController;
 use App\Http\Controllers\Api\V1\AiRecommendationController;
@@ -36,14 +37,17 @@ use App\Http\Controllers\Api\V1\SiteConsultationController;
 use App\Http\Controllers\Api\V1\TeamMemberController;
 use App\Http\Controllers\Api\V1\TenantController;
 use App\Http\Controllers\Api\V1\TestimonialController;
+use App\Http\Controllers\Api\V1\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+    Route::get('/openapi.json', [OpenApiController::class, 'show']);
+
     Route::get('/payments/callback/{provider}/{order}', [PaymentCallbackController::class, 'handle'])
         ->whereNumber('order');
 
-    Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/session', [AuthController::class, 'session']);
+    Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('/auth/session', [AuthController::class, 'session'])->middleware('throttle:5,1');
     Route::get('/auth/gate', [AuthController::class, 'gate']);
     Route::post('/provision/bootstrap', [ProvisionController::class, 'bootstrap']);
 
@@ -72,7 +76,16 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/check', [AuthController::class, 'check']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/auth/refresh', [AuthController::class, 'refresh']);
         Route::get('/auth/user', [AuthController::class, 'user']);
+
+        Route::prefix('auth/2fa')->group(function () {
+            Route::get('/status', [TwoFactorController::class, 'status']);
+            Route::post('/enable', [TwoFactorController::class, 'enable']);
+            Route::post('/confirm', [TwoFactorController::class, 'confirm']);
+            Route::post('/disable', [TwoFactorController::class, 'disable']);
+            Route::post('/verify', [TwoFactorController::class, 'verify']);
+        });
 
         Route::get('/modules', [ModuleController::class, 'index']);
         Route::patch('/modules/{slug}', [ModuleController::class, 'update']);

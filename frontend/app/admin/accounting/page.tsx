@@ -1,9 +1,7 @@
 import { createPage } from "@/lib/create-page"
 
-const AccountingPlaceholderPage = createPage(
-  () => import("@/pages/AccountingPlaceholderPage"),
-)
+const AccountingPage = createPage(() => import("@/pages/AccountingPage"))
 
 export default function Page() {
-  return <AccountingPlaceholderPage />
+  return <AccountingPage />
 }

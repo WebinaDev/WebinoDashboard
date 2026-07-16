@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
+use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
@@ -16,6 +17,8 @@ class AuthController extends Controller
         $data = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'otp' => ['nullable', 'string'],
+            'recovery_code' => ['nullable', 'string'],
         ]);
 
         /** @var User|null $user */
@@ -23,15 +26,39 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Invalid credentials.'],
+                'email' => [__('api.invalid_credentials')],
             ]);
+        }
+
+        if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
+            $verified = false;
+            $otp = $data['otp'] ?? '';
+            $recovery = $data['recovery_code'] ?? '';
+
+            if ($recovery !== '' && $user->two_factor_recovery_codes) {
+                $codes = json_decode(decrypt($user->two_factor_recovery_codes), true) ?? [];
+                if (in_array($recovery, $codes, true)) {
+                    $verified = true;
+                    $codes = array_values(array_filter($codes, fn ($c) => $c !== $recovery));
+                    $user->two_factor_recovery_codes = encrypt(json_encode($codes));
+                    $user->save();
+                }
+            } elseif ($otp !== '') {
+                $google2fa = new Google2FA;
+                $verified = $google2fa->verifyKey(decrypt($user->two_factor_secret), $otp);
+            }
+
+            if (! $verified) {
+                return response()->json([
+                    'two_factor_required' => true,
+                    'message' => __('auth.two_factor_required'),
+                ], 422);
+            }
         }
 
         $token = $user->createToken('spa')->plainTextToken;
 
         $response = response()->json([
-            'token' => $token,
-            'token_type' => 'Bearer',
             'user' => $user->load('tenant'),
         ]);
 
@@ -41,6 +68,25 @@ class AuthController extends Controller
     public function session(Request $request): \Illuminate\Http\JsonResponse
     {
         return $this->login($request);
+    }
+
+    public function refresh(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => __('api.unauthorized')], 401);
+        }
+
+        $request->user()?->currentAccessToken()?->delete();
+
+        $token = $user->createToken('spa')->plainTextToken;
+
+        $response = response()->json([
+            'user' => $user->load('tenant'),
+            'refreshed' => true,
+        ]);
+
+        return $this->attachAuthCookie($response, $token);
     }
 
     public function gate(Request $request): \Illuminate\Http\JsonResponse
@@ -79,7 +125,7 @@ class AuthController extends Controller
     {
         $request->user()?->currentAccessToken()?->delete();
 
-        return $this->clearAuthCookie(response()->json(['message' => 'Logged out']));
+        return $this->clearAuthCookie(response()->json(['message' => __('api.logged_out')]));
     }
 
     public function user(Request $request): \Illuminate\Http\JsonResponse

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,8 @@ type SetupStatus = {
 }
 
 export default function SetupWizardPage() {
-  const { t } = useTranslation(["setup", "common"])
+  const t = useTranslations("setup")
+  const tCommon = useTranslations("common")
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [businessType, setBusinessType] = useState("")
@@ -68,10 +69,10 @@ export default function SetupWizardPage() {
           tenant_name: tenantName || null,
         },
       })
-      setMsg(t("setup:saved"))
+      setMsg(t("saved"))
       setStep(2)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t("common:error_generic"))
+      setErr(e instanceof Error ? e.message : tCommon("error_generic"))
     } finally {
       setPending(false)
     }
@@ -88,10 +89,10 @@ export default function SetupWizardPage() {
           license_key: licenseKey || null,
         },
       })
-      setMsg(t("setup:saved"))
+      setMsg(t("saved"))
       setStep(3)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t("common:error_generic"))
+      setErr(e instanceof Error ? e.message : tCommon("error_generic"))
     } finally {
       setPending(false)
     }
@@ -102,10 +103,10 @@ export default function SetupWizardPage() {
     setPending(true)
     try {
       await api("/api/v1/setup/sync-license", { method: "POST" })
-      setMsg(t("setup:sync_ok"))
+      setMsg(t("sync_ok"))
       setStep(4)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t("setup:sync_fail"))
+      setErr(e instanceof Error ? e.message : t("sync_fail"))
     } finally {
       setPending(false)
     }
@@ -118,7 +119,7 @@ export default function SetupWizardPage() {
       await api("/api/v1/setup/complete", { method: "POST" })
       router.replace("/")
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t("common:error_generic"))
+      setErr(e instanceof Error ? e.message : tCommon("error_generic"))
     } finally {
       setPending(false)
     }
@@ -129,8 +130,8 @@ export default function SetupWizardPage() {
   return (
     <div className="mx-auto flex min-h-svh max-w-lg flex-col gap-6 p-6">
       <div>
-        <h1 className="text-2xl font-semibold">{t("setup:title")}</h1>
-        <p className="text-muted-foreground mt-1 text-sm">{t("setup:subtitle")}</p>
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{t("subtitle")}</p>
       </div>
       <ol className="text-muted-foreground flex flex-wrap gap-2 text-xs">
         {steps.map((i) => (
@@ -144,7 +145,7 @@ export default function SetupWizardPage() {
                   : ""
             }
           >
-            {i + 1}. {t(`setup:step_${i}_label` as never)}
+            {i + 1}. {t(`step_${i}_label` as never)}
           </li>
         ))}
       </ol>
@@ -153,9 +154,9 @@ export default function SetupWizardPage() {
 
       {step === 0 ? (
         <div className="flex flex-col gap-4">
-          <p className="text-muted-foreground text-sm">{t("setup:business_readonly")}</p>
+          <p className="text-muted-foreground text-sm">{t("business_readonly")}</p>
           <div className="grid gap-2">
-            <Label>{t("setup:business_type")}</Label>
+            <Label>{t("business_type")}</Label>
             <Input value={businessType} readOnly dir="ltr" className="font-mono bg-muted" />
           </div>
           {packageSku ? (
@@ -165,7 +166,7 @@ export default function SetupWizardPage() {
             </div>
           ) : null}
           <Button type="button" onClick={() => setStep(1)}>
-            {t("setup:continue")}
+            {t("continue")}
           </Button>
         </div>
       ) : null}
@@ -173,25 +174,25 @@ export default function SetupWizardPage() {
       {step === 1 ? (
         <div className="flex flex-col gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="tenantName">{t("setup:tenant_name")}</Label>
+            <Label htmlFor="tenantName">{t("tenant_name")}</Label>
             <Input
               id="tenantName"
               value={tenantName}
               onChange={(e) => setTenantName(e.target.value)}
-              placeholder="Demo tenant"
+              placeholder={t("tenant_name_placeholder")}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="storeName">{t("setup:store_display_name")}</Label>
+            <Label htmlFor="storeName">{t("store_display_name")}</Label>
             <Input
               id="storeName"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
-              placeholder="My shop"
+              placeholder={t("store_display_name_placeholder")}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="currency">{t("setup:default_currency")}</Label>
+            <Label htmlFor="currency">{t("default_currency")}</Label>
             <Input
               id="currency"
               value={currency}
@@ -202,10 +203,10 @@ export default function SetupWizardPage() {
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => setStep(0)}>
-              {t("common:cancel")}
+              {tCommon("cancel")}
             </Button>
             <Button type="button" disabled={pending} onClick={() => void saveStore()}>
-              {t("setup:continue")}
+              {t("continue")}
             </Button>
           </div>
         </div>
@@ -214,18 +215,18 @@ export default function SetupWizardPage() {
       {step === 2 ? (
         <div className="flex flex-col gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="domain">{t("setup:domain")}</Label>
+            <Label htmlFor="domain">{t("domain")}</Label>
             <Input
               id="domain"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
               dir="ltr"
               className="font-mono text-sm"
-              placeholder="store.example.com"
+              placeholder={t("domain_placeholder")}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="license">{t("setup:license_key")}</Label>
+            <Label htmlFor="license">{t("license_key")}</Label>
             <Input
               id="license"
               value={licenseKey}
@@ -236,10 +237,10 @@ export default function SetupWizardPage() {
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => setStep(1)}>
-              {t("common:cancel")}
+              {tCommon("cancel")}
             </Button>
             <Button type="button" disabled={pending} onClick={() => void saveCrm()}>
-              {t("setup:continue")}
+              {t("continue")}
             </Button>
           </div>
         </div>
@@ -247,16 +248,16 @@ export default function SetupWizardPage() {
 
       {step === 3 ? (
         <div className="flex flex-col gap-4">
-          <p className="text-muted-foreground text-sm">{t("setup:sync_hint")}</p>
+          <p className="text-muted-foreground text-sm">{t("sync_hint")}</p>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => setStep(2)}>
-              {t("common:cancel")}
+              {tCommon("cancel")}
             </Button>
             <Button type="button" disabled={pending} onClick={() => void syncLicense()}>
-              {t("setup:sync_license")}
+              {t("sync_license")}
             </Button>
             <Button type="button" variant="secondary" disabled={pending} onClick={() => setStep(4)}>
-              {t("setup:skip_sync")}
+              {t("skip_sync")}
             </Button>
           </div>
         </div>
@@ -264,9 +265,9 @@ export default function SetupWizardPage() {
 
       {step === 4 ? (
         <div className="flex flex-col gap-4">
-          <p className="text-muted-foreground text-sm">{t("setup:finish_hint")}</p>
+          <p className="text-muted-foreground text-sm">{t("finish_hint")}</p>
           <Button type="button" disabled={pending} onClick={() => void finish()}>
-            {t("setup:finish")}
+            {t("finish")}
           </Button>
         </div>
       ) : null}

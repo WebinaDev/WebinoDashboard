@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useLocale, useTranslations } from "next-intl"
 
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
+import { normalizeUiLocale } from "@/lib/locale"
 
 type Low = {
   id: number
@@ -16,8 +17,9 @@ type Low = {
 }
 
 export default function CommerceInventoryPage() {
-  const { t, i18n } = useTranslation(["phase2"])
-  const lng = i18n.language.startsWith("fa") ? "fa" : "en"
+  const t = useTranslations("phase2")
+  const locale = useLocale()
+  const lng = normalizeUiLocale(locale)
   const [low, setLow] = useState<Low[]>([])
   const [outCount, setOutCount] = useState(0)
   const [threshold, setThreshold] = useState(10)
@@ -39,18 +41,18 @@ export default function CommerceInventoryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("phase2:inventory_title")}</h1>
+      <h1 className="text-2xl font-semibold">{t("inventory_title")}</h1>
       <p className="text-muted-foreground text-sm">
-        {t("phase2:stub")} — threshold: {threshold}
+        {t("inventory_threshold")}: {threshold}
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border p-4">
-          <div className="text-muted-foreground text-sm">{t("phase2:inventory_out_heading")}</div>
+          <div className="text-muted-foreground text-sm">{t("inventory_out_heading")}</div>
           <div className="text-2xl font-semibold">{formatInteger(outCount, lng)}</div>
         </div>
       </div>
       <div>
-        <h2 className="mb-2 text-lg font-medium">{t("phase2:inventory_low_heading")}</h2>
+        <h2 className="mb-2 text-lg font-medium">{t("inventory_low_heading")}</h2>
         <div className="rounded-xl border">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">

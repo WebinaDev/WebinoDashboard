@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useLocale, useTranslations } from "next-intl"
 
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
+import { normalizeUiLocale } from "@/lib/locale"
 
 type Overview = {
   orders_paid: number
@@ -15,8 +16,9 @@ type Overview = {
 }
 
 export default function CommerceReportsPage() {
-  const { t, i18n } = useTranslation(["phase2"])
-  const lng = i18n.language.startsWith("fa") ? "fa" : "en"
+  const t = useTranslations("phase2")
+  const locale = useLocale()
+  const lng = normalizeUiLocale(locale)
   const [data, setData] = useState<Overview | null>(null)
 
   useEffect(() => {
@@ -27,17 +29,16 @@ export default function CommerceReportsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("phase2:reports_title")}</h1>
-      <p className="text-muted-foreground text-sm">{t("phase2:stub")}</p>
+      <h1 className="text-2xl font-semibold">{t("reports_title")}</h1>
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border p-4">
-          <div className="text-muted-foreground text-sm">{t("phase2:reports_paid")}</div>
+          <div className="text-muted-foreground text-sm">{t("reports_paid")}</div>
           <div className="text-2xl font-semibold">
             {data ? formatInteger(data.orders_paid, lng) : "—"}
           </div>
         </div>
         <div className="rounded-xl border p-4">
-          <div className="text-muted-foreground text-sm">{t("phase2:reports_pending")}</div>
+          <div className="text-muted-foreground text-sm">{t("reports_pending")}</div>
           <div className="text-2xl font-semibold">
             {data ? formatInteger(data.orders_pending_payment, lng) : "—"}
           </div>
@@ -52,7 +53,7 @@ export default function CommerceReportsPage() {
         </div>
       </div>
       <div>
-        <h2 className="mb-2 text-lg font-medium">{t("phase2:reports_top")}</h2>
+        <h2 className="mb-2 text-lg font-medium">{t("reports_top")}</h2>
         <ul className="text-sm space-y-1">
           {(data?.top_products ?? []).map((r) => (
             <li key={r.product_id} className="flex justify-between rounded border px-3 py-2">

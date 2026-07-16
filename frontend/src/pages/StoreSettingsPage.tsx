@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,9 @@ type Tenant = {
 }
 
 export default function StoreSettingsPage() {
-  const { t } = useTranslation(["store_settings", "common", "setup"])
+  const t = useTranslations("store_settings")
+  const tCommon = useTranslations("common")
+  const tSetup = useTranslations("setup")
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [storeName, setStoreName] = useState("")
   const [currency, setCurrency] = useState("IRR")
@@ -51,27 +53,27 @@ export default function StoreSettingsPage() {
         tenant_name: tenantName || null,
       },
     })
-    setMsg(t("store_settings:saved"))
+    setMsg(t("saved"))
     load()
   }
 
   return (
     <div className="flex max-w-lg flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">{t("store_settings:title")}</h1>
-        <p className="text-muted-foreground mt-1 text-sm">{t("store_settings:subtitle")}</p>
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{t("subtitle")}</p>
       </div>
       {msg ? <p className="text-sm text-green-600 dark:text-green-400">{msg}</p> : null}
       <div className="grid gap-2">
-        <Label>{t("setup:tenant_name")}</Label>
+        <Label>{tSetup("tenant_name")}</Label>
         <Input value={tenantName} onChange={(e) => setTenantName(e.target.value)} />
       </div>
       <div className="grid gap-2">
-        <Label>{t("setup:store_display_name")}</Label>
+        <Label>{tSetup("store_display_name")}</Label>
         <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} />
       </div>
       <div className="grid gap-2">
-        <Label>{t("setup:default_currency")}</Label>
+        <Label>{tSetup("default_currency")}</Label>
         <Input value={currency} onChange={(e) => setCurrency(e.target.value)} dir="ltr" className="font-mono" />
       </div>
       {tenant ? (
@@ -81,10 +83,10 @@ export default function StoreSettingsPage() {
       ) : null}
       <div className="flex gap-2">
         <Button type="button" onClick={() => void save()}>
-          {t("common:save")}
+          {tCommon("save")}
         </Button>
         <Button type="button" variant="outline" onClick={() => load()}>
-          {t("store_settings:load_tenant")}
+          {t("load_tenant")}
         </Button>
       </div>
     </div>

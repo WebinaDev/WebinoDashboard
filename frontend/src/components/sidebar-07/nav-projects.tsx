@@ -5,7 +5,7 @@ import {
   Trash2,
   type LucideIcon,
 } from "lucide-react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
 import {
   DropdownMenu,
@@ -36,7 +36,7 @@ export function NavProjects({
   groupLabel: string
 }) {
   const { isMobile } = useSidebar()
-  const { t } = useTranslation(["sidebar"])
+  const t = useTranslations("sidebar")
 
   if (!projects.length) {
     return null
@@ -58,7 +58,7 @@ export function NavProjects({
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction showOnHover>
                   <MoreHorizontal />
-                  <span className="sr-only">{t("sidebar:more")}</span>
+                  <span className="sr-only">{t("more")}</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -68,16 +68,16 @@ export function NavProjects({
               >
                 <DropdownMenuItem>
                   <Folder className="text-muted-foreground" />
-                  <span>{t("sidebar:project_view")}</span>
+                  <span>{t("project_view")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Forward className="text-muted-foreground" />
-                  <span>{t("sidebar:project_share")}</span>
+                  <span>{t("project_share")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Trash2 className="text-muted-foreground" />
-                  <span>{t("sidebar:project_delete")}</span>
+                  <span>{t("project_delete")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

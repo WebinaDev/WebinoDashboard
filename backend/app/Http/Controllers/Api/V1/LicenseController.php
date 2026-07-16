@@ -23,8 +23,8 @@ class LicenseController extends Controller
             );
         } catch (Throwable $e) {
             return response()->json([
-                'message' => 'CRM license check failed.',
-                'error' => $e->getMessage(),
+                'message' => __('api.crm_license_check_failed'),
+                'errors' => ['detail' => $e->getMessage()],
             ], 502);
         }
 

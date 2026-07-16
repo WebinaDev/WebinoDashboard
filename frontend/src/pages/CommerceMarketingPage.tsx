@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
 import { api } from "@/lib/api"
 
 type Campaign = { id: number; name: string; status: string }
 
 export default function CommerceMarketingPage() {
-  const { t } = useTranslation(["phase2"])
+  const t = useTranslations("phase2")
   const [rows, setRows] = useState<Campaign[]>([])
 
   useEffect(() => {
@@ -19,10 +19,9 @@ export default function CommerceMarketingPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("phase2:marketing_title")}</h1>
-      <p className="text-muted-foreground text-sm">{t("phase2:stub")}</p>
+      <h1 className="text-2xl font-semibold">{t("marketing_title")}</h1>
       {rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("phase2:marketing_empty")}</p>
+        <p className="text-muted-foreground text-sm">{t("marketing_empty")}</p>
       ) : (
         <ul className="space-y-2">
           {rows.map((c) => (

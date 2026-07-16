@@ -1,7 +1,7 @@
 import * as React from "react"
 import Image from "next/image"
 import { ChevronsUpDown, Plus } from "lucide-react"
-import { useTranslation } from "react-i18next"
+import { useLocale, useTranslations } from "next-intl"
 
 import {
   DropdownMenu,
@@ -58,8 +58,9 @@ export function TeamSwitcher({
   }[]
 }) {
   const { isMobile } = useSidebar()
-  const { t, i18n } = useTranslation(["sidebar"])
-  const showKbShortcuts = i18n.language.startsWith("en")
+  const locale = useLocale()
+  const t = useTranslations("sidebar")
+  const showKbShortcuts = locale.startsWith("en")
   const [activeTeam, setActiveTeam] = React.useState(teams[0])
 
   if (!activeTeam) {
@@ -98,7 +99,7 @@ export function TeamSwitcher({
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-xs text-muted-foreground">
-              {t("sidebar:teams_heading")}
+              {t("teams_heading")}
             </DropdownMenuLabel>
             {teams.map((team, index) => (
               <DropdownMenuItem
@@ -121,7 +122,7 @@ export function TeamSwitcher({
                 <Plus className="size-4" />
               </div>
               <div className="font-medium text-muted-foreground">
-                {t("sidebar:add_team")}
+                {t("add_team")}
               </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
