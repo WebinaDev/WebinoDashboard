@@ -1,13 +1,19 @@
-# WebinoDashboard — Architecture §13 service names.
-# Only `web` publishes host ports. Run ./install.sh before compose up.
+# Standalone production stack for aaPanel / VPS.
+# Run from WebinoDashboard directory:
+#   cp .env.docker.example .env
+#   cp backend/.env.example backend/.env   # then edit + set APP_KEY
+#   docker compose -f docker-compose.aapanel.yml up -d --build
+
+name: webino-dashboard
 
 services:
   db:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-webino_dashboard}
       POSTGRES_USER: ${POSTGRES_USER:-webino}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -16,10 +22,11 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - webino_dashboard
+      - webino
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     volumes:
       - redis_data:/data
     healthcheck:
@@ -28,32 +35,33 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - webino_dashboard
+      - webino
 
   backend:
     build:
-      context: ./backend
-      dockerfile: ../docker/php/Dockerfile
-    working_dir: /var/www/html
-    entrypoint: ["/entrypoint.sh"]
-    volumes:
-      - ./backend:/var/www/html
-      - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+      context: .
+      dockerfile: docker/php/Dockerfile.platform
+    image: webino-dashboard-backend:latest
+    restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
+      APP_ENV: production
+      APP_DEBUG: "false"
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
       DB_USERNAME: ${POSTGRES_USER:-webino}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOST: redis
       CACHE_STORE: redis
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
+      RUN_MIGRATIONS: "1"
+      RUN_OPTIMIZE: "1"
+    volumes:
+      - backend_storage:/var/www/html/storage
     depends_on:
       db:
         condition: service_healthy
@@ -61,78 +69,68 @@ services:
         condition: service_healthy
     command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
     networks:
-      - webino_dashboard
+      - webino
 
   worker:
-    build:
-      context: ./backend
-      dockerfile: ../docker/php/Dockerfile
-    working_dir: /var/www/html
-    entrypoint: ["/entrypoint.sh"]
-    volumes:
-      - ./backend:/var/www/html
-      - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+    image: webino-dashboard-backend:latest
+    restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
-      APP_ENV: local
+      APP_ENV: production
+      APP_DEBUG: "false"
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
       DB_USERNAME: ${POSTGRES_USER:-webino}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
       RUN_MIGRATIONS: "0"
+    volumes:
+      - backend_storage:/var/www/html/storage
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
       backend:
         condition: service_started
     command: php artisan queue:work redis --sleep=3 --tries=3
     networks:
-      - webino_dashboard
+      - webino
 
   scheduler:
-    build:
-      context: ./backend
-      dockerfile: ../docker/php/Dockerfile
-    working_dir: /var/www/html
-    entrypoint: ["/entrypoint.sh"]
-    volumes:
-      - ./backend:/var/www/html
-      - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+    image: webino-dashboard-backend:latest
+    restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
-      APP_ENV: local
+      APP_ENV: production
+      APP_DEBUG: "false"
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
       DB_USERNAME: ${POSTGRES_USER:-webino}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
       RUN_MIGRATIONS: "0"
+    volumes:
+      - backend_storage:/var/www/html/storage
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
       backend:
         condition: service_started
     command: php artisan schedule:work
     networks:
-      - webino_dashboard
+      - webino
 
   frontend:
     build:
       context: ..
       dockerfile: WebinoDashboard/docker/next/Dockerfile
+      args:
+        API_PROXY_TARGET: http://backend:8080
+    image: webino-dashboard-frontend:latest
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ""
@@ -142,33 +140,31 @@ services:
     depends_on:
       - backend
     networks:
-      - webino_dashboard
+      - webino
 
   web:
     image: caddy:2-alpine
+    restart: unless-stopped
     ports:
-      - "${WEB_HTTP_PORT:-3080}:80"
-      - "${WEB_HTTPS_PORT:-3443}:443"
+      - "${WEB_HTTP_PORT:-80}:80"
+      - "${WEB_HTTPS_PORT:-443}:443"
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       - backend
       - frontend
     networks:
-      - webino_dashboard
-
-  docs:
-    profiles: ["docs", "dev"]
-    build:
-      context: ./docs-site
-      dockerfile: Dockerfile
-    networks:
-      - webino_dashboard
+      - webino
 
 networks:
-  webino_dashboard:
+  webino:
     driver: bridge
 
 volumes:
-  redis_data:
   db_data:
+  redis_data:
+  backend_storage:
+  caddy_data:
+  caddy_config:

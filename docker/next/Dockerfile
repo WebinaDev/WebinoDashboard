@@ -1,13 +1,19 @@
+# Build context: monorepo root (Plugins/Webina) — see docker-compose.yml
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+COPY packages/webina-ui /packages/webina-ui
+COPY WebinoDashboard/frontend/package.json WebinoDashboard/frontend/package-lock.json* ./
+RUN sed -i 's|file:../../packages/webina-ui|file:/packages/webina-ui|g' package.json \
+    && if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY frontend/ ./
+COPY --from=deps /packages/webina-ui /packages/webina-ui
+COPY WebinoDashboard/frontend/ ./
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG API_PROXY_TARGET=http://backend:8080
+ENV API_PROXY_TARGET=${API_PROXY_TARGET}
 RUN npm run build
 
 FROM node:22-alpine AS runner
