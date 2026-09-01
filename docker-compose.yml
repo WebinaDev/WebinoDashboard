@@ -131,8 +131,8 @@ services:
 
   frontend:
     build:
-      context: ..
-      dockerfile: WebinoDashboard/docker/next/Dockerfile
+      context: .
+      dockerfile: docker/next/Dockerfile
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ""

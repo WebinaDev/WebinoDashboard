@@ -58,6 +58,8 @@ class PublicSiteTest extends TestCase
     public function test_public_cms_page(): void
     {
         $tenant = $this->seedTenant();
+        $this->enableSubmodule($tenant->id, 'cms', 'pages');
+
         CmsPage::query()->create([
             'tenant_id' => $tenant->id,
             'slug' => 'about',

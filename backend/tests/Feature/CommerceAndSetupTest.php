@@ -44,6 +44,14 @@ class CommerceAndSetupTest extends TestCase
             ]);
         }
 
+        $this->enableSubmodules($tenant->id, [
+            'core.dashboard' => true,
+            'commerce.catalog' => true,
+            'commerce.cart' => true,
+            'commerce.checkout' => true,
+            'analytics.overview' => true,
+        ]);
+
         /** @var User $user */
         $user = User::factory()->create([
             'tenant_id' => $tenant->id,

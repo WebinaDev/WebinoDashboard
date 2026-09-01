@@ -53,8 +53,8 @@ services:
 
   frontend:
     build:
-      context: ..
-      dockerfile: WebinoDashboard/docker/next/Dockerfile
+      context: .
+      dockerfile: docker/next/Dockerfile
       args:
         API_PROXY_TARGET: http://backend:8080
     image: webino-dashboard-frontend:prod

@@ -4,7 +4,24 @@ Customer-facing e-commerce and corporate site platform (Laravel + Next.js).
 
 ## Installation
 
-Server installation, control panel, and multi-site management are handled by **[WebinoServerManager](https://github.com/WebinaDev/WebinoServerManager)** — not this repository.
+### One-line Docker (aaPanel / VPS)
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoDashboard/main/bootstrap.sh)
+```
+
+Optional:
+
+```bash
+WEBINO_DOMAIN=shop.example.com WEBINO_HTTP_PORT=3080 \
+  bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoDashboard/main/bootstrap.sh)
+```
+
+If port 80 is already used (aaPanel Nginx), the installer binds Docker to **3080**. Then in aaPanel: Website → Reverse Proxy → `http://127.0.0.1:3080`. Full guide: [docs/DEPLOY_AAPANEL.md](docs/DEPLOY_AAPANEL.md)
+
+### WebinoServerManager (multi-site)
+
+Server installation, control panel, and multi-site management are handled by **[WebinoServerManager](https://github.com/WebinaDev/WebinoServerManager)**.
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)
@@ -81,7 +98,24 @@ Requires `WEBINO_BASE_URL`, `TENANT_PROVISION_TOKEN`, and HMAC secret on both si
 
 Default corporate theme: `corporate-demo-v1` in `frontend/src/themes/corporate-demo-v1/`. Registered in ERM marketplace at `admin/marketplace/themes`. Brand-book polish is a follow-up phase.
 
-## Local development
+## Docker (aaPanel / VPS)
+
+Production stack: PostgreSQL, Redis, Laravel Octane, Next.js, Caddy.
+
+```bash
+cp .env.docker.example .env
+cp backend/.env.example backend/.env   # edit APP_KEY, APP_URL, domain
+docker compose -f docker-compose.aapanel.yml up -d --build
+```
+
+Full aaPanel guide: [docs/DEPLOY_AAPANEL.md](docs/DEPLOY_AAPANEL.md)
+
+CI script (typecheck, build, PHPUnit, Docker build):
+
+```bash
+./scripts/ci.sh
+```
+
 
 ```bash
 docker compose up -d redis

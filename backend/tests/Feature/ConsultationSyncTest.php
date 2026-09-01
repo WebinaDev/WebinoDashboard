@@ -24,6 +24,8 @@ class ConsultationSyncTest extends TestCase
             'slug' => 't-consult',
             'domain' => 'localhost',
         ]);
+        $tenant = Tenant::query()->where('slug', 't-consult')->firstOrFail();
+        $this->enableSubmodule($tenant->id, 'corporate', 'consultations');
 
         $this->postJson('/api/v1/public/consultations', [
             'name' => 'Ali',

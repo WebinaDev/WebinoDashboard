@@ -28,8 +28,7 @@ class ProvisionBootstrapTest extends TestCase
             'role' => 'admin',
         ]);
 
-        putenv('TENANT_PROVISION_TOKEN=test-token-123');
-        $_ENV['TENANT_PROVISION_TOKEN'] = 'test-token-123';
+        config(['services.webino.provision_hmac_secret' => 'test-provision-secret']);
 
         $seed = [
             'tenant_name' => 'Cafe Demo',
@@ -46,13 +45,24 @@ class ProvisionBootstrapTest extends TestCase
         ];
 
         $body = json_encode(['seed' => $seed], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $body, 'test-provision-secret');
 
-        $this->withHeaders([
-            'X-Provision-Token' => 'test-token-123',
-            'Content-Type' => 'application/json',
-        ])
-            ->call('POST', '/api/v1/provision/bootstrap', [], [], [], [], $body)
-            ->assertOk()
+        $response = $this->call(
+            'POST',
+            '/api/v1/provision/bootstrap',
+            [],
+            [],
+            [],
+            [
+                'HTTP_X-Provision-Token' => 'test-token-123',
+                'HTTP_X-Provision-Signature' => $signature,
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+            $body,
+        );
+
+        $response->assertOk()
             ->assertJsonPath('data.ok', true);
 
         $tenant->refresh();

@@ -36,6 +36,7 @@ class BlogApiTest extends TestCase
             'licensed' => true,
             'installed_version' => '0.1.0',
         ]);
+        $this->enableSubmodule($tenant->id, 'blog', 'posts');
 
         return User::factory()->create([
             'tenant_id' => $tenant->id,
@@ -70,6 +71,7 @@ class BlogApiTest extends TestCase
             'slug' => 't2',
             'domain' => 'localhost',
         ]);
+        $this->enableSubmodule($tenant->id, 'blog', 'posts');
 
         BlogPost::query()->create([
             'tenant_id' => $tenant->id,

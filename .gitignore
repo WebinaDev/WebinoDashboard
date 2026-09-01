@@ -1,0 +1,12 @@
+.env
+backend/.env
+frontend/.env
+*.log
+.DS_Store
+.idea
+.vscode
+frontend/node_modules
+frontend/.next
+packages/webina-ui/node_modules
+backend/vendor
+backend/.phpunit.cache

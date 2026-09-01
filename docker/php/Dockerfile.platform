@@ -24,7 +24,7 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
         git unzip libzip-dev libpq-dev libxml2-dev libsqlite3-dev curl; \
-    docker-php-ext-install dom xml zip pdo_sqlite opcache pcntl; \
+    docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql opcache pcntl; \
     chmod +x /tmp/install-redis.sh; \
     REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh; \
     rm -f /tmp/install-redis.sh; \
@@ -44,17 +44,16 @@ RUN echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf && ldconfig
 
 WORKDIR /var/www/html
 
-COPY backend/composer.json backend/composer.lock ./
+COPY backend/composer.json backend/composer.lock* ./
 RUN set -eux; \
     composer config platform.php 8.3.32; \
-    if ! composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader 2>/tmp/composer-install.err; then \
-      printf 'composer.lock stale — running composer update...\n' >&2; \
-      cat /tmp/composer-install.err >&2 || true; \
-      composer update --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader; \
+    composer config --global process-timeout 2000; \
+    if ! composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader; then \
+      composer update --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader --with-all-dependencies; \
     fi
 
 COPY backend/ ./
-RUN composer dump-autoload --optimize --no-dev \
+RUN composer dump-autoload --optimize --no-dev --no-scripts \
     && mkdir -p database storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache database
 
