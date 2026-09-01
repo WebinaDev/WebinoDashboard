@@ -1,0 +1,9 @@
+{
+  "slug": "cms",
+  "name_fa": "محتوا",
+  "name_en": "CMS",
+  "site_types": ["ecommerce", "magazine", "cafe", "resume", "corporate"],
+  "submodules": ["pages", "menus", "seo"],
+  "admin_nav": { "section": "site", "order": 10 },
+  "public_routes": ["/pages/:slug"]
+}

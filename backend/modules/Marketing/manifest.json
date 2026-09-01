@@ -1,0 +1,9 @@
+{
+  "slug": "marketing",
+  "name_fa": "بازاریابی",
+  "name_en": "Marketing",
+  "site_types": ["ecommerce", "magazine", "cafe", "corporate"],
+  "submodules": ["coupons", "campaigns", "newsletter"],
+  "admin_nav": { "section": "marketing", "order": 40 },
+  "public_routes": []
+}

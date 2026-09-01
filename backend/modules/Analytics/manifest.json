@@ -1,0 +1,9 @@
+{
+  "slug": "analytics",
+  "name_fa": "تحلیل",
+  "name_en": "Analytics",
+  "site_types": ["ecommerce", "magazine", "cafe", "corporate"],
+  "submodules": ["overview", "reports"],
+  "admin_nav": { "section": "overview", "order": 5 },
+  "public_routes": []
+}

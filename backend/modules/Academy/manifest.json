@@ -1,0 +1,9 @@
+{
+  "slug": "academy",
+  "name_fa": "آکادمی",
+  "name_en": "Academy",
+  "site_types": ["magazine", "corporate"],
+  "submodules": ["courses", "lessons"],
+  "admin_nav": { "section": "site", "order": 13 },
+  "public_routes": ["/academy", "/academy/:slug"]
+}

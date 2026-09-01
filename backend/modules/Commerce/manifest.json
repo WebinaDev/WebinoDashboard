@@ -1,0 +1,9 @@
+{
+  "slug": "commerce",
+  "name_fa": "فروش",
+  "name_en": "Commerce",
+  "site_types": ["ecommerce", "cafe"],
+  "submodules": ["catalog", "variants", "cart", "checkout", "orders", "inventory"],
+  "admin_nav": { "section": "commerce", "order": 20 },
+  "public_routes": ["/shop", "/product/:slug"]
+}

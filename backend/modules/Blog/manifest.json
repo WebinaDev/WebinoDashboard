@@ -1,0 +1,9 @@
+{
+  "slug": "blog",
+  "name_fa": "وبلاگ",
+  "name_en": "Blog",
+  "site_types": ["ecommerce", "magazine", "cafe", "corporate"],
+  "submodules": ["posts", "categories"],
+  "admin_nav": { "section": "site", "order": 11 },
+  "public_routes": ["/blog", "/blog/:slug"]
+}

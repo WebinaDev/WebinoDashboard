@@ -1,10 +1,13 @@
+import { cache } from "react"
 import { cookies } from "next/headers"
 
 import { unwrapApiData } from "@webina/ui"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
 
-async function serverFetch(path: string, init?: RequestInit): Promise<unknown | null> {
+type FetchOptions = RequestInit & { revalidate?: number | false; tags?: string[] }
+
+async function serverFetch(path: string, init?: FetchOptions): Promise<unknown | null> {
   if (!API_BASE) {
     return null
   }
@@ -15,14 +18,25 @@ async function serverFetch(path: string, init?: RequestInit): Promise<unknown | 
     .map((c) => `${c.name}=${c.value}`)
     .join("; ")
 
+  const revalidate = init?.revalidate
+  const nextOpts =
+    revalidate === false
+      ? { cache: "no-store" as const }
+      : {
+          next: {
+            revalidate: typeof revalidate === "number" ? revalidate : 60,
+            tags: init?.tags,
+          },
+        }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
+    ...nextOpts,
     headers: {
       Accept: "application/json",
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
       ...(init?.headers ?? {}),
     },
-    cache: "no-store",
   })
 
   if (!res.ok) {
@@ -38,29 +52,29 @@ async function serverFetch(path: string, init?: RequestInit): Promise<unknown | 
 }
 
 /** Raw JSON response (public site RSC pages). */
-export async function apiServer<T>(path: string): Promise<T | null> {
+export async function apiServer<T>(path: string, opts?: FetchOptions): Promise<T | null> {
   try {
-    return (await serverFetch(path)) as T | null
+    return (await serverFetch(path, opts)) as T | null
   } catch {
     return null
   }
 }
 
 /** Unwrapped API `data` payload (authenticated dashboard home). */
-export async function apiServerData<T>(path: string): Promise<T | null> {
-  const raw = await apiServer<unknown>(path)
+export const apiServerData = cache(async <T,>(path: string, opts?: FetchOptions): Promise<T | null> => {
+  const raw = await apiServer<unknown>(path, opts)
   if (raw == null) {
     return null
   }
   return unwrapApiData<T>(raw)
-}
+})
 
 export async function getPublicTenant(): Promise<{
-  data: { name: string; store_display_name?: string | null }
+  data: { name: string; store_display_name?: string | null; active_theme_slug?: string | null }
 }> {
   const res = await apiServer<{
-    data: { name: string; store_display_name?: string | null }
-  }>("/api/v1/public/tenant")
+    data: { name: string; store_display_name?: string | null; active_theme_slug?: string | null }
+  }>("/api/v1/public/tenant", { revalidate: 60, tags: ["tenant"] })
   if (!res) {
     throw new Error("tenant unavailable")
   }

@@ -1,0 +1,9 @@
+{
+  "slug": "resume",
+  "name_fa": "رزومه",
+  "name_en": "Resume",
+  "site_types": ["resume"],
+  "submodules": ["profile", "experience", "education", "skills", "projects", "contact"],
+  "admin_nav": { "section": "resume", "order": 16 },
+  "public_routes": ["/resume"]
+}

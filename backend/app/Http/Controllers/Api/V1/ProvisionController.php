@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Kernel\TenantActivationService;
 use App\Models\DashboardModule;
 use App\Models\Tenant;
 use App\Models\TenantModule;
@@ -16,7 +17,7 @@ use Illuminate\Support\Str;
 
 class ProvisionController extends Controller
 {
-    public function bootstrap(Request $request, WebinoLicenseClient $client, ModuleGitInstaller $installer, ProvisionContentSeeder $contentSeeder): \Illuminate\Http\JsonResponse
+    public function bootstrap(Request $request, WebinoLicenseClient $client, ModuleGitInstaller $installer, ProvisionContentSeeder $contentSeeder, TenantActivationService $activations): \Illuminate\Http\JsonResponse
     {
         $token = (string) $request->header('X-Provision-Token', '');
         $expected = (string) env('TENANT_PROVISION_TOKEN', '');
@@ -66,8 +67,15 @@ class ProvisionController extends Controller
 
         $contentSeeder->seed($tenant, $seed);
 
-        if (filled($tenant->license_key)) {
-            $this->syncEntitlements($tenant, $client, $installer);
+        $siteType = $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? null;
+        if (is_string($siteType) && $siteType !== '') {
+            try {
+                $activations->applySiteType($tenant, $siteType);
+            } catch (\Throwable) {
+                /* fallback to license sync */
+            }
+        } elseif (filled($tenant->license_key)) {
+            $this->syncEntitlements($tenant, $client, $installer, $activations);
         }
 
         if (filled($seed['admin_email'] ?? null)) {
@@ -85,7 +93,7 @@ class ProvisionController extends Controller
         return response()->json(['data' => ['ok' => true, 'tenant_id' => $tenant->id]]);
     }
 
-    protected function syncEntitlements(Tenant $tenant, WebinoLicenseClient $client, ModuleGitInstaller $installer): void
+    protected function syncEntitlements(Tenant $tenant, WebinoLicenseClient $client, ModuleGitInstaller $installer, ?TenantActivationService $activations = null): void
     {
         try {
             $crm = $client->check($tenant->domain ?: 'localhost', $tenant->license_key);
@@ -119,8 +127,18 @@ class ProvisionController extends Controller
             'package_sku' => data_get($crm, 'data.sku') ?? $tenant->package_sku,
             'business_category_slug' => data_get($crm, 'data.business_category') ?? $tenant->business_category_slug,
             'business_type_slug' => data_get($crm, 'data.business_type') ?? $tenant->business_type_slug,
+            'site_type_slug' => data_get($crm, 'data.site_type') ?? data_get($crm, 'data.business_type') ?? $tenant->site_type_slug,
             'theme_preset' => data_get($crm, 'data.theme_preset') ?? $tenant->theme_preset,
             'nav_preset' => data_get($crm, 'data.nav_preset') ?? $tenant->nav_preset,
         ]);
+
+        $siteType = $tenant->site_type_slug ?? $tenant->business_type_slug;
+        if ($activations && is_string($siteType) && $siteType !== '') {
+            try {
+                $activations->applySiteType($tenant->fresh(), $siteType);
+            } catch (\Throwable) {
+                /* keep license-based enables */
+            }
+        }
     }
 }

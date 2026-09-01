@@ -1,0 +1,9 @@
+{
+  "slug": "magazine",
+  "name_fa": "مجله",
+  "name_en": "Magazine",
+  "site_types": ["magazine"],
+  "submodules": ["issues", "articles", "series", "authors"],
+  "admin_nav": { "section": "site", "order": 12 },
+  "public_routes": ["/magazine", "/magazine/:slug"]
+}

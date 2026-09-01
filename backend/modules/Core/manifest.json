@@ -1,0 +1,9 @@
+{
+  "slug": "core",
+  "name_fa": "هسته",
+  "name_en": "Core",
+  "site_types": ["ecommerce", "magazine", "cafe", "resume", "corporate"],
+  "submodules": ["auth", "setup", "tenant", "dashboard", "settings", "media", "i18n", "modules", "themes"],
+  "admin_nav": { "section": "core", "order": 0 },
+  "public_routes": []
+}

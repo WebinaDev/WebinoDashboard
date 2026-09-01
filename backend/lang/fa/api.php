@@ -13,6 +13,8 @@ return [
     'module_not_licensed' => 'ماژول لایسنس ندارد. ابتدا لایسنس CRM را همگام‌سازی کنید.',
     'invalid_signature' => 'امضای درخواست نامعتبر است.',
     'tenant_name_required' => 'نام مستأجر الزامی است.',
+    'site_type_required' => 'انتخاب نوع سایت الزامی است.',
+    'theme_not_allowed' => 'این تم برای نوع سایت شما مجاز نیست.',
     'crm_license_check_failed' => 'بررسی لایسنس CRM ناموفق بود.',
     'hmac_secret_missing' => 'سکرت HMAC پیکربندی نشده است.',
 ];

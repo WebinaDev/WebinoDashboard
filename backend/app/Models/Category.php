@@ -8,7 +8,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    protected $fillable = ['tenant_id', 'name', 'slug'];
+    protected $fillable = [
+        'tenant_id',
+        'name',
+        'slug',
+        'description',
+        'icon_url',
+        'image_url',
+        'sort_order',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'sort_order' => 'integer',
+        ];
+    }
 
     public function tenant(): BelongsTo
     {

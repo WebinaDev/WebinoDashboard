@@ -13,6 +13,8 @@ return [
     'module_not_licensed' => 'Module not licensed. Sync CRM license first.',
     'invalid_signature' => 'Invalid signature.',
     'tenant_name_required' => 'Tenant name is required.',
+    'site_type_required' => 'Site type selection is required.',
+    'theme_not_allowed' => 'This theme is not allowed for your site type.',
     'crm_license_check_failed' => 'CRM license check failed.',
     'hmac_secret_missing' => 'HMAC secret is not configured.',
 ];

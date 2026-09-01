@@ -1,0 +1,9 @@
+{
+  "slug": "users",
+  "name_fa": "کاربران",
+  "name_en": "Users",
+  "site_types": ["ecommerce", "magazine", "corporate"],
+  "submodules": ["customers", "staff", "rbac", "subscribers"],
+  "admin_nav": { "section": "access", "order": 30 },
+  "public_routes": []
+}

@@ -1,6 +1,6 @@
-import { createPage } from "@/lib/create-page"
+import SetupWizardPage from "@/pages/SetupWizardPage"
 
-const SetupWizardPage = createPage(() => import("@/pages/SetupWizardPage"))
+export const dynamic = "force-dynamic"
 
 export default function SetupPage() {
   return <SetupWizardPage />

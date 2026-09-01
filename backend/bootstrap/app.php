@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'module' => EnsureModuleEnabled::class,
+            'public.module' => \App\Http\Middleware\EnsurePublicModuleEnabled::class,
             'public.tenant' => \App\Http\Middleware\ResolvePublicTenant::class,
         ]);
     })

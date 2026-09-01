@@ -17,6 +17,8 @@ class Tenant extends Model
         'default_currency',
         'business_category_slug',
         'business_type_slug',
+        'site_type_slug',
+        'default_locale',
         'vertical',
         'package_sku',
         'theme_preset',

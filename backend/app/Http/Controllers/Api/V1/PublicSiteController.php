@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
 use App\Http\Controllers\Controller;
+use App\Kernel\ThemeCatalog;
 use App\Models\Announcement;
 use App\Models\BlogPost;
 use App\Models\PortfolioItem;
@@ -17,6 +18,7 @@ class PublicSiteController extends Controller
     public function tenant(Request $request): \Illuminate\Http\JsonResponse
     {
         $tenant = $this->publicTenant($request);
+        $branding = ThemeCatalog::normalizeBranding($tenant->branding);
 
         return response()->json([
             'data' => [
@@ -27,12 +29,13 @@ class PublicSiteController extends Controller
                 'store_display_name' => $tenant->store_display_name,
                 'business_category_slug' => $tenant->business_category_slug,
                 'business_type_slug' => $tenant->business_type_slug,
+                'site_type_slug' => $tenant->site_type_slug,
                 'theme_preset' => $tenant->theme_preset,
                 'active_theme_slug' => $tenant->active_theme_slug,
-                'branding' => $tenant->branding,
+                'branding' => $branding,
                 'nav_preset' => $tenant->nav_preset,
             ],
-        ]);
+        ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
     }
 
     public function home(Request $request): \Illuminate\Http\JsonResponse

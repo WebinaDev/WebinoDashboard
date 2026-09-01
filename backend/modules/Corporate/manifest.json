@@ -1,0 +1,9 @@
+{
+  "slug": "corporate",
+  "name_fa": "شرکتی",
+  "name_en": "Corporate",
+  "site_types": ["corporate"],
+  "submodules": ["portfolio", "team", "testimonials", "announcements", "consultations"],
+  "admin_nav": { "section": "site", "order": 14 },
+  "public_routes": ["/portfolio", "/team", "/testimonials", "/announcements", "/consultation"]
+}

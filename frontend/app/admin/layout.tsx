@@ -1,7 +1,5 @@
 import type { Metadata } from "next"
 
-import { EnsureSetupComplete } from "@/components/EnsureSetupComplete"
-import { DashboardPrefetch } from "@/components/DashboardPrefetch"
 import DashboardLayoutPage from "@/pages/DashboardLayoutPage"
 
 export const metadata: Metadata = {
@@ -14,10 +12,5 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <EnsureSetupComplete>
-      <DashboardPrefetch />
-      <DashboardLayoutPage>{children}</DashboardLayoutPage>
-    </EnsureSetupComplete>
-  )
+  return <DashboardLayoutPage>{children}</DashboardLayoutPage>
 }
