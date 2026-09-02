@@ -1,0 +1,6 @@
+# Optional local npm proxy (do NOT commit as .npmrc — breaks Docker/VPS builds).
+# Copy to .npmrc only on machines that need it:
+#   cp .npmrc.example .npmrc
+#
+# proxy=http://127.0.0.1:10808
+# https-proxy=http://127.0.0.1:10808

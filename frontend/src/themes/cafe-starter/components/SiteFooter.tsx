@@ -1,8 +1,8 @@
 import Link from "next/link"
-import { getTranslations } from "next-intl/server"
+import { getServerTranslations } from "@/lib/server-translations"
 
 export async function SiteFooter({ siteName }: { siteName: string }) {
-  const t = await getTranslations("cafe_starter")
+  const t = await getServerTranslations("cafe_starter")
 
   return (
     <footer className="border-t bg-muted/30">

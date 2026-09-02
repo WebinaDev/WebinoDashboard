@@ -1,5 +1,5 @@
 import type { ResolvedAdminRoute, ResolvedSiteRoute } from "@/kernel/types"
-import { getTranslations } from "next-intl/server"
+import { getServerTranslations } from "@/lib/server-translations"
 
 type Props = {
   route: ResolvedAdminRoute | ResolvedSiteRoute
@@ -7,7 +7,7 @@ type Props = {
 }
 
 export default async function ModuleSkeletonPage({ route, area }: Props) {
-  const t = await getTranslations("modules")
+  const t = await getServerTranslations("modules")
 
   return (
     <div className="flex flex-col gap-4 p-6">

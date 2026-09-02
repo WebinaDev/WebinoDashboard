@@ -6,6 +6,7 @@
 **/.env
 **/.env.*
 !**/.env.example
+**/.npmrc
 **/storage/logs/*
 **/storage/framework/cache/*
 **/storage/framework/sessions/*

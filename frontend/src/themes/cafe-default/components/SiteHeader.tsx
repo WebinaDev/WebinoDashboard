@@ -1,10 +1,10 @@
 import Link from "next/link"
-import { getTranslations } from "next-intl/server"
+import { getServerTranslations } from "@/lib/server-translations"
 
 import { Button } from "@/components/ui/button"
 
 export async function SiteHeader({ siteName }: { siteName: string }) {
-  const t = await getTranslations("site.nav")
+  const t = await getServerTranslations("site.nav")
 
   const NAV = [
     { href: "/", label: t("home") },

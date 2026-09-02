@@ -17,13 +17,16 @@ for json in frontend/messages/fa.json frontend/messages/en.json; do
 done
 ok "i18n JSON files valid"
 
-if grep -q 'pageExtensions' frontend/next.config.mjs 2>/dev/null; then
-  fail "pageExtensions in next.config.mjs breaks App Router page.tsx files"
+if grep -q 'pageExtensions\|createNextIntlPlugin\|next-intl/plugin' frontend/next.config.mjs 2>/dev/null; then
+  fail "next.config.mjs must not use pageExtensions or next-intl/plugin (breaks Docker standalone)"
 fi
 ok "next.config.mjs OK"
 
-[[ -f frontend/i18n/request.ts ]] || fail "Missing frontend/i18n/request.ts (next-intl)"
-ok "next-intl request config present"
+[[ -f frontend/src/lib/server-translations.ts ]] || fail "Missing frontend/src/lib/server-translations.ts"
+if grep -R --include='*.ts' --include='*.tsx' -n 'from "next-intl/server"' frontend/src frontend/modules 2>/dev/null; then
+  fail "Do not import next-intl/server — use @/lib/server-translations"
+fi
+ok "no next-intl/server imports"
 
 [[ -f packages/webina-ui/dist/index.js ]] || fail "Run: cd packages/webina-ui && npm install && npm run build"
 ok "webina-ui dist present"

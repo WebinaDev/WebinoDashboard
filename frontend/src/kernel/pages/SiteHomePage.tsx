@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { getTranslations } from "next-intl/server"
+import { getServerTranslations } from "@/lib/server-translations"
 
 import { Button } from "@/components/ui/button"
 
@@ -10,7 +10,7 @@ import { getSiteTypeSlug } from "@/kernel/cafe-catalogue-data"
 export const revalidate = 60
 
 export default async function SiteHomePage() {
-  const t = await getTranslations("site")
+  const t = await getServerTranslations("site")
   const siteType = await getSiteTypeSlug()
   const activations = await getPublicActivations()
 

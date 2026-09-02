@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { getTranslations } from "next-intl/server"
+import { getServerTranslations } from "@/lib/server-translations"
 
 import { Button } from "@/components/ui/button"
 
@@ -8,7 +8,7 @@ import type { SiteChromeProps } from "../shared/types"
 import { resolveSiteBranding } from "../shared/types"
 
 export async function SiteHeader({ siteName, branding }: SiteChromeProps) {
-  const t = await getTranslations("site.nav")
+  const t = await getServerTranslations("site.nav")
   const resolved = resolveSiteBranding(branding)
 
   const NAV = [
