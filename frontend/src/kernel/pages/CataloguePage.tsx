@@ -1,5 +1,3 @@
-import { notFound } from "next/navigation"
-
 import { fetchCatalogueData } from "@/kernel/cafe-catalogue-data"
 import { CatalogueView } from "@/themes/cafe-starter/views/CatalogueView"
 
@@ -13,7 +11,11 @@ export default async function CataloguePage({ initialQuery }: Props = {}) {
   const { catalog, venue } = await fetchCatalogueData(initialQuery)
 
   if (!catalog) {
-    notFound()
+    return (
+      <div className="container mx-auto px-4 py-16 text-center text-muted-foreground">
+        Menu is not available yet.
+      </div>
+    )
   }
 
   return <CatalogueView catalog={catalog} venue={venue} initialQuery={initialQuery} />

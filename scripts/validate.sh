@@ -22,6 +22,9 @@ if grep -q 'pageExtensions' frontend/next.config.mjs 2>/dev/null; then
 fi
 ok "next.config.mjs OK"
 
+[[ -f frontend/src/i18n/request.ts ]] || fail "Missing frontend/src/i18n/request.ts (next-intl)"
+ok "next-intl request config present"
+
 [[ -f packages/webina-ui/dist/index.js ]] || fail "Run: cd packages/webina-ui && npm install && npm run build"
 ok "webina-ui dist present"
 

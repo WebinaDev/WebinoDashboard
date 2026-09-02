@@ -1,8 +1,11 @@
 import bundleAnalyzer from "@next/bundle-analyzer"
+import createNextIntlPlugin from "next-intl/plugin"
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 })
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
 const apiProxyTarget =
   process.env.API_PROXY_TARGET ?? "http://localhost:8080"
@@ -27,4 +30,4 @@ const nextConfig = {
   },
 }
 
-export default withBundleAnalyzer(nextConfig)
+export default withBundleAnalyzer(withNextIntl(nextConfig))
