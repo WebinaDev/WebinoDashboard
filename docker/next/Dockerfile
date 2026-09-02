@@ -32,6 +32,9 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /src/frontend/public ./public
 COPY --from=builder --chown=nextjs:nodejs /src/frontend/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /src/frontend/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /src/frontend/messages ./messages
+COPY --from=builder --chown=nextjs:nodejs /src/frontend/i18n ./i18n
+COPY --from=builder --chown=nextjs:nodejs /src/frontend/i18n.ts ./i18n.ts
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

@@ -5,7 +5,7 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 })
 
-const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts")
 
 const apiProxyTarget =
   process.env.API_PROXY_TARGET ?? "http://localhost:8080"
@@ -17,6 +17,9 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ["@webina/ui"],
+  outputFileTracingIncludes: {
+    "/*": ["./i18n/request.ts", "./i18n.ts", "./messages/**/*"],
+  },
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
