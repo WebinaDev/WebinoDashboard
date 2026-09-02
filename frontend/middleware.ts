@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
+import { getServerApiBase } from "@/lib/server-api-base"
+
 const LOCALES = ["fa", "en"] as const
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
 
 async function fetchGate(request: NextRequest) {
-  if (!API_BASE) return null
+  const apiBase = getServerApiBase()
+  if (!apiBase) return null
   try {
-    const res = await fetch(`${API_BASE}/api/v1/auth/gate`, {
+    const res = await fetch(`${apiBase}/api/v1/auth/gate`, {
       headers: {
         Accept: "application/json",
         Cookie: request.headers.get("cookie") ?? "",

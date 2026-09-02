@@ -3,12 +3,13 @@ import { cookies } from "next/headers"
 
 import { unwrapApiData } from "@webina/ui"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
+import { getServerApiBase } from "@/lib/server-api-base"
 
 type FetchOptions = RequestInit & { revalidate?: number | false; tags?: string[] }
 
 async function serverFetch(path: string, init?: FetchOptions): Promise<unknown | null> {
-  if (!API_BASE) {
+  const apiBase = getServerApiBase()
+  if (!apiBase) {
     return null
   }
 
@@ -29,7 +30,7 @@ async function serverFetch(path: string, init?: FetchOptions): Promise<unknown |
           },
         }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${apiBase}${path}`, {
     ...init,
     ...nextOpts,
     headers: {

@@ -15,12 +15,16 @@ WORKDIR /src/frontend
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG API_PROXY_TARGET=http://backend:8080
 ENV API_PROXY_TARGET=${API_PROXY_TARGET}
+ARG INTERNAL_API_URL=http://backend:8080
+ENV INTERNAL_API_URL=${INTERNAL_API_URL}
 RUN npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG INTERNAL_API_URL=http://backend:8080
+ENV INTERNAL_API_URL=${INTERNAL_API_URL}
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /src/frontend/public ./public
 COPY --from=builder --chown=nextjs:nodejs /src/frontend/.next/standalone ./
