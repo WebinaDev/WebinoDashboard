@@ -51,6 +51,12 @@ export default async function RootLayout({
   const messages = messageCatalog[locale]
   const dir = locale === "fa" ? "rtl" : "ltr"
   const apiOrigin = getApiOrigin()
+  // Pass now/timeZone explicitly so NextIntlClientProviderServer never calls
+  // getNow/getTimeZone (those require next-intl/plugin + i18n/request.ts, which
+  // break Docker standalone).
+  const now = new Date()
+  const timeZone =
+    process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE?.trim() || "Asia/Tehran"
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
@@ -63,7 +69,12 @@ export default async function RootLayout({
         ) : null}
       </head>
       <body className={`${yekanBakh.variable} min-h-svh font-sans`}>
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider
+          locale={locale}
+          messages={messages}
+          now={now}
+          timeZone={timeZone}
+        >
           <QueryProvider>
             <AppProviders>{children}</AppProviders>
           </QueryProvider>

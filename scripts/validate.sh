@@ -28,6 +28,11 @@ if grep -R --include='*.ts' --include='*.tsx' -n 'from "next-intl/server"' front
 fi
 ok "no next-intl/server imports"
 
+if ! grep -q 'timeZone=' frontend/src/app/layout.tsx || ! grep -q 'now=' frontend/src/app/layout.tsx; then
+  fail "layout.tsx NextIntlClientProvider must pass now= and timeZone= (avoids next-intl/config in Docker)"
+fi
+ok "NextIntlClientProvider passes now/timeZone"
+
 [[ -f packages/webina-ui/dist/index.js ]] || fail "Run: cd packages/webina-ui && npm install && npm run build"
 ok "webina-ui dist present"
 
