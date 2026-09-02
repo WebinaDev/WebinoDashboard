@@ -204,6 +204,39 @@ EOF
   fi
 }
 
+backend_app_key_set() {
+  local backend_env="$1"
+  local key
+  [[ -f "$backend_env" ]] || return 1
+  key=$(grep -E '^APP_KEY=' "$backend_env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d ' "'\''')
+  [[ -n "$key" && "$key" != "base64:" ]]
+}
+
+ensure_backend_env() {
+  local backend_env="$TARGET/backend/.env"
+
+  if backend_app_key_set "$backend_env"; then
+    return 0
+  fi
+
+  if [[ ! -f "$backend_env" ]]; then
+    warn "backend/.env is missing — creating it before Docker start."
+    if [[ ! -f "$TARGET/.env" ]]; then
+      write_env
+      return 0
+    fi
+    [[ -f "$TARGET/backend/.env.example" ]] || die "Missing $TARGET/backend/.env.example"
+    cp "$TARGET/backend/.env.example" "$backend_env"
+  else
+    warn "backend/.env has no APP_KEY — generating one before Docker start."
+  fi
+
+  local key
+  key="$(app_key)"
+  sed -i "s|^APP_KEY=.*|APP_KEY=${key}|" "$backend_env"
+  log "Ensured $backend_env has APP_KEY"
+}
+
 start_stack() {
   cd "$TARGET"
   log "Building and starting Docker stack (this can take several minutes)..."
@@ -225,4 +258,5 @@ if [[ -f "$TARGET/.env" && -f "$TARGET/backend/.env" && "${WEBINO_FORCE_ENV:-0}"
 else
   write_env
 fi
+ensure_backend_env
 start_stack
