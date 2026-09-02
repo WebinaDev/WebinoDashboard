@@ -44,6 +44,8 @@ WEBINO_DOMAIN=shop.example.com \
 
 ## به‌روزرسانی
 
+**نصب با git:**
+
 ```bash
 cd /www/wwwroot/WebinoDashboard
 git pull
@@ -51,7 +53,21 @@ docker compose -f docker-compose.aapanel.yml up -d --build
 docker compose -f docker-compose.aapanel.yml exec backend php artisan migrate --force
 ```
 
-یا دوباره همان one-liner را اجرا کنید (روی checkout موجود، فقط استک را دوباره بالا می‌آورد).
+**نصب با tarball / اینستالر (بدون `.git`) — یک خط:**
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoDashboard/main/scripts/update.sh)
+```
+
+یا دستی:
+
+```bash
+bash /www/wwwroot/WebinoDashboard/scripts/update.sh
+```
+
+اسکریپت آخرین نسخه را از GitHub دانلود می‌کند، `.env` و `backend/.env` را نگه می‌دارد، rebuild می‌کند و migration اجرا می‌کند.
+
+یا دوباره همان one-liner نصب را اجرا کنید (روی checkout موجود، فقط استک را دوباره بالا می‌آورد — **کد را آپدیت نمی‌کند**).
 
 ## عیب‌یابی
 
