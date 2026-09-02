@@ -9,6 +9,7 @@ type ThemeModule = {
 }
 
 const THEME_LOADERS: Record<string, () => Promise<ThemeModule>> = {
+  "ecommerce-starter": () => import("@/themes/ecommerce-starter"),
   "ecommerce-default": () => import("@/themes/ecommerce-default"),
   "ecommerce-demo-v1": () => import("@/themes/ecommerce-demo-v1"),
   "magazine-default": () => import("@/themes/magazine-default"),

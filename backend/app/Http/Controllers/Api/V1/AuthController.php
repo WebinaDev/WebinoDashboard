@@ -60,6 +60,8 @@ class AuthController extends Controller
 
         $response = response()->json([
             'user' => $user->load('tenant'),
+            'password_must_change' => (bool) $user->password_must_change,
+            'setup_completed' => (bool) ($user->tenant?->setup_completed ?? true),
         ]);
 
         return $this->attachAuthCookie($response, $token);
@@ -103,6 +105,9 @@ class AuthController extends Controller
             'data' => [
                 'authenticated' => $authenticated,
                 'setup_completed' => $setupCompleted,
+                'password_must_change' => $authenticated
+                    ? (bool) $user->password_must_change
+                    : false,
             ],
         ]);
     }
@@ -117,7 +122,36 @@ class AuthController extends Controller
 
         return response()->json([
             'authenticated' => true,
+            'password_must_change' => (bool) $user->password_must_change,
             'user' => $user->load('tenant'),
+        ]);
+    }
+
+    public function changePassword(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => __('api.unauthorized')], 401);
+        }
+
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => [__('auth.password_current_invalid')],
+            ]);
+        }
+
+        $user->password = $data['password'];
+        $user->password_must_change = false;
+        $user->save();
+
+        return response()->json([
+            'message' => __('auth.password_changed'),
+            'password_must_change' => false,
         ]);
     }
 

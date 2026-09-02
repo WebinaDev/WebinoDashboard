@@ -112,6 +112,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
         Route::get('/auth/user', [AuthController::class, 'user']);
+        Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:10,1');
 
         Route::prefix('auth/2fa')->group(function () {
             Route::get('/status', [TwoFactorController::class, 'status']);

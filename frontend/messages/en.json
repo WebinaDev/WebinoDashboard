@@ -37,7 +37,16 @@
     "oauthGithub": "Continue with GitHub",
     "signupPrompt": "Don't have an account?",
     "signupLink": "Sign up",
-    "errors_invalid": "Invalid credentials."
+    "errors_invalid": "Invalid credentials.",
+    "brandAlt": "Brand",
+    "defaultCredentialsHint": "Default: admin@example.com / password — change after first login.",
+    "changePasswordTitle": "Change password",
+    "changePasswordSubtitle": "You must set a new password before using the dashboard.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "changePasswordSubmit": "Update password",
+    "passwordMismatch": "New passwords do not match."
   },
   "nav": {
     "platform": "Platform",
@@ -254,7 +263,7 @@
     "title": "Checkout",
     "place_order": "Place order",
     "pay_zarinpal": "Pay with Zarinpal",
-    "pay_digipay": "Pay with Digipay (stub)",
+    "pay_digipay": "Pay with Digipay",
     "order_created": "Order created",
     "payment_ok": "Payment completed.",
     "payment_failed": "Payment was not completed.",
@@ -317,7 +326,9 @@
   },
   "modules": {
     "title": "Modules",
-    "skeleton_placeholder": "This section will be implemented soon.",
+    "skeleton_placeholder": "No content yet. Add items in this module or enable related settings.",
+    "area_admin": "Admin",
+    "area_site": "Site",
     "enabled": "Enabled",
     "sync_license": "Sync CRM license",
     "install": "Install / refresh",

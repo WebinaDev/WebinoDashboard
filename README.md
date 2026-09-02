@@ -124,7 +124,7 @@ cd frontend && npm install && npm run dev    # http://localhost:3000
 ```
 
 - Public site: http://localhost:3000/
-- Admin: http://localhost:3000/admin (login: `admin@example.com` / `password`)
+- Admin: http://localhost:3000/admin (login: `admin@example.com` / `password` — forced to change on first login)
 
 ## Project structure
 

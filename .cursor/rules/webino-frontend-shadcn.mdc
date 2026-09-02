@@ -1,0 +1,51 @@
+---
+description: Official shadcn/ui only — no lookalikes; theme, accent, date picker
+globs: frontend/**
+alwaysApply: false
+---
+
+# Frontend — official shadcn/ui
+
+## Source of truth
+
+- Registry: https://ui.shadcn.com/
+- Project config: `frontend/components.json` (style `new-york`, CSS variables, zinc base).
+- **Always** install with the official CLI, then import. Never re-implement a “similar” button/sidebar/login/calendar.
+
+```bash
+npx shadcn@latest add <component-or-block>
+```
+
+```tsx
+// ✅ GOOD
+import { Button } from "@/components/ui/button"
+import { SidebarProvider } from "@/components/ui/sidebar"
+
+// ❌ BAD — custom twin of shadcn
+export function PrettyButton() { return <button className="rounded-md bg-primary..." /> }
+```
+
+## Required blocks
+
+| Surface | Command |
+|---------|---------|
+| Login | `npx shadcn@latest add login-04` |
+| Admin shell | `npx shadcn@latest add sidebar-07` |
+
+Keep generated block files under `frontend/src/components/` (e.g. `login-04/`, `sidebar-07/`) and wire pages to them.
+
+## Dark / light + accents
+
+- Use official **next-themes** + shadcn CSS variables (`--background`, `--primary`, …).
+- Accent palette via `data-accent` (and shared helpers). Every colored surface must use semantic tokens / accent vars — no raw `#hex` for brand UI.
+- Toggle light/dark with the official theme helper pattern already in `AppProviders` / toolbar — do not invent a parallel theme system.
+
+## Date picker
+
+- Base control: official shadcn Calendar + Popover (`npx shadcn@latest add calendar popover`).
+- Locale layer on top: Jalali UI when `fa`, Gregorian when `en` (see i18n rule). Do not replace the shadcn calendar with an unrelated custom widget without the official base.
+
+## Responsive
+
+- Mobile-first. Sidebar uses sheet/collapsible patterns from sidebar-07 on small screens.
+- Verify layouts at common breakpoints before considering a UI task done.

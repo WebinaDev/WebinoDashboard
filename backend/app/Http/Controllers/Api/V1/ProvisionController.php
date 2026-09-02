@@ -79,11 +79,13 @@ class ProvisionController extends Controller
         }
 
         if (filled($seed['admin_email'] ?? null)) {
+            $hasExplicitPassword = filled($seed['admin_password'] ?? null);
             User::query()->updateOrCreate(
                 ['email' => (string) $seed['admin_email']],
                 [
                     'name' => (string) ($seed['admin_name'] ?? 'Admin'),
                     'password' => Hash::make((string) ($seed['admin_password'] ?? Str::random(12))),
+                    'password_must_change' => ! $hasExplicitPassword,
                     'tenant_id' => $tenant->id,
                     'role' => 'admin',
                 ]

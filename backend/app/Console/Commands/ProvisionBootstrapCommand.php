@@ -148,6 +148,7 @@ class ProvisionBootstrapCommand extends Command
     protected function ensureAdminUser(Tenant $tenant, array $seed): void
     {
         $email = (string) $seed['admin_email'];
+        $hasExplicitPassword = filled($seed['admin_password'] ?? null);
         $password = (string) ($seed['admin_password'] ?? Str::random(12));
 
         User::query()->updateOrCreate(
@@ -155,6 +156,7 @@ class ProvisionBootstrapCommand extends Command
             [
                 'name' => (string) ($seed['admin_name'] ?? 'Admin'),
                 'password' => Hash::make($password),
+                'password_must_change' => ! $hasExplicitPassword,
                 'tenant_id' => $tenant->id,
                 'role' => 'admin',
             ]

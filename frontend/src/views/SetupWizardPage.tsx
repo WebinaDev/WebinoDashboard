@@ -242,10 +242,10 @@ export default function SetupWizardPage() {
           <p className="text-sm">{t("locale_hint")}</p>
           <div className="flex gap-2">
             <Button variant={locale === "fa" ? "default" : "outline"} onClick={() => setLocale("fa")}>
-              فارسی
+              {tCommon("locale_fa")}
             </Button>
             <Button variant={locale === "en" ? "default" : "outline"} onClick={() => setLocale("en")}>
-              English
+              {tCommon("locale_en")}
             </Button>
           </div>
           <Button onClick={saveLocale} disabled={pending}>

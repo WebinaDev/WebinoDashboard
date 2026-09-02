@@ -1,0 +1,43 @@
+---
+description: Bilingual FA/EN, RTL/LTR, Jalali/Gregorian, no hard-coded copy
+globs: frontend/**/*.{ts,tsx,json}
+alwaysApply: false
+---
+
+# i18n & locale handlers
+
+## Locales
+
+| Locale | Dir | Dates | Numbers | Date picker |
+|--------|-----|-------|---------|-------------|
+| `fa` | RTL | Jalali (شمسی) | Persian digits | Jalali on shadcn Calendar base |
+| `en` | LTR | Gregorian | Latin digits | Gregorian shadcn Calendar |
+
+- Set `<html lang>` and `dir` from locale (`fa` → `rtl`, `en` → `ltr`).
+- Persist locale via `NEXT_LOCALE` cookie (middleware + client sync).
+
+## Message catalogs
+
+- All UI/error/nav/empty-state strings live in:
+  - `frontend/messages/fa.json`
+  - `frontend/messages/en.json`
+- Keys must exist in **both** files. Namespaces stay organized (`auth`, `nav`, `site`, `cafe_starter`, …).
+
+```tsx
+// ❌ BAD
+<p>منو در دسترس نیست</p>
+
+// ✅ GOOD
+<p>{t("cafe_starter.menu_unavailable")}</p>
+```
+
+## Server vs client (Docker standalone)
+
+- **Never** use `next-intl/plugin`, `i18n/request.ts`, or `from "next-intl/server"` — they break standalone Docker images.
+- Server Components: `getServerTranslations` from `@/lib/server-translations`.
+- Client Components: `useTranslations` / `useLocale` only with `"use client"`.
+- Root `NextIntlClientProvider` **must** pass `locale`, `messages`, `now`, and `timeZone` (avoids `Couldn't find next-intl config file`).
+
+## Formatting helpers
+
+- Use `@/lib/locale` / `@webina/ui` for currency, dates, and digit conversion — do not sprinkle ad-hoc `toLocaleString` without locale awareness.

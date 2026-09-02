@@ -1,0 +1,51 @@
+---
+description: Core WebinoDashboard architecture and non-negotiable product rules
+alwaysApply: true
+---
+
+# WebinoDashboard — Core Rules
+
+## Stack (mandatory)
+
+- **Backend:** Laravel (latest stable). API-first only.
+- **Frontend:** Next.js App Router + official [shadcn/ui](https://ui.shadcn.com/).
+- **Deploy:** Dockerized microservices — separate `frontend` and `backend` containers (`docker-compose.aapanel.yml`). Never merge them into one runtime image for production.
+
+## Quality bar
+
+- No placeholders, stubs, “TODO UI”, or fake data in shipped paths.
+- Auth must be complete: no gaps in cookie/session/Sanctum, middleware gates, or setup redirects.
+- No hard-coded user-facing strings (UI, errors, nav, empty states) — use i18n keys.
+- Every visible site/admin setting (logo, colors, accent, copy, fonts) must be editable from the dashboard. Never ship a front-end value the tenant cannot change.
+
+## Architecture
+
+- Modular: every feature and every third-party integration lives inside its own module/submodule (manifest + backend routes + frontend pages).
+- Shared capabilities (payments, cart, catalog) belong in **commerce**; verticals (cafe, shop) only customize — they do not reimplement gateways.
+- Public and admin UIs are **SSR**. Target first meaningful paint / LCP under **1 second** on a typical VPS path (cache public GETs, avoid client waterfalls).
+- Mobile-first and responsive for all breakpoints (sm/md/lg/xl). Do not ship desktop-only layouts.
+
+## Pages (official shadcn blocks)
+
+```bash
+npx shadcn@latest add login-04
+npx shadcn@latest add sidebar-07
+```
+
+Never hand-draw login or sidebar “inspired by” shadcn. Always add from the official CLI and import the generated components.
+
+## Themes
+
+- New vertical UI ships as a **starter** theme (`cafe-starter`, `ecommerce-starter` / shop starter, …), not only `*-default`.
+- Theme chrome + module pages must consume branding/settings from the API.
+
+## Forbidden
+
+```tsx
+// ❌ BAD — hard-coded copy / placeholder
+<button>ثبت نام</button>
+<div>Coming soon</div>
+
+// ✅ GOOD — translation key + real implementation
+<button>{t("auth.register")}</button>
+```

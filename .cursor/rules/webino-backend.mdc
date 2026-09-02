@@ -1,0 +1,41 @@
+---
+description: Laravel API-first, auth, and Docusaurus documentation rules
+globs: backend/**
+alwaysApply: false
+---
+
+# Backend (Laravel)
+
+## API-first
+
+- Every public and admin action has a proper JSON API under `/api/v1/...`.
+- Controllers return the standard envelope (`success`, `data`, `message`, `errors`). Do not invent ad-hoc shapes.
+- New features: migrations + models + policies/middleware + routes + feature tests. No “controller-only” shortcuts.
+
+## Auth & tenancy
+
+- Sanctum/cookie auth for dashboard; public routes use `public.tenant` (Host-based tenant resolution).
+- Never skip auth checks for convenience. Gate admin and setup flows consistently with middleware.
+- Tenant-scoped queries only — never leak another tenant’s data.
+
+## Modules
+
+- Backend code for a product area lives under `backend/modules/{slug}/` (or the established module path for that slug).
+- Third-party APIs (Zarinpal, Digipay, ERP sync, etc.) stay inside that module’s services — not in a global “helpers dump”.
+
+## Documentation (mandatory)
+
+- Every new or changed endpoint must be documented in Docusaurus:
+  - English: `docs-site/docs/`
+  - Persian: `docs-site/i18n/fa/docusaurus-plugin-content-docs/current/`
+- Document method, path, auth, request/response examples, and error codes.
+
+```text
+❌ BAD — merge API without docs
+✅ GOOD — OpenAPI/docs page + FA translation for the same endpoint
+```
+
+## Docker
+
+- Production PHP image: `docker/php/Dockerfile.platform`.
+- Keep `.env` secrets out of images; compose mounts `backend/.env`.

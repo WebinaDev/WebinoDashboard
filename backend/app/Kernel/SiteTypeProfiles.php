@@ -13,7 +13,7 @@ final class SiteTypeProfiles
             'ecommerce' => [
                 'name_fa' => 'فروشگاه اینترنتی',
                 'name_en' => 'E-commerce',
-                'theme' => 'ecommerce-default',
+                'theme' => 'ecommerce-starter',
                 'modules' => array_merge(self::coreModules(), [
                     'commerce' => ['catalog', 'variants', 'cart', 'checkout', 'orders', 'inventory'],
                     'users' => ['customers', 'staff', 'rbac'],

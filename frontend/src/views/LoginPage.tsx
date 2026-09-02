@@ -14,7 +14,7 @@ export default function LoginPage() {
         <div className="flex items-center gap-2 self-center font-medium">
           <Image
             src="/brand/logo.png"
-            alt=""
+            alt={t("appName")}
             width={24}
             height={24}
             className="size-6 rounded-md"

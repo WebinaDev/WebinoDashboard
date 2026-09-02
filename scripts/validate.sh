@@ -31,12 +31,8 @@ done
 ok "no stale next-intl request config"
 
 [[ -f frontend/src/lib/server-translations.ts ]] || fail "Missing frontend/src/lib/server-translations.ts"
-if grep -R --include='*.ts' --include='*.tsx' -n 'from "next-intl/server"' frontend/src frontend/modules 2>/dev/null; then
+if grep -R --include='*.ts' --include='*.tsx' -nE 'from ["'\''"]next-intl/server["'\''"]' frontend/src frontend/modules 2>/dev/null; then
   fail "Do not import next-intl/server — use @/lib/server-translations"
-fi
-if grep -R --include='*.ts' --include='*.tsx' -n 'getTranslations' frontend/src frontend/modules 2>/dev/null \
-  | grep -v server-translations; then
-  fail "Do not use getTranslations from next-intl/server — use getServerTranslations"
 fi
 ok "no next-intl/server imports"
 

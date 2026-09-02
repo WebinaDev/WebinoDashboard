@@ -1,11 +1,13 @@
 میخوام یه سیستم کامل و جامع و بدون نقص داشته باشم که به صورت فازبندی شده بریم جلو.
 ۱. بک‌اند لاراول هست، رانت اند ری‌اکت و با کامپوننت‌های رسمی shadcn هست.
 برای صفحه لاگین:
-npx shadcn@latest add login-02
+npx shadcn@latest add login-04
 
 برای داشبورد از کامپوننت‌های رسمی ShadCN:
 npx shadcn@latest add sidebar-07
-نکته؛ حتما باید از نسخه رسمی shadcn ساتفاده بشه و ایمپورت (فچ) کنی و تحت هیچ شرایطی از روی خودت طراحی نکنی.
+نکته؛ حتما باید از نسخه رسمی shadcn استفاده بشه و ایمپورت (فچ) کنی و تحت هیچ شرایطی از روی خودت طراحی نکنی.
+
+قوانین الزامی Cursor: `.cursor/rules/` (هسته، بک‌اند، shadcn، i18n، ماژول/تم استارتر، فونت).
 ———
 ۲. معماری به صورت دو زبانه هست و هرکاری صورت میگیره باید به زبان فارسی و انگلیسی انجام بشه.
 توی زبان فارسی همه چیز راست چین، تاریخ‌ها شمسی، دیت‌پیکر شمسی و اعداد فارسی نمایش داده میشن.
@@ -35,6 +37,6 @@ https://www.mydigipay.com/developers/docs/upg/?php#4
 زرین پال - نقدی:
 https://www.zarinpal.com/docs/apiDocs/
 
-۱. فونت پیشفرض پنل: /mnt/sda1/Projects/Arsalan/Bots/simplevpbot/assets/fonts/yekan-bakh
+۱. فونت پیشفرض پنل: Yekan Bakh Pro → `frontend/public/fonts/yekan-bakh/` (منبع: `/mnt/Mine/Software/Fonts/Yekan Bakh (Pro) @MafiaFont`)
 ۲. ماژول حسابداری به صورت کامل کپی بشه: /mnt/sda1/Projects/Webina/Webina/Plugins/Webino
 ۳. از سیستم لایسنس این پروژه استفاده بشه: /mnt/sda1/Projects/Webina/Webina/Plugins/Webino

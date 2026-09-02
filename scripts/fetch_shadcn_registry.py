@@ -34,7 +34,7 @@ FE = ROOT / "frontend"
 SRC = FE / "src"
 
 BLOCK_PAGE_FILES = {
-    "login-02": "LoginPage.tsx",
+    "login-04": "LoginPage.tsx",
     "sidebar-07": "DashboardLayoutPage.tsx",
 }
 
@@ -112,7 +112,7 @@ def collect(start: list[str]) -> tuple[dict[str, str], set[str]]:
 
 def main() -> int:
     install_proxy_opener()
-    items = sys.argv[1:] or ["login-02", "sidebar-07"]
+    items = sys.argv[1:] or ["login-04", "sidebar-07"]
     files, npm_deps = collect(items)
     written = 0
     for reg_path, content in sorted(files.items()):

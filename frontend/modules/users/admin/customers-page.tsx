@@ -1,6 +1,6 @@
-import ModuleSkeletonPage from "@/kernel/pages/ModuleSkeletonPage"
+import UsersPage from "@/views/UsersPage"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
-export default function Page({ route }: { route: ResolvedAdminRoute }) {
-  return <ModuleSkeletonPage route={route} area="admin" />
+export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
+  return <UsersPage />
 }

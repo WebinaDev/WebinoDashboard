@@ -1,0 +1,43 @@
+---
+description: Modules, submodules, starter themes, shared commerce, dashboard settings
+globs: frontend/modules/**,backend/modules/**,frontend/src/themes/**
+alwaysApply: false
+---
+
+# Modules & starter themes
+
+## Module / submodule standard
+
+- Every feature is a **module** or **submodule** with a manifest (frontend `modules/*/manifest.ts`, backend module package).
+- Register in the kernel registry (`frontend/src/kernel/registry.ts` + backend kernel). Enable/disable via activations — do not hard-wire routes that ignore activations.
+- Admin page: `modules/{slug}/admin/{submodule}-page`.
+- Public page: `modules/{slug}/site/{submodule}-page`.
+
+```text
+❌ BAD — dump a new page under src/views with no module/activation
+✅ GOOD — manifest route + activation check + admin settings
+```
+
+## Starter themes
+
+- Ship vertical UX as **`{vertical}-starter`** (e.g. `cafe-starter`, `ecommerce-starter` / shop starter).
+- Theme folder: `frontend/src/themes/{slug}/` with `SiteHeader`, `SiteFooter`, views, `manifest.ts`.
+- Register theme loaders in `theme-loader.ts`. Prefer starter as the default for new site types.
+
+## Shared vs vertical
+
+- **Shared (commerce):** payments, cart, checkout, catalog primitives, inventory hooks.
+- **Vertical (cafe, magazine, …):** presentation, copy, extra fields — call shared APIs; do not fork payment gateways per vertical.
+
+## Everything configurable
+
+- Logo, favicon, accent, colors, fonts, nav labels, hero text, contact info → admin settings / branding API.
+- Front-end reads branding from tenant/public API (`resolveSiteBranding`), never embeds fixed brand assets as the only option.
+
+```tsx
+// ❌ BAD — fixed logo path with no settings
+<img src="/brand/logo-fixed.png" />
+
+// ✅ GOOD — from branding payload with fallback only for empty state
+<SiteLogo logoUrl={branding.logo_url} siteName={siteName} />
+```

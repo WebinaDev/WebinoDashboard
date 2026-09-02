@@ -24,6 +24,7 @@ final class ThemeCatalog
     public static function all(): array
     {
         return [
+            self::entry('ecommerce-starter', 'فروشگاه — استارتر', 'E-commerce starter', ['ecommerce'], false, 0),
             self::entry('ecommerce-default', 'فروشگاه — پیش‌فرض', 'E-commerce default', ['ecommerce'], false, 1),
             self::entry('ecommerce-demo-v1', 'فروشگاه — دمو ۱', 'E-commerce demo v1', ['ecommerce'], true, 2),
             self::entry('magazine-default', 'مجله — پیش‌فرض', 'Magazine default', ['magazine'], false, 1),

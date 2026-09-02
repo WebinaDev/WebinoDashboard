@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, type ComponentPropsWithoutRef, type FormEvent } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { cn } from "@/lib/utils"
@@ -12,12 +12,24 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+type LoginResult = {
+  password_must_change?: boolean
+  setup_completed?: boolean
+  user?: { tenant?: { setup_completed?: boolean } }
+}
+
+function safeNextPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null
+  return raw
+}
+
 export function LoginForm({
   className,
   ...props
 }: ComponentPropsWithoutRef<"div">) {
   const t = useTranslations("auth")
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { setAuthenticated } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,17 +41,29 @@ export function LoginForm({
     setError(null)
     setPending(true)
     try {
-      await api("/api/v1/auth/login", {
+      const result = await api<LoginResult>("/api/v1/auth/login", {
         method: "POST",
         json: { email, password },
       })
       setAuthenticated(true)
-      try {
-        const st = await api<{ data: { setup_completed: boolean } }>("/api/v1/setup/status")
-        router.replace(st.data.setup_completed ? "/admin" : "/setup")
-      } catch {
-        router.replace("/")
+
+      if (result.password_must_change) {
+        router.replace("/account/change-password")
+        return
       }
+
+      const next = safeNextPath(searchParams.get("next"))
+      const setupDone =
+        result.setup_completed ??
+        result.user?.tenant?.setup_completed ??
+        true
+
+      if (!setupDone) {
+        router.replace("/setup")
+        return
+      }
+
+      router.replace(next ?? "/admin")
     } catch (err) {
       setError(err instanceof Error ? err.message : t("errors_invalid"))
     } finally {
@@ -79,15 +103,7 @@ export function LoginForm({
               />
             </div>
             <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">{t("password")}</Label>
-                <a
-                  href="#login"
-                  className="ms-auto text-sm underline-offset-4 hover:underline"
-                >
-                  {t("forgotPassword")}
-                </a>
-              </div>
+              <Label htmlFor="password">{t("password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -100,11 +116,14 @@ export function LoginForm({
             <Button type="submit" className="w-full" disabled={pending}>
               {t("submit")}
             </Button>
+            <p className="text-muted-foreground text-center text-xs">
+              {t("defaultCredentialsHint")}
+            </p>
           </form>
           <div className="relative hidden bg-muted md:block">
             <img
               src="/brand/logo.png"
-              alt=""
+              alt={t("brandAlt")}
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
           </div>

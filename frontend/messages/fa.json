@@ -37,7 +37,16 @@
     "oauthGithub": "ورود با GitHub",
     "signupPrompt": "حساب ندارید؟",
     "signupLink": "ثبت‌نام",
-    "errors_invalid": "اطلاعات ورود نادرست است."
+    "errors_invalid": "اطلاعات ورود نادرست است.",
+    "brandAlt": "برند",
+    "defaultCredentialsHint": "پیش‌فرض: admin@example.com / password — بعد از ورود عوض کنید.",
+    "changePasswordTitle": "تغییر رمز عبور",
+    "changePasswordSubtitle": "قبل از استفاده از داشبورد باید رمز جدید تنظیم کنید.",
+    "currentPassword": "رمز فعلی",
+    "newPassword": "رمز جدید",
+    "confirmPassword": "تکرار رمز جدید",
+    "changePasswordSubmit": "به‌روزرسانی رمز",
+    "passwordMismatch": "رمزهای جدید یکسان نیستند."
   },
   "nav": {
     "platform": "بستر",
@@ -146,7 +155,7 @@
     "title": "تسویه",
     "place_order": "ثبت سفارش",
     "pay_zarinpal": "پرداخت زرین‌پال",
-    "pay_digipay": "پرداخت دیجی‌پی (شبیه‌ساز)",
+    "pay_digipay": "پرداخت با دیجی‌پی",
     "order_created": "سفارش ثبت شد",
     "payment_ok": "پرداخت با موفقیت انجام شد.",
     "payment_failed": "پرداخت تکمیل نشد.",
@@ -209,7 +218,9 @@
   },
   "modules": {
     "title": "ماژول‌ها",
-    "skeleton_placeholder": "این بخش به‌زودی تکمیل می‌شود.",
+    "skeleton_placeholder": "هنوز محتوایی نیست. از تنظیمات این ماژول آیتم اضافه کنید یا ماژول را فعال کنید.",
+    "area_admin": "مدیریت",
+    "area_site": "سایت",
     "enabled": "فعال",
     "sync_license": "همگام‌سازی لایسنس CRM",
     "install": "نصب / به‌روزرسانی",

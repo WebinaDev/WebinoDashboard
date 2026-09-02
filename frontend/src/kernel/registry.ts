@@ -19,7 +19,7 @@ export const SITE_TYPES: {
   name_en: string
   default_theme_slug: string
 }[] = [
-  { slug: "ecommerce", name_fa: "فروشگاه اینترنتی", name_en: "E-commerce", default_theme_slug: "ecommerce-default" },
+  { slug: "ecommerce", name_fa: "فروشگاه اینترنتی", name_en: "E-commerce", default_theme_slug: "ecommerce-starter" },
   { slug: "magazine", name_fa: "مجله آموزشی", name_en: "Educational Magazine", default_theme_slug: "magazine-default" },
   { slug: "cafe", name_fa: "کافه و رستوران", name_en: "Cafe & Restaurant", default_theme_slug: "cafe-starter" },
   { slug: "resume", name_fa: "رزومه", name_en: "Resume", default_theme_slug: "resume-default" },

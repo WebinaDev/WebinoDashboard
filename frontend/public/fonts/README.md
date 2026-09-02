@@ -18,7 +18,8 @@ Full license terms for the bundled package: `Yekan Bakh (Pro) @MafiaFont/license
 
 | Path | Contents |
 |------|----------|
-| `yekan-bakh/woff2/` | WOFF2 static weights |
+| `yekan-bakh/woff2/` | WOFF2 static weights (used by Next.js `localFont`) |
 | `yekan-bakh/woff/` | WOFF static weights |
 | `yekan-bakh/variable/` | `YekanBakh-VF.ttf` |
+| `yekan-bakh/ttf/` | Desktop Family TTFs (Pro package) |
 | `_future-font/` | Placeholder for additional licensed fonts |

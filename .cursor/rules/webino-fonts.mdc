@@ -1,0 +1,25 @@
+---
+description: Yekan Bakh Pro as the dashboard panel font
+globs: frontend/**
+alwaysApply: false
+---
+
+# Fonts — Yekan Bakh Pro
+
+## Canonical files
+
+- Panel font files live under `frontend/public/fonts/yekan-bakh/` (`woff2/`, `woff/`, `variable/`).
+- Source of truth for copies: `/mnt/Mine/Software/Fonts/Yekan Bakh (Pro) @MafiaFont` (Webfonts + Variable).
+- Loader: `frontend/src/lib/fonts/yekan-bakh.ts` via `next/font/local` → CSS variable `--font-yekan`.
+
+## Usage
+
+- Root layout applies `yekanBakh.variable` on `<body>`.
+- Tailwind / theme maps `--font-sans` to `var(--font-yekan)`.
+- Do not introduce a second primary UI font for the admin/dashboard without updating this loader and settings.
+
+## When updating fonts
+
+1. Copy Pro webfonts into `public/fonts/yekan-bakh/{woff2,woff,variable}/`.
+2. Keep weight map in `yekan-bakh.ts` aligned with available files (100–950).
+3. Do not commit license PDFs into the app public tree.

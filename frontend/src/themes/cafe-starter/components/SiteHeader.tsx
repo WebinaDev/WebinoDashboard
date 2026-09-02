@@ -21,7 +21,11 @@ export async function SiteHeader({ siteName, branding }: SiteChromeProps) {
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 sticky top-0 z-40">
       <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
         <Link href="/catalogue" className="flex items-center gap-2">
-          <SiteLogo siteName={siteName} logoUrl={resolved.logo_url} />
+          <SiteLogo
+            siteName={siteName}
+            logoUrl={resolved.logo_url}
+            logoDarkUrl={resolved.logo_dark_url}
+          />
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           {NAV.map((item) => (

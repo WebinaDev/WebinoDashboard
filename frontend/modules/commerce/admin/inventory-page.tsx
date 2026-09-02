@@ -1,6 +1,6 @@
-import ModuleSkeletonPage from "@/kernel/pages/ModuleSkeletonPage"
+import CommerceInventoryPage from "@/views/CommerceInventoryPage"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
-export default function Page({ route }: { route: ResolvedAdminRoute }) {
-  return <ModuleSkeletonPage route={route} area="admin" />
+export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
+  return <CommerceInventoryPage />
 }

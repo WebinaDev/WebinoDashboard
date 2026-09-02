@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Admin',
                 'password' => Hash::make('password'),
+                'password_must_change' => true,
                 'tenant_id' => $tenant->id,
                 'role' => 'admin',
             ]

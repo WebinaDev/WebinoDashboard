@@ -41,6 +41,10 @@ return [
     /*
     | Comma-separated user.role values that must enable TOTP 2FA.
     */
-    'enforce_2fa_roles' => env('AUTH_ENFORCE_2FA_ROLES', 'admin'),
+    /*
+    | Empty by default so first-login works without a 2FA UI.
+    | Set AUTH_ENFORCE_2FA_ROLES=admin once enrollment screens ship.
+    */
+    'enforce_2fa_roles' => env('AUTH_ENFORCE_2FA_ROLES', ''),
 
 ];

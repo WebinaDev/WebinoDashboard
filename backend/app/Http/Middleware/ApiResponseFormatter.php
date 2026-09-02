@@ -44,7 +44,12 @@ class ApiResponseFormatter
             ? $this->formatSuccess($content)
             : $this->formatError($content, $status);
 
-        return response()->json($formatted, $status, $response->headers->all());
+        $json = response()->json($formatted, $status);
+        foreach ($response->headers->getCookies() as $cookie) {
+            $json->headers->setCookie($cookie);
+        }
+
+        return $json;
     }
 
     private function shouldFormat(Request $request, Response $response): bool
