@@ -1,4 +1,4 @@
-import SetupWizardPage from "@/pages/SetupWizardPage"
+import SetupWizardPage from "@/views/SetupWizardPage"
 
 export const dynamic = "force-dynamic"
 

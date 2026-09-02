@@ -253,6 +253,9 @@ ensure_docker
 download_source
 [[ -f "$TARGET/docker-compose.aapanel.yml" ]] || die "Checkout incomplete: $TARGET"
 chmod +x "$TARGET/bootstrap.sh" "$TARGET/scripts/"*.sh 2>/dev/null || true
+if [[ -f "$TARGET/scripts/validate.sh" ]]; then
+  bash "$TARGET/scripts/validate.sh" || die "Pre-flight validation failed"
+fi
 if [[ -f "$TARGET/.env" && -f "$TARGET/backend/.env" && "${WEBINO_FORCE_ENV:-0}" != "1" ]]; then
   log "Keeping existing env files (set WEBINO_FORCE_ENV=1 to regenerate)"
 else

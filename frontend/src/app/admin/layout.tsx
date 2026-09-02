@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import DashboardLayoutPage from "@/pages/DashboardLayoutPage"
+import DashboardLayoutPage from "@/views/DashboardLayoutPage"
 
 export const metadata: Metadata = {
   title: "Webino Admin",

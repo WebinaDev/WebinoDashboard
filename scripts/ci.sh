@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+bash "$ROOT/scripts/validate.sh"
+
 echo "==> Frontend: TypeScript"
 cd frontend
 npx tsc --noEmit

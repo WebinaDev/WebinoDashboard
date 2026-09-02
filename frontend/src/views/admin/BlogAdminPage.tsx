@@ -1,6 +1,6 @@
 "use client"
 
-import { AdminResourcePage } from "@/pages/AdminResourcePage"
+import { AdminResourcePage } from "@/views/AdminResourcePage"
 
 export function BlogAdminPage() {
   return (

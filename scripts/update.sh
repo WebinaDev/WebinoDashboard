@@ -59,6 +59,7 @@ cp -a "$tmpdir/backend.env" "$TARGET/backend/.env" 2>/dev/null || true
 chmod +x "$TARGET/bootstrap.sh" "$TARGET/scripts/"*.sh 2>/dev/null || true
 
 cd "$TARGET"
+bash "$TARGET/scripts/validate.sh" 2>/dev/null || true
 log "Rebuilding and restarting stack..."
 compose -f docker-compose.aapanel.yml up -d --build
 compose -f docker-compose.aapanel.yml exec -T backend php artisan migrate --force

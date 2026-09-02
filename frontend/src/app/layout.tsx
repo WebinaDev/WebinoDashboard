@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { cookies } from "next/headers"
 import { NextIntlClientProvider } from "next-intl"
 
-import { defaultLocale, isLocale, type Locale } from "../i18n"
+import { defaultLocale, isLocale, type Locale } from "../../i18n"
 import { yekanBakh } from "@/lib/fonts/yekan-bakh"
 import { getApiOrigin } from "@/lib/api-origin"
 import { AppProviders } from "@/providers/AppProviders"
@@ -40,7 +40,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const locale = await resolveLocale()
-  const messages = (await import(`../messages/${locale}.json`)).default
+  const messages = (await import(`../../messages/${locale}.json`)).default
   const dir = locale === "fa" ? "rtl" : "ltr"
   const apiOrigin = getApiOrigin()
 

@@ -4,15 +4,16 @@ WORKDIR /src
 COPY packages/webina-ui ./packages/webina-ui
 COPY frontend/package.json frontend/package-lock.json ./frontend/
 WORKDIR /src/packages/webina-ui
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund 2>/dev/null || npm install --no-audit --no-fund
 WORKDIR /src/frontend
 RUN npm ci --no-audit --no-fund
 
 FROM node:22-alpine AS builder
 WORKDIR /src
-COPY --from=deps /src/frontend/node_modules ./frontend/node_modules
 COPY packages/webina-ui ./packages/webina-ui
 COPY frontend ./frontend
+COPY --from=deps /src/frontend/node_modules ./frontend/node_modules
+COPY --from=deps /src/packages/webina-ui/node_modules ./packages/webina-ui/node_modules
 WORKDIR /src/frontend
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG API_PROXY_TARGET=http://backend:8080
