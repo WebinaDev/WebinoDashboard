@@ -13,6 +13,7 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  transpilePackages: ["@webina/ui"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },

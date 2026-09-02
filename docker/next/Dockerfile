@@ -2,9 +2,11 @@
 FROM node:22-alpine AS deps
 WORKDIR /src
 COPY packages/webina-ui ./packages/webina-ui
-COPY frontend/package.json ./frontend/package.json
-WORKDIR /src/frontend
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+WORKDIR /src/packages/webina-ui
 RUN npm install --no-audit --no-fund
+WORKDIR /src/frontend
+RUN npm ci --no-audit --no-fund
 
 FROM node:22-alpine AS builder
 WORKDIR /src
