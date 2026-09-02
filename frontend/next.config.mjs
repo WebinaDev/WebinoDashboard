@@ -13,7 +13,6 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.js"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
