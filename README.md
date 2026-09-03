@@ -19,33 +19,18 @@ WEBINO_DOMAIN=shop.example.com WEBINO_HTTP_PORT=3080 \
 
 If port 80 is already used (aaPanel Nginx), the installer binds Docker to **3080**. Then in aaPanel: Website → Reverse Proxy → `http://127.0.0.1:3080`. Full guide: [docs/DEPLOY_AAPANEL.md](docs/DEPLOY_AAPANEL.md)
 
-### WebinoServerManager (multi-site)
-
-Server installation, control panel, and multi-site management are handled by **[WebinoServerManager](https://github.com/WebinaDev/WebinoServerManager)**.
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)
-```
-
-Then from the control panel or CLI:
-
-```bash
-webina product install Webino
-webina site create --slug shop1 --domain shop1.example.com --product Webino
-```
-
 ## Automated provisioning (WebinoERM Site Builder)
 
 For production multi-tenant rollouts, sites are created from **WebinoERM** (`admin/site-builder/provisions/new`):
 
 1. ERM admin selects business category, type, package, and domain.
-2. ERM issues a `core_licenses` row and calls **WebinoServerManager** `POST /api/v1/sites` with env injection (`TENANT_LICENSE_KEY`, `TENANT_SEED_JSON`).
-3. WebinoServerManager runs `webina site create` (Caddy SSL after DNS).
+2. ERM issues a `core_licenses` row and calls **Platform module** `POST /api/v1/platform/sites` with env injection (`TENANT_LICENSE_KEY`, `TENANT_SEED_JSON`).
+3. Platform provisions the site (Docker + Caddy SSL after DNS).
 4. ERM calls `POST /api/v1/provision/bootstrap` on the new site to seed tenant, sync modules, and open the setup wizard.
 
 Corporate packages (`agency`, `startup`) receive theme `corporate-demo-v1`, sample CMS pages, blog/portfolio/team content, and consultation sync to ERP.
 
-Configure WebinoServerManager in ERM under **Hosting & infrastructure** (`webinoserver_panel_url`, API token, `platform_base_domain`).
+Configure Platform servers and `platform_base_domain` in ERM under **Hosting & infrastructure**.
 
 ## URL structure
 
@@ -134,9 +119,9 @@ frontend/    Next.js — public (site) + admin routes
   app/(site)/   Public SSR pages
   app/admin/    Dashboard under /admin/*
   src/themes/   Visual theme packages
-docker/      Dockerfiles used by WebinoServerManager to build platform images
+docker/      Dockerfiles for platform multi-tenant images (used by ERP Platform module)
 ```
 
-Platform images (`docker/php/Dockerfile.platform`) are built when you run `webina product install Webino` on a server managed by WebinoServerManager.
+Platform images (`docker/php/Dockerfile.platform`) are built and deployed by the **Platform module** in WebinoERP during site provisioning.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) and [FEATURES.md](FEATURES.md) for product specifications.

@@ -1,6 +1,6 @@
 # @webina/ui
 
-Shared UI primitives for Webina products (ERP, Dashboard, ServerManager panel).
+Shared UI primitives for Webina products (ERP and Dashboard).
 
 ## Contents
 
