@@ -1,0 +1,150 @@
+# Per-client stack — no host ports, no in-stack Caddy.
+# Used under /opt/webino/clients/<slug>/ with COMPOSE_PROJECT_NAME=webino-<slug>
+#
+# Images must already exist on the host (built once by init-host.sh):
+#   webino-dashboard-frontend:latest
+#   webino-dashboard-backend:latest
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-webino_dashboard}
+      POSTGRES_USER: ${POSTGRES_USER:-webino}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-webino} -d ${POSTGRES_DB:-webino_dashboard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+
+  backend:
+    image: webino-dashboard-backend:latest
+    restart: unless-stopped
+    env_file:
+      - ./backend.env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
+      DB_USERNAME: ${POSTGRES_USER:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      RUN_MIGRATIONS: "1"
+      RUN_OPTIMIZE: "1"
+    volumes:
+      - ./data/storage:/var/www/html/storage
+      - ./backend.env:/var/www/html/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+    networks:
+      internal:
+      edge:
+        aliases:
+          - ${CLIENT_SLUG}-backend
+
+  worker:
+    image: webino-dashboard-backend:latest
+    restart: unless-stopped
+    env_file:
+      - ./backend.env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
+      DB_USERNAME: ${POSTGRES_USER:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      RUN_MIGRATIONS: "0"
+    volumes:
+      - ./data/storage:/var/www/html/storage
+      - ./backend.env:/var/www/html/.env:ro
+    depends_on:
+      backend:
+        condition: service_started
+    command: php artisan queue:work redis --sleep=3 --tries=3
+    networks:
+      - internal
+
+  scheduler:
+    image: webino-dashboard-backend:latest
+    restart: unless-stopped
+    env_file:
+      - ./backend.env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
+      DB_USERNAME: ${POSTGRES_USER:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      RUN_MIGRATIONS: "0"
+    volumes:
+      - ./data/storage:/var/www/html/storage
+      - ./backend.env:/var/www/html/.env:ro
+    depends_on:
+      backend:
+        condition: service_started
+    command: php artisan schedule:work
+    networks:
+      - internal
+
+  frontend:
+    image: webino-dashboard-frontend:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ""
+      INTERNAL_API_URL: http://backend:8080
+      API_PROXY_TARGET: http://backend:8080
+      AUTH_COOKIE_NAME: webino_auth_token
+    depends_on:
+      - backend
+    networks:
+      internal:
+      edge:
+        aliases:
+          - ${CLIENT_SLUG}-frontend
+
+networks:
+  internal:
+    driver: bridge
+  edge:
+    external: true
+    name: webino-edge

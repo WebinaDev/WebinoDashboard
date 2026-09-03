@@ -1,5 +1,9 @@
 # استقرار WebinoDashboard روی aaPanel (Docker)
 
+این سند برای **یک سایت / یک استک** است (`docker-compose.aapanel.yml` با سرویس `web` روی پورت ۸۰/۴۴۳).
+
+اگر چند مشتری جدا (دیتابیس و پوشهٔ ایزوله) روی یک سرور می‌خواهید، از [`DEPLOY_MULTI_CLIENT.md`](./DEPLOY_MULTI_CLIENT.md) و `deploy/hosting/` استفاده کنید — نه پورت `web` داخل هر استک.
+
 ## اینستالر تک‌خطی
 
 ```bash
