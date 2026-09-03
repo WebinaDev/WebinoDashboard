@@ -3,7 +3,7 @@
   "name_fa": "کافه",
   "name_en": "Cafe",
   "site_types": ["cafe"],
-  "submodules": ["menu", "reservations", "hours", "gallery", "venue"],
+  "submodules": ["menu", "reservations", "hours", "gallery", "venue", "qr", "engagement", "item"],
   "admin_nav": { "section": "cafe", "order": 15 },
   "public_routes": ["/catalogue", "/about", "/menu", "/reservations"]
 }

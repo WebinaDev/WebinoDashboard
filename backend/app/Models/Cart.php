@@ -8,7 +8,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cart extends Model
 {
-    protected $fillable = ['tenant_id', 'user_id'];
+    protected $fillable = [
+        'tenant_id',
+        'user_id',
+        'guest_token',
+        'table_number',
+        'branch_slug',
+        'meta',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'meta' => 'array',
+        ];
+    }
 
     public function tenant(): BelongsTo
     {

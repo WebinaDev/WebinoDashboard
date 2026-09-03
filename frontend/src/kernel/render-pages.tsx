@@ -26,7 +26,10 @@ export async function renderAdminPage(segments: string[]) {
   )
 }
 
-export async function renderSitePage(segments: string[]) {
+export async function renderSitePage(
+  segments: string[],
+  searchParams: Record<string, string | string[] | undefined> = {},
+) {
   if (segments.length > 0 && RESERVED_SITE_SEGMENTS.has(segments[0])) {
     notFound()
   }
@@ -40,9 +43,14 @@ export async function renderSitePage(segments: string[]) {
 
   const Page = await loadSitePage(route)
 
+  const normalized: Record<string, string | undefined> = {}
+  for (const [key, value] of Object.entries(searchParams)) {
+    normalized[key] = Array.isArray(value) ? value[0] : value
+  }
+
   return (
     <Suspense fallback={<SitePageSkeleton />}>
-      <Page route={route} />
+      <Page route={route} searchParams={normalized} />
     </Suspense>
   )
 }

@@ -124,4 +124,31 @@ class CafeSettingsController extends Controller
             'data' => $settings->put($tenantId, 'cafe', 'venue', $merged),
         ]);
     }
+
+    public function showEngagement(Request $request, ModuleSettingsService $settings): \Illuminate\Http\JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+
+        return response()->json([
+            'data' => $settings->get($tenantId, 'cafe', 'engagement', ModuleSettingsService::cafeEngagementDefaults()),
+        ]);
+    }
+
+    public function updateEngagement(Request $request, ModuleSettingsService $settings): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'phone_gate_enabled' => ['required', 'boolean'],
+            'likes_enabled' => ['required', 'boolean'],
+            'feedback_enabled' => ['required', 'boolean'],
+            'share_whatsapp_enabled' => ['required', 'boolean'],
+            'share_telegram_enabled' => ['required', 'boolean'],
+        ]);
+
+        $tenantId = $request->user()->tenant_id;
+        $merged = array_merge(ModuleSettingsService::cafeEngagementDefaults(), $data);
+
+        return response()->json([
+            'data' => $settings->put($tenantId, 'cafe', 'engagement', $merged),
+        ]);
+    }
 }

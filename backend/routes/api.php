@@ -10,6 +10,17 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BlogPostController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CafeSettingsController;
+use App\Http\Controllers\Api\V1\CafeBranchController;
+use App\Http\Controllers\Api\V1\CafePdfController;
+use App\Http\Controllers\Api\V1\CafeQrController;
+use App\Http\Controllers\Api\V1\AllergenController;
+use App\Http\Controllers\Api\V1\MenuController;
+use App\Http\Controllers\Api\V1\MenuBannerController;
+use App\Http\Controllers\Api\V1\ProductModifierController;
+use App\Http\Controllers\Api\V1\ReservationController;
+use App\Http\Controllers\Api\V1\PublicReservationController;
+use App\Http\Controllers\Api\V1\PublicCafeEngagementController;
+use App\Http\Controllers\Api\V1\PublicGuestCartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CmsController;
@@ -104,6 +115,16 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:cafe')->group(function () {
             Route::get('/cafe/venue', [PublicCafeController::class, 'venue']);
+            Route::get('/cafe/events', [PublicReservationController::class, 'events']);
+            Route::post('/cafe/reservations', [PublicReservationController::class, 'store']);
+            Route::post('/cafe/events/{event}/bookings', [PublicReservationController::class, 'bookEvent'])->whereNumber('event');
+            Route::get('/cafe/phone-gate', [PublicCafeEngagementController::class, 'checkPhoneGate']);
+            Route::post('/cafe/phone-register', [PublicCafeEngagementController::class, 'registerPhone']);
+            Route::post('/cafe/products/{product}/like', [PublicCafeEngagementController::class, 'like'])->whereNumber('product');
+            Route::post('/cafe/products/{product}/feedback', [PublicCafeEngagementController::class, 'feedback'])->whereNumber('product');
+            Route::get('/cafe/cart', [PublicGuestCartController::class, 'show']);
+            Route::post('/cafe/cart/items', [PublicGuestCartController::class, 'addItem']);
+            Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout']);
         });
     });
 
@@ -151,7 +172,17 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('module:catalog')->group(function () {
             Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::patch('/products/bulk', [ProductController::class, 'bulkUpdate']);
             Route::apiResource('products', ProductController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::apiResource('menus', MenuController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::apiResource('allergens', AllergenController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::apiResource('menu-banners', MenuBannerController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::get('/products/{product}/modifiers', [ProductModifierController::class, 'index'])->whereNumber('product');
+            Route::post('/products/{product}/modifiers', [ProductModifierController::class, 'store'])->whereNumber('product');
+            Route::patch('/modifiers/{modifier}', [ProductModifierController::class, 'update'])->whereNumber('modifier');
+            Route::delete('/modifiers/{modifier}', [ProductModifierController::class, 'destroy'])->whereNumber('modifier');
+            Route::put('/products/{product}/allergens', [ProductModifierController::class, 'syncAllergens'])->whereNumber('product');
+            Route::put('/products/{product}/media', [ProductModifierController::class, 'syncMedia'])->whereNumber('product');
         });
 
         Route::middleware('module:variants')->group(function () {
@@ -164,6 +195,24 @@ Route::prefix('v1')->group(function () {
         Route::middleware('module:cafe_menu')->group(function () {
             Route::get('/cafe/menu-settings', [CafeSettingsController::class, 'showMenu']);
             Route::patch('/cafe/menu-settings', [CafeSettingsController::class, 'updateMenu']);
+            Route::get('/cafe/engagement-settings', [CafeSettingsController::class, 'showEngagement']);
+            Route::patch('/cafe/engagement-settings', [CafeSettingsController::class, 'updateEngagement']);
+        });
+
+        Route::middleware('module:cafe_qr')->group(function () {
+            Route::get('/cafe/qr-settings', [CafeQrController::class, 'showSettings']);
+            Route::patch('/cafe/qr-settings', [CafeQrController::class, 'updateSettings']);
+            Route::get('/cafe/qr', [CafeQrController::class, 'menuQr']);
+            Route::get('/cafe/menu-pdf', [CafePdfController::class, 'menuPdf']);
+            Route::apiResource('cafe/branches', CafeBranchController::class)->only(['index', 'store', 'update', 'destroy']);
+        });
+
+        Route::middleware('module:cafe_reservations')->group(function () {
+            Route::get('/cafe/reservations', [ReservationController::class, 'index']);
+            Route::patch('/cafe/reservations/{reservation}', [ReservationController::class, 'updateReservation'])->whereNumber('reservation');
+            Route::post('/cafe/events', [ReservationController::class, 'storeEvent']);
+            Route::patch('/cafe/events/{event}', [ReservationController::class, 'updateEvent'])->whereNumber('event');
+            Route::patch('/cafe/event-bookings/{booking}', [ReservationController::class, 'updateEventBooking'])->whereNumber('booking');
         });
 
         Route::middleware('module:cafe_hours')->group(function () {

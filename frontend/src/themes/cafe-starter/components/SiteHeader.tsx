@@ -1,20 +1,41 @@
 import Link from "next/link"
 import { getServerTranslations } from "@/lib/server-translations"
+import { apiServer } from "@/lib/api-server"
 
 import { Button } from "@/components/ui/button"
 
 import { SiteLogo } from "@/themes/shared/SiteLogo"
 import type { SiteChromeProps } from "@/themes/shared/types"
 import { resolveSiteBranding } from "@/themes/shared/types"
+import type { CafeMenuSettings, CafeVenuePayload } from "../types"
 
 export async function SiteHeader({ siteName, branding }: SiteChromeProps) {
   const t = await getServerTranslations("cafe_starter")
   const tNav = await getServerTranslations("site.nav")
   const resolved = resolveSiteBranding(branding)
 
+  let menuSettings: CafeMenuSettings | null = null
+  try {
+    const res = await apiServer<{ data: CafeVenuePayload }>("/api/v1/public/cafe/venue", {
+      revalidate: 60,
+      tags: ["cafe-venue"],
+    })
+    menuSettings = res?.data?.menu ?? null
+  } catch {
+    menuSettings = null
+  }
+
+  const locale = process.env.NEXT_PUBLIC_DEFAULT_LOCALE === "en" ? "en" : "fa"
+  const ctaLabel =
+    locale === "fa"
+      ? menuSettings?.header_cta_label_fa ?? menuSettings?.header_cta_label_en
+      : menuSettings?.header_cta_label_en ?? menuSettings?.header_cta_label_fa
+  const ctaUrl = menuSettings?.header_cta_url
+
   const NAV = [
     { href: "/catalogue", label: t("nav_menu") },
     { href: "/about", label: t("nav_about") },
+    { href: "/reservations", label: t("nav_reservations") },
   ]
 
   return (
@@ -34,9 +55,16 @@ export async function SiteHeader({ siteName, branding }: SiteChromeProps) {
             </Button>
           ))}
         </nav>
-        <Button size="sm" variant="outline" asChild className="hidden sm:inline-flex">
-          <Link href="/admin">{tNav("admin")}</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {ctaLabel && ctaUrl ? (
+            <Button size="sm" asChild>
+              <Link href={ctaUrl}>{ctaLabel}</Link>
+            </Button>
+          ) : null}
+          <Button size="sm" variant="outline" asChild className="hidden sm:inline-flex">
+            <Link href="/admin">{tNav("admin")}</Link>
+          </Button>
+        </div>
       </div>
     </header>
   )

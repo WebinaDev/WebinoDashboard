@@ -42,8 +42,8 @@ final class SiteTypeProfiles
                 'name_en' => 'Cafe & Restaurant',
                 'theme' => 'cafe-starter',
                 'modules' => array_merge(self::coreModules(), [
-                    'cafe' => ['menu', 'reservations', 'hours', 'gallery', 'venue'],
-                    'commerce' => ['catalog', 'variants'],
+                    'cafe' => ['menu', 'reservations', 'hours', 'gallery', 'venue', 'qr', 'engagement'],
+                    'commerce' => ['catalog', 'variants', 'cart', 'checkout', 'orders'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'marketing' => ['coupons', 'campaigns'],
                     'blog' => ['posts', 'categories'],

@@ -3,6 +3,18 @@ import type { ResolvedSiteRoute } from "@/kernel/types"
 
 export const revalidate = 60
 
-export default function Page(_props: { route: ResolvedSiteRoute }) {
-  return <CataloguePage />
+type Props = {
+  route: ResolvedSiteRoute
+  searchParams?: Record<string, string | undefined>
+}
+
+export default async function Page({ searchParams }: Props) {
+  return (
+    <CataloguePage
+      initialQuery={searchParams?.q}
+      menuSlug={searchParams?.menu}
+      branchSlug={searchParams?.branch}
+      tableNumber={searchParams?.table}
+    />
+  )
 }

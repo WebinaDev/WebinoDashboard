@@ -10,6 +10,8 @@ return [
     'logged_out' => 'خروج انجام شد',
     'invalid_provision_token' => 'توکن پروویژن نامعتبر است.',
     'cart_empty' => 'سبد خرید خالی است',
+    'banner_limit' => 'حداکثر ۳ بنر مجاز است',
+    'event_full' => 'ظرفیت رویداد تکمیل شده است',
     'module_not_licensed' => 'ماژول لایسنس ندارد. ابتدا لایسنس CRM را همگام‌سازی کنید.',
     'invalid_signature' => 'امضای درخواست نامعتبر است.',
     'tenant_name_required' => 'نام مستأجر الزامی است.',

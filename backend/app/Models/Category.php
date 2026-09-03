@@ -16,6 +16,8 @@ class Category extends Model
         'icon_url',
         'image_url',
         'sort_order',
+        'display_mode',
+        'cover_image_url',
     ];
 
     protected function casts(): array

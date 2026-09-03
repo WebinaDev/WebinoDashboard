@@ -5,10 +5,18 @@ export const revalidate = 60
 
 type Props = {
   initialQuery?: string
+  menuSlug?: string
+  branchSlug?: string
+  tableNumber?: string
 }
 
-export default async function CataloguePage({ initialQuery }: Props = {}) {
-  const { catalog, venue } = await fetchCatalogueData(initialQuery)
+export default async function CataloguePage({
+  initialQuery,
+  menuSlug,
+  branchSlug,
+  tableNumber,
+}: Props = {}) {
+  const { catalog, venue } = await fetchCatalogueData(initialQuery, menuSlug, branchSlug)
 
   if (!catalog) {
     return (
@@ -18,5 +26,13 @@ export default async function CataloguePage({ initialQuery }: Props = {}) {
     )
   }
 
-  return <CatalogueView catalog={catalog} venue={venue} initialQuery={initialQuery} />
+  return (
+    <CatalogueView
+      catalog={catalog}
+      venue={venue}
+      initialQuery={initialQuery}
+      tableNumber={tableNumber}
+      branchSlug={branchSlug}
+    />
+  )
 }

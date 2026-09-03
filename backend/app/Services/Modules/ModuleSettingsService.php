@@ -89,4 +89,23 @@ final class ModuleSettingsService
             'mini_site_enabled' => true,
         ];
     }
+
+    public static function cafeEngagementDefaults(): array
+    {
+        return [
+            'phone_gate_enabled' => false,
+            'likes_enabled' => true,
+            'feedback_enabled' => true,
+            'share_whatsapp_enabled' => true,
+            'share_telegram_enabled' => true,
+        ];
+    }
+
+    public static function cafeQrDefaults(): array
+    {
+        return [
+            'public_base_url' => null,
+            'default_table_prefix' => 'T',
+        ];
+    }
 }

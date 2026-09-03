@@ -19,12 +19,16 @@ class Order extends Model
         'shipping_address',
         'customer_phone',
         'customer_note',
+        'table_number',
+        'branch_slug',
+        'meta',
     ];
 
     protected function casts(): array
     {
         return [
             'total_minor' => 'integer',
+            'meta' => 'array',
         ];
     }
 

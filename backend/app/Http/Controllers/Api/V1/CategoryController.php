@@ -30,6 +30,8 @@ class CategoryController extends Controller
             'icon_url' => ['nullable', 'string', 'max:2048'],
             'image_url' => ['nullable', 'string', 'max:2048'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'display_mode' => ['nullable', 'string', 'in:grid,list,cover'],
+            'cover_image_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
         $tid = $request->user()->tenant_id;
@@ -43,6 +45,8 @@ class CategoryController extends Controller
             'icon_url' => $data['icon_url'] ?? null,
             'image_url' => $data['image_url'] ?? null,
             'sort_order' => $data['sort_order'] ?? 0,
+            'display_mode' => $data['display_mode'] ?? 'grid',
+            'cover_image_url' => $data['cover_image_url'] ?? null,
         ]);
 
         return response()->json(['data' => $cat], 201);
@@ -59,6 +63,8 @@ class CategoryController extends Controller
             'icon_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
             'image_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'display_mode' => ['sometimes', 'string', 'in:grid,list,cover'],
+            'cover_image_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
         ]);
 
         $category->update($data);

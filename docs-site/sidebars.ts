@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
         'guides/getting-started',
         'guides/authentication',
         'guides/api-envelope',
+        'guides/cafe-digital-menu',
       ],
     },
     {

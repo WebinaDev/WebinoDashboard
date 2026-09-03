@@ -39,7 +39,7 @@ export async function loadAdminPage(
 
 export async function loadSitePage(
   route: ResolvedSiteRoute,
-): Promise<ComponentType<{ route: ResolvedSiteRoute }>> {
+): Promise<ComponentType<{ route: ResolvedSiteRoute; searchParams?: Record<string, string | undefined> }>> {
   if (route.path === "") {
     const mod = await import("@/kernel/pages/SiteHomePage")
     return mod.default

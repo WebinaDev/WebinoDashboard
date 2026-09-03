@@ -48,11 +48,19 @@ export function AboutView({ venue }: Props) {
         <section className="mt-12">
           <h2 className="mb-4 text-center text-xl font-semibold">{t("gallery_heading")}</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {images.map((img, idx) => (
-              <div key={`${img.url}-${idx}`} className="bg-muted relative aspect-[4/3] overflow-hidden rounded-xl">
-                <Image src={img.url} alt="" fill className="object-cover" unoptimized />
-              </div>
-            ))}
+            {images.map((img, idx) => {
+              const caption = localized(locale, img.caption_fa, img.caption_en)
+              return (
+                <figure key={`${img.url}-${idx}`} className="overflow-hidden rounded-xl">
+                  <div className="bg-muted relative aspect-[4/3]">
+                    <Image src={img.url} alt={caption ?? ""} fill className="object-cover" unoptimized />
+                  </div>
+                  {caption ? (
+                    <figcaption className="text-muted-foreground mt-2 text-center text-sm">{caption}</figcaption>
+                  ) : null}
+                </figure>
+              )
+            })}
           </div>
         </section>
       ) : null}
