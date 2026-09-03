@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * LocaleDatePicker — Jalali when `locale` starts with `fa`, shadcn Calendar otherwise.
+ * LocaleDatePicker — Jalali (RTL) when locale is `fa`, official shadcn Calendar otherwise.
  * **Always stores ISO Gregorian date strings** (`YYYY-MM-DD`) via `onChange`.
  */
 import dynamic from "next/dynamic"
@@ -17,7 +17,7 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { formatDate } from "@/lib/locale"
+import { formatDate, htmlDir, isRtlLocale, toLocaleDigits } from "@/lib/locale"
 import { cn } from "@/lib/utils"
 
 const DatePicker = dynamic(() => import("react-multi-date-picker"), {
@@ -42,9 +42,7 @@ export function LocaleDatePicker({
   onChange,
   "aria-label": ariaLabel,
 }: Props) {
-  const isFa = locale.startsWith("fa")
-
-  if (isFa) {
+  if (isRtlLocale(locale)) {
     return (
       <JalaliLocaleDatePicker
         value={value}
@@ -78,7 +76,7 @@ function JalaliLocaleDatePicker({
       : undefined
 
   return (
-    <div className="max-w-xs">
+    <div className="max-w-xs" dir={htmlDir("fa")}>
       <DatePicker
         calendar={persian}
         locale={persianFa}
@@ -91,6 +89,7 @@ function JalaliLocaleDatePicker({
           const g = d.convert(gregorian)
           onChange(g.format("YYYY-MM-DD"))
         }}
+        calendarPosition="bottom-end"
         inputClass="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         containerClassName="w-full"
         aria-label={ariaLabel}
@@ -120,10 +119,10 @@ function GregorianLocaleDatePicker({
           )}
         >
           <CalendarIcon className="me-2 size-4" />
-          {value ? formatDate(value, "en") : t("datePicker_placeholder")}
+          {value ? toLocaleDigits(formatDate(value, "en"), "en") : t("datePicker_placeholder")}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0" align="start" dir={htmlDir("en")}>
         <Calendar
           mode="single"
           selected={date}

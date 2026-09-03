@@ -6,6 +6,16 @@ export type ApiOptions = RequestInit & {
   json?: unknown
 }
 
+export class ApiError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+  }
+}
+
 export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   const headers: HeadersInit = {
     Accept: "application/json",
@@ -33,7 +43,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   if (!res.ok) {
     const msg =
       typeof data?.message === "string" ? data.message : `HTTP ${res.status}`
-    throw new Error(msg)
+    throw new ApiError(msg, res.status)
   }
 
   return unwrapApiData<T>(data)

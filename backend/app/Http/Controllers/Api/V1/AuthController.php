@@ -157,6 +157,17 @@ class AuthController extends Controller
 
     public function logout(Request $request): \Illuminate\Http\JsonResponse
     {
+        $cookieName = config('auth.cookie_name', 'webino_auth_token');
+        $cookieToken = $request->cookie($cookieName);
+        if (is_string($cookieToken) && $cookieToken !== '') {
+            PersonalAccessToken::findToken($cookieToken)?->delete();
+        }
+
+        $bearer = $request->bearerToken();
+        if (is_string($bearer) && $bearer !== '') {
+            PersonalAccessToken::findToken($bearer)?->delete();
+        }
+
         $request->user()?->currentAccessToken()?->delete();
 
         return $this->clearAuthCookie(response()->json(['message' => __('api.logged_out')]));

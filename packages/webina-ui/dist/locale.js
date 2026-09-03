@@ -6,6 +6,17 @@ export function normalizeUiLocale(locale) {
 export function isRtlLocale(locale) {
     return normalizeUiLocale(locale) === "fa";
 }
+/** Document direction for the locale (`fa` → RTL). */
+export function htmlDir(locale) {
+    return isRtlLocale(locale) ? "rtl" : "ltr";
+}
+/**
+ * Physical side for shadcn Sidebar / Sheet / dropdowns.
+ * Farsi: right. English: left.
+ */
+export function sidebarSide(locale) {
+    return isRtlLocale(locale) ? "right" : "left";
+}
 export function getIntlLocale(locale) {
     return normalizeUiLocale(locale) === "fa" ? "fa-IR" : "en-US";
 }

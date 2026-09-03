@@ -12,6 +12,8 @@ import {
 } from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+import { htmlDir, normalizeUiLocale } from "@/lib/locale"
+
 export type Accent =
   | "zinc"
   | "slate"
@@ -83,9 +85,9 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     ) {
       setAccent(storedAccent)
     }
-    const locale = readStoredLocale()
+    const locale = normalizeUiLocale(readStoredLocale())
     document.documentElement.lang = locale
-    document.documentElement.dir = locale === "fa" ? "rtl" : "ltr"
+    document.documentElement.dir = htmlDir(locale)
     setHydrated(true)
   }, [])
 
@@ -95,8 +97,6 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     }
     localStorage.setItem("theme_accent", accent)
     document.documentElement.setAttribute("data-accent", accent)
-    document.body.className =
-      "min-h-svh bg-background text-foreground font-sans antialiased"
   }, [hydrated, accent])
 
   const mode: ThemeMode = resolvedTheme === "dark" ? "dark" : "light"
@@ -112,10 +112,6 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
   )
 
   const authValue = useMemo(() => ({ authenticated, setAuthenticated }), [authenticated])
-
-  if (!hydrated) {
-    return null
-  }
 
   return (
     <AuthContext.Provider value={authValue}>

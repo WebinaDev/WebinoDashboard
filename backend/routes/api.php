@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('/auth/session', [AuthController::class, 'session'])->middleware('throttle:5,1');
     Route::get('/auth/gate', [AuthController::class, 'gate']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/provision/bootstrap', [ProvisionController::class, 'bootstrap']);
 
     Route::prefix('public')->middleware('public.tenant')->group(function () {
@@ -130,7 +131,6 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/check', [AuthController::class, 'check']);
-        Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
         Route::get('/auth/user', [AuthController::class, 'user']);
         Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:10,1');

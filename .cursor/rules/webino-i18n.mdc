@@ -13,8 +13,9 @@ alwaysApply: false
 | `fa` | RTL | Jalali (شمسی) | Persian digits | Jalali on shadcn Calendar base |
 | `en` | LTR | Gregorian | Latin digits | Gregorian shadcn Calendar |
 
-- Set `<html lang>` and `dir` from locale (`fa` → `rtl`, `en` → `ltr`).
+- Set `<html lang>` and `dir` from locale (`fa` → `rtl`, `en` → `ltr`) via `htmlDir()`.
 - Persist locale via `NEXT_LOCALE` cookie (middleware + client sync).
+- Admin sidebar physical side: `sidebarSide(locale)` → `fa` right, `en` left. Pass it to `AppSidebar` / shadcn `Sidebar`. Never hardcode `side="left"`.
 
 ## Message catalogs
 

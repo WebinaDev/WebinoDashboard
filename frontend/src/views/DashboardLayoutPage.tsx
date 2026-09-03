@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
 import { AppSidebar } from "@/components/sidebar-07/app-sidebar"
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sidebar"
 import { LocaleThemeToolbar } from "@/components/LocaleThemeToolbar"
 import { api } from "@/lib/api"
+import { sidebarSide } from "@/lib/locale"
 import { useDashboardNav } from "@/hooks/useDashboardNav"
 import { useLocaleSync } from "@/hooks/useLocaleSync"
 
@@ -39,6 +40,7 @@ export default function DashboardLayoutPage({
   const tNav = useTranslations("nav")
   const tDashboard = useTranslations("dashboard")
   const tSidebar = useTranslations("sidebar")
+  const locale = useLocale()
   const { navSections } = useDashboardNav()
 
   const { data: user } = useQuery({
@@ -53,6 +55,7 @@ export default function DashboardLayoutPage({
   return (
     <SidebarProvider>
       <AppSidebar
+        side={sidebarSide(locale)}
         navSections={navSections}
         projects={[]}
         projectsGroupLabel={tNav("projects")}

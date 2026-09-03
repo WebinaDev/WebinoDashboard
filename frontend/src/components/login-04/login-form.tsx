@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, type ComponentPropsWithoutRef, type FormEvent } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { cn } from "@/lib/utils"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/providers/AppProviders"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -28,7 +28,6 @@ export function LoginForm({
   ...props
 }: ComponentPropsWithoutRef<"div">) {
   const t = useTranslations("auth")
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { setAuthenticated } = useAuth()
   const [email, setEmail] = useState("")
@@ -48,7 +47,7 @@ export function LoginForm({
       setAuthenticated(true)
 
       if (result.password_must_change) {
-        router.replace("/account/change-password")
+        window.location.assign("/account/change-password")
         return
       }
 
@@ -59,13 +58,17 @@ export function LoginForm({
         true
 
       if (!setupDone) {
-        router.replace("/setup")
+        window.location.assign("/setup")
         return
       }
 
-      router.replace(next ?? "/admin")
+      window.location.assign(next ?? "/admin")
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("errors_invalid"))
+      if (err instanceof ApiError && err.status === 429) {
+        setError(t("errors_throttled"))
+      } else {
+        setError(err instanceof Error ? err.message : t("errors_invalid"))
+      }
     } finally {
       setPending(false)
     }

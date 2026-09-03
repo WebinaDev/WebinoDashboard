@@ -38,6 +38,7 @@
     "signupPrompt": "حساب ندارید؟",
     "signupLink": "ثبت‌نام",
     "errors_invalid": "اطلاعات ورود نادرست است.",
+    "errors_throttled": "تعداد تلاش ورود زیاد است. یک دقیقه صبر کنید و دوباره امتحان کنید.",
     "brandAlt": "برند",
     "defaultCredentialsHint": "پیش‌فرض: admin@example.com / password — بعد از ورود عوض کنید.",
     "changePasswordTitle": "تغییر رمز عبور",

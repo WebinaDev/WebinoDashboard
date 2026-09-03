@@ -62,7 +62,7 @@ export async function SiteHeader({ siteName, branding }: SiteChromeProps) {
             </Button>
           ) : null}
           <Button size="sm" variant="outline" asChild className="hidden sm:inline-flex">
-            <Link href="/admin">{tNav("admin")}</Link>
+            <Link href="/login?next=/admin">{tNav("admin")}</Link>
           </Button>
         </div>
       </div>

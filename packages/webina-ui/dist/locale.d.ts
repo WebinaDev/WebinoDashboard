@@ -1,6 +1,8 @@
 export type UiLocale = "en" | "fa";
 export declare function normalizeUiLocale(locale?: string | null): UiLocale;
 export declare function isRtlLocale(locale?: string | null): boolean;
+export declare function htmlDir(locale?: string | null): "rtl" | "ltr";
+export declare function sidebarSide(locale?: string | null): "left" | "right";
 export declare function getIntlLocale(locale?: string | null): string;
 export declare function toLocaleDigits(value: string | number, locale?: string | null): string;
 export declare function toLatinDigits(value: string): string;

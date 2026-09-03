@@ -14,8 +14,8 @@ alwaysApply: false
 
 ## Usage
 
-- Root layout applies `yekanBakh.variable` on `<body>`.
-- Tailwind / theme maps `--font-sans` to `var(--font-yekan)`.
+- Root layout applies `yekanBakh.variable` on `<html>` (not body — client providers must never overwrite `body.className` wholesale).
+- Tailwind / theme maps `--font-sans` to `var(--font-yekan)`. `html[lang='fa']` also sets `font-family` explicitly.
 - Do not introduce a second primary UI font for the admin/dashboard without updating this loader and settings.
 
 ## When updating fonts

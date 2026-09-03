@@ -20,6 +20,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { isRtlLocale } from "@/lib/locale"
 
 function TeamLogo({
   logoSrc,
@@ -63,6 +64,7 @@ export function TeamSwitcher({
   const locale = useLocale()
   const t = useTranslations("sidebar")
   const showKbShortcuts = locale.startsWith("en")
+  const isRtl = isRtlLocale(locale)
   const [activeTeam, setActiveTeam] = React.useState(teams[0])
 
   if (!activeTeam) {
@@ -97,7 +99,7 @@ export function TeamSwitcher({
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
             align="start"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : isRtl ? "left" : "right"}
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-xs text-muted-foreground">

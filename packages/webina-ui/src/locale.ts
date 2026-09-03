@@ -11,6 +11,19 @@ export function isRtlLocale(locale?: string | null): boolean {
   return normalizeUiLocale(locale) === "fa"
 }
 
+/** Document direction for the locale (`fa` → RTL). */
+export function htmlDir(locale?: string | null): "rtl" | "ltr" {
+  return isRtlLocale(locale) ? "rtl" : "ltr"
+}
+
+/**
+ * Physical side for shadcn Sidebar / Sheet / dropdowns.
+ * Farsi: right. English: left.
+ */
+export function sidebarSide(locale?: string | null): "left" | "right" {
+  return isRtlLocale(locale) ? "right" : "left"
+}
+
 export function getIntlLocale(locale?: string | null): string {
   return normalizeUiLocale(locale) === "fa" ? "fa-IR" : "en-US"
 }

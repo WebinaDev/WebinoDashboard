@@ -7,6 +7,7 @@ import faMessages from "../../messages/fa.json"
 
 import { defaultLocale, isLocale, type Locale } from "../../i18n"
 import { yekanBakh } from "@/lib/fonts/yekan-bakh"
+import { htmlDir } from "@/lib/locale"
 import { getApiOrigin } from "@/lib/api-origin"
 import { AppProviders } from "@/providers/AppProviders"
 import { QueryProvider } from "@/providers/QueryProvider"
@@ -49,7 +50,7 @@ export default async function RootLayout({
 }>) {
   const locale = await resolveLocale()
   const messages = messageCatalog[locale]
-  const dir = locale === "fa" ? "rtl" : "ltr"
+  const dir = htmlDir(locale)
   const apiOrigin = getApiOrigin()
   // Pass now/timeZone explicitly so NextIntlClientProviderServer never calls
   // getNow/getTimeZone (those require next-intl/plugin + i18n/request.ts, which
@@ -59,7 +60,7 @@ export default async function RootLayout({
     process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE?.trim() || "Asia/Tehran"
 
   return (
-    <html lang={locale} dir={dir} suppressHydrationWarning>
+    <html lang={locale} dir={dir} className={yekanBakh.variable} suppressHydrationWarning>
       <head>
         {apiOrigin ? (
           <>
@@ -68,7 +69,7 @@ export default async function RootLayout({
           </>
         ) : null}
       </head>
-      <body className={`${yekanBakh.variable} min-h-svh font-sans`}>
+      <body className="min-h-svh font-sans antialiased">
         <NextIntlClientProvider
           locale={locale}
           messages={messages}

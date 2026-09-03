@@ -4,8 +4,7 @@ import {
   ChevronsUpDown,
   LogOut,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 import {
   Avatar,
@@ -27,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { api } from "@/lib/api"
+import { isRtlLocale } from "@/lib/locale"
 import { useAuth } from "@/providers/AppProviders"
 
 function initials(name: string) {
@@ -46,8 +46,9 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const t = useTranslations("common")
+  const locale = useLocale()
+  const isRtl = isRtlLocale(locale)
   const { setAuthenticated } = useAuth()
-  const router = useRouter()
 
   const avatarUrl = user.avatar ?? ""
 
@@ -55,10 +56,10 @@ export function NavUser({
     try {
       await api("/api/v1/auth/logout", { method: "POST" })
     } catch {
-      // still clear local session
+      // Cookie is still cleared server-side when the route is public.
     }
     setAuthenticated(false)
-    router.replace("/login")
+    window.location.assign("/login")
   }
 
   return (
@@ -85,7 +86,7 @@ export function NavUser({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : isRtl ? "left" : "right"}
             align="end"
             sideOffset={4}
           >

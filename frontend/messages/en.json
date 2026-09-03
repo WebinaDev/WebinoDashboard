@@ -38,6 +38,7 @@
     "signupPrompt": "Don't have an account?",
     "signupLink": "Sign up",
     "errors_invalid": "Invalid credentials.",
+    "errors_throttled": "Too many login attempts. Please wait a minute and try again.",
     "brandAlt": "Brand",
     "defaultCredentialsHint": "Default: admin@example.com / password — change after first login.",
     "changePasswordTitle": "Change password",

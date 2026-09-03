@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { normalizeUiLocale } from "@/lib/locale"
+import { htmlDir, normalizeUiLocale } from "@/lib/locale"
 import type { Accent } from "@/providers/AppProviders"
 import { useThemeSettings } from "@/providers/AppProviders"
 
@@ -27,7 +27,7 @@ export function LocaleThemeToolbar() {
     document.cookie = `NEXT_LOCALE=${nextLocale};path=/;max-age=31536000`
     localStorage.setItem("locale", nextLocale)
     document.documentElement.lang = nextLocale
-    document.documentElement.dir = nextLocale === "fa" ? "rtl" : "ltr"
+    document.documentElement.dir = htmlDir(nextLocale)
     router.refresh()
   }
 
