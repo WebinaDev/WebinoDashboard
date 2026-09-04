@@ -27,11 +27,21 @@ final class TenantActivationService
             $tenant->theme_preset = $siteTypeSlug;
             $tenant->save();
 
-            $allowedKeys = collect(
-                SiteTypeActivation::query()
-                    ->where('site_type_slug', $siteTypeSlug)
-                    ->get()
-            )->mapWithKeys(fn (SiteTypeActivation $a) => [
+            $activations = SiteTypeActivation::query()->where('site_type_slug', $siteTypeSlug)->get();
+            if ($activations->isEmpty()) {
+                foreach ($profile['modules'] as $moduleSlug => $submodules) {
+                    foreach ($submodules as $subSlug) {
+                        $activations->push(new SiteTypeActivation([
+                            'site_type_slug' => $siteTypeSlug,
+                            'module_slug' => $moduleSlug,
+                            'submodule_slug' => $subSlug,
+                            'enabled_by_default' => true,
+                        ]));
+                    }
+                }
+            }
+
+            $allowedKeys = collect($activations)->mapWithKeys(fn (SiteTypeActivation $a) => [
                 "{$a->module_slug}.{$a->submodule_slug}" => true,
             ]);
 
@@ -50,7 +60,7 @@ final class TenantActivationService
                 ->where('tenant_id', $tenant->id)
                 ->update(['enabled' => false]);
 
-            foreach (SiteTypeActivation::query()->where('site_type_slug', $siteTypeSlug)->get() as $activation) {
+            foreach ($activations as $activation) {
                 TenantSubmoduleActivation::query()->updateOrCreate(
                     [
                         'tenant_id' => $tenant->id,
