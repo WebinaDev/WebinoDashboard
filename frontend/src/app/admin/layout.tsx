@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import DashboardLayoutPage from "@/views/DashboardLayoutPage"
+import { Toaster } from "@/components/ui/sonner"
 
 export const metadata: Metadata = {
   title: "Webino Admin",
@@ -12,5 +13,10 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <DashboardLayoutPage>{children}</DashboardLayoutPage>
+  return (
+    <DashboardLayoutPage>
+      {children}
+      <Toaster richColors closeButton position="top-center" />
+    </DashboardLayoutPage>
+  )
 }

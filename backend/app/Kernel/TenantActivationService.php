@@ -151,6 +151,7 @@ final class TenantActivationService
                 ->where('module_slug', $moduleSlug)
                 ->where('submodule_slug', $submoduleSlug)
                 ->where('enabled', true)
+                ->where('licensed', true)
                 ->exists();
         });
     }
@@ -165,6 +166,7 @@ final class TenantActivationService
             ->where('tenant_id', $tenantId)
             ->where('module_slug', $moduleSlug)
             ->where('enabled', true)
+            ->where('licensed', true)
             ->exists();
     }
 
@@ -174,7 +176,7 @@ final class TenantActivationService
         Cache::forget("kernel:tenant:{$tenantId}:activations");
     }
 
-    /** @return list<array{module_slug: string, submodule_slug: string, enabled: bool}> */
+    /** @return list<array{module_slug: string, submodule_slug: string, enabled: bool, licensed: bool}> */
     public function activationsForTenant(int $tenantId): array
     {
         return Cache::remember("kernel:tenant:{$tenantId}:activations", 60, function () use ($tenantId) {
@@ -184,7 +186,8 @@ final class TenantActivationService
                 ->map(fn (TenantSubmoduleActivation $a) => [
                     'module_slug' => $a->module_slug,
                     'submodule_slug' => $a->submodule_slug,
-                    'enabled' => $a->enabled,
+                    'enabled' => (bool) $a->enabled,
+                    'licensed' => (bool) $a->licensed,
                 ])
                 ->values()
                 ->all();

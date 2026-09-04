@@ -40,6 +40,8 @@ export type TenantActivation = {
   module_slug: string
   submodule_slug: string
   enabled: boolean
+  /** When false, module is entitlement-blocked even if enabled locally. */
+  licensed?: boolean
 }
 
 export type ResolvedAdminRoute = AdminRouteDef & {

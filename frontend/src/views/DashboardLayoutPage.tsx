@@ -2,7 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
-import type { ReactNode } from "react"
+import { usePathname } from "next/navigation"
+import { useMemo, type ReactNode } from "react"
 
 import { AppSidebar } from "@/components/sidebar-07/app-sidebar"
 import {
@@ -22,6 +23,7 @@ import {
 import { LocaleThemeToolbar } from "@/components/LocaleThemeToolbar"
 import { api } from "@/lib/api"
 import { sidebarSide } from "@/lib/locale"
+import { resolveAdminRoute } from "@/kernel/route-resolver"
 import { useDashboardNav } from "@/hooks/useDashboardNav"
 import { useLocaleSync } from "@/hooks/useLocaleSync"
 
@@ -41,7 +43,8 @@ export default function DashboardLayoutPage({
   const tDashboard = useTranslations("dashboard")
   const tSidebar = useTranslations("sidebar")
   const locale = useLocale()
-  const { navSections } = useDashboardNav()
+  const pathname = usePathname() ?? ""
+  const { navSections, activations } = useDashboardNav()
 
   const { data: user } = useQuery({
     queryKey: ["auth-user"],
@@ -51,6 +54,23 @@ export default function DashboardLayoutPage({
   useLocaleSync()
 
   const tenantLabel = user?.tenant?.name ?? "…"
+
+  const breadcrumbCurrent = useMemo(() => {
+    const segments = pathname
+      .replace(/^\/admin\/?/, "")
+      .split("/")
+      .filter(Boolean)
+    const route = resolveAdminRoute(segments, activations)
+    if (!route) {
+      return tDashboard("breadcrumb_current")
+    }
+    const key = route.labelKey.replace("nav.", "")
+    try {
+      return tNav(key as never)
+    } catch {
+      return tDashboard("breadcrumb_current")
+    }
+  }, [activations, pathname, tDashboard, tNav])
 
   return (
     <SidebarProvider>
@@ -69,7 +89,7 @@ export default function DashboardLayoutPage({
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
           <div className="flex flex-1 items-center gap-2 px-4">
-            <SidebarTrigger className="-ms-1" />
+            <SidebarTrigger className="-ms-1" data-testid="sidebar-trigger" />
             <Separator orientation="vertical" className="me-2 h-4" />
             <Breadcrumb>
               <BreadcrumbList>
@@ -80,7 +100,9 @@ export default function DashboardLayoutPage({
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{tDashboard("breadcrumb_current")}</BreadcrumbPage>
+                  <BreadcrumbPage data-testid="admin-breadcrumb-current">
+                    {breadcrumbCurrent}
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

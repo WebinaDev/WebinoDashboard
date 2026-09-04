@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 import type {
   CafeEngagementSettings,
   CafeMenuListItem,
@@ -137,7 +138,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       setMessage(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-menu-settings"] })
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const { data: categories = [], isLoading: loadingCategories } = useQuery({
@@ -189,7 +190,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       await queryClient.invalidateQueries({ queryKey: ["categories"] })
       setMessage(tCatalog("category_saved"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const saveProduct = useMutation({
@@ -226,7 +227,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       setMessage(tCatalog("product_saved"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const deleteProduct = useMutation({
@@ -259,7 +260,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       setMessage(t("bulk_applied"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const [menuForm, setMenuForm] = useState({
@@ -293,7 +294,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       await queryClient.invalidateQueries({ queryKey: ["menus"] })
       setMessage(t("menu_saved"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const deleteMenu = useMutation({
@@ -350,7 +351,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       await queryClient.invalidateQueries({ queryKey: ["menu-banners"] })
       setMessage(t("banner_saved"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const deleteBanner = useMutation({
@@ -379,7 +380,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       setMessage(t("engagement_saved"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-engagement-settings"] })
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   function startEditProduct(product: Product) {

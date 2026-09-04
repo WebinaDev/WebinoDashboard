@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedSiteRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
+import { useLocaleNext } from "@/hooks/use-locale-next"
 import type { CafeEvent } from "@/themes/cafe-starter/types"
 
 type BookingForm = {
@@ -28,6 +30,7 @@ function localized(locale: string, fa?: string | null, en?: string | null) {
 export default function Page(_props: { route: ResolvedSiteRoute }) {
   const t = useTranslations("cafe_starter.reservations")
   const locale = useLocale()
+  const { formatDateTime } = useLocaleNext()
 
   const [form, setForm] = useState({
     guest_name: "",
@@ -63,7 +66,7 @@ export default function Page(_props: { route: ResolvedSiteRoute }) {
       setForm({ guest_name: "", guest_phone: "", party_size: 2, reserved_at: "", notes: "" })
       setError(null)
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const bookEvent = useMutation({
@@ -82,15 +85,11 @@ export default function Page(_props: { route: ResolvedSiteRoute }) {
       setBookingForm({ guest_name: "", guest_phone: "", seats: 1 })
       setError(null)
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   function formatDate(value: string) {
-    try {
-      return new Date(value).toLocaleString(locale)
-    } catch {
-      return value
-    }
+    return formatDateTime(value)
   }
 
   return (

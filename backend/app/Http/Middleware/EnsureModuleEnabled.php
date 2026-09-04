@@ -3,17 +3,14 @@
 namespace App\Http\Middleware;
 
 use App\Kernel\ModuleAliasMap;
-use App\Kernel\TenantActivationService;
-use App\Models\Tenant;
 use App\Models\TenantModule;
+use App\Models\TenantSubmoduleActivation;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureModuleEnabled
 {
-    public function __construct(private readonly TenantActivationService $activations) {}
-
     public function handle(Request $request, Closure $next, string $slug): Response
     {
         $user = $request->user();
@@ -24,21 +21,34 @@ class EnsureModuleEnabled
         $resolved = ModuleAliasMap::resolve($slug);
         if ($resolved !== null) {
             [$moduleSlug, $subSlug] = $resolved;
-            if (! $this->activations->isSubmoduleEnabled($user->tenant_id, $moduleSlug, $subSlug)) {
+            $row = TenantSubmoduleActivation::query()
+                ->where('tenant_id', $user->tenant_id)
+                ->where('module_slug', $moduleSlug)
+                ->where('submodule_slug', $subSlug)
+                ->first();
+
+            if (! $row || ! $row->enabled) {
                 return $this->disabled($slug);
+            }
+
+            if ($row->licensed === false) {
+                return $this->unlicensed($slug);
             }
 
             return $next($request);
         }
 
-        $active = TenantModule::query()
+        $row = TenantModule::query()
             ->where('tenant_id', $user->tenant_id)
             ->where('module_slug', $slug)
-            ->where('enabled', true)
-            ->exists();
+            ->first();
 
-        if (! $active) {
+        if (! $row || ! $row->enabled) {
             return $this->disabled($slug);
+        }
+
+        if ($row->licensed === false) {
+            return $this->unlicensed($slug);
         }
 
         return $next($request);
@@ -48,7 +58,15 @@ class EnsureModuleEnabled
     {
         return response()->json([
             'message' => __('api.module_disabled'),
-            'errors' => ['module' => $slug],
+            'errors' => ['module' => $slug, 'code' => 'MODULE_NOT_ACTIVE'],
+        ], 403);
+    }
+
+    private function unlicensed(string $slug): Response
+    {
+        return response()->json([
+            'message' => __('api.module_not_licensed'),
+            'errors' => ['module' => $slug, 'code' => 'MODULE_NOT_LICENSED'],
         ], 403);
     }
 }

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 
 type Category = {
   id: number
@@ -113,7 +114,7 @@ export default function CatalogPageClient({ route }: { route: ResolvedAdminRoute
       await queryClient.invalidateQueries({ queryKey: ["categories"] })
       setMessage(t("category_saved"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const saveProduct = useMutation({
@@ -143,7 +144,7 @@ export default function CatalogPageClient({ route }: { route: ResolvedAdminRoute
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       setMessage(t("product_saved"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const deleteProduct = useMutation({

@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
+import { useLocaleNext } from "@/hooks/use-locale-next"
 import type { CafeBranch, CafeEvent } from "@/themes/cafe-starter/types"
 
 type Reservation = {
@@ -67,6 +69,7 @@ function statusVariant(status: string): "default" | "secondary" | "outline" {
 export default function ReservationsPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.reservations")
   const tCommon = useTranslations("common")
+  const { formatDateTime } = useLocaleNext()
   const queryClient = useQueryClient()
 
   const [message, setMessage] = useState<string | null>(null)
@@ -93,7 +96,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
       await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
       setMessage(t("updated"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const createEvent = useMutation({
@@ -118,7 +121,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
       await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
       setMessage(t("event_created"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const updateBooking = useMutation({
@@ -131,18 +134,14 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
       await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
       setMessage(t("updated"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const reservations = data?.reservations ?? []
   const events = data?.events ?? []
 
   function formatDate(value: string) {
-    try {
-      return new Date(value).toLocaleString()
-    } catch {
-      return value
-    }
+    return formatDateTime(value)
   }
 
   return (

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DashboardModule;
 use App\Models\Tenant;
 use App\Models\TenantModule;
+use App\Models\TenantSubmoduleActivation;
 use App\Services\Webino\WebinoLicenseClient;
 use Illuminate\Http\Request;
 use Throwable;
@@ -40,6 +41,11 @@ class LicenseController extends Controller
                 ->whereHas('definition', fn ($q) => $q->where('requires_license', true))
                 ->update(['licensed' => false]);
 
+            TenantSubmoduleActivation::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('module_slug', '!=', 'core')
+                ->update(['licensed' => false]);
+
             foreach ($moduleSlugs as $entry) {
                 $slug = is_string($entry)
                     ? $entry
@@ -53,11 +59,20 @@ class LicenseController extends Controller
                     ->where('tenant_id', $tenant->id)
                     ->where('module_slug', $slug)
                     ->update(['licensed' => true]);
+
+                TenantSubmoduleActivation::query()
+                    ->where('tenant_id', $tenant->id)
+                    ->where('module_slug', $slug)
+                    ->update(['licensed' => true]);
             }
         } elseif ($allowed) {
             TenantModule::query()
                 ->where('tenant_id', $tenant->id)
                 ->whereHas('definition', fn ($q) => $q->where('requires_license', true))
+                ->update(['licensed' => true]);
+
+            TenantSubmoduleActivation::query()
+                ->where('tenant_id', $tenant->id)
                 ->update(['licensed' => true]);
         }
 
@@ -82,9 +97,26 @@ class LicenseController extends Controller
             $tenant->save();
         }
 
+        $licensedModules = TenantModule::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('licensed', true)
+            ->pluck('module_slug')
+            ->values()
+            ->all();
+
+        app(\App\Kernel\TenantActivationService::class)->clearCache($tenant->id);
+
+        // Public response: never echo CRM secrets, HMAC, or deploy tokens.
         return response()->json([
-            'crm' => $crm,
-            'tenant_id' => $tenant->id,
+            'data' => [
+                'status' => $allowed ? 'valid' : (string) data_get($crm, 'data.status', 'invalid'),
+                'licensed_modules' => $licensedModules,
+                'theme_preset' => $tenant->theme_preset,
+                'nav_preset' => $tenant->nav_preset,
+                'vertical' => $tenant->vertical,
+                'package_sku' => $tenant->package_sku,
+                'tenant_id' => $tenant->id,
+            ],
         ]);
     }
 }

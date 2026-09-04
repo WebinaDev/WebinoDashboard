@@ -12,8 +12,6 @@ import {
 } from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
-import { htmlDir, normalizeUiLocale } from "@/lib/locale"
-
 export type Accent =
   | "zinc"
   | "slate"
@@ -56,13 +54,6 @@ export function useAuth() {
   return v
 }
 
-function readStoredLocale(): string {
-  if (typeof window === "undefined") {
-    return "fa"
-  }
-  return localStorage.getItem("locale") ?? "fa"
-}
-
 function AccentAndAuthProviders({ children }: { children: ReactNode }) {
   const { resolvedTheme, setTheme } = useTheme()
   const [authenticated, setAuthenticated] = useState(false)
@@ -85,9 +76,7 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     ) {
       setAccent(storedAccent)
     }
-    const locale = normalizeUiLocale(readStoredLocale())
-    document.documentElement.lang = locale
-    document.documentElement.dir = htmlDir(locale)
+    // Locale/dir come from NEXT_LOCALE cookie via layout + useLocaleSync — do not override here.
     setHydrated(true)
   }, [])
 

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 import type { CafeBranch, CafeMenuListItem } from "@/themes/cafe-starter/types"
 
 type QrSettings = {
@@ -69,7 +70,7 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
       setMessage(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-qr-settings"] })
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const generateQr = useMutation({
@@ -85,7 +86,7 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
       setQrResult(data)
       setError(null)
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const { data: branches = [], isLoading: loadingBranches } = useQuery({
@@ -124,7 +125,7 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
       await queryClient.invalidateQueries({ queryKey: ["cafe-branches"] })
       setMessage(t("branch_saved"))
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
   const deleteBranch = useMutation({

@@ -67,6 +67,11 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
+  }
+
   html,
   body {
     @apply font-sans antialiased;
@@ -79,5 +84,55 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Radix dropdown/select locks scroll and adds padding — keep layout still. */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+    padding-inline: 0 !important;
+    margin-right: 0 !important;
+    margin-inline: 0 !important;
+    overflow: hidden !important;
+  }
+
+  [data-accent="zinc"] {
+    --sidebar-primary: 0 0% 9%;
+  }
+  [data-accent="slate"] {
+    --sidebar-primary: 215 16% 47%;
+  }
+  [data-accent="blue"] {
+    --sidebar-primary: 211 100% 42%;
+    --sidebar-ring: 211 100% 42%;
+  }
+  [data-accent="green"] {
+    --sidebar-primary: 151 100% 23%;
+  }
+  [data-accent="rose"] {
+    --sidebar-primary: 343 83% 41%;
+  }
+  [data-accent="orange"] {
+    --sidebar-primary: 23 100% 46%;
+  }
+
+  .dark[data-accent="zinc"] {
+    --sidebar-primary: 0 0% 98%;
+  }
+  .dark[data-accent="slate"] {
+    --sidebar-primary: 210 40% 98%;
+  }
+  .dark[data-accent="blue"] {
+    --sidebar-primary: 205 87% 50%;
+    --sidebar-ring: 205 87% 50%;
+  }
+  .dark[data-accent="green"] {
+    --sidebar-primary: 142.1 70.6% 45.3%;
+  }
+  .dark[data-accent="rose"] {
+    --sidebar-primary: 346.8 77.2% 49.8%;
+  }
+  .dark[data-accent="orange"] {
+    --sidebar-primary: 20.5 90.2% 48.2%;
   }
 }

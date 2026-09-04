@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 
 type Row = {
   slug: string
@@ -38,7 +39,7 @@ export default function ModulesPage() {
       })
       reload()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : tCommon("error_generic"))
+      setMsg(getApiErrorMessage(e) || tCommon("error_generic"))
     }
   }
 
@@ -48,7 +49,7 @@ export default function ModulesPage() {
       await api("/api/v1/license/sync", { method: "POST" })
       reload()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : tCommon("error_generic"))
+      setMsg(getApiErrorMessage(e) || tCommon("error_generic"))
     }
   }
 
@@ -58,7 +59,7 @@ export default function ModulesPage() {
       await api(`/api/v1/modules/${slug}/install`, { method: "POST" })
       reload()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : tCommon("error_generic"))
+      setMsg(getApiErrorMessage(e) || tCommon("error_generic"))
     }
   }
 

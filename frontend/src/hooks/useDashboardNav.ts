@@ -26,6 +26,7 @@ import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
 
 import { api } from "@/lib/api"
+import { pathIsActive } from "@/lib/path-active"
 import { buildAdminNav } from "@/kernel/route-resolver"
 import type { TenantActivation } from "@/kernel/types"
 
@@ -65,21 +66,13 @@ const ICONS: Record<string, LucideIcon> = {
   inventory: Truck,
 }
 
-function pathActive(pathname: string, path: string): boolean {
-  if (path === "/admin") {
-    return pathname === "/admin" || pathname === "/admin/"
-  }
-  return pathname === path || pathname.startsWith(`${path}/`)
-}
-
 export function useDashboardNav() {
   const t = useTranslations("nav")
   const pathname = usePathname() ?? ""
 
   const { data: activations = [] } = useQuery({
     queryKey: ["kernel-activations"],
-    queryFn: () =>
-      api<TenantActivation[]>("/api/v1/kernel/activations"),
+    queryFn: () => api<TenantActivation[]>("/api/v1/kernel/activations"),
   })
 
   const navSections: NavSection[] = useMemo(() => {
@@ -90,14 +83,15 @@ export function useDashboardNav() {
         const iconKey = item.url.split("/").pop() ?? "dashboard"
         const Icon = ICONS[iconKey] ?? LayoutDashboard
         return {
+          id: item.url,
           title: t(item.titleKey.replace("nav.", "") as never),
           url: item.url,
           icon: Icon,
-          isActive: pathActive(pathname, item.url),
+          isActive: pathIsActive(pathname, item.url),
         }
       }),
     }))
   }, [activations, pathname, t])
 
-  return { navSections }
+  return { navSections, activations }
 }

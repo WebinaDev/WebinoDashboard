@@ -17,7 +17,8 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { formatDate, htmlDir, isRtlLocale, toLocaleDigits } from "@/lib/locale"
+import { htmlDir, isRtlLocale } from "@/lib/locale"
+import { formatDate } from "@/lib/locale/format-date"
 import { cn } from "@/lib/utils"
 
 const DatePicker = dynamic(() => import("react-multi-date-picker"), {
@@ -119,7 +120,7 @@ function GregorianLocaleDatePicker({
           )}
         >
           <CalendarIcon className="me-2 size-4" />
-          {value ? toLocaleDigits(formatDate(value, "en"), "en") : t("datePicker_placeholder")}
+          {value ? formatDate(value, { locale: "en" }) : t("datePicker_placeholder")}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start" dir={htmlDir("en")}>
@@ -128,7 +129,10 @@ function GregorianLocaleDatePicker({
           selected={date}
           onSelect={(d) => {
             if (d) {
-              onChange(d.toISOString().slice(0, 10))
+              const pad = (n: number) => String(n).padStart(2, "0")
+              onChange(
+                `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+              )
               setOpen(false)
             }
           }}

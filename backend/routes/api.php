@@ -59,6 +59,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     Route::get('/openapi.json', [OpenApiController::class, 'show']);
 
+    Route::get('/health/readiness', [\App\Http\Controllers\Api\V1\HealthController::class, 'readiness']);
+    Route::get('/health/metrics', [\App\Http\Controllers\Api\V1\HealthController::class, 'metrics']);
+
     Route::get('/payments/callback/{provider}/{order}', [PaymentCallbackController::class, 'handle'])
         ->whereNumber('order');
 

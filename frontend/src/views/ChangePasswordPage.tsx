@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -39,7 +40,7 @@ export default function ChangePasswordPage() {
       const st = await api<{ setup_completed?: boolean }>("/api/v1/setup/status")
       router.replace(st.setup_completed === false ? "/setup" : "/admin")
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("errors_invalid"))
+      setError(getApiErrorMessage(err) || t("errors_invalid"))
     } finally {
       setPending(false)
     }

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 
 import { cn } from "@/lib/utils"
 import { api, ApiError } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useAuth } from "@/providers/AppProviders"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -67,7 +68,7 @@ export function LoginForm({
       if (err instanceof ApiError && err.status === 429) {
         setError(t("errors_throttled"))
       } else {
-        setError(err instanceof Error ? err.message : t("errors_invalid"))
+        setError(getApiErrorMessage(err) || t("errors_invalid"))
       }
     } finally {
       setPending(false)

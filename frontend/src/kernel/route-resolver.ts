@@ -15,7 +15,8 @@ export function isSubmoduleEnabled(
     (a) =>
       a.module_slug === moduleSlug &&
       a.submodule_slug === submoduleSlug &&
-      a.enabled,
+      a.enabled &&
+      a.licensed !== false,
   )
 }
 

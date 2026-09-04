@@ -107,6 +107,14 @@ class ProvisionController extends Controller
         return response()->json(['data' => ['ok' => true, 'tenant_id' => $tenant->id]]);
     }
 
+    /** Escape a value for a single .env line (ERP parity). */
+    protected function envLine(string $key, string $value): string
+    {
+        $escaped = str_replace(['\\', "\n", '"'], ['\\\\', '\\n', '\\"'], $value);
+
+        return $key.'="'.$escaped.'"';
+    }
+
     protected function syncEntitlements(Tenant $tenant, WebinoLicenseClient $client, ModuleGitInstaller $installer, ?TenantActivationService $activations = null): void
     {
         try {
