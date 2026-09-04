@@ -39,7 +39,21 @@ chown -R www-data:www-data storage bootstrap/cache database 2>/dev/null || true
 
 if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
   echo "[webino] Running migrations..."
-  php artisan migrate --force --no-interaction
+  i=1
+  migrated=0
+  while [ "$i" -le 12 ]; do
+    if php artisan migrate --force --no-interaction; then
+      migrated=1
+      break
+    fi
+    echo "[webino] migrate attempt $i failed; retrying in 5s..." >&2
+    i=$((i + 1))
+    sleep 5
+  done
+  if [ "$migrated" != "1" ]; then
+    echo "[webino] migrations failed after retries." >&2
+    exit 1
+  fi
 fi
 
 if [ "${RUN_OPTIMIZE:-0}" = "1" ]; then
