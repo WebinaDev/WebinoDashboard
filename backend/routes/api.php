@@ -70,6 +70,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/auth/gate', [AuthController::class, 'gate']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/provision/bootstrap', [ProvisionController::class, 'bootstrap']);
+    Route::post('/provision/admin', [ProvisionController::class, 'admin']);
+    Route::post('/provision/branding', [ProvisionController::class, 'branding']);
+    Route::post('/provision/modules/install', [ProvisionController::class, 'installModule']);
+    Route::post('/provision/license-sync', [ProvisionController::class, 'licenseSync']);
 
     Route::prefix('public')->middleware('public.tenant')->group(function () {
         Route::get('/tenant', [PublicSiteController::class, 'tenant']);

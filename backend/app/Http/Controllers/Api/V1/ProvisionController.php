@@ -19,21 +19,7 @@ class ProvisionController extends Controller
 {
     public function bootstrap(Request $request, WebinoLicenseClient $client, ModuleGitInstaller $installer, ProvisionContentSeeder $contentSeeder, TenantActivationService $activations): \Illuminate\Http\JsonResponse
     {
-        $token = (string) $request->header('X-Provision-Token', '');
-        $expected = (string) env('TENANT_PROVISION_TOKEN', '');
-        if ($expected === '' || ! hash_equals($expected, $token)) {
-            return response()->json(['message' => __('api.invalid_provision_token')], 403);
-        }
-
-        $secret = (string) config('services.webino.provision_hmac_secret', '');
-        if ($secret === '') {
-            return response()->json(['message' => __('api.hmac_secret_missing')], 503);
-        }
-        $sig = (string) $request->header('X-Provision-Signature', '');
-        $body = $request->getContent();
-        if ($sig === '' || ! hash_equals(hash_hmac('sha256', $body, $secret), $sig)) {
-            return response()->json(['message' => __('api.invalid_signature')], 403);
-        }
+        $this->assertProvisionAuth($request);
 
         $data = $request->validate([
             'seed' => ['required', 'array'],
@@ -105,6 +91,154 @@ class ProvisionController extends Controller
         }
 
         return response()->json(['data' => ['ok' => true, 'tenant_id' => $tenant->id]]);
+    }
+
+    public function admin(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvisionAuth($request);
+
+        $data = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'password' => ['nullable', 'string', 'min:8', 'max:255'],
+        ]);
+
+        $tenant = Tenant::query()->firstOrFail();
+        $user = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('role', 'admin')
+            ->orderBy('id')
+            ->first();
+
+        if (! $user) {
+            $user = User::query()->where('tenant_id', $tenant->id)->orderBy('id')->first();
+        }
+
+        if (! $user) {
+            if (empty($data['email'])) {
+                return response()->json(['message' => __('api.unauthorized')], 422);
+            }
+            $user = User::query()->create([
+                'name' => (string) ($data['name'] ?? 'Admin'),
+                'email' => (string) $data['email'],
+                'password' => Hash::make((string) ($data['password'] ?? Str::random(16))),
+                'password_must_change' => empty($data['password']),
+                'tenant_id' => $tenant->id,
+                'role' => 'admin',
+                'is_active' => true,
+            ]);
+        } else {
+            if (! empty($data['name'])) {
+                $user->name = $data['name'];
+            }
+            if (! empty($data['email'])) {
+                $user->email = $data['email'];
+            }
+            if (! empty($data['password'])) {
+                $user->password = Hash::make($data['password']);
+                $user->password_must_change = false;
+            }
+            $user->save();
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ]);
+    }
+
+    public function branding(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvisionAuth($request);
+
+        $data = $request->validate([
+            'logo_url' => ['nullable', 'string', 'max:2048'],
+            'domain' => ['nullable', 'string', 'max:255'],
+            'site_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $tenant = Tenant::query()->firstOrFail();
+        $branding = is_array($tenant->branding) ? $tenant->branding : [];
+        if (! empty($data['logo_url'])) {
+            $branding['logo_url'] = $data['logo_url'];
+        }
+        $tenant->branding = $branding;
+        if (! empty($data['domain'])) {
+            $tenant->domain = $data['domain'];
+        }
+        if (! empty($data['site_name'])) {
+            $tenant->name = $data['site_name'];
+            $tenant->store_display_name = $data['site_name'];
+        }
+        $tenant->save();
+
+        return response()->json(['data' => ['ok' => true, 'tenant_id' => $tenant->id]]);
+    }
+
+    public function installModule(Request $request, ModuleGitInstaller $installer): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvisionAuth($request);
+
+        $data = $request->validate([
+            'slug' => ['required', 'string', 'max:64'],
+        ]);
+
+        $tenant = Tenant::query()->firstOrFail();
+        DashboardModule::query()->firstOrCreate(['slug' => $data['slug']]);
+        TenantModule::query()->updateOrCreate(
+            ['tenant_id' => $tenant->id, 'module_slug' => $data['slug']],
+            ['enabled' => true, 'licensed' => true, 'synced_at' => now()]
+        );
+
+        try {
+            $row = $installer->install($tenant->id, $data['slug']);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'data' => ['slug' => $data['slug'], 'licensed' => true],
+            ], 422);
+        }
+
+        return response()->json(['data' => $row]);
+    }
+
+    public function licenseSync(Request $request, WebinoLicenseClient $client, ModuleGitInstaller $installer, TenantActivationService $activations): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvisionAuth($request);
+
+        $tenant = Tenant::query()->firstOrFail();
+        $this->syncEntitlements($tenant, $client, $installer, $activations);
+        $activations->clearCache($tenant->id);
+
+        return response()->json(['data' => ['ok' => true]]);
+    }
+
+    protected function assertProvisionAuth(Request $request): void
+    {
+        $token = (string) $request->header('X-Provision-Token', '');
+        $expected = (string) env('TENANT_PROVISION_TOKEN', '');
+        if ($expected === '' || ! hash_equals($expected, $token)) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                response()->json(['message' => __('api.invalid_provision_token')], 403)
+            );
+        }
+
+        $secret = (string) config('services.webino.provision_hmac_secret', '');
+        if ($secret === '') {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                response()->json(['message' => __('api.hmac_secret_missing')], 503)
+            );
+        }
+        $sig = (string) $request->header('X-Provision-Signature', '');
+        $body = $request->getContent();
+        if ($sig === '' || ! hash_equals(hash_hmac('sha256', $body, $secret), $sig)) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                response()->json(['message' => __('api.invalid_signature')], 403)
+            );
+        }
     }
 
     /** Escape a value for a single .env line (ERP parity). */
