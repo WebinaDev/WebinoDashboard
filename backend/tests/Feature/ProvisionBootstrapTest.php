@@ -72,6 +72,47 @@ class ProvisionBootstrapTest extends TestCase
         $this->assertFalse($tenant->setup_completed);
     }
 
+    public function test_provision_bootstrap_creates_tenant_when_none_exists(): void
+    {
+        config(['services.webino.provision_hmac_secret' => 'test-provision-secret']);
+
+        $seed = [
+            'tenant_name' => 'Fresh Site',
+            'domain' => 'fresh.example.com',
+            'admin_email' => 'admin@fresh.example.com',
+            'admin_name' => 'Admin',
+        ];
+
+        $body = json_encode(['seed' => $seed], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $body, 'test-provision-secret');
+
+        $this->assertSame(0, Tenant::query()->count());
+
+        $response = $this->call(
+            'POST',
+            '/api/v1/provision/bootstrap',
+            [],
+            [],
+            [],
+            [
+                'HTTP_X-Provision-Token' => 'test-token-123',
+                'HTTP_X-Provision-Signature' => $signature,
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+            $body,
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('data.ok', true);
+
+        $tenant = Tenant::query()->first();
+        $this->assertNotNull($tenant);
+        $this->assertSame('Fresh Site', $tenant->name);
+        $this->assertSame('fresh-site', $tenant->slug);
+        $this->assertSame('fresh.example.com', $tenant->domain);
+    }
+
     public function test_provision_bootstrap_rejects_invalid_token(): void
     {
         putenv('TENANT_PROVISION_TOKEN=expected');

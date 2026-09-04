@@ -39,12 +39,24 @@ class ProvisionController extends Controller
             'seed' => ['required', 'array'],
         ]);
 
+        $seed = $data['seed'];
+
         $tenant = Tenant::query()->first();
         if (! $tenant) {
-            return response()->json(['message' => __('api.tenant_not_found')], 404);
+            $name = (string) ($seed['tenant_name'] ?? 'Site');
+            $slug = Str::slug((string) ($seed['slug'] ?? $name));
+            if ($slug === '') {
+                $slug = 'site';
+            }
+
+            $tenant = Tenant::query()->create([
+                'name' => $name,
+                'slug' => $slug,
+                'domain' => $seed['domain'] ?? null,
+                'setup_completed' => false,
+            ]);
         }
 
-        $seed = $data['seed'];
         $tenant->fill([
             'name' => $seed['tenant_name'] ?? $tenant->name,
             'store_display_name' => $seed['store_display_name'] ?? $tenant->store_display_name,

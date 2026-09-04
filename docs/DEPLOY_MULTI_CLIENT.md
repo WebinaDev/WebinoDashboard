@@ -100,6 +100,17 @@ COMPOSE_PROJECT_NAME=webino-acme docker compose --env-file .env up -d
 COMPOSE_PROJECT_NAME=webino-acme docker compose --env-file .env exec backend php artisan migrate --force
 ```
 
+## Health checks (`/up`)
+
+Both layers expose an unauthenticated `GET /up` that returns plain `ok` (HTTP 200):
+
+| Target | Path | Use |
+|--------|------|-----|
+| Next.js frontend | `http://{slug}-frontend:3000/up` | Default for Caddy / edge probes (public path hits frontend via `Caddyfile.fragment`) |
+| Laravel backend | `http://{slug}-backend:8080/up` | Container / compose healthchecks against the API process |
+
+Caddy may use either. Prefer frontend `/up` for public URL checks; prefer backend `/up` when probing the Octane container directly. Backend `RUN_MIGRATIONS=1` runs `php artisan migrate --force` on start via `docker/php/entrypoint-platform.sh`.
+
 ## تأیید سریع
 
 1. دو مشتری `acme` و `foo` همزمان بالا؛ روی هاست فقط ۸۰/۴۴۳ پراکسی.
