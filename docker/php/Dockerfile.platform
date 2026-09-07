@@ -1,5 +1,9 @@
 # Production backend image for multi-site platform (code baked in).
-FROM php:8.3-cli-bookworm
+# Base MUST be frankenphp so Octane HTTP workers share the same PHP that
+# receives docker-php-ext-install (pdo_pgsql/redis). Copying only the
+# frankenphp binary onto php:cli — or overwriting libphp.so — leaves workers
+# without those drivers ("could not find driver" on every DB request).
+FROM dunglas/frankenphp:1-php8.3-bookworm
 
 ARG APT_MIRROR=
 ARG FORCE_APT_IPV4=1
@@ -37,10 +41,6 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/bin/frankenphp /usr/local/bin/frankenphp
-COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/lib/libphp.so /usr/local/lib/libphp.so
-COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/lib/libwatcher-c.so* /usr/local/lib/
-RUN echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf && ldconfig
 
 WORKDIR /var/www/html
 

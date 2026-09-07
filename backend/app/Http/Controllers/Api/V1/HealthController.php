@@ -35,7 +35,9 @@ class HealthController extends Controller
                 'app' => config('app.name'),
                 'env' => config('app.env'),
                 'php' => PHP_VERSION,
+                'sapi' => PHP_SAPI,
                 'memory_mb' => round(memory_get_usage(true) / 1024 / 1024, 2),
+                'pdo_drivers' => \PDO::getAvailableDrivers(),
             ],
         ]);
     }

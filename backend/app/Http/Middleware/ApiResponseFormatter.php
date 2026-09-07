@@ -111,6 +111,11 @@ class ApiResponseFormatter
     {
         $message = is_string($content['message'] ?? null) ? $content['message'] : null;
         $errors = isset($content['errors']) && is_array($content['errors']) ? $content['errors'] : null;
+        $data = array_key_exists('data', $content) ? $content['data'] : null;
+
+        if ($message === null && is_array($data) && isset($data['status']) && is_string($data['status'])) {
+            $message = 'status.'.$data['status'];
+        }
 
         if ($message === null) {
             $message = match ($status) {
@@ -118,13 +123,14 @@ class ApiResponseFormatter
                 403 => 'auth.forbidden',
                 404 => 'errors.not_found',
                 422 => 'validation.failed',
+                503 => 'errors.unavailable',
                 default => 'errors.server',
             };
         }
 
         return [
             'success' => false,
-            'data' => null,
+            'data' => $data,
             'message' => $message,
             'meta' => null,
             'errors' => $errors,
