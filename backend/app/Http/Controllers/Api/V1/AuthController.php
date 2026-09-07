@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuthCookie;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -64,7 +65,7 @@ class AuthController extends Controller
             'setup_completed' => (bool) ($user->tenant?->setup_completed ?? true),
         ]);
 
-        return $this->attachAuthCookie($response, $token);
+        return AuthCookie::attach($response, $token, $request);
     }
 
     public function session(Request $request): \Illuminate\Http\JsonResponse
@@ -88,7 +89,7 @@ class AuthController extends Controller
             'refreshed' => true,
         ]);
 
-        return $this->attachAuthCookie($response, $token);
+        return AuthCookie::attach($response, $token, $request);
     }
 
     public function gate(Request $request): \Illuminate\Http\JsonResponse
@@ -170,42 +171,12 @@ class AuthController extends Controller
 
         $request->user()?->currentAccessToken()?->delete();
 
-        return $this->clearAuthCookie(response()->json(['message' => __('api.logged_out')]));
+        return AuthCookie::clear(response()->json(['message' => __('api.logged_out')]), $request);
     }
 
     public function user(Request $request): \Illuminate\Http\JsonResponse
     {
         return response()->json($request->user()->load('tenant'));
-    }
-
-    private function attachAuthCookie(\Illuminate\Http\JsonResponse $response, string $token): \Illuminate\Http\JsonResponse
-    {
-        return $response->cookie(
-            config('auth.cookie_name', 'webino_auth_token'),
-            $token,
-            config('auth.cookie_max_minutes', 60 * 24 * 7),
-            '/',
-            null,
-            app()->environment('production'),
-            true,
-            false,
-            'lax'
-        );
-    }
-
-    private function clearAuthCookie(\Illuminate\Http\JsonResponse $response): \Illuminate\Http\JsonResponse
-    {
-        return $response->cookie(
-            config('auth.cookie_name', 'webino_auth_token'),
-            '',
-            -1,
-            '/',
-            null,
-            app()->environment('production'),
-            true,
-            false,
-            'lax'
-        );
     }
 
     private function resolveAuthenticatedUser(Request $request): ?User

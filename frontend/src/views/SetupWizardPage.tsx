@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { SITE_TYPES } from "@/kernel/registry"
 import type { SiteTypeSlug } from "@/kernel/types"
 
@@ -63,11 +63,18 @@ export default function SetupWizardPage() {
           if (data.tenant.default_locale === "en") setLocale("en")
         }
       })
-      .catch(() => {})
+      .catch((e) => {
+        if (cancelled) return
+        if (e instanceof ApiError && e.status === 401) {
+          window.location.assign("/login?next=/setup")
+          return
+        }
+        setErr(e instanceof Error ? e.message : tCommon("error_generic"))
+      })
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, tCommon])
 
   async function applySiteType() {
     if (!siteType) {
