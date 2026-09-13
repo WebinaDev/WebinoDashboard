@@ -1,0 +1,20 @@
+{
+  "slug": "bots",
+  "name_fa": "ربات‌ها",
+  "name_en": "Bots",
+  "distribution": "git",
+  "site_types": [
+    "ecommerce",
+    "cafe",
+    "corporate"
+  ],
+  "submodules": [
+    "bale",
+    "telegram"
+  ],
+  "admin_nav": {
+    "section": "bots",
+    "order": 41
+  },
+  "public_routes": []
+}

@@ -16,6 +16,7 @@ class DashboardModule extends Model
 
     protected $fillable = [
         'slug',
+        'distribution',
         'git_repo',
         'default_version',
         'requires_license',
@@ -26,5 +27,10 @@ class DashboardModule extends Model
         return [
             'requires_license' => 'boolean',
         ];
+    }
+
+    public function isGitDistributed(): bool
+    {
+        return ($this->distribution ?? 'bundled') === 'git';
     }
 }

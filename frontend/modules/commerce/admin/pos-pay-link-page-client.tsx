@@ -1,0 +1,343 @@
+"use client"
+
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { Minus, Plus, Search, Trash2 } from "lucide-react"
+import Link from "next/link"
+import { useTranslations } from "next-intl"
+import { useMemo, useState } from "react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import type { ResolvedAdminRoute } from "@/kernel/types"
+import { ApiError, api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
+
+type ProductHit = {
+  id: number
+  name: string
+  sku?: string | null
+  price_minor?: number
+}
+
+type CustomerHit = {
+  id: number
+  name?: string | null
+  email?: string | null
+}
+
+type Gateway = {
+  id: string
+  label: string
+}
+
+type CartLine = {
+  product_id: number
+  name: string
+  qty: number
+  unit_price_minor: number
+}
+
+type OrderResult = {
+  id: number
+  payment_url?: string | null
+}
+
+async function searchProducts(q: string): Promise<ProductHit[]> {
+  try {
+    return await api<ProductHit[]>(`/api/v1/products/pos-search?q=${encodeURIComponent(q)}`)
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 403) {
+      return api<ProductHit[]>(`/api/v1/products?search=${encodeURIComponent(q)}&per_page=20`)
+    }
+    throw e
+  }
+}
+
+export default function PosPayLinkPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const t = useTranslations("pos_admin")
+  const [productQ, setProductQ] = useState("")
+  const [productHits, setProductHits] = useState<ProductHit[]>([])
+  const [customerQ, setCustomerQ] = useState("")
+  const [customerHits, setCustomerHits] = useState<CustomerHit[]>([])
+  const [lines, setLines] = useState<CartLine[]>([])
+  const [userId, setUserId] = useState<number | null>(null)
+  const [customerName, setCustomerName] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
+  const [customerEmail, setCustomerEmail] = useState("")
+  const [selectedGateways, setSelectedGateways] = useState<string[]>([])
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const { data: gateways = [] } = useQuery({
+    queryKey: ["payment-gateways"],
+    queryFn: () => api<Gateway[]>("/api/v1/payment-gateways"),
+  })
+
+  const total = useMemo(() => lines.reduce((s, l) => s + l.qty * l.unit_price_minor, 0), [lines])
+
+  async function runProductSearch() {
+    if (!productQ.trim()) {
+      setProductHits([])
+      return
+    }
+    try {
+      setProductHits(await searchProducts(productQ.trim()))
+    } catch (e) {
+      setError(getApiErrorMessage(e as Error))
+    }
+  }
+
+  async function runCustomerSearch() {
+    if (!customerQ.trim()) {
+      setCustomerHits([])
+      return
+    }
+    try {
+      setCustomerHits(await api<CustomerHit[]>(`/api/v1/pos/customers?q=${encodeURIComponent(customerQ.trim())}`))
+    } catch {
+      setCustomerHits([])
+    }
+  }
+
+  function addProduct(p: ProductHit) {
+    setLines((prev) => {
+      const found = prev.find((l) => l.product_id === p.id)
+      if (found) {
+        return prev.map((l) => (l.product_id === p.id ? { ...l, qty: l.qty + 1 } : l))
+      }
+      return [...prev, { product_id: p.id, name: p.name, qty: 1, unit_price_minor: p.price_minor ?? 0 }]
+    })
+  }
+
+  function toggleGateway(id: string, checked: boolean) {
+    setSelectedGateways((prev) => (checked ? [...prev, id] : prev.filter((x) => x !== id)))
+  }
+
+  const create = useMutation({
+    mutationFn: () =>
+      api<OrderResult>("/api/v1/pos/orders", {
+        method: "POST",
+        json: {
+          items: lines.map((l) => ({
+            product_id: l.product_id,
+            quantity: l.qty,
+            unit_price_minor: l.unit_price_minor,
+            product_name: l.name,
+          })),
+          user_id: userId,
+          customer_name: customerName || null,
+          customer_phone: customerPhone || null,
+          customer_email: customerEmail || null,
+          is_pay_link: true,
+          is_pos: true,
+          gateways: selectedGateways,
+          payment_tender: "online",
+          status: "pending_payment",
+        },
+      }),
+    onSuccess: (row) => {
+      setPaymentUrl(row.payment_url || null)
+      setError(null)
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  return (
+    <div className="space-y-6 p-6" dir="auto">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{t("pay_link_title")}</h1>
+          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/admin/pos">{t("back_pos")}</Link>
+        </Button>
+      </div>
+
+      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+
+      {paymentUrl ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("payment_url")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <a className="break-all text-sm underline" href={paymentUrl} target="_blank" rel="noreferrer" dir="ltr">
+              {paymentUrl}
+            </a>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("products")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="text-muted-foreground absolute start-2 top-2.5 size-4" />
+                <Input
+                  className="ps-8"
+                  value={productQ}
+                  onChange={(e) => setProductQ(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void runProductSearch()}
+                  placeholder={t("search_products_ph")}
+                />
+              </div>
+              <Button variant="secondary" onClick={() => void runProductSearch()}>
+                {t("search")}
+              </Button>
+            </div>
+            {productHits.length > 0 ? (
+              <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2 text-sm">
+                {productHits.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-2">
+                    <span>{p.name}</span>
+                    <Button size="sm" variant="outline" onClick={() => addProduct(p)}>
+                      <Plus className="size-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="space-y-2">
+              {lines.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t("empty_cart")}</p>
+              ) : (
+                lines.map((l) => (
+                  <div key={l.product_id} className="flex items-center justify-between gap-2 rounded-md border p-3">
+                    <div>
+                      <p className="text-sm font-medium">{l.name}</p>
+                      <p className="text-muted-foreground text-xs">{l.unit_price_minor.toLocaleString()}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() =>
+                          setLines((prev) =>
+                            prev.map((x) =>
+                              x.product_id === l.product_id ? { ...x, qty: Math.max(1, x.qty - 1) } : x,
+                            ),
+                          )
+                        }
+                      >
+                        <Minus className="size-4" />
+                      </Button>
+                      <span className="w-8 text-center text-sm">{l.qty}</span>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() =>
+                          setLines((prev) =>
+                            prev.map((x) => (x.product_id === l.product_id ? { ...x, qty: x.qty + 1 } : x)),
+                          )
+                        }
+                      >
+                        <Plus className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setLines((prev) => prev.filter((x) => x.product_id !== l.product_id))}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("pay_link_form")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                value={customerQ}
+                onChange={(e) => setCustomerQ(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void runCustomerSearch()}
+                placeholder={t("search_customer_ph")}
+              />
+              <Button variant="secondary" onClick={() => void runCustomerSearch()}>
+                {t("search")}
+              </Button>
+            </div>
+            {customerHits.length > 0 ? (
+              <ul className="max-h-28 space-y-1 overflow-y-auto rounded-md border p-2 text-sm">
+                {customerHits.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      className="w-full rounded px-2 py-1 text-start hover:bg-muted"
+                      onClick={() => {
+                        setUserId(c.id)
+                        setCustomerName(c.name || "")
+                        setCustomerEmail(c.email || "")
+                        setCustomerHits([])
+                      }}
+                    >
+                      {c.name || c.email} #{c.id}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>{t("customer_name")}</Label>
+                <Input className="mt-1" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+              </div>
+              <div>
+                <Label>{t("customer_phone")}</Label>
+                <Input className="mt-1" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>{t("customer_email")}</Label>
+                <Input className="mt-1" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <Label>{t("gateways")}</Label>
+              <div className="mt-2 space-y-2">
+                {gateways.map((g) => (
+                  <label key={g.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedGateways.includes(g.id)}
+                      onCheckedChange={(v) => toggleGateway(g.id, v === true)}
+                    />
+                    {g.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-md border p-3 text-sm font-semibold flex justify-between">
+              <span>{t("total")}</span>
+              <span>{total.toLocaleString()}</span>
+            </div>
+
+            <Button
+              className="w-full"
+              disabled={create.isPending || lines.length === 0}
+              onClick={() => create.mutate()}
+            >
+              {t("create_pay_link")}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

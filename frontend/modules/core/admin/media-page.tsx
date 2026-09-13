@@ -1,6 +1,7 @@
-import ModuleSkeletonPage from "@/kernel/pages/ModuleSkeletonPage"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
+import MediaPageClient from "./media-page-client"
+
 export default function Page({ route }: { route: ResolvedAdminRoute }) {
-  return <ModuleSkeletonPage route={route} area="admin" />
+  return <MediaPageClient route={route} />
 }

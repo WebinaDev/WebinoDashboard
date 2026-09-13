@@ -65,7 +65,12 @@ export function PhoneGateDialog({ engagement }: { engagement?: CafeEngagementSet
         <div className="mt-6 space-y-3 px-1">
           <div>
             <Label htmlFor="phone">{t("phone")}</Label>
-            <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={t("phone_placeholder")}
+            />
           </div>
           <Button className="w-full" disabled={!phone || register.isPending} onClick={() => register.mutate()}>
             {t("submit")}

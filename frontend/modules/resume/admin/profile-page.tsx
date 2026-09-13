@@ -1,6 +1,7 @@
-import ModuleSkeletonPage from "@/kernel/pages/ModuleSkeletonPage"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
+import ResumeProfilePageClient from "./profile-page-client"
+
 export default function Page({ route }: { route: ResolvedAdminRoute }) {
-  return <ModuleSkeletonPage route={route} area="admin" />
+  return <ResumeProfilePageClient route={route} />
 }

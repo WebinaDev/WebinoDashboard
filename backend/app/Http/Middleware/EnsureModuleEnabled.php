@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Kernel\ModuleAliasMap;
+use App\Kernel\ModuleDiscovery;
+use App\Models\DashboardModule;
 use App\Models\TenantModule;
 use App\Models\TenantSubmoduleActivation;
 use Closure;
@@ -35,6 +37,10 @@ class EnsureModuleEnabled
                 return $this->unlicensed($slug);
             }
 
+            if ($deny = $this->denyIfGitCodeMissing($moduleSlug)) {
+                return $deny;
+            }
+
             return $next($request);
         }
 
@@ -51,7 +57,29 @@ class EnsureModuleEnabled
             return $this->unlicensed($slug);
         }
 
+        if ($deny = $this->denyIfGitCodeMissing($slug)) {
+            return $deny;
+        }
+
         return $next($request);
+    }
+
+    private function denyIfGitCodeMissing(string $moduleSlug): ?Response
+    {
+        $def = DashboardModule::query()->find($moduleSlug);
+        if (! $def || ($def->distribution ?? 'bundled') !== 'git') {
+            return null;
+        }
+
+        $discovery = app(ModuleDiscovery::class);
+        if (! $discovery->codePresent($moduleSlug)) {
+            return response()->json([
+                'message' => 'Module not installed from git',
+                'errors' => ['module' => $moduleSlug, 'code' => 'MODULE_NOT_INSTALLED'],
+            ], 403);
+        }
+
+        return null;
     }
 
     private function disabled(string $slug): Response

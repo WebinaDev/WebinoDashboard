@@ -2,8 +2,32 @@
   "slug": "commerce",
   "name_fa": "فروش",
   "name_en": "Commerce",
-  "site_types": ["ecommerce", "cafe"],
-  "submodules": ["catalog", "variants", "cart", "checkout", "orders", "inventory"],
-  "admin_nav": { "section": "commerce", "order": 20 },
-  "public_routes": ["/shop", "/product/:slug"]
+  "distribution": "git",
+  "site_types": [
+    "ecommerce",
+    "cafe"
+  ],
+  "submodules": [
+    "catalog",
+    "brands",
+    "attributes",
+    "variants",
+    "pricing",
+    "marketplace",
+    "cart",
+    "checkout",
+    "orders",
+    "c2c",
+    "wallet",
+    "pos",
+    "inventory"
+  ],
+  "admin_nav": {
+    "section": "commerce",
+    "order": 20
+  },
+  "public_routes": [
+    "/shop",
+    "/product/:slug"
+  ]
 }

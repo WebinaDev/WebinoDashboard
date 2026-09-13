@@ -34,13 +34,22 @@ class KernelServiceProvider extends ServiceProvider
 
     private function registerModuleProviders(): void
     {
-        $base = base_path('modules');
-        if (! is_dir($base)) {
-            return;
+        $discovery = $this->app->make(ModuleDiscovery::class);
+        $dirs = [];
+
+        if (is_dir($discovery->bundledPath())) {
+            foreach (File::directories($discovery->bundledPath()) as $dir) {
+                $dirs[basename($dir)] = $dir;
+            }
+        }
+        if (is_dir($discovery->externalPath())) {
+            foreach (File::directories($discovery->externalPath()) as $dir) {
+                // Prefer nested backend/ for provider class resolution
+                $dirs[basename($dir)] = is_dir($dir.'/backend') ? $dir.'/backend' : $dir;
+            }
         }
 
-        foreach (File::directories($base) as $dir) {
-            $name = basename($dir);
+        foreach ($dirs as $name => $dir) {
             $providerClass = "Modules\\{$name}\\{$name}ServiceProvider";
             if (class_exists($providerClass)) {
                 $this->app->register($providerClass);

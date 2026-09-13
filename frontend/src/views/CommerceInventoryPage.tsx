@@ -18,6 +18,7 @@ type Low = {
 
 export default function CommerceInventoryPage() {
   const t = useTranslations("phase2")
+  const tCatalog = useTranslations("catalog")
   const locale = useLocale()
   const lng = normalizeUiLocale(locale)
   const [low, setLow] = useState<Low[]>([])
@@ -57,9 +58,9 @@ export default function CommerceInventoryPage() {
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">
               <tr>
-                <th className="p-3 text-start">Name</th>
-                <th className="p-3 text-start">SKU</th>
-                <th className="p-3 text-start">Stock</th>
+                <th className="p-3 text-start">{tCatalog("name")}</th>
+                <th className="p-3 text-start">{tCatalog("sku")}</th>
+                <th className="p-3 text-start">{tCatalog("stock")}</th>
               </tr>
             </thead>
             <tbody>

@@ -120,9 +120,6 @@ export function LoginForm({
             <Button type="submit" className="w-full" disabled={pending}>
               {t("submit")}
             </Button>
-            <p className="text-muted-foreground text-center text-xs">
-              {t("defaultCredentialsHint")}
-            </p>
           </form>
           <div className="relative hidden bg-muted md:block">
             <img

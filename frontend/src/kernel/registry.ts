@@ -1,10 +1,13 @@
 import type { ModuleManifest, SiteTypeSlug } from "./types"
+import externalRegistry from "../../modules-external/.registry.json"
 
 import { academyManifest } from "../../modules/academy/manifest"
 import { analyticsManifest } from "../../modules/analytics/manifest"
 import { blogManifest } from "../../modules/blog/manifest"
+import { botsManifest } from "../../modules/bots/manifest"
 import { cafeManifest } from "../../modules/cafe/manifest"
 import { cmsManifest } from "../../modules/cms/manifest"
+import { coffeeProfileManifest } from "../../modules/coffee-profile/manifest"
 import { commerceManifest } from "../../modules/commerce/manifest"
 import { coreManifest } from "../../modules/core/manifest"
 import { corporateManifest } from "../../modules/corporate/manifest"
@@ -26,19 +29,42 @@ export const SITE_TYPES: {
   { slug: "corporate", name_fa: "شرکتی", name_en: "Corporate", default_theme_slug: "corporate-default" },
 ]
 
+/** Bundled core manifests always available at build time. */
+const BUNDLED_MANIFESTS: ModuleManifest[] = [
+  { ...coreManifest, distribution: "bundled" },
+  { ...usersManifest, distribution: "bundled" },
+  { ...cmsManifest, distribution: "bundled" },
+]
+
+/**
+ * Git-distributed modules currently still shipped in-monorepo during hybrid transition.
+ * After install from org-git they land under modules-external/ (see .registry.json).
+ */
+const GIT_TRANSITION_MANIFESTS: ModuleManifest[] = [
+  { ...commerceManifest, distribution: "git" },
+  { ...coffeeProfileManifest, distribution: "git" },
+  { ...blogManifest, distribution: "git" },
+  { ...marketingManifest, distribution: "git" },
+  { ...botsManifest, distribution: "git" },
+  { ...analyticsManifest, distribution: "git" },
+  { ...magazineManifest, distribution: "git" },
+  { ...academyManifest, distribution: "git" },
+  { ...cafeManifest, distribution: "git" },
+  { ...resumeManifest, distribution: "git" },
+  { ...corporateManifest, distribution: "git" },
+]
+
+function loadExternalOverrides(): ModuleManifest[] {
+  const modules = (externalRegistry as { modules?: { slug: string }[] }).modules
+  if (!modules?.length) return []
+  // Marker only until FE packs are wired with dynamic imports after rebuild.
+  return []
+}
+
 export const MODULE_MANIFESTS: ModuleManifest[] = [
-  coreManifest,
-  commerceManifest,
-  usersManifest,
-  cmsManifest,
-  blogManifest,
-  marketingManifest,
-  analyticsManifest,
-  magazineManifest,
-  academyManifest,
-  cafeManifest,
-  resumeManifest,
-  corporateManifest,
+  ...BUNDLED_MANIFESTS,
+  ...GIT_TRANSITION_MANIFESTS,
+  ...loadExternalOverrides(),
 ]
 
 export function getModuleManifest(slug: string): ModuleManifest | undefined {
@@ -47,4 +73,8 @@ export function getModuleManifest(slug: string): ModuleManifest | undefined {
 
 export function getSiteType(slug: string) {
   return SITE_TYPES.find((t) => t.slug === slug)
+}
+
+export function isBundledModule(slug: string): boolean {
+  return getModuleManifest(slug)?.distribution !== "git"
 }

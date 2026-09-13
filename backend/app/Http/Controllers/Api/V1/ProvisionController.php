@@ -61,6 +61,10 @@ class ProvisionController extends Controller
             'crm_account_id' => $seed['crm_account_id'] ?? null,
             'setup_completed' => false,
         ]);
+        $provisionToken = (string) ($seed['provision_token'] ?? env('TENANT_PROVISION_TOKEN', '') ?: '');
+        if ($provisionToken !== '') {
+            $tenant->provision_token = $provisionToken;
+        }
         $tenant->save();
 
         $contentSeeder->seed($tenant, $seed);
@@ -187,7 +191,10 @@ class ProvisionController extends Controller
         ]);
 
         $tenant = Tenant::query()->firstOrFail();
-        DashboardModule::query()->firstOrCreate(['slug' => $data['slug']]);
+        DashboardModule::query()->firstOrCreate(
+            ['slug' => $data['slug']],
+            ['distribution' => 'git', 'requires_license' => true]
+        );
         TenantModule::query()->updateOrCreate(
             ['tenant_id' => $tenant->id, 'module_slug' => $data['slug']],
             ['enabled' => true, 'licensed' => true, 'synced_at' => now()]
@@ -202,7 +209,15 @@ class ProvisionController extends Controller
             ], 422);
         }
 
-        return response()->json(['data' => $row]);
+        return response()->json(['data' => $row, 'status' => $installer->status($tenant->id, $data['slug'])]);
+    }
+
+    public function moduleStatus(Request $request, string $slug, ModuleGitInstaller $installer): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvisionAuth($request);
+        $tenant = Tenant::query()->firstOrFail();
+
+        return response()->json(['data' => $installer->status($tenant->id, $slug)]);
     }
 
     public function licenseSync(Request $request, WebinoLicenseClient $client, ModuleGitInstaller $installer, TenantActivationService $activations): \Illuminate\Http\JsonResponse

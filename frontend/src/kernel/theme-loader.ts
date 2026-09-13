@@ -32,7 +32,7 @@ export async function loadAdminPage(
   route: ResolvedAdminRoute,
 ): Promise<ComponentType<{ route: ResolvedAdminRoute }>> {
   const mod = await import(
-    `../../modules/${route.moduleSlug}/admin/${route.submodule}-page`
+    `../../modules/${route.moduleSlug}/admin/${route.page ?? route.submodule}-page`
   )
   return mod.default
 }

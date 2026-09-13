@@ -5,19 +5,27 @@ import {
   BookOpen,
   Briefcase,
   ClipboardList,
+  Coffee,
+  CreditCard,
   GraduationCap,
   LayoutDashboard,
+  Link2,
+  ListTree,
   Megaphone,
   MessageSquareQuote,
+  MonitorSmartphone,
   Package,
   Palette,
+  Percent,
   Settings,
   ShoppingBag,
   ShoppingCart,
   Store,
+  Tags,
   Truck,
   Users,
   UtensilsCrossed,
+  Wallet,
   type LucideIcon,
 } from "lucide-react"
 import { useMemo } from "react"
@@ -40,12 +48,19 @@ export type NavSection = {
 const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   catalog: Package,
+  products: Package,
+  brands: Store,
+  "product-categories": ListTree,
+  attributes: Tags,
+  "quick-add": ShoppingBag,
+  "bulk-editor": ClipboardList,
+  "price-changer": Percent,
+  settings: Settings,
   orders: ClipboardList,
   cart: ShoppingCart,
   checkout: ShoppingBag,
   users: Users,
   customers: Users,
-  settings: Settings,
   themes: Palette,
   modules: Settings,
   media: Package,
@@ -64,6 +79,23 @@ const ICONS: Record<string, LucideIcon> = {
   announcements: Megaphone,
   consultations: MessageSquareQuote,
   inventory: Truck,
+  coffee: Coffee,
+  pos: MonitorSmartphone,
+  "pay-link": Link2,
+  "my-orders": ClipboardList,
+  "c2c-receipts": CreditCard,
+  "wallet-withdrawals": Wallet,
+  c2c: CreditCard,
+  wallet: Wallet,
+}
+
+function resolveNavIcon(url: string): LucideIcon {
+  const parts = url.split("/").filter(Boolean)
+  for (let i = parts.length - 1; i >= 0; i -= 1) {
+    const icon = ICONS[parts[i]]
+    if (icon) return icon
+  }
+  return LayoutDashboard
 }
 
 export function useDashboardNav() {
@@ -80,8 +112,7 @@ export function useDashboardNav() {
     return sections.map((sec) => ({
       groupLabel: t(sec.labelKey.replace("nav.", "") as never),
       items: sec.items.map((item) => {
-        const iconKey = item.url.split("/").pop() ?? "dashboard"
-        const Icon = ICONS[iconKey] ?? LayoutDashboard
+        const Icon = resolveNavIcon(item.url)
         return {
           id: item.url,
           title: t(item.titleKey.replace("nav.", "") as never),

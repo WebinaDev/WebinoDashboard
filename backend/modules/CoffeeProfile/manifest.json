@@ -1,0 +1,18 @@
+{
+  "slug": "coffee-profile",
+  "name_fa": "پروفایل قهوه",
+  "name_en": "Coffee Profile",
+  "distribution": "git",
+  "site_types": [
+    "ecommerce",
+    "cafe"
+  ],
+  "submodules": [
+    "profile"
+  ],
+  "admin_nav": {
+    "section": "commerce",
+    "order": 25
+  },
+  "default_active": false
+}

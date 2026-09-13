@@ -11,7 +11,7 @@ export default function NotFound() {
       <h1 className="text-2xl font-semibold">404</h1>
       <p className="text-muted-foreground">{t("page_not_found")}</p>
       <Link href="/" className="text-primary underline-offset-4 hover:underline">
-        {t("back_to_dashboard")}
+        {t("back_to_home")}
       </Link>
     </div>
   )

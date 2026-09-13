@@ -50,6 +50,7 @@ class ModuleController extends Controller
 
                 return [
                     'slug' => $def->slug,
+                    'distribution' => $def->distribution ?? 'bundled',
                     'requires_license' => $def->requires_license,
                     'git_repo' => $def->git_repo,
                     'enabled' => $tm?->enabled ?? false,

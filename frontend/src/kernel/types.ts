@@ -4,6 +4,7 @@ export type ModuleManifest = {
   slug: string
   nameFa: string
   nameEn: string
+  distribution?: "bundled" | "git"
   siteTypes: SiteTypeSlug[]
   submodules: string[]
   adminNav?: { section: string; order: number }
@@ -15,6 +16,8 @@ export type ModuleManifest = {
 export type AdminRouteDef = {
   path: string
   submodule: string
+  /** Admin page file stem under modules/{slug}/admin/{page}-page. Defaults to submodule. */
+  page?: string
   labelKey: string
   section: string
   order?: number
@@ -47,9 +50,13 @@ export type TenantActivation = {
 export type ResolvedAdminRoute = AdminRouteDef & {
   moduleSlug: string
   fullPath: string
+  /** Captured values for `:param` segments in the matched route path. */
+  params?: Record<string, string>
 }
 
 export type ResolvedSiteRoute = SiteRouteDef & {
   moduleSlug: string
   fullPath: string
+  /** Captured values for `:param` segments in the matched route path. */
+  params?: Record<string, string>
 }

@@ -88,7 +88,11 @@ export default function ModulesPage() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.slug} className="border-b last:border-0">
-                <td className="p-3 font-mono text-xs">{r.slug}</td>
+                <td className="p-3 text-sm">
+                  {t.has(`names.${r.slug}` as never)
+                    ? t(`names.${r.slug}` as never)
+                    : r.slug}
+                </td>
                 <td className="p-3">
                   {r.enabled ? tCommon("yes") : tCommon("no")}
                 </td>

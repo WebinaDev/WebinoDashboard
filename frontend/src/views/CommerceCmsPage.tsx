@@ -56,11 +56,11 @@ export default function CommerceCmsPage() {
           <Input id="cms-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="cms-slug">slug</Label>
+          <Label htmlFor="cms-slug">{t("cms_slug")}</Label>
           <Input id="cms-slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="cms-body">body</Label>
+          <Label htmlFor="cms-body">{t("cms_body")}</Label>
           <textarea
             id="cms-body"
             value={body}

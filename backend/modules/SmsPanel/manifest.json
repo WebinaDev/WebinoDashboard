@@ -1,0 +1,19 @@
+{
+  "slug": "sms-panel",
+  "name_fa": "پنل پیامکی",
+  "name_en": "SMS Panel",
+  "distribution": "git",
+  "site_types": [
+    "ecommerce",
+    "cafe",
+    "corporate"
+  ],
+  "submodules": [
+    "panel"
+  ],
+  "admin_nav": {
+    "section": "marketing",
+    "order": 45
+  },
+  "public_routes": []
+}

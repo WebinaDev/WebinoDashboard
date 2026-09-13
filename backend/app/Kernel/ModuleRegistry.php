@@ -20,7 +20,8 @@ final class ModuleRegistry
             DashboardModule::query()->updateOrCreate(
                 ['slug' => $manifest->slug],
                 [
-                    'requires_license' => false,
+                    'distribution' => $manifest->distribution,
+                    'requires_license' => $manifest->requiresLicense(),
                     'default_version' => '1.0.0',
                 ]
             );
@@ -105,6 +106,8 @@ final class ModuleRegistry
                     'slug' => $manifest->slug,
                     'name_fa' => $manifest->nameFa,
                     'name_en' => $manifest->nameEn,
+                    'distribution' => $manifest->distribution,
+                    'requires_license' => $manifest->requiresLicense(),
                     'site_types' => $manifest->siteTypes,
                     'admin_nav' => $manifest->adminNav,
                     'public_routes' => $manifest->publicRoutes,

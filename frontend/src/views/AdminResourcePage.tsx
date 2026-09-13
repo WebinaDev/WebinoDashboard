@@ -45,8 +45,11 @@ export function AdminResourcePage({
   const [pending, setPending] = useState(false)
 
   function load() {
-    api<{ data: Row[] }>(listPath)
-      .then((r) => setRows(Array.isArray(r.data) ? r.data : []))
+    api<Row[] | { data: Row[] }>(listPath)
+      .then((r) => {
+        if (Array.isArray(r)) setRows(r)
+        else setRows(Array.isArray(r?.data) ? r.data : [])
+      })
       .catch(() => setRows([]))
   }
 

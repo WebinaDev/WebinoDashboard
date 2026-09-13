@@ -44,7 +44,7 @@ export default function CommerceReportsPage() {
           </div>
         </div>
         <div className="rounded-xl border p-4">
-          <div className="text-muted-foreground text-sm">Conversion</div>
+          <div className="text-muted-foreground text-sm">{t("reports_conversion")}</div>
           <div className="text-2xl font-semibold">
             {data?.conversion_rate_paid_over_total != null
               ? String(data.conversion_rate_paid_over_total)

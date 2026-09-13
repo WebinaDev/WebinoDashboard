@@ -11,6 +11,8 @@ const sidebars: SidebarsConfig = {
         'guides/authentication',
         'guides/api-envelope',
         'guides/cafe-digital-menu',
+        'guides/store-management',
+        'guides/orders-wallet-pos',
       ],
     },
     {

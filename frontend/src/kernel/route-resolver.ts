@@ -38,17 +38,34 @@ export function resolveAdminRoute(
 
   const path = segments.join("/")
 
+  // Prefer exact path matches before dynamic `:param` routes.
   for (const mod of MODULE_MANIFESTS) {
     for (const route of mod.adminRoutes) {
-      if (route.path === path) {
-        if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) {
-          return null
-        }
-        return {
-          ...route,
-          moduleSlug: mod.slug,
-          fullPath: `/admin/${route.path}`,
-        }
+      if (route.path !== path) continue
+      if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) {
+        return null
+      }
+      return {
+        ...route,
+        moduleSlug: mod.slug,
+        fullPath: `/admin/${path}`,
+      }
+    }
+  }
+
+  for (const mod of MODULE_MANIFESTS) {
+    for (const route of mod.adminRoutes) {
+      if (!route.path.includes(":")) continue
+      const params = matchDynamicParams(route.path, path)
+      if (!params) continue
+      if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) {
+        return null
+      }
+      return {
+        ...route,
+        moduleSlug: mod.slug,
+        fullPath: `/admin/${path}`,
+        params,
       }
     }
   }
@@ -74,7 +91,8 @@ export function resolveSiteRoute(
 
   for (const mod of MODULE_MANIFESTS) {
     for (const route of mod.siteRoutes) {
-      if (route.path === path || matchDynamic(route.path, path)) {
+      const params = matchDynamicParams(route.path, path)
+      if (route.path === path || params) {
         if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) {
           return null
         }
@@ -82,6 +100,7 @@ export function resolveSiteRoute(
           ...route,
           moduleSlug: mod.slug,
           fullPath: `/${path}`,
+          params: params ?? undefined,
         }
       }
     }
@@ -91,10 +110,24 @@ export function resolveSiteRoute(
 }
 
 function matchDynamic(pattern: string, actual: string): boolean {
+  return matchDynamicParams(pattern, actual) !== null
+}
+
+function matchDynamicParams(pattern: string, actual: string): Record<string, string> | null {
   const patternParts = pattern.split("/")
   const actualParts = actual.split("/")
-  if (patternParts.length !== actualParts.length) return false
-  return patternParts.every((p, i) => p.startsWith(":") || p === actualParts[i])
+  if (patternParts.length !== actualParts.length) return null
+  const params: Record<string, string> = {}
+  for (let i = 0; i < patternParts.length; i++) {
+    const p = patternParts[i]
+    const a = actualParts[i]
+    if (p.startsWith(":")) {
+      params[p.slice(1)] = a
+      continue
+    }
+    if (p !== a) return null
+  }
+  return params
 }
 
 export function buildAdminNav(activations: TenantActivation[]) {
@@ -109,6 +142,9 @@ export function buildAdminNav(activations: TenantActivation[]) {
 
   for (const mod of MODULE_MANIFESTS) {
     for (const route of mod.adminRoutes) {
+      if (route.path.includes(":")) continue
+      if (route.path.endsWith("/new")) continue
+      if (route.path === "catalog") continue
       if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) continue
       const section = route.section
       if (!sectionMap.has(section)) {
