@@ -143,8 +143,8 @@ class MarketingBotsSmsApiTest extends TestCase
 
         $this->getJson('/api/v1/modirpayamak/dashboard')
             ->assertOk()
-            ->assertJsonPath('ok', true)
-            ->assertJsonPath('balance', 12);
+            ->assertJsonPath('data.ok', true)
+            ->assertJsonPath('data.balance', 12);
     }
 
     public function test_bot_webhook_registers_session(): void

@@ -13,6 +13,7 @@ const sidebars: SidebarsConfig = {
         'guides/cafe-digital-menu',
         'guides/store-management',
         'guides/orders-wallet-pos',
+        'guides/marketing-bots-sms',
       ],
     },
     {

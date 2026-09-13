@@ -11,7 +11,6 @@ use App\Services\Bots\BotClientFactory;
 use App\Services\Bots\BroadcastService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class BotController extends Controller
 {

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
@@ -44,14 +44,13 @@ type Coupon = {
   }
 }
 
-export default function CouponEditorPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
+export default function CouponEditorPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("coupons_admin")
   const tCommon = useTranslations("common")
-  const params = useParams()
   const router = useRouter()
   const qc = useQueryClient()
-  const couponId = String(params.couponId ?? "")
-  const isNew = !couponId || couponId === "new"
+  const couponId = route.params?.couponId
+  const isNew = route.path === "marketing/coupons/new" || !couponId
 
   const [code, setCode] = useState("")
   const [type, setType] = useState("percent")
@@ -76,7 +75,7 @@ export default function CouponEditorPageClient({ route: _route }: { route: Resol
 
   const q = useQuery({
     queryKey: ["coupon", couponId],
-    enabled: !isNew,
+    enabled: !isNew && Boolean(couponId),
     queryFn: () => api<Coupon>(`/api/v1/marketing/coupons/${couponId}`),
   })
 
