@@ -5,64 +5,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Fonts only — colors come from themes.css @theme OKLCH (--color-*). */
 @theme inline {
-  --font-sans: var(--font-yekan), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-yekan), var(--wd-font-body), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-sidebar: hsl(var(--sidebar-background));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 @layer base {
-  :root {
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
   * {
     @apply border-border outline-ring/50;
   }
@@ -70,20 +23,43 @@
   html {
     scrollbar-gutter: stable;
     overflow-y: scroll;
+    --wd-font-body: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
+    --wd-font-heading: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
+    --wd-font-ui: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
   }
 
   html,
   body {
     @apply font-sans antialiased;
+    height: 100%;
   }
 
   html[lang="fa"],
   html[lang="fa"] body {
-    font-family: var(--font-yekan), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--wd-font-body);
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--wd-font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--wd-font-heading);
+  }
+
+  button,
+  input,
+  select,
+  textarea,
+  [data-slot="sidebar"],
+  [data-slot="sidebar-menu-button"] {
+    font-family: var(--wd-font-ui);
   }
 
   /* Radix dropdown/select locks scroll and adds padding — keep layout still. */
@@ -94,45 +70,5 @@
     margin-right: 0 !important;
     margin-inline: 0 !important;
     overflow: hidden !important;
-  }
-
-  [data-accent="zinc"] {
-    --sidebar-primary: 0 0% 9%;
-  }
-  [data-accent="slate"] {
-    --sidebar-primary: 215 16% 47%;
-  }
-  [data-accent="blue"] {
-    --sidebar-primary: 211 100% 42%;
-    --sidebar-ring: 211 100% 42%;
-  }
-  [data-accent="green"] {
-    --sidebar-primary: 151 100% 23%;
-  }
-  [data-accent="rose"] {
-    --sidebar-primary: 343 83% 41%;
-  }
-  [data-accent="orange"] {
-    --sidebar-primary: 23 100% 46%;
-  }
-
-  .dark[data-accent="zinc"] {
-    --sidebar-primary: 0 0% 98%;
-  }
-  .dark[data-accent="slate"] {
-    --sidebar-primary: 210 40% 98%;
-  }
-  .dark[data-accent="blue"] {
-    --sidebar-primary: 205 87% 50%;
-    --sidebar-ring: 205 87% 50%;
-  }
-  .dark[data-accent="green"] {
-    --sidebar-primary: 142.1 70.6% 45.3%;
-  }
-  .dark[data-accent="rose"] {
-    --sidebar-primary: 346.8 77.2% 49.8%;
-  }
-  .dark[data-accent="orange"] {
-    --sidebar-primary: 20.5 90.2% 48.2%;
   }
 }

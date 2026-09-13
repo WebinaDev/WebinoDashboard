@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { htmlDir, normalizeUiLocale } from "@/lib/locale"
 import type { Accent } from "@/providers/AppProviders"
-import { useThemeSettings } from "@/providers/AppProviders"
+import { ACCENT_OPTIONS, useThemeSettings } from "@/providers/AppProviders"
 
 export function LocaleThemeToolbar() {
   const router = useRouter()
@@ -31,7 +31,7 @@ export function LocaleThemeToolbar() {
     router.refresh()
   }
 
-  const accents: Accent[] = ["zinc", "slate", "blue", "green", "rose", "orange"]
+  const accents: Accent[] = ACCENT_OPTIONS
 
   return (
     <div className="flex flex-wrap items-center gap-2">

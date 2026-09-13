@@ -12,13 +12,15 @@ import {
 } from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
-export type Accent =
-  | "zinc"
-  | "slate"
-  | "blue"
-  | "green"
-  | "rose"
-  | "orange"
+import {
+  ACCENT_PRESETS,
+  normalizeAccent,
+  type AccentPreset,
+} from "@/lib/accent"
+
+export type Accent = AccentPreset
+
+export const ACCENT_OPTIONS: Accent[] = [...ACCENT_PRESETS]
 
 type ThemeMode = "light" | "dark"
 
@@ -58,7 +60,7 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
   const { resolvedTheme, setTheme } = useTheme()
   const [authenticated, setAuthenticated] = useState(false)
   const [hydrated, setHydrated] = useState(false)
-  const [accent, setAccent] = useState<Accent>("zinc")
+  const [accent, setAccentState] = useState<Accent>("colorful")
 
   const setMode = useCallback(
     (m: ThemeMode) => {
@@ -68,14 +70,13 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     [setTheme],
   )
 
+  const setAccent = useCallback((a: Accent) => {
+    setAccentState(normalizeAccent(a))
+  }, [])
+
   useLayoutEffect(() => {
-    const storedAccent = localStorage.getItem("theme_accent") as Accent | null
-    if (
-      storedAccent &&
-      ["zinc", "slate", "blue", "green", "rose", "orange"].includes(storedAccent)
-    ) {
-      setAccent(storedAccent)
-    }
+    const storedAccent = localStorage.getItem("theme_accent")
+    setAccentState(normalizeAccent(storedAccent))
     // Locale/dir come from NEXT_LOCALE cookie via layout + useLocaleSync — do not override here.
     setHydrated(true)
   }, [])
@@ -97,7 +98,7 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
       accent,
       setAccent,
     }),
-    [mode, setMode, accent],
+    [mode, setMode, accent, setAccent],
   )
 
   const authValue = useMemo(() => ({ authenticated, setAuthenticated }), [authenticated])
