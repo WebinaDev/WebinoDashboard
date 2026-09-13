@@ -28,6 +28,15 @@
 
 پروکسی authenticated به CRM؛ در نبود لایسنس/CRM پاسخ `unavailable` برمی‌گردد.
 
+## برابری UI با وردپرس
+
+UI ادمین بازاریابی از کلاینت WordPress WebinaDashboard adapt شده (نه iframe جدا):
+
+- تم ادمین نزدیک colorful وردپرس + atmosphere + accentهای کسب‌وکار؛ فونت Yekan Bakh
+- کوپن list/editor با پنل‌های General/Usage/Restrictions/Publish
+- تمام صفحات SMS با فرم/جدول واقعی (نه JSON dump) و `SmsServiceBanner`
+- Broadcast/Campaigns با switcher پروایدر؛ تنظیمات هسته توکن/وب‌هوک/ارسال تست
+
 ```bash
 php artisan migrate
 php artisan queue:work

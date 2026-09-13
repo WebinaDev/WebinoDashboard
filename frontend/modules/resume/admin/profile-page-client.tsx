@@ -69,10 +69,10 @@ function parseObjectLines(text: string, key: "title" | "name" | "label" | "url" 
       return { label: parts[0] ?? "", url: parts[1] ?? parts[0] ?? "" }
     }
     if (parts.length >= 2) {
-      return { [key]: parts[0], detail: parts.slice(1).join(" | ") }
+      return { [key]: parts[0] ?? "", detail: parts.slice(1).join(" | ") }
     }
     return { [key]: line }
-  })
+  }) as Array<Record<string, string>>
 }
 
 export default function ResumeProfilePageClient({ route: _route }: { route: ResolvedAdminRoute }) {

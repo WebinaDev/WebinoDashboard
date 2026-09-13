@@ -5,6 +5,12 @@ import { useLocale, useTranslations } from "next-intl"
 
 import { AccentBarChart } from "@/components/charts/AccentCharts"
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { api } from "@/lib/api"
 import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
 
@@ -50,14 +56,44 @@ export default function DashboardHome({ initialSummary = null }: Props) {
     }
   }, [initialSummary])
 
+  const kpis = [
+    {
+      key: "orders_open",
+      label: t("kpi_orders_open"),
+      value: summary ? formatNumber(summary.orders_open, lng) : tCommon("em_dash"),
+    },
+    {
+      key: "orders_paid",
+      label: t("kpi_orders_paid"),
+      value: summary ? formatNumber(summary.orders_paid, lng) : tCommon("em_dash"),
+    },
+    {
+      key: "products",
+      label: t("kpi_products"),
+      value: summary ? formatNumber(summary.products, lng) : tCommon("em_dash"),
+    },
+    {
+      key: "revenue",
+      label: t("kpi_revenue"),
+      value: summary
+        ? formatNumber(summary.revenue_minor, lng)
+        : tCommon("em_dash"),
+    },
+  ] as const
+
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">
-          {t("sample_date_label")}: {formatDate(new Date(), lng)}
+    <div className="space-y-5">
+      <header className="wd-home-hero relative z-0 space-y-1.5">
+        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          {formatDate(new Date(), lng)}
         </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          {t("welcome")}
+        </h1>
+        <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+          {t("title")}
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
           <span className="text-muted-foreground text-sm">
             {t("pick_date_label")}
           </span>
@@ -72,51 +108,37 @@ export default function DashboardHome({ initialSummary = null }: Props) {
             {picked ? formatDate(picked, lng) : tCommon("em_dash")}
           </span>
         </div>
+      </header>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 sm:gap-4">
+        {kpis.map((kpi) => (
+          <Card key={kpi.key} variant="stat" className="wd-mini-tint">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-muted-foreground text-xs font-medium">
+                {kpi.label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl font-semibold tracking-tight">
+                {kpi.value}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">
-            {t("kpi_orders_open")}
-          </div>
-          <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.orders_open, lng) : tCommon("em_dash")}
-          </div>
-        </div>
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">
-            {t("kpi_orders_paid")}
-          </div>
-          <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.orders_paid, lng) : tCommon("em_dash")}
-          </div>
-        </div>
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">
-            {t("kpi_products")}
-          </div>
-          <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.products, lng) : tCommon("em_dash")}
-          </div>
-        </div>
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">
-            {t("kpi_revenue")}
-          </div>
-          <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.revenue_minor, lng) : tCommon("em_dash")}
-          </div>
-        </div>
-      </div>
+
       {summary ? (
-        <div className="rounded-xl border bg-card p-4 shadow">
-          <AccentBarChart
-            data={[
-              { label: t("kpi_orders_open"), value: summary.orders_open },
-              { label: t("kpi_orders_paid"), value: summary.orders_paid },
-              { label: t("kpi_products"), value: summary.products },
-            ]}
-          />
-        </div>
+        <Card variant="glass">
+          <CardContent className="p-4">
+            <AccentBarChart
+              data={[
+                { label: t("kpi_orders_open"), value: summary.orders_open },
+                { label: t("kpi_orders_paid"), value: summary.orders_paid },
+                { label: t("kpi_products"), value: summary.products },
+              ]}
+            />
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   )

@@ -41,6 +41,18 @@ Proxies to `{WEBINO_BASE_URL}/api/webinocrm/v1/modirpayamak/{path}` with tenant 
 
 Admin pages: `/admin/marketing/sms` and child routes (send, reports, inbox, drafts, phonebook, scheduled, patterns, secretaries, wallet, lines, newsletter, topup, payment-callback).
 
+## UI parity
+
+Admin marketing UI is adapted 1:1 from the WordPress WebinaDashboard client (not a separate Vite iframe):
+
+- **Theme:** Admin shell uses WP-like colorful cream/teal tokens, `wd-app-atmosphere`, business accents (`cafe`, `cosmetics`, `mobile`, `electronics`, …), and **Yekan Bakh**.
+- **Shared:** `PageShell`, `ListStatsStrip`, coupon panels, `SmsServiceBanner`, bot provider switcher.
+- **Coupons:** List (stats, filters, bulk, table) and editor (general / usage / restrictions / publish) map to Laravel `restrictions` JSON and `*_minor` fields.
+- **SMS:** Full panel navigation + real forms/tables for dashboard, send (webservice/pattern/p2p), reports, inbox, drafts, phonebook, scheduled, patterns, secretaries, wallet, lines, newsletter, topup, payment callback. Unavailable CRM proxy shows `SmsServiceBanner`.
+- **Bots:** Broadcast and campaigns panels with provider switcher; Bale/Telegram settings cover token, webhook URL, and test send. Advanced WP-only site-widget/admin-ops UIs stay hidden or “coming soon” when no API exists.
+
+Visual acceptance: compare light/dark + accents against WP for coupons list/editor, SMS send/dashboard, and bot broadcast.
+
 ## Ops
 
 ```bash
