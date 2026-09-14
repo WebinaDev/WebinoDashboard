@@ -76,8 +76,10 @@ const SALES_CHANNELS = [
 ]
 const STATUSES = [
   "pending_payment",
+  "awaiting_gateway",
   "on_hold",
   "paid",
+  "payment_failed",
   "processing",
   "shipped",
   "completed",

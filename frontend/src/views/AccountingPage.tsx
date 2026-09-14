@@ -22,7 +22,7 @@ export default function AccountingPage() {
     api<{ data: Status }>("/api/v1/accounting/status")
       .then((r) => {
         if (!cancelled) {
-          setStatus(r.data)
+          setStatus(r)
         }
       })
       .catch(() => {

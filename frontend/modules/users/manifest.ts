@@ -10,6 +10,7 @@ export const usersManifest: ModuleManifest = {
   adminRoutes: [
     { path: "users", submodule: "rbac", labelKey: "nav.users", section: "access", order: 30 },
     { path: "customers", submodule: "customers", labelKey: "nav.customers", section: "access", order: 31 },
+    { path: "staff", submodule: "staff", labelKey: "nav.staff", section: "access", order: 32 },
   ],
   siteRoutes: [],
 }

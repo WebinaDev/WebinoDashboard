@@ -23,7 +23,7 @@ export default function CommerceReportsPage() {
 
   useEffect(() => {
     api<{ data: Overview }>("/api/v1/reports/overview")
-      .then((r) => setData(r.data))
+      .then((r) => setData(r))
       .catch(() => setData(null))
   }, [])
 

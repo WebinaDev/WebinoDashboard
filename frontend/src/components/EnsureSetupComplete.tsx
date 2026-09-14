@@ -19,7 +19,7 @@ export function EnsureSetupComplete({ children }: { children: ReactNode }) {
   const { data: status, isLoading } = useQuery({
     queryKey: ["setup-status"],
     queryFn: () =>
-      api<{ data: SetupStatus }>("/api/v1/setup/status").then((r) => r.data),
+      api<SetupStatus>("/api/v1/setup/status").then((r) => r),
     retry: false,
   })
 

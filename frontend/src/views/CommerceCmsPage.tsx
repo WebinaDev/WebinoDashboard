@@ -21,7 +21,7 @@ export default function CommerceCmsPage() {
 
   function load() {
     api<{ data: Page[] }>("/api/v1/cms/pages")
-      .then((r) => setRows(r.data))
+      .then((r) => setRows(Array.isArray(r) ? r : (r as { data?: unknown[] }).data ?? []))
       .catch(() => setRows([]))
   }
 

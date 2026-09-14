@@ -12,7 +12,9 @@ export function DashboardPrefetch() {
     void queryClient.prefetchQuery({
       queryKey: ["modules"],
       queryFn: () =>
-        api<{ data: unknown[] }>("/api/v1/modules").then((r) => r.data),
+        api<unknown[] | { data: unknown[] }>("/api/v1/modules").then((r) =>
+          Array.isArray(r) ? r : r.data ?? [],
+        ),
     })
     void queryClient.prefetchQuery({
       queryKey: ["auth-user"],
@@ -21,9 +23,7 @@ export function DashboardPrefetch() {
     void queryClient.prefetchQuery({
       queryKey: ["setup-status"],
       queryFn: () =>
-        api<{ data: { setup_completed: boolean } }>("/api/v1/setup/status").then(
-          (r) => r.data,
-        ),
+        api<{ setup_completed: boolean }>("/api/v1/setup/status").then((r) => r),
     })
   }, [queryClient])
 

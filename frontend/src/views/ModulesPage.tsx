@@ -22,7 +22,7 @@ export default function ModulesPage() {
 
   function reload() {
     api<{ data: Row[] }>("/api/v1/modules")
-      .then((r) => setRows(r.data))
+      .then((r) => setRows(Array.isArray(r) ? r : (r as { data?: unknown[] }).data ?? []))
       .catch(() => setRows([]))
   }
 

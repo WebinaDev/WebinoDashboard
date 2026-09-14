@@ -43,7 +43,7 @@ export default function OrdersPage() {
 
   function reload() {
     api<{ data: OrderRow[] }>("/api/v1/orders")
-      .then((r) => setRows(r.data))
+      .then((r) => setRows(Array.isArray(r) ? r : (r as { data?: unknown[] }).data ?? []))
       .catch(() => setRows([]))
   }
 

@@ -19,18 +19,18 @@ WEBINO_DOMAIN=shop.example.com WEBINO_HTTP_PORT=3080 \
 
 If port 80 is already used (aaPanel Nginx), the installer binds Docker to **3080**. Then in aaPanel: Website → Reverse Proxy → `http://127.0.0.1:3080`. Full guide: [docs/DEPLOY_AAPANEL.md](docs/DEPLOY_AAPANEL.md)
 
-## Automated provisioning (WebinoERM Site Builder)
+## Automated provisioning (WebinoERP Site Builder)
 
-For production multi-tenant rollouts, sites are created from **WebinoERM** (`admin/site-builder/provisions/new`):
+For production multi-tenant rollouts, sites are created from **WebinoERP** (`admin/platform/sites/new`):
 
-1. ERM admin selects business category, type, package, and domain.
-2. ERM issues a `core_licenses` row and calls **Platform module** `POST /api/v1/platform/sites` with env injection (`TENANT_LICENSE_KEY`, `TENANT_SEED_JSON`).
+1. ERP admin selects business category, type, package, and domain.
+2. ERP issues a `core_licenses` row and calls **Platform module** `POST /api/v1/platform/webino/launch` with env injection (`TENANT_LICENSE_KEY`, `TENANT_SEED_JSON`, `TENANT_PROVISION_TOKEN`).
 3. Platform provisions the site (Docker + Caddy SSL after DNS).
-4. ERM calls `POST /api/v1/provision/bootstrap` on the new site to seed tenant, sync modules, and open the setup wizard.
+4. ERP calls `POST /api/v1/provision/bootstrap` on the new site (headers `X-Provision-Token` + `X-Provision-Signature`) to seed tenant, sync modules, and open the setup wizard.
 
 Corporate packages (`agency`, `startup`) receive theme `corporate-demo-v1`, sample CMS pages, blog/portfolio/team content, and consultation sync to ERP.
 
-Configure Platform servers and `platform_base_domain` in ERM under **Hosting & infrastructure**.
+Configure Platform servers and `platform_base_domain` in ERP under **Hosting & infrastructure**.
 
 ## URL structure
 

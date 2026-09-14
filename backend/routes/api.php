@@ -47,6 +47,9 @@ use App\Http\Controllers\Api\V1\ProductAttributeController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductVariantController;
 use App\Http\Controllers\Api\V1\WalletController;
+use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\StaffController;
+use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\BotController;
 use App\Http\Controllers\Api\V1\CouponController;
 use App\Http\Controllers\Api\V1\ModirPayamakController;
@@ -521,6 +524,23 @@ Route::prefix('v1')->group(function () {
             Route::post('/testimonials', [TestimonialController::class, 'store']);
             Route::patch('/testimonials/{testimonial}', [TestimonialController::class, 'update'])->whereNumber('testimonial');
             Route::delete('/testimonials/{testimonial}', [TestimonialController::class, 'destroy'])->whereNumber('testimonial');
+        });
+
+        Route::middleware('module:customers')->group(function () {
+            Route::get('/customers', [CustomerController::class, 'index']);
+            Route::post('/customers', [CustomerController::class, 'store']);
+            Route::patch('/customers/{customer}', [CustomerController::class, 'update'])->whereNumber('customer');
+        });
+
+        Route::middleware('module:staff')->group(function () {
+            Route::get('/staff', [StaffController::class, 'index']);
+            Route::post('/staff', [StaffController::class, 'store']);
+            Route::patch('/staff/{staff}', [StaffController::class, 'update'])->whereNumber('staff');
+        });
+
+        Route::middleware('module:rbac')->group(function () {
+            Route::get('/roles', [RoleController::class, 'index']);
+            Route::put('/roles', [RoleController::class, 'update']);
         });
 
         Route::middleware('module:team')->group(function () {

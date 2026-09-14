@@ -47,11 +47,11 @@ export default function CatalogPage() {
   const [formCat, setFormCat] = useState<string>("")
 
   function reloadAll() {
-    api<{ data: Category[] }>("/api/v1/categories")
-      .then((r) => setCategories(r.data))
+    api<Category[] | { data: Category[] }>("/api/v1/categories")
+      .then((r) => setCategories(Array.isArray(r) ? r : r.data ?? []))
       .catch(() => setCategories([]))
-    api<{ data: Product[] }>("/api/v1/products")
-      .then((r) => setItems(r.data))
+    api<Product[] | { data: Product[] }>("/api/v1/products")
+      .then((r) => setItems(Array.isArray(r) ? r : r.data ?? []))
       .catch(() => setItems([]))
   }
 

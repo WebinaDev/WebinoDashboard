@@ -4,3 +4,4 @@ export declare function normalizeAccent(accent?: string | null): AccentPreset;
 export declare function applyAccent(accent: AccentPreset): void;
 export declare function readStoredAccent(storageKey?: string): AccentPreset;
 export declare function persistAccent(accent: AccentPreset, storageKey?: string): void;
+//# sourceMappingURL=accent.d.ts.map

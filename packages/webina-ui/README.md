@@ -11,7 +11,7 @@ Shared UI primitives for Webina products (ERP and Dashboard).
 ## Install (monorepo / local)
 
 ```json
-"@webina/ui": "file:../packages/webina-ui"
+"@webina/ui": "file:../../packages/webina-ui"
 ```
 
 ## Publish (Gitea package registry)

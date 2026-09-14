@@ -2,26 +2,19 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
-import {
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  MessageCircle,
-  Pencil,
-  Plus,
-  Search,
-  Send,
-  Trash2,
-} from "lucide-react"
+import { ChevronLeft, ChevronRight, Copy, Pencil, Plus, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ListFiltersCollapsible } from "@/components/ListFiltersCollapsible"
+import { ListStatsStrip } from "@/components/ListStatsStrip"
+import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
+import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -142,68 +135,66 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
     void queryClient.invalidateQueries({ queryKey: ["admin-products"] })
   }
 
+  const statusTabs = useMemo(
+    () => [
+      { slug: "all", label: t("all"), count: meta?.total ?? products.length },
+      { slug: "publish", label: t("status_publish"), count: stats.publish },
+      { slug: "draft", label: t("status_draft"), count: stats.draft },
+      { slug: "trash", label: t("status_trash"), count: 0 },
+    ],
+    [meta?.total, products.length, stats.draft, stats.publish, t],
+  )
+
+  const statItems = useMemo(
+    () => [
+      { id: "publish", label: t("stat_publish"), value: stats.publish },
+      { id: "draft", label: t("stat_draft"), value: stats.draft },
+      { id: "outofstock", label: t("stat_outofstock"), value: stats.outofstock },
+    ],
+    [stats, t],
+  )
+
+  const filterActiveCount = [type, stockStatus].filter(Boolean).length
+
   return (
-    <div className="space-y-6 p-6" dir="auto">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{t("products_title")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-        </div>
+    <PageShell
+      title={t("products_title")}
+      description={route.fullPath}
+      actions={
         <Button asChild>
           <Link href="/admin/products/new">
             <Plus className="size-4" />
             {t("add_product")}
           </Link>
         </Button>
-      </div>
-
+      }
+    >
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("stat_publish")}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{stats.publish}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("stat_draft")}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{stats.draft}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("stat_outofstock")}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{stats.outofstock}</CardContent>
-        </Card>
+      <ListStatsStrip items={statItems} />
+
+      <OrderStatusTabs
+        counts={statusTabs}
+        active={status || "all"}
+        onChange={(slug) => {
+          setStatus(slug)
+          setPage(1)
+        }}
+      />
+
+      <div className="relative">
+        <Search className="text-muted-foreground absolute start-2 top-2.5 size-4" />
+        <Input
+          className="ps-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+          placeholder={t("search_products_ph")}
+        />
       </div>
 
-      <Card>
-        <CardContent className="grid gap-3 pt-6 md:grid-cols-5">
-          <div className="md:col-span-2">
-            <Label>{t("search")}</Label>
-            <div className="relative mt-1">
-              <Search className="text-muted-foreground absolute start-2 top-2.5 size-4" />
-              <Input
-                className="ps-8"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-                placeholder={t("search_products_ph")}
-              />
-            </div>
-          </div>
-          <div>
-            <Label>{t("status")}</Label>
-            <select className={`${selectClass} mt-1`} value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">{t("all")}</option>
-              <option value="publish">{t("status_publish")}</option>
-              <option value="draft">{t("status_draft")}</option>
-              <option value="trash">{t("status_trash")}</option>
-            </select>
-          </div>
+      <ListFiltersCollapsible label={t("search")} activeCount={filterActiveCount}>
+        <div className="grid gap-3 md:grid-cols-3">
           <div>
             <Label>{t("type")}</Label>
             <select className={`${selectClass} mt-1`} value={type} onChange={(e) => setType(e.target.value)}>
@@ -225,19 +216,17 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
               <option value="onbackorder">{t("stock_onbackorder")}</option>
             </select>
           </div>
-          <div className="flex items-end md:col-span-5">
+          <div className="flex items-end">
             <Button variant="secondary" onClick={applyFilters}>
               {t("apply_filters")}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ListFiltersCollapsible>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("products_heading")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="rounded-lg border border-border bg-card/40">
+        <div className="border-b px-4 py-3 text-sm font-medium">{t("products_heading")}</div>
+        <div className="p-2 sm:p-4">
           {isLoading ? (
             <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
           ) : products.length === 0 ? (
@@ -260,7 +249,11 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
                 <tbody>
                   {products.map((p) => (
                     <tr key={p.id} className="border-b last:border-0">
-                      <td className="p-2 font-medium">{p.name}</td>
+                      <td className="p-2 font-medium">
+                        <Link className="underline-offset-2 hover:underline" href={`/admin/products/${p.id}`}>
+                          {p.name}
+                        </Link>
+                      </td>
                       <td className="p-2 text-muted-foreground">{p.sku || "—"}</td>
                       <td className="p-2">{p.price_minor?.toLocaleString()}</td>
                       <td className="p-2">
@@ -300,12 +293,6 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
                           >
                             <Trash2 className="size-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" disabled title={t("coming_soon")}>
-                            <Send className="size-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" disabled title={t("coming_soon")}>
-                            <MessageCircle className="size-4" />
-                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -342,8 +329,8 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
               </div>
             </div>
           ) : null}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </PageShell>
   )
 }

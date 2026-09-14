@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -86,12 +87,7 @@ export default function C2cSettingsPageClient({ route }: { route: ResolvedAdminR
   })
 
   return (
-    <div className="space-y-6 p-6" dir="auto">
-      <div>
-        <h1 className="text-2xl font-bold">{t("settings_title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
-
+    <PageShell title={t("settings_title")} description={route.fullPath}>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {saved ? <p className="text-sm text-green-700 dark:text-green-400">{t("saved")}</p> : null}
 
@@ -146,6 +142,6 @@ export default function C2cSettingsPageClient({ route }: { route: ResolvedAdminR
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   )
 }

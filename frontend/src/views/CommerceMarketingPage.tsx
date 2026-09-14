@@ -13,7 +13,7 @@ export default function CommerceMarketingPage() {
 
   useEffect(() => {
     api<{ data: Campaign[] }>("/api/v1/marketing/campaigns")
-      .then((r) => setRows(r.data))
+      .then((r) => setRows(Array.isArray(r) ? r : (r as { data?: unknown[] }).data ?? []))
       .catch(() => setRows([]))
   }, [])
 

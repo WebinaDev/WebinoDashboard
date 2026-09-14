@@ -29,12 +29,12 @@ export default function StoreSettingsPage() {
   const [msg, setMsg] = useState<string | null>(null)
 
   function load() {
-    api<{ data: Tenant }>("/api/v1/tenant")
+    api<Tenant>("/api/v1/tenant")
       .then((r) => {
-        setTenant(r.data)
-        setStoreName(r.data.store_display_name ?? "")
-        setCurrency(r.data.default_currency ?? "IRR")
-        setTenantName(r.data.name ?? "")
+        setTenant(r)
+        setStoreName(r.store_display_name ?? "")
+        setCurrency(r.default_currency ?? "IRR")
+        setTenantName(r.name ?? "")
       })
       .catch(() => setTenant(null))
   }

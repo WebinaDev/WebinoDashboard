@@ -18,7 +18,7 @@ export default function AiRecommendationsPage() {
         method: "POST",
         json: { product_ids: [] },
       })
-      setIds(r.data.recommended_product_ids)
+      setIds(r.recommended_product_ids ?? [])
     } finally {
       setPending(false)
     }

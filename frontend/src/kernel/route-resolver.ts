@@ -11,13 +11,22 @@ export function isSubmoduleEnabled(
   submoduleSlug: string,
 ): boolean {
   if (moduleSlug === "core") return true
-  return activations.some(
-    (a) =>
-      a.module_slug === moduleSlug &&
-      a.submodule_slug === submoduleSlug &&
-      a.enabled &&
-      a.licensed !== false,
-  )
+
+  const enabled = (mod: string, sub: string) =>
+    activations.some(
+      (a) =>
+        a.module_slug === mod &&
+        a.submodule_slug === sub &&
+        a.enabled &&
+        a.licensed !== false,
+    )
+
+  // SMS API is gated by sms-panel.panel; nav lives under marketing.sms — accept either.
+  if (moduleSlug === "marketing" && submoduleSlug === "sms") {
+    return enabled("sms-panel", "panel") || enabled("marketing", "sms")
+  }
+
+  return enabled(moduleSlug, submoduleSlug)
 }
 
 export function resolveAdminRoute(
@@ -145,6 +154,7 @@ export function buildAdminNav(activations: TenantActivation[]) {
       if (route.path.includes(":")) continue
       if (route.path.endsWith("/new")) continue
       if (route.path === "catalog") continue
+      if (route.navHidden) continue
       if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) continue
       const section = route.section
       if (!sectionMap.has(section)) {

@@ -162,4 +162,19 @@ class OrdersWalletPosApiTest extends TestCase
         ])->assertCreated()
             ->assertJsonPath('data.is_pos', true);
     }
+
+    public function test_order_statuses_include_awaiting_gateway(): void
+    {
+        $user = $this->shopUser();
+        $this->actingAs($user, 'sanctum');
+
+        $statuses = $this->getJson('/api/v1/orders/statuses')
+            ->assertOk()
+            ->json('data');
+
+        $list = is_array($statuses) ? $statuses : [];
+        $flat = array_map(static fn ($s) => is_array($s) ? ($s['slug'] ?? $s['status'] ?? null) : $s, $list);
+        $this->assertContains('awaiting_gateway', $flat);
+        $this->assertContains('processing', $flat);
+    }
 }

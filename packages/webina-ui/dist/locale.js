@@ -1,3 +1,4 @@
+/** Shared UI locale helpers (`fa` | `en`). */
 export function normalizeUiLocale(locale) {
     if (!locale)
         return "fa";
@@ -23,6 +24,7 @@ export function getIntlLocale(locale) {
 const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 const LATIN_DIGITS = "0123456789";
+/** Convert Latin digits to locale digits (`fa` → Persian ۰۱۲…). */
 export function toLocaleDigits(value, locale) {
     const text = String(value);
     if (normalizeUiLocale(locale) !== "fa") {
@@ -30,6 +32,7 @@ export function toLocaleDigits(value, locale) {
     }
     return text.replace(/\d/g, (d) => PERSIAN_DIGITS[Number(d)] ?? d);
 }
+/** Normalize Persian/Arabic-Indic digits to Latin before API submit. */
 export function toLatinDigits(value) {
     return value
         .replace(/[۰-۹]/g, (d) => LATIN_DIGITS[PERSIAN_DIGITS.indexOf(d)] ?? d)
@@ -61,6 +64,7 @@ export function formatCurrency(value, locale, currency = "IRR", options) {
         ...options,
     }).format(n);
 }
+/** Intl-based date formatting. `fa` uses `fa-IR` (Persian calendar when supported). */
 export function formatDate(value, locale, options) {
     const date = value instanceof Date
         ? value

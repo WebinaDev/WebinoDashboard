@@ -3,12 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
 import { useTranslations } from "next-intl"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import { ListStatsStrip } from "@/components/ListStatsStrip"
+import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
+import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -31,9 +32,6 @@ type PageMeta = {
   last_page: number
   total: number
 }
-
-const selectClass =
-  "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
 async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: PageMeta }> {
   const base = process.env.NEXT_PUBLIC_API_URL ?? ""
@@ -81,98 +79,95 @@ export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminR
 
   const rows = data?.items ?? []
 
-  return (
-    <div className="space-y-6 p-6" dir="auto">
-      <div>
-        <h1 className="text-2xl font-bold">{t("receipts_title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
+  const statusTabs = useMemo(
+    () => [
+      { slug: "pending", label: t("status_pending"), count: status === "pending" ? rows.length : 0 },
+      { slug: "approved", label: t("status_approved"), count: status === "approved" ? rows.length : 0 },
+      { slug: "rejected", label: t("status_rejected"), count: status === "rejected" ? rows.length : 0 },
+      { slug: "all", label: t("status_all"), count: data?.meta?.total ?? rows.length },
+    ],
+    [data?.meta?.total, rows.length, status, t],
+  )
 
+  const statItems = useMemo(() => {
+    const withReceipt = rows.filter((r) => r.c2c_receipt_url).length
+    const total = rows.reduce((sum, r) => sum + (r.total_minor || 0), 0)
+    return [
+      { id: "count", label: t("receipts_heading"), value: rows.length },
+      { id: "with_file", label: t("col_receipt"), value: withReceipt },
+      { id: "total", label: t("col_total"), value: total.toLocaleString() },
+    ]
+  }, [rows, t])
+
+  return (
+    <PageShell title={t("receipts_title")} description={route.fullPath}>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
-      <Card>
-        <CardContent className="flex flex-wrap items-end gap-3 pt-6">
-          <div>
-            <Label>{t("status")}</Label>
-            <select className={`${selectClass} mt-1 min-w-[160px]`} value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="pending">{t("status_pending")}</option>
-              <option value="approved">{t("status_approved")}</option>
-              <option value="rejected">{t("status_rejected")}</option>
-              <option value="all">{t("status_all")}</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
+      <ListStatsStrip items={statItems} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("receipts_heading")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <OrderStatusTabs counts={statusTabs} active={status} onChange={setStatus} />
+
+      <div className="rounded-lg border border-border bg-card/40">
+        <div className="border-b px-4 py-3 text-sm font-medium">{t("receipts_heading")}</div>
+        <div className="p-2 sm:p-4">
           {isLoading ? (
             <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
           ) : rows.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_receipts")}</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-sm">
-                <thead>
-                  <tr className="border-b text-start text-muted-foreground">
-                    <th className="p-2 font-medium">{t("col_order")}</th>
-                    <th className="p-2 font-medium">{t("col_customer")}</th>
-                    <th className="p-2 font-medium">{t("col_total")}</th>
-                    <th className="p-2 font-medium">{t("col_c2c")}</th>
-                    <th className="p-2 font-medium">{t("col_receipt")}</th>
-                    <th className="p-2 font-medium">{t("actions")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0">
-                      <td className="p-2 font-medium">{r.number || `#${r.id}`}</td>
-                      <td className="p-2 text-muted-foreground">
-                        {r.customer_name || r.user?.name || r.customer_phone || "—"}
-                      </td>
-                      <td className="p-2">{r.total_minor.toLocaleString()}</td>
-                      <td className="p-2">
-                        <Badge variant="outline">{r.c2c_status || "—"}</Badge>
-                      </td>
-                      <td className="p-2">
-                        {r.c2c_receipt_url ? (
-                          <a className="underline" href={r.c2c_receipt_url} target="_blank" rel="noreferrer">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {rows.map((r) => (
+                <article key={r.id} className="overflow-hidden rounded-lg border border-border bg-background">
+                  <div className="bg-muted/40 flex aspect-[4/3] items-center justify-center overflow-hidden">
+                    {r.c2c_receipt_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={r.c2c_receipt_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-muted-foreground text-sm">{t("col_receipt")}: —</span>
+                    )}
+                  </div>
+                  <div className="space-y-2 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium">{r.number || `#${r.id}`}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {r.customer_name || r.user?.name || r.customer_phone || "—"}
+                        </p>
+                      </div>
+                      <Badge variant="outline">{r.c2c_status || r.status}</Badge>
+                    </div>
+                    <p className="text-sm font-semibold">{r.total_minor.toLocaleString()}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {r.c2c_receipt_url ? (
+                        <Button size="sm" variant="outline" asChild>
+                          <a href={r.c2c_receipt_url} target="_blank" rel="noreferrer">
                             {t("view_receipt")}
                           </a>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="p-2">
-                        <div className="flex flex-wrap gap-1">
-                          <Button
-                            size="sm"
-                            disabled={decide.isPending}
-                            onClick={() => decide.mutate({ id: r.id, action: "approve" })}
-                          >
-                            {t("approve")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={decide.isPending}
-                            onClick={() => decide.mutate({ id: r.id, action: "reject" })}
-                          >
-                            {t("reject")}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        disabled={decide.isPending}
+                        onClick={() => decide.mutate({ id: r.id, action: "approve" })}
+                      >
+                        {t("approve")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={decide.isPending}
+                        onClick={() => decide.mutate({ id: r.id, action: "reject" })}
+                      >
+                        {t("reject")}
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              ))}
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </PageShell>
   )
 }

@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
@@ -156,17 +155,17 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
   })
 
   return (
-    <div className="space-y-6 p-6" dir="auto">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="-m-1 space-y-4 p-1 md:space-y-3" dir="auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
         <div>
-          <h1 className="text-2xl font-bold">{t("title")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
+          <h1 className="text-xl font-semibold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground text-xs">{route.fullPath}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
+          <Button size="sm" variant="outline" asChild>
             <Link href="/admin/pos/pay-link">{t("pay_link")}</Link>
           </Button>
-          <Button variant="outline" asChild>
+          <Button size="sm" variant="outline" asChild>
             <Link href="/admin/pos/my-orders">{t("my_orders")}</Link>
           </Button>
         </div>
@@ -182,12 +181,9 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
         </p>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("products")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)] lg:items-start">
+        <div className="space-y-3 rounded-lg border border-border bg-card/40 p-3">
+          <p className="text-sm font-medium">{t("products")}</p>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="text-muted-foreground absolute start-2 top-2.5 size-4" />
@@ -268,14 +264,10 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
                 ))
               )}
             </div>
-          </CardContent>
-        </Card>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("checkout")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="space-y-3 rounded-lg border border-border bg-card/50 p-3 lg:sticky lg:top-2">
+          <p className="text-sm font-medium">{t("checkout")}</p>
             <div className="flex gap-2">
               <Input
                 value={customerQ}
@@ -364,8 +356,7 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
             >
               {t("checkout_btn")}
             </Button>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   )

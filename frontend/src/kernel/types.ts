@@ -21,6 +21,8 @@ export type AdminRouteDef = {
   labelKey: string
   section: string
   order?: number
+  /** Keep route resolvable but omit from sidebar nav (storefront-only pages). */
+  navHidden?: boolean
 }
 
 export type SiteRouteDef = {

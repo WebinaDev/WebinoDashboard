@@ -27,7 +27,7 @@ export default function CheckoutPage() {
   }, [searchParams])
 
   async function checkout() {
-    const order = await api<{ data: { id: number } }>("/api/v1/checkout", {
+    const order = await api<{ id: number }>("/api/v1/checkout", {
       method: "POST",
       json: {
         shipping_address: shippingAddress || null,
@@ -35,7 +35,7 @@ export default function CheckoutPage() {
         customer_note: customerNote || null,
       },
     })
-    setOrderId(order.data.id)
+    setOrderId(order.id)
     setIntentUrl(null)
   }
 
@@ -43,14 +43,14 @@ export default function CheckoutPage() {
     if (!orderId) {
       return
     }
-    const intent = await api<{ data: { redirect_url: string | null } }>(
+    const intent = await api<{ redirect_url: string | null }>(
       "/api/v1/payments/intent",
       {
         method: "POST",
         json: { order_id: orderId, provider },
       }
     )
-    const url = intent.data.redirect_url
+    const url = intent.redirect_url
     if (url?.startsWith("http")) {
       window.location.assign(url)
       return

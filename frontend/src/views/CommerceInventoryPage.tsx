@@ -27,12 +27,14 @@ export default function CommerceInventoryPage() {
 
   useEffect(() => {
     api<{
-      data: { low_stock_products: Low[]; out_of_stock_count: number; low_stock_threshold: number }
+      low_stock_products: Low[]
+      out_of_stock_count: number
+      low_stock_threshold: number
     }>("/api/v1/inventory/summary")
       .then((r) => {
-        setLow(r.data.low_stock_products)
-        setOutCount(r.data.out_of_stock_count)
-        setThreshold(r.data.low_stock_threshold)
+        setLow(r.low_stock_products)
+        setOutCount(r.out_of_stock_count)
+        setThreshold(r.low_stock_threshold)
       })
       .catch(() => {
         setLow([])

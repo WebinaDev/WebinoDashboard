@@ -8,26 +8,24 @@ import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
 import { normalizeUiLocale } from "@/lib/locale"
 
-type CartRes = {
-  data: {
+type CartData = {
+  id: number
+  items: {
     id: number
-    items: {
-      id: number
-      quantity: number
-      product: { id: number; name: string; price_minor: number }
-    }[]
-  }
+    quantity: number
+    product: { id: number; name: string; price_minor: number }
+  }[]
 }
 
 export default function CartPage() {
   const t = useTranslations("cart")
   const locale = useLocale()
   const lng = normalizeUiLocale(locale)
-  const [cart, setCart] = useState<CartRes["data"] | null>(null)
+  const [cart, setCart] = useState<CartData | null>(null)
 
   function reload() {
-    api<CartRes>("/api/v1/cart")
-      .then((r) => setCart(r.data))
+    api<CartData>("/api/v1/cart")
+      .then((r) => setCart(r))
       .catch(() => setCart(null))
   }
 

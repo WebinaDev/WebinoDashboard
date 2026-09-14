@@ -17,13 +17,18 @@ import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ListFiltersCollapsible } from "@/components/ListFiltersCollapsible"
+import { ListStatsStrip } from "@/components/ListStatsStrip"
+import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
+import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { ORDER_STATUSES } from "../lib/order-statuses"
 
 type OrderRow = {
   id: number
@@ -131,7 +136,10 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
       const params = new URLSearchParams()
       params.set("page", String(page))
       params.set("per_page", "20")
-      if (mineMode) params.set("mine", "1")
+      if (mineMode) {
+        params.set("mine", "1")
+        if (route.path === "pos/my-orders") params.set("is_pos", "1")
+      }
       if (search.trim()) params.set("search", search.trim())
       if (status) params.set("status", status)
       if (dateFrom) params.set("date_from", dateFrom)
@@ -149,14 +157,43 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
 
   const statusTabs = useMemo(() => {
     const keys = Object.keys(statusCounts)
-    return [{ key: "", label: t("all"), count: meta?.total ?? 0 }, ...keys.map((k) => ({ key: k, label: k, count: statusCounts[k] ?? 0 }))]
+    return [
+      { slug: "all", label: t("all"), count: meta?.total ?? 0 },
+      ...keys.map((k) => ({ slug: k, label: k, count: statusCounts[k] ?? 0 })),
+    ]
   }, [statusCounts, meta?.total, t])
+
+  const statItems = useMemo(() => {
+    if (!stats) return []
+    return [
+      { id: "count", label: t("stat_count"), value: stats.order_count ?? 0 },
+      { id: "revenue", label: t("stat_revenue"), value: (stats.revenue ?? 0).toLocaleString() },
+      { id: "pending", label: t("stat_pending"), value: stats.pending ?? 0 },
+      { id: "processing", label: t("stat_processing"), value: stats.processing ?? 0 },
+      { id: "aov", label: t("stat_aov"), value: (stats.aov ?? 0).toLocaleString() },
+    ]
+  }, [stats, t])
+
+  const filterActiveCount = [dateFrom, dateTo, paymentTender, salesChannel].filter(Boolean).length
 
   const bulk = useMutation({
     mutationFn: () =>
       api("/api/v1/orders/bulk", {
         method: "POST",
         json: { ids: selected, action: "change_status", status: bulkStatus },
+      }),
+    onSuccess: async () => {
+      setSelected([])
+      await queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  const bulkTrash = useMutation({
+    mutationFn: () =>
+      api("/api/v1/orders/bulk", {
+        method: "POST",
+        json: { ids: selected, action: "trash" },
       }),
     onSuccess: async () => {
       setSelected([])
@@ -179,13 +216,11 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
   }
 
   return (
-    <div className="space-y-6 p-6" dir="auto">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{mineMode ? t("my_orders_title") : t("title")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <PageShell
+      title={mineMode ? t("my_orders_title") : t("title")}
+      description={route.fullPath}
+      actions={
+        <>
           <Button variant="outline" asChild>
             <Link href="/admin/pos">
               <Store className="size-4" />
@@ -198,80 +233,35 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
               {t("new_order")}
             </Link>
           </Button>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
-      {stats ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t("stat_count")}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">{stats.order_count ?? 0}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t("stat_revenue")}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">{(stats.revenue ?? 0).toLocaleString()}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t("stat_pending")}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">{stats.pending ?? 0}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t("stat_processing")}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">{stats.processing ?? 0}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t("stat_aov")}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">{(stats.aov ?? 0).toLocaleString()}</CardContent>
-          </Card>
-        </div>
-      ) : null}
+      <ListStatsStrip items={statItems} />
 
-      <div className="flex flex-wrap gap-2">
-        {statusTabs.map((tab) => (
-          <Button
-            key={tab.key || "all"}
-            size="sm"
-            variant={status === tab.key ? "default" : "outline"}
-            onClick={() => {
-              setStatus(tab.key)
-              setPage(1)
-            }}
-          >
-            {tab.label}
-            <Badge variant="secondary" className="ms-1">
-              {tab.count}
-            </Badge>
-          </Button>
-        ))}
+      <OrderStatusTabs
+        counts={statusTabs}
+        active={status || "all"}
+        onChange={(slug) => {
+          setStatus(slug)
+          setPage(1)
+        }}
+      />
+
+      <div className="relative">
+        <Search className="text-muted-foreground absolute start-2 top-2.5 size-4" />
+        <Input
+          className="ps-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+          placeholder={t("search_ph")}
+        />
       </div>
 
-      <Card>
-        <CardContent className="grid gap-3 pt-6 md:grid-cols-3 lg:grid-cols-6">
-          <div className="lg:col-span-2">
-            <Label>{t("search")}</Label>
-            <div className="relative mt-1">
-              <Search className="text-muted-foreground absolute start-2 top-2.5 size-4" />
-              <Input
-                className="ps-8"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-                placeholder={t("search_ph")}
-              />
-            </div>
-          </div>
+      <ListFiltersCollapsible label={t("search")} activeCount={filterActiveCount}>
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
           <div>
             <Label>{t("date_from")}</Label>
             <Input className="mt-1" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
@@ -302,13 +292,13 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
               ))}
             </select>
           </div>
-          <div className="flex items-end lg:col-span-6">
+          <div className="flex items-end">
             <Button variant="secondary" onClick={applyFilters}>
               {t("apply_filters")}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ListFiltersCollapsible>
 
       {selected.length > 0 ? (
         <Card>
@@ -323,7 +313,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
                         {s}
                       </option>
                     ))
-                  : ["pending_payment", "paid", "processing", "shipped", "completed", "cancelled"].map((s) => (
+                  : ORDER_STATUSES.map((s) => (
                       <option key={s} value={s}>
                         {s}
                       </option>
@@ -333,15 +323,16 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
             <Button disabled={bulk.isPending} onClick={() => bulk.mutate()}>
               {t("bulk_apply")}
             </Button>
+            <Button variant="destructive" disabled={bulkTrash.isPending} onClick={() => bulkTrash.mutate()}>
+              Trash
+            </Button>
           </CardContent>
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("list_heading")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="rounded-lg border border-border bg-card/40">
+        <div className="border-b px-4 py-3 text-sm font-medium">{t("list_heading")}</div>
+        <div className="p-2 sm:p-4">
           {isLoading ? (
             <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
           ) : orders.length === 0 ? (
@@ -432,8 +423,8 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
               </div>
             </div>
           ) : null}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </PageShell>
   )
 }

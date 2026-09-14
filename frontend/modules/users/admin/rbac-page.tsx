@@ -1,6 +1,6 @@
-import UsersPage from "@/views/UsersPage"
+import RbacPage from "@/views/RbacPage"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
 export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
-  return <UsersPage />
+  return <RbacPage />
 }

@@ -13,13 +13,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PageShell } from "@/components/PageShell"
 import { useDashboardNav } from "@/hooks/useDashboardNav"
 import { isSubmoduleEnabled } from "@/kernel/route-resolver"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
-type TabId = "content" | "pricing" | "attributes" | "coffee" | "seo" | "advanced"
+type TabId = "content" | "pricing" | "attributes" | "coffee" | "advanced"
 
 type LookupTerm = { id: number; name: string; slug?: string }
 type LookupAttr = {
@@ -165,7 +166,7 @@ type AttrAssign = {
 }
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-const TABS: TabId[] = ["content", "pricing", "attributes", "coffee", "seo", "advanced"]
+const TABS: TabId[] = ["content", "pricing", "attributes", "coffee", "advanced"]
 
 const emptyForm: FormState = {
   name: "",
@@ -532,23 +533,132 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
 
   const assignedIds = new Set(attrAssigns.map((a) => a.id))
 
+  const sidebar = (
+    <aside className="space-y-3 lg:sticky lg:top-4 lg:self-start">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("publish_box")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label>{t("type")}</Label>
+            <select
+              className={selectClass}
+              value={form.type}
+              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "simple" | "variable" }))}
+            >
+              <option value="simple">{t("type_simple")}</option>
+              <option value="variable">{t("type_variable")}</option>
+            </select>
+          </div>
+          <div>
+            <Label>{t("status")}</Label>
+            <select
+              className={selectClass}
+              value={form.status}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+            >
+              <option value="publish">{t("status_publish")}</option>
+              <option value="draft">{t("status_draft")}</option>
+              <option value="trash">{t("status_trash")}</option>
+            </select>
+          </div>
+          <div>
+            <Label>{t("catalog_visibility")}</Label>
+            <select
+              className={selectClass}
+              value={form.catalog_visibility}
+              onChange={(e) => setForm((f) => ({ ...f, catalog_visibility: e.target.value }))}
+            >
+              <option value="visible">visible</option>
+              <option value="catalog">catalog</option>
+              <option value="search">search</option>
+              <option value="hidden">hidden</option>
+            </select>
+          </div>
+          <Button className="w-full" onClick={() => save.mutate()} disabled={!form.name || save.isPending}>
+            {tCommon("save")}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("categories")}</CardTitle>
+        </CardHeader>
+        <CardContent className="max-h-48 space-y-2 overflow-y-auto">
+          {(lookup?.categories ?? []).map((c) => (
+            <label key={c.id} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={form.category_ids.includes(c.id)}
+                onCheckedChange={() => setForm((f) => ({ ...f, category_ids: toggleId(f.category_ids, c.id) }))}
+              />
+              {c.name}
+            </label>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("brands")}</CardTitle>
+        </CardHeader>
+        <CardContent className="max-h-40 space-y-2 overflow-y-auto">
+          {(lookup?.brands ?? []).map((b) => (
+            <label key={b.id} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={form.brand_ids.includes(b.id)}
+                onCheckedChange={() => setForm((f) => ({ ...f, brand_ids: toggleId(f.brand_ids, b.id) }))}
+              />
+              {b.name}
+            </label>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("tags")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Input
+            value={form.tag_names}
+            onChange={(e) => setForm((f) => ({ ...f, tag_names: e.target.value }))}
+            placeholder={t("tags_ph")}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("image_url")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} />
+          {form.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.image_url} alt="" className="max-h-36 w-full rounded-md object-cover" />
+          ) : null}
+        </CardContent>
+      </Card>
+    </aside>
+  )
+
   return (
-    <div className="space-y-6 p-6" dir="auto">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{isNew ? t("new_product") : t("edit_product")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-        </div>
-        <div className="flex gap-2">
+    <PageShell
+      title={isNew ? t("new_product") : t("edit_product")}
+      description={route.fullPath}
+      actions={
+        <>
           <Button variant="outline" asChild>
             <Link href="/admin/products">{t("back_to_list")}</Link>
           </Button>
           <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>
             {tCommon("save")}
           </Button>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {message ? <p className="text-sm text-green-600">{message}</p> : null}
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
@@ -558,19 +668,15 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
         <>
           <div className="flex flex-wrap gap-2 border-b pb-2">
             {TABS.map((id) => (
-              <Button
-                key={id}
-                size="sm"
-                variant={tab === id ? "default" : "ghost"}
-                onClick={() => setTab(id)}
-              >
+              <Button key={id} size="sm" variant={tab === id ? "default" : "ghost"} onClick={() => setTab(id)}>
                 {t(`tab_${id}`)}
               </Button>
             ))}
           </div>
 
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:items-start">
+            <div className="min-w-0 space-y-4">
           {tab === "content" ? (
-            <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
               <Card>
                 <CardHeader>
                   <CardTitle>{t("tab_content")}</CardTitle>
@@ -609,13 +715,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     />
                   </div>
                   <div>
-                    <Label>{t("image_url")}</Label>
-                    <Input
-                      value={form.image_url}
-                      onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
-                    />
-                  </div>
-                  <div>
                     <Label>{t("gallery_urls")}</Label>
                     <Textarea
                       value={form.gallery_text}
@@ -641,106 +740,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                   </div>
                 </CardContent>
               </Card>
-
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">{t("publish_box")}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label>{t("type")}</Label>
-                      <select
-                        className={selectClass}
-                        value={form.type}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, type: e.target.value as "simple" | "variable" }))
-                        }
-                      >
-                        <option value="simple">{t("type_simple")}</option>
-                        <option value="variable">{t("type_variable")}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <Label>{t("status")}</Label>
-                      <select
-                        className={selectClass}
-                        value={form.status}
-                        onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                      >
-                        <option value="publish">{t("status_publish")}</option>
-                        <option value="draft">{t("status_draft")}</option>
-                        <option value="trash">{t("status_trash")}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <Label>{t("catalog_visibility")}</Label>
-                      <select
-                        className={selectClass}
-                        value={form.catalog_visibility}
-                        onChange={(e) => setForm((f) => ({ ...f, catalog_visibility: e.target.value }))}
-                      >
-                        <option value="visible">visible</option>
-                        <option value="catalog">catalog</option>
-                        <option value="search">search</option>
-                        <option value="hidden">hidden</option>
-                      </select>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">{t("categories")}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="max-h-48 space-y-2 overflow-y-auto">
-                    {(lookup?.categories ?? []).map((c) => (
-                      <label key={c.id} className="flex items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={form.category_ids.includes(c.id)}
-                          onCheckedChange={() =>
-                            setForm((f) => ({ ...f, category_ids: toggleId(f.category_ids, c.id) }))
-                          }
-                        />
-                        {c.name}
-                      </label>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">{t("brands")}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="max-h-40 space-y-2 overflow-y-auto">
-                    {(lookup?.brands ?? []).map((b) => (
-                      <label key={b.id} className="flex items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={form.brand_ids.includes(b.id)}
-                          onCheckedChange={() =>
-                            setForm((f) => ({ ...f, brand_ids: toggleId(f.brand_ids, b.id) }))
-                          }
-                        />
-                        {b.name}
-                      </label>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">{t("tags")}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Input
-                      value={form.tag_names}
-                      onChange={(e) => setForm((f) => ({ ...f, tag_names: e.target.value }))}
-                      placeholder={t("tags_ph")}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
           ) : null}
 
           {tab === "pricing" ? (
@@ -1056,17 +1055,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
             </Card>
           ) : null}
 
-          {tab === "seo" ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("tab_seo")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">{t("coming_soon")}</p>
-              </CardContent>
-            </Card>
-          ) : null}
-
           {tab === "advanced" ? (
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
@@ -1210,8 +1198,11 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
               </Card>
             </div>
           ) : null}
+            </div>
+            {sidebar}
+          </div>
         </>
       )}
-    </div>
+    </PageShell>
   )
 }

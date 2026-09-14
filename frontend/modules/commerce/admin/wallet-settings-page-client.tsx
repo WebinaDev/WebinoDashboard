@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -112,22 +113,22 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
       return
     }
     try {
-      setUserHits(await api<CustomerHit[]>(`/api/v1/pos/customers?q=${encodeURIComponent(userQ.trim())}`))
+      const body = await api<{ data?: CustomerHit[] } | CustomerHit[]>(
+        `/api/v1/customers?search=${encodeURIComponent(userQ.trim())}`,
+      )
+      const list = Array.isArray(body) ? body : (body.data ?? [])
+      setUserHits(list as CustomerHit[])
     } catch {
       setUserHits([])
     }
   }
 
   return (
-    <div className="space-y-6 p-6" dir="auto">
-      <div>
-        <h1 className="text-2xl font-bold">{t("settings_title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
-
+    <PageShell title={t("settings_title")} description={route.fullPath}>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {saved ? <p className="text-sm text-green-700 dark:text-green-400">{t("saved")}</p> : null}
 
+      <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
       <Card>
         <CardHeader>
           <CardTitle>{t("settings_heading")}</CardTitle>
@@ -268,6 +269,7 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </PageShell>
   )
 }

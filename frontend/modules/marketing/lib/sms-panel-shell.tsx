@@ -11,16 +11,12 @@ const LINKS = [
   ["", "home"],
   ["send", "send"],
   ["reports", "reports"],
-  ["targeted", "targeted"],
   ["inbox", "inbox"],
-  ["drafts", "drafts"],
   ["phonebook", "phonebook"],
-  ["scheduled", "scheduled"],
   ["patterns", "patterns"],
   ["secretaries", "secretaries"],
   ["wallet", "wallet"],
   ["lines", "lines"],
-  ["newsletter", "newsletter"],
   ["topup", "topup"],
 ] as const
 

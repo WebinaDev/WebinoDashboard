@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, apiRaw } from "@/lib/api"
 
 export const SMS_FETCH_TIMEOUT_MS = 10_000
 
@@ -17,7 +17,7 @@ async function apiFetch<T>(path: string, init?: RequestInit, _timeout?: number):
   }
   // shop/settings/sms is optional local — map to modirpayamak settings/shop
   const finalUrl = url.replace("/api/v1/shop/settings/sms", "/api/v1/modirpayamak/settings/shop")
-  return api<T>(finalUrl, { method, json, headers: init?.headers as HeadersInit })
+  return apiRaw<T>(finalUrl, { method, json, headers: init?.headers as HeadersInit })
 }
 
 function smsFetch<T>(path: string, init?: RequestInit) {
@@ -308,7 +308,7 @@ export function createSmsPhonebook(name: string) {
 }
 
 export function fetchShopSmsSettings() {
-  return apiFetch<ShopSmsPayload>('shop/settings/sms')
+  return apiFetch<ShopSmsPayload>('modirpayamak/settings/shop')
 }
 
 export function saveShopSmsSettings(payload: {
@@ -323,11 +323,11 @@ export function saveShopSmsSettings(payload: {
 }
 
 export function fetchSiteSmsSettings() {
-  return apiFetch<{ ok: boolean; unavailable?: boolean; settings: SiteSmsSettings }>('site/settings/sms')
+  return apiFetch<{ ok: boolean; unavailable?: boolean; settings: SiteSmsSettings }>('modirpayamak/settings/shop')
 }
 
 export function saveSiteSmsSettings(settings: SiteSmsSettings) {
-  return apiFetch('site/settings/sms', {
+  return apiFetch('modirpayamak/settings/shop', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ settings }),

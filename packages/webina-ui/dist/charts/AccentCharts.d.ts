@@ -26,3 +26,4 @@ export declare function AccentGaugeChart({ label, percent, height, }: {
     percent?: number;
     height?: number;
 }): import("react").JSX.Element;
+//# sourceMappingURL=AccentCharts.d.ts.map

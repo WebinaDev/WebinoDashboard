@@ -30,5 +30,5 @@ npm start
 ## Stack snapshot
 
 - Laravel 13 + Sanctum (+ HttpOnly cookie `webino_auth_token`)
-- Next.js 14 + next-intl (fa/en)
+- Next.js 15 + next-intl (fa/en)
 - Scramble OpenAPI → Docusaurus + redocusaurus

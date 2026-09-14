@@ -3,12 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
 import { useTranslations } from "next-intl"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import { ListStatsStrip } from "@/components/ListStatsStrip"
+import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
+import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -34,9 +35,6 @@ type PageMeta = {
   last_page: number
   total: number
 }
-
-const selectClass =
-  "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
 async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: PageMeta }> {
   const base = process.env.NEXT_PUBLIC_API_URL ?? ""
@@ -85,35 +83,36 @@ export default function WalletWithdrawalsPageClient({ route }: { route: Resolved
 
   const rows = data?.items ?? []
 
-  return (
-    <div className="space-y-6 p-6" dir="auto">
-      <div>
-        <h1 className="text-2xl font-bold">{t("withdrawals_title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
+  const statusTabs = useMemo(
+    () => [
+      { slug: "pending", label: t("status_pending"), count: status === "pending" ? rows.length : 0 },
+      { slug: "approved", label: t("status_approved"), count: status === "approved" ? rows.length : 0 },
+      { slug: "paid", label: t("status_paid"), count: status === "paid" ? rows.length : 0 },
+      { slug: "rejected", label: t("status_rejected"), count: status === "rejected" ? rows.length : 0 },
+      { slug: "all", label: t("status_all"), count: data?.meta?.total ?? rows.length },
+    ],
+    [data?.meta?.total, rows.length, status, t],
+  )
 
+  const statItems = useMemo(() => {
+    const totalAmount = rows.reduce((sum, r) => sum + (r.amount_minor || 0), 0)
+    return [
+      { id: "count", label: t("withdrawals_heading"), value: rows.length },
+      { id: "amount", label: t("col_amount"), value: totalAmount.toLocaleString() },
+    ]
+  }, [rows, t])
+
+  return (
+    <PageShell title={t("withdrawals_title")} description={route.fullPath}>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
-      <Card>
-        <CardContent className="flex flex-wrap items-end gap-3 pt-6">
-          <div>
-            <Label>{t("status")}</Label>
-            <select className={`${selectClass} mt-1 min-w-[160px]`} value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="pending">{t("status_pending")}</option>
-              <option value="approved">{t("status_approved")}</option>
-              <option value="paid">{t("status_paid")}</option>
-              <option value="rejected">{t("status_rejected")}</option>
-              <option value="all">{t("status_all")}</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
+      <ListStatsStrip items={statItems} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("withdrawals_heading")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <OrderStatusTabs counts={statusTabs} active={status} onChange={setStatus} />
+
+      <div className="rounded-lg border border-border bg-card/40">
+        <div className="border-b px-4 py-3 text-sm font-medium">{t("withdrawals_heading")}</div>
+        <div className="p-2 sm:p-4">
           {isLoading ? (
             <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
           ) : rows.length === 0 ? (
@@ -135,9 +134,7 @@ export default function WalletWithdrawalsPageClient({ route }: { route: Resolved
                   {rows.map((r) => (
                     <tr key={r.id} className="border-b last:border-0">
                       <td className="p-2">#{r.id}</td>
-                      <td className="p-2">
-                        {r.user?.name || r.user?.email || `#${r.user?.id ?? "—"}`}
-                      </td>
+                      <td className="p-2">{r.user?.name || r.user?.email || `#${r.user?.id ?? "—"}`}</td>
                       <td className="p-2">{r.amount_minor.toLocaleString()}</td>
                       <td className="p-2 font-mono text-xs" dir="ltr">
                         {r.sheba || r.user?.bank_sheba || "—"}
@@ -178,8 +175,8 @@ export default function WalletWithdrawalsPageClient({ route }: { route: Resolved
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </PageShell>
   )
 }

@@ -17,6 +17,11 @@ class ApiResponseFormatter
             return $next($request);
         }
 
+        // CRM ModirPayamak proxy returns { ok, account?, data?, ... } — do not re-envelope.
+        if (str_contains($request->path(), 'modirpayamak')) {
+            return $next($request);
+        }
+
         $response = $next($request);
 
         if ($response->isEmpty() || $response->getStatusCode() === 204) {

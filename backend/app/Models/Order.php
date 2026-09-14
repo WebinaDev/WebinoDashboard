@@ -13,6 +13,7 @@ class Order extends Model
 
     public const STATUSES = [
         'pending_payment',
+        'awaiting_gateway',
         'on_hold',
         'paid',
         'payment_failed',

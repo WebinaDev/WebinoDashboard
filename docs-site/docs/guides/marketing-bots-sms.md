@@ -39,17 +39,20 @@ Authenticated catch-all:
 
 Proxies to `{WEBINO_BASE_URL}/api/webinocrm/v1/modirpayamak/{path}` with tenant `domain` and `license_key`. CRM failures return `{ ok: false, unavailable: true, message }` with HTTP 200 (parity with WordPress).
 
-Admin pages: `/admin/marketing/sms` and child routes (send, reports, inbox, drafts, phonebook, scheduled, patterns, secretaries, wallet, lines, newsletter, topup, payment-callback).
+**Live admin UI:** home, send, reports, inbox, phonebook, patterns (list), secretaries, wallet, lines, topup.  
+**Deferred (routes hidden from nav):** drafts, newsletter, OTP, pattern sync/registry, scheduled cancel, targeted, bulk-stats.
+
+Admin pages under `/admin/marketing/sms/*` only for live routes above. This is **not** full WordPress SMS parity.
 
 ## UI parity
 
-Admin marketing UI is adapted 1:1 from the WordPress WebinaDashboard client (not a separate Vite iframe):
+Admin marketing UI is adapted from the WordPress WebinaDashboard client (not a separate Vite iframe):
 
 - **Theme:** Admin shell uses WP-like colorful cream/teal tokens, `wd-app-atmosphere`, business accents (`cafe`, `cosmetics`, `mobile`, `electronics`, …), and **Yekan Bakh**.
 - **Shared:** `PageShell`, `ListStatsStrip`, coupon panels, `SmsServiceBanner`, bot provider switcher.
-- **Coupons:** List (stats, filters, bulk, table) and editor (general / usage / restrictions / publish) map to Laravel `restrictions` JSON and `*_minor` fields.
-- **SMS:** Full panel navigation + real forms/tables for dashboard, send (webservice/pattern/p2p), reports, inbox, drafts, phonebook, scheduled, patterns, secretaries, wallet, lines, newsletter, topup, payment callback. Unavailable CRM proxy shows `SmsServiceBanner`.
-- **Bots:** Broadcast and campaigns panels with provider switcher; Bale/Telegram settings cover token, webhook URL, and test send. Advanced WP-only site-widget/admin-ops UIs stay hidden or “coming soon” when no API exists.
+- **Coupons:** List (stats, filters, bulk, table) and editor map to Laravel `restrictions` JSON and `*_minor` fields.
+- **SMS:** Partial panel — live routes listed above; unavailable CRM paths are gated/hidden rather than shown as empty “full panel” pages. `SmsServiceBanner` when proxy returns `unavailable`.
+- **Bots:** Broadcast and campaigns panels with provider switcher; Bale/Telegram settings cover token, webhook URL, and test send. Advanced WP-only site-widget/admin-ops UIs stay hidden when no API exists.
 
 Visual acceptance: compare light/dark + accents against WP for coupons list/editor, SMS send/dashboard, and bot broadcast.
 

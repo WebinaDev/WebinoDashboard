@@ -23,7 +23,7 @@ Authenticated APIs under `/api/v1` gated by commerce submodules `orders`, `c2c`,
 | GET | `/orders/{id}/print` | Receipt HTML + mark printed |
 
 Admin UI: `/admin/orders`, `/admin/orders/new`, `/admin/orders/:id`, `/admin/orders/:id/edit`.  
-Marketplace / Tapin / Moadian panels are **coming soon** placeholders on the detail page.
+Marketplace / Tapin / Moadian panels are **not shown** in the product UI until their APIs are available (documented only).
 
 ## C2C (`module:c2c`)
 
@@ -34,6 +34,16 @@ Marketplace / Tapin / Moadian panels are **coming soon** placeholders on the det
 | POST | `/c2c/receipts/{order}` | body `{ action: approve\|reject }` |
 
 UI: `/admin/orders/c2c-receipts`, `/admin/settings/c2c`.
+
+## Customers (`module:customers`)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/customers` | Paginated list; `?search=` for wallet/POS user lookup |
+| POST | `/customers` | Create customer user |
+| PATCH | `/customers/{id}` | Update customer |
+
+Admin UI: `/admin/customers`. Wallet settings uses `/customers?search=` (not POS-only).
 
 ## Wallet (`module:wallet`)
 

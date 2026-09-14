@@ -33,6 +33,8 @@ final class ModuleAliasMap
         'inventory' => ['commerce', 'inventory'],
         'analytics' => ['analytics', 'overview'],
         'rbac' => ['users', 'rbac'],
+        'customers' => ['users', 'customers'],
+        'staff' => ['users', 'staff'],
         'reports' => ['analytics', 'reports'],
         'marketing' => ['marketing', 'coupons'],
         'coupons' => ['marketing', 'coupons'],
