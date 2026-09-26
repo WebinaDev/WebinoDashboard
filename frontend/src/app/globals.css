@@ -16,8 +16,12 @@
 }
 
 @layer base {
+  /* Use CSS vars (not @apply *‑border) so theme tokens from imported
+     themes.css resolve under Docker/PostCSS without
+     "unknown utility class border-border". */
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklch, var(--color-ring) 50%, transparent);
   }
 
   html {
@@ -40,7 +44,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
     font-family: var(--wd-font-body);
   }
 
