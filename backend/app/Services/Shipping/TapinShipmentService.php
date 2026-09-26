@@ -141,6 +141,33 @@ class TapinShipmentService
     }
 
     /**
+     * Register when auto-register is on, the order uses Tapin shipping, and it reached the configured status.
+     */
+    public function maybeAutoRegister(Order $order): void
+    {
+        $tenantId = (int) $order->tenant_id;
+        if (! $this->tapin->isReady($tenantId)) {
+            return;
+        }
+        $settings = $this->tapin->getRaw($tenantId);
+        if (empty($settings['auto_register'])) {
+            return;
+        }
+        if ($order->status !== (string) ($settings['auto_register_status'] ?? 'processing')) {
+            return;
+        }
+        $meta = is_array($order->meta) ? $order->meta : [];
+        if (($meta['shipping_method_id'] ?? null) !== 'tapin') {
+            return;
+        }
+        try {
+            $this->register($order->fresh(['items']), $meta['shipping_service'] ?? null);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
      * @return array{ok: bool, message: string, tapin: array<string, mixed>|null}
      */
     public function refreshStatus(Order $order): array

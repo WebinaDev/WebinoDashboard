@@ -9,6 +9,7 @@ use App\Models\OrderReturn;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\Orders\OrderWriter;
+use App\Services\Shipping\TapinShipmentService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -111,7 +112,10 @@ class OrderController extends Controller
             'data' => [
                 'statuses' => Order::STATUSES,
                 'payment_tenders' => ['cash', 'card_to_card', 'pos_terminal', 'online', 'wallet', 'other'],
-                'sales_channels' => ['in_store', 'phone', 'bale', 'eitaa', 'rubika', 'telegram', 'instagram', 'other', 'online'],
+                'sales_channels' => array_merge(
+                    ['in_store', 'phone', 'bale', 'eitaa', 'rubika', 'telegram', 'instagram', 'other', 'online'],
+                    \App\Services\Marketplace\MarketplacePlatforms::slugs()
+                ),
             ],
         ]);
     }
@@ -146,7 +150,11 @@ class OrderController extends Controller
             'payment_tender' => ['sometimes', 'nullable', 'string', 'max:64'],
             'printed_at' => ['sometimes', 'nullable', 'date'],
         ]);
+        $statusChanged = isset($data['status']) && $data['status'] !== $row->status;
         $row->update($data);
+        if ($statusChanged) {
+            app(TapinShipmentService::class)->maybeAutoRegister($row);
+        }
 
         return response()->json(['data' => $row->fresh()->load(['items.product', 'user'])]);
     }

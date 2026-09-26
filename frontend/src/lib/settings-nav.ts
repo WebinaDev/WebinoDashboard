@@ -150,9 +150,63 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
     sections: [
       {
         id: "marketplace",
-        titleFa: "بازارچه",
-        titleEn: "Marketplace",
+        titleFa: "همه بازارچه‌ها",
+        titleEn: "All marketplaces",
         route: "/dashboard/settings/shop/marketplace",
+      },
+      {
+        id: "marketplace-basalam",
+        titleFa: "باسلام",
+        titleEn: "Basalam",
+        route: "/dashboard/settings/shop/marketplace/basalam",
+      },
+      {
+        id: "marketplace-digikala",
+        titleFa: "دیجی‌کالا",
+        titleEn: "Digikala",
+        route: "/dashboard/settings/shop/marketplace/digikala",
+      },
+      {
+        id: "marketplace-snappshop",
+        titleFa: "اسنپ‌شاپ",
+        titleEn: "SnappShop",
+        route: "/dashboard/settings/shop/marketplace/snappshop",
+      },
+      {
+        id: "marketplace-tapsishop",
+        titleFa: "تپسی‌شاپ",
+        titleEn: "TapsiShop",
+        route: "/dashboard/settings/shop/marketplace/tapsishop",
+      },
+      {
+        id: "marketplace-technolife",
+        titleFa: "تکنولایف",
+        titleEn: "Technolife",
+        route: "/dashboard/settings/shop/marketplace/technolife",
+      },
+      {
+        id: "marketplace-emalls",
+        titleFa: "ایمالز",
+        titleEn: "Emalls",
+        route: "/dashboard/settings/shop/marketplace/emalls",
+      },
+      {
+        id: "marketplace-torob",
+        titleFa: "ترب",
+        titleEn: "Torob",
+        route: "/dashboard/settings/shop/marketplace/torob",
+      },
+      {
+        id: "marketplace-zarehbin",
+        titleFa: "ذره‌بین",
+        titleEn: "Zarehbin",
+        route: "/dashboard/settings/shop/marketplace/zarehbin",
+      },
+      {
+        id: "marketplace-snapppay-search",
+        titleFa: "جستجوی اسنپ‌پی",
+        titleEn: "SnappPay Search",
+        route: "/dashboard/settings/shop/marketplace/snapppay-search",
       },
     ],
   },
@@ -276,10 +330,14 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
   },
 ]
 
+function matchesRoute(path: string, route: string): boolean {
+  return path === route || path.startsWith(route + "/")
+}
+
 export function findUnitByPath(pathname: string): SettingsUnitDef | undefined {
   const path = pathname.replace(/\/$/, "")
   return SETTINGS_UNITS.find((u) =>
-    u.sections.some((s) => path === s.route || path.startsWith(s.route + "/"))
+    u.sections.some((s) => matchesRoute(path, s.route))
   )
 }
 
@@ -288,9 +346,9 @@ export function activeSectionForPath(
   pathname: string
 ): SettingsSectionDef | undefined {
   const path = pathname.replace(/\/$/, "")
+  const matches = unit.sections.filter((s) => matchesRoute(path, s.route))
   return (
-    unit.sections.find((s) => path === s.route || path.startsWith(s.route + "/")) ??
-    unit.sections[0]
+    matches.sort((a, b) => b.route.length - a.route.length)[0] ?? unit.sections[0]
   )
 }
 

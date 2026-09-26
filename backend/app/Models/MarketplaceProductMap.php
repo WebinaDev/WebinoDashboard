@@ -11,6 +11,7 @@ class MarketplaceProductMap extends Model
         'tenant_id',
         'product_id',
         'product_variant_id',
+        'variant_key',
         'platform',
         'remote_product_id',
         'remote_variant_id',
@@ -20,6 +21,7 @@ class MarketplaceProductMap extends Model
         'last_error',
         'remote_price',
         'remote_stock',
+        'meta',
     ];
 
     protected function casts(): array
@@ -29,7 +31,16 @@ class MarketplaceProductMap extends Model
             'last_sync_at' => 'datetime',
             'remote_price' => 'integer',
             'remote_stock' => 'integer',
+            'variant_key' => 'integer',
+            'meta' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $map) {
+            $map->variant_key = (int) ($map->product_variant_id ?? 0);
+        });
     }
 
     public function tenant(): BelongsTo

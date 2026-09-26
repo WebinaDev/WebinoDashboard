@@ -273,7 +273,7 @@ class ShippingZonesService
     /**
      * Match rates for checkout by province code (IR:XX) and optional postcode.
      *
-     * @return list<array{instance_id: int, method_id: string, title: string, cost_minor: int, zone_id: int}>
+     * @return list<array{instance_id: int, method_id: string, title: string, cost_minor: int, zone_id: int, service: string}>
      */
     public function quote(int $tenantId, ?string $stateCode, ?string $postcode, int $cartSubtotalMinor): array
     {
@@ -302,6 +302,7 @@ class ShippingZonesService
                     'title' => (string) ($method['title'] ?? $method['method_id']),
                     'cost_minor' => $cost,
                     'zone_id' => (int) $zone['id'],
+                    'service' => (string) (($method['settings']['service'] ?? null) ?: 'pishtaz'),
                 ];
             }
         }

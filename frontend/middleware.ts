@@ -55,6 +55,17 @@ export async function middleware(request: NextRequest) {
   }
   res.headers.set("x-webina-locale", locale)
 
+  const torobClid = request.nextUrl.searchParams.get("torob_clid")?.trim()
+  if (torobClid && /^[A-Za-z0-9_-]{1,128}$/.test(torobClid)) {
+    res.cookies.set("torob_clid", torobClid, {
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: request.nextUrl.protocol === "https:",
+    })
+  }
+
   const isPublicAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||

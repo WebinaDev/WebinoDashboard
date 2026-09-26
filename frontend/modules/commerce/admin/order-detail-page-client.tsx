@@ -16,6 +16,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { ORDER_STATUSES } from "../lib/order-statuses"
+import { OrderMarketplacePanels } from "./order-marketplace-panels"
 
 type OrderNote = {
   id: number
@@ -55,6 +56,17 @@ type OrderDetail = {
   tracking_code?: string | null
   tracking_url?: string | null
   attribution?: Record<string, unknown> | null
+  meta?: {
+    shipping_title?: string
+    shipping_method_id?: string
+    tapin?: {
+      order_id?: string | number | null
+      barcode?: string | null
+      tracking_url?: string | null
+      status?: string | null
+      service?: string | null
+    }
+  } | null
   created_at?: string
   user?: { id: number; name?: string | null; email?: string | null } | null
   items?: Array<{
@@ -171,6 +183,39 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
+
+  const [tapinService, setTapinService] = useState("pishtaz")
+
+  const tapinRegister = useMutation({
+    mutationFn: () =>
+      api(`/api/v1/orders/${orderId}/tapin/register`, { method: "POST", json: { service: tapinService } }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-order", orderId] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  const tapinStatus = useMutation({
+    mutationFn: () => api(`/api/v1/orders/${orderId}/tapin/status`, { method: "POST" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-order", orderId] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  async function printTapinLabel() {
+    try {
+      const data = await api<{ html?: string | null }>(`/api/v1/orders/${orderId}/tapin/label`)
+      const w = window.open("", "_blank")
+      if (w) {
+        w.document.write(data?.html ?? "")
+        w.document.close()
+        w.focus()
+      }
+    } catch (e) {
+      setError(getApiErrorMessage(e as Error))
+    }
+  }
 
   async function printReceipt() {
     try {
@@ -290,8 +335,79 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                   <pre className="whitespace-pre-wrap text-sm">{formatAddress(order.shipping_address)}</pre>
                   <p className="text-muted-foreground mt-3 text-xs font-medium">{t("billing_address")}</p>
                   <pre className="mt-1 whitespace-pre-wrap text-sm">{formatAddress(order.billing_address)}</pre>
+                  {order.meta?.shipping_title ? (
+                    <p className="mt-3 text-xs">
+                      <span className="text-muted-foreground">{t("shipping_method")}: </span>
+                      {order.meta.shipping_title}
+                    </p>
+                  ) : null}
                 </Panel>
               </div>
+
+              <Panel
+                title={t("tapin_title")}
+                actions={
+                  order.meta?.tapin?.barcode || order.meta?.tapin?.order_id ? (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" disabled={tapinStatus.isPending} onClick={() => tapinStatus.mutate()}>
+                        {t("tapin_refresh")}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => void printTapinLabel()}>
+                        {t("tapin_label")}
+                      </Button>
+                    </div>
+                  ) : null
+                }
+              >
+                {order.meta?.tapin?.barcode || order.meta?.tapin?.order_id ? (
+                  <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-muted-foreground text-xs">{t("tapin_barcode")}</dt>
+                      <dd className="font-mono">{order.meta.tapin.barcode || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground text-xs">{t("tapin_status")}</dt>
+                      <dd>{order.meta.tapin.status || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground text-xs">{t("tapin_service")}</dt>
+                      <dd>{order.meta.tapin.service || "—"}</dd>
+                    </div>
+                    {order.meta.tapin.tracking_url ? (
+                      <div>
+                        <a
+                          className="text-primary text-sm hover:underline"
+                          href={order.meta.tapin.tracking_url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {t("tapin_track")}
+                        </a>
+                      </div>
+                    ) : null}
+                  </dl>
+                ) : (
+                  <div className="flex flex-wrap items-end gap-2">
+                    <p className="text-muted-foreground w-full text-sm">{t("tapin_not_registered")}</p>
+                    <select
+                      className={`${selectClass} w-40`}
+                      value={tapinService}
+                      onChange={(e) => setTapinService(e.target.value)}
+                    >
+                      <option value="pishtaz">pishtaz</option>
+                      <option value="vip">vip</option>
+                      <option value="tipax">tipax</option>
+                      <option value="courier">courier</option>
+                      <option value="alonomic">alonomic</option>
+                    </select>
+                    <Button size="sm" disabled={tapinRegister.isPending} onClick={() => tapinRegister.mutate()}>
+                      {t("tapin_register")}
+                    </Button>
+                  </div>
+                )}
+              </Panel>
+
+              <OrderMarketplacePanels order={{ id: order.id, sales_channel: order.sales_channel, meta: order.meta as Record<string, unknown> | null }} />
 
               <Panel title={t("notes")}>
                 <ul className="mb-3 space-y-2">

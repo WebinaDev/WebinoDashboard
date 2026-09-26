@@ -18,13 +18,13 @@ import { BotsSettingsPanel } from "@/views/settings/panels/BotsSettingsPanel"
 import {
   AdvancedSettingsPanel,
   InvoicesSettingsPanel,
-  MarketplaceSettingsPanel,
   PricingSettingsPanel,
   ShippingTapinPanel,
   ShippingZonesPanel,
 } from "@/views/settings/panels/ShopModulePanels"
 import { PaymentHubPanel } from "@/views/settings/panels/PaymentHubPanel"
 import { GatewayProviderSettingsPanel } from "@/views/settings/panels/GatewayProviderSettingsPanel"
+import { MarketplaceRouter } from "@/views/settings/panels/marketplace/MarketplaceRouter"
 
 function SettingsPanelRouter({ pathname }: { pathname: string }) {
   const path = pathname.replace(/\/$/, "")
@@ -38,7 +38,8 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/shop/accounting/modian")) return <AccountingModianPanel />
   if (path.endsWith("/shop/bots/bale")) return <BotsSettingsPanel provider="bale" />
   if (path.endsWith("/shop/bots/telegram")) return <BotsSettingsPanel provider="telegram" />
-  if (path.endsWith("/shop/marketplace")) return <MarketplaceSettingsPanel />
+  const marketplace = path.match(/\/shop\/marketplace(?:\/([a-z-]+))?(?:\/([a-z-]+))?$/)
+  if (marketplace) return <MarketplaceRouter platform={marketplace[1]} tab={marketplace[2]} />
   if (path.endsWith("/shop/pricing")) return <PricingSettingsPanel />
   if (path.endsWith("/shop/shipping/zones")) return <ShippingZonesPanel />
   if (path.endsWith("/shop/shipping/tapin")) return <ShippingTapinPanel />

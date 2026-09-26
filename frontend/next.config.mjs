@@ -23,6 +23,14 @@ const nextConfig = {
         source: "/api/:path*",
         destination: `${apiProxyTarget}/api/:path*`,
       },
+      {
+        source: "/wp-json/:path*",
+        destination: `${apiProxyTarget}/api/v1/public/wp-json/:path*`,
+      },
+      {
+        source: "/webino/digikala-webhook",
+        destination: `${apiProxyTarget}/api/v1/public/marketplace/digikala/webhook`,
+      },
     ]
   },
 }

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { MarketplacePricingCard } from "@/views/settings/panels/marketplace/MarketplacePricingCard"
 import { SettingsSaveBar, useDraftSettings } from "@/views/settings/use-tenant-settings"
 
 function SimpleSwitchPanel({
@@ -72,35 +73,22 @@ function SimpleSwitchPanel({
   )
 }
 
-export function MarketplaceSettingsPanel() {
-  const t = useTranslations("settings_hub")
-  return (
-    <SimpleSwitchPanel
-      title={t("marketplace.title")}
-      area="shop"
-      section="marketplace"
-      fields={[
-        { key: "basalam_enabled", label: t("marketplace.basalam"), type: "switch" },
-        { key: "digikala_enabled", label: t("marketplace.digikala"), type: "switch" },
-        { key: "auto_sync", label: t("marketplace.auto_sync"), type: "switch" },
-      ]}
-    />
-  )
-}
-
 export function PricingSettingsPanel() {
   const t = useTranslations("settings_hub")
   return (
-    <SimpleSwitchPanel
-      title={t("pricing.title")}
-      area="shop"
-      section="pricing"
-      fields={[
-        { key: "enable_wholesale", label: t("pricing.wholesale"), type: "switch" },
-        { key: "enable_installment", label: t("pricing.installment"), type: "switch" },
-        { key: "round_to", label: t("pricing.round_to"), type: "number" },
-      ]}
-    />
+    <div className="space-y-4">
+      <SimpleSwitchPanel
+        title={t("pricing.title")}
+        area="shop"
+        section="pricing"
+        fields={[
+          { key: "enable_wholesale", label: t("pricing.wholesale"), type: "switch" },
+          { key: "enable_installment", label: t("pricing.installment"), type: "switch" },
+          { key: "round_to", label: t("pricing.round_to"), type: "number" },
+        ]}
+      />
+      <MarketplacePricingCard />
+    </div>
   )
 }
 

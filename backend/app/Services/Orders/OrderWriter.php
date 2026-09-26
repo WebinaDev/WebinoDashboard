@@ -160,6 +160,20 @@ class OrderWriter
     {
         $built = [];
         foreach ($items as $item) {
+            if (! empty($item['external']) && empty($item['product_id'])) {
+                $built[] = [
+                    'product_id' => null,
+                    'product_variant_id' => null,
+                    'product_name' => (string) ($item['product_name'] ?? '—'),
+                    'sku' => $item['sku'] ?? null,
+                    'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
+                    'unit_price_minor' => max(0, (int) ($item['unit_price_minor'] ?? 0)),
+                    'purchase_type' => 'cash',
+                    'meta' => $item['meta'] ?? null,
+                ];
+
+                continue;
+            }
             $productId = (int) ($item['product_id'] ?? 0);
             $product = Product::query()->where('tenant_id', $tenantId)->whereKey($productId)->first();
             if (! $product) {

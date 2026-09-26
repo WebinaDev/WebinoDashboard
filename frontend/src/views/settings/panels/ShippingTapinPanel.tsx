@@ -347,6 +347,21 @@ export function ShippingTapinPanel() {
               onCheckedChange={(v) => patch("auto_register", v)}
             />
           </div>
+          {draft.auto_register ? (
+            <div className="grid max-w-lg gap-2">
+              <Label>{t("shipping.tapin_auto_status")}</Label>
+              <select
+                className={selectClass}
+                value={draft.auto_register_status || "processing"}
+                onChange={(e) => patch("auto_register_status", e.target.value)}
+              >
+                <option value="processing">processing</option>
+                <option value="paid">paid</option>
+                <option value="shipped">shipped</option>
+                <option value="completed">completed</option>
+              </select>
+            </div>
+          ) : null}
           <div className="flex max-w-lg items-center justify-between gap-3">
             <Label>{t("shipping.tapin_show_credit")}</Label>
             <Switch

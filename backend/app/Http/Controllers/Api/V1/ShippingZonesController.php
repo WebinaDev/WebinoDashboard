@@ -126,23 +126,11 @@ class ShippingZonesController extends Controller
             $subtotal
         );
 
-        $cfg = $this->zones->getConfig($tid);
         foreach ($rates as $i => $rate) {
             if (($rate['method_id'] ?? '') !== 'tapin') {
                 continue;
             }
-            $service = 'pishtaz';
-            foreach ($cfg['zones'] ?? [] as $zone) {
-                if ((int) ($zone['id'] ?? 0) !== (int) $rate['zone_id']) {
-                    continue;
-                }
-                foreach ($zone['methods'] ?? [] as $m) {
-                    if ((int) ($m['instance_id'] ?? 0) === (int) $rate['instance_id']) {
-                        $service = (string) (($m['settings']['service'] ?? null) ?: 'pishtaz');
-                        break 2;
-                    }
-                }
-            }
+            $service = $rate['service'];
             $live = $this->tapinShipments->quoteCost($tid, [
                 'province_code' => $data['province_code'] ?? null,
                 'city_code' => $data['city_code'] ?? null,

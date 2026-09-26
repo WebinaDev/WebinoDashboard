@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             (string) ($_ENV['AUTH_COOKIE_NAME']
                 ?? $_SERVER['AUTH_COOKIE_NAME']
                 ?? 'webino_auth_token'),
+            'torob_clid',
         ]);
 
         // Cookie+Bearer SPA — not Sanctum session auth. Do NOT enable

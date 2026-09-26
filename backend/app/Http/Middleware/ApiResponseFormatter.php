@@ -18,6 +18,10 @@ class ApiResponseFormatter
         }
 
         // CRM ModirPayamak proxy returns { ok, account?, data?, ... } — do not re-envelope.
+        if (str_starts_with($request->path(), 'api/v1/public/marketplace/') || str_starts_with($request->path(), 'api/v1/public/wp-json/')) {
+            return $next($request);
+        }
+
         if (str_contains($request->path(), 'modirpayamak')) {
             return $next($request);
         }

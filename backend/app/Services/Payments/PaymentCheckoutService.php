@@ -5,6 +5,7 @@ namespace App\Services\Payments;
 use App\Models\Order;
 use App\Models\PaymentIntent;
 use App\Models\Tenant;
+use App\Services\Marketplace\Basalam\BasalamPay;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -21,7 +22,7 @@ class PaymentCheckoutService
     public function createIntent(Order $order, string $provider): PaymentIntent
     {
         $provider = str_replace('-', '_', strtolower($provider));
-        $allowed = ['zarinpal', 'digipay', 'snapppay', 'torobpay'];
+        $allowed = ['zarinpal', 'digipay', 'snapppay', 'torobpay', BasalamPay::PROVIDER];
         if (! in_array($provider, $allowed, true)) {
             throw new \InvalidArgumentException('Unsupported payment provider: '.$provider);
         }
@@ -29,6 +30,14 @@ class PaymentCheckoutService
         $tid = (int) $order->tenant_id;
         if (! $this->gateways->isEnabled($tid, $provider)) {
             throw new \RuntimeException('Payment gateway is disabled.');
+        }
+        if ($provider === BasalamPay::PROVIDER) {
+            $pay = BasalamPay::for($tid);
+            if (! $pay->configured()) {
+                throw new \RuntimeException('Payment gateway is not configured.');
+            }
+
+            return $pay->createIntent($order);
         }
         if (! $this->gateways->configured($tid, $provider)) {
             throw new \RuntimeException('Payment gateway is not configured.');

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ProductMarketplaceTab } from "./product-marketplace-tab"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,7 +21,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
-type TabId = "content" | "pricing" | "attributes" | "coffee" | "advanced"
+type TabId = "content" | "pricing" | "attributes" | "coffee" | "marketplace" | "advanced"
 
 type LookupTerm = { id: number; name: string; slug?: string }
 type LookupAttr = {
@@ -53,17 +54,6 @@ type Variant = {
   price_minor: number
   stock?: number | null
   is_default?: boolean
-}
-
-type MarketplaceMap = {
-  platform: string
-  remote_product_id?: string | null
-  remote_variant_id?: string | null
-  remote_url?: string | null
-  sync_enabled?: boolean
-  last_sync_at?: string | null
-  last_error?: string | null
-  can_create?: boolean
 }
 
 type CoffeeProfile = {
@@ -166,7 +156,7 @@ type AttrAssign = {
 }
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-const TABS: TabId[] = ["content", "pricing", "attributes", "coffee", "advanced"]
+const TABS: TabId[] = ["content", "pricing", "attributes", "coffee", "marketplace", "advanced"]
 
 const emptyForm: FormState = {
   name: "",
@@ -265,6 +255,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   const queryClient = useQueryClient()
   const { activations } = useDashboardNav()
   const coffeeEnabled = isSubmoduleEnabled(activations, "coffee-profile", "profile")
+  const marketplaceEnabled = isSubmoduleEnabled(activations, "commerce", "marketplace")
 
   const rawId = route.params?.productId
   const isNew = !rawId || rawId === "new"
@@ -274,7 +265,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   const [form, setForm] = useState<FormState>(emptyForm)
   const [attrAssigns, setAttrAssigns] = useState<AttrAssign[]>([])
   const [coffee, setCoffee] = useState<CoffeeProfile>({})
-  const [maps, setMaps] = useState<MarketplaceMap[]>([])
   const [variantName, setVariantName] = useState("")
   const [variantPrice, setVariantPrice] = useState(0)
   const [calculated, setCalculated] = useState<Product["calculated"]>()
@@ -318,13 +308,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       .then(setCoffee)
       .catch((e: Error) => setError(getApiErrorMessage(e)))
   }, [productId, coffeeEnabled, tab])
-
-  useEffect(() => {
-    if (!productId || tab !== "advanced") return
-    api<MarketplaceMap[]>(`/api/v1/marketplace/products/${productId}/maps`)
-      .then(setMaps)
-      .catch(() => setMaps([]))
-  }, [productId, tab])
 
   const payload = useMemo(() => {
     const gallery = form.gallery_text
@@ -487,39 +470,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
-  const saveMaps = useMutation({
-    mutationFn: () =>
-      api<MarketplaceMap[]>(`/api/v1/marketplace/products/${productId}/maps`, {
-        method: "POST",
-        json: { maps },
-      }),
-    onSuccess: (rows) => {
-      setMaps(rows)
-      setMessage(t("maps_saved"))
-    },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
-  })
-
-  const syncNow = useMutation({
-    mutationFn: () => api(`/api/v1/marketplace/products/${productId}/sync-now`, { method: "POST" }),
-    onSuccess: () => setMessage(t("sync_done")),
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
-  })
-
-  const createRemote = useMutation({
-    mutationFn: (platform: string) =>
-      api(`/api/v1/marketplace/products/${productId}/create-remote`, {
-        method: "POST",
-        json: { platform },
-      }),
-    onSuccess: async () => {
-      const rows = await api<MarketplaceMap[]>(`/api/v1/marketplace/products/${productId}/maps`)
-      setMaps(rows)
-      setMessage(t("remote_created"))
-    },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
-  })
-
   function ensureAttr(id: number) {
     setAttrAssigns((list) => {
       if (list.some((a) => a.id === id)) return list
@@ -667,7 +617,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       ) : (
         <>
           <div className="flex flex-wrap gap-2 border-b pb-2">
-            {TABS.map((id) => (
+            {TABS.filter((id) => id !== "marketplace" || marketplaceEnabled).map((id) => (
               <Button key={id} size="sm" variant={tab === id ? "default" : "ghost"} onClick={() => setTab(id)}>
                 {t(`tab_${id}`)}
               </Button>
@@ -1055,6 +1005,13 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
             </Card>
           ) : null}
 
+          {tab === "marketplace" ? (
+            isNew || !productId ? (
+              <p className="text-muted-foreground text-sm">{t("save_first_maps")}</p>
+            ) : (
+              <ProductMarketplaceTab productId={productId} />
+            )
+          ) : null}
           {tab === "advanced" ? (
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
@@ -1122,80 +1079,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-2">
-                  <CardTitle>{t("marketplace_panel")}</CardTitle>
-                  {!isNew ? (
-                    <Button size="sm" variant="outline" disabled={syncNow.isPending} onClick={() => syncNow.mutate()}>
-                      {t("sync_now")}
-                    </Button>
-                  ) : null}
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {isNew ? (
-                    <p className="text-muted-foreground text-sm">{t("save_first_maps")}</p>
-                  ) : (
-                    <>
-                      {maps.map((m, idx) => (
-                        <div key={m.platform} className="space-y-2 rounded-lg border p-3">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium capitalize">{m.platform}</p>
-                            <label className="flex items-center gap-2 text-xs">
-                              <Checkbox
-                                checked={Boolean(m.sync_enabled)}
-                                onCheckedChange={(v) =>
-                                  setMaps((list) =>
-                                    list.map((row, i) =>
-                                      i === idx ? { ...row, sync_enabled: Boolean(v) } : row,
-                                    ),
-                                  )
-                                }
-                              />
-                              {t("sync_enabled")}
-                            </label>
-                          </div>
-                          <Input
-                            placeholder="remote_product_id"
-                            value={m.remote_product_id ?? ""}
-                            onChange={(e) =>
-                              setMaps((list) =>
-                                list.map((row, i) =>
-                                  i === idx ? { ...row, remote_product_id: e.target.value } : row,
-                                ),
-                              )
-                            }
-                          />
-                          <Input
-                            placeholder="remote_url"
-                            value={m.remote_url ?? ""}
-                            onChange={(e) =>
-                              setMaps((list) =>
-                                list.map((row, i) =>
-                                  i === idx ? { ...row, remote_url: e.target.value } : row,
-                                ),
-                              )
-                            }
-                          />
-                          {m.can_create ? (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              disabled={createRemote.isPending}
-                              onClick={() => createRemote.mutate(m.platform)}
-                            >
-                              {t("create_remote")}
-                            </Button>
-                          ) : null}
-                          {m.last_error ? <p className="text-destructive text-xs">{m.last_error}</p> : null}
-                        </div>
-                      ))}
-                      <Button disabled={saveMaps.isPending} onClick={() => saveMaps.mutate()}>
-                        {t("save_maps")}
-                      </Button>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
             </div>
           ) : null}
             </div>

@@ -2,6 +2,7 @@
 
 namespace App\Services\Payments;
 
+use App\Services\Marketplace\Basalam\BasalamPay;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Wallet\WalletService;
 use App\Http\Controllers\Api\V1\C2cController;
@@ -22,6 +23,7 @@ class PaymentGatewaySettingsService
         'snapppay',
         'torobpay',
         'bale_pay',
+        'basalam_pay',
         'wallet',
         'c2c',
         'cod',
@@ -313,6 +315,9 @@ class PaymentGatewaySettingsService
 
     public function configured(int $tenantId, string $provider): bool
     {
+        if ($provider === BasalamPay::PROVIDER) {
+            return BasalamPay::for($tenantId)->configured();
+        }
         $raw = $this->getRaw($tenantId, $provider);
 
         return match ($provider) {
@@ -345,6 +350,7 @@ class PaymentGatewaySettingsService
             ['id' => 'snapppay', 'title_key' => 'snapppay', 'settings_path' => '/dashboard/settings/shop/snapppay'],
             ['id' => 'torobpay', 'title_key' => 'torobpay', 'settings_path' => '/dashboard/settings/shop/torobpay'],
             ['id' => 'bale_pay', 'title_key' => 'bale_pay', 'settings_path' => '/dashboard/settings/shop/bale-pay'],
+            ['id' => 'basalam_pay', 'title_key' => 'basalam_pay', 'settings_path' => '/dashboard/settings/shop/marketplace/basalam?tab=settings'],
             ['id' => 'wallet', 'title_key' => 'wallet', 'settings_path' => '/dashboard/settings/shop/wallet'],
             ['id' => 'c2c', 'title_key' => 'c2c', 'settings_path' => '/dashboard/settings/shop/c2c'],
             ['id' => 'cod', 'title_key' => 'cod', 'settings_path' => ''],

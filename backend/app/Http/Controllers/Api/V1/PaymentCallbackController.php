@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\PaymentIntent;
+use App\Services\Marketplace\Basalam\BasalamPay;
+use App\Services\Marketplace\MarketplaceLogger;
 use App\Services\Payments\BnplClient;
 use App\Services\Payments\DigipayClient;
 use App\Services\Payments\PaymentGatewaySettingsService;
@@ -32,8 +34,23 @@ class PaymentCallbackController extends Controller
             'digipay' => $this->handleDigipay($request, $order),
             'snapppay' => $this->handleBnpl($request, $order, 'snapppay', true),
             'torobpay' => $this->handleBnpl($request, $order, 'torobpay', false),
+            BasalamPay::PROVIDER => $this->handleBasalamPay($request, $order),
             default => $this->finish(false),
         };
+    }
+
+    public function handleBasalamPay(Request $request, Order $order): RedirectResponse
+    {
+        try {
+            $hash = (string) ($request->input('hash_id') ?? $request->input('hash') ?? '');
+            $result = BasalamPay::for((int) $order->tenant_id)->verify($order, $hash);
+
+            return $this->finish($result['paid']);
+        } catch (\Throwable $e) {
+            MarketplaceLogger::error((int) $order->tenant_id, 'basalam', 'pay', 'Basalam Pay verify failed: '.$e->getMessage(), ['order_id' => $order->id]);
+
+            return $this->finish(false);
+        }
     }
 
     protected function handleZarinpal(Request $request, Order $order): RedirectResponse

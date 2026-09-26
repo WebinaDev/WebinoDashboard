@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Observers\MarketplaceOrderObserver;
+use App\Observers\MarketplaceProductObserver;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
@@ -16,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Product::observe(MarketplaceProductObserver::class);
+        ProductVariant::observe(MarketplaceProductObserver::class);
+        Order::observe(MarketplaceOrderObserver::class);
+
         Scramble::ignoreDefaultRoutes();
 
         Scramble::extendOpenApi(function (OpenApi $openApi): void {

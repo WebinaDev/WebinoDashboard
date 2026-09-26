@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +28,7 @@ import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { MARKETPLACE_SLUGS, isMarketplaceChannel, marketplaceLabel } from "@/lib/marketplace"
 import { ORDER_STATUSES } from "../lib/order-statuses"
 
 type OrderRow = {
@@ -74,6 +75,7 @@ const SALES_CHANNELS = [
   "instagram",
   "other",
   "online",
+  ...MARKETPLACE_SLUGS,
 ]
 
 async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: OrdersMeta }> {
@@ -101,6 +103,7 @@ async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: Or
 
 export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("orders_admin")
+  const locale = useLocale()
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
@@ -287,7 +290,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
               <option value="">{t("all")}</option>
               {SALES_CHANNELS.map((x) => (
                 <option key={x} value={x}>
-                  {x}
+                  {isMarketplaceChannel(x) ? marketplaceLabel(x, locale) : x}
                 </option>
               ))}
             </select>

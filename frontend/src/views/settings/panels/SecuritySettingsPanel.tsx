@@ -66,6 +66,7 @@ export function SecuritySettingsPanel() {
   const waf = (draft.waf ?? {}) as Record<string, unknown>
   const headers = (draft.headers ?? {}) as Record<string, unknown>
   const notify = (draft.notify ?? {}) as Record<string, unknown>
+  const current = draft
 
   function patch(
     section: keyof SecurityPayload,
@@ -73,8 +74,8 @@ export function SecuritySettingsPanel() {
     value: unknown
   ) {
     setDraft({
-      ...draft,
-      [section]: { ...(draft[section] ?? {}), [key]: value },
+      ...current,
+      [section]: { ...(current[section] ?? {}), [key]: value },
     })
   }
 

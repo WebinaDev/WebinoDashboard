@@ -34,7 +34,16 @@ class CheckoutController extends Controller
             'shipping_province_code' => ['nullable', 'integer'],
             'shipping_city_code' => ['nullable', 'integer'],
             'shipping_minor' => ['nullable', 'integer', 'min:0'],
+            'torob_clid' => ['nullable', 'string', 'max:128'],
         ]);
+        $torobClid = \App\Services\Marketplace\Adapters\TorobAdapter::sanitizeClid(
+            (string) ($checkoutMeta['torob_clid'] ?? $request->cookie('torob_clid') ?? '')
+        );
+        if ($torobClid !== null) {
+            $checkoutMeta['torob_clid'] = $torobClid;
+        } else {
+            unset($checkoutMeta['torob_clid']);
+        }
 
         $user = $request->user();
 
@@ -121,7 +130,7 @@ class CheckoutController extends Controller
                         'city_code' => $checkoutMeta['shipping_city_code'] ?? null,
                         'weight_g' => $weightG,
                         'cart_subtotal' => max(0, $subtotal - $discount),
-                        'service' => 'pishtaz',
+                        'service' => $picked['service'],
                     ]);
                     if ($live !== null) {
                         $shippingMinor = $live;
@@ -132,9 +141,14 @@ class CheckoutController extends Controller
                     'shipping_method_id' => $picked['method_id'],
                     'shipping_title' => $picked['title'],
                     'shipping_zone_id' => $picked['zone_id'],
+                    'shipping_service' => $picked['service'],
                 ];
             } elseif (isset($checkoutMeta['shipping_minor'])) {
                 $shippingMinor = (int) $checkoutMeta['shipping_minor'];
+            }
+
+            if (! empty($checkoutMeta['torob_clid'])) {
+                $shippingMeta['torob_clid'] = $checkoutMeta['torob_clid'];
             }
 
             $shippingAddress = $checkoutMeta['shipping_address'] ?? null;

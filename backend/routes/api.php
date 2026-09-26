@@ -131,6 +131,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/provision/panel-login', [ProvisionController::class, 'panelLogin']);
 
     Route::prefix('public')->middleware('public.tenant')->group(function () {
+        require __DIR__.'/marketplace_public.php';
+
         Route::get('/tenant', [PublicSiteController::class, 'tenant']);
         Route::get('/home', [PublicSiteController::class, 'home']);
         Route::get('/kernel/activations', [PublicKernelController::class, 'activations']);
@@ -298,12 +300,39 @@ Route::prefix('v1')->group(function () {
             Route::get('/pricing/bulk-price-change/state', [PricingController::class, 'bulkPriceState']);
         });
 
-        Route::middleware('module:marketplace')->group(function () {
-            Route::get('/marketplace/products/{product}/maps', [MarketplaceController::class, 'maps'])->whereNumber('product');
-            Route::post('/marketplace/products/{product}/maps', [MarketplaceController::class, 'saveMaps'])->whereNumber('product');
-            Route::post('/marketplace/products/{product}/sync-now', [MarketplaceController::class, 'syncNow'])->whereNumber('product');
-            Route::post('/marketplace/products/{product}/create-remote', [MarketplaceController::class, 'createRemote'])->whereNumber('product');
-            Route::post('/marketplace/digikala/products/{product}/map', [MarketplaceController::class, 'digikalaMap'])->whereNumber('product');
+        Route::middleware('module:marketplace')->prefix('marketplace')->group(function () {
+            $platforms = implode('|', array_map('preg_quote', \App\Services\Marketplace\MarketplacePlatforms::slugs()));
+
+            Route::get('/hub', [MarketplaceController::class, 'hub']);
+            Route::get('/pricing', [MarketplaceController::class, 'pricing']);
+            Route::put('/pricing', [MarketplaceController::class, 'savePricing']);
+            Route::get('/pricing/preview/{product}', [MarketplaceController::class, 'pricingPreview'])->whereNumber('product');
+
+            Route::get('/products/{product}/maps', [MarketplaceController::class, 'maps'])->whereNumber('product');
+            Route::post('/products/{product}/maps', [MarketplaceController::class, 'saveMaps'])->whereNumber('product');
+            Route::post('/products/{product}/sync-now', [MarketplaceController::class, 'syncProduct'])->whereNumber('product');
+            Route::post('/products/{product}/create-remote', [MarketplaceController::class, 'createRemote'])->whereNumber('product');
+            Route::put('/products/{product}/platform-prices', [MarketplaceController::class, 'savePlatformPrices'])->whereNumber('product');
+
+            Route::delete('/maps/{map}', [MarketplaceController::class, 'deleteMap'])->whereNumber('map');
+            Route::post('/maps/{map}/push', [MarketplaceController::class, 'pushMap'])->whereNumber('map');
+            Route::post('/jobs/{job}/retry', [MarketplaceController::class, 'retryJob'])->whereNumber('job');
+            Route::post('/jobs/{job}/cancel', [MarketplaceController::class, 'cancelJob'])->whereNumber('job');
+
+            require __DIR__.'/marketplace_platforms.php';
+
+            Route::get('/{platform}/settings', [MarketplaceController::class, 'settings'])->where('platform', $platforms);
+            Route::post('/{platform}/settings', [MarketplaceController::class, 'saveSettings'])->where('platform', $platforms);
+            Route::post('/{platform}/test-connection', [MarketplaceController::class, 'testConnection'])->where('platform', $platforms);
+            Route::post('/{platform}/sync-now', [MarketplaceController::class, 'syncNow'])->where('platform', $platforms);
+            Route::post('/{platform}/pull-orders', [MarketplaceController::class, 'pullOrders'])->where('platform', $platforms);
+            Route::get('/{platform}/maps', [MarketplaceController::class, 'platformMaps'])->where('platform', $platforms);
+            Route::get('/{platform}/jobs', [MarketplaceController::class, 'jobs'])->where('platform', $platforms);
+            Route::get('/{platform}/logs', [MarketplaceController::class, 'logs'])->where('platform', $platforms);
+            Route::delete('/{platform}/logs', [MarketplaceController::class, 'clearLogs'])->where('platform', $platforms);
+            Route::get('/{platform}/orders', [MarketplaceController::class, 'orders'])->where('platform', $platforms);
+            Route::get('/{platform}/search', [MarketplaceController::class, 'search'])->where('platform', $platforms);
+            Route::get('/{platform}/feed-url', [MarketplaceController::class, 'feedUrls'])->where('platform', $platforms);
         });
 
         Route::middleware('module:coffee_profile')->group(function () {
