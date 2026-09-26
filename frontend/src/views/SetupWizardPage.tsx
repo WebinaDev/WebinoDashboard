@@ -44,33 +44,41 @@ export default function SetupWizardPage() {
 
   useEffect(() => {
     let cancelled = false
-    api<SetupStatus>("/api/v1/setup/status")
-      .then((data) => {
-        if (!cancelled) {
-          if (data.setup_completed) {
-            router.replace("/dashboard")
-            return
-          }
-          const preselected =
-            (data.tenant.site_type_slug as SiteTypeSlug | null) ??
-            (data.tenant.business_type_slug as SiteTypeSlug | null)
-          if (preselected && SITE_TYPES.some((s) => s.slug === preselected)) {
-            setSiteType(preselected)
-            setSkipSiteType(true)
-            setStep(1)
-          }
-          if (data.tenant.domain) setDomain(data.tenant.domain)
-          if (data.tenant.default_locale === "en") setLocale("en")
+
+    async function loadStatus(attempt = 0): Promise<void> {
+      try {
+        const data = await api<SetupStatus>("/api/v1/setup/status")
+        if (cancelled) return
+        if (data.setup_completed) {
+          router.replace("/dashboard")
+          return
         }
-      })
-      .catch((e) => {
+        const preselected =
+          (data.tenant.site_type_slug as SiteTypeSlug | null) ??
+          (data.tenant.business_type_slug as SiteTypeSlug | null)
+        if (preselected && SITE_TYPES.some((s) => s.slug === preselected)) {
+          setSiteType(preselected)
+          setSkipSiteType(true)
+          setStep(1)
+        }
+        if (data.tenant.domain) setDomain(data.tenant.domain)
+        if (data.tenant.default_locale === "en") setLocale("en")
+      } catch (e) {
         if (cancelled) return
         if (e instanceof ApiError && e.status === 401) {
+          if (attempt < 1) {
+            await new Promise((r) => setTimeout(r, 400))
+            if (!cancelled) await loadStatus(attempt + 1)
+            return
+          }
           window.location.assign("/login?next=/setup")
           return
         }
         setErr(e instanceof Error ? e.message : tCommon("error_generic"))
-      })
+      }
+    }
+
+    void loadStatus()
     return () => {
       cancelled = true
     }

@@ -12,6 +12,7 @@ use App\Services\Modules\ModuleGitInstaller;
 use App\Services\Provision\ProvisionContentSeeder;
 use App\Services\Webino\WebinoLicenseClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -229,6 +230,54 @@ class ProvisionController extends Controller
         $activations->clearCache($tenant->id);
 
         return response()->json(['data' => ['ok' => true]]);
+    }
+
+    public function panelLogin(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvisionAuth($request);
+
+        $data = $request->validate([
+            'user_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $tenant = Tenant::query()->firstOrFail();
+
+        $query = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            });
+
+        if (! empty($data['user_id'])) {
+            $user = (clone $query)->where('id', (int) $data['user_id'])->first();
+        } else {
+            $user = (clone $query)->where('role', 'admin')->orderBy('id')->first()
+                ?? (clone $query)->orderBy('id')->first();
+        }
+
+        if (! $user) {
+            return response()->json(['message' => __('api.unauthorized')], 422);
+        }
+
+        $token = Str::random(64);
+        Cache::put('panel_login:'.$token, [
+            'user_id' => $user->id,
+            'tenant_id' => $tenant->id,
+        ], now()->addMinutes(5));
+
+        $domain = is_string($tenant->domain) ? trim($tenant->domain) : '';
+        $base = $domain !== ''
+            ? 'https://'.preg_replace('#^https?://#i', '', $domain)
+            : rtrim((string) config('app.url'), '/');
+        $loginUrl = $base.'/login?panel_token='.urlencode($token);
+
+        return response()->json([
+            'data' => [
+                'login_url' => $loginUrl,
+                'one_shot_url' => $loginUrl,
+                'expires_in' => 300,
+            ],
+        ]);
     }
 
     protected function assertProvisionAuth(Request $request): void

@@ -1,8 +1,18 @@
-/** Server/middleware API origin (Docker: INTERNAL_API_URL when public URL is same-origin). */
+/** Server/middleware API origin. Never return a relative `/api` — Edge fetch needs an absolute URL. */
 export function getServerApiBase(): string {
-  const publicBase = process.env.NEXT_PUBLIC_API_URL?.trim()
-  if (publicBase) {
-    return publicBase
+  const internal = process.env.INTERNAL_API_URL?.trim()
+  if (internal && /^https?:\/\//i.test(internal)) {
+    return stripApiSuffix(internal)
   }
-  return process.env.INTERNAL_API_URL?.trim() ?? ""
+
+  const publicBase = process.env.NEXT_PUBLIC_API_URL?.trim() ?? ""
+  if (/^https?:\/\//i.test(publicBase)) {
+    return stripApiSuffix(publicBase)
+  }
+
+  return ""
+}
+
+function stripApiSuffix(value: string): string {
+  return value.replace(/\/$/, "").replace(/\/api$/i, "")
 }

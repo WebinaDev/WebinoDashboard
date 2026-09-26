@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\AuthCookie;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -71,6 +72,34 @@ class AuthController extends Controller
     public function session(Request $request): \Illuminate\Http\JsonResponse
     {
         return $this->login($request);
+    }
+
+    public function panelLogin(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'panel_token' => ['required', 'string', 'min:32', 'max:128'],
+        ]);
+
+        $payload = Cache::pull('panel_login:'.$data['panel_token']);
+        if (! is_array($payload) || empty($payload['user_id'])) {
+            return response()->json(['message' => __('api.unauthorized')], 401);
+        }
+
+        /** @var User|null $user */
+        $user = User::query()->with('tenant')->find((int) $payload['user_id']);
+        if (! $user || $user->is_active === false) {
+            return response()->json(['message' => __('api.unauthorized')], 401);
+        }
+
+        $token = $user->createToken('spa-panel')->plainTextToken;
+
+        $response = response()->json([
+            'user' => $user,
+            'password_must_change' => (bool) $user->password_must_change,
+            'setup_completed' => (bool) ($user->tenant?->setup_completed ?? true),
+        ]);
+
+        return AuthCookie::attach($response, $token, $request);
     }
 
     public function refresh(Request $request): \Illuminate\Http\JsonResponse

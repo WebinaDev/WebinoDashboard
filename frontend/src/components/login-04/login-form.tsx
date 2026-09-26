@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ComponentPropsWithoutRef, type FormEvent } from "react"
+import { useEffect, useState, type ComponentPropsWithoutRef, type FormEvent } from "react"
 import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 
@@ -24,6 +24,25 @@ function safeNextPath(raw: string | null): string | null {
   return raw
 }
 
+function redirectAfterLogin(result: LoginResult, next: string | null) {
+  if (result.password_must_change) {
+    window.location.assign("/account/change-password")
+    return
+  }
+
+  const setupDone =
+    result.setup_completed ??
+    result.user?.tenant?.setup_completed ??
+    true
+
+  if (!setupDone) {
+    window.location.assign("/setup")
+    return
+  }
+
+  window.location.assign(next ?? "/dashboard")
+}
+
 export function LoginForm({
   className,
   ...props
@@ -35,6 +54,36 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [panelPending, setPanelPending] = useState(false)
+
+  useEffect(() => {
+    const panelToken = searchParams.get("panel_token")
+    if (!panelToken) return
+
+    let cancelled = false
+    setPanelPending(true)
+    setError(null)
+
+    void (async () => {
+      try {
+        const result = await api<LoginResult>("/api/v1/auth/panel-login", {
+          method: "POST",
+          json: { panel_token: panelToken },
+        })
+        if (cancelled) return
+        setAuthenticated(true)
+        redirectAfterLogin(result, safeNextPath(searchParams.get("next")))
+      } catch (err) {
+        if (cancelled) return
+        setError(getApiErrorMessage(err) || t("errors_invalid"))
+        setPanelPending(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [searchParams, setAuthenticated, t])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -46,24 +95,7 @@ export function LoginForm({
         json: { email, password },
       })
       setAuthenticated(true)
-
-      if (result.password_must_change) {
-        window.location.assign("/account/change-password")
-        return
-      }
-
-      const next = safeNextPath(searchParams.get("next"))
-      const setupDone =
-        result.setup_completed ??
-        result.user?.tenant?.setup_completed ??
-        true
-
-      if (!setupDone) {
-        window.location.assign("/setup")
-        return
-      }
-
-      window.location.assign(next ?? "/dashboard")
+      redirectAfterLogin(result, safeNextPath(searchParams.get("next")))
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError(t("errors_throttled"))
@@ -73,6 +105,23 @@ export function LoginForm({
     } finally {
       setPending(false)
     }
+  }
+
+  if (panelPending) {
+    return (
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <Card className="overflow-hidden shadow-sm">
+          <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
+            <p className="text-sm text-muted-foreground">{t("submit")}…</p>
+            {error ? (
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
