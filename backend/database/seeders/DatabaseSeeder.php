@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
                 'license_key' => 'dev-license',
                 'setup_completed' => false,
                 'store_display_name' => null,
-                'default_currency' => 'IRR',
+                'default_currency' => 'IRT',
                 'default_locale' => 'fa',
                 'site_type_slug' => null,
                 'business_category_slug' => null,

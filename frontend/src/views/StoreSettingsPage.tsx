@@ -3,21 +3,17 @@
 import { useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
 
+import { CurrencySettingsFields } from "@/components/CurrencySettingsFields"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { api } from "@/lib/api"
 import {
+  DEFAULT_CURRENCY_SYMBOL,
   DEFAULT_STORE_CURRENCY,
-  STORE_CURRENCIES,
+  normalizeCurrencySymbol,
   normalizeStoreCurrency,
+  type CurrencySymbolId,
   type StoreCurrencyCode,
 } from "@/lib/currencies"
 
@@ -29,6 +25,7 @@ type Tenant = {
   license_key: string | null
   store_display_name: string | null
   default_currency: string | null
+  branding?: { currency_symbol?: string } | null
 }
 
 export default function StoreSettingsPage() {
@@ -38,6 +35,7 @@ export default function StoreSettingsPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [storeName, setStoreName] = useState("")
   const [currency, setCurrency] = useState<StoreCurrencyCode>(DEFAULT_STORE_CURRENCY)
+  const [currencySymbol, setCurrencySymbol] = useState<CurrencySymbolId>(DEFAULT_CURRENCY_SYMBOL)
   const [tenantName, setTenantName] = useState("")
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -46,7 +44,11 @@ export default function StoreSettingsPage() {
       .then((r) => {
         setTenant(r)
         setStoreName(r.store_display_name ?? "")
-        setCurrency(normalizeStoreCurrency(r.default_currency))
+        const code = normalizeStoreCurrency(r.default_currency)
+        setCurrency(code)
+        setCurrencySymbol(
+          normalizeCurrencySymbol(code, r.branding?.currency_symbol)
+        )
         setTenantName(r.name ?? "")
       })
       .catch(() => setTenant(null))
@@ -63,6 +65,7 @@ export default function StoreSettingsPage() {
       json: {
         store_display_name: storeName || null,
         default_currency: currency || DEFAULT_STORE_CURRENCY,
+        currency_symbol: currencySymbol || DEFAULT_CURRENCY_SYMBOL,
         tenant_name: tenantName || null,
       },
     })
@@ -85,24 +88,14 @@ export default function StoreSettingsPage() {
         <Label>{tSetup("store_display_name")}</Label>
         <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} />
       </div>
-      <div className="grid gap-2">
-        <Label>{tSetup("default_currency")}</Label>
-        <Select
-          value={currency}
-          onValueChange={(v) => setCurrency(v as StoreCurrencyCode)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STORE_CURRENCIES.map((c) => (
-              <SelectItem key={c.code} value={c.code}>
-                {tSetup(c.labelKey)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <CurrencySettingsFields
+        currency={currency}
+        symbol={currencySymbol}
+        onCurrencyChange={setCurrency}
+        onSymbolChange={setCurrencySymbol}
+        currencyLabel={tSetup("default_currency")}
+        symbolLabel={tSetup("currency_symbol")}
+      />
       {tenant ? (
         <p className="text-muted-foreground text-xs font-mono" dir="ltr">
           slug: {tenant.slug} · domain: {tenant.domain ?? "—"}

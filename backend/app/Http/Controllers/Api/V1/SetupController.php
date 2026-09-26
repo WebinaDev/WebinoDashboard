@@ -35,7 +35,7 @@ class SetupController extends Controller
                     'domain' => $tenant?->domain,
                     'license_key_configured' => filled($tenant?->license_key),
                     'store_display_name' => $tenant?->store_display_name,
-                    'default_currency' => $tenant?->default_currency ?? 'IRR',
+                    'default_currency' => $tenant?->default_currency ?? 'IRT',
                     'default_locale' => $tenant?->default_locale ?? 'fa',
                     'site_type_slug' => $tenant?->site_type_slug,
                     'business_category_slug' => $tenant?->business_category_slug,
@@ -46,6 +46,10 @@ class SetupController extends Controller
                     'active_theme_slug' => $tenant?->active_theme_slug,
                     'nav_preset' => $tenant?->nav_preset,
                     'branding' => $tenant?->branding,
+                    'currency_symbol' => self::normalizeCurrencySymbol(
+                        (string) ($tenant?->default_currency ?? 'IRT'),
+                        is_array($tenant?->branding) ? ($tenant->branding['currency_symbol'] ?? null) : null
+                    ),
                 ],
                 'user_role' => $user->role,
             ],
@@ -74,7 +78,8 @@ class SetupController extends Controller
     {
         $data = $request->validate([
             'store_display_name' => ['nullable', 'string', 'max:255'],
-            'default_currency' => ['nullable', 'string', 'in:IRR,IRT,USD,EUR,AED'],
+            'default_currency' => ['nullable', 'string', 'in:IRT,IRR'],
+            'currency_symbol' => ['nullable', 'string', 'in:default,toman-1,toman-2,rial-1,rial-2'],
             'default_locale' => ['nullable', 'string', 'in:fa,en'],
             'tenant_name' => ['nullable', 'string', 'max:255'],
         ]);
@@ -93,9 +98,36 @@ class SetupController extends Controller
         if (array_key_exists('default_locale', $data) && filled($data['default_locale'])) {
             $tenant->default_locale = $data['default_locale'];
         }
+
+        $currency = (string) ($tenant->default_currency ?: 'IRT');
+        if (array_key_exists('currency_symbol', $data) || array_key_exists('default_currency', $data)) {
+            $branding = is_array($tenant->branding) ? $tenant->branding : [];
+            $requested = $data['currency_symbol'] ?? ($branding['currency_symbol'] ?? null);
+            $branding['currency_symbol'] = self::normalizeCurrencySymbol($currency, is_string($requested) ? $requested : null);
+            $tenant->branding = $branding;
+        }
+
         $tenant->save();
 
         return response()->json(['data' => $tenant->fresh()]);
+    }
+
+    /**
+     * @return 'default'|'toman-1'|'toman-2'|'rial-1'|'rial-2'
+     */
+    public static function normalizeCurrencySymbol(string $currency, ?string $symbol): string
+    {
+        $currency = strtoupper($currency) === 'IRR' ? 'IRR' : 'IRT';
+        $allowed = $currency === 'IRR'
+            ? ['rial-1', 'rial-2']
+            : ['default', 'toman-1', 'toman-2'];
+        $id = is_string($symbol) ? trim($symbol) : '';
+
+        if (in_array($id, $allowed, true)) {
+            return $id;
+        }
+
+        return $currency === 'IRR' ? 'rial-1' : 'default';
     }
 
     public function updateCrm(Request $request): \Illuminate\Http\JsonResponse

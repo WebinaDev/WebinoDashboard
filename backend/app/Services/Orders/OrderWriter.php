@@ -68,7 +68,7 @@ class OrderWriter
                 'shipping_minor' => $shipping,
                 'total_minor' => $total,
                 'amount_paid_minor' => $data['amount_paid_minor'] ?? null,
-                'currency' => $data['currency'] ?? 'IRR',
+                'currency' => $data['currency'] ?? 'IRT',
                 'payment_provider' => $data['payment_provider'] ?? null,
                 'payment_ref' => $data['payment_ref'] ?? null,
                 'payment_tender' => $data['payment_tender'] ?? null,

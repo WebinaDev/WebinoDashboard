@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
+import { CurrencyMark } from "@/components/CurrencyMark"
 import { Label } from "@/components/ui/label"
 import {
   Sheet,
@@ -12,6 +13,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { api } from "@/lib/api"
+import {
+  defaultSymbolForCurrency,
+  normalizeStoreCurrency,
+} from "@/lib/currencies"
 import { formatInteger } from "@/lib/format"
 import { normalizeUiLocale } from "@/lib/locale"
 
@@ -96,7 +101,14 @@ export default function OrdersPage() {
                   <td className="p-3 font-mono">#{o.id}</td>
                   <td className="p-3">{o.status}</td>
                   <td className="p-3">
-                    {formatInteger(o.total_minor, lng)} {o.currency}
+                    <span className="inline-flex items-center gap-1.5">
+                      {formatInteger(o.total_minor, lng)}
+                      <CurrencyMark
+                        symbol={defaultSymbolForCurrency(
+                          normalizeStoreCurrency(o.currency)
+                        )}
+                      />
+                    </span>
                   </td>
                   <td className="p-3 text-muted-foreground">{o.created_at}</td>
                   <td className="p-3 text-end">

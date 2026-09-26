@@ -81,7 +81,7 @@ class ProvisionBootstrapCommand extends Command
         $tenant->fill([
             'name' => $seed['tenant_name'] ?? $tenant->name,
             'store_display_name' => $seed['store_display_name'] ?? $tenant->store_display_name,
-            'default_currency' => $seed['default_currency'] ?? $tenant->default_currency ?? 'IRR',
+            'default_currency' => $seed['default_currency'] ?? $tenant->default_currency ?? 'IRT',
             'domain' => $seed['domain'] ?? $tenant->domain,
             'business_category_slug' => $seed['business_category_slug'] ?? null,
             'business_type_slug' => $seed['business_type_slug'] ?? null,

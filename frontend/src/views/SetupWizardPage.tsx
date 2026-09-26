@@ -13,17 +13,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { CurrencySettingsFields } from "@/components/CurrencySettingsFields"
 import { api, ApiError } from "@/lib/api"
 import {
+  DEFAULT_CURRENCY_SYMBOL,
   DEFAULT_STORE_CURRENCY,
-  STORE_CURRENCIES,
+  type CurrencySymbolId,
   type StoreCurrencyCode,
 } from "@/lib/currencies"
 import { SITE_TYPES } from "@/kernel/registry"
@@ -54,6 +49,7 @@ export default function SetupWizardPage() {
   const [siteType, setSiteType] = useState<SiteTypeSlug | "">("")
   const [storeName, setStoreName] = useState("")
   const [currency, setCurrency] = useState<StoreCurrencyCode>(DEFAULT_STORE_CURRENCY)
+  const [currencySymbol, setCurrencySymbol] = useState<CurrencySymbolId>(DEFAULT_CURRENCY_SYMBOL)
   const [locale, setLocale] = useState<"fa" | "en">("fa")
   const [tenantName, setTenantName] = useState("")
   const [domain, setDomain] = useState("")
@@ -163,6 +159,7 @@ export default function SetupWizardPage() {
         json: {
           store_display_name: storeName || null,
           default_currency: currency || DEFAULT_STORE_CURRENCY,
+          currency_symbol: currencySymbol || DEFAULT_CURRENCY_SYMBOL,
           tenant_name: tenantName || null,
         },
       })
@@ -314,24 +311,14 @@ export default function SetupWizardPage() {
                 className="text-start"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="currency">{t("currency")}</Label>
-              <Select
-                value={currency}
-                onValueChange={(v) => setCurrency(v as StoreCurrencyCode)}
-              >
-                <SelectTrigger id="currency">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STORE_CURRENCIES.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {t(c.labelKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <CurrencySettingsFields
+              currency={currency}
+              symbol={currencySymbol}
+              onCurrencyChange={setCurrency}
+              onSymbolChange={setCurrencySymbol}
+              currencyLabel={t("currency")}
+              symbolLabel={t("currency_symbol")}
+            />
           </CardContent>
         </Card>
       )}

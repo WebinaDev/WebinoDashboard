@@ -47,7 +47,7 @@ class ProvisionController extends Controller
         $tenant->fill([
             'name' => $seed['tenant_name'] ?? $tenant->name,
             'store_display_name' => $seed['store_display_name'] ?? $tenant->store_display_name,
-            'default_currency' => $seed['default_currency'] ?? $tenant->default_currency ?? 'IRR',
+            'default_currency' => $seed['default_currency'] ?? $tenant->default_currency ?? 'IRT',
             'domain' => $seed['domain'] ?? $tenant->domain,
             'license_key' => $seed['license_key'] ?? $tenant->license_key ?? env('TENANT_LICENSE_KEY'),
             'business_category_slug' => $seed['business_category_slug'] ?? null,
