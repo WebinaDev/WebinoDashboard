@@ -125,8 +125,24 @@ class SetupController extends Controller
         /** @var Tenant $tenant */
         $tenant = $request->user()->tenant;
 
+        $locale = $tenant->default_locale ?: 'fa';
+        if (in_array($locale, ['fa', 'en'], true)) {
+            app()->setLocale($locale);
+        }
+
         if (! filled($tenant->name)) {
             return response()->json(['message' => __('api.tenant_name_required')], 422);
+        }
+
+        if (! filled($tenant->site_type_slug)) {
+            $data = $request->validate([
+                'site_type_slug' => ['nullable', 'string', 'max:64'],
+            ]);
+            $candidate = $data['site_type_slug'] ?? $tenant->business_type_slug;
+            if (is_string($candidate) && SiteTypeProfiles::isValid($candidate)) {
+                $activations->applySiteType($tenant, $candidate);
+                $tenant->refresh();
+            }
         }
 
         if (! filled($tenant->site_type_slug)) {

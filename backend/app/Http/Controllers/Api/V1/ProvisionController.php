@@ -52,6 +52,7 @@ class ProvisionController extends Controller
             'license_key' => $seed['license_key'] ?? $tenant->license_key ?? env('TENANT_LICENSE_KEY'),
             'business_category_slug' => $seed['business_category_slug'] ?? null,
             'business_type_slug' => $seed['business_type_slug'] ?? null,
+            'site_type_slug' => $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? null,
             'vertical' => $seed['vertical'] ?? null,
             'package_sku' => $seed['package_sku'] ?? null,
             'theme_preset' => $seed['theme_preset'] ?? null,

@@ -1,10 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
 
+import {
+  SetupChoiceCard,
+  SetupWizardProgress,
+} from "@/components/setup/setup-wizard-ui"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api, ApiError } from "@/lib/api"
@@ -25,6 +31,9 @@ type SetupStatus = {
 
 const STEPS = ["site_type", "store", "locale", "license", "confirm"] as const
 
+const GRADIENT_CARD =
+  "overflow-hidden border-primary/20 bg-gradient-to-bl from-primary/10 via-background to-background"
+
 export default function SetupWizardPage() {
   const t = useTranslations("setup")
   const tCommon = useTranslations("common")
@@ -40,7 +49,15 @@ export default function SetupWizardPage() {
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-  const [skipSiteType, setSkipSiteType] = useState(false)
+
+  const stepMetas = useMemo(
+    () =>
+      STEPS.map((id, i) => ({
+        id,
+        label: t(`step_${i}_label` as "step_0_label"),
+      })),
+    [t],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -53,12 +70,18 @@ export default function SetupWizardPage() {
           router.replace("/dashboard")
           return
         }
-        const preselected =
-          (data.tenant.site_type_slug as SiteTypeSlug | null) ??
-          (data.tenant.business_type_slug as SiteTypeSlug | null)
+        const appliedSlug = data.tenant.site_type_slug as SiteTypeSlug | null
+        const businessSlug = data.tenant.business_type_slug as SiteTypeSlug | null
+        const preselected = appliedSlug ?? businessSlug
         if (preselected && SITE_TYPES.some((s) => s.slug === preselected)) {
           setSiteType(preselected)
-          setSkipSiteType(true)
+        }
+        // Only skip site-type step when the type was actually applied (site_type_slug set).
+        if (
+          data.site_type_selected &&
+          appliedSlug &&
+          SITE_TYPES.some((s) => s.slug === appliedSlug)
+        ) {
           setStep(1)
         }
         if (data.tenant.domain) setDomain(data.tenant.domain)
@@ -83,6 +106,20 @@ export default function SetupWizardPage() {
       cancelled = true
     }
   }, [router, tCommon])
+
+  function goBack() {
+    setErr(null)
+    setMsg(null)
+    setStep((s) => Math.max(0, s - 1))
+  }
+
+  function selectStep(id: string) {
+    const idx = STEPS.indexOf(id as (typeof STEPS)[number])
+    if (idx < 0 || idx > step) return
+    setErr(null)
+    setMsg(null)
+    setStep(idx)
+  }
 
   async function applySiteType() {
     if (!siteType) {
@@ -180,7 +217,16 @@ export default function SetupWizardPage() {
     setErr(null)
     setPending(true)
     try {
-      await api("/api/v1/setup/complete", { method: "POST" })
+      if (siteType) {
+        await api("/api/v1/setup/apply-site-type", {
+          method: "POST",
+          json: { site_type_slug: siteType },
+        })
+      }
+      await api("/api/v1/setup/complete", {
+        method: "POST",
+        json: siteType ? { site_type_slug: siteType } : {},
+      })
       router.replace("/dashboard")
     } catch (e) {
       setErr(e instanceof Error ? e.message : tCommon("error_generic"))
@@ -189,123 +235,198 @@ export default function SetupWizardPage() {
     }
   }
 
-  const currentStep = skipSiteType && step === 0 ? 1 : step
+  async function onPrimary() {
+    if (step === 0) return applySiteType()
+    if (step === 1) return saveStore()
+    if (step === 2) return saveLocale()
+    if (step === 3) return saveCrm()
+    return complete()
+  }
+
+  const primaryDisabled =
+    pending || (step === 0 && !siteType)
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-2xl flex-col justify-center gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground mt-1 text-sm">{t("subtitle")}</p>
-      </div>
+    <div
+      className="mx-auto flex min-h-svh max-w-3xl flex-col justify-center space-y-6 px-4 py-10 text-start"
+      dir="rtl"
+    >
+      <header className="space-y-3 text-center">
+        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+        <p className="text-muted-foreground text-sm md:text-base">{t("subtitle")}</p>
+      </header>
 
-      <div className="flex gap-2">
-        {STEPS.map((s, i) => (
-          <div
-            key={s}
-            className={`h-1 flex-1 rounded-full ${i <= currentStep ? "bg-primary" : "bg-muted"}`}
-          />
-        ))}
-      </div>
+      <SetupWizardProgress
+        steps={stepMetas}
+        current={STEPS[step]}
+        onSelect={selectStep}
+      />
 
-      {currentStep === 0 && (
-        <div className="grid gap-4 sm:grid-cols-2">
+      {step === 0 && (
+        <div className="grid gap-3 sm:grid-cols-2">
           {SITE_TYPES.map((type) => (
-            <button
+            <SetupChoiceCard
               key={type.slug}
-              type="button"
+              selected={siteType === type.slug}
+              title={type.name_fa}
+              description={type.name_en}
               onClick={() => setSiteType(type.slug)}
-              className={`rounded-xl border p-4 text-start transition-colors ${
-                siteType === type.slug
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/50"
-              }`}
-            >
-              <p className="font-medium">{type.name_fa}</p>
-              <p className="text-muted-foreground text-xs">{type.name_en}</p>
-            </button>
+            />
           ))}
-          <div className="sm:col-span-2">
-            <Button onClick={applySiteType} disabled={pending || !siteType} className="w-full">
-              {t("continue")}
-            </Button>
-          </div>
         </div>
       )}
 
-      {currentStep === 1 && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="tenantName">{t("tenant_name")}</Label>
-            <Input id="tenantName" value={tenantName} onChange={(e) => setTenantName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="storeName">{t("store_name")}</Label>
-            <Input id="storeName" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="currency">{t("currency")}</Label>
-            <Input id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} />
-          </div>
-          <Button onClick={saveStore} disabled={pending}>
-            {t("continue")}
-          </Button>
-        </div>
+      {step === 1 && (
+        <Card className={GRADIENT_CARD}>
+          <CardHeader>
+            <CardTitle className="text-xl">{t("step_1_label")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="tenantName">{t("tenant_name")}</Label>
+              <Input
+                id="tenantName"
+                value={tenantName}
+                onChange={(e) => setTenantName(e.target.value)}
+                placeholder={t("tenant_name_placeholder")}
+                className="text-start"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="storeName">{t("store_name")}</Label>
+              <Input
+                id="storeName"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                placeholder={t("store_display_name_placeholder")}
+                className="text-start"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="currency">{t("currency")}</Label>
+              <Input
+                id="currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="text-start"
+              />
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {currentStep === 2 && (
-        <div className="space-y-4">
-          <p className="text-sm">{t("locale_hint")}</p>
-          <div className="flex gap-2">
-            <Button variant={locale === "fa" ? "default" : "outline"} onClick={() => setLocale("fa")}>
-              {tCommon("locale_fa")}
-            </Button>
-            <Button variant={locale === "en" ? "default" : "outline"} onClick={() => setLocale("en")}>
-              {tCommon("locale_en")}
-            </Button>
-          </div>
-          <Button onClick={saveLocale} disabled={pending}>
-            {t("continue")}
-          </Button>
-        </div>
+      {step === 2 && (
+        <Card className={GRADIENT_CARD}>
+          <CardHeader>
+            <CardTitle className="text-xl">{t("step_2_label")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground text-sm leading-6">{t("locale_hint")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={locale === "fa" ? "default" : "outline"}
+                onClick={() => setLocale("fa")}
+              >
+                {tCommon("locale_fa")}
+              </Button>
+              <Button
+                type="button"
+                variant={locale === "en" ? "default" : "outline"}
+                onClick={() => setLocale("en")}
+              >
+                {tCommon("locale_en")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {currentStep === 3 && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="domain">{t("domain")}</Label>
-            <Input id="domain" value={domain} onChange={(e) => setDomain(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="licenseKey">{t("license_key")}</Label>
-            <Input id="licenseKey" value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={saveCrm} disabled={pending}>
-              {t("continue")}
-            </Button>
-            <Button variant="outline" onClick={syncLicense} disabled={pending}>
-              {t("sync_license")}
-            </Button>
-          </div>
-        </div>
+      {step === 3 && (
+        <Card className={GRADIENT_CARD}>
+          <CardHeader>
+            <CardTitle className="text-xl">{t("step_3_label")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="domain">{t("domain")}</Label>
+              <Input
+                id="domain"
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                placeholder={t("domain_placeholder")}
+                className="text-start"
+                dir="ltr"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="licenseKey">{t("license_key")}</Label>
+              <Input
+                id="licenseKey"
+                value={licenseKey}
+                onChange={(e) => setLicenseKey(e.target.value)}
+                className="text-start"
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void syncLicense()}
+                disabled={pending}
+              >
+                {t("sync_license")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {currentStep === 4 && (
-        <div className="space-y-4">
-          <p className="text-sm">{t("confirm_hint")}</p>
-          {siteType && (
-            <p className="text-sm font-medium">
-              {t("selected_site_type")}: {SITE_TYPES.find((s) => s.slug === siteType)?.name_fa}
-            </p>
-          )}
-          <Button onClick={complete} disabled={pending}>
-            {t("finish")}
-          </Button>
-        </div>
+      {step === 4 && (
+        <Card className={GRADIENT_CARD}>
+          <CardHeader>
+            <CardTitle className="text-xl">{t("step_4_label")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-muted-foreground text-sm leading-6">{t("confirm_hint")}</p>
+            {siteType ? (
+              <div className="rounded-2xl border bg-background/70 px-4 py-3 text-sm">
+                <span className="text-muted-foreground">{t("selected_site_type")}: </span>
+                <span className="font-medium">
+                  {SITE_TYPES.find((s) => s.slug === siteType)?.name_fa}
+                </span>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
       )}
 
-      {msg && <p className="text-sm text-green-600">{msg}</p>}
-      {err && <p className="text-destructive text-sm">{err}</p>}
+      {msg ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
+          {msg}
+        </div>
+      ) : null}
+      {err ? (
+        <div
+          className="border-destructive/40 bg-destructive/10 text-destructive rounded-xl border px-4 py-3 text-sm"
+          role="alert"
+        >
+          {err}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button type="button" variant="outline" disabled={step <= 0 || pending} onClick={goBack}>
+          <ArrowRight className="h-4 w-4" />
+          {tCommon("back")}
+        </Button>
+        <Button type="button" disabled={primaryDisabled} onClick={() => void onPrimary()}>
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {step === 4 ? t("finish") : t("continue")}
+          {step !== 4 ? <ArrowLeft className="h-4 w-4" /> : null}
+        </Button>
+      </div>
     </div>
   )
 }
