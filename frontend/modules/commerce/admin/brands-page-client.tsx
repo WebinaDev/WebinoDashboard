@@ -56,7 +56,7 @@ export default function BrandsPageClient({ route }: { route: ResolvedAdminRoute 
           <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button asChild>
-          <Link href="/admin/brands/new">
+          <Link href="/dashboard/brands/new">
             <Plus className="size-4" />
             {t("add_brand")}
           </Link>
@@ -107,7 +107,7 @@ export default function BrandsPageClient({ route }: { route: ResolvedAdminRoute 
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" asChild>
-                      <Link href={`/admin/brands/${b.id}`}>
+                      <Link href={`/dashboard/brands/${b.id}`}>
                         <Pencil className="size-4" />
                       </Link>
                     </Button>

@@ -58,7 +58,7 @@ export default function ProductCategoriesPageClient({ route }: { route: Resolved
           <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button asChild>
-          <Link href="/admin/product-categories/new">
+          <Link href="/dashboard/product-categories/new">
             <Plus className="size-4" />
             {t("add_category")}
           </Link>
@@ -109,7 +109,7 @@ export default function ProductCategoriesPageClient({ route }: { route: Resolved
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" asChild>
-                      <Link href={`/admin/product-categories/${c.id}`}>
+                      <Link href={`/dashboard/product-categories/${c.id}`}>
                         <Pencil className="size-4" />
                       </Link>
                     </Button>

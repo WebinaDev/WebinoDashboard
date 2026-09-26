@@ -231,7 +231,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
       return api<OrderDetail>("/api/v1/orders", { method: "POST", json: payload })
     },
     onSuccess: (row) => {
-      if (row?.id) window.location.assign(`/admin/orders/${row.id}`)
+      if (row?.id) window.location.assign(`/dashboard/orders/${row.id}`)
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
@@ -244,7 +244,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
           <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button variant="outline" asChild>
-          <Link href="/admin/orders">{t("back_to_list")}</Link>
+          <Link href="/dashboard/orders">{t("back_to_list")}</Link>
         </Button>
       </div>
 

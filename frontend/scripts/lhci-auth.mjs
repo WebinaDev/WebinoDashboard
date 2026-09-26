@@ -5,7 +5,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost"
  */
 module.exports = async (page) => {
   const url = page.url()
-  if (!url.includes("/admin") && !url.includes("/login")) {
+  if (!url.includes("/dashboard") && !url.includes("/login")) {
     return
   }
 
@@ -33,7 +33,7 @@ module.exports = async (page) => {
       await page.setCookie(...cookies)
     }
 
-    if (url.includes("/admin")) {
+    if (url.includes("/dashboard")) {
       await page.reload({ waitUntil: "networkidle0" })
     }
   } catch {

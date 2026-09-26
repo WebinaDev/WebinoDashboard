@@ -63,7 +63,7 @@ export function LoginForm({
         return
       }
 
-      window.location.assign(next ?? "/admin")
+      window.location.assign(next ?? "/dashboard")
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError(t("errors_throttled"))

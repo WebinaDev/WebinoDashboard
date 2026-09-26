@@ -75,7 +75,7 @@ export function CouponsTable({
                   />
                 </TableCell>
                 <TableCell className="font-mono">
-                  <Link className="underline" href={`/admin/marketing/coupons/${row.id}`}>
+                  <Link className="underline" href={`/dashboard/marketing/coupons/${row.id}`}>
                     {row.code}
                   </Link>
                 </TableCell>

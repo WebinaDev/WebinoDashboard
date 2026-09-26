@@ -148,7 +148,7 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
       setSaved(true)
       setError(null)
       await qc.invalidateQueries({ queryKey: ["coupons"] })
-      if (isNew && data.id) router.replace(`/admin/marketing/coupons/${data.id}`)
+      if (isNew && data.id) router.replace(`/dashboard/marketing/coupons/${data.id}`)
     },
     onError: (e: Error) => {
       setSaved(false)
@@ -160,7 +160,7 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
     <PageShell title={isNew ? t("addCoupon") : t("edit")} description={t("description")}>
       <div className="mb-2 flex justify-end">
         <Button variant="outline" asChild>
-          <Link href="/admin/marketing/coupons">{tCommon("back")}</Link>
+          <Link href="/dashboard/marketing/coupons">{tCommon("back")}</Link>
         </Button>
       </div>
 

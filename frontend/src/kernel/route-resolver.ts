@@ -1,5 +1,6 @@
 import { MODULE_MANIFESTS } from "./registry"
 import type { ResolvedAdminRoute, ResolvedSiteRoute, TenantActivation } from "./types"
+import { DASHBOARD_BASE, dashboardPath } from "./paths"
 
 function activationKey(module: string, sub: string) {
   return `${module}.${sub}`
@@ -41,7 +42,7 @@ export function resolveAdminRoute(
       labelKey: "nav.dashboard",
       section: "overview",
       order: 0,
-      fullPath: "/admin",
+      fullPath: DASHBOARD_BASE,
     }
   }
 
@@ -57,7 +58,7 @@ export function resolveAdminRoute(
       return {
         ...route,
         moduleSlug: mod.slug,
-        fullPath: `/admin/${path}`,
+        fullPath: dashboardPath(path),
       }
     }
   }
@@ -73,7 +74,7 @@ export function resolveAdminRoute(
       return {
         ...route,
         moduleSlug: mod.slug,
-        fullPath: `/admin/${path}`,
+        fullPath: dashboardPath(path),
         params,
       }
     }
@@ -167,7 +168,7 @@ export function buildAdminNav(activations: TenantActivation[]) {
       }
       sectionMap.get(section)!.items.push({
         titleKey: route.labelKey,
-        url: route.path === "" ? "/admin" : `/admin/${route.path}`,
+        url: route.path === "" ? DASHBOARD_BASE : dashboardPath(route.path),
         moduleSlug: mod.slug,
         submodule: route.submodule,
       })

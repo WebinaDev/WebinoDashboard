@@ -6,8 +6,8 @@ This guide covers the marketing port: coupons, Bale/Telegram bots (settings, ses
 
 | Module | Submodules | Notes |
 |--------|------------|--------|
-| `marketing` | `coupons`, `bot-broadcast`, `bot-campaigns`, `sms`, `newsletter` | Admin under `/admin/marketing/*` |
-| `bots` | `bale`, `telegram` | Token settings at `/admin/bots/bale` and `/admin/bots/telegram` |
+| `marketing` | `coupons`, `bot-broadcast`, `bot-campaigns`, `sms`, `newsletter` | Admin under `/dashboard/marketing/*` |
+| `bots` | `bale`, `telegram` | Token settings at `/dashboard/bots/bale` and `/dashboard/bots/telegram` |
 | `sms-panel` | `panel` | Gates `/api/v1/modirpayamak/*` proxy |
 
 Site profiles: ecommerce, cafe, and corporate activate coupons + bots + SMS. Magazine keeps newsletter only.
@@ -42,7 +42,7 @@ Proxies to `{WEBINO_BASE_URL}/api/webinocrm/v1/modirpayamak/{path}` with tenant 
 **Live admin UI:** home, send, reports, inbox, phonebook, patterns (list), secretaries, wallet, lines, topup.  
 **Deferred (routes hidden from nav):** drafts, newsletter, OTP, pattern sync/registry, scheduled cancel, targeted, bulk-stats.
 
-Admin pages under `/admin/marketing/sms/*` only for live routes above. This is **not** full WordPress SMS parity.
+Admin pages under `/dashboard/marketing/sms/*` only for live routes above. This is **not** full WordPress SMS parity.
 
 ## UI parity
 

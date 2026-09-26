@@ -97,7 +97,7 @@ export default function CouponsPageClient({ route: _route }: { route: ResolvedAd
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button type="button" size="sm" asChild>
-          <Link href="/admin/marketing/coupons/new">
+          <Link href="/dashboard/marketing/coupons/new">
             <Plus className="size-4" />
             {t("addCoupon")}
           </Link>

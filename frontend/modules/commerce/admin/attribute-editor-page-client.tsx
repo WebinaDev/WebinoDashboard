@@ -108,7 +108,7 @@ export default function AttributeEditorPageClient({ route }: { route: ResolvedAd
     onSuccess: async (row) => {
       setMessage(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["admin-attributes"] })
-      if (isNew && row?.id) window.location.assign(`/admin/attributes/${row.id}`)
+      if (isNew && row?.id) window.location.assign(`/dashboard/attributes/${row.id}`)
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
@@ -202,7 +202,7 @@ export default function AttributeEditorPageClient({ route }: { route: ResolvedAd
                 {tCommon("save")}
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/admin/attributes">{tCommon("cancel")}</Link>
+                <Link href="/dashboard/attributes">{tCommon("cancel")}</Link>
               </Button>
             </div>
           </CardContent>

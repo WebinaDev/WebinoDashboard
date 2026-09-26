@@ -394,7 +394,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       setMessage(t("saved"))
       setError(null)
       await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
-      if (isNew && row?.id) window.location.assign(`/admin/products/${row.id}`)
+      if (isNew && row?.id) window.location.assign(`/dashboard/products/${row.id}`)
       else if (productId) await queryClient.invalidateQueries({ queryKey: ["admin-product", productId] })
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
@@ -651,7 +651,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       actions={
         <>
           <Button variant="outline" asChild>
-            <Link href="/admin/products">{t("back_to_list")}</Link>
+            <Link href="/dashboard/products">{t("back_to_list")}</Link>
           </Button>
           <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>
             {tCommon("save")}

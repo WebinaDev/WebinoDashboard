@@ -244,7 +244,7 @@ start_stack() {
   log "Stack is up."
   compose -f docker-compose.aapanel.yml ps
   echo
-  log "Admin: ${WEBINO_DOMAIN:-localhost}  →  /admin"
+  log "Admin: ${WEBINO_DOMAIN:-localhost}  →  /dashboard"
   log "Logs:  cd $TARGET && docker compose -f docker-compose.aapanel.yml logs -f"
 }
 

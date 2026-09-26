@@ -48,7 +48,7 @@ export default function SetupWizardPage() {
       .then((data) => {
         if (!cancelled) {
           if (data.setup_completed) {
-            router.replace("/admin")
+            router.replace("/dashboard")
             return
           }
           const preselected =
@@ -173,7 +173,7 @@ export default function SetupWizardPage() {
     setPending(true)
     try {
       await api("/api/v1/setup/complete", { method: "POST" })
-      router.replace("/admin")
+      router.replace("/dashboard")
     } catch (e) {
       setErr(e instanceof Error ? e.message : tCommon("error_generic"))
     } finally {

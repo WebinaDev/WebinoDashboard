@@ -1,12 +1,13 @@
+import { DASHBOARD_BASE } from "@/kernel/paths"
+
 /**
- * Exact match for `/` and `/admin`; prefix match for nested routes.
- * Mirrors WebinoERP `pathIsActive` so dashboard never highlights every child of `/admin`.
+ * Exact match for `/` and dashboard home; prefix match for nested routes.
  */
 export function pathIsActive(pathname: string, path: string): boolean {
   const cleanPath = path.replace(/\/+$/, "") || "/"
   const cleanPathname = pathname.replace(/\/+$/, "") || "/"
 
-  if (cleanPath === "/" || cleanPath === "/admin") {
+  if (cleanPath === "/" || cleanPath === DASHBOARD_BASE) {
     return cleanPathname === cleanPath
   }
 

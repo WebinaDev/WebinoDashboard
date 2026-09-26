@@ -22,7 +22,7 @@ Authenticated APIs under `/api/v1` gated by commerce submodules `orders`, `c2c`,
 | POST | `/order-returns/{id}/action` | approve/reject/receive/refund |
 | GET | `/orders/{id}/print` | Receipt HTML + mark printed |
 
-Admin UI: `/admin/orders`, `/admin/orders/new`, `/admin/orders/:id`, `/admin/orders/:id/edit`.  
+Admin UI: `/dashboard/orders`, `/dashboard/orders/new`, `/dashboard/orders/:id`, `/dashboard/orders/:id/edit`.  
 Marketplace / Tapin / Moadian panels are **not shown** in the product UI until their APIs are available (documented only).
 
 ## C2C (`module:c2c`)
@@ -33,7 +33,7 @@ Marketplace / Tapin / Moadian panels are **not shown** in the product UI until t
 | GET | `/c2c/receipts` |
 | POST | `/c2c/receipts/{order}` | body `{ action: approve\|reject }` |
 
-UI: `/admin/orders/c2c-receipts`, `/admin/settings/c2c`.
+UI: `/dashboard/orders/c2c-receipts`, `/dashboard/settings/c2c`.
 
 ## Customers (`module:customers`)
 
@@ -43,7 +43,7 @@ UI: `/admin/orders/c2c-receipts`, `/admin/settings/c2c`.
 | POST | `/customers` | Create customer user |
 | PATCH | `/customers/{id}` | Update customer |
 
-Admin UI: `/admin/customers`. Wallet settings uses `/customers?search=` (not POS-only).
+Admin UI: `/dashboard/customers`. Wallet settings uses `/customers?search=` (not POS-only).
 
 ## Wallet (`module:wallet`)
 
@@ -57,7 +57,7 @@ Admin UI: `/admin/customers`. Wallet settings uses `/customers?search=` (not POS
 
 Customer account portal UI is deferred. Tables: `wallet_ledger`, `wallet_withdrawals`; `users.wallet_balance_minor`.
 
-UI: `/admin/orders/wallet-withdrawals`, `/admin/settings/wallet`.
+UI: `/dashboard/orders/wallet-withdrawals`, `/dashboard/settings/wallet`.
 
 ## POS (`module:pos`)
 
@@ -69,7 +69,7 @@ UI: `/admin/orders/wallet-withdrawals`, `/admin/settings/wallet`.
 | POST | `/pos/orders` |
 | GET | `/pos/orders/{id}/print` |
 
-UI: `/admin/pos`, `/admin/pos/pay-link`, `/admin/pos/my-orders`.
+UI: `/dashboard/pos`, `/dashboard/pos/pay-link`, `/dashboard/pos/my-orders`.
 
 ## Site types
 

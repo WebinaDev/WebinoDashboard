@@ -162,7 +162,7 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
       description={route.fullPath}
       actions={
         <Button asChild>
-          <Link href="/admin/products/new">
+          <Link href="/dashboard/products/new">
             <Plus className="size-4" />
             {t("add_product")}
           </Link>
@@ -250,7 +250,7 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
                   {products.map((p) => (
                     <tr key={p.id} className="border-b last:border-0">
                       <td className="p-2 font-medium">
-                        <Link className="underline-offset-2 hover:underline" href={`/admin/products/${p.id}`}>
+                        <Link className="underline-offset-2 hover:underline" href={`/dashboard/products/${p.id}`}>
                           {p.name}
                         </Link>
                       </td>
@@ -269,7 +269,7 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
                       <td className="p-2">
                         <div className="flex flex-wrap gap-1">
                           <Button size="icon" variant="outline" asChild title={t("edit")}>
-                            <Link href={`/admin/products/${p.id}`}>
+                            <Link href={`/dashboard/products/${p.id}`}>
                               <Pencil className="size-4" />
                             </Link>
                           </Button>

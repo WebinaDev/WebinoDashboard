@@ -163,10 +163,10 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" asChild>
-            <Link href="/admin/pos/pay-link">{t("pay_link")}</Link>
+            <Link href="/dashboard/pos/pay-link">{t("pay_link")}</Link>
           </Button>
           <Button size="sm" variant="outline" asChild>
-            <Link href="/admin/pos/my-orders">{t("my_orders")}</Link>
+            <Link href="/dashboard/pos/my-orders">{t("my_orders")}</Link>
           </Button>
         </div>
       </div>
@@ -175,7 +175,7 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
       {lastOrderId ? (
         <p className="text-sm">
           {t("last_order")}{" "}
-          <Link className="underline" href={`/admin/orders/${lastOrderId}`}>
+          <Link className="underline" href={`/dashboard/orders/${lastOrderId}`}>
             #{lastOrderId}
           </Link>
         </p>

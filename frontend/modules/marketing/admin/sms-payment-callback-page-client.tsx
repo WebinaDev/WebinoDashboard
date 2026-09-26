@@ -81,7 +81,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
           {state !== "verifying" ? (
             <CardFooter>
               <Button asChild>
-                <Link href="/admin/marketing/sms/wallet">{t("goToWallet")}</Link>
+                <Link href="/dashboard/marketing/sms/wallet">{t("goToWallet")}</Link>
               </Button>
             </CardFooter>
           ) : null}

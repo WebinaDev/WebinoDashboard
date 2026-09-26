@@ -82,7 +82,7 @@ export default function BrandEditorPageClient({ route }: { route: ResolvedAdminR
       setMessage(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["admin-brands"] })
       if (isNew && row?.id) {
-        window.location.assign(`/admin/brands/${row.id}`)
+        window.location.assign(`/dashboard/brands/${row.id}`)
       }
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
@@ -150,7 +150,7 @@ export default function BrandEditorPageClient({ route }: { route: ResolvedAdminR
                 {tCommon("save")}
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/admin/brands">{tCommon("cancel")}</Link>
+                <Link href="/dashboard/brands">{tCommon("cancel")}</Link>
               </Button>
             </div>
           </CardContent>

@@ -57,7 +57,7 @@ export default function AttributesPageClient({ route }: { route: ResolvedAdminRo
           <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button asChild>
-          <Link href="/admin/attributes/new">
+          <Link href="/dashboard/attributes/new">
             <Plus className="size-4" />
             {t("add_attribute")}
           </Link>
@@ -99,7 +99,7 @@ export default function AttributesPageClient({ route }: { route: ResolvedAdminRo
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" asChild>
-                      <Link href={`/admin/attributes/${a.id}`}>
+                      <Link href={`/dashboard/attributes/${a.id}`}>
                         <Pencil className="size-4" />
                       </Link>
                     </Button>

@@ -273,7 +273,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                                   <TableCell className="text-end">
                                     <Button type="button" size="sm" variant="outline" asChild>
                                       <Link
-                                        href={`/admin/marketing/sms/send?to=${encodeURIComponent(c.phone)}`}
+                                        href={`/dashboard/marketing/sms/send?to=${encodeURIComponent(c.phone)}`}
                                       >
                                         <Send className="me-1 h-3.5 w-3.5" />
                                         {t("send")}

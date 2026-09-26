@@ -26,6 +26,7 @@ import {
 import { useDashboardNav } from "@/hooks/useDashboardNav"
 import { useLocaleSync } from "@/hooks/useLocaleSync"
 import { resolveAdminRoute } from "@/kernel/route-resolver"
+import { DASHBOARD_BASE, stripDashboardBase } from "@/kernel/paths"
 import { api } from "@/lib/api"
 import { sidebarSide } from "@/lib/locale"
 
@@ -77,8 +78,7 @@ export default function DashboardLayoutPage({
   const tenantLabel = user?.tenant?.name ?? "…"
 
   const breadcrumbCurrent = useMemo(() => {
-    const segments = pathname
-      .replace(/^\/admin\/?/, "")
+    const segments = stripDashboardBase(pathname)
       .split("/")
       .filter(Boolean)
     const route = resolveAdminRoute(segments, activations)
@@ -118,7 +118,7 @@ export default function DashboardLayoutPage({
             <Breadcrumb className="min-w-0 flex-1 overflow-hidden">
               <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin">
+                  <BreadcrumbLink href={DASHBOARD_BASE}>
                     {tDashboard("breadcrumb_building")}
                   </BreadcrumbLink>
                 </BreadcrumbItem>

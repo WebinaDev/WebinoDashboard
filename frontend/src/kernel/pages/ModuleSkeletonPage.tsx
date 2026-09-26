@@ -48,7 +48,7 @@ export default async function ModuleSkeletonPage({ route, area }: Props) {
         <p>{t("skeleton_placeholder")}</p>
         {area === "admin" ? (
           <Button asChild variant="outline" size="sm">
-            <Link href="/admin/modules">{t("title")}</Link>
+            <Link href="/dashboard/modules">{t("title")}</Link>
           </Button>
         ) : null}
       </div>

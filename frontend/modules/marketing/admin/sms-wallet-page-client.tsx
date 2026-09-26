@@ -89,7 +89,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </p>
             )}
             <Button asChild className="mt-4" variant="outline" disabled={unavailable}>
-              <Link href="/admin/marketing/sms/topup">{t("topup")}</Link>
+              <Link href="/dashboard/marketing/sms/topup">{t("topup")}</Link>
             </Button>
           </CardContent>
         </Card>

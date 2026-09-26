@@ -4,7 +4,7 @@
       "url": [
         "http://localhost:3000/",
         "http://localhost:3000/login",
-        "http://localhost:3000/admin"
+        "http://localhost:3000/dashboard"
       ],
       "numberOfRuns": 1,
       "puppeteerScript": "./scripts/lhci-auth.mjs",

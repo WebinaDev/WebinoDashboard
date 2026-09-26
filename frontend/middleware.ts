@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
+import {
+  DASHBOARD_BASE,
+  isDashboardPathname,
+  isLegacyAdminPathname,
+  legacyAdminToDashboardPath,
+} from "@/kernel/paths"
 import { getServerApiBase } from "@/lib/server-api-base"
 
 const LOCALES = ["fa", "en"] as const
@@ -49,10 +55,6 @@ export async function middleware(request: NextRequest) {
   }
   res.headers.set("x-webina-locale", locale)
 
-  const isLogin = pathname === "/login"
-  const isSetup = pathname === "/setup"
-  const isChangePassword = pathname === "/account/change-password"
-  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/")
   const isPublicAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
@@ -62,7 +64,19 @@ export async function middleware(request: NextRequest) {
     return res
   }
 
-  if (isAdmin || isSetup || isChangePassword) {
+  // Legacy /admin → /dashboard (bookmarks & old links)
+  if (isLegacyAdminPathname(pathname)) {
+    const url = request.nextUrl.clone()
+    url.pathname = legacyAdminToDashboardPath(pathname)
+    return NextResponse.redirect(url)
+  }
+
+  const isLogin = pathname === "/login"
+  const isSetup = pathname === "/setup"
+  const isChangePassword = pathname === "/account/change-password"
+  const isDashboard = isDashboardPathname(pathname)
+
+  if (isDashboard || isSetup || isChangePassword) {
     const gate = await fetchGate(request)
     if (!gate?.authenticated) {
       const loginUrl = request.nextUrl.clone()
@@ -77,7 +91,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(changeUrl)
     }
     if (!gate.password_must_change && isChangePassword) {
-      const dest = gate.setup_completed === false ? "/setup" : "/admin"
+      const dest = gate.setup_completed === false ? "/setup" : DASHBOARD_BASE
       const url = request.nextUrl.clone()
       url.pathname = dest
       return NextResponse.redirect(url)
@@ -88,9 +102,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(setupUrl)
     }
     if (gate.setup_completed !== false && isSetup) {
-      const adminUrl = request.nextUrl.clone()
-      adminUrl.pathname = "/admin"
-      return NextResponse.redirect(adminUrl)
+      const dashUrl = request.nextUrl.clone()
+      dashUrl.pathname = DASHBOARD_BASE
+      return NextResponse.redirect(dashUrl)
     }
   }
 
@@ -103,12 +117,14 @@ export async function middleware(request: NextRequest) {
         changeUrl.search = ""
         return NextResponse.redirect(changeUrl)
       }
-      const dest =
-        gate.setup_completed === false
-          ? "/setup"
-          : (request.nextUrl.searchParams.get("next") ?? "/admin")
+      const rawNext = request.nextUrl.searchParams.get("next")
+      const nextPath =
+        rawNext && rawNext.startsWith("/")
+          ? legacyAdminToDashboardPath(rawNext)
+          : DASHBOARD_BASE
+      const dest = gate.setup_completed === false ? "/setup" : nextPath
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = dest.startsWith("/") ? dest : "/admin"
+      redirectUrl.pathname = dest.startsWith("/") ? dest : DASHBOARD_BASE
       redirectUrl.search = ""
       return NextResponse.redirect(redirectUrl)
     }

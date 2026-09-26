@@ -7,7 +7,7 @@ import { loadAdminPage, loadSitePage } from "@/kernel/theme-loader"
 import { resolveAdminRoute, resolveSiteRoute } from "@/kernel/route-resolver"
 import { getPublicActivations, getTenantActivations } from "@/kernel/server-data"
 
-const RESERVED_SITE_SEGMENTS = new Set(["admin", "login", "setup"])
+const RESERVED_SITE_SEGMENTS = new Set(["admin", "dashboard", "login", "setup"])
 
 export async function renderAdminPage(segments: string[]) {
   const activations = await getTenantActivations()

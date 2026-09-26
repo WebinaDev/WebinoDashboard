@@ -80,7 +80,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
           ]}
         />
         <Button asChild disabled={unavailable} size="sm">
-          <Link href="/admin/marketing/sms/topup">{t("topup")}</Link>
+          <Link href="/dashboard/marketing/sms/topup">{t("topup")}</Link>
         </Button>
       </div>
 

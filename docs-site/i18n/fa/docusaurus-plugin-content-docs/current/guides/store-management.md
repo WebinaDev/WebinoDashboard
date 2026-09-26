@@ -65,8 +65,8 @@ APIهای ادمین تحت `/api/v1` برای مدیریت فروشگاه (مح
 
 | مسیر | کاربرد |
 |------|--------|
-| `/admin/products` | لیست محصولات |
-| `/admin/products/new` و `:id` | ادیتور (سئو و همگام‌سازی بله/تلگرام: به‌زودی) |
-| `/admin/brands`، `product-categories`، `attributes` | تاکسونومی‌ها |
-| `/admin/pricing/*` | ابزارهای WFCP |
-| `/admin/coffee/settings` | تنظیمات ماژول قهوه |
+| `/dashboard/products` | لیست محصولات |
+| `/dashboard/products/new` و `:id` | ادیتور (سئو و همگام‌سازی بله/تلگرام: به‌زودی) |
+| `/dashboard/brands`، `product-categories`، `attributes` | تاکسونومی‌ها |
+| `/dashboard/pricing/*` | ابزارهای WFCP |
+| `/dashboard/coffee/settings` | تنظیمات ماژول قهوه |

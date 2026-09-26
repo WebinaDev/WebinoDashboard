@@ -36,7 +36,7 @@ export function SmsPanelShell({
     <PageShell title={title} description={description ?? t("description")}>
       <nav className="mb-4 flex flex-wrap gap-1.5">
         {LINKS.map(([slug, key]) => {
-          const href = slug ? `/admin/marketing/sms/${slug}` : "/admin/marketing/sms"
+          const href = slug ? `/dashboard/marketing/sms/${slug}` : "/dashboard/marketing/sms"
           const active = pathname === href || (slug !== "" && pathname?.startsWith(href))
           return (
             <Link

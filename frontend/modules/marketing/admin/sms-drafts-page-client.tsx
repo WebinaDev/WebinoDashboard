@@ -198,7 +198,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                                 {t("actions.edit")}
                               </Button>
                               <Button type="button" size="sm" variant="secondary" asChild disabled={!body.trim()}>
-                                <Link href={`/admin/marketing/sms/send?message=${encodeURIComponent(body)}`}>
+                                <Link href={`/dashboard/marketing/sms/send?message=${encodeURIComponent(body)}`}>
                                   <Send className="me-1 h-3.5 w-3.5" />
                                   {t("sendFromDraft")}
                                 </Link>

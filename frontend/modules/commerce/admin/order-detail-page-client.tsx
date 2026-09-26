@@ -208,13 +208,13 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
             {t("print")}
           </Button>
           <Button variant="outline" asChild>
-            <Link href={`/admin/orders/${orderId}/edit`}>
+            <Link href={`/dashboard/orders/${orderId}/edit`}>
               <Pencil className="size-4" />
               {t("edit")}
             </Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/admin/orders">{t("back_to_list")}</Link>
+            <Link href="/dashboard/orders">{t("back_to_list")}</Link>
           </Button>
         </>
       }

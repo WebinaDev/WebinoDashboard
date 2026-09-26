@@ -22,7 +22,7 @@ APIهای احرازهویت‌شده تحت `/api/v1` با گیت زیرماژ�
 | POST | `/order-returns/{id}/action` | approve/reject/receive/refund |
 | GET | `/orders/{id}/print` | HTML رسید + علامت چاپ‌شده |
 
-UI ادمین: `/admin/orders`، `/admin/orders/new`، `/admin/orders/:id`، `/admin/orders/:id/edit`.  
+UI ادمین: `/dashboard/orders`، `/dashboard/orders/new`، `/dashboard/orders/:id`، `/dashboard/orders/:id/edit`.  
 پنل‌های مارکت‌پلیس / تپین / مودیان تا آماده بودن API در UI محصول نمایش داده نمی‌شوند (فقط در مستندات).
 
 ## کارت‌به‌کارت (`module:c2c`)
@@ -33,7 +33,7 @@ UI ادمین: `/admin/orders`، `/admin/orders/new`، `/admin/orders/:id`، `/a
 | GET | `/c2c/receipts` |
 | POST | `/c2c/receipts/{order}` | body `{ action: approve\|reject }` |
 
-UI: `/admin/orders/c2c-receipts`، `/admin/settings/c2c`.
+UI: `/dashboard/orders/c2c-receipts`، `/dashboard/settings/c2c`.
 
 ## مشتریان (`module:customers`)
 
@@ -43,7 +43,7 @@ UI: `/admin/orders/c2c-receipts`، `/admin/settings/c2c`.
 | POST | `/customers` | ایجاد کاربر مشتری |
 | PATCH | `/customers/{id}` | به‌روزرسانی |
 
-UI ادمین: `/admin/customers`. تنظیمات کیف پول از `/customers?search=` استفاده می‌کند.
+UI ادمین: `/dashboard/customers`. تنظیمات کیف پول از `/customers?search=` استفاده می‌کند.
 
 ## کیف پول (`module:wallet`)
 
@@ -57,7 +57,7 @@ UI ادمین: `/admin/customers`. تنظیمات کیف پول از `/customers
 
 پورتال کیف پول مشتری نهایی فعلاً خارج از محدوده است. جداول: `wallet_ledger`، `wallet_withdrawals`؛ فیلد `users.wallet_balance_minor`.
 
-UI: `/admin/orders/wallet-withdrawals`، `/admin/settings/wallet`.
+UI: `/dashboard/orders/wallet-withdrawals`، `/dashboard/settings/wallet`.
 
 ## صندوق (`module:pos`)
 
@@ -69,7 +69,7 @@ UI: `/admin/orders/wallet-withdrawals`، `/admin/settings/wallet`.
 | POST | `/pos/orders` |
 | GET | `/pos/orders/{id}/print` |
 
-UI: `/admin/pos`، `/admin/pos/pay-link`، `/admin/pos/my-orders`.
+UI: `/dashboard/pos`، `/dashboard/pos/pay-link`، `/dashboard/pos/my-orders`.
 
 ## انواع سایت
 

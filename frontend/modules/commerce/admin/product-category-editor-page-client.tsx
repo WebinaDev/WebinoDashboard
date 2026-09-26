@@ -89,7 +89,7 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
     onSuccess: async (row) => {
       setMessage(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["admin-categories"] })
-      if (isNew && row?.id) window.location.assign(`/admin/product-categories/${row.id}`)
+      if (isNew && row?.id) window.location.assign(`/dashboard/product-categories/${row.id}`)
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
@@ -173,7 +173,7 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
                 {tCommon("save")}
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/admin/product-categories">{tCommon("cancel")}</Link>
+                <Link href="/dashboard/product-categories">{tCommon("cancel")}</Link>
               </Button>
             </div>
           </CardContent>

@@ -37,11 +37,11 @@ Configure Platform servers and `platform_base_domain` in ERP under **Hosting & i
 | Area | Path | Auth |
 |------|------|------|
 | Public site (SSR) | `/`, `/blog`, `/academy`, `/portfolio`, `/team`, `/announcements`, `/testimonials`, `/consultation`, `/pages/[slug]` | None |
-| Admin dashboard | `/admin/*` | Required |
+| Admin dashboard | `/dashboard/*` | Required |
 | Login | `/login` | Public |
 | Setup wizard | `/setup` | Required |
 
-The public site and admin dashboard share the same domain. Middleware allows anonymous access to public routes and protects `/admin/*`.
+The public site and admin dashboard share the same domain. Middleware allows anonymous access to public routes and protects `/dashboard/*`.
 
 ## Public API
 
@@ -60,14 +60,14 @@ Unauthenticated tenant-scoped endpoints under `/api/v1/public/*` (resolved by `H
 
 | Module | Public | Admin |
 |--------|--------|-------|
-| `blog` | `/blog` | `/admin/blog` |
-| `academy` | `/academy` | `/admin/academy` |
-| `portfolio` | `/portfolio` | `/admin/portfolio` |
-| `announcements` | `/announcements` | `/admin/announcements` |
-| `testimonials` | `/testimonials` | `/admin/testimonials` |
-| `team` | `/team` | `/admin/team` |
-| `consultations` | `/consultation` | `/admin/consultations` |
-| `cms` | `/pages/[slug]` | `/admin/cms` |
+| `blog` | `/blog` | `/dashboard/blog` |
+| `academy` | `/academy` | `/dashboard/academy` |
+| `portfolio` | `/portfolio` | `/dashboard/portfolio` |
+| `announcements` | `/announcements` | `/dashboard/announcements` |
+| `testimonials` | `/testimonials` | `/dashboard/testimonials` |
+| `team` | `/team` | `/dashboard/team` |
+| `consultations` | `/consultation` | `/dashboard/consultations` |
+| `cms` | `/pages/[slug]` | `/dashboard/cms` |
 
 Blog is enabled for all site types (retail, corporate, resume). Corporate-only modules ship with `agency` and `startup` packages in Site Builder.
 
@@ -109,7 +109,7 @@ cd frontend && npm install && npm run dev    # http://localhost:3000
 ```
 
 - Public site: http://localhost:3000/
-- Admin: http://localhost:3000/admin (login: `admin@example.com` / `password` — forced to change on first login)
+- Admin: http://localhost:3000/dashboard (login: `admin@example.com` / `password` — forced to change on first login)
 
 ## Project structure
 
@@ -117,7 +117,7 @@ cd frontend && npm install && npm run dev    # http://localhost:3000
 backend/     Laravel API (Octane/FrankenPHP)
 frontend/    Next.js — public (site) + admin routes
   app/(site)/   Public SSR pages
-  app/admin/    Dashboard under /admin/*
+  app/dashboard/ Dashboard under /dashboard/*
   src/themes/   Visual theme packages
 docker/      Dockerfiles for platform multi-tenant images (used by ERP Platform module)
 ```

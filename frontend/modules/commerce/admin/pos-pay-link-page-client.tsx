@@ -153,7 +153,7 @@ export default function PosPayLinkPageClient({ route }: { route: ResolvedAdminRo
           <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button variant="outline" asChild>
-          <Link href="/admin/pos">{t("back_pos")}</Link>
+          <Link href="/dashboard/pos">{t("back_pos")}</Link>
         </Button>
       </div>
 

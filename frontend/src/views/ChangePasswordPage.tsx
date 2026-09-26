@@ -38,7 +38,7 @@ export default function ChangePasswordPage() {
         },
       })
       const st = await api<{ setup_completed?: boolean }>("/api/v1/setup/status")
-      router.replace(st.setup_completed === false ? "/setup" : "/admin")
+      router.replace(st.setup_completed === false ? "/setup" : "/dashboard")
     } catch (err) {
       setError(getApiErrorMessage(err) || t("errors_invalid"))
     } finally {

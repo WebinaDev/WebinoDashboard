@@ -222,13 +222,13 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
       actions={
         <>
           <Button variant="outline" asChild>
-            <Link href="/admin/pos">
+            <Link href="/dashboard/pos">
               <Store className="size-4" />
               {t("pos")}
             </Link>
           </Button>
           <Button asChild>
-            <Link href="/admin/orders/new">
+            <Link href="/dashboard/orders/new">
               <Plus className="size-4" />
               {t("new_order")}
             </Link>
@@ -367,7 +367,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
                         />
                       </td>
                       <td className="p-2 font-medium">
-                        <Link className="underline-offset-2 hover:underline" href={`/admin/orders/${o.id}`}>
+                        <Link className="underline-offset-2 hover:underline" href={`/dashboard/orders/${o.id}`}>
                           {o.number || `#${o.id}`}
                         </Link>
                         {o.is_pos ? (
@@ -389,7 +389,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
                       <td className="p-2">{o.payment_tender || "—"}</td>
                       <td className="p-2">
                         <Button size="icon" variant="outline" asChild title={t("edit")}>
-                          <Link href={`/admin/orders/${o.id}/edit`}>
+                          <Link href={`/dashboard/orders/${o.id}/edit`}>
                             <Pencil className="size-4" />
                           </Link>
                         </Button>

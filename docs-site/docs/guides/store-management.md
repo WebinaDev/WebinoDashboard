@@ -72,8 +72,8 @@ Gate: `coffee_profile` → `coffee-profile.profile`.
 
 | Path | Purpose |
 |------|---------|
-| `/admin/products` | Product list |
-| `/admin/products/new`, `/admin/products/:id` | Product editor (main + sticky sidebar: publish / taxonomy / image; SEO tab omitted until API exists) |
-| `/admin/brands`, `/admin/product-categories`, `/admin/attributes` | Taxonomies |
-| `/admin/pricing/quick-add`, `bulk-editor`, `price-changer` | WFCP tools |
-| `/admin/coffee/settings` | Coffee module settings |
+| `/dashboard/products` | Product list |
+| `/dashboard/products/new`, `/dashboard/products/:id` | Product editor (main + sticky sidebar: publish / taxonomy / image; SEO tab omitted until API exists) |
+| `/dashboard/brands`, `/dashboard/product-categories`, `/dashboard/attributes` | Taxonomies |
+| `/dashboard/pricing/quick-add`, `bulk-editor`, `price-changer` | WFCP tools |
+| `/dashboard/coffee/settings` | Coffee module settings |

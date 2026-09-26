@@ -6,8 +6,8 @@
 
 | ماژول | زیرماژول | مسیر ادمین |
 |--------|---------|-----------|
-| `marketing` | coupons, bot-broadcast, bot-campaigns, sms | `/admin/marketing/*` |
-| `bots` | bale, telegram | `/admin/bots/bale` و `/admin/bots/telegram` |
+| `marketing` | coupons, bot-broadcast, bot-campaigns, sms | `/dashboard/marketing/*` |
+| `bots` | bale, telegram | `/dashboard/bots/bale` و `/dashboard/bots/telegram` |
 | `sms-panel` | panel | گیت پروکسی `/api/v1/modirpayamak/*` |
 
 پروفایل فروشگاه/کافه/شرکتی: کوپن + ربات + SMS. مجله: فقط خبرنامه.
