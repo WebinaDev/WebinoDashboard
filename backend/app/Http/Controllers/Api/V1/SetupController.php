@@ -74,7 +74,7 @@ class SetupController extends Controller
     {
         $data = $request->validate([
             'store_display_name' => ['nullable', 'string', 'max:255'],
-            'default_currency' => ['nullable', 'string', 'max:8'],
+            'default_currency' => ['nullable', 'string', 'in:IRR,IRT,USD,EUR,AED'],
             'default_locale' => ['nullable', 'string', 'in:fa,en'],
             'tenant_name' => ['nullable', 'string', 'max:255'],
         ]);

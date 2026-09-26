@@ -13,7 +13,19 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { api, ApiError } from "@/lib/api"
+import {
+  DEFAULT_STORE_CURRENCY,
+  STORE_CURRENCIES,
+  type StoreCurrencyCode,
+} from "@/lib/currencies"
 import { SITE_TYPES } from "@/kernel/registry"
 import type { SiteTypeSlug } from "@/kernel/types"
 
@@ -41,7 +53,7 @@ export default function SetupWizardPage() {
   const [step, setStep] = useState(0)
   const [siteType, setSiteType] = useState<SiteTypeSlug | "">("")
   const [storeName, setStoreName] = useState("")
-  const [currency, setCurrency] = useState("IRR")
+  const [currency, setCurrency] = useState<StoreCurrencyCode>(DEFAULT_STORE_CURRENCY)
   const [locale, setLocale] = useState<"fa" | "en">("fa")
   const [tenantName, setTenantName] = useState("")
   const [domain, setDomain] = useState("")
@@ -150,7 +162,7 @@ export default function SetupWizardPage() {
         method: "PATCH",
         json: {
           store_display_name: storeName || null,
-          default_currency: currency || "IRR",
+          default_currency: currency || DEFAULT_STORE_CURRENCY,
           tenant_name: tenantName || null,
         },
       })
@@ -304,12 +316,21 @@ export default function SetupWizardPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="currency">{t("currency")}</Label>
-              <Input
-                id="currency"
+              <Select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="text-start"
-              />
+                onValueChange={(v) => setCurrency(v as StoreCurrencyCode)}
+              >
+                <SelectTrigger id="currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STORE_CURRENCIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {t(c.labelKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

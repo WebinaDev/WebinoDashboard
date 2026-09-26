@@ -6,7 +6,20 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { api } from "@/lib/api"
+import {
+  DEFAULT_STORE_CURRENCY,
+  STORE_CURRENCIES,
+  normalizeStoreCurrency,
+  type StoreCurrencyCode,
+} from "@/lib/currencies"
 
 type Tenant = {
   id: number
@@ -24,7 +37,7 @@ export default function StoreSettingsPage() {
   const tSetup = useTranslations("setup")
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [storeName, setStoreName] = useState("")
-  const [currency, setCurrency] = useState("IRR")
+  const [currency, setCurrency] = useState<StoreCurrencyCode>(DEFAULT_STORE_CURRENCY)
   const [tenantName, setTenantName] = useState("")
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -33,7 +46,7 @@ export default function StoreSettingsPage() {
       .then((r) => {
         setTenant(r)
         setStoreName(r.store_display_name ?? "")
-        setCurrency(r.default_currency ?? "IRR")
+        setCurrency(normalizeStoreCurrency(r.default_currency))
         setTenantName(r.name ?? "")
       })
       .catch(() => setTenant(null))
@@ -49,7 +62,7 @@ export default function StoreSettingsPage() {
       method: "PATCH",
       json: {
         store_display_name: storeName || null,
-        default_currency: currency || "IRR",
+        default_currency: currency || DEFAULT_STORE_CURRENCY,
         tenant_name: tenantName || null,
       },
     })
@@ -74,7 +87,21 @@ export default function StoreSettingsPage() {
       </div>
       <div className="grid gap-2">
         <Label>{tSetup("default_currency")}</Label>
-        <Input value={currency} onChange={(e) => setCurrency(e.target.value)} dir="ltr" className="font-mono" />
+        <Select
+          value={currency}
+          onValueChange={(v) => setCurrency(v as StoreCurrencyCode)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STORE_CURRENCIES.map((c) => (
+              <SelectItem key={c.code} value={c.code}>
+                {tSetup(c.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       {tenant ? (
         <p className="text-muted-foreground text-xs font-mono" dir="ltr">
