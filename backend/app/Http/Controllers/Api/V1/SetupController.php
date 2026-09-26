@@ -58,8 +58,11 @@ class SetupController extends Controller
             'site_type_slug' => ['required', 'string', 'in:'.implode(',', SiteTypeProfiles::TYPES)],
         ]);
 
-        /** @var Tenant $tenant */
-        $tenant = $request->user()->tenant;
+        $tenant = $request->user()?->tenant;
+        if (! $tenant instanceof Tenant) {
+            return response()->json(['message' => __('api.unauthorized')], 401);
+        }
+
         $activations->applySiteType($tenant, $data['site_type_slug']);
 
         return response()->json([

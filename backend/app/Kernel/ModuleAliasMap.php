@@ -64,4 +64,10 @@ final class ModuleAliasMap
     {
         return self::LEGACY[$legacySlug] ?? null;
     }
+
+    /** @return array<string, array{0: string, 1: string}> */
+    public static function legacyPairs(): array
+    {
+        return self::LEGACY;
+    }
 }

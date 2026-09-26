@@ -75,6 +75,41 @@ class CommerceAndSetupTest extends TestCase
             ->assertJsonPath('data.setup_completed', true);
     }
 
+    public function test_apply_site_type_succeeds_for_cafe(): void
+    {
+        $tenant = Tenant::query()->create([
+            'name' => 'Cafe Co',
+            'slug' => 'cafe-co',
+            'domain' => 'cafe.test',
+            'setup_completed' => false,
+            'default_currency' => 'IRR',
+        ]);
+
+        /** @var User $user */
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'admin',
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/setup/apply-site-type', ['site_type_slug' => 'cafe'])
+            ->assertOk()
+            ->assertJsonPath('data.site_type_slug', 'cafe');
+
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenant->id,
+            'site_type_slug' => 'cafe',
+            'business_type_slug' => 'cafe',
+        ]);
+
+        $this->assertDatabaseHas('tenant_submodule_activations', [
+            'tenant_id' => $tenant->id,
+            'module_slug' => 'cafe',
+            'submodule_slug' => 'menu',
+            'enabled' => true,
+        ]);
+    }
+
     public function test_analytics_open_orders_excludes_failed(): void
     {
         $user = $this->actingTenantUser();

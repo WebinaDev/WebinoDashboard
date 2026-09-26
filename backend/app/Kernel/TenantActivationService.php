@@ -18,6 +18,13 @@ final class TenantActivationService
             throw new \InvalidArgumentException("Invalid site type: {$siteTypeSlug}");
         }
 
+        // Ensure dashboard_modules / site_type_activations exist before FK writes.
+        try {
+            app(ModuleRegistry::class)->boot();
+        } catch (\Throwable) {
+            // Catalog sync is best-effort; profile fallback below still works.
+        }
+
         $profile = SiteTypeProfiles::all()[$siteTypeSlug];
 
         DB::transaction(function () use ($tenant, $siteTypeSlug, $profile) {
@@ -60,6 +67,8 @@ final class TenantActivationService
                 ->where('tenant_id', $tenant->id)
                 ->update(['enabled' => false]);
 
+            $knownModules = DashboardModule::query()->pluck('slug')->flip();
+
             foreach ($activations as $activation) {
                 TenantSubmoduleActivation::query()->updateOrCreate(
                     [
@@ -72,6 +81,10 @@ final class TenantActivationService
                         'licensed' => true,
                     ]
                 );
+
+                if (! $knownModules->has($activation->module_slug)) {
+                    continue;
+                }
 
                 TenantModule::query()->updateOrCreate(
                     ['tenant_id' => $tenant->id, 'module_slug' => $activation->module_slug],
@@ -100,33 +113,15 @@ final class TenantActivationService
 
     private function syncLegacyModuleFlags(Tenant $tenant): void
     {
-        $legacyMap = [
-            'dashboard' => ['core', 'dashboard'],
-            'modules' => ['core', 'modules'],
-            'catalog' => ['commerce', 'catalog'],
-            'cart' => ['commerce', 'cart'],
-            'checkout' => ['commerce', 'checkout'],
-            'orders' => ['commerce', 'orders'],
-            'inventory' => ['commerce', 'inventory'],
-            'analytics' => ['analytics', 'overview'],
-            'rbac' => ['users', 'rbac'],
-            'reports' => ['analytics', 'reports'],
-            'marketing' => ['marketing', 'coupons'],
-            'coupons' => ['marketing', 'coupons'],
-            'bots_bale' => ['bots', 'bale'],
-            'bots_telegram' => ['bots', 'telegram'],
-            'sms' => ['sms-panel', 'panel'],
-            'cms' => ['cms', 'pages'],
-            'blog' => ['blog', 'posts'],
-            'academy' => ['academy', 'courses'],
-            'portfolio' => ['corporate', 'portfolio'],
-            'announcements' => ['corporate', 'announcements'],
-            'testimonials' => ['corporate', 'testimonials'],
-            'team' => ['corporate', 'team'],
-            'consultations' => ['corporate', 'consultations'],
-        ];
+        // Only write tenant_modules rows whose slug exists in dashboard_modules.
+        // Routes use ModuleAliasMap → tenant_submodule_activations; legacy tenant_modules
+        // slugs (catalog, dashboard, …) are not dashboard_modules PKs and would FK-fail.
+        $known = DashboardModule::query()->pluck('slug')->flip();
 
-        foreach ($legacyMap as $legacySlug => [$module, $sub]) {
+        foreach (ModuleAliasMap::legacyPairs() as $legacySlug => [$module, $sub]) {
+            if (! $known->has($legacySlug)) {
+                continue;
+            }
             $enabled = $this->isSubmoduleEnabled($tenant->id, $module, $sub);
             TenantModule::query()->updateOrCreate(
                 ['tenant_id' => $tenant->id, 'module_slug' => $legacySlug],
