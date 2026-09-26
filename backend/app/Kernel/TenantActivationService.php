@@ -25,6 +25,16 @@ final class TenantActivationService
             // Catalog sync is best-effort; profile fallback below still works.
         }
 
+        // Guaranteed catalog parent for tenant_modules.module_slug FK (even if boot no-op'd).
+        DashboardModule::query()->firstOrCreate(
+            ['slug' => 'core'],
+            [
+                'distribution' => 'bundled',
+                'requires_license' => false,
+                'default_version' => '1.0.0',
+            ]
+        );
+
         $profile = SiteTypeProfiles::all()[$siteTypeSlug];
 
         DB::transaction(function () use ($tenant, $siteTypeSlug, $profile) {
@@ -100,10 +110,14 @@ final class TenantActivationService
                 );
             }
 
-            TenantModule::query()->updateOrCreate(
-                ['tenant_id' => $tenant->id, 'module_slug' => 'core'],
-                ['enabled' => true, 'licensed' => true]
-            );
+            // Refresh after any catalog writes inside the loop; only write when FK parent exists.
+            $knownModules = DashboardModule::query()->pluck('slug')->flip();
+            if ($knownModules->has('core')) {
+                TenantModule::query()->updateOrCreate(
+                    ['tenant_id' => $tenant->id, 'module_slug' => 'core'],
+                    ['enabled' => true, 'licensed' => true]
+                );
+            }
 
             $this->syncLegacyModuleFlags($tenant);
         });
