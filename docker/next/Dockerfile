@@ -1,6 +1,8 @@
 # Build context: WebinoDashboard repo root (self-contained, includes packages/webina-ui)
 # NODE_IMAGE can be overridden for IR Hub mirrors (e.g. hub.hamdocker.ir/library/node:22-alpine).
+# FROM-related ARGs MUST be declared before the first FROM (BuildKit global scope).
 ARG NODE_IMAGE=node:22-alpine
+
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /src
 COPY packages/webina-ui ./packages/webina-ui
@@ -11,7 +13,6 @@ WORKDIR /src/frontend
 # Fall back to npm install when package.json and the lockfile drifted (ci is strict).
 RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
-ARG NODE_IMAGE=node:22-alpine
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /src
 COPY packages/webina-ui ./packages/webina-ui
@@ -26,7 +27,6 @@ ARG INTERNAL_API_URL=http://backend:8080
 ENV INTERNAL_API_URL=${INTERNAL_API_URL}
 RUN npm run build
 
-ARG NODE_IMAGE=node:22-alpine
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production

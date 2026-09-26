@@ -62,4 +62,12 @@ if [ "${RUN_OPTIMIZE:-0}" = "1" ]; then
   php artisan view:cache
 fi
 
+# Platform image is php:cli (no frankenphp). Rewrite legacy octane CMD to serve.
+case " $* " in
+  *" octane:start "*|*" octane:start")
+    echo "[webino] Skipping Octane/FrankenPHP; starting artisan serve on :8080"
+    exec php artisan serve --host=0.0.0.0 --port=8080
+    ;;
+esac
+
 exec "$@"

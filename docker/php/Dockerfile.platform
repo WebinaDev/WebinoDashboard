@@ -1,17 +1,21 @@
 # Production backend image for multi-site platform (code baked in).
-# Base MUST be frankenphp so Octane HTTP workers share the same PHP that
-# receives docker-php-ext-install (pdo_pgsql/redis). Copying only the
-# frankenphp binary onto php:cli — or overwriting libphp.so — leaves workers
-# without those drivers ("could not find driver" on every DB request).
 #
-# FRANKENPHP_IMAGE / COMPOSER_IMAGE can be overridden for IR Hub mirrors
-# (e.g. hub.hamdocker.ir/dunglas/frankenphp:1-php8.3-bookworm).
-# BuildKit does not allow COPY --from=${VAR}; use a named stage instead.
+# Base is php:cli (not frankenphp): Docker Hub / dunglas pulls 403 on many IR IPs,
+# and a copied frankenphp binary lacks libwatcher (Octane exit 127). Same approach
+# as WebinoERP docker/php/Dockerfile.platform — artisan serve is the runtime.
+#
+# PHP_IMAGE / COMPOSER_IMAGE can be overridden for IR Hub mirrors:
+#   hub.hamdocker.ir/library/php:8.3-cli-bookworm
+#   hub.hamdocker.ir/library/composer:2
+#
+# All FROM-related ARGs MUST be declared before the first FROM (BuildKit global scope).
+# COPY --from=${VAR} is unsupported; use a named stage instead.
+ARG PHP_IMAGE=php:8.3-cli-bookworm
 ARG COMPOSER_IMAGE=composer:2
+
 FROM ${COMPOSER_IMAGE} AS composer_src
 
-ARG FRANKENPHP_IMAGE=dunglas/frankenphp:1-php8.3-bookworm
-FROM ${FRANKENPHP_IMAGE}
+FROM ${PHP_IMAGE}
 
 ARG APT_MIRROR=
 ARG FORCE_APT_IPV4=1
@@ -70,4 +74,5 @@ RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8080"]
+# FrankenPHP/Octane skipped on platform images (IR Hub + libwatcher). Serve is the runtime.
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
