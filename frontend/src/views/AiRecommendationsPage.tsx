@@ -14,7 +14,7 @@ export default function AiRecommendationsPage() {
   async function run() {
     setPending(true)
     try {
-      const r = await api<{ data: { recommended_product_ids: number[] } }>("/api/v1/ai/recommendations", {
+      const r = await api<{ recommended_product_ids: number[] }>("/api/v1/ai/recommendations", {
         method: "POST",
         json: { product_ids: [] },
       })

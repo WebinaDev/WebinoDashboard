@@ -21,8 +21,8 @@ export default function ModulesPage() {
   const [msg, setMsg] = useState<string | null>(null)
 
   function reload() {
-    api<{ data: Row[] }>("/api/v1/modules")
-      .then((r) => setRows(Array.isArray(r) ? r : (r as { data?: unknown[] }).data ?? []))
+    api<Row[]>("/api/v1/modules")
+      .then((r) => setRows(Array.isArray(r) ? r : []))
       .catch(() => setRows([]))
   }
 

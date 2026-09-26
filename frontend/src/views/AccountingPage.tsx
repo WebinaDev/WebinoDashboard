@@ -19,7 +19,7 @@ export default function AccountingPage() {
 
   useEffect(() => {
     let cancelled = false
-    api<{ data: Status }>("/api/v1/accounting/status")
+    api<Status>("/api/v1/accounting/status")
       .then((r) => {
         if (!cancelled) {
           setStatus(r)

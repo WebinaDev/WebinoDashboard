@@ -12,8 +12,8 @@ export default function CommerceMarketingPage() {
   const [rows, setRows] = useState<Campaign[]>([])
 
   useEffect(() => {
-    api<{ data: Campaign[] }>("/api/v1/marketing/campaigns")
-      .then((r) => setRows(Array.isArray(r) ? r : (r as { data?: unknown[] }).data ?? []))
+    api<Campaign[]>("/api/v1/marketing/campaigns")
+      .then((r) => setRows(Array.isArray(r) ? r : []))
       .catch(() => setRows([]))
   }, [])
 

@@ -20,8 +20,8 @@ export default function CommerceCmsPage() {
   const [pending, setPending] = useState(false)
 
   function load() {
-    api<{ data: Page[] }>("/api/v1/cms/pages")
-      .then((r) => setRows(Array.isArray(r) ? r : (r as { data?: unknown[] }).data ?? []))
+    api<Page[]>("/api/v1/cms/pages")
+      .then((r) => setRows(Array.isArray(r) ? r : []))
       .catch(() => setRows([]))
   }
 

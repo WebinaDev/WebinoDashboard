@@ -1,2 +1,2 @@
-/* Single source: @webina/ui (synced from Wordpress/WebinaDashboard index.css). */
-@import "@webina/ui/styles/themes.css";
+/* Vendored from @webina/ui — baked into the image so Docker/PostCSS do not depend on package path resolution. */
+@import "./styles/themes.css";

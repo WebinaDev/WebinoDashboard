@@ -42,8 +42,8 @@ export default function OrdersPage() {
   const [status, setStatus] = useState("")
 
   function reload() {
-    api<{ data: OrderRow[] }>("/api/v1/orders")
-      .then((r) => setRows(Array.isArray(r) ? r : (r as { data?: unknown[] }).data ?? []))
+    api<OrderRow[]>("/api/v1/orders")
+      .then((r) => setRows(Array.isArray(r) ? r : []))
       .catch(() => setRows([]))
   }
 
