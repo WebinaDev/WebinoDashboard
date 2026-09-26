@@ -28,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->encryptCookies(except: [
-            config('auth.cookie_name', 'webino_auth_token'),
+            env('AUTH_COOKIE_NAME', 'webino_auth_token'),
         ]);
 
         // Cookie+Bearer SPA — not Sanctum session auth. Do NOT enable
