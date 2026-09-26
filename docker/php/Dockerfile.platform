@@ -7,6 +7,7 @@
 # PHP_IMAGE / COMPOSER_IMAGE can be overridden for IR Hub mirrors:
 #   hub.hamdocker.ir/library/php:8.3-cli-bookworm
 #   hub.hamdocker.ir/library/composer:2
+# COMPOSER_MIRROR: set via build-arg (IR builds pass Aliyun; Packagist often fails with curl error 18).
 #
 # All FROM-related ARGs MUST be declared before the first FROM (BuildKit global scope).
 # COPY --from=${VAR} is unsupported; use a named stage instead.
@@ -20,6 +21,8 @@ FROM ${PHP_IMAGE}
 ARG APT_MIRROR=
 ARG FORCE_APT_IPV4=1
 ARG REDIS_PECL_VERSION=6.0.2
+# Empty by default; IR builds pass Aliyun via --build-arg COMPOSER_MIRROR=...
+ARG COMPOSER_MIRROR=
 
 COPY docker/php/install-redis.sh /tmp/install-redis.sh
 
@@ -57,12 +60,35 @@ COPY --from=composer_src /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 COPY backend/composer.json backend/composer.lock* ./
+# Prefer locked install. Packagist from IR often fails (HTTP/2 curl 18) — use mirror + HTTP/1.1 + retries.
+# Do NOT fall back to `composer update` in image builds (needs network metadata + drifts lock).
 RUN set -eux; \
     composer config platform.php 8.3.32; \
     composer config --global process-timeout 2000; \
-    if ! composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader; then \
-      composer update --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader --with-all-dependencies; \
-    fi
+    if [ -n "${COMPOSER_MIRROR}" ]; then \
+      composer config -g repos.packagist composer "${COMPOSER_MIRROR}"; \
+    fi; \
+    # Force libcurl HTTP/1.1 inside Composer (HTTP/2/3 stream resets → curl error 18 from many IR IPs).
+    mkdir -p /tmp/composer-src; \
+    cp /usr/bin/composer /tmp/composer.phar; \
+    php -r '$p=new Phar("/tmp/composer.phar"); $p->extractTo("/tmp/composer-src");'; \
+    find /tmp/composer-src -type f -name 'CurlDownloader.php' -print0 \
+      | xargs -0 -r sed -i \
+        -e 's/CURL_HTTP_VERSION_3/CURL_HTTP_VERSION_1_1/g' \
+        -e 's/CURL_HTTP_VERSION_2TLS/CURL_HTTP_VERSION_1_1/g' \
+        -e 's/CURL_HTTP_VERSION_2_0/CURL_HTTP_VERSION_1_1/g'; \
+    i=1; \
+    until php /tmp/composer-src/bin/composer install \
+        --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader; do \
+      if [ "$i" -ge 5 ]; then \
+        echo "composer install failed after ${i} attempts" >&2; \
+        exit 1; \
+      fi; \
+      echo "composer install attempt ${i} failed; retrying in $((i * 5))s..." >&2; \
+      sleep $((i * 5)); \
+      i=$((i + 1)); \
+    done; \
+    rm -rf /tmp/composer-src /tmp/composer.phar
 
 COPY backend/ ./
 RUN composer dump-autoload --optimize --no-dev --no-scripts \
