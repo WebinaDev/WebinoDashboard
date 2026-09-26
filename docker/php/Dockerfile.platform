@@ -6,13 +6,16 @@
 #
 # FRANKENPHP_IMAGE / COMPOSER_IMAGE can be overridden for IR Hub mirrors
 # (e.g. hub.hamdocker.ir/dunglas/frankenphp:1-php8.3-bookworm).
+# BuildKit does not allow COPY --from=${VAR}; use a named stage instead.
+ARG COMPOSER_IMAGE=composer:2
+FROM ${COMPOSER_IMAGE} AS composer_src
+
 ARG FRANKENPHP_IMAGE=dunglas/frankenphp:1-php8.3-bookworm
 FROM ${FRANKENPHP_IMAGE}
 
 ARG APT_MIRROR=
 ARG FORCE_APT_IPV4=1
 ARG REDIS_PECL_VERSION=6.0.2
-ARG COMPOSER_IMAGE=composer:2
 
 COPY docker/php/install-redis.sh /tmp/install-redis.sh
 
@@ -45,7 +48,7 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.max_accelerated_files=20000" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
 
-COPY --from=${COMPOSER_IMAGE} /usr/bin/composer /usr/bin/composer
+COPY --from=composer_src /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
