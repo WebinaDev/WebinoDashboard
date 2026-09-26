@@ -1,6 +1,6 @@
 "use client"
 
-import { Languages, Moon, Sun } from "lucide-react"
+import { Check, Languages, Moon, Palette, Sun } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 
@@ -11,9 +11,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ACCENT_MENU_ITEMS, ACCENT_SWATCH, isBusinessAccent, type AccentPreset } from "@/lib/accent"
 import { htmlDir, normalizeUiLocale } from "@/lib/locale"
-import type { Accent } from "@/providers/AppProviders"
-import { ACCENT_OPTIONS, useThemeSettings } from "@/providers/AppProviders"
+import { cn } from "@/lib/utils"
+import { useThemeSettings } from "@/providers/AppProviders"
+
+function AccentSwatch({ value, className }: { value: AccentPreset; className?: string }) {
+  return (
+    <span
+      className={cn("shrink-0 rounded-full ring-1 ring-border", className)}
+      style={{ background: ACCENT_SWATCH[value] }}
+      aria-hidden
+    />
+  )
+}
 
 export function LocaleThemeToolbar() {
   const router = useRouter()
@@ -30,8 +41,6 @@ export function LocaleThemeToolbar() {
     document.documentElement.dir = htmlDir(nextLocale)
     router.refresh()
   }
-
-  const accents: Accent[] = ACCENT_OPTIONS
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -54,14 +63,27 @@ export function LocaleThemeToolbar() {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" type="button">
-            {t(`accent_${accent}` as never)}
+          <Button variant="outline" size="icon" type="button" className="relative" aria-label="accent">
+            <Palette className="size-4" />
+            <AccentSwatch value={accent} className="absolute end-1.5 bottom-1.5 size-2" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {accents.map((a) => (
-            <DropdownMenuItem key={a} onClick={() => setAccent(a)}>
-              {t(`accent_${a}` as never)}
+        <DropdownMenuContent align="end" className="min-w-48">
+          {ACCENT_MENU_ITEMS.map((item) => (
+            <DropdownMenuItem
+              key={item.value}
+              className="gap-2"
+              onClick={() => setAccent(item.value)}
+            >
+              <AccentSwatch
+                value={item.value}
+                className={cn(
+                  "size-3.5",
+                  isBusinessAccent(item.value) && "ring-primary/30 shadow-sm",
+                )}
+              />
+              <span className="flex-1 text-start">{t(`accent_${item.value}` as never)}</span>
+              {accent === item.value ? <Check className="ms-auto size-4 shrink-0" /> : null}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

@@ -1,5 +1,4 @@
-/* Synced from frontend/src/themes.css — keep in lockstep; frontend is source of truth for dashboard UI.
- * Ported 1:1 from Wordpress/WebinaDashboard client/src/index.css */
+/* Ported 1:1 from Wordpress/WebinaDashboard client/src/index.css */
 @theme {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -327,9 +326,10 @@ body[data-scroll-locked] {
 }
 
 html {
-  --wd-font-body: 'Yekan Bakh', Tahoma, sans-serif;
-  --wd-font-heading: 'Yekan Bakh', Tahoma, sans-serif;
-  --wd-font-ui: 'Yekan Bakh', Tahoma, sans-serif;
+  /* Prefer next/font --font-yekan when present; fall back to face name / system. */
+  --wd-font-body: var(--font-yekan), 'Yekan Bakh', Tahoma, sans-serif;
+  --wd-font-heading: var(--font-yekan), 'Yekan Bakh', Tahoma, sans-serif;
+  --wd-font-ui: var(--font-yekan), 'Yekan Bakh', Tahoma, sans-serif;
 }
 
 /* Next.js root is body; #root omitted */

@@ -9,7 +9,7 @@ export type CheckboxProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "t
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   ({ className, onCheckedChange, onChange, ...props }, ref) => {
     return (
-      <input
+      <input data-slot="checkbox"
         type="checkbox"
         ref={ref}
         className={cn(

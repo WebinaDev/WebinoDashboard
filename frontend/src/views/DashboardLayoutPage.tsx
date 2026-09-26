@@ -108,7 +108,7 @@ export default function DashboardLayoutPage({
         tenantPlanLabel={tSidebar("plan_tenant")}
       />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 sm:h-16">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/70 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 sm:h-16">
           <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4">
             <SidebarTrigger className="-ms-1" data-testid="sidebar-trigger" />
             <Separator

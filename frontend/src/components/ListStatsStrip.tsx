@@ -23,7 +23,7 @@ export function ListStatsStrip({
   return (
     <div className={cn("flex gap-2.5 overflow-x-auto pb-1 md:grid md:overflow-visible md:pb-0", cols, className)}>
       {items.map((item) => (
-        <Card key={item.id} className="wd-card-stat min-w-[9.5rem] shrink-0 overflow-hidden md:min-w-0">
+        <Card key={item.id} variant="stat" className="wd-mini-tint min-w-[9.5rem] shrink-0 overflow-hidden md:min-w-0">
           <CardContent className="space-y-1 pt-3.5 pb-3">
             <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">{item.label}</p>
             <p className="text-base font-semibold tracking-tight sm:text-lg">{item.value}</p>
