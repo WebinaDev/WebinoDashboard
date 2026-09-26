@@ -39,7 +39,7 @@ export default function CheckoutPage() {
     setIntentUrl(null)
   }
 
-  async function pay(provider: "zarinpal" | "digipay") {
+  async function pay(provider: "zarinpal" | "digipay" | "snapppay" | "torobpay") {
     if (!orderId) {
       return
     }
@@ -117,6 +117,22 @@ export default function CheckoutPage() {
           onClick={() => void pay("digipay")}
         >
           {t("pay_digipay")}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!orderId}
+          onClick={() => void pay("snapppay")}
+        >
+          {t("pay_snapppay")}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!orderId}
+          onClick={() => void pay("torobpay")}
+        >
+          {t("pay_torobpay")}
         </Button>
       </div>
       {intentUrl ? (

@@ -288,7 +288,7 @@ export function notifyOrderSms(body: {
 }
 
 export function fetchSmsPatternRegistry() {
-  return apiFetch<{ ok: boolean; registry: unknown[] }>('modirpayamak/patterns/registry')
+  return apiFetch<{ ok: boolean; registry: SmsPatternRegistryRow[] }>('modirpayamak/patterns/registry')
 }
 
 export function fetchSmsPhonebooks() {
@@ -323,11 +323,11 @@ export function saveShopSmsSettings(payload: {
 }
 
 export function fetchSiteSmsSettings() {
-  return apiFetch<{ ok: boolean; unavailable?: boolean; settings: SiteSmsSettings }>('modirpayamak/settings/shop')
+  return apiFetch<{ ok: boolean; unavailable?: boolean; settings: SiteSmsSettings }>('modirpayamak/settings/site')
 }
 
 export function saveSiteSmsSettings(settings: SiteSmsSettings) {
-  return apiFetch('modirpayamak/settings/shop', {
+  return apiFetch('modirpayamak/settings/site', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ settings }),

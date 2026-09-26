@@ -339,8 +339,11 @@ class OrderController extends Controller
             'data' => [
                 ['id' => 'zarinpal', 'label' => 'Zarinpal'],
                 ['id' => 'digipay', 'label' => 'Digipay'],
+                ['id' => 'snapppay', 'label' => 'SnappPay'],
+                ['id' => 'torobpay', 'label' => 'TorobPay'],
                 ['id' => 'card_to_card', 'label' => 'Card to card'],
                 ['id' => 'wallet', 'label' => 'Wallet'],
+                ['id' => 'cod', 'label' => 'Cash on delivery'],
             ],
         ]);
     }

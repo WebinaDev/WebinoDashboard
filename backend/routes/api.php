@@ -36,7 +36,9 @@ use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\ModuleInstallController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
+use App\Http\Controllers\Api\V1\PaymentGatewaySettingsController;
 use App\Http\Controllers\Api\V1\PaymentIntentController;
+use App\Http\Controllers\Api\V1\PaymentsHubController;
 use App\Http\Controllers\Api\V1\PortfolioItemController;
 use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\C2cController;
@@ -68,9 +70,12 @@ use App\Http\Controllers\Api\V1\PublicSiteController;
 use App\Http\Controllers\Api\V1\ReportsController;
 use App\Http\Controllers\Api\V1\ResumeProfileController;
 use App\Http\Controllers\Api\V1\SetupController;
+use App\Http\Controllers\Api\V1\ShippingZonesController;
 use App\Http\Controllers\Api\V1\SiteConsultationController;
+use App\Http\Controllers\Api\V1\TapinController;
 use App\Http\Controllers\Api\V1\TeamMemberController;
 use App\Http\Controllers\Api\V1\TenantController;
+use App\Http\Controllers\Api\V1\TenantSettingsController;
 use App\Http\Controllers\Api\V1\ThemeController;
 use App\Http\Controllers\Api\V1\TestimonialController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
@@ -228,6 +233,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/kernel/activations', [KernelController::class, 'tenantActivations']);
 
         Route::get('/tenant', [TenantController::class, 'show']);
+        Route::get('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'show']);
+        Route::put('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'update']);
 
         Route::get('/themes', [ThemeController::class, 'index']);
         Route::post('/themes/{slug}/activate', [ThemeController::class, 'activate']);
@@ -398,6 +405,42 @@ Route::prefix('v1')->group(function () {
             Route::get('/c2c/receipts', [C2cController::class, 'receipts']);
             Route::post('/c2c/receipts/{order}', [C2cController::class, 'decide'])->whereNumber('order');
         });
+
+        Route::get('/payments/hub', [PaymentsHubController::class, 'show']);
+        Route::post('/payments/hub', [PaymentsHubController::class, 'update']);
+        Route::post('/payments/hub/{gateway}/toggle', [PaymentsHubController::class, 'toggle']);
+        Route::get('/payments/gateways/{provider}', [PaymentGatewaySettingsController::class, 'show']);
+        Route::post('/payments/gateways/{provider}', [PaymentGatewaySettingsController::class, 'update']);
+
+        Route::get('/shipping/zones', [ShippingZonesController::class, 'index']);
+        Route::post('/shipping/zones/global', [ShippingZonesController::class, 'saveGlobal']);
+        Route::post('/shipping/zones', [ShippingZonesController::class, 'storeZone']);
+        Route::put('/shipping/zones/{zone}', [ShippingZonesController::class, 'updateZone'])->whereNumber('zone');
+        Route::delete('/shipping/zones/{zone}', [ShippingZonesController::class, 'destroyZone'])->whereNumber('zone');
+        Route::post('/shipping/zones/{zone}/methods', [ShippingZonesController::class, 'storeMethod'])->whereNumber('zone');
+        Route::put('/shipping/zones/{zone}/methods/{method}', [ShippingZonesController::class, 'updateMethod'])->whereNumber(['zone', 'method']);
+        Route::delete('/shipping/zones/{zone}/methods/{method}', [ShippingZonesController::class, 'destroyMethod'])->whereNumber(['zone', 'method']);
+        Route::post('/shipping/quote', [ShippingZonesController::class, 'quote']);
+
+        Route::get('/shipping/tapin', [TapinController::class, 'show']);
+        Route::post('/shipping/tapin', [TapinController::class, 'update']);
+        Route::post('/shipping/tapin/test', [TapinController::class, 'testConnection']);
+        Route::get('/shipping/tapin/shops', [TapinController::class, 'shops']);
+        Route::post('/shipping/tapin/sync-locations', [TapinController::class, 'syncLocations']);
+        Route::get('/shipping/tapin/credit', [TapinController::class, 'credit']);
+        Route::post('/orders/{order}/tapin/register', [TapinController::class, 'registerOrder'])->whereNumber('order');
+        Route::post('/orders/{order}/tapin/status', [TapinController::class, 'orderStatus'])->whereNumber('order');
+        Route::get('/orders/{order}/tapin/label', [TapinController::class, 'orderLabel'])->whereNumber('order');
+        Route::get('/zarinpal/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'zarinpal'));
+        Route::post('/zarinpal/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'zarinpal'));
+        Route::get('/digipay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'digipay'));
+        Route::post('/digipay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'digipay'));
+        Route::get('/snapppay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'snapppay'));
+        Route::post('/snapppay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'snapppay'));
+        Route::get('/torobpay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'torobpay'));
+        Route::post('/torobpay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'torobpay'));
+        Route::get('/bale-pay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'bale-pay'));
+        Route::post('/bale-pay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'bale-pay'));
 
         Route::middleware('module:wallet')->group(function () {
             Route::get('/wallet/settings', [WalletController::class, 'settings']);

@@ -13,7 +13,7 @@ class PaymentIntentController extends Controller
     {
         $data = $request->validate([
             'order_id' => ['required', 'integer'],
-            'provider' => ['required', 'string', 'in:digipay,zarinpal'],
+            'provider' => ['required', 'string', 'in:digipay,zarinpal,snapppay,torobpay'],
         ]);
 
         $user = $request->user();

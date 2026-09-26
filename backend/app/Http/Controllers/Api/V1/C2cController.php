@@ -15,9 +15,13 @@ class C2cController extends Controller
         return [
             'enabled' => true,
             'title' => 'کارت به کارت',
+            'description' => '',
             'instructions' => '',
+            'order_button_text' => '',
+            'icon_url' => '',
             'iban' => '',
             'deadline_hours' => 24,
+            'deadline_h' => 24,
             'cards' => [],
         ];
     }
