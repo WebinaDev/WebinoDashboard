@@ -6,6 +6,9 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { useConfirm } from "@/components/ConfirmDialog"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,14 +26,14 @@ type Brand = {
 }
 
 export default function BrandsPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
-  const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
   const [q, setQ] = useState("")
   const [error, setError] = useState<string | null>(null)
 
-  const { data: brands = [], isLoading } = useQuery({
+  const { data: brands = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-brands", q],
     queryFn: () => {
       const params = new URLSearchParams()
@@ -90,8 +93,10 @@ export default function BrandsPageClient({ route }: { route: ResolvedAdminRoute 
           <CardTitle>{t("brands_heading")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
+            <TableListSkeleton rows={5} columns={3} />
           ) : brands.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_brands")}</p>
           ) : (
@@ -115,7 +120,7 @@ export default function BrandsPageClient({ route }: { route: ResolvedAdminRoute 
                       size="sm"
                       variant="ghost"
                       onClick={() => {
-                        if (window.confirm(t("confirm_delete"))) remove.mutate(b.id)
+                        confirm({ description: t("confirm_delete"), onConfirm: () => remove.mutateAsync(b.id) })
                       }}
                     >
                       <Trash2 className="size-4" />
@@ -127,6 +132,7 @@ export default function BrandsPageClient({ route }: { route: ResolvedAdminRoute 
           )}
         </CardContent>
       </Card>
+      {confirmDialog}
     </div>
   )
 }

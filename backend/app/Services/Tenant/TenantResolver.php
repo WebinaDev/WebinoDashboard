@@ -19,6 +19,12 @@ class TenantResolver
 
     public function resolveFromRequest(Request $request): ?Tenant
     {
+        return $this->identifyFromRequest($request) ?? Tenant::query()->orderBy('id')->first();
+    }
+
+    /** Tenant named by the X-Tenant-Domain header, tenant_domain query or a public host; null when none matches. */
+    public function identifyFromRequest(Request $request): ?Tenant
+    {
         $header = (string) ($request->header('X-Tenant-Domain') ?: $request->query('tenant_domain', ''));
         if ($header !== '') {
             $byHeader = $this->findByHost($header);
@@ -29,13 +35,10 @@ class TenantResolver
 
         $host = $this->normalizeHost($request->getHost());
         if ($host !== '' && ! $this->isInternalHost($host)) {
-            $tenant = $this->findByHost($host);
-            if ($tenant) {
-                return $tenant;
-            }
+            return $this->findByHost($host);
         }
 
-        return Tenant::query()->orderBy('id')->first();
+        return null;
     }
 
     public function findByHost(string $host): ?Tenant

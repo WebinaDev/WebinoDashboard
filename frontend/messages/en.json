@@ -152,7 +152,7 @@
     "accounting_projects": "Projects",
     "accounting_reports": "Accounting reports",
     "accounting_tools": "Accounting tools",
-    "group_ai_content": "AI content",
+    "group_ai_content": "AI Content",
     "tickets": "Tickets",
     "online_support": "Online support",
     "sale_prices": "Strikethrough prices",
@@ -243,7 +243,6 @@
     "bot_bale": "Bale bot",
     "bot_telegram": "Telegram bot",
     "section_bots": "Bots",
-    "group_ai_content": "AI Content",
     "ai_overview": "AI overview",
     "ai_jobs": "AI jobs",
     "ai_calendar": "Content calendar",
@@ -512,6 +511,147 @@
     "visit_site": "Visit site",
     "fullscreen": "Fullscreen",
     "exit_fullscreen": "Exit fullscreen"
+  },
+  "home": {
+    "welcome": "Welcome",
+    "no_orders": "No recent orders.",
+    "no_products": "No recent products.",
+    "view_all": "View all",
+    "recent_orders": "Recent orders",
+    "recent_products": "Recent products",
+    "empty_hint": "No data for this range.",
+    "sections": {
+      "products": "Products",
+      "sales": "Sales",
+      "traffic": "Traffic",
+      "sms": "SMS",
+      "alerts": "Alerts",
+      "lists": "Lists",
+      "kpis": "This month at a glance",
+      "charts": "Charts and insights",
+      "breakdown": "Orders breakdown",
+      "fulfillment": "Order tasks"
+    },
+    "partner": {
+      "title": "My orders",
+      "order_count": "Order count",
+      "last_order": "Last order"
+    },
+    "fulfillment": {
+      "title": "Open fulfillment tasks",
+      "empty": "No orders waiting for action.",
+      "view_all": "View all",
+      "group": {
+        "pack": "Pack",
+        "ship": "Ship",
+        "tracking": "Tracking",
+        "refund": "Refund",
+        "returns": "Returns"
+      },
+      "pack": "Pack order #{number} — {name}.",
+      "ship": "Ship order {number} via {method}.",
+      "tracking": "Send tracking code for order {number} to the customer.",
+      "refund_cash": "Refund order {number}{gateway}.",
+      "return_requested": "Review return request for order {number} — {item} ×{qty}.",
+      "shipping": {
+        "courier": "Courier",
+        "post": "Post",
+        "tipax": "Tipax",
+        "other": "{label}"
+      },
+      "workflow": {
+        "title": "Order workflow",
+        "subtitle": "Steps from placement to delivery",
+        "pending": "Awaiting payment",
+        "processing": "Processing",
+        "warehouse": "Sent to warehouse",
+        "pack": "Pack",
+        "ship_branch": "Ship",
+        "completed": "Completed",
+        "tracking": "Tracking code for customer",
+        "refund_installment": "Installment: automatic refund",
+        "refund_cash": "Cash: manual refund to account"
+      }
+    },
+    "products": {
+      "total": "Total products",
+      "by_status_title": "By status",
+      "by_stock_title": "By stock",
+      "by_status": {
+        "publish": "Published",
+        "draft": "Draft",
+        "pending": "Pending",
+        "private": "Private",
+        "trash": "Trash"
+      },
+      "by_stock": {
+        "instock": "In stock",
+        "outofstock": "Out of stock",
+        "onbackorder": "On backorder"
+      }
+    },
+    "sales": {
+      "last30": "Sales — last 30 days",
+      "this_month": "Sales — this month",
+      "view_details": "View full report"
+    },
+    "sms": {
+      "charge": "SMS balance",
+      "low_balance": "SMS balance is low.",
+      "checking": "Checking SMS balance…",
+      "fetch_failed": "Failed to refresh SMS balance.",
+      "retry": "Retry"
+    },
+    "traffic": {
+      "online_now": "Online",
+      "highlight_visitors": "Visitors — last 7 days (excl. today)",
+      "view_details": "View full analytics",
+      "empty_hint": "Analytics tracker is active; no hits in this range yet.",
+      "online_visitors": "Online visitors"
+    },
+    "tasks": {
+      "processing": "Processing",
+      "on_hold": "On hold",
+      "comments_pending": "Reviews awaiting approval",
+      "out_of_stock": "Out of stock"
+    },
+    "panels": {
+      "sms_unit_price": "Cost per SMS",
+      "sms_unavailable": "Wallet connection unavailable",
+      "sms_charge": "SMS panel balance",
+      "license": "License",
+      "security": "Security",
+      "security_hint": "WAF {mode} · {findings} open findings",
+      "active": "Active",
+      "inactive": "Inactive",
+      "webhook_ok": "Webhook active",
+      "webhook_off": "Webhook not configured",
+      "shop": "Shop",
+      "shop_hint": "Shop is active",
+      "bot": {
+        "bale": "Bale bot",
+        "telegram": "Telegram bot"
+      }
+    },
+    "tables": {
+      "col_order": "Order",
+      "col_customer": "Customer",
+      "col_status": "Status",
+      "col_total": "Total",
+      "col_date": "Date",
+      "col_product": "Product",
+      "col_views": "Views",
+      "top_by_views": "Top by views",
+      "top_products": "Top products"
+    },
+    "orders": {
+      "empty_month": "No orders recorded this month."
+    },
+    "comments": {
+      "title": "Pending reviews",
+      "pending_count": "{count} awaiting approval",
+      "empty": "No reviews in queue."
+    }
   },
   "catalog": {
     "title": "Catalog",
@@ -3895,7 +4035,8 @@
     },
     "loading": "Loading…",
     "error": "Failed to load report",
-    "empty": "No data"
+    "empty": "No data",
+    "daysN": "{n} days"
   },
   "aiContent": {
     "description": "Generate content with Grok, Gemini, OpenAI and GapGPT",
@@ -3979,13 +4120,21 @@
   "notifications_hub": {
     "title": "Notification center",
     "subtitle": "In-panel notifications",
-    "open_settings": "Notification settings",
     "mark_all_read": "Mark all read",
     "unread_count": "{count} unread",
     "empty": "No notifications.",
     "unread_badge": "New",
     "open_action": "Open",
-    "page_of": "Page {page} of {total}"
+    "page_of": "Page {page} of {total}",
+    "bell_label": "Notifications",
+    "bell_title": "Notifications",
+    "view_all": "View all",
+    "types": {
+      "info": "Info",
+      "ticket": "Support ticket",
+      "order": "Order",
+      "system": "System"
+    }
   },
   "sale_prices": {
     "title": "Bulk strikethrough prices",
@@ -4050,7 +4199,9 @@
     "parent": "Parent",
     "no_parent": "No parent",
     "description": "Description",
-    "delete": "Delete"
+    "delete": "Delete",
+    "deleted": "Deleted.",
+    "search_ph": "Search title or slug…"
   },
   "account_portal": {
     "overview_title": "Account overview",
@@ -4096,5 +4247,233 @@
     "account_code": "Code",
     "account_name": "Name",
     "placeholder_section": "This section will be available in a future update."
+  },
+  "ui": {
+    "filters": "Filters",
+    "filters_show": "Show",
+    "filters_hide": "Hide",
+    "per_page": "Per page",
+    "page_of": "Page {page} of {total}",
+    "prev_page": "Previous",
+    "next_page": "Next",
+    "load_failed": "Could not load data.",
+    "retry": "Try again",
+    "confirm_delete_title": "Delete this item?",
+    "confirm_delete_body": "This action is permanent and the selected item will be removed.",
+    "confirm_bulk_delete_body": "{count} selected items will be deleted. This action is permanent.",
+    "confirm_title": "Confirm action",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "trash": "Move to trash",
+    "confirm_trash_body": "The selected items will be moved to trash.",
+    "empty": "Nothing to show yet.",
+    "actions": "Actions",
+    "seo_panel": "SEO",
+    "seo_focus_keyword": "Focus keyword",
+    "seo_title": "SEO title",
+    "seo_description": "Meta description",
+    "route_error_title": "This page failed to render",
+    "route_error_body": "Reload the page. If the error continues, contact support.",
+    "reload_page": "Reload page",
+    "back_home": "Back to dashboard",
+    "back_site": "Back to home page",
+    "forbidden_title": "You do not have access to this section",
+    "forbidden_body": "This page is for store managers and staff. Use your account menu to reach your own sections.",
+    "go_account": "Go to my account",
+    "media_pick_title": "Choose image",
+    "media_search_ph": "Search media…",
+    "media_all_folders": "All folders",
+    "media_all_categories": "All categories",
+    "media_folder": "Folder",
+    "media_category": "Category",
+    "media_empty": "No images found.",
+    "media_close": "Close",
+    "media_upload_hint": "To add a new image, open the media library.",
+    "media_open_library": "Media library"
+  },
+  "enums": {
+    "order_status": {
+      "pending_payment": "Pending payment",
+      "awaiting_gateway": "Awaiting gateway",
+      "on_hold": "On hold",
+      "paid": "Paid",
+      "payment_failed": "Payment failed",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded",
+      "failed": "Failed",
+      "pending": "Pending payment",
+      "draft": "Draft",
+      "trash": "Trash",
+      "webino_packaged": "Packaged",
+      "webino_ready_to_ship": "Ready to ship",
+      "webino_shipping": "Shipping"
+    },
+    "product_status": {
+      "publish": "Published",
+      "draft": "Draft",
+      "pending": "Pending review",
+      "private": "Private",
+      "trash": "Trash"
+    },
+    "stock_status": {
+      "instock": "In stock",
+      "outofstock": "Out of stock",
+      "onbackorder": "On backorder"
+    },
+    "post_status": {
+      "published": "Published",
+      "publish": "Published",
+      "draft": "Draft",
+      "pending": "Pending review",
+      "private": "Private",
+      "future": "Scheduled",
+      "trash": "Trash"
+    },
+    "review_status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "spam": "Spam"
+    },
+    "return_status": {
+      "requested": "Requested",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "received": "Received",
+      "refunded": "Refunded"
+    },
+    "withdrawal_status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "paid": "Paid",
+      "rejected": "Rejected"
+    },
+    "c2c_status": {
+      "pending": "Pending review",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "payment_tender": {
+      "cash": "Cash",
+      "card_to_card": "Card to card",
+      "pos_terminal": "Card terminal",
+      "online": "Online",
+      "wallet": "Wallet",
+      "other": "Other"
+    },
+    "sales_channel": {
+      "in_store": "In store",
+      "phone": "Phone",
+      "bale": "Bale",
+      "eitaa": "Eitaa",
+      "rubika": "Rubika",
+      "telegram": "Telegram",
+      "instagram": "Instagram",
+      "other": "Other",
+      "online": "Online store",
+      "pos": "Point of sale"
+    },
+    "product_type": {
+      "simple": "Simple",
+      "variable": "Variable",
+      "downloadable": "Downloadable"
+    },
+    "role": {
+      "admin": "Admin",
+      "staff": "Staff",
+      "customer": "Customer"
+    },
+    "catalog_visibility": {
+      "visible": "Shop and search results",
+      "catalog": "Shop only",
+      "search": "Search results only",
+      "hidden": "Hidden"
+    },
+    "coupon_type": {
+      "percent": "Percentage",
+      "fixed_cart": "Fixed cart amount",
+      "fixed_product": "Fixed product amount"
+    },
+    "job_status": {
+      "pending": "Pending",
+      "queued": "Queued",
+      "running": "Running",
+      "processing": "Processing",
+      "completed": "Completed",
+      "done": "Done",
+      "success": "Success",
+      "failed": "Failed",
+      "error": "Error",
+      "cancelled": "Cancelled",
+      "canceled": "Cancelled",
+      "draft": "Draft",
+      "scheduled": "Scheduled",
+      "sending": "Sending",
+      "sent": "Sent",
+      "paused": "Paused",
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended",
+      "posted": "Posted",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "idle": "Idle",
+      "publish": "Published",
+      "published": "Published",
+      "expired": "Expired",
+      "archived": "Archived",
+      "void": "Void",
+      "delivered": "Delivered",
+      "generated": "Generated"
+    },
+    "attribute_type": {
+      "select": "Select",
+      "text": "Text",
+      "color": "Color",
+      "image": "Image",
+      "button": "Button",
+      "radio": "Radio",
+      "label": "Label"
+    }
+  },
+  "customers_admin": {
+    "new": "New customer",
+    "search_ph": "Search name or email",
+    "apply": "Apply",
+    "col_name": "Name",
+    "col_email": "Email",
+    "col_wallet": "Wallet balance",
+    "col_status": "Status",
+    "col_actions": "Actions",
+    "status_active": "Active",
+    "status_inactive": "Inactive",
+    "stat_active_page": "Active on this page",
+    "password": "Password",
+    "password_optional": "Password (optional)",
+    "sheba": "IBAN (Sheba)",
+    "edit": "Edit",
+    "empty": "No customers found."
+  },
+  "staff_admin": {
+    "title": "Staff",
+    "total": "Total staff",
+    "admins": "Admins",
+    "active": "Active",
+    "inactive": "Inactive",
+    "new": "New staff member",
+    "search_ph": "Search name or email",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "password_optional": "Password (only to change it)",
+    "role": "Role",
+    "status": "Status",
+    "edit": "Edit",
+    "empty": "No staff members yet.",
+    "saved": "Saved"
   }
 }

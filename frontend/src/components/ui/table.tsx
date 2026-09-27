@@ -1,12 +1,13 @@
 import * as React from "react"
 
+import { ScrollTable } from "@/components/ScrollTable"
 import { cn } from "@/lib/utils"
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div data-slot="table-container" className="relative w-full overflow-auto">
+    <ScrollTable className="relative w-full rounded-none">
       <table data-slot="table" ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
-    </div>
+    </ScrollTable>
   ),
 )
 Table.displayName = "Table"

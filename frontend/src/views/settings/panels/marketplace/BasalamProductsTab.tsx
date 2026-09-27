@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,6 +41,7 @@ type RemoteRow = Record<string, unknown> & { id: number; title?: string; name?: 
 const STATUS_ARCHIVED = 3790
 
 export function BasalamProductsTab() {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.basalam")
   const tm = useTranslations("marketplace_admin")
   const locale = useLocale()
@@ -260,7 +262,7 @@ export function BasalamProductsTab() {
                               className="text-destructive"
                               disabled={one.isPending}
                               onClick={() => {
-                                if (window.confirm(t("confirm_unlink"))) one.mutate({ action: "disconnect", productId: p.id })
+                                confirm({ intent: "action", description: t("confirm_unlink"), onConfirm: () => one.mutateAsync({ action: "disconnect", productId: p.id }) })
                               }}
                             >
                               {t("unlink")}
@@ -300,6 +302,7 @@ export function BasalamProductsTab() {
           ) : null}
         </CardContent>
       </Card>
+      {confirmDialog}
     </div>
   )
 }

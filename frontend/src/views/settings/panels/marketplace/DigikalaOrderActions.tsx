@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +24,7 @@ type DigikalaOrderInfo = {
 
 /** Digikala order actions: SBS status push with verification code, and item cancellation. */
 export function DigikalaOrderActions({ orderId }: { orderId: number }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.digikala")
   const qc = useQueryClient()
   const [code, setCode] = useState("")
@@ -120,12 +122,13 @@ export function DigikalaOrderActions({ orderId }: { orderId: number }) {
           variant="destructive"
           disabled={cancel.isPending}
           onClick={() => {
-            if (window.confirm(t("confirm_cancel"))) cancel.mutate()
+            confirm({ intent: "action", description: t("confirm_cancel"), onConfirm: () => cancel.mutateAsync() })
           }}
         >
           {t("cancel_on_digikala")}
         </Button>
       </div>
+      {confirmDialog}
     </div>
   )
 }

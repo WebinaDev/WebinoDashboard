@@ -25,6 +25,9 @@ class CustomerController extends Controller
                         ->orWhere('email', 'like', $like);
                 });
             })
+            ->when(in_array($request->query('status'), ['active', 'inactive'], true), function ($w) use ($request) {
+                $w->where('is_active', $request->query('status') === 'active');
+            })
             ->orderByDesc('id');
 
         $paginator = $query->paginate(min(100, max(1, (int) $request->query('per_page', 20))));

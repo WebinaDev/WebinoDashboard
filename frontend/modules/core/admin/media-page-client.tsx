@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Folder, Pencil, Tags, Trash2 } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { MediaDropzone } from "@/components/media/MediaDropzone"
@@ -22,6 +22,10 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { useConfirm } from "@/components/ConfirmDialog"
+import { PostsPagination } from "@/components/PostsPagination"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
 
 type Term = { id: number; name: string; slug: string; parent?: number | null; count?: number }
 type MediaItem = {
@@ -47,7 +51,9 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
   const t = useTranslations("media")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(24)
   const [search, setSearch] = useState("")
   const [appliedSearch, setAppliedSearch] = useState("")
   const [folderId, setFolderId] = useState("")
@@ -65,9 +71,9 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
   })
 
   const listQ = useQuery({
-    queryKey: ["media", "list", page, appliedSearch, folderId, categoryId],
+    queryKey: ["media", "list", page, perPage, appliedSearch, folderId, categoryId],
     queryFn: () => {
-      const p = new URLSearchParams({ page: String(page), per_page: "24" })
+      const p = new URLSearchParams({ page: String(page), per_page: String(perPage) })
       if (appliedSearch.trim()) p.set("search", appliedSearch.trim())
       if (folderId) p.set("folder_id", folderId)
       if (categoryId) p.set("category_id", categoryId)
@@ -77,7 +83,6 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
 
   const items = listQ.data?.items ?? []
   const total = listQ.data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / 24))
   const folders = termsQ.data?.folders ?? []
   const categories = termsQ.data?.categories ?? []
   const tags = termsQ.data?.tags ?? []
@@ -136,9 +141,9 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
   }, [editItem])
 
   const [editDraft, setEditDraft] = useState(editForm)
-  if (editItem && editDraft === null && editForm) {
+  useEffect(() => {
     setEditDraft(editForm)
-  }
+  }, [editForm])
 
   return (
     <PageShell title={t("title")} description={t("subtitle")}>
@@ -194,8 +199,10 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
         </Button>
       </div>
 
-      {listQ.isLoading ? (
-        <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+      {listQ.isError ? (
+        <QueryErrorState onRetry={() => listQ.refetch()} />
+      ) : listQ.isLoading ? (
+        <TableListSkeleton rows={4} columns={4} />
       ) : items.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t("empty")}</p>
       ) : (
@@ -225,20 +232,17 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={() => {
-                    setEditItem(item)
-                    setEditDraft({
-                      title: item.title ?? "",
-                      slug: item.slug ?? "",
-                      alt: item.alt ?? "",
-                      caption: item.caption ?? "",
-                      description: item.description ?? "",
-                    })
-                  }}
+                  onClick={() => setEditItem(item)}
                 >
                   <Pencil className="size-3.5" />
                 </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => void deleteMut.mutateAsync(item.id)}>
+                <Button type="button" size="sm" variant="ghost" onClick={() =>
+                    confirm({
+                      description: item.title || item.original_name || undefined,
+                      onConfirm: () => deleteMut.mutateAsync(item.id),
+                    })
+                  }
+                >
                   <Trash2 className="size-3.5" />
                 </Button>
               </div>
@@ -247,25 +251,18 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
         </ul>
       )}
 
-      {totalPages > 1 ? (
-        <div className="mt-4 flex items-center justify-between">
-          <Button type="button" size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            {tCommon("prev")}
-          </Button>
-          <span className="text-muted-foreground text-sm">
-            {page} / {totalPages}
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            {tCommon("next")}
-          </Button>
-        </div>
-      ) : null}
+      <PostsPagination
+        className="mt-4"
+        page={page}
+        perPage={perPage}
+        found={total}
+        onPageChange={setPage}
+        onPerPageChange={(n) => {
+          setPerPage(n)
+          setPage(1)
+        }}
+      />
+      {confirmDialog}
 
       <Dialog open={!!folderItem} onOpenChange={(o) => !o && setFolderItem(null)}>
         <DialogContent>
@@ -428,10 +425,7 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
       <Dialog
         open={!!editItem}
         onOpenChange={(o) => {
-          if (!o) {
-            setEditItem(null)
-            setEditDraft(null)
-          }
+          if (!o) setEditItem(null)
         }}
       >
         <DialogContent>

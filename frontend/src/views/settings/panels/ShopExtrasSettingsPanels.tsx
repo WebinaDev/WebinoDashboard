@@ -93,10 +93,9 @@ export function ShopReviewsSettingsPanel() {
   >([])
 
   useEffect(() => {
-    api<{ id: number; rating: number; body?: string; product?: { name: string } }[]>(
-      "/api/v1/product-reviews?status=pending"
-    )
-      .then((rows) => setPendingReviews(Array.isArray(rows) ? rows : []))
+    type PendingReview = { id: number; rating: number; body?: string; product?: { name: string } }
+    api<PendingReview[] | { data: PendingReview[] }>("/api/v1/product-reviews?status=pending")
+      .then((res) => setPendingReviews(Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : []))
       .catch(() => setPendingReviews([]))
   }, [saved])
 

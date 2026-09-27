@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -30,6 +31,7 @@ type ProfileSettings = {
 }
 
 export default function ProfilePageClient({ route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("coffee_admin")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
@@ -157,7 +159,7 @@ export default function ProfilePageClient({ route }: { route: ResolvedAdminRoute
                       {o.iso_code ? ` · ${o.iso_code}` : ""}
                     </p>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => deleteOrigin.mutate(o.id)}>
+                  <Button size="icon" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteOrigin.mutateAsync(o.id) })}>
                     <Trash2 className="size-4" />
                   </Button>
                 </li>
@@ -201,6 +203,7 @@ export default function ProfilePageClient({ route }: { route: ResolvedAdminRoute
           </Button>
         </CardContent>
       </Card>
+      {confirmDialog}
     </div>
   )
 }

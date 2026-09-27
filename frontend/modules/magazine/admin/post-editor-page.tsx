@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { RichTextEditor } from "@/components/content/RichTextEditor"
 import { PageShell } from "@/components/PageShell"
@@ -129,25 +130,7 @@ export default function MagazineEditorPage({ route }: { route: ResolvedAdminRout
             rows={3}
           />
           <RichTextEditor value={form.body} onChange={(html) => setForm({ ...form, body: html })} />
-          <div className="space-y-2 rounded-xl border p-4">
-            <p className="text-sm font-medium">{t("seo")}</p>
-            <Input
-              value={form.seo?.focus_keyword ?? ""}
-              onChange={(e) => setForm({ ...form, seo: { ...form.seo, focus_keyword: e.target.value } })}
-              placeholder={t("seo_keyword")}
-            />
-            <Input
-              value={form.seo?.title ?? ""}
-              onChange={(e) => setForm({ ...form, seo: { ...form.seo, title: e.target.value } })}
-              placeholder={t("seo_title")}
-            />
-            <Textarea
-              value={form.seo?.description ?? ""}
-              onChange={(e) => setForm({ ...form, seo: { ...form.seo, description: e.target.value } })}
-              placeholder={t("seo_description")}
-              rows={2}
-            />
-          </div>
+          <SimpleSeoFields seo={form.seo} onChange={(seo) => setForm({ ...form, seo })} />
         </div>
 
         <aside className="space-y-4">

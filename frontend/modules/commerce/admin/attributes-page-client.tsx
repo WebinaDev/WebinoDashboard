@@ -6,12 +6,16 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { useConfirm } from "@/components/ConfirmDialog"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
+import { useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
@@ -24,13 +28,14 @@ type Attribute = {
 }
 
 export default function AttributesPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const enumLabel = useEnumLabel()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
-  const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
   const [error, setError] = useState<string | null>(null)
 
-  const { data: attributes = [], isLoading } = useQuery({
+  const { data: attributes = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-attributes"],
     queryFn: () => api<Attribute[]>("/api/v1/attributes"),
   })
@@ -81,8 +86,10 @@ export default function AttributesPageClient({ route }: { route: ResolvedAdminRo
           <CardTitle>{t("attributes_heading")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
+            <TableListSkeleton rows={5} columns={3} />
           ) : filtered.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_attributes")}</p>
           ) : (
@@ -91,7 +98,7 @@ export default function AttributesPageClient({ route }: { route: ResolvedAdminRo
                 <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{a.name}</p>
-                    <Badge variant="outline">{a.type}</Badge>
+                    <Badge variant="outline">{enumLabel("attribute_type", a.type)}</Badge>
                     <span className="text-muted-foreground text-xs">
                       {a.slug}
                       {typeof a.terms_count === "number" ? ` · ${a.terms_count}` : ""}
@@ -107,7 +114,7 @@ export default function AttributesPageClient({ route }: { route: ResolvedAdminRo
                       size="sm"
                       variant="ghost"
                       onClick={() => {
-                        if (window.confirm(t("confirm_delete"))) remove.mutate(a.id)
+                        confirm({ description: t("confirm_delete"), onConfirm: () => remove.mutateAsync(a.id) })
                       }}
                     >
                       <Trash2 className="size-4" />
@@ -119,6 +126,7 @@ export default function AttributesPageClient({ route }: { route: ResolvedAdminRo
           )}
         </CardContent>
       </Card>
+      {confirmDialog}
     </div>
   )
 }

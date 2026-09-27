@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Mail, Pencil, Phone, Printer, Trash2, User } from "lucide-react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useState, type ReactNode } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -11,11 +11,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useConfirm } from "@/components/ConfirmDialog"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { OrderPrintActions } from "@/components/orders/OrderPrintActions"
+import { ScrollTable } from "@/components/ScrollTable"
 import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { localizeNumber } from "@/lib/digits"
+import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
+import { formatDisplayDateTime } from "@/lib/format-date"
+import { isMarketplaceChannel, marketplaceLabel } from "@/lib/marketplace"
 import { ORDER_STATUSES } from "../lib/order-statuses"
 import { OrderMarketplacePanels } from "./order-marketplace-panels"
 
@@ -118,6 +125,9 @@ function Panel({ title, children, actions }: { title: string; children: ReactNod
 export default function OrderDetailPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("orders_admin")
   const tCommon = useTranslations("common")
+  const locale = useLocale()
+  const enumLabel = useEnumLabel()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const orderId = route.params?.orderId
 
@@ -269,14 +279,14 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                 {customerEmail}
               </a>
             ) : null}
-            <Badge variant="outline">{order.status}</Badge>
-            {order.is_pos ? <Badge variant="secondary">POS</Badge> : null}
+            <Badge variant={statusBadgeVariant(order.status)}>{enumLabel("order_status", order.status)}</Badge>
+            {order.is_pos ? <Badge variant="secondary">{enumLabel("sales_channel", "pos")}</Badge> : null}
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
             <div className="space-y-4">
               <Panel title={t("items")}>
-                <div className="overflow-x-auto">
+                <ScrollTable>
                   <table className="w-full min-w-[560px] text-sm">
                     <thead>
                       <tr className="border-b text-start text-muted-foreground">
@@ -293,14 +303,18 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                             {it.product_name || "—"}
                             {it.sku ? <span className="text-muted-foreground ms-1">({it.sku})</span> : null}
                           </td>
-                          <td className="p-2">{it.quantity}</td>
-                          <td className="p-2">{it.unit_price_minor.toLocaleString()}</td>
-                          <td className="p-2">{(it.quantity * it.unit_price_minor).toLocaleString()}</td>
+                          <td className="p-2">{localizeNumber(it.quantity, locale)}</td>
+                          <td className="p-2">
+                            <MoneyDisplay amount={it.unit_price_minor} currency={order.currency} />
+                          </td>
+                          <td className="p-2">
+                            <MoneyDisplay amount={it.quantity * it.unit_price_minor} currency={order.currency} />
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollTable>
               </Panel>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -402,10 +416,10 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                         <div>
                           <p className="whitespace-pre-wrap">{n.body}</p>
                           <p className="text-muted-foreground mt-1 text-xs">
-                            {n.user?.name || "—"} · {n.created_at ? new Date(n.created_at).toLocaleString() : ""}
+                            {n.user?.name || "—"} · {formatDisplayDateTime(n.created_at, locale, "")}
                           </p>
                         </div>
-                        <Button size="icon" variant="ghost" onClick={() => deleteNote.mutate(n.id)}>
+                        <Button size="icon" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteNote.mutateAsync(n.id) })}>
                           <Trash2 className="size-4" />
                         </Button>
                       </li>
@@ -433,9 +447,9 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                     (order.returns ?? []).map((r) => (
                       <li key={r.id} className="space-y-2 rounded-md border p-3 text-sm">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline">{r.status}</Badge>
+                          <Badge variant={statusBadgeVariant(r.status)}>{enumLabel("return_status", r.status)}</Badge>
                           <span>{r.reason || "—"}</span>
-                          {r.refund_minor != null ? <span>{r.refund_minor.toLocaleString()}</span> : null}
+                          {r.refund_minor != null ? <MoneyDisplay amount={r.refund_minor} currency={order.currency} /> : null}
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {(["approve", "reject", "receive", "refund", "exchange"] as const).map((action) => (
@@ -506,46 +520,48 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground">{t("col_total")}</span>
-                    <span className="font-semibold">
-                      {order.total_minor.toLocaleString()} {order.currency || ""}
-                    </span>
+                    <MoneyDisplay className="font-semibold" amount={order.total_minor} currency={order.currency} />
                   </div>
                   {order.subtotal_minor != null ? (
                     <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span>{order.subtotal_minor.toLocaleString()}</span>
+                      <span className="text-muted-foreground">{t("subtotal")}</span>
+                      <MoneyDisplay amount={order.subtotal_minor} currency={order.currency} />
                     </div>
                   ) : null}
                   {order.discount_minor != null && order.discount_minor > 0 ? (
                     <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">Discount</span>
-                      <span>{order.discount_minor.toLocaleString()}</span>
+                      <span className="text-muted-foreground">{t("discount_minor")}</span>
+                      <MoneyDisplay amount={order.discount_minor} currency={order.currency} />
                     </div>
                   ) : null}
                   {order.shipping_minor != null ? (
                     <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">Shipping</span>
-                      <span>{order.shipping_minor.toLocaleString()}</span>
+                      <span className="text-muted-foreground">{t("shipping_minor")}</span>
+                      <MoneyDisplay amount={order.shipping_minor} currency={order.currency} />
                     </div>
                   ) : null}
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground">{t("payment_tender")}</span>
-                    <span>{order.payment_tender || "—"}</span>
+                    <span>{enumLabel("payment_tender", order.payment_tender)}</span>
                   </div>
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground">{t("sales_channel")}</span>
-                    <span>{order.sales_channel || "—"}</span>
+                    <span>
+                      {order.sales_channel && isMarketplaceChannel(order.sales_channel)
+                        ? marketplaceLabel(order.sales_channel, locale)
+                        : enumLabel("sales_channel", order.sales_channel)}
+                    </span>
                   </div>
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground">{t("col_date")}</span>
-                    <span>{order.created_at ? new Date(order.created_at).toLocaleString() : "—"}</span>
+                    <span>{formatDisplayDateTime(order.created_at, locale)}</span>
                   </div>
                   <div className="border-t pt-3">
                     <Label>{t("status")}</Label>
                     <select className={`${selectClass} mt-1`} value={status} onChange={(e) => setStatus(e.target.value)}>
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {enumLabel("order_status", s)}
                         </option>
                       ))}
                     </select>
@@ -559,6 +575,7 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
           </div>
         </>
       )}
+      {confirmDialog}
     </PageShell>
   )
 }

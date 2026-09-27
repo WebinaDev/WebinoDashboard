@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
-import { ChevronLeft, ChevronRight, Copy, Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { Copy, Pencil, Plus, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { Fragment, useMemo, useState } from "react"
@@ -11,13 +11,21 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useConfirm } from "@/components/ConfirmDialog"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { ListFiltersCollapsible } from "@/components/ListFiltersCollapsible"
+import { MobileListCard, MobileListField } from "@/components/MobileListCard"
+import { PostsPagination } from "@/components/PostsPagination"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { ScrollTable } from "@/components/ScrollTable"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
 import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 
 type NamedRef = { id: number; name: string }
 
@@ -74,6 +82,8 @@ function joinNames(items?: NamedRef[] | null, fallback?: NamedRef | null) {
 export default function ProductsPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
+  const enumLabel = useEnumLabel()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
   const [search, setSearch] = useState("")
@@ -84,13 +94,14 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
   const [brandId, setBrandId] = useState("")
   const [visibility, setVisibility] = useState("")
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(20)
   const [error, setError] = useState<string | null>(null)
   const [quickId, setQuickId] = useState<number | null>(null)
   const [quickName, setQuickName] = useState("")
   const [quickStatus, setQuickStatus] = useState("draft")
   const [quickPrice, setQuickPrice] = useState("")
 
-  const queryKey = ["admin-products", search, status, type, stockStatus, categoryId, brandId, visibility, page] as const
+  const queryKey = ["admin-products", search, status, type, stockStatus, categoryId, brandId, visibility, page, perPage] as const
 
   const lookupQ = useQuery({
     queryKey: ["products-lookup"],
@@ -98,12 +109,12 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
       api<{ categories: NamedRef[]; brands: NamedRef[] }>("/api/v1/products/lookup"),
   })
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey,
     queryFn: () => {
       const params = new URLSearchParams()
       params.set("page", String(page))
-      params.set("per_page", "20")
+      params.set("per_page", String(perPage))
       if (search.trim()) params.set("search", search.trim())
       if (status && status !== "all") params.set("status", status)
       if (type) params.set("type", type)
@@ -199,6 +210,74 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
     [stats, t],
   )
 
+  function rowActions(p: ProductRow) {
+    return (
+      <div className="flex flex-wrap gap-1">
+        <Button size="icon" variant="outline" asChild title={t("edit")}>
+          <Link href={`/dashboard/products/${p.id}`}>
+            <Pencil className="size-4" />
+          </Link>
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setQuickId(p.id)
+            setQuickName(p.name)
+            setQuickStatus(p.status || "draft")
+            setQuickPrice(String(p.price_minor ?? ""))
+          }}
+        >
+          {t("quick_edit")}
+        </Button>
+        <Button
+          size="icon"
+          variant="outline"
+          title={t("duplicate")}
+          disabled={duplicate.isPending}
+          onClick={() => duplicate.mutate(p.id)}
+        >
+          <Copy className="size-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          title={t("delete")}
+          disabled={remove.isPending}
+          onClick={() => confirm({ description: p.name, onConfirm: () => remove.mutateAsync(p.id) })}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+    )
+  }
+
+  const quickEditForm = (
+    <div className="flex flex-wrap gap-2">
+      <Input className="max-w-xs" value={quickName} onChange={(e) => setQuickName(e.target.value)} />
+      <select className={selectClass} value={quickStatus} onChange={(e) => setQuickStatus(e.target.value)}>
+        {(["publish", "draft", "pending", "private"] as const).map((v) => (
+          <option key={v} value={v}>
+            {enumLabel("product_status", v)}
+          </option>
+        ))}
+      </select>
+      <Input
+        className="max-w-[140px]"
+        type="number"
+        value={quickPrice}
+        onChange={(e) => setQuickPrice(e.target.value)}
+        placeholder={t("price")}
+      />
+      <Button size="sm" onClick={() => void quickSave.mutateAsync()}>
+        {tCommon("save")}
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => setQuickId(null)}>
+        {tCommon("cancel")}
+      </Button>
+    </div>
+  )
+
   const filterActiveCount = [type, stockStatus, categoryId, brandId, visibility].filter(Boolean).length
 
   return (
@@ -238,7 +317,7 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
         />
       </div>
 
-      <ListFiltersCollapsible label={t("search")} activeCount={filterActiveCount}>
+      <ListFiltersCollapsible activeCount={filterActiveCount}>
         <div className="grid gap-3 md:grid-cols-3">
           <div>
             <Label>{t("type")}</Label>
@@ -288,10 +367,11 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
             <Label>{t("catalog_visibility")}</Label>
             <select className={`${selectClass} mt-1`} value={visibility} onChange={(e) => setVisibility(e.target.value)}>
               <option value="">{t("all")}</option>
-              <option value="visible">visible</option>
-              <option value="catalog">catalog</option>
-              <option value="search">search</option>
-              <option value="hidden">hidden</option>
+              {(["visible", "catalog", "search", "hidden"] as const).map((v) => (
+                <option key={v} value={v}>
+                  {enumLabel("catalog_visibility", v)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex items-end">
@@ -305,156 +385,106 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
       <div className="rounded-lg border border-border bg-card/40">
         <div className="border-b px-4 py-3 text-sm font-medium">{t("products_heading")}</div>
         <div className="p-2 sm:p-4">
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
+            <TableListSkeleton rows={8} columns={6} />
           ) : products.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_products")}</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-sm">
-                <thead>
-                  <tr className="border-b text-start text-muted-foreground">
-                    <th className="p-2 font-medium">{t("name")}</th>
-                    <th className="p-2 font-medium">{t("sku")}</th>
-                    <th className="p-2 font-medium">{t("price")}</th>
-                    <th className="p-2 font-medium">{t("stock_status")}</th>
-                    <th className="p-2 font-medium">{t("status")}</th>
-                    <th className="p-2 font-medium">{t("brands")}</th>
-                    <th className="p-2 font-medium">{t("categories")}</th>
-                    <th className="p-2 font-medium">{t("actions")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((p) => (
-                    <Fragment key={p.id}>
-                      <tr className="border-b last:border-0">
-                      <td className="p-2 font-medium">
-                        <Link className="underline-offset-2 hover:underline" href={`/dashboard/products/${p.id}`}>
+            <>
+              <div className="space-y-2 md:hidden">
+                {products.map((p) => (
+                  <MobileListCard
+                    key={p.id}
+                    media={
+                      <div className="flex items-start justify-between gap-2">
+                        <Link className="font-medium underline-offset-2 hover:underline" href={`/dashboard/products/${p.id}`}>
                           {p.name}
                         </Link>
-                      </td>
-                      <td className="p-2 text-muted-foreground">{p.sku || "—"}</td>
-                      <td className="p-2">{p.price_minor?.toLocaleString()}</td>
-                      <td className="p-2">
-                        <Badge variant="outline">{p.stock_status || "—"}</Badge>
-                      </td>
-                      <td className="p-2">
-                        <Badge variant={p.status === "publish" ? "default" : "secondary"}>
-                          {p.status || "—"}
-                        </Badge>
-                      </td>
-                      <td className="p-2 text-muted-foreground">{joinNames(p.brands)}</td>
-                      <td className="p-2 text-muted-foreground">{joinNames(p.categories, p.category)}</td>
-                      <td className="p-2">
-                        <div className="flex flex-wrap gap-1">
-                          <Button size="icon" variant="outline" asChild title={t("edit")}>
-                            <Link href={`/dashboard/products/${p.id}`}>
-                              <Pencil className="size-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setQuickId(p.id)
-                              setQuickName(p.name)
-                              setQuickStatus(p.status || "draft")
-                              setQuickPrice(String(p.price_minor ?? ""))
-                            }}
-                          >
-                            {t("quick_edit")}
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            title={t("duplicate")}
-                            disabled={duplicate.isPending}
-                            onClick={() => duplicate.mutate(p.id)}
-                          >
-                            <Copy className="size-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title={t("delete")}
-                            disabled={remove.isPending}
-                            onClick={() => {
-                              if (window.confirm(t("confirm_delete"))) remove.mutate(p.id)
-                            }}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
-                      </td>
+                        <Badge variant={statusBadgeVariant(p.status)}>{enumLabel("product_status", p.status)}</Badge>
+                      </div>
+                    }
+                    actions={rowActions(p)}
+                  >
+                    <MobileListField label={t("price")}>
+                      <MoneyDisplay amount={p.price_minor} />
+                    </MobileListField>
+                    <MobileListField label={t("stock_status")}>{enumLabel("stock_status", p.stock_status)}</MobileListField>
+                    <MobileListField label={t("sku")}>{p.sku || "—"}</MobileListField>
+                    <MobileListField label={t("categories")}>{joinNames(p.categories, p.category)}</MobileListField>
+                    {quickId === p.id ? quickEditForm : null}
+                  </MobileListCard>
+                ))}
+              </div>
+              <ScrollTable className="hidden md:block">
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead>
+                    <tr className="border-b text-start text-muted-foreground">
+                      <th className="p-2 text-start font-medium">{t("name")}</th>
+                      <th className="p-2 text-start font-medium">{t("sku")}</th>
+                      <th className="p-2 text-start font-medium">{t("price")}</th>
+                      <th className="p-2 text-start font-medium">{t("stock_status")}</th>
+                      <th className="p-2 text-start font-medium">{t("status")}</th>
+                      <th className="p-2 text-start font-medium">{t("brands")}</th>
+                      <th className="p-2 text-start font-medium">{t("categories")}</th>
+                      <th className="p-2 text-start font-medium">{t("actions")}</th>
                     </tr>
-                    {quickId === p.id ? (
-                      <tr className="bg-muted/20 border-b">
-                        <td colSpan={8} className="p-3">
-                          <div className="flex flex-wrap gap-2">
-                            <Input className="max-w-xs" value={quickName} onChange={(e) => setQuickName(e.target.value)} />
-                            <select
-                              className={selectClass}
-                              value={quickStatus}
-                              onChange={(e) => setQuickStatus(e.target.value)}
-                            >
-                              <option value="publish">{t("status_publish")}</option>
-                              <option value="draft">{t("status_draft")}</option>
-                              <option value="pending">{t("status_pending")}</option>
-                              <option value="private">{t("status_private")}</option>
-                            </select>
-                            <Input
-                              className="max-w-[140px]"
-                              type="number"
-                              value={quickPrice}
-                              onChange={(e) => setQuickPrice(e.target.value)}
-                              placeholder={t("price")}
-                            />
-                            <Button size="sm" onClick={() => void quickSave.mutateAsync()}>
-                              {tCommon("save")}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => setQuickId(null)}>
-                              {tCommon("cancel")}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {products.map((p) => (
+                      <Fragment key={p.id}>
+                        <tr className="border-b last:border-0">
+                          <td className="p-2 font-medium">
+                            <Link className="underline-offset-2 hover:underline" href={`/dashboard/products/${p.id}`}>
+                              {p.name}
+                            </Link>
+                          </td>
+                          <td className="p-2 text-muted-foreground">{p.sku || "—"}</td>
+                          <td className="p-2">
+                            <MoneyDisplay amount={p.price_minor} />
+                          </td>
+                          <td className="p-2">
+                            <Badge variant={statusBadgeVariant(p.stock_status)}>{enumLabel("stock_status", p.stock_status)}</Badge>
+                          </td>
+                          <td className="p-2">
+                            <Badge variant={statusBadgeVariant(p.status)}>{enumLabel("product_status", p.status)}</Badge>
+                          </td>
+                          <td className="p-2 text-muted-foreground">{joinNames(p.brands)}</td>
+                          <td className="p-2 text-muted-foreground">{joinNames(p.categories, p.category)}</td>
+                          <td className="p-2">{rowActions(p)}</td>
+                        </tr>
+                        {quickId === p.id ? (
+                          <tr className="bg-muted/20 border-b">
+                            <td colSpan={8} className="p-3">
+                              {quickEditForm}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollTable>
+            </>
           )}
 
-          {meta && meta.last_page > 1 ? (
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-muted-foreground text-sm">
-                {t("page_of", { page: meta.current_page, pages: meta.last_page, total: meta.total })}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronRight className="size-4 rtl:rotate-180" />
-                  {t("prev")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={page >= meta.last_page}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  {t("next")}
-                  <ChevronLeft className="size-4 rtl:rotate-180" />
-                </Button>
-              </div>
-            </div>
+          {meta ? (
+            <PostsPagination
+              className="mt-4"
+              page={meta.current_page}
+              perPage={meta.per_page || perPage}
+              found={meta.total}
+              onPageChange={setPage}
+              onPerPageChange={(n) => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
           ) : null}
         </div>
       </div>
+      {confirmDialog}
     </PageShell>
   )
 }

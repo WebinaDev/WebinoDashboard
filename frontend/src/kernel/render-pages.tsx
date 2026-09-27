@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
+import { PermissionGate } from "@/components/PermissionGate"
 import { AdminPageSkeleton } from "@/kernel/components/AdminPageSkeleton"
 import { SitePageSkeleton } from "@/kernel/components/SitePageSkeleton"
+import { isPortalPath } from "@/kernel/portal"
 import { loadAdminPage, loadSitePage } from "@/kernel/theme-loader"
 import { resolveAdminRoute, resolveSiteRoute } from "@/kernel/route-resolver"
 import { getPublicActivations, getTenantActivations } from "@/kernel/server-data"
@@ -18,12 +20,13 @@ export async function renderAdminPage(segments: string[]) {
   }
 
   const Page = await loadAdminPage(route)
-
-  return (
+  const page = (
     <Suspense fallback={<AdminPageSkeleton />}>
       <Page route={route} />
     </Suspense>
   )
+
+  return isPortalPath(route.path) ? page : <PermissionGate>{page}</PermissionGate>
 }
 
 export async function renderSitePage(

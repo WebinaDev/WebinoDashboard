@@ -19,15 +19,18 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { ResolvedAdminRoute } from "@/kernel/types"
+import { useEnumLabel } from "@/lib/enum-labels"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatNumber, toLocaleDigits } from "@/lib/locale"
 import { fetchSmsAccount, fetchSmsLedger, smsQueryOptions } from "../lib/modirpayamak-api"
 import { formatSmsDateTime } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 const LEDGER_PAGE_SIZE = 30
 
 export default function PageClient({ route: _route }: { route: ResolvedAdminRoute }) {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("sms")
   const locale = useLocale()
   const [page, setPage] = useState(1)
@@ -83,10 +86,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
             {balanceLoading ? (
               <Skeleton className="h-9 w-40" />
             ) : (
-              <p className="text-3xl font-bold">
-                {toLocaleDigits(formatNumber(account?.balance ?? 0, locale), locale)}{" "}
-                <span className="text-base font-normal">{t("toman")}</span>
-              </p>
+              <MoneyDisplay className="text-3xl font-bold" amount={account?.balance ?? 0} currency="IRT" symbol="default" />
             )}
             <Button asChild className="mt-4" variant="outline" disabled={unavailable}>
               <Link href="/dashboard/marketing/sms/topup">{t("topup")}</Link>
@@ -116,7 +116,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 {account.status ? (
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">{t("status")}</dt>
-                    <dd>{account.status}</dd>
+                    <dd>{enumLabel("job_status", account.status)}</dd>
                   </div>
                 ) : null}
                 {account.price_per_unit != null ? (
@@ -186,9 +186,11 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                             {String(row.description ?? row.title ?? row.type ?? "—")}
                           </TableCell>
                           <TableCell>
-                            {typeof row.amount === "number"
-                              ? toLocaleDigits(formatNumber(row.amount, locale), locale)
-                              : String(row.amount ?? "—")}
+                            {typeof row.amount === "number" ? (
+                              <MoneyDisplay amount={row.amount} currency="IRT" symbol="default" />
+                            ) : (
+                              String(row.amount ?? "—")
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

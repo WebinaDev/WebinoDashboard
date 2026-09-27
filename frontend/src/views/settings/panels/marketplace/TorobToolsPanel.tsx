@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +21,7 @@ type QueueView = {
 }
 
 export function TorobToolsPanel() {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin")
   const locale = useLocale()
   const qc = useQueryClient()
@@ -74,7 +76,7 @@ export function TorobToolsPanel() {
               variant="ghost"
               disabled={reset.isPending || !q?.has_token}
               onClick={() => {
-                if (window.confirm(t("torob.confirm_reset"))) reset.mutate()
+                confirm({ intent: "action", description: t("torob.confirm_reset"), onConfirm: () => reset.mutateAsync() })
               }}
             >
               {t("torob.reset_token")}
@@ -117,6 +119,7 @@ export function TorobToolsPanel() {
           ) : null}
         </CardContent>
       </Card>
+      {confirmDialog}
     </div>
   )
 }

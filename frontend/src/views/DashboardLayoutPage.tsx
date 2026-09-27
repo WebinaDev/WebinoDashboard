@@ -6,6 +6,8 @@ import { useLocale, useTranslations } from "next-intl"
 import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 
+import { DashboardPrefetch } from "@/components/DashboardPrefetch"
+import { NotificationBell } from "@/components/NotificationBell"
 import { AppSidebar } from "@/components/sidebar-07/app-sidebar"
 import { LocaleThemeToolbar } from "@/components/LocaleThemeToolbar"
 import {
@@ -34,7 +36,7 @@ type UserDto = {
   id: number
   name: string
   email: string
-  tenant?: { id: number; name: string; slug: string }
+  tenant?: { id: number; name: string; slug: string; domain?: string | null }
 }
 
 export default function DashboardLayoutPage({
@@ -76,6 +78,8 @@ export default function DashboardLayoutPage({
   }
 
   const tenantLabel = user?.tenant?.name ?? "…"
+  const tenantDomain = user?.tenant?.domain?.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "")
+  const siteUrl = tenantDomain ? `https://${tenantDomain}` : null
 
   const breadcrumbCurrent = useMemo(() => {
     const segments = stripDashboardBase(pathname)
@@ -95,6 +99,7 @@ export default function DashboardLayoutPage({
 
   return (
     <SidebarProvider>
+      <DashboardPrefetch />
       <AppSidebar
         side={sidebarSide(locale)}
         navSections={navSections}
@@ -122,7 +127,13 @@ export default function DashboardLayoutPage({
                     {tDashboard("breadcrumb_building")}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbSeparator className="hidden md:block">
+                  {locale === "fa" ? (
+                    <span dir="ltr" className="inline-block px-0.5">
+                      {">"}
+                    </span>
+                  ) : undefined}
+                </BreadcrumbSeparator>
                 <BreadcrumbItem className="min-w-0">
                   <BreadcrumbPage
                     className="truncate"
@@ -134,6 +145,7 @@ export default function DashboardLayoutPage({
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ms-auto flex items-center gap-1 md:gap-2">
+              <NotificationBell />
               <Button
                 type="button"
                 variant="outline"
@@ -152,21 +164,23 @@ export default function DashboardLayoutPage({
                   <Maximize className="size-4" />
                 )}
               </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="hidden md:inline-flex"
-                asChild
-              >
-                <a
-                  href="/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={tDashboard("visit_site")}
+              {siteUrl ? (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="hidden md:inline-flex"
+                  asChild
                 >
-                  <ExternalLink className="size-4" />
-                </a>
-              </Button>
+                  <a
+                    href={siteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={tDashboard("visit_site")}
+                  >
+                    <ExternalLink className="size-4" />
+                  </a>
+                </Button>
+              ) : null}
               <LocaleThemeToolbar />
             </div>
           </div>

@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +20,7 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import { marketplaceLabel } from "@/lib/marketplace"
 import { BasalamCategoriesTab, BasalamProductsTab } from "@/views/settings/panels/marketplace/BasalamProductsTab"
 import { ConnectionCard, JobsTable, LogsTable, PlatformTabsNav, fmtDate, fmtNum, selectClass, type PlatformTab } from "@/views/settings/panels/marketplace/MarketplaceShared"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 export type BasalamAuthStatus = {
   connected: boolean
@@ -194,6 +196,7 @@ function BasalamAlerts() {
 // ── Connection ──────────────────────────────────────────────────────────
 
 function BasalamAuthCard() {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.basalam")
   const locale = useLocale()
   const qc = useQueryClient()
@@ -296,7 +299,7 @@ function BasalamAuthCard() {
               className="text-destructive"
               disabled={disconnect.isPending}
               onClick={() => {
-                if (window.confirm(t("confirm_disconnect"))) disconnect.mutate()
+                confirm({ intent: "action", description: t("confirm_disconnect"), onConfirm: () => disconnect.mutateAsync() })
               }}
             >
               {t("disconnect")}
@@ -337,6 +340,7 @@ function BasalamAuthCard() {
           </div>
         ) : null}
       </CardContent>
+      {confirmDialog}
     </Card>
   )
 }
@@ -656,6 +660,7 @@ function BasalamWebhooksCard({ connected }: { connected: boolean }) {
 }
 
 function BasalamShippingCard({ connected }: { connected: boolean }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.basalam")
   const qc = useQueryClient()
   const q = useQuery({
@@ -720,7 +725,7 @@ function BasalamShippingCard({ connected }: { connected: boolean }) {
                     className="text-destructive"
                     disabled={act.isPending}
                     onClick={() => {
-                      if (window.confirm(t("confirm_delete"))) act.mutate({ action: "delete_profile", profile_id: Number(p.id) })
+                      confirm({ description: t("confirm_delete"), onConfirm: () => act.mutateAsync({ action: "delete_profile", profile_id: Number(p.id) }) })
                     }}
                   >
                     {t("delete")}
@@ -741,6 +746,7 @@ function BasalamShippingCard({ connected }: { connected: boolean }) {
           </ul>
         </div>
       </CardContent>
+      {confirmDialog}
     </Card>
   )
 }
@@ -898,7 +904,7 @@ function BasalamOrdersTab() {
                         {o.status ? (t.has(`order_status.${o.status}`) ? t(`order_status.${o.status}`) : o.status) : "—"}
                         {o.remote_status ? <div className="text-muted-foreground text-xs">{t.has(`basalam.status_keys.${o.remote_status}`) ? t(`basalam.status_keys.${o.remote_status}`) : o.remote_status}</div> : null}
                       </TableCell>
-                      <TableCell>{fmtNum(o.total_minor, locale)}</TableCell>
+                      <TableCell>{o.total_minor != null ? <MoneyDisplay amount={o.total_minor} /> : "—"}</TableCell>
                       <TableCell dir="ltr" className="text-xs">{o.tracking || "—"}</TableCell>
                       <TableCell className="text-xs">{fmtDate(o.last_sync_at ?? o.date, locale)}</TableCell>
                     </TableRow>
@@ -1401,6 +1407,7 @@ function BasalamFinanceTab() {
 // ── Jobs ────────────────────────────────────────────────────────────────
 
 function BasalamJobsTools() {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.basalam")
   const qc = useQueryClient()
   const cancel = useMutation({
@@ -1418,11 +1425,12 @@ function BasalamJobsTools() {
         className="text-destructive"
         disabled={cancel.isPending}
         onClick={() => {
-          if (window.confirm(t("confirm_cancel_jobs"))) cancel.mutate()
+          confirm({ intent: "action", description: t("confirm_cancel_jobs"), onConfirm: () => cancel.mutateAsync() })
         }}
       >
         {t("cancel_all_jobs")}
       </Button>
+      {confirmDialog}
     </div>
   )
 }

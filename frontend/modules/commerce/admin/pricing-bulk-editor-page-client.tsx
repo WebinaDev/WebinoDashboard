@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
-import { ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
@@ -15,6 +15,11 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { PostsPagination } from "@/components/PostsPagination"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { ScrollTable } from "@/components/ScrollTable"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
 
 type BulkProduct = {
   id: number
@@ -71,6 +76,7 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
   const [stockStatus, setStockStatus] = useState("")
   const [locked, setLocked] = useState("")
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(50)
   const [drafts, setDrafts] = useState<Record<number, Partial<BulkProduct>>>({})
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -84,12 +90,12 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
     queryFn: () => api<Named[]>("/api/v1/brands"),
   })
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["bulk-products", search, categoryId, brandId, stockStatus, locked, page],
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["bulk-products", search, categoryId, brandId, stockStatus, locked, page, perPage],
     queryFn: () => {
       const params = new URLSearchParams()
       params.set("page", String(page))
-      params.set("per_page", "50")
+      params.set("per_page", String(perPage))
       if (search.trim()) params.set("search", search.trim())
       if (categoryId) params.set("category_id", categoryId)
       if (brandId) params.set("brand_id", brandId)
@@ -222,12 +228,14 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
           <CardTitle>{t("bulk_editor_heading")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
+            <TableListSkeleton rows={8} columns={6} />
           ) : products.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_products")}</p>
           ) : (
-            <div className="overflow-x-auto">
+            <ScrollTable>
               <table className="w-full min-w-[900px] text-sm">
                 <thead>
                   <tr className="border-b text-start text-muted-foreground">
@@ -249,7 +257,7 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
                           <p className="text-muted-foreground text-xs">{p.sku || "—"}</p>
                           {p.calculated?.retail != null ? (
                             <Badge variant="outline" className="mt-1">
-                              {t("calc_retail")}: {p.calculated.retail.toLocaleString()}
+                              {t("calc_retail")}: <MoneyDisplay amount={p.calculated.retail} />
                             </Badge>
                           ) : null}
                         </td>
@@ -290,30 +298,21 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollTable>
           )}
 
-          {meta && meta.last_page > 1 ? (
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-muted-foreground text-sm">
-                {t("page_of", { page: meta.current_page, pages: meta.last_page, total: meta.total })}
-              </p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  <ChevronRight className="size-4" />
-                  {t("prev")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={page >= meta.last_page}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  {t("next")}
-                  <ChevronLeft className="size-4" />
-                </Button>
-              </div>
-            </div>
+          {!isLoading && !isError ? (
+            <PostsPagination
+              className="mt-4"
+              page={page}
+              perPage={perPage}
+              found={meta?.total ?? products.length}
+              onPageChange={setPage}
+              onPerPageChange={(n) => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
           ) : null}
         </CardContent>
       </Card>

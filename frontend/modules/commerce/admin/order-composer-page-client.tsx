@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -278,7 +279,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                   <li key={p.id} className="flex items-center justify-between gap-2">
                     <span>
                       {p.name}{" "}
-                      <span className="text-muted-foreground">({(p.price_minor ?? 0).toLocaleString()})</span>
+                      <MoneyDisplay className="text-muted-foreground" amount={p.price_minor ?? 0} />
                     </span>
                     <Button size="sm" variant="outline" onClick={() => addProduct(p)}>
                       <Plus className="size-4" />
@@ -476,11 +477,11 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
             <div className="rounded-md border p-3 text-sm">
               <div className="flex justify-between">
                 <span>{t("subtotal")}</span>
-                <span>{subtotal.toLocaleString()}</span>
+                <MoneyDisplay amount={subtotal} />
               </div>
               <div className="flex justify-between font-semibold">
                 <span>{t("total")}</span>
-                <span>{total.toLocaleString()}</span>
+                <MoneyDisplay amount={total} />
               </div>
             </div>
 

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
 
 type Row = {
@@ -38,6 +39,7 @@ export function AdminResourcePage({
   fields,
   idField = "id",
 }: Props) {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("site_admin")
   const tCommon = useTranslations("common")
   const [rows, setRows] = useState<Row[]>([])
@@ -123,7 +125,7 @@ export function AdminResourcePage({
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{String(row.title ?? row.name ?? row.author ?? row[idField])}</span>
               {row.status ? (
-                <span className="bg-muted rounded px-2 py-0.5 text-xs">{String(row.status)}</span>
+                <span className="bg-muted rounded px-2 py-0.5 text-xs">{enumLabel("job_status", String(row.status))}</span>
               ) : null}
               {row.erp_consultation_id ? (
                 <span className="border rounded px-2 py-0.5 text-xs">{t("synced_erp")}</span>

@@ -20,6 +20,7 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import { cn } from "@/lib/utils"
 import { MarketplacePricingCard } from "@/views/settings/panels/marketplace/MarketplacePricingCard"
 import { selectClass } from "@/views/settings/panels/marketplace/MarketplaceShared"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 export const PRICING_SETTINGS_BASE = "/dashboard/settings/shop/pricing"
 
@@ -124,7 +125,7 @@ function useSection(section: string) {
 
 function formatNum(n: number | undefined | null, locale: string) {
   if (n === undefined || n === null || Number.isNaN(n)) return "—"
-  return Math.round(n).toLocaleString(locale === "fa" ? "fa-IR" : "en-US")
+  return formatNumber(Math.round(n), normalizeUiLocale(locale))
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {

@@ -11,10 +11,12 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
 import type { BotProvider } from "./BotProviderSwitcher"
+import { ScrollTable } from "@/components/ScrollTable"
 
 type CampaignItem = {
   id: number
@@ -30,6 +32,7 @@ type CampaignsResponse = {
 }
 
 export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("bots")
   const qc = useQueryClient()
   const [name, setName] = useState("")
@@ -155,7 +158,7 @@ export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
 
       <section>
         <h3 className="mb-2 text-sm font-semibold">{t("campaigns.list")}</h3>
-        <div className="overflow-x-auto rounded-lg border border-border shadow-soft">
+        <ScrollTable className="rounded-lg border border-border shadow-soft">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-start text-xs text-muted-foreground">
@@ -176,7 +179,7 @@ export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
                 items.map((it) => (
                   <tr key={it.id} className="border-t">
                     <td className="p-2">{it.name}</td>
-                    <td className="p-2">{it.status}</td>
+                    <td className="p-2">{enumLabel("job_status", it.status)}</td>
                     <td className="p-2">{it.sent}</td>
                     <td className="p-2">{it.failed}</td>
                   </tr>
@@ -184,7 +187,7 @@ export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
               )}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       </section>
     </div>
   )

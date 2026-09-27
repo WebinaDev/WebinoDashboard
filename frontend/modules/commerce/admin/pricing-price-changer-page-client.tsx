@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
+import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
@@ -25,6 +26,7 @@ type JobState = {
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
 export default function PricingPriceChangerPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
 
@@ -116,7 +118,7 @@ export default function PricingPriceChangerPageClient({ route }: { route: Resolv
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle>{t("price_changer_state")}</CardTitle>
-          {job?.status ? <Badge>{job.status}</Badge> : <Badge variant="outline">{t("idle")}</Badge>}
+          {job?.status ? <Badge variant={statusBadgeVariant(job.status)}>{enumLabel("job_status", job.status)}</Badge> : <Badge variant="outline">{t("idle")}</Badge>}
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           {!job ? (

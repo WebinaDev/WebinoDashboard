@@ -6,6 +6,8 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 
+import { useConfirm } from "@/components/ConfirmDialog"
+import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { RichTextEditor } from "@/components/content/RichTextEditor"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +25,7 @@ import { isSubmoduleEnabled } from "@/kernel/route-resolver"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 type TabId = "content" | "pricing" | "attributes" | "downloads" | "coffee" | "marketplace" | "advanced"
 
@@ -290,6 +293,7 @@ function toggleId(list: number[], id: number) {
 }
 
 export default function ProductEditorPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
@@ -961,25 +965,17 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                       />
                     </div>
                   </div>
-                  <div className="space-y-2 rounded-xl border p-4">
-                    <p className="text-sm font-medium">{t("tab_seo")}</p>
-                    <Input
-                      value={form.seo_keyword}
-                      onChange={(e) => setForm((f) => ({ ...f, seo_keyword: e.target.value }))}
-                      placeholder={t("seo_keyword")}
-                    />
-                    <Input
-                      value={form.seo_title}
-                      onChange={(e) => setForm((f) => ({ ...f, seo_title: e.target.value }))}
-                      placeholder={t("seo_title")}
-                    />
-                    <Textarea
-                      value={form.seo_description}
-                      onChange={(e) => setForm((f) => ({ ...f, seo_description: e.target.value }))}
-                      placeholder={t("seo_description")}
-                      rows={2}
-                    />
-                  </div>
+                  <SimpleSeoFields
+                    seo={{ focus_keyword: form.seo_keyword, title: form.seo_title, description: form.seo_description }}
+                    onChange={(seo) =>
+                      setForm((f) => ({
+                        ...f,
+                        seo_keyword: seo.focus_keyword ?? "",
+                        seo_title: seo.title ?? "",
+                        seo_description: seo.description ?? "",
+                      }))
+                    }
+                  />
                 </CardContent>
               </Card>
           ) : null}
@@ -1072,13 +1068,13 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     {calculated ? (
                       <div className="flex flex-wrap gap-2 text-xs">
                         <Badge variant="outline">
-                          {t("calc_retail")}: {calculated.retail?.toLocaleString()}
+                          {t("calc_retail")}: <MoneyDisplay amount={calculated.retail} />
                         </Badge>
                         <Badge variant="outline">
-                          {t("calc_credit")}: {calculated.credit?.toLocaleString()}
+                          {t("calc_credit")}: <MoneyDisplay amount={calculated.credit} />
                         </Badge>
                         <Badge variant="outline">
-                          {t("calc_wholesale")}: {calculated.wholesale?.toLocaleString()}
+                          {t("calc_wholesale")}: <MoneyDisplay amount={calculated.wholesale} />
                         </Badge>
                       </div>
                     ) : null}
@@ -1236,7 +1232,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                               if (price_minor !== v.price_minor) updateVariant.mutate({ id: v.id, price_minor, sku: v.sku ?? "", stock: v.stock })
                             }}
                           />
-                          <Button size="icon" variant="ghost" onClick={() => deleteVariant.mutate(v.id)}>
+                          <Button size="icon" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteVariant.mutateAsync(v.id) })}>
                             <Trash2 className="size-4" />
                           </Button>
                         </li>
@@ -1518,11 +1514,13 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
           })
         }
       />
+      {confirmDialog}
     </PageShell>
   )
 }
 
 function ProductDownloadsPanel({ productId, isNew }: { productId: string | null; isNew: boolean }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
@@ -1578,7 +1576,7 @@ function ProductDownloadsPanel({ productId, isNew }: { productId: string | null;
           {items.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-2 rounded border px-3 py-2 text-sm">
               <span>{d.name || d.file_name || `#${d.id}`}</span>
-              <Button type="button" size="sm" variant="ghost" onClick={() => void remove.mutateAsync(d.id)}>
+              <Button type="button" size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => remove.mutateAsync(d.id) })}>
                 <Trash2 className="size-4" />
                 {tCommon("delete")}
               </Button>
@@ -1586,6 +1584,7 @@ function ProductDownloadsPanel({ productId, isNew }: { productId: string | null;
           ))}
         </ul>
       </CardContent>
+      {confirmDialog}
     </Card>
   )
 }

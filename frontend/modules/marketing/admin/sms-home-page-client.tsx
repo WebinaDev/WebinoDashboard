@@ -59,13 +59,13 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <ListStatsStrip
+          currency="IRT"
           items={[
             {
               id: "balance",
               label: t("balance"),
-              value: loading
-                ? "…"
-                : `${toLocaleDigits(formatNumber(account?.balance ?? 0, locale), locale)} ${t("toman")}`,
+              value: loading ? "…" : (account?.balance ?? 0),
+              money: !loading,
             },
             {
               id: "status",

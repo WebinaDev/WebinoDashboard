@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
 
+import { useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
 
 type Campaign = { id: number; name: string; status: string }
 
 export default function CommerceMarketingPage() {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("phase2")
   const [rows, setRows] = useState<Campaign[]>([])
 
@@ -27,7 +29,7 @@ export default function CommerceMarketingPage() {
           {rows.map((c) => (
             <li key={c.id} className="flex justify-between rounded-lg border px-3 py-2 text-sm">
               <span>{c.name}</span>
-              <span className="text-muted-foreground font-mono text-xs">{c.status}</span>
+              <span className="text-muted-foreground text-xs">{enumLabel("job_status", c.status)}</span>
             </li>
           ))}
         </ul>

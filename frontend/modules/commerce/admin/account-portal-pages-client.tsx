@@ -39,17 +39,22 @@ export function AccountOrdersPageClient({ route: _route }: { route: ResolvedAdmi
   const t = useTranslations("account_portal")
   const q = useQuery({
     queryKey: ["account", "orders"],
-    queryFn: () => api<Array<{ id: number; number?: string; status: string; total_minor: number }>>("/api/v1/account/orders"),
+    queryFn: () =>
+      api<{
+        data: Array<{ id: number; number?: string; status: string; total_minor: number }>
+        meta: { current_page: number; last_page: number; per_page: number; total: number }
+      }>("/api/v1/account/orders"),
   })
+  const orders = q.data?.data ?? []
   return (
     <PageShell title={t("orders_title")}>
       <div className="space-y-2">
-        {(q.data ?? []).map((o) => (
+        {orders.map((o) => (
           <Link key={o.id} href={`/dashboard/account/orders/${o.id}`} className="block rounded-lg border p-3 text-sm hover:bg-muted/40">
             #{o.number || o.id} · {o.status} · {o.total_minor}
           </Link>
         ))}
-        {(q.data ?? []).length === 0 ? <p className="text-muted-foreground text-sm">{t("no_orders")}</p> : null}
+        {orders.length === 0 ? <p className="text-muted-foreground text-sm">{t("no_orders")}</p> : null}
       </div>
     </PageShell>
   )

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -111,6 +112,7 @@ const emptyProduct = {
 }
 
 export default function MenuPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("cafe_admin.menu")
   const tCatalog = useTranslations("catalog")
   const tCommon = useTranslations("common")
@@ -590,7 +592,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                         <p className="font-medium">{cat.name}</p>
                         <p className="text-muted-foreground text-xs">{cat.slug}</p>
                       </div>
-                      <Button size="icon" variant="ghost" onClick={() => deleteCategory.mutate(cat.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteCategory.mutateAsync(cat.id) })}>
                         <Trash2 className="size-4" />
                       </Button>
                     </li>
@@ -821,7 +823,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                         <Button size="sm" variant="outline" onClick={() => startEditProduct(product)}>
                           <Pencil className="size-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => deleteProduct.mutate(product.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteProduct.mutateAsync(product.id) })}>
                           <Trash2 className="size-4" />
                         </Button>
                       </div>
@@ -905,7 +907,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                       <Button size="sm" variant="outline" onClick={() => startEditMenu(menu)}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteMenu.mutate(menu.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteMenu.mutateAsync(menu.id) })}>
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
@@ -1023,7 +1025,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                       <Button size="sm" variant="outline" onClick={() => startEditBanner(banner)}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteBanner.mutate(banner.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteBanner.mutateAsync(banner.id) })}>
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
@@ -1090,6 +1092,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
           </Button>
         </>
       ) : null}
+      {confirmDialog}
     </div>
   )
 }

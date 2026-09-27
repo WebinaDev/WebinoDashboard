@@ -57,10 +57,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'module' => EnsureModuleEnabled::class,
+            'staff' => \App\Http\Middleware\EnsureStaffRole::class,
             'user.active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'public.module' => \App\Http\Middleware\EnsurePublicModuleEnabled::class,
             'public.tenant' => \App\Http\Middleware\ResolvePublicTenant::class,
         ]);
+        // Reject non-staff before route-model binding so record ids cannot be probed.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            prepend: \App\Http\Middleware\EnsureStaffRole::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
+import { useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
@@ -41,6 +42,7 @@ function sectionFromRoute(route: ResolvedAdminRoute): string {
 }
 
 export default function AccountingPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const enumLabel = useEnumLabel()
   const tNav = useTranslations("nav")
   const tMod = useTranslations("modules")
   const tAcc = useTranslations("accounting_portal")
@@ -218,7 +220,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
                 <span>
                   {j.number} · {j.date}
                 </span>
-                <span className="text-muted-foreground">{j.status}</span>
+                <span className="text-muted-foreground">{enumLabel("job_status", j.status)}</span>
               </div>
             ))}
           </CardContent>

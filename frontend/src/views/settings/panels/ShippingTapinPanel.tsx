@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 type TapinSettings = {
   enabled: boolean
@@ -221,7 +222,7 @@ export function ShippingTapinPanel() {
           {q.data?.credit != null ? (
             <p className="text-sm">
               {t("shipping.tapin_credit")}:{" "}
-              <span className="font-medium">{Number(q.data.credit).toLocaleString()}</span>
+              <MoneyDisplay className="font-medium" amount={Number(q.data.credit)} currency="IRR" />
             </p>
           ) : null}
 

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -209,7 +210,7 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
                   <li key={p.id} className="flex items-center justify-between gap-2">
                     <span>
                       {p.name}{" "}
-                      <span className="text-muted-foreground">({(p.price_minor ?? 0).toLocaleString()})</span>
+                      <MoneyDisplay className="text-muted-foreground" amount={p.price_minor ?? 0} />
                     </span>
                     <Button size="sm" variant="outline" onClick={() => addProduct(p)}>
                       <Plus className="size-4" />
@@ -227,7 +228,7 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
                   <div key={l.product_id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
                     <div>
                       <p className="font-medium text-sm">{l.name}</p>
-                      <p className="text-muted-foreground text-xs">{l.unit_price_minor.toLocaleString()}</p>
+                      <MoneyDisplay className="text-muted-foreground text-xs" amount={l.unit_price_minor} />
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
@@ -342,13 +343,15 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
               </div>
               <div>
                 <Label>{t("change")}</Label>
-                <Input className="mt-1" readOnly value={change.toLocaleString()} />
+                <div className="border-input bg-muted/40 mt-1 flex h-9 items-center rounded-md border px-3 text-sm">
+                  <MoneyDisplay amount={change} />
+                </div>
               </div>
             </div>
 
             <div className="rounded-md border p-3 text-sm font-semibold flex justify-between">
               <span>{t("total")}</span>
-              <span>{total.toLocaleString()}</span>
+              <MoneyDisplay amount={total} />
             </div>
 
             <Button

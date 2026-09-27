@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,7 @@ type ZonesPayload = {
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
 export function ShippingZonesPanel() {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("settings_hub")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
@@ -260,7 +262,7 @@ export function ShippingZonesPanel() {
                         size="icon"
                         variant="ghost"
                         onClick={() => {
-                          if (confirm(t("shipping.delete_zone_confirm"))) deleteZone.mutate(zone.id)
+                          confirm({ description: t("shipping.delete_zone_confirm"), onConfirm: () => deleteZone.mutateAsync(zone.id) })
                         }}
                       >
                         <Trash2 className="size-4" />
@@ -440,6 +442,7 @@ export function ShippingZonesPanel() {
           )}
         </CardContent>
       </Card>
+      {confirmDialog}
     </div>
   )
 }

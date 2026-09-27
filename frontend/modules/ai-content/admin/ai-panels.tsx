@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -65,6 +66,7 @@ export function AiOverviewPanel() {
 }
 
 export function AiJobsPanel() {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("aiContent")
   const qc = useQueryClient()
   const [status, setStatus] = useState("all")
@@ -123,7 +125,7 @@ export function AiJobsPanel() {
               <TableRow key={String(j.id)}>
                 <TableCell>{String(j.id)}</TableCell>
                 <TableCell>{String(j.job_type)}</TableCell>
-                <TableCell>{String(j.status)}</TableCell>
+                <TableCell>{enumLabel("job_status", String(j.status))}</TableCell>
                 <TableCell className="max-w-xs truncate">{String(j.result_summary ?? j.error_message ?? "")}</TableCell>
                 <TableCell className="space-x-2 rtl:space-x-reverse">
                   <Button size="sm" variant="outline" onClick={() => runOne.mutate(Number(j.id))}>
@@ -143,6 +145,7 @@ export function AiJobsPanel() {
 }
 
 export function AiCalendarPanel() {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("aiContent")
   const qc = useQueryClient()
   const [topic, setTopic] = useState("")
@@ -200,7 +203,7 @@ export function AiCalendarPanel() {
               <TableRow key={String(r.id)}>
                 <TableCell>{String(r.slot_date)}</TableCell>
                 <TableCell>{String(r.topic)}</TableCell>
-                <TableCell>{String(r.status)}</TableCell>
+                <TableCell>{enumLabel("job_status", String(r.status))}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -211,6 +214,7 @@ export function AiCalendarPanel() {
 }
 
 export function AiBlogPanel() {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("aiContent")
   const qc = useQueryClient()
   const q = useQuery({
@@ -243,7 +247,7 @@ export function AiBlogPanel() {
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted-foreground">{String(item.focus_keyword ?? "")}</span>
-              <span className="rounded bg-muted px-2 py-0.5 text-xs">{String(item.status ?? "pending")}</span>
+              <span className="rounded bg-muted px-2 py-0.5 text-xs">{enumLabel("job_status", String(item.status ?? "pending"))}</span>
               {item.status === "pending" || !item.status ? (
                 <>
                   <Button size="sm" onClick={() => approve.mutate(String(item.id))}>{t("approve")}</Button>

@@ -12,6 +12,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { fetchSmsPackages, initSmsTopup, smsQueryOptions, type SmsPackage } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 export default function PageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("sms")
@@ -72,12 +73,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                   <CardDescription>{t("topupHint")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-2xl font-bold">
-                    {p.amount.toLocaleString()} {t("toman")}
-                  </p>
+                  <MoneyDisplay className="text-2xl font-bold" amount={p.amount} currency="IRT" symbol="default" />
                   {p.bonus > 0 ? (
                     <p className="text-muted-foreground text-sm">
-                      + {p.bonus.toLocaleString()} {t("bonus")}
+                      + <MoneyDisplay amount={p.bonus} currency="IRT" symbol="default" /> {t("bonus")}
                     </p>
                   ) : null}
                   <Button disabled={unavailable || pay.isPending} onClick={() => pay.mutate(p.id)}>

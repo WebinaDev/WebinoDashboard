@@ -13,7 +13,7 @@ class NotificationController extends Controller
     {
         $user = $request->user();
         $page = max(1, (int) $request->query('page', 1));
-        $perPage = min(50, max(1, (int) $request->query('per_page', 15)));
+        $perPage = min(100, max(1, (int) $request->query('per_page', 15)));
         $base = UserNotification::query()
             ->where('tenant_id', $user->tenant_id)
             ->where('user_id', $user->id);

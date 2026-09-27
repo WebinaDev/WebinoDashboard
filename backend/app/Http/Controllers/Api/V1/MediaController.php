@@ -31,6 +31,10 @@ class MediaController extends Controller
             $query->whereHas('terms', fn ($t) => $t->where('media_terms.id', $cid)->where('kind', 'category'));
         }
 
+        if ($mime = trim((string) $request->query('mime', ''))) {
+            $query->where('mime', 'like', str_replace(['%', '_'], ['\\%', '\\_'], $mime).'/%');
+        }
+
         if ($search = trim((string) $request->query('search', ''))) {
             $like = '%'.$search.'%';
             $query->where(function ($w) use ($like) {
@@ -40,7 +44,7 @@ class MediaController extends Controller
             });
         }
 
-        $perPage = min(60, max(1, (int) $request->query('per_page', 24)));
+        $perPage = min(100, max(1, (int) $request->query('per_page', 24)));
         $paginator = $query->paginate($perPage);
 
         return response()->json([

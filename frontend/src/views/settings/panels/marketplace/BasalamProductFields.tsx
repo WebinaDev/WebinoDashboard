@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -60,6 +61,7 @@ type VariantRow = { product_variant_id: number | null; variant_name?: string | n
 const STATUS_ARCHIVED = 3790
 
 export function BasalamProductFields({ productId, variantId }: { productId: string; variantId: number | null }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.basalam")
   const locale = useLocale()
   const qc = useQueryClient()
@@ -172,7 +174,7 @@ export function BasalamProductFields({ productId, variantId }: { productId: stri
                 className="text-destructive"
                 disabled={action.isPending}
                 onClick={() => {
-                  if (window.confirm(t("confirm_unlink"))) action.mutate({ name: "disconnect" })
+                  confirm({ intent: "action", description: t("confirm_unlink"), onConfirm: () => action.mutateAsync({ name: "disconnect" }) })
                 }}
               >
                 {t("unlink")}
@@ -296,6 +298,7 @@ export function BasalamProductFields({ productId, variantId }: { productId: stri
           {t("save_product_fields")}
         </Button>
       </div>
+      {confirmDialog}
     </div>
   )
 }

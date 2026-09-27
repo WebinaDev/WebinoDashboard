@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -40,6 +41,7 @@ const emptyBranch = {
 }
 
 export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("cafe_admin.qr")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
@@ -351,7 +353,7 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
                   <Button size="sm" variant="outline" onClick={() => startEditBranch(branch)}>
                     <Pencil className="size-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => deleteBranch.mutate(branch.id)}>
+                  <Button size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteBranch.mutateAsync(branch.id) })}>
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
@@ -360,6 +362,7 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
           )}
         </CardContent>
       </Card>
+      {confirmDialog}
     </div>
   )
 }

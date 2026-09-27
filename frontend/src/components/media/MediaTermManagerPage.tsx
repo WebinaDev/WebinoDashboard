@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +32,7 @@ export default function MediaTermsPage({
   route: ResolvedAdminRoute
   kind: "folder" | "category"
 }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("media")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
@@ -133,7 +135,7 @@ export default function MediaTermsPage({
                   {item.slug} · {item.count ?? 0}
                 </p>
               </div>
-              <Button type="button" size="sm" variant="ghost" onClick={() => void deleteMut.mutateAsync(item.id)}>
+              <Button type="button" size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteMut.mutateAsync(item.id) })}>
                 {t("delete")}
               </Button>
             </li>
@@ -141,6 +143,7 @@ export default function MediaTermsPage({
           {items.length === 0 ? <p className="text-muted-foreground text-sm">{tCommon("empty")}</p> : null}
         </ul>
       </div>
+      {confirmDialog}
     </PageShell>
   )
 }

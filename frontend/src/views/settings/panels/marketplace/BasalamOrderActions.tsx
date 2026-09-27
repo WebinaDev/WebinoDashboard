@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +32,7 @@ type Panel = "cancel" | "cancel_request" | "delay" | "tracking" | null
 
 /** Basalam order actions: confirm, cancel, cancel request, delay, tracking code and resync. */
 export function BasalamOrderActions({ orderId }: { orderId: number }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.basalam")
   const locale = useLocale()
   const qc = useQueryClient()
@@ -180,13 +182,14 @@ export function BasalamOrderActions({ orderId }: { orderId: number }) {
             className="justify-self-start"
             disabled={act.isPending}
             onClick={() => {
-              if (window.confirm(t("confirm_cancel_order"))) act.mutate({ path: "cancel", body: { reason_id: Number(reasonId), description } })
+              confirm({ intent: "action", description: t("confirm_cancel_order"), onConfirm: () => act.mutateAsync({ path: "cancel", body: { reason_id: Number(reasonId), description } }) })
             }}
           >
             {t("order_cancel")}
           </Button>
         </div>
       ) : null}
+      {confirmDialog}
     </div>
   )
 }

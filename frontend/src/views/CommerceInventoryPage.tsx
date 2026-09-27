@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
 import { normalizeUiLocale } from "@/lib/locale"
+import { ScrollTable } from "@/components/ScrollTable"
 
 type Low = {
   id: number
@@ -56,7 +57,7 @@ export default function CommerceInventoryPage() {
       </div>
       <div>
         <h2 className="mb-2 text-lg font-medium">{t("inventory_low_heading")}</h2>
-        <div className="rounded-xl border">
+        <ScrollTable className="border">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">
               <tr>
@@ -83,7 +84,7 @@ export default function CommerceInventoryPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -13,6 +13,9 @@ import {
   YAxis,
 } from "recharts"
 
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
 import { normalizeUiLocale } from "@/lib/locale"
@@ -48,9 +51,9 @@ function useReportFilters() {
   return { days, setDays, interval, setInterval, compare, setCompare, search, setSearch, stockFilter, setStockFilter, from, to }
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
+function Kpi({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <Card className="shadow-sm">
+    <Card variant="stat" className="wd-mini-tint">
       <CardContent className="pt-6">
         <p className="text-muted-foreground text-sm">{label}</p>
         <p className="text-2xl font-semibold tabular-nums">{value}</p>
@@ -59,8 +62,12 @@ function Kpi({ label, value }: { label: string; value: string }) {
   )
 }
 
-function money(n: unknown, lng: string) {
+function count(n: unknown, lng: string) {
   return formatInteger(Number(n ?? 0), lng)
+}
+
+function Money({ value }: { value: unknown }) {
+  return <MoneyDisplay amount={Number(value ?? 0)} />
 }
 
 export function ShopReportPanel({ section }: { section: string }) {
@@ -92,6 +99,7 @@ export function ShopReportPanel({ section }: { section: string }) {
   const summary = (d?.summary as Record<string, unknown>) || {}
   const series = ((d?.series as Array<Record<string, unknown>>) || [])
   const items = ((d?.items as Array<Record<string, unknown>>) || [])
+  const nameHead = section === "customers" ? t("table.customer") : t("table.product")
 
   return (
     <div className="space-y-4">
@@ -99,7 +107,7 @@ export function ShopReportPanel({ section }: { section: string }) {
         <div className="flex gap-2">
           {[7, 30, 90].map((day) => (
             <Button key={day} size="sm" variant={f.days === day ? "default" : "outline"} onClick={() => f.setDays(day)}>
-              {day}d
+              {t("daysN", { n: formatInteger(day, lng) })}
             </Button>
           ))}
         </div>
@@ -129,10 +137,10 @@ export function ShopReportPanel({ section }: { section: string }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">all</SelectItem>
-              <SelectItem value="low">low</SelectItem>
-              <SelectItem value="outofstock">outofstock</SelectItem>
-              <SelectItem value="instock">instock</SelectItem>
+              <SelectItem value="all">{t("stockFilter.all")}</SelectItem>
+              <SelectItem value="low">{t("stockFilter.lowstock")}</SelectItem>
+              <SelectItem value="outofstock">{t("stockFilter.outofstock")}</SelectItem>
+              <SelectItem value="instock">{t("stockFilter.instock")}</SelectItem>
             </SelectContent>
           </Select>
         )}
@@ -140,6 +148,7 @@ export function ShopReportPanel({ section }: { section: string }) {
           <Input
             className="w-48"
             value={f.search}
+            placeholder={t("searchPlaceholder")}
             onChange={(e) => f.setSearch(e.target.value)}
           />
         ) : null}
@@ -170,28 +179,28 @@ export function ShopReportPanel({ section }: { section: string }) {
         </Button>
       </div>
 
-      {q.isLoading ? <p className="text-muted-foreground text-sm">{t("loading")}</p> : null}
-      {q.isError ? <p className="text-destructive text-sm">{t("error")}</p> : null}
+      {q.isLoading ? <TableListSkeleton rows={4} columns={4} /> : null}
+      {q.isError ? <QueryErrorState message={t("error")} onRetry={() => q.refetch()} /> : null}
 
       {section !== "stock" && d ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi label={t("kpi.revenue")} value={money(summary.revenue, lng)} />
-          <Kpi label={t("kpi.orders")} value={money(summary.order_count, lng)} />
-          <Kpi label={t("kpi.aov")} value={money(summary.avg_order_value, lng)} />
-          <Kpi label={t("kpi.grossProfit")} value={money(summary.gross_profit, lng)} />
-          <Kpi label={t("kpi.cogs")} value={money(summary.cogs, lng)} />
+          <Kpi label={t("kpi.revenue")} value={<Money value={summary.revenue} />} />
+          <Kpi label={t("kpi.orders")} value={count(summary.order_count, lng)} />
+          <Kpi label={t("kpi.aov")} value={<Money value={summary.avg_order_value} />} />
+          <Kpi label={t("kpi.grossProfit")} value={<Money value={summary.gross_profit} />} />
+          <Kpi label={t("kpi.cogs")} value={<Money value={summary.cogs} />} />
           <Kpi label={t("kpi.grossMargin")} value={`${summary.gross_margin_pct ?? 0}%`} />
-          <Kpi label={t("kpi.itemsSold")} value={money(summary.items_sold, lng)} />
-          <Kpi label={t("kpi.discounts")} value={money(summary.discount_total, lng)} />
+          <Kpi label={t("kpi.itemsSold")} value={count(summary.items_sold, lng)} />
+          <Kpi label={t("kpi.discounts")} value={<Money value={summary.discount_total} />} />
         </div>
       ) : null}
 
       {section === "stock" && d ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi label={t("stock.skuCount" as never) || "SKU"} value={money((summary as { sku_count?: number }).sku_count ?? (d as { summary: { sku_count: number } }).summary?.sku_count, lng)} />
-          <Kpi label="Low stock" value={money((d.summary as { low_stock_count?: number })?.low_stock_count, lng)} />
-          <Kpi label="Out of stock" value={money((d.summary as { outofstock_count?: number })?.outofstock_count, lng)} />
-          <Kpi label="Units" value={money((d.summary as { units_in_stock?: number })?.units_in_stock, lng)} />
+          <Kpi label={t("stock.skuCount")} value={count((summary as { sku_count?: number }).sku_count ?? (d as { summary: { sku_count: number } }).summary?.sku_count, lng)} />
+          <Kpi label={t("stock.low")} value={count((d.summary as { low_stock_count?: number })?.low_stock_count, lng)} />
+          <Kpi label={t("stock.outofstock")} value={count((d.summary as { outofstock_count?: number })?.outofstock_count, lng)} />
+          <Kpi label={t("stock.units")} value={count((d.summary as { units_in_stock?: number })?.units_in_stock, lng)} />
         </div>
       ) : null}
 
@@ -221,31 +230,31 @@ export function ShopReportPanel({ section }: { section: string }) {
               <TableRow>
                 {section === "stock" ? (
                   <>
-                    <TableHead>Name</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{nameHead}</TableHead>
+                    <TableHead>{t("table.sku")}</TableHead>
+                    <TableHead>{t("table.quantity")}</TableHead>
+                    <TableHead>{t("table.status")}</TableHead>
                   </>
                 ) : section === "coupons" ? (
                   <>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Count</TableHead>
-                    <TableHead>Discount</TableHead>
-                    <TableHead>Revenue</TableHead>
+                    <TableHead>{t("table.coupon")}</TableHead>
+                    <TableHead>{t("table.usage")}</TableHead>
+                    <TableHead>{t("kpi.discounts")}</TableHead>
+                    <TableHead>{t("revenue")}</TableHead>
                   </>
                 ) : section === "customers" ? (
                   <>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Orders</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>AOV</TableHead>
+                    <TableHead>{nameHead}</TableHead>
+                    <TableHead>{t("orders")}</TableHead>
+                    <TableHead>{t("revenue")}</TableHead>
+                    <TableHead>{t("table.aov")}</TableHead>
                   </>
                 ) : (
                   <>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Profit</TableHead>
+                    <TableHead>{nameHead}</TableHead>
+                    <TableHead>{t("table.quantity")}</TableHead>
+                    <TableHead>{t("revenue")}</TableHead>
+                    <TableHead>{t("table.profit")}</TableHead>
                   </>
                 )}
               </TableRow>
@@ -257,29 +266,33 @@ export function ShopReportPanel({ section }: { section: string }) {
                     <>
                       <TableCell>{String(row.name ?? "—")}</TableCell>
                       <TableCell>{String(row.sku ?? "")}</TableCell>
-                      <TableCell>{money(row.stock_qty, lng)}</TableCell>
-                      <TableCell>{String(row.stock_status ?? "")}</TableCell>
+                      <TableCell>{count(row.stock_qty, lng)}</TableCell>
+                      <TableCell>
+                        {row.stock_status && t.has(`stockStatus.${String(row.stock_status)}`)
+                          ? t(`stockStatus.${String(row.stock_status)}`)
+                          : String(row.stock_status ?? "")}
+                      </TableCell>
                     </>
                   ) : section === "coupons" ? (
                     <>
                       <TableCell>{String(row.code ?? "—")}</TableCell>
-                      <TableCell>{money(row.count, lng)}</TableCell>
-                      <TableCell>{money(row.discount, lng)}</TableCell>
-                      <TableCell>{money(row.revenue, lng)}</TableCell>
+                      <TableCell>{count(row.count, lng)}</TableCell>
+                      <TableCell><Money value={row.discount} /></TableCell>
+                      <TableCell><Money value={row.revenue} /></TableCell>
                     </>
                   ) : section === "customers" ? (
                     <>
                       <TableCell>{String(row.name ?? "—")}</TableCell>
-                      <TableCell>{money(row.orders, lng)}</TableCell>
-                      <TableCell>{money(row.revenue, lng)}</TableCell>
-                      <TableCell>{money(row.aov, lng)}</TableCell>
+                      <TableCell>{count(row.orders, lng)}</TableCell>
+                      <TableCell><Money value={row.revenue} /></TableCell>
+                      <TableCell><Money value={row.aov} /></TableCell>
                     </>
                   ) : (
                     <>
                       <TableCell>{String(row.name ?? row.code ?? "—")}</TableCell>
-                      <TableCell>{money(row.quantity, lng)}</TableCell>
-                      <TableCell>{money(row.revenue, lng)}</TableCell>
-                      <TableCell>{money(row.profit, lng)}</TableCell>
+                      <TableCell>{count(row.quantity, lng)}</TableCell>
+                      <TableCell><Money value={row.revenue} /></TableCell>
+                      <TableCell><Money value={row.profit} /></TableCell>
                     </>
                   )}
                 </TableRow>
@@ -297,23 +310,23 @@ export function ShopReportPanel({ section }: { section: string }) {
       {Array.isArray(d?.top_products) && (d.top_products as unknown[]).length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{t("topProducts" as never) || "Top products"}</CardTitle>
+            <CardTitle className="text-base">{t("table.topProducts")}</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Qty</TableHead>
-                  <TableHead>Revenue</TableHead>
+                  <TableHead>{nameHead}</TableHead>
+                  <TableHead>{t("table.quantity")}</TableHead>
+                  <TableHead>{t("revenue")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(d.top_products as Array<Record<string, unknown>>).map((row, i) => (
                   <TableRow key={i}>
                     <TableCell>{String(row.name ?? "—")}</TableCell>
-                    <TableCell>{money(row.quantity, lng)}</TableCell>
-                    <TableCell>{money(row.revenue, lng)}</TableCell>
+                    <TableCell>{count(row.quantity, lng)}</TableCell>
+                    <TableCell><Money value={row.revenue} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

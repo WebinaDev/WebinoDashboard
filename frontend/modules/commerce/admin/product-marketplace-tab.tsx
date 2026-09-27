@@ -16,6 +16,8 @@ import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { marketplaceLabel, type MarketplaceKind, type MarketplaceRemoteProduct } from "@/lib/marketplace"
 import { ProductPlatformExtras } from "@/views/settings/panels/marketplace/ProductPlatformExtras"
+import { formatDisplayDateTime } from "@/lib/format-date"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 export type ProductMapRow = {
   id: number | null
@@ -62,7 +64,7 @@ export function ProductMarketplaceTab({ productId }: { productId: string }) {
   const [prices, setPrices] = useState<PriceDraft>({})
   const [searchFor, setSearchFor] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<SyncResult | null>(null)
-  const nf = (n: number | null | undefined) => (n == null ? "—" : Number(n).toLocaleString(locale === "en" ? "en-US" : "fa-IR"))
+  const nf = (n: number | null | undefined) => (n == null ? "—" : formatNumber(Number(n), normalizeUiLocale(locale)))
 
   const mapsQ = useQuery({
     queryKey: ["product-marketplace-maps", productId],
@@ -246,7 +248,7 @@ export function ProductMarketplaceTab({ productId }: { productId: string }) {
                   </span>
                   {m.last_sync_at ? (
                     <span>
-                      {t("last_sync")}: {new Date(m.last_sync_at).toLocaleString(locale === "en" ? "en-US" : "fa-IR")}
+                      {t("last_sync")}: {formatDisplayDateTime(m.last_sync_at, locale)}
                     </span>
                   ) : null}
                 </div>

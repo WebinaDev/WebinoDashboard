@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
-import { Plus, Search } from "lucide-react"
+import { Pencil, Plus, Search } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
@@ -11,9 +11,15 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { ListFiltersCollapsible } from "@/components/ListFiltersCollapsible"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
+import { MobileListCard, MobileListField } from "@/components/MobileListCard"
 import { PageShell } from "@/components/PageShell"
+import { PostsPagination } from "@/components/PostsPagination"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { ScrollTable } from "@/components/ScrollTable"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
@@ -26,7 +32,7 @@ type Customer = {
   is_active?: boolean
 }
 
-type PageMeta = { current_page: number; last_page: number; total: number }
+type PageMeta = { current_page: number; last_page: number; per_page?: number; total: number }
 
 async function listCustomers(path: string): Promise<{ items: Customer[]; meta?: PageMeta }> {
   const base = process.env.NEXT_PUBLIC_API_URL ?? ""
@@ -50,22 +56,29 @@ async function listCustomers(path: string): Promise<{ items: Customer[]; meta?: 
 
 const emptyForm = { name: "", email: "", password: "", bank_sheba: "", is_active: true }
 
+const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+
 export default function CustomersPage() {
-  const t = useTranslations("nav")
+  const t = useTranslations("customers_admin")
+  const tNav = useTranslations("nav")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
+  const [appliedSearch, setAppliedSearch] = useState("")
+  const [status, setStatus] = useState("")
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(20)
   const [editing, setEditing] = useState<Customer | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-customers", search, page],
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-customers", appliedSearch, status, page, perPage],
     queryFn: () => {
-      const params = new URLSearchParams({ page: String(page), per_page: "20" })
-      if (search.trim()) params.set("search", search.trim())
+      const params = new URLSearchParams({ page: String(page), per_page: String(perPage) })
+      if (appliedSearch) params.set("search", appliedSearch)
+      if (status) params.set("status", status)
       return listCustomers(`/api/v1/customers?${params}`)
     },
   })
@@ -109,11 +122,16 @@ export default function CustomersPage() {
 
   const statItems = useMemo(
     () => [
-      { id: "total", label: t("customers"), value: meta?.total ?? rows.length },
-      { id: "active", label: "Active", value: rows.filter((r) => r.is_active !== false).length },
+      { id: "total", label: tNav("customers"), value: meta?.total ?? rows.length },
+      { id: "active", label: t("stat_active_page"), value: rows.filter((r) => r.is_active !== false).length },
     ],
-    [meta?.total, rows, t],
+    [meta?.total, rows, t, tNav],
   )
+
+  function applySearch() {
+    setAppliedSearch(search.trim())
+    setPage(1)
+  }
 
   function openCreate() {
     setEditing(null)
@@ -133,13 +151,27 @@ export default function CustomersPage() {
     setShowForm(true)
   }
 
+  function statusBadge(c: Customer) {
+    const active = c.is_active !== false
+    return <Badge variant={active ? "default" : "secondary"}>{active ? t("status_active") : t("status_inactive")}</Badge>
+  }
+
+  function editButton(c: Customer, withLabel = false) {
+    return (
+      <Button size={withLabel ? "sm" : "icon"} variant="outline" title={t("edit")} onClick={() => openEdit(c)}>
+        <Pencil className="size-4" />
+        {withLabel ? t("edit") : null}
+      </Button>
+    )
+  }
+
   return (
     <PageShell
-      title={t("customers")}
+      title={tNav("customers")}
       actions={
         <Button onClick={openCreate}>
           <Plus className="size-4" />
-          New
+          {t("new")}
         </Button>
       }
     >
@@ -153,36 +185,54 @@ export default function CustomersPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") setPage(1)
+            if (e.key === "Enter") applySearch()
           }}
-          placeholder="Search name or email"
+          placeholder={t("search_ph")}
         />
       </div>
 
-      <ListFiltersCollapsible label="Filters" activeCount={search ? 1 : 0}>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setPage(1)
-            void queryClient.invalidateQueries({ queryKey: ["admin-customers"] })
-          }}
-        >
-          Apply
-        </Button>
+      <ListFiltersCollapsible activeCount={status ? 1 : 0}>
+        <div className="grid gap-3 md:grid-cols-3">
+          <div>
+            <Label>{t("col_status")}</Label>
+            <select
+              className={`${selectClass} mt-1`}
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value)
+                setPage(1)
+              }}
+            >
+              <option value="">{tCommon("all")}</option>
+              <option value="active">{t("status_active")}</option>
+              <option value="inactive">{t("status_inactive")}</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            <Button variant="secondary" onClick={applySearch}>
+              {t("apply")}
+            </Button>
+          </div>
+        </div>
       </ListFiltersCollapsible>
 
       {showForm ? (
         <div className="grid gap-3 rounded-lg border border-border bg-card/40 p-4 md:grid-cols-2">
           <div>
-            <Label>Name</Label>
+            <Label>{t("col_name")}</Label>
             <Input className="mt-1" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           </div>
           <div>
-            <Label>Email</Label>
-            <Input className="mt-1" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+            <Label>{t("col_email")}</Label>
+            <Input
+              className="mt-1"
+              dir="ltr"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            />
           </div>
           <div>
-            <Label>Password {editing ? "(optional)" : ""}</Label>
+            <Label>{editing ? t("password_optional") : t("password")}</Label>
             <Input
               className="mt-1"
               type="password"
@@ -191,16 +241,17 @@ export default function CustomersPage() {
             />
           </div>
           <div>
-            <Label>Sheba</Label>
+            <Label>{t("sheba")}</Label>
             <Input
               className="mt-1"
+              dir="ltr"
               value={form.bank_sheba}
               onChange={(e) => setForm((f) => ({ ...f, bank_sheba: e.target.value }))}
             />
           </div>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={form.is_active} onCheckedChange={(v) => setForm((f) => ({ ...f, is_active: v === true }))} />
-            Active
+            {t("status_active")}
           </label>
           <div className="flex gap-2 md:col-span-2">
             <Button disabled={!form.name || !form.email || save.isPending} onClick={() => save.mutate()}>
@@ -213,7 +264,7 @@ export default function CustomersPage() {
                 setEditing(null)
               }}
             >
-              Cancel
+              {tCommon("cancel")}
             </Button>
           </div>
         </div>
@@ -221,53 +272,79 @@ export default function CustomersPage() {
 
       <div className="rounded-lg border border-border bg-card/40">
         <div className="p-2 sm:p-4">
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
+            <TableListSkeleton rows={6} columns={5} />
           ) : rows.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{tCommon("em_dash")}</p>
+            <p className="text-muted-foreground text-sm">{t("empty")}</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-sm">
-                <thead>
-                  <tr className="border-b text-start text-muted-foreground">
-                    <th className="p-2 font-medium">Name</th>
-                    <th className="p-2 font-medium">Email</th>
-                    <th className="p-2 font-medium">Wallet</th>
-                    <th className="p-2 font-medium">Status</th>
-                    <th className="p-2 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((c) => (
-                    <tr key={c.id} className="border-b last:border-0">
-                      <td className="p-2 font-medium">{c.name}</td>
-                      <td className="p-2 font-mono text-xs">{c.email}</td>
-                      <td className="p-2">{(c.wallet_balance_minor ?? 0).toLocaleString()}</td>
-                      <td className="p-2">
-                        <Badge variant={c.is_active === false ? "secondary" : "default"}>
-                          {c.is_active === false ? "inactive" : "active"}
-                        </Badge>
-                      </td>
-                      <td className="p-2">
-                        <Button size="sm" variant="outline" onClick={() => openEdit(c)}>
-                          Edit
-                        </Button>
-                      </td>
+            <>
+              <div className="space-y-2 md:hidden">
+                {rows.map((c) => (
+                  <MobileListCard
+                    key={c.id}
+                    media={
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{c.name}</span>
+                        {statusBadge(c)}
+                      </div>
+                    }
+                    actions={editButton(c, true)}
+                  >
+                    <MobileListField label={t("col_email")}>
+                      <span className="font-mono text-xs" dir="ltr">
+                        {c.email}
+                      </span>
+                    </MobileListField>
+                    <MobileListField label={t("col_wallet")}>
+                      <MoneyDisplay amount={c.wallet_balance_minor ?? 0} />
+                    </MobileListField>
+                  </MobileListCard>
+                ))}
+              </div>
+              <ScrollTable className="hidden md:block">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b text-start text-muted-foreground">
+                      <th className="p-2 text-start font-medium">{t("col_name")}</th>
+                      <th className="p-2 text-start font-medium">{t("col_email")}</th>
+                      <th className="p-2 text-start font-medium">{t("col_wallet")}</th>
+                      <th className="p-2 text-start font-medium">{t("col_status")}</th>
+                      <th className="p-2 text-start font-medium">{t("col_actions")}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {rows.map((c) => (
+                      <tr key={c.id} className="border-b last:border-0">
+                        <td className="p-2 font-medium">{c.name}</td>
+                        <td className="p-2 font-mono text-xs" dir="ltr">
+                          {c.email}
+                        </td>
+                        <td className="p-2">
+                          <MoneyDisplay amount={c.wallet_balance_minor ?? 0} />
+                        </td>
+                        <td className="p-2">{statusBadge(c)}</td>
+                        <td className="p-2">{editButton(c)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollTable>
+            </>
           )}
-          {meta && meta.last_page > 1 ? (
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                Prev
-              </Button>
-              <Button size="sm" variant="outline" disabled={page >= meta.last_page} onClick={() => setPage((p) => p + 1)}>
-                Next
-              </Button>
-            </div>
+          {meta ? (
+            <PostsPagination
+              className="mt-4"
+              page={meta.current_page}
+              perPage={meta.per_page || perPage}
+              found={meta.total}
+              onPageChange={setPage}
+              onPerPageChange={(n) => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
           ) : null}
         </div>
       </div>

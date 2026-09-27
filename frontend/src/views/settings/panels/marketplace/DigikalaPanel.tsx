@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -120,6 +121,7 @@ export function DigikalaPanel({ tab }: { tab?: string }) {
 }
 
 function DigikalaAuthCard() {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.digikala")
   const locale = useLocale()
   const qc = useQueryClient()
@@ -197,7 +199,8 @@ function DigikalaAuthCard() {
               variant="outline"
               disabled={generate.isPending}
               onClick={() => {
-                if (!o.has_private_key || window.confirm(t("confirm_regenerate"))) generate.mutate()
+                if (!o.has_private_key) generate.mutate()
+                else confirm({ intent: "action", description: t("confirm_regenerate"), onConfirm: () => generate.mutateAsync() })
               }}
             >
               {generate.isPending ? t("generating") : t("generate_keys")}
@@ -240,13 +243,14 @@ function DigikalaAuthCard() {
             variant="ghost"
             disabled={disconnect.isPending || !o.auth.connected}
             onClick={() => {
-              if (window.confirm(t("confirm_disconnect"))) disconnect.mutate()
+              confirm({ intent: "action", description: t("confirm_disconnect"), onConfirm: () => disconnect.mutateAsync() })
             }}
           >
             {t("disconnect")}
           </Button>
         </div>
       </CardContent>
+      {confirmDialog}
     </Card>
   )
 }

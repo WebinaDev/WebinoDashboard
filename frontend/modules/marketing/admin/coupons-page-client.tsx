@@ -11,7 +11,10 @@ import { CouponsBulkActions } from "@/components/coupons/CouponsBulkActions"
 import { CouponsTable, type CouponTableRow } from "@/components/coupons/CouponsTable"
 import { ListFiltersCollapsible } from "@/components/ListFiltersCollapsible"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
+import { useConfirm } from "@/components/ConfirmDialog"
 import { PageShell } from "@/components/PageShell"
+import { PostsPagination } from "@/components/PostsPagination"
+import { QueryErrorState } from "@/components/QueryErrorState"
 import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -51,6 +54,7 @@ async function fetchCoupons(page: number, perPage: number, search: string) {
 export default function CouponsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("coupons")
   const qc = useQueryClient()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
   const [searchInput, setSearchInput] = useState("")
@@ -104,7 +108,7 @@ export default function CouponsPageClient({ route: _route }: { route: ResolvedAd
         </Button>
       </div>
 
-      <ListFiltersCollapsible activeCount={search.trim() ? 1 : 0} label={t("filters")}>
+      <ListFiltersCollapsible activeCount={search.trim() ? 1 : 0}>
         <div className="flex flex-wrap items-end gap-4">
           <div className="relative min-w-[12rem] flex-1">
             <Search className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2" />
@@ -128,8 +132,10 @@ export default function CouponsPageClient({ route: _route }: { route: ResolvedAd
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
       <Card className="shadow-soft">
-        <CardContent className="overflow-x-auto p-0">
-          {q.isLoading ? (
+        <CardContent className="p-0">
+          {q.isError ? (
+            <QueryErrorState className="m-4" onRetry={() => q.refetch()} />
+          ) : q.isLoading ? (
             <TableListSkeleton rows={8} columns={7} />
           ) : (
             <CouponsTable
@@ -137,53 +143,37 @@ export default function CouponsPageClient({ route: _route }: { route: ResolvedAd
               selectedIds={selectedIds}
               onSelectedChange={setSelectedIds}
               trashingId={trashingId}
-              onTrash={async (id) => {
-                setTrashingId(id)
-                try {
-                  await trash.mutateAsync(id)
-                } finally {
-                  setTrashingId(null)
-                }
-              }}
+              onTrash={(row) =>
+                confirm({
+                  description: row.code,
+                  onConfirm: async () => {
+                    setTrashingId(row.id)
+                    try {
+                      await trash.mutateAsync(row.id)
+                    } finally {
+                      setTrashingId(null)
+                    }
+                  },
+                })
+              }
             />
           )}
-          {!q.isLoading && found > 0 ? (
-            <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs">
-              <span>
-                {found} · page {page}
-              </span>
-              <div className="flex gap-2">
-                <Button type="button" size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  Prev
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={page * perPage >= found}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-                <select
-                  className="border-input h-8 rounded-md border px-2"
-                  value={perPage}
-                  onChange={(e) => {
-                    setPerPage(Number(e.target.value))
-                    setPage(1)
-                  }}
-                >
-                  {[10, 20, 50].map((n) => (
-                    <option key={n} value={n}>
-                      {n}/page
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+          {!q.isLoading ? (
+            <PostsPagination
+              className="px-3 pb-3"
+              page={page}
+              perPage={perPage}
+              found={found}
+              onPageChange={setPage}
+              onPerPageChange={(n) => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
           ) : null}
         </CardContent>
       </Card>
+      {confirmDialog}
     </PageShell>
   )
 }

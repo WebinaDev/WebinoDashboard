@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,7 @@ type Cat = {
 }
 
 export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("content_admin")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
@@ -137,13 +139,14 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
                   {c.slug} · {c.count ?? 0}
                 </p>
               </div>
-              <Button type="button" size="sm" variant="ghost" onClick={() => void deleteMut.mutateAsync(c.id)}>
+              <Button type="button" size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteMut.mutateAsync(c.id) })}>
                 {t("delete")}
               </Button>
             </li>
           ))}
         </ul>
       </div>
+      {confirmDialog}
     </PageShell>
   )
 }

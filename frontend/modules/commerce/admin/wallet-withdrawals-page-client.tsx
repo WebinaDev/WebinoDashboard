@@ -9,7 +9,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
+import { useConfirm } from "@/components/ConfirmDialog"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { MobileListCard, MobileListField } from "@/components/MobileListCard"
 import { PageShell } from "@/components/PageShell"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { ScrollTable } from "@/components/ScrollTable"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
+import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -61,12 +68,13 @@ async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: Pa
 
 export default function WalletWithdrawalsPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("wallet_admin")
-  const tCommon = useTranslations("common")
+  const enumLabel = useEnumLabel()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [status, setStatus] = useState("pending")
   const [error, setError] = useState<string | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["wallet-withdrawals", status],
     queryFn: () =>
       apiListWithMeta<WithdrawalRow>(`/api/v1/wallet/withdrawals?status=${encodeURIComponent(status)}`),
@@ -98,9 +106,54 @@ export default function WalletWithdrawalsPageClient({ route }: { route: Resolved
     const totalAmount = rows.reduce((sum, r) => sum + (r.amount_minor || 0), 0)
     return [
       { id: "count", label: t("withdrawals_heading"), value: rows.length },
-      { id: "amount", label: t("col_amount"), value: totalAmount.toLocaleString() },
+      { id: "amount", label: t("col_amount"), value: totalAmount, money: true },
     ]
   }, [rows, t])
+
+  function rowActions(r: WithdrawalRow) {
+    return (
+      <div className="flex flex-wrap gap-1">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={update.isPending}
+          onClick={() => update.mutate({ id: r.id, next: "approved" })}
+        >
+          {t("approve")}
+        </Button>
+        <Button
+          size="sm"
+          disabled={update.isPending}
+          onClick={() =>
+            confirm({
+              title: t("mark_paid"),
+              description: `#${r.id}`,
+              confirmLabel: t("mark_paid"),
+              destructive: false,
+              onConfirm: () => update.mutateAsync({ id: r.id, next: "paid" }),
+            })
+          }
+        >
+          {t("mark_paid")}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={update.isPending}
+          onClick={() =>
+            confirm({
+              title: t("reject"),
+              description: `#${r.id}`,
+              confirmLabel: t("reject"),
+              onConfirm: () => update.mutateAsync({ id: r.id, next: "rejected" }),
+            })
+          }
+        >
+          {t("reject")}
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <PageShell title={t("withdrawals_title")} description={route.fullPath}>
@@ -113,70 +166,74 @@ export default function WalletWithdrawalsPageClient({ route }: { route: Resolved
       <div className="rounded-lg border border-border bg-card/40">
         <div className="border-b px-4 py-3 text-sm font-medium">{t("withdrawals_heading")}</div>
         <div className="p-2 sm:p-4">
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
+            <TableListSkeleton rows={5} columns={6} />
           ) : rows.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_withdrawals")}</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-sm">
-                <thead>
-                  <tr className="border-b text-start text-muted-foreground">
-                    <th className="p-2 font-medium">ID</th>
-                    <th className="p-2 font-medium">{t("col_user")}</th>
-                    <th className="p-2 font-medium">{t("col_amount")}</th>
-                    <th className="p-2 font-medium">{t("col_sheba")}</th>
-                    <th className="p-2 font-medium">{t("status")}</th>
-                    <th className="p-2 font-medium">{t("actions")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0">
-                      <td className="p-2">#{r.id}</td>
-                      <td className="p-2">{r.user?.name || r.user?.email || `#${r.user?.id ?? "—"}`}</td>
-                      <td className="p-2">{r.amount_minor.toLocaleString()}</td>
-                      <td className="p-2 font-mono text-xs" dir="ltr">
+            <>
+              <div className="space-y-2 md:hidden">
+                {rows.map((r) => (
+                  <MobileListCard
+                    key={r.id}
+                    media={
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{r.user?.name || r.user?.email || `#${r.user?.id ?? "—"}`}</span>
+                        <Badge variant={statusBadgeVariant(r.status)}>{enumLabel("withdrawal_status", r.status)}</Badge>
+                      </div>
+                    }
+                    actions={rowActions(r)}
+                  >
+                    <MobileListField label={t("col_amount")}>
+                      <MoneyDisplay amount={r.amount_minor} />
+                    </MobileListField>
+                    <MobileListField label={t("col_sheba")}>
+                      <span className="font-mono text-xs" dir="ltr">
                         {r.sheba || r.user?.bank_sheba || "—"}
-                      </td>
-                      <td className="p-2">
-                        <Badge variant="outline">{r.status}</Badge>
-                      </td>
-                      <td className="p-2">
-                        <div className="flex flex-wrap gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={update.isPending}
-                            onClick={() => update.mutate({ id: r.id, next: "approved" })}
-                          >
-                            {t("approve")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            disabled={update.isPending}
-                            onClick={() => update.mutate({ id: r.id, next: "paid" })}
-                          >
-                            {t("mark_paid")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={update.isPending}
-                            onClick={() => update.mutate({ id: r.id, next: "rejected" })}
-                          >
-                            {t("reject")}
-                          </Button>
-                        </div>
-                      </td>
+                      </span>
+                    </MobileListField>
+                  </MobileListCard>
+                ))}
+              </div>
+              <ScrollTable className="hidden md:block">
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead>
+                    <tr className="border-b text-start text-muted-foreground">
+                      <th className="p-2 text-start font-medium">#</th>
+                      <th className="p-2 text-start font-medium">{t("col_user")}</th>
+                      <th className="p-2 text-start font-medium">{t("col_amount")}</th>
+                      <th className="p-2 text-start font-medium">{t("col_sheba")}</th>
+                      <th className="p-2 text-start font-medium">{t("status")}</th>
+                      <th className="p-2 text-start font-medium">{t("actions")}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.id} className="border-b last:border-0">
+                        <td className="p-2">#{r.id}</td>
+                        <td className="p-2">{r.user?.name || r.user?.email || `#${r.user?.id ?? "—"}`}</td>
+                        <td className="p-2">
+                          <MoneyDisplay amount={r.amount_minor} />
+                        </td>
+                        <td className="p-2 font-mono text-xs" dir="ltr">
+                          {r.sheba || r.user?.bank_sheba || "—"}
+                        </td>
+                        <td className="p-2">
+                          <Badge variant={statusBadgeVariant(r.status)}>{enumLabel("withdrawal_status", r.status)}</Badge>
+                        </td>
+                        <td className="p-2">{rowActions(r)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollTable>
+            </>
           )}
         </div>
       </div>
+      {confirmDialog}
     </PageShell>
   )
 }

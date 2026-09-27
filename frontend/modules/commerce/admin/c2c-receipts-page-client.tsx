@@ -9,7 +9,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
+import { useConfirm } from "@/components/ConfirmDialog"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { PageShell } from "@/components/PageShell"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
+import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -58,12 +63,13 @@ async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: Pa
 
 export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("c2c_admin")
-  const tCommon = useTranslations("common")
+  const enumLabel = useEnumLabel()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [status, setStatus] = useState("pending")
   const [error, setError] = useState<string | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["c2c-receipts", status],
     queryFn: () => apiListWithMeta<ReceiptRow>(`/api/v1/c2c/receipts?status=${encodeURIComponent(status)}`),
   })
@@ -95,7 +101,7 @@ export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminR
     return [
       { id: "count", label: t("receipts_heading"), value: rows.length },
       { id: "with_file", label: t("col_receipt"), value: withReceipt },
-      { id: "total", label: t("col_total"), value: total.toLocaleString() },
+      { id: "total", label: t("col_total"), value: total, money: true },
     ]
   }, [rows, t])
 
@@ -110,8 +116,10 @@ export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminR
       <div className="rounded-lg border border-border bg-card/40">
         <div className="border-b px-4 py-3 text-sm font-medium">{t("receipts_heading")}</div>
         <div className="p-2 sm:p-4">
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
+            <TableListSkeleton rows={4} columns={3} />
           ) : rows.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_receipts")}</p>
           ) : (
@@ -134,9 +142,11 @@ export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminR
                           {r.customer_name || r.user?.name || r.customer_phone || "—"}
                         </p>
                       </div>
-                      <Badge variant="outline">{r.c2c_status || r.status}</Badge>
+                      <Badge variant={statusBadgeVariant(r.c2c_status || r.status)}>
+                        {r.c2c_status ? enumLabel("c2c_status", r.c2c_status) : enumLabel("order_status", r.status)}
+                      </Badge>
                     </div>
-                    <p className="text-sm font-semibold">{r.total_minor.toLocaleString()}</p>
+                    <MoneyDisplay className="text-sm font-semibold" amount={r.total_minor} />
                     <div className="flex flex-wrap gap-1">
                       {r.c2c_receipt_url ? (
                         <Button size="sm" variant="outline" asChild>
@@ -156,7 +166,14 @@ export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminR
                         size="sm"
                         variant="ghost"
                         disabled={decide.isPending}
-                        onClick={() => decide.mutate({ id: r.id, action: "reject" })}
+                        onClick={() =>
+                          confirm({
+                            title: t("reject"),
+                            description: r.number || `#${r.id}`,
+                            confirmLabel: t("reject"),
+                            onConfirm: () => decide.mutateAsync({ id: r.id, action: "reject" }),
+                          })
+                        }
                       >
                         {t("reject")}
                       </Button>
@@ -168,6 +185,7 @@ export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminR
           )}
         </div>
       </div>
+      {confirmDialog}
     </PageShell>
   )
 }

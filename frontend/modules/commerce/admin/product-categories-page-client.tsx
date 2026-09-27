@@ -6,6 +6,9 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { useConfirm } from "@/components/ConfirmDialog"
+import { QueryErrorState } from "@/components/QueryErrorState"
+import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,14 +26,14 @@ type Category = {
 }
 
 export default function ProductCategoriesPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
-  const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
   const [q, setQ] = useState("")
   const [error, setError] = useState<string | null>(null)
 
-  const { data: categories = [], isLoading } = useQuery({
+  const { data: categories = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-categories", q],
     queryFn: () => {
       const params = new URLSearchParams()
@@ -92,8 +95,10 @@ export default function ProductCategoriesPageClient({ route }: { route: Resolved
           <CardTitle>{t("categories_heading")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
+            <TableListSkeleton rows={5} columns={3} />
           ) : categories.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_categories")}</p>
           ) : (
@@ -117,7 +122,7 @@ export default function ProductCategoriesPageClient({ route }: { route: Resolved
                       size="sm"
                       variant="ghost"
                       onClick={() => {
-                        if (window.confirm(t("confirm_delete"))) remove.mutate(c.id)
+                        confirm({ description: t("confirm_delete"), onConfirm: () => remove.mutateAsync(c.id) })
                       }}
                     >
                       <Trash2 className="size-4" />
@@ -129,6 +134,7 @@ export default function ProductCategoriesPageClient({ route }: { route: Resolved
           )}
         </CardContent>
       </Card>
+      {confirmDialog}
     </div>
   )
 }

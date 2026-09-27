@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -57,6 +58,7 @@ const emptyTerm = {
 }
 
 export default function AttributeEditorPageClient({ route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
@@ -222,7 +224,7 @@ export default function AttributeEditorPageClient({ route }: { route: ResolvedAd
                     <p className="font-medium">{term.name}</p>
                     <p className="text-muted-foreground text-xs">{term.slug}</p>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => deleteTerm.mutate(term.id)}>
+                  <Button size="icon" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteTerm.mutateAsync(term.id) })}>
                     <Trash2 className="size-4" />
                   </Button>
                 </li>
@@ -273,6 +275,7 @@ export default function AttributeEditorPageClient({ route }: { route: ResolvedAd
           </CardContent>
         </Card>
       ) : null}
+      {confirmDialog}
     </div>
   )
 }

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
 import { normalizeUiLocale } from "@/lib/locale"
+import { formatMoneyText, MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { ScrollTable } from "@/components/ScrollTable"
 
 type CartPricing = {
   active: boolean
@@ -107,7 +109,7 @@ export default function CartPage() {
               ) : null}
             </div>
           ) : null}
-          <div className="rounded-xl border">
+          <ScrollTable className="border">
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/40">
                 <tr>
@@ -122,7 +124,9 @@ export default function CartPage() {
                   <tr key={line.id} className="border-b last:border-0">
                     <td className="p-3">{line.product.name}</td>
                     <td className="p-3">{formatInteger(line.quantity, lng)}</td>
-                    <td className="p-3">{formatInteger(unitFor(line.id, line.product.price_minor), lng)}</td>
+                    <td className="p-3">
+                      <MoneyDisplay amount={unitFor(line.id, line.product.price_minor)} />
+                    </td>
                     <td className="p-3 text-end">
                       <Button
                         type="button"
@@ -137,15 +141,15 @@ export default function CartPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
           {pricing?.active ? (
             <div className="flex flex-wrap justify-end gap-4 text-sm">
               {pricing.purchase_type === "installment" && pricing.installment_monthly_minor ? (
                 <span className="text-muted-foreground">
-                  {tPricing("monthly", { amount: formatInteger(pricing.installment_monthly_minor, lng) })}
+                  {tPricing("monthly", { amount: formatMoneyText(pricing.installment_monthly_minor, lng) })}
                 </span>
               ) : null}
-              <span className="font-semibold">{formatInteger(pricing.subtotal_minor, lng)}</span>
+              <MoneyDisplay className="font-semibold" amount={pricing.subtotal_minor} />
             </div>
           ) : null}
         </>

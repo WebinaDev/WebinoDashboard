@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -213,7 +214,7 @@ export default function PosPayLinkPageClient({ route }: { route: ResolvedAdminRo
                   <div key={l.product_id} className="flex items-center justify-between gap-2 rounded-md border p-3">
                     <div>
                       <p className="text-sm font-medium">{l.name}</p>
-                      <p className="text-muted-foreground text-xs">{l.unit_price_minor.toLocaleString()}</p>
+                      <MoneyDisplay className="text-muted-foreground text-xs" amount={l.unit_price_minor} />
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
@@ -325,7 +326,7 @@ export default function PosPayLinkPageClient({ route }: { route: ResolvedAdminRo
 
             <div className="rounded-md border p-3 text-sm font-semibold flex justify-between">
               <span>{t("total")}</span>
-              <span>{total.toLocaleString()}</span>
+              <MoneyDisplay amount={total} />
             </div>
 
             <Button

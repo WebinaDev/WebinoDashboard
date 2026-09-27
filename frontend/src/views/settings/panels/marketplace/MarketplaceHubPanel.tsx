@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { MARKETPLACE_SETTINGS_BASE, type MarketplaceHubRow } from "@/lib/marketplace"
+import { formatDisplayDateTime } from "@/lib/format-date"
 
 export function MarketplaceHubPanel() {
   const t = useTranslations("marketplace_admin")
@@ -95,7 +96,7 @@ export function MarketplaceHubPanel() {
                     )}
                     {r.last_sync_at ? (
                       <p className="text-muted-foreground text-xs">
-                        {t("last_sync")}: {new Date(r.last_sync_at).toLocaleString(locale === "en" ? "en-US" : "fa-IR")}
+                        {t("last_sync")}: {formatDisplayDateTime(r.last_sync_at, locale)}
                       </p>
                     ) : null}
                     <Button asChild variant="outline" size="sm">

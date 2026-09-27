@@ -1,19 +1,21 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Bell, ChevronLeft, ChevronRight } from "lucide-react"
-import Link from "next/link"
+import { Bell } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { PageShell } from "@/components/PageShell"
+import { PostsPagination } from "@/components/PostsPagination"
+import { QueryErrorState } from "@/components/QueryErrorState"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { formatDisplayDateTime } from "@/lib/format-date"
 import { cn } from "@/lib/utils"
 
 type NotificationRow = {
@@ -32,8 +34,9 @@ export default function NotificationsPage(_props: { route: ResolvedAdminRoute })
   const params = useSearchParams()
   const router = useRouter()
   const qc = useQueryClient()
+  const locale = useLocale()
   const page = Math.max(1, Number(params.get("page") || 1) || 1)
-  const perPage = 15
+  const perPage = Math.min(100, Math.max(1, Number(params.get("per_page") || 20) || 20))
 
   const q = useQuery({
     queryKey: ["account", "notifications", "inbox", page, perPage],
@@ -62,13 +65,15 @@ export default function NotificationsPage(_props: { route: ResolvedAdminRoute })
   const items = q.data?.items ?? []
   const total = q.data?.total ?? 0
   const unread = q.data?.unread ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / perPage))
 
-  function setPage(next: number) {
+  function setPage(next: number, nextPerPage = perPage) {
     const sp = new URLSearchParams(params.toString())
     sp.set("page", String(next))
+    sp.set("per_page", String(nextPerPage))
     router.replace(`/dashboard/notifications?${sp.toString()}`)
   }
+
+  const typeLabel = (type: string) => (t.has(`types.${type}`) ? t(`types.${type}`) : null)
 
   function openNotification(row: NotificationRow) {
     if (!row.read) void markOne.mutateAsync(row.id)
@@ -84,9 +89,6 @@ export default function NotificationsPage(_props: { route: ResolvedAdminRoute })
   return (
     <PageShell title={t("title")} description={t("subtitle")}>
       <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-        <Button type="button" size="sm" variant="outline" asChild>
-          <Link href="/dashboard/settings/site/security">{t("open_settings")}</Link>
-        </Button>
         <Button
           type="button"
           size="sm"
@@ -102,7 +104,9 @@ export default function NotificationsPage(_props: { route: ResolvedAdminRoute })
       ) : null}
 
       <div className="space-y-4">
-        {q.isLoading ? (
+        {q.isError ? (
+          <QueryErrorState onRetry={() => q.refetch()} />
+        ) : q.isLoading ? (
           <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
         ) : items.length === 0 ? (
           <Card className="shadow-sm">
@@ -125,11 +129,11 @@ export default function NotificationsPage(_props: { route: ResolvedAdminRoute })
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="space-y-1">
                     <CardDescription className="text-xs">
-                      {row.created_at}
-                      {row.type ? (
+                      {formatDisplayDateTime(row.created_at, locale)}
+                      {row.type && typeLabel(row.type) ? (
                         <span className="ms-2 inline-flex">
                           <Badge variant="secondary" className="text-[10px] font-normal">
-                            {row.type}
+                            {typeLabel(row.type)}
                           </Badge>
                         </span>
                       ) : null}
@@ -158,26 +162,15 @@ export default function NotificationsPage(_props: { route: ResolvedAdminRoute })
         )}
       </div>
 
-      {totalPages > 1 ? (
-        <div className="mt-6 flex items-center justify-between gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-            <ChevronLeft className="size-4" />
-            {tCommon("prev")}
-          </Button>
-          <span className="text-muted-foreground text-sm">
-            {t("page_of", { page, total: totalPages })}
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            {tCommon("next")}
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
+      {!q.isLoading && !q.isError ? (
+        <PostsPagination
+          className="mt-6"
+          page={page}
+          perPage={perPage}
+          found={total}
+          onPageChange={(n) => setPage(n)}
+          onPerPageChange={(n) => setPage(1, n)}
+        />
       ) : null}
     </PageShell>
   )

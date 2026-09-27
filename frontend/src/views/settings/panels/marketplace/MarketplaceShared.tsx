@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { useConfirm } from "@/components/ConfirmDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import {
@@ -29,18 +31,19 @@ import {
   type Paginated,
 } from "@/lib/marketplace"
 import { cn } from "@/lib/utils"
+import { formatDisplayDateTime } from "@/lib/format-date"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 export const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
 export function fmtDate(value: string | null | undefined, locale: string): string {
-  if (!value) return "—"
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString(locale === "en" ? "en-US" : "fa-IR")
+  return formatDisplayDateTime(value, locale)
 }
 
 export function fmtNum(value: number | null | undefined, locale: string): string {
   if (value === null || value === undefined) return "—"
-  return Number(value).toLocaleString(locale === "en" ? "en-US" : "fa-IR")
+  return formatNumber(Number(value), normalizeUiLocale(locale))
 }
 
 export type PlatformTab = { key: string; label: string }
@@ -352,6 +355,7 @@ export function SyncActionsCard({ platform, supportsOrders }: { platform: string
 // ── Maps ────────────────────────────────────────────────────────────────
 
 export function MapsTable({ platform }: { platform: string }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin")
   const locale = useLocale()
   const qc = useQueryClient()
@@ -460,7 +464,7 @@ export function MapsTable({ platform }: { platform: string }) {
                         variant="ghost"
                         disabled={remove.isPending}
                         onClick={() => {
-                          if (window.confirm(t("confirm_delete_map"))) remove.mutate(m.id)
+                          confirm({ description: t("confirm_delete_map"), onConfirm: () => remove.mutateAsync(m.id) })
                         }}
                       >
                         {t("delete")}
@@ -474,6 +478,7 @@ export function MapsTable({ platform }: { platform: string }) {
         )}
         <Pager meta={q.data?.meta} page={page} setPage={setPage} />
       </CardContent>
+      {confirmDialog}
     </Card>
   )
 }
@@ -647,6 +652,7 @@ export function JobsTable({ platform }: { platform: string }) {
 }
 
 export function LogsTable({ platform }: { platform: string }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin")
   const locale = useLocale()
   const qc = useQueryClient()
@@ -679,7 +685,7 @@ export function LogsTable({ platform }: { platform: string }) {
             variant="outline"
             disabled={clear.isPending || rows.length === 0}
             onClick={() => {
-              if (window.confirm(t("confirm_clear_logs"))) clear.mutate()
+              confirm({ intent: "action", description: t("confirm_clear_logs"), onConfirm: () => clear.mutateAsync() })
             }}
           >
             {t("clear_logs")}
@@ -708,11 +714,13 @@ export function LogsTable({ platform }: { platform: string }) {
         )}
         <Pager meta={q.data?.meta} page={page} setPage={setPage} />
       </CardContent>
+      {confirmDialog}
     </Card>
   )
 }
 
 export function OrdersTable({ platform }: { platform: string }) {
+  const enumLabel = useEnumLabel()
   const t = useTranslations("marketplace_admin")
   const locale = useLocale()
   const [page, setPage] = useState(1)
@@ -758,9 +766,9 @@ export function OrdersTable({ platform }: { platform: string }) {
                     </TableCell>
                     <TableCell>
                       {o.order ? (t.has(`order_status.${o.order.status}`) ? t(`order_status.${o.order.status}`) : o.order.status) : o.status}
-                      {o.status && o.order ? <div className="text-muted-foreground text-xs">{o.status}</div> : null}
+                      {o.status && o.order ? <div className="text-muted-foreground text-xs">{enumLabel("order_status", o.status)}</div> : null}
                     </TableCell>
-                    <TableCell>{o.order ? fmtNum(o.order.total_minor, locale) : "—"}</TableCell>
+                    <TableCell>{o.order ? <MoneyDisplay amount={o.order.total_minor} /> : "—"}</TableCell>
                     <TableCell className="text-xs">{fmtDate(o.last_sync_at, locale)}</TableCell>
                   </TableRow>
                 ))}

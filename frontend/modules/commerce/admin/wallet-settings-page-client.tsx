@@ -13,6 +13,7 @@ import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 type WalletSettings = {
   enabled?: boolean
@@ -203,7 +204,7 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
                       setUserHits([])
                     }}
                   >
-                    #{u.id} {u.name || u.email} · {(u.wallet_balance_minor ?? 0).toLocaleString()}
+                    #{u.id} {u.name || u.email} · <MoneyDisplay amount={u.wallet_balance_minor ?? 0} />
                   </button>
                 </li>
               ))}

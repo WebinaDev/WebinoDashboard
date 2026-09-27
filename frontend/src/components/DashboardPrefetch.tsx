@@ -4,26 +4,18 @@ import { useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api"
+import { STORE_CURRENCY_QUERY_KEY } from "@/lib/store-currency"
 
+/** Warms caches that pages read on first paint; keys and fetchers must match their consumers. */
 export function DashboardPrefetch() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
     void queryClient.prefetchQuery({
-      queryKey: ["modules"],
-      queryFn: () =>
-        api<unknown[] | { data: unknown[] }>("/api/v1/modules").then((r) =>
-          Array.isArray(r) ? r : r.data ?? [],
-        ),
-    })
-    void queryClient.prefetchQuery({
-      queryKey: ["auth-user"],
-      queryFn: () => api("/api/v1/auth/user"),
-    })
-    void queryClient.prefetchQuery({
-      queryKey: ["setup-status"],
-      queryFn: () =>
-        api<{ setup_completed: boolean }>("/api/v1/setup/status").then((r) => r),
+      queryKey: STORE_CURRENCY_QUERY_KEY,
+      queryFn: () => api("/api/v1/tenant"),
+      staleTime: 10 * 60 * 1000,
+      retry: false,
     })
   }, [queryClient])
 

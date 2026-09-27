@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Tenant\TenantResolver;
 use App\Support\AuthCookie;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -23,8 +24,13 @@ class AuthController extends Controller
             'recovery_code' => ['nullable', 'string'],
         ]);
 
+        $tenant = app(TenantResolver::class)->identifyFromRequest($request);
+
         /** @var User|null $user */
-        $user = User::query()->where('email', $data['email'])->first();
+        $user = User::query()
+            ->where('email', $data['email'])
+            ->when($tenant, fn ($q) => $q->where('tenant_id', $tenant->id))
+            ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([

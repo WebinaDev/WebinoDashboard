@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { ScrollTable } from "@/components/ScrollTable"
 
 type Row = {
   slug: string
@@ -75,7 +76,7 @@ export default function ModulesPage() {
         </Button>
       </div>
       {msg ? <p className="text-destructive text-sm">{msg}</p> : null}
-      <div className="rounded-xl border">
+      <ScrollTable className="border">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
@@ -123,7 +124,7 @@ export default function ModulesPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </div>
   )
 }
