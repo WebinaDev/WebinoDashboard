@@ -1,7 +1,7 @@
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
-import AccountingPageClient from "./accounting-page-client"
+import PageClient from "./account-tickets-page-client"
 
 export default function Page({ route }: { route: ResolvedAdminRoute }) {
-  return <AccountingPageClient route={route} />
+  return <PageClient route={route} />
 }

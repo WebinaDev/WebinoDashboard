@@ -5,7 +5,7 @@ import { unwrapApiResponse } from "@webina/ui"
 import { ChevronLeft, ChevronRight, Copy, Pencil, Plus, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { useMemo, useState } from "react"
+import { Fragment, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -80,10 +80,23 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
   const [status, setStatus] = useState("")
   const [type, setType] = useState("")
   const [stockStatus, setStockStatus] = useState("")
+  const [categoryId, setCategoryId] = useState("")
+  const [brandId, setBrandId] = useState("")
+  const [visibility, setVisibility] = useState("")
   const [page, setPage] = useState(1)
   const [error, setError] = useState<string | null>(null)
+  const [quickId, setQuickId] = useState<number | null>(null)
+  const [quickName, setQuickName] = useState("")
+  const [quickStatus, setQuickStatus] = useState("draft")
+  const [quickPrice, setQuickPrice] = useState("")
 
-  const queryKey = ["admin-products", search, status, type, stockStatus, page] as const
+  const queryKey = ["admin-products", search, status, type, stockStatus, categoryId, brandId, visibility, page] as const
+
+  const lookupQ = useQuery({
+    queryKey: ["products-lookup"],
+    queryFn: () =>
+      api<{ categories: NamedRef[]; brands: NamedRef[] }>("/api/v1/products/lookup"),
+  })
 
   const { data, isLoading } = useQuery({
     queryKey,
@@ -92,17 +105,31 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
       params.set("page", String(page))
       params.set("per_page", "20")
       if (search.trim()) params.set("search", search.trim())
-      if (status) params.set("status", status)
+      if (status && status !== "all") params.set("status", status)
       if (type) params.set("type", type)
       if (stockStatus) params.set("stock_status", stockStatus)
+      if (categoryId) params.set("category_id", categoryId)
+      if (brandId) params.set("brand_id", brandId)
+      if (visibility) params.set("catalog_visibility", visibility)
       return apiListWithMeta<ProductRow>(`/api/v1/products?${params}`)
     },
   })
 
   const products = data?.items ?? []
   const meta = data?.meta
+  const serverStats = (meta as PageMeta & { stats?: Record<string, number> })?.stats
 
   const stats = useMemo(() => {
+    if (serverStats) {
+      return {
+        publish: serverStats.publish ?? 0,
+        draft: serverStats.draft ?? 0,
+        outofstock: serverStats.outofstock ?? 0,
+        pending: serverStats.pending ?? 0,
+        trash: serverStats.trash ?? 0,
+        total: serverStats.total ?? meta?.total ?? 0,
+      }
+    }
     let publish = 0
     let draft = 0
     let outofstock = 0
@@ -111,8 +138,8 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
       if (p.status === "draft") draft += 1
       if (p.stock_status === "outofstock") outofstock += 1
     }
-    return { publish, draft, outofstock }
-  }, [products])
+    return { publish, draft, outofstock, pending: 0, trash: 0, total: meta?.total ?? products.length }
+  }, [products, serverStats, meta?.total])
 
   const duplicate = useMutation({
     mutationFn: (id: number) => api(`/api/v1/products/${id}/duplicate`, { method: "POST" }),
@@ -130,6 +157,23 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
+  const quickSave = useMutation({
+    mutationFn: () =>
+      api(`/api/v1/products/${quickId}`, {
+        method: "PATCH",
+        json: {
+          name: quickName,
+          status: quickStatus,
+          price_minor: quickPrice === "" ? undefined : Number(quickPrice),
+        },
+      }),
+    onSuccess: async () => {
+      setQuickId(null)
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
   function applyFilters() {
     setPage(1)
     void queryClient.invalidateQueries({ queryKey: ["admin-products"] })
@@ -137,12 +181,13 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
 
   const statusTabs = useMemo(
     () => [
-      { slug: "all", label: t("all"), count: meta?.total ?? products.length },
+      { slug: "all", label: t("all"), count: stats.total },
       { slug: "publish", label: t("status_publish"), count: stats.publish },
       { slug: "draft", label: t("status_draft"), count: stats.draft },
-      { slug: "trash", label: t("status_trash"), count: 0 },
+      { slug: "pending", label: t("status_pending"), count: stats.pending },
+      { slug: "trash", label: t("status_trash"), count: stats.trash },
     ],
-    [meta?.total, products.length, stats.draft, stats.publish, t],
+    [stats, t],
   )
 
   const statItems = useMemo(
@@ -154,7 +199,7 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
     [stats, t],
   )
 
-  const filterActiveCount = [type, stockStatus].filter(Boolean).length
+  const filterActiveCount = [type, stockStatus, categoryId, brandId, visibility].filter(Boolean).length
 
   return (
     <PageShell
@@ -177,7 +222,7 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
         counts={statusTabs}
         active={status || "all"}
         onChange={(slug) => {
-          setStatus(slug)
+          setStatus(slug === "all" ? "" : slug)
           setPage(1)
         }}
       />
@@ -201,6 +246,7 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
               <option value="">{t("all")}</option>
               <option value="simple">{t("type_simple")}</option>
               <option value="variable">{t("type_variable")}</option>
+              <option value="downloadable">{t("type_downloadable")}</option>
             </select>
           </div>
           <div>
@@ -214,6 +260,38 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
               <option value="instock">{t("stock_instock")}</option>
               <option value="outofstock">{t("stock_outofstock")}</option>
               <option value="onbackorder">{t("stock_onbackorder")}</option>
+            </select>
+          </div>
+          <div>
+            <Label>{t("categories")}</Label>
+            <select className={`${selectClass} mt-1`} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              <option value="">{t("all")}</option>
+              {(lookupQ.data?.categories ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label>{t("brands")}</Label>
+            <select className={`${selectClass} mt-1`} value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+              <option value="">{t("all")}</option>
+              {(lookupQ.data?.brands ?? []).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label>{t("catalog_visibility")}</Label>
+            <select className={`${selectClass} mt-1`} value={visibility} onChange={(e) => setVisibility(e.target.value)}>
+              <option value="">{t("all")}</option>
+              <option value="visible">visible</option>
+              <option value="catalog">catalog</option>
+              <option value="search">search</option>
+              <option value="hidden">hidden</option>
             </select>
           </div>
           <div className="flex items-end">
@@ -248,7 +326,8 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
                 </thead>
                 <tbody>
                   {products.map((p) => (
-                    <tr key={p.id} className="border-b last:border-0">
+                    <Fragment key={p.id}>
+                      <tr className="border-b last:border-0">
                       <td className="p-2 font-medium">
                         <Link className="underline-offset-2 hover:underline" href={`/dashboard/products/${p.id}`}>
                           {p.name}
@@ -274,6 +353,18 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
                             </Link>
                           </Button>
                           <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setQuickId(p.id)
+                              setQuickName(p.name)
+                              setQuickStatus(p.status || "draft")
+                              setQuickPrice(String(p.price_minor ?? ""))
+                            }}
+                          >
+                            {t("quick_edit")}
+                          </Button>
+                          <Button
                             size="icon"
                             variant="outline"
                             title={t("duplicate")}
@@ -296,6 +387,39 @@ export default function ProductsPageClient({ route }: { route: ResolvedAdminRout
                         </div>
                       </td>
                     </tr>
+                    {quickId === p.id ? (
+                      <tr className="bg-muted/20 border-b">
+                        <td colSpan={8} className="p-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Input className="max-w-xs" value={quickName} onChange={(e) => setQuickName(e.target.value)} />
+                            <select
+                              className={selectClass}
+                              value={quickStatus}
+                              onChange={(e) => setQuickStatus(e.target.value)}
+                            >
+                              <option value="publish">{t("status_publish")}</option>
+                              <option value="draft">{t("status_draft")}</option>
+                              <option value="pending">{t("status_pending")}</option>
+                              <option value="private">{t("status_private")}</option>
+                            </select>
+                            <Input
+                              className="max-w-[140px]"
+                              type="number"
+                              value={quickPrice}
+                              onChange={(e) => setQuickPrice(e.target.value)}
+                              placeholder={t("price")}
+                            />
+                            <Button size="sm" onClick={() => void quickSave.mutateAsync()}>
+                              {tCommon("save")}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setQuickId(null)}>
+                              {tCommon("cancel")}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

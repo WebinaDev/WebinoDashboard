@@ -59,6 +59,15 @@ export function isSubmoduleEnabled(
     )
   }
 
+  if (moduleSlug === "commerce" && submoduleSlug === "account") {
+    return (
+      enabled("commerce", "account") ||
+      enabled("commerce", "orders") ||
+      enabled("commerce", "cart") ||
+      enabled("commerce", "checkout")
+    )
+  }
+
   return enabled(moduleSlug, submoduleSlug)
 }
 

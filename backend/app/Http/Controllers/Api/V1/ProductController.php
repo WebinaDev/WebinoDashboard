@@ -27,7 +27,7 @@ class ProductController extends Controller
                     ->orWhere('slug', 'like', $like);
             });
         }
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->query('status') !== 'all') {
             $q->where('status', $request->query('status'));
         }
         if ($request->filled('type')) {
@@ -45,9 +45,23 @@ class ProductController extends Controller
         if ($request->filled('brand_id')) {
             $q->whereHas('brands', fn ($b) => $b->where('brands.id', (int) $request->query('brand_id')));
         }
+        if ($request->filled('tag_id')) {
+            $q->whereHas('tags', fn ($t) => $t->where('product_tags.id', (int) $request->query('tag_id')));
+        }
         if ($request->filled('catalog_visibility')) {
             $q->where('catalog_visibility', $request->query('catalog_visibility'));
         }
+
+        $statsBase = Product::query()->where('tenant_id', $tid);
+        $stats = [
+            'total' => (clone $statsBase)->count(),
+            'publish' => (clone $statsBase)->where('status', 'publish')->count(),
+            'draft' => (clone $statsBase)->where('status', 'draft')->count(),
+            'pending' => (clone $statsBase)->where('status', 'pending')->count(),
+            'private' => (clone $statsBase)->where('status', 'private')->count(),
+            'trash' => (clone $statsBase)->where('status', 'trash')->count(),
+            'outofstock' => (clone $statsBase)->where('stock_status', 'outofstock')->count(),
+        ];
 
         $sort = $request->query('sort', 'sort_order');
         $dir = $request->query('dir', 'asc') === 'desc' ? 'desc' : 'asc';
@@ -68,11 +82,12 @@ class ProductController extends Controller
                     'last_page' => $paginator->lastPage(),
                     'per_page' => $paginator->perPage(),
                     'total' => $paginator->total(),
+                    'stats' => $stats,
                 ],
             ]);
         }
 
-        return response()->json(['data' => $q->get()]);
+        return response()->json(['data' => $q->get(), 'meta' => ['stats' => $stats]]);
     }
 
     public function show(Request $request, Product $product): \Illuminate\Http\JsonResponse
@@ -272,7 +287,7 @@ class ProductController extends Controller
             'tag_names' => ['nullable', 'array'],
             'tag_names.*' => ['string', 'max:255'],
             'menu_id' => ['nullable', 'integer', Rule::exists('menus', 'id')->where('tenant_id', $tid)],
-            'price_minor' => [$partial ? 'sometimes' : 'required', 'integer', 'min:0'],
+            'price_minor' => [$partial ? 'sometimes' : 'nullable', 'integer', 'min:0'],
             'sale_price_minor' => ['nullable', 'integer', 'min:0'],
             'currency' => ['nullable', 'string', 'max:8'],
             'stock' => ['nullable', 'integer', 'min:0'],
@@ -286,7 +301,7 @@ class ProductController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'discount_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
             'meta' => ['nullable', 'array'],
-            'status' => ['nullable', 'string', 'in:publish,draft,trash'],
+            'status' => ['nullable', 'string', 'in:publish,draft,trash,pending,private'],
             'type' => ['nullable', 'string', 'in:simple,variable,downloadable'],
             'catalog_visibility' => ['nullable', 'string', 'in:visible,catalog,search,hidden'],
             'stock_status' => ['nullable', 'string', 'in:instock,outofstock,onbackorder'],
@@ -337,9 +352,20 @@ class ProductController extends Controller
             }
         }
 
+        $type = $out['type'] ?? null;
+        if ($type === 'variable') {
+            unset($out['price_minor'], $out['sale_price_minor'], $out['stock'], $out['manage_stock'], $out['stock_status']);
+            if (! $partial) {
+                $out['price_minor'] = 0;
+                $out['stock'] = 0;
+                $out['stock_status'] = 'instock';
+            }
+        }
+
         if (! $partial) {
             $out['currency'] = $out['currency'] ?? 'IRR';
             $out['stock'] = $out['stock'] ?? 0;
+            $out['price_minor'] = $out['price_minor'] ?? 0;
             $out['is_available'] = $out['is_available'] ?? true;
             $out['is_hidden'] = $out['is_hidden'] ?? false;
             $out['is_new'] = $out['is_new'] ?? false;
@@ -386,7 +412,7 @@ class ProductController extends Controller
 
     private function syncRetailFromPurchase(Product $product): void
     {
-        if (! $product->purchase_price_minor || $product->lock_price) {
+        if (! $product->purchase_price_minor || $product->lock_price || $product->type === 'variable') {
             return;
         }
         $calc = PricingCalculator::forTenant($product->tenant_id);

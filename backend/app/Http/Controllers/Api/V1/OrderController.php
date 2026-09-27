@@ -150,6 +150,14 @@ class OrderController extends Controller
             'payment_tender' => ['sometimes', 'nullable', 'string', 'max:64'],
             'printed_at' => ['sometimes', 'nullable', 'date'],
         ]);
+        $locked = in_array($row->status, ['completed', 'refunded', 'cancelled', 'failed'], true);
+        if ($locked) {
+            $allowed = array_intersect_key($data, array_flip(['status', 'printed_at']));
+            if (count($allowed) !== count($data)) {
+                return response()->json(['message' => 'Order is locked', 'errors' => ['status' => ['Order is locked']]], 422);
+            }
+            $data = $allowed;
+        }
         $statusChanged = isset($data['status']) && $data['status'] !== $row->status;
         $row->update($data);
         if ($statusChanged) {
@@ -261,15 +269,30 @@ class OrderController extends Controller
     {
         $ret = OrderReturn::query()->where('tenant_id', $request->user()->tenant_id)->whereKey($returnId)->firstOrFail();
         $data = $request->validate([
-            'action' => ['required', 'string', 'in:approve,reject,receive,refund'],
+            'action' => ['required', 'string', 'in:approve,reject,receive,refund,exchange'],
             'admin_note' => ['nullable', 'string'],
             'refund_minor' => ['nullable', 'integer', 'min:0'],
         ]);
+        $current = (string) $ret->status;
+        $allowed = match ($data['action']) {
+            'approve' => ['requested'],
+            'reject' => ['requested', 'approved'],
+            'receive' => ['approved'],
+            'refund', 'exchange' => ['parcel_received', 'received'],
+            default => [],
+        };
+        if (! in_array($current, $allowed, true)) {
+            return response()->json([
+                'message' => 'Invalid return transition',
+                'errors' => ['action' => ["Cannot {$data['action']} from status {$current}"]],
+            ], 422);
+        }
         $map = [
             'approve' => 'approved',
             'reject' => 'rejected',
-            'receive' => 'received',
+            'receive' => 'parcel_received',
             'refund' => 'refunded',
+            'exchange' => 'exchanged',
         ];
         $ret->update([
             'status' => $map[$data['action']],

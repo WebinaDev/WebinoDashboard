@@ -22,7 +22,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
-type TabId = "content" | "pricing" | "attributes" | "coffee" | "marketplace" | "advanced"
+type TabId = "content" | "pricing" | "attributes" | "downloads" | "coffee" | "marketplace" | "advanced"
 
 type LookupTerm = { id: number; name: string; slug?: string }
 type LookupAttr = {
@@ -159,7 +159,7 @@ type AttrAssign = {
 }
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-const TABS: TabId[] = ["content", "pricing", "attributes", "coffee", "marketplace", "advanced"]
+const TABS: TabId[] = ["content", "pricing", "attributes", "downloads", "coffee", "marketplace", "advanced"]
 
 const emptyForm: FormState = {
   name: "",
@@ -349,12 +349,17 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
         .filter(Boolean),
       purchase_price_minor: Number(form.purchase_price_minor) || 0,
       lock_price: form.lock_price,
-      price_minor: Number(form.price_minor) || 0,
-      sale_price_minor: form.sale_price_minor === "" ? null : Number(form.sale_price_minor),
+      price_minor: form.type === "variable" ? undefined : Number(form.price_minor) || 0,
+      sale_price_minor:
+        form.type === "variable"
+          ? undefined
+          : form.sale_price_minor === ""
+            ? null
+            : Number(form.sale_price_minor),
       wholesale_rule: parseWholesale(form.wholesale_rule_text),
-      stock: Number(form.stock) || 0,
-      manage_stock: form.manage_stock,
-      stock_status: form.stock_status,
+      stock: form.type === "variable" ? undefined : Number(form.stock) || 0,
+      manage_stock: form.type === "variable" ? undefined : form.manage_stock,
+      stock_status: form.type === "variable" ? undefined : form.stock_status,
       weight: form.weight === "" ? null : Number(form.weight),
       length: form.length === "" ? null : Number(form.length),
       width: form.width === "" ? null : Number(form.width),
@@ -528,10 +533,11 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
             <select
               className={selectClass}
               value={form.type}
-              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "simple" | "variable" }))}
+              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "simple" | "variable" | "downloadable" }))}
             >
               <option value="simple">{t("type_simple")}</option>
               <option value="variable">{t("type_variable")}</option>
+              <option value="downloadable">{t("type_downloadable")}</option>
             </select>
           </div>
           <div>
@@ -543,6 +549,8 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
             >
               <option value="publish">{t("status_publish")}</option>
               <option value="draft">{t("status_draft")}</option>
+              <option value="pending">{t("status_pending")}</option>
+              <option value="private">{t("status_private")}</option>
               <option value="trash">{t("status_trash")}</option>
             </select>
           </div>
@@ -732,6 +740,9 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                 <CardTitle>{t("tab_pricing")}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
+                {form.type === "variable" ? (
+                  <p className="text-muted-foreground sm:col-span-2 text-sm">{t("variable_price_hint")}</p>
+                ) : null}
                 <div>
                   <Label>{t("purchase_price")}</Label>
                   <Input
@@ -980,6 +991,10 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
             </div>
           ) : null}
 
+          {tab === "downloads" ? (
+            <ProductDownloadsPanel productId={productId} isNew={isNew} />
+          ) : null}
+
           {tab === "coffee" ? (
             <Card>
               <CardHeader>
@@ -1156,3 +1171,72 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
     </PageShell>
   )
 }
+
+function ProductDownloadsPanel({ productId, isNew }: { productId: string | null; isNew: boolean }) {
+  const t = useTranslations("store")
+  const tCommon = useTranslations("common")
+  const qc = useQueryClient()
+  const q = useQuery({
+    queryKey: ["product-downloads", productId],
+    enabled: Boolean(productId) && !isNew,
+    queryFn: () => api<{ id: number; name: string; file_name?: string }[]>(`/api/v1/products/${productId}/downloads`),
+  })
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("name", file.name)
+      const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+      const res = await fetch(`${base}/api/v1/products/${productId}/downloads`, {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+        body: fd,
+      })
+      if (!res.ok) throw new Error(await res.text())
+      return res.json()
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["product-downloads", productId] }),
+  })
+  const remove = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/products/${productId}/downloads/${id}`, { method: "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["product-downloads", productId] }),
+  })
+  if (isNew || !productId) {
+    return (
+      <Card>
+        <CardContent className="text-muted-foreground p-4 text-sm">{t("downloads_empty")}</CardContent>
+      </Card>
+    )
+  }
+  const items = Array.isArray(q.data) ? q.data : []
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("tab_downloads")}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Input
+          type="file"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) void upload.mutateAsync(f)
+          }}
+        />
+        {items.length === 0 ? <p className="text-muted-foreground text-sm">{t("downloads_empty")}</p> : null}
+        <ul className="space-y-2">
+          {items.map((d) => (
+            <li key={d.id} className="flex items-center justify-between gap-2 rounded border px-3 py-2 text-sm">
+              <span>{d.name || d.file_name || `#${d.id}`}</span>
+              <Button type="button" size="sm" variant="ghost" onClick={() => void remove.mutateAsync(d.id)}>
+                <Trash2 className="size-4" />
+                {tCommon("delete")}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  )
+}
+

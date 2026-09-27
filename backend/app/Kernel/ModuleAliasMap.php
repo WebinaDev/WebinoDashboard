@@ -57,7 +57,8 @@ final class ModuleAliasMap
         'native_api' => ['core', 'modules'],
         'ai_recommendations' => ['analytics', 'reports'],
         'ai-content' => ['ai-content', 'studio'],
-        'accounting' => ['core', 'settings'],
+        'accounting' => ['commerce', 'accounting'],
+        'account' => ['commerce', 'account'],
     ];
 
     /** @return array{0: string, 1: string}|null */

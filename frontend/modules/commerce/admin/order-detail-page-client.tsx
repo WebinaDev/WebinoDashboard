@@ -438,7 +438,7 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                           {r.refund_minor != null ? <span>{r.refund_minor.toLocaleString()}</span> : null}
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {(["approve", "reject", "receive", "refund"] as const).map((action) => (
+                          {(["approve", "reject", "receive", "refund", "exchange"] as const).map((action) => (
                             <Button
                               key={action}
                               size="sm"

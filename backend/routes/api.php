@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\Api\V1\AcademyCourseController;
+use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AccountingController;
 use App\Http\Controllers\Api\V1\AiContentController;
 use App\Http\Controllers\Api\V1\AiRecommendationController;
@@ -51,6 +52,7 @@ use App\Http\Controllers\Api\V1\CoffeeController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\PricingController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
+use App\Http\Controllers\Api\V1\ProductCatalogController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductDownloadController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
@@ -280,6 +282,21 @@ Route::prefix('v1')->group(function () {
         Route::post('/account/notifications', [NotificationController::class, 'markAllRead']);
         Route::post('/account/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereNumber('notification');
 
+        Route::prefix('account')->group(function () {
+            Route::get('/overview', [AccountPortalController::class, 'overview']);
+            Route::get('/orders', [AccountPortalController::class, 'ordersIndex']);
+            Route::get('/orders/{order}', [AccountPortalController::class, 'ordersShow'])->whereNumber('order');
+            Route::get('/addresses', [AccountPortalController::class, 'addressesShow']);
+            Route::patch('/addresses', [AccountPortalController::class, 'addressesUpdate']);
+            Route::get('/favorites', [AccountPortalController::class, 'favoritesIndex']);
+            Route::post('/favorites/{productId}', [AccountPortalController::class, 'favoritesAdd'])->whereNumber('productId');
+            Route::delete('/favorites/{productId}', [AccountPortalController::class, 'favoritesRemove'])->whereNumber('productId');
+            Route::get('/reviews', [AccountPortalController::class, 'reviewsIndex']);
+            Route::get('/profile', [AccountPortalController::class, 'profileShow']);
+            Route::patch('/profile', [AccountPortalController::class, 'profileUpdate']);
+            Route::get('/wallet', [AccountPortalController::class, 'wallet']);
+        });
+
         Route::get('/themes', [ThemeController::class, 'index']);
         Route::post('/themes/{slug}/activate', [ThemeController::class, 'activate']);
         Route::patch('/themes/branding', [ThemeController::class, 'updateBranding']);
@@ -319,6 +336,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('/modifiers/{modifier}', [ProductModifierController::class, 'destroy'])->whereNumber('modifier');
             Route::put('/products/{product}/allergens', [ProductModifierController::class, 'syncAllergens'])->whereNumber('product');
             Route::put('/products/{product}/media', [ProductModifierController::class, 'syncMedia'])->whereNumber('product');
+            Route::get('/product-catalog/search', [ProductCatalogController::class, 'search']);
+            Route::post('/product-catalog/import', [ProductCatalogController::class, 'import']);
         });
 
         Route::middleware('module:brands')->group(function () {
@@ -764,6 +783,13 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('module:accounting')->group(function () {
             Route::get('/accounting/status', [AccountingController::class, 'status']);
+            Route::get('/accounting/overview', [AccountingController::class, 'overview']);
+            Route::get('/accounting/journals', [AccountingController::class, 'journalsIndex']);
+            Route::post('/accounting/journals', [AccountingController::class, 'journalsStore']);
+            Route::get('/accounting/persons', [AccountingController::class, 'personsIndex']);
+            Route::post('/accounting/persons', [AccountingController::class, 'personsStore']);
+            Route::get('/accounting/accounts', [AccountingController::class, 'accountsIndex']);
+            Route::post('/accounting/accounts', [AccountingController::class, 'accountsStore']);
         });
     });
 });
