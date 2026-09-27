@@ -51,8 +51,14 @@ Artisan::command('analytics:rollup', function () {
     $this->info('Analytics rollup complete.');
 })->purpose('Roll up yesterday/today analytics and purge old events');
 
+Artisan::command('ai:tick', function () {
+    app(\App\Services\AiContent\AiQueue::class)->tickAllTenants();
+    $this->info('AI content tick complete.');
+})->purpose('Process due AI calendar slots and pending jobs');
+
 Schedule::command('pricing:exchange-auto-update')->hourly()->withoutOverlapping();
 Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();
+Schedule::command('ai:tick')->everyMinute()->withoutOverlapping();
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:torob-webhooks')->everyMinute()->withoutOverlapping();

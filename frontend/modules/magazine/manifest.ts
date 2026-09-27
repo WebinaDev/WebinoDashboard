@@ -6,9 +6,9 @@ export const magazineManifest: ModuleManifest = {
   nameEn: "Magazine",
   siteTypes: ["magazine"],
   submodules: ["issues", "articles", "series", "authors"],
-  adminNav: { section: "site", order: 12 },
+  adminNav: { section: "content", order: 10 },
   adminRoutes: [
-    { path: "magazine", submodule: "articles", labelKey: "nav.magazine", section: "site", order: 12 },
+    { path: "magazine", submodule: "articles", labelKey: "nav.magazine", section: "content", order: 10 },
   ],
   siteRoutes: [
     { path: "magazine", submodule: "articles", labelKey: "site.magazine" },

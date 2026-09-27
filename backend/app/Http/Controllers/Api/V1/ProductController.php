@@ -287,7 +287,7 @@ class ProductController extends Controller
             'discount_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
             'meta' => ['nullable', 'array'],
             'status' => ['nullable', 'string', 'in:publish,draft,trash'],
-            'type' => ['nullable', 'string', 'in:simple,variable'],
+            'type' => ['nullable', 'string', 'in:simple,variable,downloadable'],
             'catalog_visibility' => ['nullable', 'string', 'in:visible,catalog,search,hidden'],
             'stock_status' => ['nullable', 'string', 'in:instock,outofstock,onbackorder'],
             'manage_stock' => ['nullable', 'boolean'],

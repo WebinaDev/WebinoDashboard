@@ -2,6 +2,7 @@ import type { ModuleManifest, SiteTypeSlug } from "./types"
 import externalRegistry from "../../modules-external/.registry.json"
 
 import { academyManifest } from "../../modules/academy/manifest"
+import { aiContentManifest } from "../../modules/ai-content/manifest"
 import { analyticsManifest } from "../../modules/analytics/manifest"
 import { blogManifest } from "../../modules/blog/manifest"
 import { botsManifest } from "../../modules/bots/manifest"
@@ -47,6 +48,7 @@ const GIT_TRANSITION_MANIFESTS: ModuleManifest[] = [
   { ...marketingManifest, distribution: "git" },
   { ...botsManifest, distribution: "git" },
   { ...analyticsManifest, distribution: "git" },
+  { ...aiContentManifest, distribution: "git" },
   { ...magazineManifest, distribution: "git" },
   { ...academyManifest, distribution: "git" },
   { ...cafeManifest, distribution: "git" },

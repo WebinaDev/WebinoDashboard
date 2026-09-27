@@ -10,6 +10,7 @@ use App\Services\Marketplace\MarketplaceLogger;
 use App\Services\Payments\BnplClient;
 use App\Services\Payments\DigipayClient;
 use App\Services\Payments\PaymentGatewaySettingsService;
+use App\Services\Shop\LoyaltyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -23,6 +24,7 @@ class PaymentCallbackController extends Controller
         protected PaymentGatewaySettingsService $gateways,
         protected DigipayClient $digipay,
         protected BnplClient $bnpl,
+        protected LoyaltyService $loyalty,
     ) {}
 
     public function handle(Request $request, string $provider, Order $order): RedirectResponse
@@ -45,7 +47,7 @@ class PaymentCallbackController extends Controller
             $hash = (string) ($request->input('hash_id') ?? $request->input('hash') ?? '');
             $result = BasalamPay::for((int) $order->tenant_id)->verify($order, $hash);
 
-            return $this->finish($result['paid']);
+            return $this->finish($result['paid'], $order);
         } catch (\Throwable $e) {
             MarketplaceLogger::error((int) $order->tenant_id, 'basalam', 'pay', 'Basalam Pay verify failed: '.$e->getMessage(), ['order_id' => $order->id]);
 
@@ -99,7 +101,7 @@ class PaymentCallbackController extends Controller
             ]);
             $intent?->update(['status' => 'completed']);
 
-            return $this->finish(true);
+            return $this->finish(true, $order);
         }
 
         $order->update(['status' => 'payment_failed']);
@@ -147,7 +149,7 @@ class PaymentCallbackController extends Controller
             ]);
             $intent?->update(['status' => 'completed']);
 
-            return $this->finish(true);
+            return $this->finish(true, $order);
         }
 
         $order->update(['status' => 'payment_failed']);
@@ -204,11 +206,18 @@ class PaymentCallbackController extends Controller
         ]);
         $intent?->update(['status' => 'completed']);
 
-        return $this->finish(true);
+        return $this->finish(true, $order);
     }
 
-    protected function finish(bool $ok): RedirectResponse
+    protected function finish(bool $ok, ?Order $order = null): RedirectResponse
     {
+        if ($ok && $order) {
+            try {
+                $this->loyalty->awardForPaidOrder($order->fresh());
+            } catch (\Throwable) {
+                // Loyalty must not block payment success redirect.
+            }
+        }
         $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
 
         return redirect()->away($base.'/checkout?payment='.($ok ? 'success' : 'failed'));

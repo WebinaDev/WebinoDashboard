@@ -261,6 +261,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   const { activations } = useDashboardNav()
   const coffeeEnabled = isSubmoduleEnabled(activations, "coffee-profile", "profile")
   const marketplaceEnabled = isSubmoduleEnabled(activations, "commerce", "marketplace")
+  const aiEnabled = isSubmoduleEnabled(activations, "ai-content", "studio")
 
   const rawId = route.params?.productId
   const isNew = !rawId || rawId === "new"
@@ -489,6 +490,16 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
         json: coffee,
       }),
     onSuccess: () => setMessage(t("coffee_saved")),
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  const aiGenerate = useMutation({
+    mutationFn: () =>
+      api("/api/v1/ai-content/generate", {
+        method: "POST",
+        json: { type: "product", id: Number(productId), sync: false },
+      }),
+    onSuccess: () => setMessage(t("ai_generate_queued")),
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
@@ -1105,7 +1116,20 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     </div>
                   </div>
                   <div>
-                    <Label>{t("ai_review_summary")}</Label>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <Label>{t("ai_review_summary")}</Label>
+                      {aiEnabled && productId ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={aiGenerate.isPending}
+                          onClick={() => aiGenerate.mutate()}
+                        >
+                          {t("ai_generate")}
+                        </Button>
+                      ) : null}
+                    </div>
                     <Textarea
                       value={form.ai_review_summary}
                       onChange={(e) => setForm((f) => ({ ...f, ai_review_summary: e.target.value }))}

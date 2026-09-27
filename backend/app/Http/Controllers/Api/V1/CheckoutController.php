@@ -165,9 +165,14 @@ class CheckoutController extends Controller
             }
 
             $shippingAddress = $checkoutMeta['shipping_address'] ?? null;
+            if ($shippingAddress === null || $shippingAddress === '' || (is_array($shippingAddress) && trim(implode('', array_map('strval', $shippingAddress))) === '')) {
+                $shippingAddress = \App\Services\Shop\ShopSettings::defaultCustomerAddress((int) $user->tenant_id);
+            }
             if (is_array($shippingAddress)) {
                 $shippingAddress = json_encode($shippingAddress, JSON_UNESCAPED_UNICODE);
             }
+
+            $requireLogin = (bool) (\App\Services\Shop\ShopSettings::getDownloads((int) $user->tenant_id)['require_login'] ?? true);
 
             $order = Order::query()->create([
                 'tenant_id' => $user->tenant_id,
@@ -194,6 +199,7 @@ class CheckoutController extends Controller
                     'unit_price_minor' => $unitPrices[$line->id],
                     'purchase_type' => $purchaseType,
                     'meta' => $months ? ['wfcp_installment_months' => $months] : null,
+                    'requires_login' => $requireLogin && (($line->product->type ?? '') === 'downloadable'),
                 ]);
             }
 

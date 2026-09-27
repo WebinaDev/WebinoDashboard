@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\ProductLike;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Pricing\PurchaseTypeService;
+use App\Services\Shop\ShopSettings;
 use Illuminate\Http\Request;
 
 class PublicCatalogController extends Controller
@@ -61,7 +62,51 @@ class PublicCatalogController extends Controller
         }
 
         $pricing = PurchaseTypeService::forTenant($tid);
-        $products = $productsQuery->get()->map(fn (Product $p) => $this->withPricing($this->serializeProduct($p, true), $p, $pricing));
+        $productsSettings = ShopSettings::getProducts($tid);
+        $generalSettings = ShopSettings::getGeneral($tid);
+        $archive = ShopSettings::getArchive($tid);
+
+        if (! empty($productsSettings['hide_out_of_stock']) || $request->boolean('in_stock') || ($request->boolean('filter_in_stock') && ! empty($archive['filter_in_stock']))) {
+            $productsQuery->where(function ($builder) {
+                $builder->whereNull('stock_status')
+                    ->orWhere('stock_status', '!=', 'outofstock');
+            })->where(function ($builder) {
+                $builder->whereNull('stock')->orWhere('stock', '>', 0)->orWhere('manage_stock', false);
+            });
+        }
+
+        if ($request->boolean('on_sale') && ! empty($archive['filter_on_sale'])) {
+            $productsQuery->where(function ($builder) {
+                $builder->where('discount_percent', '>', 0)
+                    ->orWhereNotNull('sale_price_minor');
+            });
+        }
+
+        if ($request->filled('min_price') && ! empty($archive['filter_price'])) {
+            $productsQuery->where('price_minor', '>=', (int) $request->query('min_price'));
+        }
+        if ($request->filled('max_price') && ! empty($archive['filter_price'])) {
+            $productsQuery->where('price_minor', '<=', (int) $request->query('max_price'));
+        }
+        if ($request->filled('category')) {
+            $cat = trim((string) $request->query('category'));
+            $productsQuery->whereHas('category', fn ($q) => $q->where('slug', $cat)->orWhere('id', $cat));
+        }
+
+        $sort = (string) $request->query('sort', $archive['default_sort'] ?? 'newest');
+        $productsQuery->reorder();
+        match ($sort) {
+            'price_asc' => $productsQuery->orderBy('price_minor'),
+            'price_desc' => $productsQuery->orderByDesc('price_minor'),
+            'popular' => $productsQuery->orderByDesc('views_count'),
+            default => $productsQuery->orderByDesc('id'),
+        };
+
+        $perPage = max(1, min(96, (int) $request->query('per_page', $archive['products_per_page'] ?? 12)));
+        $page = max(1, (int) $request->query('page', 1));
+        $total = (clone $productsQuery)->count();
+        $products = $productsQuery->skip(($page - 1) * $perPage)->take($perPage)->get()
+            ->map(fn (Product $p) => $this->withPricing($this->serializeProduct($p, true), $p, $pricing));
 
         $banners = MenuBanner::query()
             ->where('tenant_id', $tid)
@@ -94,6 +139,19 @@ class PublicCatalogController extends Controller
                 'branches' => $branches,
                 'hours' => $hours,
                 'engagement' => $engagement,
+                'currency_display' => [
+                    'currency' => $generalSettings['currency'],
+                    'currency_position' => $generalSettings['currency_position'],
+                    'thousand_separator' => $generalSettings['thousand_separator'],
+                    'decimal_separator' => $generalSettings['decimal_separator'],
+                    'price_decimals' => $generalSettings['price_decimals'],
+                ],
+                'archive' => $archive,
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                ],
                 'query' => $q !== '' ? $q : null,
                 'branch' => $branchSlug !== '' ? $branchSlug : null,
             ],

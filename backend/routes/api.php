@@ -3,6 +3,7 @@
 use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\Api\V1\AcademyCourseController;
 use App\Http\Controllers\Api\V1\AccountingController;
+use App\Http\Controllers\Api\V1\AiContentController;
 use App\Http\Controllers\Api\V1\AiRecommendationController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
@@ -34,6 +35,7 @@ use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\MobileContractController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\ModuleInstallController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
 use App\Http\Controllers\Api\V1\PaymentGatewaySettingsController;
@@ -41,16 +43,21 @@ use App\Http\Controllers\Api\V1\PaymentIntentController;
 use App\Http\Controllers\Api\V1\PaymentsHubController;
 use App\Http\Controllers\Api\V1\PortfolioItemController;
 use App\Http\Controllers\Api\V1\BrandController;
+use App\Http\Controllers\Api\V1\BulkSaleController;
 use App\Http\Controllers\Api\V1\C2cController;
 use App\Http\Controllers\Api\V1\CoffeeController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\PricingController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProductDownloadController;
+use App\Http\Controllers\Api\V1\ProductReviewController;
+use App\Http\Controllers\Api\V1\ShopExtrasController;
 use App\Http\Controllers\Api\V1\ProductVariantController;
 use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\StaffController;
+use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\BotController;
 use App\Http\Controllers\Api\V1\CouponController;
@@ -118,6 +125,10 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/payments/callback/{provider}/{order}', [PaymentCallbackController::class, 'handle'])
         ->whereNumber('order');
+
+    Route::get('/downloads/{orderItem}/{download}', [ProductDownloadController::class, 'serve'])
+        ->name('downloads.serve')
+        ->whereNumber(['orderItem', 'download']);
 
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('/auth/session', [AuthController::class, 'session'])->middleware('throttle:5,1');
@@ -189,6 +200,8 @@ Route::prefix('v1')->group(function () {
         Route::middleware('public.module:catalog')->group(function () {
             Route::get('/catalog', [PublicCatalogController::class, 'index']);
             Route::get('/catalog/items/{slug}', [PublicCatalogController::class, 'show']);
+            Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);
+            Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore']);
         });
 
         Route::middleware('public.module:cafe')->group(function () {
@@ -242,6 +255,29 @@ Route::prefix('v1')->group(function () {
         Route::get('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'show']);
         Route::put('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'update']);
 
+        Route::get('/maps/search', [ShopExtrasController::class, 'mapsSearch']);
+        Route::get('/maps/default-address', [ShopExtrasController::class, 'defaultAddress']);
+        Route::get('/loyalty/rewards', [ShopExtrasController::class, 'loyaltyRewards']);
+        Route::put('/loyalty/rewards', [ShopExtrasController::class, 'saveLoyaltyRewards']);
+        Route::get('/loyalty/balance', [ShopExtrasController::class, 'loyaltyBalance']);
+        Route::post('/loyalty/redeem', [ShopExtrasController::class, 'redeemLoyalty']);
+        Route::get('/product-reviews', [ProductReviewController::class, 'adminIndex']);
+        Route::patch('/product-reviews/{review}', [ProductReviewController::class, 'moderate'])->whereNumber('review');
+
+        Route::get('/shop/tickets', [SupportTicketController::class, 'staffIndex']);
+        Route::get('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffShow'])->whereNumber('ticket');
+        Route::patch('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffPatch'])->whereNumber('ticket');
+        Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, 'staffReply'])->whereNumber('ticket');
+        Route::get('/account/tickets', [SupportTicketController::class, 'accountIndex']);
+        Route::post('/account/tickets', [SupportTicketController::class, 'accountCreate']);
+        Route::get('/account/tickets/{ticket}', [SupportTicketController::class, 'accountShow'])->whereNumber('ticket');
+        Route::patch('/account/tickets/{ticket}', [SupportTicketController::class, 'accountPatch'])->whereNumber('ticket');
+        Route::post('/account/tickets/{ticket}/replies', [SupportTicketController::class, 'accountReply'])->whereNumber('ticket');
+
+        Route::get('/account/notifications', [NotificationController::class, 'index']);
+        Route::post('/account/notifications', [NotificationController::class, 'markAllRead']);
+        Route::post('/account/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereNumber('notification');
+
         Route::get('/themes', [ThemeController::class, 'index']);
         Route::post('/themes/{slug}/activate', [ThemeController::class, 'activate']);
         Route::patch('/themes/branding', [ThemeController::class, 'updateBranding']);
@@ -264,9 +300,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/products/lookup', [ProductController::class, 'lookup']);
             Route::get('/shop/products/print-labels', [OrderDocumentController::class, 'productLabels']);
             Route::patch('/products/bulk', [ProductController::class, 'bulkUpdate']);
+            Route::post('/products/bulk-sale', BulkSaleController::class);
+            Route::post('/shop/products/bulk-sale', BulkSaleController::class);
             Route::post('/products/{product}/duplicate', [ProductController::class, 'duplicate'])->whereNumber('product');
             Route::put('/products/{product}/attributes', [ProductController::class, 'syncAttributes'])->whereNumber('product');
             Route::apiResource('products', ProductController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+            Route::get('/products/{product}/downloads', [ProductDownloadController::class, 'index'])->whereNumber('product');
+            Route::post('/products/{product}/downloads', [ProductDownloadController::class, 'store'])->whereNumber('product');
+            Route::delete('/products/{product}/downloads/{download}', [ProductDownloadController::class, 'destroy'])->whereNumber(['product', 'download']);
             Route::apiResource('menus', MenuController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::apiResource('allergens', AllergenController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::apiResource('menu-banners', MenuBannerController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -662,6 +703,45 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('module:native_api')->group(function () {
             Route::get('/contracts/mobile', [MobileContractController::class, 'show']);
+        });
+
+        Route::middleware('module:ai-content')->group(function () {
+            Route::get('/ai-content/overview', [AiContentController::class, 'overview']);
+            Route::get('/ai-content/settings', [AiContentController::class, 'settings']);
+            Route::post('/ai-content/settings', [AiContentController::class, 'saveSettings']);
+            Route::get('/ai-content/gapgpt/models', [AiContentController::class, 'gapgptModels']);
+            Route::post('/ai-content/cost-estimate', [AiContentController::class, 'costEstimate']);
+            Route::get('/ai-content/jobs', [AiContentController::class, 'jobs']);
+            Route::get('/ai-content/jobs/{job}', [AiContentController::class, 'job'])->whereNumber('job');
+            Route::post('/ai-content/jobs/{job}/retry', [AiContentController::class, 'retryJob'])->whereNumber('job');
+            Route::post('/ai-content/jobs/{job}/cancel', [AiContentController::class, 'cancelJob'])->whereNumber('job');
+            Route::post('/ai-content/jobs/{job}/run', [AiContentController::class, 'runOne'])->whereNumber('job');
+            Route::post('/ai-content/jobs/run-due', [AiContentController::class, 'runDue']);
+            Route::post('/ai-content/jobs/cancel-pending', [AiContentController::class, 'cancelPending']);
+            Route::get('/ai-content/queue', [AiContentController::class, 'queueGet']);
+            Route::post('/ai-content/queue', [AiContentController::class, 'queuePost']);
+            Route::post('/ai-content/generate', [AiContentController::class, 'generate']);
+            Route::get('/ai-content/products/incomplete', [AiContentController::class, 'productsIncomplete']);
+            Route::post('/ai-content/products/fill-batch', [AiContentController::class, 'productsFillBatch']);
+            Route::get('/ai-content/calendar', [AiContentController::class, 'calendarList']);
+            Route::post('/ai-content/calendar', [AiContentController::class, 'calendarCreate']);
+            Route::post('/ai-content/calendar/bulk', [AiContentController::class, 'calendarBulk']);
+            Route::patch('/ai-content/calendar/{id}', [AiContentController::class, 'calendarPatch'])->whereNumber('id');
+            Route::delete('/ai-content/calendar/{id}', [AiContentController::class, 'calendarDelete'])->whereNumber('id');
+            Route::post('/ai-content/calendar/run-due', [AiContentController::class, 'calendarRunDue']);
+            Route::get('/ai-content/attribute-templates', [AiContentController::class, 'attrList']);
+            Route::post('/ai-content/attribute-templates', [AiContentController::class, 'attrConfirm']);
+            Route::delete('/ai-content/attribute-templates/{id}', [AiContentController::class, 'attrDelete'])->whereNumber('id');
+            Route::post('/ai-content/suggest-categories', [AiContentController::class, 'suggestCategories']);
+            Route::get('/ai-content/blog-topics', [AiContentController::class, 'blogTopics']);
+            Route::post('/ai-content/blog-topics/suggest', [AiContentController::class, 'blogTopicsSuggest']);
+            Route::post('/ai-content/blog-topics/approve', [AiContentController::class, 'blogTopicsApprove']);
+            Route::post('/ai-content/blog-topics/skip', [AiContentController::class, 'blogTopicsSkip']);
+            Route::get('/ai-content/proposals', [AiContentController::class, 'proposals']);
+            Route::post('/ai-content/proposals/enqueue', [AiContentController::class, 'proposalsEnqueue']);
+            Route::post('/ai-content/proposals/{id}/apply', [AiContentController::class, 'proposalsApply'])->whereNumber('id');
+            Route::post('/ai-content/proposals/{id}/skip', [AiContentController::class, 'proposalsSkip'])->whereNumber('id');
+            Route::post('/ai-content/terms/fill-batch', [AiContentController::class, 'termsFillBatch']);
         });
 
         Route::middleware('module:ai_recommendations')->group(function () {

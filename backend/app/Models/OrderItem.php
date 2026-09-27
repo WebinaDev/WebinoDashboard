@@ -17,6 +17,8 @@ class OrderItem extends Model
         'unit_price_minor',
         'purchase_type',
         'meta',
+        'download_count',
+        'requires_login',
     ];
 
     protected function casts(): array
@@ -25,6 +27,8 @@ class OrderItem extends Model
             'quantity' => 'integer',
             'unit_price_minor' => 'integer',
             'meta' => 'array',
+            'download_count' => 'integer',
+            'requires_login' => 'boolean',
         ];
     }
 

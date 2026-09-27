@@ -9,6 +9,7 @@ import { Grid2x2, List, Search, Share2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { formatShopPrice, type ShopCurrencyDisplay } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 import { CafeCartDrawer } from "../components/CafeCartDrawer"
@@ -31,16 +32,12 @@ type Props = {
   branchSlug?: string | null
 }
 
-function formatPrice(amount: number, currency: string, locale: string) {
-  try {
-    return new Intl.NumberFormat(locale === "fa" ? "fa-IR" : "en-US", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount / 10)
-  } catch {
-    return `${amount}`
-  }
+function formatPrice(
+  amount: number,
+  currency: string,
+  display?: ShopCurrencyDisplay | null
+) {
+  return formatShopPrice(amount / 10, { ...display, currency: display?.currency || currency }, currency)
 }
 
 function localizedField(locale: string, fa?: string | null, en?: string | null): string | null {
@@ -99,6 +96,7 @@ export function CatalogueView({ catalog, venue, initialQuery = "", tableNumber, 
   const featured = filteredItems.filter((i) => i.is_featured)
   const discounted = filteredItems.filter((i) => i.discount_percent > 0)
   const newest = filteredItems.filter((i) => i.is_new)
+  const currencyDisplay = catalog.currency_display
 
   const tagline = venue ? localizedField(locale, venue.venue.tagline_fa, venue.venue.tagline_en) : null
   const banners = (catalog.banners ?? []).filter((b) => b.is_active !== false)
@@ -218,13 +216,13 @@ export function CatalogueView({ catalog, venue, initialQuery = "", tableNumber, 
         ) : null}
 
         {featured.length > 0 ? (
-          <SmartSection title={t("section_featured")} items={featured} view={view} locale={locale} menu={menu} t={t} />
+          <SmartSection title={t("section_featured")} items={featured} view={view} locale={locale} menu={menu} t={t} currencyDisplay={currencyDisplay} />
         ) : null}
         {discounted.length > 0 ? (
-          <SmartSection title={t("section_discounted")} items={discounted} view={view} locale={locale} menu={menu} t={t} />
+          <SmartSection title={t("section_discounted")} items={discounted} view={view} locale={locale} menu={menu} t={t} currencyDisplay={currencyDisplay} />
         ) : null}
         {newest.length > 0 ? (
-          <SmartSection title={t("section_new")} items={newest} view={view} locale={locale} menu={menu} t={t} />
+          <SmartSection title={t("section_new")} items={newest} view={view} locale={locale} menu={menu} t={t} currencyDisplay={currencyDisplay} />
         ) : null}
 
         {filteredItems.length === 0 ? (
@@ -238,6 +236,7 @@ export function CatalogueView({ catalog, venue, initialQuery = "", tableNumber, 
             menu={menu}
             t={t}
             activeCategory={activeCategory}
+            currencyDisplay={currencyDisplay}
           />
         )}
 
@@ -306,6 +305,7 @@ function SmartSection({
   locale,
   menu,
   t,
+  currencyDisplay,
 }: {
   title: string
   items: CatalogItem[]
@@ -313,13 +313,14 @@ function SmartSection({
   locale: string
   menu: CafeMenuSettings
   t: ReturnType<typeof useTranslations<"cafe_starter">>
+  currencyDisplay?: ShopCurrencyDisplay | null
 }) {
   return (
     <section className="mt-10">
       <h2 className="mb-4 text-lg font-semibold">{title}</h2>
       <div className={cn("gap-4", view === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-3")}>
         {items.slice(0, 6).map((item) => (
-          <ItemCard key={`smart-${item.id}`} item={item} view={view} locale={locale} showNewBadge={menu.show_new_badge} t={t} />
+          <ItemCard key={`smart-${item.id}`} item={item} view={view} locale={locale} showNewBadge={menu.show_new_badge} t={t} currencyDisplay={currencyDisplay} />
         ))}
       </div>
     </section>
@@ -334,6 +335,7 @@ function CategorySections({
   menu,
   t,
   activeCategory,
+  currencyDisplay,
 }: {
   categories: CatalogCategory[]
   items: CatalogItem[]
@@ -342,6 +344,7 @@ function CategorySections({
   menu: CafeMenuSettings
   t: ReturnType<typeof useTranslations<"cafe_starter">>
   activeCategory: string | null
+  currencyDisplay?: ShopCurrencyDisplay | null
 }) {
   const groups = activeCategory
     ? categories.filter((c) => c.slug === activeCategory)
@@ -351,7 +354,7 @@ function CategorySections({
     return (
       <div className={cn("mt-8", view === "grid" ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-3")}>
         {items.map((item) => (
-          <ItemCard key={item.id} item={item} view={view} locale={locale} showNewBadge={menu.show_new_badge} t={t} />
+          <ItemCard key={item.id} item={item} view={view} locale={locale} showNewBadge={menu.show_new_badge} t={t} currencyDisplay={currencyDisplay} />
         ))}
       </div>
     )
@@ -378,7 +381,7 @@ function CategorySections({
             )}
             <div className={cn("gap-4", catView === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-3")}>
               {catItems.map((item) => (
-                <ItemCard key={item.id} item={item} view={catView} locale={locale} showNewBadge={menu.show_new_badge} t={t} coverMode={cat.display_mode === "cover"} />
+                <ItemCard key={item.id} item={item} view={catView} locale={locale} showNewBadge={menu.show_new_badge} t={t} coverMode={cat.display_mode === "cover"} currencyDisplay={currencyDisplay} />
               ))}
             </div>
           </section>
@@ -395,6 +398,7 @@ function ItemCard({
   showNewBadge,
   t,
   coverMode = false,
+  currencyDisplay,
 }: {
   item: CatalogItem
   view: "grid" | "list"
@@ -402,10 +406,11 @@ function ItemCard({
   showNewBadge: boolean
   t: ReturnType<typeof useTranslations<"cafe_starter">>
   coverMode?: boolean
+  currencyDisplay?: ShopCurrencyDisplay | null
 }) {
   const hasDiscount = item.discount_percent > 0
-  const price = formatPrice(item.discounted_price_minor, item.currency, locale)
-  const original = hasDiscount ? formatPrice(item.price_minor, item.currency, locale) : null
+  const price = formatPrice(item.discounted_price_minor, item.currency, currencyDisplay)
+  const original = hasDiscount ? formatPrice(item.price_minor, item.currency, currencyDisplay) : null
   const image = item.cover_image_url ?? item.image_url
 
   return (

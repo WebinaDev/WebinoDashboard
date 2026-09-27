@@ -6,9 +6,9 @@ export const blogManifest: ModuleManifest = {
   nameEn: "Blog",
   siteTypes: ["ecommerce", "magazine", "cafe", "corporate"],
   submodules: ["posts", "categories"],
-  adminNav: { section: "site", order: 11 },
+  adminNav: { section: "content", order: 13 },
   adminRoutes: [
-    { path: "blog", submodule: "posts", labelKey: "nav.blog", section: "site", order: 11 },
+    { path: "blog", submodule: "posts", labelKey: "nav.blog", section: "content", order: 13 },
   ],
   siteRoutes: [
     { path: "blog", submodule: "posts", labelKey: "site.blog" },

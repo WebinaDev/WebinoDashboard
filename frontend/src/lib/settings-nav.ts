@@ -5,6 +5,7 @@ export type SettingsUnitId =
   | "site-ai"
   | "site-analytics"
   | "site-sms"
+  | "site-themes"
   | "shop-general"
   | "shop-accounting"
   | "shop-bots"
@@ -89,6 +90,20 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
     ],
   },
   {
+    id: "site-themes",
+    area: "site",
+    titleFa: "تم سایت",
+    titleEn: "Site theme",
+    sections: [
+      {
+        id: "themes",
+        titleFa: "تم سایت",
+        titleEn: "Site theme",
+        route: "/dashboard/themes",
+      },
+    ],
+  },
+  {
     id: "shop-general",
     area: "shop",
     titleFa: "تنظیمات عمومی",
@@ -99,6 +114,42 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "عمومی",
         titleEn: "General",
         route: "/dashboard/settings/shop/general",
+      },
+      {
+        id: "products",
+        titleFa: "محصولات / موجودی",
+        titleEn: "Products / Inventory",
+        route: "/dashboard/settings/shop/products",
+      },
+      {
+        id: "downloads",
+        titleFa: "دانلودها",
+        titleEn: "Downloads",
+        route: "/dashboard/settings/shop/downloads",
+      },
+      {
+        id: "reviews",
+        titleFa: "دیدگاه‌ها",
+        titleEn: "Reviews",
+        route: "/dashboard/settings/shop/reviews",
+      },
+      {
+        id: "maps",
+        titleFa: "نقشه",
+        titleEn: "Map",
+        route: "/dashboard/settings/shop/maps",
+      },
+      {
+        id: "loyalty",
+        titleFa: "باشگاه مشتریان",
+        titleEn: "Loyalty",
+        route: "/dashboard/settings/shop/loyalty",
+      },
+      {
+        id: "archive",
+        titleFa: "بایگانی و فیلتر",
+        titleEn: "Archive & filters",
+        route: "/dashboard/settings/shop/archive",
       },
     ],
   },

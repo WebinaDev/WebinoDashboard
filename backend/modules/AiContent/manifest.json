@@ -1,0 +1,10 @@
+{
+  "slug": "ai-content",
+  "name_fa": "هوش مصنوعی",
+  "name_en": "AI Content",
+  "distribution": "git",
+  "site_types": ["ecommerce", "magazine", "cafe", "corporate"],
+  "submodules": ["studio"],
+  "admin_nav": {"section": "site", "order": 12},
+  "public_routes": []
+}

@@ -56,6 +56,7 @@ final class ModuleAliasMap
         'store_settings' => ['core', 'settings'],
         'native_api' => ['core', 'modules'],
         'ai_recommendations' => ['analytics', 'reports'],
+        'ai-content' => ['ai-content', 'studio'],
         'accounting' => ['core', 'settings'],
     ];
 

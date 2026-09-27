@@ -10,20 +10,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
+import { formatShopPrice } from "@/lib/format"
 
 import { CafeCartDrawer } from "../components/CafeCartDrawer"
 import type { CatalogItem } from "../types"
 
-function formatPrice(amount: number, currency: string, locale: string) {
-  try {
-    return new Intl.NumberFormat(locale === "fa" ? "fa-IR" : "en-US", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount / 10)
-  } catch {
-    return `${amount}`
-  }
+function formatPrice(amount: number, currency: string) {
+  return formatShopPrice(amount / 10, { currency }, currency)
 }
 
 function localized(locale: string, fa?: string | null, en?: string | null) {
@@ -49,7 +42,7 @@ export function ItemDetailView({
   const [message, setMessage] = useState<string | null>(null)
 
   const image = item.cover_image_url ?? item.image_url
-  const price = formatPrice(item.discounted_price_minor, item.currency, locale)
+  const price = formatPrice(item.discounted_price_minor, item.currency)
 
   async function addToCart() {
     const token = localStorage.getItem("cafe_guest_token") ?? crypto.randomUUID().replace(/-/g, "")

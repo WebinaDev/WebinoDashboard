@@ -182,6 +182,13 @@ export type CatalogPayload = {
   branches?: CafeBranch[]
   hours?: CafeHoursSettings
   engagement?: CafeEngagementSettings
+  currency_display?: {
+    currency?: string
+    currency_position?: string
+    thousand_separator?: string
+    decimal_separator?: string
+    price_decimals?: number
+  }
   query?: string | null
   branch?: string | null
 }

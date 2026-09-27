@@ -1,6 +1,6 @@
 import type { ModuleManifest } from "@/kernel/types"
 
-const ANALYTICS_SECTIONS = [
+const TRAFFIC_SECTIONS = [
   "overview",
   "visitors",
   "pages",
@@ -9,11 +9,10 @@ const ANALYTICS_SECTIONS = [
   "devices",
   "commerce",
   "compare",
-  "seo",
-  "support",
-  "content",
   "month-summary",
 ] as const
+
+const PERFORMANCE_SECTIONS = ["seo", "support", "content"] as const
 
 const REPORT_SECTIONS = [
   "overview",
@@ -37,16 +36,26 @@ export const analyticsManifest: ModuleManifest = {
   nameEn: "Analytics",
   siteTypes: ["ecommerce", "magazine", "cafe", "corporate"],
   submodules: ["overview", "reports"],
-  adminNav: { section: "overview", order: 5 },
+  adminNav: { section: "reports", order: 70 },
   adminRoutes: [
-    ...ANALYTICS_SECTIONS.map((section, i) => ({
+    ...TRAFFIC_SECTIONS.map((section, i) => ({
       path: `analytics/${section}`,
       submodule: "overview",
       page: "analytics-shell",
       labelKey: `nav.analytics_${section.replace(/-/g, "_")}`,
-      section: "overview",
-      order: 5,
+      section: "reports",
+      order: 70,
       navGroup: "analytics",
+      navOrder: i,
+    })),
+    ...PERFORMANCE_SECTIONS.map((section, i) => ({
+      path: `analytics/${section}`,
+      submodule: "overview",
+      page: "analytics-shell",
+      labelKey: `nav.analytics_${section}`,
+      section: "reports",
+      order: 72,
+      navGroup: "performance",
       navOrder: i,
     })),
     ...REPORT_SECTIONS.map((section, i) => ({
@@ -54,8 +63,8 @@ export const analyticsManifest: ModuleManifest = {
       submodule: "reports",
       page: "shop-reports-shell",
       labelKey: `nav.reports_${section}`,
-      section: "overview",
-      order: 6,
+      section: "reports",
+      order: 71,
       navGroup: "shop_reports",
       navOrder: i,
     })),

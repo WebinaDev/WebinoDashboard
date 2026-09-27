@@ -10,7 +10,8 @@
     "analyze": "ANALYZE=true next build",
     "lhci": "lhci autorun",
     "test:perf": "lhci autorun || true",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:nav": "node src/kernel/build-admin-nav.smoke.mjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",

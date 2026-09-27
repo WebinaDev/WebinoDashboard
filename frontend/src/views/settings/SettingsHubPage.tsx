@@ -10,6 +10,14 @@ import { AiContentSettingsPanel } from "@/views/settings/panels/AiContentSetting
 import { AnalyticsSettingsPanel } from "@/views/settings/panels/AnalyticsSettingsPanel"
 import { SmsSettingsPanel } from "@/views/settings/panels/SmsSettingsPanel"
 import { ShopGeneralSettingsPanel } from "@/views/settings/panels/ShopGeneralSettingsPanel"
+import { ShopProductsSettingsPanel } from "@/views/settings/panels/ShopProductsSettingsPanel"
+import {
+  ShopArchiveSettingsPanel,
+  ShopDownloadsSettingsPanel,
+  ShopLoyaltySettingsPanel,
+  ShopMapsSettingsPanel,
+  ShopReviewsSettingsPanel,
+} from "@/views/settings/panels/ShopExtrasSettingsPanels"
 import {
   AccountingModianPanel,
   AccountingTaxPanel,
@@ -34,6 +42,12 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/site/analytics")) return <AnalyticsSettingsPanel />
   if (path.endsWith("/site/sms")) return <SmsSettingsPanel />
   if (path.endsWith("/shop/general")) return <ShopGeneralSettingsPanel />
+  if (path.endsWith("/shop/products")) return <ShopProductsSettingsPanel />
+  if (path.endsWith("/shop/downloads")) return <ShopDownloadsSettingsPanel />
+  if (path.endsWith("/shop/reviews")) return <ShopReviewsSettingsPanel />
+  if (path.endsWith("/shop/maps")) return <ShopMapsSettingsPanel />
+  if (path.endsWith("/shop/loyalty")) return <ShopLoyaltySettingsPanel />
+  if (path.endsWith("/shop/archive")) return <ShopArchiveSettingsPanel />
   if (path.endsWith("/shop/accounting/tax")) return <AccountingTaxPanel />
   if (path.endsWith("/shop/accounting/modian")) return <AccountingModianPanel />
   if (path.endsWith("/shop/bots/bale")) return <BotsSettingsPanel provider="bale" />

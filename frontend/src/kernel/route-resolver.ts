@@ -27,6 +27,38 @@ export function isSubmoduleEnabled(
     return enabled("sms-panel", "panel") || enabled("marketing", "sms")
   }
 
+  if (moduleSlug === "marketing" && submoduleSlug === "sale-prices") {
+    return (
+      enabled("marketing", "sale-prices") ||
+      enabled("commerce", "catalog") ||
+      enabled("marketing", "coupons")
+    )
+  }
+
+  if (moduleSlug === "marketing" && submoduleSlug === "notifications") {
+    return (
+      enabled("marketing", "notifications") ||
+      enabled("marketing", "coupons") ||
+      enabled("commerce", "catalog")
+    )
+  }
+
+  if (moduleSlug === "users" && submoduleSlug === "tickets") {
+    return (
+      enabled("users", "tickets") ||
+      enabled("users", "rbac") ||
+      enabled("commerce", "orders")
+    )
+  }
+
+  if (moduleSlug === "commerce" && submoduleSlug === "accounting") {
+    return (
+      enabled("commerce", "accounting") ||
+      enabled("commerce", "catalog") ||
+      enabled("commerce", "orders")
+    )
+  }
+
   return enabled(moduleSlug, submoduleSlug)
 }
 
@@ -141,17 +173,19 @@ function matchDynamicParams(pattern: string, actual: string): Record<string, str
 }
 
 export function buildAdminNav(activations: TenantActivation[]) {
+  type NavLeaf = {
+    titleKey: string
+    url: string
+    moduleSlug: string
+    submodule: string
+    order?: number
+    items?: { titleKey: string; url: string; moduleSlug: string; submodule: string }[]
+  }
   const items: {
     section: string
     labelKey: string
     order: number
-    items: {
-      titleKey: string
-      url: string
-      moduleSlug: string
-      submodule: string
-      items?: { titleKey: string; url: string; moduleSlug: string; submodule: string }[]
-    }[]
+    items: NavLeaf[]
   }[] = []
 
   const sectionMap = new Map<string, (typeof items)[0]>()
@@ -176,13 +210,17 @@ export function buildAdminNav(activations: TenantActivation[]) {
       if (route.navHidden) continue
       if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) continue
       const section = route.section
+      const sectionOrder = route.order ?? mod.adminNav?.order ?? 99
       if (!sectionMap.has(section)) {
         sectionMap.set(section, {
           section,
           labelKey: `nav.section_${section}`,
-          order: route.order ?? mod.adminNav?.order ?? 99,
+          order: sectionOrder,
           items: [],
         })
+      } else {
+        const sec = sectionMap.get(section)!
+        sec.order = Math.min(sec.order, sectionOrder)
       }
 
       if (route.navGroup) {
@@ -190,7 +228,7 @@ export function buildAdminNav(activations: TenantActivation[]) {
         if (!groupBuckets.has(gk)) {
           groupBuckets.set(gk, {
             section,
-            order: route.order ?? mod.adminNav?.order ?? 99,
+            order: sectionOrder,
             titleKey: `nav.group_${route.navGroup}`,
             url: dashboardPath(route.path),
             moduleSlug: mod.slug,
@@ -199,6 +237,7 @@ export function buildAdminNav(activations: TenantActivation[]) {
           })
         }
         const bucket = groupBuckets.get(gk)!
+        bucket.order = Math.min(bucket.order, sectionOrder)
         if ((route.navOrder ?? 99) < (bucket.children[0]?.navOrder ?? 9999)) {
           bucket.url = dashboardPath(route.path)
           bucket.submodule = route.submodule
@@ -218,6 +257,7 @@ export function buildAdminNav(activations: TenantActivation[]) {
         url: route.path === "" ? DASHBOARD_BASE : dashboardPath(route.path),
         moduleSlug: mod.slug,
         submodule: route.submodule,
+        order: sectionOrder,
       })
     }
   }
@@ -231,6 +271,7 @@ export function buildAdminNav(activations: TenantActivation[]) {
       url: bucket.url,
       moduleSlug: bucket.moduleSlug,
       submodule: bucket.submodule,
+      order: bucket.order,
       items: bucket.children.map(({ titleKey, url, moduleSlug, submodule }) => ({
         titleKey,
         url,
@@ -241,7 +282,12 @@ export function buildAdminNav(activations: TenantActivation[]) {
   }
 
   for (const sec of sectionMap.values()) {
-    sec.items.sort((a, b) => a.url.localeCompare(b.url))
+    sec.items.sort((a, b) => {
+      const ao = a.order ?? 99
+      const bo = b.order ?? 99
+      if (ao !== bo) return ao - bo
+      return a.url.localeCompare(b.url)
+    })
   }
 
   return [...sectionMap.values()].sort((a, b) => a.order - b.order)

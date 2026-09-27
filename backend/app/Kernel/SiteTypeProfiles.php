@@ -24,6 +24,7 @@ final class SiteTypeProfiles
                     'bots' => ['bale', 'telegram'],
                     'sms-panel' => ['panel'],
                     'analytics' => ['overview', 'reports'],
+                    'ai-content' => ['studio'],
                 ]),
             ],
             'magazine' => [
@@ -38,6 +39,7 @@ final class SiteTypeProfiles
                     'users' => ['subscribers', 'rbac'],
                     'marketing' => ['newsletter'],
                     'analytics' => ['overview', 'reports'],
+                    'ai-content' => ['studio'],
                 ]),
             ],
             'cafe' => [
@@ -53,6 +55,7 @@ final class SiteTypeProfiles
                     'sms-panel' => ['panel'],
                     'blog' => ['posts', 'categories'],
                     'analytics' => ['overview', 'reports'],
+                    'ai-content' => ['studio'],
                 ]),
             ],
             'resume' => [
@@ -78,6 +81,7 @@ final class SiteTypeProfiles
                     'bots' => ['bale', 'telegram'],
                     'sms-panel' => ['panel'],
                     'analytics' => ['overview', 'reports'],
+                    'ai-content' => ['studio'],
                 ]),
             ],
         ];

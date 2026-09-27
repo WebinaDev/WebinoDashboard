@@ -26,6 +26,7 @@ import {
   Users,
   UtensilsCrossed,
   Wallet,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react"
 import { useMemo } from "react"
@@ -88,6 +89,7 @@ const ICONS: Record<string, LucideIcon> = {
   "wallet-withdrawals": Wallet,
   c2c: CreditCard,
   wallet: Wallet,
+  "ai-content": Sparkles,
 }
 
 function resolveNavIcon(url: string): LucideIcon {

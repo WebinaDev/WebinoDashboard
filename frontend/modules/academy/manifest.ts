@@ -6,9 +6,9 @@ export const academyManifest: ModuleManifest = {
   nameEn: "Academy",
   siteTypes: ["magazine", "corporate"],
   submodules: ["courses", "lessons"],
-  adminNav: { section: "site", order: 13 },
+  adminNav: { section: "content", order: 14 },
   adminRoutes: [
-    { path: "academy", submodule: "courses", labelKey: "nav.academy", section: "site", order: 13 },
+    { path: "academy", submodule: "courses", labelKey: "nav.academy", section: "content", order: 14 },
   ],
   siteRoutes: [
     { path: "academy", submodule: "courses", labelKey: "site.academy" },

@@ -6,9 +6,16 @@ export const coffeeProfileManifest: ModuleManifest = {
   nameEn: "Coffee Profile",
   siteTypes: ["ecommerce", "cafe"],
   submodules: ["profile"],
-  adminNav: { section: "commerce", order: 27 },
+  adminNav: { section: "commerce", order: 24 },
   adminRoutes: [
-    { path: "coffee/settings", submodule: "profile", labelKey: "nav.coffee_profile", section: "commerce", order: 27 },
+    {
+      path: "coffee/settings",
+      submodule: "profile",
+      labelKey: "nav.coffee_profile",
+      section: "commerce",
+      order: 24,
+      navHidden: true,
+    },
   ],
   siteRoutes: [],
 }

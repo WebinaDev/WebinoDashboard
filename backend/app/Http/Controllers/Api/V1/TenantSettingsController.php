@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\AiContent\AiContentSettings;
 use App\Services\Analytics\AnalyticsSettings;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Orders\OrderDocumentSettings;
+use App\Services\Shop\ShopSettings;
 use Illuminate\Http\Request;
 
 class TenantSettingsController extends Controller
@@ -16,6 +18,12 @@ class TenantSettingsController extends Controller
         'site' => ['security', 'ai', 'analytics', 'sms'],
         'shop' => [
             'general',
+            'products',
+            'downloads',
+            'reviews',
+            'maps',
+            'loyalty',
+            'archive',
             'accounting',
             'bots',
             'marketplace',
@@ -47,6 +55,36 @@ class TenantSettingsController extends Controller
         if ($key === AnalyticsSettings::KEY) {
             return response()->json(['data' => AnalyticsSettings::public($tenantId)]);
         }
+        if ($key === AiContentSettings::KEY) {
+            return response()->json(['data' => AiContentSettings::public($tenantId)]);
+        }
+        if ($key === ShopSettings::GENERAL_KEY) {
+            return response()->json(['data' => ShopSettings::getGeneral($tenantId)]);
+        }
+        if ($key === ShopSettings::PRODUCTS_KEY) {
+            return response()->json(['data' => ShopSettings::getProducts($tenantId)]);
+        }
+        if ($key === ShopSettings::TAX_KEY || $key === 'shop.accounting') {
+            return response()->json(['data' => ShopSettings::getTax($tenantId)]);
+        }
+        if ($key === ShopSettings::ADVANCED_KEY) {
+            return response()->json(['data' => ShopSettings::getAdvanced($tenantId)]);
+        }
+        if ($key === ShopSettings::DOWNLOADS_KEY) {
+            return response()->json(['data' => ShopSettings::getDownloads($tenantId)]);
+        }
+        if ($key === ShopSettings::REVIEWS_KEY) {
+            return response()->json(['data' => ShopSettings::getReviews($tenantId)]);
+        }
+        if ($key === ShopSettings::MAPS_KEY) {
+            return response()->json(['data' => ShopSettings::publicMaps(ShopSettings::getMaps($tenantId))]);
+        }
+        if ($key === ShopSettings::LOYALTY_KEY) {
+            return response()->json(['data' => ShopSettings::getLoyalty($tenantId)]);
+        }
+        if ($key === ShopSettings::ARCHIVE_KEY) {
+            return response()->json(['data' => ShopSettings::getArchive($tenantId)]);
+        }
         $defaults = $this->defaultsFor($key);
 
         return response()->json([
@@ -71,6 +109,36 @@ class TenantSettingsController extends Controller
         }
         if ($key === AnalyticsSettings::KEY) {
             return response()->json(['data' => AnalyticsSettings::save($tenantId, $payload['payload'])]);
+        }
+        if ($key === AiContentSettings::KEY) {
+            return response()->json(['data' => AiContentSettings::save($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::GENERAL_KEY) {
+            return response()->json(['data' => ShopSettings::saveGeneral($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::PRODUCTS_KEY) {
+            return response()->json(['data' => ShopSettings::saveProducts($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::TAX_KEY || $key === 'shop.accounting') {
+            return response()->json(['data' => ShopSettings::saveTax($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::ADVANCED_KEY) {
+            return response()->json(['data' => ShopSettings::saveAdvanced($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::DOWNLOADS_KEY) {
+            return response()->json(['data' => ShopSettings::saveDownloads($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::REVIEWS_KEY) {
+            return response()->json(['data' => ShopSettings::saveReviews($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::MAPS_KEY) {
+            return response()->json(['data' => ShopSettings::saveMaps($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::LOYALTY_KEY) {
+            return response()->json(['data' => ShopSettings::saveLoyalty($tenantId, $payload['payload'])]);
+        }
+        if ($key === ShopSettings::ARCHIVE_KEY) {
+            return response()->json(['data' => ShopSettings::saveArchive($tenantId, $payload['payload'])]);
         }
         $defaults = $this->defaultsFor($key);
         $merged = array_replace_recursive($defaults, $payload['payload']);
@@ -133,15 +201,7 @@ class TenantSettingsController extends Controller
                     'site' => true,
                 ],
             ],
-            'site.ai' => [
-                'enabled' => false,
-                'provider' => 'gapgpt',
-                'api_key' => '',
-                'model' => '',
-                'do_product' => true,
-                'prompt_product' => '',
-                'temperature' => 0.7,
-            ],
+            'site.ai' => AiContentSettings::defaults(),
             'site.analytics' => AnalyticsSettings::defaults(),
             'site.sms' => [
                 'enabled' => false,
@@ -150,17 +210,14 @@ class TenantSettingsController extends Controller
                 'otp_expiry_minutes' => 5,
                 'otp_length' => 5,
             ],
-            'shop.general' => [
-                'store_display_name' => '',
-                'sold_individually_default' => false,
-                'enable_coupons' => true,
-                'calc_taxes' => true,
-            ],
-            'shop.accounting', 'shop.accounting.tax' => [
-                'prices_include_tax' => false,
-                'tax_rate_percent' => 9,
-                'display_prices' => 'excl',
-            ],
+            'shop.general' => ShopSettings::generalDefaults(),
+            'shop.products' => ShopSettings::productsDefaults(),
+            'shop.downloads' => ShopSettings::downloadsDefaults(),
+            'shop.reviews' => ShopSettings::reviewsDefaults(),
+            'shop.maps' => ShopSettings::mapsDefaults(),
+            'shop.loyalty' => ShopSettings::loyaltyDefaults(),
+            'shop.archive' => ShopSettings::archiveDefaults(),
+            'shop.accounting', 'shop.accounting.tax' => ShopSettings::taxDefaults(),
             'shop.accounting.modian' => [
                 'enabled' => false,
                 'economic_code' => '',
@@ -197,11 +254,7 @@ class TenantSettingsController extends Controller
                 'zarinpal_merchant' => '',
                 'wallet_enabled' => false,
             ],
-            'shop.advanced' => [
-                'delete_data_on_uninstall' => false,
-                'debug_mode' => false,
-                'legacy_api' => false,
-            ],
+            'shop.advanced' => ShopSettings::advancedDefaults(),
             default => [],
         };
     }
