@@ -202,7 +202,7 @@ export const marketingManifest: ModuleManifest = {
       submodule: "notifications",
       page: "notifications",
       labelKey: "nav.notifications_hub",
-      section: "marketing",
+      section: "tools",
       order: 55,
     },
   ],

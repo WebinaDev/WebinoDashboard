@@ -9,16 +9,19 @@ use App\Models\Announcement;
 use App\Models\BlogPost;
 use App\Models\PortfolioItem;
 use App\Models\Testimonial;
+use App\Services\Auth\OtpSettings;
+use App\Services\Modules\ModuleSettingsService;
 use Illuminate\Http\Request;
 
 class PublicSiteController extends Controller
 {
     use ResolvesPublicTenant;
 
-    public function tenant(Request $request): \Illuminate\Http\JsonResponse
+    public function tenant(Request $request, ModuleSettingsService $settings): \Illuminate\Http\JsonResponse
     {
         $tenant = $this->publicTenant($request);
         $branding = ThemeCatalog::normalizeBranding($tenant->branding);
+        $otp = OtpSettings::forTenant((int) $tenant->id, $settings);
 
         return response()->json([
             'data' => [
@@ -34,6 +37,11 @@ class PublicSiteController extends Controller
                 'active_theme_slug' => $tenant->active_theme_slug,
                 'branding' => $branding,
                 'nav_preset' => $tenant->nav_preset,
+                'otp_auth' => [
+                    'login_enabled' => (bool) ($otp['otp_login_enabled'] ?? false),
+                    'register_enabled' => (bool) ($otp['otp_register_enabled'] ?? false),
+                    'length' => (int) ($otp['otp_length'] ?? 5),
+                ],
             ],
         ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
     }

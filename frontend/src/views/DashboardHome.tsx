@@ -12,12 +12,10 @@ import { HomeFulfillmentTodos } from "@/components/home/HomeFulfillmentTodos"
 import { HomeKpiStrip } from "@/components/home/HomeKpiStrip"
 import { HomeMiniCardsStrip } from "@/components/home/HomeMiniCardsStrip"
 import { HomeOrderWorkflow } from "@/components/home/HomeOrderWorkflow"
-import { HomeOrdersBreakdown } from "@/components/home/HomeOrdersBreakdown"
 import { HomeOrdersTable } from "@/components/home/HomeOrdersTable"
 import { HomeOverviewSkeleton } from "@/components/home/HomeOverviewSkeleton"
 import { HomeProductStatsCard } from "@/components/home/HomeProductStatsCard"
 import { HomeProductTable } from "@/components/home/HomeProductTable"
-import { HomeProfitChart } from "@/components/home/HomeProfitChart"
 import { TopCategoriesTable, TopCustomersTable } from "@/components/home/HomeTopTables"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -39,6 +37,16 @@ const HomeTrafficAnalyticsPanel = lazy(() =>
     default: m.HomeTrafficAnalyticsPanel,
   })),
 )
+const HomeProfitChart = lazy(() =>
+  import("@/components/home/HomeProfitChart").then((m) => ({
+    default: m.HomeProfitChart,
+  })),
+)
+const HomeOrdersBreakdown = lazy(() =>
+  import("@/components/home/HomeOrdersBreakdown").then((m) => ({
+    default: m.HomeOrdersBreakdown,
+  })),
+)
 
 function HomeChartFallback() {
   return <Skeleton className="h-48 w-full rounded-2xl sm:h-64 lg:h-80" />
@@ -48,10 +56,15 @@ type AuthUser = {
   id: number
   name: string
   role?: string
+  capabilities?: string[]
   tenant?: { id: number; name: string }
 }
 
-export default function DashboardHome() {
+export default function DashboardHome({
+  initialOverview,
+}: {
+  initialOverview?: DashboardOverviewResponse
+}) {
   const t = useTranslations("home")
   const tCommon = useTranslations("common")
   const locale = useLocale()
@@ -63,7 +76,17 @@ export default function DashboardHome() {
     queryFn: () => api<AuthUser>("/api/v1/auth/user"),
   })
 
-  const isPortalOnly = user?.role === "customer"
+  const caps = user?.capabilities ?? []
+  const hasCap = (c: string) =>
+    caps.includes("*") ||
+    caps.includes(c) ||
+    caps.some((g) => g.endsWith(".*") && (c === g.slice(0, -2) || c.startsWith(g.slice(0, -2) + ".")))
+  const isPortalOnly =
+    Boolean(user) &&
+    (hasCap("account.portal") || hasCap("partner.portal")) &&
+    !hasCap("orders.*") &&
+    !hasCap("orders.own") &&
+    (user?.role === "customer" || user?.role === "partner" || user?.role === "subscriber")
 
   useEffect(() => {
     if (isPortalOnly) {
@@ -80,6 +103,7 @@ export default function DashboardHome() {
     retry: false,
     staleTime: 90_000,
     enabled: !isPortalOnly,
+    initialData: initialOverview,
   })
 
   const smsUnavailable = overview.data?.panels?.sms?.unavailable === true
@@ -157,16 +181,12 @@ export default function DashboardHome() {
             size="sm"
             onClick={() => void overview.refetch()}
           >
-            {t("sms.retry")}
+            {t("overview.retry")}
           </Button>
         </div>
       ) : (
         <div className="space-y-4 sm:space-y-6">
-          <HomeActionBar
-            alerts={data?.alerts}
-            tasks={data?.tasks}
-            locale={lng}
-          />
+          <HomeActionBar alerts={data?.alerts} tasks={data?.tasks} locale={lng} />
 
           <HomeMiniCardsStrip
             panels={panels}
@@ -277,11 +297,13 @@ export default function DashboardHome() {
 
               {hasSection("sales") && data?.sales ? (
                 <div className="min-w-0 overflow-hidden">
-                  <HomeProfitChart
-                    series={data.sales.series}
-                    compareSeries={data.sales.compare_series}
-                    locale={lng}
-                  />
+                  <Suspense fallback={<HomeChartFallback />}>
+                    <HomeProfitChart
+                      series={data.sales.series}
+                      compareSeries={data.sales.compare_series}
+                      locale={lng}
+                    />
+                  </Suspense>
                 </div>
               ) : null}
 
@@ -294,12 +316,14 @@ export default function DashboardHome() {
           </section>
 
           {hasSection("sales") && data?.sales ? (
-            <HomeOrdersBreakdown
-              locale={lng}
-              byStatus={data.sales.by_status ?? []}
-              byPayment={data.sales.by_payment ?? []}
-              byHour={data.sales.by_hour ?? []}
-            />
+            <Suspense fallback={<HomeChartFallback />}>
+              <HomeOrdersBreakdown
+                locale={lng}
+                byStatus={data.sales.by_status ?? []}
+                byPayment={data.sales.by_payment ?? []}
+                byHour={data.sales.by_hour ?? []}
+              />
+            </Suspense>
           ) : null}
 
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">

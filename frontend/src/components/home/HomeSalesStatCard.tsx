@@ -5,12 +5,14 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts"
 
+import { ChangePctBadge } from "@/components/home/ChangePctBadge"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer } from "@/components/ui/chart"
+import { pctDelta } from "@/lib/pctDelta"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type { DashboardOverviewSales } from "@/types/dashboardOverview"
-import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 type HomeSalesStatCardProps = {
   sales: DashboardOverviewSales
@@ -36,9 +38,17 @@ export function HomeSalesStatCard({
       })),
     [sales.series, sales.compare_series],
   )
+  const revenueDelta = pctDelta(
+    sales.summary.revenue,
+    sales.compare_summary?.revenue,
+  )
+  const gradId = "home-sales-revenue-fill"
+
+  const axisFmt = (v: number | string) =>
+    formatNumber(typeof v === "number" ? v : Number(v) || 0, lng)
 
   return (
-    <Card>
+    <Card variant="stat">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">
           {sales.range === "last30" ? t("sales.last30") : t("sales.this_month")}
@@ -49,12 +59,17 @@ export function HomeSalesStatCard({
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">{sales.month_label}</p>
-        <p className="text-2xl font-semibold">
-          <MoneyDisplay amount={sales.summary.revenue} currency={currency} />
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {formatNumber(sales.summary.order_count, lng)} {tReports("orders")}
-        </p>
+        <MoneyDisplay
+          amount={sales.summary.revenue}
+          currency={currency}
+          className="text-2xl font-semibold"
+        />
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span>
+            {formatNumber(sales.summary.order_count, lng)} {tReports("orders")}
+          </span>
+          <ChangePctBadge value={revenueDelta} />
+        </div>
         <div className="h-28 min-h-0 min-w-0 sm:h-36">
           {chartData.length === 0 ? (
             <p className="flex h-full items-center justify-center text-xs text-muted-foreground">
@@ -74,28 +89,36 @@ export function HomeSalesStatCard({
             >
               <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="home-sales-fill" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
+                    <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="label" hide />
-                <YAxis hide />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
+                <XAxis dataKey="label" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
+                <YAxis tickFormatter={axisFmt} tick={{ fontSize: 9 }} width={40} />
                 <Area
                   type="monotone"
                   dataKey="revenue"
+                  fill={`url(#${gradId})`}
                   stroke="var(--color-chart-1)"
-                  fill="url(#home-sales-fill)"
                   strokeWidth={2}
                 />
                 <Line
                   type="monotone"
                   dataKey="compareRevenue"
                   stroke="var(--color-chart-4)"
+                  strokeWidth={1.5}
                   strokeDasharray="4 4"
                   dot={false}
+                  opacity={0.65}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="orders"
+                  stroke="var(--color-chart-3)"
                   strokeWidth={1.5}
+                  dot={false}
                 />
               </ComposedChart>
             </ChartContainer>

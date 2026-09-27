@@ -26,7 +26,11 @@ export async function renderAdminPage(segments: string[]) {
     </Suspense>
   )
 
-  return isPortalPath(route.path) ? page : <PermissionGate>{page}</PermissionGate>
+  return isPortalPath(route.path) ? (
+    page
+  ) : (
+    <PermissionGate capability={route.capability}>{page}</PermissionGate>
+  )
 }
 
 export async function renderSitePage(

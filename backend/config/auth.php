@@ -38,6 +38,8 @@ return [
 
     'cookie_max_minutes' => (int) env('AUTH_COOKIE_MAX_MINUTES', 60 * 24 * 7),
 
+    'cookie_session_minutes' => (int) env('AUTH_COOKIE_SESSION_MINUTES', 60 * 12),
+
     /*
     | Comma-separated user.role values that must enable TOTP 2FA.
     */

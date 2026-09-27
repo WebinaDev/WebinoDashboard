@@ -18,12 +18,47 @@ class Order extends Model
         'paid',
         'payment_failed',
         'processing',
+        'sent-to-warehouse',
+        'webino-in-stock',
+        'webino-packaged',
+        'webino-courier',
+        'webino-post',
+        'webino-tipax',
+        'webino-ready-to-ship',
+        'webino-shipping',
         'shipped',
         'completed',
+        'webino-returned',
+        'webino-need-review',
+        'webino-deleted',
         'cancelled',
         'refunded',
         'failed',
     ];
+
+    /** @return list<string> */
+    public static function allStatuses(): array
+    {
+        return self::STATUSES;
+    }
+
+    public function trackingCode(): ?string
+    {
+        $meta = is_array($this->meta) ? $this->meta : [];
+
+        $code = $meta['tracking_code'] ?? $meta['tapin']['barcode'] ?? null;
+
+        return $code !== null && $code !== '' ? (string) $code : null;
+    }
+
+    public function trackingUrl(): ?string
+    {
+        $meta = is_array($this->meta) ? $this->meta : [];
+
+        $url = $meta['tracking_url'] ?? $meta['tapin']['tracking_url'] ?? null;
+
+        return $url !== null && $url !== '' ? (string) $url : null;
+    }
 
     protected $fillable = [
         'tenant_id',

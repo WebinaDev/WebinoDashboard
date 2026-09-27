@@ -78,7 +78,7 @@ const defaultSettings = (): SiteSmsSettings => ({
   otp_login_enabled: false,
   otp_register_enabled: false,
   otp_expiry_minutes: 5,
-  otp_max_attempts: 3,
+  otp_max_attempts: 5,
   otp_length: 5,
   otp_login_template: "",
   otp_register_template: "",
@@ -374,9 +374,9 @@ export function SmsSettingsPanel() {
                   type="number"
                   min={1}
                   max={20}
-                  value={draft.otp_max_attempts ?? 3}
+                  value={draft.otp_max_attempts ?? 5}
                   onChange={(e) =>
-                    setDraft({ ...draft, otp_max_attempts: Number(e.target.value) || 3 })
+                    setDraft({ ...draft, otp_max_attempts: Number(e.target.value) || 5 })
                   }
                 />
               </div>

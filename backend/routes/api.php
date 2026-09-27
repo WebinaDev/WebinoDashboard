@@ -9,8 +9,12 @@ use App\Http\Controllers\Api\V1\AiRecommendationController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\OtpAuthController;
 use App\Http\Controllers\Api\V1\BlogCategoryController;
 use App\Http\Controllers\Api\V1\BlogPostController;
+use App\Http\Controllers\Api\V1\BootstrapController;
+use App\Http\Controllers\Api\V1\BuildPipelineController;
+use App\Http\Controllers\Api\V1\CoreUpdateController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CafeSettingsController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
@@ -79,8 +83,9 @@ use App\Http\Controllers\Api\V1\PublicCorporateController;
 use App\Http\Controllers\Api\V1\PublicKernelController;
 use App\Http\Controllers\Api\V1\PublicMagazineController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
-use App\Http\Controllers\Api\V1\PublicSiteController;
+use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\PublicAnalyticsController;
+use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
 use App\Http\Controllers\Api\V1\ReportsController;
 use App\Http\Controllers\Api\V1\ResumeProfileController;
 use App\Http\Controllers\Api\V1\SetupController;
@@ -137,6 +142,8 @@ Route::prefix('v1')->group(function () {
         ->whereNumber(['orderItem', 'download']);
 
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('/auth/send-otp', [OtpAuthController::class, 'sendOtp'])->middleware('throttle:5,1');
+    Route::post('/auth/verify-otp', [OtpAuthController::class, 'verifyOtp'])->middleware('throttle:5,1');
     Route::post('/auth/session', [AuthController::class, 'session'])->middleware('throttle:5,1');
     Route::post('/auth/panel-login', [AuthController::class, 'panelLogin'])->middleware('throttle:10,1');
     Route::get('/auth/gate', [AuthController::class, 'gate']);
@@ -154,6 +161,10 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/tenant', [PublicSiteController::class, 'tenant']);
         Route::get('/home', [PublicSiteController::class, 'home']);
+        Route::get('/geo/states', [GeoController::class, 'states']);
+        Route::get('/geo/cities', [GeoController::class, 'cities']);
+        Route::get('/orders/{order}/pay', [PublicOrderPaymentController::class, 'show'])->whereNumber('order');
+        Route::post('/orders/{order}/pay/intent', [PublicOrderPaymentController::class, 'intent'])->whereNumber('order');
         Route::get('/kernel/activations', [PublicKernelController::class, 'activations']);
         Route::get('/analytics/bootstrap', [PublicAnalyticsController::class, 'bootstrap']);
         Route::post('/analytics/hit', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
@@ -241,6 +252,7 @@ Route::prefix('v1')->group(function () {
 
         // Shared by every signed-in role (customer portal, storefront cart, dashboard shell).
         Route::get('/tenant', [TenantController::class, 'show']);
+        Route::get('/bootstrap', [BootstrapController::class, 'show']);
         Route::get('/setup/status', [SetupController::class, 'status']);
         Route::get('/kernel/registry', [KernelController::class, 'registry']);
         Route::get('/kernel/activations', [KernelController::class, 'tenantActivations']);
@@ -286,6 +298,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/profile', [AccountPortalController::class, 'profileShow']);
             Route::patch('/profile', [AccountPortalController::class, 'profileUpdate']);
             Route::get('/wallet', [AccountPortalController::class, 'wallet']);
+            Route::get('/preferences', [AccountPortalController::class, 'preferencesShow']);
+            Route::patch('/preferences', [AccountPortalController::class, 'preferencesUpdate']);
         });
 
         Route::middleware('staff')->group(function () {
@@ -293,6 +307,21 @@ Route::prefix('v1')->group(function () {
             Route::patch('/modules/{slug}', [ModuleController::class, 'update']);
 
             Route::post('/license/sync', [LicenseController::class, 'sync']);
+            Route::get('/license/status', [LicenseController::class, 'status']);
+
+            Route::prefix('updates')->group(function () {
+                Route::get('/status', [CoreUpdateController::class, 'status']);
+                Route::post('/check', [CoreUpdateController::class, 'check']);
+                Route::post('/download', [CoreUpdateController::class, 'download']);
+                Route::post('/apply', [CoreUpdateController::class, 'apply']);
+                Route::get('/backups', [CoreUpdateController::class, 'backups']);
+            });
+
+            Route::prefix('build-pipeline')->group(function () {
+                Route::get('/status', [BuildPipelineController::class, 'status']);
+                Route::post('/start', [BuildPipelineController::class, 'start']);
+                Route::post('/cancel', [BuildPipelineController::class, 'cancel']);
+            });
             Route::post('/modules/{slug}/install', [ModuleInstallController::class, 'install']);
             Route::get('/modules/{slug}/status', [ModuleInstallController::class, 'status']);
 
@@ -303,13 +332,16 @@ Route::prefix('v1')->group(function () {
             Route::post('/setup/complete', [SetupController::class, 'complete']);
 
             Route::get('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'show']);
-            Route::put('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'update']);
+            Route::put('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'update'])
+                ->middleware('can:settings.manage');
 
             Route::get('/kernel/site-types', [KernelController::class, 'siteTypes']);
             Route::put('/loyalty/rewards', [ShopExtrasController::class, 'saveLoyaltyRewards']);
 
             Route::get('/product-reviews', [ProductReviewController::class, 'adminIndex']);
-            Route::patch('/product-reviews/{review}', [ProductReviewController::class, 'moderate'])->whereNumber('review');
+            Route::patch('/product-reviews/{review}', [ProductReviewController::class, 'moderate'])
+                ->middleware('can:reviews.moderate')
+                ->whereNumber('review');
 
             Route::get('/shop/tickets', [SupportTicketController::class, 'staffIndex']);
             Route::get('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffShow'])->whereNumber('ticket');
@@ -344,7 +376,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/shop/products/bulk-sale', BulkSaleController::class);
                 Route::post('/products/{product}/duplicate', [ProductController::class, 'duplicate'])->whereNumber('product');
                 Route::put('/products/{product}/attributes', [ProductController::class, 'syncAttributes'])->whereNumber('product');
-                Route::apiResource('products', ProductController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+                Route::apiResource('products', ProductController::class)
+                    ->only(['index', 'store', 'show', 'update', 'destroy'])
+                    ->whereNumber('product');
                 Route::get('/products/{product}/downloads', [ProductDownloadController::class, 'index'])->whereNumber('product');
                 Route::post('/products/{product}/downloads', [ProductDownloadController::class, 'store'])->whereNumber('product');
                 Route::delete('/products/{product}/downloads/{download}', [ProductDownloadController::class, 'destroy'])->whereNumber(['product', 'download']);
@@ -529,7 +563,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/orders/print-labels', [OrderDocumentController::class, 'labels']);
             });
 
-            Route::middleware('module:pos')->group(function () {
+            Route::middleware(['module:pos', 'can:pos.use'])->group(function () {
                 Route::get('/products/pos-search', [OrderController::class, 'posSearch']);
                 Route::get('/pos/customers', [OrderController::class, 'posCustomers']);
                 Route::get('/payment-gateways', [OrderController::class, 'paymentGateways']);
@@ -717,21 +751,24 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/testimonials/{testimonial}', [TestimonialController::class, 'destroy'])->whereNumber('testimonial');
             });
 
-            Route::middleware('module:customers')->group(function () {
+            Route::middleware(['module:customers', 'can:users.manage'])->group(function () {
                 Route::get('/customers', [CustomerController::class, 'index']);
                 Route::post('/customers', [CustomerController::class, 'store']);
                 Route::patch('/customers/{customer}', [CustomerController::class, 'update'])->whereNumber('customer');
             });
 
-            Route::middleware('module:staff')->group(function () {
+            Route::middleware(['module:staff', 'can:users.manage'])->group(function () {
                 Route::get('/staff', [StaffController::class, 'index']);
                 Route::post('/staff', [StaffController::class, 'store']);
                 Route::patch('/staff/{staff}', [StaffController::class, 'update'])->whereNumber('staff');
             });
 
-            Route::middleware('module:rbac')->group(function () {
+            Route::middleware(['module:rbac', 'can:rbac.manage'])->group(function () {
                 Route::get('/roles', [RoleController::class, 'index']);
                 Route::put('/roles', [RoleController::class, 'update']);
+                Route::put('/roles/capabilities', [RoleController::class, 'updateCapabilities']);
+                Route::get('/roles/menu-acl', [RoleController::class, 'menuAclIndex']);
+                Route::put('/roles/menu-acl', [RoleController::class, 'menuAclUpdate']);
             });
 
             Route::middleware('module:team')->group(function () {
@@ -794,7 +831,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/ai/recommendations', [AiRecommendationController::class, 'store']);
             });
 
-            Route::middleware('module:accounting')->group(function () {
+            Route::middleware(['module:accounting', 'can:accounting.manage'])->group(function () {
                 Route::get('/accounting/status', [AccountingController::class, 'status']);
                 Route::get('/accounting/overview', [AccountingController::class, 'overview']);
                 Route::get('/accounting/journals', [AccountingController::class, 'journalsIndex']);

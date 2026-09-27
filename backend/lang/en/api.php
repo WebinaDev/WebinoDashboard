@@ -19,4 +19,6 @@ return [
     'theme_not_allowed' => 'This theme is not allowed for your site type.',
     'crm_license_check_failed' => 'CRM license check failed.',
     'hmac_secret_missing' => 'HMAC secret is not configured.',
+    'dashboard_self_update_disabled' => 'Dashboard self-update is disabled on this host.',
+    'dashboard_build_pipeline_disabled' => 'Dashboard build pipeline is disabled on this host.',
 ];

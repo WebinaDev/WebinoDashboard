@@ -23,7 +23,7 @@ class PaymentCheckoutService
     public function createIntent(Order $order, string $provider): PaymentIntent
     {
         $provider = str_replace('-', '_', strtolower($provider));
-        $allowed = ['zarinpal', 'digipay', 'snapppay', 'torobpay', BasalamPay::PROVIDER];
+        $allowed = ['zarinpal', 'digipay', 'snapppay', 'torobpay', 'bale_pay', BasalamPay::PROVIDER];
         if (! in_array($provider, $allowed, true)) {
             throw new \InvalidArgumentException('Unsupported payment provider: '.$provider);
         }
@@ -57,8 +57,49 @@ class PaymentCheckoutService
             'digipay' => $this->createDigipayIntent($order, $settings, $callbackUrl, $amountRial),
             'snapppay' => $this->createBnplIntent($order, $settings, $callbackUrl, $amountRial, 'snapppay'),
             'torobpay' => $this->createBnplIntent($order, $settings, $callbackUrl, $amountRial, 'torobpay'),
+            'bale_pay' => $this->createBalePayIntent($order, $settings, $callbackUrl, $amountRial),
             default => throw new \InvalidArgumentException('Unsupported provider'),
         };
+    }
+
+    /**
+     * Bale Pay: pending intent + deep-link through the tenant Bale bot when configured.
+     *
+     * @param  array<string, mixed>  $settings
+     */
+    protected function createBalePayIntent(Order $order, array $settings, string $callbackUrl, int $amountRial): PaymentIntent
+    {
+        $bot = \App\Models\BotSetting::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('provider', 'bale')
+            ->where('enabled', true)
+            ->first();
+        $username = (string) (($bot?->meta ?? [])['username'] ?? '');
+        $payUrl = $username !== ''
+            ? 'https://ble.ir/'.$username.'?start=pay_'.$order->id
+            : $callbackUrl;
+
+        $intent = PaymentIntent::query()->create([
+            'tenant_id' => $order->tenant_id,
+            'order_id' => $order->id,
+            'provider' => 'bale_pay',
+            'status' => 'pending',
+            'redirect_url' => $payUrl,
+            'meta' => [
+                'callback_url' => $callbackUrl,
+                'title' => (string) ($settings['title'] ?? 'بله پی'),
+                'amount_rial' => $amountRial,
+                'provider_ref' => 'bale-'.$order->id.'-'.uniqid(),
+            ],
+        ]);
+
+        $order->update([
+            'payment_provider' => 'bale_pay',
+            'payment_url' => $payUrl,
+            'status' => 'awaiting_gateway',
+        ]);
+
+        return $intent;
     }
 
     /**

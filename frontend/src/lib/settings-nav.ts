@@ -5,6 +5,8 @@ export type SettingsUnitId =
   | "site-ai"
   | "site-analytics"
   | "site-sms"
+  | "site-pwa"
+  | "site-dashboard"
   | "site-themes"
   | "shop-general"
   | "shop-accounting"
@@ -86,6 +88,34 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "پیامک سایت",
         titleEn: "Site SMS",
         route: "/dashboard/settings/site/sms",
+      },
+    ],
+  },
+  {
+    id: "site-pwa",
+    area: "site",
+    titleFa: "PWA",
+    titleEn: "PWA",
+    sections: [
+      {
+        id: "pwa",
+        titleFa: "اپ پیش‌رونده",
+        titleEn: "Progressive Web App",
+        route: "/dashboard/settings/site/pwa",
+      },
+    ],
+  },
+  {
+    id: "site-dashboard",
+    area: "site",
+    titleFa: "داشبورد",
+    titleEn: "Dashboard",
+    sections: [
+      {
+        id: "dashboard",
+        titleFa: "به‌روزرسانی و ساخت",
+        titleEn: "Updates & build",
+        route: "/dashboard/settings/site/dashboard",
       },
     ],
   },

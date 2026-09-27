@@ -9,6 +9,8 @@ import { SecuritySettingsPanel } from "@/views/settings/panels/SecuritySettingsP
 import { AiContentSettingsPanel } from "@/views/settings/panels/AiContentSettingsPanel"
 import { AnalyticsSettingsPanel } from "@/views/settings/panels/AnalyticsSettingsPanel"
 import { SmsSettingsPanel } from "@/views/settings/panels/SmsSettingsPanel"
+import { PwaSettingsPanel } from "@/views/settings/panels/PwaSettingsPanel"
+import { DashboardSiteSettingsPanel } from "@/views/settings/panels/DashboardSiteSettingsPanel"
 import { ShopGeneralSettingsPanel } from "@/views/settings/panels/ShopGeneralSettingsPanel"
 import { ShopProductsSettingsPanel } from "@/views/settings/panels/ShopProductsSettingsPanel"
 import {
@@ -41,6 +43,8 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/site/ai")) return <AiContentSettingsPanel />
   if (path.endsWith("/site/analytics")) return <AnalyticsSettingsPanel />
   if (path.endsWith("/site/sms")) return <SmsSettingsPanel />
+  if (path.endsWith("/site/pwa")) return <PwaSettingsPanel />
+  if (path.endsWith("/site/dashboard")) return <DashboardSiteSettingsPanel />
   if (path.endsWith("/shop/general")) return <ShopGeneralSettingsPanel />
   if (path.endsWith("/shop/products")) return <ShopProductsSettingsPanel />
   if (path.endsWith("/shop/downloads")) return <ShopDownloadsSettingsPanel />

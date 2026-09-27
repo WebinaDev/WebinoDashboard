@@ -7,12 +7,12 @@ use Illuminate\Http\Request;
 
 final class AuthCookie
 {
-    public static function attach(JsonResponse $response, string $token, Request $request): JsonResponse
+    public static function attach(JsonResponse $response, string $token, Request $request, ?int $maxMinutes = null): JsonResponse
     {
         return $response->cookie(
             config('auth.cookie_name', 'webino_auth_token'),
             $token,
-            config('auth.cookie_max_minutes', 60 * 24 * 7),
+            $maxMinutes ?? (int) config('auth.cookie_max_minutes', 60 * 24 * 7),
             '/',
             null,
             $request->secure(),

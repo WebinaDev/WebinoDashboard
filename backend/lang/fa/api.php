@@ -19,5 +19,7 @@ return [
     'theme_not_allowed' => 'این تم برای نوع سایت شما مجاز نیست.',
     'crm_license_check_failed' => 'بررسی لایسنس CRM ناموفق بود.',
     'hmac_secret_missing' => 'سکرت HMAC پیکربندی نشده است.',
+    'dashboard_self_update_disabled' => 'به‌روزرسانی خودکار داشبورد روی این سرور غیرفعال است.',
+    'dashboard_build_pipeline_disabled' => 'خط لولهٔ ساخت داشبورد روی این سرور غیرفعال است.',
 ];
 

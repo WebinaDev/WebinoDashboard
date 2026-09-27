@@ -7,6 +7,7 @@ use App\Services\AiContent\AiContentSettings;
 use App\Services\Analytics\AnalyticsSettings;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Orders\OrderDocumentSettings;
+use App\Services\Pwa\PwaSettings;
 use App\Services\Shop\ShopSettings;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,7 @@ class TenantSettingsController extends Controller
     private const AREAS = ['site', 'shop'];
 
     private const SECTIONS = [
-        'site' => ['security', 'ai', 'analytics', 'sms'],
+        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard'],
         'shop' => [
             'general',
             'products',
@@ -85,6 +86,12 @@ class TenantSettingsController extends Controller
         if ($key === ShopSettings::ARCHIVE_KEY) {
             return response()->json(['data' => ShopSettings::getArchive($tenantId)]);
         }
+        if ($key === PwaSettings::KEY) {
+            return response()->json(['data' => PwaSettings::forTenant($tenantId, $this->locale($request))]);
+        }
+        if ($key === 'site.dashboard') {
+            return response()->json(['data' => $this->dashboardHostSettings()]);
+        }
         $defaults = $this->defaultsFor($key);
 
         return response()->json([
@@ -139,6 +146,14 @@ class TenantSettingsController extends Controller
         }
         if ($key === ShopSettings::ARCHIVE_KEY) {
             return response()->json(['data' => ShopSettings::saveArchive($tenantId, $payload['payload'])]);
+        }
+        if ($key === PwaSettings::KEY) {
+            return response()->json([
+                'data' => PwaSettings::save($tenantId, $payload['payload'], $this->locale($request)),
+            ]);
+        }
+        if ($key === 'site.dashboard') {
+            return response()->json(['data' => $this->dashboardHostSettings()]);
         }
         $defaults = $this->defaultsFor($key);
         $merged = array_replace_recursive($defaults, $payload['payload']);
@@ -203,12 +218,19 @@ class TenantSettingsController extends Controller
             ],
             'site.ai' => AiContentSettings::defaults(),
             'site.analytics' => AnalyticsSettings::defaults(),
+            'site.pwa' => PwaSettings::defaults(),
+            'site.dashboard' => [
+                'self_update_enabled' => (bool) config('dashboard.self_update'),
+                'build_pipeline_enabled' => (bool) config('dashboard.build_pipeline'),
+                'version' => (string) config('dashboard.version', '0.0.0'),
+            ],
             'site.sms' => [
                 'enabled' => false,
                 'otp_login_enabled' => false,
                 'otp_register_enabled' => false,
                 'otp_expiry_minutes' => 5,
                 'otp_length' => 5,
+                'otp_max_attempts' => 5,
             ],
             'shop.general' => ShopSettings::generalDefaults(),
             'shop.products' => ShopSettings::productsDefaults(),
@@ -257,5 +279,15 @@ class TenantSettingsController extends Controller
             'shop.advanced' => ShopSettings::advancedDefaults(),
             default => [],
         };
+    }
+
+    /** @return array<string, mixed> */
+    private function dashboardHostSettings(): array
+    {
+        return [
+            'self_update_enabled' => (bool) config('dashboard.self_update'),
+            'build_pipeline_enabled' => (bool) config('dashboard.build_pipeline'),
+            'version' => (string) config('dashboard.version', '0.0.0'),
+        ];
     }
 }

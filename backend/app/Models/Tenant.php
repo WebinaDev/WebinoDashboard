@@ -12,6 +12,10 @@ class Tenant extends Model
         'slug',
         'domain',
         'license_key',
+        'license_status',
+        'license_checked_at',
+        'license_unreachable',
+        'license_last_error',
         'setup_completed',
         'store_display_name',
         'default_currency',
@@ -34,6 +38,8 @@ class Tenant extends Model
     {
         return [
             'setup_completed' => 'boolean',
+            'license_unreachable' => 'boolean',
+            'license_checked_at' => 'datetime',
             'nav_preset' => 'array',
             'branding' => 'array',
             'home_blocks' => 'array',

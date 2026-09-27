@@ -13,6 +13,13 @@ use Throwable;
 
 class LicenseController extends Controller
 {
+    public function status(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tenant = Tenant::query()->findOrFail($request->user()->tenant_id);
+
+        return response()->json(['data' => $this->payload($tenant)]);
+    }
+
     public function sync(Request $request, WebinoLicenseClient $client): \Illuminate\Http\JsonResponse
     {
         $tenant = Tenant::query()->findOrFail($request->user()->tenant_id);
@@ -23,13 +30,21 @@ class LicenseController extends Controller
                 $tenant->license_key
             );
         } catch (Throwable $e) {
+            $tenant->fill([
+                'license_unreachable' => true,
+                'license_checked_at' => now(),
+                'license_last_error' => $e->getMessage(),
+            ])->save();
+
             return response()->json([
                 'message' => __('api.crm_license_check_failed'),
-                'errors' => ['detail' => $e->getMessage()],
+                'data' => $this->payload($tenant->fresh()),
+                'errors' => ['detail' => $e->getMessage(), 'code' => 'LICENSE_UNREACHABLE'],
             ], 502);
         }
 
         $allowed = data_get($crm, 'data.status') === 'valid';
+        $status = $allowed ? 'valid' : (string) data_get($crm, 'data.status', 'invalid');
 
         $moduleSlugs = data_get($crm, 'data.licensed_modules')
             ?? data_get($crm, 'data.modules')
@@ -94,8 +109,14 @@ class LicenseController extends Controller
                 'theme_preset' => data_get($crm, 'data.theme_preset') ?? $tenant->theme_preset,
                 'nav_preset' => data_get($crm, 'data.nav_preset') ?? $tenant->nav_preset,
             ]);
-            $tenant->save();
         }
+
+        $tenant->fill([
+            'license_status' => $status,
+            'license_checked_at' => now(),
+            'license_unreachable' => false,
+            'license_last_error' => null,
+        ])->save();
 
         $licensedModules = TenantModule::query()
             ->where('tenant_id', $tenant->id)
@@ -106,17 +127,31 @@ class LicenseController extends Controller
 
         app(\App\Kernel\TenantActivationService::class)->clearCache($tenant->id);
 
-        // Public response: never echo CRM secrets, HMAC, or deploy tokens.
         return response()->json([
-            'data' => [
-                'status' => $allowed ? 'valid' : (string) data_get($crm, 'data.status', 'invalid'),
+            'data' => array_merge($this->payload($tenant->fresh()), [
                 'licensed_modules' => $licensedModules,
                 'theme_preset' => $tenant->theme_preset,
                 'nav_preset' => $tenant->nav_preset,
                 'vertical' => $tenant->vertical,
                 'package_sku' => $tenant->package_sku,
                 'tenant_id' => $tenant->id,
-            ],
+            ]),
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function payload(Tenant $tenant): array
+    {
+        $status = (string) ($tenant->license_status ?? '');
+        $active = $status === 'valid';
+
+        return [
+            'status' => $status !== '' ? $status : 'unknown',
+            'active' => $active,
+            'demo' => ! $active,
+            'checked_at' => $tenant->license_checked_at?->toIso8601String(),
+            'unreachable' => (bool) $tenant->license_unreachable,
+            'last_error' => $tenant->license_last_error,
+        ];
     }
 }

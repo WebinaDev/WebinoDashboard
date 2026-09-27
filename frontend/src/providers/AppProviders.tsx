@@ -7,6 +7,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
@@ -17,18 +18,24 @@ import {
   normalizeAccent,
   type AccentPreset,
 } from "@/lib/accent"
+import { api } from "@/lib/api"
 
 export type Accent = AccentPreset
 
 export const ACCENT_OPTIONS: Accent[] = [...ACCENT_PRESETS]
 
-type ThemeMode = "light" | "dark"
+export type ThemeMode = "light" | "dark" | "system"
 
 type ThemeCtx = {
   mode: ThemeMode
+  resolvedMode: "light" | "dark"
   setMode: (m: ThemeMode) => void
   accent: Accent
   setAccent: (a: Accent) => void
+  applyServerPreferences: (prefs: {
+    theme?: string | null
+    accent?: string | null
+  }) => void
 }
 
 const ThemeContext = createContext<ThemeCtx | null>(null)
@@ -56,28 +63,67 @@ export function useAuth() {
   return v
 }
 
+function persistPreferences(patch: { theme?: ThemeMode; accent?: Accent; locale?: string }) {
+  void api("/api/v1/account/preferences", { method: "PATCH", json: patch }).catch(() => {
+    /* offline / unauthenticated — local storage already updated */
+  })
+}
+
 function AccentAndAuthProviders({ children }: { children: ReactNode }) {
-  const { resolvedTheme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const [authenticated, setAuthenticated] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const [accent, setAccentState] = useState<Accent>("colorful")
+  const userAccentOverride = useRef(false)
+  const skipPersist = useRef(true)
 
   const setMode = useCallback(
     (m: ThemeMode) => {
       setTheme(m)
       localStorage.setItem("theme_mode", m)
+      if (!skipPersist.current) {
+        persistPreferences({ theme: m })
+      }
     },
     [setTheme],
   )
 
   const setAccent = useCallback((a: Accent) => {
-    setAccentState(normalizeAccent(a))
+    const next = normalizeAccent(a)
+    userAccentOverride.current = true
+    setAccentState(next)
+    localStorage.setItem("theme_accent", next)
+    if (!skipPersist.current) {
+      persistPreferences({ accent: next })
+    }
   }, [])
+
+  const applyServerPreferences = useCallback(
+    (prefs: { theme?: string | null; accent?: string | null }) => {
+      skipPersist.current = true
+      if (prefs.theme === "light" || prefs.theme === "dark" || prefs.theme === "system") {
+        setTheme(prefs.theme)
+        localStorage.setItem("theme_mode", prefs.theme)
+      }
+      if (prefs.accent && !userAccentOverride.current) {
+        const next = normalizeAccent(prefs.accent)
+        setAccentState(next)
+        localStorage.setItem("theme_accent", next)
+      }
+      queueMicrotask(() => {
+        skipPersist.current = false
+      })
+    },
+    [setTheme],
+  )
 
   useLayoutEffect(() => {
     const storedAccent = localStorage.getItem("theme_accent")
-    setAccentState(normalizeAccent(storedAccent))
-    // Locale/dir come from NEXT_LOCALE cookie via layout + useLocaleSync — do not override here.
+    if (storedAccent) {
+      userAccentOverride.current = true
+      setAccentState(normalizeAccent(storedAccent))
+    }
+    skipPersist.current = false
     setHydrated(true)
   }, [])
 
@@ -85,20 +131,23 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     if (!hydrated) {
       return
     }
-    localStorage.setItem("theme_accent", accent)
     document.documentElement.setAttribute("data-accent", accent)
   }, [hydrated, accent])
 
-  const mode: ThemeMode = resolvedTheme === "dark" ? "dark" : "light"
+  const mode: ThemeMode =
+    theme === "dark" || theme === "light" || theme === "system" ? theme : "system"
+  const resolvedMode: "light" | "dark" = resolvedTheme === "dark" ? "dark" : "light"
 
   const themeValue = useMemo(
     () => ({
       mode,
+      resolvedMode,
       setMode,
       accent,
       setAccent,
+      applyServerPreferences,
     }),
-    [mode, setMode, accent, setAccent],
+    [mode, resolvedMode, setMode, accent, setAccent, applyServerPreferences],
   )
 
   const authValue = useMemo(() => ({ authenticated, setAuthenticated }), [authenticated])

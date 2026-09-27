@@ -6,6 +6,7 @@ use App\Services\Marketplace\Basalam\BasalamPay;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Wallet\WalletService;
 use App\Http\Controllers\Api\V1\C2cController;
+use App\Models\BotSetting;
 use App\Models\C2cSetting;
 use App\Models\WalletSetting;
 
@@ -268,10 +269,14 @@ class PaymentGatewaySettingsService
             $out['server_ip'] = request()?->server('SERVER_ADDR') ?: gethostbyname(gethostname() ?: 'localhost');
         }
         if ($provider === 'bale_pay') {
+            $bot = BotSetting::query()
+                ->where('tenant_id', $tenantId)
+                ->where('provider', 'bale')
+                ->first();
             $out['status'] = [
-                'bot_active' => false,
-                'has_provider_token' => false,
-                'bot_username' => '',
+                'bot_active' => (bool) ($bot?->enabled && filled($bot?->token)),
+                'has_provider_token' => filled($bot?->token),
+                'bot_username' => (string) (($bot?->meta ?? [])['username'] ?? ''),
             ];
         }
 
@@ -330,7 +335,12 @@ class PaymentGatewaySettingsService
                 && filled($raw['client_secret'] ?? null)
                 && filled($raw['client_username'] ?? null)
                 && filled($raw['client_password'] ?? null),
-            'bale_pay' => false,
+            'bale_pay' => BotSetting::query()
+                ->where('tenant_id', $tenantId)
+                ->where('provider', 'bale')
+                ->where('enabled', true)
+                ->whereNotNull('token')
+                ->exists(),
             'wallet', 'c2c', 'cod' => true,
             default => false,
         };
@@ -353,7 +363,7 @@ class PaymentGatewaySettingsService
             ['id' => 'basalam_pay', 'title_key' => 'basalam_pay', 'settings_path' => '/dashboard/settings/shop/marketplace/basalam?tab=settings'],
             ['id' => 'wallet', 'title_key' => 'wallet', 'settings_path' => '/dashboard/settings/shop/wallet'],
             ['id' => 'c2c', 'title_key' => 'c2c', 'settings_path' => '/dashboard/settings/shop/c2c'],
-            ['id' => 'cod', 'title_key' => 'cod', 'settings_path' => ''],
+            ['id' => 'cod', 'title_key' => 'cod', 'settings_path' => '/dashboard/settings/shop/payments'],
         ];
 
         $items = [];
@@ -408,7 +418,7 @@ class PaymentGatewaySettingsService
         $defaults = array_merge(C2cController::defaultSettings(), [
             'order_button_text' => '',
             'icon_url' => '',
-            'deadline_h' => 24,
+            'deadline_h' => 2,
         ]);
         $row = C2cSetting::query()->firstOrCreate(
             ['tenant_id' => $tenantId],

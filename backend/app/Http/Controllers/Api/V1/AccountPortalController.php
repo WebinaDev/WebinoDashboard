@@ -202,4 +202,36 @@ class AccountPortalController extends Controller
             ],
         ]);
     }
+
+    public function preferencesShow(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->normalizePreferences($request->user()->ui_preferences)]);
+    }
+
+    public function preferencesUpdate(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'locale' => ['sometimes', 'string', Rule::in(['fa', 'en'])],
+            'theme' => ['sometimes', 'string', Rule::in(['light', 'dark', 'system'])],
+            'accent' => ['sometimes', 'string', 'max:64'],
+        ]);
+
+        $prefs = array_merge($this->normalizePreferences($user->ui_preferences), $data);
+        $user->update(['ui_preferences' => $prefs]);
+
+        return response()->json(['data' => $prefs]);
+    }
+
+    /** @param  array<string, mixed>|null  $raw */
+    private function normalizePreferences(?array $raw): array
+    {
+        $raw = is_array($raw) ? $raw : [];
+
+        return [
+            'locale' => in_array($raw['locale'] ?? null, ['fa', 'en'], true) ? $raw['locale'] : null,
+            'theme' => in_array($raw['theme'] ?? null, ['light', 'dark', 'system'], true) ? $raw['theme'] : null,
+            'accent' => isset($raw['accent']) && is_string($raw['accent']) ? $raw['accent'] : null,
+        ];
+    }
 }

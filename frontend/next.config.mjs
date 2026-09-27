@@ -1,5 +1,7 @@
 import bundleAnalyzer from "@next/bundle-analyzer"
 
+import { LEGACY_DASHBOARD_REDIRECTS } from "./src/kernel/legacy-redirects.mjs"
+
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 })
@@ -16,6 +18,25 @@ const nextConfig = {
   transpilePackages: ["@webina/ui"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
+  },
+  async redirects() {
+    return LEGACY_DASHBOARD_REDIRECTS.map((r) => ({
+      source: r.source,
+      destination: r.destination,
+      permanent: r.permanent ?? true,
+    }))
+  },
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Service-Worker-Allowed", value: "/dashboard/" },
+          { key: "Cache-Control", value: "no-cache, must-revalidate, max-age=0" },
+          { key: "Content-Type", value: "application/javascript; charset=UTF-8" },
+        ],
+      },
+    ]
   },
   async rewrites() {
     return [

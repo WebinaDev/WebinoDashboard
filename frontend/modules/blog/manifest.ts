@@ -15,6 +15,18 @@ export const blogManifest: ModuleManifest = {
       labelKey: "nav.blog",
       section: "content",
       order: 13,
+      navGroup: "blog",
+      navOrder: 0,
+    },
+    {
+      path: "blog/categories",
+      submodule: "categories",
+      page: "categories",
+      labelKey: "nav.blog_categories",
+      section: "content",
+      order: 13,
+      navGroup: "blog",
+      navOrder: 1,
     },
     {
       path: "blog/new",

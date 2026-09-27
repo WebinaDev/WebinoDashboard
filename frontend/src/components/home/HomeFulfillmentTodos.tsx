@@ -14,6 +14,7 @@ import { useTranslations } from "next-intl"
 import { Badge } from "@/components/ui/badge"
 import type {
   DashboardFulfillmentAction,
+  DashboardFulfillmentBucket,
   DashboardFulfillmentItem,
   DashboardOverviewFulfillment,
 } from "@/types/dashboardOverview"
@@ -60,95 +61,158 @@ const GROUPS: Array<{
   },
 ]
 
-function itemLabel(
+function shippingMethodLabel(
   t: ReturnType<typeof useTranslations<"home">>,
   item: DashboardFulfillmentItem,
 ): string {
-  const number = item.number
+  const kind = item.shipping_kind || "other"
+  if (kind === "courier") return t("fulfillment.shipping.courier")
+  if (kind === "post") return t("fulfillment.shipping.post")
+  if (kind === "tipax") return t("fulfillment.shipping.tipax")
+  const label = (item.shipping_label || "").trim()
+  return label
+    ? t("fulfillment.shipping.other", { label })
+    : t("fulfillment.shipping.post")
+}
+
+function itemMessage(
+  t: ReturnType<typeof useTranslations<"home">>,
+  item: DashboardFulfillmentItem,
+): string {
+  const number = item.number || String(item.id)
   const name = item.customer_name || "—"
   switch (item.action) {
     case "pack":
       return t("fulfillment.pack", { number, name })
-    case "ship": {
-      const method =
-        item.shipping_kind === "courier"
-          ? t("fulfillment.shipping.courier")
-          : item.shipping_kind === "post"
-            ? t("fulfillment.shipping.post")
-            : item.shipping_kind === "tipax"
-              ? t("fulfillment.shipping.tipax")
-              : item.shipping_label || t("fulfillment.shipping.other", { label: "—" })
-      return t("fulfillment.ship", { number, method })
-    }
+    case "ship":
+      return t("fulfillment.ship", {
+        number,
+        method: shippingMethodLabel(t, item),
+      })
     case "tracking":
       return t("fulfillment.tracking", { number })
-    case "refund":
-      return t("fulfillment.refund_cash", { number, gateway: "" })
     case "return":
+      if (item.return_status === "approved") {
+        return t("fulfillment.return_approved", {
+          number,
+          item: item.return_item || "—",
+          qty: String(item.return_qty ?? ""),
+        })
+      }
       return t("fulfillment.return_requested", {
         number,
         item: item.return_item || "—",
         qty: String(item.return_qty ?? 1),
+      })
+    case "refund":
+      if (item.purchase_type === "installment") {
+        return t("fulfillment.refund_installment", { number })
+      }
+      return t("fulfillment.refund_cash", {
+        number,
+        gateway: item.payment_method_title
+          ? t("fulfillment.refund_cash_gateway", {
+              gateway: item.payment_method_title,
+            })
+          : "",
       })
     default:
       return `#${number} — ${name}`
   }
 }
 
+function GroupBlock({
+  groupKey,
+  bucket,
+  icon: Icon,
+  tone,
+  t,
+}: {
+  groupKey: (typeof GROUPS)[number]["key"]
+  bucket: DashboardFulfillmentBucket
+  icon: (typeof GROUPS)[number]["icon"]
+  tone: string
+  t: ReturnType<typeof useTranslations<"home">>
+}) {
+  if (!bucket?.items?.length) return null
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div
+          className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium ${tone}`}
+        >
+          <Icon className="size-3.5 shrink-0" aria-hidden />
+          {t(`fulfillment.group.${groupKey}`)}
+          <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+            {bucket.count}
+          </Badge>
+        </div>
+        {bucket.href ? (
+          <Link href={bucket.href} className="text-xs text-primary hover:underline">
+            {t("fulfillment.view_all")}
+          </Link>
+        ) : null}
+      </div>
+      <ul className="space-y-1.5">
+        {bucket.items.map((item) => (
+          <li key={`${groupKey}-${item.id}`}>
+            <Link
+              href={item.href}
+              className="block rounded-lg border bg-card px-3 py-2 text-sm leading-relaxed transition-colors hover:bg-muted/60"
+            >
+              {itemMessage(t, item)}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function HomeFulfillmentTodos({ fulfillment }: HomeFulfillmentTodosProps) {
   const t = useTranslations("home")
   if (!fulfillment) return null
 
-  const total = GROUPS.reduce((sum, g) => sum + (fulfillment[g.key]?.count ?? 0), 0)
+  const total =
+    (fulfillment.pack?.count ?? 0) +
+    (fulfillment.ship?.count ?? 0) +
+    (fulfillment.tracking?.count ?? 0) +
+    (fulfillment.returns?.count ?? 0) +
+    (fulfillment.refund?.count ?? 0)
+
+  const hasItems = GROUPS.some((g) => (fulfillment[g.key]?.items?.length ?? 0) > 0)
 
   return (
-    <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Box className="size-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">{t("fulfillment.title")}</h3>
+    <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+            <Box className="size-4 text-primary" aria-hidden />
+            {t("fulfillment.title")}
+          </h3>
+          {total > 0 ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {total} {t("sections.fulfillment")}
+            </p>
+          ) : null}
         </div>
-        {total > 0 ? (
-          <Badge variant="secondary">{total}</Badge>
-        ) : null}
       </div>
-      {total === 0 ? (
+
+      {!hasItems ? (
         <p className="text-sm text-muted-foreground">{t("fulfillment.empty")}</p>
       ) : (
-        <div className="space-y-3">
-          {GROUPS.map((group) => {
-            const bucket = fulfillment[group.key]
-            if (!bucket || bucket.count === 0) return null
-            const Icon = group.icon
-            return (
-              <div key={group.key} className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium ${group.tone}`}>
-                    <Icon className="size-3.5" />
-                    {t(`fulfillment.group.${group.key}`)}
-                  </div>
-                  <Link
-                    href={bucket.href}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    {t("fulfillment.view_all")}
-                  </Link>
-                </div>
-                <ul className="space-y-1">
-                  {bucket.items.slice(0, 5).map((item) => (
-                    <li key={`${group.key}-${item.id}`}>
-                      <Link
-                        href={item.href}
-                        className="block rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
-                      >
-                        {itemLabel(t, item)}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )
-          })}
+        <div className="space-y-5">
+          {GROUPS.map((g) => (
+            <GroupBlock
+              key={g.key}
+              groupKey={g.key}
+              bucket={fulfillment[g.key]}
+              icon={g.icon}
+              tone={g.tone}
+              t={t}
+            />
+          ))}
         </div>
       )}
     </div>

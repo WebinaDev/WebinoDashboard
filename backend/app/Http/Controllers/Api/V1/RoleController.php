@@ -3,14 +3,24 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\RoleCapability;
+use App\Models\RoleMenuAcl;
 use App\Models\User;
+use App\Support\CapabilityChecker;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
     /** @var list<string> */
-    private const ROLES = ['admin', 'staff', 'customer'];
+    private function predefinedRoles(): array
+    {
+        /** @var list<string> $roles */
+        $roles = config('capabilities.roles', []);
+
+        return $roles;
+    }
 
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -21,19 +31,33 @@ class RoleController extends Controller
             ->groupBy('role')
             ->pluck('total', 'role');
 
+        $capabilitiesByRole = RoleCapability::query()
+            ->whereIn('role', $this->predefinedRoles())
+            ->orderBy('role')
+            ->orderBy('capability')
+            ->get()
+            ->groupBy('role')
+            ->map(fn ($rows) => $rows->pluck('capability')->values()->all());
+
         $roles = array_map(fn (string $role) => [
             'name' => $role,
             'users_count' => (int) ($counts[$role] ?? 0),
-        ], self::ROLES);
+            'capabilities' => $capabilitiesByRole[$role] ?? [],
+        ], $this->predefinedRoles());
+
+        $permissions = [];
+        foreach ($this->predefinedRoles() as $role) {
+            $permissions[$role] = $capabilitiesByRole[$role] ?? [];
+        }
+
+        /** @var list<string> $catalog */
+        $catalog = config('capabilities.catalog', []);
 
         return response()->json([
             'data' => [
                 'roles' => $roles,
-                'permissions' => [
-                    'admin' => ['*'],
-                    'staff' => ['commerce.*', 'orders.*', 'catalog.*'],
-                    'customer' => ['account.self'],
-                ],
+                'permissions' => $permissions,
+                'available_capabilities' => array_values($catalog),
             ],
         ]);
     }
@@ -42,7 +66,7 @@ class RoleController extends Controller
     {
         $data = $request->validate([
             'user_id' => 'required|integer|exists:users,id',
-            'role' => ['required', 'string', Rule::in(self::ROLES)],
+            'role' => ['required', 'string', Rule::in($this->predefinedRoles())],
         ]);
 
         $tid = $request->user()->tenant_id;
@@ -50,5 +74,90 @@ class RoleController extends Controller
         $user->update(['role' => $data['role']]);
 
         return response()->json(['data' => $user->fresh()]);
+    }
+
+    public function updateCapabilities(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $roles = $this->predefinedRoles();
+        /** @var list<string> $catalog */
+        $catalog = config('capabilities.catalog', []);
+
+        $data = $request->validate([
+            'role' => ['required', 'string', Rule::in($roles)],
+            'capabilities' => 'required|array',
+            'capabilities.*' => ['required', 'string', 'max:128', Rule::in($catalog)],
+        ]);
+
+        if ($data['role'] === 'admin') {
+            return response()->json([
+                'message' => __('validation.failed'),
+                'errors' => ['role' => [__('api.forbidden')]],
+            ], 422);
+        }
+
+        $capabilities = array_values(array_unique(array_map('strval', $data['capabilities'])));
+
+        DB::transaction(function () use ($data, $capabilities): void {
+            RoleCapability::query()->where('role', $data['role'])->delete();
+            $now = now();
+            foreach ($capabilities as $capability) {
+                RoleCapability::query()->create([
+                    'role' => $data['role'],
+                    'capability' => $capability,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        });
+
+        CapabilityChecker::flushRoleCache($data['role']);
+
+        return response()->json([
+            'data' => [
+                'role' => $data['role'],
+                'capabilities' => $capabilities,
+            ],
+        ]);
+    }
+
+    public function menuAclIndex(): \Illuminate\Http\JsonResponse
+    {
+        $rows = RoleMenuAcl::query()
+            ->orderBy('role')
+            ->orderBy('menu_key')
+            ->get()
+            ->groupBy('role')
+            ->map(fn ($group) => $group->map(fn (RoleMenuAcl $row) => [
+                'menu_key' => $row->menu_key,
+                'allowed' => $row->allowed,
+            ])->values()->all());
+
+        return response()->json(['data' => ['menu_acl' => $rows]]);
+    }
+
+    public function menuAclUpdate(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'role' => ['required', 'string', Rule::in($this->predefinedRoles())],
+            'entries' => 'required|array',
+            'entries.*.menu_key' => 'required|string|max:128',
+            'entries.*.allowed' => 'required|boolean',
+        ]);
+
+        DB::transaction(function () use ($data): void {
+            RoleMenuAcl::query()->where('role', $data['role'])->delete();
+            $now = now();
+            foreach ($data['entries'] as $entry) {
+                RoleMenuAcl::query()->create([
+                    'role' => $data['role'],
+                    'menu_key' => $entry['menu_key'],
+                    'allowed' => (bool) $entry['allowed'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        });
+
+        return response()->json(['data' => ['role' => $data['role'], 'updated' => count($data['entries'])]]);
     }
 }

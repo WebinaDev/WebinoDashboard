@@ -211,7 +211,11 @@ class AuthController extends Controller
 
     public function user(Request $request): \Illuminate\Http\JsonResponse
     {
-        return response()->json($request->user()->load('tenant'));
+        $user = $request->user()->load('tenant');
+        $payload = $user->toArray();
+        $payload['capabilities'] = app(\App\Support\CapabilityChecker::class)->capabilitiesForUser($user);
+
+        return response()->json($payload);
     }
 
     private function resolveAuthenticatedUser(Request $request): ?User

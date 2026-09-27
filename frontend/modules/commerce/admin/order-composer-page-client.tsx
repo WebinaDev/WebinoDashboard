@@ -13,15 +13,28 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
-import { ApiError, api } from "@/lib/api"
+import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { useEnumLabel } from "@/lib/enum-labels"
 
-type ProductHit = {
-  id: number
-  name: string
-  sku?: string | null
-  price_minor?: number
-}
+import { ORDER_STATUSES } from "../lib/order-statuses"
+import {
+  POS_PAYMENT_TENDERS,
+  POS_PURCHASE_TYPES,
+  POS_SALES_CHANNELS,
+  type PosCartLine,
+  type ProductHit,
+  type ProductVariantHit,
+  buildShippingAddress,
+  displayPurchaseType,
+  fetchGeoCities,
+  fetchGeoStates,
+  lineKey,
+  parseStructuredAddress,
+  purchaseTypeForSave,
+  searchPosProducts,
+  type StructuredAddress,
+} from "../lib/pos-commerce"
 
 type CustomerHit = {
   id: number
@@ -29,12 +42,12 @@ type CustomerHit = {
   email?: string | null
 }
 
-type CartLine = {
-  product_id: number
-  name: string
-  qty: number
-  unit_price_minor: number
-  purchase_type: string
+type BuyerTax = {
+  person_type?: string
+  national_id?: string
+  economic_code?: string
+  register_number?: string
+  invoice_pattern?: string
 }
 
 type OrderDetail = {
@@ -50,8 +63,12 @@ type OrderDetail = {
   shipping_minor?: number
   amount_paid_minor?: number | null
   user_id?: number | null
+  coupon_code?: string | null
+  shipping_address?: unknown
+  buyer_tax?: BuyerTax | null
   items?: Array<{
     product_id?: number
+    product_variant_id?: number | null
     product_name?: string
     quantity?: number
     unit_price_minor?: number
@@ -63,55 +80,22 @@ type OrderDetail = {
 const selectClass =
   "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
-const PAYMENT_TENDERS = ["cash", "card_to_card", "pos_terminal", "online", "wallet", "other"]
-const SALES_CHANNELS = [
-  "in_store",
-  "phone",
-  "bale",
-  "eitaa",
-  "rubika",
-  "telegram",
-  "instagram",
-  "other",
-  "online",
-]
-const STATUSES = [
-  "pending_payment",
-  "awaiting_gateway",
-  "on_hold",
-  "paid",
-  "payment_failed",
-  "processing",
-  "shipped",
-  "completed",
-  "cancelled",
-  "refunded",
-  "failed",
-]
-const PURCHASE_TYPES = ["retail", "wholesale", "credit"]
-
-async function searchProducts(q: string): Promise<ProductHit[]> {
-  try {
-    return await api<ProductHit[]>(`/api/v1/products/pos-search?q=${encodeURIComponent(q)}`)
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 403) {
-      return api<ProductHit[]>(`/api/v1/products?search=${encodeURIComponent(q)}&per_page=20`)
-    }
-    throw e
-  }
-}
-
 export default function OrderComposerPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("orders_admin")
+  const tPricing = useTranslations("pricing_settings.types")
   const tCommon = useTranslations("common")
+  const enumLabel = useEnumLabel()
   const orderId = route.params?.orderId
   const isEdit = Boolean(orderId)
 
   const [productQ, setProductQ] = useState("")
   const [productHits, setProductHits] = useState<ProductHit[]>([])
+  const [variantPick, setVariantPick] = useState<{ product: ProductHit; variantId: number | null } | null>(
+    null,
+  )
   const [customerQ, setCustomerQ] = useState("")
   const [customerHits, setCustomerHits] = useState<CustomerHit[]>([])
-  const [lines, setLines] = useState<CartLine[]>([])
+  const [lines, setLines] = useState<PosCartLine[]>([])
   const [userId, setUserId] = useState<number | null>(null)
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
@@ -123,7 +107,21 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
   const [amountPaid, setAmountPaid] = useState(0)
   const [customerNote, setCustomerNote] = useState("")
   const [status, setStatus] = useState("pending_payment")
+  const [couponCode, setCouponCode] = useState("")
+  const [addr, setAddr] = useState<StructuredAddress>({})
+  const [personType, setPersonType] = useState("natural")
+  const [nationalId, setNationalId] = useState("")
+  const [economicCode, setEconomicCode] = useState("")
+  const [registerNumber, setRegisterNumber] = useState("")
+  const [invoicePattern, setInvoicePattern] = useState("")
+  const [hadBuyerTax, setHadBuyerTax] = useState(false)
+  const [cities, setCities] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  const { data: states = [] } = useQuery({
+    queryKey: ["geo-states"],
+    queryFn: fetchGeoStates,
+  })
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ["admin-order", orderId],
@@ -144,22 +142,56 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
     setShippingMinor(existing.shipping_minor || 0)
     setAmountPaid(existing.amount_paid_minor || 0)
     setUserId(existing.user_id ?? null)
+    setCouponCode(existing.coupon_code || "")
+    setAddr(parseStructuredAddress(existing.shipping_address))
+    const tax = existing.buyer_tax
+    setHadBuyerTax(Boolean(tax && typeof tax === "object"))
+    if (tax && typeof tax === "object") {
+      setPersonType(tax.person_type || "natural")
+      setNationalId(tax.national_id || "")
+      setEconomicCode(tax.economic_code || "")
+      setRegisterNumber(tax.register_number || "")
+      setInvoicePattern(tax.invoice_pattern || "")
+    }
     setLines(
-      (existing.items ?? []).map((it) => ({
-        product_id: it.product_id || it.product?.id || 0,
-        name: it.product_name || it.product?.name || `#${it.product_id}`,
-        qty: it.quantity || 1,
-        unit_price_minor: it.unit_price_minor ?? it.product?.price_minor ?? 0,
-        purchase_type: it.purchase_type || "retail",
-      })),
+      (existing.items ?? []).map((it) => {
+        const pid = it.product_id || it.product?.id || 0
+        const vid = it.product_variant_id ?? null
+        return {
+          lineKey: lineKey(pid, vid),
+          product_id: pid,
+          product_variant_id: vid,
+          name: it.product_name || it.product?.name || `#${pid}`,
+          qty: it.quantity || 1,
+          unit_price_minor: it.unit_price_minor ?? it.product?.price_minor ?? 0,
+          purchase_type: displayPurchaseType(it.purchase_type || "cash"),
+        }
+      }),
     )
   }, [existing])
+
+  useEffect(() => {
+    const code = addr.province_code?.trim()
+    if (!code) {
+      setCities([])
+      return
+    }
+    void fetchGeoCities(code).then(setCities).catch(() => setCities([]))
+  }, [addr.province_code])
+
+  useEffect(() => {
+    const q = productQ.trim()
+    if (q.length < 3) return
+    const t = window.setTimeout(() => void runProductSearch(), 280)
+    return () => window.clearTimeout(t)
+  }, [productQ])
 
   const subtotal = useMemo(
     () => lines.reduce((sum, l) => sum + l.qty * l.unit_price_minor, 0),
     [lines],
   )
   const total = Math.max(0, subtotal - discountMinor + shippingMinor)
+  const showMoadian = hadBuyerTax || personType === "legal"
 
   async function runProductSearch() {
     if (!productQ.trim()) {
@@ -167,7 +199,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
       return
     }
     try {
-      setProductHits(await searchProducts(productQ.trim()))
+      setProductHits(await searchPosProducts(productQ.trim()))
     } catch (e) {
       setError(getApiErrorMessage(e as Error))
     }
@@ -185,33 +217,62 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
     }
   }
 
-  function addProduct(p: ProductHit) {
+  function addLine(product: ProductHit, variant?: ProductVariantHit | null) {
+    const variantId = variant?.id ?? null
+    const key = lineKey(product.id, variantId)
+    const unit = variant?.price_minor ?? product.price_minor ?? 0
+    const label = variant?.name ? `${product.name} — ${variant.name}` : product.name
     setLines((prev) => {
-      const found = prev.find((l) => l.product_id === p.id)
+      const found = prev.find((l) => l.lineKey === key)
       if (found) {
-        return prev.map((l) => (l.product_id === p.id ? { ...l, qty: l.qty + 1 } : l))
+        return prev.map((l) => (l.lineKey === key ? { ...l, qty: l.qty + 1 } : l))
       }
       return [
         ...prev,
         {
-          product_id: p.id,
-          name: p.name,
+          lineKey: key,
+          product_id: product.id,
+          product_variant_id: variantId,
+          name: label,
           qty: 1,
-          unit_price_minor: p.price_minor ?? 0,
-          purchase_type: "retail",
+          unit_price_minor: unit,
+          purchase_type: "cash",
         },
       ]
     })
   }
 
+  function onAddProduct(p: ProductHit) {
+    const variants = (p.variants ?? []).filter((v) => v.id)
+    if (variants.length === 1) {
+      addLine(p, variants[0])
+      return
+    }
+    if (variants.length > 1) {
+      setVariantPick({ product: p, variantId: variants[0]?.id ?? null })
+      return
+    }
+    addLine(p, null)
+  }
+
   const save = useMutation({
     mutationFn: async () => {
+      const buyerTax: BuyerTax = {
+        person_type: personType,
+        national_id: nationalId || undefined,
+        economic_code: economicCode || undefined,
+      }
+      if (showMoadian) {
+        buyerTax.register_number = registerNumber || undefined
+        buyerTax.invoice_pattern = invoicePattern || undefined
+      }
       const payload = {
         items: lines.map((l) => ({
           product_id: l.product_id,
+          product_variant_id: l.product_variant_id ?? undefined,
           quantity: l.qty,
           unit_price_minor: l.unit_price_minor,
-          purchase_type: l.purchase_type,
+          purchase_type: purchaseTypeForSave(l.purchase_type || "cash"),
           product_name: l.name,
         })),
         user_id: userId,
@@ -219,6 +280,9 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
         customer_phone: customerPhone || null,
         customer_email: customerEmail || null,
         customer_note: customerNote || null,
+        shipping_address: buildShippingAddress(addr),
+        buyer_tax: buyerTax,
+        coupon_code: !isEdit && couponCode.trim() ? couponCode.trim() : undefined,
         sales_channel: salesChannel,
         payment_tender: paymentTender,
         discount_minor: discountMinor,
@@ -252,6 +316,41 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {isEdit && isLoading ? <p className="text-muted-foreground text-sm">{tCommon("loading")}</p> : null}
 
+      {variantPick ? (
+        <Card>
+          <CardContent className="flex flex-wrap items-end gap-3 pt-4">
+            <div className="min-w-[200px] flex-1">
+              <Label>{t("select_variant")}</Label>
+              <select
+                className={`${selectClass} mt-1`}
+                value={variantPick.variantId ?? ""}
+                onChange={(e) =>
+                  setVariantPick((v) => (v ? { ...v, variantId: Number(e.target.value) || null } : v))
+                }
+              >
+                {(variantPick.product.variants ?? []).map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name || v.sku || `#${v.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button
+              onClick={() => {
+                const v = (variantPick.product.variants ?? []).find((x) => x.id === variantPick.variantId)
+                addLine(variantPick.product, v ?? null)
+                setVariantPick(null)
+              }}
+            >
+              {t("add_variant")}
+            </Button>
+            <Button variant="ghost" onClick={() => setVariantPick(null)}>
+              {t("cancel")}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -280,8 +379,11 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                     <span>
                       {p.name}{" "}
                       <MoneyDisplay className="text-muted-foreground" amount={p.price_minor ?? 0} />
+                      {(p.variants?.length ?? 0) > 0 ? (
+                        <span className="text-muted-foreground text-xs"> ({p.variants?.length} var.)</span>
+                      ) : null}
                     </span>
-                    <Button size="sm" variant="outline" onClick={() => addProduct(p)}>
+                    <Button size="sm" variant="outline" onClick={() => onAddProduct(p)}>
                       <Plus className="size-4" />
                     </Button>
                   </li>
@@ -294,21 +396,21 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                 <p className="text-muted-foreground text-sm">{t("empty_cart")}</p>
               ) : (
                 lines.map((l) => (
-                  <div key={l.product_id} className="grid gap-2 rounded-md border p-3 sm:grid-cols-5">
+                  <div key={l.lineKey} className="grid gap-2 rounded-md border p-3 sm:grid-cols-5">
                     <div className="sm:col-span-2">
                       <p className="font-medium text-sm">{l.name}</p>
                       <select
                         className={`${selectClass} mt-1`}
-                        value={l.purchase_type}
+                        value={l.purchase_type || "cash"}
                         onChange={(e) =>
                           setLines((prev) =>
-                            prev.map((x) => (x.product_id === l.product_id ? { ...x, purchase_type: e.target.value } : x)),
+                            prev.map((x) => (x.lineKey === l.lineKey ? { ...x, purchase_type: e.target.value } : x)),
                           )
                         }
                       >
-                        {PURCHASE_TYPES.map((pt) => (
+                        {POS_PURCHASE_TYPES.map((pt) => (
                           <option key={pt} value={pt}>
-                            {pt}
+                            {tPricing(pt)}
                           </option>
                         ))}
                       </select>
@@ -322,7 +424,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                           onClick={() =>
                             setLines((prev) =>
                               prev.map((x) =>
-                                x.product_id === l.product_id ? { ...x, qty: Math.max(1, x.qty - 1) } : x,
+                                x.lineKey === l.lineKey ? { ...x, qty: Math.max(1, x.qty - 1) } : x,
                               ),
                             )
                           }
@@ -335,7 +437,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                           variant="outline"
                           onClick={() =>
                             setLines((prev) =>
-                              prev.map((x) => (x.product_id === l.product_id ? { ...x, qty: x.qty + 1 } : x)),
+                              prev.map((x) => (x.lineKey === l.lineKey ? { ...x, qty: x.qty + 1 } : x)),
                             )
                           }
                         >
@@ -352,7 +454,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                         onChange={(e) =>
                           setLines((prev) =>
                             prev.map((x) =>
-                              x.product_id === l.product_id
+                              x.lineKey === l.lineKey
                                 ? { ...x, unit_price_minor: Number(e.target.value) || 0 }
                                 : x,
                             ),
@@ -364,7 +466,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => setLines((prev) => prev.filter((x) => x.product_id !== l.product_id))}
+                        onClick={() => setLines((prev) => prev.filter((x) => x.lineKey !== l.lineKey))}
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -426,12 +528,108 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                 <Label>{t("customer_email")}</Label>
                 <Input className="mt-1" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
               </div>
+            </div>
+
+            <div>
+              <Label>{t("shipping_address")}</Label>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs">{t("province")}</Label>
+                  <select
+                    className={`${selectClass} mt-1`}
+                    value={addr.province_code ?? ""}
+                    onChange={(e) => setAddr((a) => ({ ...a, province_code: e.target.value, city: "" }))}
+                  >
+                    <option value="">—</option>
+                    {states.map((s) => (
+                      <option key={s.code} value={s.code}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">{t("city")}</Label>
+                  <select
+                    className={`${selectClass} mt-1`}
+                    value={addr.city ?? ""}
+                    onChange={(e) => setAddr((a) => ({ ...a, city: e.target.value }))}
+                    disabled={!addr.province_code}
+                  >
+                    <option value="">—</option>
+                    {cities.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">{t("plaque")}</Label>
+                  <Input className="mt-1" value={addr.plaque ?? ""} onChange={(e) => setAddr((a) => ({ ...a, plaque: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">{t("unit")}</Label>
+                  <Input className="mt-1" value={addr.unit ?? ""} onChange={(e) => setAddr((a) => ({ ...a, unit: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">{t("postcode")}</Label>
+                  <Input className="mt-1" value={addr.postcode ?? ""} onChange={(e) => setAddr((a) => ({ ...a, postcode: e.target.value }))} dir="ltr" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">{t("address_1")}</Label>
+                  <Input className="mt-1" value={addr.address ?? ""} onChange={(e) => setAddr((a) => ({ ...a, address: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label>{t("buyer_tax")}</Label>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs">{t("person_type")}</Label>
+                  <select className={`${selectClass} mt-1`} value={personType} onChange={(e) => setPersonType(e.target.value)}>
+                    <option value="natural">{t("person_type_natural")}</option>
+                    <option value="legal">{t("person_type_legal")}</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">{t("national_id")}</Label>
+                  <Input className="mt-1" value={nationalId} onChange={(e) => setNationalId(e.target.value)} dir="ltr" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">{t("economic_code")}</Label>
+                  <Input className="mt-1" value={economicCode} onChange={(e) => setEconomicCode(e.target.value)} dir="ltr" />
+                </div>
+                {showMoadian ? (
+                  <>
+                    <div>
+                      <Label className="text-xs">{t("moadian_register_number")}</Label>
+                      <Input className="mt-1" value={registerNumber} onChange={(e) => setRegisterNumber(e.target.value)} dir="ltr" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">{t("moadian_invoice_pattern")}</Label>
+                      <Input className="mt-1" value={invoicePattern} onChange={(e) => setInvoicePattern(e.target.value)} dir="ltr" />
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+
+            {!isEdit ? (
+              <div>
+                <Label>{t("coupon_code")}</Label>
+                <Input className="mt-1" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} dir="ltr" />
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label>{t("sales_channel")}</Label>
                 <select className={`${selectClass} mt-1`} value={salesChannel} onChange={(e) => setSalesChannel(e.target.value)}>
-                  {SALES_CHANNELS.map((x) => (
+                  {POS_SALES_CHANNELS.map((x) => (
                     <option key={x} value={x}>
-                      {x}
+                      {enumLabel("sales_channel", x)}
                     </option>
                   ))}
                 </select>
@@ -439,9 +637,9 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
               <div>
                 <Label>{t("payment_tender")}</Label>
                 <select className={`${selectClass} mt-1`} value={paymentTender} onChange={(e) => setPaymentTender(e.target.value)}>
-                  {PAYMENT_TENDERS.map((x) => (
+                  {POS_PAYMENT_TENDERS.map((x) => (
                     <option key={x} value={x}>
-                      {x}
+                      {enumLabel("payment_tender", x)}
                     </option>
                   ))}
                 </select>
@@ -461,9 +659,9 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
               <div>
                 <Label>{t("status")}</Label>
                 <select className={`${selectClass} mt-1`} value={status} onChange={(e) => setStatus(e.target.value)}>
-                  {STATUSES.map((s) => (
+                  {ORDER_STATUSES.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {enumLabel("order_status", s)}
                     </option>
                   ))}
                 </select>

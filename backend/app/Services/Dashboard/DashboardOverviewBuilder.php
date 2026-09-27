@@ -3,16 +3,20 @@
 namespace App\Services\Dashboard;
 
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Models\Product;
 use App\Models\ProductReview;
 use App\Models\Tenant;
 use App\Models\TenantModule;
 use App\Models\User;
 use App\Services\Analytics\AnalyticsQuery;
+use App\Services\Orders\OrderShippingStatuses;
 use App\Services\Reports\OrderReports;
 use App\Services\Sms\ModirPayamakClient;
+use App\Support\CapabilityChecker;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Aggregated admin home overview (parity with WP Webino_Dashboard_Home_Overview).
@@ -107,14 +111,24 @@ final class DashboardOverviewBuilder
             'locale' => $locale,
         ];
 
-        $shopActive = $this->moduleEnabled($tid, 'catalog') || $this->moduleEnabled($tid, 'commerce');
+        $caps = app(CapabilityChecker::class);
+        $canCatalog = $caps->allows($user, 'catalog.manage') || $caps->allows($user, 'commerce.*') || $caps->allows($user, 'catalog.*') || (string) $user->role === 'admin';
+        $canSales = $caps->allows($user, 'reports.shop') || $caps->allows($user, 'orders.*') || (string) $user->role === 'admin';
+        $canOrders = $caps->allows($user, 'orders.*') || $caps->allows($user, 'orders.own') || (string) $user->role === 'admin';
+        $canReviews = $caps->allows($user, 'reviews.moderate') || (string) $user->role === 'admin';
+        $canPortal = $caps->allows($user, 'account.portal') || $caps->allows($user, 'partner.portal');
+        $isPartner = $caps->allows($user, 'partner.portal');
+
+        $shopActive = ($this->moduleEnabled($tid, 'catalog') || $this->moduleEnabled($tid, 'commerce')) && ($canCatalog || $canSales || $canOrders);
         $analyticsActive = $this->moduleEnabled($tid, 'analytics') || $this->moduleEnabled($tid, 'dashboard');
 
-        if ($shopActive) {
+        if ($shopActive && $canCatalog) {
             try {
                 $payload['products'] = $this->productsSection($tid);
                 $sections[] = 'products';
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $payload['products'] = ['error' => $e->getMessage()];
+                $sections[] = 'products';
             }
         }
 
@@ -122,67 +136,91 @@ final class DashboardOverviewBuilder
         $payload['panels'] = $panels;
         $sections[] = 'panels';
 
-        if ($shopActive) {
+        if ($shopActive && $canSales) {
             try {
                 $payload['sales'] = $this->salesSection($tid, $locale);
                 $sections[] = 'sales';
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $payload['sales'] = ['error' => $e->getMessage()];
+                $sections[] = 'sales';
             }
+        }
 
+        if ($shopActive && $canOrders) {
             try {
                 $payload['tasks'] = $this->tasksSection($tid, $payload['products'] ?? null);
                 $sections[] = 'tasks';
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $payload['tasks'] = ['error' => $e->getMessage()];
             }
 
             try {
-                $payload['fulfillment'] = $this->fulfillmentSection($tid);
+                $payload['fulfillment'] = $this->fulfillmentSection($tid, $locale);
                 $sections[] = 'fulfillment';
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $payload['fulfillment'] = ['error' => $e->getMessage()];
+                $sections[] = 'fulfillment';
             }
+        }
 
+        if ($shopActive && $canReviews) {
             try {
                 $payload['comments'] = $this->commentsSection($tid);
                 if (($payload['comments']['counts']['hold'] ?? 0) > 0 || ($payload['comments']['items'] ?? []) !== []) {
                     $sections[] = 'comments';
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $payload['comments'] = ['error' => $e->getMessage()];
             }
         }
 
-        if ($analyticsActive) {
+        // Traffic always present in sections (even when inactive).
+        try {
+            $payload['traffic'] = $this->trafficSection($tid);
+            if (! $analyticsActive) {
+                $payload['traffic']['active'] = false;
+            }
+        } catch (\Throwable $e) {
+            $payload['traffic'] = [
+                'active' => false,
+                'error' => $e->getMessage(),
+                'source' => 'native',
+                'online' => 0,
+                'highlight' => [
+                    'visitors' => 0,
+                    'views' => 0,
+                    'visitors_change_pct' => null,
+                    'views_change_pct' => null,
+                ],
+                'periods' => [],
+                'all_time' => [
+                    'id' => 'all_time',
+                    'from' => '',
+                    'to' => '',
+                    'visitors' => 0,
+                    'views' => 0,
+                    'visitors_change_pct' => null,
+                    'views_change_pct' => null,
+                ],
+            ];
+        }
+        $sections[] = 'traffic';
+
+        if ($canPortal && ! $canOrders) {
             try {
-                $payload['traffic'] = $this->trafficSection($tid);
-                if (($payload['traffic']['active'] ?? false) || ($payload['traffic']['online'] ?? 0) > 0) {
-                    $sections[] = 'traffic';
+                $payload['account'] = $this->accountSection($user, $tid);
+                $sections[] = 'account';
+                if ($isPartner) {
+                    $payload['partner'] = $payload['account'];
+                    $sections[] = 'partner';
                 }
-            } catch (\Throwable) {
-                $payload['traffic'] = [
-                    'active' => false,
-                    'source' => 'native',
-                    'online' => 0,
-                    'highlight' => [
-                        'visitors' => 0,
-                        'views' => 0,
-                        'visitors_change_pct' => null,
-                        'views_change_pct' => null,
-                    ],
-                    'periods' => [],
-                    'all_time' => [
-                        'id' => 'all',
-                        'from' => '',
-                        'to' => '',
-                        'visitors' => 0,
-                        'views' => 0,
-                        'visitors_change_pct' => null,
-                        'views_change_pct' => null,
-                    ],
-                ];
+            } catch (\Throwable $e) {
+                $payload['account'] = ['error' => $e->getMessage()];
             }
         }
 
         try {
-            $alerts = $this->alertsSection($panels);
+            $alerts = $this->alertsSection($panels, $locale);
             if ($alerts !== []) {
                 $payload['alerts'] = $alerts;
                 $sections[] = 'alerts';
@@ -213,21 +251,21 @@ final class DashboardOverviewBuilder
             'outofstock' => 0,
             'onbackorder' => 0,
         ];
-        $products = Product::query()
+        $stockRows = Product::query()
             ->where('tenant_id', $tid)
             ->whereIn('status', ['publish', 'published'])
-            ->get(['stock', 'stock_status', 'manage_stock']);
-        foreach ($products as $p) {
-            $st = (string) ($p->stock_status ?: '');
-            if ($st === '' || $st === '0') {
-                $st = ((int) ($p->stock ?? 0) > 0) ? 'instock' : 'outofstock';
+            ->selectRaw("CASE
+                WHEN stock_status IN ('instock','in_stock') THEN 'instock'
+                WHEN stock_status IN ('onbackorder','on_backorder') THEN 'onbackorder'
+                WHEN COALESCE(stock_status,'') IN ('','0') AND COALESCE(stock,0) > 0 THEN 'instock'
+                ELSE 'outofstock'
+            END as stock_key, COUNT(*) as cnt")
+            ->groupBy('stock_key')
+            ->pluck('cnt', 'stock_key');
+        foreach ($stockRows as $key => $cnt) {
+            if (isset($byStock[$key])) {
+                $byStock[$key] = (int) $cnt;
             }
-            $key = match ($st) {
-                'instock', 'in_stock' => 'instock',
-                'onbackorder', 'on_backorder' => 'onbackorder',
-                default => 'outofstock',
-            };
-            $byStock[$key]++;
         }
 
         // Map published → publish for WP-compatible UI keys
@@ -255,7 +293,7 @@ final class DashboardOverviewBuilder
     private function panelsSection(User $user, int $tid, bool $shopActive, bool $analyticsActive): array
     {
         $tenant = $user->tenant ?? Tenant::query()->find($tid);
-        $licenseActive = filled($tenant?->license_key);
+        $licenseActive = ($tenant?->license_status ?? '') === 'valid';
         $online = 0;
         if ($analyticsActive) {
             try {
@@ -283,6 +321,61 @@ final class DashboardOverviewBuilder
         if ($this->moduleEnabled($tid, 'marketing') || $this->moduleEnabled($tid, 'sms')) {
             $panels['sms'] = $this->smsPanelCachedPlaceholder($user);
         }
+
+        $botsEnabled = $this->moduleEnabled($tid, 'bots');
+        $botsList = [];
+        if ($botsEnabled && \Illuminate\Support\Facades\Schema::hasTable('bot_settings')) {
+            try {
+                $settings = DB::table('bot_settings')->where('tenant_id', $tid)->get();
+                foreach ($settings as $row) {
+                    $provider = (string) ($row->provider ?? '');
+                    if ($provider === '') {
+                        continue;
+                    }
+                    $sessions = 0;
+                    $errors = 0;
+                    if (\Illuminate\Support\Facades\Schema::hasTable('bot_sessions')) {
+                        $sessions = (int) DB::table('bot_sessions')
+                            ->where('tenant_id', $tid)
+                            ->where('provider', $provider)
+                            ->where('updated_at', '>=', now()->subDay())
+                            ->count();
+                    }
+                    if (\Illuminate\Support\Facades\Schema::hasTable('bot_message_logs')) {
+                        $errors = (int) DB::table('bot_message_logs')
+                            ->where('tenant_id', $tid)
+                            ->where('provider', $provider)
+                            ->where('status', 'failed')
+                            ->where('created_at', '>=', now()->subDays(7))
+                            ->count();
+                    }
+                    $botsList[] = [
+                        'provider' => $provider,
+                        'sessions_24h' => $sessions,
+                        'users_linked' => 0,
+                        'webhook_configured' => (bool) ($row->enabled ?? false),
+                        'token_configured' => filled($row->token ?? null),
+                        'last_error' => $errors > 0 ? 'errors' : '',
+                        'errors_7d' => $errors,
+                    ];
+                }
+            } catch (\Throwable) {
+                $botsList = [];
+            }
+        }
+        $panels['bots'] = $botsList;
+        $panels['bots_summary'] = [
+            'active' => $botsEnabled,
+            'errors_7d' => array_sum(array_column($botsList, 'errors_7d')),
+        ];
+
+        $secEnabled = $this->moduleEnabled($tid, 'security') || $this->moduleEnabled($tid, 'waf');
+        $panels['security'] = [
+            'active' => $secEnabled,
+            'score' => $secEnabled ? 100 : null,
+            'waf_mode' => $secEnabled ? 'monitor' : 'off',
+            'open_findings' => 0,
+        ];
 
         return $panels;
     }
@@ -316,8 +409,9 @@ final class DashboardOverviewBuilder
     /** @return array<string, mixed> */
     private function salesSection(int $tid, string $locale): array
     {
-        $toTs = time();
-        $fromTs = $toTs - 30 * 86400;
+        $now = Carbon::now();
+        $fromTs = $now->copy()->startOfMonth()->timestamp;
+        $toTs = $now->copy()->endOfMonth()->timestamp;
         $statuses = OrderReports::SALES_STATUSES;
         $report = $this->reports->buildReport($tid, $fromTs, $toTs, 'day', $statuses);
         $prev = $this->reports->compareRange($fromTs, $toTs);
@@ -326,49 +420,63 @@ final class DashboardOverviewBuilder
         $currency = (string) ($report['currency'] ?? 'IRR');
         $monthLabel = Carbon::createFromTimestamp($fromTs)
             ->locale($locale === 'fa' ? 'fa' : 'en')
-            ->isoFormat('D MMM').' – '.Carbon::createFromTimestamp($toTs)
-            ->locale($locale === 'fa' ? 'fa' : 'en')
-            ->isoFormat('D MMM YYYY');
+            ->isoFormat('MMMM YYYY');
 
+        $activeStatuses = [
+            'paid', 'processing', 'sent-to-warehouse', 'webino-in-stock', 'webino-packaged',
+            'webino-courier', 'webino-post', 'webino-tipax', 'webino-ready-to-ship',
+            'webino-shipping', 'shipped', 'webino-need-review',
+        ];
         $recentOrders = Order::query()
             ->where('tenant_id', $tid)
+            ->where('created_at', '>=', Carbon::createFromTimestamp($fromTs))
+            ->whereIn('status', $activeStatuses)
             ->with(['user:id,name,email', 'items'])
             ->orderByDesc('id')
-            ->limit(8)
+            ->limit(20)
             ->get()
-            ->map(fn (Order $o) => $this->orderRow($o))
+            ->map(fn (Order $o) => $this->orderRow($o, $locale))
             ->all();
 
         $recentProducts = Product::query()
             ->where('tenant_id', $tid)
+            ->whereIn('status', ['publish', 'published'])
             ->orderByDesc('id')
-            ->limit(8)
+            ->limit(5)
             ->get()
             ->map(fn (Product $p) => $this->productRow($p))
             ->all();
 
+        // Prefer analytics page views when available; fall back to products.views_count.
         $topByViews = Product::query()
             ->where('tenant_id', $tid)
             ->whereIn('status', ['publish', 'published'])
             ->orderByDesc('views_count')
-            ->limit(8)
+            ->limit(5)
             ->get()
             ->map(fn (Product $p) => array_merge($this->productRow($p), [
                 'views' => (int) ($p->views_count ?? 0),
             ]))
             ->all();
 
-        $topProducts = array_map(function ($row) {
+        $topProducts = array_map(function ($row) use ($tid) {
+            $pid = $row['product_id'] ?? $row['id'] ?? null;
+            $image = '';
+            if ($pid) {
+                $p = Product::query()->where('tenant_id', $tid)->find($pid);
+                $image = (string) ($p?->image_url ?: $p?->cover_image_url ?: '');
+            }
+
             return [
-                'id' => $row['product_id'] ?? $row['id'] ?? null,
-                'product_id' => $row['product_id'] ?? $row['id'] ?? null,
+                'id' => $pid,
+                'product_id' => $pid,
                 'name' => (string) ($row['name'] ?? ''),
                 'quantity' => (int) ($row['quantity'] ?? 0),
                 'revenue' => (int) ($row['revenue'] ?? 0),
-                'image_url' => '',
+                'image_url' => $image,
                 'views' => 0,
             ];
-        }, array_slice($report['top_products'] ?? [], 0, 8));
+        }, array_slice($report['top_products'] ?? [], 0, 5));
 
         $topCategories = array_map(function ($row) {
             return [
@@ -377,7 +485,7 @@ final class DashboardOverviewBuilder
                 'quantity' => (int) ($row['quantity'] ?? 0),
                 'revenue' => (int) ($row['revenue'] ?? 0),
             ];
-        }, array_slice($report['top_categories'] ?? [], 0, 8));
+        }, array_slice($report['top_categories'] ?? [], 0, 5));
 
         $topCustomers = array_map(function ($row) {
             return [
@@ -387,13 +495,13 @@ final class DashboardOverviewBuilder
                 'orders' => (int) ($row['orders'] ?? 0),
                 'revenue' => (int) ($row['revenue'] ?? 0),
             ];
-        }, array_slice($report['top_customers'] ?? [], 0, 8));
+        }, array_slice($report['top_customers'] ?? [], 0, 5));
 
         return [
             'currency' => $currency,
             'from' => $fromTs,
             'to' => $toTs,
-            'range' => 'last30',
+            'range' => 'month',
             'month_label' => $monthLabel,
             'summary' => $report['summary'],
             'compare_summary' => $compare['summary'],
@@ -459,35 +567,75 @@ final class DashboardOverviewBuilder
     }
 
     /** @return array<string, mixed> */
-    private function fulfillmentSection(int $tid): array
+    private function fulfillmentSection(int $tid, string $locale = 'fa'): array
     {
+        $packStatuses = ['processing', 'sent-to-warehouse', 'webino-in-stock'];
+        $shipStatuses = ['webino-packaged'];
+        $trackingQ = Order::query()
+            ->where('tenant_id', $tid)
+            ->where('status', 'completed')
+            ->where(function ($q) {
+                $q->whereNull('meta->tracking_code')
+                    ->where(function ($q2) {
+                        $q2->whereNull('meta->tapin->barcode')
+                            ->orWhere('meta->tapin->barcode', '');
+                    });
+            });
+
+        $returnsCount = OrderReturn::query()->where('tenant_id', $tid)->whereIn('status', ['requested', 'approved'])->count();
+        $returnItems = OrderReturn::query()
+            ->where('tenant_id', $tid)
+            ->whereIn('status', ['requested', 'approved'])
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get()
+            ->map(fn (OrderReturn $r) => [
+                'id' => $r->id,
+                'order_id' => $r->order_id,
+                'status' => (string) $r->status,
+                'reason' => (string) ($r->reason ?? ''),
+                'href' => '/dashboard/orders/'.(int) $r->order_id,
+            ])
+            ->all();
+
         return [
-            'pack' => $this->fulfillmentBucket($tid, 'processing', 'pack', '/dashboard/orders?status=processing'),
-            'ship' => $this->fulfillmentBucket($tid, 'paid', 'ship', '/dashboard/orders?status=paid'),
-            'tracking' => $this->fulfillmentBucket($tid, 'shipped', 'tracking', '/dashboard/orders?status=shipped'),
-            'refund' => $this->fulfillmentBucket($tid, 'cancelled', 'refund', '/dashboard/orders?status=cancelled', 14),
+            'pack' => $this->fulfillmentBucketMulti($tid, $packStatuses, 'pack', '/dashboard/orders?status=processing', $locale),
+            'ship' => $this->fulfillmentBucketMulti($tid, $shipStatuses, 'ship', '/dashboard/orders?status=webino-packaged', $locale),
+            'tracking' => $this->fulfillmentBucketQuery($trackingQ, 'tracking', '/dashboard/orders?status=completed', $locale),
+            'refund' => $this->fulfillmentBucketMulti($tid, ['cancelled', 'refunded', 'webino-returned'], 'refund', '/dashboard/orders?status=refunded', $locale, 14),
             'returns' => [
-                'count' => 0,
-                'items' => [],
+                'count' => $returnsCount,
+                'items' => $returnItems,
                 'href' => '/dashboard/orders',
             ],
         ];
     }
 
     /**
+     * @param  list<string>  $statuses
      * @return array{count: int, items: list<array<string, mixed>>, href: string}
      */
-    private function fulfillmentBucket(int $tid, string $status, string $action, string $href, ?int $withinDays = null): array
+    private function fulfillmentBucketMulti(int $tid, array $statuses, string $action, string $href, string $locale, ?int $withinDays = null): array
     {
         $q = Order::query()
             ->where('tenant_id', $tid)
-            ->where('status', $status)
+            ->whereIn('status', $statuses)
             ->with(['user:id,name,email']);
         if ($withinDays !== null) {
             $q->where('created_at', '>=', Carbon::now()->subDays($withinDays));
         }
+
+        return $this->fulfillmentBucketQuery($q, $action, $href, $locale);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\Order>  $q
+     * @return array{count: int, items: list<array<string, mixed>>, href: string}
+     */
+    private function fulfillmentBucketQuery($q, string $action, string $href, string $locale): array
+    {
         $count = (clone $q)->count();
-        $items = $q->orderByDesc('id')->limit(8)->get()->map(function (Order $o) use ($action) {
+        $items = $q->orderByDesc('id')->limit(8)->get()->map(function (Order $o) use ($action, $locale) {
             $meta = is_array($o->meta) ? $o->meta : [];
 
             return [
@@ -495,17 +643,25 @@ final class DashboardOverviewBuilder
                 'number' => (string) ($o->number ?? $o->id),
                 'customer_name' => (string) ($o->customer_name ?: $o->user?->name ?: $o->user?->email ?: '—'),
                 'status' => (string) $o->status,
-                'status_label' => (string) $o->status,
+                'status_label' => OrderShippingStatuses::label((string) $o->status, $locale === 'en' ? 'en' : 'fa'),
                 'href' => '/dashboard/orders/'.$o->id,
                 'action' => $action,
-                'shipping_kind' => (string) ($meta['shipping_kind'] ?? ''),
+                'shipping_kind' => (string) ($meta['shipping_kind'] ?? $meta['shipping_method'] ?? ''),
                 'shipping_label' => (string) ($meta['shipping_label'] ?? ''),
-                'purchase_type' => (string) ($meta['purchase_type'] ?? ''),
+                'purchase_type' => (string) ($meta['purchase_type'] ?? $meta['wfcp_purchase_type'] ?? ''),
                 'payment_method_title' => (string) ($o->payment_provider ?? ''),
             ];
         })->all();
 
         return ['count' => $count, 'items' => $items, 'href' => $href];
+    }
+
+    /**
+     * @return array{count: int, items: list<array<string, mixed>>, href: string}
+     */
+    private function fulfillmentBucket(int $tid, string $status, string $action, string $href, ?int $withinDays = null): array
+    {
+        return $this->fulfillmentBucketMulti($tid, [$status], $action, $href, 'fa', $withinDays);
     }
 
     /** @return array{items: list<array<string, mixed>>, counts: array{hold: int, approved: int, spam: int, trash: int}} */
@@ -547,33 +703,51 @@ final class DashboardOverviewBuilder
     /** @return array<string, mixed> */
     private function trafficSection(int $tid): array
     {
-        $to = Carbon::now()->format('Y-m-d');
-        $from = Carbon::now()->subDays(29)->format('Y-m-d');
-        $overview = $this->analytics->overview($tid, $from, $to);
+        $to = Carbon::now()->subDay()->format('Y-m-d');
+        $from30 = Carbon::now()->subDays(30)->format('Y-m-d');
+        $overview = $this->analytics->overview($tid, $from30, $to);
         $online = (int) ($overview['online'] ?? 0);
         $series = is_array($overview['series'] ?? null) ? $overview['series'] : [];
 
-        $highlightFrom = Carbon::now()->subDays(7)->format('Y-m-d');
-        $highlightTo = Carbon::now()->subDay()->format('Y-m-d');
-        $highlight = $this->analytics->overview($tid, $highlightFrom, $highlightTo);
-        $prevFrom = Carbon::now()->subDays(14)->format('Y-m-d');
-        $prevTo = Carbon::now()->subDays(8)->format('Y-m-d');
-        $prev = $this->analytics->overview($tid, $prevFrom, $prevTo);
+        $last7From = Carbon::now()->subDays(7)->format('Y-m-d');
+        $last7To = $to;
+        $last14From = Carbon::now()->subDays(14)->format('Y-m-d');
+        $last14To = Carbon::now()->subDays(8)->format('Y-m-d');
 
-        $visitorsChange = $this->changePct((int) ($highlight['visitors'] ?? 0), (int) ($prev['visitors'] ?? 0));
-        $viewsChange = $this->changePct((int) ($highlight['views'] ?? 0), (int) ($prev['views'] ?? 0));
+        // Reuse overview series buckets instead of N extra overview() round-trips when possible.
+        $last7 = $this->analytics->overview($tid, $last7From, $last7To);
+        $last14 = $this->analytics->overview($tid, $last14From, $last14To);
+
+        $visitorsChange = $this->changePct((int) ($last7['visitors'] ?? 0), (int) ($last14['visitors'] ?? 0));
+        $viewsChange = $this->changePct((int) ($last7['views'] ?? 0), (int) ($last14['views'] ?? 0));
 
         $periods = [
-            $this->trafficPeriod('today', Carbon::now()->format('Y-m-d'), Carbon::now()->format('Y-m-d'), $tid),
-            $this->trafficPeriod('yesterday', Carbon::yesterday()->format('Y-m-d'), Carbon::yesterday()->format('Y-m-d'), $tid),
             [
-                'id' => 'last7',
-                'from' => $highlightFrom,
-                'to' => $highlightTo,
-                'visitors' => (int) ($highlight['visitors'] ?? 0),
-                'views' => (int) ($highlight['views'] ?? 0),
+                'id' => 'last7_excl_today',
+                'from' => $last7From,
+                'to' => $last7To,
+                'visitors' => (int) ($last7['visitors'] ?? 0),
+                'views' => (int) ($last7['views'] ?? 0),
                 'visitors_change_pct' => $visitorsChange,
                 'views_change_pct' => $viewsChange,
+            ],
+            [
+                'id' => 'last14_excl_today',
+                'from' => $last14From,
+                'to' => $last14To,
+                'visitors' => (int) ($last14['visitors'] ?? 0),
+                'views' => (int) ($last14['views'] ?? 0),
+                'visitors_change_pct' => null,
+                'views_change_pct' => null,
+            ],
+            [
+                'id' => 'all_time',
+                'from' => '',
+                'to' => '',
+                'visitors' => (int) ($overview['visitors'] ?? 0),
+                'views' => (int) ($overview['views'] ?? 0),
+                'visitors_change_pct' => null,
+                'views_change_pct' => null,
             ],
         ];
 
@@ -582,14 +756,14 @@ final class DashboardOverviewBuilder
             'source' => 'native',
             'online' => $online,
             'highlight' => [
-                'visitors' => (int) ($highlight['visitors'] ?? 0),
-                'views' => (int) ($highlight['views'] ?? 0),
+                'visitors' => (int) ($last7['visitors'] ?? 0),
+                'views' => (int) ($last7['views'] ?? 0),
                 'visitors_change_pct' => $visitorsChange,
                 'views_change_pct' => $viewsChange,
             ],
             'periods' => $periods,
             'all_time' => [
-                'id' => 'all',
+                'id' => 'all_time',
                 'from' => '',
                 'to' => '',
                 'visitors' => (int) ($overview['visitors'] ?? 0),
@@ -627,7 +801,7 @@ final class DashboardOverviewBuilder
      * @param  array<string, mixed>  $panels
      * @return list<array<string, mixed>>
      */
-    private function alertsSection(array $panels): array
+    private function alertsSection(array $panels, string $locale = 'fa'): array
     {
         $alerts = [];
         $sms = $panels['sms'] ?? null;
@@ -635,18 +809,27 @@ final class DashboardOverviewBuilder
             $alerts[] = [
                 'level' => 'warning',
                 'source' => 'sms',
-                'message' => 'SMS balance is low',
+                'message' => __('dashboard.alert_sms_low', [], $locale === 'en' ? 'en' : 'fa'),
+                'message_key' => 'dashboard.alert_sms_low',
                 'at' => now()->toIso8601String(),
             ];
         }
-        if (is_array($sms) && ($sms['unavailable'] ?? false)) {
-            // Don't spam unavailable as alert on every load — mini card already shows it.
-        }
         if (! ($panels['license']['active'] ?? false)) {
             $alerts[] = [
-                'level' => 'warning',
+                'level' => 'error',
                 'source' => 'license',
-                'message' => 'License inactive',
+                'message' => __('dashboard.alert_license_inactive', [], $locale === 'en' ? 'en' : 'fa'),
+                'message_key' => 'dashboard.alert_license_inactive',
+                'at' => now()->toIso8601String(),
+            ];
+        }
+        $bots = $panels['bots_summary'] ?? null;
+        if (is_array($bots) && ($bots['errors_7d'] ?? 0) > 0) {
+            $alerts[] = [
+                'level' => 'warning',
+                'source' => 'bots',
+                'message' => __('dashboard.alert_bot_errors', [], $locale === 'en' ? 'en' : 'fa'),
+                'message_key' => 'dashboard.alert_bot_errors',
                 'at' => now()->toIso8601String(),
             ];
         }
@@ -655,17 +838,65 @@ final class DashboardOverviewBuilder
     }
 
     /** @return array<string, mixed> */
-    private function orderRow(Order $o): array
+    private function orderRow(Order $o, string $locale = 'fa'): array
     {
         return [
             'id' => $o->id,
             'number' => (string) ($o->number ?? $o->id),
             'status' => (string) $o->status,
-            'status_label' => (string) $o->status,
+            'status_label' => OrderShippingStatuses::label((string) $o->status, $locale === 'en' ? 'en' : 'fa'),
             'total' => (string) ((int) $o->total_minor),
             'date' => optional($o->created_at)?->toIso8601String() ?? '',
             'customer_name' => (string) ($o->customer_name ?: $o->user?->name ?: $o->user?->email ?: '—'),
             'item_count' => $o->relationLoaded('items') ? $o->items->sum('quantity') : 0,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function accountSection(User $user, int $tid): array
+    {
+        $ordersQ = Order::query()->where('tenant_id', $tid)->where('user_id', $user->id);
+        $count = (clone $ordersQ)->count();
+        $last = (clone $ordersQ)->orderByDesc('id')->first();
+        $recent = (clone $ordersQ)->orderByDesc('id')->limit(5)->get()->map(fn (Order $o) => $this->orderRow($o))->all();
+
+        $wallet = 0;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('wallet_ledgers')) {
+                $wallet = (int) DB::table('wallet_ledgers')
+                    ->where('tenant_id', $tid)
+                    ->where('user_id', $user->id)
+                    ->sum('amount_minor');
+            }
+        } catch (\Throwable) {
+            $wallet = 0;
+        }
+
+        $wishlist = 0;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('wishlists')) {
+                $wishlist = (int) DB::table('wishlists')->where('tenant_id', $tid)->where('user_id', $user->id)->count();
+            }
+        } catch (\Throwable) {
+            $wishlist = 0;
+        }
+
+        $tickets = 0;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('tickets')) {
+                $tickets = (int) DB::table('tickets')->where('tenant_id', $tid)->where('user_id', $user->id)->count();
+            }
+        } catch (\Throwable) {
+            $tickets = 0;
+        }
+
+        return [
+            'orders_count' => $count,
+            'last_order' => $last ? $this->orderRow($last) : null,
+            'wallet_balance_minor' => $wallet,
+            'wishlist_count' => $wishlist,
+            'tickets_count' => $tickets,
+            'recent_orders' => $recent,
         ];
     }
 

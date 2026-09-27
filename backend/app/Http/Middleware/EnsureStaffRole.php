@@ -9,7 +9,15 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureStaffRole
 {
     /** Roles allowed into back-office APIs; everyone else is limited to the account portal. */
-    public const ROLES = ['admin', 'staff'];
+    public const ROLES = [
+        'admin',
+        'staff',
+        'shop_manager',
+        'seller',
+        'accountant',
+        'author',
+        'editor',
+    ];
 
     public function handle(Request $request, Closure $next): Response
     {

@@ -237,7 +237,7 @@ export function HomeMiniCardsStrip({
         title={t("panels.shop")}
         value={shopActive ? t("panels.active") : t("panels.inactive")}
         hint={shopActive ? t("panels.shop_hint") : t("panels.inactive")}
-        href="/dashboard/products"
+        href="/dashboard/settings/shop/general"
         icon={ShoppingCart}
         variant={shopActive ? "default" : "error"}
       />

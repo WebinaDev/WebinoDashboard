@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Languages, Moon, Palette, Sun } from "lucide-react"
+import { Check, Languages, Monitor, Moon, Palette, Sun } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 
@@ -12,9 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ACCENT_MENU_ITEMS, ACCENT_SWATCH, isBusinessAccent, type AccentPreset } from "@/lib/accent"
+import { api } from "@/lib/api"
 import { htmlDir, normalizeUiLocale } from "@/lib/locale"
 import { cn } from "@/lib/utils"
-import { useThemeSettings } from "@/providers/AppProviders"
+import { useThemeSettings, type ThemeMode } from "@/providers/AppProviders"
 
 function AccentSwatch({ value, className }: { value: AccentPreset; className?: string }) {
   return (
@@ -26,7 +27,13 @@ function AccentSwatch({ value, className }: { value: AccentPreset; className?: s
   )
 }
 
-export function LocaleThemeToolbar() {
+function ThemeIcon({ mode }: { mode: ThemeMode }) {
+  if (mode === "dark") return <Moon className="size-4" />
+  if (mode === "light") return <Sun className="size-4" />
+  return <Monitor className="size-4" />
+}
+
+export function LocaleThemeToolbar({ compact }: { compact?: boolean }) {
   const router = useRouter()
   const locale = useLocale()
   const t = useTranslations("common")
@@ -39,16 +46,28 @@ export function LocaleThemeToolbar() {
     localStorage.setItem("locale", nextLocale)
     document.documentElement.lang = nextLocale
     document.documentElement.dir = htmlDir(nextLocale)
+    void api("/api/v1/account/preferences", {
+      method: "PATCH",
+      json: { locale: nextLocale },
+    }).catch(() => {})
     router.refresh()
   }
 
+  const themeCycle: ThemeMode[] = ["light", "dark", "system"]
+  const nextTheme = themeCycle[(themeCycle.indexOf(mode) + 1) % themeCycle.length] ?? "system"
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={cn("flex flex-wrap items-center gap-2", compact && "gap-1")}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" type="button">
+          <Button
+            variant="outline"
+            size={compact ? "icon" : "sm"}
+            type="button"
+            aria-label={t("locale_label")}
+          >
             <Languages className="size-4" />
-            {lng === "fa" ? t("locale_fa") : t("locale_en")}
+            {compact ? null : lng === "fa" ? t("locale_fa") : t("locale_en")}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -63,7 +82,13 @@ export function LocaleThemeToolbar() {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" type="button" className="relative" aria-label="accent">
+          <Button
+            variant="outline"
+            size="icon"
+            type="button"
+            className="relative"
+            aria-label={t("accent_label")}
+          >
             <Palette className="size-4" />
             <AccentSwatch value={accent} className="absolute end-1.5 bottom-1.5 size-2" />
           </Button>
@@ -93,10 +118,10 @@ export function LocaleThemeToolbar() {
         type="button"
         variant="outline"
         size="icon"
-        onClick={() => setMode(mode === "dark" ? "light" : "dark")}
-        aria-label={mode === "dark" ? "light" : "dark"}
+        onClick={() => setMode(nextTheme)}
+        aria-label={t(`theme_${mode}` as "theme_light")}
       >
-        {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        <ThemeIcon mode={mode} />
       </Button>
     </div>
   )

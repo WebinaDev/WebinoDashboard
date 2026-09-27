@@ -188,7 +188,16 @@ export function buildAdminNav(activations: TenantActivation[]) {
     moduleSlug: string
     submodule: string
     order?: number
-    items?: { titleKey: string; url: string; moduleSlug: string; submodule: string }[]
+    capability?: string
+    menuKey?: string
+    items?: {
+      titleKey: string
+      url: string
+      moduleSlug: string
+      submodule: string
+      capability?: string
+      menuKey?: string
+    }[]
   }
   const items: {
     section: string
@@ -207,7 +216,17 @@ export function buildAdminNav(activations: TenantActivation[]) {
       url: string
       moduleSlug: string
       submodule: string
-      children: { titleKey: string; url: string; moduleSlug: string; submodule: string; navOrder: number }[]
+      capability?: string
+      menuKey?: string
+      children: {
+        titleKey: string
+        url: string
+        moduleSlug: string
+        submodule: string
+        navOrder: number
+        capability?: string
+        menuKey?: string
+      }[]
     }
   >()
 
@@ -220,6 +239,7 @@ export function buildAdminNav(activations: TenantActivation[]) {
       if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) continue
       const section = route.section
       const sectionOrder = route.order ?? mod.adminNav?.order ?? 99
+      const menuKey = route.menuKey ?? route.path.split("/")[0] ?? route.path
       if (!sectionMap.has(section)) {
         sectionMap.set(section, {
           section,
@@ -242,6 +262,8 @@ export function buildAdminNav(activations: TenantActivation[]) {
             url: dashboardPath(route.path),
             moduleSlug: mod.slug,
             submodule: route.submodule,
+            capability: route.capability,
+            menuKey,
             children: [],
           })
         }
@@ -250,6 +272,8 @@ export function buildAdminNav(activations: TenantActivation[]) {
         if ((route.navOrder ?? 99) < (bucket.children[0]?.navOrder ?? 9999)) {
           bucket.url = dashboardPath(route.path)
           bucket.submodule = route.submodule
+          bucket.capability = route.capability
+          bucket.menuKey = menuKey
         }
         bucket.children.push({
           titleKey: route.labelKey,
@@ -257,6 +281,8 @@ export function buildAdminNav(activations: TenantActivation[]) {
           moduleSlug: mod.slug,
           submodule: route.submodule,
           navOrder: route.navOrder ?? 99,
+          capability: route.capability,
+          menuKey,
         })
         continue
       }
@@ -267,6 +293,8 @@ export function buildAdminNav(activations: TenantActivation[]) {
         moduleSlug: mod.slug,
         submodule: route.submodule,
         order: sectionOrder,
+        capability: route.capability,
+        menuKey,
       })
     }
   }
@@ -281,11 +309,15 @@ export function buildAdminNav(activations: TenantActivation[]) {
       moduleSlug: bucket.moduleSlug,
       submodule: bucket.submodule,
       order: bucket.order,
-      items: bucket.children.map(({ titleKey, url, moduleSlug, submodule }) => ({
+      capability: bucket.capability,
+      menuKey: bucket.menuKey,
+      items: bucket.children.map(({ titleKey, url, moduleSlug, submodule, capability, menuKey }) => ({
         titleKey,
         url,
         moduleSlug,
         submodule,
+        capability,
+        menuKey,
       })),
     })
   }

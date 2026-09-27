@@ -27,6 +27,10 @@ export type AdminRouteDef = {
   navGroup?: string
   /** Order inside navGroup. */
   navOrder?: number
+  /** Required capability for nav visibility and PermissionGate. */
+  capability?: string
+  /** Menu ACL key (defaults to first path segment). */
+  menuKey?: string
 }
 
 export type SiteRouteDef = {

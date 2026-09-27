@@ -119,11 +119,11 @@ class OrdersWalletPosApiTest extends TestCase
 
         $wd = $this->postJson('/api/v1/wallet/withdrawals', [
             'user_id' => $user->id,
-            'amount_minor' => 40000,
+            'amount_minor' => 50000,
             'sheba' => 'IR123',
         ])->assertCreated()->json('data');
 
-        $this->assertSame(60000, $user->fresh()->wallet_balance_minor);
+        $this->assertSame(50000, $user->fresh()->wallet_balance_minor);
 
         $this->patchJson('/api/v1/wallet/withdrawals', [
             'id' => $wd['id'],

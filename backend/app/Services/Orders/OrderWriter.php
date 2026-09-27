@@ -57,6 +57,22 @@ class OrderWriter
                 $status = $data['status'] ?? 'pending_payment';
             }
 
+            $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+            if (! empty($data['gateways']) && is_array($data['gateways'])) {
+                $meta['allowed_gateways'] = array_values(array_map('strval', $data['gateways']));
+            }
+            if (array_key_exists('allow_both_types', $data)) {
+                $meta['allow_both_types'] = (bool) $data['allow_both_types'];
+            }
+            if (! empty($data['purchase_type']) && is_string($data['purchase_type'])) {
+                $meta['wfcp_purchase_type'] = $data['purchase_type'] === 'retail' ? 'cash' : $data['purchase_type'];
+            }
+            $payToken = null;
+            if (! empty($data['is_pay_link'])) {
+                $payToken = bin2hex(random_bytes(8));
+                $meta['pay_link_token'] = $payToken;
+            }
+
             $order = Order::query()->create([
                 'tenant_id' => $tenantId,
                 'user_id' => $data['user_id'] ?? null,
@@ -90,7 +106,7 @@ class OrderWriter
                 'utm_campaign' => $data['utm_campaign'] ?? null,
                 'table_number' => $data['table_number'] ?? null,
                 'branch_slug' => $data['branch_slug'] ?? null,
-                'meta' => $data['meta'] ?? null,
+                'meta' => $meta !== [] ? $meta : null,
                 'c2c_status' => ($data['payment_tender'] ?? null) === 'card_to_card' ? 'pending' : null,
             ]);
 
@@ -102,9 +118,9 @@ class OrderWriter
                 $this->coupons->redeem($coupon, $order, $discount, isset($data['user_id']) ? (int) $data['user_id'] : $actor?->id);
             }
 
-            if (! empty($data['is_pay_link']) && empty($order->payment_url)) {
+            if (! empty($data['is_pay_link']) && empty($order->payment_url) && $payToken) {
                 $order->update([
-                    'payment_url' => '/pay/'.$order->id.'?token='.bin2hex(random_bytes(8)),
+                    'payment_url' => '/pay/'.$order->id.'?token='.$payToken,
                 ]);
             }
 

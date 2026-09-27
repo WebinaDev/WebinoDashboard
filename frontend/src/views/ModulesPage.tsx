@@ -15,7 +15,7 @@ type Row = {
   requires_license: boolean
 }
 
-export default function ModulesPage() {
+export default function ModulesPage({ mode = "installed" }: { mode?: "catalog" | "installed" }) {
   const t = useTranslations("modules")
   const tCommon = useTranslations("common")
   const [rows, setRows] = useState<Row[]>([])
@@ -23,13 +23,17 @@ export default function ModulesPage() {
 
   function reload() {
     api<Row[]>("/api/v1/modules")
-      .then((r) => setRows(Array.isArray(r) ? r : []))
+      .then((r) => {
+        const list = Array.isArray(r) ? r : []
+        setRows(mode === "installed" ? list.filter((x) => x.enabled) : list)
+      })
       .catch(() => setRows([]))
   }
 
   useEffect(() => {
     reload()
-  }, [])
+    // reload closes over mode
+  }, [mode])
 
   async function toggle(slug: string, enabled: boolean) {
     setMsg(null)
@@ -66,7 +70,9 @@ export default function ModulesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-2xl font-semibold">
+        {mode === "catalog" ? t("catalog_title") : t("title")}
+      </h1>
       <p className="text-muted-foreground max-w-2xl text-sm">
         {t("accounting_hint")}
       </p>

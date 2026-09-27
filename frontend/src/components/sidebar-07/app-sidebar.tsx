@@ -1,67 +1,80 @@
 "use client"
 
 import * as React from "react"
-import type { LucideIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import type { NavSection } from "@/hooks/useDashboardNav"
 import { NavMain } from "@/components/sidebar-07/nav-main"
-import { NavProjects } from "@/components/sidebar-07/nav-projects"
 import { NavUser } from "@/components/sidebar-07/nav-user"
-import { TeamSwitcher } from "@/components/sidebar-07/team-switcher"
+import { SiteBrand } from "@/components/sidebar-07/site-brand"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuSkeleton,
   SidebarRail,
 } from "@/components/ui/sidebar"
 
 export function AppSidebar({
   navSections,
-  projects = [],
-  projectsGroupLabel,
+  navLoading = false,
   user,
   tenantLabel,
+  tenantLogoSrc,
   tenantPlanLabel,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   navSections: NavSection[]
-  projects?: {
-    name: string
-    url: string
-    icon: LucideIcon
-  }[]
-  projectsGroupLabel: string
+  navLoading?: boolean
   user: {
     name: string
     email: string
     avatar?: string
   }
   tenantLabel: string
+  tenantLogoSrc?: string | null
   tenantPlanLabel: string
 }) {
-  const teams = [
-    {
-      name: tenantLabel,
-      logoSrc: "/brand/logo.png",
-      plan: tenantPlanLabel,
-    },
-  ]
+  const t = useTranslations("sidebar")
+  const onlyHome =
+    !navLoading &&
+    navSections.length <= 1 &&
+    (navSections[0]?.items.length ?? 0) <= 1
 
   return (
     <Sidebar collapsible="icon" className="border-s" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={teams} />
+        <SiteBrand name={tenantLabel} logoSrc={tenantLogoSrc} subtitle={tenantPlanLabel} />
       </SidebarHeader>
       <SidebarContent data-tour="sidebar-nav">
-        {navSections.map((section, index) => (
-          <NavMain
-            key={`${section.groupLabel}-${index}`}
-            items={section.items}
-            groupLabel={section.groupLabel}
-          />
-        ))}
-        <NavProjects projects={projects} groupLabel={projectsGroupLabel} />
+        {navLoading ? (
+          <SidebarGroup>
+            <SidebarMenu>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SidebarMenuItem key={i}>
+                  <SidebarMenuSkeleton showIcon />
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        ) : (
+          navSections.map((section, index) => (
+            <NavMain
+              key={`${section.groupLabel}-${index}`}
+              items={section.items}
+              groupLabel={section.groupLabel}
+            />
+          ))
+        )}
+        {onlyHome ? (
+          <p className="text-muted-foreground px-3 py-2 text-xs leading-relaxed">
+            {t("footer_hint_home_only")}
+          </p>
+        ) : null}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

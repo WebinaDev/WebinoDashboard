@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Observers\MarketplaceOrderObserver;
 use App\Observers\MarketplaceProductObserver;
+use App\Observers\OrderStatusObserver;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
@@ -24,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
         Product::observe(MarketplaceProductObserver::class);
         ProductVariant::observe(MarketplaceProductObserver::class);
         Order::observe(MarketplaceOrderObserver::class);
+        Order::observe(OrderStatusObserver::class);
 
         Scramble::ignoreDefaultRoutes();
 

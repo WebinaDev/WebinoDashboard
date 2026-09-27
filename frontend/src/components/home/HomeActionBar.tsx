@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
+import { HomeAlertsPanel } from "@/components/home/HomeAlertsPanel"
 import { Badge } from "@/components/ui/badge"
 import type {
   DashboardOverviewAlert,
@@ -15,7 +16,7 @@ type HomeActionBarProps = {
   locale: string
 }
 
-export function HomeActionBar({ alerts, tasks }: HomeActionBarProps) {
+export function HomeActionBar({ alerts, tasks, locale }: HomeActionBarProps) {
   const t = useTranslations("home")
   const chips: Array<{
     key: string
@@ -80,22 +81,7 @@ export function HomeActionBar({ alerts, tasks }: HomeActionBarProps) {
         </div>
       ) : null}
       {alerts && alerts.length > 0 ? (
-        <ul className="space-y-1.5">
-          {alerts.map((a, i) => (
-            <li
-              key={`${a.source}-${i}`}
-              className={`rounded-lg border px-3 py-2 text-sm ${
-                a.level === "error"
-                  ? "border-destructive/40 bg-destructive/5 text-destructive"
-                  : a.level === "warning"
-                    ? "border-amber-500/40 bg-amber-500/5 text-amber-800 dark:text-amber-200"
-                    : "border-border bg-muted/40 text-muted-foreground"
-              }`}
-            >
-              {a.message}
-            </li>
-          ))}
-        </ul>
+        <HomeAlertsPanel alerts={alerts} locale={locale} />
       ) : null}
     </div>
   )

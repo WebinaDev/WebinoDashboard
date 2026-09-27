@@ -20,8 +20,8 @@ class C2cController extends Controller
             'order_button_text' => '',
             'icon_url' => '',
             'iban' => '',
-            'deadline_hours' => 24,
-            'deadline_h' => 24,
+            'deadline_hours' => 2,
+            'deadline_h' => 2,
             'cards' => [],
         ];
     }

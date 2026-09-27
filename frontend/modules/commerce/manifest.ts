@@ -262,6 +262,8 @@ export const commerceManifest: ModuleManifest = {
       order: 22,
       navGroup: "pos",
       navOrder: 0,
+      capability: "pos.use",
+      menuKey: "pos",
     },
     {
       path: "pos/pay-link",
@@ -272,6 +274,8 @@ export const commerceManifest: ModuleManifest = {
       order: 22,
       navGroup: "pos",
       navOrder: 1,
+      capability: "pos.use",
+      menuKey: "pos",
     },
     {
       path: "pos/my-orders",
@@ -282,6 +286,8 @@ export const commerceManifest: ModuleManifest = {
       order: 22,
       navGroup: "pos",
       navOrder: 2,
+      capability: "pos.use",
+      menuKey: "pos",
     },
     {
       path: "account",
@@ -391,6 +397,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 0,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/overview",
@@ -401,6 +409,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 0,
+      capability: "accounting.manage",
+      menuKey: "accounting",
       navHidden: true,
     },
     {
@@ -412,6 +422,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 1,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/tax-setup",
@@ -422,6 +434,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 2,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/chart",
@@ -432,6 +446,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 3,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/journals",
@@ -442,6 +458,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 4,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/persons",
@@ -452,6 +470,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 5,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/products",
@@ -462,6 +482,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 6,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/invoices",
@@ -472,6 +494,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 7,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/purchases",
@@ -482,6 +506,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 8,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/expenses",
@@ -492,6 +518,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 9,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/treasury",
@@ -502,6 +530,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 10,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/checks",
@@ -512,6 +542,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 11,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/installments",
@@ -522,6 +554,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 12,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/warehouses",
@@ -532,6 +566,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 13,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/production",
@@ -542,6 +578,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 14,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/moadian",
@@ -552,6 +590,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 15,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/hesabfa",
@@ -562,6 +602,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 16,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/payroll",
@@ -572,6 +614,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 17,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/my-payroll",
@@ -582,6 +626,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 18,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/projects",
@@ -592,6 +638,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 19,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/reports",
@@ -602,6 +650,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 20,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "accounting/tools",
@@ -612,6 +662,8 @@ export const commerceManifest: ModuleManifest = {
       order: 23,
       navGroup: "accounting",
       navOrder: 21,
+      capability: "accounting.manage",
+      menuKey: "accounting",
     },
     {
       path: "cart",
@@ -650,5 +702,6 @@ export const commerceManifest: ModuleManifest = {
   siteRoutes: [
     { path: "shop", submodule: "catalog", labelKey: "site.shop" },
     { path: "catalogue", submodule: "catalog", labelKey: "site.catalogue" },
+    { path: "pay/:orderId", submodule: "checkout", labelKey: "site.order_pay" },
   ],
 }

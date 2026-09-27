@@ -14,7 +14,6 @@ export const coffeeProfileManifest: ModuleManifest = {
       labelKey: "nav.coffee_profile",
       section: "commerce",
       order: 24,
-      navHidden: true,
     },
   ],
   siteRoutes: [],

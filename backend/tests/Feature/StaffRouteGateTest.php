@@ -23,6 +23,7 @@ class StaffRouteGateTest extends TestCase
         'api/v1/auth/user',
         'api/v1/auth/change-password',
         'api/v1/tenant',
+        'api/v1/bootstrap',
         'api/v1/setup/status',
         'api/v1/kernel/registry',
         'api/v1/kernel/activations',

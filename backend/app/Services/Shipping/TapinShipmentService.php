@@ -195,6 +195,23 @@ class TapinShipmentService
         $tapin['detail'] = $entries;
         $tapin['checked_at'] = now()->toIso8601String();
         $meta['tapin'] = $tapin;
+
+        if (! empty($tapin['barcode']) && empty($meta['tracking_code'])) {
+            $meta['tracking_code'] = (string) $tapin['barcode'];
+        }
+        if (! empty($tapin['tracking_url']) && empty($meta['tracking_url'])) {
+            $meta['tracking_url'] = (string) $tapin['tracking_url'];
+        }
+
+        $tapinCode = (int) ($entries['status_code'] ?? $entries['status'] ?? $entries['state'] ?? 0);
+        if ($tapinCode === 0 && is_numeric($tapin['status'] ?? null)) {
+            $tapinCode = (int) $tapin['status'];
+        }
+        $mapped = \App\Services\Orders\OrderShippingStatuses::fromTapinCode($tapinCode);
+        if ($mapped !== null && $mapped !== (string) $order->status) {
+            $order->status = $mapped;
+        }
+
         $order->meta = $meta;
         $order->save();
 

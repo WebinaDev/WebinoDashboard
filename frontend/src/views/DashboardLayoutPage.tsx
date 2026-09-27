@@ -1,12 +1,14 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { ExternalLink, Maximize, Minimize } from "lucide-react"
+import { ExternalLink, Maximize, Minimize, MoreVertical } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 
+import { CloseMobileSidebarOnNavigate } from "@/components/CloseMobileSidebarOnNavigate"
 import { DashboardPrefetch } from "@/components/DashboardPrefetch"
+import { LicenseGate } from "@/components/LicenseGate"
 import { NotificationBell } from "@/components/NotificationBell"
 import { AppSidebar } from "@/components/sidebar-07/app-sidebar"
 import { LocaleThemeToolbar } from "@/components/LocaleThemeToolbar"
@@ -19,6 +21,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
@@ -29,14 +37,45 @@ import { useDashboardNav } from "@/hooks/useDashboardNav"
 import { useLocaleSync } from "@/hooks/useLocaleSync"
 import { resolveAdminRoute } from "@/kernel/route-resolver"
 import { DASHBOARD_BASE, stripDashboardBase } from "@/kernel/paths"
+import { normalizeAccent } from "@/lib/accent"
 import { api } from "@/lib/api"
-import { sidebarSide } from "@/lib/locale"
+import { htmlDir, sidebarSide } from "@/lib/locale"
+import { DashboardPwaHead } from "@/components/pwa/DashboardPwaHead"
+import { PwaInstallBanner } from "@/components/pwa/PwaInstallBanner"
+import { PwaSplashOverlay } from "@/components/pwa/PwaSplashOverlay"
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister"
+import { mergePwaSettings, resolvePwaBootstrap, type PwaStoredSettings } from "@/lib/pwa-settings"
+import { useThemeSettings } from "@/providers/AppProviders"
+
+type TenantBranding = {
+  logo_url?: string | null
+  logo_dark_url?: string | null
+  favicon_url?: string | null
+  accent?: string | null
+  font?: string | null
+  font_body?: string | null
+  font_heading?: string | null
+  font_ui?: string | null
+  pwa?: PwaStoredSettings | null
+}
 
 type UserDto = {
   id: number
   name: string
   email: string
-  tenant?: { id: number; name: string; slug: string; domain?: string | null }
+  role?: string | null
+  ui_preferences?: {
+    locale?: string | null
+    theme?: string | null
+    accent?: string | null
+  } | null
+  tenant?: {
+    id: number
+    name: string
+    slug: string
+    domain?: string | null
+    branding?: TenantBranding | null
+  }
 }
 
 export default function DashboardLayoutPage({
@@ -46,10 +85,12 @@ export default function DashboardLayoutPage({
 }) {
   const tNav = useTranslations("nav")
   const tDashboard = useTranslations("dashboard")
+  const tCommon = useTranslations("common")
   const tSidebar = useTranslations("sidebar")
   const locale = useLocale()
   const pathname = usePathname() ?? ""
-  const { navSections, activations } = useDashboardNav()
+  const { navSections, activations, isLoading: navLoading } = useDashboardNav()
+  const { applyServerPreferences, accent } = useThemeSettings()
 
   const { data: user } = useQuery({
     queryKey: ["auth-user"],
@@ -64,6 +105,34 @@ export default function DashboardLayoutPage({
     document.addEventListener("fullscreenchange", onChange)
     return () => document.removeEventListener("fullscreenchange", onChange)
   }, [])
+
+  useEffect(() => {
+    const prefs = user?.ui_preferences
+    if (!prefs) return
+    applyServerPreferences({ theme: prefs.theme, accent: prefs.accent })
+    if (prefs.locale === "fa" || prefs.locale === "en") {
+      document.cookie = `NEXT_LOCALE=${prefs.locale};path=/;max-age=31536000`
+      localStorage.setItem("locale", prefs.locale)
+      document.documentElement.lang = prefs.locale
+      document.documentElement.dir = htmlDir(prefs.locale)
+    }
+  }, [user?.ui_preferences, applyServerPreferences])
+
+  useEffect(() => {
+    const branding = user?.tenant?.branding
+    if (!branding) return
+    const root = document.documentElement
+    const body = branding.font_body || branding.font
+    const heading = branding.font_heading || branding.font
+    const ui = branding.font_ui || branding.font
+    if (body) root.style.setProperty("--wd-font-body", body)
+    if (heading) root.style.setProperty("--wd-font-heading", heading)
+    if (ui) root.style.setProperty("--wd-font-ui", ui)
+    const userAccent = user?.ui_preferences?.accent
+    if (!userAccent && branding.accent) {
+      root.setAttribute("data-accent", normalizeAccent(branding.accent))
+    }
+  }, [user?.tenant?.branding, user?.ui_preferences?.accent, accent])
 
   async function toggleFullscreen() {
     try {
@@ -80,6 +149,20 @@ export default function DashboardLayoutPage({
   const tenantLabel = user?.tenant?.name ?? "…"
   const tenantDomain = user?.tenant?.domain?.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "")
   const siteUrl = tenantDomain ? `https://${tenantDomain}` : null
+  const logoUrl =
+    user?.tenant?.branding?.logo_url ||
+    user?.tenant?.branding?.logo_dark_url ||
+    "/brand/logo.png"
+
+  const pwaBootstrap = useMemo(() => {
+    const branding = user?.tenant?.branding
+    return resolvePwaBootstrap({
+      locale,
+      siteName: user?.tenant?.name,
+      faviconUrl: branding?.favicon_url,
+      pwa: mergePwaSettings(branding?.pwa),
+    })
+  }, [locale, user?.tenant?.branding, user?.tenant?.name])
 
   const breadcrumbCurrent = useMemo(() => {
     const segments = stripDashboardBase(pathname)
@@ -97,19 +180,33 @@ export default function DashboardLayoutPage({
     }
   }, [activations, pathname, tDashboard, tNav])
 
+  useEffect(() => {
+    const site = tenantLabel !== "…" ? tenantLabel : tCommon("appName")
+    document.title = `${breadcrumbCurrent} · ${site}`
+  }, [breadcrumbCurrent, tenantLabel, tCommon])
+
   return (
     <SidebarProvider>
+      {pwaBootstrap.enabled ? (
+        <>
+          <DashboardPwaHead pwa={pwaBootstrap} />
+          <ServiceWorkerRegister pwa={pwaBootstrap} />
+          <PwaSplashOverlay pwa={pwaBootstrap} />
+          <PwaInstallBanner pwa={pwaBootstrap} variant="shell" />
+        </>
+      ) : null}
+      <CloseMobileSidebarOnNavigate />
       <DashboardPrefetch />
       <AppSidebar
         side={sidebarSide(locale)}
         navSections={navSections}
-        projects={[]}
-        projectsGroupLabel={tNav("projects")}
+        navLoading={navLoading}
         user={{
           name: user?.name ?? "…",
           email: user?.email ?? "…",
         }}
         tenantLabel={tenantLabel}
+        tenantLogoSrc={logoUrl}
         tenantPlanLabel={tSidebar("plan_tenant")}
       />
       <SidebarInset>
@@ -124,7 +221,7 @@ export default function DashboardLayoutPage({
               <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href={DASHBOARD_BASE}>
-                    {tDashboard("breadcrumb_building")}
+                    {tDashboard("breadcrumb_home")}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block">
@@ -181,12 +278,55 @@ export default function DashboardLayoutPage({
                   </a>
                 </Button>
               ) : null}
-              <LocaleThemeToolbar />
+              <div className="hidden md:block">
+                <LocaleThemeToolbar />
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="md:hidden"
+                    aria-label={tDashboard("more_actions")}
+                  >
+                    <MoreVertical className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={() => void toggleFullscreen()}>
+                    {fullscreen
+                      ? tDashboard("exit_fullscreen")
+                      : tDashboard("fullscreen")}
+                  </DropdownMenuItem>
+                  {siteUrl ? (
+                    <DropdownMenuItem asChild>
+                      <a href={siteUrl} target="_blank" rel="noopener noreferrer">
+                        {tDashboard("visit_site")}
+                      </a>
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const next = locale === "fa" ? "en" : "fa"
+                      document.cookie = `NEXT_LOCALE=${next};path=/;max-age=31536000`
+                      localStorage.setItem("locale", next)
+                      void api("/api/v1/account/preferences", {
+                        method: "PATCH",
+                        json: { locale: next },
+                      }).catch(() => {})
+                      window.location.reload()
+                    }}
+                  >
+                    {locale === "fa" ? tCommon("locale_en") : tCommon("locale_fa")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
-        <div className="@container/main wd-app-atmosphere flex min-w-0 flex-1 flex-col gap-3 p-3 pt-3 sm:gap-4 sm:p-4 sm:pt-4">
-          {children}
+        <div className="@container/main wd-app-atmosphere flex min-w-0 flex-1 flex-col gap-3 p-3 pt-0 sm:gap-4 sm:p-4 sm:pt-0">
+          <LicenseGate>{children}</LicenseGate>
         </div>
         <footer className="mt-auto border-t px-4 py-3 text-muted-foreground text-xs">
           <p className="text-center md:text-start">{tenantLabel}</p>

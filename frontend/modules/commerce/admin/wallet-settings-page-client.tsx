@@ -18,6 +18,11 @@ import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 type WalletSettings = {
   enabled?: boolean
   title?: string
+  description?: string
+  order_button_text?: string
+  login_prompt?: string
+  balance_label?: string
+  icon_url?: string
   min_topup_minor?: number
   min_withdraw_minor?: number
 }
@@ -39,6 +44,10 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
 
   const [enabled, setEnabled] = useState(true)
   const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [orderButtonText, setOrderButtonText] = useState("")
+  const [loginPrompt, setLoginPrompt] = useState("")
+  const [balanceLabel, setBalanceLabel] = useState("")
   const [minTopup, setMinTopup] = useState(10000)
   const [minWithdraw, setMinWithdraw] = useState(50000)
   const [saved, setSaved] = useState(false)
@@ -60,6 +69,10 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
     if (!data) return
     setEnabled(Boolean(data.enabled))
     setTitle(data.title || "")
+    setDescription(data.description || "")
+    setOrderButtonText(data.order_button_text || "")
+    setLoginPrompt(data.login_prompt || "")
+    setBalanceLabel(data.balance_label || "")
     setMinTopup(data.min_topup_minor ?? 10000)
     setMinWithdraw(data.min_withdraw_minor ?? 50000)
   }, [data])
@@ -72,6 +85,10 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
           payload: {
             enabled,
             title,
+            description,
+            order_button_text: orderButtonText,
+            login_prompt: loginPrompt,
+            balance_label: balanceLabel,
             min_topup_minor: minTopup,
             min_withdraw_minor: minWithdraw,
           },
@@ -146,6 +163,22 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
               <div>
                 <Label>{t("title_field")}</Label>
                 <Input className="mt-1" value={title} onChange={(e) => setTitle(e.target.value)} />
+              </div>
+              <div>
+                <Label>{t("description_field")}</Label>
+                <Input className="mt-1" value={description} onChange={(e) => setDescription(e.target.value)} />
+              </div>
+              <div>
+                <Label>{t("order_button_text")}</Label>
+                <Input className="mt-1" value={orderButtonText} onChange={(e) => setOrderButtonText(e.target.value)} />
+              </div>
+              <div>
+                <Label>{t("login_prompt")}</Label>
+                <Input className="mt-1" value={loginPrompt} onChange={(e) => setLoginPrompt(e.target.value)} />
+              </div>
+              <div>
+                <Label>{t("balance_label")}</Label>
+                <Input className="mt-1" value={balanceLabel} onChange={(e) => setBalanceLabel(e.target.value)} />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
