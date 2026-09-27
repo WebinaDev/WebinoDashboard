@@ -1,6 +1,7 @@
-import CustomersPage from "@/views/CustomersPage"
-import type { ResolvedAdminRoute } from "@/kernel/types"
+import { redirect } from "next/navigation"
 
-export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
-  return <CustomersPage />
+import { dashboardPath } from "@/kernel/paths"
+
+export default function Page() {
+  redirect(`${dashboardPath("users")}?role=customer`)
 }

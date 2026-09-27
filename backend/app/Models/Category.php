@@ -22,6 +22,7 @@ class Category extends Model
         'cover_image_url',
         'thumbnail_id',
         'views_count',
+        'meta',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class Category extends Model
             'sort_order' => 'integer',
             'views_count' => 'integer',
             'thumbnail_id' => 'integer',
+            'meta' => 'array',
         ];
     }
 

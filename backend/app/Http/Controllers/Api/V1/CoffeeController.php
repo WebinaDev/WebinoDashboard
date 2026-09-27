@@ -67,7 +67,16 @@ class CoffeeController extends Controller
             ]
         );
 
-        return response()->json(['data' => $profile]);
+        $payload = $profile->toArray();
+        if ($product->type === 'variable') {
+            $payload['variant_weight_rows'] = $this->variantWeightRows($product);
+            $weights = array_filter(array_column($payload['variant_weight_rows'], 'weight_g'));
+            if ($weights !== [] && empty($payload['pack_weight_g'])) {
+                $payload['pack_weight_g'] = min($weights);
+            }
+        }
+
+        return response()->json(['data' => $payload]);
     }
 
     public function updateProductProfile(Request $request, Product $product): \Illuminate\Http\JsonResponse
@@ -227,6 +236,51 @@ class CoffeeController extends Controller
         );
 
         return $row->payload ?? [];
+    }
+
+    /** @return list<array<string, mixed>> */
+    protected function variantWeightRows(Product $product): array
+    {
+        $calc = PricingCalculator::forTenant($product->tenant_id);
+        $rows = [];
+        foreach ($product->variants()->orderBy('id')->get() as $variant) {
+            $purchase = (int) ($variant->purchase_price_minor ?? $product->purchase_price_minor ?? 0);
+            $rows[] = [
+                'variation_id' => $variant->id,
+                'name' => $variant->name,
+                'weight_g' => $this->inferVariantWeightGrams($variant),
+                'purchase_price_minor' => $purchase,
+                'price_minor' => (int) $variant->price_minor,
+                'calculated_retail' => $purchase > 0
+                    ? (int) round($calc->calculate((float) $purchase, 'retail'))
+                    : null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    protected function inferVariantWeightGrams(ProductVariant $variant): ?int
+    {
+        $weight = $variant->weight;
+        if ($weight !== null && $weight > 0) {
+            return (int) round($weight >= 50 ? $weight : $weight * 1000);
+        }
+        $name = (string) $variant->name;
+        if (preg_match('/(\d+(?:\.\d+)?)\s*(?:g|gr|gram|گرم)/iu', $name, $m)) {
+            return (int) round((float) $m[1]);
+        }
+        if (preg_match('/(\d+(?:\.\d+)?)\s*(?:kg|kilogram|کیلو)/iu', $name, $m)) {
+            return (int) round((float) $m[1] * 1000);
+        }
+        if (preg_match('/\b(\d{2,4})\b/u', $name, $m)) {
+            $n = (int) $m[1];
+            if ($n >= 50 && $n <= 5000) {
+                return $n;
+            }
+        }
+
+        return null;
     }
 
     /** @return array<string, mixed> */

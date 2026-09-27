@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\UserNotification;
+use App\Support\PortalAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,6 +23,8 @@ class SupportTicketController extends Controller
 
     public function accountIndex(Request $request): JsonResponse
     {
+        PortalAccess::authorize($request);
+
         return $this->listTickets($request, staff: false, userId: (int) $request->user()->id);
     }
 
@@ -35,6 +38,7 @@ class SupportTicketController extends Controller
 
     public function accountShow(Request $request, int $ticket): JsonResponse
     {
+        PortalAccess::authorize($request);
         $row = $this->findTicket($request, $ticket, (int) $request->user()->id);
         abort_if(! $row, 404);
 
@@ -43,6 +47,7 @@ class SupportTicketController extends Controller
 
     public function accountCreate(Request $request): JsonResponse
     {
+        PortalAccess::authorize($request);
         $data = $request->validate([
             'subject' => ['required', 'string', 'max:190'],
             'body' => ['required', 'string', 'max:20000'],
@@ -70,9 +75,9 @@ class SupportTicketController extends Controller
             'tenant_id' => $row->tenant_id,
             'user_id' => $row->user_id,
             'type' => 'ticket',
-            'title' => __('Support replied to your ticket'),
+            'title' => __('api.ticket_staff_replied'),
             'body' => $row->subject,
-            'link' => '/dashboard/tickets/'.$row->id,
+            'link' => '/dashboard/account/tickets/'.$row->id,
             'created_at' => now(),
         ]);
 
@@ -81,9 +86,10 @@ class SupportTicketController extends Controller
 
     public function accountReply(Request $request, int $ticket): JsonResponse
     {
+        PortalAccess::authorize($request);
         $row = $this->findTicket($request, $ticket, (int) $request->user()->id);
         abort_if(! $row, 404);
-        abort_if($row->status === 'closed', 422, __('Ticket is closed.'));
+        abort_if($row->status === 'closed', 422, __('api.ticket_closed'));
         $data = $request->validate(['body' => ['required', 'string', 'max:20000']]);
         $this->insertReply($row, (int) $request->user()->id, $data['body'], false);
         if ($row->status === 'answered') {
@@ -117,6 +123,7 @@ class SupportTicketController extends Controller
 
     public function accountPatch(Request $request, int $ticket): JsonResponse
     {
+        PortalAccess::authorize($request);
         $row = $this->findTicket($request, $ticket, (int) $request->user()->id);
         abort_if(! $row, 404);
         abort_if(! in_array($row->status, ['answered', 'closed'], true), 422);

@@ -1,23 +1,32 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
+import { AiGenerateButton } from "@/components/content/AiGenerateButton"
+import {
+  ContentPublishPanel,
+  defaultPublishDateLocal,
+  publishStateToPayload,
+  type ContentPublishState,
+} from "@/components/content/ContentPublishPanel"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { RichTextEditor } from "@/components/content/RichTextEditor"
+import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { magazineArticlePermalink } from "@/lib/content-permalink"
+import { slugifyTitle } from "@/lib/slugify"
 
 type Detail = {
   id?: number
@@ -30,6 +39,10 @@ type Detail = {
   tags: { id: number; name: string }[]
   featured_media_id?: number | null
   featured_image_url?: string | null
+  comment_status?: "open" | "closed"
+  visibility?: "public" | "private" | "password"
+  password?: string
+  published_at?: string | null
   seo?: { title?: string; description?: string; focus_keyword?: string }
 }
 
@@ -38,6 +51,7 @@ type Cat = { id: number; name: string }
 export default function MagazineEditorPage({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("content_admin")
   const tCommon = useTranslations("common")
+  const locale = useLocale()
   const router = useRouter()
   const qc = useQueryClient()
   const id = route.params?.postId ? Number(route.params.postId) : null
@@ -53,8 +67,17 @@ export default function MagazineEditorPage({ route }: { route: ResolvedAdminRout
     tags: [],
     seo: {},
   })
+  const [publish, setPublish] = useState<ContentPublishState>({
+    status: "draft",
+    visibility: "public",
+    password: "",
+    commentStatus: "open",
+    publishImmediately: true,
+    publishDate: defaultPublishDateLocal(),
+  })
   const [tagInput, setTagInput] = useState("")
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [slugEditing, setSlugEditing] = useState(false)
 
   const detailQ = useQuery({
     queryKey: ["magazine", "post", id],
@@ -71,6 +94,16 @@ export default function MagazineEditorPage({ route }: { route: ResolvedAdminRout
         categories: detailQ.data.categories || [],
         seo: detailQ.data.seo || {},
       })
+      setPublish({
+        status: detailQ.data.status || "draft",
+        visibility: detailQ.data.visibility ?? "public",
+        password: detailQ.data.password ?? "",
+        commentStatus: detailQ.data.comment_status === "closed" ? "closed" : "open",
+        publishImmediately: !detailQ.data.published_at,
+        publishDate: detailQ.data.published_at
+          ? detailQ.data.published_at.slice(0, 16)
+          : defaultPublishDateLocal(),
+      })
     }
   }, [detailQ.data])
 
@@ -86,15 +119,13 @@ export default function MagazineEditorPage({ route }: { route: ResolvedAdminRout
         slug: form.slug || undefined,
         body: form.body,
         excerpt: form.excerpt,
-        status: form.status,
         categories: form.categories,
         tags: form.tags.map((x) => x.name),
         featured_media_id: form.featured_media_id ?? null,
         seo: form.seo,
+        ...publishStateToPayload(publish),
       }
-      if (isNew) {
-        return api<Detail>("/api/v1/magazine/articles", { method: "POST", json: payload })
-      }
+      if (isNew) return api<Detail>("/api/v1/magazine/articles", { method: "POST", json: payload })
       return api<Detail>(`/api/v1/magazine/articles/${id}`, { method: "PATCH", json: payload })
     },
     onSuccess: (res) => {
@@ -105,24 +136,63 @@ export default function MagazineEditorPage({ route }: { route: ResolvedAdminRout
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
+  const permalink = form.slug ? magazineArticlePermalink(form.slug) : ""
+
   return (
     <PageShell
       title={isNew ? t("new_post") : t("edit_post")}
       actions={
-        <Button type="button" disabled={!form.title.trim() || saveMut.isPending} onClick={() => void saveMut.mutateAsync()}>
-          {tCommon("save")}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {!isNew && id ? <AiGenerateButton type="post" id={id} onDone={() => void detailQ.refetch()} /> : null}
+          {permalink ? (
+            <Button asChild type="button" size="sm" variant="outline">
+              <Link href={permalink} target="_blank" rel="noreferrer">
+                {t("view_on_site")}
+              </Link>
+            </Button>
+          ) : null}
+          <Button type="button" disabled={!form.title.trim() || saveMut.isPending} onClick={() => void saveMut.mutateAsync()}>
+            {tCommon("save")}
+          </Button>
+        </div>
       }
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="space-y-4">
           <Input
             value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            onChange={(e) => {
+              const title = e.target.value
+              setForm((f) => ({
+                ...f,
+                title,
+                slug: isNew && !slugEditing ? slugifyTitle(title) : f.slug,
+              }))
+            }}
             placeholder={t("col_title")}
             className="text-lg font-semibold"
           />
-          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder={t("slug")} />
+          <div className="text-muted-foreground flex flex-wrap items-center gap-1 text-sm">
+            <span>{t("permalink")}:</span>
+            {slugEditing ? (
+              <Input
+                className="h-8 max-w-xs"
+                value={form.slug}
+                onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                onBlur={() => setSlugEditing(false)}
+                autoFocus
+              />
+            ) : (
+              <>
+                <span dir="ltr" className="text-foreground font-medium">
+                  {permalink || "…"}
+                </span>
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => setSlugEditing(true)}>
+                  {t("slug")}
+                </Button>
+              </>
+            )}
+          </div>
           <Textarea
             value={form.excerpt}
             onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
@@ -134,18 +204,13 @@ export default function MagazineEditorPage({ route }: { route: ResolvedAdminRout
         </div>
 
         <aside className="space-y-4">
-          <div className="space-y-2 rounded-xl border p-4">
-            <Label>{t("col_status")}</Label>
-            <select
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-            >
-              <option value="draft">{t("stat_draft")}</option>
-              <option value="pending">{t("stat_pending")}</option>
-              <option value="published">{t("stat_publish")}</option>
-            </select>
-          </div>
+          <ContentPublishPanel
+            state={publish}
+            onChange={(patch) => setPublish((s) => ({ ...s, ...patch }))}
+            onSave={() => void saveMut.mutateAsync()}
+            isSaving={saveMut.isPending}
+            locale={locale}
+          />
 
           <div className="space-y-2 rounded-xl border p-4">
             <p className="text-sm font-medium">{t("categories")}</p>
@@ -205,9 +270,21 @@ export default function MagazineEditorPage({ route }: { route: ResolvedAdminRout
               // eslint-disable-next-line @next/next/no-img-element
               <img src={form.featured_image_url} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" />
             ) : null}
-            <Button type="button" size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
-              {t("pick_image")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
+                {t("pick_image")}
+              </Button>
+              {form.featured_image_url ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setForm({ ...form, featured_media_id: null, featured_image_url: null })}
+                >
+                  {t("remove_featured")}
+                </Button>
+              ) : null}
+            </div>
           </div>
         </aside>
       </div>

@@ -51,9 +51,11 @@ class BrandController extends Controller
             'image_url' => ['nullable', 'string', 'max:2048'],
             'thumbnail_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer', Rule::exists('brands', 'id')->where('tenant_id', $tid)],
+            'meta' => ['nullable', 'array'],
         ]);
 
         $slug = $this->ensureUniqueSlug($tid, $data['slug'] ?? Str::slug($data['name']));
+        $meta = $this->mergeSeoIntoMeta($data['meta'] ?? null, $request);
 
         $brand = Brand::query()->create([
             'tenant_id' => $tid,
@@ -63,6 +65,7 @@ class BrandController extends Controller
             'description' => $data['description'] ?? null,
             'image_url' => $data['image_url'] ?? null,
             'thumbnail_id' => $data['thumbnail_id'] ?? null,
+            'meta' => $meta,
         ]);
 
         return response()->json(['data' => $brand], 201);
@@ -80,6 +83,7 @@ class BrandController extends Controller
             'image_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
             'thumbnail_id' => ['sometimes', 'nullable', 'integer'],
             'parent_id' => ['sometimes', 'nullable', 'integer', Rule::exists('brands', 'id')->where('tenant_id', $tid)],
+            'meta' => ['sometimes', 'nullable', 'array'],
         ]);
 
         if (isset($data['slug'])) {
@@ -87,6 +91,14 @@ class BrandController extends Controller
         }
         if (array_key_exists('parent_id', $data) && (int) $data['parent_id'] === $brand->id) {
             unset($data['parent_id']);
+        }
+
+        if (array_key_exists('meta', $data) || $request->hasAny(['seo_title', 'seo_description', 'seo_keyword'])) {
+            $data['meta'] = $this->mergeSeoIntoMeta(
+                $data['meta'] ?? $brand->meta,
+                $request,
+                is_array($brand->meta) ? $brand->meta : [],
+            );
         }
 
         $brand->update($data);
@@ -124,5 +136,19 @@ class BrandController extends Controller
         }
 
         return $candidate;
+    }
+
+    /** @param array<string, mixed>|null $meta */
+    private function mergeSeoIntoMeta(?array $meta, Request $request, array $fallback = []): array
+    {
+        $base = array_merge($fallback, is_array($meta) ? $meta : []);
+        foreach (['seo_title', 'seo_description', 'seo_keyword'] as $key) {
+            if ($request->has($key)) {
+                $val = $request->input($key);
+                $base[$key] = is_string($val) && $val !== '' ? $val : null;
+            }
+        }
+
+        return $base;
     }
 }

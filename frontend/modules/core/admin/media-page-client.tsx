@@ -23,12 +23,14 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useConfirm } from "@/components/ConfirmDialog"
-import { PostsPagination } from "@/components/PostsPagination"
+import { MEDIA_TERM_ALL, MediaTermTreeSelect } from "@/components/media/MediaTermTreeSelect"
+import { PostsPagination, MEDIA_PER_PAGE_OPTIONS } from "@/components/PostsPagination"
+import { mediaAltPatch, resolveMediaAlt, type MediaAltFields } from "@/lib/media-alt"
 import { QueryErrorState } from "@/components/QueryErrorState"
 import { TableListSkeleton } from "@/components/TableListSkeleton"
 
 type Term = { id: number; name: string; slug: string; parent?: number | null; count?: number }
-type MediaItem = {
+type MediaItem = MediaAltFields & {
   id: number
   url?: string | null
   mime?: string | null
@@ -53,11 +55,11 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
   const qc = useQueryClient()
   const { confirm, dialog: confirmDialog } = useConfirm()
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(24)
+  const [perPage, setPerPage] = useState(20)
+  const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
-  const [appliedSearch, setAppliedSearch] = useState("")
-  const [folderId, setFolderId] = useState("")
-  const [categoryId, setCategoryId] = useState("")
+  const [folderId, setFolderId] = useState(MEDIA_TERM_ALL)
+  const [categoryId, setCategoryId] = useState(MEDIA_TERM_ALL)
   const [busy, setBusy] = useState(false)
   const [editItem, setEditItem] = useState<MediaItem | null>(null)
   const [folderItem, setFolderItem] = useState<MediaItem | null>(null)
@@ -70,13 +72,21 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
     queryFn: () => api<TermsPayload>("/api/v1/media/terms"),
   })
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim())
+      setPage(1)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [searchInput])
+
   const listQ = useQuery({
-    queryKey: ["media", "list", page, perPage, appliedSearch, folderId, categoryId],
+    queryKey: ["media", "list", page, perPage, search, folderId, categoryId],
     queryFn: () => {
       const p = new URLSearchParams({ page: String(page), per_page: String(perPage) })
-      if (appliedSearch.trim()) p.set("search", appliedSearch.trim())
-      if (folderId) p.set("folder_id", folderId)
-      if (categoryId) p.set("category_id", categoryId)
+      if (search) p.set("search", search)
+      if (folderId && folderId !== MEDIA_TERM_ALL) p.set("folder_id", folderId)
+      if (categoryId && categoryId !== MEDIA_TERM_ALL) p.set("category_id", categoryId)
       return api<ListPayload>(`/api/v1/media?${p}`)
     },
   })
@@ -93,8 +103,8 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
       for (const file of files) {
         const body = new FormData()
         body.append("file", file)
-        if (folderId) body.append("folder_id", folderId)
-        if (categoryId) body.append("category_ids", JSON.stringify([Number(categoryId)]))
+        if (folderId && folderId !== MEDIA_TERM_ALL) body.append("folder_id", folderId)
+        if (categoryId && categoryId !== MEDIA_TERM_ALL) body.append("category_ids", JSON.stringify([Number(categoryId)]))
         await api("/api/v1/media", { method: "POST", body })
       }
       toast.success(t("uploaded"))
@@ -134,7 +144,7 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
     return {
       title: editItem.title ?? "",
       slug: editItem.slug ?? "",
-      alt: editItem.alt ?? "",
+      alt: resolveMediaAlt(editItem),
       caption: editItem.caption ?? "",
       description: editItem.description ?? "",
     }
@@ -149,54 +159,32 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
     <PageShell title={t("title")} description={t("subtitle")}>
       <MediaDropzone busy={busy} onFiles={(files) => void uploadFiles(files)} emptyLabel={t("dropzone")} className="mb-4" />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <Input
-          className="max-w-xs"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t("search")}
         />
-        <select
-          className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+        <MediaTermTreeSelect
+          terms={folders}
           value={folderId}
-          onChange={(e) => {
-            setFolderId(e.target.value)
+          allLabel={t("all_folders")}
+          label={t("folder")}
+          onValueChange={(v) => {
+            setFolderId(v)
             setPage(1)
           }}
-        >
-          <option value="">{t("all_folders")}</option>
-          {folders.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+        />
+        <MediaTermTreeSelect
+          terms={categories}
           value={categoryId}
-          onChange={(e) => {
-            setCategoryId(e.target.value)
+          allLabel={t("all_categories")}
+          label={t("categories_short")}
+          onValueChange={(v) => {
+            setCategoryId(v)
             setPage(1)
           }}
-        >
-          <option value="">{t("all_categories")}</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            setAppliedSearch(search)
-            setPage(1)
-          }}
-        >
-          {t("apply_filters")}
-        </Button>
+        />
       </div>
 
       {listQ.isError ? (
@@ -211,7 +199,7 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
             <li key={item.id} className="flex flex-col gap-2 rounded-xl border p-3 text-sm">
               {item.url && item.mime?.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.url} alt={item.alt || ""} className="bg-muted h-36 w-full rounded-lg object-cover" />
+                <img src={item.url} alt={resolveMediaAlt(item)} className="bg-muted h-36 w-full rounded-lg object-cover" />
               ) : (
                 <div className="bg-muted text-muted-foreground flex h-36 items-center justify-center rounded-lg text-xs">
                   {item.mime || t("file")}
@@ -261,6 +249,7 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
           setPerPage(n)
           setPage(1)
         }}
+        perPageOptions={MEDIA_PER_PAGE_OPTIONS}
       />
       {confirmDialog}
 
@@ -436,7 +425,7 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
             <div className="space-y-3">
               {(["title", "slug", "alt", "caption", "description"] as const).map((key) => (
                 <div key={key} className="space-y-1">
-                  <Label>{key === "title" ? t("meta_title") : t(key)}</Label>
+                  <Label>{key === "title" ? t("meta_title") : key === "alt" ? t("alt") : t(key)}</Label>
                   <Input
                     value={editDraft[key]}
                     onChange={(e) => setEditDraft({ ...editDraft, [key]: e.target.value })}
@@ -450,7 +439,16 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
               type="button"
               onClick={() => {
                 if (!editItem || !editDraft) return
-                void patchMut.mutateAsync({ id: editItem.id, json: editDraft })
+                void patchMut.mutateAsync({
+                  id: editItem.id,
+                  json: {
+                    title: editDraft.title,
+                    slug: editDraft.slug,
+                    caption: editDraft.caption,
+                    description: editDraft.description,
+                    ...mediaAltPatch(editDraft.alt),
+                  },
+                })
               }}
             >
               {tCommon("save")}

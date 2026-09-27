@@ -27,7 +27,9 @@ export async function renderAdminPage(segments: string[]) {
   )
 
   return isPortalPath(route.path) ? (
-    page
+    <PermissionGate roles={[]} anyCapabilities={["account.portal", "partner.portal"]}>
+      {page}
+    </PermissionGate>
   ) : (
     <PermissionGate capability={route.capability}>{page}</PermissionGate>
   )

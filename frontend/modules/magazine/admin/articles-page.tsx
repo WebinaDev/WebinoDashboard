@@ -7,7 +7,11 @@ import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { EmptyListCta } from "@/components/content/EmptyListCta"
+import { ListColumnPicker, useListColumnVisibility } from "@/components/content/ListColumnPicker"
 import { useConfirm } from "@/components/ConfirmDialog"
+import type { SimpleSeo } from "@/components/seo/SimpleSeoFields"
+import { Badge } from "@/components/ui/badge"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { MobileListCard, MobileListField } from "@/components/MobileListCard"
 import { PageShell } from "@/components/PageShell"
@@ -15,16 +19,34 @@ import { PostsPagination } from "@/components/PostsPagination"
 import { QueryErrorState } from "@/components/QueryErrorState"
 import { ScrollTable } from "@/components/ScrollTable"
 import { TableListSkeleton } from "@/components/TableListSkeleton"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
+import { SeoKeywordIndicator } from "@/components/seo/SeoKeywordIndicator"
 import { formatDisplayDate } from "@/lib/format-date"
 
-type PostRow = { id: number; title: string; status: string; date?: string; excerpt?: string }
+type PostRow = {
+  id: number
+  title: string
+  status: string
+  date?: string
+  excerpt?: string
+  seo?: SimpleSeo | null
+}
+const MAG_COLUMNS = ["title", "status", "date", "excerpt", "seo"] as const
+type MagColumn = (typeof MAG_COLUMNS)[number]
+const LS_MAG_COLUMNS = "webino-magazine-list-columns"
+const DEFAULT_MAG_COLUMNS: Record<MagColumn, boolean> = {
+  title: true,
+  status: true,
+  date: true,
+  excerpt: false,
+  seo: true,
+}
+
 type ListPayload = {
   items: PostRow[]
   found: number
@@ -34,7 +56,6 @@ type ListPayload = {
 
 export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute }) {
   const t = useTranslations("content_admin")
-  const tUi = useTranslations("ui")
   const locale = useLocale()
   const enumLabel = useEnumLabel()
   const { confirm, dialog: confirmDialog } = useConfirm()
@@ -43,6 +64,14 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
   const [perPage, setPerPage] = useState(20)
   const [search, setSearch] = useState("")
   const [appliedSearch, setAppliedSearch] = useState("")
+  const [columns, toggleColumn] = useListColumnVisibility(LS_MAG_COLUMNS, DEFAULT_MAG_COLUMNS)
+  const columnLabels: Record<MagColumn, string> = {
+    title: t("col_title"),
+    status: t("col_status"),
+    date: t("col_date"),
+    excerpt: t("col_summary"),
+    seo: t("col_seo"),
+  }
 
   const q = useQuery({
     queryKey: ["magazine", "posts", page, perPage, appliedSearch],
@@ -108,6 +137,10 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
         />
       ) : null}
 
+      <div className="flex flex-wrap justify-end">
+        <ListColumnPicker label={t("toggle_columns")} columns={columns} columnLabels={columnLabels} onToggle={toggleColumn} />
+      </div>
+
       <div className="relative">
         <Search className="text-muted-foreground absolute start-2 top-2.5 size-4" />
         <Input
@@ -130,7 +163,7 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
         ) : q.isPending ? (
           <TableListSkeleton rows={6} columns={4} />
         ) : items.length === 0 ? (
-          <p className="text-muted-foreground p-4 text-sm">{tUi("empty")}</p>
+          <EmptyListCta message={t("empty_posts")} actionLabel={t("add_post")} actionHref="/dashboard/magazine/new" />
         ) : (
           <>
             <div className="space-y-2 md:hidden">
@@ -148,6 +181,9 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
                   actions={rowActions(row)}
                 >
                   <MobileListField label={t("col_date")}>{formatDisplayDate(row.date, locale)}</MobileListField>
+                  <MobileListField label={t("seo")}>
+                    <SeoKeywordIndicator seo={row.seo} title={row.title} excerpt={row.excerpt} />
+                  </MobileListField>
                 </MobileListCard>
               ))}
             </div>
@@ -158,6 +194,7 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
                     <th className="p-3 text-start font-medium">{t("col_title")}</th>
                     <th className="p-3 text-start font-medium">{t("col_status")}</th>
                     <th className="p-3 text-start font-medium">{t("col_date")}</th>
+                    <th className="p-3 text-start font-medium">{t("seo")}</th>
                     <th className="p-3 font-medium" />
                   </tr>
                 </thead>
@@ -173,6 +210,9 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
                         <Badge variant={statusBadgeVariant(row.status)}>{enumLabel("post_status", row.status)}</Badge>
                       </td>
                       <td className="text-muted-foreground p-3 text-xs">{formatDisplayDate(row.date, locale)}</td>
+                      <td className="p-3">
+                        <SeoKeywordIndicator seo={row.seo} title={row.title} excerpt={row.excerpt} />
+                      </td>
                       <td className="p-3">{rowActions(row)}</td>
                     </tr>
                   ))}

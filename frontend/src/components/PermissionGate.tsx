@@ -67,10 +67,13 @@ export function userHasCapability(capabilities: string[] | undefined, required: 
 export function PermissionGate({
   roles = STAFF_ROLES,
   capability,
+  anyCapabilities,
   children,
 }: {
   roles?: DashboardRole[]
   capability?: string
+  /** User needs at least one of these capabilities (unless role list matches). */
+  anyCapabilities?: string[]
   children: ReactNode
 }) {
   const t = useTranslations("ui")
@@ -82,7 +85,14 @@ export function PermissionGate({
   const role = (q.data?.role ?? "").trim() as DashboardRole
   const capabilities = q.data?.capabilities
 
-  if (capability && !userHasCapability(capabilities, capability)) {
+  const capOk =
+    !capability && !anyCapabilities?.length
+      ? true
+      : capability
+        ? userHasCapability(capabilities, capability)
+        : (anyCapabilities ?? []).some((c) => userHasCapability(capabilities, c))
+
+  if ((capability || anyCapabilities?.length) && !capOk) {
     return (
       <div className="flex flex-1 flex-col gap-3 p-6">
         <h1 className="text-lg font-semibold">{t("forbidden_title")}</h1>
@@ -96,7 +106,7 @@ export function PermissionGate({
     )
   }
 
-  if (role && !roles.includes(role)) {
+  if (roles.length > 0 && role && !roles.includes(role)) {
     return (
       <div className="flex flex-1 flex-col gap-3 p-6">
         <h1 className="text-lg font-semibold">{t("forbidden_title")}</h1>

@@ -21,6 +21,7 @@ export type EnumGroup =
   | "coupon_type"
   | "job_status"
   | "attribute_type"
+  | "attribute_order_by"
 
 type EnumTranslator = {
   (key: string): string

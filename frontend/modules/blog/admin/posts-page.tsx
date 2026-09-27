@@ -22,6 +22,8 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
+import { SeoKeywordIndicator } from "@/components/seo/SeoKeywordIndicator"
+import type { SimpleSeo } from "@/components/seo/SimpleSeoFields"
 import { formatDisplayDate } from "@/lib/format-date"
 
 type PostRow = {
@@ -31,6 +33,7 @@ type PostRow = {
   date?: string
   excerpt?: string
   category?: { id: number; name: string } | null
+  seo?: SimpleSeo | null
 }
 type ListPayload = {
   items: PostRow[]
@@ -41,7 +44,6 @@ type ListPayload = {
 
 export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
   const t = useTranslations("content_admin")
-  const tSite = useTranslations("site_admin")
   const tUi = useTranslations("ui")
   const locale = useLocale()
   const enumLabel = useEnumLabel()
@@ -95,8 +97,8 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
 
   return (
     <PageShell
-      title={tSite("blog_title")}
-      description={t("posts_subtitle")}
+      title={t("blog_posts_title")}
+      description={t("blog_posts_subtitle")}
       actions={
         <Button asChild>
           <Link href="/dashboard/blog/new">{t("add_post")}</Link>
@@ -109,6 +111,7 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
             { id: "total", label: t("stat_total"), value: stats.total },
             { id: "publish", label: t("stat_publish"), value: stats.publish },
             { id: "draft", label: t("stat_draft"), value: stats.draft },
+            { id: "pending", label: t("stat_pending"), value: stats.pending },
           ]}
         />
       ) : null}
@@ -154,6 +157,9 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
                 >
                   <MobileListField label={t("categories")}>{row.category?.name ?? "—"}</MobileListField>
                   <MobileListField label={t("col_date")}>{formatDisplayDate(row.date, locale)}</MobileListField>
+                  <MobileListField label={t("seo")}>
+                    <SeoKeywordIndicator seo={row.seo} title={row.title} excerpt={row.excerpt} />
+                  </MobileListField>
                 </MobileListCard>
               ))}
             </div>
@@ -165,6 +171,7 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
                     <th className="p-3 text-start font-medium">{t("categories")}</th>
                     <th className="p-3 text-start font-medium">{t("col_status")}</th>
                     <th className="p-3 text-start font-medium">{t("col_date")}</th>
+                    <th className="p-3 text-start font-medium">{t("seo")}</th>
                     <th className="p-3 font-medium" />
                   </tr>
                 </thead>
@@ -181,6 +188,9 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
                         <Badge variant={statusBadgeVariant(row.status)}>{enumLabel("post_status", row.status)}</Badge>
                       </td>
                       <td className="text-muted-foreground p-3 text-xs">{formatDisplayDate(row.date, locale)}</td>
+                      <td className="p-3">
+                        <SeoKeywordIndicator seo={row.seo} title={row.title} excerpt={row.excerpt} />
+                      </td>
                       <td className="p-3">{rowActions(row)}</td>
                     </tr>
                   ))}

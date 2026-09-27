@@ -27,6 +27,7 @@ class BlogCategoryController extends Controller
             'name' => $c->name,
             'slug' => $c->slug,
             'count' => (int) ($counts[$c->id] ?? 0),
+            'seo' => $c->seo ?? [],
         ])->all();
 
         return response()->json([
@@ -46,11 +47,13 @@ class BlogCategoryController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:190',
             'slug' => 'nullable|string|max:190',
+            'seo' => 'nullable|array',
         ]);
         $row = BlogCategory::query()->create([
             'tenant_id' => $tid,
             'name' => $data['name'],
             'slug' => $data['slug'] ?? Str::slug($data['name']) ?: 'cat-'.Str::random(4),
+            'seo' => $data['seo'] ?? null,
         ]);
 
         return response()->json(['data' => ['id' => $row->id, 'name' => $row->name, 'slug' => $row->slug]], 201);
@@ -63,6 +66,7 @@ class BlogCategoryController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|string|max:190',
             'slug' => 'nullable|string|max:190',
+            'seo' => 'nullable|array',
         ]);
         $row->update($data);
 

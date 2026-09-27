@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -65,6 +66,8 @@ export function AiOverviewPanel() {
   )
 }
 
+const JOB_STATUS_FILTERS = ["pending", "running", "completed", "failed"] as const
+
 export function AiJobsPanel() {
   const enumLabel = useEnumLabel()
   const t = useTranslations("aiContent")
@@ -99,10 +102,11 @@ export function AiJobsPanel() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("all")}</SelectItem>
-            <SelectItem value="pending">pending</SelectItem>
-            <SelectItem value="running">running</SelectItem>
-            <SelectItem value="completed">completed</SelectItem>
-            <SelectItem value="failed">failed</SelectItem>
+            {JOB_STATUS_FILTERS.map((s) => (
+              <SelectItem key={s} value={s}>
+                {enumLabel("job_status", s)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Button size="sm" onClick={() => runDue.mutate()} disabled={runDue.isPending}>
@@ -347,7 +351,7 @@ export function AiTitlesPanel() {
       <div className="flex flex-wrap gap-2">
         <Input
           className="w-64"
-          placeholder="1,2,3"
+          placeholder={t("productIdsPlaceholder")}
           value={ids}
           onChange={(e) => setIds(e.target.value)}
           dir="ltr"
@@ -375,31 +379,70 @@ export function AiTitlesPanel() {
   )
 }
 
+type CmsPageRow = { id: number; title: string; slug?: string; status?: string }
+
 export function AiPagesPanel() {
   const t = useTranslations("aiContent")
-  const [pageId, setPageId] = useState("")
-  const [prompt, setPrompt] = useState("")
+  const [prompts, setPrompts] = useState<Record<number, string>>({})
+  const [busyId, setBusyId] = useState<number | null>(null)
+
+  const pagesQ = useQuery({
+    queryKey: ["cms", "pages", "ai-panel"],
+    queryFn: () => api<{ items: CmsPageRow[] }>("/api/v1/cms/pages?per_page=100"),
+  })
+
   const gen = useMutation({
-    mutationFn: () =>
+    mutationFn: ({ pageId, prompt }: { pageId: number; prompt: string }) =>
       api("/api/v1/ai-content/generate", {
         method: "POST",
-        json: { type: "page", id: Number(pageId), page_prompt: prompt, sync: false },
+        json: { type: "page", id: pageId, page_prompt: prompt, sync: false },
       }),
   })
 
+  const items = pagesQ.data?.items ?? []
+
   return (
-    <div className="space-y-4 max-w-lg">
-      <div className="grid gap-1">
-        <Label>{t("pageId")}</Label>
-        <Input value={pageId} onChange={(e) => setPageId(e.target.value)} dir="ltr" />
+    <div className="space-y-4">
+      {pagesQ.isLoading ? <p className="text-muted-foreground text-sm">{t("loading")}</p> : null}
+      {items.length === 0 && !pagesQ.isLoading ? (
+        <p className="text-muted-foreground text-sm">{t("pagesEmpty")}</p>
+      ) : null}
+      <div className="space-y-3">
+        {items.map((page) => (
+          <Card key={page.id}>
+            <CardHeader className="pb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle className="text-base">{page.title}</CardTitle>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/dashboard/pages/${page.id}`}>{t("editPage")}</Link>
+                </Button>
+              </div>
+              {page.slug ? <p className="text-muted-foreground text-xs">/{page.slug}</p> : null}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Label>{t("pagePrompt")}</Label>
+              <Textarea
+                rows={3}
+                value={prompts[page.id] ?? ""}
+                onChange={(e) => setPrompts((prev) => ({ ...prev, [page.id]: e.target.value }))}
+              />
+              <Button
+                size="sm"
+                disabled={gen.isPending && busyId === page.id}
+                onClick={() => {
+                  setBusyId(page.id)
+                  gen.mutate(
+                    { pageId: page.id, prompt: prompts[page.id] ?? "" },
+                    { onSettled: () => setBusyId(null) },
+                  )
+                }}
+              >
+                {t("generate")}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      <div className="grid gap-1">
-        <Label>{t("pagePrompt")}</Label>
-        <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} />
-      </div>
-      <Button onClick={() => gen.mutate()} disabled={!pageId || gen.isPending}>
-        {t("generate")}
-      </Button>
       {gen.isSuccess ? <p className="text-sm text-muted-foreground">{t("queued")}</p> : null}
       {gen.isError ? <p className="text-sm text-destructive">{t("error")}</p> : null}
     </div>
@@ -429,7 +472,7 @@ export function AiTaxonomiesPanel() {
           <SelectItem value="product_brand">{t("productBrand")}</SelectItem>
         </SelectContent>
       </Select>
-      <Input placeholder="1,2,3" value={ids} onChange={(e) => setIds(e.target.value)} dir="ltr" />
+      <Input placeholder={t("productIdsPlaceholder")} value={ids} onChange={(e) => setIds(e.target.value)} dir="ltr" />
       <Button onClick={() => fill.mutate()} disabled={fill.isPending}>{t("fillBatch")}</Button>
     </div>
   )
@@ -460,7 +503,13 @@ export function AiAttributesPanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         <Input placeholder={t("categoryId")} value={catId} onChange={(e) => setCatId(e.target.value)} className="w-32" dir="ltr" />
-        <Input placeholder="attr ids" value={attrIds} onChange={(e) => setAttrIds(e.target.value)} className="w-48" dir="ltr" />
+        <Input
+          placeholder={t("attrIdsPlaceholder")}
+          value={attrIds}
+          onChange={(e) => setAttrIds(e.target.value)}
+          className="w-48"
+          dir="ltr"
+        />
         <Button size="sm" onClick={() => save.mutate()}>{t("save")}</Button>
       </div>
       <pre className="overflow-auto rounded border p-3 text-xs">{JSON.stringify(q.data?.items ?? [], null, 2)}</pre>

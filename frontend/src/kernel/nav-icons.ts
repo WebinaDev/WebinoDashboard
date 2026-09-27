@@ -38,6 +38,7 @@ const PATH_ICONS: Record<string, LucideIcon> = {
   "": LayoutDashboard,
   dashboard: LayoutDashboard,
   products: Package,
+  "products/tags": Tags,
   brands: Store,
   "product-categories": ListTree,
   attributes: Tags,

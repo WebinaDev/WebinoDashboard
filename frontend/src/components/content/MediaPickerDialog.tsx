@@ -11,18 +11,23 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { MEDIA_TERM_ALL, MediaTermTreeSelect } from "@/components/media/MediaTermTreeSelect"
 import { api } from "@/lib/api"
+import { resolveMediaAlt, type MediaAltFields } from "@/lib/media-alt"
 
-type MediaItem = { id: number; url?: string | null; mime?: string | null; title?: string | null; alt?: string | null }
-type Term = { id: number; name: string }
+type MediaItem = MediaAltFields & {
+  id: number
+  url?: string | null
+  mime?: string | null
+  title?: string | null
+  alt?: string | null
+}
+type Term = { id: number; name: string; parent?: number | null }
 type TermsPayload = { folders?: Term[]; categories?: Term[] }
 type ListPayload = { items: MediaItem[]; total?: number; per_page?: number }
 
 const PER_PAGE = 24
-const ALL = "0"
-
 export function MediaPickerDialog({
   open,
   onOpenChange,
@@ -36,8 +41,8 @@ export function MediaPickerDialog({
 }) {
   const t = useTranslations("ui")
   const id = useId()
-  const [folder, setFolder] = useState(ALL)
-  const [category, setCategory] = useState(ALL)
+  const [folder, setFolder] = useState(MEDIA_TERM_ALL)
+  const [category, setCategory] = useState(MEDIA_TERM_ALL)
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
@@ -63,8 +68,8 @@ export function MediaPickerDialog({
     queryFn: () => {
       const p = new URLSearchParams({ per_page: String(PER_PAGE), page: String(page), mime: "image" })
       if (search) p.set("search", search)
-      if (folder !== ALL) p.set("folder_id", folder)
-      if (category !== ALL) p.set("category_id", category)
+      if (folder !== MEDIA_TERM_ALL) p.set("folder_id", folder)
+      if (category !== MEDIA_TERM_ALL) p.set("category_id", category)
       return api<ListPayload>(`/api/v1/media?${p}`)
     },
   })
@@ -81,50 +86,28 @@ export function MediaPickerDialog({
         </DialogHeader>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="space-y-1">
-            <Label htmlFor={`${id}-folder`}>{t("media_folder")}</Label>
-            <Select
-              value={folder}
-              onValueChange={(v) => {
-                setFolder(v)
-                setPage(1)
-              }}
-            >
-              <SelectTrigger id={`${id}-folder`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t("media_all_folders")}</SelectItem>
-                {folders.map((f) => (
-                  <SelectItem key={f.id} value={String(f.id)}>
-                    {f.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${id}-category`}>{t("media_category")}</Label>
-            <Select
-              value={category}
-              onValueChange={(v) => {
-                setCategory(v)
-                setPage(1)
-              }}
-            >
-              <SelectTrigger id={`${id}-category`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t("media_all_categories")}</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <MediaTermTreeSelect
+            id={`${id}-folder`}
+            terms={folders}
+            value={folder}
+            allLabel={t("media_all_folders")}
+            label={t("media_folder")}
+            onValueChange={(v) => {
+              setFolder(v)
+              setPage(1)
+            }}
+          />
+          <MediaTermTreeSelect
+            id={`${id}-category`}
+            terms={categories}
+            value={category}
+            allLabel={t("media_all_categories")}
+            label={t("media_category")}
+            onValueChange={(v) => {
+              setCategory(v)
+              setPage(1)
+            }}
+          />
           <div className="space-y-1">
             <Label htmlFor={`${id}-search`}>{t("media_search_ph")}</Label>
             <Input
@@ -164,12 +147,12 @@ export function MediaPickerDialog({
                 className="hover:ring-primary focus-visible:ring-primary overflow-hidden rounded-lg border ring-offset-2 outline-none hover:ring-2 focus-visible:ring-2"
                 onClick={() => {
                   if (!item.url) return
-                  onPick({ id: item.id, url: item.url, alt: item.alt })
+                  onPick({ id: item.id, url: item.url, alt: resolveMediaAlt(item) })
                   onOpenChange(false)
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.url!} alt={item.alt || item.title || ""} className="aspect-square w-full object-cover" />
+                <img src={item.url!} alt={resolveMediaAlt(item) || item.title || ""} className="aspect-square w-full object-cover" />
               </button>
             ))}
           </div>

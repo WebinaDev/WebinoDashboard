@@ -11,6 +11,7 @@ import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { cn } from "@/lib/utils"
 
 export const PER_PAGE_OPTIONS = [10, 20, 50, 100] as const
+export const MEDIA_PER_PAGE_OPTIONS = [20, 40, 60] as const
 
 type PostsPaginationProps = {
   page: number
@@ -20,6 +21,7 @@ type PostsPaginationProps = {
   onPageChange: (page: number) => void
   onPerPageChange?: (perPage: number) => void
   showPerPageSelector?: boolean
+  perPageOptions?: readonly number[]
   className?: string
 }
 
@@ -31,6 +33,7 @@ export function PostsPagination({
   onPageChange,
   onPerPageChange,
   showPerPageSelector = true,
+  perPageOptions = PER_PAGE_OPTIONS,
   className,
 }: PostsPaginationProps) {
   const t = useTranslations("ui")
@@ -59,7 +62,7 @@ export function PostsPagination({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PER_PAGE_OPTIONS.map((n) => (
+                {perPageOptions.map((n) => (
                   <SelectItem key={n} value={String(n)}>
                     {formatNumber(n, locale)}
                   </SelectItem>

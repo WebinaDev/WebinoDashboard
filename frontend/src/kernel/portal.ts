@@ -1,5 +1,5 @@
-/** Admin paths a customer may open (portal home + `/dashboard/account/*`). */
+/** Admin paths under `/dashboard/account/*` (customer / partner portal). */
 export function isPortalPath(path: string): boolean {
   const p = path.replace(/^\/+|\/+$/g, "")
-  return p === "" || p === "account" || p.startsWith("account/")
+  return p === "account" || p.startsWith("account/")
 }

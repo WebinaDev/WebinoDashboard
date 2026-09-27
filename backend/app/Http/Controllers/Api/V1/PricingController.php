@@ -230,6 +230,8 @@ class PricingController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'purchase_price_minor' => ['required', 'integer', 'min:1'],
             'image_url' => ['nullable', 'string', 'max:2048'],
+            'category_id' => ['nullable', 'integer'],
+            'brand_id' => ['nullable', 'integer'],
         ]);
 
         $calc = PricingCalculator::forTenant($tid);
@@ -241,11 +243,21 @@ class PricingController extends Controller
             $slug = $base.'-'.$i++;
         }
 
+        $categoryId = isset($data['category_id']) ? (int) $data['category_id'] : 0;
+        $brandId = isset($data['brand_id']) ? (int) $data['brand_id'] : 0;
+        if ($categoryId > 0) {
+            abort_unless(Category::query()->where('tenant_id', $tid)->whereKey($categoryId)->exists(), 422);
+        }
+        if ($brandId > 0) {
+            abort_unless(Brand::query()->where('tenant_id', $tid)->whereKey($brandId)->exists(), 422);
+        }
+
         $product = Product::query()->create([
             'tenant_id' => $tid,
             'name' => $data['name'],
             'slug' => $slug,
             'image_url' => $data['image_url'] ?? null,
+            'category_id' => $categoryId > 0 ? $categoryId : null,
             'purchase_price_minor' => $data['purchase_price_minor'],
             'price_minor' => $retail,
             'currency' => 'IRR',
@@ -256,7 +268,14 @@ class PricingController extends Controller
             'is_available' => true,
         ]);
 
-        return response()->json(['data' => $product], 201);
+        if ($categoryId > 0) {
+            $product->categories()->sync([$categoryId]);
+        }
+        if ($brandId > 0) {
+            $product->brands()->sync([$brandId]);
+        }
+
+        return response()->json(['data' => $product->fresh(['categories', 'brands'])], 201);
     }
 
     public function bulkProducts(Request $request): \Illuminate\Http\JsonResponse
@@ -419,7 +438,7 @@ class PricingController extends Controller
             'change_type' => ['required', 'string', 'in:fixed,percent'],
             'value' => ['required', 'numeric'],
             'apply_to_sale' => ['nullable', 'boolean'],
-            'category_slugs' => ['nullable', 'string'],
+            'category_slugs' => ['nullable'],
             'range_rules' => ['nullable', 'string'],
             'combine_rules' => ['nullable', 'boolean'],
             'rounding' => ['nullable', 'boolean'],
@@ -457,21 +476,58 @@ class PricingController extends Controller
         ]);
     }
 
+    public function bulkPricePreview(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $slugs = $this->normalizeCategorySlugs($request->input('category_slugs'));
+        $q = $this->bulkPriceProductQuery($tid, $slugs);
+        $total = (clone $q)->count();
+        $locked = (clone $q)->where('lock_price', true)->count();
+        $sample = $q->orderBy('name')->limit(5)->get(['id', 'name', 'price_minor', 'lock_price']);
+
+        return response()->json([
+            'data' => [
+                'total' => $total,
+                'locked' => $locked,
+                'eligible' => max(0, $total - $locked),
+                'sample' => $sample,
+            ],
+        ]);
+    }
+
+    /** @return list<string> */
+    protected function normalizeCategorySlugs(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return array_values(array_filter(array_map('trim', array_map('strval', $raw))));
+        }
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', (string) $raw))));
+    }
+
+    /** @param list<string> $slugs */
+    protected function bulkPriceProductQuery(int $tenantId, array $slugs): \Illuminate\Database\Eloquent\Builder
+    {
+        $q = Product::query()->where('tenant_id', $tenantId)->where('status', 'publish');
+        if ($slugs !== []) {
+            $q->where(function ($w) use ($slugs) {
+                $w->whereHas('category', fn ($c) => $c->whereIn('slug', $slugs))
+                    ->orWhereHas('categories', fn ($c) => $c->whereIn('categories.slug', $slugs));
+            });
+        }
+
+        return $q;
+    }
+
     protected function runBulkPriceJob(BulkPriceJob $job): void
     {
         $params = $job->params ?? [];
         $tid = $job->tenant_id;
-        $q = Product::query()->where('tenant_id', $tid)->where('status', 'publish');
-
-        if (! empty($params['category_slugs'])) {
-            $slugs = array_filter(array_map('trim', explode(',', (string) $params['category_slugs'])));
-            if ($slugs) {
-                $q->where(function ($w) use ($slugs) {
-                    $w->whereHas('category', fn ($c) => $c->whereIn('slug', $slugs))
-                        ->orWhereHas('categories', fn ($c) => $c->whereIn('categories.slug', $slugs));
-                });
-            }
-        }
+        $slugs = $this->normalizeCategorySlugs($params['category_slugs'] ?? null);
+        $q = $this->bulkPriceProductQuery($tid, $slugs);
 
         $products = $q->get();
         $updated = 0;

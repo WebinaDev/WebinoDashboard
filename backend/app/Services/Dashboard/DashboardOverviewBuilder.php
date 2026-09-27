@@ -533,7 +533,7 @@ final class DashboardOverviewBuilder
         return [
             'comments_hold' => [
                 'count' => $holdReviews,
-                'href' => '/dashboard/settings/shop/reviews',
+                'href' => '/dashboard/users/comments',
             ],
             'orders_processing' => $this->taskOrdersBlock($tid, 'processing'),
             'orders_on_hold' => $this->taskOrdersBlock($tid, 'on_hold'),
@@ -669,6 +669,8 @@ final class DashboardOverviewBuilder
     {
         $hold = ProductReview::query()->where('tenant_id', $tid)->where('status', 'pending')->count();
         $approved = ProductReview::query()->where('tenant_id', $tid)->where('status', 'approved')->count();
+        $spam = ProductReview::query()->where('tenant_id', $tid)->where('status', 'spam')->count();
+        $trash = ProductReview::query()->where('tenant_id', $tid)->where('status', 'trash')->count();
         $items = ProductReview::query()
             ->where('tenant_id', $tid)
             ->where('status', 'pending')
@@ -685,7 +687,7 @@ final class DashboardOverviewBuilder
                 'post_title' => (string) ($r->product?->name ?? ''),
                 'post_id' => (int) ($r->product_id ?? 0),
                 'rating' => (int) ($r->rating ?? 0),
-                'href' => '/dashboard/settings/shop/reviews',
+                'href' => '/dashboard/users/comments',
             ])
             ->all();
 
@@ -694,8 +696,8 @@ final class DashboardOverviewBuilder
             'counts' => [
                 'hold' => $hold,
                 'approved' => $approved,
-                'spam' => 0,
-                'trash' => 0,
+                'spam' => $spam,
+                'trash' => $trash,
             ],
         ];
     }

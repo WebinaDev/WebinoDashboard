@@ -59,12 +59,14 @@ use App\Http\Controllers\Api\V1\PricingController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
 use App\Http\Controllers\Api\V1\ProductCatalogController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProductTagController;
 use App\Http\Controllers\Api\V1\ProductDownloadController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\ShopExtrasController;
 use App\Http\Controllers\Api\V1\ProductVariantController;
 use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\UserAdminController;
 use App\Http\Controllers\Api\V1\DashboardOverviewController;
 use App\Http\Controllers\Api\V1\StaffController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
@@ -298,6 +300,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/profile', [AccountPortalController::class, 'profileShow']);
             Route::patch('/profile', [AccountPortalController::class, 'profileUpdate']);
             Route::get('/wallet', [AccountPortalController::class, 'wallet']);
+            Route::get('/wallet/ledger', [AccountPortalController::class, 'walletLedger']);
+            Route::post('/wallet/topup', [AccountPortalController::class, 'walletTopup']);
+            Route::post('/wallet/withdraw', [AccountPortalController::class, 'walletWithdraw']);
+            Route::get('/wallet/withdrawals', [AccountPortalController::class, 'walletWithdrawals']);
             Route::get('/preferences', [AccountPortalController::class, 'preferencesShow']);
             Route::patch('/preferences', [AccountPortalController::class, 'preferencesUpdate']);
         });
@@ -369,8 +375,10 @@ Route::prefix('v1')->group(function () {
 
             Route::middleware('module:catalog')->group(function () {
                 Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+                Route::apiResource('product-tags', ProductTagController::class)->only(['index', 'store', 'update', 'destroy']);
                 Route::get('/products/lookup', [ProductController::class, 'lookup']);
                 Route::get('/shop/products/print-labels', [OrderDocumentController::class, 'productLabels']);
+                Route::post('/products/apply-english-slugs', [ProductController::class, 'applyEnglishSlugs']);
                 Route::patch('/products/bulk', [ProductController::class, 'bulkUpdate']);
                 Route::post('/products/bulk-sale', BulkSaleController::class);
                 Route::post('/shop/products/bulk-sale', BulkSaleController::class);
@@ -439,6 +447,7 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/pricing/bulk-products/{product}/wholesale-rule', [PricingController::class, 'patchWholesale'])->whereNumber('product');
                 Route::patch('/products/{product}/wfcp', [PricingController::class, 'patchProductWfcp'])->whereNumber('product');
                 Route::post('/pricing/bulk-price-change/start', [PricingController::class, 'bulkPriceStart']);
+                Route::get('/pricing/bulk-price-change/preview', [PricingController::class, 'bulkPricePreview']);
                 Route::get('/pricing/bulk-price-change/state', [PricingController::class, 'bulkPriceState']);
             });
 
@@ -752,6 +761,14 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware(['module:customers', 'can:users.manage'])->group(function () {
+                Route::get('/users', [UserAdminController::class, 'index']);
+                Route::post('/users', [UserAdminController::class, 'store']);
+                Route::post('/users/bulk-role', [UserAdminController::class, 'bulkRole']);
+                Route::get('/users/{user}', [UserAdminController::class, 'show'])->whereNumber('user');
+                Route::patch('/users/{user}', [UserAdminController::class, 'update'])->whereNumber('user');
+                Route::delete('/users/{user}', [UserAdminController::class, 'destroy'])->whereNumber('user');
+                Route::post('/users/{user}/reset-password', [UserAdminController::class, 'resetPassword'])->whereNumber('user');
+
                 Route::get('/customers', [CustomerController::class, 'index']);
                 Route::post('/customers', [CustomerController::class, 'store']);
                 Route::patch('/customers/{customer}', [CustomerController::class, 'update'])->whereNumber('customer');

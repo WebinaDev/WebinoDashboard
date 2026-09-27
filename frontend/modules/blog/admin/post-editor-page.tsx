@@ -3,20 +3,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { AiGenerateButton } from "@/components/content/AiGenerateButton"
+import {
+  ContentPublishPanel,
+  defaultPublishDateLocal,
+  publishStateToPayload,
+  type ContentPublishState,
+} from "@/components/content/ContentPublishPanel"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { RichTextEditor } from "@/components/content/RichTextEditor"
+import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { blogPostPermalink } from "@/lib/content-permalink"
+import { slugifyTitle } from "@/lib/slugify"
 
 type Detail = {
   id?: number
@@ -25,10 +35,17 @@ type Detail = {
   body: string
   excerpt: string
   status: string
+  categories: number[]
   category_id: number | null
   tags: { id: number; name: string }[]
   cover_url?: string | null
+  cover_media_id?: number | null
+  permalink?: string
   published_at?: string | null
+  comment_status?: "open" | "closed"
+  visibility?: "public" | "private" | "password"
+  password?: string
+  seo?: { title?: string; description?: string; focus_keyword?: string }
 }
 
 type Cat = { id: number; name: string }
@@ -36,6 +53,7 @@ type Cat = { id: number; name: string }
 export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("content_admin")
   const tCommon = useTranslations("common")
+  const locale = useLocale()
   const router = useRouter()
   const qc = useQueryClient()
   const id = route.params?.postId ? Number(route.params.postId) : null
@@ -47,9 +65,19 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
     body: "",
     excerpt: "",
     status: "draft",
+    categories: [],
     category_id: null,
     tags: [],
     cover_url: null,
+    seo: {},
+  })
+  const [publish, setPublish] = useState<ContentPublishState>({
+    status: "draft",
+    visibility: "public",
+    password: "",
+    commentStatus: "open",
+    publishImmediately: true,
+    publishDate: defaultPublishDateLocal(),
   })
   const [tagInput, setTagInput] = useState("")
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -67,8 +95,24 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
         ...detailQ.data,
         body: detailQ.data.body || "",
         tags: detailQ.data.tags || [],
+        categories: detailQ.data.categories?.length
+          ? detailQ.data.categories
+          : detailQ.data.category_id
+            ? [detailQ.data.category_id]
+            : [],
         category_id: detailQ.data.category_id ?? null,
         cover_url: detailQ.data.cover_url ?? null,
+        seo: detailQ.data.seo ?? {},
+      })
+      setPublish({
+        status: detailQ.data.status || "draft",
+        visibility: detailQ.data.visibility ?? "public",
+        password: detailQ.data.password ?? "",
+        commentStatus: detailQ.data.comment_status === "closed" ? "closed" : "open",
+        publishImmediately: !detailQ.data.published_at,
+        publishDate: detailQ.data.published_at
+          ? detailQ.data.published_at.slice(0, 16)
+          : defaultPublishDateLocal(),
       })
     }
   }, [detailQ.data])
@@ -80,20 +124,21 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
 
   const saveMut = useMutation({
     mutationFn: () => {
+      const primary = form.categories[0] ?? null
       const payload = {
         title: form.title,
         slug: form.slug || undefined,
         body: form.body,
         excerpt: form.excerpt,
-        status: form.status,
-        category_id: form.category_id,
+        category_id: primary,
+        categories: form.categories,
         tags: form.tags.map((x) => x.name),
         cover_url: form.cover_url ?? null,
-        published_at: form.status === "published" ? form.published_at || undefined : form.published_at,
+        cover_media_id: form.cover_media_id ?? null,
+        seo: form.seo,
+        ...publishStateToPayload(publish),
       }
-      if (isNew) {
-        return api<Detail>("/api/v1/blog/posts", { method: "POST", json: payload })
-      }
+      if (isNew) return api<Detail>("/api/v1/blog/posts", { method: "POST", json: payload })
       return api<Detail>(`/api/v1/blog/posts/${id}`, { method: "PATCH", json: payload })
     },
     onSuccess: (res) => {
@@ -104,17 +149,17 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
-  const permalinkBase = "/blog/"
-  const slugPart = form.slug || ""
+  const publicPath = form.slug ? detailQ.data?.permalink ?? blogPostPermalink(form.slug) : ""
 
   return (
     <PageShell
       title={isNew ? t("new_post") : t("edit_post")}
       actions={
         <div className="flex items-center gap-2">
-          {slugPart ? (
+          {!isNew && id ? <AiGenerateButton type="blog" id={id} onDone={() => void detailQ.refetch()} /> : null}
+          {publicPath ? (
             <Button asChild type="button" size="sm" variant="outline">
-              <Link href={`/blog/${slugPart}`} target="_blank" rel="noreferrer">
+              <Link href={publicPath} target="_blank" rel="noreferrer">
                 {t("view_on_site")}
               </Link>
             </Button>
@@ -134,14 +179,14 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
               setForm((f) => ({
                 ...f,
                 title,
-                slug: isNew && !slugEditing ? title.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w\u0600-\u06FF-]+/g, "") : f.slug,
+                slug: isNew && !slugEditing ? slugifyTitle(title) : f.slug,
               }))
             }}
             placeholder={t("col_title")}
             className="text-lg font-semibold"
           />
           <div className="text-muted-foreground flex flex-wrap items-center gap-1 text-sm">
-            <span>{permalinkBase}</span>
+            <span>{t("permalink")}:</span>
             {slugEditing ? (
               <Input
                 className="h-8 max-w-xs"
@@ -152,9 +197,9 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
               />
             ) : (
               <>
-                <button type="button" className="text-foreground font-medium hover:underline" onClick={() => setSlugEditing(true)}>
-                  {slugPart || "…"}
-                </button>
+                <span dir="ltr" className="text-foreground font-medium">
+                  {publicPath || "…"}
+                </span>
                 <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => setSlugEditing(true)}>
                   {t("slug")}
                 </Button>
@@ -168,37 +213,37 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
             rows={3}
           />
           <RichTextEditor value={form.body} onChange={(html) => setForm({ ...form, body: html })} />
+          <SimpleSeoFields seo={form.seo} onChange={(seo) => setForm({ ...form, seo })} />
         </div>
 
         <aside className="space-y-4">
-          <div className="space-y-2 rounded-xl border p-4">
-            <Label>{t("col_status")}</Label>
-            <select
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-            >
-              <option value="draft">{t("stat_draft")}</option>
-              <option value="published">{t("stat_publish")}</option>
-            </select>
-          </div>
+          <ContentPublishPanel
+            state={publish}
+            onChange={(patch) => setPublish((s) => ({ ...s, ...patch }))}
+            onSave={() => void saveMut.mutateAsync()}
+            isSaving={saveMut.isPending}
+            locale={locale}
+          />
 
           <div className="space-y-2 rounded-xl border p-4">
             <p className="text-sm font-medium">{t("categories")}</p>
-            <select
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-              value={form.category_id ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, category_id: e.target.value ? Number(e.target.value) : null })
-              }
-            >
-              <option value="">{t("no_parent")}</option>
+            <div className="max-h-48 space-y-1 overflow-y-auto">
               {(catsQ.data?.items ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
+                <label key={c.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={form.categories.includes(c.id)}
+                    onCheckedChange={(v) => {
+                      const set = new Set(form.categories)
+                      if (v) set.add(c.id)
+                      else set.delete(c.id)
+                      const next = [...set]
+                      setForm({ ...form, categories: next, category_id: next[0] ?? null })
+                    }}
+                  />
                   {c.name}
-                </option>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
 
           <div className="space-y-2 rounded-xl border p-4">
@@ -244,8 +289,13 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
                 {t("pick_image")}
               </Button>
               {form.cover_url ? (
-                <Button type="button" size="sm" variant="ghost" onClick={() => setForm({ ...form, cover_url: null })}>
-                  {t("delete")}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setForm({ ...form, cover_url: null, cover_media_id: null })}
+                >
+                  {t("remove_featured")}
                 </Button>
               ) : null}
             </div>
@@ -256,7 +306,7 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
       <MediaPickerDialog
         open={pickerOpen}
         onOpenChange={setPickerOpen}
-        onPick={(item) => setForm({ ...form, cover_url: item.url })}
+        onPick={(item) => setForm({ ...form, cover_media_id: item.id, cover_url: item.url })}
       />
     </PageShell>
   )

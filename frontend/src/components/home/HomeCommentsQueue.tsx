@@ -59,7 +59,7 @@ export function HomeCommentsQueue({
         </CardTitle>
         <Link
           className="text-xs text-primary hover:underline"
-          href="/dashboard/settings/shop/reviews"
+          href="/dashboard/users/comments"
         >
           {t("view_all")}
         </Link>
@@ -114,7 +114,7 @@ export function HomeCommentsQueue({
                         className="h-7 px-2 text-xs"
                         disabled={busyId === row.id}
                         onClick={() =>
-                          void moderate.mutateAsync({ id: row.id, status: "rejected" })
+                          void moderate.mutateAsync({ id: row.id, status: "spam" })
                         }
                       >
                         {t("comments.spam")}
@@ -127,7 +127,7 @@ export function HomeCommentsQueue({
                         disabled={busyId === row.id}
                         onClick={() => {
                           if (window.confirm(t("comments.confirm_delete"))) {
-                            void moderate.mutateAsync({ id: row.id, status: "rejected" })
+                            void moderate.mutateAsync({ id: row.id, status: "trash" })
                           }
                         }}
                       >

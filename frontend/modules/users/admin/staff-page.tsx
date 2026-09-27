@@ -1,5 +1,7 @@
-import StaffPage from "@/views/StaffPage"
+import { redirect } from "next/navigation"
 
-export default function UsersStaffAdminPage() {
-  return <StaffPage />
+import { dashboardPath } from "@/kernel/paths"
+
+export default function Page() {
+  redirect(`${dashboardPath("users")}?role=staff`)
 }

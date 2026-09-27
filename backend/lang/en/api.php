@@ -21,4 +21,6 @@ return [
     'hmac_secret_missing' => 'HMAC secret is not configured.',
     'dashboard_self_update_disabled' => 'Dashboard self-update is disabled on this host.',
     'dashboard_build_pipeline_disabled' => 'Dashboard build pipeline is disabled on this host.',
+    'ticket_closed' => 'This ticket is closed.',
+    'ticket_staff_replied' => 'Support replied to your ticket',
 ];

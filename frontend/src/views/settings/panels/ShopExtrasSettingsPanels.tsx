@@ -151,7 +151,7 @@ export function ShopReviewsSettingsPanel() {
                   <Button size="sm" onClick={() => void moderate(r.id, "approved")}>
                     {t("shop_reviews.approve")}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => void moderate(r.id, "rejected")}>
+                  <Button size="sm" variant="outline" onClick={() => void moderate(r.id, "spam")}>
                     {t("shop_reviews.reject")}
                   </Button>
                 </div>

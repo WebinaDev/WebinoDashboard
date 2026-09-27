@@ -6,6 +6,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { useConfirm } from "@/components/ConfirmDialog"
+import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
@@ -14,8 +15,9 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { slugifyTitle } from "@/lib/slugify"
 
-type Cat = { id: number; name: string; slug: string; count?: number }
+type Cat = { id: number; name: string; slug: string; count?: number; seo?: { focus_keyword?: string } }
 
 export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
@@ -24,6 +26,8 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
   const qc = useQueryClient()
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
+  const [slugAuto, setSlugAuto] = useState(true)
+  const [seo, setSeo] = useState<{ title?: string; description?: string; focus_keyword?: string }>({})
 
   const q = useQuery({
     queryKey: ["blog", "categories"],
@@ -35,12 +39,14 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
     mutationFn: () =>
       api("/api/v1/blog/categories", {
         method: "POST",
-        json: { name, slug: slug || undefined },
+        json: { name, slug: slug || undefined, seo },
       }),
     onSuccess: () => {
       toast.success(tCommon("saved"))
       setName("")
       setSlug("")
+      setSeo({})
+      setSlugAuto(true)
       void qc.invalidateQueries({ queryKey: ["blog", "categories"] })
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
@@ -49,7 +55,7 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
   const deleteMut = useMutation({
     mutationFn: (id: number) => api(`/api/v1/blog/categories/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(tCommon("saved"))
+      toast.success(t("deleted"))
       void qc.invalidateQueries({ queryKey: ["blog", "categories"] })
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
@@ -81,12 +87,27 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
           <p className="font-medium">{t("add_category")}</p>
           <div className="space-y-1">
             <Label>{t("name")}</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input
+              value={name}
+              onChange={(e) => {
+                const next = e.target.value
+                setName(next)
+                if (slugAuto) setSlug(slugifyTitle(next))
+              }}
+              required
+            />
           </div>
           <div className="space-y-1">
             <Label>{t("slug")}</Label>
-            <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
+            <Input
+              value={slug}
+              onChange={(e) => {
+                setSlugAuto(false)
+                setSlug(e.target.value)
+              }}
+            />
           </div>
+          <SimpleSeoFields seo={seo} onChange={setSeo} className="border-0 p-0 shadow-none" />
           <Button type="submit" disabled={!name.trim() || createMut.isPending}>
             {t("add_category")}
           </Button>
@@ -99,13 +120,14 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
                 <p className="font-medium">{c.name}</p>
                 <p className="text-muted-foreground text-xs">
                   {c.slug} · {c.count ?? 0}
+                  {c.seo?.focus_keyword ? ` · ${c.seo.focus_keyword}` : ""}
                 </p>
               </div>
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
-                onClick={() => confirm({ onConfirm: () => deleteMut.mutateAsync(c.id) })}
+                onClick={() => confirm({ description: c.name, onConfirm: () => deleteMut.mutateAsync(c.id) })}
               >
                 {t("delete")}
               </Button>

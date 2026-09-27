@@ -10,12 +10,16 @@ class BlogPost extends Model
 {
     protected $fillable = [
         'tenant_id', 'category_id', 'slug', 'title', 'excerpt', 'body',
-        'cover_url', 'status', 'published_at',
+        'cover_url', 'cover_media_id', 'seo', 'status', 'published_at',
+        'visibility', 'password', 'comment_status',
     ];
 
     protected function casts(): array
     {
-        return ['published_at' => 'datetime'];
+        return [
+            'published_at' => 'datetime',
+            'seo' => 'array',
+        ];
     }
 
     public function tenant(): BelongsTo
@@ -26,6 +30,16 @@ class BlogPost extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(BlogCategory::class, 'category_id');
+    }
+
+    public function coverMedia(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'cover_media_id');
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(BlogCategory::class, 'blog_post_category');
     }
 
     public function tags(): BelongsToMany

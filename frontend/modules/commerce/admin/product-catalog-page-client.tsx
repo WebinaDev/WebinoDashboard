@@ -49,7 +49,7 @@ export default function ProductCatalogPageClient({ route: _route }: { route: Res
     <PageShell title={tNav("product_catalog")}>
       <div className="mb-6 max-w-xl space-y-2">
         <Label>{t("search_catalog")}</Label>
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="SKU / name" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search_catalog_ph")} />
         <ul className="text-sm">
           {(searchQ.data?.local ?? []).map((p) => (
             <li key={p.id} className="border-b py-1">

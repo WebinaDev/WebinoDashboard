@@ -21,5 +21,7 @@ return [
     'hmac_secret_missing' => 'سکرت HMAC پیکربندی نشده است.',
     'dashboard_self_update_disabled' => 'به‌روزرسانی خودکار داشبورد روی این سرور غیرفعال است.',
     'dashboard_build_pipeline_disabled' => 'خط لولهٔ ساخت داشبورد روی این سرور غیرفعال است.',
+    'ticket_closed' => 'این تیکت بسته شده است.',
+    'ticket_staff_replied' => 'پشتیبانی به تیکت شما پاسخ داد',
 ];
 

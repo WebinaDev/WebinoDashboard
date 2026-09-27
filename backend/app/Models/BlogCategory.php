@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BlogCategory extends Model
 {
-    protected $fillable = ['tenant_id', 'slug', 'name'];
+    protected $fillable = ['tenant_id', 'slug', 'name', 'seo'];
+
+    protected function casts(): array
+    {
+        return ['seo' => 'array'];
+    }
 
     public function tenant(): BelongsTo
     {

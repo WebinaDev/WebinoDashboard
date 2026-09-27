@@ -1,22 +1,31 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useLocale, useTranslations } from "next-intl"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
+import { AiGenerateButton } from "@/components/content/AiGenerateButton"
+import {
+  ContentPublishPanel,
+  defaultPublishDateLocal,
+  publishStateToPayload,
+  type ContentPublishState,
+} from "@/components/content/ContentPublishPanel"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { RichTextEditor } from "@/components/content/RichTextEditor"
+import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { cmsPagePermalink } from "@/lib/content-permalink"
+import { buildParentTreeOptions } from "@/lib/content-parent-tree"
 
 type Detail = {
   id?: number
@@ -28,14 +37,18 @@ type Detail = {
   parent_id?: number | null
   featured_media_id?: number | null
   featured_image_url?: string | null
+  comment_status?: "open" | "closed"
+  visibility?: "public" | "private" | "password"
+  password?: string
   seo?: { title?: string; description?: string; focus_keyword?: string }
 }
 
-type PageOpt = { id: number; title: string }
+type PageOpt = { id: number; title: string; parent?: number | null }
 
 export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("content_admin")
   const tCommon = useTranslations("common")
+  const locale = useLocale()
   const router = useRouter()
   const qc = useQueryClient()
   const id = route.params?.pageId ? Number(route.params.pageId) : null
@@ -48,6 +61,14 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
     excerpt: "",
     status: "draft",
     seo: {},
+  })
+  const [publish, setPublish] = useState<ContentPublishState>({
+    status: "draft",
+    visibility: "public",
+    password: "",
+    commentStatus: "closed",
+    publishImmediately: true,
+    publishDate: defaultPublishDateLocal(),
   })
   const [pickerOpen, setPickerOpen] = useState(false)
 
@@ -64,6 +85,14 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
         body: detailQ.data.body || "",
         seo: detailQ.data.seo || {},
       })
+      setPublish({
+        status: detailQ.data.status || "draft",
+        visibility: detailQ.data.visibility ?? "public",
+        password: detailQ.data.password ?? "",
+        commentStatus: detailQ.data.comment_status === "open" ? "open" : "closed",
+        publishImmediately: true,
+        publishDate: defaultPublishDateLocal(),
+      })
     }
   }, [detailQ.data])
 
@@ -72,6 +101,11 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
     queryFn: () => api<{ items: PageOpt[] }>("/api/v1/cms/pages?per_page=100"),
   })
 
+  const parentOptions = useMemo(
+    () => buildParentTreeOptions(parentsQ.data?.items ?? [], id),
+    [parentsQ.data?.items, id],
+  )
+
   const saveMut = useMutation({
     mutationFn: () => {
       const payload = {
@@ -79,10 +113,10 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
         slug: form.slug || undefined,
         body: form.body,
         excerpt: form.excerpt,
-        status: form.status,
         parent_id: form.parent_id ?? null,
         featured_media_id: form.featured_media_id ?? null,
         seo: form.seo,
+        ...publishStateToPayload({ ...publish, status: publish.status }),
       }
       if (isNew) return api<Detail>("/api/v1/cms/pages", { method: "POST", json: payload })
       return api<Detail>(`/api/v1/cms/pages/${id}`, { method: "PATCH", json: payload })
@@ -95,16 +129,28 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
+  const publicPath = form.slug ? cmsPagePermalink(form.slug) : ""
+
   return (
     <PageShell
       title={isNew ? t("new_page") : t("edit_page")}
       actions={
-        <Button type="button" disabled={!form.title.trim() || saveMut.isPending} onClick={() => void saveMut.mutateAsync()}>
-          {tCommon("save")}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {!isNew && id ? <AiGenerateButton type="page" id={id} onDone={() => void detailQ.refetch()} /> : null}
+          {publicPath ? (
+            <Button asChild type="button" size="sm" variant="outline">
+              <Link href={publicPath} target="_blank" rel="noreferrer">
+                {t("view_on_site")}
+              </Link>
+            </Button>
+          ) : null}
+          <Button type="button" disabled={!form.title.trim() || saveMut.isPending} onClick={() => void saveMut.mutateAsync()}>
+            {tCommon("save")}
+          </Button>
+        </div>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="space-y-4">
           <Input
             value={form.title}
@@ -123,44 +169,52 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
           <SimpleSeoFields seo={form.seo} onChange={(seo) => setForm({ ...form, seo })} />
         </div>
         <aside className="space-y-4">
+          <ContentPublishPanel
+            state={publish}
+            onChange={(patch) => setPublish((s) => ({ ...s, ...patch }))}
+            onSave={() => void saveMut.mutateAsync()}
+            isSaving={saveMut.isPending}
+            locale={locale}
+            showSchedule={false}
+          />
+
           <div className="space-y-2 rounded-xl border p-4">
-            <Label>{t("col_status")}</Label>
-            <select
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-            >
-              <option value="draft">{t("stat_draft")}</option>
-              <option value="pending">{t("stat_pending")}</option>
-              <option value="published">{t("stat_publish")}</option>
-            </select>
-          </div>
-          <div className="space-y-2 rounded-xl border p-4">
-            <Label>{t("parent")}</Label>
+            <p className="text-sm font-medium">{t("parent")}</p>
             <select
               className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
               value={form.parent_id ?? ""}
               onChange={(e) => setForm({ ...form, parent_id: e.target.value ? Number(e.target.value) : null })}
             >
               <option value="">{t("no_parent")}</option>
-              {(parentsQ.data?.items ?? [])
-                .filter((p) => p.id !== id)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
+              {parentOptions.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
             </select>
           </div>
+
           <div className="space-y-2 rounded-xl border p-4">
             <p className="text-sm font-medium">{t("featured")}</p>
             {form.featured_image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={form.featured_image_url} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" />
             ) : null}
-            <Button type="button" size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
-              {t("pick_image")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
+                {t("pick_image")}
+              </Button>
+              {form.featured_image_url ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setForm({ ...form, featured_media_id: null, featured_image_url: null })}
+                >
+                  {t("remove_featured")}
+                </Button>
+              ) : null}
+            </div>
           </div>
         </aside>
       </div>

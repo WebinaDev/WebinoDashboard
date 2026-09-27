@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\BlogTag;
+use App\Models\MediaAsset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,7 +23,7 @@ class BlogPostController extends Controller
             'total' => (clone $base)->count(),
             'publish' => (clone $base)->where('status', 'published')->count(),
             'draft' => (clone $base)->where('status', 'draft')->count(),
-            'pending' => 0,
+            'pending' => (clone $base)->where('status', 'pending')->count(),
         ];
         if ($search = trim((string) $request->query('search', ''))) {
             $base->where(function ($w) use ($search) {
@@ -30,7 +32,7 @@ class BlogPostController extends Controller
             });
         }
         $total = (clone $base)->count();
-        $rows = $base->with(['category:id,name,slug', 'tags:id,name'])
+        $rows = $base->with(['category:id,name,slug', 'categories:id,name', 'tags:id,name'])
             ->orderByDesc('id')
             ->forPage($page, $perPage)
             ->get();
@@ -49,7 +51,7 @@ class BlogPostController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $row = BlogPost::query()->where('tenant_id', $tid)
-            ->with(['category:id,name,slug', 'tags:id,name'])
+            ->with(['category:id,name,slug', 'categories:id,name', 'tags:id,name', 'coverMedia'])
             ->findOrFail($post);
 
         return response()->json(['data' => $this->serializeDetail($row)]);
@@ -64,7 +66,9 @@ class BlogPostController extends Controller
             $data['published_at'] = now();
         }
         $tagNames = $data['tags'] ?? [];
-        unset($data['tags']);
+        $categoryIds = $data['categories'] ?? [];
+        unset($data['tags'], $data['categories']);
+        $this->assertCoverMedia($tid, $data['cover_media_id'] ?? null);
 
         $row = BlogPost::query()->create([
             'tenant_id' => $tid,
@@ -72,8 +76,9 @@ class BlogPostController extends Controller
             ...$data,
         ]);
         $this->syncTags($row, (int) $tid, $tagNames);
+        $this->syncCategories($row, (int) $tid, $categoryIds, $data['category_id'] ?? null);
 
-        return response()->json(['data' => $this->serializeDetail($row->fresh(['category', 'tags']))], 201);
+        return response()->json(['data' => $this->serializeDetail($row->fresh(['category', 'categories', 'tags', 'coverMedia']))], 201);
     }
 
     public function update(Request $request, int $post): JsonResponse
@@ -85,13 +90,20 @@ class BlogPostController extends Controller
             $data['published_at'] = now();
         }
         $tagNames = $data['tags'] ?? null;
-        unset($data['tags']);
+        $categoryIds = $data['categories'] ?? null;
+        unset($data['tags'], $data['categories']);
+        if (array_key_exists('cover_media_id', $data)) {
+            $this->assertCoverMedia($tid, $data['cover_media_id']);
+        }
         $row->update($data);
         if ($tagNames !== null) {
             $this->syncTags($row, (int) $tid, $tagNames);
         }
+        if ($categoryIds !== null) {
+            $this->syncCategories($row, (int) $tid, $categoryIds, $data['category_id'] ?? $row->category_id);
+        }
 
-        return response()->json(['data' => $this->serializeDetail($row->fresh(['category', 'tags']))]);
+        return response()->json(['data' => $this->serializeDetail($row->fresh(['category', 'categories', 'tags', 'coverMedia']))]);
     }
 
     public function destroy(Request $request, int $post): JsonResponse
@@ -111,16 +123,31 @@ class BlogPostController extends Controller
 
         return $request->validate([
             'category_id' => 'nullable|integer',
+            'categories' => 'nullable|array',
+            'categories.*' => 'integer',
             'slug' => 'nullable|string|max:120',
             'title' => $req.'|string|max:255',
             'excerpt' => 'nullable|string',
             'body' => 'nullable|string',
             'cover_url' => 'nullable|string|max:500',
-            'status' => 'nullable|string|in:draft,published',
+            'cover_media_id' => 'nullable|integer',
+            'seo' => 'nullable|array',
+            'status' => 'nullable|string|in:draft,published,pending',
             'published_at' => 'nullable|date',
+            'comment_status' => 'nullable|string|in:open,closed',
+            'visibility' => 'nullable|string|in:public,private,password',
+            'password' => 'nullable|string|max:120',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:120',
         ]);
+    }
+
+    private function assertCoverMedia(int $tid, mixed $id): void
+    {
+        if (! $id) {
+            return;
+        }
+        MediaAsset::query()->where('tenant_id', $tid)->findOrFail((int) $id);
     }
 
     /** @param  list<string>  $tagNames */
@@ -142,6 +169,18 @@ class BlogPostController extends Controller
         $row->tags()->sync($tagIds);
     }
 
+    /** @param  list<int>  $categoryIds */
+    private function syncCategories(BlogPost $row, int $tid, array $categoryIds, mixed $primaryId): void
+    {
+        $ids = BlogCategory::query()->where('tenant_id', $tid)->whereIn('id', $categoryIds)->pluck('id')->all();
+        $row->categories()->sync($ids);
+        $primary = $primaryId ?? ($ids[0] ?? null);
+        if ($primary && ! in_array((int) $primary, $ids, true) && $ids !== []) {
+            $primary = $ids[0];
+        }
+        $row->update(['category_id' => $primary]);
+    }
+
     /** @return array<string, mixed> */
     private function serializeList(BlogPost $p): array
     {
@@ -152,7 +191,10 @@ class BlogPostController extends Controller
             'status' => $p->status,
             'date' => optional($p->published_at ?? $p->created_at)?->toIso8601String(),
             'excerpt' => $p->excerpt,
+            'seo' => $p->seo,
+            'permalink' => '/blog/'.$p->slug,
             'category' => $p->category ? ['id' => $p->category->id, 'name' => $p->category->name] : null,
+            'categories' => $p->categories->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->all(),
         ];
     }
 
@@ -167,9 +209,16 @@ class BlogPostController extends Controller
             'excerpt' => $p->excerpt,
             'status' => $p->status,
             'published_at' => optional($p->published_at)?->toIso8601String(),
-            'cover_url' => $p->cover_url,
+            'cover_url' => $p->cover_url ?? $p->coverMedia?->url,
+            'cover_media_id' => $p->cover_media_id,
+            'seo' => $p->seo ?? [],
+            'comment_status' => $p->comment_status ?? 'open',
+            'visibility' => $p->visibility ?? 'public',
+            'password' => '',
+            'permalink' => '/blog/'.$p->slug,
             'category_id' => $p->category_id,
             'category' => $p->category ? ['id' => $p->category->id, 'name' => $p->category->name] : null,
+            'categories' => $p->categories->pluck('id')->all(),
             'tags' => $p->tags->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->all(),
         ];
     }

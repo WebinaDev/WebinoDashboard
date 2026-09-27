@@ -2,8 +2,9 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,6 +24,15 @@ type JobState = {
   last_log?: string | null
 } | null
 
+type CategoryRow = { id: number; name: string; slug: string }
+
+type Preview = {
+  total: number
+  locked: number
+  eligible: number
+  sample: Array<{ id: number; name: string; price_minor: number; lock_price?: boolean }>
+}
+
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
 export default function PricingPriceChangerPageClient({ route }: { route: ResolvedAdminRoute }) {
@@ -33,9 +43,30 @@ export default function PricingPriceChangerPageClient({ route }: { route: Resolv
   const [changeType, setChangeType] = useState<"fixed" | "percent">("percent")
   const [value, setValue] = useState(0)
   const [applyToSale, setApplyToSale] = useState(false)
-  const [categorySlugs, setCategorySlugs] = useState("")
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: () => api<CategoryRow[]>("/api/v1/categories"),
+  })
+
+  const categorySlugs = useMemo(() => {
+    const byId = new Map(categories.map((c) => [c.id, c.slug]))
+    return selectedCategoryIds.map((id) => byId.get(id)).filter(Boolean) as string[]
+  }, [categories, selectedCategoryIds])
+
+  const previewParams = useMemo(() => {
+    const p = new URLSearchParams()
+    categorySlugs.forEach((slug) => p.append("category_slugs[]", slug))
+    return p.toString()
+  }, [categorySlugs])
+
+  const { data: preview } = useQuery({
+    queryKey: ["bulk-price-change-preview", categorySlugs],
+    queryFn: () => api<Preview>(`/api/v1/pricing/bulk-price-change/preview?${previewParams}`),
+  })
 
   const { data: job, refetch } = useQuery({
     queryKey: ["bulk-price-change-state"],
@@ -51,10 +82,7 @@ export default function PricingPriceChangerPageClient({ route }: { route: Resolv
           change_type: changeType,
           value: Number(value),
           apply_to_sale: applyToSale,
-          category_slugs: categorySlugs
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          category_slugs: categorySlugs,
         },
       }),
     onSuccess: async () => {
@@ -66,6 +94,10 @@ export default function PricingPriceChangerPageClient({ route }: { route: Resolv
   })
 
   const running = job?.status === "running" || job?.locked
+
+  function toggleCategory(id: number) {
+    setSelectedCategoryIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6" dir="auto">
@@ -98,13 +130,41 @@ export default function PricingPriceChangerPageClient({ route }: { route: Resolv
             <Input type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} />
           </div>
           <div>
-            <Label>{t("category_slugs")}</Label>
-            <Input
-              value={categorySlugs}
-              onChange={(e) => setCategorySlugs(e.target.value)}
-              placeholder="slug1, slug2"
-            />
+            <Label>{t("price_change_categories")}</Label>
+            <p className="text-muted-foreground mb-2 text-xs">{t("price_change_categories_hint")}</p>
+            <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border p-2">
+              {categories.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t("empty_categories")}</p>
+              ) : (
+                categories.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedCategoryIds.includes(c.id)}
+                      onCheckedChange={() => toggleCategory(c.id)}
+                    />
+                    {c.name}
+                  </label>
+                ))
+              )}
+            </div>
           </div>
+          {preview ? (
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              <p>{t("price_change_preview_count", { total: preview.total, eligible: preview.eligible, locked: preview.locked })}</p>
+              {preview.sample.length > 0 ? (
+                <ul className="text-muted-foreground mt-2 space-y-1">
+                  {preview.sample.map((p) => (
+                    <li key={p.id}>
+                      {p.name} · <MoneyDisplay amount={p.price_minor} />
+                      {p.lock_price ? ` (${t("lock_price")})` : ""}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground mt-2 text-xs">{t("price_change_preview_empty")}</p>
+              )}
+            </div>
+          ) : null}
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={applyToSale} onCheckedChange={(v) => setApplyToSale(Boolean(v))} />
             {t("apply_to_sale")}

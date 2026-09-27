@@ -36,6 +36,16 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 0,
     },
     {
+      path: "products/tags",
+      submodule: "catalog",
+      page: "product-tags",
+      labelKey: "nav.product_tags",
+      section: "commerce",
+      order: 20,
+      navGroup: "shop",
+      navOrder: 3,
+    },
+    {
       path: "products/new",
       submodule: "catalog",
       page: "product-editor",
@@ -117,7 +127,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navGroup: "shop",
-      navOrder: 3,
+      navOrder: 4,
     },
     {
       path: "attributes/new",
@@ -145,7 +155,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navGroup: "shop",
-      navOrder: 4,
+      navOrder: 5,
     },
     {
       path: "pricing/quick-add",
@@ -155,7 +165,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navGroup: "shop",
-      navOrder: 5,
+      navOrder: 6,
     },
     {
       path: "pricing/bulk-editor",
@@ -165,7 +175,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navGroup: "shop",
-      navOrder: 6,
+      navOrder: 7,
     },
     {
       path: "pricing/price-changer",
@@ -175,7 +185,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navGroup: "shop",
-      navOrder: 7,
+      navOrder: 8,
     },
     {
       path: "orders",
@@ -298,6 +308,7 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 0,
+      capability: "account.portal",
     },
     {
       path: "account/orders",
@@ -308,6 +319,7 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 1,
+      capability: "account.portal",
     },
     {
       path: "account/orders/:orderId",
@@ -317,6 +329,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 24,
       navHidden: true,
+      capability: "account.portal",
     },
     {
       path: "account/addresses",
@@ -327,6 +340,7 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 2,
+      capability: "account.portal",
     },
     {
       path: "account/notifications",
@@ -337,6 +351,7 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 3,
+      capability: "account.portal",
     },
     {
       path: "account/favorites",
@@ -347,6 +362,7 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 4,
+      capability: "account.portal",
     },
     {
       path: "account/reviews",
@@ -357,6 +373,7 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 5,
+      capability: "account.portal",
     },
     {
       path: "account/profile",
@@ -367,6 +384,7 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 6,
+      capability: "account.portal",
     },
     {
       path: "account/wallet",
@@ -377,6 +395,7 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 7,
+      capability: "account.portal",
     },
     {
       path: "account/tickets",
@@ -387,6 +406,17 @@ export const commerceManifest: ModuleManifest = {
       order: 24,
       navGroup: "account",
       navOrder: 8,
+      capability: "account.portal",
+    },
+    {
+      path: "account/tickets/:ticketId",
+      submodule: "account",
+      page: "account-ticket-detail",
+      labelKey: "nav.account_tickets",
+      section: "commerce",
+      order: 24,
+      navHidden: true,
+      capability: "account.portal",
     },
     {
       path: "accounting",

@@ -42,6 +42,7 @@ class Product extends Model
         'catalog_visibility',
         'stock_status',
         'manage_stock',
+        'backorders',
         'weight',
         'length',
         'width',

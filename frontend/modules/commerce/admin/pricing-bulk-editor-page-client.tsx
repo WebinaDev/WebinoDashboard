@@ -31,6 +31,7 @@ type BulkProduct = {
   stock?: number | null
   stock_status?: string | null
   lock_price?: boolean
+  brands?: Named[]
   calculated?: { retail?: number; credit?: number; wholesale?: number }
 }
 
@@ -77,7 +78,7 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
   const [locked, setLocked] = useState("")
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(50)
-  const [drafts, setDrafts] = useState<Record<number, Partial<BulkProduct>>>({})
+  const [drafts, setDrafts] = useState<Record<number, Partial<BulkProduct> & { brand_id?: number | null }>>({})
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -108,11 +109,17 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
   const products = data?.items ?? []
   const meta = data?.meta
 
-  function draftOf(p: BulkProduct) {
-    return { ...p, ...drafts[p.id] }
+  function brandIdOf(p: BulkProduct) {
+    const d = drafts[p.id]?.brand_id
+    if (d !== undefined) return d
+    return p.brands?.[0]?.id ?? null
   }
 
-  function patchDraft(id: number, patch: Partial<BulkProduct>) {
+  function draftOf(p: BulkProduct) {
+    return { ...p, brand_id: brandIdOf(p), ...drafts[p.id] }
+  }
+
+  function patchDraft(id: number, patch: Partial<BulkProduct> & { brand_id?: number | null }) {
     setDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }))
   }
 
@@ -142,6 +149,10 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
       await api(`/api/v1/pricing/bulk-products/${id}/lock`, {
         method: "PATCH",
         json: { lock_price: Boolean(d.lock_price) },
+      })
+      await api(`/api/v1/pricing/bulk-products/${id}/brand`, {
+        method: "PATCH",
+        json: { brand_id: d.brand_id ?? null },
       })
     },
     onSuccess: async () => {
@@ -231,17 +242,19 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
           {isError ? (
             <QueryErrorState onRetry={() => refetch()} />
           ) : isLoading ? (
-            <TableListSkeleton rows={8} columns={6} />
+            <TableListSkeleton rows={8} columns={8} />
           ) : products.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("empty_products")}</p>
           ) : (
             <ScrollTable>
-              <table className="w-full min-w-[900px] text-sm">
+              <table className="w-full min-w-[1100px] text-sm">
                 <thead>
                   <tr className="border-b text-start text-muted-foreground">
                     <th className="p-2 font-medium">{t("name")}</th>
                     <th className="p-2 font-medium">{t("purchase_price")}</th>
                     <th className="p-2 font-medium">{t("price")}</th>
+                    <th className="p-2 font-medium">{t("calc_credit")}</th>
+                    <th className="p-2 font-medium">{t("brands")}</th>
                     <th className="p-2 font-medium">{t("stock")}</th>
                     <th className="p-2 font-medium">{t("lock_price")}</th>
                     <th className="p-2 font-medium">{t("actions")}</th>
@@ -274,6 +287,31 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
                             value={d.price_minor ?? 0}
                             onChange={(e) => patchDraft(p.id, { price_minor: Number(e.target.value) })}
                           />
+                        </td>
+                        <td className="p-2">
+                          {p.calculated?.credit != null ? (
+                            <MoneyDisplay amount={p.calculated.credit} />
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="p-2">
+                          <select
+                            className={selectClass}
+                            value={d.brand_id ?? ""}
+                            onChange={(e) =>
+                              patchDraft(p.id, {
+                                brand_id: e.target.value ? Number(e.target.value) : null,
+                              })
+                            }
+                          >
+                            <option value="">—</option>
+                            {brands.map((b) => (
+                              <option key={b.id} value={b.id}>
+                                {b.name}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="p-2">
                           <Input

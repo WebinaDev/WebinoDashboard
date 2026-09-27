@@ -3,16 +3,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
+import { RichTextEditor } from "@/components/content/RichTextEditor"
+import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { flatTreeOptions, metaWithSeo, seoFromMeta, slugFromName } from "@/lib/taxonomy-helpers"
 
 type Category = {
   id: number
@@ -23,6 +26,8 @@ type Category = {
   image_url?: string | null
   icon_url?: string | null
   sort_order?: number
+  thumbnail_id?: number | null
+  meta?: Record<string, unknown> | null
 }
 
 const empty = {
@@ -32,7 +37,11 @@ const empty = {
   description: "",
   image_url: "",
   icon_url: "",
+  thumbnail_id: null as number | null,
   sort_order: 0,
+  seo_keyword: "",
+  seo_title: "",
+  seo_description: "",
 }
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
@@ -45,6 +54,7 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
   const isNew = !categoryId || categoryId === "new"
 
   const [form, setForm] = useState(empty)
+  const [slugTouched, setSlugTouched] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,6 +62,11 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
     queryKey: ["admin-categories"],
     queryFn: () => api<Category[]>("/api/v1/categories"),
   })
+
+  const parentOptions = useMemo(
+    () => flatTreeOptions(categories, isNew ? null : categoryId),
+    [categories, categoryId, isNew],
+  )
 
   const { data: category, isLoading } = useQuery({
     queryKey: ["admin-category", categoryId],
@@ -61,6 +76,7 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
 
   useEffect(() => {
     if (!category) return
+    const seo = seoFromMeta(category.meta)
     setForm({
       name: category.name ?? "",
       slug: category.slug ?? "",
@@ -68,12 +84,22 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
       description: category.description ?? "",
       image_url: category.image_url ?? "",
       icon_url: category.icon_url ?? "",
+      thumbnail_id: category.thumbnail_id ?? null,
       sort_order: category.sort_order ?? 0,
+      seo_keyword: seo.focus_keyword,
+      seo_title: seo.title,
+      seo_description: seo.description,
     })
+    setSlugTouched(true)
   }, [category])
 
   const save = useMutation({
     mutationFn: () => {
+      const meta = metaWithSeo(category?.meta, {
+        focus_keyword: form.seo_keyword,
+        title: form.seo_title,
+        description: form.seo_description,
+      })
       const payload = {
         name: form.name,
         slug: form.slug || undefined,
@@ -81,7 +107,9 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
         description: form.description || null,
         image_url: form.image_url || null,
         icon_url: form.icon_url || null,
+        thumbnail_id: form.thumbnail_id,
         sort_order: Number(form.sort_order) || 0,
+        meta,
       }
       if (isNew) return api<Category>("/api/v1/categories", { method: "POST", json: payload })
       return api<Category>(`/api/v1/categories/${categoryId}`, { method: "PATCH", json: payload })
@@ -114,11 +142,26 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
           <CardContent className="space-y-3">
             <div>
               <Label>{t("name")}</Label>
-              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onBlur={() => {
+                  if (!slugTouched && form.name.trim()) {
+                    setForm((f) => ({ ...f, slug: slugFromName(f.name) }))
+                  }
+                }}
+              />
             </div>
             <div>
               <Label>{t("slug")}</Label>
-              <Input value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} />
+              <Input
+                value={form.slug}
+                dir="ltr"
+                onChange={(e) => {
+                  setSlugTouched(true)
+                  setForm((f) => ({ ...f, slug: e.target.value }))
+                }}
+              />
             </div>
             <div>
               <Label>{t("parent")}</Label>
@@ -128,38 +171,38 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
                 onChange={(e) => setForm((f) => ({ ...f, parent_id: e.target.value }))}
               >
                 <option value="">{t("no_parent")}</option>
-                {categories
-                  .filter((c) => String(c.id) !== String(categoryId))
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
+                {parentOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
               <Label>{t("description")}</Label>
-              <Textarea
+              <RichTextEditor
                 value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                onChange={(html) => setForm((f) => ({ ...f, description: html }))}
               />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>{t("image_url")}</Label>
-                <Input
-                  value={form.image_url}
-                  onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>{t("icon_url")}</Label>
-                <Input
-                  value={form.icon_url}
-                  onChange={(e) => setForm((f) => ({ ...f, icon_url: e.target.value }))}
-                />
-              </div>
-            </div>
+            <MediaPickerField
+              label={t("featured_image")}
+              imageUrl={form.image_url}
+              onPick={(item) =>
+                setForm((f) => ({
+                  ...f,
+                  image_url: item.url,
+                  thumbnail_id: item.id,
+                }))
+              }
+              onClear={() => setForm((f) => ({ ...f, image_url: "", thumbnail_id: null }))}
+            />
+            <MediaPickerField
+              label={t("icon_image")}
+              imageUrl={form.icon_url}
+              onPick={(item) => setForm((f) => ({ ...f, icon_url: item.url }))}
+              onClear={() => setForm((f) => ({ ...f, icon_url: "" }))}
+            />
             <div>
               <Label>{t("sort_order")}</Label>
               <Input
@@ -168,6 +211,21 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
                 onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
               />
             </div>
+            <SimpleSeoFields
+              seo={{
+                focus_keyword: form.seo_keyword,
+                title: form.seo_title,
+                description: form.seo_description,
+              }}
+              onChange={(seo) =>
+                setForm((f) => ({
+                  ...f,
+                  seo_keyword: seo.focus_keyword ?? "",
+                  seo_title: seo.title ?? "",
+                  seo_description: seo.description ?? "",
+                }))
+              }
+            />
             <div className="flex gap-2 pt-2">
               <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>
                 {tCommon("save")}

@@ -18,6 +18,7 @@ class Brand extends Model
         'image_url',
         'thumbnail_id',
         'views_count',
+        'meta',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class Brand extends Model
         return [
             'views_count' => 'integer',
             'thumbnail_id' => 'integer',
+            'meta' => 'array',
         ];
     }
 

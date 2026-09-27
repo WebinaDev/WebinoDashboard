@@ -9,8 +9,10 @@ import { useConfirm } from "@/components/ConfirmDialog"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
+import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { slugifyTitle } from "@/lib/slugify"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -33,6 +35,8 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
   const [slug, setSlug] = useState("")
   const [parent, setParent] = useState("")
   const [description, setDescription] = useState("")
+  const [seo, setSeo] = useState<{ title?: string; description?: string; focus_keyword?: string }>({})
+  const [slugAuto, setSlugAuto] = useState(true)
 
   const q = useQuery({
     queryKey: ["magazine", "categories"],
@@ -51,6 +55,7 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
           slug: slug || undefined,
           parent: parent ? Number(parent) : null,
           description: description || null,
+          seo,
         },
       }),
     onSuccess: () => {
@@ -59,6 +64,7 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
       setSlug("")
       setParent("")
       setDescription("")
+      setSeo({})
       void qc.invalidateQueries({ queryKey: ["magazine", "categories"] })
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
@@ -100,11 +106,25 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
           <p className="font-medium">{t("add_category")}</p>
           <div className="space-y-1">
             <Label>{t("name")}</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input
+              value={name}
+              onChange={(e) => {
+                const next = e.target.value
+                setName(next)
+                if (slugAuto) setSlug(slugifyTitle(next))
+              }}
+              required
+            />
           </div>
           <div className="space-y-1">
             <Label>{t("slug")}</Label>
-            <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
+            <Input
+              value={slug}
+              onChange={(e) => {
+                setSlugAuto(false)
+                setSlug(e.target.value)
+              }}
+            />
           </div>
           <div className="space-y-1">
             <Label>{t("parent")}</Label>
@@ -125,6 +145,7 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
             <Label>{t("description")}</Label>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
+          <SimpleSeoFields seo={seo} onChange={setSeo} className="border-0 p-0 shadow-none" />
           <Button type="submit" disabled={!name.trim() || createMut.isPending}>
             {t("add_category")}
           </Button>

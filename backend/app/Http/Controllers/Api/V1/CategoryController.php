@@ -57,9 +57,11 @@ class CategoryController extends Controller
             'cover_image_url' => ['nullable', 'string', 'max:2048'],
             'thumbnail_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', $tid)],
+            'meta' => ['nullable', 'array'],
         ]);
 
         $slug = $data['slug'] ?? Str::slug($data['name']);
+        $meta = $this->mergeSeoIntoMeta($data['meta'] ?? null, $request);
 
         $cat = Category::query()->create([
             'tenant_id' => $tid,
@@ -73,6 +75,7 @@ class CategoryController extends Controller
             'display_mode' => $data['display_mode'] ?? 'grid',
             'cover_image_url' => $data['cover_image_url'] ?? null,
             'thumbnail_id' => $data['thumbnail_id'] ?? null,
+            'meta' => $meta,
         ]);
 
         return response()->json(['data' => $cat], 201);
@@ -94,10 +97,19 @@ class CategoryController extends Controller
             'cover_image_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
             'thumbnail_id' => ['sometimes', 'nullable', 'integer'],
             'parent_id' => ['sometimes', 'nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', $tid)],
+            'meta' => ['sometimes', 'nullable', 'array'],
         ]);
 
         if (array_key_exists('parent_id', $data) && (int) $data['parent_id'] === $category->id) {
             unset($data['parent_id']);
+        }
+
+        if (array_key_exists('meta', $data) || $request->hasAny(['seo_title', 'seo_description', 'seo_keyword'])) {
+            $data['meta'] = $this->mergeSeoIntoMeta(
+                $data['meta'] ?? $category->meta,
+                $request,
+                is_array($category->meta) ? $category->meta : [],
+            );
         }
 
         $category->update($data);
@@ -116,5 +128,19 @@ class CategoryController extends Controller
     protected function authorizeTenant(Request $request, int $tenantId): void
     {
         abort_if($request->user()->tenant_id !== $tenantId, 403);
+    }
+
+    /** @param array<string, mixed>|null $meta */
+    private function mergeSeoIntoMeta(?array $meta, Request $request, array $fallback = []): array
+    {
+        $base = array_merge($fallback, is_array($meta) ? $meta : []);
+        foreach (['seo_title', 'seo_description', 'seo_keyword'] as $key) {
+            if ($request->has($key)) {
+                $val = $request->input($key);
+                $base[$key] = is_string($val) && $val !== '' ? $val : null;
+            }
+        }
+
+        return $base;
     }
 }
