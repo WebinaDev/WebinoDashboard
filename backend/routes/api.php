@@ -30,8 +30,10 @@ use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\KernelController;
 use App\Http\Controllers\Api\V1\LicenseController;
 use App\Http\Controllers\Api\V1\MagazineArticleController;
+use App\Http\Controllers\Api\V1\MagazineTaxonomyController;
 use App\Http\Controllers\Api\V1\MarketingController;
 use App\Http\Controllers\Api\V1\MediaController;
+use App\Http\Controllers\Api\V1\MediaTermController;
 use App\Http\Controllers\Api\V1\MobileContractController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\ModuleInstallController;
@@ -611,6 +613,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('module:cms')->group(function () {
             Route::get('/cms/pages', [CmsController::class, 'pages']);
             Route::post('/cms/pages', [CmsController::class, 'store']);
+            Route::get('/cms/pages/{page}', [CmsController::class, 'show'])->whereNumber('page');
             Route::patch('/cms/pages/{page}', [CmsController::class, 'update'])->whereNumber('page');
             Route::delete('/cms/pages/{page}', [CmsController::class, 'destroy'])->whereNumber('page');
             Route::get('/cms/home-blocks', [CmsController::class, 'homeBlocks']);
@@ -627,14 +630,25 @@ Route::prefix('v1')->group(function () {
         Route::middleware('module:media')->group(function () {
             Route::get('/media', [MediaController::class, 'index']);
             Route::post('/media', [MediaController::class, 'store']);
+            Route::patch('/media/{id}', [MediaController::class, 'update'])->whereNumber('id');
             Route::delete('/media/{id}', [MediaController::class, 'destroy'])->whereNumber('id');
+            Route::get('/media/terms', [MediaTermController::class, 'index']);
+            Route::post('/media/terms', [MediaTermController::class, 'store']);
+            Route::patch('/media/terms/{id}', [MediaTermController::class, 'update'])->whereNumber('id');
+            Route::delete('/media/terms/{id}', [MediaTermController::class, 'destroy'])->whereNumber('id');
         });
 
         Route::middleware('module:magazine')->group(function () {
             Route::get('/magazine/articles', [MagazineArticleController::class, 'index']);
             Route::post('/magazine/articles', [MagazineArticleController::class, 'store']);
+            Route::get('/magazine/articles/{article}', [MagazineArticleController::class, 'show'])->whereNumber('article');
             Route::patch('/magazine/articles/{article}', [MagazineArticleController::class, 'update'])->whereNumber('article');
             Route::delete('/magazine/articles/{article}', [MagazineArticleController::class, 'destroy'])->whereNumber('article');
+            Route::get('/magazine/categories', [MagazineTaxonomyController::class, 'categories']);
+            Route::post('/magazine/categories', [MagazineTaxonomyController::class, 'storeCategory']);
+            Route::patch('/magazine/categories/{id}', [MagazineTaxonomyController::class, 'updateCategory'])->whereNumber('id');
+            Route::delete('/magazine/categories/{id}', [MagazineTaxonomyController::class, 'destroyCategory'])->whereNumber('id');
+            Route::get('/magazine/tags', [MagazineTaxonomyController::class, 'tags']);
         });
 
         Route::middleware('module:profile')->group(function () {

@@ -4,12 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
 
 class MediaAsset extends Model
 {
     protected $fillable = [
-        'tenant_id', 'folder', 'path', 'disk', 'mime', 'size', 'alt', 'original_name',
+        'tenant_id',
+        'folder',
+        'folder_term_id',
+        'path',
+        'disk',
+        'mime',
+        'size',
+        'alt',
+        'original_name',
+        'title',
+        'slug',
+        'caption',
+        'description',
     ];
 
     protected $appends = ['url'];
@@ -17,6 +30,16 @@ class MediaAsset extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function folderTerm(): BelongsTo
+    {
+        return $this->belongsTo(MediaTerm::class, 'folder_term_id');
+    }
+
+    public function terms(): BelongsToMany
+    {
+        return $this->belongsToMany(MediaTerm::class, 'media_asset_term');
     }
 
     public function getUrlAttribute(): ?string
