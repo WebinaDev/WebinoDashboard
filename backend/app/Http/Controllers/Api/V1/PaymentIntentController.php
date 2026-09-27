@@ -22,6 +22,8 @@ class PaymentIntentController extends Controller
 
         try {
             $intent = $checkout->createIntent($order, $data['provider']);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             return response()->json([
                 'message' => $e->getMessage(),

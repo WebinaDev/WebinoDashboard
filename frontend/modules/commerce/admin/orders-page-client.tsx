@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ListFiltersCollapsible } from "@/components/ListFiltersCollapsible"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
+import { PrintPendingLabelsButton } from "@/components/orders/OrderPrintActions"
 import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
 import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
@@ -224,6 +225,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
       description={route.fullPath}
       actions={
         <>
+          {mineMode ? null : <PrintPendingLabelsButton />}
           <Button variant="outline" asChild>
             <Link href="/dashboard/pos">
               <Store className="size-4" />

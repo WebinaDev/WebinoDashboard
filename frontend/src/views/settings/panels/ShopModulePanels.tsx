@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { MarketplacePricingCard } from "@/views/settings/panels/marketplace/MarketplacePricingCard"
 import { SettingsSaveBar, useDraftSettings } from "@/views/settings/use-tenant-settings"
 
 function SimpleSwitchPanel({
@@ -73,45 +72,10 @@ function SimpleSwitchPanel({
   )
 }
 
-export function PricingSettingsPanel() {
-  const t = useTranslations("settings_hub")
-  return (
-    <div className="space-y-4">
-      <SimpleSwitchPanel
-        title={t("pricing.title")}
-        area="shop"
-        section="pricing"
-        fields={[
-          { key: "enable_wholesale", label: t("pricing.wholesale"), type: "switch" },
-          { key: "enable_installment", label: t("pricing.installment"), type: "switch" },
-          { key: "round_to", label: t("pricing.round_to"), type: "number" },
-        ]}
-      />
-      <MarketplacePricingCard />
-    </div>
-  )
-}
-
 export { ShippingZonesPanel } from "@/views/settings/panels/ShippingZonesPanel"
 export { ShippingTapinPanel } from "@/views/settings/panels/ShippingTapinPanel"
 
-export function InvoicesSettingsPanel() {
-  const t = useTranslations("settings_hub")
-  return (
-    <SimpleSwitchPanel
-      title={t("invoices.title")}
-      area="shop"
-      section="invoices"
-      fields={[
-        { key: "company_name", label: t("invoices.company"), type: "text" },
-        { key: "address", label: t("invoices.address"), type: "text" },
-        { key: "phone", label: t("invoices.phone"), type: "text" },
-        { key: "show_logo", label: t("invoices.show_logo"), type: "switch" },
-        { key: "footer_note", label: t("invoices.footer"), type: "text" },
-      ]}
-    />
-  )
-}
+export { OrderDocumentsSettingsPanel as InvoicesSettingsPanel } from "@/views/settings/panels/OrderDocumentsSettingsPanel"
 
 export function AdvancedSettingsPanel() {
   const t = useTranslations("settings_hub")

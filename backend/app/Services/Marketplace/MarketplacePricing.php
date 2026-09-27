@@ -19,6 +19,8 @@ class MarketplacePricing
     /** @var array<int, self> */
     protected static array $cache = [];
 
+    protected ?PricingCalculator $calculator = null;
+
     /** @param  array<string, mixed>  $payload */
     public function __construct(
         protected int $tenantId,
@@ -34,6 +36,11 @@ class MarketplacePricing
         return new self($tenantId, $row?->payload ?? PricingCalculator::defaultSettings(), strtoupper($currency));
     }
 
+    public function calculator(): PricingCalculator
+    {
+        return $this->calculator ??= new PricingCalculator($this->payload);
+    }
+
     /** @return array<string, mixed> */
     public static function platformDefaults(string $platform): array
     {
@@ -43,6 +50,7 @@ class MarketplacePricing
             'enabled' => false,
             'profit_percent' => 20,
             'extra_percent' => 0,
+            'round_enabled' => true,
             'round_to' => 1000,
             'price_unit' => MarketplacePlatforms::CATALOG[$platform]['default_unit'] ?? 'toman',
             'price_mode' => $feed ? 'retail' : 'markup',
@@ -86,6 +94,7 @@ class MarketplacePricing
                 'enabled' => (bool) ($cfg['enabled'] ?? false),
                 'profit_percent' => (float) ($cfg['profit_percent'] ?? 20),
                 'extra_percent' => (float) ($cfg['extra_percent'] ?? 0),
+                'round_enabled' => PricingCalculator::bool($cfg['round_enabled'] ?? true),
                 'round_to' => max(1, (int) ($cfg['round_to'] ?? 1000)),
                 'price_unit' => in_array($cfg['price_unit'] ?? null, ['rial', 'toman'], true) ? $cfg['price_unit'] : self::platformDefaults($slug)['price_unit'],
                 'price_mode' => in_array($cfg['price_mode'] ?? null, ['retail', 'markup'], true) ? $cfg['price_mode'] : self::platformDefaults($slug)['price_mode'],
@@ -174,15 +183,7 @@ class MarketplacePricing
         $cfg = $this->platformSettings($platform);
         $purchase = (float) (($variant?->purchase_price_minor) ?: $product->purchase_price_minor ?: 0);
         if (! empty($cfg['enabled']) && $purchase > 0) {
-            $calc = new PricingCalculator($this->payload);
-            $retail = $calc->calculate($purchase, 'retail');
-            if (($cfg['price_mode'] ?? 'markup') === 'retail') {
-                return $retail;
-            }
-            $price = $retail * (1 + (float) $cfg['profit_percent'] / 100) * (1 + (float) $cfg['extra_percent'] / 100);
-            $round = max(1, (int) $cfg['round_to']);
-
-            return round($price / $round) * $round;
+            return $this->calculator()->channel($purchase, $platform, $variant ?? $product);
         }
 
         return (float) $this->sellingPrice($product, $variant, (bool) ($cfg['use_sale_price'] ?? true));

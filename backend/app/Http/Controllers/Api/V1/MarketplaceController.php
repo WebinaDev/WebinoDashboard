@@ -340,6 +340,7 @@ class MarketplaceController extends Controller
             'platforms.*.enabled' => ['sometimes', 'boolean'],
             'platforms.*.profit_percent' => ['sometimes', 'numeric', 'min:-100', 'max:1000'],
             'platforms.*.extra_percent' => ['sometimes', 'numeric', 'min:-100', 'max:1000'],
+            'platforms.*.round_enabled' => ['sometimes', 'boolean'],
             'platforms.*.round_to' => ['sometimes', 'integer', 'min:1'],
             'platforms.*.price_unit' => ['sometimes', 'in:rial,toman'],
             'platforms.*.price_mode' => ['sometimes', 'in:retail,markup'],

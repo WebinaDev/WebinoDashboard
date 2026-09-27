@@ -284,20 +284,6 @@ class OrderController extends Controller
         return response()->json(['data' => $ret->fresh()]);
     }
 
-    public function printReceipt(Request $request, int $order): \Illuminate\Http\JsonResponse
-    {
-        $row = $this->find($request, $order);
-        $row->update(['printed_at' => now()]);
-        $row->load(['items', 'user']);
-
-        return response()->json([
-            'data' => [
-                'order' => $row,
-                'html' => $this->receiptHtml($row),
-            ],
-        ]);
-    }
-
     public function posSearch(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
@@ -399,18 +385,5 @@ class OrderController extends Controller
             'meta' => ['nullable', 'array'],
             'gateways' => ['nullable', 'array'],
         ]);
-    }
-
-    protected function receiptHtml(Order $order): string
-    {
-        $lines = '';
-        foreach ($order->items as $item) {
-            $name = e($item->product_name ?? 'Item');
-            $lines .= "<tr><td>{$name}</td><td>{$item->quantity}</td><td>{$item->unit_price_minor}</td></tr>";
-        }
-        $num = e($order->number ?? (string) $order->id);
-        $total = $order->total_minor;
-
-        return "<html><body dir='rtl'><h2>رسید {$num}</h2><table border='1' cellpadding='6'><thead><tr><th>کالا</th><th>تعداد</th><th>قیمت</th></tr></thead><tbody>{$lines}</tbody></table><p>جمع: {$total}</p></body></html>";
     }
 }

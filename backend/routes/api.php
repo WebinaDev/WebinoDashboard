@@ -75,6 +75,7 @@ use App\Http\Controllers\Api\V1\SiteConsultationController;
 use App\Http\Controllers\Api\V1\TapinController;
 use App\Http\Controllers\Api\V1\TeamMemberController;
 use App\Http\Controllers\Api\V1\TenantController;
+use App\Http\Controllers\Api\V1\OrderDocumentController;
 use App\Http\Controllers\Api\V1\TenantSettingsController;
 use App\Http\Controllers\Api\V1\ThemeController;
 use App\Http\Controllers\Api\V1\TestimonialController;
@@ -249,6 +250,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('module:catalog')->group(function () {
             Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
             Route::get('/products/lookup', [ProductController::class, 'lookup']);
+            Route::get('/shop/products/print-labels', [OrderDocumentController::class, 'productLabels']);
             Route::patch('/products/bulk', [ProductController::class, 'bulkUpdate']);
             Route::post('/products/{product}/duplicate', [ProductController::class, 'duplicate'])->whereNumber('product');
             Route::put('/products/{product}/attributes', [ProductController::class, 'syncAttributes'])->whereNumber('product');
@@ -287,6 +289,17 @@ Route::prefix('v1')->group(function () {
         Route::middleware('module:pricing')->group(function () {
             Route::get('/pricing/settings', [PricingController::class, 'settings']);
             Route::put('/pricing/settings', [PricingController::class, 'updateSettings']);
+            Route::get('/pricing/settings/export', [PricingController::class, 'exportSettings']);
+            Route::post('/pricing/settings/import', [PricingController::class, 'importSettings']);
+            Route::put('/pricing/settings/{section}', [PricingController::class, 'saveSection'])->where('section', '[a-z0-9\-]+');
+            Route::get('/pricing/meta', [PricingController::class, 'meta']);
+            Route::get('/pricing/stats', [PricingController::class, 'stats']);
+            Route::post('/pricing/exchange/test', [PricingController::class, 'exchangeTest']);
+            Route::post('/pricing/exchange/fetch', [PricingController::class, 'exchangeFetch']);
+            Route::post('/pricing/products/{product}/reference-fetch', [PricingController::class, 'referenceFetch'])->whereNumber('product');
+            Route::post('/pricing/recalculate', [PricingController::class, 'recalculateStart']);
+            Route::get('/pricing/recalculate/state', [PricingController::class, 'recalculateState']);
+            Route::patch('/pricing/bulk-products/{product}/brand', [PricingController::class, 'patchBrand'])->whereNumber('product');
             Route::post('/pricing/calculate', [PricingController::class, 'calculate']);
             Route::post('/pricing/quick-add', [PricingController::class, 'quickAdd']);
             Route::get('/pricing/bulk-products', [PricingController::class, 'bulkProducts']);
@@ -417,7 +430,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/orders/{order}/returns', [OrderController::class, 'returnsIndex'])->whereNumber('order');
             Route::post('/orders/{order}/returns', [OrderController::class, 'returnsStore'])->whereNumber('order');
             Route::post('/order-returns/{returnId}/action', [OrderController::class, 'returnsAction'])->whereNumber('returnId');
-            Route::get('/orders/{order}/print', [OrderController::class, 'printReceipt'])->whereNumber('order');
+            Route::get('/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
+            Route::get('/orders/print-labels', [OrderDocumentController::class, 'labels']);
         });
 
         Route::middleware('module:pos')->group(function () {
@@ -425,7 +439,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/pos/customers', [OrderController::class, 'posCustomers']);
             Route::get('/payment-gateways', [OrderController::class, 'paymentGateways']);
             Route::post('/pos/orders', [OrderController::class, 'store']);
-            Route::get('/pos/orders/{order}/print', [OrderController::class, 'printReceipt'])->whereNumber('order');
+            Route::get('/pos/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
         });
 
         Route::middleware('module:c2c')->group(function () {
@@ -485,6 +499,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('module:cart')->group(function () {
             Route::get('/cart', [CartController::class, 'show']);
             Route::post('/cart/items', [CartController::class, 'addItem']);
+            Route::put('/cart/purchase-type', [CartController::class, 'setPurchaseType']);
             Route::delete('/cart/items/{product}', [CartController::class, 'removeItem']);
         });
 

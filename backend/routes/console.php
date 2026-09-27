@@ -1,6 +1,9 @@
 <?php
 
+use App\Models\PricingSetting;
 use App\Services\Marketplace\Basalam\BasalamScheduler;
+use App\Services\Pricing\ExchangeRateService;
+use App\Services\Pricing\PricingCalculator;
 use App\Services\Marketplace\Digikala\DigikalaScheduler;
 use App\Services\Marketplace\MarketplaceSync;
 use App\Services\Marketplace\TorobWebhookQueue;
@@ -32,6 +35,18 @@ Artisan::command('marketplace:digikala-tick', function () {
     app(DigikalaScheduler::class)->tick();
 })->purpose('Digikala token refresh and reconcile');
 
+Artisan::command('pricing:exchange-auto-update', function () {
+    $hour = (int) now()->format('G');
+    PricingSetting::query()->each(function (PricingSetting $row) use ($hour) {
+        $g = (new PricingCalculator($row->payload ?? []))->section('general');
+        if (PricingCalculator::bool($g['api_enabled'] ?? false) && PricingCalculator::bool($g['auto_update_enabled'] ?? false)
+            && (int) ($g['auto_update_hour'] ?? 0) === $hour) {
+            ExchangeRateService::update($row->tenant_id);
+        }
+    });
+})->purpose('Daily WFCP exchange-rate refresh at each tenant\'s configured hour');
+
+Schedule::command('pricing:exchange-auto-update')->hourly()->withoutOverlapping();
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:torob-webhooks')->everyMinute()->withoutOverlapping();

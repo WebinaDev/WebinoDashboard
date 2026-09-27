@@ -3,12 +3,20 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\RecalculatePricesJob;
+use App\Models\Brand;
 use App\Models\BulkPriceJob;
-use App\Models\PricingSetting;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\Marketplace\MarketplacePlatforms;
+use App\Services\Payments\PaymentGatewaySettingsService;
+use App\Services\Pricing\ExchangeRateService;
 use App\Services\Pricing\PricingCalculator;
+use App\Services\Pricing\PricingSettings;
+use App\Services\Pricing\ReferencePriceService;
 use Illuminate\Http\Request;
+use RuntimeException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -16,25 +24,176 @@ class PricingController extends Controller
 {
     public function settings(Request $request): \Illuminate\Http\JsonResponse
     {
-        $tid = $request->user()->tenant_id;
-        $row = PricingSetting::query()->firstOrCreate(
-            ['tenant_id' => $tid],
-            ['payload' => PricingCalculator::defaultSettings()]
-        );
-
-        return response()->json(['data' => $row->payload]);
+        return response()->json(['data' => PricingSettings::get($request->user()->tenant_id)]);
     }
 
     public function updateSettings(Request $request): \Illuminate\Http\JsonResponse
     {
-        $tid = $request->user()->tenant_id;
         $data = $request->validate(['payload' => ['required', 'array']]);
-        $row = PricingSetting::query()->updateOrCreate(
-            ['tenant_id' => $tid],
-            ['payload' => $data['payload']]
-        );
 
-        return response()->json(['data' => $row->payload]);
+        return response()->json(['data' => PricingSettings::import($request->user()->tenant_id, $data['payload'])]);
+    }
+
+    public function saveSection(Request $request, string $section): \Illuminate\Http\JsonResponse
+    {
+        $body = $request->all();
+        $data = is_array($body['data'] ?? null) ? $body['data'] : $body;
+        $settings = PricingSettings::saveSection($request->user()->tenant_id, $section, $data);
+
+        return response()->json(['data' => ['success' => true, 'section' => PricingSettings::storageKey($section), 'settings' => $settings]]);
+    }
+
+    public function meta(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $gateways = collect(app(PaymentGatewaySettingsService::class)->hubItems($tid))
+            ->map(fn (array $g) => ['id' => $g['id'], 'title_key' => $g['title_key'], 'enabled' => $g['enabled']])
+            ->values();
+        $platforms = collect(MarketplacePlatforms::CATALOG)
+            ->map(fn (array $p, string $slug) => [
+                'slug' => $slug,
+                'label' => $p['label'],
+                'label_en' => $p['label_en'],
+                'tab' => $p['pricing_tab'],
+                'feed' => MarketplacePlatforms::isFeed($slug),
+            ])->values();
+
+        return response()->json(['data' => [
+            'gateways' => $gateways,
+            'platforms' => $platforms,
+            'categories' => Category::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug']),
+            'brands' => Brand::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug']),
+            'currency' => strtoupper((string) ($request->user()->tenant?->default_currency ?: 'IRT')),
+        ]]);
+    }
+
+    public function stats(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $calc = PricingCalculator::forTenant($tid);
+        $base = Product::query()->where('tenant_id', $tid)->where('status', '!=', 'trash');
+        $general = $calc->section('general');
+
+        return response()->json(['data' => [
+            'total_products' => (clone $base)->count(),
+            'products_with_price' => (clone $base)->where('purchase_price_minor', '>', 0)->count(),
+            'products_locked' => (clone $base)->where('lock_price', true)->count(),
+            'enabled' => PricingCalculator::bool($general['enabled'] ?? true),
+            'exchange_rate' => (float) ($general['exchange_rate'] ?? 0),
+            'exchange_rate_enabled' => PricingCalculator::bool($general['exchange_rate_enabled'] ?? false),
+            'last_api_update' => $general['last_api_update'] ?? null,
+            'purchase_types' => $calc->enabledPurchaseTypes(),
+            'currency' => strtoupper((string) ($request->user()->tenant?->default_currency ?: 'IRT')),
+            'recalculate' => RecalculatePricesJob::state($tid),
+        ]]);
+    }
+
+    public function exchangeTest(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'api_key' => ['required', 'string', 'max:255'],
+            'api_symbol' => ['nullable', 'string', 'max:16'],
+        ]);
+        $result = ExchangeRateService::fetchRate($data['api_key'], strtoupper($data['api_symbol'] ?? 'USD'));
+        if (! $result['success']) {
+            return response()->json(['message' => $result['message'] ?? __('Exchange test failed.')], 400);
+        }
+
+        return response()->json(['data' => $result]);
+    }
+
+    public function exchangeFetch(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $result = ExchangeRateService::update($request->user()->tenant_id);
+        if (! $result['success']) {
+            return response()->json(['message' => $result['message'] ?? __('Could not update exchange rate.')], 400);
+        }
+
+        return response()->json(['data' => $result]);
+    }
+
+    public function referenceFetch(Request $request, Product $product): \Illuminate\Http\JsonResponse
+    {
+        abort_if($request->user()->tenant_id !== $product->tenant_id, 403);
+        $data = $request->validate([
+            'url' => ['nullable', 'url', 'max:2048'],
+            'variant_id' => ['nullable', 'integer'],
+        ]);
+        $variant = ! empty($data['variant_id'])
+            ? ProductVariant::query()->where('product_id', $product->id)->findOrFail($data['variant_id'])
+            : null;
+        try {
+            $result = (new ReferencePriceService($product->tenant_id))->sync($product, $variant, $data['url'] ?? null);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+        $fresh = ($variant ?? $product)->fresh();
+
+        return response()->json(['data' => [
+            'ok' => true,
+            'result' => $result,
+            'purchase_price_minor' => $fresh->purchase_price_minor,
+            'price_minor' => $fresh->price_minor,
+            'url' => $result['url'],
+            'source' => $result['source'],
+        ]]);
+    }
+
+    public function recalculateStart(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $state = RecalculatePricesJob::state($tid);
+        if (in_array($state['status'] ?? 'idle', ['queued', 'running'], true)
+            && now()->diffInMinutes($state['started_at'] ?? now()) < 30) {
+            return response()->json(['message' => __('A recalculation is already running.'), 'data' => $state], 409);
+        }
+
+        return response()->json(['data' => RecalculatePricesJob::start($tid, $request->boolean('dry_run'))]);
+    }
+
+    public function recalculateState(Request $request): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(['data' => RecalculatePricesJob::state($request->user()->tenant_id)]);
+    }
+
+    public function exportSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $settings = PricingSettings::get($request->user()->tenant_id);
+        $settings['general']['api_key'] = '';
+
+        return response()->json(['data' => [
+            'json' => json_encode(['wfcp_settings' => $settings, 'exported_at' => now()->toIso8601String()], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
+        ]]);
+    }
+
+    public function importSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate(['json' => ['required', 'string', 'max:500000']]);
+        $decoded = json_decode($data['json'], true);
+        if (! is_array($decoded)) {
+            return response()->json(['message' => __('Invalid JSON.')], 422);
+        }
+        $settings = is_array($decoded['wfcp_settings'] ?? null) ? $decoded['wfcp_settings'] : $decoded;
+        if (isset($settings['general']) && is_array($settings['general']) && ($settings['general']['api_key'] ?? '') === '') {
+            unset($settings['general']['api_key']);
+        }
+
+        return response()->json(['data' => PricingSettings::import($request->user()->tenant_id, $settings)]);
+    }
+
+    public function patchBrand(Request $request, Product $product): \Illuminate\Http\JsonResponse
+    {
+        abort_if($request->user()->tenant_id !== $product->tenant_id, 403);
+        $data = $request->validate(['brand_id' => ['nullable', 'integer']]);
+        $brandId = (int) ($data['brand_id'] ?? 0);
+        if ($brandId > 0) {
+            abort_unless(Brand::query()->where('tenant_id', $product->tenant_id)->whereKey($brandId)->exists(), 422);
+            $product->brands()->sync([$brandId]);
+        } else {
+            $product->brands()->sync([]);
+        }
+
+        return response()->json(['data' => $product->fresh('brands')]);
     }
 
     public function calculate(Request $request): \Illuminate\Http\JsonResponse
@@ -43,13 +202,25 @@ class PricingController extends Controller
             'purchase_price_minor' => ['required', 'numeric', 'min:0'],
             'type' => ['nullable', 'string'],
             'months' => ['nullable', 'integer', 'min:1'],
+            'product_id' => ['nullable', 'integer'],
         ]);
-        $calc = PricingCalculator::forTenant($request->user()->tenant_id);
+        $tid = $request->user()->tenant_id;
+        $calc = PricingCalculator::forTenant($tid);
         $purchase = (float) $data['purchase_price_minor'];
+        $product = ! empty($data['product_id'])
+            ? Product::query()->where('tenant_id', $tid)->find($data['product_id'])
+            : null;
+        $out = $calc->derived($purchase, $product);
+        if (! empty($data['type'])) {
+            $out['value'] = $calc->calculate($purchase, $data['type'], ['months' => (int) ($data['months'] ?? $calc->defaultInstallmentMonths())], $product);
+        }
+        $channels = [];
+        foreach (MarketplacePlatforms::slugs() as $slug) {
+            $channels[$slug] = $calc->channel($purchase, $slug, $product);
+        }
+        $out['channels'] = $channels;
 
-        return response()->json([
-            'data' => $calc->derived($purchase),
-        ]);
+        return response()->json(['data' => $out]);
     }
 
     public function quickAdd(Request $request): \Illuminate\Http\JsonResponse
@@ -129,7 +300,7 @@ class PricingController extends Controller
         $items = collect($paginator->items())->map(function (Product $p) use ($calc) {
             $row = $p->toArray();
             $row['calculated'] = $p->purchase_price_minor
-                ? $calc->derived((float) $p->purchase_price_minor)
+                ? $calc->derived((float) $p->purchase_price_minor, $p)
                 : null;
 
             return $row;
@@ -230,7 +401,7 @@ class PricingController extends Controller
         $fresh = $product->fresh();
         $payload = $fresh->toArray();
         if ($fresh->purchase_price_minor) {
-            $payload['calculated'] = PricingCalculator::forTenant($fresh->tenant_id)->derived((float) $fresh->purchase_price_minor);
+            $payload['calculated'] = PricingCalculator::forTenant($fresh->tenant_id)->derived((float) $fresh->purchase_price_minor, $fresh);
         }
 
         return response()->json(['data' => $payload]);

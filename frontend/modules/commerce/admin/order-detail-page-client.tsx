@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { OrderPrintActions } from "@/components/orders/OrderPrintActions"
 import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
@@ -217,21 +218,6 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
     }
   }
 
-  async function printReceipt() {
-    try {
-      const data = await api<{ html?: string }>(`/api/v1/orders/${orderId}/print`)
-      const html = data?.html ?? ""
-      const w = window.open("", "_blank")
-      if (w) {
-        w.document.write(html)
-        w.document.close()
-        w.focus()
-      }
-    } catch (e) {
-      setError(getApiErrorMessage(e as Error))
-    }
-  }
-
   if (!orderId) {
     return <p className="p-6 text-destructive">{t("missing_id")}</p>
   }
@@ -248,10 +234,7 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
       description={route.fullPath}
       actions={
         <>
-          <Button variant="outline" onClick={() => void printReceipt()}>
-            <Printer className="size-4" />
-            {t("print")}
-          </Button>
+          <OrderPrintActions orderId={orderId} />
           <Button variant="outline" asChild>
             <Link href={`/dashboard/orders/${orderId}/edit`}>
               <Pencil className="size-4" />

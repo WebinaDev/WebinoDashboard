@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\Coupons\CouponService;
+use App\Services\Pricing\PurchaseTypeService;
 use App\Services\Shipping\ShippingZonesService;
 use App\Services\Shipping\TapinShipmentService;
 use Illuminate\Http\Request;
@@ -61,16 +62,22 @@ class CheckoutController extends Controller
             return response()->json(['message' => __('api.cart_empty')], 422);
         }
 
-        $order = DB::transaction(function () use ($lines, $user, $cart, $checkoutMeta) {
+        $types = PurchaseTypeService::forTenant((int) $user->tenant_id);
+        ['type' => $purchaseType, 'months' => $months] = $types->cartType($lines);
+
+        $order = DB::transaction(function () use ($lines, $user, $cart, $checkoutMeta, $types, $purchaseType, $months) {
             $subtotal = 0;
             $linePayload = [];
+            $unitPrices = [];
             $weightG = 0;
             foreach ($lines as $line) {
-                $subtotal += $line->quantity * $line->product->price_minor;
+                $unit = $types->unitPrice($line->product, $purchaseType, $months);
+                $unitPrices[$line->id] = $unit;
+                $subtotal += $line->quantity * $unit;
                 $weightG += max(100, (int) $line->quantity * 200);
                 $linePayload[] = [
                     'product_id' => $line->product_id,
-                    'unit_price_minor' => $line->product->price_minor,
+                    'unit_price_minor' => $unit,
                     'quantity' => $line->quantity,
                 ];
             }
@@ -150,6 +157,12 @@ class CheckoutController extends Controller
             if (! empty($checkoutMeta['torob_clid'])) {
                 $shippingMeta['torob_clid'] = $checkoutMeta['torob_clid'];
             }
+            if ($types->active()) {
+                $shippingMeta['wfcp_purchase_type'] = $purchaseType;
+                if ($months) {
+                    $shippingMeta['wfcp_installment_months'] = $months;
+                }
+            }
 
             $shippingAddress = $checkoutMeta['shipping_address'] ?? null;
             if (is_array($shippingAddress)) {
@@ -178,7 +191,9 @@ class CheckoutController extends Controller
                     'order_id' => $order->id,
                     'product_id' => $line->product_id,
                     'quantity' => $line->quantity,
-                    'unit_price_minor' => $line->product->price_minor,
+                    'unit_price_minor' => $unitPrices[$line->id],
+                    'purchase_type' => $purchaseType,
+                    'meta' => $months ? ['wfcp_installment_months' => $months] : null,
                 ]);
             }
 

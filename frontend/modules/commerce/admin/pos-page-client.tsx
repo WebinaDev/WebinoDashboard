@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query"
 import { Minus, Plus, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -58,6 +58,7 @@ async function searchProducts(q: string): Promise<ProductHit[]> {
 
 export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("pos_admin")
+  const locale = useLocale()
   const [productQ, setProductQ] = useState("")
   const [productHits, setProductHits] = useState<ProductHit[]>([])
   const [customerQ, setCustomerQ] = useState("")
@@ -111,7 +112,9 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
 
   async function printOrder(id: number) {
     try {
-      const data = await api<{ html?: string }>(`/api/v1/pos/orders/${id}/print`)
+      const data = await api<{ html?: string }>(
+        `/api/v1/pos/orders/${id}/print?type=receipt&locale=${encodeURIComponent(locale)}`
+      )
       const w = window.open("", "_blank")
       if (w) {
         w.document.write(data?.html ?? "")

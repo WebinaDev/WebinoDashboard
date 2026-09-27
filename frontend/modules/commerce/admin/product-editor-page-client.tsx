@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { PageShell } from "@/components/PageShell"
+import { PrintProductLabelButton } from "@/components/products/PrintProductLabelButton"
 import { useDashboardNav } from "@/hooks/useDashboardNav"
 import { isSubmoduleEnabled } from "@/kernel/route-resolver"
 import type { ResolvedAdminRoute } from "@/kernel/types"
@@ -93,6 +94,7 @@ type Product = {
   price_minor: number
   sale_price_minor?: number | null
   wholesale_rule?: Record<string, unknown> | null
+  reference_url?: string | null
   stock?: number | null
   manage_stock?: boolean
   stock_status?: string
@@ -132,6 +134,7 @@ type FormState = {
   price_minor: number
   sale_price_minor: string
   wholesale_rule_text: string
+  reference_url: string
   stock: number
   manage_stock: boolean
   stock_status: string
@@ -179,6 +182,7 @@ const emptyForm: FormState = {
   price_minor: 0,
   sale_price_minor: "",
   wholesale_rule_text: "",
+  reference_url: "",
   stock: 0,
   manage_stock: true,
   stock_status: "instock",
@@ -218,6 +222,7 @@ function productToForm(p: Product): FormState {
     price_minor: p.price_minor ?? 0,
     sale_price_minor: p.sale_price_minor != null ? String(p.sale_price_minor) : "",
     wholesale_rule_text: p.wholesale_rule ? JSON.stringify(p.wholesale_rule, null, 2) : "",
+    reference_url: p.reference_url ?? "",
     stock: p.stock ?? 0,
     manage_stock: p.manage_stock ?? true,
     stock_status: p.stock_status ?? "instock",
@@ -397,6 +402,23 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       setCalculated(row.calculated)
       if (row.price_minor != null) setForm((f) => ({ ...f, price_minor: row.price_minor }))
       setMessage(t("wfcp_updated"))
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  const referenceFetch = useMutation({
+    mutationFn: () =>
+      api<{ purchase_price_minor: number | null; price_minor: number }>(
+        `/api/v1/pricing/products/${productId}/reference-fetch`,
+        { method: "POST", json: { url: form.reference_url || null } },
+      ),
+    onSuccess: (r) => {
+      setForm((f) => ({
+        ...f,
+        purchase_price_minor: r.purchase_price_minor ?? f.purchase_price_minor,
+        price_minor: r.price_minor ?? f.price_minor,
+      }))
+      setMessage(t("reference_synced"))
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
@@ -600,6 +622,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       description={route.fullPath}
       actions={
         <>
+          {productId ? <PrintProductLabelButton productIds={[Number(productId)]} /> : null}
           <Button variant="outline" asChild>
             <Link href="/dashboard/products">{t("back_to_list")}</Link>
           </Button>
@@ -740,6 +763,26 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     placeholder='{"min_qty":10,"discount_percent":5}'
                   />
                 </div>
+                {!isNew ? (
+                  <div className="sm:col-span-2 grid gap-2">
+                    <Label>{t("reference_url")}</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        dir="ltr"
+                        value={form.reference_url}
+                        placeholder="https://www.digikala.com/product/dkp-…"
+                        onChange={(e) => setForm((f) => ({ ...f, reference_url: e.target.value }))}
+                      />
+                      <Button
+                        variant="outline"
+                        disabled={!form.reference_url || referenceFetch.isPending}
+                        onClick={() => referenceFetch.mutate()}
+                      >
+                        {t("reference_fetch")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 {!isNew ? (
                   <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
                     <Button variant="secondary" disabled={wfcp.isPending} onClick={() => wfcp.mutate()}>

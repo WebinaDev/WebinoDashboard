@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Services\Modules\ModuleSettingsService;
+use App\Services\Orders\OrderDocumentSettings;
 use Illuminate\Http\Request;
 
 class TenantSettingsController extends Controller
@@ -39,6 +40,9 @@ class TenantSettingsController extends Controller
         }
 
         $tenantId = (int) $request->user()->tenant_id;
+        if ($key === OrderDocumentSettings::KEY) {
+            return response()->json(['data' => OrderDocumentSettings::get($tenantId, $this->locale($request))]);
+        }
         $defaults = $this->defaultsFor($key);
 
         return response()->json([
@@ -58,11 +62,19 @@ class TenantSettingsController extends Controller
         ]);
 
         $tenantId = (int) $request->user()->tenant_id;
+        if ($key === OrderDocumentSettings::KEY) {
+            return response()->json(['data' => OrderDocumentSettings::save($tenantId, $payload['payload'], $this->locale($request))]);
+        }
         $defaults = $this->defaultsFor($key);
         $merged = array_replace_recursive($defaults, $payload['payload']);
         $saved = $settings->put($tenantId, 'settings', $key, $merged);
 
         return response()->json(['data' => $saved]);
+    }
+
+    private function locale(Request $request): string
+    {
+        return OrderDocumentSettings::locale($request->query('locale') ?: $request->header('Accept-Language'));
     }
 
     private function resolveKey(string $area, string $section, ?string $sub = null): ?string
@@ -184,13 +196,6 @@ class TenantSettingsController extends Controller
                 'zarinpal_enabled' => false,
                 'zarinpal_merchant' => '',
                 'wallet_enabled' => false,
-            ],
-            'shop.invoices' => [
-                'company_name' => '',
-                'address' => '',
-                'phone' => '',
-                'show_logo' => true,
-                'footer_note' => '',
             ],
             'shop.advanced' => [
                 'delete_data_on_uninstall' => false,

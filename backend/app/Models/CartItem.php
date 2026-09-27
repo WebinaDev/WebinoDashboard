@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CartItem extends Model
 {
-    protected $fillable = ['cart_id', 'product_id', 'quantity'];
+    protected $fillable = ['cart_id', 'product_id', 'quantity', 'purchase_type', 'installment_months'];
 
     protected function casts(): array
     {
         return [
             'quantity' => 'integer',
+            'installment_months' => 'integer',
         ];
     }
 

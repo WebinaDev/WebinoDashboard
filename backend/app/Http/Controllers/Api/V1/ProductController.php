@@ -86,7 +86,7 @@ class ProductController extends Controller
         $payload = $product->toArray();
         if ($product->purchase_price_minor) {
             $calc = PricingCalculator::forTenant($product->tenant_id);
-            $payload['calculated'] = $calc->derived((float) $product->purchase_price_minor);
+            $payload['calculated'] = $calc->derived((float) $product->purchase_price_minor, $product);
         }
 
         return response()->json(['data' => $payload]);

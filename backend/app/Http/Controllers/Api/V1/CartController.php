@@ -6,16 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Services\Pricing\PurchaseTypeService;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
     public function show(Request $request): \Illuminate\Http\JsonResponse
     {
-        $cart = $this->cartFor($request);
-        $cart->load(['items.product']);
-
-        return response()->json(['data' => $cart]);
+        return $this->respond($this->cartFor($request));
     }
 
     public function addItem(Request $request): \Illuminate\Http\JsonResponse
@@ -23,6 +21,8 @@ class CartController extends Controller
         $data = $request->validate([
             'product_id' => ['required', 'integer'],
             'quantity' => ['nullable', 'integer', 'min:1'],
+            'purchase_type' => ['nullable', 'string', 'in:cash,retail,credit,installment,wholesale'],
+            'installment_months' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $user = $request->user();
@@ -30,6 +30,7 @@ class CartController extends Controller
         abort_if($product->tenant_id !== $user->tenant_id, 403);
 
         $cart = $this->cartFor($request);
+        $types = PurchaseTypeService::forTenant($cart->tenant_id);
 
         $qty = $data['quantity'] ?? 1;
 
@@ -41,9 +42,29 @@ class CartController extends Controller
         $line->quantity = ($line->exists ? $line->quantity : 0) + $qty;
         $line->save();
 
-        $cart->load(['items.product']);
+        $lines = CartItem::query()->where('cart_id', $cart->id)->get();
+        $current = $types->cartType($lines->where('id', '!=', $line->id)->values());
+        $requested = array_key_exists('purchase_type', $data) && $data['purchase_type'] !== null
+            ? $types->normalize($data['purchase_type'])
+            : ($lines->count() > 1 ? $current['type'] : $types->normalize(null));
+        $type = $current['type'] === 'wholesale' && $lines->count() > 1 ? 'wholesale' : $requested;
+        $months = $type === 'installment' ? ($data['installment_months'] ?? $current['months']) : null;
+        $types->applyToCart($cart, $type, $months);
 
-        return response()->json(['data' => $cart]);
+        return $this->respond($cart, $types);
+    }
+
+    public function setPurchaseType(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'purchase_type' => ['required', 'string', 'in:cash,retail,credit,installment,wholesale'],
+            'installment_months' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $cart = $this->cartFor($request);
+        $types = PurchaseTypeService::forTenant($cart->tenant_id);
+        $types->applyToCart($cart, $data['purchase_type'], $data['installment_months'] ?? null);
+
+        return $this->respond($cart, $types);
     }
 
     public function removeItem(Request $request, Product $product): \Illuminate\Http\JsonResponse
@@ -57,9 +78,17 @@ class CartController extends Controller
             ->where('product_id', $product->id)
             ->delete();
 
-        $cart->load(['items.product']);
+        return $this->respond($cart);
+    }
 
-        return response()->json(['data' => $cart]);
+    protected function respond(Cart $cart, ?PurchaseTypeService $types = null): \Illuminate\Http\JsonResponse
+    {
+        $cart->load(['items.product']);
+        $types ??= PurchaseTypeService::forTenant($cart->tenant_id);
+        $payload = $cart->toArray();
+        $payload['pricing'] = $types->quote($cart->items);
+
+        return response()->json(['data' => $payload]);
     }
 
     protected function cartFor(Request $request): Cart

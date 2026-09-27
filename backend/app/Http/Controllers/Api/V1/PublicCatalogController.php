@@ -12,6 +12,7 @@ use App\Models\MenuBanner;
 use App\Models\Product;
 use App\Models\ProductLike;
 use App\Services\Modules\ModuleSettingsService;
+use App\Services\Pricing\PurchaseTypeService;
 use Illuminate\Http\Request;
 
 class PublicCatalogController extends Controller
@@ -59,7 +60,8 @@ class PublicCatalogController extends Controller
             });
         }
 
-        $products = $productsQuery->get()->map(fn (Product $p) => $this->serializeProduct($p, true));
+        $pricing = PurchaseTypeService::forTenant($tid);
+        $products = $productsQuery->get()->map(fn (Product $p) => $this->withPricing($this->serializeProduct($p, true), $p, $pricing));
 
         $banners = MenuBanner::query()
             ->where('tenant_id', $tid)
@@ -117,11 +119,22 @@ class PublicCatalogController extends Controller
 
         $likesCount = ProductLike::query()->where('product_id', $product->id)->count();
 
-        $data = $this->serializeProduct($product, true);
+        $data = $this->withPricing($this->serializeProduct($product, true), $product, PurchaseTypeService::forTenant($tid));
         $data['likes_count'] = $likesCount;
 
         return response()->json([
             'data' => $data,
         ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function withPricing(array $data, Product $product, PurchaseTypeService $pricing): array
+    {
+        $data['pricing'] = $pricing->productPricing($product);
+
+        return $data;
     }
 }

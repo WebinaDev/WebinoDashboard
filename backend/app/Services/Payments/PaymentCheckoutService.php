@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\PaymentIntent;
 use App\Models\Tenant;
 use App\Services\Marketplace\Basalam\BasalamPay;
+use App\Services\Pricing\PurchaseTypeService;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -30,6 +31,10 @@ class PaymentCheckoutService
         $tid = (int) $order->tenant_id;
         if (! $this->gateways->isEnabled($tid, $provider)) {
             throw new \RuntimeException('Payment gateway is disabled.');
+        }
+        $purchaseType = (string) ($order->meta['wfcp_purchase_type'] ?? '');
+        if ($purchaseType !== '' && ! PurchaseTypeService::forTenant($tid)->gatewayAllowed($purchaseType, $provider)) {
+            throw new \DomainException(__('Payment gateway is not allowed for this purchase type.'));
         }
         if ($provider === BasalamPay::PROVIDER) {
             $pay = BasalamPay::for($tid);

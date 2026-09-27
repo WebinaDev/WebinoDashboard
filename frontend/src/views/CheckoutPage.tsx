@@ -9,8 +9,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 
+type Provider = "zarinpal" | "digipay" | "snapppay" | "torobpay"
+
+const PROVIDERS: Provider[] = ["zarinpal", "digipay", "snapppay", "torobpay"]
+
+type CartPricing = { active: boolean; purchase_type: string; allowed_gateways: string[] }
+
 export default function CheckoutPage() {
   const t = useTranslations("checkout")
+  const tPricing = useTranslations("pricing_storefront")
+  const tTypes = useTranslations("pricing_settings.types")
+  const [pricing, setPricing] = useState<CartPricing | null>(null)
   const searchParams = useSearchParams()
   const [orderId, setOrderId] = useState<number | null>(null)
   const [intentUrl, setIntentUrl] = useState<string | null>(null)
@@ -18,6 +27,16 @@ export default function CheckoutPage() {
   const [shippingAddress, setShippingAddress] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [customerNote, setCustomerNote] = useState("")
+
+  useEffect(() => {
+    api<{ pricing?: CartPricing }>("/api/v1/cart")
+      .then((c) => setPricing(c.pricing ?? null))
+      .catch(() => setPricing(null))
+  }, [])
+
+  const allowed = pricing?.active && pricing.allowed_gateways.length
+    ? PROVIDERS.filter((p) => pricing.allowed_gateways.includes(p))
+    : PROVIDERS
 
   useEffect(() => {
     const p = searchParams?.get("payment")
@@ -39,7 +58,7 @@ export default function CheckoutPage() {
     setIntentUrl(null)
   }
 
-  async function pay(provider: "zarinpal" | "digipay" | "snapppay" | "torobpay") {
+  async function pay(provider: Provider) {
     if (!orderId) {
       return
     }
@@ -101,39 +120,24 @@ export default function CheckoutPage() {
           {t("order_created")} #{orderId}
         </p>
       ) : null}
+      {pricing?.active && pricing.purchase_type !== "cash" && pricing.allowed_gateways.length ? (
+        <p className="text-muted-foreground text-xs">
+          {tPricing("gateways_filtered", { type: tTypes(pricing.purchase_type) })}
+        </p>
+      ) : null}
+      {allowed.length === 0 ? <p className="text-destructive text-sm">{tPricing("no_gateway")}</p> : null}
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={!orderId}
-          onClick={() => void pay("zarinpal")}
-        >
-          {t("pay_zarinpal")}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={!orderId}
-          onClick={() => void pay("digipay")}
-        >
-          {t("pay_digipay")}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={!orderId}
-          onClick={() => void pay("snapppay")}
-        >
-          {t("pay_snapppay")}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={!orderId}
-          onClick={() => void pay("torobpay")}
-        >
-          {t("pay_torobpay")}
-        </Button>
+        {allowed.map((provider) => (
+          <Button
+            key={provider}
+            type="button"
+            variant="secondary"
+            disabled={!orderId}
+            onClick={() => void pay(provider)}
+          >
+            {t(`pay_${provider}`)}
+          </Button>
+        ))}
       </div>
       {intentUrl ? (
         <p className="break-all text-muted-foreground text-xs">{intentUrl}</p>
