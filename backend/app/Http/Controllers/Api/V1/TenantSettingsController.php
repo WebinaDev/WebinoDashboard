@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\Analytics\AnalyticsSettings;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Orders\OrderDocumentSettings;
 use Illuminate\Http\Request;
@@ -43,6 +44,9 @@ class TenantSettingsController extends Controller
         if ($key === OrderDocumentSettings::KEY) {
             return response()->json(['data' => OrderDocumentSettings::get($tenantId, $this->locale($request))]);
         }
+        if ($key === AnalyticsSettings::KEY) {
+            return response()->json(['data' => AnalyticsSettings::public($tenantId)]);
+        }
         $defaults = $this->defaultsFor($key);
 
         return response()->json([
@@ -64,6 +68,9 @@ class TenantSettingsController extends Controller
         $tenantId = (int) $request->user()->tenant_id;
         if ($key === OrderDocumentSettings::KEY) {
             return response()->json(['data' => OrderDocumentSettings::save($tenantId, $payload['payload'], $this->locale($request))]);
+        }
+        if ($key === AnalyticsSettings::KEY) {
+            return response()->json(['data' => AnalyticsSettings::save($tenantId, $payload['payload'])]);
         }
         $defaults = $this->defaultsFor($key);
         $merged = array_replace_recursive($defaults, $payload['payload']);
@@ -135,14 +142,7 @@ class TenantSettingsController extends Controller
                 'prompt_product' => '',
                 'temperature' => 0.7,
             ],
-            'site.analytics' => [
-                'enabled' => false,
-                'provider' => 'none',
-                'ga_measurement_id' => '',
-                'gtm_id' => '',
-                'clarity_id' => '',
-                'track_admin' => false,
-            ],
+            'site.analytics' => AnalyticsSettings::defaults(),
             'site.sms' => [
                 'enabled' => false,
                 'otp_login_enabled' => false,

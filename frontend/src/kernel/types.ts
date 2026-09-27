@@ -23,6 +23,10 @@ export type AdminRouteDef = {
   order?: number
   /** Keep route resolvable but omit from sidebar nav (storefront-only pages). */
   navHidden?: boolean
+  /** Collapse related routes under one sidebar parent (e.g. analytics, shop_reports). */
+  navGroup?: string
+  /** Order inside navGroup. */
+  navOrder?: number
 }
 
 export type SiteRouteDef = {

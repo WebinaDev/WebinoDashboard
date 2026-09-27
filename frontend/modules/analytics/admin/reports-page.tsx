@@ -1,6 +1,6 @@
 import CommerceReportsPage from "@/views/CommerceReportsPage"
-import type { ResolvedAdminRoute } from "@/kernel/types"
 
-export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
+/** @deprecated Prefer reports/overview shell; kept for legacy path resolution. */
+export default function ReportsPage() {
   return <CommerceReportsPage />
 }

@@ -67,6 +67,7 @@ use App\Http\Controllers\Api\V1\PublicKernelController;
 use App\Http\Controllers\Api\V1\PublicMagazineController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
 use App\Http\Controllers\Api\V1\PublicSiteController;
+use App\Http\Controllers\Api\V1\PublicAnalyticsController;
 use App\Http\Controllers\Api\V1\ReportsController;
 use App\Http\Controllers\Api\V1\ResumeProfileController;
 use App\Http\Controllers\Api\V1\SetupController;
@@ -137,6 +138,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/tenant', [PublicSiteController::class, 'tenant']);
         Route::get('/home', [PublicSiteController::class, 'home']);
         Route::get('/kernel/activations', [PublicKernelController::class, 'activations']);
+        Route::get('/analytics/bootstrap', [PublicAnalyticsController::class, 'bootstrap']);
+        Route::post('/analytics/hit', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
 
         Route::middleware('public.module:blog')->group(function () {
             Route::get('/blog', [PublicBlogController::class, 'index']);
@@ -245,6 +248,15 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('module:dashboard')->group(function () {
             Route::get('/analytics/summary', [AnalyticsController::class, 'summary']);
+        });
+
+        Route::middleware('module:analytics')->group(function () {
+            Route::get('/analytics/settings', [AnalyticsController::class, 'settings']);
+            Route::post('/analytics/settings', [AnalyticsController::class, 'saveSettings']);
+            Route::post('/analytics/purge-cache', [AnalyticsController::class, 'purgeCache']);
+            Route::post('/analytics/cache/purge', [AnalyticsController::class, 'purgeCache']);
+            Route::get('/analytics/{section}', [AnalyticsController::class, 'section'])
+                ->where('section', 'overview|visitors|pages|referrals|geo|devices|online|commerce|compare|seo|support|content|month-summary');
         });
 
         Route::middleware('module:catalog')->group(function () {
@@ -513,7 +525,10 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::middleware('module:reports')->group(function () {
-            Route::get('/reports/overview', [ReportsController::class, 'overview']);
+            Route::get('/reports/{section}', [ReportsController::class, 'section'])
+                ->where('section', 'overview|revenue|orders|products|variations|categories|coupons|taxes|customers|downloads|stock|sales|financial');
+            Route::get('/reports/{section}/export', [ReportsController::class, 'export'])
+                ->where('section', 'overview|revenue|orders|products|variations|categories|coupons|taxes|customers|downloads|stock|sales|financial');
         });
 
         Route::middleware('module:marketing')->group(function () {

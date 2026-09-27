@@ -145,10 +145,28 @@ export function buildAdminNav(activations: TenantActivation[]) {
     section: string
     labelKey: string
     order: number
-    items: { titleKey: string; url: string; moduleSlug: string; submodule: string }[]
+    items: {
+      titleKey: string
+      url: string
+      moduleSlug: string
+      submodule: string
+      items?: { titleKey: string; url: string; moduleSlug: string; submodule: string }[]
+    }[]
   }[] = []
 
-  const sectionMap = new Map<string, typeof items[0]>()
+  const sectionMap = new Map<string, (typeof items)[0]>()
+  const groupBuckets = new Map<
+    string,
+    {
+      section: string
+      order: number
+      titleKey: string
+      url: string
+      moduleSlug: string
+      submodule: string
+      children: { titleKey: string; url: string; moduleSlug: string; submodule: string; navOrder: number }[]
+    }
+  >()
 
   for (const mod of MODULE_MANIFESTS) {
     for (const route of mod.adminRoutes) {
@@ -166,6 +184,35 @@ export function buildAdminNav(activations: TenantActivation[]) {
           items: [],
         })
       }
+
+      if (route.navGroup) {
+        const gk = `${section}::${route.navGroup}`
+        if (!groupBuckets.has(gk)) {
+          groupBuckets.set(gk, {
+            section,
+            order: route.order ?? mod.adminNav?.order ?? 99,
+            titleKey: `nav.group_${route.navGroup}`,
+            url: dashboardPath(route.path),
+            moduleSlug: mod.slug,
+            submodule: route.submodule,
+            children: [],
+          })
+        }
+        const bucket = groupBuckets.get(gk)!
+        if ((route.navOrder ?? 99) < (bucket.children[0]?.navOrder ?? 9999)) {
+          bucket.url = dashboardPath(route.path)
+          bucket.submodule = route.submodule
+        }
+        bucket.children.push({
+          titleKey: route.labelKey,
+          url: dashboardPath(route.path),
+          moduleSlug: mod.slug,
+          submodule: route.submodule,
+          navOrder: route.navOrder ?? 99,
+        })
+        continue
+      }
+
       sectionMap.get(section)!.items.push({
         titleKey: route.labelKey,
         url: route.path === "" ? DASHBOARD_BASE : dashboardPath(route.path),
@@ -173,6 +220,28 @@ export function buildAdminNav(activations: TenantActivation[]) {
         submodule: route.submodule,
       })
     }
+  }
+
+  for (const bucket of groupBuckets.values()) {
+    const sec = sectionMap.get(bucket.section)
+    if (!sec) continue
+    bucket.children.sort((a, b) => a.navOrder - b.navOrder)
+    sec.items.push({
+      titleKey: bucket.titleKey,
+      url: bucket.url,
+      moduleSlug: bucket.moduleSlug,
+      submodule: bucket.submodule,
+      items: bucket.children.map(({ titleKey, url, moduleSlug, submodule }) => ({
+        titleKey,
+        url,
+        moduleSlug,
+        submodule,
+      })),
+    })
+  }
+
+  for (const sec of sectionMap.values()) {
+    sec.items.sort((a, b) => a.url.localeCompare(b.url))
   }
 
   return [...sectionMap.values()].sort((a, b) => a.order - b.order)

@@ -19,22 +19,38 @@ class TenantResolver
 
     public function resolveFromRequest(Request $request): ?Tenant
     {
+        $header = (string) ($request->header('X-Tenant-Domain') ?: $request->query('tenant_domain', ''));
+        if ($header !== '') {
+            $byHeader = $this->findByHost($header);
+            if ($byHeader) {
+                return $byHeader;
+            }
+        }
+
         $host = $this->normalizeHost($request->getHost());
-
         if ($host !== '' && ! $this->isInternalHost($host)) {
-            $tenant = Tenant::query()
-                ->where(function ($q) use ($host): void {
-                    $q->where('domain', $host)
-                        ->orWhere('domain', 'www.'.$host);
-                })
-                ->first();
-
+            $tenant = $this->findByHost($host);
             if ($tenant) {
                 return $tenant;
             }
         }
 
         return Tenant::query()->orderBy('id')->first();
+    }
+
+    public function findByHost(string $host): ?Tenant
+    {
+        $host = $this->normalizeHost($host);
+        if ($host === '') {
+            return null;
+        }
+
+        return Tenant::query()
+            ->where(function ($q) use ($host): void {
+                $q->where('domain', $host)
+                    ->orWhere('domain', 'www.'.$host);
+            })
+            ->first();
     }
 
     public function normalizeHost(string $host): string

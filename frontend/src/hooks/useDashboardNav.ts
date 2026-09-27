@@ -68,6 +68,7 @@ const ICONS: Record<string, LucideIcon> = {
   blog: BookOpen,
   marketing: Package,
   reports: BarChart3,
+  analytics: BarChart3,
   magazine: BookOpen,
   academy: GraduationCap,
   menu: UtensilsCrossed,
@@ -113,12 +114,20 @@ export function useDashboardNav() {
       groupLabel: t(sec.labelKey.replace("nav.", "") as never),
       items: sec.items.map((item) => {
         const Icon = resolveNavIcon(item.url)
+        const nested = item.items?.map((child) => ({
+          id: child.url,
+          title: t(child.titleKey.replace("nav.", "") as never),
+          url: child.url,
+        }))
         return {
           id: item.url,
           title: t(item.titleKey.replace("nav.", "") as never),
           url: item.url,
           icon: Icon,
-          isActive: pathIsActive(pathname, item.url),
+          isActive:
+            pathIsActive(pathname, item.url) ||
+            Boolean(nested?.some((n) => pathIsActive(pathname, n.url))),
+          items: nested,
         }
       }),
     }))

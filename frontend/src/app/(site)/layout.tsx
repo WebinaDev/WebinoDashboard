@@ -5,6 +5,7 @@ import { apiServer } from "@/lib/api-server"
 import { loadThemeComponents } from "@/kernel/theme-loader"
 import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
+import { AnalyticsTrackerScript } from "@/components/AnalyticsTrackerScript"
 
 export const revalidate = 60
 
@@ -60,6 +61,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       <SiteHeader siteName={tenantName} branding={branding} />
       <main className="flex-1">{children}</main>
       <SiteFooter siteName={tenantName} />
+      <AnalyticsTrackerScript />
     </SiteBrandingShell>
   )
 }

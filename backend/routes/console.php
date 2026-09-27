@@ -46,7 +46,13 @@ Artisan::command('pricing:exchange-auto-update', function () {
     });
 })->purpose('Daily WFCP exchange-rate refresh at each tenant\'s configured hour');
 
+Artisan::command('analytics:rollup', function () {
+    app(\App\Services\Analytics\AnalyticsRollup::class)->runDailyForAllTenants();
+    $this->info('Analytics rollup complete.');
+})->purpose('Roll up yesterday/today analytics and purge old events');
+
 Schedule::command('pricing:exchange-auto-update')->hourly()->withoutOverlapping();
+Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:torob-webhooks')->everyMinute()->withoutOverlapping();
