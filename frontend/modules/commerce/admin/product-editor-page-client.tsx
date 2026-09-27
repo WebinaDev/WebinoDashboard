@@ -123,7 +123,7 @@ type FormState = {
   gallery_text: string
   video_url: string
   video_cover_url: string
-  type: "simple" | "variable"
+  type: "simple" | "variable" | "downloadable"
   status: string
   catalog_visibility: string
   category_ids: number[]
@@ -211,7 +211,7 @@ function productToForm(p: Product): FormState {
     gallery_text: gallery.join("\n"),
     video_url: p.video_url ?? "",
     video_cover_url: p.video_cover_url ?? "",
-    type: (p.type as "simple" | "variable") || "simple",
+    type: (p.type as "simple" | "variable" | "downloadable") || "simple",
     status: p.status ?? "draft",
     catalog_visibility: p.catalog_visibility ?? "visible",
     category_ids: p.category_ids ?? p.categories?.map((c) => c.id) ?? [],
