@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\DashboardModule;
 use App\Models\Tenant;
@@ -61,7 +62,42 @@ class BlogApiTest extends TestCase
         $this->actingAs($user, 'sanctum')
             ->getJson('/api/v1/blog/posts')
             ->assertOk()
-            ->assertJsonPath('data.0.title', 'First post');
+            ->assertJsonPath('data.items.0.title', 'First post');
+
+        $id = BlogPost::query()->where('tenant_id', $user->tenant_id)->value('id');
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/blog/posts/'.$id)
+            ->assertOk()
+            ->assertJsonPath('data.title', 'First post');
+    }
+
+    public function test_admin_can_sync_tags_and_categories(): void
+    {
+        $user = $this->actingBlogUser();
+
+        $cat = BlogCategory::query()->create([
+            'tenant_id' => $user->tenant_id,
+            'slug' => 'news',
+            'name' => 'News',
+        ]);
+
+        $res = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/blog/posts', [
+                'title' => 'Tagged',
+                'body' => '<p>Hi</p>',
+                'status' => 'draft',
+                'category_id' => $cat->id,
+                'tags' => ['alpha', 'beta'],
+            ])
+            ->assertCreated();
+
+        $this->assertCount(2, $res->json('data.tags'));
+        $this->assertSame($cat->id, $res->json('data.category_id'));
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/blog/categories')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.name', 'News');
     }
 
     public function test_public_blog_lists_published_posts(): void

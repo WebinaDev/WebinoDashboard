@@ -110,9 +110,16 @@ class ProductController extends Controller
     public function lookup(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
+        $tenant = $request->user()->tenant;
+        $domain = $tenant?->domain ? rtrim((string) $tenant->domain, '/') : '';
+        $scheme = str_starts_with($domain, 'http') ? '' : 'https://';
+        $baseUrl = $domain !== '' ? $scheme.$domain : '';
+        $permalinkBase = $baseUrl !== '' ? $baseUrl.'/product/' : '/product/';
 
         return response()->json([
             'data' => [
+                'permalink_base' => $permalinkBase,
+                'site_url' => $baseUrl,
                 'ishop_labels' => [
                     ['key' => 'check_purchase', 'label' => 'بررسی قبل از خرید'],
                     ['key' => 'installment_purchase', 'label' => 'خرید اقساطی'],
@@ -125,6 +132,7 @@ class ProductController extends Controller
                 'brands' => \App\Models\Brand::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug', 'parent_id']),
                 'tags' => ProductTag::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug']),
                 'attributes' => \App\Models\ProductAttribute::query()->where('tenant_id', $tid)->with('terms')->orderBy('name')->get(),
+                'products' => Product::query()->where('tenant_id', $tid)->orderBy('name')->limit(500)->get(['id', 'name', 'sku']),
             ],
         ]);
     }

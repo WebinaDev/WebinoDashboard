@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\AiRecommendationController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BlogCategoryController;
 use App\Http\Controllers\Api\V1\BlogPostController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CafeSettingsController;
@@ -642,8 +643,13 @@ Route::prefix('v1')->group(function () {
         Route::middleware('module:blog')->group(function () {
             Route::get('/blog/posts', [BlogPostController::class, 'index']);
             Route::post('/blog/posts', [BlogPostController::class, 'store']);
+            Route::get('/blog/posts/{post}', [BlogPostController::class, 'show'])->whereNumber('post');
             Route::patch('/blog/posts/{post}', [BlogPostController::class, 'update'])->whereNumber('post');
             Route::delete('/blog/posts/{post}', [BlogPostController::class, 'destroy'])->whereNumber('post');
+            Route::get('/blog/categories', [BlogCategoryController::class, 'index']);
+            Route::post('/blog/categories', [BlogCategoryController::class, 'store']);
+            Route::patch('/blog/categories/{id}', [BlogCategoryController::class, 'update'])->whereNumber('id');
+            Route::delete('/blog/categories/{id}', [BlogCategoryController::class, 'destroy'])->whereNumber('id');
         });
 
         Route::middleware('module:media')->group(function () {

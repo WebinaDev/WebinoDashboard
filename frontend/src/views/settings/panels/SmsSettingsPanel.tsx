@@ -85,7 +85,7 @@ const defaultSettings = (): SiteSmsSettings => ({
   use_pattern_for_otp: false,
 })
 
-/** Full site SMS panel — ModirPayamak / ERP proxy only (no local module_settings). */
+/** Full site SMS panel — dashboard SMS service / ERP proxy only (no local module_settings). */
 export function SmsSettingsPanel() {
   const t = useTranslations("settings_hub.sms")
   const tCommon = useTranslations("common")

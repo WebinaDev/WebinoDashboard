@@ -6,6 +6,8 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 
+import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
+import { RichTextEditor } from "@/components/content/RichTextEditor"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,11 +34,14 @@ type LookupAttr = {
   terms?: LookupTerm[]
 }
 type Lookup = {
+  permalink_base?: string
+  site_url?: string
   ishop_labels: Array<{ key: string; label: string }>
   categories: Array<{ id: number; name: string; parent_id?: number | null }>
   brands: Array<{ id: number; name: string }>
   tags: Array<{ id: number; name: string }>
   attributes: LookupAttr[]
+  products?: Array<{ id: number; name: string; sku?: string | null }>
 }
 
 type ProductAttrPivot = {
@@ -84,6 +89,12 @@ type Product = {
   type?: string
   status?: string
   catalog_visibility?: string
+  sku?: string | null
+  is_featured?: boolean
+  meta?: Record<string, unknown> | null
+  related_ids?: number[] | null
+  upsell_ids?: number[] | null
+  cross_sell_ids?: number[] | null
   category_ids?: number[]
   categories?: Array<{ id: number }>
   brand_ids?: number[]
@@ -126,9 +137,17 @@ type FormState = {
   type: "simple" | "variable" | "downloadable"
   status: string
   catalog_visibility: string
+  sku: string
+  is_featured: boolean
   category_ids: number[]
   brand_ids: number[]
   tag_names: string
+  seo_title: string
+  seo_description: string
+  seo_keyword: string
+  related_ids: number[]
+  upsell_ids: number[]
+  cross_sell_ids: number[]
   purchase_price_minor: number
   lock_price: boolean
   price_minor: number
@@ -174,9 +193,17 @@ const emptyForm: FormState = {
   type: "simple",
   status: "draft",
   catalog_visibility: "visible",
+  sku: "",
+  is_featured: false,
   category_ids: [],
   brand_ids: [],
   tag_names: "",
+  seo_title: "",
+  seo_description: "",
+  seo_keyword: "",
+  related_ids: [],
+  upsell_ids: [],
+  cross_sell_ids: [],
   purchase_price_minor: 0,
   lock_price: false,
   price_minor: 0,
@@ -214,9 +241,17 @@ function productToForm(p: Product): FormState {
     type: (p.type as "simple" | "variable" | "downloadable") || "simple",
     status: p.status ?? "draft",
     catalog_visibility: p.catalog_visibility ?? "visible",
+    sku: p.sku ?? "",
+    is_featured: Boolean(p.is_featured),
     category_ids: p.category_ids ?? p.categories?.map((c) => c.id) ?? [],
     brand_ids: p.brand_ids ?? p.brands?.map((b) => b.id) ?? [],
     tag_names: (p.tags ?? []).map((t) => t.name).join(", "),
+    seo_title: String((p.meta as { seo_title?: string } | null)?.seo_title ?? ""),
+    seo_description: String((p.meta as { seo_description?: string } | null)?.seo_description ?? ""),
+    seo_keyword: String((p.meta as { seo_keyword?: string } | null)?.seo_keyword ?? ""),
+    related_ids: Array.isArray(p.related_ids) ? p.related_ids.map(Number) : [],
+    upsell_ids: Array.isArray(p.upsell_ids) ? p.upsell_ids.map(Number) : [],
+    cross_sell_ids: Array.isArray(p.cross_sell_ids) ? p.cross_sell_ids.map(Number) : [],
     purchase_price_minor: p.purchase_price_minor ?? 0,
     lock_price: Boolean(p.lock_price),
     price_minor: p.price_minor ?? 0,
@@ -276,6 +311,11 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   const [calculated, setCalculated] = useState<Product["calculated"]>()
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false)
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false)
+  const [slugEditing, setSlugEditing] = useState(false)
+  const [tagInput, setTagInput] = useState("")
+  const [catFilter, setCatFilter] = useState("")
 
   const { data: lookup } = useQuery({
     queryKey: ["products-lookup"],
@@ -341,12 +381,22 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       type: form.type,
       status: form.status,
       catalog_visibility: form.catalog_visibility,
+      sku: form.sku || null,
+      is_featured: form.is_featured,
       category_ids: form.category_ids,
       brand_ids: form.brand_ids,
       tag_names: form.tag_names
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+      meta: {
+        seo_title: form.seo_title || undefined,
+        seo_description: form.seo_description || undefined,
+        seo_keyword: form.seo_keyword || undefined,
+      },
+      related_ids: form.related_ids,
+      upsell_ids: form.upsell_ids,
+      cross_sell_ids: form.cross_sell_ids,
       purchase_price_minor: Number(form.purchase_price_minor) || 0,
       lock_price: form.lock_price,
       price_minor: form.type === "variable" ? undefined : Number(form.price_minor) || 0,
@@ -379,10 +429,19 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
 
   const save = useMutation({
     mutationFn: async () => {
+      let row: Product
       if (isNew) {
-        return api<Product>("/api/v1/products", { method: "POST", json: payload })
+        row = await api<Product>("/api/v1/products", { method: "POST", json: payload })
+      } else {
+        row = await api<Product>(`/api/v1/products/${productId}`, { method: "PATCH", json: payload })
+        if (productId && attrAssigns.length >= 0) {
+          await api(`/api/v1/products/${productId}/attributes`, {
+            method: "PUT",
+            json: { attributes: attrAssigns },
+          })
+        }
       }
-      return api<Product>(`/api/v1/products/${productId}`, { method: "PATCH", json: payload })
+      return row
     },
     onSuccess: async (row) => {
       setMessage(t("saved"))
@@ -488,6 +547,23 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
     },
   })
 
+  const updateVariant = useMutation({
+    mutationFn: (body: { id: number; price_minor?: number; sku?: string; stock?: number | null }) =>
+      api(`/api/v1/variants/${body.id}`, {
+        method: "PATCH",
+        json: {
+          price_minor: body.price_minor,
+          sku: body.sku,
+          stock: body.stock,
+        },
+      }),
+    onSuccess: async () => {
+      await refetchVariants()
+      setMessage(t("saved"))
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
   const saveCoffee = useMutation({
     mutationFn: () =>
       api(`/api/v1/products/${productId}/coffee-profile`, {
@@ -520,6 +596,19 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   }
 
   const assignedIds = new Set(attrAssigns.map((a) => a.id))
+
+  const permalinkBase = lookup?.permalink_base || "/product/"
+  const tagList = form.tag_names
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const galleryUrls = form.gallery_text
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const filteredCats = (lookup?.categories ?? []).filter((c) =>
+    !catFilter.trim() || c.name.toLowerCase().includes(catFilter.trim().toLowerCase()),
+  )
 
   const sidebar = (
     <aside className="space-y-3 lg:sticky lg:top-4 lg:self-start">
@@ -567,6 +656,13 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
               <option value="hidden">hidden</option>
             </select>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={form.is_featured}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, is_featured: Boolean(v) }))}
+            />
+            {t("is_featured")}
+          </label>
           <Button className="w-full" onClick={() => save.mutate()} disabled={!form.name || save.isPending}>
             {tCommon("save")}
           </Button>
@@ -577,16 +673,20 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
         <CardHeader>
           <CardTitle className="text-base">{t("categories")}</CardTitle>
         </CardHeader>
-        <CardContent className="max-h-48 space-y-2 overflow-y-auto">
-          {(lookup?.categories ?? []).map((c) => (
-            <label key={c.id} className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={form.category_ids.includes(c.id)}
-                onCheckedChange={() => setForm((f) => ({ ...f, category_ids: toggleId(f.category_ids, c.id) }))}
-              />
-              {c.name}
-            </label>
-          ))}
+        <CardContent className="space-y-2">
+          <Input value={catFilter} onChange={(e) => setCatFilter(e.target.value)} placeholder={t("search_categories")} />
+          <div className="max-h-48 space-y-2 overflow-y-auto">
+            {filteredCats.map((c) => (
+              <label key={c.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={form.category_ids.includes(c.id)}
+                  onCheckedChange={() => setForm((f) => ({ ...f, category_ids: toggleId(f.category_ids, c.id) }))}
+                />
+                {c.parent_id ? "— " : ""}
+                {c.name}
+              </label>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -611,29 +711,80 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
         <CardHeader>
           <CardTitle className="text-base">{t("tags")}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
+          <div className="flex flex-wrap gap-1">
+            {tagList.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className="bg-muted rounded-full px-2 py-0.5 text-xs"
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    tag_names: f.tag_names
+                      .split(",")
+                      .map((s) => s.trim())
+                      .filter((x) => x && x !== name)
+                      .join(", "),
+                  }))
+                }
+              >
+                {name} ×
+              </button>
+            ))}
+          </div>
           <Input
-            value={form.tag_names}
-            onChange={(e) => setForm((f) => ({ ...f, tag_names: e.target.value }))}
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault()
+                const name = tagInput.trim().replace(/,$/, "")
+                if (!name) return
+                if (!tagList.includes(name)) {
+                  setForm((f) => ({
+                    ...f,
+                    tag_names: [...tagList, name].join(", "),
+                  }))
+                }
+                setTagInput("")
+              }
+            }}
+            list="product-tag-suggestions"
             placeholder={t("tags_ph")}
           />
+          <datalist id="product-tag-suggestions">
+            {(lookup?.tags ?? []).map((tg) => (
+              <option key={tg.id} value={tg.name} />
+            ))}
+          </datalist>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t("image_url")}</CardTitle>
+          <CardTitle className="text-base">{t("featured_image")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} />
           {form.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={form.image_url} alt="" className="max-h-36 w-full rounded-md object-cover" />
           ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => setCoverPickerOpen(true)}>
+              {t("pick_from_media")}
+            </Button>
+            {form.image_url ? (
+              <Button type="button" size="sm" variant="ghost" onClick={() => setForm((f) => ({ ...f, image_url: "" }))}>
+                {t("remove_image")}
+              </Button>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     </aside>
   )
+
 
   return (
     <PageShell
@@ -642,6 +793,13 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       actions={
         <>
           {productId ? <PrintProductLabelButton productIds={[Number(productId)]} /> : null}
+          {form.slug ? (
+            <Button variant="outline" asChild>
+              <a href={`${permalinkBase}${form.slug}`} target="_blank" rel="noreferrer">
+                {t("view_on_store")}
+              </a>
+            </Button>
+          ) : null}
           <Button variant="outline" asChild>
             <Link href="/dashboard/products">{t("back_to_list")}</Link>
           </Button>
@@ -677,42 +835,113 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <Label>{t("name")}</Label>
-                      <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+                      <Input
+                        value={form.name}
+                        onChange={(e) => {
+                          const name = e.target.value
+                          setForm((f) => ({
+                            ...f,
+                            name,
+                            slug:
+                              isNew && !slugEditing
+                                ? name
+                                    .trim()
+                                    .toLowerCase()
+                                    .replace(/\s+/g, "-")
+                                    .replace(/[^\w\u0600-\u06FF-]+/g, "")
+                                : f.slug,
+                          }))
+                        }}
+                        className="text-base font-medium"
+                      />
                     </div>
                     <div>
                       <Label>{t("english_name")}</Label>
                       <Input
                         value={form.english_name}
                         onChange={(e) => setForm((f) => ({ ...f, english_name: e.target.value }))}
+                        dir="ltr"
                       />
                     </div>
                   </div>
-                  <div>
-                    <Label>{t("slug")}</Label>
-                    <Input value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} />
+                  <div className="bg-muted/20 space-y-1.5 rounded-lg border p-2.5">
+                    <p className="text-muted-foreground text-xs font-medium">{t("permalink")}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-sm" dir="ltr">
+                      <span className="text-muted-foreground">{permalinkBase}</span>
+                      {slugEditing ? (
+                        <Input
+                          className="h-8 max-w-xs"
+                          value={form.slug}
+                          onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
+                          onBlur={() => setSlugEditing(false)}
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <a
+                            href={form.slug ? `${permalinkBase}${form.slug}` : undefined}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary max-w-full truncate font-medium underline-offset-2 hover:underline"
+                          >
+                            {form.slug || "…"}
+                          </a>
+                          <Button type="button" size="sm" variant="outline" onClick={() => setSlugEditing(true)}>
+                            {t("edit_permalink")}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <Label>{t("short_description")}</Label>
-                    <Textarea
+                    <RichTextEditor
                       value={form.short_description}
-                      onChange={(e) => setForm((f) => ({ ...f, short_description: e.target.value }))}
+                      onChange={(html) => setForm((f) => ({ ...f, short_description: html }))}
                     />
                   </div>
                   <div>
                     <Label>{t("description")}</Label>
-                    <Textarea
-                      rows={6}
+                    <RichTextEditor
                       value={form.description}
-                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                      onChange={(html) => setForm((f) => ({ ...f, description: html }))}
                     />
                   </div>
-                  <div>
-                    <Label>{t("gallery_urls")}</Label>
-                    <Textarea
-                      value={form.gallery_text}
-                      onChange={(e) => setForm((f) => ({ ...f, gallery_text: e.target.value }))}
-                      placeholder={t("one_per_line")}
-                    />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>{t("gallery")}</Label>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setGalleryPickerOpen(true)}>
+                        {t("pick_from_media")}
+                      </Button>
+                    </div>
+                    {galleryUrls.length ? (
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {galleryUrls.map((url) => (
+                          <div key={url} className="relative overflow-hidden rounded-md border">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt="" className="aspect-square w-full object-cover" />
+                            <button
+                              type="button"
+                              className="bg-background/80 absolute end-1 top-1 rounded px-1 text-xs"
+                              onClick={() =>
+                                setForm((f) => ({
+                                  ...f,
+                                  gallery_text: f.gallery_text
+                                    .split("\n")
+                                    .map((s) => s.trim())
+                                    .filter((u) => u && u !== url)
+                                    .join("\n"),
+                                }))
+                              }
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-xs">{t("gallery_empty")}</p>
+                    )}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
@@ -720,6 +949,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                       <Input
                         value={form.video_url}
                         onChange={(e) => setForm((f) => ({ ...f, video_url: e.target.value }))}
+                        dir="ltr"
                       />
                     </div>
                     <div>
@@ -727,8 +957,28 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                       <Input
                         value={form.video_cover_url}
                         onChange={(e) => setForm((f) => ({ ...f, video_cover_url: e.target.value }))}
+                        dir="ltr"
                       />
                     </div>
+                  </div>
+                  <div className="space-y-2 rounded-xl border p-4">
+                    <p className="text-sm font-medium">{t("tab_seo")}</p>
+                    <Input
+                      value={form.seo_keyword}
+                      onChange={(e) => setForm((f) => ({ ...f, seo_keyword: e.target.value }))}
+                      placeholder={t("seo_keyword")}
+                    />
+                    <Input
+                      value={form.seo_title}
+                      onChange={(e) => setForm((f) => ({ ...f, seo_title: e.target.value }))}
+                      placeholder={t("seo_title")}
+                    />
+                    <Textarea
+                      value={form.seo_description}
+                      onChange={(e) => setForm((f) => ({ ...f, seo_description: e.target.value }))}
+                      placeholder={t("seo_description")}
+                      rows={2}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -740,6 +990,14 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                 <CardTitle>{t("tab_pricing")}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>{t("sku")}</Label>
+                  <Input
+                    value={form.sku}
+                    onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
+                    dir="ltr"
+                  />
+                </div>
                 {form.type === "variable" ? (
                   <p className="text-muted-foreground sm:col-span-2 text-sm">{t("variable_price_hint")}</p>
                 ) : null}
@@ -954,11 +1212,30 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                   <CardContent className="space-y-3">
                     <ul className="space-y-2">
                       {(variants.length ? variants : product?.variants ?? []).map((v) => (
-                        <li key={v.id} className="flex items-center justify-between rounded border p-2 text-sm">
-                          <span>
-                            {v.name} · {v.price_minor.toLocaleString()}
+                        <li key={v.id} className="grid gap-2 rounded border p-2 text-sm sm:grid-cols-[1fr_120px_100px_40px] sm:items-center">
+                          <span className="font-medium">
+                            {v.name}
                             {v.is_default ? <Badge className="ms-2">{t("default")}</Badge> : null}
                           </span>
+                          <Input
+                            className="h-8"
+                            defaultValue={v.sku ?? ""}
+                            placeholder={t("sku")}
+                            dir="ltr"
+                            onBlur={(e) => {
+                              const sku = e.target.value
+                              if (sku !== (v.sku ?? "")) updateVariant.mutate({ id: v.id, sku, price_minor: v.price_minor, stock: v.stock })
+                            }}
+                          />
+                          <Input
+                            className="h-8"
+                            type="number"
+                            defaultValue={v.price_minor}
+                            onBlur={(e) => {
+                              const price_minor = Number(e.target.value) || 0
+                              if (price_minor !== v.price_minor) updateVariant.mutate({ id: v.id, price_minor, sku: v.sku ?? "", stock: v.stock })
+                            }}
+                          />
                           <Button size="icon" variant="ghost" onClick={() => deleteVariant.mutate(v.id)}>
                             <Trash2 className="size-4" />
                           </Button>
@@ -1151,6 +1428,63 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     />
                   </div>
                   <div>
+                    <Label>{t("related_products")}</Label>
+                    <div className="max-h-40 space-y-1 overflow-y-auto rounded border p-2">
+                      {(lookup?.products ?? [])
+                        .filter((p) => !productId || p.id !== Number(productId))
+                        .slice(0, 80)
+                        .map((p) => (
+                          <label key={p.id} className="flex items-center gap-2 text-xs">
+                            <Checkbox
+                              checked={form.related_ids.includes(p.id)}
+                              onCheckedChange={() =>
+                                setForm((f) => ({ ...f, related_ids: toggleId(f.related_ids, p.id) }))
+                              }
+                            />
+                            {p.name}
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                  <div>
+                    <Label>{t("upsells")}</Label>
+                    <div className="max-h-32 space-y-1 overflow-y-auto rounded border p-2">
+                      {(lookup?.products ?? [])
+                        .filter((p) => !productId || p.id !== Number(productId))
+                        .slice(0, 80)
+                        .map((p) => (
+                          <label key={`u-${p.id}`} className="flex items-center gap-2 text-xs">
+                            <Checkbox
+                              checked={form.upsell_ids.includes(p.id)}
+                              onCheckedChange={() =>
+                                setForm((f) => ({ ...f, upsell_ids: toggleId(f.upsell_ids, p.id) }))
+                              }
+                            />
+                            {p.name}
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                  <div>
+                    <Label>{t("cross_sells")}</Label>
+                    <div className="max-h-32 space-y-1 overflow-y-auto rounded border p-2">
+                      {(lookup?.products ?? [])
+                        .filter((p) => !productId || p.id !== Number(productId))
+                        .slice(0, 80)
+                        .map((p) => (
+                          <label key={`c-${p.id}`} className="flex items-center gap-2 text-xs">
+                            <Checkbox
+                              checked={form.cross_sell_ids.includes(p.id)}
+                              onCheckedChange={() =>
+                                setForm((f) => ({ ...f, cross_sell_ids: toggleId(f.cross_sell_ids, p.id) }))
+                              }
+                            />
+                            {p.name}
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                  <div>
                     <Label>{t("faqs")}</Label>
                     <Textarea
                       value={form.faqs_text}
@@ -1168,6 +1502,22 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
           </div>
         </>
       )}
+      <MediaPickerDialog
+        open={coverPickerOpen}
+        onOpenChange={setCoverPickerOpen}
+        onPick={(item) => setForm((f) => ({ ...f, image_url: item.url }))}
+      />
+      <MediaPickerDialog
+        open={galleryPickerOpen}
+        onOpenChange={setGalleryPickerOpen}
+        onPick={(item) =>
+          setForm((f) => {
+            const lines = f.gallery_text.split("\n").map((s) => s.trim()).filter(Boolean)
+            if (lines.includes(item.url)) return f
+            return { ...f, gallery_text: [...lines, item.url].join("\n") }
+          })
+        }
+      />
     </PageShell>
   )
 }
