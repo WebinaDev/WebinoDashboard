@@ -420,6 +420,8 @@ final class ShopSettings
             'enabled' => false,
             'point_price_minor' => 1000,
             'max_points_per_product' => 150,
+            'welcome_points' => 0,
+            'referral_points' => 0,
         ];
     }
 
@@ -673,6 +675,8 @@ final class ShopSettings
             'enabled' => filter_var($input['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'point_price_minor' => max(1, (int) ($input['point_price_minor'] ?? 1000)),
             'max_points_per_product' => max(0, (int) ($input['max_points_per_product'] ?? 150)),
+            'welcome_points' => max(0, (int) ($input['welcome_points'] ?? 0)),
+            'referral_points' => max(0, (int) ($input['referral_points'] ?? 0)),
         ];
     }
 

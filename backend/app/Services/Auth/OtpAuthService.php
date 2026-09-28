@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Modules\ModuleSettingsService;
+use App\Services\Users\UserWelcomeService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -255,7 +256,7 @@ final class OtpAuthService
 
         $name = $phone !== '' ? $phone : Str::before($email, '@');
 
-        return User::query()->create([
+        $user = User::query()->create([
             'tenant_id' => $tenant->id,
             'name' => $name,
             'email' => $email,
@@ -265,6 +266,9 @@ final class OtpAuthService
             'is_active' => true,
             'password_must_change' => false,
         ]);
+        app(UserWelcomeService::class)->welcome($user);
+
+        return $user;
     }
 
     private function error(string $message, int $status): HttpResponseException

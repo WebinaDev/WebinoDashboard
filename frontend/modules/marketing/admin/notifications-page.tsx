@@ -1,7 +1,8 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Bell } from "lucide-react"
+import { Bell, Settings } from "lucide-react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
@@ -12,10 +13,12 @@ import { QueryErrorState } from "@/components/QueryErrorState"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { dashboardPath } from "@/kernel/paths"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatDisplayDateTime } from "@/lib/format-date"
+import { toNotificationNavPath } from "@/lib/notification-links"
 import { cn } from "@/lib/utils"
 
 type NotificationRow = {
@@ -37,6 +40,12 @@ export default function NotificationsPage(_props: { route: ResolvedAdminRoute })
   const locale = useLocale()
   const page = Math.max(1, Number(params.get("page") || 1) || 1)
   const perPage = Math.min(100, Math.max(1, Number(params.get("per_page") || 20) || 20))
+
+  const userQ = useQuery({
+    queryKey: ["auth-user"],
+    queryFn: () => api<{ id: number; role?: string }>("/api/v1/auth/user"),
+    staleTime: 60_000,
+  })
 
   const q = useQuery({
     queryKey: ["account", "notifications", "inbox", page, perPage],
@@ -77,18 +86,25 @@ export default function NotificationsPage(_props: { route: ResolvedAdminRoute })
 
   function openNotification(row: NotificationRow) {
     if (!row.read) void markOne.mutateAsync(row.id)
-    if (row.link) {
-      if (row.link.startsWith("/")) {
-        router.push(row.link)
+    const target = toNotificationNavPath(row.link, userQ.data?.role ?? "admin")
+    if (target) {
+      if (target.startsWith("/")) {
+        router.push(target)
         return
       }
-      window.location.assign(row.link)
+      window.location.assign(target)
     }
   }
 
   return (
     <PageShell title={t("title")} description={t("subtitle")}>
       <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+        <Button type="button" size="sm" variant="ghost" asChild>
+          <Link href={dashboardPath("settings/site/notifications")}>
+            <Settings className="size-4" />
+            {t("settings_link")}
+          </Link>
+        </Button>
         <Button
           type="button"
           size="sm"

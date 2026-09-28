@@ -77,7 +77,7 @@ class BasalamDiscounts
                 continue;
             }
             $regular = (float) ($src->price_minor ?: $product->price_minor);
-            $sale = (float) ($src->sale_price_minor ?? 0);
+            $sale = (float) ($product->effectiveSalePriceMinor($map->variant) ?? 0);
             if ($sale > 0 && $regular > 0) {
                 $pct = self::percent($regular, $sale);
                 if ($pct > 0) {

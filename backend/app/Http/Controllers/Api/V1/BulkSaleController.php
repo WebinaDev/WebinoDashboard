@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class BulkSaleController extends Controller
@@ -60,6 +62,20 @@ class BulkSaleController extends Controller
             ]);
         }
 
+        $startsAt = now();
+        $until = trim((string) ($data['until'] ?? ''));
+        if ($until !== '') {
+            $endsAt = Carbon::parse($until);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $until)) {
+                $endsAt = $endsAt->endOfDay();
+            }
+        } else {
+            $endsAt = $startsAt->copy()->addDays(max(1, (int) ($data['days'] ?? 7)));
+        }
+        if ($action === 'apply' && $endsAt->lessThanOrEqualTo($startsAt)) {
+            return response()->json(['message' => __('Sale end date must be in the future.')], 400);
+        }
+
         $ok = 0;
         $failed = 0;
         $skipped = 0;
@@ -67,7 +83,7 @@ class BulkSaleController extends Controller
         foreach ($ids as $pid) {
             $result = $action === 'remove'
                 ? $this->removeProduct((int) $pid)
-                : $this->applyProduct((int) $pid, $percent);
+                : $this->applyProduct((int) $pid, $percent, $startsAt, $endsAt);
             if ($result === true) {
                 $ok++;
             } elseif ($result === 'skipped') {
@@ -190,7 +206,7 @@ class BulkSaleController extends Controller
         return (int) max(0, round($regular * (1 - ($percent / 100))));
     }
 
-    private function applyProduct(int $productId, float $percent): true|string
+    private function applyProduct(int $productId, float $percent, CarbonInterface $startsAt, CarbonInterface $endsAt): true|string
     {
         $p = Product::query()->with('variants')->find($productId);
         if (! $p) {
@@ -213,8 +229,10 @@ class BulkSaleController extends Controller
             $minSale = $p->variants->min(fn (ProductVariant $v) => $v->sale_price_minor ?: PHP_INT_MAX);
             if (is_int($minSale) && $minSale < PHP_INT_MAX) {
                 $p->sale_price_minor = $minSale;
-                $p->save();
             }
+            $p->sale_starts_at = $startsAt;
+            $p->sale_ends_at = $endsAt;
+            $p->save();
 
             return true;
         }
@@ -223,6 +241,8 @@ class BulkSaleController extends Controller
             return 'skipped';
         }
         $p->sale_price_minor = $this->calcSale($regular, $percent);
+        $p->sale_starts_at = $startsAt;
+        $p->sale_ends_at = $endsAt;
         $p->save();
 
         return true;
@@ -241,6 +261,8 @@ class BulkSaleController extends Controller
             }
         }
         $p->sale_price_minor = null;
+        $p->sale_starts_at = null;
+        $p->sale_ends_at = null;
         $p->save();
 
         return true;

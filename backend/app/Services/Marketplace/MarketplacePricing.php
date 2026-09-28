@@ -143,14 +143,7 @@ class MarketplacePricing
     /** Store-currency selling price used when no markup applies. */
     public function sellingPrice(Product $product, ?ProductVariant $variant, bool $useSale = true): int
     {
-        $src = $variant ?? $product;
-        $regular = (int) ($src->price_minor ?: $product->price_minor);
-        $sale = (int) ($src->sale_price_minor ?? 0);
-        if ($useSale && $sale > 0 && ($regular <= 0 || $sale < $regular)) {
-            return $sale;
-        }
-
-        return $regular;
+        return $useSale ? $product->effectivePriceMinor($variant) : $product->regularPriceMinor($variant);
     }
 
     /** @return array{price: float, locked: bool}|null */

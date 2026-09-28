@@ -56,9 +56,15 @@ Artisan::command('ai:tick', function () {
     $this->info('AI content tick complete.');
 })->purpose('Process due AI calendar slots and pending jobs');
 
+Artisan::command('sms:dispatch-scheduled', function () {
+    $sent = app(\App\Services\Sms\SmsLocalFeatures::class)->dispatchDue();
+    $this->info("Dispatched {$sent} scheduled SMS.");
+})->purpose('Send locally held scheduled SMS whose time has come');
+
 Schedule::command('pricing:exchange-auto-update')->hourly()->withoutOverlapping();
 Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();
 Schedule::command('ai:tick')->everyMinute()->withoutOverlapping();
+Schedule::command('sms:dispatch-scheduled')->everyMinute()->withoutOverlapping();
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:torob-webhooks')->everyMinute()->withoutOverlapping();

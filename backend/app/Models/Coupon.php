@@ -28,7 +28,14 @@ class Coupon extends Model
         'status',
         'description',
         'restrictions',
+        'condition_type',
+        'condition_value',
+        'auto_apply',
+        'max_discount_minor',
+        'shipping_percent',
     ];
+
+    public const CONDITION_TYPES = ['none', 'order_nth', 'min_amount', 'min_items'];
 
     protected function casts(): array
     {
@@ -44,6 +51,10 @@ class Coupon extends Model
             'usage_count' => 'integer',
             'expires_at' => 'datetime',
             'restrictions' => 'array',
+            'condition_value' => 'integer',
+            'auto_apply' => 'boolean',
+            'max_discount_minor' => 'integer',
+            'shipping_percent' => 'integer',
         ];
     }
 

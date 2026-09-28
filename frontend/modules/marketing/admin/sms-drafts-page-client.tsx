@@ -59,11 +59,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
   const rows = useMemo(() => (unavailable ? [] : asRows(q.data?.data)), [unavailable, q.data])
 
   const saveM = useMutation({
-    mutationFn: async () => {
-      const oldId = editingId
-      await createSmsDraft({ title, message, text: message })
-      if (oldId) await deleteSmsDraft(oldId)
-    },
+    mutationFn: () =>
+      createSmsDraft({ ...(editingId ? { id: editingId } : {}), title, message, text: message }),
     onSuccess: async () => {
       toast.success(t("draftSaved"))
       setTitle("")

@@ -2632,6 +2632,14 @@
     "forwardTo": "Forward to",
     "processInbox": "Process inbox now",
     "secretaryProcessed": "Processed {{processed}}, matched {{matched}}",
+    "secretaryNoRules": "No active secretary rules are defined.",
+    "secretaryInboxUnavailable": "The inbox is unavailable; try again later.",
+    "secretaryNoNewMessages": "There are no new messages to process.",
+    "newsletterSubscribers": "Newsletter subscribers",
+    "addSubscriber": "Add subscriber",
+    "subscriberAdded": "Subscriber added.",
+    "subscriberRemoved": "Subscriber removed.",
+    "noSubscribersYet": "No subscribers yet.",
     "noSecretaries": "No secretary rules yet.",
     "name": "Name",
     "contacts": "Contacts",
@@ -2797,7 +2805,87 @@
       "restrictions": "Restrictions",
       "publish": "Publish"
     },
-    "selectedCount": "{count} selected"
+    "selectedCount": "{count} selected",
+    "statsExpired": "Expired",
+    "tabs": {
+      "list": "List",
+      "builder": "Offer builder"
+    },
+    "expiredFilter": {
+      "label": "Expiry",
+      "all": "All",
+      "expired": "Expired",
+      "active": "Active"
+    },
+    "channelLabels": {
+      "site": "Website",
+      "bale": "Bale",
+      "telegram": "Telegram"
+    },
+    "conditionTypes": {
+      "none": "No condition",
+      "order_nth": "Customer's nth order",
+      "min_amount": "Minimum cart amount",
+      "min_items": "Minimum item count"
+    },
+    "offer": {
+      "panel": "Offer conditions",
+      "condition_type": "Condition type",
+      "condition_value": "Condition value",
+      "auto_apply": "Auto-apply at checkout",
+      "auto_apply_hint": "When no code is entered, the best eligible offer is applied automatically.",
+      "max_discount": "Maximum discount amount",
+      "shipping_percent": "Shipping discount percent"
+    },
+    "picker": {
+      "user_ids": "Allowed users",
+      "searchProducts": "Search products…",
+      "searchUsers": "Search name, email or phone…",
+      "empty": "Nothing found",
+      "remove": "Remove"
+    }
+  },
+  "coupon_builder": {
+    "title": "Quick offer builder",
+    "description": "Pick a template or build the condition and reward step by step.",
+    "templates": {
+      "title": "Suggested templates",
+      "first_order": "10% off the first order",
+      "first_order_desc": "For customers placing their first purchase",
+      "free_shipping_over": "Free shipping over an amount",
+      "free_shipping_over_desc": "Shipping becomes free for larger carts",
+      "buy_n_items": "Buy several items discount",
+      "buy_n_items_desc": "15% off when buying at least 3 items"
+    },
+    "steps": {
+      "condition": "1. Condition",
+      "reward": "2. Reward",
+      "finish": "3. Code & publish"
+    },
+    "rewardTypes": {
+      "percent": "Percent off",
+      "fixed": "Fixed amount",
+      "free_shipping": "Free shipping",
+      "shipping_percent": "Shipping percent off"
+    },
+    "fields": {
+      "reward_type": "Reward type",
+      "reward_value": "Reward value",
+      "code": "Code",
+      "auto_apply": "Auto-apply (no code needed)",
+      "description": "Description",
+      "status": "Status"
+    },
+    "actions": {
+      "next": "Next",
+      "back": "Back",
+      "create": "Create offer",
+      "generate": "Generate code",
+      "reset": "Start over"
+    },
+    "summary": "Summary",
+    "created": "Offer {code} created.",
+    "openEditor": "Open full editor"
   },
   "bots": {
     "description": "Bale and Telegram bot settings and messaging",
@@ -2810,9 +2898,26 @@
       "token": "Token",
       "webhook": "Webhook URL",
       "testSend": "Test send",
-      "paritySoon": "Advanced site/admin parity features coming soon."
+      "testTextDefault": "Hi! This is a test message from your store bot.",
+      "chatId": "Chat ID (chat_id)"
     },
     "broadcast": {
+      "progress": "{status}: {sent}/{total} (failed {failed})",
+      "types": {
+        "text": "Text",
+        "photo": "Photo",
+        "video": "Video",
+        "voice": "Voice",
+        "document": "Document"
+      },
+      "segments": {
+        "all": "All users",
+        "buyers": "Buyers",
+        "never_bought": "Never bought",
+        "recent": "Recent users",
+        "vip": "VIP customers",
+        "inactive_30": "Inactive for 30 days"
+      },
       "title": "Broadcast",
       "status": "Status",
       "idle": "No active job",
@@ -2840,6 +2945,40 @@
       "colSent": "Sent",
       "colFailed": "Failed",
       "disabled": "Campaigns are disabled or unavailable for this provider."
+    },
+    "logs": {
+      "title": "Bot message log",
+      "empty": "No messages logged yet.",
+      "search": "Search chat ID or text",
+      "colTime": "Time",
+      "colChat": "Chat ID",
+      "colDirection": "Direction",
+      "colType": "Type",
+      "colStatus": "Status",
+      "colPayload": "Text",
+      "directionAll": "All",
+      "direction": {
+        "in": "Incoming",
+        "out": "Outgoing"
+      },
+      "status": {
+        "sent": "Sent",
+        "failed": "Failed",
+        "received": "Received"
+      }
+    },
+    "coupons": {
+      "title": "Bot coupons",
+      "description": "Coupons restricted to the Bale or Telegram channel.",
+      "empty": "No coupons for this bot yet. Enable the bot channel when editing a coupon.",
+      "create": "New coupon",
+      "colCode": "Code",
+      "colType": "Type",
+      "colAmount": "Amount",
+      "colUsage": "Usage",
+      "colStatus": "Status",
+      "colExpires": "Expires",
+      "noExpiry": "No expiry"
     }
   },
   "marketplace_admin": {
@@ -4535,7 +4674,105 @@
       "info": "Info",
       "ticket": "Support ticket",
       "order": "Order",
-      "system": "System"
+      "system": "System",
+      "order_status": "Order status",
+      "return_requested": "Return requested",
+      "return_approved": "Return approved",
+      "return_rejected": "Return rejected",
+      "user_welcome": "Welcome",
+      "stock_low": "Low stock",
+      "stock_out": "Out of stock",
+      "review_pending": "Pending review"
+    },
+    "settings_link": "Notification settings",
+    "settings": {
+      "title": "Notification settings",
+      "description": "For each event, choose delivery channels and the customer and admin message templates.",
+      "tabs": {
+        "site": "In-site",
+        "sms": "SMS",
+        "bale": "Bale",
+        "telegram": "Telegram",
+        "email": "Email"
+      },
+      "channel_enabled": "Enable this channel",
+      "customer": "Send to customer",
+      "admin": "Send to admin",
+      "customer_template": "Customer message",
+      "admin_template": "Admin message",
+      "template_placeholder": "Empty = default text",
+      "variables": "Variables: {vars}",
+      "admin_phone": "Admin mobile number",
+      "admin_phone_hint": "Separate multiple numbers with commas.",
+      "admin_chat_id": "Admin chat ID",
+      "admin_chat_hint": "Admin messages go to this chat_id; customers receive messages through their own bot session.",
+      "admin_email": "Admin email",
+      "admin_email_hint": "Empty = all admin users. Separate multiple emails with commas.",
+      "events": {
+        "order_status": "Order status change",
+        "return_requested": "Return requested",
+        "return_approved": "Return approved",
+        "return_rejected": "Return rejected",
+        "user_welcome": "New user welcome",
+        "stock_low": "Low stock",
+        "stock_out": "Out of stock",
+        "review_pending": "Review awaiting approval"
+      },
+      "smtp": {
+        "title": "SMTP settings",
+        "hint": "When disabled, emails are sent with the server's default mail settings.",
+        "enabled": "Use custom SMTP",
+        "host": "Host",
+        "port": "Port",
+        "username": "Username",
+        "password": "Password",
+        "encryption": "Encryption",
+        "encryption_none": "None",
+        "encryption_tls": "TLS",
+        "encryption_ssl": "SSL",
+        "from_address": "From address",
+        "from_name": "From name",
+        "test_to": "Send test email to",
+        "test_send": "Send test",
+        "test_ok": "Test email sent.",
+        "test_failed": "Test email failed."
+      }
+    }
+  },
+  "marketing_hub": {
+    "title": "Marketing",
+    "subtitle": "Discounts, SMS, bots and notifications at a glance",
+    "open": "Open",
+    "cards": {
+      "coupons": {
+        "title": "Coupons",
+        "description": "Create and manage coupons and restrictions"
+      },
+      "sale_prices": {
+        "title": "Sale prices",
+        "description": "Apply bulk discounts to products"
+      },
+      "sms": {
+        "title": "SMS panel",
+        "description": "Send SMS, reports and patterns"
+      },
+      "bot_broadcast": {
+        "title": "Bot broadcast",
+        "description": "Message your Bale and Telegram users"
+      },
+      "bot_campaigns": {
+        "title": "Bot campaigns",
+        "description": "Schedule campaigns for your bots"
+      },
+      "notifications": {
+        "title": "Notification settings",
+        "description": "Event channels, templates and SMTP"
+      }
+    },
+    "loyalty": {
+      "welcome_points": "Welcome points",
+      "referral_points": "Referral points",
+      "hint": "0 = disabled"
     }
   },
   "sale_prices": {
@@ -4559,7 +4796,21 @@
     "remove_confirm_title": "Remove sale prices?",
     "remove_confirm_body": "sale_price_minor will be cleared for the selected scope.",
     "regular": "Regular",
-    "sale": "Sale"
+    "sale": "Sale",
+    "duration": "Sale duration",
+    "preset_days": "{count} days",
+    "custom_end": "Custom end date",
+    "end_date": "End date",
+    "category": "Category",
+    "brand": "Brand",
+    "all": "All",
+    "filter": "Apply filters",
+    "preview_title": "Discount preview",
+    "preview_count": "{count} products will be affected",
+    "preview_empty": "No samples to show.",
+    "preview_variations": "{count} variations",
+    "sale_until": "Until {date}",
+    "sale_expired": "Expired"
   },
   "content_admin": {
     "posts_title": "Magazine posts",
@@ -4699,7 +4950,13 @@
     "save_reply": "Save reply",
     "approve": "Approve",
     "spam": "Spam",
-    "trash": "Trash"
+    "trash": "Trash",
+    "kind_reviews": "Reviews",
+    "kind_questions": "Questions",
+    "tab_answered": "Answered",
+    "questions_empty": "No questions in this tab.",
+    "answer_ph": "Store answer",
+    "save_answer": "Save answer"
   },
   "account_portal": {
     "overview_title": "Account overview",
@@ -4740,6 +4997,16 @@
     "reviews_tab_mine": "My reviews",
     "reviews_tab_questions": "My questions",
     "no_reviews": "No reviews yet.",
+    "no_questions": "You have not asked any questions yet.",
+    "question_answer": "Answer",
+    "question_awaiting": "Awaiting answer",
+    "question_new": "Ask a question",
+    "question_product": "Product",
+    "question_select_product": "Select a product",
+    "question_body": "Your question",
+    "question_submit": "Submit question",
+    "question_sent": "Your question was submitted.",
+    "question_write_review": "Write a review",
     "profile_title": "Profile",
     "field_name": "Full name",
     "field_email": "Email",
@@ -4891,6 +5158,12 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Spam",
+      "spam": "Spam",
+      "trash": "Trash"
+    },
+    "question_status": {
+      "pending": "Awaiting answer",
+      "answered": "Answered",
       "spam": "Spam",
       "trash": "Trash"
     },

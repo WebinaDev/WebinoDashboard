@@ -86,6 +86,7 @@ class CheckoutController extends Controller
             $couponId = null;
             $couponCode = null;
             $coupon = null;
+            $applied = null;
             if (! empty($checkoutMeta['coupon_code'])) {
                 $applied = $this->coupons->apply(
                     $user->tenant_id,
@@ -95,6 +96,16 @@ class CheckoutController extends Controller
                     $user->id,
                     $checkoutMeta['channel'] ?? 'site'
                 );
+            } else {
+                $applied = $this->coupons->bestAutoApply(
+                    (int) $user->tenant_id,
+                    $subtotal,
+                    $linePayload,
+                    $user->id,
+                    $checkoutMeta['channel'] ?? 'site'
+                );
+            }
+            if ($applied) {
                 $discount = $applied['discount_minor'];
                 $coupon = $applied['coupon'];
                 $couponId = $coupon->id;
@@ -152,6 +163,14 @@ class CheckoutController extends Controller
                 ];
             } elseif (isset($checkoutMeta['shipping_minor'])) {
                 $shippingMinor = (int) $checkoutMeta['shipping_minor'];
+            }
+
+            if ($applied) {
+                $shippingBefore = $shippingMinor;
+                $shippingMinor = $this->coupons->shippingAfter($applied, $shippingMinor);
+                if ($shippingMinor !== $shippingBefore) {
+                    $shippingMeta['coupon_shipping_discount_minor'] = $shippingBefore - $shippingMinor;
+                }
             }
 
             if (! empty($checkoutMeta['torob_clid'])) {

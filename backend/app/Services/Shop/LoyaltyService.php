@@ -60,6 +60,61 @@ final class LoyaltyService
         });
     }
 
+    public function awardWelcome(User $user): int
+    {
+        $settings = ShopSettings::getLoyalty((int) $user->tenant_id);
+        $points = (int) ($settings['welcome_points'] ?? 0);
+        if (empty($settings['enabled']) || $points <= 0) {
+            return 0;
+        }
+        $exists = LoyaltyLedger::query()
+            ->where('user_id', $user->id)
+            ->where('reason', 'welcome')
+            ->exists();
+        if ($exists) {
+            return 0;
+        }
+
+        return $this->grant($user, $points, 'welcome');
+    }
+
+    public function awardReferral(User $referrer, User $referred): int
+    {
+        if ((int) $referrer->tenant_id !== (int) $referred->tenant_id || $referrer->id === $referred->id) {
+            return 0;
+        }
+        $settings = ShopSettings::getLoyalty((int) $referrer->tenant_id);
+        $points = (int) ($settings['referral_points'] ?? 0);
+        if (empty($settings['enabled']) || $points <= 0) {
+            return 0;
+        }
+        $reason = 'referral:'.$referred->id;
+        $exists = LoyaltyLedger::query()
+            ->where('tenant_id', $referrer->tenant_id)
+            ->where('reason', $reason)
+            ->exists();
+        if ($exists) {
+            return 0;
+        }
+
+        return $this->grant($referrer, $points, $reason);
+    }
+
+    private function grant(User $user, int $points, string $reason): int
+    {
+        DB::transaction(function () use ($user, $points, $reason) {
+            LoyaltyLedger::query()->create([
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'points' => $points,
+                'reason' => $reason,
+            ]);
+            User::query()->where('id', $user->id)->increment('loyalty_points', $points);
+        });
+
+        return $points;
+    }
+
     /**
      * @return array{coupon_code: string, points_spent: int, balance: int}
      */

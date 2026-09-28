@@ -5,6 +5,7 @@ export type SettingsUnitId =
   | "site-ai"
   | "site-analytics"
   | "site-sms"
+  | "site-notifications"
   | "site-pwa"
   | "site-dashboard"
   | "site-themes"
@@ -88,6 +89,20 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "پیامک سایت",
         titleEn: "Site SMS",
         route: "/dashboard/settings/site/sms",
+      },
+    ],
+  },
+  {
+    id: "site-notifications",
+    area: "site",
+    titleFa: "اعلان‌ها",
+    titleEn: "Notifications",
+    sections: [
+      {
+        id: "notifications",
+        titleFa: "اعلان‌ها و ایمیل",
+        titleEn: "Notifications & email",
+        route: "/dashboard/settings/site/notifications",
       },
     ],
   },

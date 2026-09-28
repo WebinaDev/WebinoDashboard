@@ -9,6 +9,16 @@ export const marketingManifest: ModuleManifest = {
   adminNav: { section: "marketing", order: 40 },
   adminRoutes: [
     {
+      path: "marketing",
+      submodule: "notifications",
+      page: "campaigns",
+      labelKey: "nav.marketing",
+      section: "commerce",
+      order: 25,
+      navGroup: "marketing",
+      navOrder: -1,
+    },
+    {
       path: "marketing/coupons",
       submodule: "coupons",
       page: "coupons",

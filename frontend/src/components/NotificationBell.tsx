@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { api } from "@/lib/api"
 import { formatDate, normalizeUiLocale } from "@/lib/locale"
+import { isStaffRole, toNotificationNavPath } from "@/lib/notification-links"
 import { cn } from "@/lib/utils"
 
 type NotificationRow = {
@@ -54,7 +55,7 @@ export function NotificationBell() {
     staleTime: 60_000,
   })
 
-  const isAdmin = user?.role === "admin" || user?.role === "staff"
+  const isAdmin = isStaffRole(user?.role)
   const inboxPath = isAdmin
     ? "/dashboard/notifications"
     : "/dashboard/account/notifications"
@@ -122,11 +123,12 @@ export function NotificationBell() {
               onSelect={(e) => {
                 e.preventDefault()
                 if (!row.read) void markOne.mutateAsync(row.id)
-                if (row.link?.startsWith("/")) {
-                  router.push(row.link)
+                const target = toNotificationNavPath(row.link, user?.role)
+                if (target.startsWith("/")) {
+                  router.push(target)
                   return
                 }
-                if (row.link) window.location.assign(row.link)
+                if (target) window.location.assign(target)
               }}
             >
               <span className="truncate text-sm font-medium">{row.title}</span>

@@ -78,7 +78,7 @@ class PublicCatalogController extends Controller
         if ($request->boolean('on_sale') && ! empty($archive['filter_on_sale'])) {
             $productsQuery->where(function ($builder) {
                 $builder->where('discount_percent', '>', 0)
-                    ->orWhereNotNull('sale_price_minor');
+                    ->orWhere(fn ($sale) => $sale->whereNotNull('sale_price_minor')->saleWindowOpen());
             });
         }
 

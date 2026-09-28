@@ -14,6 +14,8 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
+import { BotSectionTabs } from "../components/BotSectionTabs"
+
 type Settings = {
   provider: string
   enabled: boolean
@@ -32,7 +34,7 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [chatId, setChatId] = useState("")
-  const [testText, setTestText] = useState("Hello from WebinoDashboard")
+  const [testText, setTestText] = useState(() => t("settings.testTextDefault"))
 
   const q = useQuery({
     queryKey: ["bots", provider, "settings"],
@@ -78,6 +80,7 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
 
   return (
     <PageShell title={t(`settings.${provider}`)} description={t("description")}>
+      <BotSectionTabs provider={provider} active="settings" />
       <div className="grid max-w-2xl gap-4">
         <Card className="shadow-soft">
           <CardHeader>
@@ -109,7 +112,6 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
                 />
               </div>
             ) : null}
-            <p className="text-muted-foreground text-xs">{t("settings.paritySoon")}</p>
             <Button disabled={save.isPending} onClick={() => save.mutate()}>
               {tCommon("save")}
             </Button>
@@ -122,7 +124,7 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1">
-              <Label>chat_id</Label>
+              <Label>{t("settings.chatId")}</Label>
               <Input value={chatId} onChange={(e) => setChatId(e.target.value)} />
             </div>
             <div className="space-y-1">

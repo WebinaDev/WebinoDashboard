@@ -1,5 +1,7 @@
 "use client"
 
+import { ProductMultiSelect } from "@/components/coupons/ProductMultiSelect"
+import { UserMultiSelect } from "@/components/coupons/UserMultiSelect"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,8 +13,10 @@ const CHANNELS = ["site", "bale", "telegram"] as const
 export function CouponRestrictionsPanel(props: {
   channels: string[]
   setChannels: (v: string[]) => void
-  productIds: string
-  setProductIds: (v: string) => void
+  productIds: number[]
+  setProductIds: (v: number[]) => void
+  userIds: number[]
+  setUserIds: (v: number[]) => void
   categoryIds: string
   setCategoryIds: (v: string) => void
   brandIds: string
@@ -36,15 +40,12 @@ export function CouponRestrictionsPanel(props: {
                   )
                 }
               />
-              {ch}
+              {t(`channelLabels.${ch}`)}
             </label>
           ))}
         </div>
       </div>
-      <div className="space-y-1">
-        <Label>{t("fields.product_ids")}</Label>
-        <Input value={props.productIds} onChange={(e) => props.setProductIds(e.target.value)} placeholder="1,2,3" />
-      </div>
+      <ProductMultiSelect label={t("fields.product_ids")} value={props.productIds} onChange={props.setProductIds} />
       <div className="space-y-1">
         <Label>{t("fields.category_ids")}</Label>
         <Input value={props.categoryIds} onChange={(e) => props.setCategoryIds(e.target.value)} placeholder="1,2" />
@@ -53,6 +54,7 @@ export function CouponRestrictionsPanel(props: {
         <Label>{t("fields.brand_ids")}</Label>
         <Input value={props.brandIds} onChange={(e) => props.setBrandIds(e.target.value)} placeholder="1,2" />
       </div>
+      <UserMultiSelect label={t("picker.user_ids")} value={props.userIds} onChange={props.setUserIds} />
       <div className="space-y-1">
         <Label>{t("fields.emails")}</Label>
         <Textarea value={props.emails} onChange={(e) => props.setEmails(e.target.value)} />

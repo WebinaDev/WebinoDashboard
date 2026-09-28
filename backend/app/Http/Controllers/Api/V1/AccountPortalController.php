@@ -145,7 +145,17 @@ class AccountPortalController extends Controller
             : Product::query()
                 ->where('tenant_id', $user->tenant_id)
                 ->whereIn('id', $ids)
-                ->get(['id', 'name', 'slug', 'sku', 'price_minor', 'sale_price_minor', 'currency']);
+                ->get(['id', 'name', 'slug', 'sku', 'price_minor', 'sale_price_minor', 'sale_starts_at', 'sale_ends_at', 'currency'])
+                ->map(fn (Product $p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'slug' => $p->slug,
+                    'sku' => $p->sku,
+                    'price_minor' => $p->price_minor,
+                    'sale_price_minor' => $p->effectiveSalePriceMinor(),
+                    'currency' => $p->currency,
+                ])
+                ->values();
 
         return response()->json([
             'data' => [
@@ -190,7 +200,7 @@ class AccountPortalController extends Controller
             return response()->json(['data' => $this->pendingReviewProducts($user)]);
         }
         if ($tab === 'questions') {
-            return response()->json(['data' => []]);
+            return response()->json(['data' => app(ProductQuestionController::class)->forUser((int) $user->tenant_id, (int) $user->id)]);
         }
 
         $items = ProductReview::query()

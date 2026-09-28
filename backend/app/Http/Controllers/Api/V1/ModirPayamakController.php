@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Services\Sms\ModirPayamakClient;
+use App\Services\Sms\SmsLocalFeatures;
 use Illuminate\Http\Request;
 
 class ModirPayamakController extends Controller
 {
-    public function __construct(protected ModirPayamakClient $client) {}
+    public function __construct(
+        protected ModirPayamakClient $client,
+        protected SmsLocalFeatures $local,
+    ) {}
 
     public function proxy(Request $request, string $path = ''): \Illuminate\Http\JsonResponse
     {
@@ -17,6 +21,10 @@ class ModirPayamakController extends Controller
         /** @var Tenant $tenant */
         $tenant = Tenant::query()->findOrFail($user->tenant_id);
         $path = trim($path, '/');
+
+        if ($response = $this->local->handle($tenant, $request, $path)) {
+            return $response;
+        }
 
         if ($request->isMethod('get') || $request->isMethod('head')) {
             $result = $this->client->get($tenant, $path, $request->query());

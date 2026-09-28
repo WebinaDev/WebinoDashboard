@@ -261,10 +261,13 @@ type Reward = {
 
 export function ShopLoyaltySettingsPanel() {
   const t = useTranslations("settings_hub")
+  const tLoyalty = useTranslations("marketing_hub.loyalty")
   const { loading, draft, setDraft, persist, pending, saved, error } = useDraftSettings<{
     enabled?: boolean
     point_price_minor?: number
     max_points_per_product?: number
+    welcome_points?: number
+    referral_points?: number
   }>("shop", "loyalty")
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsMsg, setRewardsMsg] = useState<string | null>(null)
@@ -316,6 +319,26 @@ export function ShopLoyaltySettingsPanel() {
               value={Number(draft.max_points_per_product ?? 150)}
               onChange={(e) => setDraft({ ...draft, max_points_per_product: Number(e.target.value) })}
             />
+          </div>
+          <div className="grid max-w-xs gap-2">
+            <Label>{tLoyalty("welcome_points")}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={Number(draft.welcome_points ?? 0)}
+              onChange={(e) => setDraft({ ...draft, welcome_points: Number(e.target.value) })}
+            />
+            <p className="text-muted-foreground text-xs">{tLoyalty("hint")}</p>
+          </div>
+          <div className="grid max-w-xs gap-2">
+            <Label>{tLoyalty("referral_points")}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={Number(draft.referral_points ?? 0)}
+              onChange={(e) => setDraft({ ...draft, referral_points: Number(e.target.value) })}
+            />
+            <p className="text-muted-foreground text-xs">{tLoyalty("hint")}</p>
           </div>
         </CardContent>
       </Card>

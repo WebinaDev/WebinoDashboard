@@ -106,9 +106,7 @@ class PurchaseTypeService
     public function unitPrice(Product $product, string $type, ?int $months = null): int
     {
         if (! $this->active()) {
-            $sale = (int) ($product->sale_price_minor ?? 0);
-
-            return $sale > 0 && $sale < (int) $product->price_minor ? $sale : (int) $product->price_minor;
+            return $product->effectivePriceMinor();
         }
 
         return $this->calc->unitPrice($product, null, $type, (int) $months);

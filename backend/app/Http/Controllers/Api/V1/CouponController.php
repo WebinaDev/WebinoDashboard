@@ -22,11 +22,23 @@ class CouponController extends Controller
                 $w->where('code', 'like', $like)->orWhere('description', 'like', $like);
             });
         }
+        if (in_array($channel = (string) $request->query('channel', ''), ['site', 'bale', 'telegram'], true)) {
+            $q->whereJsonContains('restrictions->channels', $channel);
+        }
         $stats = [
             'total' => (clone $q)->count(),
             'publish' => (clone $q)->where('status', 'publish')->count(),
             'draft' => (clone $q)->where('status', 'draft')->count(),
+            'expired' => (clone $q)->whereNotNull('expires_at')->where('expires_at', '<', now())->count(),
         ];
+        $expired = $request->query('expired');
+        if ($expired === '1' || $expired === 'true') {
+            $q->whereNotNull('expires_at')->where('expires_at', '<', now());
+        } elseif ($expired === '0' || $expired === 'false') {
+            $q->where(function ($w) {
+                $w->whereNull('expires_at')->orWhere('expires_at', '>=', now());
+            });
+        }
         $perPage = min(100, max(1, (int) $request->query('per_page', 20)));
         $paginator = $q->orderByDesc('id')->paginate($perPage);
 
@@ -123,6 +135,9 @@ class CouponController extends Controller
             'data' => [
                 'discount_minor' => $result['discount_minor'],
                 'coupon' => $result['coupon'],
+                'free_shipping' => $result['free_shipping'],
+                'shipping_percent' => $result['shipping_percent'],
+                'individual_use' => $result['individual_use'],
             ],
         ]);
     }
@@ -132,7 +147,7 @@ class CouponController extends Controller
     {
         $req = $partial ? 'sometimes' : 'required';
 
-        return $request->validate([
+        $data = $request->validate([
             'code' => [$req, 'string', 'max:64', Rule::unique('coupons', 'code')->where('tenant_id', $tid)->ignore($request->route('coupon'))],
             'type' => [$partial ? 'sometimes' : 'required', 'string', 'in:percent,fixed_cart,fixed_product'],
             'amount' => [$partial ? 'sometimes' : 'required', 'integer', 'min:0'],
@@ -147,6 +162,35 @@ class CouponController extends Controller
             'status' => ['nullable', 'string', 'in:publish,draft,trash'],
             'description' => ['nullable', 'string'],
             'restrictions' => ['nullable', 'array'],
+            'restrictions.product_ids' => ['nullable', 'array'],
+            'restrictions.product_ids.*' => ['integer'],
+            'restrictions.category_ids' => ['nullable', 'array'],
+            'restrictions.category_ids.*' => ['integer'],
+            'restrictions.brand_ids' => ['nullable', 'array'],
+            'restrictions.brand_ids.*' => ['integer'],
+            'restrictions.user_ids' => ['nullable', 'array'],
+            'restrictions.user_ids.*' => ['integer'],
+            'restrictions.emails' => ['nullable', 'array'],
+            'restrictions.emails.*' => ['string', 'max:191'],
+            'restrictions.channels' => ['nullable', 'array'],
+            'restrictions.channels.*' => ['string', 'in:site,bale,telegram'],
+            'condition_type' => ['nullable', 'string', Rule::in(Coupon::CONDITION_TYPES)],
+            'condition_value' => ['nullable', 'integer', 'min:0', 'required_if:condition_type,order_nth,min_amount,min_items'],
+            'auto_apply' => ['nullable', 'boolean'],
+            'max_discount_minor' => ['nullable', 'integer', 'min:0'],
+            'shipping_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
+
+        if (array_key_exists('condition_type', $data) && $data['condition_type'] === null) {
+            $data['condition_type'] = 'none';
+        }
+        if (($data['condition_type'] ?? null) === 'none') {
+            $data['condition_value'] = null;
+        }
+        if (array_key_exists('auto_apply', $data) && $data['auto_apply'] === null) {
+            $data['auto_apply'] = false;
+        }
+
+        return $data;
     }
 }

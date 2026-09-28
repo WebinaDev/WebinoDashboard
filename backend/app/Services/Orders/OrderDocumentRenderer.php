@@ -308,7 +308,7 @@ final class OrderDocumentRenderer
     {
         $name = $v ? trim($p->name.' - '.($v->name ?: '')) : (string) $p->name;
         $sku = (string) ($v?->sku ?: ($v ? '' : $p->sku) ?: '');
-        $price = $v ? ((int) ($v->sale_price_minor ?: $v->price_minor)) : ((int) ($p->sale_price_minor ?: $p->price_minor));
+        $price = $p->effectivePriceMinor($v);
 
         return [
             'name' => rtrim($name, ' -'),

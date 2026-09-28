@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\BotCampaign;
 use App\Models\BotImportedContact;
+use App\Models\BotMessageLog;
 use App\Models\BotSession;
 use App\Models\BotSetting;
 use App\Services\Bots\BotClientFactory;
@@ -85,6 +86,38 @@ class BotController extends Controller
         }
         $perPage = min(100, max(1, (int) $request->query('per_page', 50)));
         $paginator = $q->paginate($perPage);
+
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
+    }
+
+    public function logs(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $q = BotMessageLog::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->where('provider', $provider)
+            ->orderByDesc('id');
+        if (in_array($direction = (string) $request->query('direction', ''), ['in', 'out'], true)) {
+            $q->where('direction', $direction);
+        }
+        if ($status = (string) $request->query('status', '')) {
+            $q->where('status', $status);
+        }
+        if ($search = trim((string) $request->query('search', ''))) {
+            $like = '%'.$search.'%';
+            $q->where(function ($w) use ($like) {
+                $w->where('chat_id', 'like', $like)->orWhere('payload', 'like', $like);
+            });
+        }
+        $perPage = min(100, max(1, (int) $request->query('per_page', 20)));
+        $paginator = $q->paginate($perPage, ['id', 'chat_id', 'direction', 'type', 'payload', 'status', 'created_at']);
 
         return response()->json([
             'data' => $paginator->items(),

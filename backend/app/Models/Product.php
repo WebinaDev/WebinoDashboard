@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -25,6 +27,8 @@ class Product extends Model
         'sku',
         'price_minor',
         'sale_price_minor',
+        'sale_starts_at',
+        'sale_ends_at',
         'currency',
         'stock',
         'is_available',
@@ -73,6 +77,8 @@ class Product extends Model
         return [
             'price_minor' => 'integer',
             'sale_price_minor' => 'integer',
+            'sale_starts_at' => 'datetime',
+            'sale_ends_at' => 'datetime',
             'purchase_price_minor' => 'integer',
             'stock' => 'integer',
             'is_available' => 'boolean',
@@ -105,6 +111,51 @@ class Product extends Model
             'width' => 'float',
             'height' => 'float',
         ];
+    }
+
+    public function isSaleWindowOpen(?CarbonInterface $at = null): bool
+    {
+        $at ??= now();
+        if ($this->sale_starts_at && $this->sale_starts_at->greaterThan($at)) {
+            return false;
+        }
+
+        return ! ($this->sale_ends_at && $this->sale_ends_at->lessThanOrEqualTo($at));
+    }
+
+    public function regularPriceMinor(?ProductVariant $variant = null): int
+    {
+        return (int) ($variant?->price_minor ?: $this->price_minor);
+    }
+
+    public function effectiveSalePriceMinor(?ProductVariant $variant = null, ?CarbonInterface $at = null): ?int
+    {
+        $sale = (int) (($variant ?? $this)->sale_price_minor ?? 0);
+        $regular = $this->regularPriceMinor($variant);
+        if ($sale <= 0 || ($regular > 0 && $sale >= $regular) || ! $this->isSaleWindowOpen($at)) {
+            return null;
+        }
+
+        return $sale;
+    }
+
+    public function isOnSale(?ProductVariant $variant = null, ?CarbonInterface $at = null): bool
+    {
+        return $this->effectiveSalePriceMinor($variant, $at) !== null;
+    }
+
+    public function effectivePriceMinor(?ProductVariant $variant = null, ?CarbonInterface $at = null): int
+    {
+        return $this->effectiveSalePriceMinor($variant, $at) ?? $this->regularPriceMinor($variant);
+    }
+
+    public function scopeSaleWindowOpen(Builder $query): Builder
+    {
+        $now = now();
+
+        return $query
+            ->where(fn (Builder $q) => $q->whereNull('sale_starts_at')->orWhere('sale_starts_at', '<=', $now))
+            ->where(fn (Builder $q) => $q->whereNull('sale_ends_at')->orWhere('sale_ends_at', '>', $now));
     }
 
     public function tenant(): BelongsTo

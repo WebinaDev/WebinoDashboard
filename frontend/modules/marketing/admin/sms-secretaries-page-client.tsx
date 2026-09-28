@@ -124,12 +124,20 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
     setProcessing(true)
     try {
       const res = await processSmsSecretaries()
-      toast.success(
-        t("secretaryProcessed", {
-          processed: String(res.processed ?? 0),
-          matched: String(res.matched ?? 0),
-        }),
-      )
+      if (res.reason === "no_rules") {
+        toast.info(t("secretaryNoRules"))
+      } else if (res.reason === "inbox_unavailable" || res.reason === "rules_unavailable") {
+        toast.error(t("secretaryInboxUnavailable"))
+      } else if (res.reason === "no_messages" || res.reason === "no_new_messages") {
+        toast.info(t("secretaryNoNewMessages"))
+      } else {
+        toast.success(
+          t("secretaryProcessed", {
+            processed: String(res.processed ?? 0),
+            matched: String(res.matched ?? 0),
+          }),
+        )
+      }
       void qc.invalidateQueries({ queryKey: ["sms", "secretaries"] })
       void qc.invalidateQueries({ queryKey: ["sms", "inbox"] })
     } catch (e) {

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { useEnumLabel } from "@/lib/enum-labels"
 
 import type { BotProvider } from "./BotProviderSwitcher"
 
@@ -25,8 +26,12 @@ type BroadcastPayload = {
   } | null
 }
 
+const MESSAGE_TYPES = ["text", "photo", "video", "voice", "document"] as const
+const SEGMENTS = ["all", "buyers", "never_bought", "recent", "vip", "inactive_30"] as const
+
 export function BotBroadcastPanel({ provider }: { provider: BotProvider }) {
   const t = useTranslations("bots")
+  const enumLabel = useEnumLabel()
   const qc = useQueryClient()
   const [type, setType] = useState("text")
   const [text, setText] = useState("")
@@ -74,7 +79,12 @@ export function BotBroadcastPanel({ provider }: { provider: BotProvider }) {
         {job?.active ? (
           <div className="mt-2 space-y-2">
             <p>
-              {job.status}: {job.sent}/{job.total} (failed {job.failed})
+              {t("broadcast.progress", {
+                status: enumLabel("job_status", job.status),
+                sent: job.sent ?? 0,
+                total: job.total ?? 0,
+                failed: job.failed ?? 0,
+              })}
             </p>
             <Button type="button" variant="destructive" size="sm" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
               {t("broadcast.cancel")}
@@ -100,9 +110,9 @@ export function BotBroadcastPanel({ provider }: { provider: BotProvider }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {["text", "photo", "video", "voice", "document"].map((v) => (
+                {MESSAGE_TYPES.map((v) => (
                   <SelectItem key={v} value={v}>
-                    {v}
+                    {t(`broadcast.types.${v}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -115,9 +125,9 @@ export function BotBroadcastPanel({ provider }: { provider: BotProvider }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {["all", "buyers", "never_bought", "recent", "vip", "inactive_30"].map((v) => (
+                {SEGMENTS.map((v) => (
                   <SelectItem key={v} value={v}>
-                    {v}
+                    {t(`broadcast.segments.${v}`)}
                   </SelectItem>
                 ))}
               </SelectContent>

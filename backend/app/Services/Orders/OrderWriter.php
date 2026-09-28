@@ -30,6 +30,7 @@ class OrderWriter
             $subtotal = collect($built)->sum(fn ($i) => $i['unit_price_minor'] * $i['quantity']);
             $discount = (int) ($data['discount_minor'] ?? 0);
             $coupon = null;
+            $applied = null;
             $couponCode = $data['coupon_code'] ?? null;
             if (is_string($couponCode) && $couponCode !== '') {
                 $linePayload = array_map(fn ($i) => [
@@ -50,6 +51,9 @@ class OrderWriter
                 $couponCode = $coupon->code;
             }
             $shipping = (int) ($data['shipping_minor'] ?? 0);
+            if ($applied) {
+                $shipping = $this->coupons->shippingAfter($applied, $shipping);
+            }
             $total = max(0, $subtotal - $discount + $shipping);
 
             $status = $data['status'] ?? 'processing';

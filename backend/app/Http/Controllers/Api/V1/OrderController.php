@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\Geo\IranGeoService;
 use App\Services\Marketplace\MarketplacePlatforms;
+use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Orders\OrderWriter;
 use App\Services\Shipping\TapinShipmentService;
 use App\Services\Wallet\WalletService;
@@ -350,8 +351,29 @@ class OrderController extends Controller
             'items' => $data['items'] ?? null,
             'refund_minor' => $data['refund_minor'] ?? null,
         ]);
+        $this->notifyReturn($row, $ret, 'return_requested');
 
         return response()->json(['data' => $ret], 201);
+    }
+
+    private function notifyReturn(Order $order, OrderReturn $ret, string $event): void
+    {
+        try {
+            app(NotificationDispatcher::class)->dispatch($event, (int) $order->tenant_id, [
+                'vars' => [
+                    'order_number' => (string) ($order->number ?? $order->id),
+                    'customer_name' => (string) ($order->customer_name ?? ''),
+                    'status' => (string) $ret->status,
+                    'return_reason' => (string) ($ret->reason ?? ''),
+                ],
+                'customer_user_id' => $order->user_id ? (int) $order->user_id : null,
+                'customer_email' => (string) ($order->customer_email ?? ''),
+                'customer_phone' => (string) ($order->customer_phone ?? ''),
+                'customer_link' => '/dashboard/account/orders/'.$order->id,
+                'admin_link' => '/dashboard/orders/'.$order->id,
+            ]);
+        } catch (\Throwable) {
+        }
     }
 
     public function returnsAction(Request $request, int $returnId): \Illuminate\Http\JsonResponse
@@ -388,6 +410,12 @@ class OrderController extends Controller
             'admin_note' => $data['admin_note'] ?? $ret->admin_note,
             'refund_minor' => $data['refund_minor'] ?? $ret->refund_minor,
         ]);
+        if (in_array($data['action'], ['approve', 'reject'], true)) {
+            $returnOrder = $ret->order()->first();
+            if ($returnOrder) {
+                $this->notifyReturn($returnOrder, $ret, $data['action'] === 'approve' ? 'return_approved' : 'return_rejected');
+            }
+        }
         if ($data['action'] === 'refund') {
             $order = $ret->order()->first();
             $order?->update(['status' => 'refunded']);

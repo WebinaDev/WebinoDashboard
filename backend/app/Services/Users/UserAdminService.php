@@ -168,7 +168,7 @@ class UserAdminService
 
         $name = $this->resolveDisplayName($data);
 
-        return User::query()->create([
+        $user = User::query()->create([
             'tenant_id' => $tid,
             'name' => $name,
             'username' => $data['username'] ?? null,
@@ -189,6 +189,9 @@ class UserAdminService
             'bank_card' => $data['bank_card'] ?? null,
             'wallet_balance_minor' => (int) ($data['wallet_balance_minor'] ?? 0),
         ]);
+        app(UserWelcomeService::class)->welcome($user);
+
+        return $user;
     }
 
     /** @return array<string, mixed> */

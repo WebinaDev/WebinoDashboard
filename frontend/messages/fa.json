@@ -2631,6 +2631,14 @@
     "forwardTo": "انتقال به",
     "processInbox": "پردازش صندوق ورودی",
     "secretaryProcessed": "پردازش {{processed}}، تطبیق {{matched}}",
+    "secretaryNoRules": "هیچ قانون فعالی برای منشی تعریف نشده است.",
+    "secretaryInboxUnavailable": "صندوق دریافت در دسترس نیست؛ بعداً دوباره تلاش کنید.",
+    "secretaryNoNewMessages": "پیام جدیدی برای پردازش وجود ندارد.",
+    "newsletterSubscribers": "مشترکان خبرنامه",
+    "addSubscriber": "افزودن مشترک",
+    "subscriberAdded": "مشترک اضافه شد.",
+    "subscriberRemoved": "مشترک حذف شد.",
+    "noSubscribersYet": "هنوز مشترکی ثبت نشده است.",
     "noSecretaries": "قانون منشی ثبت نشده.",
     "name": "نام",
     "contacts": "مخاطبین",
@@ -2796,7 +2804,87 @@
       "restrictions": "محدودیت‌ها",
       "publish": "انتشار"
     },
-    "selectedCount": "{count} مورد انتخاب شده"
+    "selectedCount": "{count} مورد انتخاب شده",
+    "statsExpired": "منقضی",
+    "tabs": {
+      "list": "فهرست",
+      "builder": "سازنده پیشنهاد"
+    },
+    "expiredFilter": {
+      "label": "انقضا",
+      "all": "همه",
+      "expired": "منقضی‌شده",
+      "active": "فعال"
+    },
+    "channelLabels": {
+      "site": "سایت",
+      "bale": "بله",
+      "telegram": "تلگرام"
+    },
+    "conditionTypes": {
+      "none": "بدون شرط",
+      "order_nth": "سفارش n‌ام مشتری",
+      "min_amount": "حداقل مبلغ سبد",
+      "min_items": "حداقل تعداد اقلام"
+    },
+    "offer": {
+      "panel": "شرایط پیشنهاد",
+      "condition_type": "نوع شرط",
+      "condition_value": "مقدار شرط",
+      "auto_apply": "اعمال خودکار در پرداخت",
+      "auto_apply_hint": "در صورت نبود کد، بهترین پیشنهاد واجد شرایط خودکار اعمال می‌شود.",
+      "max_discount": "سقف مبلغ تخفیف",
+      "shipping_percent": "درصد تخفیف هزینه ارسال"
+    },
+    "picker": {
+      "user_ids": "کاربران مجاز",
+      "searchProducts": "جستجوی محصول…",
+      "searchUsers": "جستجوی نام، ایمیل یا موبایل…",
+      "empty": "موردی یافت نشد",
+      "remove": "حذف"
+    }
+  },
+  "coupon_builder": {
+    "title": "ساخت سریع پیشنهاد",
+    "description": "یک قالب انتخاب کنید یا شرط و پاداش را مرحله‌به‌مرحله بسازید.",
+    "templates": {
+      "title": "قالب‌های پیشنهادی",
+      "first_order": "۱۰٪ تخفیف اولین سفارش",
+      "first_order_desc": "برای مشتریانی که اولین خرید خود را انجام می‌دهند",
+      "free_shipping_over": "ارسال رایگان بالای مبلغ مشخص",
+      "free_shipping_over_desc": "هزینه ارسال سبدهای بزرگ‌تر صفر می‌شود",
+      "buy_n_items": "تخفیف خرید چند قلم",
+      "buy_n_items_desc": "با خرید حداقل ۳ قلم، ۱۵٪ تخفیف"
+    },
+    "steps": {
+      "condition": "۱. شرط",
+      "reward": "۲. پاداش",
+      "finish": "۳. کد و انتشار"
+    },
+    "rewardTypes": {
+      "percent": "درصد تخفیف",
+      "fixed": "مبلغ ثابت",
+      "free_shipping": "ارسال رایگان",
+      "shipping_percent": "درصد تخفیف ارسال"
+    },
+    "fields": {
+      "reward_type": "نوع پاداش",
+      "reward_value": "مقدار پاداش",
+      "code": "کد",
+      "auto_apply": "اعمال خودکار (بدون نیاز به کد)",
+      "description": "توضیح",
+      "status": "وضعیت"
+    },
+    "actions": {
+      "next": "بعدی",
+      "back": "قبلی",
+      "create": "ساخت پیشنهاد",
+      "generate": "تولید کد",
+      "reset": "شروع دوباره"
+    },
+    "summary": "خلاصه",
+    "created": "پیشنهاد {code} ساخته شد.",
+    "openEditor": "ویرایش کامل"
   },
   "bots": {
     "description": "تنظیمات و ارسال ربات‌های بله و تلگرام",
@@ -2809,9 +2897,26 @@
       "token": "توکن",
       "webhook": "وب‌هوک",
       "testSend": "ارسال آزمایشی",
-      "paritySoon": "ویژگی‌های پیشرفته سایت/ادمین (هم‌تراز وردپرس) به‌زودی."
+      "testTextDefault": "سلام! این یک پیام آزمایشی از ربات فروشگاه است.",
+      "chatId": "شناسه چت (chat_id)"
     },
     "broadcast": {
+      "progress": "{status}: {sent} از {total} (ناموفق {failed})",
+      "types": {
+        "text": "متن",
+        "photo": "تصویر",
+        "video": "ویدیو",
+        "voice": "صدا",
+        "document": "فایل"
+      },
+      "segments": {
+        "all": "همه کاربران",
+        "buyers": "خریداران",
+        "never_bought": "بدون خرید",
+        "recent": "کاربران اخیر",
+        "vip": "مشتریان ویژه",
+        "inactive_30": "غیرفعال ۳۰ روز اخیر"
+      },
       "title": "پیام همگانی",
       "status": "وضعیت",
       "idle": "کاری در جریان نیست",
@@ -2839,6 +2944,40 @@
       "colSent": "ارسال",
       "colFailed": "ناموفق",
       "disabled": "کمپین‌ها برای این پروایدر غیرفعال است یا در دسترس نیست."
+    },
+    "logs": {
+      "title": "گزارش پیام‌های ربات",
+      "empty": "پیامی ثبت نشده است.",
+      "search": "جستجو در شناسه چت یا متن",
+      "colTime": "زمان",
+      "colChat": "شناسه چت",
+      "colDirection": "جهت",
+      "colType": "نوع",
+      "colStatus": "وضعیت",
+      "colPayload": "متن",
+      "directionAll": "همه",
+      "direction": {
+        "in": "دریافتی",
+        "out": "ارسالی"
+      },
+      "status": {
+        "sent": "ارسال شد",
+        "failed": "ناموفق",
+        "received": "دریافت شد"
+      }
+    },
+    "coupons": {
+      "title": "کدهای تخفیف ربات",
+      "description": "کدهای تخفیفی که برای کانال بله یا تلگرام محدود شده‌اند.",
+      "empty": "کد تخفیفی برای این ربات تعریف نشده است. در ویرایش کد تخفیف، کانال ربات را فعال کنید.",
+      "create": "کد تخفیف جدید",
+      "colCode": "کد",
+      "colType": "نوع",
+      "colAmount": "مقدار",
+      "colUsage": "استفاده",
+      "colStatus": "وضعیت",
+      "colExpires": "انقضا",
+      "noExpiry": "بدون انقضا"
     }
   },
   "marketplace_admin": {
@@ -4532,7 +4671,105 @@
       "info": "اطلاع‌رسانی",
       "ticket": "تیکت پشتیبانی",
       "order": "سفارش",
-      "system": "سیستم"
+      "system": "سیستم",
+      "order_status": "وضعیت سفارش",
+      "return_requested": "درخواست مرجوعی",
+      "return_approved": "تأیید مرجوعی",
+      "return_rejected": "رد مرجوعی",
+      "user_welcome": "خوش‌آمدگویی",
+      "stock_low": "موجودی کم",
+      "stock_out": "ناموجود",
+      "review_pending": "دیدگاه در انتظار"
+    },
+    "settings_link": "تنظیمات اعلان‌ها",
+    "settings": {
+      "title": "تنظیمات اعلان‌ها",
+      "description": "برای هر رویداد، کانال‌های ارسال و متن پیام مشتری و مدیر را مشخص کنید.",
+      "tabs": {
+        "site": "داخل سایت",
+        "sms": "پیامک",
+        "bale": "بله",
+        "telegram": "تلگرام",
+        "email": "ایمیل"
+      },
+      "channel_enabled": "فعال‌سازی این کانال",
+      "customer": "ارسال به مشتری",
+      "admin": "ارسال به مدیر",
+      "customer_template": "متن پیام مشتری",
+      "admin_template": "متن پیام مدیر",
+      "template_placeholder": "خالی = متن پیش‌فرض",
+      "variables": "متغیرها: {vars}",
+      "admin_phone": "شماره موبایل مدیر",
+      "admin_phone_hint": "چند شماره را با کاما جدا کنید.",
+      "admin_chat_id": "شناسه چت مدیر",
+      "admin_chat_hint": "پیام‌های مدیر به این chat_id ارسال می‌شود؛ مشتریان از طریق سشن ربات خود پیام می‌گیرند.",
+      "admin_email": "ایمیل مدیر",
+      "admin_email_hint": "خالی = ایمیل همه مدیران. چند ایمیل را با کاما جدا کنید.",
+      "events": {
+        "order_status": "تغییر وضعیت سفارش",
+        "return_requested": "ثبت درخواست مرجوعی",
+        "return_approved": "تأیید مرجوعی",
+        "return_rejected": "رد مرجوعی",
+        "user_welcome": "خوش‌آمدگویی کاربر جدید",
+        "stock_low": "کم شدن موجودی",
+        "stock_out": "اتمام موجودی",
+        "review_pending": "دیدگاه در انتظار تأیید"
+      },
+      "smtp": {
+        "title": "تنظیمات SMTP",
+        "hint": "اگر غیرفعال باشد، ایمیل‌ها با تنظیمات پیش‌فرض سرور ارسال می‌شوند.",
+        "enabled": "استفاده از SMTP اختصاصی",
+        "host": "هاست",
+        "port": "پورت",
+        "username": "نام کاربری",
+        "password": "رمز عبور",
+        "encryption": "رمزنگاری",
+        "encryption_none": "بدون رمزنگاری",
+        "encryption_tls": "TLS",
+        "encryption_ssl": "SSL",
+        "from_address": "ایمیل فرستنده",
+        "from_name": "نام فرستنده",
+        "test_to": "ارسال ایمیل آزمایشی به",
+        "test_send": "ارسال آزمایشی",
+        "test_ok": "ایمیل آزمایشی ارسال شد.",
+        "test_failed": "ارسال ایمیل آزمایشی ناموفق بود."
+      }
+    }
+  },
+  "marketing_hub": {
+    "title": "بازاریابی",
+    "subtitle": "ابزارهای تخفیف، پیامک، ربات و اعلان‌ها در یک نگاه",
+    "open": "ورود",
+    "cards": {
+      "coupons": {
+        "title": "کدهای تخفیف",
+        "description": "ساخت و مدیریت کوپن‌ها و محدودیت‌ها"
+      },
+      "sale_prices": {
+        "title": "قیمت فروش ویژه",
+        "description": "اعمال تخفیف گروهی روی محصولات"
+      },
+      "sms": {
+        "title": "پنل پیامک",
+        "description": "ارسال، گزارش‌ها و الگوهای پیامک"
+      },
+      "bot_broadcast": {
+        "title": "پیام همگانی ربات",
+        "description": "ارسال پیام به کاربران بله و تلگرام"
+      },
+      "bot_campaigns": {
+        "title": "کمپین‌های ربات",
+        "description": "زمان‌بندی کمپین برای ربات‌ها"
+      },
+      "notifications": {
+        "title": "تنظیمات اعلان‌ها",
+        "description": "کانال‌ها و قالب پیام رویدادها و SMTP"
+      }
+    },
+    "loyalty": {
+      "welcome_points": "امتیاز خوش‌آمدگویی",
+      "referral_points": "امتیاز معرفی دوستان",
+      "hint": "۰ = غیرفعال"
     }
   },
   "sale_prices": {
@@ -4556,7 +4793,21 @@
     "remove_confirm_title": "حذف قیمت خط‌خورده؟",
     "remove_confirm_body": "قیمت فروش (sale_price_minor) برای محدودهٔ انتخاب‌شده خالی می‌شود.",
     "regular": "عادی",
-    "sale": "فروش"
+    "sale": "فروش",
+    "duration": "مدت تخفیف",
+    "preset_days": "{count} روز",
+    "custom_end": "تاریخ پایان دلخواه",
+    "end_date": "تاریخ پایان",
+    "category": "دسته‌بندی",
+    "brand": "برند",
+    "all": "همه",
+    "filter": "اعمال فیلتر",
+    "preview_title": "پیش‌نمایش تخفیف",
+    "preview_count": "{count} محصول تحت تأثیر قرار می‌گیرند",
+    "preview_empty": "نمونه‌ای برای نمایش وجود ندارد.",
+    "preview_variations": "{count} متغیر",
+    "sale_until": "تا {date}",
+    "sale_expired": "منقضی‌شده"
   },
   "content_admin": {
     "posts_title": "نوشته‌های مجله",
@@ -4696,7 +4947,13 @@
     "save_reply": "ذخیره پاسخ",
     "approve": "تأیید",
     "spam": "اسپم",
-    "trash": "زباله"
+    "trash": "زباله",
+    "kind_reviews": "دیدگاه‌ها",
+    "kind_questions": "پرسش‌ها",
+    "tab_answered": "پاسخ‌داده‌شده",
+    "questions_empty": "پرسشی در این تب نیست.",
+    "answer_ph": "پاسخ فروشگاه",
+    "save_answer": "ذخیره پاسخ"
   },
   "account_portal": {
     "overview_title": "پیشخوان حساب",
@@ -4737,6 +4994,16 @@
     "reviews_tab_mine": "نظرات من",
     "reviews_tab_questions": "پرسش‌های من",
     "no_reviews": "هنوز نظری ثبت نکرده‌اید.",
+    "no_questions": "هنوز پرسشی ثبت نکرده‌اید.",
+    "question_answer": "پاسخ",
+    "question_awaiting": "در انتظار پاسخ",
+    "question_new": "ثبت پرسش",
+    "question_product": "محصول",
+    "question_select_product": "انتخاب محصول",
+    "question_body": "متن پرسش",
+    "question_submit": "ارسال پرسش",
+    "question_sent": "پرسش شما ثبت شد.",
+    "question_write_review": "ثبت نظر",
     "profile_title": "اطلاعات حساب",
     "field_name": "نام",
     "field_email": "ایمیل",
@@ -4888,6 +5155,12 @@
       "pending": "در انتظار تأیید",
       "approved": "تأییدشده",
       "rejected": "هرزنامه",
+      "spam": "هرزنامه",
+      "trash": "زباله‌دان"
+    },
+    "question_status": {
+      "pending": "در انتظار پاسخ",
+      "answered": "پاسخ داده شد",
       "spam": "هرزنامه",
       "trash": "زباله‌دان"
     },

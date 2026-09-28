@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductReview;
+use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Shop\ShopSettings;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -83,6 +84,20 @@ class ProductReviewController extends Controller
             'author_name' => $data['author_name'] ?? ($user?->name),
             'status' => $status,
         ]);
+
+        if ($status === ProductReview::STATUS_PENDING) {
+            try {
+                app(NotificationDispatcher::class)->dispatch('review_pending', $tid, [
+                    'vars' => [
+                        'product_name' => (string) $product->name,
+                        'customer_name' => (string) ($review->author_name ?? ''),
+                    ],
+                    'customer_user_id' => $user?->id ? (int) $user->id : null,
+                    'admin_link' => '/dashboard/settings/shop/reviews',
+                ]);
+            } catch (\Throwable) {
+            }
+        }
 
         return response()->json(['data' => $review], 201);
     }

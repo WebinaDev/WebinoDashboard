@@ -358,7 +358,9 @@ class ProductController extends Controller
 
         $regular = (int) ($row['price_min'] ?? $product->price_minor ?? 0);
         $sale = isset($row['sale_price_minor']) ? (int) $row['sale_price_minor'] : (int) ($product->sale_price_minor ?? 0);
-        $row['is_on_sale'] = $sale > 0 && ($regular <= 0 || $sale < $regular);
+        $row['is_on_sale'] = $product->isSaleWindowOpen() && $sale > 0 && ($regular <= 0 || $sale < $regular);
+        $row['sale_starts_at'] = $product->sale_starts_at?->toIso8601String();
+        $row['sale_ends_at'] = $product->sale_ends_at?->toIso8601String();
 
         if ($product->purchase_price_minor) {
             $derived = $calc->derived((float) $product->purchase_price_minor, $product);

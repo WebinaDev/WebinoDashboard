@@ -10,6 +10,7 @@ export type EnumGroup =
   | "stock_status"
   | "post_status"
   | "review_status"
+  | "question_status"
   | "return_status"
   | "withdrawal_status"
   | "c2c_status"

@@ -389,14 +389,77 @@ export function AccountFavoritesPageClient({ route: _route }: { route: ResolvedA
   )
 }
 
+type PortalReviewRow = {
+  id?: number
+  rating?: number
+  body?: string
+  answer?: string | null
+  admin_reply?: string | null
+  status?: string
+  product?: { id?: number; name?: string; slug?: string } | null
+}
+
+function AccountQuestionForm() {
+  const t = useTranslations("account_portal")
+  const qc = useQueryClient()
+  const [productId, setProductId] = useState("")
+  const [body, setBody] = useState("")
+  const products = useQuery({
+    queryKey: ["account", "question-products"],
+    queryFn: () => api<Array<{ id: number; name: string }>>("/api/v1/account/questions/products"),
+  })
+  const submit = useMutation({
+    mutationFn: () =>
+      api("/api/v1/account/questions", { method: "POST", json: { product_id: Number(productId), body } }),
+    onSuccess: () => {
+      toast.success(t("question_sent"))
+      setBody("")
+      void qc.invalidateQueries({ queryKey: ["account", "reviews", "questions"] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+  return (
+    <Card className="mb-4">
+      <CardContent className="grid gap-3 pt-6">
+        <p className="font-medium">{t("question_new")}</p>
+        <div>
+          <Label>{t("question_product")}</Label>
+          <select
+            className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+          >
+            <option value="">{t("question_select_product")}</option>
+            {(products.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label>{t("question_body")}</Label>
+          <Textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)} />
+        </div>
+        <div>
+          <Button
+            type="button"
+            disabled={!productId || body.trim().length < 3 || submit.isPending}
+            onClick={() => void submit.mutateAsync()}
+          >
+            {t("question_submit")}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function AccountReviewsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("account_portal")
+  const enumLabel = useEnumLabel()
   const [tab, setTab] = useState<"pending" | "mine" | "questions">("mine")
   const q = useQuery({
     queryKey: ["account", "reviews", tab],
-    queryFn: () => api<Array<{ id?: number; rating?: number; body?: string; status?: string; product?: { name?: string; slug?: string } }>>(
-      `/api/v1/account/reviews?tab=${tab}`,
-    ),
+    queryFn: () => api<PortalReviewRow[]>(`/api/v1/account/reviews?tab=${tab}`),
   })
   const items = q.data ?? []
   const tabs = [
@@ -404,6 +467,11 @@ export function AccountReviewsPageClient({ route: _route }: { route: ResolvedAdm
     { id: "mine" as const, label: t("reviews_tab_mine") },
     { id: "questions" as const, label: t("reviews_tab_questions") },
   ]
+  const productLink = (r: PortalReviewRow) => (
+    <Link href={r.product?.slug ? `/shop/${r.product.slug}` : "#"} className="font-medium text-primary hover:underline">
+      {r.product?.name ?? "—"}
+    </Link>
+  )
   return (
     <PageShell title={t("reviews_title")}>
       <div className="mb-4 flex flex-wrap gap-2">
@@ -413,17 +481,48 @@ export function AccountReviewsPageClient({ route: _route }: { route: ResolvedAdm
           </Button>
         ))}
       </div>
-      {items.length === 0 ? <p className="text-muted-foreground text-sm">{t("no_reviews")}</p> : null}
+      {tab === "questions" ? <AccountQuestionForm /> : null}
+      {items.length === 0 ? (
+        <p className="text-muted-foreground text-sm">{tab === "questions" ? t("no_questions") : t("no_reviews")}</p>
+      ) : null}
       <ul className="space-y-2 text-sm">
         {items.map((r, i) => (
-          <li key={r.id ?? i} className="rounded-lg border p-3">
+          <li key={r.id ?? i} className="space-y-1 rounded-lg border p-3">
             {tab === "pending" ? (
-              <Link href={r.product?.slug ? `/shop/${r.product.slug}` : "#"} className="font-medium text-primary hover:underline">
-                {r.product?.name ?? "—"}
-              </Link>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                {productLink(r)}
+                {r.product?.slug ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/shop/${r.product.slug}#reviews`}>{t("question_write_review")}</Link>
+                  </Button>
+                ) : null}
+              </div>
+            ) : tab === "questions" ? (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  {productLink(r)}
+                  <Badge variant="outline">{enumLabel("question_status", r.status)}</Badge>
+                </div>
+                <p className="whitespace-pre-wrap">{r.body}</p>
+                {r.answer ? (
+                  <p className="bg-muted/50 rounded-md p-2 whitespace-pre-wrap">
+                    <span className="font-medium">{t("question_answer")}: </span>
+                    {r.answer}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground text-xs">{t("question_awaiting")}</p>
+                )}
+              </>
             ) : (
               <>
-                {r.product?.name} · {r.rating}/5 {r.status ? `· ${r.status}` : ""} — {r.body}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  {productLink(r)}
+                  <span className="text-muted-foreground text-xs">
+                    {r.rating}/5 · {enumLabel("review_status", r.status)}
+                  </span>
+                </div>
+                {r.body ? <p className="whitespace-pre-wrap">{r.body}</p> : null}
+                {r.admin_reply ? <p className="bg-muted/50 rounded-md p-2 whitespace-pre-wrap">{r.admin_reply}</p> : null}
               </>
             )}
           </li>

@@ -5,11 +5,15 @@ namespace App\Services\Coupons;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CouponService
 {
+    public const PAID_ORDER_STATUSES = ['paid', 'processing', 'shipped', 'completed'];
+
     public function generateCode(int $tenantId, int $length = 8): string
     {
         do {
@@ -20,10 +24,11 @@ class CouponService
     }
 
     /**
-     * @param  list<array{product_id?: int, unit_price_minor: int, quantity: int}>  $lines
-     * @return array{discount_minor: int, coupon: Coupon}
+     * @param  list<array{product_id?: int|null, unit_price_minor: int, quantity: int}>  $lines
+     * @param  list<string>  $otherCodes
+     * @return array{discount_minor: int, coupon: Coupon, free_shipping: bool, shipping_percent: int, individual_use: bool}
      */
-    public function apply(int $tenantId, string $code, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site'): array
+    public function apply(int $tenantId, string $code, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site', array $otherCodes = []): array
     {
         $coupon = Coupon::query()
             ->where('tenant_id', $tenantId)
@@ -35,6 +40,77 @@ class CouponService
             throw ValidationException::withMessages(['coupon_code' => 'Invalid coupon']);
         }
 
+        $others = array_values(array_diff(array_map(fn ($c) => strtoupper(trim((string) $c)), $otherCodes), [$coupon->code, '']));
+        if ($others !== []) {
+            $blocked = $coupon->individual_use || Coupon::query()
+                ->where('tenant_id', $tenantId)
+                ->whereIn('code', $others)
+                ->where('individual_use', true)
+                ->exists();
+            if ($blocked) {
+                throw ValidationException::withMessages(['coupon_code' => 'Coupon cannot be combined with other coupons']);
+            }
+        }
+
+        return $this->evaluate($coupon, $subtotalMinor, $lines, $userId, $channel);
+    }
+
+    /**
+     * @param  list<array{product_id?: int|null, unit_price_minor: int, quantity: int}>  $lines
+     * @return array{discount_minor: int, coupon: Coupon, free_shipping: bool, shipping_percent: int, individual_use: bool}|null
+     */
+    public function bestAutoApply(int $tenantId, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site'): ?array
+    {
+        $candidates = Coupon::query()
+            ->where('tenant_id', $tenantId)
+            ->where('auto_apply', true)
+            ->where('status', 'publish')
+            ->orderBy('id')
+            ->get();
+
+        $best = null;
+        $bestScore = null;
+        foreach ($candidates as $coupon) {
+            try {
+                $result = $this->evaluate($coupon, $subtotalMinor, $lines, $userId, $channel);
+            } catch (ValidationException) {
+                continue;
+            }
+            $score = [$result['discount_minor'], $result['free_shipping'] ? 100 : $result['shipping_percent']];
+            if ($score === [0, 0]) {
+                continue;
+            }
+            if ($bestScore === null || ($score <=> $bestScore) > 0) {
+                $best = $result;
+                $bestScore = $score;
+            }
+        }
+
+        return $best;
+    }
+
+    /**
+     * @param  array{free_shipping?: bool, shipping_percent?: int}  $applied
+     */
+    public function shippingAfter(array $applied, int $shippingMinor): int
+    {
+        if (! empty($applied['free_shipping'])) {
+            return 0;
+        }
+        $percent = min(100, max(0, (int) ($applied['shipping_percent'] ?? 0)));
+        if ($percent > 0) {
+            return max(0, $shippingMinor - (int) floor($shippingMinor * $percent / 100));
+        }
+
+        return $shippingMinor;
+    }
+
+    /**
+     * @param  list<array{product_id?: int|null, unit_price_minor: int, quantity: int}>  $lines
+     * @return array{discount_minor: int, coupon: Coupon, free_shipping: bool, shipping_percent: int, individual_use: bool}
+     */
+    public function evaluate(Coupon $coupon, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site'): array
+    {
         if ($coupon->expires_at && $coupon->expires_at->isPast()) {
             throw ValidationException::withMessages(['coupon_code' => 'Coupon expired']);
         }
@@ -66,27 +142,40 @@ class CouponService
             throw ValidationException::withMessages(['coupon_code' => 'Coupon not valid for this channel']);
         }
 
-        if (! empty($r['user_ids']) && $userId && ! in_array($userId, $r['user_ids'], true)) {
+        $userIds = $this->ids($r['user_ids'] ?? []);
+        if ($userIds !== [] && (! $userId || ! in_array($userId, $userIds, true))) {
             throw ValidationException::withMessages(['coupon_code' => 'Coupon not allowed for user']);
         }
 
-        $eligible = $subtotalMinor;
-        if ($coupon->type === 'fixed_product' && ! empty($r['product_ids'])) {
-            $eligible = 0;
-            foreach ($lines as $line) {
-                if (in_array((int) ($line['product_id'] ?? 0), $r['product_ids'], true)) {
-                    $eligible += (int) $line['unit_price_minor'] * (int) $line['quantity'];
-                }
+        $emails = array_values(array_filter(array_map(fn ($e) => strtolower(trim((string) $e)), (array) ($r['emails'] ?? []))));
+        if ($emails !== []) {
+            $email = $userId ? strtolower(trim((string) User::query()->whereKey($userId)->value('email'))) : '';
+            $allowed = $email !== '' && collect($emails)->contains(fn ($pattern) => Str::is($pattern, $email));
+            if (! $allowed) {
+                throw ValidationException::withMessages(['coupon_code' => 'Coupon not allowed for this email']);
             }
         }
+
+        $this->assertCondition($coupon, $subtotalMinor, $lines, $userId);
+
+        $eligible = $this->eligibleSubtotal($coupon, $subtotalMinor, $lines);
 
         $discount = match ($coupon->type) {
             'percent' => (int) floor($eligible * ((int) $coupon->amount) / 100),
             'fixed_cart', 'fixed_product' => min((int) $coupon->amount, $eligible),
             default => 0,
         };
+        if ($coupon->max_discount_minor !== null) {
+            $discount = min($discount, (int) $coupon->max_discount_minor);
+        }
 
-        return ['discount_minor' => max(0, $discount), 'coupon' => $coupon];
+        return [
+            'discount_minor' => max(0, $discount),
+            'coupon' => $coupon,
+            'free_shipping' => (bool) $coupon->free_shipping,
+            'shipping_percent' => min(100, max(0, (int) ($coupon->shipping_percent ?? 0))),
+            'individual_use' => (bool) $coupon->individual_use,
+        ];
     }
 
     public function redeem(Coupon $coupon, Order $order, int $discountMinor, ?int $userId = null): void
@@ -99,5 +188,127 @@ class CouponService
             'discount_minor' => $discountMinor,
         ]);
         $coupon->increment('usage_count');
+    }
+
+    /**
+     * @param  list<array{product_id?: int|null, unit_price_minor: int, quantity: int}>  $lines
+     */
+    protected function assertCondition(Coupon $coupon, int $subtotalMinor, array $lines, ?int $userId): void
+    {
+        $type = $coupon->condition_type ?: 'none';
+        $value = (int) ($coupon->condition_value ?? 0);
+        if ($type === 'none' || $value <= 0) {
+            return;
+        }
+
+        $ok = match ($type) {
+            'order_nth' => $userId !== null && $this->paidOrderCount((int) $coupon->tenant_id, $userId) + 1 === $value,
+            'min_amount' => $subtotalMinor >= $value,
+            'min_items' => array_sum(array_map(fn ($l) => (int) ($l['quantity'] ?? 0), $lines)) >= $value,
+            default => true,
+        };
+
+        if (! $ok) {
+            throw ValidationException::withMessages(['coupon_code' => 'Coupon conditions not met']);
+        }
+    }
+
+    protected function paidOrderCount(int $tenantId, int $userId): int
+    {
+        return Order::query()
+            ->where('tenant_id', $tenantId)
+            ->where('user_id', $userId)
+            ->whereIn('status', self::PAID_ORDER_STATUSES)
+            ->count();
+    }
+
+    /**
+     * @param  list<array{product_id?: int|null, unit_price_minor: int, quantity: int}>  $lines
+     */
+    protected function eligibleSubtotal(Coupon $coupon, int $subtotalMinor, array $lines): int
+    {
+        $r = $coupon->restrictions ?? [];
+        $productIds = $this->ids($r['product_ids'] ?? []);
+        $categoryIds = $this->ids($r['category_ids'] ?? []);
+        $brandIds = $this->ids($r['brand_ids'] ?? []);
+        $excludeSale = (bool) $coupon->exclude_sale;
+
+        if ($lines === [] || ($productIds === [] && $categoryIds === [] && $brandIds === [] && ! $excludeSale)) {
+            return $subtotalMinor;
+        }
+
+        $lineProductIds = array_values(array_unique(array_filter(array_map(fn ($l) => (int) ($l['product_id'] ?? 0), $lines))));
+        $products = Product::query()
+            ->where('tenant_id', $coupon->tenant_id)
+            ->whereIn('id', $lineProductIds)
+            ->with(['categories', 'brands'])
+            ->get()
+            ->keyBy('id');
+
+        $eligible = 0;
+        $matched = false;
+        foreach ($lines as $line) {
+            $product = $products->get((int) ($line['product_id'] ?? 0));
+            if (! $this->lineEligible($product, $productIds, $categoryIds, $brandIds, $excludeSale)) {
+                continue;
+            }
+            $matched = true;
+            $eligible += (int) $line['unit_price_minor'] * (int) $line['quantity'];
+        }
+
+        if (! $matched) {
+            throw ValidationException::withMessages(['coupon_code' => 'Coupon not applicable to cart items']);
+        }
+
+        return $eligible;
+    }
+
+    /**
+     * @param  list<int>  $productIds
+     * @param  list<int>  $categoryIds
+     * @param  list<int>  $brandIds
+     */
+    protected function lineEligible(?Product $product, array $productIds, array $categoryIds, array $brandIds, bool $excludeSale): bool
+    {
+        if ($productIds !== [] && (! $product || ! in_array((int) $product->id, $productIds, true))) {
+            return false;
+        }
+        if ($categoryIds !== []) {
+            if (! $product) {
+                return false;
+            }
+            $cats = $product->categories->pluck('id')->map(fn ($id) => (int) $id)->all();
+            if ($product->category_id) {
+                $cats[] = (int) $product->category_id;
+            }
+            if (array_intersect($categoryIds, $cats) === []) {
+                return false;
+            }
+        }
+        if ($brandIds !== []) {
+            if (! $product) {
+                return false;
+            }
+            $brands = $product->brands->pluck('id')->map(fn ($id) => (int) $id)->all();
+            if (array_intersect($brandIds, $brands) === []) {
+                return false;
+            }
+        }
+        if ($excludeSale && $product && $this->onSale($product)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function onSale(Product $product): bool
+    {
+        return $product->isOnSale();
+    }
+
+    /** @return list<int> */
+    protected function ids(mixed $value): array
+    {
+        return array_values(array_filter(array_map('intval', (array) $value), fn ($id) => $id > 0));
     }
 }

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\AiContent\AiContentSettings;
 use App\Services\Analytics\AnalyticsSettings;
 use App\Services\Modules\ModuleSettingsService;
+use App\Services\Notifications\NotificationSettings;
+use App\Services\Notifications\TenantMailer;
 use App\Services\Orders\OrderDocumentSettings;
 use App\Services\Pwa\PwaSettings;
 use App\Services\Shop\ShopSettings;
@@ -16,7 +18,7 @@ class TenantSettingsController extends Controller
     private const AREAS = ['site', 'shop'];
 
     private const SECTIONS = [
-        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard'],
+        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard', 'notifications'],
         'shop' => [
             'general',
             'products',
@@ -58,6 +60,9 @@ class TenantSettingsController extends Controller
         }
         if ($key === AiContentSettings::KEY) {
             return response()->json(['data' => AiContentSettings::public($tenantId)]);
+        }
+        if ($key === NotificationSettings::KEY) {
+            return response()->json(['data' => NotificationSettings::public($tenantId)]);
         }
         if ($key === ShopSettings::GENERAL_KEY) {
             return response()->json(['data' => ShopSettings::getGeneral($tenantId)]);
@@ -120,6 +125,9 @@ class TenantSettingsController extends Controller
         if ($key === AiContentSettings::KEY) {
             return response()->json(['data' => AiContentSettings::save($tenantId, $payload['payload'])]);
         }
+        if ($key === NotificationSettings::KEY) {
+            return response()->json(['data' => NotificationSettings::save($tenantId, $payload['payload'])]);
+        }
         if ($key === ShopSettings::GENERAL_KEY) {
             return response()->json(['data' => ShopSettings::saveGeneral($tenantId, $payload['payload'])]);
         }
@@ -160,6 +168,17 @@ class TenantSettingsController extends Controller
         $saved = $settings->put($tenantId, 'settings', $key, $merged);
 
         return response()->json(['data' => $saved]);
+    }
+
+    public function testNotificationEmail(Request $request, TenantMailer $mailer): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'to' => ['required', 'email', 'max:255'],
+        ]);
+        $tenantId = (int) $request->user()->tenant_id;
+        $ok = $mailer->send($tenantId, $data['to'], 'SMTP test', 'SMTP test message.');
+
+        return response()->json(['data' => ['ok' => $ok]], $ok ? 200 : 422);
     }
 
     private function locale(Request $request): string

@@ -319,7 +319,7 @@ class BasalamProducts
         }
         $src = $variant ?? $product;
         $regular = (float) ($src->price_minor ?: $product->price_minor ?: 0);
-        $sale = (float) ($src->sale_price_minor ?? 0);
+        $sale = (float) ($product->effectiveSalePriceMinor($variant) ?? 0);
         $field = $this->engine()['product_price_field'] ?? 'original_price';
         $base = $field === 'sale_price' && $sale > 0 ? $sale : $regular;
         if ($base <= 0) {

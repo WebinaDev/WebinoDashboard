@@ -365,6 +365,17 @@ export function sendNewsletterCampaign(body: { product_id?: number; message: str
   })
 }
 
+export function addNewsletterSubscriber(body: { phone: string; product_id?: number }) {
+  return apiFetch<{ ok: boolean; subscriber?: { id: number; phone: string; product_id: number } }>(
+    'modirpayamak/newsletter/subscribe',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  )
+}
+
 export function unsubscribeNewsletterSubscriber(id: number) {
   return apiFetch<{ ok: boolean }>('modirpayamak/newsletter/unsubscribe', {
     method: 'POST',
@@ -388,7 +399,7 @@ export function testOrderSmsNotify(body: {
   order_id?: number
   order?: Record<string, unknown>
 }) {
-  return apiFetch<{ ok: boolean; results?: unknown; test?: boolean }>('modirpayamak/orders/test-notify', {
+  return apiFetch<{ ok: boolean; results?: unknown; test?: boolean; reason?: string }>('modirpayamak/orders/test-notify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -476,7 +487,14 @@ export function deleteSmsSecretary(id: number) {
 }
 
 export function processSmsSecretaries() {
-  return apiFetch<{ ok: boolean; processed?: number; matched?: number }>('modirpayamak/secretaries/process', {
+  return apiFetch<{
+    ok: boolean
+    processed?: number
+    matched?: number
+    replied?: number
+    reason?: string
+    results?: Array<Record<string, unknown>>
+  }>('modirpayamak/secretaries/process', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),

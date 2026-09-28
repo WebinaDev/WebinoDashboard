@@ -61,6 +61,7 @@ use App\Http\Controllers\Api\V1\ProductCatalogController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductTagController;
 use App\Http\Controllers\Api\V1\ProductDownloadController;
+use App\Http\Controllers\Api\V1\ProductQuestionController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\ShopExtrasController;
 use App\Http\Controllers\Api\V1\ProductVariantController;
@@ -85,6 +86,7 @@ use App\Http\Controllers\Api\V1\PublicCorporateController;
 use App\Http\Controllers\Api\V1\PublicKernelController;
 use App\Http\Controllers\Api\V1\PublicMagazineController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
+use App\Http\Controllers\Api\V1\PublicSiteController;
 use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\PublicAnalyticsController;
 use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
@@ -297,6 +299,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/favorites/{productId}', [AccountPortalController::class, 'favoritesAdd'])->whereNumber('productId');
             Route::delete('/favorites/{productId}', [AccountPortalController::class, 'favoritesRemove'])->whereNumber('productId');
             Route::get('/reviews', [AccountPortalController::class, 'reviewsIndex']);
+            Route::post('/questions', [ProductQuestionController::class, 'accountStore']);
+            Route::get('/questions/products', [ProductQuestionController::class, 'accountProducts']);
             Route::get('/profile', [AccountPortalController::class, 'profileShow']);
             Route::patch('/profile', [AccountPortalController::class, 'profileUpdate']);
             Route::get('/wallet', [AccountPortalController::class, 'wallet']);
@@ -337,6 +341,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/setup/sync-license', [SetupController::class, 'syncLicense']);
             Route::post('/setup/complete', [SetupController::class, 'complete']);
 
+            Route::post('/settings/site/notifications/test-email', [TenantSettingsController::class, 'testNotificationEmail'])
+                ->middleware('can:settings.manage');
             Route::get('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'show']);
             Route::put('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'update'])
                 ->middleware('can:settings.manage');
@@ -344,6 +350,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/kernel/site-types', [KernelController::class, 'siteTypes']);
             Route::put('/loyalty/rewards', [ShopExtrasController::class, 'saveLoyaltyRewards']);
 
+            Route::get('/product-questions', [ProductQuestionController::class, 'adminIndex']);
+            Route::patch('/product-questions/{question}', [ProductQuestionController::class, 'moderate'])
+                ->middleware('can:reviews.moderate')
+                ->whereNumber('question');
             Route::get('/product-reviews', [ProductReviewController::class, 'adminIndex']);
             Route::patch('/product-reviews/{review}', [ProductReviewController::class, 'moderate'])
                 ->middleware('can:reviews.moderate')
@@ -665,6 +675,7 @@ Route::prefix('v1')->group(function () {
                     Route::get('/settings', fn (\Illuminate\Http\Request $r) => app(BotController::class)->settings($r, $provider));
                     Route::put('/settings', fn (\Illuminate\Http\Request $r) => app(BotController::class)->updateSettings($r, $provider));
                     Route::get('/sessions', fn (\Illuminate\Http\Request $r) => app(BotController::class)->sessions($r, $provider));
+                    Route::get('/logs', fn (\Illuminate\Http\Request $r) => app(BotController::class)->logs($r, $provider));
                     Route::post('/send', fn (\Illuminate\Http\Request $r) => app(BotController::class)->send($r, $provider));
                     Route::get('/broadcast', fn (\Illuminate\Http\Request $r) => app(BotController::class)->broadcast($r, $provider));
                     Route::post('/broadcast/start', fn (\Illuminate\Http\Request $r) => app(BotController::class)->broadcastStart($r, $provider));

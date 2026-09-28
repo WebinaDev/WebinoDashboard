@@ -1,39 +1,51 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Bell, Bot, CalendarClock, MessageSquareText, Percent, TicketPercent, type LucideIcon } from "lucide-react"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 
-import { useEnumLabel } from "@/lib/enum-labels"
-import { api } from "@/lib/api"
+import { PageShell } from "@/components/PageShell"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { dashboardPath } from "@/kernel/paths"
 
-type Campaign = { id: number; name: string; status: string }
+type HubCard = {
+  id: "coupons" | "sale_prices" | "sms" | "bot_broadcast" | "bot_campaigns" | "notifications"
+  href: string
+  icon: LucideIcon
+}
+
+const CARDS: HubCard[] = [
+  { id: "coupons", href: dashboardPath("marketing/coupons"), icon: TicketPercent },
+  { id: "sale_prices", href: dashboardPath("marketing/sale-prices"), icon: Percent },
+  { id: "sms", href: dashboardPath("marketing/sms"), icon: MessageSquareText },
+  { id: "bot_broadcast", href: dashboardPath("marketing/bot-broadcast"), icon: Bot },
+  { id: "bot_campaigns", href: dashboardPath("marketing/bot-campaigns"), icon: CalendarClock },
+  { id: "notifications", href: dashboardPath("settings/site/notifications"), icon: Bell },
+]
 
 export default function CommerceMarketingPage() {
-  const enumLabel = useEnumLabel()
-  const t = useTranslations("phase2")
-  const [rows, setRows] = useState<Campaign[]>([])
-
-  useEffect(() => {
-    api<Campaign[]>("/api/v1/marketing/campaigns")
-      .then((r) => setRows(Array.isArray(r) ? r : []))
-      .catch(() => setRows([]))
-  }, [])
+  const t = useTranslations("marketing_hub")
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("marketing_title")}</h1>
-      {rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("marketing_empty")}</p>
-      ) : (
-        <ul className="space-y-2">
-          {rows.map((c) => (
-            <li key={c.id} className="flex justify-between rounded-lg border px-3 py-2 text-sm">
-              <span>{c.name}</span>
-              <span className="text-muted-foreground text-xs">{enumLabel("job_status", c.status)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <PageShell title={t("title")} description={t("subtitle")}>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {CARDS.map(({ id, href, icon: Icon }) => (
+          <Link key={id} href={href} className="group focus-visible:outline-none">
+            <Card className="h-full shadow-soft transition-colors group-hover:border-primary/40 group-focus-visible:ring-2 group-focus-visible:ring-ring">
+              <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+                <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
+                  <Icon className="size-5" />
+                </span>
+                <div className="min-w-0 space-y-1">
+                  <CardTitle className="text-base">{t(`cards.${id}.title`)}</CardTitle>
+                  <CardDescription>{t(`cards.${id}.description`)}</CardDescription>
+                  <span className="text-primary text-sm font-medium">{t("open")}</span>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </PageShell>
   )
 }

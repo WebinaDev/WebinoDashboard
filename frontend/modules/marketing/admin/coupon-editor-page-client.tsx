@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
 import { CouponGeneralPanel } from "@/components/coupons/CouponGeneralPanel"
+import { CouponOfferPanel } from "@/components/coupons/CouponOfferPanel"
 import { CouponPublishPanel } from "@/components/coupons/CouponPublishPanel"
 import { CouponRestrictionsPanel } from "@/components/coupons/CouponRestrictionsPanel"
 import { CouponUsagePanel } from "@/components/coupons/CouponUsagePanel"
@@ -32,10 +33,16 @@ type Coupon = {
   expires_at?: string | null
   status?: string
   description?: string | null
+  condition_type?: string | null
+  condition_value?: number | null
+  auto_apply?: boolean
+  max_discount_minor?: number | null
+  shipping_percent?: number | null
   restrictions?: {
     product_ids?: number[]
     category_ids?: number[]
     brand_ids?: number[]
+    user_ids?: number[]
     channels?: string[]
     emails?: string[]
   }
@@ -70,7 +77,13 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
   const [usagePerUser, setUsagePerUser] = useState("")
   const [expiresAt, setExpiresAt] = useState("")
   const [channels, setChannels] = useState<string[]>(["site"])
-  const [productIds, setProductIds] = useState("")
+  const [productIds, setProductIds] = useState<number[]>([])
+  const [userIds, setUserIds] = useState<number[]>([])
+  const [conditionType, setConditionType] = useState("none")
+  const [conditionValue, setConditionValue] = useState("")
+  const [autoApply, setAutoApply] = useState(false)
+  const [maxDiscount, setMaxDiscount] = useState("")
+  const [shippingPercent, setShippingPercent] = useState("")
   const [categoryIds, setCategoryIds] = useState("")
   const [brandIds, setBrandIds] = useState("")
   const [emails, setEmails] = useState("")
@@ -100,7 +113,13 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
     setUsagePerUser(c.usage_limit_per_user != null ? String(c.usage_limit_per_user) : "")
     setExpiresAt(c.expires_at ? c.expires_at.slice(0, 16) : "")
     setChannels(c.restrictions?.channels?.length ? c.restrictions.channels : ["site"])
-    setProductIds((c.restrictions?.product_ids ?? []).join(","))
+    setProductIds((c.restrictions?.product_ids ?? []).map(Number).filter((n) => n > 0))
+    setUserIds((c.restrictions?.user_ids ?? []).map(Number).filter((n) => n > 0))
+    setConditionType(c.condition_type || "none")
+    setConditionValue(c.condition_value != null ? String(c.condition_value) : "")
+    setAutoApply(Boolean(c.auto_apply))
+    setMaxDiscount(c.max_discount_minor != null ? String(c.max_discount_minor) : "")
+    setShippingPercent(c.shipping_percent != null ? String(c.shipping_percent) : "")
     setCategoryIds((c.restrictions?.category_ids ?? []).join(","))
     setBrandIds((c.restrictions?.brand_ids ?? []).join(","))
     setEmails((c.restrictions?.emails ?? []).join("\n"))
@@ -121,9 +140,15 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
       usage_limit: usageLimit ? Number(usageLimit) : null,
       usage_limit_per_user: usagePerUser ? Number(usagePerUser) : null,
       expires_at: expiresAt || null,
+      condition_type: conditionType,
+      condition_value: conditionType !== "none" && conditionValue ? Number(conditionValue) : null,
+      auto_apply: autoApply,
+      max_discount_minor: maxDiscount ? Number(maxDiscount) : null,
+      shipping_percent: shippingPercent ? Number(shippingPercent) : null,
       restrictions: {
         channels,
-        product_ids: parseIds(productIds),
+        product_ids: productIds,
+        user_ids: userIds,
         category_ids: parseIds(categoryIds),
         brand_ids: parseIds(brandIds),
         emails: emails
@@ -214,6 +239,25 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
           </Card>
           <Card className="shadow-soft">
             <CardHeader>
+              <CardTitle className="text-base">{t("offer.panel")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CouponOfferPanel
+                conditionType={conditionType}
+                setConditionType={setConditionType}
+                conditionValue={conditionValue}
+                setConditionValue={setConditionValue}
+                autoApply={autoApply}
+                setAutoApply={setAutoApply}
+                maxDiscount={maxDiscount}
+                setMaxDiscount={setMaxDiscount}
+                shippingPercent={shippingPercent}
+                setShippingPercent={setShippingPercent}
+              />
+            </CardContent>
+          </Card>
+          <Card className="shadow-soft">
+            <CardHeader>
               <CardTitle className="text-base">{t("panels.restrictions")}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -222,6 +266,8 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
                 setChannels={setChannels}
                 productIds={productIds}
                 setProductIds={setProductIds}
+                userIds={userIds}
+                setUserIds={setUserIds}
                 categoryIds={categoryIds}
                 setCategoryIds={setCategoryIds}
                 brandIds={brandIds}

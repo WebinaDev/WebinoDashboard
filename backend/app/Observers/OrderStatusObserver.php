@@ -7,8 +7,12 @@ use App\Services\Orders\OrderStatusNotifier;
 
 class OrderStatusObserver
 {
-    /** @var array<int, string> */
-    private array $previousStatus = [];
+    /**
+     * Static: Laravel resolves a fresh observer instance per model event.
+     *
+     * @var array<int, string>
+     */
+    private static array $previousStatus = [];
 
     public function __construct(protected OrderStatusNotifier $notifier) {}
 
@@ -24,7 +28,7 @@ class OrderStatusObserver
             return;
         }
 
-        $this->previousStatus[$order->getKey() ?: spl_object_id($order)] = $from;
+        self::$previousStatus[$order->getKey() ?: spl_object_id($order)] = $from;
 
         $meta = is_array($order->meta) ? $order->meta : [];
         $history = is_array($meta['status_history'] ?? null) ? $meta['status_history'] : [];
@@ -41,8 +45,8 @@ class OrderStatusObserver
     public function updated(Order $order): void
     {
         $key = $order->getKey() ?: spl_object_id($order);
-        $from = $this->previousStatus[$key] ?? null;
-        unset($this->previousStatus[$key]);
+        $from = self::$previousStatus[$key] ?? null;
+        unset(self::$previousStatus[$key]);
 
         if ($from === null || ! $order->wasChanged('status')) {
             return;

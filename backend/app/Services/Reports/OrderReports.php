@@ -479,7 +479,7 @@ final class OrderReports
                 foreach ($p->variants as $v) {
                     $purchase = $v->purchase_price_minor ?? $p->purchase_price_minor;
                     $retail = (int) ($v->price_minor ?: $p->price_minor);
-                    $current = (int) ($v->sale_price_minor ?: $v->price_minor ?: $p->sale_price_minor ?: $p->price_minor);
+                    $current = $p->effectivePriceMinor($v);
                     $qty = (int) ($v->stock ?? 0);
                     $push([
                         'id' => $v->id, 'parent_id' => $p->id, 'name' => trim($p->name.' - '.($v->name ?: '')),
@@ -501,7 +501,7 @@ final class OrderReports
             } else {
                 $purchase = $p->purchase_price_minor;
                 $retail = (int) $p->price_minor;
-                $current = (int) ($p->sale_price_minor ?: $p->price_minor);
+                $current = $p->effectivePriceMinor();
                 $qty = (int) ($p->stock ?? 0);
                 $push([
                     'id' => $p->id, 'parent_id' => null, 'name' => (string) $p->name,

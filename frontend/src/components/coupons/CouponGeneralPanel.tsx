@@ -5,7 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { useEnumLabel } from "@/lib/enum-labels"
 import { useTranslations } from "next-intl"
+
+const COUPON_TYPES = ["percent", "fixed_cart", "fixed_product"] as const
 
 export function CouponGeneralPanel({
   code,
@@ -29,6 +32,7 @@ export function CouponGeneralPanel({
   onGenerate: () => void
 }) {
   const t = useTranslations("coupons")
+  const enumLabel = useEnumLabel()
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
@@ -48,9 +52,11 @@ export function CouponGeneralPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="percent">percent</SelectItem>
-              <SelectItem value="fixed_cart">fixed_cart</SelectItem>
-              <SelectItem value="fixed_product">fixed_product</SelectItem>
+              {COUPON_TYPES.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {enumLabel("coupon_type", value)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
