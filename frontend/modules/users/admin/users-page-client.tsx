@@ -45,6 +45,7 @@ type PageMeta = {
   per_page?: number
   total: number
   role_counts?: Record<string, number>
+  bot_counts?: Record<string, number>
 }
 
 const ROLE_TABS = [
@@ -160,6 +161,8 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
   const rows = data?.items ?? []
   const meta = data?.meta
   const roleCounts = meta?.role_counts ?? {}
+  const botCounts = meta?.bot_counts ?? {}
+  const botTabs = (["bale", "telegram"] as const).filter((p) => (botCounts[p] ?? 0) > 0)
 
   const statItems = useMemo(
     () => [
@@ -302,7 +305,26 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
         })}
       </div>
 
-      <ListFiltersCollapsible activeCount={(appliedSearch ? 1 : 0) + (botFilter ? 1 : 0)}>
+      {botTabs.length > 0 ? (
+        <div className="flex flex-wrap gap-2 border-b pb-2">
+          {(["", ...botTabs] as string[]).map((p) => (
+            <Button
+              key={p || "all"}
+              size="sm"
+              variant={botFilter === p ? "secondary" : "ghost"}
+              onClick={() => {
+                setBotFilter(p)
+                setPage(1)
+              }}
+            >
+              {p === "" ? tCommon("all") : t(p === "bale" ? "bot_bale" : "bot_telegram")}
+              {p ? <span className="text-muted-foreground ms-1 text-xs">({botCounts[p] ?? 0})</span> : null}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
+      <ListFiltersCollapsible activeCount={appliedSearch ? 1 : 0}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-1">
             <Label>{t("search_label")}</Label>
@@ -310,14 +332,6 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
               <Search className="text-muted-foreground absolute start-2 top-2.5 size-4" />
               <Input className="ps-8" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("search_ph")} />
             </div>
-          </div>
-          <div className="space-y-1">
-            <Label>{t("bot_filter")}</Label>
-            <select className={selectClass} value={botFilter} onChange={(e) => { setBotFilter(e.target.value); setPage(1) }}>
-              <option value="">{tCommon("all")}</option>
-              <option value="bale">{t("bot_bale")}</option>
-              <option value="telegram">{t("bot_telegram")}</option>
-            </select>
           </div>
         </div>
       </ListFiltersCollapsible>
@@ -437,12 +451,43 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
                   <Checkbox checked={selected.includes(row.id)} onCheckedChange={(v) => toggleSelect(row.id, !!v)} />
                 }
               >
-                <Link href={dashboardPath(`users/${row.id}`)} className="font-medium hover:underline">
-                  {row.name}
+                <Link href={dashboardPath(`users/${row.id}`)} className="flex items-center gap-2 font-medium hover:underline">
+                  <span className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-medium">
+                    {avatarInitials(row.name)}
+                  </span>
+                  <span>
+                    <span className="block">{row.name}</span>
+                    {row.username ? <span className="text-muted-foreground block text-xs">@{row.username}</span> : null}
+                  </span>
                 </Link>
                 <MobileListField label={t("col_role")}>{roleLabel(row.role ?? "")}</MobileListField>
                 <MobileListField label={t("col_phone")}>{row.phone || tCommon("em_dash")}</MobileListField>
                 <MobileListField label={t("col_email")}>{row.email || tCommon("em_dash")}</MobileListField>
+                <div className="mt-2 flex justify-end gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setRoleDialogUser(row)
+                      setRoleValue(row.role ?? "customer")
+                    }}
+                  >
+                    <UserCog className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setResetUser(row)
+                      setResetPassword("")
+                    }}
+                  >
+                    <KeyRound className="size-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => onDelete(row)}>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               </MobileListCard>
             ))}
           </div>

@@ -88,8 +88,23 @@ class UserAdminService
                 'total' => $paginator->total(),
                 'last_page' => $paginator->lastPage(),
                 'role_counts' => $this->roleCounts($tid, $roles),
+                'bot_counts' => $this->botCounts($tid),
             ],
         ];
+    }
+
+    /** @return array<string, int> */
+    public function botCounts(int $tenantId): array
+    {
+        $rows = BotSession::query()
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('user_id')
+            ->whereIn('provider', ['bale', 'telegram'])
+            ->selectRaw('provider, COUNT(DISTINCT user_id) as c')
+            ->groupBy('provider')
+            ->pluck('c', 'provider');
+
+        return $rows->map(fn ($c) => (int) $c)->all();
     }
 
     /** @return array<string, int> */

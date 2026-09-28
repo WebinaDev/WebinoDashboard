@@ -4723,6 +4723,9 @@
     "addr_unit": "Unit",
     "addr_postcode": "Postcode",
     "addr_street": "Street address",
+    "addr_lat": "Latitude",
+    "addr_lng": "Longitude",
+    "addr_remove": "Remove address",
     "addr_select_province": "Select province",
     "addr_select_city": "Select city",
     "addr_add": "Add address",
@@ -4887,8 +4890,9 @@
     "review_status": {
       "pending": "Pending",
       "approved": "Approved",
-      "rejected": "Rejected",
-      "spam": "Spam"
+      "rejected": "Spam",
+      "spam": "Spam",
+      "trash": "Trash"
     },
     "return_status": {
       "requested": "Requested",
@@ -5061,6 +5065,8 @@
     "order_date": "Date",
     "addresses": "Addresses",
     "postcode": "Postcode",
+    "plaque": "Plaque no.",
+    "unit": "Unit",
     "reviews": "Reviews",
     "review_rating": "Rating",
     "wishlist": "Wishlist",

@@ -98,7 +98,6 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
     setAccount({
       email: user.email ?? "",
       phone: user.phone ?? "",
-      landline: user.landline ?? "",
       is_active: user.is_active !== false,
       role: user.role ?? "customer",
     })
@@ -109,6 +108,7 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
       national_id: user.national_id ?? "",
       job: user.job ?? "",
       birth_date: user.birth_date?.slice(0, 10) ?? "",
+      landline: user.landline ?? "",
     })
     setBank({
       bank_sheba: user.bank_sheba ?? "",
@@ -125,7 +125,7 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
         json: {
           email: account.email || null,
           phone: account.phone || null,
-          landline: account.landline || null,
+          landline: profile.landline || null,
           is_active: account.is_active,
           role: account.role,
           username: profile.username || null,
@@ -234,8 +234,6 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
             <Input value={String(account.email ?? "")} onChange={(e) => setAccount({ ...account, email: e.target.value })} />
             <Label>{t("phone")}</Label>
             <Input value={String(account.phone ?? "")} onChange={(e) => setAccount({ ...account, phone: e.target.value })} />
-            <Label>{t("landline")}</Label>
-            <Input value={String(account.landline ?? "")} onChange={(e) => setAccount({ ...account, landline: e.target.value })} />
             <Label>{t("col_role")}</Label>
             <select
               className={selectClass}
@@ -276,6 +274,8 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
             <Input value={profile.job} onChange={(e) => setProfile({ ...profile, job: e.target.value })} />
             <Label>{t("birth_date")}</Label>
             <Input type="date" value={profile.birth_date} onChange={(e) => setProfile({ ...profile, birth_date: e.target.value })} />
+            <Label>{t("landline")}</Label>
+            <Input value={profile.landline} onChange={(e) => setProfile({ ...profile, landline: e.target.value })} />
           </div>
         </section>
 
@@ -377,7 +377,11 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
                 <li key={i} className="rounded-lg border p-3 text-sm">
                   <div>{[a.city, a.province_code].filter(Boolean).join(" · ") || tCommon("em_dash")}</div>
                   <div className="text-muted-foreground">{a.address || tCommon("em_dash")}</div>
-                  {a.postcode ? <div className="text-xs">{t("postcode")}: {a.postcode}</div> : null}
+                  <div className="text-muted-foreground flex flex-wrap gap-x-3 text-xs">
+                    {a.plaque ? <span>{t("plaque")}: {a.plaque}</span> : null}
+                    {a.unit ? <span>{t("unit")}: {a.unit}</span> : null}
+                    {a.postcode ? <span>{t("postcode")}: {a.postcode}</span> : null}
+                  </div>
                 </li>
               )
             })}

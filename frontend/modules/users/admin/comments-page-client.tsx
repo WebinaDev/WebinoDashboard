@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { useEnumLabel } from "@/lib/enum-labels"
 import { formatDate, normalizeUiLocale } from "@/lib/locale"
 
 type ReviewRow = {
@@ -46,6 +47,7 @@ const TABS = ["all", "pending", "approved", "spam", "trash"] as const
 export default function CommentsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("product_reviews_admin")
   const tCommon = useTranslations("common")
+  const enumLabel = useEnumLabel()
   const locale = useLocale()
   const lng = normalizeUiLocale(locale)
   const qc = useQueryClient()
@@ -168,7 +170,7 @@ export default function CommentsPageClient({ route: _route }: { route: ResolvedA
                     {row.verified_buyer ? (
                       <Badge variant="secondary">{t("verified_buyer")}</Badge>
                     ) : null}
-                    <Badge variant="outline">{row.status}</Badge>
+                    <Badge variant="outline">{enumLabel("review_status", row.status)}</Badge>
                   </div>
                 </div>
                 {row.body ? <p className="text-sm whitespace-pre-wrap">{row.body}</p> : null}

@@ -4720,6 +4720,9 @@
     "addr_unit": "واحد",
     "addr_postcode": "کد پستی",
     "addr_street": "آدرس",
+    "addr_lat": "عرض جغرافیایی",
+    "addr_lng": "طول جغرافیایی",
+    "addr_remove": "حذف آدرس",
     "addr_select_province": "انتخاب استان",
     "addr_select_city": "انتخاب شهر",
     "addr_add": "افزودن آدرس",
@@ -4884,8 +4887,9 @@
     "review_status": {
       "pending": "در انتظار تأیید",
       "approved": "تأییدشده",
-      "rejected": "ردشده",
-      "spam": "هرزنامه"
+      "rejected": "هرزنامه",
+      "spam": "هرزنامه",
+      "trash": "زباله‌دان"
     },
     "return_status": {
       "requested": "درخواست‌شده",
@@ -5058,6 +5062,8 @@
     "order_date": "تاریخ",
     "addresses": "آدرس‌ها",
     "postcode": "کد پستی",
+    "plaque": "پلاک",
+    "unit": "واحد",
     "reviews": "دیدگاه‌ها",
     "review_rating": "امتیاز",
     "wishlist": "علاقه‌مندی‌ها",

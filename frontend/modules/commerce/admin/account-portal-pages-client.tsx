@@ -34,6 +34,8 @@ type AddressRow = {
   plaque?: string
   unit?: string
   postcode?: string
+  lat?: number | null
+  lng?: number | null
   is_default?: boolean
 }
 
@@ -293,6 +295,15 @@ export function AccountAddressesPageClient({ route: _route }: { route: ResolvedA
               <div><Label>{t("addr_unit")}</Label><Input value={row.unit ?? ""} onChange={(e) => setRows((r) => r.map((x, i) => i === index ? { ...x, unit: e.target.value } : x))} /></div>
               <div><Label>{t("addr_postcode")}</Label><Input dir="ltr" value={row.postcode ?? ""} onChange={(e) => setRows((r) => r.map((x, i) => i === index ? { ...x, postcode: e.target.value } : x))} /></div>
               <div className="sm:col-span-2"><Label>{t("addr_street")}</Label><Textarea value={row.address ?? ""} onChange={(e) => setRows((r) => r.map((x, i) => i === index ? { ...x, address: e.target.value } : x))} /></div>
+              <div><Label>{t("addr_lat")}</Label><Input dir="ltr" type="number" step="any" value={row.lat ?? ""} onChange={(e) => setRows((r) => r.map((x, i) => i === index ? { ...x, lat: e.target.value === "" ? null : Number(e.target.value) } : x))} /></div>
+              <div><Label>{t("addr_lng")}</Label><Input dir="ltr" type="number" step="any" value={row.lng ?? ""} onChange={(e) => setRows((r) => r.map((x, i) => i === index ? { ...x, lng: e.target.value === "" ? null : Number(e.target.value) } : x))} /></div>
+              {rows.length > 1 ? (
+                <div className="sm:col-span-2 flex justify-end">
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setRows((r) => r.filter((_, i) => i !== index))}>
+                    {t("addr_remove")}
+                  </Button>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ))}

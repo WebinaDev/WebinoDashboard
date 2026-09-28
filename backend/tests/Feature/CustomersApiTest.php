@@ -21,7 +21,7 @@ class CustomersApiTest extends TestCase
 
     public function test_customers_index_returns_envelope_list(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = $this->createTenant();
         $admin = $this->adminFor($tenant);
         User::factory()->create([
             'tenant_id' => $tenant->id,

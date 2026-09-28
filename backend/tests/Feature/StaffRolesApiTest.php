@@ -21,7 +21,7 @@ class StaffRolesApiTest extends TestCase
 
     public function test_staff_crud_and_role_assign(): void
     {
-        $tenant = Tenant::factory()->create();
+        $tenant = $this->createTenant();
         $admin = $this->adminFor($tenant);
 
         $this->enableSubmodule($tenant->id, 'users', 'staff');

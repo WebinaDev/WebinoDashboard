@@ -192,9 +192,10 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
                 <thead className="text-muted-foreground border-b">
                   <tr>
                     <th className="p-3 text-start font-medium">{t("col_title")}</th>
-                    <th className="p-3 text-start font-medium">{t("col_status")}</th>
-                    <th className="p-3 text-start font-medium">{t("col_date")}</th>
-                    <th className="p-3 text-start font-medium">{t("seo")}</th>
+                    {columns.status ? <th className="p-3 text-start font-medium">{t("col_status")}</th> : null}
+                    {columns.date ? <th className="p-3 text-start font-medium">{t("col_date")}</th> : null}
+                    {columns.excerpt ? <th className="p-3 text-start font-medium">{t("col_summary")}</th> : null}
+                    {columns.seo ? <th className="p-3 text-start font-medium">{t("col_seo")}</th> : null}
                     <th className="p-3 font-medium" />
                   </tr>
                 </thead>
@@ -206,13 +207,24 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
                           {row.title}
                         </Link>
                       </td>
-                      <td className="p-3">
-                        <Badge variant={statusBadgeVariant(row.status)}>{enumLabel("post_status", row.status)}</Badge>
-                      </td>
-                      <td className="text-muted-foreground p-3 text-xs">{formatDisplayDate(row.date, locale)}</td>
-                      <td className="p-3">
-                        <SeoKeywordIndicator seo={row.seo} title={row.title} excerpt={row.excerpt} />
-                      </td>
+                      {columns.status ? (
+                        <td className="p-3">
+                          <Badge variant={statusBadgeVariant(row.status)}>{enumLabel("post_status", row.status)}</Badge>
+                        </td>
+                      ) : null}
+                      {columns.date ? (
+                        <td className="text-muted-foreground p-3 text-xs">{formatDisplayDate(row.date, locale)}</td>
+                      ) : null}
+                      {columns.excerpt ? (
+                        <td className="text-muted-foreground max-w-xs p-3 text-xs">
+                          <span className="line-clamp-2">{row.excerpt || "—"}</span>
+                        </td>
+                      ) : null}
+                      {columns.seo ? (
+                        <td className="p-3">
+                          <SeoKeywordIndicator seo={row.seo} title={row.title} excerpt={row.excerpt} />
+                        </td>
+                      ) : null}
                       <td className="p-3">{rowActions(row)}</td>
                     </tr>
                   ))}

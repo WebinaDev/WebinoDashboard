@@ -52,7 +52,7 @@ class UsersApiTest extends TestCase
 
         $this->getJson('/api/v1/users')
             ->assertOk()
-            ->assertJsonStructure(['data', 'meta' => ['role_counts', 'total']]);
+            ->assertJsonStructure(['data', 'meta' => ['role_counts', 'bot_counts', 'total']]);
     }
 
     public function test_users_show_and_reset_password(): void
