@@ -194,6 +194,7 @@
     "analytics_referrals": "Referrals",
     "analytics_geo": "Geography",
     "analytics_devices": "Devices",
+    "analytics_online": "Online now",
     "analytics_commerce": "Commerce",
     "analytics_compare": "Compare",
     "analytics_seo": "SEO",
@@ -937,6 +938,7 @@
     "customer_note": "Customer note",
     "discount_minor": "Discount",
     "shipping_minor": "Shipping",
+    "tax_minor": "Tax",
     "amount_paid": "Amount paid",
     "status": "Status",
     "subtotal": "Subtotal",
@@ -1034,6 +1036,7 @@
     "total": "Total",
     "discount": "Discount",
     "shipping": "Shipping",
+    "tax": "Tax",
     "pay_with": "Pay with {gateway}",
     "invalid_link": "This payment link is invalid or expired.",
     "offline_gateway": "Contact the store to pay with this method."
@@ -1273,7 +1276,11 @@
       "online_timeout": "Online timeout (minutes)",
       "retention_days": "Retention (days)",
       "record_logged_in": "Record logged-in users",
-      "hint": "Native analytics engine; hit token is never returned from settings API."
+      "hint": "Native analytics engine; hit token is never returned from settings API.",
+      "no_roles": "No roles available.",
+      "maintenance": "Maintenance",
+      "purge_hint": "Recompute daily aggregates from raw events (use after changing exclusions).",
+      "purge_running": "Rebuilding…"
     },
     "pwa": {
       "title": "Progressive Web App",
@@ -4125,7 +4132,8 @@
       "support": "Support",
       "content": "Content",
       "monthSummary": "Monthly summary",
-      "month-summary": "Monthly summary"
+      "month-summary": "Monthly summary",
+      "online": "Online visitors"
     },
     "kpi": {
       "visitors": "Visitors",
@@ -4146,7 +4154,37 @@
     },
     "chartViews": "Daily page views",
     "chartVisitors": "Daily visitors",
+    "chartTraffic": "Daily views and visitors",
+    "avgDuration": "Avg. session duration",
+    "onlineNow": "Online now",
+    "onlineAutoRefresh": "Refreshes automatically every 30 seconds.",
+    "onlineTimeoutHint": "Active within the last {minutes} minutes",
+    "sourceNative": "Native engine",
+    "retry": "Retry",
+    "rangeSpan": "{from} to {to}",
+    "refByCategory": "By category",
+    "refSources": "Referring sources",
+    "utmSources": "Sales by UTM source",
+    "utmDirect": "Direct / none",
+    "topViewedProducts": "Most viewed products",
+    "topCartProducts": "Most added to cart",
+    "topPurchasedProducts": "Best-selling products",
+    "funnel": {
+      "title": "Purchase funnel",
+      "visitors": "Visitors",
+      "product_views": "Product views",
+      "add_to_cart": "Add to cart",
+      "checkout": "Checkout",
+      "orders": "Orders",
+      "fromPrev": "{pct} of previous step"
+    },
     "col": {
+      "hits": "Hits",
+      "title": "Title",
+      "share": "Share",
+      "product": "Product",
+      "adds": "Adds",
+      "quantity": "Quantity",
       "visitor": "Visitor",
       "views": "Views",
       "country": "Country",
@@ -4210,7 +4248,7 @@
       "geoipPath": "GeoLite2 database path",
       "geoipHint": "Optional. Uses Cloudflare country header or Unknown when empty.",
       "purgeRebuild": "Rebuild aggregates",
-      "purgeDone": "Rebuilt aggregates for {{count}} days.",
+      "purgeDone": "Rebuilt aggregates for {count} days.",
       "nativeHint": "Hits are recorded anonymously (no cookies). Test the public site in a private window if numbers stay at zero."
     },
     "source": "Source",
@@ -4226,9 +4264,13 @@
       "topSources": "Top inbound sources",
       "topPages": "Top pages",
       "siteConversion": "Overall conversion rate",
-      "sessionNote": "Shown after session data starts collecting."
+      "sessionNote": "Shown after session data starts collecting.",
+      "current": "Current period",
+      "previous": "Previous period"
     },
     "seo": {
+      "keywordsAiMonth": "{count} added by AI this month",
+      "noindexOf": "{count} of {total} published items",
       "keywords": "Keywords in use",
       "optimizedPages": "Optimized pages",
       "internalLinks": "Internal links",
@@ -4251,9 +4293,11 @@
       "rateLabel": "Satisfaction rating (1–5)",
       "open": "Open",
       "closed": "Closed",
-      "avgReply": "Avg reply (h)"
+      "avgReply": "Avg reply (h)",
+      "csatValue": "{value} / 5"
     },
     "content": {
+      "pagesPublished": "Pages published",
       "productsCreated": "Products created",
       "productsUpdated": "Products updated",
       "postsPublished": "Blog posts published",
@@ -4273,6 +4317,9 @@
       "challenge": "Top challenge",
       "noAchievement": "No meaningful growth",
       "noChallenge": "No standout challenge identified",
+      "scoreValue": "{score} / 10",
+      "deltas": "Change vs previous period",
+      "weight": "Weight",
       "kpi": {
         "revenue": "Revenue",
         "orders": "Orders",
@@ -4305,6 +4352,25 @@
     "statusFilter": "Order status",
     "statusFilterHint": "Empty = all successful sales (excludes cancelled, failed, pending payment, refunds).",
     "exportCsv": "Export CSV",
+    "exportFailed": "CSV export failed",
+    "filters": {
+      "reset": "Reset filters",
+      "allSaleStatuses": "All successful sales",
+      "statusesSelected": "{count} statuses selected",
+      "clearStatuses": "Clear statuses"
+    },
+    "basalam": {
+      "title": "Basalam booth balance",
+      "description": "Withdrawable balance on Basalam",
+      "details": "Basalam finance details"
+    },
+    "source": {
+      "site": "Online store",
+      "admin": "Manual entry",
+      "manual": "Manual entry",
+      "api": "API",
+      "marketplace": "Marketplace"
+    },
     "deltaNew": "New",
     "preset": {
       "today": "Today",
@@ -4357,7 +4423,8 @@
       "byPayment": "Payment methods",
       "bySource": "Order source",
       "byHour": "Orders by hour",
-      "overview": "Performance over time"
+      "overview": "Performance over time",
+      "compareProfit": "Previous period profit"
     },
     "table": {
       "topProducts": "Top products",
@@ -4371,7 +4438,8 @@
       "profit": "Profit",
       "margin": "Margin",
       "topProductsProfit": "Top products by profit",
-      "missingCostQty": "{{count}} without cost",
+      "missingCostQty": "{count} without cost",
+      "total": "Total",
       "aov": "AOV",
       "gateway": "Gateway",
       "utmSource": "UTM source",
@@ -4413,7 +4481,8 @@
       "retail": "Retail (cash)",
       "credit": "Credit",
       "installment": "Installment",
-      "wholesale": "Wholesale"
+      "wholesale": "Wholesale",
+      "marketplace": "Marketplace ({platform})"
     },
     "heatmap": {
       "dow": {
@@ -4425,7 +4494,7 @@
         "5": "Fri",
         "6": "Sat"
       },
-      "hour": "{{hour}}:00",
+      "hour": "{hour}:00",
       "legendMin": "Fewer orders",
       "legendMax": "More orders"
     },
@@ -4518,7 +4587,7 @@
     "customerReturning": "Returning",
     "itemsPerOrder": "Items per order",
     "downloadsEmpty": "No downloadable product activity in this period.",
-    "targetMarginHint": "Target retail margin {{target}}% · realized {{actual}}%",
+    "targetMarginHint": "Target retail margin {target}% · realized {actual}%",
     "stock": {
       "skuCount": "SKUs",
       "units": "Units in stock",
@@ -4531,6 +4600,8 @@
       "potentialProfit": "Potential profit",
       "valueBase": "Value by",
       "categoryAll": "All categories",
+      "filterLabel": "Stock filter",
+      "threshold": "Threshold {n}",
       "valueBy": {
         "purchase": "Value by purchase",
         "retail": "Value by retail",

@@ -35,6 +35,7 @@ return [
     'subtotal' => 'Subtotal',
     'discount' => 'Discount',
     'shipping' => 'Shipping',
+    'tax' => 'Tax',
     'payment_method' => 'Payment method',
     'order_total' => 'Order total',
     'print_invoice' => 'Print invoice',

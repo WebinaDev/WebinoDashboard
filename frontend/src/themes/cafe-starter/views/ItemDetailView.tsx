@@ -3,12 +3,13 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Heart, Star } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api } from "@/lib/api"
 import { formatShopPrice } from "@/lib/format"
 
@@ -44,6 +45,10 @@ export function ItemDetailView({
   const image = item.cover_image_url ?? item.image_url
   const price = formatPrice(item.discounted_price_minor, item.currency)
 
+  useEffect(() => {
+    trackAnalyticsEvent("product_view", { productId: item.id })
+  }, [item.id])
+
   async function addToCart() {
     const token = localStorage.getItem("cafe_guest_token") ?? crypto.randomUUID().replace(/-/g, "")
     localStorage.setItem("cafe_guest_token", token)
@@ -57,6 +62,7 @@ export function ItemDetailView({
         branch_slug: branchSlug,
       },
     })
+    trackAnalyticsEvent("add_to_cart", { productId: item.id })
     setMessage(t("added_to_cart"))
   }
 

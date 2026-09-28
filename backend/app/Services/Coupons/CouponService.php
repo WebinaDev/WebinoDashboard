@@ -7,11 +7,13 @@ use App\Models\CouponRedemption;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Reports\OrderReports;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CouponService
 {
+    /** @deprecated Use {@see OrderReports::salesStatuses()}. */
     public const PAID_ORDER_STATUSES = ['paid', 'processing', 'shipped', 'completed'];
 
     public function generateCode(int $tenantId, int $length = 8): string
@@ -218,7 +220,7 @@ class CouponService
         return Order::query()
             ->where('tenant_id', $tenantId)
             ->where('user_id', $userId)
-            ->whereIn('status', self::PAID_ORDER_STATUSES)
+            ->whereIn('status', OrderReports::salesStatuses())
             ->count();
     }
 

@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\Coupons\CouponService;
+use App\Services\Orders\OrderTax;
 use App\Services\Pricing\PurchaseTypeService;
 use App\Services\Shipping\ShippingZonesService;
 use App\Services\Shipping\TapinShipmentService;
@@ -193,6 +194,12 @@ class CheckoutController extends Controller
 
             $requireLogin = (bool) (\App\Services\Shop\ShopSettings::getDownloads((int) $user->tenant_id)['require_login'] ?? true);
 
+            $tax = OrderTax::compute((int) $user->tenant_id, max(0, $subtotal - $discount), $shippingMinor);
+            if ($tax['lines'] !== []) {
+                $shippingMeta['tax_lines'] = $tax['lines'];
+                $shippingMeta['prices_include_tax'] = $tax['added_minor'] === 0;
+            }
+
             $order = Order::query()->create([
                 'tenant_id' => $user->tenant_id,
                 'user_id' => $user->id,
@@ -200,7 +207,8 @@ class CheckoutController extends Controller
                 'subtotal_minor' => $subtotal,
                 'discount_minor' => $discount,
                 'shipping_minor' => $shippingMinor,
-                'total_minor' => max(0, $subtotal - $discount + $shippingMinor),
+                'tax_minor' => $tax['tax_minor'],
+                'total_minor' => max(0, $subtotal - $discount + $shippingMinor + $tax['added_minor']),
                 'currency' => $lines->first()->product->currency,
                 'shipping_address' => $shippingAddress,
                 'customer_phone' => $checkoutMeta['customer_phone'] ?? null,

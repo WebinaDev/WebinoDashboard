@@ -16,14 +16,16 @@ class PublicAnalyticsController extends Controller
             return response()->json(['data' => ['tracking_enabled' => false]]);
         }
         $settings = AnalyticsSettings::get($tenantId);
+        $skip = AnalyticsTracker::userSkipReason($tenantId, auth('sanctum')->user()) !== null;
 
         return response()->json([
             'data' => [
                 'tracking_enabled' => true,
                 'hit_token' => (string) $settings['hit_token'],
                 'endpoint' => url('/api/v1/public/analytics/hit'),
+                'skip' => $skip,
             ],
-        ]);
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     public function hit(Request $request, AnalyticsTracker $tracker): \Illuminate\Http\JsonResponse
@@ -42,7 +44,7 @@ class PublicAnalyticsController extends Controller
         }
 
         $payload = $request->validate([
-            'type' => ['nullable', 'string', 'max:32'],
+            'type' => ['nullable', 'string', 'in:'.implode(',', AnalyticsTracker::EVENT_TYPES)],
             'uri' => ['nullable', 'string', 'max:512'],
             'referrer' => ['nullable', 'string', 'max:512'],
             'post_id' => ['nullable', 'integer', 'min:0'],

@@ -1,12 +1,20 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { useLocale, useTranslations } from "next-intl"
+import { toast } from "sonner"
 
+import { AnalyticsSourceBadge } from "../../../../modules/analytics/components/analytics/AnalyticsSourceBadge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { SettingsSaveBar, useDraftSettings } from "@/views/settings/use-tenant-settings"
 
 type AnalyticsPayload = {
@@ -23,22 +31,58 @@ type AnalyticsPayload = {
   track_admin?: boolean
 }
 
+type AnalyticsSettingsMeta = {
+  settings?: AnalyticsPayload
+  editable_roles?: string[]
+  source?: string
+}
+
 export function AnalyticsSettingsPanel() {
   const t = useTranslations("settings_hub")
+  const tA = useTranslations("analytics")
+  const tRoles = useTranslations("rbac.roles")
+  const locale = normalizeUiLocale(useLocale())
   const { loading, draft, setDraft, persist, pending, saved, error } =
     useDraftSettings<AnalyticsPayload>("site", "analytics")
+
+  const meta = useQuery({
+    queryKey: ["analytics", "settings-meta"],
+    queryFn: () => api<AnalyticsSettingsMeta>("/api/v1/analytics/settings"),
+    retry: false,
+  })
+
+  const purge = useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean; days_rebuilt: number }>("/api/v1/analytics/purge-cache", {
+        method: "POST",
+        json: {},
+      }),
+    onSuccess: (data) => {
+      toast.success(tA("settings.purgeDone", { count: formatNumber(Number(data?.days_rebuilt ?? 0), locale) }))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
 
   if (loading || !draft) {
     return <p className="text-muted-foreground text-sm">{t("loading")}</p>
   }
 
   const roles = Array.isArray(draft.exclude_roles) ? draft.exclude_roles : []
+  const editableRoles = meta.data?.editable_roles ?? []
+  const roleOptions = [...editableRoles, ...roles.filter((r) => !editableRoles.includes(r))]
+  const roleLabel = (slug: string) => (tRoles.has(slug as never) ? tRoles(slug as never) : slug)
+
+  const toggleRole = (role: string, checked: boolean) => {
+    const next = checked ? [...new Set([...roles, role])] : roles.filter((r) => r !== role)
+    setDraft({ ...draft, exclude_roles: next })
+  }
 
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-base">{t("analytics.title")}</CardTitle>
+          <AnalyticsSourceBadge source={meta.data?.source} />
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground text-sm">{t("analytics.hint")}</p>
@@ -83,22 +127,25 @@ export function AnalyticsSettingsPanel() {
               onChange={(e) => setDraft({ ...draft, retention_days: Number(e.target.value) || 90 })}
             />
           </div>
-          <div className="grid max-w-md gap-2">
+          <div className="grid max-w-lg gap-2">
             <Label>{t("analytics.exclude_roles")}</Label>
-            <Input
-              value={roles.join(", ")}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  exclude_roles: e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-              placeholder="admin, staff"
-              dir="ltr"
-            />
+            {meta.isLoading ? (
+              <p className="text-muted-foreground text-sm">{t("loading")}</p>
+            ) : roleOptions.length ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {roleOptions.map((role) => (
+                  <label key={role} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={roles.includes(role)}
+                      onCheckedChange={(v) => toggleRole(role, v)}
+                    />
+                    {roleLabel(role)}
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">{t("analytics.no_roles")}</p>
+            )}
           </div>
           <div className="grid max-w-lg gap-2">
             <Label>{t("analytics.exclude_ips")}</Label>
@@ -120,6 +167,22 @@ export function AnalyticsSettingsPanel() {
               className="font-mono text-sm"
             />
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("analytics.maintenance")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-muted-foreground text-sm">{t("analytics.purge_hint")}</p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={purge.isPending}
+            onClick={() => purge.mutate()}
+          >
+            {purge.isPending ? t("analytics.purge_running") : tA("settings.purgeRebuild")}
+          </Button>
         </CardContent>
       </Card>
       <SettingsSaveBar pending={pending} saved={saved} error={error} onSave={() => void persist()} />

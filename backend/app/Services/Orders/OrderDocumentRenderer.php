@@ -216,6 +216,7 @@ final class OrderDocumentRenderer
             'subtotal' => (int) ($order->subtotal_minor ?: array_sum(array_column($items, 'total'))),
             'discount' => (int) $order->discount_minor,
             'shipping' => (int) $order->shipping_minor,
+            'tax' => (int) ($order->tax_minor ?? 0),
             'total' => (int) $order->total_minor,
             'note' => (string) ($order->customer_note ?? ''),
         ];

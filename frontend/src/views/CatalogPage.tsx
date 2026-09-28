@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api } from "@/lib/api"
 import { formatInteger } from "@/lib/format"
 import { normalizeUiLocale } from "@/lib/locale"
@@ -115,6 +116,7 @@ export default function CatalogPage() {
       method: "POST",
       json: { product_id: productId, quantity: 1 },
     })
+    trackAnalyticsEvent("add_to_cart", { productId })
   }
 
   async function addCategory() {

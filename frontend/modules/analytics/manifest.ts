@@ -7,6 +7,7 @@ const TRAFFIC_SECTIONS = [
   "referrals",
   "geo",
   "devices",
+  "online",
   "commerce",
   "compare",
   "month-summary",

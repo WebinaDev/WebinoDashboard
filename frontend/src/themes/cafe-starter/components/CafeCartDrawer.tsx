@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api } from "@/lib/api"
 
 type CartLine = {
@@ -103,7 +104,10 @@ export function CafeCartDrawer({
               </div>
             ))
           )}
-          <Button className="w-full" disabled={!cart?.items?.length || checkout.isPending} onClick={() => checkout.mutate()}>
+          <Button className="w-full" disabled={!cart?.items?.length || checkout.isPending} onClick={() => {
+              trackAnalyticsEvent("checkout_start")
+              checkout.mutate()
+            }}>
             {t("checkout")}
           </Button>
         </div>

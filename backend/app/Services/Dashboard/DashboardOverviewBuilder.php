@@ -39,7 +39,7 @@ final class DashboardOverviewBuilder
     public function build(User $user, string $locale = 'fa'): array
     {
         $tid = (int) $user->tenant_id;
-        $cacheKey = "dashboard:overview:v1:{$tid}:{$user->id}:".md5($locale);
+        $cacheKey = "dashboard:overview:v1:{$tid}:a".AnalyticsQuery::cacheVersion($tid).":{$user->id}:".md5($locale);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user, $tid, $locale) {
             return $this->buildPayload($user, $tid, $locale);
@@ -412,7 +412,7 @@ final class DashboardOverviewBuilder
         $now = Carbon::now();
         $fromTs = $now->copy()->startOfMonth()->timestamp;
         $toTs = $now->copy()->endOfMonth()->timestamp;
-        $statuses = OrderReports::SALES_STATUSES;
+        $statuses = OrderReports::salesStatuses();
         $report = $this->reports->buildReport($tid, $fromTs, $toTs, 'day', $statuses);
         $prev = $this->reports->compareRange($fromTs, $toTs);
         $compare = $this->reports->buildReport($tid, $prev['from_ts'], $prev['to_ts'], 'day', $statuses);
@@ -480,7 +480,7 @@ final class DashboardOverviewBuilder
 
         $topCategories = array_map(function ($row) {
             return [
-                'term_id' => (int) ($row['term_id'] ?? 0),
+                'term_id' => (int) ($row['id'] ?? $row['term_id'] ?? 0),
                 'name' => (string) ($row['name'] ?? ''),
                 'quantity' => (int) ($row['quantity'] ?? 0),
                 'revenue' => (int) ($row['revenue'] ?? 0),
@@ -489,13 +489,13 @@ final class DashboardOverviewBuilder
 
         $topCustomers = array_map(function ($row) {
             return [
-                'customer_id' => (int) ($row['customer_id'] ?? $row['user_id'] ?? 0),
+                'customer_id' => (int) ($row['id'] ?? 0),
                 'name' => (string) ($row['name'] ?? ''),
                 'email' => (string) ($row['email'] ?? ''),
                 'orders' => (int) ($row['orders'] ?? 0),
                 'revenue' => (int) ($row['revenue'] ?? 0),
             ];
-        }, array_slice($report['top_customers'] ?? [], 0, 5));
+        }, array_slice($report['customers'] ?? [], 0, 5));
 
         return [
             'currency' => $currency,

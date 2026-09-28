@@ -193,6 +193,7 @@
     "analytics_referrals": "ارجاع‌ها",
     "analytics_geo": "جغرافیا",
     "analytics_devices": "دستگاه‌ها",
+    "analytics_online": "آنلاین‌ها",
     "analytics_commerce": "فروشگاه",
     "analytics_compare": "مقایسه",
     "analytics_seo": "سئو",
@@ -694,6 +695,7 @@
     "customer_note": "یادداشت مشتری",
     "discount_minor": "تخفیف",
     "shipping_minor": "هزینه ارسال",
+    "tax_minor": "مالیات",
     "amount_paid": "مبلغ پرداختی",
     "status": "وضعیت",
     "subtotal": "جمع جزء",
@@ -791,6 +793,7 @@
     "total": "جمع کل",
     "discount": "تخفیف",
     "shipping": "هزینه ارسال",
+    "tax": "مالیات",
     "pay_with": "پرداخت با {gateway}",
     "invalid_link": "لینک پرداخت نامعتبر یا منقضی شده است.",
     "offline_gateway": "برای پرداخت با این روش با فروشگاه تماس بگیرید."
@@ -1030,7 +1033,11 @@
       "online_timeout": "مهلت آنلاین (دقیقه)",
       "retention_days": "نگهداری (روز)",
       "record_logged_in": "ثبت کاربر واردشده",
-      "hint": "موتور بومی آمار؛ توکن ردیابی در پاسخ تنظیمات نمایش داده نمی‌شود."
+      "hint": "موتور بومی آمار؛ توکن ردیابی در پاسخ تنظیمات نمایش داده نمی‌شود.",
+      "no_roles": "نقشی برای انتخاب وجود ندارد.",
+      "maintenance": "نگهداری",
+      "purge_hint": "تجمیع‌های روزانه از رویدادهای خام دوباره محاسبه می‌شوند (پس از تغییر استثناها استفاده کنید).",
+      "purge_running": "در حال بازسازی…"
     },
     "pwa": {
       "title": "اپلیکیشن پیش‌رونده (PWA)",
@@ -4124,7 +4131,8 @@
       "support": "پشتیبانی",
       "content": "محتوا",
       "monthSummary": "خلاصه ماه",
-      "month-summary": "خلاصه ماه"
+      "month-summary": "خلاصه ماه",
+      "online": "بازدیدکنندگان آنلاین"
     },
     "kpi": {
       "visitors": "بازدیدکنندگان",
@@ -4145,7 +4153,37 @@
     },
     "chartViews": "بازدید روزانه",
     "chartVisitors": "بازدیدکنندگان روزانه",
+    "chartTraffic": "بازدید و بازدیدکنندگان روزانه",
+    "avgDuration": "میانگین مدت نشست",
+    "onlineNow": "آنلاین‌ها",
+    "onlineAutoRefresh": "هر ۳۰ ثانیه به‌صورت خودکار به‌روزرسانی می‌شود.",
+    "onlineTimeoutHint": "فعال در {minutes} دقیقهٔ اخیر",
+    "sourceNative": "موتور بومی",
+    "retry": "تلاش دوباره",
+    "rangeSpan": "{from} تا {to}",
+    "refByCategory": "بر اساس دسته",
+    "refSources": "منابع ارجاع",
+    "utmSources": "فروش بر اساس منبع UTM",
+    "utmDirect": "مستقیم / بدون منبع",
+    "topViewedProducts": "پربازدیدترین محصولات",
+    "topCartProducts": "بیشترین افزودن به سبد",
+    "topPurchasedProducts": "پرفروش‌ترین محصولات",
+    "funnel": {
+      "title": "قیف خرید",
+      "visitors": "بازدیدکنندگان",
+      "product_views": "بازدید محصول",
+      "add_to_cart": "افزودن به سبد",
+      "checkout": "تسویه‌حساب",
+      "orders": "سفارش",
+      "fromPrev": "{pct} از مرحلهٔ قبل"
+    },
     "col": {
+      "hits": "بازدید",
+      "title": "عنوان",
+      "share": "سهم",
+      "product": "محصول",
+      "adds": "افزودن",
+      "quantity": "تعداد",
       "visitor": "بازدیدکننده",
       "views": "بازدید",
       "country": "کشور",
@@ -4209,7 +4247,7 @@
       "geoipPath": "مسیر پایگاه GeoLite2",
       "geoipHint": "اختیاری. در صورت خالی بودن از هدر Cloudflare یا «نامشخص» استفاده می‌شود.",
       "purgeRebuild": "بازسازی تجمیع‌ها",
-      "purgeDone": "تجمیع برای {{count}} روز بازسازی شد.",
+      "purgeDone": "تجمیع برای {count} روز بازسازی شد.",
       "nativeHint": "بازدیدها بدون کوکی ثبت می‌شوند. اگر آمار صفر ماند، سایت را در پنجرهٔ ناشناس تست کنید."
     },
     "source": "منبع",
@@ -4225,9 +4263,13 @@
       "topSources": "منابع ورودی اصلی",
       "topPages": "صفحات پربازدید",
       "siteConversion": "نرخ تبدیل کلی سایت",
-      "sessionNote": "پس از جمع‌آوری نشست‌ها نمایش داده می‌شود."
+      "sessionNote": "پس از جمع‌آوری نشست‌ها نمایش داده می‌شود.",
+      "current": "بازهٔ جاری",
+      "previous": "بازهٔ قبل"
     },
     "seo": {
+      "keywordsAiMonth": "{count} مورد با هوش مصنوعی در این ماه",
+      "noindexOf": "{count} از {total} مورد منتشرشده",
       "keywords": "کلمات کلیدی کارشده",
       "optimizedPages": "صفحات بهینه‌سازی‌شده",
       "internalLinks": "لینک‌سازی داخلی",
@@ -4250,9 +4292,11 @@
       "rateLabel": "امتیاز رضایت (۱ تا ۵)",
       "open": "باز",
       "closed": "بسته",
-      "avgReply": "میانگین پاسخ (ساعت)"
+      "avgReply": "میانگین پاسخ (ساعت)",
+      "csatValue": "{value} از ۵"
     },
     "content": {
+      "pagesPublished": "برگه‌های منتشرشده",
       "productsCreated": "محصولات درج‌شده",
       "productsUpdated": "محصولات به‌روزرسانی‌شده",
       "postsPublished": "محتوای بلاگ منتشرشده",
@@ -4272,6 +4316,9 @@
       "challenge": "چالش اصلی",
       "noAchievement": "بدون رشد قابل‌توجه",
       "noChallenge": "چالش برجسته‌ای شناسایی نشد",
+      "scoreValue": "{score} از ۱۰",
+      "deltas": "تغییر نسبت به بازهٔ قبل",
+      "weight": "وزن",
       "kpi": {
         "revenue": "درآمد",
         "orders": "تعداد سفارش",
@@ -4304,6 +4351,25 @@
     "statusFilter": "وضعیت سفارش",
     "statusFilterHint": "خالی = همه فروش‌های موفق (بدون لغو، ناموفق، در انتظار پرداخت و استرداد).",
     "exportCsv": "خروجی CSV",
+    "exportFailed": "دریافت خروجی CSV ناموفق بود",
+    "filters": {
+      "reset": "بازنشانی فیلترها",
+      "allSaleStatuses": "همه فروش‌های موفق",
+      "statusesSelected": "{count} وضعیت انتخاب شده",
+      "clearStatuses": "پاک کردن وضعیت‌ها"
+    },
+    "basalam": {
+      "title": "موجودی غرفه باسلام",
+      "description": "موجودی قابل برداشت در باسلام",
+      "details": "جزئیات مالی باسلام"
+    },
+    "source": {
+      "site": "فروشگاه آنلاین",
+      "admin": "ثبت دستی",
+      "manual": "ثبت دستی",
+      "api": "API",
+      "marketplace": "مارکت‌پلیس"
+    },
     "deltaNew": "جدید",
     "preset": {
       "today": "امروز",
@@ -4356,7 +4422,8 @@
       "byPayment": "روش پرداخت",
       "bySource": "منبع سفارش",
       "byHour": "ساعات روز",
-      "overview": "عملکرد در طول زمان"
+      "overview": "عملکرد در طول زمان",
+      "compareProfit": "سود دوره قبل"
     },
     "table": {
       "topProducts": "محصولات برتر",
@@ -4370,7 +4437,8 @@
       "profit": "سود",
       "margin": "حاشیه",
       "topProductsProfit": "محصولات برتر بر اساس سود",
-      "missingCostQty": "{{count}} بدون قیمت خرید",
+      "missingCostQty": "{count} بدون قیمت خرید",
+      "total": "مبلغ کل",
       "aov": "میانگین سفارش",
       "gateway": "درگاه",
       "utmSource": "منبع UTM",
@@ -4412,7 +4480,8 @@
       "retail": "خرده (نقد)",
       "credit": "اعتباری",
       "installment": "اقساطی",
-      "wholesale": "عمده"
+      "wholesale": "عمده",
+      "marketplace": "مارکت‌پلیس ({platform})"
     },
     "heatmap": {
       "dow": {
@@ -4424,7 +4493,7 @@
         "5": "جمعه",
         "6": "شنبه"
       },
-      "hour": "ساعت {{hour}}",
+      "hour": "ساعت {hour}",
       "legendMin": "کمتر",
       "legendMax": "بیشتر"
     },
@@ -4517,7 +4586,7 @@
     "customerReturning": "بازگشتی",
     "itemsPerOrder": "اقلام در هر سفارش",
     "downloadsEmpty": "در این بازه دانلودی ثبت نشده است.",
-    "targetMarginHint": "حاشیه هدف خرده‌فروشی {{target}}٪ · محقق‌شده {{actual}}٪",
+    "targetMarginHint": "حاشیه هدف خرده‌فروشی {target}٪ · محقق‌شده {actual}٪",
     "stock": {
       "skuCount": "تعداد SKU",
       "units": "واحد موجود",
@@ -4530,6 +4599,8 @@
       "potentialProfit": "سود بالقوه",
       "valueBase": "ارزش‌گذاری بر اساس",
       "categoryAll": "همه دسته‌ها",
+      "filterLabel": "فیلتر موجودی",
+      "threshold": "آستانه {n}",
       "valueBy": {
         "purchase": "بر اساس خرید",
         "retail": "بر اساس نقدی",

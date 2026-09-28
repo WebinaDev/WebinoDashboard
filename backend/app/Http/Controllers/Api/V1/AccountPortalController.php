@@ -378,7 +378,7 @@ class AccountPortalController extends Controller
         $productIds = OrderItem::query()
             ->whereHas('order', fn ($q) => $q->where('tenant_id', $tid)
                 ->where('user_id', $user->id)
-                ->whereIn('status', ['paid', 'processing', 'shipped', 'completed']))
+                ->whereIn('status', \App\Services\Reports\OrderReports::salesStatuses()))
             ->when($reviewedProductIds !== [], fn ($q) => $q->whereNotIn('product_id', $reviewedProductIds))
             ->distinct()
             ->pluck('product_id')

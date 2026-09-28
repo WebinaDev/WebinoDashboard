@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\RateLimiter;
 
 final class AnalyticsTracker
 {
+    public const EVENT_TYPES = ['pageview', 'session', 'product_view', 'add_to_cart', 'checkout_start'];
+
+    public const PRODUCT_EVENTS = ['product_view', 'add_to_cart', 'checkout_start'];
+
     /**
      * @param  array<string, mixed>  $payload
      * @return array{ok: bool, skipped?: string, status?: int}
@@ -20,6 +24,15 @@ final class AnalyticsTracker
         }
 
         $type = strtolower((string) ($payload['type'] ?? 'pageview'));
+        if (! in_array($type, self::EVENT_TYPES, true)) {
+            $type = 'pageview';
+        }
+
+        $userSkip = self::userSkipReason($tenantId, auth('sanctum')->user());
+        if ($userSkip !== null) {
+            return ['ok' => true, 'skipped' => $userSkip];
+        }
+
         if ($type === 'session') {
             return $this->recordSession($tenantId, $payload, $request);
         }
@@ -30,7 +43,8 @@ final class AnalyticsTracker
         }
         RateLimiter::hit($key, 60);
 
-        $skip = $this->shouldSkip($tenantId, $request, (string) ($payload['uri'] ?? ''));
+        $isPageview = $type === 'pageview';
+        $skip = $this->shouldSkip($tenantId, $request, (string) ($payload['uri'] ?? ''), $isPageview);
         if ($skip !== null) {
             return ['ok' => true, 'skipped' => $skip];
         }
@@ -74,7 +88,13 @@ final class AnalyticsTracker
             'duration_ms' => 0,
             'is_exit' => false,
             'is_bounce' => false,
+            'event_type' => $type,
+            'title' => mb_substr(trim((string) ($payload['title'] ?? '')), 0, 255),
         ]);
+
+        if (! $isPageview) {
+            return ['ok' => true];
+        }
 
         $existing = DB::table('analytics_visitors')
             ->where('tenant_id', $tenantId)
@@ -127,6 +147,7 @@ final class AnalyticsTracker
         $row = DB::table('analytics_events')
             ->where('tenant_id', $tenantId)
             ->where('session_id', $sessionId)
+            ->where('event_type', 'pageview')
             ->orderByDesc('id')
             ->first(['id']);
         if ($row) {
@@ -140,20 +161,28 @@ final class AnalyticsTracker
         return ['ok' => true];
     }
 
-    private function shouldSkip(int $tenantId, Request $request, string $uri): ?string
+    /** Login/role exclusion shared by bootstrap and hit. */
+    public static function userSkipReason(int $tenantId, mixed $user): ?string
+    {
+        if (! $user) {
+            return null;
+        }
+        $settings = AnalyticsSettings::get($tenantId);
+        if (empty($settings['record_logged_in'])) {
+            return 'logged_in';
+        }
+        $role = strtolower((string) ($user->role ?? ''));
+        $excluded = array_map('strtolower', (array) ($settings['exclude_roles'] ?? []));
+        if ($role !== '' && in_array($role, $excluded, true)) {
+            return 'role';
+        }
+
+        return null;
+    }
+
+    private function shouldSkip(int $tenantId, Request $request, string $uri, bool $checkUrl = true): ?string
     {
         $settings = AnalyticsSettings::get($tenantId);
-        $user = $request->user();
-        if ($user) {
-            if (empty($settings['record_logged_in'])) {
-                return 'logged_in';
-            }
-            $role = strtolower((string) ($user->role ?? ''));
-            $excluded = array_map('strtolower', (array) ($settings['exclude_roles'] ?? []));
-            if ($role !== '' && in_array($role, $excluded, true)) {
-                return 'role';
-            }
-        }
 
         $ip = $this->clientIp($request);
         foreach (preg_split('/[\s,]+/', (string) ($settings['exclude_ips'] ?? '')) ?: [] as $rule) {
@@ -161,6 +190,10 @@ final class AnalyticsTracker
             if ($rule !== '' && (str_contains($ip, $rule) || $ip === $rule)) {
                 return 'ip';
             }
+        }
+
+        if (! $checkUrl) {
+            return null;
         }
 
         $path = parse_url($uri, PHP_URL_PATH) ?: $uri;

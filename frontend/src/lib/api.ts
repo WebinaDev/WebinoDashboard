@@ -107,6 +107,45 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   return normalizeApiPayload<T>(data)
 }
 
+/** Fetch a file (CSV export, …) and trigger a browser download. Throws `ApiError`; caller shows the toast. */
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        Accept: "text/csv, application/octet-stream, application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "include",
+    })
+  } catch (err) {
+    throw new ApiError(getApiErrorMessage(err), 0)
+  }
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      redirectToLogin()
+    }
+    const data = await parseJsonResponse(res)
+    const body = data as { message?: string; errors?: Record<string, unknown> } | null
+    const msg = getApiErrorMessage(
+      new ApiError(typeof body?.message === "string" ? body.message : `HTTP ${res.status}`, res.status, data),
+      body,
+    )
+    throw new ApiError(msg, res.status, data)
+  }
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
 /** Raw unwrap for CRM `{ ok, data }` payloads — does not strip sibling fields. */
 export async function apiRaw<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   const headers: HeadersInit = {

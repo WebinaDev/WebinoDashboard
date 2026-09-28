@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api } from "@/lib/api"
 
 type Provider = "zarinpal" | "digipay" | "snapppay" | "torobpay"
@@ -27,6 +28,10 @@ export default function CheckoutPage() {
   const [shippingAddress, setShippingAddress] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [customerNote, setCustomerNote] = useState("")
+
+  useEffect(() => {
+    trackAnalyticsEvent("checkout_start")
+  }, [])
 
   useEffect(() => {
     api<{ pricing?: CartPricing }>("/api/v1/cart")

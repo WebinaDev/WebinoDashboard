@@ -30,7 +30,7 @@ class OrderController extends Controller
             ->with(['items.product', 'user:id,name,email,role', 'creator:id,name']);
         $this->applyOrderIndexFilters($q, $request);
 
-        $paidStatuses = ['paid', 'processing', 'shipped', 'completed'];
+        $paidStatuses = \App\Services\Reports\OrderReports::salesStatuses();
         $statsQ = clone $q;
         $paidCount = (clone $statsQ)->whereIn('status', $paidStatuses)->count();
         $paidRevenue = (int) (clone $statsQ)->whereIn('status', $paidStatuses)->sum('total_minor');

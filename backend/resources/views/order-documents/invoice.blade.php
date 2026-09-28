@@ -114,6 +114,9 @@
                 <tr><td><strong>{{ $doc->t('discount') }}:</strong></td><td>{{ $doc->price($discount, $currency) }}</td></tr>
             @endif
             <tr><td><strong>{{ $doc->t('shipping') }}:</strong></td><td>{{ $method !== '' ? $method.' ' : '' }}({{ $doc->price($shipping, $currency) }})</td></tr>
+            @if (($tax ?? 0) > 0)
+                <tr><td><strong>{{ $doc->t('tax') }}:</strong></td><td>{{ $doc->price($tax, $currency) }}</td></tr>
+            @endif
             @if ($payment !== '')
                 <tr><td><strong>{{ $doc->t('payment_method') }}:</strong></td><td>{{ $payment }}</td></tr>
             @endif

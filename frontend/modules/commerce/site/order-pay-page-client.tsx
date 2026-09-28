@@ -19,6 +19,7 @@ type PayPayload = {
   subtotal_minor?: number
   discount_minor?: number
   shipping_minor?: number
+  tax_minor?: number
   customer_name?: string | null
   gateways: Gateway[]
   items?: Array<{ product_name?: string; quantity?: number; unit_price_minor?: number }>
@@ -105,6 +106,12 @@ export default function OrderPayPageClient({
           <div className="flex justify-between">
             <span>{t("shipping")}</span>
             <MoneyDisplay amount={data.shipping_minor} />
+          </div>
+        ) : null}
+        {typeof data.tax_minor === "number" && data.tax_minor > 0 ? (
+          <div className="flex justify-between">
+            <span>{t("tax")}</span>
+            <MoneyDisplay amount={data.tax_minor} />
           </div>
         ) : null}
         <div className="flex justify-between font-semibold">

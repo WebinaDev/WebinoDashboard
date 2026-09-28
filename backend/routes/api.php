@@ -375,11 +375,14 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware('module:analytics')->group(function () {
-                Route::get('/analytics/settings', [AnalyticsController::class, 'settings']);
-                Route::post('/analytics/settings', [AnalyticsController::class, 'saveSettings']);
-                Route::post('/analytics/purge-cache', [AnalyticsController::class, 'purgeCache']);
-                Route::post('/analytics/cache/purge', [AnalyticsController::class, 'purgeCache']);
+                Route::middleware('can:analytics.manage')->group(function () {
+                    Route::get('/analytics/settings', [AnalyticsController::class, 'settings']);
+                    Route::post('/analytics/settings', [AnalyticsController::class, 'saveSettings']);
+                    Route::post('/analytics/purge-cache', [AnalyticsController::class, 'purgeCache']);
+                    Route::post('/analytics/cache/purge', [AnalyticsController::class, 'purgeCache']);
+                });
                 Route::get('/analytics/{section}', [AnalyticsController::class, 'section'])
+                    ->middleware('can:analytics.view')
                     ->where('section', 'overview|visitors|pages|referrals|geo|devices|online|commerce|compare|seo|support|content|month-summary');
             });
 
@@ -647,11 +650,11 @@ Route::prefix('v1')->group(function () {
                 Route::get('/inventory/summary', [InventoryController::class, 'summary']);
             });
 
-            Route::middleware('module:reports')->group(function () {
+            Route::middleware(['module:reports', 'can:reports.shop'])->group(function () {
                 Route::get('/reports/{section}', [ReportsController::class, 'section'])
-                    ->where('section', 'overview|revenue|orders|products|variations|categories|coupons|taxes|customers|downloads|stock|sales|financial');
+                    ->where('section', 'overview|revenue|orders|products|variations|categories|brands|coupons|taxes|customers|downloads|stock|sales|financial');
                 Route::get('/reports/{section}/export', [ReportsController::class, 'export'])
-                    ->where('section', 'overview|revenue|orders|products|variations|categories|coupons|taxes|customers|downloads|stock|sales|financial');
+                    ->where('section', 'overview|revenue|orders|products|variations|categories|brands|coupons|taxes|customers|downloads|stock|sales|financial');
             });
 
             Route::middleware('module:marketing')->group(function () {

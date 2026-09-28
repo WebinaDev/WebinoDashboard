@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductDownload;
+use App\Models\ProductDownloadLog;
+use App\Services\Reports\OrderReports;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -45,7 +47,7 @@ final class ProductDownloadService
             }
         }
 
-        if (! in_array($order->status, ['paid', 'processing', 'shipped', 'completed'], true)) {
+        if (! in_array($order->status, OrderReports::salesStatuses(), true)) {
             abort(403, 'Order not paid');
         }
 
@@ -66,6 +68,13 @@ final class ProductDownloadService
 
         if (! empty($settings['count_downloads'])) {
             $orderItem->increment('download_count');
+            ProductDownloadLog::query()->create([
+                'tenant_id' => (int) $order->tenant_id,
+                'product_id' => (int) $download->product_id,
+                'order_item_id' => (int) $orderItem->id,
+                'user_id' => ($request->user('sanctum') ?? auth('sanctum')->user())?->id ?? $order->user_id,
+                'downloaded_at' => now(),
+            ]);
         }
 
         $prefix = trim((string) ($settings['x_accel_prefix'] ?? ''));

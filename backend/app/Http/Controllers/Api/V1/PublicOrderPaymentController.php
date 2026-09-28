@@ -27,6 +27,7 @@ class PublicOrderPaymentController extends Controller
                 'subtotal_minor' => $row->subtotal_minor,
                 'discount_minor' => $row->discount_minor,
                 'shipping_minor' => $row->shipping_minor,
+                'tax_minor' => (int) ($row->tax_minor ?? 0),
                 'currency' => $row->currency,
                 'customer_name' => $row->customer_name,
                 'shipping_address' => $row->shipping_address,

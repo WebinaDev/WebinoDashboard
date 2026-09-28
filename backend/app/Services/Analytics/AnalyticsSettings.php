@@ -120,13 +120,23 @@ final class AnalyticsSettings
             }
         }
         if (isset($raw['exclude_roles']) && is_array($raw['exclude_roles'])) {
-            $out['exclude_roles'] = array_values(array_filter(array_map(
-                fn ($r) => is_scalar($r) ? strtolower(trim((string) $r)) : '',
-                $raw['exclude_roles']
+            $allowed = self::editableRoles();
+            $out['exclude_roles'] = array_values(array_unique(array_filter(
+                array_map(fn ($r) => is_scalar($r) ? strtolower(trim((string) $r)) : '', $raw['exclude_roles']),
+                fn (string $r) => $r !== '' && in_array($r, $allowed, true)
             )));
         }
 
         return $out;
+    }
+
+    /** @return list<string> */
+    public static function editableRoles(): array
+    {
+        return array_values(array_map(
+            fn ($r) => strtolower((string) $r),
+            (array) config('capabilities.roles', [])
+        ));
     }
 
     public static function trackingEnabled(int $tenantId): bool

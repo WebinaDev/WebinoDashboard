@@ -35,6 +35,7 @@ return [
     'subtotal' => 'جمع جزء',
     'discount' => 'تخفیف',
     'shipping' => 'حمل‌ونقل',
+    'tax' => 'مالیات',
     'payment_method' => 'روش پرداخت',
     'order_total' => 'مبلغ کل',
     'print_invoice' => 'چاپ فاکتور',

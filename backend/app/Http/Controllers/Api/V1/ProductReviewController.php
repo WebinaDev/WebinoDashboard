@@ -202,7 +202,7 @@ class ProductReviewController extends Controller
             ->where('product_id', $productId)
             ->whereHas('order', fn ($q) => $q->where('tenant_id', $tid)
                 ->where('user_id', $userId)
-                ->whereIn('status', ['paid', 'processing', 'shipped', 'completed']))
+                ->whereIn('status', \App\Services\Reports\OrderReports::salesStatuses()))
             ->exists();
     }
 
