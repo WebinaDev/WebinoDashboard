@@ -40,7 +40,7 @@ class PaymentGatewaySettingsService
 
     public function __construct(protected ModuleSettingsService $settings) {}
 
-    /** @return array{enabled: bool, services: array<string, bool>} */
+    /** @return array{enabled: bool, services: array<string, bool>, colors: array<string, string>} */
     public function defaultGeoNotice(): array
     {
         return [
@@ -53,6 +53,14 @@ class PaymentGatewaySettingsService
                 'ipwho' => true,
                 'geojs' => true,
                 'country_is' => true,
+            ],
+            'colors' => [
+                'bg' => '#fff7ed',
+                'border' => '#fdba74',
+                'text' => '#9a3412',
+                'icon' => '#ea580c',
+                'button_bg' => '#ea580c',
+                'button_text' => '#ffffff',
             ],
         ];
     }
@@ -87,11 +95,28 @@ class PaymentGatewaySettingsService
         $current = $this->getHub($tenantId);
         if (isset($input['geo_notice']) && is_array($input['geo_notice'])) {
             $geo = $this->defaultGeoNotice();
-            $geo['enabled'] = ($input['geo_notice']['enabled'] ?? $geo['enabled']) !== false;
+            $existing = is_array($current['geo_notice'] ?? null) ? $current['geo_notice'] : [];
+            $geo['enabled'] = ($input['geo_notice']['enabled'] ?? $existing['enabled'] ?? $geo['enabled']) !== false;
             if (isset($input['geo_notice']['services']) && is_array($input['geo_notice']['services'])) {
                 foreach (array_keys($geo['services']) as $key) {
                     if (array_key_exists($key, $input['geo_notice']['services'])) {
                         $geo['services'][$key] = (bool) $input['geo_notice']['services'][$key];
+                    } elseif (isset($existing['services'][$key])) {
+                        $geo['services'][$key] = (bool) $existing['services'][$key];
+                    }
+                }
+            } elseif (isset($existing['services']) && is_array($existing['services'])) {
+                $geo['services'] = array_merge($geo['services'], $existing['services']);
+            }
+            $colorsIn = $input['geo_notice']['colors'] ?? ($existing['colors'] ?? []);
+            if (is_array($colorsIn)) {
+                foreach (array_keys($geo['colors']) as $ck) {
+                    $raw = $colorsIn[$ck] ?? null;
+                    if (is_string($raw) && preg_match('/^#?[0-9a-fA-F]{6}$/', trim($raw))) {
+                        $v = trim($raw);
+                        $geo['colors'][$ck] = str_starts_with($v, '#') ? strtolower($v) : '#'.strtolower($v);
+                    } elseif (isset($existing['colors'][$ck])) {
+                        $geo['colors'][$ck] = $existing['colors'][$ck];
                     }
                 }
             }

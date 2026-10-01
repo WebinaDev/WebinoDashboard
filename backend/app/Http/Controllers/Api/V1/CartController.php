@@ -7,6 +7,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Services\Pricing\PurchaseTypeService;
+use App\Services\Shop\ShopSettings;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -95,9 +96,30 @@ class CartController extends Controller
     {
         $user = $request->user();
 
-        return Cart::query()->firstOrCreate([
+        /** @var Cart $cart */
+        $cart = Cart::query()->firstOrCreate([
             'tenant_id' => $user->tenant_id,
             'user_id' => $user->id,
         ]);
+
+        $this->expireHeldStock($cart);
+
+        return $cart;
+    }
+
+    protected function expireHeldStock(Cart $cart): void
+    {
+        $minutes = ShopSettings::getProducts((int) $cart->tenant_id)['hold_stock_minutes'] ?? null;
+        if ($minutes === null || $minutes === '' || (int) $minutes <= 0) {
+            return;
+        }
+        $cutoff = now()->subMinutes(max(1, (int) $minutes));
+        if ($cart->updated_at && $cart->updated_at->greaterThan($cutoff)) {
+            return;
+        }
+        if ($cart->items()->exists()) {
+            $cart->items()->delete();
+            $cart->touch();
+        }
     }
 }

@@ -29,6 +29,7 @@ class PaymentsHubController extends Controller
             'geo_notice' => ['sometimes', 'array'],
             'geo_notice.enabled' => ['sometimes', 'boolean'],
             'geo_notice.services' => ['sometimes', 'array'],
+            'geo_notice.colors' => ['sometimes', 'array'],
             'enabled' => ['sometimes', 'array'],
         ]);
         $this->gateways->saveHub($tid, $data);

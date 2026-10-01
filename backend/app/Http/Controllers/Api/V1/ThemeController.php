@@ -58,25 +58,43 @@ class ThemeController extends Controller
             'logo_url' => ['nullable', 'string', 'max:2048'],
             'logo_dark_url' => ['nullable', 'string', 'max:2048'],
             'favicon_url' => ['nullable', 'string', 'max:2048'],
+            'logo_id' => ['nullable', 'integer', 'min:1'],
+            'logo_dark_id' => ['nullable', 'integer', 'min:1'],
+            'favicon_id' => ['nullable', 'integer', 'min:1'],
             'accent' => ['nullable', 'string', 'in:'.implode(',', ThemeCatalog::ACCENTS)],
             'font' => ['nullable', 'string', 'in:'.implode(',', ThemeCatalog::FONTS)],
+            'font_body' => ['nullable', 'string', 'in:'.implode(',', ThemeCatalog::FONTS)],
+            'font_heading' => ['nullable', 'string', 'in:'.implode(',', ThemeCatalog::FONTS)],
+            'font_ui' => ['nullable', 'string', 'in:'.implode(',', ThemeCatalog::FONTS)],
+            'palette' => ['nullable', 'array'],
+            'geo_notice_colors' => ['nullable', 'array'],
+            'wfcp_colors' => ['nullable', 'array'],
         ]);
 
         /** @var Tenant $tenant */
         $tenant = $request->user()->tenant;
 
         if (! empty($data['reset'])) {
-            $tenant->branding = ThemeCatalog::defaultBranding();
+            $existing = is_array($tenant->branding) ? $tenant->branding : [];
+            $next = ThemeCatalog::defaultBranding();
+            if (isset($existing['pwa'])) {
+                $next['pwa'] = $existing['pwa'];
+            }
+            $tenant->branding = $next;
         } else {
             $current = ThemeCatalog::normalizeBranding($tenant->branding);
             $merged = $current;
-            foreach (['logo_url', 'logo_dark_url', 'favicon_url', 'accent', 'font'] as $key) {
+            foreach ([
+                'logo_url', 'logo_dark_url', 'favicon_url', 'logo_id', 'logo_dark_id', 'favicon_id',
+                'accent', 'font', 'font_body', 'font_heading', 'font_ui',
+                'palette', 'geo_notice_colors', 'wfcp_colors',
+            ] as $key) {
                 if (array_key_exists($key, $data)) {
                     $value = $data[$key];
                     $merged[$key] = is_string($value) && $value === '' ? null : $value;
                 }
             }
-            $tenant->branding = ThemeCatalog::normalizeBranding($merged);
+            $tenant->branding = ThemeCatalog::mergeIntoExisting($tenant->branding, ThemeCatalog::normalizeBranding($merged));
         }
 
         $tenant->save();

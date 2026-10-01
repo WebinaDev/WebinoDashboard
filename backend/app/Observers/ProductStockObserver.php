@@ -41,13 +41,18 @@ class ProductStockObserver
         }
 
         try {
-            $this->dispatcher->dispatch($event, (int) $product->tenant_id, [
+            $recipient = trim((string) ($settings['stock_email_recipient'] ?? ''));
+            $context = [
                 'vars' => [
                     'product_name' => (string) $product->name,
                     'stock' => (string) $new,
                 ],
                 'admin_link' => '/dashboard/products/'.$product->id,
-            ]);
+            ];
+            if ($recipient !== '' && filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+                $context['admin_email_override'] = $recipient;
+            }
+            $this->dispatcher->dispatch($event, (int) $product->tenant_id, $context);
         } catch (\Throwable) {
         }
     }

@@ -11,6 +11,7 @@ use App\Models\PortfolioItem;
 use App\Models\Testimonial;
 use App\Services\Auth\OtpSettings;
 use App\Services\Modules\ModuleSettingsService;
+use App\Services\Shop\ShopSettings;
 use Illuminate\Http\Request;
 
 class PublicSiteController extends Controller
@@ -22,6 +23,12 @@ class PublicSiteController extends Controller
         $tenant = $this->publicTenant($request);
         $branding = ThemeCatalog::normalizeBranding($tenant->branding);
         $otp = OtpSettings::forTenant((int) $tenant->id, $settings);
+        $privacy = $settings->get((int) $tenant->id, 'settings', 'site.privacy', [
+            'guest_checkout' => false,
+            'account_creation' => true,
+        ]);
+        $shopGeneral = ShopSettings::getGeneral((int) $tenant->id);
+        $guestCheckout = ! empty($privacy['guest_checkout']) || ! empty($shopGeneral['guest_checkout']);
 
         return response()->json([
             'data' => [
@@ -36,6 +43,8 @@ class PublicSiteController extends Controller
                 'theme_preset' => $tenant->theme_preset,
                 'active_theme_slug' => $tenant->active_theme_slug,
                 'branding' => $branding,
+                'guest_checkout' => $guestCheckout,
+                'account_creation' => ($privacy['account_creation'] ?? true) !== false,
                 'nav_preset' => $tenant->nav_preset,
                 'otp_auth' => [
                     'login_enabled' => (bool) ($otp['otp_login_enabled'] ?? false),

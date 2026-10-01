@@ -42,6 +42,8 @@ final class OrderDocumentSettings
 
     private const URLS = ['logo_url', 'invoice_logo_url', 'receipt_logo_url', 'label_logo_url'];
 
+    private const INTS = ['logo_id', 'invoice_logo_id', 'receipt_logo_id', 'label_logo_id'];
+
     private const BOOLS = [
         'enable_invoice', 'enable_receipt', 'enable_label', 'enable_product_label', 'enable_packing',
         'enable_customer_label', 'enable_store_label',
@@ -68,6 +70,7 @@ final class OrderDocumentSettings
         return [
             'store_name' => $site,
             'logo_url' => '',
+            'logo_id' => null,
             'accent_color' => '#e775ae',
             'footer_thanks' => $thanks,
             'footer_site' => (string) ($tenant?->domain ?? ''),
@@ -86,6 +89,9 @@ final class OrderDocumentSettings
             'invoice_logo_url' => '',
             'receipt_logo_url' => '',
             'label_logo_url' => '',
+            'invoice_logo_id' => null,
+            'receipt_logo_id' => null,
+            'label_logo_id' => null,
             'invoice_thanks' => $thanks,
             'receipt_thanks' => $thanks,
             'label_note' => self::text('label_note', $locale),
@@ -190,6 +196,18 @@ final class OrderDocumentSettings
             if (array_key_exists($key, $input)) {
                 $out[$key] = filter_var($input[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
             }
+        }
+        foreach (self::INTS as $key) {
+            if (! array_key_exists($key, $input)) {
+                continue;
+            }
+            $raw = $input[$key];
+            if ($raw === null || $raw === '' || $raw === false) {
+                $out[$key] = null;
+                continue;
+            }
+            $n = (int) $raw;
+            $out[$key] = $n > 0 ? $n : null;
         }
         $out['label_show_products'] = false;
 

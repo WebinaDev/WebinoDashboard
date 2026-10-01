@@ -329,6 +329,7 @@ final class ShopSettings
             'price_decimals' => 0,
             'shop_page_id' => null,
             'cart_redirect_after_add' => false,
+            'guest_checkout' => false,
             'weight_unit' => 'kg',
             'dimension_unit' => 'cm',
         ];
@@ -474,7 +475,7 @@ final class ShopSettings
         }
 
         $weight = (string) ($input['weight_unit'] ?? $d['weight_unit']);
-        if (! in_array($weight, ['g', 'kg'], true)) {
+        if (! in_array($weight, ['g', 'kg', 'lbs', 'oz'], true)) {
             $weight = 'kg';
         }
         $dim = (string) ($input['dimension_unit'] ?? $d['dimension_unit']);
@@ -521,6 +522,7 @@ final class ShopSettings
             'shop_page_id' => $shopPageId,
             'cart_redirect_after_add' => filter_var($input['cart_redirect_after_add'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'weight_unit' => $weight,
+            'guest_checkout' => filter_var($input['guest_checkout'] ?? ($d['guest_checkout'] ?? false), FILTER_VALIDATE_BOOLEAN),
             'dimension_unit' => $dim,
         ];
     }

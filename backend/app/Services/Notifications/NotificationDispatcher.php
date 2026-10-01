@@ -143,7 +143,7 @@ class NotificationDispatcher
                 : $this->siteAdmins($tenantId, $event, $title, $body, $context),
             'email' => $this->mailer->send(
                 $tenantId,
-                $audience === 'customer' ? $this->customerEmail($context, $customerId) : $this->adminEmails($tenantId, $cfg),
+                $audience === 'customer' ? $this->customerEmail($context, $customerId) : $this->adminEmails($tenantId, $cfg, $context),
                 $title,
                 $body
             ),
@@ -225,8 +225,12 @@ class NotificationDispatcher
      * @param  array<string, mixed>  $cfg
      * @return list<string>
      */
-    protected function adminEmails(int $tenantId, array $cfg): array
+    protected function adminEmails(int $tenantId, array $cfg, array $context = []): array
     {
+        $override = trim((string) ($context['admin_email_override'] ?? ''));
+        if ($override !== '' && filter_var($override, FILTER_VALIDATE_EMAIL)) {
+            return [$override];
+        }
         $configured = array_filter(array_map('trim', explode(',', (string) ($cfg['admin_email'] ?? ''))));
         if ($configured !== []) {
             return array_values($configured);
