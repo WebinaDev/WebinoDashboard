@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Mail, Phone, Save } from "lucide-react"
+import { Mail, Phone, Save, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
@@ -80,11 +80,22 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
   const [walletAmount, setWalletAmount] = useState(0)
   const [walletDirection, setWalletDirection] = useState<"credit" | "debit">("credit")
   const [walletNote, setWalletNote] = useState("")
+  const [noteBody, setNoteBody] = useState("")
+  const [noteSubject, setNoteSubject] = useState("")
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-user", userId],
     enabled: Boolean(userId),
     queryFn: () => api<UserDetailPayload>(`/api/v1/users/${userId}`),
+  })
+
+  const notesQ = useQuery({
+    queryKey: ["customer-notes", userId],
+    enabled: Boolean(userId),
+    queryFn: () =>
+      api<{ notes: Array<{ id: number; subject?: string | null; body: string; author?: { id: number; name?: string } | null; created_at?: string; erp_note_id?: number | null }>; erp_notes?: unknown[]; erp_unavailable?: boolean }>(
+        `/api/v1/customers/${userId}/notes`,
+      ),
   })
 
   const [account, setAccount] = useState<Record<string, string | boolean>>({})
@@ -145,6 +156,32 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
       await queryClient.invalidateQueries({ queryKey: ["admin-user", userId] })
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] })
     },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+
+  const addNote = useMutation({
+    mutationFn: () =>
+      api(`/api/v1/customers/${userId}/notes`, {
+        method: "POST",
+        json: {
+          body: noteBody.trim(),
+          subject: noteSubject.trim() || undefined,
+          sync_erp: true,
+        },
+      }),
+    onSuccess: () => {
+      setNoteBody("")
+      setNoteSubject("")
+      void queryClient.invalidateQueries({ queryKey: ["customer-notes", userId] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  const deleteNote = useMutation({
+    mutationFn: (noteId: number) =>
+      api(`/api/v1/customers/${userId}/notes/${noteId}`, { method: "DELETE" }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["customer-notes", userId] }),
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
@@ -428,6 +465,77 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
             ))}
           </ul>
         )}
+      </section>
+
+
+      <section className="space-y-2 rounded-lg border p-3">
+        <h2 className="font-semibold">{t("panel_contact")}</h2>
+        <div className="flex flex-wrap gap-2">
+          {user.phone ? (
+            <Button size="sm" variant="outline" asChild>
+              <a href={`tel:${user.phone}`}>
+                <Phone className="me-1 size-4" />
+                {user.phone}
+              </a>
+            </Button>
+          ) : null}
+          {user.email ? (
+            <Button size="sm" variant="outline" asChild>
+              <a href={`mailto:${user.email}`}>
+                <Mail className="me-1 size-4" />
+                {user.email}
+              </a>
+            </Button>
+          ) : null}
+          {!user.phone && !user.email ? (
+            <p className="text-muted-foreground text-sm">{tCommon("empty")}</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="font-semibold">{t("notes_title")}</h2>
+        {notesQ.data?.erp_unavailable ? (
+          <p className="text-muted-foreground text-xs">{t("notes_erp_unavailable")}</p>
+        ) : null}
+        {(notesQ.data?.notes ?? []).length === 0 ? (
+          <p className="text-muted-foreground text-sm">{t("notes_empty")}</p>
+        ) : (
+          <ul className="space-y-2">
+            {(notesQ.data?.notes ?? []).map((n) => (
+              <li key={n.id} className="rounded-md border px-3 py-2 text-sm">
+                {n.subject ? <div className="font-medium">{n.subject}</div> : null}
+                <p className="whitespace-pre-wrap">{n.body}</p>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-muted-foreground text-xs">
+                    {n.author?.name ?? tCommon("em_dash")}
+                    {n.created_at ? ` · ${formatDisplayDateTime(n.created_at, locale)}` : ""}
+                    {n.erp_note_id ? ` · ERP #${n.erp_note_id}` : ""}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive h-7 px-2"
+                    disabled={deleteNote.isPending}
+                    onClick={() => deleteNote.mutate(n.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="space-y-2 border-t pt-3">
+          <Label>{t("notes_subject")}</Label>
+          <Input value={noteSubject} onChange={(e) => setNoteSubject(e.target.value)} placeholder={t("notes_subject_ph")} />
+          <Label>{t("notes_body")}</Label>
+          <Textarea value={noteBody} onChange={(e) => setNoteBody(e.target.value)} rows={3} placeholder={t("notes_body_ph")} />
+          <Button size="sm" disabled={!noteBody.trim() || addNote.isPending} onClick={() => addNote.mutate()}>
+            {t("notes_add")}
+          </Button>
+        </div>
       </section>
 
       <section className="space-y-2">

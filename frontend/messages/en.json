@@ -1151,7 +1151,9 @@
     "plaque": "Plaque no.",
     "unit": "Unit",
     "postcode": "Postcode",
-    "address_1": "Street address"
+    "address_1": "Street address",
+    "scan_hint": "Scan barcode or SKU — unique matches add automatically",
+    "products_search_ph": "Search or scan barcode / SKU"
   },
   "store_settings": {
     "title": "Store settings",
@@ -5533,7 +5535,16 @@
     "partner_portal_link": "Partner portal",
     "comments_title": "User comments",
     "comments_placeholder": "Comment moderation lives under shop settings.",
-    "comments_open_reviews": "Open review moderation"
+    "comments_open_reviews": "Open review moderation",
+    "panel_contact": "Contact",
+    "notes_title": "CRM notes",
+    "notes_add": "Add note",
+    "notes_empty": "No notes yet.",
+    "notes_subject": "Subject",
+    "notes_subject_ph": "Optional",
+    "notes_body": "Note",
+    "notes_body_ph": "New note…",
+    "notes_erp_unavailable": "ERP sync unavailable"
   },
   "customers_admin": {
     "new": "New customer",

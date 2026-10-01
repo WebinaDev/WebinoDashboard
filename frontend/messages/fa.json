@@ -908,7 +908,9 @@
     "plaque": "پلاک",
     "unit": "واحد",
     "postcode": "کد پستی",
-    "address_1": "آدرس"
+    "address_1": "آدرس",
+    "scan_hint": "بارکد یا SKU را اسکن کنید — با تطبیق یکتا خودکار اضافه می‌شود",
+    "products_search_ph": "جستجو یا اسکن بارکد / SKU"
   },
   "store_settings": {
     "title": "تنظیمات فروشگاه",
@@ -5530,7 +5532,16 @@
     "partner_portal_link": "پورتال همکار",
     "comments_title": "دیدگاه‌های کاربران",
     "comments_placeholder": "مدیریت دیدگاه‌ها از بخش تنظیمات فروشگاه در دسترس است.",
-    "comments_open_reviews": "رفتن به مدیریت دیدگاه‌ها"
+    "comments_open_reviews": "رفتن به مدیریت دیدگاه‌ها",
+    "panel_contact": "تماس",
+    "notes_title": "یادداشت‌های CRM",
+    "notes_add": "افزودن یادداشت",
+    "notes_empty": "یادداشتی نیست.",
+    "notes_subject": "موضوع",
+    "notes_subject_ph": "اختیاری",
+    "notes_body": "متن یادداشت",
+    "notes_body_ph": "یادداشت جدید…",
+    "notes_erp_unavailable": "همگام‌سازی ERP در دسترس نیست"
   },
   "customers_admin": {
     "new": "مشتری جدید",
