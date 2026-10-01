@@ -2897,7 +2897,10 @@
       "product_ids": "محصولات",
       "category_ids": "دسته‌ها",
       "brand_ids": "برندها",
-      "emails": "ایمیل‌ها"
+      "emails": "ایمیل‌ها",
+      "visibility": "دیده‌شدن",
+      "password": "رمز",
+      "scheduled_at": "زمان‌بندی انتشار"
     },
     "addCoupon": "کوپن جدید",
     "filters": "فیلترها",
@@ -2946,6 +2949,11 @@
       "searchUsers": "جستجوی نام، ایمیل یا موبایل…",
       "empty": "موردی یافت نشد",
       "remove": "حذف"
+    },
+    "visibility": {
+      "public": "عمومی",
+      "private": "خصوصی",
+      "password": "رمزدار"
     }
   },
   "coupon_builder": {
@@ -3083,6 +3091,17 @@
       "colStatus": "وضعیت",
       "colExpires": "انقضا",
       "noExpiry": "بدون انقضا"
+    },
+    "addons": {
+      "title": "افزونه‌های ربات",
+      "hint": "قابلیت‌های اختیاری ربات را روشن یا خاموش کنید.",
+      "card_to_card": "کارت‌به‌کارت",
+      "faq": "سؤالات متداول",
+      "tickets": "تیکت پشتیبانی",
+      "loyalty": "باشگاه وفاداری",
+      "channel_publish": "انتشار در کانال",
+      "order_cascade": "اعلان آبشاری سفارش",
+      "site_widget": "ویجت سایت"
     }
   },
   "marketplace_admin": {
@@ -5287,7 +5306,15 @@
     "media_empty": "تصویری پیدا نشد.",
     "media_close": "بستن",
     "media_upload_hint": "برای افزودن تصویر تازه به کتابخانهٔ رسانه بروید.",
-    "media_open_library": "کتابخانهٔ رسانه"
+    "media_open_library": "کتابخانهٔ رسانه",
+    "seo_score": "امتیاز سئو",
+    "seo_check_title": "عنوان سئو در محدودهٔ مناسب",
+    "seo_check_description": "توضیح متا در محدودهٔ مناسب",
+    "seo_check_keyword": "کلیدواژهٔ کانونی تنظیم شده",
+    "seo_check_keyword_in_title": "کلیدواژه در عنوان",
+    "seo_check_keyword_in_description": "کلیدواژه در توضیح",
+    "seo_check_og": "فیلدهای Open Graph",
+    "seo_check_schema": "نوع Schema"
   },
   "enums": {
     "order_status": {
@@ -5541,7 +5568,21 @@
     "notes_subject_ph": "اختیاری",
     "notes_body": "متن یادداشت",
     "notes_body_ph": "یادداشت جدید…",
-    "notes_erp_unavailable": "همگام‌سازی ERP در دسترس نیست"
+    "notes_erp_unavailable": "همگام‌سازی ERP در دسترس نیست",
+    "message_title": "ارسال پیام",
+    "message_action": "پیام",
+    "message_channel": "کانال",
+    "message_channel_sms": "پیامک",
+    "message_channel_email": "ایمیل",
+    "message_channel_bale": "بله",
+    "message_channel_telegram": "تلگرام",
+    "message_subject": "موضوع",
+    "message_body": "متن پیام",
+    "message_body_ph": "متن پیام را بنویسید…",
+    "message_send": "ارسال",
+    "message_sent": "پیام ارسال شد",
+    "message_failed": "ارسال پیام ناموفق بود",
+    "message_unavailable": "در دسترس نیست"
   },
   "customers_admin": {
     "new": "مشتری جدید",
@@ -5585,8 +5626,8 @@
   "rbac": {
     "user_id": "شناسه کاربر",
     "role": "نقش",
-    "assign_role": "تخصیص نقش",
-    "role_updated": "نقش به‌روزرسانی شد",
+    "assign_role": "اختصاص نقش",
+    "role_updated": "نقش به‌روز شد",
     "roles_heading": "نقش‌ها و دسترسی‌ها",
     "roles": {
       "admin": "مدیر",

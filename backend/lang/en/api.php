@@ -23,4 +23,10 @@ return [
     'dashboard_build_pipeline_disabled' => 'Dashboard build pipeline is disabled on this host.',
     'ticket_closed' => 'This ticket is closed.',
     'ticket_staff_replied' => 'Support replied to your ticket',
+    'user_message_default_subject' => 'Message from your store',
+    'user_message_no_phone' => 'This user has no phone number.',
+    'user_message_no_email' => 'This user has no email address.',
+    'user_message_no_bot' => 'This user has no linked bot chat.',
+    'user_message_bot_unconfigured' => 'Bot is not configured.',
+    'user_message_failed' => 'Failed to send the message.',
 ];

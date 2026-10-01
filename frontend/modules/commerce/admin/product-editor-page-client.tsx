@@ -412,6 +412,16 @@ function moveGalleryUrl(urls: string[], index: number, dir: -1 | 1): string[] {
   return copy
 }
 
+
+function moveAttrAssign(list: AttrAssign[], fromId: number, toId: number): AttrAssign[] {
+  const from = list.findIndex((a) => a.id === fromId)
+  const to = list.findIndex((a) => a.id === toId)
+  if (from < 0 || to < 0 || from === to) return list
+  const next = [...list]
+  const [row] = next.splice(from, 1)
+  next.splice(to, 0, row)
+  return next.map((a, i) => ({ ...a, position: i }))
+}
 function reorderAttrAssigns(list: AttrAssign[], id: number, dir: -1 | 1): AttrAssign[] {
   const sorted = [...list].sort((a, b) => a.position - b.position)
   const idx = sorted.findIndex((a) => a.id === id)
@@ -445,6 +455,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   const [tab, setTab] = useState<TabId>("content")
   const [form, setForm] = useState<FormState>(emptyForm)
   const [attrAssigns, setAttrAssigns] = useState<AttrAssign[]>([])
+  const [dragAttrId, setDragAttrId] = useState<number | null>(null)
   const [coffee, setCoffee] = useState<CoffeeProfile>({})
   const [variantName, setVariantName] = useState("")
   const [variantPrice, setVariantPrice] = useState(0)
@@ -1644,7 +1655,22 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     const row = attrAssigns.find((a) => a.id === attr.id)
                     const showSwatches = assigned && row && attr.type && SWATCH_TYPES.has(attr.type)
                     return (
-                      <div key={attr.id} className="rounded-lg border p-3 space-y-2">
+                      <div
+                        key={attr.id}
+                        className="rounded-lg border p-3 space-y-2"
+                        draggable={assigned}
+                        onDragStart={() => assigned && setDragAttrId(attr.id)}
+                        onDragOver={(e) => {
+                          if (!assigned || dragAttrId == null) return
+                          e.preventDefault()
+                        }}
+                        onDrop={() => {
+                          if (!assigned || dragAttrId == null) return
+                          setAttrAssigns((list) => moveAttrAssign(list, dragAttrId, attr.id))
+                          setDragAttrId(null)
+                        }}
+                        onDragEnd={() => setDragAttrId(null)}
+                      >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <label className="flex items-center gap-2 text-sm font-medium">
                             <Checkbox

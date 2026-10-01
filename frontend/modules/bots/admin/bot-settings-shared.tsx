@@ -23,7 +23,20 @@ type Settings = {
   has_token: boolean
   webhook_secret?: string
   webhook_url?: string
+  meta?: {
+    addons?: Record<string, boolean>
+  }
 }
+
+const ADDON_KEYS = [
+  "card_to_card",
+  "faq",
+  "tickets",
+  "loyalty",
+  "channel_publish",
+  "order_cascade",
+  "site_widget",
+] as const
 
 function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
   const t = useTranslations("bots")
@@ -35,6 +48,7 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
   const [saved, setSaved] = useState(false)
   const [chatId, setChatId] = useState("")
   const [testText, setTestText] = useState(() => t("settings.testTextDefault"))
+  const [addons, setAddons] = useState<Record<string, boolean>>({})
 
   const q = useQuery({
     queryKey: ["bots", provider, "settings"],
@@ -45,6 +59,7 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
     if (!q.data) return
     setEnabled(Boolean(q.data.enabled))
     setToken("")
+    setAddons({ ...(q.data.meta?.addons ?? {}) })
   }, [q.data])
 
   const save = useMutation({
@@ -54,6 +69,7 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
         json: {
           enabled,
           ...(token && !token.includes("•") ? { token } : {}),
+          meta: { ...(q.data?.meta ?? {}), addons },
         },
       }),
     onSuccess: async () => {
@@ -118,7 +134,25 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
           </CardContent>
         </Card>
 
+        
         <Card className="shadow-soft">
+          <CardHeader>
+            <CardTitle className="text-base">{t("addons.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-muted-foreground text-sm">{t("addons.hint")}</p>
+            {ADDON_KEYS.map((key) => (
+              <label key={key} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={Boolean(addons[key])}
+                  onCheckedChange={(v) => setAddons((prev) => ({ ...prev, [key]: Boolean(v) }))}
+                />
+                {t(`addons.${key}`)}
+              </label>
+            ))}
+          </CardContent>
+        </Card>
+<Card className="shadow-soft">
           <CardHeader>
             <CardTitle className="text-base">{t("settings.testSend")}</CardTitle>
           </CardHeader>

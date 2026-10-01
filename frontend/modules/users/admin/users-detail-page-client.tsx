@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { PageShell } from "@/components/PageShell"
+import { SendUserMessageButton } from "@/components/users/SendUserMessageDialog"
 import { QueryErrorState } from "@/components/QueryErrorState"
 import { ScrollTable } from "@/components/ScrollTable"
 import type { ResolvedAdminRoute } from "@/kernel/types"
@@ -487,6 +488,15 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
               </a>
             </Button>
           ) : null}
+          <SendUserMessageButton
+            user={{
+              id: user.id,
+              name: user.name,
+              phone: user.phone,
+              email: user.email,
+              bot_providers: (data?.bot_sessions ?? []).map((s) => s.provider),
+            }}
+          />
           {!user.phone && !user.email ? (
             <p className="text-muted-foreground text-sm">{tCommon("empty")}</p>
           ) : null}

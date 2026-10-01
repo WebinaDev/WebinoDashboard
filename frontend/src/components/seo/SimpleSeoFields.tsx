@@ -61,6 +61,50 @@ function SerpPreview({
   )
 }
 
+
+function SeoScoreChecklist({ seo }: { seo: SimpleSeo }) {
+  const t = useTranslations("ui")
+  const title = (seo.title ?? "").trim()
+  const desc = (seo.description ?? "").trim()
+  const kw = (seo.focus_keyword ?? "").trim().toLowerCase()
+  const checks = [
+    { id: "title", ok: title.length > 0 && title.length <= TITLE_MAX, label: t("seo_check_title") },
+    { id: "desc", ok: desc.length > 0 && desc.length <= DESCRIPTION_MAX, label: t("seo_check_description") },
+    { id: "kw", ok: kw.length > 0, label: t("seo_check_keyword") },
+    {
+      id: "kw_title",
+      ok: kw.length > 0 && title.toLowerCase().includes(kw),
+      label: t("seo_check_keyword_in_title"),
+    },
+    {
+      id: "kw_desc",
+      ok: kw.length > 0 && desc.toLowerCase().includes(kw),
+      label: t("seo_check_keyword_in_description"),
+    },
+    { id: "og", ok: Boolean((seo.og_title ?? "").trim() || (seo.og_image ?? "").trim()), label: t("seo_check_og") },
+    { id: "schema", ok: Boolean((seo.schema_type ?? "").trim()), label: t("seo_check_schema") },
+  ]
+  const passed = checks.filter((c) => c.ok).length
+  const score = Math.round((passed / checks.length) * 100)
+  return (
+    <div className="space-y-2 rounded-lg border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium">{t("seo_score")}</p>
+        <span className={cn("text-sm font-semibold tabular-nums", score >= 70 ? "text-green-700" : score >= 40 ? "text-amber-700" : "text-destructive")}>
+          {score}
+        </span>
+      </div>
+      <ul className="space-y-1">
+        {checks.map((c) => (
+          <li key={c.id} className={cn("text-xs", c.ok ? "text-green-700" : "text-muted-foreground")}>
+            {c.ok ? "✓" : "○"} {c.label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 /** Shared SEO box for post, page and product editors. */
 export function SimpleSeoFields({
   seo,
@@ -90,6 +134,7 @@ export function SimpleSeoFields({
       <p className="text-sm font-semibold">{t("seo_panel")}</p>
 
       <SerpPreview title={serpTitle} description={serpDesc} url={previewUrl ?? ""} siteName={siteName} />
+      <SeoScoreChecklist seo={value} />
 
       <div className="space-y-1">
         <Label htmlFor={`${id}-kw`}>{t("seo_focus_keyword")}</Label>

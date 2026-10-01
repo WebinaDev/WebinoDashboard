@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
-import { KeyRound, Pencil, Plus, Search, Trash2, UserCog } from "lucide-react"
+import { KeyRound, MessageSquare, Pencil, Plus, Search, Trash2, UserCog } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
@@ -27,6 +27,7 @@ import { dashboardPath } from "@/kernel/paths"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useEnumLabel } from "@/lib/enum-labels"
+import { SendUserMessageDialog, type SendMessageUser } from "@/components/users/SendUserMessageDialog"
 
 type UserRow = {
   id: number
@@ -122,6 +123,7 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
   const [createForm, setCreateForm] = useState(emptyCreate)
   const [bulkRole, setBulkRole] = useState("customer")
   const [roleDialogUser, setRoleDialogUser] = useState<UserRow | null>(null)
+  const [messageUser, setMessageUser] = useState<SendMessageUser | null>(null)
   const [roleValue, setRoleValue] = useState("customer")
   const [resetUser, setResetUser] = useState<UserRow | null>(null)
   const [resetPassword, setResetPassword] = useState("")
@@ -413,6 +415,14 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
                           </Link>
                         </Button>
                         <Button
+                            size="icon"
+                            variant="outline"
+                            title={t("message_title")}
+                            onClick={() => setMessageUser(row)}
+                          >
+                            <MessageSquare className="size-4" />
+                          </Button>
+                          <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => {
@@ -465,6 +475,13 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
                 <MobileListField label={t("col_email")}>{row.email || tCommon("em_dash")}</MobileListField>
                 <div className="mt-2 flex justify-end gap-1">
                   <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setMessageUser(row)}
+                    >
+                      {t("message_action")}
+                    </Button>
+                    <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => {
@@ -595,6 +612,13 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
           </div>
         </div>
       ) : null}
+      <SendUserMessageDialog
+        user={messageUser}
+        open={Boolean(messageUser)}
+        onOpenChange={(o) => {
+          if (!o) setMessageUser(null)
+        }}
+      />
       {confirmDialog}
     </PageShell>
   )

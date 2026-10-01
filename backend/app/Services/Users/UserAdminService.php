@@ -3,10 +3,16 @@
 namespace App\Services\Users;
 
 use App\Models\BotSession;
+use App\Models\Tenant;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductReview;
 use App\Models\User;
+use App\Services\Bots\BotClientFactory;
+use App\Services\Notifications\TenantMailer;
+use App\Services\Sms\ModirPayamakClient;
+use App\Services\Auth\OtpSettings;
+use App\Services\Modules\ModuleSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -431,4 +437,73 @@ class UserAdminService
             'created_at' => $user->created_at,
         ];
     }
+    /**
+     * @return array{ok: bool, channel: string, message?: string}
+     */
+    public function sendMessage(Request $request, int $userId): array
+    {
+        $tid = (int) $request->user()->tenant_id;
+        $user = User::query()->where('tenant_id', $tid)->whereKey($userId)->firstOrFail();
+        $data = $request->validate([
+            'channel' => ['required', 'string', 'in:sms,email,bale,telegram'],
+            'subject' => ['nullable', 'string', 'max:200'],
+            'body' => ['required', 'string', 'max:4000'],
+        ]);
+        $channel = $data['channel'];
+        $body = trim((string) $data['body']);
+        $subject = trim((string) ($data['subject'] ?? '')) ?: (string) __('api.user_message_default_subject');
+
+        if ($channel === 'sms') {
+            $phone = trim((string) ($user->phone ?? ''));
+            if ($phone === '') {
+                return ['ok' => false, 'channel' => $channel, 'message' => __('api.user_message_no_phone')];
+            }
+            $tenant = Tenant::query()->find($tid);
+            if (! $tenant) {
+                return ['ok' => false, 'channel' => $channel, 'message' => __('api.user_message_failed')];
+            }
+            $from = (string) (OtpSettings::forTenant($tid, app(ModuleSettingsService::class))['sender_line_service'] ?? '');
+            $payload = ['message' => $body, 'recipients' => [$phone]];
+            if ($from !== '') {
+                $payload['from_number'] = $from;
+            }
+            $result = app(ModirPayamakClient::class)->post($tenant, 'send', $payload);
+            $dataPayload = is_array($result['data'] ?? null) ? $result['data'] : [];
+            $ok = ! empty($result['ok']) && empty($dataPayload['unavailable']);
+
+            return ['ok' => $ok, 'channel' => $channel, 'message' => $ok ? null : (__('api.user_message_failed'))];
+        }
+
+        if ($channel === 'email') {
+            $email = trim((string) ($user->email ?? ''));
+            if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return ['ok' => false, 'channel' => $channel, 'message' => __('api.user_message_no_email')];
+            }
+            $ok = app(TenantMailer::class)->send($tid, $email, $subject, $body);
+
+            return ['ok' => $ok, 'channel' => $channel, 'message' => $ok ? null : __('api.user_message_failed')];
+        }
+
+        // bale / telegram
+        $chatId = (string) (BotSession::query()
+            ->where('tenant_id', $tid)
+            ->where('provider', $channel)
+            ->where('user_id', $user->id)
+            ->whereNotNull('chat_id')
+            ->orderByDesc('last_seen_at')
+            ->value('chat_id') ?? '');
+        if ($chatId === '') {
+            return ['ok' => false, 'channel' => $channel, 'message' => __('api.user_message_no_bot')];
+        }
+        $client = BotClientFactory::forTenant($tid, $channel);
+        if (! $client) {
+            return ['ok' => false, 'channel' => $channel, 'message' => __('api.user_message_bot_unconfigured')];
+        }
+        $res = $client->sendMessage($chatId, 'text', $body);
+        $ok = ! empty($res['ok']);
+        BotClientFactory::log($tid, $channel, $chatId, 'text', $body, $ok ? 'sent' : 'failed');
+
+        return ['ok' => $ok, 'channel' => $channel, 'message' => $ok ? null : __('api.user_message_failed')];
+    }
+
 }

@@ -23,5 +23,10 @@ return [
     'dashboard_build_pipeline_disabled' => 'خط لولهٔ ساخت داشبورد روی این سرور غیرفعال است.',
     'ticket_closed' => 'این تیکت بسته شده است.',
     'ticket_staff_replied' => 'پشتیبانی به تیکت شما پاسخ داد',
+    'user_message_default_subject' => 'پیام از فروشگاه شما',
+    'user_message_no_phone' => 'این کاربر شماره تلفن ندارد.',
+    'user_message_no_email' => 'این کاربر ایمیل ندارد.',
+    'user_message_no_bot' => 'این کاربر به ربات متصل نیست.',
+    'user_message_bot_unconfigured' => 'ربات پیکربندی نشده است.',
+    'user_message_failed' => 'ارسال پیام ناموفق بود.',
 ];
-

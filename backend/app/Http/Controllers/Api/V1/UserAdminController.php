@@ -56,4 +56,11 @@ class UserAdminController extends Controller
 
         return response()->json(['data' => $updated]);
     }
+
+    public function sendMessage(Request $request, int $user): \Illuminate\Http\JsonResponse
+    {
+        $result = $this->users->sendMessage($request, $user);
+
+        return response()->json(['data' => $result], ! empty($result['ok']) ? 200 : 422);
+    }
 }

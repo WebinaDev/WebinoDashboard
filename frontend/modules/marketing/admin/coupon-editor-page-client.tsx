@@ -32,6 +32,9 @@ type Coupon = {
   usage_limit_per_user?: number | null
   expires_at?: string | null
   status?: string
+  visibility?: string
+  password?: string | null
+  scheduled_at?: string | null
   description?: string | null
   condition_type?: string | null
   condition_value?: number | null
@@ -68,6 +71,9 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
   const [amount, setAmount] = useState(10)
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("publish")
+  const [visibility, setVisibility] = useState("public")
+  const [password, setPassword] = useState("")
+  const [scheduledAt, setScheduledAt] = useState("")
   const [freeShipping, setFreeShipping] = useState(false)
   const [individualUse, setIndividualUse] = useState(false)
   const [excludeSale, setExcludeSale] = useState(false)
@@ -104,6 +110,9 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
     setAmount(c.amount)
     setDescription(c.description || "")
     setStatus(c.status || "publish")
+    setVisibility(c.visibility || "public")
+    setPassword(c.password || "")
+    setScheduledAt(c.scheduled_at ? c.scheduled_at.slice(0, 16) : "")
     setFreeShipping(Boolean(c.free_shipping))
     setIndividualUse(Boolean(c.individual_use))
     setExcludeSale(Boolean(c.exclude_sale))
@@ -132,6 +141,9 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
       amount,
       description,
       status,
+      visibility,
+      password: visibility === "password" ? password || null : null,
+      scheduled_at: scheduledAt || null,
       free_shipping: freeShipping,
       individual_use: individualUse,
       exclude_sale: excludeSale,
@@ -284,7 +296,16 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
               <CardTitle className="text-base">{t("panels.publish")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <CouponPublishPanel status={status} setStatus={setStatus} />
+              <CouponPublishPanel
+                status={status}
+                setStatus={setStatus}
+                visibility={visibility}
+                setVisibility={setVisibility}
+                password={password}
+                setPassword={setPassword}
+                scheduledAt={scheduledAt}
+                setScheduledAt={setScheduledAt}
+              />
               <Button className="w-full" disabled={save.isPending || !code} onClick={() => save.mutate()}>
                 {tCommon("save")}
               </Button>

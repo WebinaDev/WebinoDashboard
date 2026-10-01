@@ -789,6 +789,7 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/users/{user}', [UserAdminController::class, 'update'])->whereNumber('user');
                 Route::delete('/users/{user}', [UserAdminController::class, 'destroy'])->whereNumber('user');
                 Route::post('/users/{user}/reset-password', [UserAdminController::class, 'resetPassword'])->whereNumber('user');
+                Route::post('/users/{user}/send-message', [UserAdminController::class, 'sendMessage'])->whereNumber('user');
 
                 Route::get('/customers', [CustomerController::class, 'index']);
                 Route::post('/customers', [CustomerController::class, 'store']);

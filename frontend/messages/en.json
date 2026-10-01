@@ -2898,7 +2898,10 @@
       "product_ids": "Product IDs",
       "category_ids": "Category IDs",
       "brand_ids": "Brand IDs",
-      "emails": "Emails"
+      "emails": "Emails",
+      "visibility": "Visibility",
+      "password": "Password",
+      "scheduled_at": "Schedule publish"
     },
     "addCoupon": "New coupon",
     "filters": "Filters",
@@ -2947,6 +2950,11 @@
       "searchUsers": "Search name, email or phone…",
       "empty": "Nothing found",
       "remove": "Remove"
+    },
+    "visibility": {
+      "public": "Public",
+      "private": "Private",
+      "password": "Password protected"
     }
   },
   "coupon_builder": {
@@ -3084,6 +3092,17 @@
       "colStatus": "Status",
       "colExpires": "Expires",
       "noExpiry": "No expiry"
+    },
+    "addons": {
+      "title": "Bot add-ons",
+      "hint": "Toggle optional bot capabilities.",
+      "card_to_card": "Card-to-card",
+      "faq": "FAQ",
+      "tickets": "Support tickets",
+      "loyalty": "Loyalty club",
+      "channel_publish": "Channel publish",
+      "order_cascade": "Order cascade notify",
+      "site_widget": "Site widget"
     }
   },
   "marketplace_admin": {
@@ -5290,7 +5309,15 @@
     "media_empty": "No images found.",
     "media_close": "Close",
     "media_upload_hint": "To add a new image, open the media library.",
-    "media_open_library": "Media library"
+    "media_open_library": "Media library",
+    "seo_score": "SEO score",
+    "seo_check_title": "SEO title within length",
+    "seo_check_description": "Meta description within length",
+    "seo_check_keyword": "Focus keyword set",
+    "seo_check_keyword_in_title": "Keyword in title",
+    "seo_check_keyword_in_description": "Keyword in description",
+    "seo_check_og": "Open Graph fields",
+    "seo_check_schema": "Schema type"
   },
   "enums": {
     "order_status": {
@@ -5544,7 +5571,21 @@
     "notes_subject_ph": "Optional",
     "notes_body": "Note",
     "notes_body_ph": "New note…",
-    "notes_erp_unavailable": "ERP sync unavailable"
+    "notes_erp_unavailable": "ERP sync unavailable",
+    "message_title": "Send message",
+    "message_action": "Message",
+    "message_channel": "Channel",
+    "message_channel_sms": "SMS",
+    "message_channel_email": "Email",
+    "message_channel_bale": "Bale",
+    "message_channel_telegram": "Telegram",
+    "message_subject": "Subject",
+    "message_body": "Message",
+    "message_body_ph": "Write your message…",
+    "message_send": "Send",
+    "message_sent": "Message sent",
+    "message_failed": "Failed to send message",
+    "message_unavailable": "unavailable"
   },
   "customers_admin": {
     "new": "New customer",
