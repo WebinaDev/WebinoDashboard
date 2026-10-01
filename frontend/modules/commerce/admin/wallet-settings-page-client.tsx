@@ -37,7 +37,7 @@ type CustomerHit = {
 const selectClass =
   "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
-export default function WalletSettingsPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function WalletSettingsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("wallet_admin")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
@@ -73,7 +73,7 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
     setOrderButtonText(data.order_button_text || "")
     setLoginPrompt(data.login_prompt || "")
     setBalanceLabel(data.balance_label || "")
-    setMinTopup(data.min_topup_minor ?? 10000)
+    setMinTopup(data.min_topup_minor ?? 1000)
     setMinWithdraw(data.min_withdraw_minor ?? 50000)
   }, [data])
 
@@ -142,7 +142,7 @@ export default function WalletSettingsPageClient({ route }: { route: ResolvedAdm
   }
 
   return (
-    <PageShell title={t("settings_title")} description={route.fullPath}>
+    <PageShell title={t("settings_title")}>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {saved ? <p className="text-sm text-green-700 dark:text-green-400">{t("saved")}</p> : null}
 

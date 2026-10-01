@@ -24,7 +24,7 @@ type C2cSettings = {
   cards?: unknown
 }
 
-export default function C2cSettingsPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function C2cSettingsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("c2c_admin")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
@@ -33,7 +33,7 @@ export default function C2cSettingsPageClient({ route }: { route: ResolvedAdminR
   const [title, setTitle] = useState("")
   const [instructions, setInstructions] = useState("")
   const [iban, setIban] = useState("")
-  const [deadlineHours, setDeadlineHours] = useState(24)
+  const [deadlineHours, setDeadlineHours] = useState(2)
   const [cardsJson, setCardsJson] = useState("[]")
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -49,7 +49,7 @@ export default function C2cSettingsPageClient({ route }: { route: ResolvedAdminR
     setTitle(data.title || "")
     setInstructions(data.instructions || "")
     setIban(data.iban || "")
-    setDeadlineHours(data.deadline_hours ?? 24)
+    setDeadlineHours(data.deadline_hours ?? 2)
     setCardsJson(JSON.stringify(data.cards ?? [], null, 2))
   }, [data])
 
@@ -87,7 +87,7 @@ export default function C2cSettingsPageClient({ route }: { route: ResolvedAdminR
   })
 
   return (
-    <PageShell title={t("settings_title")} description={route.fullPath}>
+    <PageShell title={t("settings_title")}>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {saved ? <p className="text-sm text-green-700 dark:text-green-400">{t("saved")}</p> : null}
 

@@ -441,7 +441,7 @@ class ProductController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'discount_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
             'meta' => ['nullable', 'array'],
-            'status' => ['nullable', 'string', 'in:publish,draft,pending,private'],
+            'status' => ['nullable', 'string', 'in:publish,draft,trash,pending,private'],
             'backorders' => ['nullable', 'string', 'in:no,notify,yes'],
             'type' => ['nullable', 'string', 'in:simple,variable,downloadable,grouped,external'],
             'catalog_visibility' => ['nullable', 'string', 'in:visible,catalog,search,hidden'],

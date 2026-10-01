@@ -426,7 +426,7 @@ class PaymentGatewaySettingsService
                 'login_prompt' => '',
                 'balance_label' => '',
                 'icon_url' => '',
-                'min_topup' => 10000,
+                'min_topup' => 1000,
             ]);
             $row = WalletSetting::query()->firstOrCreate(
                 ['tenant_id' => $tenantId],

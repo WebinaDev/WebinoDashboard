@@ -22,8 +22,8 @@ class WalletService
             'login_prompt' => '',
             'balance_label' => '',
             'icon_url' => '',
-            'min_topup_minor' => 10000,
-            'min_topup' => 10000,
+            'min_topup_minor' => 1000,
+            'min_topup' => 1000,
             'min_withdraw_minor' => 50000,
         ];
     }
