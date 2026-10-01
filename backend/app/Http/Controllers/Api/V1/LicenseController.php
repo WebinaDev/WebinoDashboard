@@ -152,16 +152,13 @@ class LicenseController extends Controller
     /** @return array<string, mixed> */
     private function payload(Tenant $tenant): array
     {
-        $status = (string) ($tenant->license_status ?? '');
-        if ($status === 'valid') {
-            $status = 'active';
-        }
-        $active = in_array($status, ['valid', 'active', 'demo'], true);
-        $demo = $status === 'demo';
+        $status = $tenant->normalizedLicenseStatus();
+        $active = $tenant->isLicenseEntitled();
+        $demo = $tenant->isLicenseDemo();
         $expired = $status === 'expired';
 
         return [
-            'status' => $status !== '' ? $status : 'unknown',
+            'status' => $status,
             'active' => $active,
             'demo' => $demo,
             'expired' => $expired,

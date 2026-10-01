@@ -293,7 +293,8 @@ final class DashboardOverviewBuilder
     private function panelsSection(User $user, int $tid, bool $shopActive, bool $analyticsActive): array
     {
         $tenant = $user->tenant ?? Tenant::query()->find($tid);
-        $licenseActive = ($tenant?->license_status ?? '') === 'valid';
+        $licenseActive = $tenant ? $tenant->isLicenseEntitled() : false;
+        $licenseStatus = $tenant ? $tenant->normalizedLicenseStatus() : 'unknown';
         $online = 0;
         if ($analyticsActive) {
             try {
@@ -306,8 +307,8 @@ final class DashboardOverviewBuilder
         $panels = [
             'license' => [
                 'active' => $licenseActive,
-                'demo' => ! $licenseActive,
-                'status' => $licenseActive ? 'valid' : '',
+                'demo' => $tenant ? $tenant->isLicenseDemo() : false,
+                'status' => $licenseStatus,
             ],
             'woocommerce' => [
                 'active' => $shopActive,

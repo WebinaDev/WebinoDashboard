@@ -29,8 +29,9 @@ class BootstrapController extends Controller
             ])
             : [];
 
-        $licenseStatus = (string) ($tenant?->license_status ?? '');
-        $licenseActive = $licenseStatus === 'valid';
+        $licenseStatus = $tenant ? $tenant->normalizedLicenseStatus() : 'unknown';
+        $licenseActive = $tenant ? $tenant->isLicenseEntitled() : false;
+        $licenseDemo = $tenant ? $tenant->isLicenseDemo() : false;
 
         return response()->json([
             'data' => [
@@ -53,9 +54,9 @@ class BootstrapController extends Controller
                     'setup_completed' => (bool) $tenant->setup_completed,
                 ] : null,
                 'license' => [
-                    'status' => $licenseStatus !== '' ? $licenseStatus : 'unknown',
+                    'status' => $licenseStatus,
                     'active' => $licenseActive,
-                    'demo' => ! $licenseActive,
+                    'demo' => $licenseDemo,
                     'checked_at' => $tenant?->license_checked_at?->toIso8601String(),
                     'unreachable' => (bool) ($tenant?->license_unreachable),
                 ],

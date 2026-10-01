@@ -103,6 +103,14 @@
 - ترب: یادداشت منسوخ‌بودن extractor قدیمی WP و ارجاع به ابزارهای کانکتور موجود
 - ممیزی: بستن چک‌باکس‌های قبلاً پیاده‌شده ولی علامت‌نخورده (دسته/برند SEO، تنوع، WFCP، حراجی، گزارش KPI/MoneyDisplay، مجله/بلاگ SEO، PWA، …)
 
+
+## پاس بستن چک‌باکس‌های باز فاز ۱–۹ (۱ اکتبر ۲۰۲۶ / Asia/Tehran)
+
+- لایسنس: باگ `=== 'valid'` در Bootstrap/Overview در برابر وضعیت ERP `active|demo|…` اصلاح شد (`Tenant::isLicenseEntitled`).
+- موجودی گزارش: ستون‌های قیمت مارکت‌پلیس از `price_keys`.
+- آنالیتیکس: نگاشت نقش WP `administrator` → `admin`.
+- بقیهٔ `[ ]`های فاز ۱–۹ که در کد از قبل حل شده بودند علامت `[x]` خوردند؛ فقط migrate ERP همچنان env-blocked است.
+
 # فاز ۰ — باگ‌های بحرانی و امنیتی
 
 > این فاز کوچک است و باید اول انجام شود.
@@ -377,7 +385,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - [x] endpointهای `auth/send-otp` و `auth/verify-otp`
 - [x] UI لاگین دوحالته (رمز / OTP) در `login-form.tsx`
 - [x] یکسان‌سازی پیش‌فرض تلاش‌ها روی ۵ (throttle + تنظیمات)
-- [ ] کارت لاگین `md:max-w-4xl` با تصویر مثل WP **(؟)**
+- [x] کارت لاگین `md:max-w-4xl` با تصویر مثل WP — `login-form.tsx` (`md:max-w-4xl` + `Image`)
 
 
 
@@ -413,7 +421,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - [x] صفحهٔ `/license`
 - [x] `LicenseGate` + `LicenseSoftBanner` (`NAG_FORCE_DAYS = 2`)
 - [x] بنر عدم دسترسی / soft nag لایسنس
-- [ ] `اشتباه`: تشخیص فعلی لایسنس در `DashboardOverviewBuilder` فقط «کلید خالی نیست» است — باید وضعیت واقعی از ERP بیاید (فاز ۱۱)
+- [x] تشخیص لایسنس از `tenant.license_status` ERP (`active|demo|expired|invalid`؛ legacy `valid`) via `Tenant::isLicenseEntitled()` در Overview + Bootstrap + LicenseController؛ UI: `LicenseGate`/`LicenseSoftBanner`
 
 
 
@@ -443,13 +451,13 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - **وضعیت:** `ندارد`
 - `class-webino-dashboard-core-updater.php`, `class-webino-dashboard-build-pipeline.php` + worker + پنل‌های UI.
 
-- [ ] یا معادل مبتنی بر ERP، یا مستندسازی رسمی مسیر جایگزین deploy
+- [x] معادل UI/API: `CoreUpdateController` + `DashboardSiteSettingsPanel` (`/api/v1/updates/*`) + build pipeline؛ مسیر deploy رسمی: `docs/DEPLOY_AAPANEL.md` / `docs/DEPLOY_MULTI_CLIENT.md` و `scripts/update.sh` (self-update وقتی host `self_update_enabled`)
 
 
 
 ## ۲.۱۰ صفحهٔ ۴۰۴ و بارگذاری
 
-- [ ] `app/not-found.tsx` — راستی‌آزمایی i18n هنوز لازم است
+- [x] `app/not-found.tsx` — `useTranslations("common")` (`not_found_title` / `page_not_found` / `back_to_home`)
 - [x] `RouteErrorBoundary` موجود؛ اتصال per-route جزئی
 
 ---
@@ -518,7 +526,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - [x] هدایت پرتال بر اساس capability (`account.portal` / `partner.portal`) در `PermissionGate`/`render-pages`
 - [x] `initialData` از SSR
 - [x] کلاس `wd-home-hero` در پیشخوان هست
-- [ ] `محتوا/ترجمه` — دکمهٔ تلاش مجدد خطای overview از کلید `home.sms.retry` استفاده می‌کند
+- [x] `محتوا/ترجمه` — overview error از `home.overview.retry`؛ کارت SMS جداگانه `home.sms.retry`
 - [x] `HomeProfitChart` / breakdown lazy
 - [x] `باگ فنی` — `frontend/src/views/CommerceReportsPage.tsx` یک صفحهٔ قدیمی موازی است؛ حذف یا redirect
 
@@ -616,7 +624,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 - [x] `ناقص` — WP: افزودن خودکار با بارکد، تنوع‌ها، کانال‌های کامل، تخفیف/هزینهٔ ارسال، چاپ. TARGET: کانال فقط `in_store/phone/other` و بدون بارکد/تنوع/تخفیف
 - [x] `ناقص` — لینک پرداخت: WP آدرس کامل، استعلام ارسال، نوع خرید، `allowBothTypes`، تخفیف، انتخاب درگاه‌ها
-- [ ] `ناقص` — صفحهٔ عمومی پرداخت سفارش (`class-webino-dashboard-pay-order.php`) شامل فیلتر درگاه **(؟)**
+- [x] فیلتر درگاه روی پرداخت عمومی: `PublicOrderPaymentController` + `meta.allowed_gateways` / `PurchaseTypeService` (و Checkout UI)
 
 
 
@@ -625,7 +633,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - [x] `ناقص` — فیلدهای متنی درگاه کیف پول (عنوان، توضیح، متن دکمه، پیام ورود، برچسب موجودی، آیکن)
 - [x] `قانون متفاوت` — `min_topup`: WP پیش‌فرض ۱۰۰۰، TARGET `min_topup_minor` ۱۰۰۰۰
 - [x] `قانون متفاوت` — مهلت کارت‌به‌کارت: WP ۲ ساعت، TARGET ۲۴ ساعت
-- [ ] `ناقص` — تأیید/رد رسید بدون اعلان به مشتری
+- [x] تأیید/رد C2C وضعیت سفارش را به `paid`/`failed` می‌برد → `OrderStatusObserver` + `OrderStatusNotifier` اعلان مشتری را می‌فرستد
 
 
 
@@ -649,7 +657,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - [x] `ناقص` — دادهٔ استان/شهر ایران (`shipping-module/data/state_city.php`) برای فیلتر سفارش و checkout
 - [x] `ناقص` — schema آدرس: WP استان، پلاک، واحد، کد پستی ۱۰ رقمی، مختصات؛ TARGET ساده‌تر و بدون `province_code`
 - [x] `ندارد` — نگاشت وضعیت Tapin به وضعیت سفارش
-- [ ] توجه: `class-webino-dashboard-checkout-geo.php` برخلاف نامش **اعلان VPN/خارج از ایران** است نه استان/شهر؛ معادلش در TARGET `geo_notice` است (فاز ۱۰.۲)
+- [x] توجه مستند: checkout-geo WP = اعلان VPN؛ معادل TARGET `geo_notice` در PaymentHub + BrandStyle (فاز ۱۰.۲)
 
 
 
@@ -693,7 +701,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 **ساختار**
 
-- [ ] `قانون متفاوت` — WP تب `seo` جدا دارد؛ TARGET SEO را داخل content گذاشته
+- [x] تب `seo` جدا در ادیتور محصول (`TabId` شامل `seo` + `SimpleSeoFields`)
 - [x] `ناقص` — ذخیرهٔ خودکار قیمت خرید روی blur (WP `handlePurchaseBlur` → PATCH wfcp)
 - [x] `ناقص` — قوانین slug انگلیسی (`class-webino-dashboard-product-slugs.php`)
 - [x] `ناقص` — permalink باید از API بیاید نه `base + slug`
@@ -959,7 +967,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 - [x] کلید فروشنده حذف/جایگزین شد (`sms.pattern_code_col`)
 - [x] ستون پترن با برچسب «کد پترن» (فیلد داده ممکن است هنوز `ippanel_code` از ERP باشد)
-- [ ] بررسی اینکه همهٔ صفحات پیامک از `SmsServiceBanner` استفاده می‌کنند تا پیام خام ERP/SQL به UI نرسد
+- [x] sweep: همهٔ `sms-*-page-client` + `SmsSettingsPanel` از `SmsServiceBanner`/`isSmsUnavailable`؛ payment-callback فقط پیام i18n موفق/ناموفق نشان می‌دهد (بدون raw ERP)
 
 
 
@@ -972,7 +980,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - [x] `ندارد` — باشگاه وفاداری (امتیاز، معرفی، تبدیل به کوپن، خوشامد، یادآوری غیرفعال‌ها، فیلدهای checkout)
 - [x] `ندارد` — پنل کوپن‌های ربات و پنل لاگ‌ها
 - [x] `ندارد` — اعلان آبشاری سفارش، ویجت سایت، قالب‌ها، بخش‌بندی
-- [ ] `ناقص` — کمپین‌ها در برابر نسخهٔ WP **(؟)**
+- [x] `BotCampaignsPanel` (لیست/ایجاد/زمان‌بندی/وضعیت با `enumLabel`) — عمق پایه هم‌تراز؛ افزونه‌های عمیق‌تر قبلاً در ۷.۴ بسته شد
 
 
 
@@ -996,7 +1004,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - [x] SMTP per-tenant + `Mailer` runtime
 - [x] متغیرهای قالب
 - [x] `ناقص` — `NotificationBell`: پورت `toNotificationNavPath` (فرمت مبلغ `NotificationText` در صورت نیاز هنوز باز)
-- [ ] اصلاح لینک تنظیمات (فاز ۰.۳)
+- [x] لینک تنظیمات اعلان → `settings/site/notifications` (فاز ۰.۳)
 
 
 
@@ -1024,7 +1032,7 @@ WP `components/magazine/RichTextEditor.tsx` حدود ۵۵۰ خط؛ TARGET `compo
 - [x] انتخاب تصویر از کتابخانهٔ رسانه داخل ویرایشگر
 - [x] شمارندهٔ کلمه/کاراکتر
 - [x] پشتیبانی جهت متن (RTL)
-- [ ] `محتوا/ترجمه` — برچسب‌های `bold/italic/underline/h2/ul/ol` انگلیسی hardcode
+- [x] `محتوا/ترجمه` — RichText از کلیدهای `editor.*` / `richText` (`t('bold')` و…)
 
 
 
@@ -1034,9 +1042,9 @@ WP `components/magazine/RichTextEditor.tsx` حدود ۵۵۰ خط؛ TARGET `compo
 - [x] `ناقص` — آمار `pending` (API می‌دهد، UI نشان نمی‌دهد)
 - [x] `ناقص` — صفحه‌بندی (الان `per_page=100` یک‌باره)
 - [x] `ندارد` — کارت موبایل
-- [ ] `ناقص` — وضعیت خام انگلیسی و تاریخ ISO خام
+- [x] وضعیت با `enumLabel("post_status")` + تاریخ با `formatDisplayDate`
 - [x] `ناقص` — اکشن‌های ردیف: ویرایش، مشاهده در سایت، تأیید حذف
-- [ ] `محتوا/ترجمه` — پس از حذف پیام «ذخیره شد» می‌آید
+- [x] حذف → `t("deleted")`؛ ذخیرهٔ سریع → `tCommon("saved")`
 - [x] `ندارد` — CTA در حالت خالی
 - [x] `ناقص` — **پنل انتشار کامل**: دیده‌شدن (عمومی/خصوصی/رمزدار)، رمز، `comment_status`، زمان‌بندی. توجه: `CmsController` این فیلدها را **اعتبارسنجی می‌کند** ولی UI هرگز نمی‌فرستد
 - [x] `ناقص` — حذف تصویر شاخص
@@ -1061,8 +1069,8 @@ WP `components/magazine/RichTextEditor.tsx` حدود ۵۵۰ خط؛ TARGET `compo
 - [x] مسیر ادمین `blog/categories`
 - [x] `ناقص` — SEO، وضعیت pending، دیده‌شدن، دیدگاه‌ها، زمان‌بندی، دستهٔ چندتایی (الان تک‌انتخاب)، AI
 - [x] `باگ فنی` — تصویر کاور فقط `cover_url` ذخیره می‌کند نه شناسهٔ رسانه؛ با تغییر/حذف فایل لینک می‌شکند
-- [ ] `باگ فنی` — لینک `view_on_site` به `/blog/${slug}` ثابت؛ با prefix زبان/مسیر واقعی سایت بررسی شود **(؟)**
-- [ ] `محتوا/ترجمه` — عنوان از `site_admin.blog_title` و زیرعنوان از `content_admin`؛ یکدست شود
+- [x] `blogPostPermalink` از manifest مسیر سایت (`blog/:slug`)؛ پیشوند locale در app سایت نیست (`(site)` بدون `[locale]`)؛ API `permalink` در اولویت
+- [x] یکدست: `content_admin.blog_posts_title` / `blog_posts_subtitle`
 
 
 
@@ -1092,8 +1100,8 @@ WP `components/magazine/RichTextEditor.tsx` حدود ۵۵۰ خط؛ TARGET `compo
 ## ۸.۷ محتوای AI
 
 - [x] `ناقص` — `AiGenerateButton` فقط در محصول است؛ روی نوشته/برگه/بلاگ نیست
-- [ ] `ناقص` — `AiPagesPanel` فقط `pageId` دستی می‌گیرد؛ WP فهرست صفحات + prompt هر صفحه + لینک ادیتور دارد
-- [ ] `محتوا/ترجمه` — وضعیت job (`pending`/`running`/…) و placeholderهای `"1,2,3"`, `"attr ids"` انگلیسی
+- [x] `AiPagesPanel`: فهرست CMS pages + textarea prompt + لینک ادیتور
+- [x] `enumLabel("job_status")` + `productIdsPlaceholder` / `attrIdsPlaceholder` در fa/en
 
 
 
@@ -1127,7 +1135,7 @@ WP برای هر بخش پنل اختصاصی دارد؛ TARGET یک پنل جن
 - [x] `ناقص` — سفارش‌ها: نقشهٔ حرارتی روز×ساعت، نمودار دایره‌ای وضعیت، نمودار منبع، نمودار ساعتی (دادهٔ `heatmap` و `by_source` در بک‌اند **هست** ولی UI ندارد)
 - [x] `ناقص` — محصولات/تنوع‌ها/دسته‌ها/کوپن‌ها/مالیات/مشتریان/دانلودها: ستون‌های اختصاصی و صفحه‌بندی به‌جای جدول ۴ستونی
 - [x] `ناقص` + `محتوا/ترجمه` — موجودی: KPIهای انگلیسی hardcode (`Name`, `SKU`, `Low stock`, `all`) + فیلترهای WP (جستجو، دسته، مرتب‌سازی)
-- [ ] `ناقص` — فروش و سود / گزارش مالی: عمق WP
+- [x] `SalesPanel` (KPI + Profit/PriceTier + جدول حاشیه) و `FinancialPanel` (~۵۰۰ خط: summary/gateways/utm/orders + Basalam)
 - [x] `ناقص` — `MoneyDisplay` در کل گزارش‌ها
 
 
@@ -1135,7 +1143,7 @@ WP برای هر بخش پنل اختصاصی دارد؛ TARGET یک پنل جن
 ## ۹.۳ بک‌اند گزارش
 
 - [x] `OrderReports::salesStatuses()` = همهٔ وضعیت‌ها منهای exclude (شامل حمل)؛ فراخوانی‌های Broadcast/Torob هم هم‌تراز شدند
-- [ ] `ناقص` — گزارش موجودی: کلیدهای قیمت بازارچه و WFCP کم‌عمق‌ترند
+- [x] بک‌اند `price_keys` شامل WFCP + `MarketplacePlatforms::slugs()`؛ UI ستون‌های مارکت‌پلیس را از `price_keys` رندر می‌کند
 - [x] `ناقص` — نام پارامتر: WP `stock_filter` در برابر TARGET `filter` **(؟)**
 - [x] تست `OrderReportsTest` (و Unit برای shipping statuses) موجود است — پوشش DashboardOverview جزئی
 
@@ -1144,9 +1152,9 @@ WP برای هر بخش پنل اختصاصی دارد؛ TARGET یک پنل جن
 ## ۹.۴ آنالیتیکس
 
 - [x] `ندارد` — فیلتر دوره کامل (این ماه/ماه گذشته/دلخواه با انتخابگر تاریخ)
-- [ ] `ناقص` — عمق هر بخش: مرور کلی (KPI + نمودار بازدیدکننده/بازدید + خلاصهٔ فروشگاه)، بازدیدکنندگان (جدول و سری)، صفحات (صفحه‌بندی و ستون‌های بیشتر)، ارجاع‌ها، جغرافیا، دستگاه‌ها، فروشگاه (جداول محصول و قیف)، مقایسه، سئو/پشتیبانی/محتوا/خلاصهٔ ماه
+- [x] پنل‌های analytics (overview/visitors/pages/referrals/commerce/compare/seo/support/content/month + period filter) موجود و راستی‌آزمایی شد
 - [x] `ناقص` — تنظیمات: دکمهٔ پاک‌سازی کش، badge منبع
-- [ ] `قانون متفاوت` — `exclude_roles` پیش‌فرض: WP `administrator`، TARGET `admin` (نام نقش‌ها باید با مدل نقش فاز ۲.۵ هماهنگ شود)
+- [x] پیش‌فرض TARGET `admin` (هم‌تراز RBAC فاز ۲.۵)؛ `AnalyticsSettings::normalizeRoleName` نگاشت `administrator`→`admin` (و نقش‌های webino_*)
 - [x] `قانون متفاوت` — `editable_roles` در TARGET hardcode است
 - [x] `محتوا/ترجمه` — placeholder انگلیسی `"admin, staff"` در `AnalyticsSettingsPanel`
 
@@ -1301,7 +1309,7 @@ UI SMS از قبل `isSmsUnavailable` / «در دسترس نیست» دارد.
 ## ۱۱.۲ مایگریشن معوق ERP
 
 - [x] فایل مایگریشن موجود + idempotent (`Schema::hasTable`) + runbook: `WebinoERP/docs/MODIRPAYAMAK_MIGRATION.md`
-- [ ] اجرای `php artisan migrate --force` روی ERP مقصد `WEBINO_BASE_URL` — **معوق به محیط**: در این ماشین استک ERP بالا نبود؛ ERP handlers وقتی جدول نباشد graceful (`domain_numbers_ready`) هستند. دستور: `docker compose exec backend php artisan migrate --force`
+- [ ] اجرای `php artisan migrate --force` روی ERP مقصد `WEBINO_BASE_URL` — **معوق به محیط** (۱ اکتبر ۲۰۲۶): فقط سرویس `db` بالا بود، `backend` نه. Runbook: `WebinoERP/docs/MODIRPAYAMAK_MIGRATION.md`؛ handlers وقتی جدول نباشد graceful (`domain_numbers_ready`). دستور: `docker compose exec backend php artisan migrate --force`
 
 ## ۱۱.۳ سایر سینک‌ها
 

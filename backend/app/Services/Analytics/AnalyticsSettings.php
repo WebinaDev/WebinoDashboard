@@ -60,6 +60,16 @@ final class AnalyticsSettings
             $merged['tracking_enabled'] = (bool) $stored['enabled'];
         }
 
+        if (isset($merged['exclude_roles']) && is_array($merged['exclude_roles'])) {
+            $merged['exclude_roles'] = array_values(array_unique(array_filter(
+                array_map(
+                    fn ($r) => is_scalar($r) ? self::normalizeRoleName((string) $r) : '',
+                    $merged['exclude_roles']
+                ),
+                fn (string $r) => $r !== ''
+            )));
+        }
+
         return $merged;
     }
 
@@ -122,12 +132,29 @@ final class AnalyticsSettings
         if (isset($raw['exclude_roles']) && is_array($raw['exclude_roles'])) {
             $allowed = self::editableRoles();
             $out['exclude_roles'] = array_values(array_unique(array_filter(
-                array_map(fn ($r) => is_scalar($r) ? strtolower(trim((string) $r)) : '', $raw['exclude_roles']),
+                array_map(
+                    fn ($r) => is_scalar($r) ? self::normalizeRoleName((string) $r) : '',
+                    $raw['exclude_roles']
+                ),
                 fn (string $r) => $r !== '' && in_array($r, $allowed, true)
             )));
         }
 
         return $out;
+    }
+
+    /** Map WP role names onto TARGET RBAC roles (phase 2.5). */
+    public static function normalizeRoleName(string $role): string
+    {
+        $role = strtolower(trim($role));
+        return match ($role) {
+            'administrator' => 'admin',
+            'shop_manager' => 'shop_manager',
+            'webino_seller' => 'seller',
+            'webino_accountant' => 'accountant',
+            'webino_partner' => 'partner',
+            default => $role,
+        };
     }
 
     /** @return list<string> */

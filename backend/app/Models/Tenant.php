@@ -55,4 +55,26 @@ class Tenant extends Model
     {
         return $this->hasMany(TenantModule::class);
     }
+
+    /** Normalize ERP/legacy statuses: valid → active. */
+    public function normalizedLicenseStatus(): string
+    {
+        $status = (string) ($this->license_status ?? '');
+        if ($status === 'valid') {
+            return 'active';
+        }
+
+        return $status !== '' ? $status : 'unknown';
+    }
+
+    /** Entitled to use the product (active or demo). Matches LicenseController payload. */
+    public function isLicenseEntitled(): bool
+    {
+        return in_array($this->normalizedLicenseStatus(), ['active', 'demo'], true);
+    }
+
+    public function isLicenseDemo(): bool
+    {
+        return $this->normalizedLicenseStatus() === 'demo';
+    }
 }

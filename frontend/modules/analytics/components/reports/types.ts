@@ -256,4 +256,6 @@ export type StockReport = {
   total: number
   page: number
   per_page: number
+  /** Includes WFCP tiers + marketplace platform slugs when present. */
+  price_keys?: string[]
 }

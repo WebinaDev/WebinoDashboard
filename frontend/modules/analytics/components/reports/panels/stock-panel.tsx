@@ -50,7 +50,32 @@ export function StockPanel() {
 
   const money = (v: number | null | undefined, c: string) => <MoneyDisplay amount={v ?? 0} currency={c} />
 
-  const columns = (c: string): ReportColumn<StockRow>[] => [
+  const PLATFORM_LABELS: Record<string, string> = {
+    basalam: "باسلام",
+    digikala: "دیجی‌کالا",
+    snappshop: "اسنپ‌شاپ",
+    tapsishop: "تپسی‌شاپ",
+    technolife: "تکنولایف",
+    emalls: "ایمالز",
+    torob: "ترب",
+    zarehbin: "ذره‌بین",
+    "snapppay-search": "جستجوی اسنپ‌پی",
+  }
+
+  const CORE_PRICE_KEYS = new Set([
+    "purchase",
+    "regular",
+    "sale",
+    "current",
+    "retail",
+    "credit",
+    "wholesale",
+    "installment",
+  ])
+
+  const columns = (c: string, priceKeys: string[] = []): ReportColumn<StockRow>[] => {
+    const platformKeys = priceKeys.filter((k) => !CORE_PRICE_KEYS.has(k))
+    const base: ReportColumn<StockRow>[] = [
     {
       id: "name",
       header: t("table.product"),
@@ -97,7 +122,19 @@ export function StockPanel() {
       cell: (r) => money(r.values?.[valueBase], c),
     },
     { id: "potential_profit", header: t("table.potentialProfit"), align: "end", sortable: true, cell: (r) => money(r.potential_profit, c) },
-  ]
+    ]
+    const platformCols: ReportColumn<StockRow>[] = platformKeys.map((slug) => ({
+      id: `price_${slug}`,
+      header: t("tier.marketplace", { platform: PLATFORM_LABELS[slug] ?? slug }),
+      align: "end" as const,
+      sortable: true,
+      cell: (r: StockRow) => money(r.prices?.[slug], c),
+    }))
+    // Insert marketplace prices before stock value / profit columns.
+    const valueIdx = base.findIndex((col) => col.id.startsWith("value_"))
+    if (valueIdx === -1) return [...base, ...platformCols]
+    return [...base.slice(0, valueIdx), ...platformCols, ...base.slice(valueIdx)]
+  }
 
   return (
     <div className="space-y-6">
@@ -206,7 +243,7 @@ export function StockPanel() {
               <ListCard
                 list={list}
                 data={data}
-                columns={columns(c)}
+                columns={columns(c, data.price_keys ?? [])}
                 rowKey={(r) => r.id}
                 loading={q.isFetching}
               />
