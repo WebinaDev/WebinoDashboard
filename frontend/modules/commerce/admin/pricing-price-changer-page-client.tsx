@@ -35,7 +35,7 @@ type Preview = {
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
-export default function PricingPriceChangerPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function PricingPriceChangerPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const enumLabel = useEnumLabel()
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
@@ -103,7 +103,6 @@ export default function PricingPriceChangerPageClient({ route }: { route: Resolv
     <div className="mx-auto max-w-2xl space-y-6 p-6" dir="auto">
       <div>
         <h1 className="text-2xl font-bold">{t("price_changer_title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
       </div>
 
       {message ? <p className="text-sm text-green-600">{message}</p> : null}

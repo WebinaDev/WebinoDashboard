@@ -387,7 +387,6 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
   return (
     <PageShell
       title={mineMode ? t("my_orders_title") : t("title")}
-      description={route.fullPath}
       actions={
         <>
           {mineMode ? null : <PrintPendingLabelsButton />}

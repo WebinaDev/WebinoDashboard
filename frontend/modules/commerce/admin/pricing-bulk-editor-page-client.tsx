@@ -66,7 +66,7 @@ async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: Pa
   return { items: Array.isArray(data) ? data : [], meta: meta as PageMeta | undefined }
 }
 
-export default function PricingBulkEditorPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function PricingBulkEditorPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
@@ -167,7 +167,6 @@ export default function PricingBulkEditorPageClient({ route }: { route: Resolved
     <div className="space-y-6 p-6" dir="auto">
       <div>
         <h1 className="text-2xl font-bold">{t("bulk_editor_title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
       </div>
 
       {message ? <p className="text-sm text-green-600">{message}</p> : null}

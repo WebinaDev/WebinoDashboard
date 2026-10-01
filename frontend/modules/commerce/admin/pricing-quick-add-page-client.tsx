@@ -21,7 +21,7 @@ type Calculated = { retail?: number; credit?: number; wholesale?: number; instal
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
-export default function PricingQuickAddPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function PricingQuickAddPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
   const [name, setName] = useState("")
@@ -85,7 +85,6 @@ export default function PricingQuickAddPageClient({ route }: { route: ResolvedAd
     <div className="mx-auto max-w-xl space-y-6 p-6" dir="auto">
       <div>
         <h1 className="text-2xl font-bold">{t("quick_add_title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
       </div>
 
       {message ? <p className="text-sm text-green-600">{message}</p> : null}

@@ -95,7 +95,20 @@ const PATH_ICONS: Record<string, LucideIcon> = {
   catalog: Package,
 }
 
-export function resolveNavIcon(url: string): LucideIcon {
+const GROUP_ICONS: Record<string, LucideIcon> = {
+  "nav.group_shop": ShoppingBag,
+  "nav.group_magazine": Newspaper,
+  "nav.group_bots": Bot,
+  group_shop: ShoppingBag,
+  group_magazine: Newspaper,
+  group_bots: Bot,
+}
+
+export function resolveNavIcon(url: string, titleKey?: string): LucideIcon {
+  if (titleKey) {
+    const g = GROUP_ICONS[titleKey] ?? GROUP_ICONS[titleKey.replace(/^nav\./, "")]
+    if (g) return g
+  }
   const path = url.replace(/^\/dashboard\/?/, "").replace(/\/+$/, "")
   if (PATH_ICONS[path]) return PATH_ICONS[path]
 

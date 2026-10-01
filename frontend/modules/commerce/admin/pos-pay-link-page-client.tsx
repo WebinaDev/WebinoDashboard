@@ -48,7 +48,7 @@ type OrderResult = {
 const selectClass =
   "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
-export default function PosPayLinkPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function PosPayLinkPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("pos_admin")
   const tPricing = useTranslations("pricing_settings.types")
   const [productQ, setProductQ] = useState("")
@@ -219,7 +219,6 @@ export default function PosPayLinkPageClient({ route }: { route: ResolvedAdminRo
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t("pay_link_title")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button variant="outline" asChild>
           <Link href="/dashboard/pos">{t("back_pos")}</Link>

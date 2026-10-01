@@ -1047,7 +1047,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   return (
     <PageShell
       title={isNew ? t("new_product") : t("edit_product")}
-      description={route.fullPath}
       actions={
         <>
           {productId ? <PrintProductLabelButton productIds={[Number(productId)]} /> : null}

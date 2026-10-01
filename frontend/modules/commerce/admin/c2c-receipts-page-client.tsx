@@ -61,7 +61,7 @@ async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: Pa
   return { items: Array.isArray(data) ? data : [], meta: meta as PageMeta | undefined }
 }
 
-export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function C2cReceiptsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("c2c_admin")
   const enumLabel = useEnumLabel()
   const { confirm, dialog: confirmDialog } = useConfirm()
@@ -106,7 +106,7 @@ export default function C2cReceiptsPageClient({ route }: { route: ResolvedAdminR
   }, [rows, t])
 
   return (
-    <PageShell title={t("receipts_title")} description={route.fullPath}>
+    <PageShell title={t("receipts_title")}>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
       <ListStatsStrip items={statItems} />

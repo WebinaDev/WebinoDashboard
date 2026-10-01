@@ -70,7 +70,7 @@ const emptyProduct = {
   discount_percent: 0,
 }
 
-export default function CatalogPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function CatalogPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("catalog")
   const tCommon = useTranslations("common")
@@ -206,7 +206,6 @@ export default function CatalogPageClient({ route }: { route: ResolvedAdminRoute
     <div className="space-y-8 p-6">
       <div>
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
       </div>
 
       {message ? <p className="text-sm text-green-600">{message}</p> : null}

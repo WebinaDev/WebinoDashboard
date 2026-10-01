@@ -72,7 +72,7 @@ export function useDashboardNav() {
           id: item.url,
           title: t(item.titleKey.replace("nav.", "") as never),
           url: item.url,
-          icon: resolveNavIcon(item.url),
+          icon: resolveNavIcon(item.url, item.titleKey),
           isActive:
             pathIsActive(pathname, item.url) ||
             Boolean(nested?.some((n) => pathIsActive(pathname, n.url))),

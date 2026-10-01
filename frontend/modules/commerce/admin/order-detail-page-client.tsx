@@ -432,7 +432,6 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
   return (
     <PageShell
       title={`${t("detail_title")} ${order?.number || `#${orderId}`}`}
-      description={route.fullPath}
       actions={
         <>
           <OrderPrintActions orderId={orderId} />

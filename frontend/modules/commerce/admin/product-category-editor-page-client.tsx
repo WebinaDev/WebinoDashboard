@@ -126,7 +126,6 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
     <div className="mx-auto max-w-2xl space-y-6 p-6" dir="auto">
       <div>
         <h1 className="text-2xl font-bold">{isNew ? t("new_category") : t("edit_category")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
       </div>
 
       {message ? <p className="text-sm text-green-600">{message}</p> : null}

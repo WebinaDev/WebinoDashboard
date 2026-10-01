@@ -34,7 +34,7 @@ type Category = {
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
-export default function ProductCategoriesPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function ProductCategoriesPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
   const locale = normalizeUiLocale(useLocale())
@@ -71,7 +71,6 @@ export default function ProductCategoriesPageClient({ route }: { route: Resolved
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t("categories_title")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button asChild>
           <Link href="/dashboard/product-categories/new">

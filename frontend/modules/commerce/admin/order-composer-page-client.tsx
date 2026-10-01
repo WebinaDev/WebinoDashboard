@@ -306,7 +306,6 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{isEdit ? t("edit_order") : t("new_order")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button variant="outline" asChild>
           <Link href="/dashboard/orders">{t("back_to_list")}</Link>

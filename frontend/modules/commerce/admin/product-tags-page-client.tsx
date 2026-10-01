@@ -33,7 +33,7 @@ type ProductTag = {
   products_count?: number
 }
 
-export default function ProductTagsPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function ProductTagsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
@@ -100,7 +100,6 @@ export default function ProductTagsPageClient({ route }: { route: ResolvedAdminR
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t("product_tags_title")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="size-4" />

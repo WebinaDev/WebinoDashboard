@@ -27,7 +27,7 @@ type Attribute = {
   terms_count?: number
 }
 
-export default function AttributesPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function AttributesPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const enumLabel = useEnumLabel()
   const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("store")
@@ -59,7 +59,6 @@ export default function AttributesPageClient({ route }: { route: ResolvedAdminRo
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t("attributes_title")}</h1>
-          <p className="text-muted-foreground text-sm">{route.fullPath}</p>
         </div>
         <Button asChild>
           <Link href="/dashboard/attributes/new">

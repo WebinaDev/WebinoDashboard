@@ -66,7 +66,7 @@ async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: Pa
   return { items: Array.isArray(data) ? data : [], meta: meta as PageMeta | undefined }
 }
 
-export default function WalletWithdrawalsPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function WalletWithdrawalsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("wallet_admin")
   const enumLabel = useEnumLabel()
   const { confirm, dialog: confirmDialog } = useConfirm()
@@ -156,7 +156,7 @@ export default function WalletWithdrawalsPageClient({ route }: { route: Resolved
   }
 
   return (
-    <PageShell title={t("withdrawals_title")} description={route.fullPath}>
+    <PageShell title={t("withdrawals_title")}>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
       <ListStatsStrip items={statItems} />
