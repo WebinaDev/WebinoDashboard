@@ -80,6 +80,49 @@ class SecurityAndLicenseApiTest extends TestCase
             ->assertJsonPath('errors.code', 'MODULE_NOT_LICENSED');
     }
 
+    public function test_domain_active_license_keeps_enabled_module_when_row_unlicensed(): void
+    {
+        $tenant = Tenant::query()->create([
+            'name' => 'T',
+            'slug' => 'domain-entitled',
+            'domain' => 'bluecafe.webinaagency.ir',
+            'setup_completed' => true,
+            'license_status' => 'active',
+        ]);
+
+        DashboardModule::query()->create([
+            'slug' => 'blog',
+            'requires_license' => true,
+            'git_repo' => null,
+            'default_version' => '0.1.0',
+        ]);
+        TenantModule::query()->create([
+            'tenant_id' => $tenant->id,
+            'module_slug' => 'blog',
+            'enabled' => true,
+            'licensed' => false,
+            'installed_version' => '0.1.0',
+        ]);
+        TenantSubmoduleActivation::query()->create([
+            'tenant_id' => $tenant->id,
+            'module_slug' => 'blog',
+            'submodule_slug' => 'posts',
+            'enabled' => true,
+            'licensed' => false,
+        ]);
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/blog/posts')
+            ->assertOk();
+    }
+
     public function test_ajax_header_required_for_cookie_mutating_requests(): void
     {
         $tenant = Tenant::query()->create([

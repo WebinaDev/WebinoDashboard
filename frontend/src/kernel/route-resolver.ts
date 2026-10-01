@@ -10,16 +10,21 @@ export function isSubmoduleEnabled(
   activations: TenantActivation[],
   moduleSlug: string,
   submoduleSlug: string,
+  options?: { ignoreLicense?: boolean },
 ): boolean {
   if (moduleSlug === "core") return true
 
+  // Domain entitlement is not a per-module code. A `licensed: false` row from a
+  // failed or mismatched ERP sync must not hide admin nav. Public site routes
+  // keep the license bit (ignoreLicense omitted).
+  const ignoreLicense = options?.ignoreLicense === true
   const enabled = (mod: string, sub: string) =>
     activations.some(
       (a) =>
         a.module_slug === mod &&
         a.submodule_slug === sub &&
         a.enabled &&
-        a.licensed !== false,
+        (ignoreLicense || a.licensed !== false),
     )
 
   // SMS API is gated by sms-panel.panel; nav lives under marketing.sms — accept either.
@@ -71,10 +76,16 @@ export function isSubmoduleEnabled(
   return enabled(moduleSlug, submoduleSlug)
 }
 
-export function resolveAdminRoute(
-  segments: string[],
-  activations: TenantActivation[],
-): ResolvedAdminRoute | null {
+/**
+ * Match a dashboard pathname to a manifest route.
+ *
+ * Activation and license flags are intentionally ignored. An empty activations
+ * payload (API down, anonymous SSR, or a domain-license sync that cleared
+ * `licensed`) used to return null, and `renderAdminPage` turned that into
+ * Next.js notFound for every non-core screen. Only a path that is not in any
+ * manifest is missing. Sidebar visibility still uses `isSubmoduleEnabled`.
+ */
+export function resolveAdminRoute(segments: string[]): ResolvedAdminRoute | null {
   if (segments.length === 0) {
     return {
       moduleSlug: "core",
@@ -93,9 +104,6 @@ export function resolveAdminRoute(
   for (const mod of MODULE_MANIFESTS) {
     for (const route of mod.adminRoutes) {
       if (route.path !== path) continue
-      if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) {
-        return null
-      }
       return {
         ...route,
         moduleSlug: mod.slug,
@@ -109,9 +117,6 @@ export function resolveAdminRoute(
       if (!route.path.includes(":")) continue
       const params = matchDynamicParams(route.path, path)
       if (!params) continue
-      if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) {
-        return null
-      }
       return {
         ...route,
         moduleSlug: mod.slug,
@@ -236,7 +241,7 @@ export function buildAdminNav(activations: TenantActivation[]) {
       if (route.path.endsWith("/new")) continue
       if (route.path === "catalog") continue
       if (route.navHidden) continue
-      if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) continue
+      if (!isSubmoduleEnabled(activations, mod.slug, route.submodule, { ignoreLicense: true })) continue
       const section = route.section
       const sectionOrder = route.order ?? mod.adminNav?.order ?? 99
       const menuKey = route.menuKey ?? route.path.split("/")[0] ?? route.path

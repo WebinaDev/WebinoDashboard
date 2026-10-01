@@ -1,11 +1,10 @@
 import type { Metadata, Viewport } from "next"
-import { cookies } from "next/headers"
 import { NextIntlClientProvider } from "next-intl"
 
 import enMessages from "../../messages/en.json"
 import faMessages from "../../messages/fa.json"
 
-import { defaultLocale, isLocale, type Locale } from "../../i18n"
+import { readRequestLocale } from "@/lib/request-locale"
 import { yekanBakh } from "@/lib/fonts/yekan-bakh"
 import { htmlDir } from "@/lib/locale"
 import { getApiOrigin } from "@/lib/api-origin"
@@ -37,18 +36,12 @@ const messageCatalog = {
   en: enMessages,
 } as const
 
-async function resolveLocale(): Promise<Locale> {
-  const jar = await cookies()
-  const value = jar.get("NEXT_LOCALE")?.value ?? jar.get("locale")?.value
-  return value && isLocale(value) ? value : defaultLocale
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const locale = await resolveLocale()
+  const locale = await readRequestLocale()
   const messages = messageCatalog[locale]
   const dir = htmlDir(locale)
   const apiOrigin = getApiOrigin()

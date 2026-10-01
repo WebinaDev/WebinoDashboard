@@ -97,7 +97,12 @@ class LicenseController extends Controller
             ?? data_get($crm, 'data.modules')
             ?? data_get($crm, 'data.entitlements');
 
-        if (is_array($moduleSlugs) && count($moduleSlugs) > 0) {
+        // Entitlement identity is the domain. Only apply an ERP module allow-list
+        // when it names real dashboard_modules slugs. Product SKUs / unknown names
+        // must not flip every submodule to licensed=false (that 404s the dashboard).
+        $recognized = $this->recognizedDashboardModuleSlugs($moduleSlugs);
+
+        if ($recognized !== []) {
             TenantModule::query()
                 ->where('tenant_id', $tenant->id)
                 ->whereHas('definition', fn ($q) => $q->where('requires_license', true))
@@ -108,15 +113,7 @@ class LicenseController extends Controller
                 ->where('module_slug', '!=', 'core')
                 ->update(['licensed' => false]);
 
-            foreach ($moduleSlugs as $entry) {
-                $slug = is_string($entry)
-                    ? $entry
-                    : data_get($entry, 'slug') ?? data_get($entry, 'module');
-
-                if (! is_string($slug) || $slug === '') {
-                    continue;
-                }
-
+            foreach ($recognized as $slug) {
                 TenantModule::query()
                     ->where('tenant_id', $tenant->id)
                     ->where('module_slug', $slug)
@@ -184,6 +181,37 @@ class LicenseController extends Controller
                 'tenant_id' => $tenant->id,
             ]),
         ]);
+    }
+
+    /**
+     * Slugs from an ERP module list that exist in dashboard_modules.
+     * Unknown names (product SKUs, legacy keys) are ignored so a domain-active
+     * license does not unlicense commerce/cafe/etc.
+     *
+     * @return list<string>
+     */
+    private function recognizedDashboardModuleSlugs(mixed $moduleSlugs): array
+    {
+        if (! is_array($moduleSlugs) || $moduleSlugs === []) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($moduleSlugs as $entry) {
+            $slug = is_string($entry)
+                ? $entry
+                : data_get($entry, 'slug') ?? data_get($entry, 'module');
+            if (is_string($slug) && $slug !== '') {
+                $normalized[] = $slug;
+            }
+        }
+        if ($normalized === []) {
+            return [];
+        }
+
+        $known = DashboardModule::query()->whereIn('slug', $normalized)->pluck('slug')->all();
+
+        return array_values(array_intersect($normalized, $known));
     }
 
     /** @return array<string, mixed> */

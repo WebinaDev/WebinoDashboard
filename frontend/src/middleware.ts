@@ -1,3 +1,9 @@
+/**
+ * Must live in `src/` beside `src/app`. Next.js resolves middleware from the
+ * parent of the app directory and ignores a root `middleware.ts` when `src/app`
+ * exists — that left the auth gate unloaded, so anonymous RSC renders treated
+ * a failed activations fetch as "every module disabled" and called notFound().
+ */
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 

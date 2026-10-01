@@ -7,13 +7,12 @@ import { SitePageSkeleton } from "@/kernel/components/SitePageSkeleton"
 import { isPortalPath } from "@/kernel/portal"
 import { loadAdminPage, loadSitePage } from "@/kernel/theme-loader"
 import { resolveAdminRoute, resolveSiteRoute } from "@/kernel/route-resolver"
-import { getPublicActivations, getTenantActivations } from "@/kernel/server-data"
+import { getPublicActivations } from "@/kernel/server-data"
 
 const RESERVED_SITE_SEGMENTS = new Set(["admin", "dashboard", "login", "setup"])
 
 export async function renderAdminPage(segments: string[]) {
-  const activations = await getTenantActivations()
-  const route = resolveAdminRoute(segments, activations)
+  const route = resolveAdminRoute(segments)
 
   if (!route) {
     notFound()

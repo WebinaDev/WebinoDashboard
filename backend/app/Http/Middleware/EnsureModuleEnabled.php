@@ -7,6 +7,7 @@ use App\Kernel\ModuleDiscovery;
 use App\Models\DashboardModule;
 use App\Models\TenantModule;
 use App\Models\TenantSubmoduleActivation;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,7 +34,7 @@ class EnsureModuleEnabled
                 return $this->disabled($slug);
             }
 
-            if ($row->licensed === false) {
+            if ($row->licensed === false && ! $this->domainEntitled($user)) {
                 return $this->unlicensed($slug);
             }
 
@@ -53,7 +54,7 @@ class EnsureModuleEnabled
             return $this->disabled($slug);
         }
 
-        if ($row->licensed === false) {
+        if ($row->licensed === false && ! $this->domainEntitled($user)) {
             return $this->unlicensed($slug);
         }
 
@@ -62,6 +63,21 @@ class EnsureModuleEnabled
         }
 
         return $next($request);
+    }
+
+    /**
+     * Domain (+ product) is the license identity. An active/demo tenant stays
+     * entitled even when a sync left submodule `licensed` false.
+     */
+    private function domainEntitled(mixed $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $tenant = $user->relationLoaded('tenant') ? $user->tenant : $user->tenant()->first();
+
+        return $tenant?->isLicenseEntitled() ?? false;
     }
 
     private function denyIfGitCodeMissing(string $moduleSlug): ?Response

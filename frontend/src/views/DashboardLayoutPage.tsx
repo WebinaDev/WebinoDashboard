@@ -89,7 +89,7 @@ export default function DashboardLayoutPage({
   const tSidebar = useTranslations("sidebar")
   const locale = useLocale()
   const pathname = usePathname() ?? ""
-  const { navSections, activations, isLoading: navLoading } = useDashboardNav()
+  const { navSections, isLoading: navLoading } = useDashboardNav()
   const { applyServerPreferences, accent } = useThemeSettings()
 
   const { data: user } = useQuery({
@@ -168,7 +168,7 @@ export default function DashboardLayoutPage({
     const segments = stripDashboardBase(pathname)
       .split("/")
       .filter(Boolean)
-    const route = resolveAdminRoute(segments, activations)
+    const route = resolveAdminRoute(segments)
     if (!route) {
       return tDashboard("breadcrumb_current")
     }
@@ -178,7 +178,7 @@ export default function DashboardLayoutPage({
     } catch {
       return tDashboard("breadcrumb_current")
     }
-  }, [activations, pathname, tDashboard, tNav])
+  }, [pathname, tDashboard, tNav])
 
   useEffect(() => {
     const site = tenantLabel !== "…" ? tenantLabel : tCommon("appName")

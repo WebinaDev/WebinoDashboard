@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\DashboardModule;
 use App\Models\Tenant;
+use App\Models\TenantModule;
+use App\Models\TenantSubmoduleActivation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -114,5 +117,141 @@ class LicenseDomainSyncWithoutHmacTest extends TestCase
         $this->assertTrue((bool) $tenant->license_unreachable);
         $this->assertNotNull($tenant->license_checked_at);
         $this->assertTrue($tenant->license_checked_at->greaterThan(now()->subMinute()));
+    }
+
+    public function test_unknown_erp_module_names_do_not_unlicense_dashboard_modules(): void
+    {
+        config([
+            'services.webino.base_url' => 'https://erp.test',
+            'services.webino.license_hmac_secret' => '',
+            'services.webino.product' => 'webinodashboard',
+        ]);
+
+        Http::fake([
+            'erp.test/api/webinocrm/v1/license/check' => Http::response([
+                'data' => [
+                    'status' => 'active',
+                    'valid' => true,
+                    'active' => true,
+                    'domain' => 'bluecafe.webinaagency.ir',
+                    'product' => 'webinodashboard',
+                    // Product/SKU names, not dashboard_modules slugs.
+                    'licensed_modules' => ['webinodashboard', 'bluecafe-plan'],
+                ],
+            ], 200),
+        ]);
+
+        DashboardModule::query()->create([
+            'slug' => 'commerce',
+            'requires_license' => true,
+            'default_version' => '1.0.0',
+        ]);
+
+        $tenant = Tenant::query()->create([
+            'name' => 'Bluecafe',
+            'slug' => 'bluecafe-mods',
+            'domain' => 'bluecafe.webinaagency.ir',
+            'setup_completed' => true,
+        ]);
+        TenantModule::query()->create([
+            'tenant_id' => $tenant->id,
+            'module_slug' => 'commerce',
+            'enabled' => true,
+            'licensed' => true,
+        ]);
+        TenantSubmoduleActivation::query()->create([
+            'tenant_id' => $tenant->id,
+            'module_slug' => 'commerce',
+            'submodule_slug' => 'orders',
+            'enabled' => true,
+            'licensed' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/license/sync')->assertOk();
+
+        $this->assertDatabaseHas('tenant_submodule_activations', [
+            'tenant_id' => $tenant->id,
+            'module_slug' => 'commerce',
+            'submodule_slug' => 'orders',
+            'licensed' => true,
+        ]);
+    }
+
+    public function test_recognized_module_allow_list_still_limits_entitlements(): void
+    {
+        config([
+            'services.webino.base_url' => 'https://erp.test',
+            'services.webino.license_hmac_secret' => '',
+            'services.webino.product' => 'webinodashboard',
+        ]);
+
+        Http::fake([
+            'erp.test/api/webinocrm/v1/license/check' => Http::response([
+                'data' => [
+                    'status' => 'active',
+                    'valid' => true,
+                    'licensed_modules' => ['commerce'],
+                ],
+            ], 200),
+        ]);
+
+        foreach (['commerce', 'blog'] as $slug) {
+            DashboardModule::query()->create([
+                'slug' => $slug,
+                'requires_license' => true,
+                'default_version' => '1.0.0',
+            ]);
+        }
+
+        $tenant = Tenant::query()->create([
+            'name' => 'Bluecafe',
+            'slug' => 'bluecafe-allow',
+            'domain' => 'bluecafe.webinaagency.ir',
+            'setup_completed' => true,
+        ]);
+        foreach (['commerce' => 'orders', 'blog' => 'posts'] as $module => $sub) {
+            TenantModule::query()->create([
+                'tenant_id' => $tenant->id,
+                'module_slug' => $module,
+                'enabled' => true,
+                'licensed' => true,
+            ]);
+            TenantSubmoduleActivation::query()->create([
+                'tenant_id' => $tenant->id,
+                'module_slug' => $module,
+                'submodule_slug' => $sub,
+                'enabled' => true,
+                'licensed' => true,
+            ]);
+        }
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/license/sync')->assertOk();
+
+        $this->assertDatabaseHas('tenant_submodule_activations', [
+            'tenant_id' => $tenant->id,
+            'module_slug' => 'commerce',
+            'submodule_slug' => 'orders',
+            'licensed' => true,
+        ]);
+        $this->assertDatabaseHas('tenant_submodule_activations', [
+            'tenant_id' => $tenant->id,
+            'module_slug' => 'blog',
+            'submodule_slug' => 'posts',
+            'licensed' => false,
+        ]);
     }
 }

@@ -71,4 +71,23 @@ assert.match(layout, /p-3 pt-0 sm:gap-4 sm:p-4 sm:pt-0/)
 assert.doesNotMatch(layout, /pt-3 sm:pt-4/)
 assert.doesNotMatch(layout, /projects=\{\[\]\}/)
 
+const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
+const resolver = fs.readFileSync(path.join(frontendRoot, "src/kernel/route-resolver.ts"), "utf8")
+const adminFn = resolver.slice(
+  resolver.indexOf("export function resolveAdminRoute"),
+  resolver.indexOf("export function resolveSiteRoute"),
+)
+assert.doesNotMatch(adminFn, /isSubmoduleEnabled/)
+assert.match(adminFn, /resolveAdminRoute\(segments: string\[\]\)/)
+
+const dashboardPage = fs.readFileSync(
+  path.join(frontendRoot, "modules/core/admin/dashboard-page.tsx"),
+  "utf8",
+)
+assert.doesNotMatch(dashboardPage, /next-intl\/server/)
+assert.match(dashboardPage, /readRequestLocale/)
+
+assert.equal(fs.existsSync(path.join(frontendRoot, "src/middleware.ts")), true)
+assert.equal(fs.existsSync(path.join(frontendRoot, "middleware.ts")), false)
+
 console.log("build-admin-nav.smoke.mjs OK")
