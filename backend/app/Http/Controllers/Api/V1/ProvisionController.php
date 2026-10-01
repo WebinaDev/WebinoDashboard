@@ -328,15 +328,24 @@ class ProvisionController extends Controller
         }
 
         $moduleSlugs = data_get($crm, 'data.licensed_modules') ?? [];
+        $slugs = [];
         foreach ($moduleSlugs as $slug) {
-            if (! is_string($slug) || $slug === '') {
-                continue;
+            if (is_string($slug) && $slug !== '') {
+                $slugs[] = $slug;
             }
-            DashboardModule::query()->firstOrCreate(['slug' => $slug]);
-            TenantModule::query()->updateOrCreate(
-                ['tenant_id' => $tenant->id, 'module_slug' => $slug],
-                ['enabled' => true, 'licensed' => true, 'synced_at' => now()]
-            );
+        }
+        TenantActivationService::ensureDashboardModules($slugs);
+        if ($activations) {
+            $activations->licenseModules($tenant, $slugs, true);
+        } else {
+            foreach ($slugs as $slug) {
+                TenantModule::query()->updateOrCreate(
+                    ['tenant_id' => $tenant->id, 'module_slug' => $slug],
+                    ['enabled' => true, 'licensed' => true, 'synced_at' => now()]
+                );
+            }
+        }
+        foreach ($slugs as $slug) {
             try {
                 $installer->install($tenant->id, $slug);
             } catch (\Throwable) {

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Kernel\SiteTypeProfiles;
+use App\Kernel\TenantActivationService;
 use App\Models\DashboardModule;
 use App\Models\Tenant;
 use App\Models\TenantModule;
@@ -100,9 +102,24 @@ class LicenseController extends Controller
         // Entitlement identity is the domain. Only apply an ERP module allow-list
         // when it names real dashboard_modules slugs. Product SKUs / unknown names
         // must not flip every submodule to licensed=false (that 404s the dashboard).
+        // Site-type profile parents (e.g. commerce on ecommerce) are always unioned
+        // when the domain license is allowed so a partial ERP list cannot disable shop.
         $recognized = $this->recognizedDashboardModuleSlugs($moduleSlugs);
+        $profileParents = $this->siteTypeProfileParents($tenant);
 
+        if ($allowed && $profileParents !== []) {
+            TenantActivationService::ensureDashboardModules($profileParents);
+        }
         if ($recognized !== []) {
+            TenantActivationService::ensureDashboardModules($recognized);
+        }
+
+        $toLicense = $recognized;
+        if ($allowed && $profileParents !== []) {
+            $toLicense = array_values(array_unique(array_merge($toLicense, $profileParents)));
+        }
+
+        if ($toLicense !== []) {
             TenantModule::query()
                 ->where('tenant_id', $tenant->id)
                 ->whereHas('definition', fn ($q) => $q->where('requires_license', true))
@@ -113,26 +130,16 @@ class LicenseController extends Controller
                 ->where('module_slug', '!=', 'core')
                 ->update(['licensed' => false]);
 
-            foreach ($recognized as $slug) {
-                TenantModule::query()
-                    ->where('tenant_id', $tenant->id)
-                    ->where('module_slug', $slug)
-                    ->update(['licensed' => true]);
-
-                TenantSubmoduleActivation::query()
-                    ->where('tenant_id', $tenant->id)
-                    ->where('module_slug', $slug)
-                    ->update(['licensed' => true]);
-            }
+            app(TenantActivationService::class)->licenseModules($tenant, $toLicense, true);
         } elseif ($allowed) {
             TenantModule::query()
                 ->where('tenant_id', $tenant->id)
                 ->whereHas('definition', fn ($q) => $q->where('requires_license', true))
-                ->update(['licensed' => true]);
+                ->update(['licensed' => true, 'enabled' => true]);
 
             TenantSubmoduleActivation::query()
                 ->where('tenant_id', $tenant->id)
-                ->update(['licensed' => true]);
+                ->update(['licensed' => true, 'enabled' => true]);
         }
 
         $gitRepos = data_get($crm, 'data.module_git_repos');
@@ -181,6 +188,20 @@ class LicenseController extends Controller
                 'tenant_id' => $tenant->id,
             ]),
         ]);
+    }
+
+
+    /** @return list<string> */
+    private function siteTypeProfileParents(Tenant $tenant): array
+    {
+        $siteType = $tenant->site_type_slug ?? $tenant->business_type_slug;
+        if (! is_string($siteType) || $siteType === '' || ! SiteTypeProfiles::isValid($siteType)) {
+            return [];
+        }
+
+        $modules = SiteTypeProfiles::modulesFor($siteType) ?? [];
+
+        return array_values(array_filter(array_keys($modules), fn ($s) => is_string($s) && $s !== ''));
     }
 
     /**

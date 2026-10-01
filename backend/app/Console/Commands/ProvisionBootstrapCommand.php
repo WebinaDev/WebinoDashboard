@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Kernel\TenantActivationService;
 use App\Models\DashboardModule;
 use App\Models\Tenant;
 use App\Models\TenantModule;
@@ -115,19 +116,28 @@ class ProvisionBootstrapCommand extends Command
         }
 
         $moduleSlugs = data_get($crm, 'data.licensed_modules') ?? [];
+        $slugs = [];
         foreach ($moduleSlugs as $slug) {
-            if (! is_string($slug) || $slug === '') {
-                continue;
+            if (is_string($slug) && $slug !== '') {
+                $slugs[] = $slug;
             }
-            DashboardModule::query()->firstOrCreate(['slug' => $slug]);
-            TenantModule::query()->updateOrCreate(
-                ['tenant_id' => $tenant->id, 'module_slug' => $slug],
-                ['enabled' => true, 'licensed' => true, 'synced_at' => now()]
-            );
+        }
+        TenantActivationService::ensureDashboardModules($slugs);
+        app(TenantActivationService::class)->licenseModules($tenant, $slugs, true);
+        foreach ($slugs as $slug) {
             try {
                 $installer->install($tenant->id, $slug);
             } catch (\Throwable) {
                 /* optional git install */
+            }
+        }
+
+        $siteType = $tenant->site_type_slug ?? $tenant->business_type_slug ?? data_get($crm, 'data.site_type') ?? data_get($crm, 'data.business_type');
+        if (is_string($siteType) && $siteType !== '') {
+            try {
+                app(TenantActivationService::class)->applySiteType($tenant->fresh(), $siteType);
+            } catch (\Throwable) {
+                /* keep license-based enables */
             }
         }
 

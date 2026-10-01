@@ -12,6 +12,69 @@ use Illuminate\Support\Facades\DB;
 
 final class TenantActivationService
 {
+    /**
+     * Ensure parent module rows exist in dashboard_modules before any FK write
+     * to tenant_modules / site_type_activations.
+     *
+     * @param  list<string>  $moduleSlugs
+     * @param  array<string, array{distribution?: string, requires_license?: bool}>  $meta
+     */
+    public static function ensureDashboardModules(array $moduleSlugs, array $meta = []): void
+    {
+        foreach ($moduleSlugs as $slug) {
+            if (! is_string($slug) || $slug === '') {
+                continue;
+            }
+
+            $defaults = $meta[$slug] ?? [];
+            $distribution = (string) ($defaults['distribution'] ?? 'bundled');
+            if (! in_array($distribution, ['bundled', 'git'], true)) {
+                $distribution = 'bundled';
+            }
+
+            $requiresLicense = array_key_exists('requires_license', $defaults)
+                ? (bool) $defaults['requires_license']
+                : ($slug !== 'core' && $distribution === 'git');
+
+            DashboardModule::query()->firstOrCreate(
+                ['slug' => $slug],
+                [
+                    'distribution' => $distribution,
+                    'requires_license' => $requiresLicense,
+                    'default_version' => '1.0.0',
+                ]
+            );
+        }
+    }
+
+    /**
+     * Enable + license tenant_modules and tenant_submodule_activations for the given parent slugs.
+     *
+     * @param  list<string>  $moduleSlugs
+     */
+    public function licenseModules(Tenant $tenant, array $moduleSlugs, bool $enabled = true): void
+    {
+        self::ensureDashboardModules($moduleSlugs);
+
+        foreach ($moduleSlugs as $slug) {
+            if (! is_string($slug) || $slug === '') {
+                continue;
+            }
+
+            TenantModule::query()->updateOrCreate(
+                ['tenant_id' => $tenant->id, 'module_slug' => $slug],
+                ['enabled' => $enabled, 'licensed' => true, 'synced_at' => now()]
+            );
+
+            TenantSubmoduleActivation::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('module_slug', $slug)
+                ->update(['licensed' => true, 'enabled' => $enabled]);
+        }
+
+        $this->clearCache($tenant->id);
+    }
+
     public function applySiteType(Tenant $tenant, string $siteTypeSlug): void
     {
         if (! SiteTypeProfiles::isValid($siteTypeSlug)) {
@@ -25,19 +88,13 @@ final class TenantActivationService
             // Catalog sync is best-effort; profile fallback below still works.
         }
 
-        // Guaranteed catalog parent for tenant_modules.module_slug FK (even if boot no-op'd).
-        DashboardModule::query()->firstOrCreate(
-            ['slug' => 'core'],
-            [
-                'distribution' => 'bundled',
-                'requires_license' => false,
-                'default_version' => '1.0.0',
-            ]
-        );
-
         $profile = SiteTypeProfiles::all()[$siteTypeSlug];
+        $profileParents = array_keys($profile['modules']);
 
-        DB::transaction(function () use ($tenant, $siteTypeSlug, $profile) {
+        // Guaranteed catalog parents for tenant_modules.module_slug FK (even if boot no-op'd).
+        self::ensureDashboardModules($profileParents);
+
+        DB::transaction(function () use ($tenant, $siteTypeSlug, $profile, $profileParents) {
             $tenant->site_type_slug = $siteTypeSlug;
             $tenant->business_type_slug = $siteTypeSlug;
             $tenant->active_theme_slug = $profile['theme'];
@@ -62,7 +119,12 @@ final class TenantActivationService
                 "{$a->module_slug}.{$a->submodule_slug}" => true,
             ]);
 
-            $allModules = DashboardModule::query()->pluck('slug');
+            // Seed tenant_modules for every profile parent (and any already-known catalog modules).
+            $allModules = DashboardModule::query()->pluck('slug')
+                ->merge($profileParents)
+                ->unique()
+                ->values();
+
             foreach ($allModules as $moduleSlug) {
                 TenantModule::query()->updateOrCreate(
                     ['tenant_id' => $tenant->id, 'module_slug' => $moduleSlug],
@@ -80,6 +142,12 @@ final class TenantActivationService
             $knownModules = DashboardModule::query()->pluck('slug')->flip();
 
             foreach ($activations as $activation) {
+                // Parent must exist before tenant_modules FK; create if somehow missing.
+                if (! $knownModules->has($activation->module_slug)) {
+                    self::ensureDashboardModules([$activation->module_slug]);
+                    $knownModules->put($activation->module_slug, true);
+                }
+
                 TenantSubmoduleActivation::query()->updateOrCreate(
                     [
                         'tenant_id' => $tenant->id,
@@ -91,10 +159,6 @@ final class TenantActivationService
                         'licensed' => true,
                     ]
                 );
-
-                if (! $knownModules->has($activation->module_slug)) {
-                    continue;
-                }
 
                 TenantModule::query()->updateOrCreate(
                     ['tenant_id' => $tenant->id, 'module_slug' => $activation->module_slug],

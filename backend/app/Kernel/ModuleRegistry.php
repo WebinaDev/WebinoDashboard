@@ -7,6 +7,7 @@ use App\Models\SiteType;
 use App\Models\SiteTypeActivation;
 use App\Models\Submodule;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 final class ModuleRegistry
 {
@@ -27,19 +28,23 @@ final class ModuleRegistry
             );
 
             foreach ($manifest->submodules as $index => $subSlug) {
-                Submodule::query()->updateOrCreate(
-                    [
+                // Upsert avoids Eloquent insertAndSetId / RETURNING "id" on Postgres
+                // (submodules has composite PK, no id column).
+                DB::table('submodules')->upsert(
+                    [[
                         'module_slug' => $manifest->slug,
                         'slug' => $subSlug,
-                    ],
-                    [
                         'name_fa' => $subSlug,
                         'name_en' => $subSlug,
                         'is_core' => $manifest->slug === 'core',
                         'sort_order' => $index,
-                        'admin_nav' => $manifest->adminNav,
-                        'public_routes' => $manifest->publicRoutes,
-                    ]
+                        'admin_nav' => $manifest->adminNav !== null ? json_encode($manifest->adminNav) : null,
+                        'public_routes' => json_encode($manifest->publicRoutes),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]],
+                    ['module_slug', 'slug'],
+                    ['name_fa', 'name_en', 'is_core', 'sort_order', 'admin_nav', 'public_routes', 'updated_at']
                 );
             }
         }
@@ -57,6 +62,9 @@ final class ModuleRegistry
                     'sort_order' => array_search($slug, SiteTypeProfiles::TYPES, true) ?: 0,
                 ]
             );
+
+            // Ensure every parent module slug from the profile exists before activations.
+            TenantActivationService::ensureDashboardModules(array_keys($profile['modules']));
 
             SiteTypeActivation::query()->where('site_type_slug', $slug)->delete();
 
