@@ -17,6 +17,7 @@ use App\Support\CapabilityChecker;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Aggregated admin home overview (parity with WP Webino_Dashboard_Home_Overview).
@@ -127,8 +128,13 @@ final class DashboardOverviewBuilder
                 $payload['products'] = $this->productsSection($tid);
                 $sections[] = 'products';
             } catch (\Throwable $e) {
+                // Soft-fail: expose error for logs/clients but skip section registration
+                // so the home UI never renders half-shaped sales/products widgets.
                 $payload['products'] = ['error' => $e->getMessage()];
-                $sections[] = 'products';
+                Log::warning('dashboard.overview.products_failed', [
+                    'tenant_id' => $tid,
+                    'message' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -142,7 +148,10 @@ final class DashboardOverviewBuilder
                 $sections[] = 'sales';
             } catch (\Throwable $e) {
                 $payload['sales'] = ['error' => $e->getMessage()];
-                $sections[] = 'sales';
+                Log::warning('dashboard.overview.sales_failed', [
+                    'tenant_id' => $tid,
+                    'message' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -159,7 +168,10 @@ final class DashboardOverviewBuilder
                 $sections[] = 'fulfillment';
             } catch (\Throwable $e) {
                 $payload['fulfillment'] = ['error' => $e->getMessage()];
-                $sections[] = 'fulfillment';
+                Log::warning('dashboard.overview.fulfillment_failed', [
+                    'tenant_id' => $tid,
+                    'message' => $e->getMessage(),
+                ]);
             }
         }
 

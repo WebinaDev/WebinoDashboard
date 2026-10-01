@@ -148,7 +148,7 @@ export function HomeMiniCardsStrip({
       {products ? (
         <MiniCard
           title={t("sections.products")}
-          value={formatNumber(products.total, lng)}
+          value={formatNumber(products.total ?? 0, lng)}
           hint={t("products.total")}
           href="/dashboard/products"
           icon={Package}

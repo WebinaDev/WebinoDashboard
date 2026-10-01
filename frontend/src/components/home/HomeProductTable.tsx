@@ -34,7 +34,7 @@ function productId(row: DashboardOverviewProductRow, index: number) {
 
 export function HomeProductTable({
   title,
-  rows,
+  rows = [],
   viewAllHref,
   emptyMessage,
   metricKey,

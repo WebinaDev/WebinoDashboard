@@ -53,12 +53,14 @@ export function MoneyDisplay({
 }: MoneyDisplayProps) {
   const locale = normalizeUiLocale(useLocale())
   const store = useStoreCurrency(!currency || !symbol)
-  const code = currency ? normalizeStoreCurrency(currency) : store.currency
+  const code = currency
+    ? normalizeStoreCurrency(currency)
+    : normalizeStoreCurrency(store?.currency)
   const symbolId = symbol
     ? normalizeCurrencySymbol(code, symbol)
-    : currency && code !== store.currency
+    : currency && code !== normalizeStoreCurrency(store?.currency)
       ? defaultSymbolForCurrency(code)
-      : store.symbol
+      : normalizeCurrencySymbol(code, store?.symbol)
 
   return (
     <span className={cn("inline-flex items-baseline gap-1 whitespace-nowrap", className)} dir="ltr">

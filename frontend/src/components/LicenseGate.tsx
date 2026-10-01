@@ -28,12 +28,12 @@ export function LicenseSoftBanner() {
     setHidden(Date.now() < dismissedUntil())
   }, [])
 
-  if (!data || data.license.active || hidden) return null
+  if (!data || data.license?.active || hidden) return null
 
   return (
     <div className="border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p>{data.license.unreachable ? t("unreachable_banner") : t("inactive_banner")}</p>
+        <p>{data.license?.unreachable ? t("unreachable_banner") : t("inactive_banner")}</p>
         <div className="flex gap-2">
           <Button type="button" size="sm" variant="outline" asChild>
             <Link href="/dashboard/license">{t("open_license")}</Link>

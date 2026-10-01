@@ -249,3 +249,79 @@ export type DashboardOverviewResponse = {
     tickets_open?: number
   }
 }
+
+
+/** Soft-fail helpers: overview builder may attach `{ error }` stubs for failed sections. */
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === "object" && !Array.isArray(value)
+}
+
+/** True when the payload is only an error stub (no usable section fields). */
+export function isOverviewErrorStub(value: unknown): boolean {
+  if (!isRecord(value)) return false
+  if (typeof value.error !== "string") return false
+  // Real sections always carry domain keys; stubs are `{ error }` only.
+  const keys = Object.keys(value).filter((k) => k !== "error")
+  return keys.length === 0
+}
+
+export function asOverviewSales(
+  value: unknown,
+): DashboardOverviewSales | undefined {
+  if (!isRecord(value) || isOverviewErrorStub(value)) return undefined
+  if (!isRecord(value.summary)) return undefined
+  return value as unknown as DashboardOverviewSales
+}
+
+export function asOverviewProducts(
+  value: unknown,
+): DashboardOverviewProductStats | undefined {
+  if (!isRecord(value) || isOverviewErrorStub(value)) return undefined
+  if (typeof value.total !== "number") return undefined
+  return value as unknown as DashboardOverviewProductStats
+}
+
+export function asOverviewTraffic(
+  value: unknown,
+): DashboardOverviewTraffic | undefined {
+  if (!isRecord(value) || isOverviewErrorStub(value)) return undefined
+  if (typeof value.online !== "number" && value.online !== undefined) return undefined
+  // Require highlight or online key so `{error}` and empty junk are rejected.
+  if (!("online" in value) && !("highlight" in value)) return undefined
+  return value as unknown as DashboardOverviewTraffic
+}
+
+export function asOverviewFulfillment(
+  value: unknown,
+): DashboardOverviewFulfillment | undefined {
+  if (!isRecord(value) || isOverviewErrorStub(value)) return undefined
+  if (!("pack" in value) && !("ship" in value)) return undefined
+  return value as unknown as DashboardOverviewFulfillment
+}
+
+export function asOverviewComments(
+  value: unknown,
+):
+  | {
+      items: DashboardOverviewCommentRow[]
+      counts: { hold: number; approved: number; spam: number; trash: number }
+    }
+  | undefined {
+  if (!isRecord(value) || isOverviewErrorStub(value)) return undefined
+  if (!Array.isArray(value.items)) return undefined
+  return value as {
+    items: DashboardOverviewCommentRow[]
+    counts: { hold: number; approved: number; spam: number; trash: number }
+  }
+}
+
+export function asOverviewPanels(
+  value: unknown,
+): DashboardOverviewPanels | undefined {
+  if (!isRecord(value) || isOverviewErrorStub(value)) return undefined
+  if (!isRecord(value.license) && !isRecord(value.woocommerce) && !isRecord(value.analytics)) {
+    return undefined
+  }
+  return value as unknown as DashboardOverviewPanels
+}

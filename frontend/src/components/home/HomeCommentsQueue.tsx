@@ -26,8 +26,8 @@ type HomeCommentsQueueProps = {
 }
 
 export function HomeCommentsQueue({
-  items,
-  holdCount,
+  items = [],
+  holdCount = 0,
   locale,
 }: HomeCommentsQueueProps) {
   const t = useTranslations("home")

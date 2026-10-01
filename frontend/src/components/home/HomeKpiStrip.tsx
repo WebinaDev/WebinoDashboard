@@ -74,6 +74,10 @@ export function HomeKpiStrip({
   const tReports = useTranslations("reports")
   const lng = normalizeUiLocale(locale)
 
+  if (!summary || typeof summary !== "object") {
+    return null
+  }
+
   return (
     <section className="space-y-2" aria-label={t("sections.sales")}>
       <h2 className="text-sm font-semibold tracking-tight">{t("sections.kpis")}</h2>

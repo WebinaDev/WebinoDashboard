@@ -22,6 +22,12 @@ export function HomeProductStatsCard({
   const t = useTranslations("home")
   const lng = normalizeUiLocale(locale)
 
+  if (!stats || typeof stats.total !== "number") {
+    return null
+  }
+  const byStatus = stats.by_status ?? {}
+  const byStock = stats.by_stock ?? {}
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -49,11 +55,11 @@ export function HomeProductStatsCard({
             </p>
             <ul className="space-y-0.5">
               {STATUS_KEYS.map((key) =>
-                stats.by_status[key] ? (
+                byStatus[key] ? (
                   <li key={key} className="flex justify-between gap-2">
                     <span>{t(`products.by_status.${key}`)}</span>
                     <span className="font-medium">
-                      {formatNumber(stats.by_status[key], lng)}
+                      {formatNumber(byStatus[key], lng)}
                     </span>
                   </li>
                 ) : null,
@@ -69,7 +75,7 @@ export function HomeProductStatsCard({
                 <li key={key} className="flex justify-between gap-2">
                   <span>{t(`products.by_stock.${key}`)}</span>
                   <span className="font-medium">
-                    {formatNumber(stats.by_stock[key] ?? 0, lng)}
+                    {formatNumber(byStock[key] ?? 0, lng)}
                   </span>
                 </li>
               ))}

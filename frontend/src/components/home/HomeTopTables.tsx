@@ -21,7 +21,7 @@ type TopCategoriesTableProps = {
 }
 
 export function TopCategoriesTable({
-  rows,
+  rows = [],
   currency,
   locale,
 }: TopCategoriesTableProps) {
@@ -78,7 +78,7 @@ type TopCustomersTableProps = {
 }
 
 export function TopCustomersTable({
-  rows,
+  rows = [],
   currency,
   locale,
 }: TopCustomersTableProps) {

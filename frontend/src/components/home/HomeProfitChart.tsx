@@ -22,7 +22,7 @@ type ProfitChartProps = {
 }
 
 export function HomeProfitChart({
-  series,
+  series = [],
   compareSeries = [],
   locale,
 }: ProfitChartProps) {

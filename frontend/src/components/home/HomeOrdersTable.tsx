@@ -52,7 +52,7 @@ function statusBadgeVariant(
 
 export function HomeOrdersTable({
   title,
-  rows,
+  rows = [],
   monthLabel,
   viewAllHref,
   orderHrefBase = "/dashboard/orders",

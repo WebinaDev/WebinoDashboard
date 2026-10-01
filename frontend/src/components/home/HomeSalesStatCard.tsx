@@ -28,21 +28,28 @@ export function HomeSalesStatCard({
   const t = useTranslations("home")
   const tReports = useTranslations("reports")
   const lng = normalizeUiLocale(locale)
+  const series = sales?.series ?? []
+  const compareSeries = sales?.compare_series ?? []
+  const summary = sales?.summary
   const chartData = useMemo(
     () =>
-      sales.series.map((row, idx) => ({
+      series.map((row, idx) => ({
         label: row.label,
         revenue: row.revenue,
         orders: row.orders,
-        compareRevenue: sales.compare_series[idx]?.revenue ?? 0,
+        compareRevenue: compareSeries[idx]?.revenue ?? 0,
       })),
-    [sales.series, sales.compare_series],
+    [series, compareSeries],
   )
   const revenueDelta = pctDelta(
-    sales.summary.revenue,
-    sales.compare_summary?.revenue,
+    summary?.revenue ?? 0,
+    sales?.compare_summary?.revenue,
   )
   const gradId = "home-sales-revenue-fill"
+
+  if (!summary) {
+    return null
+  }
 
   const axisFmt = (v: number | string) =>
     formatNumber(typeof v === "number" ? v : Number(v) || 0, lng)
@@ -60,13 +67,13 @@ export function HomeSalesStatCard({
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">{sales.month_label}</p>
         <MoneyDisplay
-          amount={sales.summary.revenue}
+          amount={summary.revenue ?? 0}
           currency={currency}
           className="text-2xl font-semibold"
         />
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span>
-            {formatNumber(sales.summary.order_count, lng)} {tReports("orders")}
+            {formatNumber(summary.order_count ?? 0, lng)} {tReports("orders")}
           </span>
           <ChangePctBadge value={revenueDelta} />
         </div>

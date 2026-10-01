@@ -22,9 +22,15 @@ import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
 import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
-import type {
-  DashboardOverviewPanels,
-  DashboardOverviewResponse,
+import {
+  asOverviewComments,
+  asOverviewFulfillment,
+  asOverviewPanels,
+  asOverviewProducts,
+  asOverviewSales,
+  asOverviewTraffic,
+  type DashboardOverviewPanels,
+  type DashboardOverviewResponse,
 } from "@/types/dashboardOverview"
 
 const HomeSalesStatCard = lazy(() =>
@@ -138,19 +144,25 @@ export default function DashboardHome({
   }, [overview.data?.panels, smsPanelQ.data])
 
   const data = overview.data
-  const hasSection = (id: string) => data?.sections.includes(id) ?? false
-  const currency = data?.sales?.currency || undefined
+  const hasSection = (id: string) => data?.sections?.includes(id) ?? false
+  const sales = asOverviewSales(data?.sales)
+  const products = asOverviewProducts(data?.products)
+  const traffic = asOverviewTraffic(data?.traffic)
+  const fulfillment = asOverviewFulfillment(data?.fulfillment)
+  const comments = asOverviewComments(data?.comments)
+  const safePanels = asOverviewPanels(panels) ?? panels
+  const currency = sales?.currency || undefined
   const showLoading = overview.isLoading && !overview.data
 
   if (isPortalOnly) {
     return <HomeOverviewSkeleton />
   }
 
-  const licenseActive = panels?.license?.active ?? false
-  const trafficActive = panels?.analytics?.active ?? data?.traffic?.active ?? false
-  const trafficOnline = panels?.analytics?.online ?? data?.traffic?.online ?? 0
+  const licenseActive = safePanels?.license?.active ?? false
+  const trafficActive = safePanels?.analytics?.active ?? traffic?.active ?? false
+  const trafficOnline = safePanels?.analytics?.online ?? traffic?.online ?? 0
   const shopActive =
-    panels?.woocommerce?.active ?? Boolean(data?.products || data?.sales) ?? false
+    safePanels?.woocommerce?.active ?? Boolean(products || sales) ?? false
 
   return (
     <div className="space-y-5">
@@ -186,11 +198,15 @@ export default function DashboardHome({
         </div>
       ) : (
         <div className="space-y-4 sm:space-y-6">
-          <HomeActionBar alerts={data?.alerts} tasks={data?.tasks} locale={lng} />
+          <HomeActionBar
+            alerts={data?.alerts}
+            tasks={data?.tasks && !("error" in data.tasks) ? data.tasks : undefined}
+            locale={lng}
+          />
 
           <HomeMiniCardsStrip
-            panels={panels}
-            products={data?.products}
+            panels={safePanels}
+            products={products}
             locale={lng}
             smsRefetch={smsRefetch}
             licenseActive={licenseActive}
@@ -200,7 +216,8 @@ export default function DashboardHome({
           />
 
           {(hasSection("account") || hasSection("partner")) &&
-          (data?.account || data?.partner) ? (
+          ((data?.account && !("error" in data.account)) ||
+            (data?.partner && !("error" in data.partner))) ? (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold tracking-tight">
                 {t("partner.title")}
@@ -242,23 +259,23 @@ export default function DashboardHome({
             </section>
           ) : null}
 
-          {hasSection("sales") && data?.sales ? (
+          {hasSection("sales") && sales ? (
             <HomeKpiStrip
-              summary={data.sales.summary}
-              compareSummary={data.sales.compare_summary}
+              summary={sales.summary}
+              compareSummary={sales.compare_summary}
               currency={currency}
               locale={lng}
             />
           ) : null}
 
-          {hasSection("fulfillment") && data?.fulfillment ? (
+          {hasSection("fulfillment") && fulfillment ? (
             <section className="space-y-2">
               <h2 className="text-sm font-semibold tracking-tight">
                 {t("sections.fulfillment")}
               </h2>
               <div className="grid gap-4 lg:grid-cols-5 lg:gap-6">
                 <div className="min-w-0 lg:col-span-3">
-                  <HomeFulfillmentTodos fulfillment={data.fulfillment} />
+                  <HomeFulfillmentTodos fulfillment={fulfillment} />
                 </div>
                 <div className="min-w-0 lg:col-span-2">
                   <HomeOrderWorkflow />
@@ -272,11 +289,11 @@ export default function DashboardHome({
               {t("sections.charts")}
             </h2>
             <div className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-2">
-              {hasSection("sales") && data?.sales ? (
+              {hasSection("sales") && sales ? (
                 <div className="min-w-0 overflow-hidden">
                   <Suspense fallback={<HomeChartFallback />}>
                     <HomeSalesStatCard
-                      sales={data.sales}
+                      sales={sales}
                       currency={currency}
                       locale={lng}
                     />
@@ -284,54 +301,54 @@ export default function DashboardHome({
                 </div>
               ) : null}
 
-              {hasSection("traffic") && data?.traffic ? (
+              {hasSection("traffic") && traffic ? (
                 <div className="min-w-0 overflow-hidden">
                   <Suspense fallback={<HomeChartFallback />}>
                     <HomeTrafficAnalyticsPanel
-                      traffic={data.traffic}
+                      traffic={traffic}
                       locale={lng}
                     />
                   </Suspense>
                 </div>
               ) : null}
 
-              {hasSection("sales") && data?.sales ? (
+              {hasSection("sales") && sales ? (
                 <div className="min-w-0 overflow-hidden">
                   <Suspense fallback={<HomeChartFallback />}>
                     <HomeProfitChart
-                      series={data.sales.series}
-                      compareSeries={data.sales.compare_series}
+                      series={sales.series ?? []}
+                      compareSeries={sales.compare_series ?? []}
                       locale={lng}
                     />
                   </Suspense>
                 </div>
               ) : null}
 
-              {hasSection("products") && data?.products ? (
+              {hasSection("products") && products ? (
                 <div className="min-w-0 overflow-hidden">
-                  <HomeProductStatsCard stats={data.products} locale={lng} />
+                  <HomeProductStatsCard stats={products} locale={lng} />
                 </div>
               ) : null}
             </div>
           </section>
 
-          {hasSection("sales") && data?.sales ? (
+          {hasSection("sales") && sales ? (
             <Suspense fallback={<HomeChartFallback />}>
               <HomeOrdersBreakdown
                 locale={lng}
-                byStatus={data.sales.by_status ?? []}
-                byPayment={data.sales.by_payment ?? []}
-                byHour={data.sales.by_hour ?? []}
+                byStatus={sales.by_status ?? []}
+                byPayment={sales.by_payment ?? []}
+                byHour={sales.by_hour ?? []}
               />
             </Suspense>
           ) : null}
 
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-            {hasSection("sales") && data?.sales ? (
+            {hasSection("sales") && sales ? (
               <HomeOrdersTable
                 title={t("recent_orders")}
-                rows={data.sales.recent_orders}
-                monthLabel={data.sales.month_label}
+                rows={sales.recent_orders ?? []}
+                monthLabel={sales.month_label}
                 viewAllHref="/dashboard/orders"
                 emptyMessage={t("orders.empty_month")}
                 currency={currency}
@@ -339,16 +356,16 @@ export default function DashboardHome({
               />
             ) : null}
 
-            {hasSection("comments") && data?.comments ? (
+            {hasSection("comments") && comments ? (
               <HomeCommentsQueue
-                items={data.comments.items}
-                holdCount={data.comments.counts.hold}
+                items={comments.items ?? []}
+                holdCount={comments.counts?.hold ?? 0}
                 locale={lng}
               />
             ) : null}
           </div>
 
-          {hasSection("sales") && data?.sales ? (
+          {hasSection("sales") && sales ? (
             <section className="space-y-4">
               <h2 className="text-lg font-semibold tracking-tight">
                 {t("sections.lists")}
@@ -356,7 +373,7 @@ export default function DashboardHome({
               <div className="grid gap-4 sm:grid-cols-2">
                 <HomeProductTable
                   title={t("recent_products")}
-                  rows={data.sales.recent_products}
+                  rows={sales.recent_products ?? []}
                   viewAllHref="/dashboard/products"
                   emptyMessage={t("no_products")}
                   metricKey="price"
@@ -365,7 +382,7 @@ export default function DashboardHome({
                 />
                 <HomeProductTable
                   title={t("tables.top_products")}
-                  rows={data.sales.top_products}
+                  rows={sales.top_products ?? []}
                   viewAllHref="/dashboard/reports/overview"
                   emptyMessage={t("empty_hint")}
                   metricKey="revenue"
@@ -374,21 +391,21 @@ export default function DashboardHome({
                 />
                 <HomeProductTable
                   title={t("tables.top_by_views")}
-                  rows={data.sales.top_products_by_views}
+                  rows={sales.top_products_by_views ?? []}
                   viewAllHref="/dashboard/products"
                   emptyMessage={t("empty_hint")}
                   metricKey="views"
                   locale={lng}
                 />
                 <TopCategoriesTable
-                  rows={data.sales.top_categories}
+                  rows={sales.top_categories ?? []}
                   currency={currency}
                   locale={lng}
                 />
               </div>
               <div className="min-w-0 overflow-x-auto rounded-2xl">
                 <TopCustomersTable
-                  rows={data.sales.top_customers}
+                  rows={sales.top_customers ?? []}
                   currency={currency}
                   locale={lng}
                 />
