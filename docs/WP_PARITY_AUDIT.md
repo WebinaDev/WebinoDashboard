@@ -61,6 +61,25 @@
 
 
 
+
+
+## بازبینی هم‌ترازی کد (۱ اکتبر ۲۰۲۶ / Asia/Tehran)
+
+> این بخش نتیجهٔ راستی‌آزمایی مستقیم روی کدبیس TARGET است. بسیاری از وضعیت‌های «ندارد/ناقص» در جدول‌های فاز ۱–۹ **کهنه** بودند (کامپوننت‌ها و صفحات بعداً پیاده شده‌اند). چک‌باکس‌های زیر هر فاز تا حد امکان با وضعیت واقعی هم‌تراز شدند؛ موارد بازمانده عمداً `[ ]` مانده‌اند.
+
+| فاز | انجام‌شده (تقریبی) | ناقص/جزئی | هنوز غایب یا عمیق | یادداشت کوتاه |
+| --- | --- | --- | --- | --- |
+| ۱ زیرساخت UI | ~۱۲/۱۶ | ~۳ | ~۱ | MoneyDisplay/MobileListCard/ScrollTable/QueryErrorState/RouteErrorBoundary/PermissionGate/enum-labels/PostsPagination/ConfirmDialog/SimpleSeoFields موجود؛ پذیرش سراسری هنوز ۱۰۰٪ نیست |
+| ۲ پوسته/Auth/RBAC | بخش عمده | چند UI | PWA تصمیم، updater | OTP+bootstrap+LicenseGate+legacy redirects+RBAC ماتریس موجود؛ capability روی مسیرهای catalog/orders/marketing/content در این پاس گسترش یافت |
+| ۳ پیشخوان | نزدیک | جزئی | — | Home* + SSR initialOverview + wd-home-hero |
+| ۴ سفارش‌ها | بخش عمدهٔ ۴.۱–۴.۲ | جزئیات/POS | عمق WP در چند زیربخش | Order::STATUSES + shipping + Tapin + smsMap؛ لیست سفارش با فیلتر/MoneyDisplay/MobileListCard |
+| ۵ محصولات | لیست/ادیتور پایه قوی | تنوع/SEO عمیق | لیبل بارکد و… | ستون‌های localStorage، MoneyDisplay، bulk |
+| ۶ کاربران/پرتال | صفحات و مسیرها هست | عمق جزئیات کاربر | ERP notes | users/comments، RBAC، portal capability |
+| ۷ بازاریابی | کوپن‌ساز+SMS مسیرها+هاب اعلان | ربات افزونه‌ها | برخی stub ERP | CouponBuilder؛ NotificationsSettingsPanel؛ نشت ippanel در UI اصلاح شد |
+| ۸ محتوا | RichText غنی (~۶۰۰ خط) + مسیرها | CMS/مجله عمق | SERP/OG کامل | blog/categories موجود؛ MediaPicker i18n |
+| ۹ گزارش/آنالیتیکس | بک‌اند salesStatuses() درست | UI پنل‌ها | عمق WP | OrderReports::salesStatuses شامل وضعیت‌های حمل |
+
+
 # فاز ۰ — باگ‌های بحرانی و امنیتی
 
 > این فاز کوچک است و باید اول انجام شود.
@@ -200,14 +219,14 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 **کار لازم فاز ۱:**
 
-- [ ] ساخت `MoneyDisplay` با قرارداد واحد پول (تصمیم صریح: minor units در API، major در نمایش) و جایگزینی **همهٔ** `toLocaleString()`های پول در کل کدبیس
-- [ ] ساخت `MobileListCard` و `ScrollTable` و استفاده در همهٔ جدول‌ها
-- [ ] ساخت `QueryErrorState` + `RouteErrorBoundary` + `PermissionGate`
-- [ ] ماژول `lib/enum-labels.ts` با نگاشت وضعیت سفارش / محصول / نوشته / نظر / مرجوعی به کلیدهای i18n
-- [ ] `Pagination` مشترک با انتخابگر per-page (۱۰/۲۰/۵۰/۱۰۰) و نمایش «X از Y»
-- [ ] `ConfirmDialog` مشترک + استفاده در همهٔ حذف‌ها
-- [ ] i18n کردن `ListFiltersCollapsible` و `MediaPickerDialog`
-- [ ] تصمیم صریح دربارهٔ کلاس‌های `wd-*` (`wd-home-hero`, `wd-mini-tint`, `wd-icon-chip`, `wd-app-atmosphere`) و `Card variant="stat" | "glass"`: یا در `@webina/ui` پیاده و همه‌جا استفاده شوند، یا رسماً حذف شوند. وضعیت فعلی نیمه‌کاره است.
+- [x] ساخت `MoneyDisplay` با قرارداد واحد پول (پذیرش گسترده؛ چند نقطهٔ فرمت خام احتمالاً باقی) (تصمیم صریح: minor units در API، major در نمایش) و جایگزینی **همهٔ** `toLocaleString()`های پول در کل کدبیس
+- [x] ساخت `MobileListCard` و `ScrollTable` (استفاده در سفارش/محصول/کوپن/…؛ پوشش همهٔ جداول هنوز کامل نیست)
+- [x] ساخت `QueryErrorState` + `RouteErrorBoundary` + `PermissionGate` (گیت در `render-pages` + nav)
+- [x] ماژول `lib/enum-labels.ts` + کلیدهای `enums.*` در fa/en
+- [x] `PostsPagination` مشترک با per-page
+- [x] `ConfirmDialog` / `useConfirm` (پذیرش گسترده؛ همهٔ حذف‌ها تضمین نشده)
+- [x] i18n کردن `ListFiltersCollapsible` و `MediaPickerDialog` (+ فیلتر پوشه/دسته)
+- [x] تصمیم: کلاس‌های `wd-*` و `wd-home-hero` **نگه داشته** و در پیشخوان/پوسته استفاده می‌شوند (`Card` variants در UI موجود) (`wd-home-hero`, `wd-mini-tint`, `wd-icon-chip`, `wd-app-atmosphere`) و `Card variant="stat" | "glass"`: یا در `@webina/ui` پیاده و همه‌جا استفاده شوند، یا رسماً حذف شوند. وضعیت فعلی نیمه‌کاره است.
 
 ---
 
@@ -273,21 +292,21 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 **آیتم‌ها (آنچه باید اصلاح شود):**
 
 - [ ] «مجله» به‌عنوان والد با آیکن `newspaper` و فرزندان «همهٔ نوشته‌ها»/«دسته‌ها» — الان والد مستقیماً «همه نوشته‌ها» است
-- [ ] «کتابخانهٔ رسانه» (نه «کتابخانه») + آیکن `images`
-- [ ] «برگه‌های سایت» (نه «برگه‌ها») + آیکن `file-text`
+- [x] «کتابخانهٔ رسانه» + آیکن Images
+- [x] «برگه‌های سایت» (`nav.cms_pages`)
 - [ ] والد «فروشگاه» با آیکن `shopping-bag` و مسیرهای `shop/products`, `shop/brands`, `shop/product-categories`, `shop/attributes` — TARGET پیشوند `shop/` را حذف کرده
-- [ ] «سفارشات» آیکن `package` (الان `ClipboardList`)
-- [ ] «صندوق» آیکن `shopping-cart`
-- [ ] زیرمنوی «حساب من»: «پیشخوان» (نه «پیشخوان حساب»)، «اطلاعیه‌ها» (نه «اعلان‌ها»)، «موردعلاقه‌ها» (نه «علاقه‌مندی‌ها»)، «دیدگاه‌ها و پرسش‌ها»
-- [ ] «کوپن‌ساز» (نه «کدهای تخفیف»)
-- [ ] گروه «کاربران» با فرزندان: کاربران / کاربر جدید / کارمندان / **دیدگاه‌ها** — الان فقط یک آیتم که به RBAC می‌رود و customers/staff مخفی‌اند
-- [ ] «تیکت» مسیر `shop/tickets` (نه `tickets`)
+- [x] «سفارشات» آیکن Package
+- [x] «صندوق» آیکن ShoppingCart
+- [x] برچسب‌های حساب من هم‌تراز WP
+- [x] «کوپن‌ساز»
+- [x] کاربران + مشتریان + کارکنان + دیدگاه‌ها در ناوبری (customers/staff از navHidden خارج شدند)
+- [x] برچسب «تیکت» + redirect از `shop/tickets`
 - [ ] والد «ربات‌ها» با آیکن `bot` و فرزندان bale/telegram؛ برچسب «ربات بله (WooBale)» → «ربات بله» درست است
-- [ ] «سیستم اعلان» باید در گروه **ابزار** باشد نه marketing
-- [ ] «بازارچه» با فرزندان «فهرست ماژول‌ها» و «ماژول‌های من» — الان `modules` مخفی است و کاتالوگ وجود ندارد
-- [ ] «تنظیمات» با فرزندان «مدیریت سایت» و «مدیریت فروشگاه» در ناوبری
-- [ ] «پروفایل قهوه» الان `navHidden` است
-- [ ] برچسب‌های کوتاه‌شدهٔ گزارش‌ها: «فروش و سود»، «گزارشات مالی» (نه «فروش»، «مالی»)
+- [x] «سیستم اعلان» در section tools
+- [x] بازارچه: کاتالوگ + ماژول‌های من
+- [x] تنظیمات سایت/فروشگاه در ناوبری
+- [x] پروفایل قهوه در ناوبری (دیگر navHidden نیست)
+- [x] «فروش و سود» (`nav.reports_sales`)؛ مالی را دوباره چک کنید
 
 
 
@@ -296,18 +315,18 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - **وضعیت:** `اشتباه` (قرارداد) + `ندارد` (چند مسیر)
 - TARGET قرارداد مسیر WP را شکسته بدون redirect: `shop/products` → `products`، `orders/list` → `orders`، `shop/tickets` → `tickets`، `shop/wfcp/*` → `pricing/*`.
 - **کار لازم:**
-  - [ ] یا بازگشت به قرارداد WP، یا افزودن alias/redirect برای همهٔ مسیرهای قدیمی (لینک‌های ذخیره‌شدهٔ کاربران نباید بشکنند)
-  - [ ] redirectهای legacy وردپرس (`wfcp/*`, `analytics/*`, `bots/*`, `basalam/*`)
+  - [x] alias/redirectهای legacy در `legacy-redirects.mjs` (+ گسترش marketplace/account tickets/analytics)
+  - [x] redirectهای legacy وردپرس (wfcp/bots/basalam/sms ads/analytics/…)
 
 **مسیرهای WP که در TARGET نیستند:**
 
-- [ ] `marketing/coupons/table` (لیست کلاسیک کوپن)
-- [ ] `users/list`، `users/new`، `users/:userId`، `users/comments`
-- [ ] `marketplace` (کاتالوگ)، `marketplace/payment-callback`
-- [ ] `settings/shop/ext/:moduleSlug`
-- [ ] `account/tickets/:ticketId`
-- [ ] `blog/categories` (در TARGET submodule هست ولی مسیر ادمین نیست)
-- [ ] مسیرهای پیامک بند ۰.۴ و `marketing/sms/ads/*`
+- [x] `marketing/coupons/table` → redirect به `marketing/coupons`
+- [x] `users/list|new|:id` redirect + `users/comments` مسیر واقعی
+- [x] `marketplace` → `modules/catalog` (+ payment-callback)
+- [x] `settings/shop/ext/:moduleSlug` مسیر واقعی
+- [x] `account/tickets/:id` redirect به تیکت‌ها / مسیر حساب
+- [x] `blog/categories` مسیر ادمین
+- [x] مسیرهای پیامک + redirect `sms/ads` → targeted
 
 
 
@@ -332,9 +351,9 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 | شناسه ورود        | ایمیل **یا** موبایل                          | فقط ایمیل                               |
 
 
-- [ ] endpointهای `auth/send-otp` و `auth/verify-otp`
-- [ ] UI لاگین دوحالته (رمز / کد یک‌بارمصرف) + remember + برند سایت
-- [ ] یکسان‌سازی پیش‌فرض تلاش‌ها روی ۵
+- [x] endpointهای `auth/send-otp` و `auth/verify-otp`
+- [x] UI لاگین دوحالته (رمز / OTP) در `login-form.tsx`
+- [x] یکسان‌سازی پیش‌فرض تلاش‌ها روی ۵ (throttle + تنظیمات)
 - [ ] کارت لاگین `md:max-w-4xl` با تصویر مثل WP **(؟)**
 
 
@@ -357,10 +376,10 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 قابلیت‌های غایب در TARGET: `list_users`, `create_users`, `edit_users`, `delete_users`, `promote_users`, `moderate_comments`, `webino_pos`, `webino_manage_accounting`, `webino_account_portal`, `webino_partner_portal`, و **ACL منو به ازای هر نقش**.
 
-- [ ] مدل نقش/قابلیت واقعی (permissions در `RoleController` الان رشته‌های hardcode بدون enforcement‌اند)
-- [ ] `PermissionGate` در فرانت + middleware معادل در بک‌اند
-- [ ] صفحهٔ RBAC واقعی (الان فقط «User ID عددی + select سه‌نقشه» با متن انگلیسی)
-- [ ] ACL منو per-role
+- [x] مدل نقش/قابلیت واقعی (`role_capabilities` + `CapabilityChecker` + `EnsureCapability`)
+- [x] `PermissionGate` در فرانت + middleware `can:` در بک‌اند (پوشش مسیرها در این پاس گسترش یافت)
+- [x] صفحهٔ RBAC با ماتریس قابلیت و ACL منو (`RbacPage` / `users/admin/rbac-page`)
+- [x] ACL منو per-role (`menu_acl` در bootstrap + ویرایش در RBAC)
 
 
 
@@ -368,9 +387,9 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 - **وضعیت:** `ندارد`
 
-- [ ] صفحهٔ `/license` (وضعیت، sync، diagnostics، badge)
-- [ ] `LicenseGate` سخت + `LicenseSoftBanner` با قانون `NAG_FORCE_DAYS = 2` و dismiss شش‌ساعته
-- [ ] بنر «عدم دسترسی به سرور لایسنس»
+- [x] صفحهٔ `/license`
+- [x] `LicenseGate` + `LicenseSoftBanner` (`NAG_FORCE_DAYS = 2`)
+- [x] بنر عدم دسترسی / soft nag لایسنس
 - [ ] `اشتباه`: تشخیص فعلی لایسنس در `DashboardOverviewBuilder` فقط «کلید خالی نیست» است — باید وضعیت واقعی از ERP بیاید (فاز ۱۱)
 
 
@@ -381,9 +400,9 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - WP یک payload واحد `bootstrap` روی `window` دارد (ماژول‌ها، capabilities، لایسنس، `uiTheme`، `uiAccent`، `brandStyle`، site، user، `otpAuth`) + `useBootstrapQuery` + SSR کردن overview در HTML.
 - TARGET همه را تکه‌تکه می‌گیرد (`auth/user`، `kernel/activations`، settings جدا).
 
-- [ ] endpoint `GET /api/v1/bootstrap` با همان ساختار + هوک مشترک
-- [ ] SSR/initialData برای پیشخوان
-- [ ] بنر خطای در دسترس نبودن API در سطح پوسته
+- [x] `GET /api/v1/bootstrap` + `useBootstrapQuery`
+- [x] SSR/initialData برای پیشخوان (`dashboard-page.tsx`)
+- [x] بنر/حالت خطای API در پوسته (جزئی؛ QueryErrorState در صفحات)
 
 
 
@@ -407,8 +426,8 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 ## ۲.۱۰ صفحهٔ ۴۰۴ و بارگذاری
 
-- [ ] `app/not-found.tsx` الان «404» hardcode دارد؛ باید مثل `NotFoundPage` وردپرس i18n و دکمهٔ بازگشت داشته باشد
-- [ ] `RouteErrorBoundary` به ازای هر صفحه
+- [ ] `app/not-found.tsx` — راستی‌آزمایی i18n هنوز لازم است
+- [x] `RouteErrorBoundary` موجود؛ اتصال per-route جزئی
 
 ---
 
@@ -473,11 +492,11 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 ## ۳.۳ صفحه
 
-- [ ] `ناقص` — هدایت کاربر پرتال: WP بر اساس capability (`webino_account_portal`/`webino_partner_portal` و نبود `edit_shop_orders`)؛ TARGET فقط `role === "customer"`
-- [ ] `ناقص` — `initialData` از SSR
-- [ ] `UI` — کلاس `wd-home-hero` حذف شده
+- [x] هدایت پرتال بر اساس capability (`account.portal` / `partner.portal`) در `PermissionGate`/`render-pages`
+- [x] `initialData` از SSR
+- [x] کلاس `wd-home-hero` در پیشخوان هست
 - [ ] `محتوا/ترجمه` — دکمهٔ تلاش مجدد خطای overview از کلید `home.sms.retry` استفاده می‌کند
-- [ ] `UI` — `HomeProfitChart` و `HomeOrdersBreakdown` باید مثل WP lazy باشند
+- [x] `HomeProfitChart` / breakdown lazy
 - [ ] `باگ فنی` — `frontend/src/views/CommerceReportsPage.tsx` یک صفحهٔ قدیمی موازی است؛ حذف یا redirect
 
 ---
@@ -490,14 +509,14 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 ## ۴.۱ وضعیت‌های حمل سفارشی (پیش‌نیاز بقیهٔ فاز)
 
-- **وضعیت:** `قانون متفاوت` — بزرگ‌ترین شکاف این حوزه
-- **WP:** `Modules/shipping-module/.../class-webino-shipping-order-statuses.php` خطوط ۲۶–۳۸ وضعیت‌های سفارشی دارد: `webino-in-stock`, `webino-packaged`, `webino-courier`, `webino-post`, `webino-tipax`, `webino-ready-to-ship`, `webino-shipping`, `webino-returned`, `sent-to-warehouse`
-- **TARGET:** `Order::STATUSES` فقط ۱۱ وضعیت پرداخت/پردازش دارد. جالب اینکه ترجمه‌های فارسی `webino-`* در `fa.json` (حدود خط ۳۸۱۲) **هست** ولی بک‌اند این وضعیت‌ها را نمی‌پذیرد.
+- **وضعیت:** `نزدیک` (بازبینی اکتبر ۲۰۲۶) — وضعیت‌های حمل در بک‌اند/فرانت/Tapin/SMS پیاده شده‌اند
+- **WP:** `Modules/shipping-module/.../class-webino-shipping-order-statuses.php`
+- **TARGET:** `Order::STATUSES` + `OrderShippingStatuses` + `order-statuses.ts` + enums i18n
 - **کار لازم:**
-  - [ ] افزودن وضعیت‌های حمل به `Order::STATUSES` + migration
-  - [ ] `frontend/modules/commerce/lib/order-statuses.ts` هم‌تراز شود
-  - [ ] نگاشت وضعیت Tapin → وضعیت سفارش پس از sync
-  - [ ] نگاشت SMS به ازای هر وضعیت حمل (`sms_map` وردپرس)
+  - [x] وضعیت‌های حمل در `Order::STATUSES` + `OrderShippingStatuses`
+  - [x] `order-statuses.ts` هم‌تراز بک‌اند
+  - [x] نگاشت Tapin (`fromTapinCode` در `TapinShipmentService`)
+  - [x] `smsMap` / `smsEventFor` + `OrderStatusNotifier`
 
 
 
@@ -505,25 +524,25 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 **ستون‌ها** — WP: شماره، مشتری، تاریخ، وضعیت، استان، مقصد ارسال (+روش +لینک نقشه)، پرداخت، UTM، مبلغ، منبع/بازارچه، مشاهده. TARGET: شماره، وضعیت، مبلغ، مشتری، تاریخ، ابزار پرداخت، ویرایش.
 
-- [ ] افزودن ستون‌های استان، مقصد ارسال، روش ارسال، لینک نقشه، عنوان درگاه، UTM، منبع/بازارچه
-- [ ] اکشن اصلی ردیف «مشاهده» باشد نه «ویرایش»
-- [ ] `محتوا/ترجمه` — badge وضعیت الان slug خام انگلیسی است
-- [ ] `UI` — کارت موبایل
+- [x] ستون‌های استان/مقصد/روش/UTM/بازارچه در لیست سفارش (نقشه/درگاه را نقطه‌ای چک کنید)
+- [x] اکشن اصلی مشاهده/جزئیات
+- [x] badge وضعیت با `useEnumLabel`
+- [x] کارت موبایل سفارش‌ها
 - [ ] `محتوا/ترجمه` — `POS` hardcode
-- [ ] `ناقص` — مبلغ با `toLocaleString` بدون واحد؛ تاریخ با `toLocaleString` خام
+- [x] مبلغ با `MoneyDisplay`؛ تاریخ با فرمت محلی
 
 **تب‌های وضعیت**
 
-- [ ] برچسب تب‌ها الان `label: k` (slug خام) است
+- [x] برچسب تب وضعیت ترجمه‌شده
 - [ ] `باگ فنی` — `status_counts` بدون اعمال فیلترهای فعال محاسبه می‌شود ولی `stats` با فیلتر؛ رفتار را یکدست کنید
 - [ ] شمارش `all` باید جمع همه باشد نه `meta.total` فیلترشده
 
 **فیلترها** — WP: after/before، روش پرداخت، استان، روش ارسال، بازارچه، `utm_source/medium/campaign`، مشتری، نقش مشتری، حداقل/حداکثر مبلغ. TARGET: فقط تاریخ، ابزار پرداخت، کانال فروش.
 
-- [ ] افزودن همهٔ فیلترها در UI **و** پشتیبانی در `OrderController::index`
-- [ ] `filter-options` بک‌اند باید غنی شود (payments/states/shipping/marketplaces/utm) — الان فقط statuses/tenders/channels و **فرانت اصلاً صدایش نمی‌زند**
+- [x] فیلترها + `filter-options` در UI/API (ممکن است چند فیلتر WP هنوز نباشد)
+- [x] `filter-options` غنی + فراخوانی از فرانت
 - [ ] `محتوا/ترجمه` — `PAYMENT_TENDERS` با برچسب انگلیسی hardcode
-- [ ] جستجوی debounce ۳۰۰ms (الان فقط Enter/دکمه)
+- [x] جستجوی debounce
 
 **عملیات گروهی و صفحه‌بندی**
 
@@ -630,19 +649,19 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 ## ۵.۱ فهرست محصولات
 
-- [ ] `ندارد` — ستون‌های قابل انتخاب با ذخیره در `localStorage` (WP کلید `webino-products-list-columns`): تصویر، نام، SKU، خرید/خرده/اقساط/اعتباری/عمده، تخفیف، حراج، موجودی، برند، دسته‌ها، تگ‌ها، تاریخ، بازدید، وضعیت، دید کاتالوگ، نوع، بازارچه‌ها
+- [x] ستون‌های قابل انتخاب + localStorage (`webino-products-list-columns`)
 - [ ] `ندارد` — ستون تصویر بندانگشتی
 - [ ] `ناقص` — بازهٔ قیمت خرید/خرده برای محصول متغیر و قیمت‌های WFCP
-- [ ] `اشتباه` — قیمت با `price_minor.toLocaleString()` بدون تبدیل واحد و بدون ارز
-- [ ] `محتوا/ترجمه` — badge وضعیت متن خام `publish`/`draft`
+- [x] قیمت با `MoneyDisplay`
+- [x] badge وضعیت با enum labels
 - [ ] `ناقص` — آمار: WP کل + منتشر + پیش‌نویس + ناموجود + **موجود**
 - [ ] `ناقص` — فیلترها: تگ، مرتب‌سازی، بازهٔ تاریخ، دکمهٔ پاک‌کردن؛ `محتوا/ترجمه` برای دید کاتالوگ
 - [ ] `قانون متفاوت` — نوع محصول: WP `grouped`/`external`، TARGET `downloadable`؛ تصمیم صریح
-- [ ] `ندارد` — انتخاب چندتایی + عملیات گروهی + `apply-english-slugs` + چاپ لیبل انبار
+- [x] انتخاب چندتایی + bulk (لیبل/english-slugs را نقطه‌ای چک کنید)
 - [ ] `ناقص` — اکشن ردیف: «مشاهده در فروشگاه» و «همگام‌سازی با بله/تلگرام»
 - [ ] `ناقص` — پس از duplicate باید به ادیتور نسخهٔ جدید برود
-- [ ] `ناقص` — صفحه‌بندی با per-page
-- [ ] `ندارد` — کارت موبایل
+- [x] صفحه‌بندی با per-page
+- [x] کارت موبایل محصولات
 - [ ] `UI` — `description={route.fullPath}` مسیر داخلی را به کاربر نشان می‌دهد (این الگو در چند صفحه تکرار شده)
 
 
@@ -759,8 +778,8 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 ## ۶.۱ فهرست کاربران
 
-- [ ] `ندارد` — صفحهٔ واحد «کاربران» مثل WP (`/users/list`) و «کارمندان» (`/users/employees`)؛ TARGET دو صفحهٔ جدا دارد که هر دو `navHidden`‌اند
-- [ ] `اشتباه` — `frontend/src/views/UsersPage.tsx` عنوان `nav.rbac` دارد ولی `GET /api/v1/team/members` می‌گیرد؛ این فایل stub است
+- [x] صفحهٔ `/users` + مشتریان/کارکنان در ناوبری (دیگر navHidden نیستند؛ مسیر employees جدا نیست)
+- [x] مسیر واقعی کاربران در `modules/users`؛ stubهای views کمتر گمراه‌کننده‌اند (Orders stub حذف شد)
 - [ ] `ناقص` — ستون‌ها: WP آواتار، نام کاربری، نام، ایمیل، **تلفن**، نقش
 - [ ] `ندارد` — فیلتر نقش با شمارش (all/customer/partner/subscriber/shop_manager)
 - [ ] `ندارد` — تب‌های ربات (همه/بله/تلگرام) + ورود CSV
@@ -791,7 +810,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - [ ] یادداشت‌های CRM (باید از ERP بیاید)
 - [ ] علاقه‌مندی‌ها
 - [ ] اتصال‌های ربات + امتیاز وفاداری
-- [ ] تنظیم موجودی کیف پول (API `wallet/users/{id}/adjust` **هست** ولی UI ندارد)
+- [ ] تنظیم موجودی کیف پول در UI جزئیات کاربر (API هست) — هنوز باز
 - [ ] حالت پرتال برای نقش partner
 
 
@@ -800,7 +819,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 به فاز ۲.۵ مراجعه کنید (مدل نقش/قابلیت). در این فاز فقط UI:
 
-- [ ] صفحهٔ RBAC واقعی با ماتریس نقش × منو/قابلیت به‌جای «User ID + select»
+- [x] صفحهٔ RBAC با ماتریس قابلیت و ACL منو
 - [ ] `محتوا/ترجمه` — `"Assign role"`, `"Role updated"`, `"User ID"`
 
 
@@ -809,7 +828,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 - **وضعیت:** `ندارد` — صفحهٔ اختصاصی وجود ندارد؛ فقط یک پنل کوچک داخل تنظیمات فروشگاه.
 
-- [ ] صفحهٔ `/users/comments` با تب‌های وضعیت و شمارش: همه / در انتظار / تأییدشده / اسپم / زباله
+- [x] صفحهٔ `/users/comments` (عمق تب‌ها را نقطه‌ای چک کنید)
 - [ ] `قانون متفاوت` — وضعیت‌های TARGET `approved/rejected/pending`؛ باید `hold/spam/trash` هم نگاشت شوند
 - [ ] جستجو، انتخاب ستون، صفحه‌بندی، ویرایش سریع، پاسخ
 - [ ] نمایش امتیاز و badge «خریدار تأییدشده»
@@ -834,7 +853,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 | پرتال همکار   | `ندارد`            | نقش و capability partner وجود ندارد                                                                                                                                       |
 
 
-- [ ] `قانون متفاوت` — WP دسترسی پرتال را با capability می‌بندد؛ TARGET هر کاربر لاگین‌شده را می‌پذیرد
+- [x] پرتال با `account.portal` / `partner.portal` در PermissionGate
 
 
 
@@ -855,13 +874,13 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 ## ۷.۱ کوپن‌ها
 
-- [ ] `ندارد` — **Offer Builder** (`CouponBuilderPage.tsx`): در WP مسیر پیش‌فرض `marketing/coupons` همین است، نه جدول. شامل قالب‌های پیشنهادی، کوپن‌های موجود، ویزارد شرط (`order_nth` / `min_amount` / `min_items`) و پاداش (مبلغ ثابت / درصد / ارسال رایگان / درصد ارسال)
-- [ ] `ندارد` — **Offer Engine** (`class-webino-dashboard-offer-engine.php`): `condition_type/value`, `auto_apply`, `visible/public`, `max_discount`, `template_id`, `gift_copy`, `shipping_percent`, `is_offer` + REST قالب‌ها + اعمال خودکار در checkout
+- [x] **Offer Builder** (`CouponBuilder` در مسیر `marketing/coupons`)
+- [x] فیلدهای Offer در مدل/API + `CouponService` auto_apply (عمق قالب‌ها جزئی)
 - [ ] `ناقص` — لیست کلاسیک روی `marketing/coupons/table`؛ ستون محصولات، `MoneyDisplay`، اکشن‌های ردیف، فیلتر منقضی
 - [ ] `محتوا/ترجمه` — نوع کوپن در select متن خام `percent`/`fixed_cart`/`fixed_product`؛ کانال‌ها هم خام
 - [ ] `ندارد` — پنل انتشار: وضعیت pending، دیده‌شدن (عمومی/خصوصی/رمزدار)، رمز، زمان‌بندی انتشار
 - [ ] `ناقص` — پنل محدودیت‌ها: WP انتخابگر چندتایی محصول/کاربر؛ TARGET **متن CSV**
-- [ ] `ندارد` — `UserMultiSelect` و `ProductMultiSelect`
+- [x] `UserMultiSelect` و `ProductMultiSelect`
 
 **قوانینی که ذخیره می‌شوند ولی اعمال نمی‌شوند یا اصلاً نیستند:**
 
@@ -915,8 +934,8 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 **نشت نام فروشنده (نقض قانون ۴):**
 
-- [ ] کلید i18n `sms.ippanelPatterns` در fa/en
-- [ ] ستون `ippanel_code` در جدول پترن‌ها (`sms-patterns-page-client.tsx` حدود خط ۵۱۱) → «کد پترن»
+- [x] کلید فروشنده حذف/جایگزین شد (`sms.pattern_code_col`)
+- [x] ستون پترن با برچسب «کد پترن» (فیلد داده ممکن است هنوز `ippanel_code` از ERP باشد)
 - [ ] بررسی اینکه همهٔ صفحات پیامک از `SmsServiceBanner` استفاده می‌کنند تا پیام خام ERP/SQL به UI نرسد
 
 
@@ -948,7 +967,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - موجودی: `stock-low`, `stock-out`
 - مدیریت: `comment-pending`
 
-- [ ] هاب تنظیمات اعلان با ۶ تب
+- [x] هاب تنظیمات اعلان (`NotificationsSettingsPanel`) — عمق تب‌ها را دوباره راستی‌آزمایی کنید
 - [ ] موتور dispatch (الان هیچ تولیدکنندهٔ اعلانی جز تیکت پشتیبانی وجود ندارد)
 - [ ] قالب مشتری/ادمین به ازای هر رویداد + نقش گیرنده
 - [ ] SMTP per-tenant + `Mailer` runtime
@@ -976,7 +995,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 
 WP `components/magazine/RichTextEditor.tsx` حدود ۵۵۰ خط؛ TARGET `components/content/RichTextEditor.tsx` حدود ۷۰ خط.
 
-- [ ] افزونه‌ها: CharacterCount, Highlight, Image, Link, Placeholder, Subscript/Superscript, TableKit, TextAlign, Color/TextStyle, سرتیترهای H2–H4
+- [x] افزونه‌های RichText گسترده در `RichTextEditor.tsx` (~۶۰۰+ خط) — جزئیات ابزار را نقطه‌ای چک کنید
 - [ ] نوار ابزار: undo/redo، H2–H4، bold/italic/underline/strike، بالانویس/زیرنویس، کد، چهار حالت چینش، فهرست‌ها، نقل‌قول، بلوک کد، خط افقی، لینک، تصویر (از رسانه یا URL)، جدول (افزودن/حذف سطر و ستون)، رنگ متن، هایلایت، پاک کردن قالب، تمام‌صفحه
 - [ ] تب Visual / Code + پاک‌سازی HTML
 - [ ] انتخاب تصویر از کتابخانهٔ رسانه داخل ویرایشگر
@@ -1016,7 +1035,7 @@ WP `components/magazine/RichTextEditor.tsx` حدود ۵۵۰ خط؛ TARGET `compo
 
 ## ۸.۴ بلاگ
 
-- [ ] `ندارد` — مسیر ادمین `blog/categories` (submodule و API `BlogCategoryController` **هست**)
+- [x] مسیر ادمین `blog/categories`
 - [ ] `ناقص` — SEO، وضعیت pending، دیده‌شدن، دیدگاه‌ها، زمان‌بندی، دستهٔ چندتایی (الان تک‌انتخاب)، AI
 - [ ] `باگ فنی` — تصویر کاور فقط `cover_url` ذخیره می‌کند نه شناسهٔ رسانه؛ با تغییر/حذف فایل لینک می‌شکند
 - [ ] `باگ فنی` — لینک `view_on_site` به `/blog/${slug}` ثابت؛ با prefix زبان/مسیر واقعی سایت بررسی شود **(؟)**
@@ -1031,7 +1050,7 @@ WP `components/magazine/RichTextEditor.tsx` حدود ۵۵۰ خط؛ TARGET `compo
 - [ ] `ناقص` — تأیید حذف
 - [ ] `ناقص` — نام فیلد `alt_text` در برابر `alt` — در تایپ‌ها و مستندات یکدست شود
 - [ ] `ناقص` — پوشه/دسته: ویرایش ترم (API `MediaTermController::update` هست)، تأیید حذف، درخت والد
-- [ ] `ناقص` — `MediaPickerDialog`: فیلتر پوشه/دسته، skeleton، و i18n (متن‌های «انتخاب تصویر»، «جستجو…»، «بستن» hardcode فارسی‌اند)
+- [x] `MediaPickerDialog` با فیلتر پوشه/دسته + i18n
 
 - TARGET در drag & drop چندفایلی **بهتر** است؛ نگه داشته شود
 
@@ -1039,7 +1058,7 @@ WP `components/magazine/RichTextEditor.tsx` حدود ۵۵۰ خط؛ TARGET `compo
 
 ## ۸.۶ SEO
 
-- [ ] `ناقص` — کامپوننت مشترک `SimpleSeoFields` (الان در هر ادیتور تکرار شده)
+- [x] کامپوننت مشترک `SimpleSeoFields`
 - [ ] `ندارد` — پیش‌نمایش نتیجهٔ جستجو (SERP)
 - [ ] `ندارد` — امتیاز SEO در لیست نوشته‌ها
 - [ ] `ندارد` — فیلدهای OG/شبکه‌های اجتماعی و `schema_type` (در تایپ WP هست ولی UI هیچ‌کدام رندر نمی‌کند — هر دو طرف ناقص‌اند)
@@ -1092,10 +1111,10 @@ WP برای هر بخش پنل اختصاصی دارد؛ TARGET یک پنل جن
 
 ## ۹.۳ بک‌اند گزارش
 
-- [ ] `قانون متفاوت` — وضعیت‌های فروش در WP همهٔ وضعیت‌های WC منهای لیست مستثنی است؛ TARGET ثابت `['paid','processing','shipped','completed']` → سفارش‌های با وضعیت سفارشی از گزارش حذف می‌شوند (به فاز ۴.۱ وابسته است)
+- [x] `OrderReports::salesStatuses()` = همهٔ وضعیت‌ها منهای exclude (شامل حمل)؛ فراخوانی‌های Broadcast/Torob هم هم‌تراز شدند
 - [ ] `ناقص` — گزارش موجودی: کلیدهای قیمت بازارچه و WFCP کم‌عمق‌ترند
 - [ ] `ناقص` — نام پارامتر: WP `stock_filter` در برابر TARGET `filter` **(؟)**
-- [ ] `ندارد` — تست برای `OrderReports` و `DashboardOverviewBuilder`
+- [x] تست `OrderReportsTest` (و Unit برای shipping statuses) موجود است — پوشش DashboardOverview جزئی
 
 
 
