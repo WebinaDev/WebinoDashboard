@@ -1,0 +1,171 @@
+{
+  "categories": [
+    {
+      "external_id": "cat-face",
+      "name": "آرایش صورت",
+      "slug": "face-makeup",
+      "description": "رژ و کرم پودر"
+    },
+    {
+      "external_id": "cat-lip",
+      "name": "رژ لب",
+      "slug": "lipstick",
+      "parent_external_id": "cat-face"
+    }
+  ],
+  "tags": [
+    {
+      "external_id": "tag-new",
+      "name": "جدید",
+      "slug": "new"
+    }
+  ],
+  "customers": [
+    {
+      "external_id": "user-12",
+      "source_guid": "https://parisma.ir/?author=12",
+      "first_name": "سارا",
+      "last_name": "کریمی",
+      "email": "sara@parisma.example",
+      "phone": "09120000000",
+      "role": "customer",
+      "billing": {
+        "first_name": "سارا",
+        "last_name": "کریمی",
+        "city": "تهران",
+        "address_1": "خیابان ولیعصر",
+        "phone": "09120000000"
+      }
+    }
+  ],
+  "products": [
+    {
+      "external_id": "100",
+      "source_guid": "https://parisma.ir/product/rose-lipstick",
+      "name": "رژ لب رز",
+      "slug": "rose-lipstick",
+      "sku": "LIP-ROSE",
+      "status": "publish",
+      "type": "variable",
+      "description": "<p>رژ لب مخملی با رنگ رز</p>",
+      "short_description": "ماندگاری بالا",
+      "regular_price": "120000",
+      "sale_price": "99000",
+      "currency": "IRT",
+      "manage_stock": true,
+      "stock_quantity": 14,
+      "stock_status": "instock",
+      "category_external_ids": ["cat-lip", "cat-face"],
+      "tag_external_ids": ["tag-new"],
+      "images": [
+        {
+          "external_id": "501",
+          "filename": "rose.jpg",
+          "alt": "رژ لب رز",
+          "data_base64": "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGf/9k="
+        }
+      ],
+      "attributes": [
+        {
+          "name": "رنگ",
+          "slug": "color",
+          "visible": true,
+          "variation": true,
+          "options": [
+            {"name": "رز", "slug": "rose"},
+            {"name": "مرجانی", "slug": "coral"}
+          ]
+        }
+      ],
+      "variations": [
+        {
+          "external_id": "101",
+          "sku": "LIP-ROSE-1",
+          "regular_price": "120000",
+          "sale_price": "99000",
+          "stock_quantity": 8,
+          "manage_stock": true,
+          "stock_status": "instock",
+          "attributes": {"رنگ": "رز"}
+        },
+        {
+          "external_id": "102",
+          "sku": "LIP-CORAL",
+          "regular_price": "120000",
+          "stock_quantity": 6,
+          "manage_stock": true,
+          "attributes": {"رنگ": "مرجانی"}
+        }
+      ]
+    }
+  ],
+  "orders": [
+    {
+      "external_id": "5001",
+      "number": "5001",
+      "status": "completed",
+      "currency": "IRT",
+      "created_at": "2026-03-15T10:30:00+03:30",
+      "customer_external_id": "user-12",
+      "total": "198000",
+      "subtotal": "198000",
+      "shipping": "0",
+      "payment_method": "zarinpal",
+      "line_items": [
+        {
+          "external_id": "line-1",
+          "product_external_id": "100",
+          "variation_external_id": "101",
+          "name": "رژ لب رز - رز",
+          "sku": "LIP-ROSE-1",
+          "quantity": 2,
+          "price": "99000"
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "external_id": "page-about",
+      "title": "درباره پریسما",
+      "slug": "about-parisma",
+      "status": "publish",
+      "content": "<p>گالری لوازم آرایش پریسما</p>"
+    }
+  ],
+  "posts": [
+    {
+      "external_id": "post-routine",
+      "title": "روتین پوست بهاری",
+      "slug": "spring-skin",
+      "status": "publish",
+      "excerpt": "سه گام ساده",
+      "content": "<p>پاکسازی، سرم، مرطوب‌کننده.</p>",
+      "published_at": "2026-03-01T08:00:00+03:30",
+      "categories": [{"external_id": "blog-beauty", "name": "زیبایی", "slug": "beauty"}],
+      "tags": [{"external_id": "blog-routine", "name": "روتین", "slug": "routine"}]
+    }
+  ],
+  "menus": [
+    {
+      "external_id": "menu-main",
+      "name": "منوی اصلی",
+      "location": "header",
+      "items": [
+        {"label": "خانه", "url": "/"},
+        {"label": "فروشگاه", "url": "https://parisma.ir/shop", "children": [
+          {"label": "رژ لب", "url": "/product-category/lipstick"}
+        ]}
+      ]
+    }
+  ],
+  "stats": [
+    {
+      "external_id": "2026-03",
+      "period": "2026-03",
+      "orders": 1,
+      "revenue_minor": 198000,
+      "currency": "IRT"
+    }
+  ]
+}

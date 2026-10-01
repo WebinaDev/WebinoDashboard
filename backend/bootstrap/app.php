@@ -64,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'user.active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'public.module' => \App\Http\Middleware\EnsurePublicModuleEnabled::class,
             'public.tenant' => \App\Http\Middleware\ResolvePublicTenant::class,
+            'token.scope' => \App\Http\Middleware\RestrictScopedApiTokens::class,
         ]);
         // Reject non-staff before route-model binding so record ids cannot be probed.
         $middleware->prependToPriorityList(

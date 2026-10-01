@@ -9,6 +9,8 @@ use App\Observers\MarketplaceOrderObserver;
 use App\Observers\MarketplaceProductObserver;
 use App\Observers\OrderStatusObserver;
 use App\Observers\ProductStockObserver;
+use App\Services\WordpressImport\RemoteAssetFetcher;
+use App\Services\WordpressImport\SafeRemoteFetcher;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
@@ -18,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(RemoteAssetFetcher::class, SafeRemoteFetcher::class);
     }
 
     public function boot(): void
