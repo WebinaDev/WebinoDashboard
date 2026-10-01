@@ -1,6 +1,13 @@
-import CommerceReportsPage from "@/views/CommerceReportsPage"
+"use client"
 
-/** @deprecated Prefer reports/overview shell; kept for legacy path resolution. */
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+
+/** Legacy `/dashboard/reports` path — send users to shop sales reports. */
 export default function ReportsPage() {
-  return <CommerceReportsPage />
+  const router = useRouter()
+  useEffect(() => {
+    router.replace("/dashboard/reports/sales")
+  }, [router])
+  return null
 }

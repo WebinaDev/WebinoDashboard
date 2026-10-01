@@ -150,7 +150,7 @@ export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
 
       <section className="mx-auto max-w-xl space-y-3 rounded-lg border border-border p-4 shadow-soft">
         <h3 className="text-sm font-semibold">{t("campaigns.import")}</h3>
-        <Textarea className="min-h-24 font-mono text-xs" placeholder="chat_id,phone,name" value={csv} onChange={(e) => setCsv(e.target.value)} />
+        <Textarea className="min-h-24 font-mono text-xs" placeholder={t("campaigns.csvPlaceholder")} value={csv} onChange={(e) => setCsv(e.target.value)} />
         <Button type="button" variant="secondary" disabled={importCsv.isPending || !csv.trim()} onClick={() => importCsv.mutate()}>
           {t("campaigns.import")}
         </Button>

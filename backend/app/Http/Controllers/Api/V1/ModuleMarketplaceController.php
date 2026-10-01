@@ -64,7 +64,7 @@ class ModuleMarketplaceController extends Controller
             return response()->json(['message' => 'module_slug or module_id required'], 422);
         }
 
-        $callback = $data['callback_url'] ?? url('/dashboard/modules/marketplace/payment-callback');
+        $callback = $data['callback_url'] ?? url('/dashboard/modules/payment-callback');
         $res = $client->purchase(
             $tenant->domain ?: $request->getHost(),
             array_merge($data, ['callback_url' => $callback]),

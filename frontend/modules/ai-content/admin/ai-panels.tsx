@@ -559,13 +559,13 @@ export function AiSettingsStudioPanel() {
       </div>
       {(["grok_api_key", "gemini_api_key", "openai_api_key", "gapgpt_api_key"] as const).map((k) => (
         <div key={k} className="grid gap-1">
-          <Label>{k}</Label>
+          <Label>{t(`keys.${k}` as "keys.grok_api_key")}</Label>
           <Input
             type="password"
             dir="ltr"
             value={String(effective[k] ?? "")}
             onChange={(e) => set(k, e.target.value)}
-            placeholder={effective[`${k}_set`] ? "•••• (set)" : ""}
+            placeholder={effective[`${k}_set`] ? t("secret_saved") : ""}
           />
         </div>
       ))}

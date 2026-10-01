@@ -14,7 +14,8 @@
     "test:nav": "node src/kernel/build-admin-nav.smoke.mjs",
     "check:i18n": "node scripts/check-i18n-duplicates.mjs",
     "check:links": "node scripts/check-dashboard-links.mjs",
-    "check:guards": "npm run check:i18n && npm run check:links && npm run test:nav"
+    "check:guards": "npm run check:i18n && npm run check:links && npm run check:english && npm run test:nav",
+    "check:english": "node scripts/check-english-jsx.mjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",

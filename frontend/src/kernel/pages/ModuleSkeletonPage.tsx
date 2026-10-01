@@ -27,13 +27,13 @@ export default async function ModuleSkeletonPage({ route, area }: Props) {
   const parsed = resolveLabelKey(route.labelKey)
   let title: string
   if (parsed?.namespace === "nav") {
-    title = tNav.has(parsed.key as never) ? tNav(parsed.key as never) : t("skeleton_coming_soon")
+    title = tNav.has(parsed.key as never) ? tNav(parsed.key as never) : t("skeleton_unavailable")
   } else if (parsed?.namespace === "site") {
-    title = tSite.has(parsed.key as never) ? tSite(parsed.key as never) : t("skeleton_coming_soon")
+    title = tSite.has(parsed.key as never) ? tSite(parsed.key as never) : t("skeleton_unavailable")
   } else if (t.has(`names.${route.moduleSlug}` as never)) {
     title = t(`names.${route.moduleSlug}` as never)
   } else {
-    title = t("skeleton_coming_soon")
+    title = t("skeleton_unavailable")
   }
 
   return (

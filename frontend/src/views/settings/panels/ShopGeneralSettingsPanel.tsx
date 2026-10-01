@@ -276,7 +276,7 @@ export function ShopGeneralSettingsPanel() {
                     specific_allowed_countries: textToCountries(e.target.value),
                   })
                 }
-                placeholder="IR, AE"
+                placeholder={t("shop_general.countries_ph")}
               />
             </div>
           ) : null}
@@ -308,7 +308,7 @@ export function ShopGeneralSettingsPanel() {
                     specific_ship_to_countries: textToCountries(e.target.value),
                   })
                 }
-                placeholder="IR"
+                placeholder={t("shop_general.country_ph")}
               />
             </div>
           ) : null}

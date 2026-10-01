@@ -730,7 +730,7 @@
     "return_receive": "دریافت",
     "return_refund": "بازپرداخت",
     "print": "چاپ",
-    "coming_soon": "به‌زودی",
+    "coming_soon": "در دسترس نیست",
     "missing_id": "شناسه سفارش موجود نیست.",
     "next_status": "وضعیت بعدی",
     "ship_dialog_title": "ثبت ارسال",
@@ -787,7 +787,8 @@
     "tapin_service_vip": "پست ویژه",
     "tapin_service_tipax": "تیپاکس",
     "tapin_service_courier": "پیک",
-    "tapin_service_alonomic": "الونومیک"
+    "tapin_service_alonomic": "الونومیک",
+    "unavailable": "در دسترس نیست"
   },
   "order_pay": {
     "title": "پرداخت سفارش",
@@ -917,8 +918,8 @@
   },
   "modules": {
     "title": "امکانات و اشتراک",
-    "skeleton_placeholder": "هنوز محتوایی نیست. از تنظیمات این بخش آیتم اضافه کنید یا آن را فعال کنید.",
-    "skeleton_coming_soon": "این بخش به‌زودی در دسترس خواهد بود.",
+    "skeleton_placeholder": "هنوز محتوایی برای نمایش نیست. از تنظیمات این بخش آیتم اضافه کنید یا ماژول را فعال کنید.",
+    "skeleton_coming_soon": "این بخش هنوز پیاده‌سازی نشده یا در دسترس نیست.",
     "area_admin": "مدیریت",
     "area_site": "سایت",
     "enabled": "فعال",
@@ -961,7 +962,8 @@
     "purchase": "خرید",
     "purchasing": "در حال خرید…",
     "marketplace_unavailable": "بازارچهٔ ماژول در دسترس نیست",
-    "price": "قیمت"
+    "price": "قیمت",
+    "skeleton_unavailable": "این بخش در حال حاضر در دسترس نیست."
   },
   "settings": {
     "title": "تنظیمات منطقه‌ای",
@@ -1011,7 +1013,9 @@
       "hide_app_fingerprint": "مخفی‌کردن اثرانگشت فریم‌ورک",
       "hide_app_fingerprint_hint": "حذف هدرهای X-Powered-By و Server از پاسخ‌های API",
       "disable_dangerous_debug": "غیرفعال‌کردن افشای دیباگ",
-      "disable_dangerous_debug_hint": "در محیط غیر محلی، توکن‌های دیباگ از هدر حذف می‌شوند"
+      "disable_dangerous_debug_hint": "در محیط غیر محلی، توکن‌های دیباگ از هدر حذف می‌شوند",
+      "x_frame_options": "X-Frame-Options",
+      "referrer_policy": "Referrer-Policy"
     },
     "ai": {
       "title": "محتوای هوش مصنوعی",
@@ -1206,7 +1210,9 @@
       "weight_unit": "واحد وزن",
       "dimension_unit": "واحد طول",
       "guest_checkout": "پرداخت مهمان",
-      "guest_checkout_hint": "ذخیره می‌شود؛ مسیر تسویهٔ عمومی در فاز بعدی کامل می‌شود"
+      "guest_checkout_hint": "ذخیره می‌شود؛ مسیر تسویهٔ عمومی در فاز بعدی کامل می‌شود",
+      "countries_ph": "مثلاً IR, AE",
+      "country_ph": "مثلاً IR"
     },
     "shop_products": {
       "inventory": "موجودی",
@@ -1906,7 +1912,8 @@
     "field_role": "نقش",
     "field_body": "متن",
     "field_description": "توضیحات",
-    "magazine_title": "مطالب مجله"
+    "magazine_title": "مطالب مجله",
+    "field_cover_url": "آدرس تصویر جلد"
   },
   "media": {
     "title": "کتابخانه رسانه",
@@ -2020,7 +2027,7 @@
     "delete": "حذف",
     "duplicate": "تکثیر",
     "confirm_delete": "حذف شود؟",
-    "coming_soon": "به‌زودی / Coming soon",
+    "coming_soon": "در دسترس نیست",
     "page_of": "صفحه {page} از {pages} ({total})",
     "prev": "قبلی",
     "next": "بعدی",
@@ -2233,7 +2240,8 @@
     "reference_synced": "قیمت و موجودی از سایت مرجع به‌روزرسانی شد",
     "print_product_label": "چاپ برچسب کالا",
     "ai_generate": "تولید با AI",
-    "ai_generate_queued": "تولید محتوا در صف قرار گرفت"
+    "ai_generate_queued": "تولید محتوا در صف قرار گرفت",
+    "unavailable": "در دسترس نیست"
   },
   "coffee_admin": {
     "title": "پروفایل قهوه",
@@ -3037,7 +3045,8 @@
       "colStatus": "وضعیت",
       "colSent": "ارسال",
       "colFailed": "ناموفق",
-      "disabled": "کمپین‌ها برای این پروایدر غیرفعال است یا در دسترس نیست."
+      "disabled": "کمپین‌ها برای این پروایدر غیرفعال است یا در دسترس نیست.",
+      "csvPlaceholder": "chat_id,phone,name"
     },
     "logs": {
       "title": "گزارش پیام‌های ربات",
@@ -4795,6 +4804,13 @@
       "summary": "خلاصه",
       "date": "تاریخ",
       "name": "نام"
+    },
+    "secret_saved": "•••••••• (ذخیره شده — برای تغییر مقدار جدید وارد کنید)",
+    "keys": {
+      "grok_api_key": "کلید Grok",
+      "gemini_api_key": "کلید Gemini",
+      "openai_api_key": "کلید OpenAI",
+      "gapgpt_api_key": "کلید GapGPT"
     }
   },
   "tickets": {

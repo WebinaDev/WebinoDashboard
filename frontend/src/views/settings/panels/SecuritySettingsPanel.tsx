@@ -203,7 +203,7 @@ export function SecuritySettingsPanel() {
         </CardHeader>
         <CardContent className="grid max-w-md gap-3">
           <div className="grid gap-1">
-            <Label>X-Frame-Options</Label>
+            <Label>{t("security.x_frame_options")}</Label>
             <Input
               value={String(headers.x_frame_options ?? "SAMEORIGIN")}
               onChange={(e) => patch("headers", "x_frame_options", e.target.value)}
@@ -212,7 +212,7 @@ export function SecuritySettingsPanel() {
             />
           </div>
           <div className="grid gap-1">
-            <Label>Referrer-Policy</Label>
+            <Label>{t("security.referrer_policy")}</Label>
             <Input
               value={String(headers.referrer_policy ?? "")}
               onChange={(e) => patch("headers", "referrer_policy", e.target.value)}

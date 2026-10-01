@@ -91,4 +91,12 @@ ok "Dockerfile runner does not rely on loose messages/"
 [[ -f packages/webina-ui/dist/index.js ]] || fail "Run: cd packages/webina-ui && npm install && npm run build"
 ok "webina-ui dist present"
 
+
+echo "==> Frontend parity guards (i18n / links / english / nav)"
+(
+  cd "$ROOT/frontend"
+  npm run check:guards
+) || fail "frontend check:guards failed"
+ok "frontend check:guards"
+
 ok "All pre-flight checks passed."

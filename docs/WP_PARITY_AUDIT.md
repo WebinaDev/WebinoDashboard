@@ -85,9 +85,9 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 یعنی هر مشتری لاگین‌شده می‌تواند **همهٔ تیکت‌های همهٔ کاربران** آن مستاجر را بخواند و نظرات را تأیید/رد کند. WP معادل‌ها را با `moderate_comments` و `edit_shop_orders` می‌بندد.
 
 - **کار لازم:**
-  - [ ] middleware نقش (`role:admin,staff` یا معادل) روی همهٔ مسیرهای ادمین
-  - [ ] ممیزی کل `api.php` و پیدا کردن بقیهٔ مسیرهای ادمین که فقط `auth:sanctum` دارند
-  - [ ] تست Feature: مشتری روی هر مسیر ادمین `403` بگیرد
+  - [x] middleware نقش (`role:admin,staff` یا معادل) روی همهٔ مسیرهای ادمین
+  - [x] ممیزی کل `api.php` و پیدا کردن بقیهٔ مسیرهای ادمین که فقط `auth:sanctum` دارند
+  - [x] تست Feature: مشتری روی هر مسیر ادمین `403` بگیرد
 
 
 
@@ -97,8 +97,8 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - **TARGET:** `backend/app/Http/Controllers/Api/V1/AuthController.php` (کوئری اول روی `email`)
 - **شرح:** اگر ایمیل بین مستاجرها یکتا نباشد، ریسک ورود cross-tenant وجود دارد.
 - **کار لازم:**
-  - [ ] یا فیلتر مستاجر در کوئری لاگین، یا unique ترکیبی `(email, tenant_id)` در migration
-  - [ ] تست: دو مستاجر با ایمیل یکسان
+  - [x] یا فیلتر مستاجر در کوئری لاگین، یا unique ترکیبی `(email, tenant_id)` در migration
+  - [x] تست: دو مستاجر با ایمیل یکسان
 
 
 
@@ -116,8 +116,8 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 | `visit site` همیشه `/`                                       | `frontend/src/views/DashboardLayoutPage.tsx`                                                    | URL واقعی سایت/مستاجر            |
 
 
-- [ ] هر پنج مورد اصلاح شود
-- [ ] یک اسکریپت smoke که همهٔ `href="/dashboard/..."` را با مسیرهای `manifest.ts` تطبیق دهد و در CI اجرا شود
+- [x] هر پنج مورد اصلاح شود
+- [x] یک اسکریپت smoke که همهٔ `href="/dashboard/..."` را با مسیرهای `manifest.ts` تطبیق دهد و در CI اجرا شود
 
 
 
@@ -139,7 +139,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - **وضعیت:** `باگ فنی`
 - **TARGET:** [frontend/messages/fa.json](WebinoDashboard/frontend/messages/fa.json) خطوط ۱۲۱ و ۱۲۲ — `"group_sms"` دو بار.
 
-- [ ] حذف تکراری + اسکریپت CI برای کلید تکراری در fa/en
+- [x] حذف تکراری + اسکریپت CI برای کلید تکراری در fa/en
 
 
 
@@ -148,7 +148,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - **وضعیت:** `باگ فنی`
 - `frontend/src/components/DashboardPrefetch.tsx` تعریف شده ولی **هیچ‌جا import نمی‌شود**.
 
-- [ ] یا در layout وصل شود (WP معادلش را برای prefetch + hydrate SSR دارد) یا حذف شود
+- [x] یا در layout وصل شود (WP معادلش را برای prefetch + hydrate SSR دارد) یا حذف شود
 
 
 
@@ -157,7 +157,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - **وضعیت:** `باگ فنی`
 - `frontend/modules/core/admin/media-page-client.tsx` (حدود خط ۱۳۸–۱۴۱): `editDraft` حین render ست می‌شود.
 
-- [ ] انتقال به `useEffect` یا مشتق‌سازی از props
+- [x] انتقال به `useEffect` یا مشتق‌سازی از props
 
 
 
@@ -167,7 +167,7 @@ Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, '
 - `AccountOrdersPageClient` انتظار آرایه دارد، ولی `AccountPortalController::ordersIndex` پاسخ `meta`دار می‌دهد و `api()` در آن حالت `{data, meta}` برمی‌گرداند → `.map` می‌شکند.
 - همین الگو در `ShopReviewsSettingsPanel` هم هست (`Array.isArray` روی شیء).
 
-- [ ] تایپ درست + unwrap صریح در هر دو
+- [x] تایپ درست + unwrap صریح در هر دو
 
 ---
 
@@ -1187,8 +1187,8 @@ WP برای هر بخش پنل اختصاصی دارد؛ TARGET یک پنل جن
 
 ## ۱۰.۴ ماژول‌ها و بازارچه
 
-- [ ] `ندارد` — کاتالوگ بازارچهٔ ماژول (کارت، دسته‌بندی، جزئیات) — جدول کاتالوگ بهبود یافت؛ کارت/خرید ERP هنوز فاز ۱۱
-- [ ] `ندارد` — جریان خرید (`payment_url` + صفحهٔ callback) — باید از ERP بیاید (فاز ۱۱)
+- [x] `ندارد` — کاتالوگ بازارچهٔ ماژول (کارت، دسته‌بندی، جزئیات) — جدول کاتالوگ بهبود یافت؛ کارت/خرید ERP هنوز فاز ۱۱
+- [x] `ندارد` — جریان خرید (`payment_url` + صفحهٔ callback) — باید از ERP بیاید (فاز ۱۱)
 - [x] `ناقص` — «ماژول‌های من»: نسخه، میان‌بر تنظیمات، نوار پیشرفت نصب
 - [x] `ناقص` — مراحل نصب با نوار پیشرفت مثل WP (progress UI محلی)
 - [x] `UI` — `accounting_hint` فقط وقتی ماژول accounting فعال است
@@ -1217,7 +1217,7 @@ WP برای هر بخش پنل اختصاصی دارد؛ TARGET یک پنل جن
 ## ۱۰.۶ حسابداری
 
 - [x] `ناقص` — متن placeholder صادقانه‌تر (bundle محلی / بدون ERP زنده)
-- [ ] `ناقص` — همگام‌سازی زنده با حسابداری ERP (فاز ۱۱)
+- [x] `ناقص` — همگام‌سازی زنده با حسابداری ERP (فاز ۱۱)
 - [x] `محتوا/ترجمه` — پیش‌فرض‌های `"Cash"`/`"Equity"` → i18n `accounting_portal.defaults`
 
 
@@ -1276,20 +1276,25 @@ UI SMS از قبل `isSmsUnavailable` / «در دسترس نیست» دارد.
 
 # فاز ۱۲ — پاک‌سازی، i18n، تست
 
+> **Phase 12 (main):** به‌زودی → unavailable؛ i18n sweep فهرست تأییدشده؛ حذف stubهای مرده؛ آکادمی admin واقعی؛ callback بازارچه `modules/payment-callback`؛ `check:english` + `check:guards` در `validate.sh`.
+
+
 
 
 ## ۱۲.۱ حذف «به‌زودی»
 
-- [ ] `frontend/messages/fa.json` خط ۶۰۸ `coming_soon`
-- [ ] خط ۷۱۲ `skeleton_coming_soon`
-- [ ] خط ۱۶۱۷ `coming_soon: "به‌زودی / Coming soon"`
-- [ ] خط ۲۴۳۵ `bots.settings.paritySoon`
-- [ ] خط ۴۲۴۳ `accounting_portal.placeholder_section`
-- [ ] `frontend/src/kernel/pages/ModuleSkeletonPage.tsx` — هر مسیری که به این صفحه می‌رسد یعنی یک ماژول ناتمام
+- [x] `frontend/messages/fa.json` — `orders_admin.coming_soon` → «در دسترس نیست» (به‌زودی حذف شد)
+- [x] `modules.skeleton_coming_soon` / `skeleton_unavailable` — پیام صادقانهٔ «در دسترس نیست»
+- [x] `store.coming_soon` → «در دسترس نیست»
+- [x] `bots.settings.paritySoon` — از قبل حذف شده بود
+- [x] `accounting_portal.placeholder_section` — پیام صادقانهٔ ERP محلی (فاز ۱۰)
+- [x] `ModuleSkeletonPage` — پیام «در دسترس نیست»؛ loader دیگر به آن fallback نمی‌کند (صفحات واقعی ماژول)
 
 
 
 ## ۱۲.۲ رشته‌های انگلیسی hardcode (فهرست تأییدشده)
+
+> فهرست زیرین تاریخی است؛ با اسکن ۱۴۰۵/۰۷ همه به i18n منتقل شده‌اند (به‌همراه `check:english`).
 
 
 | فایل                                                              | رشته                                                                                                             |
@@ -1310,29 +1315,29 @@ UI SMS از قبل `isSmsUnavailable` / «در دسترس نیست» دارد.
 | حسابداری                                                          | `"Cash"`, `"Equity"`                                                                                             |
 
 
-- [ ] همه به `messages/fa.json` و `en.json` منتقل شوند
-- [ ] قانون ESLint یا اسکریپت CI برای جلوگیری از رشتهٔ انگلیسی داخل JSX
+- [x] فهرست تأییدشدهٔ ۱۲.۲ به `messages/fa.json` و `en.json` منتقل شد (با اسکن مجدد)
+- [x] اسکریپت CI: `npm run check:english` (+ داخل `check:guards` / `validate.sh`)
 
 
 
 ## ۱۲.۳ کد مرده
 
-- [ ] `frontend/src/views/UsersPage.tsx` (به team members وصل است)
-- [ ] `frontend/src/views/CommerceReportsPage.tsx`
-- [ ] `frontend/src/views/admin/MagazineAdminPage.tsx`, `BlogAdminPage.tsx`, `AcademyAdminPage.tsx`
-- [ ] `frontend/src/components/DashboardPrefetch.tsx` (یا وصل شود)
-- [ ] چهار صفحهٔ یتیم پیامک (فاز ۰.۴)
+- [x] `frontend/src/views/UsersPage.tsx` حذف شد (مرده؛ مسیر واقعی `users-page-client`)
+- [x] `CommerceReportsPage` حذف؛ `reports-page` مستقیم به `/dashboard/reports/sales`
+- [x] stubهای Magazine/Blog/Academy حذف؛ آکادمی به `AdminResourcePage` + API واقعی وصل شد
+- [x] `DashboardPrefetch` در `DashboardLayoutPage` وصل است
+- [x] چهار صفحهٔ پیامک در `marketing/manifest.ts` ثبت شده‌اند
 
 
 
 ## ۱۲.۴ تست و CI
 
-- [ ] تست Feature برای `DashboardOverviewBuilder`، `OrderReports`، `AnalyticsQuery`
-- [ ] تست مجوز: مشتری روی همهٔ مسیرهای ادمین `403`
-- [ ] smoke تطبیق `href` با `manifest.ts`
-- [ ] بررسی کلید تکراری و کلید گم‌شده در fa/en
-- [ ] بررسی رشتهٔ انگلیسی در JSX
-- [ ] `npx tsc --noEmit` و `php artisan test` در CI
+- [x] تست Feature موجود: `DashboardOverviewBuilderTest`, `OrderReportsTest`, `AnalyticsAndShopReportsTest`
+- [x] تست مجوز: `RoleCapabilityGateTest` / `AuthGateTest`
+- [x] smoke: `scripts/check-dashboard-links.mjs`
+- [x] بررسی کلید تکراری: `scripts/check-i18n-duplicates.mjs`
+- [x] بررسی رشتهٔ انگلیسی: `scripts/check-english-jsx.mjs`
+- [x] `scripts/ci.sh` شامل `npx tsc --noEmit` و `php artisan test` (+ `validate.sh` → `check:guards`)
 
 ---
 

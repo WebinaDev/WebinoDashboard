@@ -973,7 +973,7 @@
     "return_receive": "Receive",
     "return_refund": "Refund",
     "print": "Print",
-    "coming_soon": "Coming soon",
+    "coming_soon": "Unavailable",
     "missing_id": "Missing order id.",
     "next_status": "Next status",
     "ship_dialog_title": "Ship order",
@@ -1030,7 +1030,8 @@
     "tapin_service_vip": "Post (VIP)",
     "tapin_service_tipax": "Tipax",
     "tapin_service_courier": "Courier",
-    "tapin_service_alonomic": "Alonomic"
+    "tapin_service_alonomic": "Alonomic",
+    "unavailable": "Unavailable"
   },
   "order_pay": {
     "title": "Pay order",
@@ -1160,8 +1161,8 @@
   },
   "modules": {
     "title": "Features & plan",
-    "skeleton_placeholder": "No content yet. Add items in this section or enable related settings.",
-    "skeleton_coming_soon": "This section will be available soon.",
+    "skeleton_placeholder": "Nothing to show yet. Add items in settings or enable this module.",
+    "skeleton_coming_soon": "This section is not implemented or is unavailable.",
     "area_admin": "Admin",
     "area_site": "Site",
     "enabled": "Enabled",
@@ -1204,7 +1205,8 @@
     "purchase": "Purchase",
     "purchasing": "Purchasing…",
     "marketplace_unavailable": "Module marketplace unavailable",
-    "price": "Price"
+    "price": "Price",
+    "skeleton_unavailable": "This section is currently unavailable."
   },
   "settings": {
     "title": "Regional",
@@ -1254,7 +1256,9 @@
       "hide_app_fingerprint": "Hide framework fingerprint",
       "hide_app_fingerprint_hint": "Strip X-Powered-By and Server headers from API responses",
       "disable_dangerous_debug": "Disable debug exposure",
-      "disable_dangerous_debug_hint": "Remove debug tokens from headers outside local environments"
+      "disable_dangerous_debug_hint": "Remove debug tokens from headers outside local environments",
+      "x_frame_options": "X-Frame-Options",
+      "referrer_policy": "Referrer-Policy"
     },
     "ai": {
       "title": "AI content",
@@ -1449,7 +1453,9 @@
       "weight_unit": "Weight unit",
       "dimension_unit": "Dimension unit",
       "guest_checkout": "Guest checkout",
-      "guest_checkout_hint": "Stored now; full public checkout path completes later"
+      "guest_checkout_hint": "Stored now; full public checkout path completes later",
+      "countries_ph": "e.g. IR, AE",
+      "country_ph": "e.g. IR"
     },
     "shop_products": {
       "inventory": "Inventory",
@@ -1907,7 +1913,8 @@
     "field_role": "Role",
     "field_body": "Body",
     "field_description": "Description",
-    "magazine_title": "Magazine articles"
+    "magazine_title": "Magazine articles",
+    "field_cover_url": "Cover image URL"
   },
   "media": {
     "title": "Media library",
@@ -2021,7 +2028,7 @@
     "delete": "Delete",
     "duplicate": "Duplicate",
     "confirm_delete": "Delete this item?",
-    "coming_soon": "Coming soon / به‌زودی",
+    "coming_soon": "Unavailable",
     "page_of": "Page {page} of {pages} ({total})",
     "prev": "Previous",
     "next": "Next",
@@ -2234,7 +2241,8 @@
     "reference_synced": "Price and stock updated from the reference site",
     "print_product_label": "Print product label",
     "ai_generate": "Generate with AI",
-    "ai_generate_queued": "AI content queued"
+    "ai_generate_queued": "AI content queued",
+    "unavailable": "Unavailable"
   },
   "coffee_admin": {
     "title": "Coffee profile",
@@ -3038,7 +3046,8 @@
       "colStatus": "Status",
       "colSent": "Sent",
       "colFailed": "Failed",
-      "disabled": "Campaigns are disabled or unavailable for this provider."
+      "disabled": "Campaigns are disabled or unavailable for this provider.",
+      "csvPlaceholder": "chat_id,phone,name"
     },
     "logs": {
       "title": "Bot message log",
@@ -4796,6 +4805,13 @@
       "summary": "Summary",
       "date": "Date",
       "name": "Name"
+    },
+    "secret_saved": "•••••••• (saved — type to replace)",
+    "keys": {
+      "grok_api_key": "Grok API key",
+      "gemini_api_key": "Gemini API key",
+      "openai_api_key": "OpenAI API key",
+      "gapgpt_api_key": "GapGPT API key"
     }
   },
   "tickets": {
