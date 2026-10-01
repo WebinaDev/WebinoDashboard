@@ -757,6 +757,10 @@ export const commerceManifest: ModuleManifest = {
   siteRoutes: [
     { path: "shop", submodule: "catalog", labelKey: "site.shop" },
     { path: "catalogue", submodule: "catalog", labelKey: "site.catalogue" },
+    { path: "product/:slug", submodule: "catalog", labelKey: "site.product" },
+    { path: "cart", submodule: "catalog", labelKey: "site.cart" },
+    { path: "checkout", submodule: "catalog", labelKey: "site.checkout" },
+    { path: "account", submodule: "catalog", labelKey: "site.account" },
     { path: "pay/:orderId", submodule: "checkout", labelKey: "site.order_pay" },
   ],
 }

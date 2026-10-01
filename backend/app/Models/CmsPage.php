@@ -14,6 +14,8 @@ class CmsPage extends Model
         'title',
         'excerpt',
         'body',
+        'builder_draft',
+        'builder_published',
         'published',
         'status',
         'featured_media_id',
@@ -28,6 +30,8 @@ class CmsPage extends Model
         return [
             'published' => 'boolean',
             'seo' => 'array',
+            'builder_draft' => 'array',
+            'builder_published' => 'array',
         ];
     }
 

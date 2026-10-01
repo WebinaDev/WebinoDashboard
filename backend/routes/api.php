@@ -31,7 +31,10 @@ use App\Http\Controllers\Api\V1\PublicCafeEngagementController;
 use App\Http\Controllers\Api\V1\PublicGuestCartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\BuilderController;
 use App\Http\Controllers\Api\V1\CmsController;
+use App\Http\Controllers\Api\V1\PublicBuilderController;
+use App\Http\Controllers\Api\V1\WordpressImportController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\KernelController;
 use App\Http\Controllers\Api\V1\LicenseController;
@@ -214,6 +217,8 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:cms')->group(function () {
             Route::get('/pages/{slug}', [PublicCmsController::class, 'page']);
+            Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
+            Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
         });
 
         Route::middleware('public.module:consultations')->group(function () {
@@ -709,6 +714,19 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/cms/pages/{page}', [CmsController::class, 'destroy'])->whereNumber('page');
                 Route::get('/cms/home-blocks', [CmsController::class, 'homeBlocks']);
                 Route::put('/cms/home-blocks', [CmsController::class, 'updateHomeBlocks']);
+                Route::get('/builder', [BuilderController::class, 'index']);
+                Route::post('/builder/pages', [BuilderController::class, 'store']);
+                Route::get('/builder/pages/{page}', [BuilderController::class, 'show'])->whereNumber('page');
+                Route::patch('/builder/pages/{page}', [BuilderController::class, 'update'])->whereNumber('page');
+                Route::post('/builder/pages/{page}/publish', [BuilderController::class, 'publish'])->whereNumber('page');
+                Route::delete('/builder/pages/{page}', [BuilderController::class, 'destroy'])->whereNumber('page');
+                Route::get('/builder/templates/{kind}', [BuilderController::class, 'showTemplate']);
+                Route::put('/builder/templates/{kind}', [BuilderController::class, 'saveTemplate']);
+                Route::post('/builder/templates/{kind}/publish', [BuilderController::class, 'publishTemplate']);
+                Route::post('/import/wordpress/probe', [WordpressImportController::class, 'probe']);
+                Route::post('/import/wordpress/start', [WordpressImportController::class, 'start']);
+                Route::get('/import/wordpress/jobs', [WordpressImportController::class, 'index']);
+                Route::get('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'show'])->whereNumber('job');
             });
 
             Route::middleware('module:blog')->group(function () {

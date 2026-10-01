@@ -12,6 +12,7 @@ const THEME_LOADERS: Record<string, () => Promise<ThemeModule>> = {
   "ecommerce-starter": () => import("@/themes/ecommerce-starter"),
   "ecommerce-default": () => import("@/themes/ecommerce-default"),
   "ecommerce-demo-v1": () => import("@/themes/ecommerce-demo-v1"),
+  "ecommerce-ishop": () => import("@/themes/ecommerce-ishop"),
   "magazine-default": () => import("@/themes/magazine-default"),
   "magazine-demo-v1": () => import("@/themes/magazine-demo-v1"),
   "cafe-starter": () => import("@/themes/cafe-starter"),
@@ -40,12 +41,13 @@ export async function loadAdminPage(
 export async function loadSitePage(
   route: ResolvedSiteRoute,
 ): Promise<ComponentType<{ route: ResolvedSiteRoute; searchParams?: Record<string, string | undefined> }>> {
+  const props = {} as { route: ResolvedSiteRoute; searchParams?: Record<string, string | undefined> }
   if (route.path === "") {
     const mod = await import("@/kernel/pages/SiteHomePage")
-    return mod.default
+    return mod.default as ComponentType<typeof props>
   }
   const mod = await import(
     `../../modules/${route.moduleSlug}/site/${route.submodule}-page`
   )
-  return mod.default
+  return mod.default as ComponentType<typeof props>
 }

@@ -1,6 +1,8 @@
 import type { ResolvedSiteRoute } from "@/kernel/types"
 import { fetchPublicItem } from "@/kernel/public-content"
 import { getServerTranslations } from "@/lib/server-translations"
+import { PublishedDocument } from "@/builder/public-document"
+import { isDocument } from "@/builder/tree"
 import { SiteContentDetail } from "@/themes/shared/content/SiteContentDetail"
 import { SiteEmptyState } from "@/themes/shared/content/SiteEmptyState"
 
@@ -10,6 +12,7 @@ type CmsPage = {
   slug: string
   title: string
   body?: string | null
+  builder_published?: unknown
 }
 
 export default async function Page({ route }: { route: ResolvedSiteRoute }) {
@@ -36,6 +39,10 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
         actionLabel={t("back_home")}
       />
     )
+  }
+
+  if (isDocument(page.builder_published) && page.builder_published.sections.length) {
+    return <PublishedDocument document={page.builder_published} runtime={{ siteName: page.title }} />
   }
 
   return (

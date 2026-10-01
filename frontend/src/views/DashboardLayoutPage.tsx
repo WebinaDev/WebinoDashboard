@@ -185,6 +185,15 @@ export default function DashboardLayoutPage({
     document.title = `${breadcrumbCurrent} · ${site}`
   }, [breadcrumbCurrent, tenantLabel, tCommon])
 
+  const builderEditor = /\/builder\/.+/.test(pathname)
+  if (builderEditor) {
+    return (
+      <div className="h-svh overflow-hidden bg-[#e8eef5]">
+        <LicenseGate>{children}</LicenseGate>
+      </div>
+    )
+  }
+
   return (
     <SidebarProvider>
       {pwaBootstrap.enabled ? (

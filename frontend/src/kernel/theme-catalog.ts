@@ -23,6 +23,7 @@ export const THEME_MANIFESTS: SiteThemeManifest[] = [
   theme("ecommerce-starter", "فروشگاه — استارتر", "E-commerce starter", ["ecommerce"], false, 0),
   theme("ecommerce-default", "فروشگاه — پیش‌فرض", "E-commerce default", ["ecommerce"], false, 1),
   theme("ecommerce-demo-v1", "فروشگاه — دمو ۱", "E-commerce demo v1", ["ecommerce"], true, 2),
+  theme("ecommerce-ishop", "فروشگاه — آی‌شاپ", "E-commerce ishop", ["ecommerce"], false, 3),
   theme("magazine-default", "مجله — پیش‌فرض", "Magazine default", ["magazine"], false, 1),
   theme("magazine-demo-v1", "مجله — دمو ۱", "Magazine demo v1", ["magazine"], true, 2),
   theme("cafe-starter", "کافه — استارتر", "Cafe starter", ["cafe"], false, 0),

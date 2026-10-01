@@ -1,0 +1,8 @@
+.ishop-store {
+  background: #f5f8fb;
+  color: #0c2d63;
+}
+
+body:has(.ishop-store) {
+  background: #f5f8fb;
+}
