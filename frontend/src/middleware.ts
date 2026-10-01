@@ -13,6 +13,7 @@ import {
   isLegacyAdminPathname,
   legacyAdminToDashboardPath,
 } from "@/kernel/paths"
+import { DEFAULT_AUTH_COOKIE_NAME, readCookieValue } from "@/lib/auth-cookie"
 import { getServerApiBase } from "@/lib/server-api-base"
 
 const LOCALES = ["fa", "en"] as const
@@ -23,18 +24,38 @@ type GateData = {
   password_must_change?: boolean
 }
 
+function sessionToken(request: NextRequest): string | null {
+  const name = process.env.AUTH_COOKIE_NAME?.trim() || DEFAULT_AUTH_COOKIE_NAME
+  return (
+    readCookieValue(request.headers.get("cookie"), name) ??
+    request.cookies.get(name)?.value ??
+    null
+  )
+}
+
 async function fetchGate(request: NextRequest): Promise<GateData | null> {
   const apiBase = getServerApiBase()
   if (!apiBase) return null
+  // Do not forward the Cookie header. Middleware fetch (edge/undici) drops
+  // Cookie — and Authorization — on a cross-origin redirect, and some
+  // runtimes refuse Cookie outright. The gate then always reports
+  // authenticated:false and /dashboard 307s back to /login?next=/dashboard
+  // after a successful login. Send the session as Bearer; the gate already
+  // accepts that (AuthController::resolveAuthenticatedUser).
+  const token = sessionToken(request)
+  const headers: Record<string, string> = { Accept: "application/json" }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
   try {
     const res = await fetch(`${apiBase}/api/v1/auth/gate`, {
-      headers: {
-        Accept: "application/json",
-        Cookie: request.headers.get("cookie") ?? "",
-      },
+      headers,
       cache: "no-store",
+      redirect: "manual",
     })
-    if (!res.ok) return null
+    // A redirect would drop Authorization on the next hop (cross-origin).
+    // The internal gate should answer 200 directly.
+    if (res.status < 200 || res.status >= 300) return null
     const json = (await res.json()) as { data?: GateData }
     return json.data ?? null
   } catch {

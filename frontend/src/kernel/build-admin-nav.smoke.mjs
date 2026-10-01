@@ -90,4 +90,8 @@ assert.match(dashboardPage, /readRequestLocale/)
 assert.equal(fs.existsSync(path.join(frontendRoot, "src/middleware.ts")), true)
 assert.equal(fs.existsSync(path.join(frontendRoot, "middleware.ts")), false)
 
+const middleware = fs.readFileSync(path.join(frontendRoot, "src/middleware.ts"), "utf8")
+assert.match(middleware, /Authorization = `Bearer \$\{token\}`/)
+assert.doesNotMatch(middleware, /Cookie: request\.headers\.get\("cookie"\)/)
+
 console.log("build-admin-nav.smoke.mjs OK")
