@@ -50,14 +50,12 @@ class ModirPayamakClient
     }
 
     /**
-     * @return array{domain: string, license_key?: string}
+     * @return array{domain: string, product?: string}
      */
     protected function identity(Tenant $tenant): array
     {
         $out = ['domain' => (string) ($tenant->domain ?: 'localhost')];
-        if (filled($tenant->license_key)) {
-            $out['license_key'] = (string) $tenant->license_key;
-        }
+        $out['product'] = (string) config('services.webino.product', 'webinodashboard');
 
         return $out;
     }

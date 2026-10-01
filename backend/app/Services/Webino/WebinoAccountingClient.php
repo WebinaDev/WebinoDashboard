@@ -4,12 +4,19 @@ namespace App\Services\Webino;
 
 use Illuminate\Support\Facades\Http;
 
-/** Live ERP ledger via /api/webinocrm/v1/accounting/ledger */
+/** Live ERP ledger via /api/webinocrm/v1/accounting/ledger — domain (+ product) identity. */
 class WebinoAccountingClient
 {
     public function baseUrl(): string
     {
         return rtrim((string) config('services.webino.base_url'), '/');
+    }
+
+    public function productSlug(): string
+    {
+        $p = (string) config('services.webino.product', env('TENANT_PRODUCT', 'webinodashboard'));
+
+        return $p !== '' ? strtolower($p) : 'webinodashboard';
     }
 
     protected function requireSecret(): string
@@ -26,21 +33,20 @@ class WebinoAccountingClient
      * @param  array<string, mixed>  $filters
      * @return array{ok: bool, status: int, data: mixed, message?: string, unavailable?: bool}
      */
-    public function ledger(string $domain, ?string $licenseKey, array $filters = []): array
+    public function ledger(string $domain, ?string $product = null, array $filters = []): array
     {
-        if ($this->baseUrl() === '' || $this->baseUrl() === 'http://localhost') {
-            // Still attempt; local ERP may be on localhost.
-        }
         $ts = time();
-        $key = (string) ($licenseKey ?? '');
+        $product = strtolower(trim((string) ($product ?? $this->productSlug())));
+        if ($product === '') {
+            $product = $this->productSlug();
+        }
         $body = array_merge($filters, [
             'domain' => $domain,
+            'product' => $product,
             'ts' => $ts,
-            'signature' => hash_hmac('sha256', $domain.'|'.$key.'|'.$ts, $this->requireSecret()),
+            'signature' => hash_hmac('sha256', $domain.'|'.$product.'|'.$ts, $this->requireSecret()),
         ]);
-        if ($licenseKey) {
-            $body['license_key'] = $licenseKey;
-        }
+        unset($body['license_key']);
 
         $url = $this->baseUrl().'/api/webinocrm/v1/accounting/ledger';
 

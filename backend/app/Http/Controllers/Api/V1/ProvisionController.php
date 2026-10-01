@@ -49,7 +49,8 @@ class ProvisionController extends Controller
             'store_display_name' => $seed['store_display_name'] ?? $tenant->store_display_name,
             'default_currency' => $seed['default_currency'] ?? $tenant->default_currency ?? 'IRT',
             'domain' => $seed['domain'] ?? $tenant->domain,
-            'license_key' => $seed['license_key'] ?? $tenant->license_key ?? env('TENANT_LICENSE_KEY'),
+            'domain' => $seed['domain'] ?? $tenant->domain,
+            'product' => $seed['product'] ?? env('TENANT_PRODUCT', 'webinodashboard'),
             'business_category_slug' => $seed['business_category_slug'] ?? null,
             'business_type_slug' => $seed['business_type_slug'] ?? null,
             'site_type_slug' => $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? null,
@@ -78,7 +79,7 @@ class ProvisionController extends Controller
             } catch (\Throwable) {
                 /* fallback to license sync */
             }
-        } elseif (filled($tenant->license_key)) {
+        } elseif (filled($tenant->domain)) {
             $this->syncEntitlements($tenant, $client, $installer, $activations);
         }
 
@@ -317,7 +318,7 @@ class ProvisionController extends Controller
     protected function syncEntitlements(Tenant $tenant, WebinoLicenseClient $client, ModuleGitInstaller $installer, ?TenantActivationService $activations = null): void
     {
         try {
-            $crm = $client->check($tenant->domain ?: 'localhost', $tenant->license_key);
+            $crm = $client->check($tenant->domain ?: 'localhost', config('services.webino.product', env('TENANT_PRODUCT', 'webinodashboard')));
         } catch (\Throwable) {
             return;
         }

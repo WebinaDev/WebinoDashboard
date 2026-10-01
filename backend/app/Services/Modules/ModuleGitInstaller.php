@@ -93,7 +93,7 @@ class ModuleGitInstaller
         }
 
         try {
-            $crm = app(WebinoLicenseClient::class)->check($tenant->domain, $tenant->license_key);
+            $crm = app(WebinoLicenseClient::class)->check($tenant->domain, config('services.webino.product', 'webinodashboard'));
         } catch (\Throwable $e) {
             throw new RuntimeException('License check failed: '.$e->getMessage(), 0, $e);
         }
@@ -128,7 +128,7 @@ class ModuleGitInstaller
             if ($tenant && is_string($tenant->domain) && $tenant->domain !== '') {
                 $fromCrm = app(WebinoLicenseClient::class)->moduleCloneUrl(
                     $tenant->domain,
-                    $tenant->license_key,
+                    config('services.webino.product', 'webinodashboard'),
                     $slug
                 );
                 if (is_string($fromCrm) && $fromCrm !== '') {

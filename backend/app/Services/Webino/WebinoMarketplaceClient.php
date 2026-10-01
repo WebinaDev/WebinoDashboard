@@ -5,14 +5,21 @@ namespace App\Services\Webino;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Module marketplace against ERP webinocrm endpoints:
- * GET/POST /api/webinocrm/v1/marketplace/catalog|purchase|payment-callback
+ * Module marketplace against ERP webinocrm endpoints.
+ * Entitlement: domain (+ product). HMAC is service auth only.
  */
 class WebinoMarketplaceClient
 {
     public function baseUrl(): string
     {
         return rtrim((string) config('services.webino.base_url'), '/');
+    }
+
+    public function productSlug(): string
+    {
+        $p = (string) config('services.webino.product', env('TENANT_PRODUCT', 'webinodashboard'));
+
+        return $p !== '' ? strtolower($p) : 'webinodashboard';
     }
 
     protected function requireSecret(): string
@@ -26,31 +33,32 @@ class WebinoMarketplaceClient
     }
 
     /**
+     * @param  array<string, mixed>  $extra
      * @return array<string, mixed>
      */
-    protected function signedBody(string $domain, ?string $licenseKey, array $extra = []): array
+    protected function signedBody(string $domain, ?string $product = null, array $extra = []): array
     {
         $ts = time();
-        $key = (string) ($licenseKey ?? '');
-        $body = array_merge([
-            'domain' => $domain,
-            'ts' => $ts,
-            'signature' => hash_hmac('sha256', $domain.'|'.$key.'|'.$ts, $this->requireSecret()),
-        ], $extra);
-        if ($licenseKey !== null && $licenseKey !== '') {
-            $body['license_key'] = $licenseKey;
+        $product = strtolower(trim((string) ($product ?? $this->productSlug())));
+        if ($product === '') {
+            $product = $this->productSlug();
         }
 
-        return $body;
+        return array_merge([
+            'domain' => $domain,
+            'product' => $product,
+            'ts' => $ts,
+            'signature' => hash_hmac('sha256', $domain.'|'.$product.'|'.$ts, $this->requireSecret()),
+        ], $extra);
     }
 
     /**
      * @return array{ok: bool, status: int, data: mixed, message?: string}
      */
-    public function catalog(string $domain, ?string $licenseKey, bool $includeCore = false): array
+    public function catalog(string $domain, ?string $product = null, bool $includeCore = false): array
     {
         $url = $this->baseUrl().'/api/webinocrm/v1/marketplace/catalog';
-        $body = $this->signedBody($domain, $licenseKey, ['include_core' => $includeCore ? 1 : 0]);
+        $body = $this->signedBody($domain, $product, ['include_core' => $includeCore ? 1 : 0]);
 
         try {
             $res = Http::timeout(20)->acceptJson()->asJson()->post($url, $body);
@@ -70,10 +78,11 @@ class WebinoMarketplaceClient
      * @param  array<string, mixed>  $payload
      * @return array{ok: bool, status: int, data: mixed, message?: string}
      */
-    public function purchase(string $domain, string $licenseKey, array $payload): array
+    public function purchase(string $domain, array $payload, ?string $product = null): array
     {
         $url = $this->baseUrl().'/api/webinocrm/v1/marketplace/purchase';
-        $body = $this->signedBody($domain, $licenseKey, $payload);
+        $body = $this->signedBody($domain, $product, $payload);
+        unset($body['license_key']);
 
         try {
             $res = Http::timeout(30)->acceptJson()->asJson()->post($url, $body);

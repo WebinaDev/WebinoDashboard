@@ -19,7 +19,7 @@ class ModuleMarketplaceController extends Controller
         try {
             $res = $client->catalog(
                 $tenant->domain ?: $request->getHost(),
-                $tenant->license_key,
+                config('services.webino.product', 'webinodashboard'),
                 $request->boolean('include_core')
             );
         } catch (Throwable $e) {
@@ -48,8 +48,8 @@ class ModuleMarketplaceController extends Controller
     public function purchase(Request $request, WebinoMarketplaceClient $client): JsonResponse
     {
         $tenant = Tenant::query()->findOrFail($request->user()->tenant_id);
-        if (! filled($tenant->license_key)) {
-            return response()->json(['message' => 'License key required for marketplace purchase'], 422);
+        if (! filled($tenant->domain)) {
+            return response()->json(['message' => 'Site domain required for marketplace purchase'], 422);
         }
 
         $data = $request->validate([
@@ -65,9 +65,11 @@ class ModuleMarketplaceController extends Controller
         }
 
         $callback = $data['callback_url'] ?? url('/dashboard/modules/marketplace/payment-callback');
-        $res = $client->purchase($tenant->domain ?: $request->getHost(), (string) $tenant->license_key, array_merge($data, [
-            'callback_url' => $callback,
-        ]));
+        $res = $client->purchase(
+            $tenant->domain ?: $request->getHost(),
+            array_merge($data, ['callback_url' => $callback]),
+            config('services.webino.product', 'webinodashboard')
+        );
 
         if (! $res['ok']) {
             return response()->json([

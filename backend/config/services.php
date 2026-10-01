@@ -37,6 +37,7 @@ return [
 
     'webino' => [
         'base_url' => env('WEBINO_BASE_URL', 'http://localhost'),
+        'product' => env('TENANT_PRODUCT', 'webinodashboard'),
         'license_hmac_secret' => env('WEBINOCRM_LICENSE_HMAC_SECRET'),
         'provision_hmac_secret' => env('WEBINO_PROVISION_HMAC_SECRET'),
         'basalam_oauth_base' => env('WEBINO_BASALAM_OAUTH_BASE'),

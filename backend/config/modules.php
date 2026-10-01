@@ -5,7 +5,7 @@ return [
     'git' => [
         'enabled' => filter_var(env('MODULE_GIT_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'timeout' => (int) env('MODULE_GIT_TIMEOUT', 120),
-        /** Ask CRM for PAT-injected clone URL (HMAC); requires WEBINO_BASE_URL + tenant license_key. */
+        /** Ask CRM for PAT-injected clone URL (HMAC); requires WEBINO_BASE_URL + tenant domain (+ product). */
         'crm_clone_auth' => filter_var(env('MODULE_GIT_CRM_AUTH', true), FILTER_VALIDATE_BOOLEAN),
         /** Hosts allowed for clone URLs (comma-separated). Empty = skip allowlist. */
         'allowed_hosts' => array_values(array_filter(array_map(

@@ -196,7 +196,7 @@ class AccountingController extends Controller
         try {
             $res = $erp->ledger(
                 $tenant->domain ?: $request->getHost(),
-                $tenant->license_key,
+                config('services.webino.product', 'webinodashboard'),
                 $filters
             );
         } catch (\Throwable $e) {

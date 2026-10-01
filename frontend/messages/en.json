@@ -840,7 +840,7 @@
     "default_currency": "Currency",
     "domain": "Site address (e.g. store.example.com)",
     "domain_placeholder": "store.example.com",
-    "license_key": "Activation code",
+    "license_key": "Domain (license identity)",
     "continue": "Continue",
     "saved": "Saved.",
     "sync_license": "Update from Webino panel",
@@ -849,7 +849,8 @@
     "skip_sync": "Skip update",
     "sync_hint": "Fetch your active license and features from the Webino panel.",
     "finish_hint": "Mark setup complete and open the dashboard.",
-    "finish": "Complete setup"
+    "finish": "Complete setup",
+    "domain_hint": "Your site domain is the license. ERP checks domain + product — no license code."
   },
   "orders": {
     "title": "Orders",
@@ -5602,8 +5603,10 @@
     "status_demo": "Demo",
     "status_expired": "Expired",
     "status_invalid": "Invalid",
-    "key_present": "License key on file",
+    "key_present": "Domain configured as license identity",
     "demo_hint": "Demo status comes from ERP — a non-empty key alone is not enough.",
-    "expired_hint": "License expired. Renew in ERP."
+    "expired_hint": "License expired. Renew in ERP.",
+    "has_key": "Domain configured",
+    "enter_key": "Set your site domain"
   }
 }

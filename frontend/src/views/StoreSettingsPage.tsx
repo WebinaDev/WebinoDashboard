@@ -22,7 +22,6 @@ type Tenant = {
   name: string
   slug: string
   domain: string | null
-  license_key: string | null
   store_display_name: string | null
   default_currency: string | null
   branding?: { currency_symbol?: string } | null

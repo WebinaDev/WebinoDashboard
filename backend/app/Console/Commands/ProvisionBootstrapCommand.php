@@ -51,16 +51,16 @@ class ProvisionBootstrapCommand extends Command
         $this->applySeed($tenant, $seed);
         $contentSeeder->seed($tenant, $seed);
 
-        $licenseKey = env('TENANT_LICENSE_KEY') ?: ($seed['license_key'] ?? null);
-        if (filled($licenseKey)) {
-            $tenant->license_key = $licenseKey;
+        // Domain is the license identity; ignore legacy TENANT_LICENSE_KEY / seed license_key.
+        if (filled($tenant->domain)) {
+            $tenant->license_key = $tenant->domain; // deprecated column mirror
         }
         if (filled(env('TENANT_PROVISION_TOKEN'))) {
             $tenant->provision_token = env('TENANT_PROVISION_TOKEN');
         }
         $tenant->save();
 
-        if (filled($tenant->license_key)) {
+        if (filled($tenant->domain)) {
             $this->syncLicense($tenant, $licenseClient, $installer);
         }
 
@@ -101,7 +101,7 @@ class ProvisionBootstrapCommand extends Command
     protected function syncLicense(Tenant $tenant, WebinoLicenseClient $client, ModuleGitInstaller $installer): void
     {
         try {
-            $crm = $client->check($tenant->domain ?: 'localhost', $tenant->license_key);
+            $crm = $client->check($tenant->domain ?: 'localhost', config('services.webino.product', env('TENANT_PRODUCT', 'webinodashboard')));
         } catch (\Throwable $e) {
             $this->warn('License sync skipped: '.$e->getMessage());
 

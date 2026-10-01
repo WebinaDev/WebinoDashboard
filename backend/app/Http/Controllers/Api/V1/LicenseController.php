@@ -27,7 +27,7 @@ class LicenseController extends Controller
         try {
             $crm = $client->check(
                 $tenant->domain ?: $request->getHost(),
-                $tenant->license_key
+                config('services.webino.product', 'webinodashboard')
             );
         } catch (Throwable $e) {
             $tenant->fill([
@@ -165,8 +165,11 @@ class LicenseController extends Controller
             'active' => $active,
             'demo' => $demo,
             'expired' => $expired,
-            // Honest lifecycle — never infer "active" from non-empty license_key alone.
-            'has_key' => filled($tenant->license_key),
+            // Domain is the license identity (no license code).
+            'has_domain' => filled($tenant->domain),
+            'has_key' => filled($tenant->domain), // BC alias — means domain configured
+            'domain' => $tenant->domain,
+            'product' => config('services.webino.product', 'webinodashboard'),
             'checked_at' => $tenant->license_checked_at?->toIso8601String(),
             'unreachable' => (bool) $tenant->license_unreachable,
             'last_error' => $tenant->license_last_error,

@@ -31,6 +31,7 @@ type SetupStatus = {
     site_type_slug?: string | null
     business_type_slug?: string | null
     domain?: string | null
+    domain_configured?: boolean
     license_key_configured?: boolean
     default_locale?: string
   }
@@ -53,7 +54,6 @@ export default function SetupWizardPage() {
   const [locale, setLocale] = useState<"fa" | "en">("fa")
   const [tenantName, setTenantName] = useState("")
   const [domain, setDomain] = useState("")
-  const [licenseKey, setLicenseKey] = useState("")
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -197,7 +197,6 @@ export default function SetupWizardPage() {
         method: "PATCH",
         json: {
           domain: domain || null,
-          license_key: licenseKey || null,
         },
       })
       setMsg(t("saved"))
@@ -366,16 +365,7 @@ export default function SetupWizardPage() {
                 className="text-start"
                 dir="ltr"
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="licenseKey">{t("license_key")}</Label>
-              <Input
-                id="licenseKey"
-                value={licenseKey}
-                onChange={(e) => setLicenseKey(e.target.value)}
-                className="text-start"
-                dir="ltr"
-              />
+              <p className="text-muted-foreground text-xs leading-5">{t("domain_hint")}</p>
             </div>
             <div>
               <Button

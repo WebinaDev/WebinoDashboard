@@ -33,7 +33,8 @@ class SetupController extends Controller
                     'name' => $tenant?->name,
                     'slug' => $tenant?->slug,
                     'domain' => $tenant?->domain,
-                    'license_key_configured' => filled($tenant?->license_key),
+                    'domain_configured' => filled($tenant?->domain),
+                    'license_key_configured' => filled($tenant?->domain), // BC: domain is license identity
                     'store_display_name' => $tenant?->store_display_name,
                     'default_currency' => $tenant?->default_currency ?? 'IRT',
                     'default_locale' => $tenant?->default_locale ?? 'fa',
@@ -134,16 +135,14 @@ class SetupController extends Controller
     {
         $data = $request->validate([
             'domain' => ['nullable', 'string', 'max:255'],
-            'license_key' => ['nullable', 'string', 'max:512'],
         ]);
 
         /** @var Tenant $tenant */
         $tenant = $request->user()->tenant;
         if (array_key_exists('domain', $data)) {
             $tenant->domain = $data['domain'] !== '' ? $data['domain'] : null;
-        }
-        if (array_key_exists('license_key', $data)) {
-            $tenant->license_key = $data['license_key'] !== '' ? $data['license_key'] : null;
+            // Deprecated column: keep in sync with domain for old rows; not used for entitlement.
+            $tenant->license_key = $tenant->domain;
         }
         $tenant->save();
 

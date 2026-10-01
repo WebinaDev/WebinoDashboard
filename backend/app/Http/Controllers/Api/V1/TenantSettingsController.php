@@ -522,7 +522,8 @@ class TenantSettingsController extends Controller
             'checked_at' => optional($tenant?->license_checked_at)?->toIso8601String(),
             'unreachable' => (bool) ($tenant?->license_unreachable ?? false),
             'last_error' => $tenant?->license_last_error,
-            'has_key' => filled($tenant?->license_key),
+            'has_domain' => filled($tenant?->domain),
+            'has_key' => filled($tenant?->domain),
         ];
     }
 
