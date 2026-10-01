@@ -247,7 +247,7 @@ Route::prefix('v1')->group(function () {
         });
     });
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'token.scope'])->group(function () {
         Route::get('/auth/check', [AuthController::class, 'check']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
         Route::get('/auth/user', [AuthController::class, 'user']);
@@ -725,8 +725,19 @@ Route::prefix('v1')->group(function () {
                 Route::post('/builder/templates/{kind}/publish', [BuilderController::class, 'publishTemplate']);
                 Route::post('/import/wordpress/probe', [WordpressImportController::class, 'probe']);
                 Route::post('/import/wordpress/start', [WordpressImportController::class, 'start']);
+                Route::post('/import/wordpress/ingest', [WordpressImportController::class, 'ingest']);
                 Route::get('/import/wordpress/jobs', [WordpressImportController::class, 'index']);
                 Route::get('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'show'])->whereNumber('job');
+                Route::patch('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'update'])->whereNumber('job');
+                Route::post('/import/wordpress/jobs/{job}/batches', [WordpressImportController::class, 'batches'])->whereNumber('job');
+                Route::post('/import/wordpress/jobs/{job}/upload', [WordpressImportController::class, 'upload'])->whereNumber('job');
+                Route::post('/import/wordpress/jobs/{job}/run', [WordpressImportController::class, 'run'])->whereNumber('job');
+                Route::post('/import/wordpress/jobs/{job}/pause', [WordpressImportController::class, 'pause'])->whereNumber('job');
+                Route::post('/import/wordpress/jobs/{job}/resume', [WordpressImportController::class, 'resume'])->whereNumber('job');
+                Route::post('/import/wordpress/jobs/{job}/retry', [WordpressImportController::class, 'retry'])->whereNumber('job');
+                Route::get('/import/wordpress/tokens', [WordpressImportController::class, 'tokens']);
+                Route::post('/import/wordpress/tokens', [WordpressImportController::class, 'storeToken'])->middleware('throttle:10,1');
+                Route::delete('/import/wordpress/tokens/{token}', [WordpressImportController::class, 'destroyToken'])->whereNumber('token');
             });
 
             Route::middleware('module:blog')->group(function () {

@@ -79,12 +79,13 @@ class BuilderPagesTest extends TestCase
             'source_url' => 'https://example.com',
         ])->assertOk()->json('data');
 
-        $this->assertSame('scaffold', $probe['status']);
+        $this->assertSame('ready', $probe['status']);
+        $this->assertFalse($probe['fetch']);
         $this->assertContains('woo_products', $probe['resources']);
 
         $this->postJson('/api/v1/import/wordpress/start', [
             'source_url' => 'https://example.com',
         ])->assertCreated()
-            ->assertJsonPath('data.status', 'scaffold');
+            ->assertJsonPath('data.status', 'ready');
     }
 }
