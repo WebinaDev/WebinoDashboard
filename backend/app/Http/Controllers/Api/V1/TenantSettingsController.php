@@ -267,6 +267,10 @@ class TenantSettingsController extends Controller
             $merged['guest_checkout'] = ! empty($merged['guest_checkout']);
             $merged['account_creation'] = ! empty($merged['account_creation']);
             $saved = $settings->put($tenantId, 'settings', 'site.privacy', $merged);
+            // Keep shop.general.guest_checkout aligned for checkout consumers.
+            $general = ShopSettings::getGeneral($tenantId);
+            $general['guest_checkout'] = $merged['guest_checkout'];
+            ShopSettings::saveGeneral($tenantId, $general);
 
             return response()->json(['data' => $saved]);
         }
