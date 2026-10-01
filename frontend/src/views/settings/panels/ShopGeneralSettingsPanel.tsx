@@ -65,6 +65,7 @@ export type ShopGeneralPayload = {
   cart_redirect_after_add?: boolean
   weight_unit?: string
   dimension_unit?: string
+  guest_checkout?: boolean
 }
 
 const COUNTRY_OPTIONS = ["IR", "AF", "AE", "TR", "IQ", "SA", "US", "GB", "DE", "FR"]
@@ -432,6 +433,17 @@ export function ShopGeneralSettingsPanel() {
               onCheckedChange={(v) => setDraft({ ...draft, cart_redirect_after_add: v })}
             />
           </div>
+          <div className="flex max-w-lg items-center justify-between gap-3">
+            <div>
+              <Label htmlFor="guest-checkout">{t("shop_general.guest_checkout")}</Label>
+              <p className="text-muted-foreground text-xs">{t("shop_general.guest_checkout_hint")}</p>
+            </div>
+            <Switch
+              id="guest-checkout"
+              checked={Boolean(draft.guest_checkout)}
+              onCheckedChange={(v) => setDraft({ ...draft, guest_checkout: v })}
+            />
+          </div>
           <div className="grid max-w-md gap-3 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>{t("shop_general.weight_unit")}</Label>
@@ -445,6 +457,8 @@ export function ShopGeneralSettingsPanel() {
                 <SelectContent>
                   <SelectItem value="kg">kg</SelectItem>
                   <SelectItem value="g">g</SelectItem>
+                  <SelectItem value="lbs">lbs</SelectItem>
+                  <SelectItem value="oz">oz</SelectItem>
                 </SelectContent>
               </Select>
             </div>

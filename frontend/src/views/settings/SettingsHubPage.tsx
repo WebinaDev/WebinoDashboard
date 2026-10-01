@@ -6,6 +6,10 @@ import { useEffect } from "react"
 import { SettingsModulesChrome } from "@/components/settings/SettingsModulesChrome"
 import { defaultSettingsPath } from "@/lib/settings-nav"
 import { SecuritySettingsPanel } from "@/views/settings/panels/SecuritySettingsPanel"
+import { SiteGeneralSettingsPanel } from "@/views/settings/panels/SiteGeneralSettingsPanel"
+import { SitePrivacySettingsPanel } from "@/views/settings/panels/SitePrivacySettingsPanel"
+import { BrandStyleSettingsPanel } from "@/views/settings/panels/BrandStyleSettingsPanel"
+import { SystemLogsSettingsPanel } from "@/views/settings/panels/SystemLogsSettingsPanel"
 import { AiContentSettingsPanel } from "@/views/settings/panels/AiContentSettingsPanel"
 import { AnalyticsSettingsPanel } from "@/views/settings/panels/AnalyticsSettingsPanel"
 import { SmsSettingsPanel } from "@/views/settings/panels/SmsSettingsPanel"
@@ -40,6 +44,10 @@ import { MarketplaceRouter } from "@/views/settings/panels/marketplace/Marketpla
 function SettingsPanelRouter({ pathname }: { pathname: string }) {
   const path = pathname.replace(/\/$/, "")
 
+  if (path.endsWith("/site/general")) return <SiteGeneralSettingsPanel />
+  if (path.endsWith("/site/privacy")) return <SitePrivacySettingsPanel />
+  if (path.endsWith("/site/style")) return <BrandStyleSettingsPanel />
+  if (path.endsWith("/site/system-logs")) return <SystemLogsSettingsPanel />
   if (path.endsWith("/site/security")) return <SecuritySettingsPanel />
   if (path.endsWith("/site/ai")) return <AiContentSettingsPanel />
   if (path.endsWith("/site/analytics")) return <AnalyticsSettingsPanel />

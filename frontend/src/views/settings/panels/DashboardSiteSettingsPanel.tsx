@@ -20,12 +20,24 @@ import {
   fetchBuildPipelineStatus,
   startBuildPipeline,
 } from "@/lib/build-pipeline-api"
-import { useDraftSettings } from "@/views/settings/use-tenant-settings"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { SettingsSaveBar, useDraftSettings } from "@/views/settings/use-tenant-settings"
 
 type HostCaps = {
   self_update_enabled?: boolean
   build_pipeline_enabled?: boolean
   version?: string
+  ui_locale?: string
+  ui_theme?: string
+  ui_fullscreen_default?: boolean
 }
 
 export function DashboardSiteSettingsPanel() {
@@ -34,6 +46,7 @@ export function DashboardSiteSettingsPanel() {
   const qc = useQueryClient()
 
   const hostQ = useDraftSettings<HostCaps>("site", "dashboard")
+  const { draft: hostDraft, setDraft: setHostDraft, persist: persistHost, pending: hostPending, saved: hostSaved, error: hostError } = hostQ
   const selfUpdateEnabled = hostQ.draft?.self_update_enabled === true
   const pipelineEnabled = hostQ.draft?.build_pipeline_enabled === true
 
@@ -104,6 +117,55 @@ export function DashboardSiteSettingsPanel() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{tUpdate("prefsTitle")}</CardTitle>
+          <CardDescription>{tUpdate("prefsHint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid max-w-md gap-3">
+          <div className="grid gap-1">
+            <Label>{tUpdate("uiLocale")}</Label>
+            <Select
+              value={hostDraft?.ui_locale ?? "fa"}
+              onValueChange={(v) => setHostDraft({ ...(hostDraft ?? {}), ui_locale: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fa">fa</SelectItem>
+                <SelectItem value="en">en</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1">
+            <Label>{tUpdate("uiTheme")}</Label>
+            <Select
+              value={hostDraft?.ui_theme ?? "system"}
+              onValueChange={(v) => setHostDraft({ ...(hostDraft ?? {}), ui_theme: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="system">system</SelectItem>
+                <SelectItem value="light">light</SelectItem>
+                <SelectItem value="dark">dark</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <Label>{tUpdate("uiFullscreen")}</Label>
+            <Switch
+              checked={Boolean(hostDraft?.ui_fullscreen_default)}
+              onCheckedChange={(v) => setHostDraft({ ...(hostDraft ?? {}), ui_fullscreen_default: v })}
+            />
+          </div>
+          <SettingsSaveBar
+            onSave={() => void persistHost()}
+            pending={hostPending}
+            saved={hostSaved}
+            error={hostError}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{tUpdate("title")}</CardTitle>

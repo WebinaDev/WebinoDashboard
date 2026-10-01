@@ -1,6 +1,7 @@
 export type SettingsArea = "site" | "shop"
 
 export type SettingsUnitId =
+  | "site-general"
   | "site-security"
   | "site-ai"
   | "site-analytics"
@@ -36,6 +37,44 @@ export type SettingsUnitDef = {
 
 /** Card strip order matches WordPress hub + user-specified module order. */
 export const SETTINGS_UNITS: SettingsUnitDef[] = [
+  {
+    id: "site-general",
+    area: "site",
+    titleFa: "عمومی سایت",
+    titleEn: "Site general",
+    sections: [
+      {
+        id: "general",
+        titleFa: "عمومی",
+        titleEn: "General",
+        route: "/dashboard/settings/site/general",
+      },
+      {
+        id: "privacy",
+        titleFa: "حریم خصوصی",
+        titleEn: "Privacy",
+        route: "/dashboard/settings/site/privacy",
+      },
+      {
+        id: "license",
+        titleFa: "لایسنس",
+        titleEn: "License",
+        route: "/dashboard/license",
+      },
+      {
+        id: "style",
+        titleFa: "استایل و برند",
+        titleEn: "Brand & style",
+        route: "/dashboard/settings/site/style",
+      },
+      {
+        id: "system-logs",
+        titleFa: "لاگ سیستم",
+        titleEn: "System logs",
+        route: "/dashboard/settings/site/system-logs",
+      },
+    ],
+  },
   {
     id: "site-security",
     area: "site",

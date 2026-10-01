@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { api } from "@/lib/api"
@@ -26,6 +27,7 @@ type GeoServices = {
 type GeoNotice = {
   enabled: boolean
   services: GeoServices
+  colors: Record<string, string>
 }
 
 type HubItem = {
@@ -54,8 +56,20 @@ const SERVICE_KEYS: (keyof GeoServices)[] = [
   "country_is",
 ]
 
+const GEO_COLOR_KEYS = ["bg", "border", "text", "icon", "button_bg", "button_text"] as const
+
+const DEFAULT_GEO_COLORS: Record<string, string> = {
+  bg: "#fff7ed",
+  border: "#fdba74",
+  text: "#9a3412",
+  icon: "#ea580c",
+  button_bg: "#ea580c",
+  button_text: "#ffffff",
+}
+
 const DEFAULT_GEO: GeoNotice = {
   enabled: true,
+  colors: { ...DEFAULT_GEO_COLORS },
   services: {
     cloudflare: true,
     woocommerce: true,
@@ -70,6 +84,7 @@ const DEFAULT_GEO: GeoNotice = {
 function normalizeGeo(raw?: GeoNotice | null): GeoNotice {
   const base: GeoNotice = {
     enabled: DEFAULT_GEO.enabled,
+    colors: { ...DEFAULT_GEO_COLORS },
     services: { ...DEFAULT_GEO.services },
   }
   if (!raw || typeof raw !== "object") return base
@@ -77,6 +92,12 @@ function normalizeGeo(raw?: GeoNotice | null): GeoNotice {
   if (raw.services && typeof raw.services === "object") {
     for (const key of SERVICE_KEYS) {
       if (key in raw.services) base.services[key] = Boolean(raw.services[key])
+    }
+  }
+  if (raw.colors && typeof raw.colors === "object") {
+    for (const key of GEO_COLOR_KEYS) {
+      const v = raw.colors[key]
+      if (typeof v === "string" && v.trim()) base.colors[key] = v
     }
   }
   return base
@@ -178,6 +199,30 @@ export function PaymentHubPanel() {
             </div>
           </div>
         </div>
+
+        <div>
+            <p className="mb-2 text-sm font-medium">{t("geo_colors_title")}</p>
+            <p className="text-muted-foreground mb-3 text-xs">{t("geo_colors_hint")}</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {GEO_COLOR_KEYS.map((key) => (
+                <label key={key} className="grid gap-1">
+                  <span className="text-xs">{t(`geo_color.${key}`)}</span>
+                  <Input
+                    type="color"
+                    dir="ltr"
+                    value={geoDraft.colors?.[key] ?? DEFAULT_GEO_COLORS[key]}
+                    disabled={!geoDraft.enabled || geoSave.isPending}
+                    onChange={(e) =>
+                      setGeoDraft((prev) => ({
+                        ...prev,
+                        colors: { ...prev.colors, [key]: e.target.value },
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
 
         <div className="flex justify-end">
           <Button

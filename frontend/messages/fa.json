@@ -950,7 +950,12 @@
     "payment_callback_ok": "پرداخت ثبت شد. لایسنس را همگام کنید.",
     "payment_callback_failed": "پرداخت ناموفق بود یا لغو شد.",
     "payment_callback_pending": "وضعیت پرداخت مشخص نیست. در صورت نیاز لایسنس را همگام کنید.",
-    "back_to_modules": "بازگشت به ماژول‌ها"
+    "back_to_modules": "بازگشت به ماژول‌ها",
+    "catalog_hint": "کاتالوگ ماژول‌های قابل نصب و وضعیت مجوز",
+    "installed_hint": "ماژول‌های فعال این مستأجر",
+    "col_version": "نسخه",
+    "open_settings": "تنظیمات",
+    "open_license": "صفحهٔ لایسنس"
   },
   "settings": {
     "title": "تنظیمات منطقه‌ای",
@@ -996,7 +1001,11 @@
       "notify": "اعلان‌ها",
       "notify_email": "ایمیل",
       "notify_site": "داخل پنل",
-      "complete_wizard": "اتمام راه‌اندازی امنیت"
+      "complete_wizard": "اتمام راه‌اندازی امنیت",
+      "hide_app_fingerprint": "مخفی‌کردن اثرانگشت فریم‌ورک",
+      "hide_app_fingerprint_hint": "حذف هدرهای X-Powered-By و Server از پاسخ‌های API",
+      "disable_dangerous_debug": "غیرفعال‌کردن افشای دیباگ",
+      "disable_dangerous_debug_hint": "در محیط غیر محلی، توکن‌های دیباگ از هدر حذف می‌شوند"
     },
     "ai": {
       "title": "محتوای هوش مصنوعی",
@@ -1091,7 +1100,12 @@
         "refreshed": "وضعیت به‌روزرسانی به‌روز شد.",
         "serviceUnavailable": "ارتباط با سرویس انتشار برای اطلاعات به‌روزرسانی برقرار نشد.",
         "packageMissing": "بسته ریلیز آخر هنوز در دسترس نیست.",
-        "selfUpdateDisabled": "به‌روزرسانی خودکار روی این سرور غیرفعال است (DASHBOARD_SELF_UPDATE فعال نیست)."
+        "selfUpdateDisabled": "به‌روزرسانی خودکار روی این سرور غیرفعال است (DASHBOARD_SELF_UPDATE فعال نیست).",
+        "prefsTitle": "ترجیحات داشبورد",
+        "prefsHint": "زبان رابط، تم و تمام‌صفحهٔ پیش‌فرض",
+        "uiLocale": "زبان رابط",
+        "uiTheme": "تم",
+        "uiFullscreen": "تمام‌صفحهٔ پیش‌فرض"
       },
       "buildPipeline": {
         "title": "خط لوله ساخت ریلیز",
@@ -1184,7 +1198,9 @@
       "page_none": "— هیچ —",
       "cart_redirect": "پرش به سبد بعد از افزودن",
       "weight_unit": "واحد وزن",
-      "dimension_unit": "واحد طول"
+      "dimension_unit": "واحد طول",
+      "guest_checkout": "پرداخت مهمان",
+      "guest_checkout_hint": "ذخیره می‌شود؛ مسیر تسویهٔ عمومی در فاز بعدی کامل می‌شود"
     },
     "shop_products": {
       "inventory": "موجودی",
@@ -1397,6 +1413,61 @@
       "debug_log": "لاگ اشکال‌زدایی",
       "legacy_api": "API قدیمی",
       "delete_data": "حذف داده هنگام حذف"
+    },
+    "site_general": {
+      "title": "تنظیمات عمومی سایت",
+      "description": "عنوان، تگ‌لاین، ایمیل ادمین و منطقهٔ زمانی",
+      "site_title": "عنوان سایت",
+      "tagline": "تگ‌لاین",
+      "admin_email": "ایمیل مدیر",
+      "timezone": "منطقهٔ زمانی"
+    },
+    "site_privacy": {
+      "title": "حریم خصوصی و حساب",
+      "description": "پرداخت مهمان و ایجاد حساب",
+      "guest_checkout": "پرداخت مهمان",
+      "guest_checkout_hint": "اجازهٔ تکمیل سفارش بدون ورود (نیاز به مسیر عمومی سبد)",
+      "account_creation": "ایجاد حساب کاربری",
+      "account_creation_hint": "اجازهٔ ثبت‌نام مشتری جدید"
+    },
+    "system_logs": {
+      "title": "لاگ سیستم",
+      "description": "دنبالهٔ لاگ لاراول روی سرور داشبورد",
+      "file": "فایل",
+      "size": "حجم",
+      "modified": "آخرین تغییر",
+      "empty": "لاگی موجود نیست",
+      "refresh": "بازنشانی"
+    },
+    "brand_style": {
+      "title": "استایل و برند",
+      "description": "پالت رنگ، فونت‌ها و شناسهٔ رسانهٔ لوگو",
+      "accent": "اکسنت",
+      "font_body": "فونت متن",
+      "font_heading": "فونت عنوان",
+      "font_ui": "فونت رابط",
+      "logo_id": "شناسهٔ رسانهٔ لوگو",
+      "favicon_id": "شناسهٔ فاویکون",
+      "media_id_hint": "شناسه از کتابخانهٔ رسانه (به‌جای URL خام)",
+      "palette_title": "پالت برند",
+      "geo_colors_title": "رنگ‌های اعلان جغرافیایی",
+      "palette": {
+        "primary": "اصلی",
+        "secondary": "ثانویه",
+        "accent": "تأکیدی",
+        "bg": "پس‌زمینه",
+        "surface": "سطح",
+        "text": "متن",
+        "muted": "کم‌رنگ"
+      },
+      "geo": {
+        "bg": "پس‌زمینه",
+        "border": "حاشیه",
+        "text": "متن",
+        "icon": "آیکون",
+        "button_bg": "دکمه",
+        "button_text": "متن دکمه"
+      }
     }
   },
   "payments_hub": {
@@ -1436,7 +1507,17 @@
     "unavailable": "این درگاه در دسترس نیست.",
     "back_to_hub": "بازگشت به هاب درگاه‌ها",
     "basalam_pay": "باسلام‌پی",
-    "basalam_pay_desc": "پرداخت از طریق درگاه باسلام."
+    "basalam_pay_desc": "پرداخت از طریق درگاه باسلام.",
+    "geo_colors_title": "رنگ‌های اعلان جغرافیایی",
+    "geo_colors_hint": "رنگ‌های بنر اخطار جغرافیایی در پرداخت",
+    "geo_color": {
+      "bg": "پس‌زمینه",
+      "border": "حاشیه",
+      "text": "متن",
+      "icon": "آیکون",
+      "button_bg": "دکمه",
+      "button_text": "متن دکمه"
+    }
   },
   "payments_gateway": {
     "yes": "بله",
@@ -5118,7 +5199,11 @@
     "new_account": "حساب جدید",
     "account_code": "کد",
     "account_name": "نام",
-    "placeholder_section": "این بخش در به‌روزرسانی بعدی فعال می‌شود."
+    "placeholder_section": "این بخش هنوز به دفتر زندهٔ ERP وصل نشده و فقط دادهٔ محلی را نشان می‌دهد.",
+    "defaults": {
+      "cash": "نقد",
+      "equity": "حقوق مالکانه"
+    }
   },
   "ui": {
     "filters": "فیلترها",

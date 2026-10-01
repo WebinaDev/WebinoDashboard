@@ -95,6 +95,8 @@ export function useDraftSettings<T extends Record<string, unknown>>(
     pending: save.isPending,
     saved,
     error,
+    refetch: () => q.refetch(),
+    refetching: q.isFetching,
     refetchError: q.error ? getApiErrorMessage(q.error as Error) : null,
   }
 }

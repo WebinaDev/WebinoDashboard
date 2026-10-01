@@ -1193,7 +1193,12 @@
     "payment_callback_ok": "Payment recorded. Sync the license to apply entitlements.",
     "payment_callback_failed": "Payment failed or was cancelled.",
     "payment_callback_pending": "Payment status is unclear. Sync the license if needed.",
-    "back_to_modules": "Back to modules"
+    "back_to_modules": "Back to modules",
+    "catalog_hint": "Installable modules and license status",
+    "installed_hint": "Enabled modules for this tenant",
+    "col_version": "Version",
+    "open_settings": "Settings",
+    "open_license": "License page"
   },
   "settings": {
     "title": "Regional",
@@ -1239,7 +1244,11 @@
       "notify": "Notifications",
       "notify_email": "Email",
       "notify_site": "In-panel",
-      "complete_wizard": "Complete security setup"
+      "complete_wizard": "Complete security setup",
+      "hide_app_fingerprint": "Hide framework fingerprint",
+      "hide_app_fingerprint_hint": "Strip X-Powered-By and Server headers from API responses",
+      "disable_dangerous_debug": "Disable debug exposure",
+      "disable_dangerous_debug_hint": "Remove debug tokens from headers outside local environments"
     },
     "ai": {
       "title": "AI content",
@@ -1334,7 +1343,12 @@
         "refreshed": "Update status refreshed.",
         "serviceUnavailable": "Could not reach the release service for update information.",
         "packageMissing": "The latest release package is not available yet.",
-        "selfUpdateDisabled": "Self-update is disabled on this host (DASHBOARD_SELF_UPDATE is not enabled)."
+        "selfUpdateDisabled": "Self-update is disabled on this host (DASHBOARD_SELF_UPDATE is not enabled).",
+        "prefsTitle": "Dashboard preferences",
+        "prefsHint": "UI locale, theme and default fullscreen",
+        "uiLocale": "UI locale",
+        "uiTheme": "Theme",
+        "uiFullscreen": "Default fullscreen"
       },
       "buildPipeline": {
         "title": "Release build pipeline",
@@ -1427,7 +1441,9 @@
       "page_none": "— None —",
       "cart_redirect": "Redirect to cart after add",
       "weight_unit": "Weight unit",
-      "dimension_unit": "Dimension unit"
+      "dimension_unit": "Dimension unit",
+      "guest_checkout": "Guest checkout",
+      "guest_checkout_hint": "Stored now; full public checkout path completes later"
     },
     "shop_products": {
       "inventory": "Inventory",
@@ -1640,6 +1656,61 @@
       "debug_log": "Debug log",
       "legacy_api": "Legacy API",
       "delete_data": "Delete data on uninstall"
+    },
+    "site_general": {
+      "title": "Site general",
+      "description": "Title, tagline, admin email and timezone",
+      "site_title": "Site title",
+      "tagline": "Tagline",
+      "admin_email": "Admin email",
+      "timezone": "Timezone"
+    },
+    "site_privacy": {
+      "title": "Privacy & accounts",
+      "description": "Guest checkout and account creation",
+      "guest_checkout": "Guest checkout",
+      "guest_checkout_hint": "Allow checkout without login (public cart path required)",
+      "account_creation": "Account creation",
+      "account_creation_hint": "Allow new customer registration"
+    },
+    "system_logs": {
+      "title": "System logs",
+      "description": "Laravel log tail on the dashboard host",
+      "file": "File",
+      "size": "Size",
+      "modified": "Modified",
+      "empty": "No log lines",
+      "refresh": "Refresh"
+    },
+    "brand_style": {
+      "title": "Brand & style",
+      "description": "Palette, fonts and logo media ids",
+      "accent": "Accent",
+      "font_body": "Body font",
+      "font_heading": "Heading font",
+      "font_ui": "UI font",
+      "logo_id": "Logo media id",
+      "favicon_id": "Favicon media id",
+      "media_id_hint": "Media library id (instead of raw URL)",
+      "palette_title": "Brand palette",
+      "geo_colors_title": "Geo notice colors",
+      "palette": {
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "accent": "Accent",
+        "bg": "Background",
+        "surface": "Surface",
+        "text": "Text",
+        "muted": "Muted"
+      },
+      "geo": {
+        "bg": "Background",
+        "border": "Border",
+        "text": "Text",
+        "icon": "Icon",
+        "button_bg": "Button",
+        "button_text": "Button text"
+      }
     }
   },
   "payments_hub": {
@@ -1679,7 +1750,17 @@
     "unavailable": "This gateway is unavailable.",
     "back_to_hub": "Back to payment hub",
     "basalam_pay": "Basalam Pay",
-    "basalam_pay_desc": "Pay through the Basalam gateway."
+    "basalam_pay_desc": "Pay through the Basalam gateway.",
+    "geo_colors_title": "Geo notice colors",
+    "geo_colors_hint": "Colors for the geo warning banner on checkout",
+    "geo_color": {
+      "bg": "Background",
+      "border": "Border",
+      "text": "Text",
+      "icon": "Icon",
+      "button_bg": "Button",
+      "button_text": "Button text"
+    }
   },
   "payments_gateway": {
     "yes": "Yes",
@@ -5121,7 +5202,11 @@
     "new_account": "New account",
     "account_code": "Code",
     "account_name": "Name",
-    "placeholder_section": "This section will be available in a future update."
+    "placeholder_section": "This section is not yet wired to live ERP books; local bundle only.",
+    "defaults": {
+      "cash": "Cash",
+      "equity": "Equity"
+    }
   },
   "ui": {
     "filters": "Filters",
