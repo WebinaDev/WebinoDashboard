@@ -121,16 +121,18 @@ export function SecuritySettingsPanel() {
         </CardHeader>
         <CardContent className="space-y-3">
           <SettingSwitch
-            id="hide-ver"
-            label={t("security.hide_version")}
-            checked={Boolean(priv.hide_wp_version)}
-            onCheckedChange={(v) => patch("privacy", "hide_wp_version", v)}
+            id="hide-fingerprint"
+            label={t("security.hide_app_fingerprint")}
+            hint={t("security.hide_app_fingerprint_hint")}
+            checked={Boolean(priv.hide_app_fingerprint ?? priv.hide_wp_version)}
+            onCheckedChange={(v) => patch("privacy", "hide_app_fingerprint", v)}
           />
           <SettingSwitch
-            id="file-edit"
-            label={t("security.disable_file_edit")}
-            checked={Boolean(priv.disable_file_edit)}
-            onCheckedChange={(v) => patch("privacy", "disable_file_edit", v)}
+            id="disable-debug"
+            label={t("security.disable_dangerous_debug")}
+            hint={t("security.disable_dangerous_debug_hint")}
+            checked={Boolean(priv.disable_dangerous_debug ?? priv.disable_file_edit)}
+            onCheckedChange={(v) => patch("privacy", "disable_dangerous_debug", v)}
           />
         </CardContent>
       </Card>

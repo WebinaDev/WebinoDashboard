@@ -49,11 +49,13 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\AuthenticateFromCookie::class,
             \App\Http\Middleware\EnsureUserIsActive::class,
             \App\Http\Middleware\RequireAjaxHeader::class,
+            \App\Http\Middleware\WafGuard::class,
         ]);
         $middleware->api(append: [
             \App\Http\Middleware\RequirePasswordChange::class,
             \App\Http\Middleware\RequireTwoFactor::class,
             \App\Http\Middleware\ThrottleApiToken::class,
+            \App\Http\Middleware\SecurityHeaders::class,
         ]);
         $middleware->alias([
             'module' => EnsureModuleEnabled::class,

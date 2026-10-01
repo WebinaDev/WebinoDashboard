@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Security\SecuritySettings;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,11 +20,7 @@ class RequireTwoFactor
             return $next($request);
         }
 
-        $enforceRoles = config('auth.enforce_2fa_roles', 'admin');
-        $roles = array_values(array_filter(array_map('trim', explode(',', (string) $enforceRoles))));
-        $userRole = (string) ($user->role ?? '');
-        $mustEnforce = $userRole !== '' && in_array($userRole, $roles, true);
-
+        $mustEnforce = $this->mustEnforce($user);
         if ($mustEnforce && (! $user->two_factor_secret || ! $user->two_factor_confirmed_at)) {
             $allowed = [
                 'v1/auth/2fa/status',
@@ -52,5 +49,37 @@ class RequireTwoFactor
         }
 
         return $next($request);
+    }
+
+    private function mustEnforce(object $user): bool
+    {
+        $userRole = (string) ($user->role ?? '');
+        if ($userRole === '') {
+            return false;
+        }
+
+        $enforceRoles = config('auth.enforce_2fa_roles', 'admin');
+        $roles = array_values(array_filter(array_map('trim', explode(',', (string) $enforceRoles))));
+        if ($userRole !== '' && in_array($userRole, $roles, true)) {
+            return true;
+        }
+
+        // Tenant security setting: force 2FA for admins / shop managers.
+        $tenantId = (int) ($user->tenant_id ?? 0);
+        if ($tenantId <= 0) {
+            return false;
+        }
+
+        try {
+            $settings = SecuritySettings::get($tenantId);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        if (empty($settings['general']['enabled']) || empty($settings['login']['force_2fa_admins'])) {
+            return false;
+        }
+
+        return in_array($userRole, ['admin', 'shop_manager', 'owner'], true);
     }
 }

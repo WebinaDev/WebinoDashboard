@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Security\LoginAttemptService;
 use App\Services\Tenant\TenantResolver;
 use App\Support\AuthCookie;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
-    public function login(Request $request): \Illuminate\Http\JsonResponse
+    public function login(Request $request, LoginAttemptService $attempts): \Illuminate\Http\JsonResponse
     {
         $data = $request->validate([
             'email' => ['required', 'email'],
@@ -25,6 +26,17 @@ class AuthController extends Controller
         ]);
 
         $tenant = app(TenantResolver::class)->identifyFromRequest($request);
+        $tenantId = $tenant ? (int) $tenant->id : 0;
+        $ip = (string) ($request->ip() ?? '0.0.0.0');
+        $email = (string) $data['email'];
+
+        if ($tenantId > 0 && $attempts->isLocked($tenantId, $email, $ip)) {
+            $secs = $attempts->remainingLockSeconds($tenantId, $email, $ip);
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.throttle', ['seconds' => max(1, $secs)])],
+            ]);
+        }
 
         /** @var User|null $user */
         $user = User::query()
@@ -33,10 +45,17 @@ class AuthController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
+            if ($tenantId > 0) {
+                $attempts->recordFailure($tenantId, $email, $ip);
+            } elseif ($user) {
+                $attempts->recordFailure((int) $user->tenant_id, $email, $ip);
+            }
             throw ValidationException::withMessages([
                 'email' => [__('api.invalid_credentials')],
             ]);
         }
+
+        $attempts->clear((int) $user->tenant_id, $email, $ip);
 
         if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
             $verified = false;
