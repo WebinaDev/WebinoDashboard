@@ -57,6 +57,7 @@ export function TorobToolsPanel() {
   const q = queue.data
   return (
     <div className="space-y-4">
+      <p className="text-muted-foreground text-sm">{t("torob.extractor_deprecated")}</p>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("torob.webhook")}</CardTitle>

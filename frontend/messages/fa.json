@@ -2243,7 +2243,13 @@
     "print_product_label": "چاپ برچسب کالا",
     "ai_generate": "تولید با AI",
     "ai_generate_queued": "تولید محتوا در صف قرار گرفت",
-    "unavailable": "در دسترس نیست"
+    "unavailable": "در دسترس نیست",
+    "grouped_products": "محصولات گروهی",
+    "grouped_products_hint": "محصولاتی که داخل این محصول گروهی نمایش داده می‌شوند.",
+    "external_url": "آدرس محصول خارجی",
+    "external_url_hint": "خریدار به این لینک هدایت می‌شود (مثل affiliate).",
+    "external_button": "متن دکمه",
+    "external_button_ph": "خرید از سایت"
   },
   "coffee_admin": {
     "title": "پروفایل قهوه",
@@ -2868,7 +2874,8 @@
       "amount": "مقدار",
       "status": "وضعیت",
       "usage": "مصرف",
-      "expires": "انقضا"
+      "expires": "انقضا",
+      "products": "محصولات"
     },
     "actions": {
       "new": "کوپن جدید",
@@ -2948,13 +2955,17 @@
       "searchProducts": "جستجوی محصول…",
       "searchUsers": "جستجوی نام، ایمیل یا موبایل…",
       "empty": "موردی یافت نشد",
-      "remove": "حذف"
+      "remove": "حذف",
+      "searchCategories": "جستجوی دسته…",
+      "searchBrands": "جستجوی برند…"
     },
     "visibility": {
       "public": "عمومی",
       "private": "خصوصی",
       "password": "رمزدار"
-    }
+    },
+    "amountHintPercent": "درصد تخفیف (مثلاً ۱۰ یعنی ۱۰٪).",
+    "amountHintMinor": "مبلغ به واحد خرد (minor) ارز فروشگاه ذخیره می‌شود؛ اعشار ووکامرس نیست."
   },
   "coupon_builder": {
     "title": "ساخت سریع پیشنهاد",
@@ -3102,6 +3113,27 @@
       "channel_publish": "انتشار در کانال",
       "order_cascade": "اعلان آبشاری سفارش",
       "site_widget": "ویجت سایت"
+    },
+    "cascade": {
+      "title": "اعلان آبشاری سفارش",
+      "hint": "وقتی وضعیت سفارش عوض شود، پیام آبشاری به کانال ربات ارسال می‌شود.",
+      "template": "قالب پیام",
+      "templatePh": "سفارش #{order_id} → {status}",
+      "statuses": "وضعیت‌های هدف",
+      "statusesPh": "processing,completed",
+      "statusesHint": "لیست وضعیت‌ها با ویرگول؛ خالی = همه.",
+      "notifyCustomer": "اعلان به مشتری در چت ربات"
+    },
+    "widget": {
+      "title": "ویجت سایت",
+      "hint": "دکمه شناور چت ربات روی فروشگاه.",
+      "greeting": "پیام خوشامد",
+      "position": "موقعیت",
+      "positions": {
+        "bottom_left": "پایین چپ",
+        "bottom_right": "پایین راست"
+      },
+      "showOnMobile": "نمایش در موبایل"
     }
   },
   "marketplace_admin": {
@@ -3338,7 +3370,8 @@
       "load_preview": "نمایش",
       "order_saved": "اطلاعات ترب ذخیره شد.",
       "order_title": "اطلاعات سفارش برای ترب",
-      "no_clid": "این سفارش از طریق ترب ثبت نشده است (torob_clid ندارد)."
+      "no_clid": "این سفارش از طریق ترب ثبت نشده است (torob_clid ندارد).",
+      "extractor_deprecated": "ماژول استخراج‌کنندهٔ قدیمی ترب در WP منسوخ شده و به کانکتور ترب منتقل شده است؛ ابزارهای صف و پیش‌نمایش همین‌جا معادل آن هستند."
     },
     "map_status": {
       "synced": "همگام",

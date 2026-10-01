@@ -24,6 +24,7 @@ export type CouponTableRow = {
   usage_limit?: number | null
   expires_at?: string | null
   description?: string | null
+  restrictions?: { product_ids?: number[] | null } | null
 }
 
 export function CouponsTable({
@@ -95,6 +96,9 @@ export function CouponsTable({
             <MobileListField label={t("cols.amount")}>{amount(row)}</MobileListField>
             <MobileListField label={t("cols.usage")}>{usage(row)}</MobileListField>
             <MobileListField label={t("cols.expires")}>{formatDisplayDate(row.expires_at, locale)}</MobileListField>
+            <MobileListField label={t("cols.products")}>
+              {localizeNumber((row.restrictions?.product_ids ?? []).length, locale)}
+            </MobileListField>
           </MobileListCard>
         ))}
       </div>
@@ -114,6 +118,7 @@ export function CouponsTable({
               <TableHead>{t("cols.status")}</TableHead>
               <TableHead>{t("cols.usage")}</TableHead>
               <TableHead>{t("cols.expires")}</TableHead>
+              <TableHead>{t("cols.products")}</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -135,6 +140,9 @@ export function CouponsTable({
                   <TableCell>{status(row)}</TableCell>
                   <TableCell>{usage(row)}</TableCell>
                   <TableCell className="text-xs">{formatDisplayDate(row.expires_at, locale)}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {localizeNumber((row.restrictions?.product_ids ?? []).length, locale)}
+                  </TableCell>
                   <TableCell className="text-end">{trashButton(row)}</TableCell>
                 </TableRow>
               )

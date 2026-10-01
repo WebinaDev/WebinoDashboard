@@ -25,6 +25,8 @@ type Settings = {
   webhook_url?: string
   meta?: {
     addons?: Record<string, boolean>
+    cascade?: Record<string, unknown>
+    widget?: Record<string, unknown>
   }
 }
 
@@ -49,6 +51,12 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
   const [chatId, setChatId] = useState("")
   const [testText, setTestText] = useState(() => t("settings.testTextDefault"))
   const [addons, setAddons] = useState<Record<string, boolean>>({})
+  const [cascadeTemplate, setCascadeTemplate] = useState("")
+  const [cascadeStatuses, setCascadeStatuses] = useState("processing,completed")
+  const [cascadeNotifyCustomer, setCascadeNotifyCustomer] = useState(true)
+  const [widgetGreeting, setWidgetGreeting] = useState("")
+  const [widgetPosition, setWidgetPosition] = useState("bottom-left")
+  const [widgetShowOnMobile, setWidgetShowOnMobile] = useState(true)
 
   const q = useQuery({
     queryKey: ["bots", provider, "settings"],
@@ -60,6 +68,14 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
     setEnabled(Boolean(q.data.enabled))
     setToken("")
     setAddons({ ...(q.data.meta?.addons ?? {}) })
+    const cascade = (q.data.meta?.cascade ?? {}) as Record<string, unknown>
+    setCascadeTemplate(String(cascade.template ?? ""))
+    setCascadeStatuses(String(cascade.statuses ?? "processing,completed"))
+    setCascadeNotifyCustomer(cascade.notify_customer !== false)
+    const widget = (q.data.meta?.widget ?? {}) as Record<string, unknown>
+    setWidgetGreeting(String(widget.greeting ?? ""))
+    setWidgetPosition(String(widget.position ?? "bottom-left"))
+    setWidgetShowOnMobile(widget.show_on_mobile !== false)
   }, [q.data])
 
   const save = useMutation({
@@ -69,7 +85,20 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
         json: {
           enabled,
           ...(token && !token.includes("•") ? { token } : {}),
-          meta: { ...(q.data?.meta ?? {}), addons },
+          meta: {
+            ...(q.data?.meta ?? {}),
+            addons,
+            cascade: {
+              template: cascadeTemplate,
+              statuses: cascadeStatuses,
+              notify_customer: cascadeNotifyCustomer,
+            },
+            widget: {
+              greeting: widgetGreeting,
+              position: widgetPosition,
+              show_on_mobile: widgetShowOnMobile,
+            },
+          },
         },
       }),
     onSuccess: async () => {
@@ -152,6 +181,68 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
             ))}
           </CardContent>
         </Card>
+
+        {addons.order_cascade ? (
+          <Card className="shadow-soft">
+            <CardHeader>
+              <CardTitle className="text-base">{t("cascade.title")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-muted-foreground text-sm">{t("cascade.hint")}</p>
+              <div className="space-y-1">
+                <Label>{t("cascade.template")}</Label>
+                <Input
+                  value={cascadeTemplate}
+                  onChange={(e) => setCascadeTemplate(e.target.value)}
+                  placeholder={t("cascade.templatePh")}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("cascade.statuses")}</Label>
+                <Input
+                  value={cascadeStatuses}
+                  onChange={(e) => setCascadeStatuses(e.target.value)}
+                  placeholder={t("cascade.statusesPh")}
+                />
+                <p className="text-muted-foreground text-xs">{t("cascade.statusesHint")}</p>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={cascadeNotifyCustomer} onCheckedChange={(v) => setCascadeNotifyCustomer(Boolean(v))} />
+                {t("cascade.notifyCustomer")}
+              </label>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {addons.site_widget ? (
+          <Card className="shadow-soft">
+            <CardHeader>
+              <CardTitle className="text-base">{t("widget.title")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-muted-foreground text-sm">{t("widget.hint")}</p>
+              <div className="space-y-1">
+                <Label>{t("widget.greeting")}</Label>
+                <Input value={widgetGreeting} onChange={(e) => setWidgetGreeting(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("widget.position")}</Label>
+                <select
+                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                  value={widgetPosition}
+                  onChange={(e) => setWidgetPosition(e.target.value)}
+                >
+                  <option value="bottom-left">{t("widget.positions.bottom_left")}</option>
+                  <option value="bottom-right">{t("widget.positions.bottom_right")}</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={widgetShowOnMobile} onCheckedChange={(v) => setWidgetShowOnMobile(Boolean(v))} />
+                {t("widget.showOnMobile")}
+              </label>
+            </CardContent>
+          </Card>
+        ) : null}
 <Card className="shadow-soft">
           <CardHeader>
             <CardTitle className="text-base">{t("settings.testSend")}</CardTitle>

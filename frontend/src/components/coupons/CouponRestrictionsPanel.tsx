@@ -1,9 +1,10 @@
 "use client"
 
+import { BrandMultiSelect } from "@/components/coupons/BrandMultiSelect"
+import { CategoryMultiSelect } from "@/components/coupons/CategoryMultiSelect"
 import { ProductMultiSelect } from "@/components/coupons/ProductMultiSelect"
 import { UserMultiSelect } from "@/components/coupons/UserMultiSelect"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useTranslations } from "next-intl"
@@ -17,10 +18,10 @@ export function CouponRestrictionsPanel(props: {
   setProductIds: (v: number[]) => void
   userIds: number[]
   setUserIds: (v: number[]) => void
-  categoryIds: string
-  setCategoryIds: (v: string) => void
-  brandIds: string
-  setBrandIds: (v: string) => void
+  categoryIds: number[]
+  setCategoryIds: (v: number[]) => void
+  brandIds: number[]
+  setBrandIds: (v: number[]) => void
   emails: string
   setEmails: (v: string) => void
 }) {
@@ -46,14 +47,8 @@ export function CouponRestrictionsPanel(props: {
         </div>
       </div>
       <ProductMultiSelect label={t("fields.product_ids")} value={props.productIds} onChange={props.setProductIds} />
-      <div className="space-y-1">
-        <Label>{t("fields.category_ids")}</Label>
-        <Input value={props.categoryIds} onChange={(e) => props.setCategoryIds(e.target.value)} placeholder="1,2" />
-      </div>
-      <div className="space-y-1">
-        <Label>{t("fields.brand_ids")}</Label>
-        <Input value={props.brandIds} onChange={(e) => props.setBrandIds(e.target.value)} placeholder="1,2" />
-      </div>
+      <CategoryMultiSelect label={t("fields.category_ids")} value={props.categoryIds} onChange={props.setCategoryIds} />
+      <BrandMultiSelect label={t("fields.brand_ids")} value={props.brandIds} onChange={props.setBrandIds} />
       <UserMultiSelect label={t("picker.user_ids")} value={props.userIds} onChange={props.setUserIds} />
       <div className="space-y-1">
         <Label>{t("fields.emails")}</Label>

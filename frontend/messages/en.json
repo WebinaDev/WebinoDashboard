@@ -2244,7 +2244,13 @@
     "print_product_label": "Print product label",
     "ai_generate": "Generate with AI",
     "ai_generate_queued": "AI content queued",
-    "unavailable": "Unavailable"
+    "unavailable": "Unavailable",
+    "grouped_products": "Grouped products",
+    "grouped_products_hint": "Products shown inside this grouped product.",
+    "external_url": "External product URL",
+    "external_url_hint": "Shoppers are sent to this URL (e.g. affiliate).",
+    "external_button": "Button text",
+    "external_button_ph": "Buy on site"
   },
   "coffee_admin": {
     "title": "Coffee profile",
@@ -2869,7 +2875,8 @@
       "amount": "Amount",
       "status": "Status",
       "usage": "Usage",
-      "expires": "Expires"
+      "expires": "Expires",
+      "products": "Products"
     },
     "actions": {
       "new": "New coupon",
@@ -2949,13 +2956,17 @@
       "searchProducts": "Search products…",
       "searchUsers": "Search name, email or phone…",
       "empty": "Nothing found",
-      "remove": "Remove"
+      "remove": "Remove",
+      "searchCategories": "Search categories…",
+      "searchBrands": "Search brands…"
     },
     "visibility": {
       "public": "Public",
       "private": "Private",
       "password": "Password protected"
-    }
+    },
+    "amountHintPercent": "Discount percent (e.g. 10 means 10%).",
+    "amountHintMinor": "Fixed amounts are stored as integer minor currency units (not WC decimals)."
   },
   "coupon_builder": {
     "title": "Quick offer builder",
@@ -3103,6 +3114,27 @@
       "channel_publish": "Channel publish",
       "order_cascade": "Order cascade notify",
       "site_widget": "Site widget"
+    },
+    "cascade": {
+      "title": "Order cascade notifications",
+      "hint": "When order status changes, a cascade message is sent on the bot channel.",
+      "template": "Message template",
+      "templatePh": "Order #{order_id} → {status}",
+      "statuses": "Target statuses",
+      "statusesPh": "processing,completed",
+      "statusesHint": "Comma-separated statuses; empty = all.",
+      "notifyCustomer": "Notify customer in bot chat"
+    },
+    "widget": {
+      "title": "Site widget",
+      "hint": "Floating bot chat button on the storefront.",
+      "greeting": "Greeting",
+      "position": "Position",
+      "positions": {
+        "bottom_left": "Bottom left",
+        "bottom_right": "Bottom right"
+      },
+      "showOnMobile": "Show on mobile"
     }
   },
   "marketplace_admin": {
@@ -3339,7 +3371,8 @@
       "load_preview": "Load",
       "order_saved": "Torob info saved.",
       "order_title": "Torob order info",
-      "no_clid": "This order did not come from Torob (no torob_clid)."
+      "no_clid": "This order did not come from Torob (no torob_clid).",
+      "extractor_deprecated": "The legacy Torob products extractor in WP is deprecated and redirects to the Torob connector; queue and preview tools here are the equivalent."
     },
     "map_status": {
       "synced": "Synced",

@@ -63,6 +63,9 @@ export function CouponGeneralPanel({
         <div className="space-y-1">
           <Label htmlFor="coupon-amount">{t("fields.amount")}</Label>
           <Input id="coupon-amount" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
+          <p className="text-muted-foreground text-xs">
+            {type === "percent" ? t("amountHintPercent") : t("amountHintMinor")}
+          </p>
         </div>
       </div>
       <div className="space-y-1">

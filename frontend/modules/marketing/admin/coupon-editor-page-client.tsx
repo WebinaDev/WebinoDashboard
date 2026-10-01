@@ -51,13 +51,6 @@ type Coupon = {
   }
 }
 
-function parseIds(text: string): number[] {
-  return text
-    .split(/[\s,;]+/)
-    .map((s) => Number(s.trim()))
-    .filter((n) => Number.isFinite(n) && n > 0)
-}
-
 export default function CouponEditorPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("coupons")
   const tCommon = useTranslations("common")
@@ -90,8 +83,8 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
   const [autoApply, setAutoApply] = useState(false)
   const [maxDiscount, setMaxDiscount] = useState("")
   const [shippingPercent, setShippingPercent] = useState("")
-  const [categoryIds, setCategoryIds] = useState("")
-  const [brandIds, setBrandIds] = useState("")
+  const [categoryIds, setCategoryIds] = useState<number[]>([])
+  const [brandIds, setBrandIds] = useState<number[]>([])
   const [emails, setEmails] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -129,8 +122,8 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
     setAutoApply(Boolean(c.auto_apply))
     setMaxDiscount(c.max_discount_minor != null ? String(c.max_discount_minor) : "")
     setShippingPercent(c.shipping_percent != null ? String(c.shipping_percent) : "")
-    setCategoryIds((c.restrictions?.category_ids ?? []).join(","))
-    setBrandIds((c.restrictions?.brand_ids ?? []).join(","))
+    setCategoryIds((c.restrictions?.category_ids ?? []).map(Number).filter((n) => n > 0))
+    setBrandIds((c.restrictions?.brand_ids ?? []).map(Number).filter((n) => n > 0))
     setEmails((c.restrictions?.emails ?? []).join("\n"))
   }, [q.data])
 
@@ -161,8 +154,8 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
         channels,
         product_ids: productIds,
         user_ids: userIds,
-        category_ids: parseIds(categoryIds),
-        brand_ids: parseIds(brandIds),
+        category_ids: categoryIds,
+        brand_ids: brandIds,
         emails: emails
           .split(/[\n,;]+/)
           .map((s) => s.trim())

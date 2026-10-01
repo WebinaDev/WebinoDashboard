@@ -183,6 +183,8 @@ type FormState = {
   related_ids: number[]
   upsell_ids: number[]
   cross_sell_ids: number[]
+  grouped_product_ids: number[]
+  external_button_text: string
   purchase_price_minor: number
   lock_price: boolean
   price_minor: number
@@ -248,6 +250,8 @@ const emptyForm: FormState = {
   related_ids: [],
   upsell_ids: [],
   cross_sell_ids: [],
+  grouped_product_ids: [],
+  external_button_text: "",
   purchase_price_minor: 0,
   lock_price: false,
   price_minor: 0,
@@ -351,6 +355,10 @@ function productToForm(p: Product): FormState {
     related_ids: Array.isArray(p.related_ids) ? p.related_ids.map(Number) : [],
     upsell_ids: Array.isArray(p.upsell_ids) ? p.upsell_ids.map(Number) : [],
     cross_sell_ids: Array.isArray(p.cross_sell_ids) ? p.cross_sell_ids.map(Number) : [],
+    grouped_product_ids: Array.isArray(meta.grouped_product_ids)
+      ? meta.grouped_product_ids.map(Number).filter((n: number) => n > 0)
+      : [],
+    external_button_text: String(meta.external_button_text ?? ""),
     purchase_price_minor: p.purchase_price_minor ?? 0,
     lock_price: Boolean(p.lock_price),
     price_minor: p.price_minor ?? 0,
@@ -567,10 +575,13 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
         seo_robots: form.seo_robots || undefined,
         seo_og_title: form.seo_og_title || undefined,
         seo_og_image: form.seo_og_image || undefined,
+        grouped_product_ids: form.type === "grouped" ? form.grouped_product_ids : undefined,
+        external_button_text: form.type === "external" ? form.external_button_text || undefined : undefined,
       },
       related_ids: form.related_ids,
       upsell_ids: form.upsell_ids,
       cross_sell_ids: form.cross_sell_ids,
+      reference_url: form.reference_url || null,
       purchase_price_minor: Number(form.purchase_price_minor) || 0,
       lock_price: form.lock_price,
       price_minor: form.type === "variable" ? undefined : Number(form.price_minor) || 0,
@@ -2214,6 +2225,39 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     selectedIds={form.cross_sell_ids}
                     onChange={(cross_sell_ids) => setForm((f) => ({ ...f, cross_sell_ids }))}
                   />
+                  {form.type === "grouped" ? (
+                    <div className="space-y-2">
+                      <ProductSearchMultiPicker
+                        label={t("grouped_products")}
+                        excludeId={productId ? Number(productId) : null}
+                        selectedIds={form.grouped_product_ids}
+                        onChange={(grouped_product_ids) => setForm((f) => ({ ...f, grouped_product_ids }))}
+                      />
+                      <p className="text-muted-foreground text-xs">{t("grouped_products_hint")}</p>
+                    </div>
+                  ) : null}
+                  {form.type === "external" ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <Label>{t("external_url")}</Label>
+                        <Input
+                          dir="ltr"
+                          value={form.reference_url}
+                          placeholder="https://"
+                          onChange={(e) => setForm((f) => ({ ...f, reference_url: e.target.value }))}
+                        />
+                        <p className="text-muted-foreground mt-1 text-xs">{t("external_url_hint")}</p>
+                      </div>
+                      <div>
+                        <Label>{t("external_button")}</Label>
+                        <Input
+                          value={form.external_button_text}
+                          onChange={(e) => setForm((f) => ({ ...f, external_button_text: e.target.value }))}
+                          placeholder={t("external_button_ph")}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                   <div>
                     <Label>{t("faqs")}</Label>
                     <Textarea
