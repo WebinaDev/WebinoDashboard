@@ -13,6 +13,9 @@ class SupportTicket extends Model
         'user_id',
         'subject',
         'status',
+        'assignee_id',
+        'erp_ticket_id',
+        'converted_task_id',
         'csat_rating',
         'csat_at',
     ];

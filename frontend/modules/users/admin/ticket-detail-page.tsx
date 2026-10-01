@@ -71,6 +71,24 @@ export default function TicketDetailPage({ route }: { route: ResolvedAdminRoute 
   })
 
   const ticket = q.data
+  const convertMut = useMutation({
+    mutationFn: () => api(`/api/v1/shop/tickets/${id}/convert-task`, { method: "POST" }),
+    onSuccess: () => {
+      toast.success(tCommon("saved"))
+      void qc.invalidateQueries({ queryKey: ["ticket", id] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+  const syncMut = useMutation({
+    mutationFn: () => api(`/api/v1/shop/tickets/${id}/sync-erp`, { method: "POST" }),
+    onSuccess: (res: { unavailable?: boolean; message?: string | null }) => {
+      if (res?.unavailable) toast.error(res.message || t("erp_unavailable"))
+      else toast.success(tCommon("saved"))
+      void qc.invalidateQueries({ queryKey: ["ticket", id] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
   const closed = ticket?.status === "closed"
   const statusLabel = (s: string) => {
     try {
@@ -85,6 +103,12 @@ export default function TicketDetailPage({ route }: { route: ResolvedAdminRoute 
       {ticket ? (
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Badge>{statusLabel(ticket.status)}</Badge>
+          <Button type="button" size="sm" variant="outline" disabled={convertMut.isPending} onClick={() => void convertMut.mutateAsync()}>
+            {t("convert_task")}
+          </Button>
+          <Button type="button" size="sm" variant="secondary" disabled={syncMut.isPending} onClick={() => void syncMut.mutateAsync()}>
+            {t("sync_erp")}
+          </Button>
           <select
             className="border-input bg-background h-9 rounded-md border px-2 text-sm"
             value={status || ticket.status}

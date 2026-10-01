@@ -21,6 +21,17 @@ type Row = {
   git_repo?: string | null
 }
 
+type ErpModule = {
+  id: number
+  slug: string
+  name: string
+  description?: string | null
+  price: number
+  currency?: string
+  is_free?: boolean
+  version?: string | null
+}
+
 const SETTINGS_SHORTCUTS: Record<string, string> = {
   accounting: "/dashboard/accounting",
   bots: "/dashboard/settings/shop/bots/telegram",
@@ -34,6 +45,9 @@ export default function ModulesPage({ mode = "installed" }: { mode?: "catalog" |
   const t = useTranslations("modules")
   const tCommon = useTranslations("common")
   const [rows, setRows] = useState<Row[]>([])
+  const [erpModules, setErpModules] = useState<ErpModule[]>([])
+  const [erpUnavailable, setErpUnavailable] = useState(false)
+  const [buying, setBuying] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [installProgress, setInstallProgress] = useState<Record<string, number>>({})
 
@@ -46,8 +60,22 @@ export default function ModulesPage({ mode = "installed" }: { mode?: "catalog" |
       .catch(() => setRows([]))
   }
 
+  function reloadErpCatalog() {
+    if (mode !== "catalog") return
+    api<{ modules?: ErpModule[] }>("/api/v1/modules/marketplace/catalog", { method: "POST", json: {} })
+      .then((r) => {
+        setErpUnavailable(false)
+        setErpModules(Array.isArray(r?.modules) ? r.modules : [])
+      })
+      .catch(() => {
+        setErpUnavailable(true)
+        setErpModules([])
+      })
+  }
+
   useEffect(() => {
     reload()
+    reloadErpCatalog()
   }, [mode])
 
   const sorted = useMemo(
@@ -110,6 +138,28 @@ export default function ModulesPage({ mode = "installed" }: { mode?: "catalog" |
     }
   }
 
+  async function purchase(slug: string) {
+    setMsg(null)
+    setBuying(slug)
+    try {
+      const res = await api<{ payment?: { redirect_url?: string }; order?: unknown }>("/api/v1/modules/marketplace/purchase", {
+        method: "POST",
+        json: { module_slug: slug, pay: true },
+      })
+      const redirect = res?.payment?.redirect_url
+      if (typeof redirect === "string" && redirect) {
+        window.location.href = redirect
+        return
+      }
+      reload()
+      reloadErpCatalog()
+    } catch (e) {
+      setMsg(getApiErrorMessage(e) || t("marketplace_unavailable"))
+    } finally {
+      setBuying(null)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">
@@ -131,6 +181,53 @@ export default function ModulesPage({ mode = "installed" }: { mode?: "catalog" |
         </Button>
       </div>
       {msg ? <p className="text-destructive text-sm">{msg}</p> : null}
+      {mode === "catalog" ? (
+        <div className="space-y-3">
+          <h2 className="text-lg font-medium">{t("erp_catalog")}</h2>
+          {erpUnavailable ? (
+            <p className="text-muted-foreground text-sm">{t("marketplace_unavailable")}</p>
+          ) : erpModules.length === 0 ? (
+            <p className="text-muted-foreground text-sm">—</p>
+          ) : (
+            <ScrollTable className="border">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/40">
+                  <tr>
+                    <th className="p-3 text-start font-medium">{t("col_slug")}</th>
+                    <th className="p-3 text-start font-medium">{t("price")}</th>
+                    <th className="p-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {erpModules.map((m) => (
+                    <tr key={m.slug} className="border-b last:border-0">
+                      <td className="p-3">
+                        <div className="font-medium">{m.name}</div>
+                        <div className="text-muted-foreground font-mono text-xs" dir="ltr">
+                          {m.slug}
+                        </div>
+                      </td>
+                      <td className="p-3" dir="ltr">
+                        {m.is_free || m.price <= 0 ? tCommon("yes") : `${m.price} ${m.currency || "IRT"}`}
+                      </td>
+                      <td className="p-3 text-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={buying === m.slug}
+                          onClick={() => void purchase(m.slug)}
+                        >
+                          {buying === m.slug ? t("purchasing") : t("purchase")}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ScrollTable>
+          )}
+        </div>
+      ) : null}
       <ScrollTable className="border">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40">

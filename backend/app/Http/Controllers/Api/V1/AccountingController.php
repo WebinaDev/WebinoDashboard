@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Validation\Rule;
+use App\Models\Tenant;
+use App\Services\Webino\WebinoAccountingClient;
 
 class AccountingController extends Controller
 {
@@ -35,12 +37,17 @@ class AccountingController extends Controller
 
         $src = config('accounting.source_path');
 
+        $erpConfigured = filled(config('services.webino.base_url'))
+            && filled(config('services.webino.license_hmac_secret'));
+
         return response()->json([
             'data' => [
                 'licensed' => $licensed,
                 'bundle_present' => $bundlePresent,
                 'bundle_path' => $bundlePath,
                 'source_configured' => is_string($src) && $src !== '',
+                'erp_ledger_configured' => $erpConfigured,
+                'preferred_source' => $erpConfigured ? 'erp' : ($bundlePresent ? 'bundle' : 'local'),
             ],
         ]);
     }
@@ -178,4 +185,69 @@ class AccountingController extends Controller
 
         return response()->json(['data' => $account], 201);
     }
+    /**
+     * Prefer live ERP ledger; fall back to local journal lines when ERP unavailable.
+     */
+    public function ledger(Request $request, WebinoAccountingClient $erp): \Illuminate\Http\JsonResponse
+    {
+        $tenant = Tenant::query()->findOrFail($request->user()->tenant_id);
+        $filters = $request->only(['account_id', 'from', 'to', 'limit']);
+
+        try {
+            $res = $erp->ledger(
+                $tenant->domain ?: $request->getHost(),
+                $tenant->license_key,
+                $filters
+            );
+        } catch (\Throwable $e) {
+            $res = ['ok' => false, 'unavailable' => true, 'message' => $e->getMessage(), 'data' => null];
+        }
+
+        if ($res['ok'] ?? false) {
+            $payload = is_array($res['data']) ? ($res['data']['data'] ?? $res['data']) : [];
+
+            return response()->json([
+                'data' => array_merge(is_array($payload) ? $payload : [], [
+                    'source' => 'erp',
+                ]),
+            ]);
+        }
+
+        // Local fallback from accounting_journals
+        $tid = $tenant->id;
+        $lines = AccJournalLine::query()
+            ->whereHas('journal', fn ($q) => $q->where('tenant_id', $tid))
+            ->with('journal:id,number,date,description')
+            ->orderByDesc('id')
+            ->limit(min(500, max(1, (int) ($filters['limit'] ?? 100))))
+            ->get()
+            ->map(fn (AccJournalLine $l) => [
+                'id' => $l->id,
+                'account_code' => $l->account_code,
+                'account_name' => $l->account_name,
+                'debit' => (int) $l->debit_minor,
+                'credit' => (int) $l->credit_minor,
+                'debit_minor' => (int) $l->debit_minor,
+                'credit_minor' => (int) $l->credit_minor,
+                'document_no' => $l->journal?->number,
+                'document_date' => $l->journal?->date,
+                'line_description' => null,
+                'entry_description' => $l->journal?->description,
+            ]);
+
+        return response()->json([
+            'data' => [
+                'lines' => $lines,
+                'totals' => [
+                    'debit_minor' => (int) $lines->sum('debit_minor'),
+                    'credit_minor' => (int) $lines->sum('credit_minor'),
+                ],
+                'source' => 'local',
+                'erp_unavailable' => true,
+                'message' => $res['message'] ?? 'ERP ledger unavailable; showing local journals',
+            ],
+        ]);
+    }
+
+
 }

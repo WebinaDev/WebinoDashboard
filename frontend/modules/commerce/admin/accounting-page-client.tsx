@@ -34,6 +34,13 @@ type AccJournal = {
 type AccPerson = { id: number; name: string; type: string; phone?: string | null }
 type AccAccount = { id: number; code: string; name: string; type: string }
 
+type LedgerPayload = {
+  lines: Array<Record<string, unknown>>
+  source?: string
+  erp_unavailable?: boolean
+  message?: string
+}
+
 function sectionFromRoute(route: ResolvedAdminRoute): string {
   if (route.path === "accounting") return "overview"
   const prefix = "accounting/"
@@ -77,6 +84,12 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
     queryKey: ["accounting", "accounts"],
     queryFn: () => api<AccAccount[]>("/api/v1/accounting/accounts"),
     enabled: section === "chart",
+  })
+
+  const ledgerQ = useQuery({
+    queryKey: ["accounting", "ledger"],
+    queryFn: () => api<LedgerPayload>("/api/v1/accounting/ledger"),
+    enabled: section === "overview" || section === "ledger" || section === "journals",
   })
 
   const [journalForm, setJournalForm] = useState({
@@ -170,8 +183,30 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
             <li>
               {tMod("accounting_row_bundle")}: {statusQ.data.bundle_present ? tCommon("yes") : tCommon("no")}
             </li>
+            <li>
+              {tAcc("ledger_title")}:{" "}
+              {ledgerQ.data?.source === "erp" ? tAcc("ledger_erp") : tAcc("ledger_local")}
+            </li>
           </ul>
         ) : null}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">{tAcc("ledger_title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {ledgerQ.isLoading ? (
+              <p>{tCommon("loading")}</p>
+            ) : ledgerQ.data?.erp_unavailable || ledgerQ.data?.source === "local" ? (
+              <p className="text-muted-foreground">{tAcc("ledger_local")}</p>
+            ) : (
+              <p className="text-muted-foreground">{tAcc("ledger_erp")}</p>
+            )}
+            {ledgerQ.data?.message ? (
+              <p className="text-destructive">{String(ledgerQ.data.message)}</p>
+            ) : null}
+            <p dir="ltr">lines: {Array.isArray(ledgerQ.data?.lines) ? ledgerQ.data.lines.length : 0}</p>
+          </CardContent>
+        </Card>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             ["journals_count", overviewQ.data?.journals_count],

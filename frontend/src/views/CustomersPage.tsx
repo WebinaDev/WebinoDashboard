@@ -4,12 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
 import { Pencil, Plus, Search } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { ListFiltersCollapsible } from "@/components/ListFiltersCollapsible"
@@ -72,6 +73,9 @@ export default function CustomersPage() {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [noteBody, setNoteBody] = useState("")
+  const [notes, setNotes] = useState<Array<{ id: number; body: string; subject?: string | null }>>([])
+  const [notesMsg, setNotesMsg] = useState<string | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-customers", appliedSearch, status, page, perPage],
@@ -82,6 +86,22 @@ export default function CustomersPage() {
       return listCustomers(`/api/v1/customers?${params}`)
     },
   })
+
+  useEffect(() => {
+    if (!editing?.id) {
+      setNotes([])
+      return
+    }
+    api<{ notes: Array<{ id: number; body: string; subject?: string | null }>; erp_unavailable?: boolean }>(
+      `/api/v1/customers/${editing.id}/notes`
+    )
+      .then((r) => {
+        setNotes(Array.isArray(r?.notes) ? r.notes : [])
+        if (r?.erp_unavailable) setNotesMsg(t("notes_erp_unavailable"))
+      })
+      .catch(() => setNotes([]))
+  }, [editing?.id, t])
+
 
   const rows = data?.items ?? []
   const meta = data?.meta
@@ -253,7 +273,45 @@ export default function CustomersPage() {
             <Checkbox checked={form.is_active} onCheckedChange={(v) => setForm((f) => ({ ...f, is_active: v === true }))} />
             {t("status_active")}
           </label>
-          <div className="flex gap-2 md:col-span-2">
+          
+          {editing ? (
+            <div className="space-y-2 border-t pt-4">
+              <Label>{t("notes_title")}</Label>
+              {notesMsg ? <p className="text-muted-foreground text-xs">{notesMsg}</p> : null}
+              <ul className="max-h-40 space-y-1 overflow-auto text-sm">
+                {notes.map((n) => (
+                  <li key={n.id} className="rounded border p-2">
+                    {n.subject ? <div className="font-medium">{n.subject}</div> : null}
+                    <div className="whitespace-pre-wrap">{n.body}</div>
+                  </li>
+                ))}
+              </ul>
+              <Textarea value={noteBody} onChange={(e) => setNoteBody(e.target.value)} rows={3} />
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!noteBody.trim()}
+                onClick={() => {
+                  void api(`/api/v1/customers/${editing.id}/notes`, {
+                    method: "POST",
+                    json: { body: noteBody, sync_erp: true },
+                  })
+                    .then(() => {
+                      setNoteBody("")
+                      return api<{ notes: Array<{ id: number; body: string; subject?: string | null }> }>(
+                        `/api/v1/customers/${editing.id}/notes`
+                      )
+                    })
+                    .then((r) => setNotes(Array.isArray(r?.notes) ? r.notes : []))
+                    .catch((e) => setError(getApiErrorMessage(e)))
+                }}
+              >
+                {t("notes_add")}
+              </Button>
+            </div>
+          ) : null}
+<div className="flex gap-2 md:col-span-2">
             <Button disabled={!form.name || !form.email || save.isPending} onClick={() => save.mutate()}>
               {tCommon("save")}
             </Button>

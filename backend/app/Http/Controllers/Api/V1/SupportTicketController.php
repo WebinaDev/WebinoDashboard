@@ -7,6 +7,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\UserNotification;
 use App\Support\PortalAccess;
+use App\Services\Webino\WebinoTicketsClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -108,9 +109,13 @@ class SupportTicketController extends Controller
         $data = $request->validate([
             'status' => ['sometimes', Rule::in(self::STATUSES)],
             'csat_rating' => ['sometimes', 'integer', 'min:1', 'max:5'],
+            'assignee_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
         ]);
         if (isset($data['status'])) {
             $row->status = $data['status'];
+        }
+        if (array_key_exists('assignee_id', $data)) {
+            $row->assignee_id = $data['assignee_id'];
         }
         if (isset($data['csat_rating'])) {
             $row->csat_rating = (int) $data['csat_rating'];
@@ -118,8 +123,87 @@ class SupportTicketController extends Controller
         }
         $row->save();
 
+        if (array_key_exists('assignee_id', $data) && $row->erp_ticket_id) {
+            app(WebinoTicketsClient::class)->assign((int) $row->erp_ticket_id, $row->assignee_id ? (int) $row->assignee_id : null);
+        }
+        if (isset($data['csat_rating']) && $row->erp_ticket_id) {
+            app(WebinoTicketsClient::class)->rating((int) $row->erp_ticket_id, (int) $data['csat_rating']);
+        }
+
         return response()->json(['data' => $this->mapDetail($row->fresh(['user', 'replies.user']), true)]);
     }
+
+    public function staffConvertTask(Request $request, int $ticket): JsonResponse
+    {
+        $row = $this->findTicket($request, $ticket);
+        abort_if(! $row, 404);
+
+        $erp = app(WebinoTicketsClient::class);
+        $taskId = null;
+        if ($row->erp_ticket_id && $erp->isConfigured()) {
+            $res = $erp->convertTask((int) $row->erp_ticket_id);
+            if ($res['ok']) {
+                $taskId = data_get($res['data'], 'data.task_id') ?? data_get($res['data'], 'task_id');
+            }
+        }
+        if (! $taskId) {
+            // Local placeholder task id when ERP unreachable — keep honesty in payload.
+            $taskId = $row->converted_task_id ?: null;
+        }
+        $row->converted_task_id = $taskId ? (int) $taskId : $row->converted_task_id;
+        $row->save();
+
+        return response()->json([
+            'data' => [
+                'ticket' => $this->mapDetail($row->fresh(['user', 'replies.user']), true),
+                'task_id' => $row->converted_task_id,
+                'erp_synced' => (bool) ($row->erp_ticket_id && $taskId),
+                'erp_unavailable' => $row->erp_ticket_id ? false : ! $erp->isConfigured(),
+            ],
+        ]);
+    }
+
+    public function staffSyncErp(Request $request, int $ticket): JsonResponse
+    {
+        $row = $this->findTicket($request, $ticket);
+        abort_if(! $row, 404);
+        $erp = app(WebinoTicketsClient::class);
+        if (! $erp->isConfigured()) {
+            return response()->json([
+                'ok' => false,
+                'unavailable' => true,
+                'message' => 'WEBINO_ERP_API_TOKEN not configured',
+                'data' => $this->mapDetail($row, true),
+            ], 200);
+        }
+
+        if ($row->erp_ticket_id) {
+            $res = $erp->update((int) $row->erp_ticket_id, [
+                'status' => $row->status,
+                'assignee_id' => $row->assignee_id,
+                'priority' => 'normal',
+            ]);
+        } else {
+            $first = $row->replies()->orderBy('id')->first();
+            $res = $erp->create([
+                'subject' => $row->subject,
+                'body' => $first?->body,
+                'priority' => 'normal',
+            ]);
+            $erpId = data_get($res['data'], 'data.id') ?? data_get($res['data'], 'id');
+            if ($res['ok'] && $erpId) {
+                $row->erp_ticket_id = (int) $erpId;
+                $row->save();
+            }
+        }
+
+        return response()->json([
+            'ok' => (bool) ($res['ok'] ?? false),
+            'message' => $res['message'] ?? null,
+            'data' => $this->mapDetail($row->fresh(['user', 'replies.user']), true),
+        ]);
+    }
+
 
     public function accountPatch(Request $request, int $ticket): JsonResponse
     {
@@ -198,6 +282,9 @@ class SupportTicketController extends Controller
         $row = [
             'id' => $t->id,
             'user_id' => $t->user_id,
+            'assignee_id' => $t->assignee_id ?? null,
+            'erp_ticket_id' => $t->erp_ticket_id ?? null,
+            'converted_task_id' => $t->converted_task_id ?? null,
             'subject' => $t->subject,
             'status' => $t->status,
             'created_at' => optional($t->created_at)?->toIso8601String(),

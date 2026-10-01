@@ -955,7 +955,12 @@
     "installed_hint": "ماژول‌های فعال این مستأجر",
     "col_version": "نسخه",
     "open_settings": "تنظیمات",
-    "open_license": "صفحهٔ لایسنس"
+    "open_license": "صفحهٔ لایسنس",
+    "erp_catalog": "کاتالوگ ERP",
+    "purchase": "خرید",
+    "purchasing": "در حال خرید…",
+    "marketplace_unavailable": "بازارچهٔ ماژول در دسترس نیست",
+    "price": "قیمت"
   },
   "settings": {
     "title": "تنظیمات منطقه‌ای",
@@ -4805,7 +4810,10 @@
     "staff_badge": "پرسنل",
     "reply_placeholder": "پاسخ خود را بنویسید…",
     "send_reply": "ارسال پاسخ",
-    "closed_hint": "این تیکت بسته شده است."
+    "closed_hint": "این تیکت بسته شده است.",
+    "convert_task": "تبدیل به تسک",
+    "sync_erp": "همگام‌سازی با ERP",
+    "erp_unavailable": "ERP در دسترس نیست"
   },
   "notifications_hub": {
     "title": "مرکز اعلان",
@@ -5203,7 +5211,11 @@
     "defaults": {
       "cash": "نقد",
       "equity": "حقوق مالکانه"
-    }
+    },
+    "ledger_title": "دفتر کل",
+    "ledger_erp": "منبع: ERP زنده",
+    "ledger_local": "منبع: محلی (ERP در دسترس نیست)",
+    "unavailable": "در دسترس نیست"
   },
   "ui": {
     "filters": "فیلترها",
@@ -5519,7 +5531,10 @@
     "password_optional": "رمز عبور (اختیاری)",
     "sheba": "شماره شبا",
     "edit": "ویرایش",
-    "empty": "مشتری‌ای پیدا نشد."
+    "empty": "مشتری‌ای پیدا نشد.",
+    "notes_title": "یادداشت‌های CRM",
+    "notes_add": "افزودن یادداشت",
+    "notes_erp_unavailable": "یادداشت ERP در دسترس نیست"
   },
   "staff_admin": {
     "title": "کارکنان",
@@ -5579,6 +5594,13 @@
     "open_license": "صفحهٔ لایسنس",
     "dismiss": "بعداً",
     "gate_message": "لایسنس منقضی یا نامعتبر است. تا فعال‌سازی فقط صفحهٔ لایسنس در دسترس است.",
-    "api_unavailable": "ارتباط با API برقرار نیست. برخی بخش‌ها ممکن است کار نکنند."
+    "api_unavailable": "ارتباط با API برقرار نیست. برخی بخش‌ها ممکن است کار نکنند.",
+    "status_active": "فعال",
+    "status_demo": "دمو",
+    "status_expired": "منقضی",
+    "status_invalid": "نامعتبر",
+    "key_present": "کلید لایسنس ثبت شده",
+    "demo_hint": "وضعیت دمو از ERP خوانده شده — فقط داشتن کلید کافی نیست.",
+    "expired_hint": "لایسنس منقضی شده است. از ERP تمدید کنید."
   }
 }

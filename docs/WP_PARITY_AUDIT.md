@@ -1240,36 +1240,35 @@ WP برای هر بخش پنل اختصاصی دارد؛ TARGET یک پنل جن
 
 ## ۱۱.۱ مسیرهای ERP که الان غیرفعال‌اند
 
-`WebinoERP/backend/Modules/Integrations/Http/Controllers/WebinocrmModirPayamakCompatController.php` این مسیرها را `unavailable` برمی‌گرداند:
+`WebinoERP/backend/Modules/Integrations/Http/Controllers/WebinocrmModirPayamakCompatController.php` (Phase 11 branch `phase-11-erp-sync`):
 
-- [ ] `drafts*`
-- [ ] `newsletter*`
-- [ ] `phonebooks/edge`
-- [ ] `reports/bulk-*`
-- [ ] `send/cancel-scheduled`
+- [x] `drafts*` — پیاده‌سازی واقعی از طریق Edge (`list/create/update/delete`); Dashboard همچنان `SmsLocalFeatures` محلی دارد
+- [x] `newsletter*` — صادقانه `unavailable` (Edge محصول newsletter ندارد؛ Dashboard local newsletter)
+- [x] `phonebooks/edge` — پروکسی Edge واقعی
+- [x] `reports/bulk-*` — `api/report/by_bulk`
+- [x] `send/cancel-scheduled` — تلاش Edge `api/send/cancel`؛ در صورت عدم پشتیبانی پیام صادقانه
 
-و این‌ها stub بی‌صدا (`{skipped: true}`) هستند که خطرناک‌ترند چون خطا نمی‌دهند:
+و مسیرهای notify (دیگر silent `{skipped:true}` نیستند):
 
-- [ ] `secretaries/process`
-- [ ] `orders/notify`
-- [ ] `orders/test-notify`
+- [x] `secretaries/process` — پردازش inbox در برابر قوانین منشی + ارسال پاسخ
+- [x] `orders/notify` — ارسال با pattern registry؛ بدون `skipped:true`
+- [x] `orders/test-notify` — همان مسیر با پرچم test
 
-**تصمیم لازم:** برای هرکدام یا در ERP پیاده شود، یا در UI با پیام صادقانه «در دسترس نیست» نشان داده شود. وضعیت فعلی (صفحهٔ ساخته‌شده + مسیر ثبت‌نشده + ERP خاموش) بدترین حالت است.
+UI SMS از قبل `isSmsUnavailable` / «در دسترس نیست» دارد.
 
 ## ۱۱.۲ مایگریشن معوق ERP
 
-- [ ] اجرای `php artisan migrate --force` روی ERP مقصد `WEBINO_BASE_URL` برای ساخت جدول `modirpayamak_domain_numbers` (مایگریشن `2026_09_13_000001_modirpayamak_numbers_patterns_messages.php` موجود است). تا وقتی اجرا نشود، خطای `SQLSTATE[42P01]` ادامه دارد.
-
-
+- [x] فایل مایگریشن موجود + idempotent (`Schema::hasTable`) + runbook: `WebinoERP/docs/MODIRPAYAMAK_MIGRATION.md`
+- [ ] اجرای `php artisan migrate --force` روی ERP مقصد `WEBINO_BASE_URL` — **معوق به محیط**: در این ماشین استک ERP بالا نبود؛ ERP handlers وقتی جدول نباشد graceful (`domain_numbers_ready`) هستند. دستور: `docker compose exec backend php artisan migrate --force`
 
 ## ۱۱.۳ سایر سینک‌ها
 
-- [ ] لایسنس: وضعیت واقعی (فعال/منقضی/دمو) از ERP به‌جای «کلید خالی نیست»
-- [ ] بازارچهٔ ماژول: کاتالوگ + خرید + callback از ERP
-- [ ] تیکت‌ها: همگام‌سازی با `projects/tickets` در ERP (اختصاص، تبدیل به تسک، امتیاز)
-- [ ] یادداشت‌های CRM مشتری از ERP
-- [ ] حسابداری: دفتر زنده به‌جای bundle محلی
-- [ ] رویدادهای اعلان: هم‌ترازی با `ORDER_EVENTS` در `ModirPayamakManager` (که `return-*` را ندارد و باید اضافه شود)
+- [x] لایسنس: ERP `active|expired|demo|invalid` (+ `valid` bool)؛ Dashboard دیگر فقط «کلید خالی نیست» را active فرض نمی‌کند
+- [x] بازارچهٔ ماژول: ERP `/api/webinocrm/v1/marketplace/{catalog,purchase,payment-callback}` + Dashboard client/UI
+- [x] تیکت‌ها: `assignee_id` / `erp_ticket_id` / convert-task / sync-erp / rating ↔ ERP `projects/tickets` (نیاز به `WEBINO_ERP_API_TOKEN`)
+- [x] یادداشت‌های CRM: ERP `crm/accounts/{id}/notes` + Dashboard `customers/{id}/notes` (+ sync اختیاری)
+- [x] حسابداری: `GET /api/v1/accounting/ledger` ترجیح ERP live؛ fallback محلی با `erp_unavailable`
+- [x] رویدادهای اعلان: `ORDER_EVENTS` شامل `return-requested|approved|rejected|received|refunded`
 
 ---
 

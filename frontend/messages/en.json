@@ -1198,7 +1198,12 @@
     "installed_hint": "Enabled modules for this tenant",
     "col_version": "Version",
     "open_settings": "Settings",
-    "open_license": "License page"
+    "open_license": "License page",
+    "erp_catalog": "ERP catalog",
+    "purchase": "Purchase",
+    "purchasing": "Purchasing…",
+    "marketplace_unavailable": "Module marketplace unavailable",
+    "price": "Price"
   },
   "settings": {
     "title": "Regional",
@@ -4808,7 +4813,10 @@
     "send_reply": "Send reply",
     "closed_hint": "This ticket is closed.",
     "csat_prompt": "How satisfied were you with this support?",
-    "csat_submit": "Submit rating"
+    "csat_submit": "Submit rating",
+    "convert_task": "Convert to task",
+    "sync_erp": "Sync with ERP",
+    "erp_unavailable": "ERP unavailable"
   },
   "notifications_hub": {
     "title": "Notification center",
@@ -5206,7 +5214,11 @@
     "defaults": {
       "cash": "Cash",
       "equity": "Equity"
-    }
+    },
+    "ledger_title": "Ledger",
+    "ledger_erp": "Source: live ERP",
+    "ledger_local": "Source: local (ERP unavailable)",
+    "unavailable": "Unavailable"
   },
   "ui": {
     "filters": "Filters",
@@ -5522,7 +5534,10 @@
     "password_optional": "Password (optional)",
     "sheba": "IBAN (Sheba)",
     "edit": "Edit",
-    "empty": "No customers found."
+    "empty": "No customers found.",
+    "notes_title": "CRM notes",
+    "notes_add": "Add note",
+    "notes_erp_unavailable": "ERP notes unavailable"
   },
   "staff_admin": {
     "title": "Staff",
@@ -5582,6 +5597,13 @@
     "open_license": "License page",
     "dismiss": "Later",
     "gate_message": "License is invalid or expired. Only the license page remains available until it is restored.",
-    "api_unavailable": "The API is unavailable. Some parts of the dashboard may not work."
+    "api_unavailable": "The API is unavailable. Some parts of the dashboard may not work.",
+    "status_active": "Active",
+    "status_demo": "Demo",
+    "status_expired": "Expired",
+    "status_invalid": "Invalid",
+    "key_present": "License key on file",
+    "demo_hint": "Demo status comes from ERP — a non-empty key alone is not enough.",
+    "expired_hint": "License expired. Renew in ERP."
   }
 }

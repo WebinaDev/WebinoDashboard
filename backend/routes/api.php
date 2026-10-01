@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\MediaTermController;
 use App\Http\Controllers\Api\V1\MobileContractController;
 use App\Http\Controllers\Api\V1\ModuleController;
+use App\Http\Controllers\Api\V1\ModuleMarketplaceController;
 use App\Http\Controllers\Api\V1\ModuleInstallController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -67,6 +68,7 @@ use App\Http\Controllers\Api\V1\ShopExtrasController;
 use App\Http\Controllers\Api\V1\ProductVariantController;
 use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\CustomerNoteController;
 use App\Http\Controllers\Api\V1\UserAdminController;
 use App\Http\Controllers\Api\V1\DashboardOverviewController;
 use App\Http\Controllers\Api\V1\StaffController;
@@ -314,6 +316,9 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('staff')->group(function () {
             Route::get('/modules', [ModuleController::class, 'index']);
+                Route::match(['get', 'post'], '/modules/marketplace/catalog', [ModuleMarketplaceController::class, 'catalog']);
+                Route::post('/modules/marketplace/purchase', [ModuleMarketplaceController::class, 'purchase']);
+                Route::match(['get', 'post'], '/modules/marketplace/payment-callback', [ModuleMarketplaceController::class, 'paymentCallback']);
             Route::patch('/modules/{slug}', [ModuleController::class, 'update']);
 
             Route::post('/license/sync', [LicenseController::class, 'sync']);
@@ -363,6 +368,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffShow'])->whereNumber('ticket');
             Route::patch('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffPatch'])->whereNumber('ticket');
             Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, 'staffReply'])->whereNumber('ticket');
+            Route::post('/shop/tickets/{ticket}/convert-task', [SupportTicketController::class, 'staffConvertTask'])->whereNumber('ticket');
+            Route::post('/shop/tickets/{ticket}/sync-erp', [SupportTicketController::class, 'staffSyncErp'])->whereNumber('ticket');
 
             Route::get('/themes', [ThemeController::class, 'index']);
             Route::post('/themes/{slug}/activate', [ThemeController::class, 'activate']);
@@ -786,6 +793,9 @@ Route::prefix('v1')->group(function () {
                 Route::get('/customers', [CustomerController::class, 'index']);
                 Route::post('/customers', [CustomerController::class, 'store']);
                 Route::patch('/customers/{customer}', [CustomerController::class, 'update'])->whereNumber('customer');
+                Route::get('/customers/{customer}/notes', [CustomerNoteController::class, 'index'])->whereNumber('customer');
+                Route::post('/customers/{customer}/notes', [CustomerNoteController::class, 'store'])->whereNumber('customer');
+                Route::delete('/customers/{customer}/notes/{note}', [CustomerNoteController::class, 'destroy'])->whereNumber('customer')->whereNumber('note');
             });
 
             Route::middleware(['module:staff', 'can:users.manage'])->group(function () {
@@ -865,6 +875,7 @@ Route::prefix('v1')->group(function () {
             Route::middleware(['module:accounting', 'can:accounting.manage'])->group(function () {
                 Route::get('/accounting/status', [AccountingController::class, 'status']);
                 Route::get('/accounting/overview', [AccountingController::class, 'overview']);
+                Route::get('/accounting/ledger', [AccountingController::class, 'ledger']);
                 Route::get('/accounting/journals', [AccountingController::class, 'journalsIndex']);
                 Route::post('/accounting/journals', [AccountingController::class, 'journalsStore']);
                 Route::get('/accounting/persons', [AccountingController::class, 'personsIndex']);

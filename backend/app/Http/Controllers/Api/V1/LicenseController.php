@@ -43,8 +43,18 @@ class LicenseController extends Controller
             ], 502);
         }
 
-        $allowed = data_get($crm, 'data.status') === 'valid';
-        $status = $allowed ? 'valid' : (string) data_get($crm, 'data.status', 'invalid');
+        $rawStatus = (string) data_get($crm, 'data.status', '');
+        $validFlag = data_get($crm, 'data.valid');
+        $allowed = $validFlag === true
+            || in_array($rawStatus, ['valid', 'active', 'demo'], true)
+            || data_get($crm, 'data.active') === true;
+        if (in_array($rawStatus, ['active', 'expired', 'demo', 'invalid'], true)) {
+            $status = $rawStatus;
+        } elseif ($allowed) {
+            $status = data_get($crm, 'data.demo') ? 'demo' : 'active';
+        } else {
+            $status = $rawStatus !== '' ? $rawStatus : 'invalid';
+        }
 
         $moduleSlugs = data_get($crm, 'data.licensed_modules')
             ?? data_get($crm, 'data.modules')
@@ -143,12 +153,20 @@ class LicenseController extends Controller
     private function payload(Tenant $tenant): array
     {
         $status = (string) ($tenant->license_status ?? '');
-        $active = $status === 'valid';
+        if ($status === 'valid') {
+            $status = 'active';
+        }
+        $active = in_array($status, ['valid', 'active', 'demo'], true);
+        $demo = $status === 'demo';
+        $expired = $status === 'expired';
 
         return [
             'status' => $status !== '' ? $status : 'unknown',
             'active' => $active,
-            'demo' => ! $active,
+            'demo' => $demo,
+            'expired' => $expired,
+            // Honest lifecycle — never infer "active" from non-empty license_key alone.
+            'has_key' => filled($tenant->license_key),
             'checked_at' => $tenant->license_checked_at?->toIso8601String(),
             'unreachable' => (bool) $tenant->license_unreachable,
             'last_error' => $tenant->license_last_error,
