@@ -41,3 +41,18 @@ Optional: shared `WEBINOCRM_LICENSE_HMAC_SECRET` on ERP + tenants (injected by P
 ## WP license-management
 
 Old WordPress WebinaDashboard / license-management clients may still POST `license_key`. ERP accepts the field for HMAC/compat, maps domain from `domain` (or Host / domain-like key), and checks status by domain + product.
+
+## Domain family (ERP)
+
+ERP `CoreLicenseResolver` treats `webina.dev` and `webinaagency.ir` as one host family.
+A license for `bluecafe.webinaagency.ir` matches checks for `bluecafe.webina.dev` (and reverse).
+
+## WEBINO_BASE_URL
+
+| Deploy | Value | Path |
+|--------|-------|------|
+| Same-VPS (Platform local) | `http://erp-backend:8080` | `POST /api/webinocrm/v1/license/check` |
+| Public / remote | `https://webinaagency.ir` | same |
+
+Body: `{ "domain", "product", "ts" }` — `signature` only if shared HMAC secret is set.
+On soft failures Dashboard still updates `license_checked_at` and stores `license_last_error` (ERP body / HTTP status when available).

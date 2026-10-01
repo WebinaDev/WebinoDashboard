@@ -9,6 +9,7 @@ use App\Models\TenantModule;
 use App\Models\TenantSubmoduleActivation;
 use App\Services\Webino\WebinoLicenseClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class LicenseController extends Controller
@@ -30,7 +31,13 @@ class LicenseController extends Controller
                 config('services.webino.product', 'webinodashboard')
             );
         } catch (Throwable $e) {
-            $detail = $this->friendlyLicenseError($e->getMessage());
+            $detail = $this->licenseFailureDetail(null, $e);
+            Log::warning('dashboard.license_sync_transport', [
+                'tenant_id' => $tenant->id,
+                'domain' => $tenant->domain,
+                'detail' => $detail,
+                'exception' => $e->getMessage(),
+            ]);
             $tenant->fill([
                 'license_unreachable' => true,
                 'license_checked_at' => now(),
@@ -40,16 +47,22 @@ class LicenseController extends Controller
             return response()->json([
                 'message' => __('api.crm_license_check_failed'),
                 'data' => $this->payload($tenant->fresh()),
-                'errors' => ['detail' => $detail, 'code' => 'LICENSE_UNREACHABLE'],
+                'errors' => [
+                    'detail' => $detail,
+                    'code' => 'LICENSE_UNREACHABLE',
+                    'erp' => null,
+                ],
             ], 502);
         }
 
         if (data_get($crm, 'error') || (! is_array($crm)) || data_get($crm, 'data') === null) {
-            $detail = $this->friendlyLicenseError(
-                (string) (data_get($crm, 'error.message')
-                    ?? data_get($crm, 'message')
-                    ?? __('api.crm_license_check_failed'))
-            );
+            $detail = $this->licenseFailureDetail($crm);
+            Log::warning('dashboard.license_sync_soft_fail', [
+                'tenant_id' => $tenant->id,
+                'domain' => $tenant->domain,
+                'detail' => $detail,
+                'erp_error' => data_get($crm, 'error'),
+            ]);
             $tenant->fill([
                 'license_unreachable' => true,
                 'license_checked_at' => now(),
@@ -59,7 +72,11 @@ class LicenseController extends Controller
             return response()->json([
                 'message' => __('api.crm_license_check_failed'),
                 'data' => $this->payload($tenant->fresh()),
-                'errors' => ['detail' => $detail, 'code' => 'LICENSE_UNREACHABLE'],
+                'errors' => [
+                    'detail' => $detail,
+                    'code' => 'LICENSE_UNREACHABLE',
+                    'erp' => data_get($crm, 'error.erp_body') ?? data_get($crm, 'error'),
+                ],
             ], 502);
         }
 
@@ -193,6 +210,35 @@ class LicenseController extends Controller
         ];
     }
 
+    /** Extract the most useful ERP/transport detail for UI + logs. */
+    private function licenseFailureDetail(mixed $crm, ?Throwable $e = null): string
+    {
+        if ($e !== null) {
+            $msg = trim($e->getMessage());
+            if ($msg !== '') {
+                return $this->friendlyLicenseError($msg) ?? $msg;
+            }
+        }
+
+        $candidates = [
+            data_get($crm, 'error.message'),
+            data_get($crm, 'errors.detail'),
+            data_get($crm, 'message'),
+        ];
+        foreach ($candidates as $c) {
+            if (is_string($c) && trim($c) !== '') {
+                return $this->friendlyLicenseError($c) ?? trim($c);
+            }
+        }
+
+        $status = data_get($crm, 'error.http_status');
+        if (is_numeric($status)) {
+            return 'ERP license HTTP '.(int) $status;
+        }
+
+        return (string) __('api.crm_license_check_failed');
+    }
+
     /** Map legacy English ops errors to Persian soft messages. Never surface HMAC-config as license identity. */
     private function friendlyLicenseError(string $raw): ?string
     {
@@ -203,6 +249,16 @@ class LicenseController extends Controller
         $lower = strtolower($raw);
         if (str_contains($lower, 'hmac') || str_contains($lower, 'signature')) {
             return __('api.crm_license_check_failed');
+        }
+        if (
+            str_contains($lower, 'upstream error')
+            || str_contains($lower, 'could not resolve host')
+            || str_contains($lower, 'connection refused')
+            || str_contains($lower, 'operation timed out')
+            || str_contains($lower, 'failed to connect')
+            || str_contains($lower, 'cURL error')
+        ) {
+            return __('api.crm_license_server_unreachable');
         }
 
         return $raw;

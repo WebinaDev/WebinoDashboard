@@ -82,7 +82,7 @@ sed \
   -e "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_PASS}|" \
   -e "s|^FRONTEND_URL=.*|FRONTEND_URL=https://${DOMAIN}|" \
   -e "s|^SANCTUM_STATEFUL_DOMAINS=.*|SANCTUM_STATEFUL_DOMAINS=${DOMAIN}|" \
-  -e "s|^WEBINO_BASE_URL=.*|WEBINO_BASE_URL=https://${DOMAIN}|" \
+  -e "s|^WEBINO_BASE_URL=.*|WEBINO_BASE_URL=${WEBINO_CRM_URL:-https://webinaagency.ir}|" \
   -e "s|^MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS=\"noreply@${DOMAIN}\"|" \
   "${TEMPLATE}/backend.env.example" > "${CLIENT_DIR}/backend.env"
 

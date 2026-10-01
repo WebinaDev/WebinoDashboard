@@ -68,4 +68,51 @@ class LicenseDomainSyncWithoutHmacTest extends TestCase
                 && ! array_key_exists('signature', $data);
         });
     }
+
+    public function test_license_sync_soft_failure_updates_checked_at_and_returns_detail(): void
+    {
+        config([
+            'services.webino.base_url' => 'https://erp.test',
+            'services.webino.license_hmac_secret' => '',
+            'services.webino.product' => 'webinodashboard',
+        ]);
+
+        Http::fake([
+            'erp.test/api/webinocrm/v1/license/check' => Http::response(
+                '<html>Upstream Error - Internal Server Error</html>',
+                500,
+                ['Content-Type' => 'text/html']
+            ),
+        ]);
+
+        $tenant = Tenant::query()->create([
+            'name' => 'Bluecafe',
+            'slug' => 'bluecafe-soft',
+            'domain' => 'bluecafe.webinaagency.ir',
+            'setup_completed' => true,
+            'license_checked_at' => now()->subDays(3),
+        ]);
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+        Sanctum::actingAs($user);
+
+        $res = $this->postJson('/api/v1/license/sync')
+            ->assertStatus(502)
+            ->assertJsonPath('errors.code', 'LICENSE_UNREACHABLE');
+
+        $detail = (string) $res->json('errors.detail');
+        $this->assertNotSame('', $detail);
+        $this->assertTrue(
+            str_contains(strtolower($detail), 'erp') || str_contains($detail, 'لایسنس') || str_contains(strtolower($detail), 'upstream') || str_contains(strtolower($detail), 'http'),
+            'detail should surface ERP/HTTP reason, got: '.$detail
+        );
+
+        $tenant->refresh();
+        $this->assertTrue((bool) $tenant->license_unreachable);
+        $this->assertNotNull($tenant->license_checked_at);
+        $this->assertTrue($tenant->license_checked_at->greaterThan(now()->subMinute()));
+    }
 }

@@ -2,7 +2,10 @@
 
 namespace App\Services\Webino;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Calls Webino parity endpoints:
@@ -11,6 +14,11 @@ use Illuminate\Support\Facades\Http;
  * Entitlement identity is domain (+ product). No license code.
  * HMAC secret is optional service-to-service auth — never required for
  * domain entitlement checks. Canonical HMAC payload: domain|{product}|ts
+ *
+ * Expected WEBINO_BASE_URL:
+ * - Same-VPS (Docker webino_sites): http://erp-backend:8080
+ * - Public / remote: https://webinaagency.ir (ERP public_crm_url / APP_URL)
+ * Path: /api/webinocrm/v1/license/check
  */
 class WebinoLicenseClient
 {
@@ -44,10 +52,19 @@ class WebinoLicenseClient
     {
         $body = $this->requestBody($domain, $product, ['module_slug' => $moduleSlug]);
         $url = $this->baseUrl().'/api/webinocrm/v1/license/module-clone-url';
-        $res = Http::timeout(20)
-            ->acceptJson()
-            ->asJson()
-            ->post($url, $body);
+        try {
+            $res = Http::timeout(20)
+                ->acceptJson()
+                ->asJson()
+                ->post($url, $body);
+        } catch (Throwable $e) {
+            Log::warning('webino.license_module_clone_transport', [
+                'url' => $url,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
 
         if (! $res->successful()) {
             return null;
@@ -116,13 +133,94 @@ class WebinoLicenseClient
      */
     protected function post(string $path, string $domain, ?string $product): array
     {
-        $body = $this->requestBody($domain, $product);
-        $url = $this->baseUrl().$path;
+        $base = $this->baseUrl();
+        $host = strtolower((string) (parse_url($base, PHP_URL_HOST) ?: ''));
+        if ($base === '' || in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+            return [
+                'error' => [
+                    'code' => 'WEBINO_BASE_URL_MISSING',
+                    'message' => 'WEBINO_BASE_URL is not configured. Expected ERP URL (same-VPS: http://erp-backend:8080, public: https://webinaagency.ir).',
+                ],
+            ];
+        }
 
-        return Http::timeout(15)
-            ->acceptJson()
-            ->asJson()
-            ->post($url, $body)
-            ->json();
+        $body = $this->requestBody($domain, $product);
+        $url = $base.$path;
+
+        try {
+            $res = Http::timeout(15)
+                ->acceptJson()
+                ->asJson()
+                ->post($url, $body);
+        } catch (ConnectionException $e) {
+            Log::warning('webino.license_check_transport', [
+                'url' => $url,
+                'domain' => $domain,
+                'message' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        } catch (Throwable $e) {
+            Log::warning('webino.license_check_transport', [
+                'url' => $url,
+                'domain' => $domain,
+                'message' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+
+        $json = $res->json();
+        if (! is_array($json) || data_get($json, 'data') === null) {
+            $snippet = trim(mb_substr(strip_tags($res->body()), 0, 180));
+            $msg = 'ERP license HTTP '.$res->status();
+            if ($snippet !== '') {
+                $msg .= ': '.$snippet;
+            } else {
+                $msg .= ' (empty/non-JSON body)';
+            }
+
+            Log::warning('webino.license_check_bad_response', [
+                'url' => $url,
+                'domain' => $domain,
+                'http_status' => $res->status(),
+                'snippet' => $snippet,
+            ]);
+
+            return [
+                'error' => [
+                    'code' => 'LICENSE_BAD_RESPONSE',
+                    'message' => $msg,
+                    'http_status' => $res->status(),
+                    'erp_body' => is_array($json) ? $json : null,
+                ],
+            ];
+        }
+
+        if (! $res->successful()) {
+            $erpMessage = (string) (
+                data_get($json, 'error.message')
+                ?? data_get($json, 'message')
+                ?? ('ERP license HTTP '.$res->status())
+            );
+
+            Log::warning('webino.license_check_http_error', [
+                'url' => $url,
+                'domain' => $domain,
+                'http_status' => $res->status(),
+                'message' => $erpMessage,
+            ]);
+
+            return [
+                'error' => [
+                    'code' => (string) (data_get($json, 'error.code') ?: 'LICENSE_HTTP_'.$res->status()),
+                    'message' => $erpMessage,
+                    'http_status' => $res->status(),
+                    'erp_body' => $json,
+                ],
+            ];
+        }
+
+        return $json;
     }
 }

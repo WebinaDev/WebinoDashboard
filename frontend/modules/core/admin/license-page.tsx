@@ -52,7 +52,11 @@ export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
       void qc.invalidateQueries({ queryKey: ["license-status"] })
       void qc.invalidateQueries({ queryKey: ["modules"] })
     },
-    onError: (e: Error) => toast.error(getApiErrorMessage(e) || t("unreachable")),
+    onError: (e: Error) => {
+      // Soft failures still update checked_at / last_error on the tenant — refresh UI.
+      void qc.invalidateQueries({ queryKey: ["license-status"] })
+      toast.error(getApiErrorMessage(e) || t("unreachable"))
+    },
   })
 
   const data = q.data

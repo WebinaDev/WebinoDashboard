@@ -18,6 +18,7 @@ return [
     'site_type_required' => 'Site type selection is required.',
     'theme_not_allowed' => 'This theme is not allowed for your site type.',
     'crm_license_check_failed' => 'CRM license check failed.',
+    'crm_license_server_unreachable' => 'License server is unreachable (ERP not reachable).',
     'hmac_secret_missing' => 'HMAC secret is not configured.',
     'dashboard_self_update_disabled' => 'Dashboard self-update is disabled on this host.',
     'dashboard_build_pipeline_disabled' => 'Dashboard build pipeline is disabled on this host.',
