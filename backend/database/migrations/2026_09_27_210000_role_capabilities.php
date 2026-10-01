@@ -55,6 +55,7 @@ return new class extends Migration
                 'commerce.*',
                 'orders.*',
                 'catalog.*',
+                'marketing.*',
                 'pos.use',
                 'accounting.manage',
                 'reports.shop',

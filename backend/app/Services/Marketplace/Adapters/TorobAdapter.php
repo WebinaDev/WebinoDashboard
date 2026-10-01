@@ -330,7 +330,7 @@ class TorobAdapter extends FeedAdapter
 
     public static function torobStatus(Order $order): string
     {
-        $paid = (int) ($order->amount_paid_minor ?? 0) > 0 || in_array($order->status, ['paid', 'processing', 'shipped', 'completed'], true);
+        $paid = (int) ($order->amount_paid_minor ?? 0) > 0 || in_array($order->status, \App\Services\Reports\OrderReports::salesStatuses(), true);
 
         return match ($order->status) {
             'pending_payment', 'awaiting_gateway', 'payment_failed' => 'WAITING_FOR_USER_PAYMENT',

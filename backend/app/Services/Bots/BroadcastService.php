@@ -164,7 +164,7 @@ class BroadcastService
         if ($segment === 'buyers') {
             $buyerIds = Order::query()
                 ->where('tenant_id', $tenantId)
-                ->whereIn('status', ['paid', 'processing', 'completed', 'shipped'])
+                ->whereIn('status', \App\Services\Reports\OrderReports::salesStatuses())
                 ->whereNotNull('user_id')
                 ->pluck('user_id')
                 ->unique();
@@ -187,7 +187,7 @@ class BroadcastService
         } elseif ($segment === 'vip') {
             $vipIds = Order::query()
                 ->where('tenant_id', $tenantId)
-                ->whereIn('status', ['paid', 'processing', 'completed'])
+                ->whereIn('status', \App\Services\Reports\OrderReports::salesStatuses())
                 ->select('user_id', DB::raw('sum(total_minor) as revenue'))
                 ->groupBy('user_id')
                 ->having('revenue', '>=', 5_000_000)
