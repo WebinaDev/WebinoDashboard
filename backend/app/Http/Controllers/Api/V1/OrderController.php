@@ -465,14 +465,35 @@ class OrderController extends Controller
             $query->where(function ($w) use ($like, $q) {
                 $w->where('name', 'like', $like)
                     ->orWhere('sku', 'like', $like)
-                    ->orWhere('slug', 'like', $like);
+                    ->orWhere('slug', 'like', $like)
+                    ->orWhereHas('variants', function ($vq) use ($like, $q) {
+                        $vq->where('sku', 'like', $like);
+                        if (ctype_digit($q)) {
+                            $vq->orWhere('id', (int) $q);
+                        }
+                    });
                 if (ctype_digit($q)) {
                     $w->orWhere('id', (int) $q);
                 }
             });
         }
 
-        return response()->json(['data' => $query->orderBy('name')->limit(30)->get()]);
+        $rows = $query->orderBy('name')->limit(30)->get()->map(function (Product $p) {
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'sku' => $p->sku,
+                'price_minor' => $p->price_minor,
+                'variants' => $p->variants->map(fn ($v) => [
+                    'id' => $v->id,
+                    'name' => $v->name,
+                    'sku' => $v->sku,
+                    'price_minor' => $v->price_minor,
+                ])->values()->all(),
+            ];
+        })->values()->all();
+
+        return response()->json(['data' => $rows]);
     }
 
     public function posCustomers(Request $request): \Illuminate\Http\JsonResponse

@@ -42,7 +42,7 @@ type OrderResult = {
 const selectClass =
   "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
-export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function PosPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("pos_admin")
   const enumLabel = useEnumLabel()
   const locale = useLocale()
@@ -80,12 +80,40 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
   }, [productQ])
 
   async function runProductSearch() {
-    if (!productQ.trim()) {
+    const q = productQ.trim()
+    if (!q) {
       setProductHits([])
       return
     }
     try {
-      setProductHits(await searchPosProducts(productQ.trim()))
+      const hits = await searchPosProducts(q)
+      setProductHits(hits)
+      // Barcode / exact SKU scan: unique hit with q length >= 4 auto-adds (WP PosSimplePage parity)
+      if (hits.length === 1 && q.length >= 4) {
+        const only = hits[0]
+        const variants = (only.variants ?? []).filter((v) => v.id)
+        const qLower = q.toLowerCase()
+        const skuExact =
+          (only.sku && only.sku.toLowerCase() === qLower) ||
+          variants.some((v) => v.sku && v.sku.toLowerCase() === qLower)
+        const shouldAuto = skuExact || variants.length <= 1
+        if (shouldAuto) {
+          if (variants.length === 1) {
+            addLine(only, variants[0])
+          } else if (variants.length === 0) {
+            addLine(only, null)
+          } else {
+            const bySku = variants.find((v) => v.sku && v.sku.toLowerCase() === qLower)
+            if (bySku) addLine(only, bySku)
+            else {
+              setVariantPick({ product: only, variantId: variants[0]?.id ?? null })
+              return
+            }
+          }
+          setProductQ("")
+          setProductHits([])
+        }
+      }
     } catch (e) {
       setError(getApiErrorMessage(e as Error))
     }
@@ -187,7 +215,7 @@ export default function PosPageClient({ route }: { route: ResolvedAdminRoute }) 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{t("title")}</h1>
-          <p className="text-muted-foreground text-xs">{route.fullPath}</p>
+          <p className="text-muted-foreground text-xs">{t("scan_hint")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" asChild>
