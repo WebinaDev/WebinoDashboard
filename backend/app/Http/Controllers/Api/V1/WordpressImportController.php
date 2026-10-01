@@ -23,6 +23,17 @@ class WordpressImportController extends Controller
         private readonly ExportBundleParser $parser,
     ) {}
 
+    public function ping(Request $request): JsonResponse
+    {
+        return response()->json([
+            'ok' => true,
+            'status' => 'ready',
+            'resources' => WordpressImportResources::advertised(),
+            'contract_version' => 1,
+            'note' => 'Import token accepted. Push batches with POST /api/v1/import/wordpress/ingest then POST /api/v1/import/wordpress/jobs/{id}/run.',
+        ]);
+    }
+
     public function probe(Request $request): JsonResponse
     {
         $data = $request->validate([

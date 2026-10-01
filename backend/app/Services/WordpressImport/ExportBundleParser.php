@@ -145,11 +145,97 @@ final class ExportBundleParser
             if (! is_array($row)) {
                 continue;
             }
-            $external = trim((string) ($row['external_id'] ?? $row['id'] ?? ''));
-            if ($external === '') {
+            $external = trim((string) ($row['external_id'] ?? $row['source_id'] ?? $row['id'] ?? ''));
+            if ($external === '' || $external === '0') {
                 throw new InvalidArgumentException('Every record needs external_id.');
             }
             $row['external_id'] = mb_substr($external, 0, 191);
+            if (! isset($row['parent_external_id']) && isset($row['parent_source_id']) && (string) $row['parent_source_id'] !== '' && (string) $row['parent_source_id'] !== '0') {
+                $row['parent_external_id'] = (string) $row['parent_source_id'];
+            }
+            if (! isset($row['customer_external_id']) && isset($row['customer_source_id']) && (string) $row['customer_source_id'] !== '' && (string) $row['customer_source_id'] !== '0') {
+                $row['customer_external_id'] = (string) $row['customer_source_id'];
+            }
+            if (isset($row['totals']) && is_array($row['totals'])) {
+                foreach (['total', 'subtotal', 'discount', 'shipping', 'tax'] as $moneyKey) {
+                    if (! isset($row[$moneyKey]) && isset($row['totals'][$moneyKey])) {
+                        $row[$moneyKey] = $row['totals'][$moneyKey];
+                    }
+                }
+            }
+            if (isset($row['line_items']) && is_array($row['line_items'])) {
+                foreach ($row['line_items'] as $i => $line) {
+                    if (! is_array($line)) {
+                        continue;
+                    }
+                    if (! isset($line['external_id']) && isset($line['source_id'])) {
+                        $line['external_id'] = (string) $line['source_id'];
+                    }
+                    if (! isset($line['product_external_id']) && ! empty($line['product_source_id'])) {
+                        $line['product_external_id'] = (string) $line['product_source_id'];
+                    }
+                    if (! isset($line['variation_external_id']) && ! empty($line['variation_source_id'])) {
+                        $line['variation_external_id'] = (string) $line['variation_source_id'];
+                    }
+                    $row['line_items'][$i] = $line;
+                }
+            }
+            if (isset($row['categories']) && is_array($row['categories']) && ! isset($row['category_external_ids'])) {
+                $ids = [];
+                foreach ($row['categories'] as $cat) {
+                    if (is_array($cat)) {
+                        $id = trim((string) ($cat['external_id'] ?? $cat['source_id'] ?? ''));
+                        if ($id !== '' && $id !== '0') {
+                            $ids[] = $id;
+                        }
+                    }
+                }
+                if ($ids !== []) {
+                    $row['category_external_ids'] = $ids;
+                }
+            }
+            if (isset($row['tags']) && is_array($row['tags']) && ! isset($row['tag_external_ids'])) {
+                $ids = [];
+                foreach ($row['tags'] as $tag) {
+                    if (is_array($tag)) {
+                        $id = trim((string) ($tag['external_id'] ?? $tag['source_id'] ?? ''));
+                        if ($id !== '' && $id !== '0') {
+                            $ids[] = $id;
+                        }
+                    }
+                }
+                if ($ids !== []) {
+                    $row['tag_external_ids'] = $ids;
+                }
+            }
+            if (isset($row['images']) && is_array($row['images'])) {
+                foreach ($row['images'] as $i => $image) {
+                    if (! is_array($image)) {
+                        continue;
+                    }
+                    if (! isset($image['external_id']) && isset($image['source_id']) && (string) $image['source_id'] !== '' && (string) $image['source_id'] !== '0') {
+                        $image['external_id'] = (string) $image['source_id'];
+                    }
+                    $row['images'][$i] = $image;
+                }
+            }
+            if (isset($row['variations']) && is_array($row['variations'])) {
+                foreach ($row['variations'] as $i => $variation) {
+                    if (! is_array($variation)) {
+                        continue;
+                    }
+                    if (! isset($variation['external_id']) && isset($variation['source_id']) && (string) $variation['source_id'] !== '' && (string) $variation['source_id'] !== '0') {
+                        $variation['external_id'] = (string) $variation['source_id'];
+                    }
+                    $row['variations'][$i] = $variation;
+                }
+            }
+            if (! isset($row['location']) && isset($row['locations']) && is_array($row['locations']) && $row['locations'] !== []) {
+                $row['location'] = (string) $row['locations'][0];
+            }
+            if (! isset($row['source_guid']) && isset($row['permalink']) && is_string($row['permalink'])) {
+                $row['source_guid'] = $row['permalink'];
+            }
             $clean[] = $row;
         }
 

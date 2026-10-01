@@ -40,6 +40,7 @@ All routes are under `/api/v1` and require the CMS module.
 
 | Method | Path | Who | Purpose |
 | --- | --- | --- | --- |
+| POST | `/import/wordpress/ping` | plugin | Auth check for companion plugin tokens (`{ "ok": true }`). |
 | POST | `/import/wordpress/probe` | operator | Validate URL shape. No outbound request. |
 | POST | `/import/wordpress/start` | operator or plugin | Create a job. |
 | PATCH | `/import/wordpress/jobs/{id}` | operator | Change multiplier, hosts, publish flag, or dry-run (dry-run only before any row is applied). |
@@ -55,6 +56,8 @@ All routes are under `/api/v1` and require the CMS module.
 | GET/POST/DELETE | `/import/wordpress/tokens` | operator | List, issue, revoke. |
 
 `wordpress-import:run {jobId} {--limit=50}` loops `run` until the job finishes, pauses, or fails.
+
+Batch rows may send `source_id` as an alias for `external_id` (WordPress plugin exporters). Nested `parent_source_id`, `customer_source_id`, `product_source_id`, and `totals.*` are normalized the same way.
 
 Records are applied in this order: media, categories, tags, customers, products, pages, posts, orders, menus, stats. Sending them in one job is enough; a later batch of customers is linked onto orders that were already imported.
 

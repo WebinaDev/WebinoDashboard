@@ -723,6 +723,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/builder/templates/{kind}', [BuilderController::class, 'showTemplate']);
                 Route::put('/builder/templates/{kind}', [BuilderController::class, 'saveTemplate']);
                 Route::post('/builder/templates/{kind}/publish', [BuilderController::class, 'publishTemplate']);
+                Route::post('/import/wordpress/ping', [WordpressImportController::class, 'ping']);
                 Route::post('/import/wordpress/probe', [WordpressImportController::class, 'probe']);
                 Route::post('/import/wordpress/start', [WordpressImportController::class, 'start']);
                 Route::post('/import/wordpress/ingest', [WordpressImportController::class, 'ingest']);

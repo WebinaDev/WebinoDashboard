@@ -150,6 +150,17 @@ class WordpressImportTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_plugin_token_can_ping(): void
+    {
+        [$admin] = $this->operator();
+        $plain = $admin->createToken('wordpress-import:parisma', ['wordpress-import'])->plainTextToken;
+
+        $this->withToken($plain)->postJson('/api/v1/import/wordpress/ping', [])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'ready');
+    }
+
     public function test_plugin_token_is_limited_to_import_and_batches_are_resumed(): void
     {
         Storage::fake('public');
