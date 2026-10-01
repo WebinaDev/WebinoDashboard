@@ -84,10 +84,10 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
     date: new Date().toISOString().slice(0, 10),
     description: "",
     debitCode: "101",
-    debitName: "Cash",
+    debitName: tAcc("defaults.cash"),
     debitMinor: "10000",
     creditCode: "201",
-    creditName: "Equity",
+    creditName: tAcc("defaults.equity"),
     creditMinor: "10000",
   })
 
