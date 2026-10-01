@@ -17,6 +17,7 @@ export const magazineManifest: ModuleManifest = {
       order: 10,
       navGroup: "magazine",
       navOrder: 0,
+      capability: "content.manage",
     },
     {
       path: "magazine/posts",
@@ -28,6 +29,7 @@ export const magazineManifest: ModuleManifest = {
       navGroup: "magazine",
       navOrder: 0,
       navHidden: true,
+      capability: "content.manage",
     },
     {
       path: "magazine/new",
@@ -37,6 +39,7 @@ export const magazineManifest: ModuleManifest = {
       section: "content",
       order: 10,
       navHidden: true,
+      capability: "content.manage",
     },
     {
       path: "magazine/posts/:postId",
@@ -46,6 +49,7 @@ export const magazineManifest: ModuleManifest = {
       section: "content",
       order: 10,
       navHidden: true,
+      capability: "content.manage",
     },
     {
       path: "magazine/categories",
@@ -56,6 +60,7 @@ export const magazineManifest: ModuleManifest = {
       order: 10,
       navGroup: "magazine",
       navOrder: 1,
+      capability: "content.manage",
     },
   ],
   siteRoutes: [

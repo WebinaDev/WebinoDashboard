@@ -17,6 +17,7 @@ export const blogManifest: ModuleManifest = {
       order: 13,
       navGroup: "blog",
       navOrder: 0,
+      capability: "content.manage",
     },
     {
       path: "blog/categories",
@@ -27,6 +28,7 @@ export const blogManifest: ModuleManifest = {
       order: 13,
       navGroup: "blog",
       navOrder: 1,
+      capability: "content.manage",
     },
     {
       path: "blog/new",
@@ -36,6 +38,7 @@ export const blogManifest: ModuleManifest = {
       section: "content",
       order: 13,
       navHidden: true,
+      capability: "content.manage",
     },
     {
       path: "blog/posts/:postId",
@@ -45,6 +48,7 @@ export const blogManifest: ModuleManifest = {
       section: "content",
       order: 13,
       navHidden: true,
+      capability: "content.manage",
     },
   ],
   siteRoutes: [

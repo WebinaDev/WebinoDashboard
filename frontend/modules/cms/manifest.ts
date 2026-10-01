@@ -15,6 +15,7 @@ export const cmsManifest: ModuleManifest = {
       labelKey: "nav.cms_pages",
       section: "content",
       order: 12,
+      capability: "content.manage",
     },
     {
       path: "cms",
@@ -24,6 +25,7 @@ export const cmsManifest: ModuleManifest = {
       section: "content",
       order: 12,
       navHidden: true,
+      capability: "content.manage",
     },
     {
       path: "pages/new",
@@ -33,6 +35,7 @@ export const cmsManifest: ModuleManifest = {
       section: "content",
       order: 12,
       navHidden: true,
+      capability: "content.manage",
     },
     {
       path: "pages/:pageId",
@@ -42,6 +45,7 @@ export const cmsManifest: ModuleManifest = {
       section: "content",
       order: 12,
       navHidden: true,
+      capability: "content.manage",
     },
   ],
   siteRoutes: [

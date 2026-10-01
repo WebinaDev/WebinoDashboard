@@ -34,6 +34,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 0,
+      capability: "catalog.*",
     },
     {
       path: "products/tags",
@@ -44,6 +45,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 3,
+      capability: "catalog.*",
     },
     {
       path: "products/new",
@@ -53,6 +55,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navHidden: true,
+      capability: "catalog.*",
     },
     {
       path: "products/:productId",
@@ -62,6 +65,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navHidden: true,
+      capability: "catalog.*",
     },
     {
       path: "brands",
@@ -72,6 +76,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 1,
+      capability: "catalog.*",
     },
     {
       path: "brands/new",
@@ -81,6 +86,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navHidden: true,
+      capability: "catalog.*",
     },
     {
       path: "brands/:brandId",
@@ -90,6 +96,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navHidden: true,
+      capability: "catalog.*",
     },
     {
       path: "product-categories",
@@ -100,6 +107,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 2,
+      capability: "catalog.*",
     },
     {
       path: "product-categories/new",
@@ -109,6 +117,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navHidden: true,
+      capability: "catalog.*",
     },
     {
       path: "product-categories/:categoryId",
@@ -118,6 +127,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navHidden: true,
+      capability: "catalog.*",
     },
     {
       path: "attributes",
@@ -128,6 +138,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 4,
+      capability: "catalog.*",
     },
     {
       path: "attributes/new",
@@ -137,6 +148,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navHidden: true,
+      capability: "catalog.*",
     },
     {
       path: "attributes/:attributeId",
@@ -146,6 +158,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 20,
       navHidden: true,
+      capability: "catalog.*",
     },
     {
       path: "product-catalog",
@@ -156,6 +169,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 5,
+      capability: "catalog.*",
     },
     {
       path: "pricing/quick-add",
@@ -166,6 +180,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 6,
+      capability: "catalog.*",
     },
     {
       path: "pricing/bulk-editor",
@@ -176,6 +191,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 7,
+      capability: "catalog.*",
     },
     {
       path: "pricing/price-changer",
@@ -186,6 +202,7 @@ export const commerceManifest: ModuleManifest = {
       order: 20,
       navGroup: "shop",
       navOrder: 8,
+      capability: "catalog.*",
     },
     {
       path: "orders",
@@ -196,6 +213,7 @@ export const commerceManifest: ModuleManifest = {
       order: 21,
       navGroup: "orders",
       navOrder: 0,
+      capability: "orders.*",
     },
     {
       path: "orders/new",
@@ -206,6 +224,7 @@ export const commerceManifest: ModuleManifest = {
       order: 21,
       navGroup: "orders",
       navOrder: 1,
+      capability: "orders.*",
     },
     {
       path: "orders/c2c-receipts",
@@ -216,6 +235,7 @@ export const commerceManifest: ModuleManifest = {
       order: 21,
       navGroup: "orders",
       navOrder: 2,
+      capability: "orders.*",
     },
     {
       path: "orders/wallet-withdrawals",
@@ -226,6 +246,7 @@ export const commerceManifest: ModuleManifest = {
       order: 21,
       navGroup: "orders",
       navOrder: 3,
+      capability: "orders.*",
     },
     {
       path: "orders/:orderId/edit",
@@ -235,6 +256,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
+      capability: "orders.*",
     },
     {
       path: "orders/:orderId",
@@ -244,6 +266,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
+      capability: "orders.*",
     },
     {
       path: "settings/c2c",
@@ -253,6 +276,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
+      capability: "orders.*",
     },
     {
       path: "settings/wallet",
@@ -262,6 +286,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
+      capability: "orders.*",
     },
     {
       path: "pos",

@@ -17,6 +17,7 @@ export const marketingManifest: ModuleManifest = {
       order: 25,
       navGroup: "marketing",
       navOrder: -1,
+      capability: "marketing.*",
     },
     {
       path: "marketing/coupons",
@@ -27,6 +28,7 @@ export const marketingManifest: ModuleManifest = {
       order: 25,
       navGroup: "marketing",
       navOrder: 0,
+      capability: "marketing.*",
     },
     {
       path: "marketing/coupons/new",
@@ -36,6 +38,7 @@ export const marketingManifest: ModuleManifest = {
       section: "commerce",
       order: 25,
       navHidden: true,
+      capability: "marketing.*",
     },
     {
       path: "marketing/coupons/:couponId",
@@ -45,6 +48,7 @@ export const marketingManifest: ModuleManifest = {
       section: "commerce",
       order: 25,
       navHidden: true,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sale-prices",
@@ -55,9 +59,14 @@ export const marketingManifest: ModuleManifest = {
       order: 25,
       navGroup: "marketing",
       navOrder: 1,
+      capability: "marketing.*",
     },
-    { path: "marketing/bot-broadcast", submodule: "bot-broadcast", page: "bot-broadcast", labelKey: "nav.bot_broadcast", section: "marketing", order: 42 },
-    { path: "marketing/bot-campaigns", submodule: "bot-campaigns", page: "bot-campaigns", labelKey: "nav.bot_campaigns", section: "marketing", order: 43 },
+    { path: "marketing/bot-broadcast", submodule: "bot-broadcast", page: "bot-broadcast", labelKey: "nav.bot_broadcast", section: "marketing", order: 42,
+      capability: "marketing.*",
+    },
+    { path: "marketing/bot-campaigns", submodule: "bot-campaigns", page: "bot-campaigns", labelKey: "nav.bot_campaigns", section: "marketing", order: 43,
+      capability: "marketing.*",
+    },
     {
       path: "marketing/sms",
       submodule: "sms",
@@ -67,6 +76,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 0,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/send",
@@ -77,6 +87,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 1,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/reports",
@@ -87,6 +98,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 2,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/inbox",
@@ -97,6 +109,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 3,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/phonebook",
@@ -107,6 +120,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 4,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/patterns",
@@ -117,6 +131,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 5,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/secretaries",
@@ -127,6 +142,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 6,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/wallet",
@@ -137,6 +153,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 7,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/lines",
@@ -147,6 +164,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 8,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/topup",
@@ -157,6 +175,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 9,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/targeted",
@@ -167,6 +186,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 10,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/scheduled",
@@ -177,6 +197,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 11,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/drafts",
@@ -187,6 +208,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 12,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/newsletter",
@@ -197,6 +219,7 @@ export const marketingManifest: ModuleManifest = {
       order: 44,
       navGroup: "sms",
       navOrder: 13,
+      capability: "marketing.*",
     },
     {
       path: "marketing/sms/payment-callback",
@@ -206,6 +229,7 @@ export const marketingManifest: ModuleManifest = {
       section: "marketing",
       order: 44,
       navHidden: true,
+      capability: "marketing.*",
     },
     {
       path: "notifications",
@@ -214,6 +238,7 @@ export const marketingManifest: ModuleManifest = {
       labelKey: "nav.notifications_hub",
       section: "tools",
       order: 55,
+      capability: "marketing.*",
     },
   ],
   siteRoutes: [],

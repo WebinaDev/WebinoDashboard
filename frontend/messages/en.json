@@ -182,7 +182,7 @@
     "accounting_reports": "Accounting reports",
     "accounting_tools": "Accounting tools",
     "group_ai_content": "AI Content",
-    "tickets": "Tickets",
+    "tickets": "Ticket",
     "online_support": "Online support",
     "sale_prices": "Strikethrough prices",
     "notifications_hub": "Notification system",
@@ -2605,7 +2605,6 @@
     "registryTitle": "SMS pattern registry",
     "registryHint": "Which pattern is bound to each order event.",
     "noRegistry": "No synced patterns yet.",
-    "ippanelPatterns": "Pattern list",
     "patternCount": "{{count}} patterns",
     "searchPatterns": "Search title, code, website…",
     "noPatterns": "No patterns returned from the SMS service.",
@@ -2847,7 +2846,8 @@
     "patternStatusNone": "None",
     "unitPrice": "Unit price",
     "scope": "Scope",
-    "noPackages": "No packages available"
+    "noPackages": "No packages available",
+    "pattern_code_col": "Pattern code"
   },
   "coupons": {
     "title": "Coupons",

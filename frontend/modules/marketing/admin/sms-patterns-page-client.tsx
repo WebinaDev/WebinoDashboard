@@ -477,7 +477,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 <TableRow>
                   <TableHead>{t("scope")}</TableHead>
                   <TableHead>{t("event")}</TableHead>
-                  <TableHead>{t("ippanelPatterns")}</TableHead>
+                  <TableHead>{t("pattern_code_col")}</TableHead>
                   <TableHead>{t("status")}</TableHead>
                   <TableHead />
                 </TableRow>

@@ -181,7 +181,7 @@
     "accounting_reports": "گزارش حسابداری",
     "accounting_tools": "ابزار حسابداری",
     "group_ai_content": "هوش مصنوعی",
-    "tickets": "تیکت‌ها",
+    "tickets": "تیکت",
     "online_support": "پشتیبانی آنلاین",
     "sale_prices": "قیمت خط‌خورده",
     "notifications_hub": "سیستم اعلان",
@@ -2604,7 +2604,6 @@
     "registryTitle": "ثبت پترن پیامک",
     "registryHint": "کدام پترن به هر رویداد سفارش وصل شده است.",
     "noRegistry": "هنوز پترنی همگام نشده.",
-    "ippanelPatterns": "لیست پترن",
     "patternCount": "{{count}} پترن",
     "searchPatterns": "جستجوی عنوان، کد، وب‌سایت…",
     "noPatterns": "پترنی از سرویس پیامک برنگشت.",
@@ -2846,7 +2845,8 @@
     "patternStatusNone": "بدون پترن",
     "unitPrice": "قیمت واحد",
     "scope": "اسکوپ",
-    "noPackages": "بسته‌ای موجود نیست"
+    "noPackages": "بسته‌ای موجود نیست",
+    "pattern_code_col": "کد پترن"
   },
   "coupons": {
     "title": "کدهای تخفیف",

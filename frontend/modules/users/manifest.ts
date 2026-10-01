@@ -63,7 +63,6 @@ export const usersManifest: ModuleManifest = {
       navOrder: 1,
       capability: "users.manage",
       menuKey: "customers",
-      navHidden: true,
     },
     {
       path: "staff",
@@ -75,7 +74,6 @@ export const usersManifest: ModuleManifest = {
       navOrder: 2,
       capability: "users.manage",
       menuKey: "staff",
-      navHidden: true,
     },
     {
       path: "tickets",

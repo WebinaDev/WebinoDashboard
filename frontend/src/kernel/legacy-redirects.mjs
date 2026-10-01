@@ -27,4 +27,8 @@ export const LEGACY_DASHBOARD_REDIRECTS = [
   { source: "/dashboard/basalam/:path*", destination: "/dashboard/settings/shop/marketplace" },
   { source: "/dashboard/marketing/sms/ads", destination: "/dashboard/marketing/sms/targeted" },
   { source: "/dashboard/marketing/sms/ads/:path*", destination: "/dashboard/marketing/sms/targeted" },
+  { source: "/dashboard/marketplace", destination: "/dashboard/modules/catalog" },
+  { source: "/dashboard/marketplace/payment-callback", destination: "/dashboard/modules/payment-callback" },
+  { source: "/dashboard/account/tickets/:id", destination: "/dashboard/tickets/:id" },
+  { source: "/dashboard/analytics/:path*", destination: "/dashboard/analytics" },
 ]
