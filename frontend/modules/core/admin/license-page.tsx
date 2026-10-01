@@ -26,6 +26,15 @@ type LicenseStatus = {
   product?: string | null
 }
 
+function softErrorMessage(raw: string | null | undefined, fallback: string): string | null {
+  if (!raw) return null
+  const lower = raw.toLowerCase()
+  if (lower.includes("hmac") || lower.includes("signature")) {
+    return fallback
+  }
+  return raw
+}
+
 export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("license")
   const tCommon = useTranslations("common")
@@ -43,15 +52,17 @@ export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
       void qc.invalidateQueries({ queryKey: ["license-status"] })
       void qc.invalidateQueries({ queryKey: ["modules"] })
     },
-    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e) || t("unreachable")),
   })
 
   const data = q.data
-  const status = data?.status || (data?.active ? "active" : "unknown")
+  const status = data?.status || (data?.active ? "active" : data?.unreachable ? "unreachable" : "unknown")
   const badgeVariant =
     status === "active" || status === "valid" || status === "demo"
       ? "default"
-      : "destructive"
+      : status === "unreachable" || status === "unknown"
+        ? "secondary"
+        : "destructive"
   const statusLabel =
     status === "active" || status === "valid"
       ? t("status_active")
@@ -61,14 +72,19 @@ export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
           ? t("status_expired")
           : status === "invalid"
             ? t("status_invalid")
-            : status
+            : status === "unreachable"
+              ? t("unreachable")
+              : status
+
+  const domainConfigured = Boolean(data?.has_domain ?? data?.has_key ?? data?.domain)
+  const displayError = softErrorMessage(data?.last_error, t("unreachable"))
 
   return (
     <PageShell
       title={t("title")}
       description={t("subtitle")}
       actions={
-        <Button type="button" onClick={() => void sync.mutateAsync()} disabled={sync.isPending}>
+        <Button type="button" onClick={() => void sync.mutateAsync()} disabled={sync.isPending || q.isError}>
           {t("sync")}
         </Button>
       }
@@ -85,14 +101,12 @@ export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            {t("key_present")}: {(data?.has_domain ?? data?.has_key) ? tCommon("yes") : tCommon("no")}
+            {t("key_present")}: {domainConfigured ? tCommon("yes") : tCommon("no")}
           </p>
-          {data?.domain ? (
-            <p className="font-mono text-xs" dir="ltr">
-              {data.domain}
-              {data.product ? ` · ${data.product}` : ""}
-            </p>
-          ) : null}
+          <p className="font-mono text-xs" dir="ltr">
+            {data?.domain || t("domain_missing")}
+            {data?.product ? ` · ${data.product}` : ""}
+          </p>
           {data?.demo ? <p>{t("demo_hint")}</p> : null}
           {data?.expired ? <p className="text-destructive">{t("expired_hint")}</p> : null}
           {data?.checked_at ? (
@@ -100,8 +114,11 @@ export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
               {t("checked_at")}: {data.checked_at}
             </p>
           ) : null}
-          {data?.last_error ? (
-            <p className="text-destructive">{data.last_error}</p>
+          {displayError ? (
+            <p className="text-destructive">{displayError}</p>
+          ) : null}
+          {q.isError ? (
+            <p className="text-destructive">{t("api_unavailable")}</p>
           ) : null}
         </CardContent>
       </Card>

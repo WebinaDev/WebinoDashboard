@@ -37,8 +37,8 @@ class AccountingController extends Controller
 
         $src = config('accounting.source_path');
 
-        $erpConfigured = filled(config('services.webino.base_url'))
-            && filled(config('services.webino.license_hmac_secret'));
+        // Ledger uses domain identity; HMAC is optional service auth.
+        $erpConfigured = filled(config('services.webino.base_url'));
 
         return response()->json([
             'data' => [

@@ -30,16 +30,36 @@ class LicenseController extends Controller
                 config('services.webino.product', 'webinodashboard')
             );
         } catch (Throwable $e) {
+            $detail = $this->friendlyLicenseError($e->getMessage());
             $tenant->fill([
                 'license_unreachable' => true,
                 'license_checked_at' => now(),
-                'license_last_error' => $e->getMessage(),
+                'license_last_error' => $detail,
             ])->save();
 
             return response()->json([
                 'message' => __('api.crm_license_check_failed'),
                 'data' => $this->payload($tenant->fresh()),
-                'errors' => ['detail' => $e->getMessage(), 'code' => 'LICENSE_UNREACHABLE'],
+                'errors' => ['detail' => $detail, 'code' => 'LICENSE_UNREACHABLE'],
+            ], 502);
+        }
+
+        if (data_get($crm, 'error') || (! is_array($crm)) || data_get($crm, 'data') === null) {
+            $detail = $this->friendlyLicenseError(
+                (string) (data_get($crm, 'error.message')
+                    ?? data_get($crm, 'message')
+                    ?? __('api.crm_license_check_failed'))
+            );
+            $tenant->fill([
+                'license_unreachable' => true,
+                'license_checked_at' => now(),
+                'license_last_error' => $detail,
+            ])->save();
+
+            return response()->json([
+                'message' => __('api.crm_license_check_failed'),
+                'data' => $this->payload($tenant->fresh()),
+                'errors' => ['detail' => $detail, 'code' => 'LICENSE_UNREACHABLE'],
             ], 502);
         }
 
@@ -169,7 +189,22 @@ class LicenseController extends Controller
             'product' => config('services.webino.product', 'webinodashboard'),
             'checked_at' => $tenant->license_checked_at?->toIso8601String(),
             'unreachable' => (bool) $tenant->license_unreachable,
-            'last_error' => $tenant->license_last_error,
+            'last_error' => $this->friendlyLicenseError((string) ($tenant->license_last_error ?? '')),
         ];
+    }
+
+    /** Map legacy English ops errors to Persian soft messages. Never surface HMAC-config as license identity. */
+    private function friendlyLicenseError(string $raw): ?string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+        $lower = strtolower($raw);
+        if (str_contains($lower, 'hmac') || str_contains($lower, 'signature')) {
+            return __('api.crm_license_check_failed');
+        }
+
+        return $raw;
     }
 }

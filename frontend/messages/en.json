@@ -5688,10 +5688,10 @@
   },
   "license": {
     "title": "License",
-    "subtitle": "License status for this tenant",
+    "subtitle": "License identity = site domain (no license code)",
     "sync": "Sync",
     "status_label": "Status",
-    "status_hint": "Latest license check from the license server",
+    "status_hint": "Latest domain-based license status from ERP",
     "unreachable": "License server is unreachable",
     "checked_at": "Checked at",
     "inactive_banner": "License is inactive. Sync to restore access.",
@@ -5705,9 +5705,10 @@
     "status_expired": "Expired",
     "status_invalid": "Invalid",
     "key_present": "Domain configured as license identity",
-    "demo_hint": "Demo status comes from ERP — a non-empty key alone is not enough.",
+    "demo_hint": "Demo status comes from ERP.",
     "expired_hint": "License expired. Renew in ERP.",
     "has_key": "Domain configured",
-    "enter_key": "Set your site domain"
+    "enter_key": "Set your site domain",
+    "domain_missing": "Domain not set"
   }
 }

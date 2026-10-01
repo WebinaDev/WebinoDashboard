@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\Http;
  * Calls Webino parity endpoints:
  * POST /api/webinocrm/v1/license/check|activate
  *
- * Entitlement identity is domain (+ product). HMAC secret is service auth only —
- * not a user-facing license code. Canonical HMAC payload: domain|{product}|ts
+ * Entitlement identity is domain (+ product). No license code.
+ * HMAC secret is optional service-to-service auth — never required for
+ * domain entitlement checks. Canonical HMAC payload: domain|{product}|ts
  */
 class WebinoLicenseClient
 {
@@ -25,14 +26,10 @@ class WebinoLicenseClient
         return $p !== '' ? strtolower($p) : 'webinodashboard';
     }
 
-    protected function requireLicenseSecret(): string
+    /** Optional deploy-time service auth; empty is OK for domain status checks. */
+    protected function licenseSecret(): string
     {
-        $secret = (string) config('services.webino.license_hmac_secret');
-        if ($secret === '') {
-            throw new \RuntimeException('License HMAC secret is not configured');
-        }
-
-        return $secret;
+        return (string) config('services.webino.license_hmac_secret', '');
     }
 
     /**
@@ -45,7 +42,7 @@ class WebinoLicenseClient
 
     public function moduleCloneUrl(string $domain, ?string $product, string $moduleSlug): ?string
     {
-        $body = $this->signedBody($domain, $product, ['module_slug' => $moduleSlug]);
+        $body = $this->requestBody($domain, $product, ['module_slug' => $moduleSlug]);
         $url = $this->baseUrl().'/api/webinocrm/v1/license/module-clone-url';
         $res = Http::timeout(20)
             ->acceptJson()
@@ -69,7 +66,7 @@ class WebinoLicenseClient
     {
         $domain = (string) ($payload['domain'] ?? request()->getHost());
         $product = (string) ($payload['product'] ?? $this->productSlug());
-        $body = array_merge($this->signedBody($domain, $product), $payload, [
+        $body = array_merge($this->requestBody($domain, $product), $payload, [
             'domain' => $domain,
             'product' => $product,
         ]);
@@ -87,24 +84,31 @@ class WebinoLicenseClient
     }
 
     /**
+     * Build request body. Signs only when WEBINOCRM_LICENSE_HMAC_SECRET is set.
+     *
      * @param  array<string, mixed>  $extra
      * @return array<string, mixed>
      */
-    protected function signedBody(string $domain, ?string $product, array $extra = []): array
+    protected function requestBody(string $domain, ?string $product, array $extra = []): array
     {
         $ts = time();
-        $secret = $this->requireLicenseSecret();
         $product = strtolower(trim((string) ($product ?? $this->productSlug())));
         if ($product === '') {
             $product = $this->productSlug();
         }
 
-        return array_merge([
+        $body = array_merge([
             'domain' => $domain,
             'product' => $product,
             'ts' => $ts,
-            'signature' => hash_hmac('sha256', $domain.'|'.$product.'|'.$ts, $secret),
         ], $extra);
+
+        $secret = $this->licenseSecret();
+        if ($secret !== '') {
+            $body['signature'] = hash_hmac('sha256', $domain.'|'.$product.'|'.$ts, $secret);
+        }
+
+        return $body;
     }
 
     /**
@@ -112,7 +116,7 @@ class WebinoLicenseClient
      */
     protected function post(string $path, string $domain, ?string $product): array
     {
-        $body = $this->signedBody($domain, $product);
+        $body = $this->requestBody($domain, $product);
         $url = $this->baseUrl().$path;
 
         return Http::timeout(15)

@@ -19,14 +19,10 @@ class WebinoAccountingClient
         return $p !== '' ? strtolower($p) : 'webinodashboard';
     }
 
-    protected function requireSecret(): string
+    /** Optional deploy-time service auth; empty is OK. */
+    protected function licenseSecret(): string
     {
-        $secret = (string) config('services.webino.license_hmac_secret');
-        if ($secret === '') {
-            throw new \RuntimeException('License HMAC secret is not configured');
-        }
-
-        return $secret;
+        return (string) config('services.webino.license_hmac_secret', '');
     }
 
     /**
@@ -44,8 +40,11 @@ class WebinoAccountingClient
             'domain' => $domain,
             'product' => $product,
             'ts' => $ts,
-            'signature' => hash_hmac('sha256', $domain.'|'.$product.'|'.$ts, $this->requireSecret()),
         ]);
+        $secret = $this->licenseSecret();
+        if ($secret !== '') {
+            $body['signature'] = hash_hmac('sha256', $domain.'|'.$product.'|'.$ts, $secret);
+        }
         unset($body['license_key']);
 
         $url = $this->baseUrl().'/api/webinocrm/v1/accounting/ledger';
