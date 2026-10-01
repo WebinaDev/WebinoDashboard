@@ -21,6 +21,9 @@ type LicenseStatus = {
   demo?: boolean
   expired?: boolean
   has_key?: boolean
+  has_domain?: boolean
+  domain?: string | null
+  product?: string | null
 }
 
 export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
@@ -82,8 +85,14 @@ export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            {t("key_present")}: {data?.has_key ? tCommon("yes") : tCommon("no")}
+            {t("key_present")}: {(data?.has_domain ?? data?.has_key) ? tCommon("yes") : tCommon("no")}
           </p>
+          {data?.domain ? (
+            <p className="font-mono text-xs" dir="ltr">
+              {data.domain}
+              {data.product ? ` · ${data.product}` : ""}
+            </p>
+          ) : null}
           {data?.demo ? <p>{t("demo_hint")}</p> : null}
           {data?.expired ? <p className="text-destructive">{t("expired_hint")}</p> : null}
           {data?.checked_at ? (

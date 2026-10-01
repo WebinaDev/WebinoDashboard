@@ -80,8 +80,11 @@ export default function TicketDetailPage({ route }: { route: ResolvedAdminRoute 
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
   const syncMut = useMutation({
-    mutationFn: () => api(`/api/v1/shop/tickets/${id}/sync-erp`, { method: "POST" }),
-    onSuccess: (res: { unavailable?: boolean; message?: string | null }) => {
+    mutationFn: () =>
+      api<{ unavailable?: boolean; message?: string | null }>(`/api/v1/shop/tickets/${id}/sync-erp`, {
+        method: "POST",
+      }),
+    onSuccess: (res) => {
       if (res?.unavailable) toast.error(res.message || t("erp_unavailable"))
       else toast.success(tCommon("saved"))
       void qc.invalidateQueries({ queryKey: ["ticket", id] })
