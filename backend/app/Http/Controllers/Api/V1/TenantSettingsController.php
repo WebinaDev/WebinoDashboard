@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Services\AiContent\AiContentSettings;
+use App\Services\Auth\OtpSettings;
 use App\Services\Analytics\AnalyticsSettings;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Notifications\NotificationSettings;
 use App\Services\Notifications\TenantMailer;
+use App\Services\Marketplace\MarketplacePlatforms;
+use App\Services\Marketplace\MarketplaceSettingsService;
 use App\Services\Orders\OrderDocumentSettings;
+use App\Services\Payments\PaymentGatewaySettingsService;
 use App\Services\Pwa\PwaSettings;
+use App\Services\Security\SecuritySettings;
 use App\Services\Shop\ShopSettings;
 use Illuminate\Http\Request;
 
@@ -18,7 +23,7 @@ class TenantSettingsController extends Controller
     private const AREAS = ['site', 'shop'];
 
     private const SECTIONS = [
-        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard', 'notifications'],
+        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard', 'notifications', 'general', 'privacy', 'style', 'system-logs', 'license'],
         'shop' => [
             'general',
             'products',
@@ -95,7 +100,58 @@ class TenantSettingsController extends Controller
             return response()->json(['data' => PwaSettings::forTenant($tenantId, $this->locale($request))]);
         }
         if ($key === 'site.dashboard') {
-            return response()->json(['data' => $this->dashboardHostSettings()]);
+            $prefs = $settings->get($tenantId, 'settings', 'site.dashboard.prefs', [
+                'ui_locale' => 'fa',
+                'ui_theme' => 'system',
+                'ui_fullscreen_default' => false,
+            ]);
+
+            return response()->json(['data' => array_merge($this->dashboardHostSettings(), $prefs)]);
+        }
+        if ($key === SecuritySettings::KEY) {
+            return response()->json(['data' => SecuritySettings::get($tenantId)]);
+        }
+        if ($key === OtpSettings::KEY) {
+            return response()->json(['data' => OtpSettings::forTenant($tenantId, $settings)]);
+        }
+        if ($key === 'shop.payments') {
+            $hub = app(PaymentGatewaySettingsService::class)->getHub($tenantId);
+
+            return response()->json([
+                'data' => [
+                    'enabled' => $hub['enabled'] ?? [],
+                    'geo_notice' => $hub['geo_notice'] ?? app(PaymentGatewaySettingsService::class)->defaultGeoNotice(),
+                    '_source' => 'payments.hub',
+                ],
+            ]);
+        }
+        if ($key === 'shop.marketplace') {
+            $svc = app(MarketplaceSettingsService::class);
+            $platforms = [];
+            foreach (MarketplacePlatforms::slugs() as $slug) {
+                $platforms[$slug] = [
+                    'enabled' => $svc->isEnabled($tenantId, $slug),
+                    'auto_sync' => $svc->isAutoSync($tenantId, $slug),
+                    'kind' => MarketplacePlatforms::CATALOG[$slug]['kind'] ?? null,
+                ];
+            }
+
+            return response()->json(['data' => ['platforms' => $platforms, '_source' => 'marketplace.settings']]);
+        }
+        if ($key === 'site.general') {
+            return response()->json(['data' => $this->siteGeneral($tenantId, $settings)]);
+        }
+        if ($key === 'site.privacy') {
+            return response()->json(['data' => $settings->get($tenantId, 'settings', 'site.privacy', $this->defaultsFor('site.privacy'))]);
+        }
+        if ($key === 'site.style') {
+            return response()->json(['data' => $this->siteStyle($tenantId)]);
+        }
+        if ($key === 'site.system-logs') {
+            return response()->json(['data' => $this->systemLogsMeta()]);
+        }
+        if ($key === 'site.license') {
+            return response()->json(['data' => $this->licenseMeta($tenantId)]);
         }
         $defaults = $this->defaultsFor($key);
 
@@ -161,7 +217,64 @@ class TenantSettingsController extends Controller
             ]);
         }
         if ($key === 'site.dashboard') {
-            return response()->json(['data' => $this->dashboardHostSettings()]);
+            return response()->json(['data' => $this->saveDashboardPrefs($tenantId, $settings, $payload['payload'])]);
+        }
+        if ($key === SecuritySettings::KEY) {
+            return response()->json(['data' => SecuritySettings::save($tenantId, $payload['payload'])]);
+        }
+        if ($key === OtpSettings::KEY) {
+            $current = OtpSettings::forTenant($tenantId, $settings);
+            $merged = array_replace_recursive(OtpSettings::defaults(), $current, $payload['payload']);
+            $settings->put($tenantId, 'settings', OtpSettings::KEY, $merged);
+
+            return response()->json(['data' => OtpSettings::forTenant($tenantId, $settings)]);
+        }
+        if ($key === 'shop.payments') {
+            $hub = app(PaymentGatewaySettingsService::class)->saveHub($tenantId, $payload['payload']);
+
+            return response()->json([
+                'data' => [
+                    'enabled' => $hub['enabled'] ?? [],
+                    'geo_notice' => $hub['geo_notice'] ?? app(PaymentGatewaySettingsService::class)->defaultGeoNotice(),
+                    '_source' => 'payments.hub',
+                ],
+            ]);
+        }
+        if ($key === 'shop.marketplace') {
+            $svc = app(MarketplaceSettingsService::class);
+            $platforms = [];
+            foreach (MarketplacePlatforms::slugs() as $slug) {
+                $platforms[$slug] = [
+                    'enabled' => $svc->isEnabled($tenantId, $slug),
+                    'auto_sync' => $svc->isAutoSync($tenantId, $slug),
+                ];
+            }
+
+            return response()->json([
+                'data' => [
+                    'platforms' => $platforms,
+                    '_source' => 'marketplace.settings',
+                    '_read_only' => true,
+                ],
+            ]);
+        }
+        if ($key === 'site.general') {
+            return response()->json(['data' => $this->saveSiteGeneral($tenantId, $settings, $payload['payload'])]);
+        }
+        if ($key === 'site.privacy') {
+            $defaults = $this->defaultsFor('site.privacy');
+            $merged = array_replace_recursive($defaults, $payload['payload']);
+            $merged['guest_checkout'] = ! empty($merged['guest_checkout']);
+            $merged['account_creation'] = ! empty($merged['account_creation']);
+            $saved = $settings->put($tenantId, 'settings', 'site.privacy', $merged);
+
+            return response()->json(['data' => $saved]);
+        }
+        if ($key === 'site.style') {
+            return response()->json(['data' => $this->saveSiteStyle($tenantId, $payload['payload'])]);
+        }
+        if ($key === 'site.system-logs' || $key === 'site.license') {
+            return response()->json(['message' => 'Read-only section'], 422);
         }
         $defaults = $this->defaultsFor($key);
         $merged = array_replace_recursive($defaults, $payload['payload']);
@@ -206,35 +319,7 @@ class TenantSettingsController extends Controller
     private function defaultsFor(string $key): array
     {
         return match ($key) {
-            'site.security' => [
-                'general' => [
-                    'profile' => 'recommended',
-                    'enabled' => true,
-                    'wizard_completed' => false,
-                ],
-                'privacy' => [
-                    'hide_wp_version' => true,
-                    'disable_file_edit' => true,
-                ],
-                'login' => [
-                    'limit_attempts' => true,
-                    'max_attempts' => 5,
-                    'lockout_minutes' => 15,
-                    'force_2fa_admins' => false,
-                ],
-                'waf' => [
-                    'enabled' => true,
-                    'enforce' => false,
-                ],
-                'headers' => [
-                    'x_frame_options' => 'SAMEORIGIN',
-                    'referrer_policy' => 'strict-origin-when-cross-origin',
-                ],
-                'notify' => [
-                    'email' => true,
-                    'site' => true,
-                ],
-            ],
+            'site.security' => SecuritySettings::defaults(),
             'site.ai' => AiContentSettings::defaults(),
             'site.analytics' => AnalyticsSettings::defaults(),
             'site.pwa' => PwaSettings::defaults(),
@@ -242,15 +327,26 @@ class TenantSettingsController extends Controller
                 'self_update_enabled' => (bool) config('dashboard.self_update'),
                 'build_pipeline_enabled' => (bool) config('dashboard.build_pipeline'),
                 'version' => (string) config('dashboard.version', '0.0.0'),
+                'ui_locale' => 'fa',
+                'ui_theme' => 'system',
+                'ui_fullscreen_default' => false,
             ],
-            'site.sms' => [
-                'enabled' => false,
-                'otp_login_enabled' => false,
-                'otp_register_enabled' => false,
-                'otp_expiry_minutes' => 5,
-                'otp_length' => 5,
-                'otp_max_attempts' => 5,
+            'site.general' => [
+                'site_title' => '',
+                'tagline' => '',
+                'admin_email' => '',
+                'timezone' => 'Asia/Tehran',
             ],
+            'site.privacy' => [
+                'guest_checkout' => false,
+                'account_creation' => true,
+                'privacy_policy_page_id' => null,
+                'terms_page_id' => null,
+            ],
+            'site.style' => [],
+            'site.system-logs' => [],
+            'site.license' => [],
+            'site.sms' => OtpSettings::defaults(),
             'shop.general' => ShopSettings::generalDefaults(),
             'shop.products' => ShopSettings::productsDefaults(),
             'shop.downloads' => ShopSettings::downloadsDefaults(),
@@ -267,9 +363,8 @@ class TenantSettingsController extends Controller
                 'sandbox' => true,
             ],
             'shop.marketplace' => [
-                'basalam_enabled' => false,
-                'digikala_enabled' => false,
-                'auto_sync' => false,
+                'platforms' => [],
+                '_source' => 'marketplace.settings',
             ],
             'shop.pricing' => [
                 'enable_wholesale' => false,
@@ -290,10 +385,9 @@ class TenantSettingsController extends Controller
                 '_hint' => 'Use /api/v1/shipping/tapin for full settings',
             ],
             'shop.payments' => [
-                'cod_enabled' => true,
-                'zarinpal_enabled' => false,
-                'zarinpal_merchant' => '',
-                'wallet_enabled' => false,
+                'enabled' => [],
+                'geo_notice' => [],
+                '_source' => 'payments.hub',
             ],
             'shop.advanced' => ShopSettings::advancedDefaults(),
             default => [],
@@ -303,10 +397,130 @@ class TenantSettingsController extends Controller
     /** @return array<string, mixed> */
     private function dashboardHostSettings(): array
     {
-        return [
+        $host = [
             'self_update_enabled' => (bool) config('dashboard.self_update'),
             'build_pipeline_enabled' => (bool) config('dashboard.build_pipeline'),
             'version' => (string) config('dashboard.version', '0.0.0'),
         ];
+        // Prefs are merged in show via saveDashboardPrefs path; keep host caps here.
+        return $host;
     }
+
+    /** @return array<string, mixed> */
+    private function siteGeneral(int $tenantId, ModuleSettingsService $settings): array
+    {
+        $tenant = \App\Models\Tenant::query()->find($tenantId);
+        $stored = $settings->get($tenantId, 'settings', 'site.general', $this->defaultsFor('site.general'));
+
+        return [
+            'site_title' => (string) ($stored['site_title'] ?: ($tenant?->store_display_name ?: $tenant?->name ?: '')),
+            'tagline' => (string) ($stored['tagline'] ?? ''),
+            'admin_email' => (string) ($stored['admin_email'] ?? ''),
+            'timezone' => (string) ($stored['timezone'] ?? 'Asia/Tehran'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function saveSiteGeneral(int $tenantId, ModuleSettingsService $settings, array $input): array
+    {
+        $clean = [
+            'site_title' => mb_substr(trim((string) ($input['site_title'] ?? '')), 0, 255),
+            'tagline' => mb_substr(trim((string) ($input['tagline'] ?? '')), 0, 255),
+            'admin_email' => mb_substr(trim((string) ($input['admin_email'] ?? '')), 0, 255),
+            'timezone' => mb_substr(trim((string) ($input['timezone'] ?? 'Asia/Tehran')), 0, 64) ?: 'Asia/Tehran',
+        ];
+        $settings->put($tenantId, 'settings', 'site.general', $clean);
+        $tenant = \App\Models\Tenant::query()->find($tenantId);
+        if ($tenant && $clean['site_title'] !== '') {
+            $tenant->store_display_name = $clean['site_title'];
+            $tenant->save();
+        }
+
+        return $clean;
+    }
+
+    /** @return array<string, mixed> */
+    private function siteStyle(int $tenantId): array
+    {
+        $tenant = \App\Models\Tenant::query()->findOrFail($tenantId);
+        $branding = \App\Kernel\ThemeCatalog::normalizeBranding($tenant->branding);
+
+        return $branding;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function saveSiteStyle(int $tenantId, array $input): array
+    {
+        $tenant = \App\Models\Tenant::query()->findOrFail($tenantId);
+        $current = \App\Kernel\ThemeCatalog::normalizeBranding($tenant->branding);
+        $merged = array_merge($current, $input);
+        $tenant->branding = \App\Kernel\ThemeCatalog::mergeIntoExisting(
+            $tenant->branding,
+            \App\Kernel\ThemeCatalog::normalizeBranding($merged)
+        );
+        $tenant->save();
+
+        return \App\Kernel\ThemeCatalog::normalizeBranding($tenant->branding);
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function saveDashboardPrefs(int $tenantId, ModuleSettingsService $settings, array $input): array
+    {
+        $host = $this->dashboardHostSettings();
+        $prefs = [
+            'ui_locale' => in_array(($input['ui_locale'] ?? ''), ['fa', 'en'], true) ? $input['ui_locale'] : 'fa',
+            'ui_theme' => in_array(($input['ui_theme'] ?? ''), ['system', 'light', 'dark'], true) ? $input['ui_theme'] : 'system',
+            'ui_fullscreen_default' => ! empty($input['ui_fullscreen_default']),
+        ];
+        $settings->put($tenantId, 'settings', 'site.dashboard.prefs', $prefs);
+
+        return array_merge($host, $prefs);
+    }
+
+    /** @return array<string, mixed> */
+    private function systemLogsMeta(): array
+    {
+        $logPath = storage_path('logs/laravel.log');
+        $size = is_file($logPath) ? filesize($logPath) : 0;
+        $mtime = is_file($logPath) ? filemtime($logPath) : null;
+        $tail = [];
+        if (is_file($logPath) && is_readable($logPath)) {
+            $lines = @file($logPath, FILE_IGNORE_NEW_LINES);
+            if (is_array($lines)) {
+                $tail = array_slice($lines, -80);
+            }
+        }
+
+        return [
+            'log_file' => 'laravel.log',
+            'size_bytes' => $size,
+            'modified_at' => $mtime ? date('c', $mtime) : null,
+            'tail' => $tail,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function licenseMeta(int $tenantId): array
+    {
+        $tenant = \App\Models\Tenant::query()->find($tenantId);
+
+        return [
+            'status' => (string) ($tenant?->license_status ?? 'unknown'),
+            'checked_at' => optional($tenant?->license_checked_at)?->toIso8601String(),
+            'unreachable' => (bool) ($tenant?->license_unreachable ?? false),
+            'last_error' => $tenant?->license_last_error,
+            'has_key' => filled($tenant?->license_key),
+        ];
+    }
+
 }
+
