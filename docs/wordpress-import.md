@@ -59,13 +59,40 @@ All routes are under `/api/v1` and require the CMS module.
 
 Batch rows may send `source_id` as an alias for `external_id` (WordPress plugin exporters). Nested `parent_source_id`, `customer_source_id`, `product_source_id`, and `totals.*` are normalized the same way.
 
-Records are applied in this order: media, categories, tags, customers, products, pages, posts, orders, menus, stats. Sending them in one job is enough; a later batch of customers is linked onto orders that were already imported.
-
-Re-sending the same `external_id` updates the local row. Variations that disappeared from the payload are removed only when they were created by this importer.
+Records are applied in dependency order: media, categories, tags, blog categories and tags, brands, customers, staff, products, coupons, pages, posts, Elementor templates, orders, reviews, menus, redirects, permalinks, settings, waiting list, review queue, then stats. Sending them in one job is enough; a later batch is linked onto rows that were already imported. Re-sending the same `external_id` updates the local row. Variations that disappeared from the payload are removed only when they were created by this importer.
 
 ## Batch body
 
-`resource` accepts `products` (alias `woo_products`), `categories`, `tags`, `customers` (alias `users`), `orders`, `pages`, `posts`, `media` (alias `attachments`), `menus`, and `stats` (alias `analytics`).
+Schema header `X-Webino-Import-Schema: webino.wordpress.import.v1` is optional. An unknown schema is rejected. `X-Webino-Idempotency-Key` on `ingest` and `batches` replays the first successful response and does not enqueue the batch again.
+
+`POST /import/wordpress/ping` advertises every resource the importer accepts. The companion plugin sends an extended resource only after that name appears in `resources`.
+
+`options.resources` selects a subset. Omit it, or send `mode: full`, to import every resource. `mode: selective` requires at least one name. `publish_content` stays false unless the operator turns it on. `GET /import/wordpress/jobs/{id}/queue` lists rows waiting for review. `GET /import/wordpress/permalinks` lists the cutover map.
+
+`resource` accepts the names below. Aliases in parentheses are accepted and stored under the canonical name. `users` stays `customers`. `media_files` is not a separate ingest resource; the plugin checkbox still sends `media`.
+
+| Resource | What is stored |
+| --- | --- |
+| `media` (`attachments`, `media_files`) | JPEG, PNG, GIF, WebP (8 MB). PDF, MP4, WebM, and SVG use the file path (16 MB). SVG script handlers are stripped. |
+| `categories`, `tags` | Product taxonomies, including SEO when present. |
+| `brands` (`product_brands`) | Brand terms. Products link with `brand_external_ids`. |
+| `blog_categories`, `blog_tags` (`post_tags`) | Blog taxonomies. They are not product tags. |
+| `customers` (`users`) | Customers. Random password. `wallet_balance_minor` is copied when sent. |
+| `staff` (`staff_users`) | Invite-safe users from `role` or `roles`. `password` is ignored even if `password_exported` is false. `password_must_change` is set. |
+| `products` (`woo_products`) | Simple, variable, grouped, external. Downloads, sale dates, upsells, cross-sells, grouped ids. |
+| `coupons` (`shop_coupon`) | Draft unless publish is on. `discount_type` may be `percent`, `fixed_cart`, or `fixed_product`. |
+| `pages`, `posts` | A builder `document` (version 1) is preferred over Elementor JSON and over `post_content`. Posts keep that document on `builder_draft`; the visual builder opens pages and header/footer templates. |
+| `elementor_templates` (`elementor`, `theme_builder`) | Header and footer drafts. Other template types become draft CMS pages so they open in `/dashboard/builder`. |
+| `orders` | Line items plus shipping, coupon, fee, and refund lines, and order notes. |
+| `reviews` (`comments`, `product_reviews`) | `product_source_id`, `rating`, `content`. Status `1` is approved. |
+| `menus` | Flat links in the header or footer **draft**, plus the real tree in CMS menu settings. Not auto-published. |
+| `redirects` (`seo_redirects`) | Rank Math / Yoast `from`, `to`, `code`. `source` is the provider name, not the path. Inactive rows are queued. |
+| `permalinks` | Old path to the Webino product, page, or post path. Explicit redirects win on the same path. |
+| `settings` | Store address, shipping zones, the first tax rate, and payment config with secrets redacted. PWA, notify, brand style, swatches, attribute groups, module flags, and emails are stored on the settings package and queued for review. |
+| `waiting_list` (`yith_waitlist`) | YITH rows. No waiting-list model, so they stay on the review queue. |
+| `review_queue` | Wallet, ticket, and return rows sent with `needs_mapping: true`. Queued, not applied as live records. |
+| `stats` (`analytics`) | Job snapshots. A `day` (`YYYY-MM-DD`) also upserts analytics daily totals. |
+| anything else matching `[a-z0-9_]{1,32}` | Review queue (`needs_mapping`). Not a silent drop. |
 
 ```json
 {
@@ -115,13 +142,15 @@ Re-sending the same `external_id` updates the local row. Variations that disappe
 
 An upload can instead be one object with keys `products`, `categories`, `tags`, `customers`, `orders`, `pages`, `posts`, `media`, `menus`, and `stats`. A sample lives at `backend/tests/Fixtures/wordpress/parisma-sample.json`.
 
-Images may include `data_base64` instead of `url`. That is the preferred plugin path, because the Webino server then does not fetch anything. Downloaded types are JPEG, PNG, GIF, and WebP, up to 8 MB. SVG and HTML are refused. A URL whose host is not on the job allowlist fails that record and is not stored.
+Images may include `data_base64` instead of `url`. That is the preferred plugin path, because the Webino server then does not fetch anything. Raster images are JPEG, PNG, GIF, and WebP, up to 8 MB. HTML is refused. PDF, MP4, WebM, and SVG are stored only when the media row is a file (mime or extension); SVG is sanitized. A URL whose host is not on the job allowlist fails that record and is not stored.
 
 Customers are created with role `customer` and a random password. WordPress password hashes and capabilities are ignored. If the email already belongs to another tenant, the original address is not copied. If it matches a staff user in this tenant, that profile is left unchanged and orders can still link to it.
 
 Order statuses map from WooCommerce (`pending`, `on-hold`, `processing`, `completed`, `cancelled`, `refunded`, `failed`) onto the Webino order statuses. `created_at` / `date_created` is kept so monthly sales reports stay truthful.
 
-Pages become `cms_pages`. HTML is stored as a builder draft (heading + HTML widget) unless the payload already contains a builder `document`. Posts become blog posts, with categories and tags created as needed.
+Pages become `cms_pages` and open in `/dashboard/builder`. When the plugin sends a builder `document`, that document is stored as the draft. Otherwise `_elementor_data` is converted. Otherwise HTML becomes a heading plus an HTML widget. Unmapped Elementor widgets (tabs, accordion, forms, shortcodes, maps, and the rest) become HTML widgets — `data-webino-unmapped` or `data-widget` — so the page is never blank. They are not native builder blocks. Custom CSS is rewritten from `.elementor-element-{id}` to `.wb-el_{id}` and kept on `document.css`.
+
+Posts become blog posts. Elementor on a post is stored on `builder_draft` and the HTML body is kept. The page builder does not open blog posts.
 
 Menus flatten to `label|/path` lines and are merged into the header or footer builder draft (`location` containing `footer` targets the footer). Existing ishop chrome is kept; links are appended.
 
@@ -142,8 +171,11 @@ Target tenant: `https://parisma.webinaagency.ir` (ecommerce, builder and ecommer
 ## Gaps
 
 - No live crawl of WordPress or WooCommerce REST. The plugin or an export has to send the data.
-- Coupons, reviews, redirects, and plugin settings are not imported unless a later payload grows a resource for them.
-- Customer passwords cannot be reused. Customers need a password reset or OTP on Webino.
+- Unmapped Elementor widgets are HTML fallbacks, not editable native blocks. Tabs, accordions, forms, shortcodes, and maps stay as HTML.
+- Blog posts keep a builder document, but `/dashboard/builder` opens CMS pages and header/footer templates only.
+- YITH waiting lists, and wallet, ticket, and return rows sent as `review_queue`, stay on the operator queue (`needs_mapping`). They are not applied as live wallet ledger, ticket, or return rows.
+- Extra tax rates beyond the first, inactive redirects, and settings slices without a shop field (PWA, notify, brand style, swatches, module flags, emails) are stored and queued for review.
+- Customer and staff passwords cannot be reused. Staff must change the random password. Customers need a password reset or OTP on Webino.
 - An email that already exists on another tenant is stored as a placeholder (`@import.webino.invalid`); the original is kept on a customer note.
 - Header and footer imports change the draft only.
 - With publish left off, products are hidden so they do not appear on the public catalog.

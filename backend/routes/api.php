@@ -728,7 +728,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/import/wordpress/start', [WordpressImportController::class, 'start']);
                 Route::post('/import/wordpress/ingest', [WordpressImportController::class, 'ingest']);
                 Route::get('/import/wordpress/jobs', [WordpressImportController::class, 'index']);
+                Route::get('/import/wordpress/permalinks', [WordpressImportController::class, 'permalinks']);
                 Route::get('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'show'])->whereNumber('job');
+                Route::get('/import/wordpress/jobs/{job}/queue', [WordpressImportController::class, 'queue'])->whereNumber('job');
                 Route::patch('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'update'])->whereNumber('job');
                 Route::post('/import/wordpress/jobs/{job}/batches', [WordpressImportController::class, 'batches'])->whereNumber('job');
                 Route::post('/import/wordpress/jobs/{job}/upload', [WordpressImportController::class, 'upload'])->whereNumber('job');

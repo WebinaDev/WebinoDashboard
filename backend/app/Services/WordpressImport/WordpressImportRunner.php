@@ -88,7 +88,9 @@ final class WordpressImportRunner
                 $this->process($job, $item);
                 $processed++;
             }
-            $this->importer->fixCategoryParents(new ImportContext($job, $this->mapper, $this->fetcher));
+            $context = new ImportContext($job, $this->mapper, $this->fetcher);
+            $this->importer->fixCategoryParents($context);
+            app(WordpressImportRecords::class)->relink($context);
             $this->relinkOrders($job);
         } catch (Throwable $e) {
             $job->last_error = mb_substr($e->getMessage(), 0, 2000);
@@ -257,7 +259,10 @@ final class WordpressImportRunner
             }
         }
 
-        return null;
+        return $job->items()
+            ->where('status', 'pending')
+            ->orderBy('id')
+            ->first();
     }
 
     private function skipUnselected(WordpressImportJob $job): void

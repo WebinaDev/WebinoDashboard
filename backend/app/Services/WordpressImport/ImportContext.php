@@ -112,7 +112,7 @@ final class ImportContext
         );
     }
 
-    public function outcome(string $existed, string $localType, ?int $localId, ?string $message = null): ImportOutcome
+    public function outcome(bool $existed, string $localType, ?int $localId, ?string $message = null): ImportOutcome
     {
         if ($this->dryRun()) {
             return new ImportOutcome($existed ? 'would_update' : 'would_create', $localType, $localId, $message);
@@ -231,6 +231,114 @@ final class ImportContext
         }
 
         return $asset->url;
+    }
+
+    /**
+     * Store SVG, PDF, or video when the payload is not a raster image.
+     * SVG script and event handlers are stripped. HTML uploads are refused.
+     *
+     * @param  array<string, mixed>  $file
+     */
+    public function storeFile(array $file, ?string $fallbackExternalId = null): ?string
+    {
+        $externalId = trim((string) ($file['external_id'] ?? $fallbackExternalId ?? ''));
+        if ($externalId !== '') {
+            $existing = $this->find('media', $externalId);
+            if ($existing && $existing->local_type === MediaAsset::class) {
+                $asset = MediaAsset::query()->where('tenant_id', $this->tenantId())->find($existing->local_id);
+                if ($asset) {
+                    return $asset->url;
+                }
+            }
+        }
+
+        $bytes = null;
+        $mime = null;
+        $filename = null;
+        $max = 16_777_216;
+        if (! empty($file['data_base64']) && is_string($file['data_base64'])) {
+            $raw = $file['data_base64'];
+            if (str_contains($raw, ',')) {
+                $raw = substr($raw, (int) strrpos($raw, ',') + 1);
+            }
+            $decoded = base64_decode($raw, true);
+            if ($decoded === false || $decoded === '' || strlen($decoded) > $max) {
+                throw new InvalidArgumentException('File data is invalid or too large.');
+            }
+            $bytes = $decoded;
+            $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes) ?: '';
+            $filename = $this->cleanFilename((string) ($file['filename'] ?? 'file'));
+        } elseif (! empty($file['url']) && is_string($file['url'])) {
+            if (! ImportUrlGuard::hostAllowed(ImportUrlGuard::parseHttp($file['url'])['host'], $this->hosts())) {
+                throw new InvalidArgumentException('Media host is not on the allowlist.');
+            }
+            if ($this->dryRun() || ! $this->downloadMedia()) {
+                return null;
+            }
+            $fetched = $this->fetcher->fetch($file['url'], $this->hosts(), $max, 'file');
+            $bytes = $fetched->body;
+            $mime = $fetched->mime;
+            $filename = $fetched->filename;
+        } else {
+            return null;
+        }
+
+        $allowed = ['image/svg+xml', 'application/pdf', 'video/mp4', 'video/webm', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (! in_array($mime, $allowed, true)) {
+            throw new InvalidArgumentException('Unsupported media type. SVG, PDF, MP4, and WebM are accepted; other types are left on the review queue.');
+        }
+        if ($mime === 'image/svg+xml') {
+            $bytes = $this->sanitizeSvg($bytes);
+        }
+        if ($this->dryRun()) {
+            return null;
+        }
+        $ext = match ($mime) {
+            'image/svg+xml' => 'svg',
+            'application/pdf' => 'pdf',
+            'video/mp4' => 'mp4',
+            'video/webm' => 'webm',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            default => 'jpg',
+        };
+        if (! str_ends_with(strtolower((string) $filename), '.'.$ext)) {
+            $filename = pathinfo((string) $filename, PATHINFO_FILENAME).'.'.$ext;
+        }
+        $name = ($externalId !== '' ? $externalId.'-' : '').$filename;
+        $path = 'media/'.$this->tenantId().'/wordpress/'.$name;
+        Storage::disk('public')->put($path, $bytes);
+        $asset = new MediaAsset([
+            'tenant_id' => $this->tenantId(),
+            'folder' => 'wordpress',
+            'path' => $path,
+            'disk' => 'public',
+            'mime' => $mime,
+            'size' => strlen($bytes),
+            'alt' => isset($file['alt']) ? mb_substr((string) $file['alt'], 0, 255) : null,
+            'original_name' => $filename,
+            'title' => isset($file['title']) ? mb_substr((string) $file['title'], 0, 255) : pathinfo((string) $filename, PATHINFO_FILENAME),
+            'slug' => $this->uniqueSlug(MediaAsset::class, $this->mapper->slug(
+                isset($file['slug']) ? (string) $file['slug'] : null,
+                (string) ($file['title'] ?? $filename)
+            )),
+        ]);
+        $asset->save();
+        if ($externalId !== '') {
+            $this->link('media', $externalId, MediaAsset::class, (int) $asset->id, isset($file['source_guid']) ? (string) $file['source_guid'] : null);
+        }
+
+        return $asset->url;
+    }
+
+    private function sanitizeSvg(string $svg): string
+    {
+        $svg = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $svg) ?? $svg;
+        $svg = preg_replace('/\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $svg) ?? $svg;
+        $svg = preg_replace('/javascript\s*:/i', '', $svg) ?? $svg;
+
+        return $svg;
     }
 
     private function cleanFilename(string $name): string

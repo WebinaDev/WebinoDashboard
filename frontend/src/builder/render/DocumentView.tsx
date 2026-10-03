@@ -18,8 +18,14 @@ type Props = {
   themeClass?: string
 }
 
+function importedCss(document: BuilderDocument): string {
+  const raw = typeof document.css === "string" ? document.css : ""
+  return raw.replace(/<\/style/gi, "").replace(/<script/gi, "")
+}
+
 export function DocumentView({ document, mode = "view", device = "desktop", runtime, editor, themeClass }: Props) {
-  const css = mode === "view" ? documentCss(document) : ""
+  const nodeCss = mode === "view" ? documentCss(document) : ""
+  const css = [nodeCss, importedCss(document)].filter(Boolean).join("\n")
   return (
     <BuilderRuntimeProvider value={runtime ?? {}}>
       <div className={themeClass} dir="rtl">

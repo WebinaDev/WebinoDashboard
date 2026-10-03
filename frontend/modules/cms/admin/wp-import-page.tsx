@@ -41,7 +41,8 @@ type Job = {
   status: string
   source_url: string | null
   dry_run: boolean
-  summary: { note?: string } | null
+  summary: { note?: string; needs_mapping?: Record<string, { resource: string; external_id: string; label?: string; status?: string }> | { resource: string; external_id: string; label?: string }[] } | null
+  options?: { resources?: string[] | null; publish_content?: boolean } | null
   progress: Progress | null
   stats?: Stats
   last_error?: string | null
@@ -55,17 +56,62 @@ type TokenRow = {
   token?: string
 }
 
+const CATALOG = [
+  "media",
+  "categories",
+  "tags",
+  "blog_categories",
+  "blog_tags",
+  "brands",
+  "attribute_groups",
+  "customers",
+  "staff",
+  "products",
+  "coupons",
+  "pages",
+  "posts",
+  "elementor_templates",
+  "orders",
+  "reviews",
+  "menus",
+  "redirects",
+  "settings",
+  "tickets",
+  "returns",
+  "wallet",
+  "waiting_list",
+  "permalinks",
+  "review_queue",
+  "stats",
+] as const
+
 const RESOURCE_LABELS: Record<string, string> = {
   woo_products: "محصولات ووکامرس",
   products: "محصولات",
-  categories: "دسته‌ها",
-  tags: "برچسب‌ها",
+  categories: "دسته‌های محصول",
+  tags: "برچسب‌های محصول",
+  blog_categories: "دسته‌های بلاگ",
+  blog_tags: "برچسب‌های بلاگ",
+  brands: "برندها",
+  attribute_groups: "ویژگی‌ها و نمونه رنگ",
   customers: "مشتری‌ها",
+  staff: "کارکنان",
+  coupons: "کدهای تخفیف",
   orders: "سفارش‌ها",
+  reviews: "دیدگاه‌ها",
   pages: "برگه‌ها",
   posts: "نوشته‌ها",
+  elementor_templates: "قالب‌های المنتور",
   media: "رسانه",
   menus: "فهرست‌ها",
+  redirects: "تغییر مسیر",
+  settings: "تنظیمات",
+  tickets: "تیکت‌ها",
+  returns: "مرجوعی‌ها",
+  wallet: "کیف پول",
+  waiting_list: "لیست انتظار",
+  permalinks: "نقشه پیوندها",
+  review_queue: "صف بررسی",
   stats: "آمار",
 }
 
@@ -82,6 +128,8 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
   const [dryRun, setDryRun] = useState(false)
   const [publish, setPublish] = useState(false)
   const [download, setDownload] = useState(true)
+  const [mode, setMode] = useState<"full" | "selective">("full")
+  const [selected, setSelected] = useState<string[]>([...CATALOG])
   const [probe, setProbe] = useState<Probe | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [active, setActive] = useState<Job | null>(null)
@@ -142,6 +190,10 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
   }
 
   async function start() {
+    if (mode === "selective" && selected.length === 0) {
+      toast.error(t("import_select_one"))
+      return
+    }
     setBusy(true)
     try {
       const job = await api<Job>("/api/v1/import/wordpress/start", {
@@ -154,6 +206,8 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
           currency,
           price_multiplier: Number(multiplier) || 1,
           media_hosts: hosts.split(",").map((host) => host.trim()).filter(Boolean),
+          mode,
+          ...(mode === "selective" ? { resources: selected } : {}),
         },
       })
       setJobs((rows) => [job, ...rows])
@@ -235,6 +289,9 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
   }
 
   const totals = active?.progress?.totals
+  const queued = active?.summary?.needs_mapping
+    ? Object.values(active.summary.needs_mapping)
+    : []
 
   return (
     <PageShell title={t("import_title")} description={t("import_subtitle")}>
@@ -268,6 +325,34 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
               <Toggle label={t("import_dry_run")} checked={dryRun} onChange={setDryRun} />
               <Toggle label={t("import_publish")} checked={publish} onChange={setPublish} />
               <Toggle label={t("import_download")} checked={download} onChange={setDownload} />
+              <fieldset className="grid gap-2">
+                <legend className="text-sm">{t("import_scope")}</legend>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="import-mode" checked={mode === "full"} onChange={() => setMode("full")} />
+                  {t("import_mode_full")}
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="import-mode" checked={mode === "selective"} onChange={() => setMode("selective")} />
+                  {t("import_mode_selective")}
+                </label>
+                <div className="grid max-h-56 gap-1 overflow-auto rounded-md border p-2">
+                  {CATALOG.map((key) => (
+                    <label key={key} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={mode === "full" || selected.includes(key)}
+                        disabled={mode === "full"}
+                        onChange={(event) => {
+                          setSelected((current) => event.target.checked
+                            ? [...current, key]
+                            : current.filter((item) => item !== key))
+                        }}
+                      />
+                      {resourceLabel(key)}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" disabled={busy} onClick={() => void runProbe()}>{t("import_probe")}</Button>
                 <Button type="button" disabled={busy} onClick={() => void start()}>{t("import_start")}</Button>
@@ -423,6 +508,19 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                       </li>
                     ))}
                   </ul>
+                ) : null}
+                {queued.length > 0 ? (
+                  <div className="grid gap-1">
+                    <h2 className="text-sm font-medium">{t("import_queue")}</h2>
+                    <ul className="grid gap-1 text-sm">
+                      {queued.map((row) => (
+                        <li key={`${row.resource}:${row.external_id}`}>
+                          {resourceLabel(row.resource)} {row.external_id}
+                          {row.label ? ` — ${row.label}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
                 {active.last_error ? <p className="text-sm text-destructive">{active.last_error}</p> : null}
               </CardContent>

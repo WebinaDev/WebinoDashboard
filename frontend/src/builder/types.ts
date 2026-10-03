@@ -63,6 +63,10 @@ export type SectionNode = {
 export type BuilderDocument = {
   version: typeof BUILDER_VERSION
   sections: SectionNode[]
+  /** Extra CSS from an imported Elementor document. Node styles stay in `style`. */
+  css?: string
+  source?: string
+  page_settings?: Record<string, unknown>
 }
 
 export type RuntimeContext = {

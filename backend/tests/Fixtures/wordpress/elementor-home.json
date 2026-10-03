@@ -1,0 +1,98 @@
+{
+  "external_id": "el-home",
+  "title": "خانه",
+  "content": "<p>fallback plain</p>",
+  "_elementor_css": ".elementor-element-h1{color:#111}</style>",
+  "_elementor_data": [
+    {
+      "id": "sec1",
+      "elType": "section",
+      "elements": [
+        {
+          "id": "colA",
+          "elType": "column",
+          "settings": { "_column_size": 50 },
+          "elements": [
+            {
+              "id": "h1",
+              "elType": "widget",
+              "widgetType": "heading",
+              "settings": { "title": "پریسما", "header_size": "h1", "align": "center", "title_color": "#111111" }
+            },
+            {
+              "id": "t1",
+              "elType": "widget",
+              "widgetType": "text-editor",
+              "settings": { "editor": "<p>متن با تگ</p>" }
+            },
+            {
+              "id": "b1",
+              "elType": "widget",
+              "widgetType": "button",
+              "settings": { "text": "خرید", "link": { "url": "/shop" } }
+            },
+            {
+              "id": "s1",
+              "elType": "widget",
+              "widgetType": "spacer",
+              "settings": { "space": { "size": 40 } }
+            },
+            {
+              "id": "d1",
+              "elType": "widget",
+              "widgetType": "divider",
+              "settings": { "color": "#cccccc" }
+            },
+            {
+              "id": "i1",
+              "elType": "widget",
+              "widgetType": "icon-list",
+              "settings": {
+                "icon_list": [
+                  { "text": "ارسال", "selected_icon": { "value": "fas fa-truck" } }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "colB",
+          "elType": "column",
+          "settings": { "_column_size": 50 },
+          "elements": [
+            {
+              "id": "img1",
+              "elType": "widget",
+              "widgetType": "image",
+              "settings": { "image": { "url": "https://parisma.ir/rose.jpg", "alt": "رژ" } }
+            },
+            {
+              "id": "gal1",
+              "elType": "widget",
+              "widgetType": "gallery",
+              "settings": { "gallery": [{ "url": "https://parisma.ir/a.jpg", "alt": "الف" }] }
+            },
+            {
+              "id": "v1",
+              "elType": "widget",
+              "widgetType": "video",
+              "settings": { "youtube_url": "https://www.youtube.com/watch?v=abc" }
+            },
+            {
+              "id": "pg1",
+              "elType": "widget",
+              "widgetType": "woocommerce-products",
+              "settings": { "columns": 4, "rows": 2, "title": "تازه" }
+            },
+            {
+              "id": "map1",
+              "elType": "widget",
+              "widgetType": "google_maps",
+              "settings": { "rendered": "<div class=\"map\">نقشه</div>" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

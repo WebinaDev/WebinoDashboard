@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\WordpressImportJob;
+use App\Models\WordpressImportQueue;
+use App\Models\WordpressImportReceipt;
+use App\Models\WordpressRedirect;
 use App\Services\WordpressImport\ExportBundleParser;
 use App\Services\WordpressImport\ImportUrlGuard;
 use App\Services\WordpressImport\WordpressImportResources;
@@ -25,10 +28,14 @@ class WordpressImportController extends Controller
 
     public function ping(Request $request): JsonResponse
     {
+        $this->assertSchema($request);
+
         return response()->json([
             'ok' => true,
             'status' => 'ready',
+            'schema' => WordpressImportResources::SCHEMA,
             'resources' => WordpressImportResources::advertised(),
+            'catalog' => WordpressImportResources::ALL,
             'contract_version' => 1,
             'note' => 'Import token accepted. Push batches with POST /api/v1/import/wordpress/ingest then POST /api/v1/import/wordpress/jobs/{id}/run.',
         ]);
@@ -36,6 +43,7 @@ class WordpressImportController extends Controller
 
     public function probe(Request $request): JsonResponse
     {
+        $this->assertSchema($request);
         $data = $request->validate([
             'source_url' => 'required|string|max:500',
         ]);
@@ -44,7 +52,9 @@ class WordpressImportController extends Controller
             'data' => [
                 'status' => 'ready',
                 'source_url' => $this->sourceUrl($data['source_url']),
+                'schema' => WordpressImportResources::SCHEMA,
                 'resources' => WordpressImportResources::advertised(),
+                'catalog' => WordpressImportResources::ALL,
                 'fetch' => false,
                 'contract_version' => 1,
                 'note' => 'URL shape only. Nothing is downloaded. Push batches with an import token or upload an export.',
@@ -54,6 +64,7 @@ class WordpressImportController extends Controller
 
     public function start(Request $request): JsonResponse
     {
+        $this->assertSchema($request);
         $data = $this->validatedOptions($request, true);
         $job = WordpressImportJob::query()->create([
             'tenant_id' => $request->user()->tenant_id,
@@ -63,6 +74,7 @@ class WordpressImportController extends Controller
             'dry_run' => $data['dry_run'],
             'options' => $data['options'],
             'summary' => [
+                'schema' => WordpressImportResources::SCHEMA,
                 'resources' => WordpressImportResources::advertised(),
                 'note' => 'Waiting for an export upload or plugin batches. Remote crawling is disabled.',
             ],
@@ -81,10 +93,13 @@ class WordpressImportController extends Controller
         }
         $data = $this->validatedOptions($request, false);
         $options = is_array($row->options) ? $row->options : [];
-        foreach (['currency', 'price_multiplier', 'media_hosts', 'download_media', 'publish_content', 'resources'] as $key) {
+        foreach (['currency', 'price_multiplier', 'media_hosts', 'download_media', 'publish_content'] as $key) {
             if ($request->exists($key)) {
                 $options[$key] = $data['options'][$key];
             }
+        }
+        if ($request->exists('mode') || $request->exists('resources')) {
+            $options['resources'] = $data['options']['resources'];
         }
         $row->options = $options;
         if ($request->exists('dry_run') && ! $row->items()->where('status', 'done')->exists()) {
@@ -115,6 +130,39 @@ class WordpressImportController extends Controller
 
     public function batches(Request $request, int $job): JsonResponse
     {
+        $this->assertSchema($request);
+
+        return $this->withReceipt($request, function () use ($request, $job) {
+            return $this->enqueueBatches($request, $job);
+        });
+    }
+
+    public function queue(Request $request, int $job): JsonResponse
+    {
+        $row = $this->job($request, $job);
+        $items = WordpressImportQueue::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->where('job_id', $row->id)
+            ->orderBy('id')
+            ->limit(100)
+            ->get(['id', 'resource', 'external_id', 'label', 'status']);
+
+        return response()->json(['data' => $items]);
+    }
+
+    public function permalinks(Request $request): JsonResponse
+    {
+        $rows = WordpressRedirect::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->orderBy('id')
+            ->limit(500)
+            ->get(['id', 'from_path', 'to_path', 'status_code', 'kind', 'resource', 'external_id']);
+
+        return response()->json(['data' => $rows]);
+    }
+
+    private function enqueueBatches(Request $request, int $job): JsonResponse
+    {
         $row = $this->job($request, $job);
         $data = $request->validate([
             'resource' => 'required|string|max:64',
@@ -139,6 +187,15 @@ class WordpressImportController extends Controller
 
     public function ingest(Request $request): JsonResponse
     {
+        $this->assertSchema($request);
+
+        return $this->withReceipt($request, function () use ($request) {
+            return $this->ingestBatch($request);
+        });
+    }
+
+    private function ingestBatch(Request $request): JsonResponse
+    {
         $data = $request->validate([
             'source_url' => 'required|string|max:500',
             'resource' => 'required|string|max:64',
@@ -151,6 +208,9 @@ class WordpressImportController extends Controller
             'media_hosts.*' => 'string|max:253',
             'download_media' => 'sometimes|boolean',
             'publish_content' => 'sometimes|boolean',
+            'mode' => 'sometimes|string|in:full,selective',
+            'resources' => 'sometimes|array',
+            'resources.*' => ['string', Rule::in(WordpressImportResources::advertised())],
         ]);
         $source = $this->sourceUrl($data['source_url']);
         $row = WordpressImportJob::query()
@@ -188,6 +248,7 @@ class WordpressImportController extends Controller
 
     public function upload(Request $request, int $job): JsonResponse
     {
+        $this->assertSchema($request);
         $row = $this->job($request, $job);
         try {
             if ($request->hasFile('file')) {
@@ -316,6 +377,7 @@ class WordpressImportController extends Controller
             'media_hosts.*' => 'string|max:253',
             'download_media' => 'sometimes|boolean',
             'publish_content' => 'sometimes|boolean',
+            'mode' => 'sometimes|string|in:full,selective',
             'resources' => 'sometimes|array',
             'resources.*' => ['string', Rule::in(WordpressImportResources::advertised())],
         ]);
@@ -335,8 +397,12 @@ class WordpressImportController extends Controller
      */
     private function optionBag(array $data, Request $request): array
     {
+        $mode = strtolower(trim((string) ($data['mode'] ?? '')));
+        if ($mode === 'selective' && (! isset($data['resources']) || ! is_array($data['resources']) || $data['resources'] === [])) {
+            throw ValidationException::withMessages(['resources' => 'Select at least one resource.']);
+        }
         $resources = null;
-        if (isset($data['resources']) && is_array($data['resources']) && $data['resources'] !== []) {
+        if ($mode !== 'full' && isset($data['resources']) && is_array($data['resources']) && $data['resources'] !== []) {
             $resources = array_values(array_unique(array_map(
                 fn ($resource) => WordpressImportResources::canonical((string) $resource),
                 $data['resources']
@@ -381,6 +447,59 @@ class WordpressImportController extends Controller
         } catch (InvalidArgumentException $e) {
             throw ValidationException::withMessages(['source_url' => $e->getMessage()]);
         }
+    }
+
+    private function assertSchema(Request $request): void
+    {
+        $schema = $request->header('X-Webino-Import-Schema');
+        if (($schema === null || $schema === '') && $request->exists('schema')) {
+            $schema = $request->input('schema');
+        }
+        if ($schema === null || $schema === '') {
+            return;
+        }
+        if (! is_string($schema) || ! in_array($schema, WordpressImportResources::SCHEMAS, true)) {
+            throw ValidationException::withMessages([
+                'schema' => 'Unsupported import schema. Expected '.WordpressImportResources::SCHEMA.'.',
+            ]);
+        }
+    }
+
+    /**
+     * Replay the controller payload (before the API envelope) so a repeated
+     * X-Webino-Idempotency-Key does not enqueue the batch twice.
+     *
+     * @param  callable(): JsonResponse  $handler
+     */
+    private function withReceipt(Request $request, callable $handler): JsonResponse
+    {
+        $key = trim((string) $request->header('X-Webino-Idempotency-Key', ''));
+        if ($key === '') {
+            return $handler();
+        }
+        if (mb_strlen($key) > 191) {
+            throw ValidationException::withMessages(['idempotency_key' => 'Idempotency key is too long.']);
+        }
+        $tenantId = (int) $request->user()->tenant_id;
+        $existing = WordpressImportReceipt::query()
+            ->where('tenant_id', $tenantId)
+            ->where('idempotency_key', $key)
+            ->first();
+        if ($existing && is_array($existing->body)) {
+            return response()->json($existing->body, (int) $existing->status_code);
+        }
+        $response = $handler();
+        $decoded = json_decode($response->getContent(), true);
+        if (is_array($decoded) && $response->getStatusCode() >= 200 && $response->getStatusCode() < 300) {
+            WordpressImportReceipt::query()->create([
+                'tenant_id' => $tenantId,
+                'idempotency_key' => $key,
+                'status_code' => $response->getStatusCode(),
+                'body' => $decoded,
+            ]);
+        }
+
+        return $response;
     }
 
     private function denyPlugin(Request $request): void

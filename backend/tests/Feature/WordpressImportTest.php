@@ -3,16 +3,23 @@
 namespace Tests\Feature;
 
 use App\Models\BlogPost;
+use App\Models\Brand;
 use App\Models\BuilderTemplate;
 use App\Models\CmsPage;
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductReview;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WordpressImportQueue;
+use App\Models\WordpressRedirect;
 use App\Services\Reports\OrderReports;
 use App\Services\WordpressImport\RemoteAssetFetcher;
 use App\Services\WordpressImport\SafeRemoteFetcher;
+use App\Services\WordpressImport\WordpressImportResources;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -275,6 +282,241 @@ class WordpressImportTest extends TestCase
         $imported = User::query()->where('tenant_id', $tenant->id)->where('role', 'customer')->firstOrFail();
         $this->assertStringEndsWith('@import.webino.invalid', $imported->email);
         $this->assertSame('مشتری پریسما', $imported->name);
+    }
+
+    public function test_ping_advertises_plugin_resources_and_full_payload_imports(): void
+    {
+        Storage::fake('public');
+        Http::fake();
+        [$admin] = $this->operator();
+        $this->actingAs($admin, 'sanctum');
+
+        $ping = $this->postJson('/api/v1/import/wordpress/ping')->assertOk()->json('data');
+        $this->assertSame(WordpressImportResources::SCHEMA, $ping['schema']);
+        foreach (['brands', 'coupons', 'reviews', 'redirects', 'settings', 'elementor_templates', 'staff', 'waiting_list', 'permalinks', 'review_queue'] as $resource) {
+            $this->assertContains($resource, $ping['resources']);
+        }
+
+        $this->postJson('/api/v1/import/wordpress/ping', [], [
+            'X-Webino-Import-Schema' => 'webino.wordpress.import.v0',
+        ])->assertStatus(422);
+
+        $jobId = $this->postJson('/api/v1/import/wordpress/start', [
+            'source_url' => 'https://parisma.ir',
+            'currency' => 'IRT',
+            'publish_content' => false,
+            'mode' => 'full',
+            'resources' => ['pages'],
+        ])->assertCreated()->json('data.id');
+        $this->assertNull($this->getJson('/api/v1/import/wordpress/jobs/'.$jobId)->json('data.options.resources'));
+
+        $document = [
+            'version' => 1,
+            'sections' => [[
+                'id' => 'sec_plugin',
+                'columns' => [[
+                    'id' => 'col_plugin',
+                    'span' => 12,
+                    'widgets' => [[
+                        'id' => 'w_heading',
+                        'type' => 'heading',
+                        'props' => ['text' => 'از افزونه', 'tag' => 'h1'],
+                    ], [
+                        'id' => 'w_unmapped',
+                        'type' => 'html',
+                        'props' => ['html' => '<div data-webino-unmapped="google_maps">نقشه</div>'],
+                    ]],
+                ]],
+            ]],
+        ];
+        $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/upload', [
+            'brands' => [[
+                'source_id' => 'brand-1',
+                'name' => 'پریسما',
+                'slug' => 'parisma',
+            ]],
+            'products' => [[
+                'source_id' => 'prod-1',
+                'name' => 'رژ برند',
+                'slug' => 'brand-lipstick',
+                'regular_price' => '1000',
+                'status' => 'publish',
+                'brand_external_ids' => ['brand-1'],
+                'permalink' => 'https://parisma.ir/product/brand-lipstick',
+            ]],
+            'coupons' => [[
+                'source_id' => 'coupon-1',
+                'code' => 'ROSE10',
+                'discount_type' => 'percent',
+                'amount' => '10',
+                'status' => 'publish',
+            ]],
+            'pages' => [[
+                'source_id' => 'page-1',
+                'title' => 'خانه المنتور',
+                'slug' => 'elementor-home',
+                'status' => 'publish',
+                'permalink' => 'https://parisma.ir/elementor-home',
+                'content' => '<p>plain post_content</p>',
+                'document' => $document,
+                '_elementor_data' => [[
+                    'id' => 'sec-old',
+                    'elType' => 'section',
+                    'elements' => [[
+                        'id' => 'h-old',
+                        'elType' => 'widget',
+                        'widgetType' => 'heading',
+                        'settings' => ['title' => 'نباید برنده شود'],
+                    ]],
+                ]],
+            ]],
+            'reviews' => [[
+                'source_id' => 'rev-1',
+                'product_source_id' => 'prod-1',
+                'author' => 'مریم',
+                'content' => 'عالی بود',
+                'rating' => 5,
+                'status' => '1',
+            ]],
+            'redirects' => [[
+                'source_id' => 'rank-math-1',
+                'source' => 'rank_math',
+                'from' => '/old-shop',
+                'to' => '/shop',
+                'code' => 301,
+                'status' => 'active',
+            ]],
+            'settings' => [[
+                'source_id' => 'store',
+                'store' => [
+                    'address' => 'خیابان ولیعصر',
+                    'city' => 'تهران',
+                    'currency' => 'IRT',
+                ],
+                'tax_rates' => [[
+                    'tax_rate' => '9.0000',
+                    'tax_rate_name' => 'VAT',
+                ]],
+                'payments' => [[
+                    'id' => 'zarinpal',
+                    'title' => 'زرین‌پال',
+                    'enabled' => true,
+                    'settings' => ['merchant' => 'secret-merchant'],
+                ]],
+                'pwa' => ['name' => 'Parisma'],
+            ]],
+            'staff' => [[
+                'source_id' => 'staff-1',
+                'email' => 'editor@parisma.test',
+                'name' => 'ویرایشگر',
+                'roles' => ['editor'],
+                'invite' => true,
+                'password_exported' => false,
+                'password' => 'secret-from-wp',
+            ]],
+            'waiting_list' => [[
+                'source_id' => 'yith-1',
+                'product_source_id' => 'prod-1',
+                'email' => 'wait@parisma.test',
+            ]],
+            'permalinks' => [[
+                'source_id' => 'product:prod-1',
+                'entity' => 'products',
+                'object_source_id' => 'prod-1',
+                'slug' => 'brand-lipstick',
+                'path' => '/product/brand-lipstick',
+            ]],
+            'review_queue' => [[
+                'source_id' => 'wallet:1',
+                'kind' => 'wallet',
+                'needs_mapping' => true,
+                'record' => ['id' => 1, 'amount' => 500],
+            ]],
+        ])->assertOk();
+
+        $done = $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/run', ['limit' => 50])
+            ->assertOk()
+            ->json('data');
+        $this->assertSame('completed', $done['status']);
+        $this->assertSame(0, $done['progress']['totals']['failed']);
+
+        $page = CmsPage::query()->where('slug', 'elementor-home')->firstOrFail();
+        $this->assertFalse($page->published);
+        $opened = $this->getJson('/api/v1/builder/pages/'.$page->id)->assertOk()->json('data.document');
+        $this->assertSame('heading', $opened['sections'][0]['columns'][0]['widgets'][0]['type']);
+        $this->assertSame('از افزونه', $opened['sections'][0]['columns'][0]['widgets'][0]['props']['text']);
+        $this->assertStringContainsString('data-webino-unmapped', $opened['sections'][0]['columns'][0]['widgets'][1]['props']['html']);
+
+        $product = Product::query()->where('slug', 'brand-lipstick')->firstOrFail();
+        $this->assertTrue($product->brands()->where('slug', 'parisma')->exists());
+        $this->assertSame(1, Brand::query()->count());
+        $this->assertSame('draft', Coupon::query()->where('code', 'ROSE10')->firstOrFail()->status);
+        $review = ProductReview::query()->firstOrFail();
+        $this->assertSame('approved', $review->status);
+        $this->assertSame($product->id, $review->product_id);
+        $this->assertSame('/old-shop', WordpressRedirect::query()->where('kind', 'redirect')->firstOrFail()->from_path);
+        $this->assertSame('/product/brand-lipstick', WordpressRedirect::query()->where('kind', 'permalink')->firstOrFail()->to_path);
+
+        $staff = User::query()->where('email', 'editor@parisma.test')->firstOrFail();
+        $this->assertTrue($staff->password_must_change);
+        $this->assertFalse(Hash::check('secret-from-wp', $staff->password));
+        $this->assertTrue(WordpressImportQueue::query()->where('resource', 'waiting_list')->exists());
+        $this->assertTrue(WordpressImportQueue::query()->where('resource', 'review_queue')->where('status', 'needs_mapping')->exists());
+        $this->assertNotEmpty($done['summary']['needs_mapping'] ?? null);
+
+        $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/upload', [
+            'pages' => [[
+                'source_id' => 'page-1',
+                'title' => 'خانه المنتور',
+                'slug' => 'elementor-home',
+                'document' => $document,
+            ]],
+        ])->assertOk();
+        $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/run', ['limit' => 20])->assertOk();
+        $this->assertSame(1, CmsPage::query()->where('slug', 'elementor-home')->count());
+    }
+
+    public function test_selective_import_skips_unselected_resources(): void
+    {
+        [$admin] = $this->operator();
+        $this->actingAs($admin, 'sanctum');
+        $jobId = $this->postJson('/api/v1/import/wordpress/start', [
+            'source_url' => 'https://parisma.ir',
+            'mode' => 'selective',
+            'resources' => ['pages'],
+        ])->assertCreated()->json('data.id');
+
+        $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/batches', [
+            'resource' => 'products',
+            'items' => [[
+                'external_id' => 'skip-me',
+                'name' => 'نباید بیاید',
+                'regular_price' => '10',
+            ]],
+        ])->assertOk();
+        $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/batches', [
+            'resource' => 'pages',
+            'items' => [[
+                'external_id' => 'only-page',
+                'title' => 'فقط برگه',
+                'slug' => 'only-page',
+            ]],
+        ], ['X-Webino-Idempotency-Key' => 'batch-pages-1'])->assertOk();
+        $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/batches', [
+            'resource' => 'pages',
+            'items' => [[
+                'external_id' => 'duplicate-page',
+                'title' => 'تکرار',
+            ]],
+        ], ['X-Webino-Idempotency-Key' => 'batch-pages-1'])->assertOk();
+
+        $done = $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/run', ['limit' => 20])
+            ->assertOk()
+            ->json('data');
+        $this->assertSame('completed', $done['status']);
+        $this->assertSame(0, Product::query()->count());
+        $this->assertSame(1, CmsPage::query()->count());
+        $this->assertSame('only-page', CmsPage::query()->firstOrFail()->slug);
     }
 
     /** @return array{0: User, 1: Tenant} */

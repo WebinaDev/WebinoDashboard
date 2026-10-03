@@ -12,7 +12,6 @@ use App\Models\CustomerNote;
 use App\Models\MediaAsset;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\OrderNote;
 use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductAttributeTerm;
@@ -21,6 +20,8 @@ use App\Models\ProductTag;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\WordpressImportLink;
+use App\Services\Modules\ModuleSettingsService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -44,7 +45,7 @@ final class WordpressImportImporter
             'orders' => $this->order($ctx, $externalId, $payload),
             'menus' => $this->menu($ctx, $externalId, $payload),
             'stats' => $this->stats($ctx, $externalId, $payload),
-            default => throw new InvalidArgumentException('Unknown import resource.'),
+            default => app(WordpressImportRecords::class)->import($ctx, $resource, $externalId, $payload),
         };
     }
 
@@ -75,7 +76,9 @@ final class WordpressImportImporter
     private function media(ImportContext $ctx, string $externalId, array $payload): ImportOutcome
     {
         $existed = $ctx->find('media', $externalId) !== null;
-        $url = $ctx->storeImage($payload, $externalId);
+        $url = $this->isFileMedia($payload)
+            ? $ctx->storeFile($payload, $externalId)
+            : $ctx->storeImage($payload, $externalId);
         $link = $ctx->find('media', $externalId);
 
         return $ctx->outcome($existed, MediaAsset::class, $link?->local_id, $url ? null : 'Image recorded without a stored file.');
@@ -95,6 +98,10 @@ final class WordpressImportImporter
             $name
         ), $row?->id);
         $meta = is_array($row?->meta) ? $row->meta : [];
+        $seo = app(WordpressImportRecords::class)->seo($payload);
+        if ($seo) {
+            $meta['seo'] = $seo;
+        }
         $parentExternal = trim((string) ($payload['parent_external_id'] ?? ''));
         if ($parentExternal !== '') {
             $meta['wordpress_parent_external_id'] = $parentExternal;
@@ -201,6 +208,9 @@ final class WordpressImportImporter
         $row->last_name = $this->nullableString($payload['last_name'] ?? null, 80);
         $row->email = $email;
         $row->phone = $phone ?? $row->phone;
+        if (isset($payload['wallet_balance_minor']) && is_numeric($payload['wallet_balance_minor'])) {
+            $row->wallet_balance_minor = max(0, (int) $payload['wallet_balance_minor']);
+        }
         $addresses = $this->addresses($payload);
         if ($addresses !== []) {
             $row->addresses = $addresses;
@@ -245,7 +255,13 @@ final class WordpressImportImporter
             ? (string) $payload['stock_status']
             : 'instock';
         $variations = is_array($payload['variations'] ?? null) ? $payload['variations'] : [];
-        $type = (($payload['type'] ?? '') === 'variable' || $variations !== []) ? 'variable' : 'simple';
+        $rawType = strtolower((string) ($payload['type'] ?? 'simple'));
+        $type = match ($rawType) {
+            'variable' => 'variable',
+            'grouped' => 'grouped',
+            'external' => 'external',
+            default => $variations !== [] ? 'variable' : 'simple',
+        };
         $warnings = [];
         if ($ctx->dryRun()) {
             foreach ($this->imagePayloads($payload) as $image) {
@@ -278,7 +294,13 @@ final class WordpressImportImporter
             'external_id' => $externalId,
             'source_guid' => $this->guid($payload),
             'type' => (string) ($payload['type'] ?? $type),
+            'tax_class' => $payload['tax_class'] ?? null,
+            'grouped_external_ids' => $payload['grouped_external_ids'] ?? [],
         ];
+        $productSeo = app(WordpressImportRecords::class)->seo($payload);
+        if ($productSeo) {
+            $meta['seo'] = $productSeo;
+        }
         $row = $row ?? new Product;
         $row->fill([
             'tenant_id' => $ctx->tenantId(),
@@ -312,7 +334,9 @@ final class WordpressImportImporter
             'gallery' => $gallery,
             'discount_percent' => ($price > 0 && $sale > 0) ? (int) round((1 - ($sale / $price)) * 100) : 0,
             'reference_source' => 'wordpress',
-            'reference_url' => $this->guid($payload),
+            'reference_url' => $type === 'external'
+                ? ($this->nullableString($payload['product_url'] ?? $payload['external_url'] ?? null, 2000) ?? $this->guid($payload))
+                : $this->guid($payload),
             'meta' => $meta,
         ]);
         $row->save();
@@ -321,7 +345,11 @@ final class WordpressImportImporter
         $this->syncAttributes($ctx, $row, $payload);
         $this->syncVariations($ctx, $row, $variations, $warnings);
         $this->syncProductMedia($row, $gallery);
+        $records = app(WordpressImportRecords::class);
+        $records->syncBrands($ctx, $row, $payload);
+        $records->syncDownloads($ctx, $row, $payload);
         $this->syncRelations($ctx, $row, $payload);
+        $records->rememberPermalink($ctx, 'products', $externalId, $payload, '/product/'.$row->slug);
 
         return $ctx->outcome($link !== null, Product::class, (int) $row->id, $warnings === [] ? null : implode(' ', array_unique($warnings)));
     }
@@ -340,14 +368,25 @@ final class WordpressImportImporter
             $title
         ), $row?->id);
         $html = (string) ($payload['content'] ?? $payload['body'] ?? $payload['html'] ?? '');
-        $document = $this->document($ctx, $externalId, $title, $html, $payload);
+        [$document, $unmapped] = $this->pageDocument($ctx, $externalId, $title, $html, $payload);
         $publish = $ctx->publishContent() && $ctx->mapper->contentPublished((string) ($payload['status'] ?? 'draft'));
-        if ($ctx->dryRun()) {
-            return $ctx->outcome($link !== null, CmsPage::class, $row?->id);
+        $records = app(WordpressImportRecords::class);
+        $seo = $records->seo($payload) ?? (is_array($row?->seo) ? $row->seo : null);
+        if (! empty($payload['is_front_page']) || ($payload['permalink'] ?? null) === '/') {
+            $home = $ctx->uniqueSlug(CmsPage::class, 'home', $row?->id);
+            if ($slug === 'item' || $slug === 'home' || ($payload['permalink'] ?? null) === '/') {
+                $slug = $home;
+            }
         }
+        if ($ctx->dryRun()) {
+            return $ctx->outcome($link !== null, CmsPage::class, $row?->id, $records->unmappedMessage($unmapped));
+        }
+        $parentExternal = trim((string) ($payload['parent_external_id'] ?? ''));
+        $parent = $parentExternal !== '' ? $ctx->find('pages', $parentExternal) : null;
         $row = $row ?? new CmsPage;
         $row->fill([
             'tenant_id' => $ctx->tenantId(),
+            'parent_id' => $parent?->local_id,
             'title' => mb_substr($title, 0, 255),
             'slug' => $slug,
             'excerpt' => $this->nullableString($payload['excerpt'] ?? null, 2000),
@@ -356,12 +395,13 @@ final class WordpressImportImporter
             'builder_published' => $publish ? $document : $row->builder_published,
             'published' => $publish,
             'status' => $publish ? 'published' : 'draft',
-            'seo' => is_array($payload['seo'] ?? null) ? $payload['seo'] : $row->seo,
+            'seo' => $seo,
         ]);
         $row->save();
         $ctx->link('pages', $externalId, CmsPage::class, (int) $row->id, $this->guid($payload));
+        $records->rememberPermalink($ctx, 'pages', $externalId, $payload, '/pages/'.$row->slug);
 
-        return $ctx->outcome($link !== null, CmsPage::class, (int) $row->id);
+        return $ctx->outcome($link !== null, CmsPage::class, (int) $row->id, $records->unmappedMessage($unmapped));
     }
 
     /** @param  array<string, mixed>  $payload */
@@ -379,40 +419,58 @@ final class WordpressImportImporter
         ), $row?->id);
         $publish = $ctx->publishContent() && $ctx->mapper->contentPublished((string) ($payload['status'] ?? 'draft'));
         $publishedAt = $ctx->mapper->date($payload['published_at'] ?? $payload['date'] ?? null);
+        $records = app(WordpressImportRecords::class);
+        $html = (string) ($payload['content'] ?? $payload['body'] ?? '');
+        $converter = app(ElementorToBuilderConverter::class);
+        $supplied = $converter->preferDocument($payload);
+        $converted = $supplied === null ? $converter->convertRecord($payload) : null;
+        $builderDraft = $supplied ?? ($converted['document'] ?? null);
+        $unmapped = $converted['unmapped'] ?? [];
         if ($ctx->dryRun()) {
-            return $ctx->outcome($link !== null, BlogPost::class, $row?->id);
+            return $ctx->outcome($link !== null, BlogPost::class, $row?->id, $records->unmappedMessage($unmapped));
         }
-        $categoryId = $this->blogCategoryId($ctx, $payload);
-        $cover = null;
-        if (! empty($payload['cover']) && is_array($payload['cover'])) {
-            try {
-                $cover = $ctx->storeImage($payload['cover']);
-            } catch (\Throwable) {
-                $cover = null;
+        $categoryIds = $this->blogCategoryIds($ctx, $payload);
+        $cover = $row?->cover_url;
+        foreach (['cover', 'featured', 'featured_image'] as $coverKey) {
+            if (! empty($payload[$coverKey]) && is_array($payload[$coverKey])) {
+                try {
+                    $cover = $ctx->storeImage($payload[$coverKey]) ?? $cover;
+                } catch (\Throwable) {
+                    // A missing cover must not drop the post.
+                }
+                break;
+            }
+        }
+        if (! empty($payload['images']) && is_array($payload['images'])) {
+            $featured = $payload['images']['featured'] ?? null;
+            if (is_array($featured)) {
+                try {
+                    $cover = $ctx->storeImage($featured) ?? $cover;
+                } catch (\Throwable) {
+                }
             }
         }
         $row = $row ?? new BlogPost;
         $row->fill([
             'tenant_id' => $ctx->tenantId(),
-            'category_id' => $categoryId,
+            'category_id' => $categoryIds[0] ?? null,
             'title' => mb_substr($title, 0, 255),
             'slug' => $slug,
             'excerpt' => $this->nullableString($payload['excerpt'] ?? null, 2000),
-            'body' => $ctx->mapper->sanitizeHtml((string) ($payload['content'] ?? $payload['body'] ?? '')),
-            'cover_url' => $cover ?? $row->cover_url,
+            'body' => $ctx->mapper->sanitizeHtml($html),
+            'builder_draft' => $builderDraft ?? $row->builder_draft,
+            'cover_url' => $cover,
             'status' => $publish ? 'published' : 'draft',
             'published_at' => $publish ? ($publishedAt ?? now()) : null,
-            'seo' => is_array($payload['seo'] ?? null) ? $payload['seo'] : $row->seo,
+            'seo' => $records->seo($payload) ?? $row->seo,
         ]);
         $row->save();
-        $tagIds = $this->blogTagIds($ctx, $payload);
-        $row->tags()->sync($tagIds);
-        if ($categoryId) {
-            $row->categories()->sync([$categoryId]);
-        }
+        $row->tags()->sync($this->blogTagIds($ctx, $payload));
+        $row->categories()->sync($categoryIds);
         $ctx->link('posts', $externalId, BlogPost::class, (int) $row->id, $this->guid($payload));
+        $records->rememberPermalink($ctx, 'posts', $externalId, $payload, '/blog/'.$row->slug);
 
-        return $ctx->outcome($link !== null, BlogPost::class, (int) $row->id);
+        return $ctx->outcome($link !== null, BlogPost::class, (int) $row->id, $records->unmappedMessage($unmapped));
     }
 
     /** @param  array<string, mixed>  $payload */
@@ -511,13 +569,7 @@ final class WordpressImportImporter
                 ],
             ]);
         }
-        $note = trim((string) ($payload['note'] ?? ''));
-        if ($note !== '') {
-            OrderNote::query()->firstOrCreate(
-                ['tenant_id' => $ctx->tenantId(), 'order_id' => $row->id, 'body' => mb_substr($note, 0, 5000)],
-                ['is_customer' => false]
-            );
-        }
+        app(WordpressImportRecords::class)->extraOrderLines($ctx, $row, $payload);
         $ctx->link('orders', $externalId, Order::class, (int) $row->id, $this->guid($payload));
 
         return $ctx->outcome($link !== null, Order::class, (int) $row->id);
@@ -545,6 +597,7 @@ final class WordpressImportImporter
         $template->title = $template->title ?: mb_substr((string) ($payload['name'] ?? ($kind === 'header' ? 'سربرگ' : 'پاورقی')), 0, 255);
         $template->draft = $ctx->mapper->mergeNavigation($document, $kind, $links);
         $template->save();
+        $this->storeMenuTree($ctx, $externalId, $payload, $kind);
         $ctx->link('menus', $externalId, BuilderTemplate::class, (int) $template->id, $this->guid($payload));
 
         return $ctx->outcome($link !== null, BuilderTemplate::class, (int) $template->id);
@@ -569,6 +622,7 @@ final class WordpressImportImporter
         $summary['snapshots'] = $snapshots;
         $job->summary = $summary;
         $job->save();
+        $this->storeDailyStats($ctx, $payload);
 
         return new ImportOutcome('created', 'stats', null);
     }
@@ -758,27 +812,50 @@ final class WordpressImportImporter
         $product->save();
     }
 
-    /** @param  array<string, mixed>  $payload */
-    private function blogCategoryId(ImportContext $ctx, array $payload): ?int
+    /**
+     * Every embedded category, plus ids already imported as blog_categories.
+     * Product tags stay on the product tag namespace.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return list<int>
+     */
+    private function blogCategoryIds(ImportContext $ctx, array $payload): array
     {
-        $categories = is_array($payload['categories'] ?? null) ? $payload['categories'] : [];
-        $first = $categories[0] ?? null;
-        if (! is_array($first)) {
+        $ids = [];
+        foreach (is_array($payload['categories'] ?? null) ? $payload['categories'] : [] as $category) {
+            $id = $this->ensureBlogCategory($ctx, $category);
+            if ($id) {
+                $ids[] = $id;
+            }
+        }
+        foreach (is_array($payload['category_external_ids'] ?? null) ? $payload['category_external_ids'] : [] as $external) {
+            $link = $ctx->find('blog_categories', (string) $external);
+            if ($link) {
+                $ids[] = (int) $link->local_id;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private function ensureBlogCategory(ImportContext $ctx, mixed $category): ?int
+    {
+        if (! is_array($category)) {
             return null;
         }
-        $name = trim((string) ($first['name'] ?? ''));
-        if ($name === '') {
-            return null;
-        }
-        $external = trim((string) ($first['external_id'] ?? ''));
+        $name = trim((string) ($category['name'] ?? ''));
+        $external = trim((string) ($category['external_id'] ?? $category['source_id'] ?? ''));
         if ($external !== '') {
             $link = $ctx->find('blog_categories', $external);
             if ($link) {
                 return (int) $link->local_id;
             }
         }
+        if ($name === '') {
+            return null;
+        }
         $slug = $ctx->uniqueSlug(BlogCategory::class, $ctx->mapper->slug(
-            isset($first['slug']) ? (string) $first['slug'] : null,
+            isset($category['slug']) ? (string) $category['slug'] : null,
             $name
         ));
         $row = BlogCategory::query()->create([
@@ -833,6 +910,194 @@ final class WordpressImportImporter
         }
 
         return $ids;
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    private function isFileMedia(array $payload): bool
+    {
+        $kind = strtolower(trim((string) ($payload['kind'] ?? '')));
+        if ($kind === 'file') {
+            return true;
+        }
+        if ($kind === 'image') {
+            return false;
+        }
+        $mime = strtolower((string) ($payload['mime'] ?? $payload['mime_type'] ?? ''));
+        if (str_starts_with($mime, 'image/') && ! str_contains($mime, 'svg')) {
+            return false;
+        }
+        $haystack = strtolower($mime.' '.(string) ($payload['filename'] ?? '').' '.(string) ($payload['url'] ?? '').' '.(string) ($payload['name'] ?? ''));
+
+        return str_contains($mime, 'pdf')
+            || str_contains($mime, 'mp4')
+            || str_contains($mime, 'webm')
+            || str_contains($mime, 'svg')
+            || (bool) preg_match('/\.(pdf|mp4|webm|svg)(\?|#|$)/', $haystack);
+    }
+
+    /**
+     * Prefer a plugin-built builder document, then Elementor data, then post_content.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{0: array<string, mixed>, 1: array<string, int>}
+     */
+    private function pageDocument(ImportContext $ctx, string $externalId, string $title, string $html, array $payload): array
+    {
+        $converter = app(ElementorToBuilderConverter::class);
+        $supplied = $converter->preferDocument($payload);
+        if ($supplied !== null) {
+            return [$supplied, []];
+        }
+        $converted = $converter->convertRecord($payload);
+        if ($converted !== null) {
+            return [$converted['document'], $converted['unmapped']];
+        }
+
+        return [$this->document($ctx, $externalId, $title, $html, $payload), []];
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    private function storeMenuTree(ImportContext $ctx, string $externalId, array $payload, string $kind): void
+    {
+        $service = app(ModuleSettingsService::class);
+        $current = $service->get($ctx->tenantId(), 'cms', 'menus', ['draft' => [], 'published' => []]);
+        $draft = is_array($current['draft'] ?? null) ? array_values($current['draft']) : [];
+        $locations = is_array($payload['locations'] ?? null) ? $payload['locations'] : [];
+        if ($locations === [] && isset($payload['location'])) {
+            $locations = [(string) $payload['location']];
+        }
+        $tree = [
+            'external_id' => $externalId,
+            'name' => mb_substr(trim((string) ($payload['name'] ?? $kind)), 0, 255),
+            'slug' => mb_substr($ctx->mapper->slug(
+                isset($payload['slug']) ? (string) $payload['slug'] : null,
+                (string) ($payload['name'] ?? $kind)
+            ), 0, 191),
+            'location' => $kind,
+            'locations' => array_values(array_map(fn ($location) => mb_substr((string) $location, 0, 64), $locations)),
+            'items' => $this->menuNodes(is_array($payload['items'] ?? null) ? $payload['items'] : []),
+        ];
+        $replaced = false;
+        foreach ($draft as $index => $row) {
+            if (is_array($row) && (string) ($row['external_id'] ?? '') === $externalId) {
+                $draft[$index] = $tree;
+                $replaced = true;
+                break;
+            }
+        }
+        if (! $replaced) {
+            $draft[] = $tree;
+        }
+        $published = $ctx->publishContent()
+            ? $draft
+            : (is_array($current['published'] ?? null) ? $current['published'] : []);
+        $service->put($ctx->tenantId(), 'cms', 'menus', [
+            'draft' => array_values($draft),
+            'published' => $published,
+        ]);
+    }
+
+    /**
+     * @param  list<mixed>  $items
+     * @return list<array<string, mixed>>
+     */
+    private function menuNodes(array $items): array
+    {
+        $nodes = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $children = $item['children'] ?? $item['items'] ?? [];
+            $nodes[] = [
+                'title' => mb_substr(trim((string) ($item['title'] ?? $item['label'] ?? '')), 0, 255),
+                'url' => mb_substr(trim((string) ($item['url'] ?? $item['href'] ?? '')), 0, 500),
+                'children' => $this->menuNodes(is_array($children) ? $children : []),
+            ];
+        }
+
+        return $nodes;
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    private function storeDailyStats(ImportContext $ctx, array $payload): void
+    {
+        $day = $payload['day'] ?? null;
+        if (! is_string($day) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) {
+            return;
+        }
+        $tenantId = $ctx->tenantId();
+        DB::table('analytics_daily_totals')->updateOrInsert(
+            ['tenant_id' => $tenantId, 'day' => $day],
+            [
+                'visitors' => max(0, (int) ($payload['visitors'] ?? 0)),
+                'views' => max(0, (int) ($payload['views'] ?? $payload['pageviews'] ?? 0)),
+                'sessions' => max(0, (int) ($payload['sessions'] ?? 0)),
+                'bounces' => max(0, (int) ($payload['bounces'] ?? 0)),
+                'duration_sum_ms' => max(0, (int) ($payload['duration_sum_ms'] ?? 0)),
+            ]
+        );
+        foreach (is_array($payload['pages'] ?? null) ? $payload['pages'] : [] as $page) {
+            if (! is_array($page)) {
+                continue;
+            }
+            $uri = mb_substr((string) ($page['uri'] ?? $page['path'] ?? '/'), 0, 512);
+            DB::table('analytics_page_daily')->updateOrInsert(
+                [
+                    'tenant_id' => $tenantId,
+                    'day' => $day,
+                    'post_id' => max(0, (int) ($page['post_id'] ?? 0)),
+                    'uri_key' => mb_substr($uri !== '' ? $uri : '/', 0, 191),
+                ],
+                [
+                    'uri' => $uri !== '' ? $uri : '/',
+                    'views' => max(0, (int) ($page['views'] ?? 0)),
+                    'title' => mb_substr((string) ($page['title'] ?? ''), 0, 255),
+                ]
+            );
+        }
+        foreach (is_array($payload['referrers'] ?? null) ? $payload['referrers'] : [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            DB::table('analytics_referrer_daily')->updateOrInsert(
+                [
+                    'tenant_id' => $tenantId,
+                    'day' => $day,
+                    'ref_category' => mb_substr((string) ($row['category'] ?? $row['ref_category'] ?? 'direct'), 0, 32),
+                    'ref_source' => mb_substr((string) ($row['source'] ?? $row['ref_source'] ?? ''), 0, 100),
+                ],
+                ['visits' => max(0, (int) ($row['visits'] ?? $row['views'] ?? 0))]
+            );
+        }
+        foreach (is_array($payload['devices'] ?? null) ? $payload['devices'] : [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            DB::table('analytics_device_daily')->updateOrInsert(
+                [
+                    'tenant_id' => $tenantId,
+                    'day' => $day,
+                    'dim_type' => mb_substr((string) ($row['type'] ?? $row['dim_type'] ?? 'browser'), 0, 32),
+                    'dim_value' => mb_substr((string) ($row['value'] ?? $row['dim_value'] ?? ''), 0, 50),
+                ],
+                ['views' => max(0, (int) ($row['views'] ?? 0))]
+            );
+        }
+        foreach (is_array($payload['geo'] ?? null) ? $payload['geo'] : [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            DB::table('analytics_geo_daily')->updateOrInsert(
+                [
+                    'tenant_id' => $tenantId,
+                    'day' => $day,
+                    'dim_type' => mb_substr((string) ($row['type'] ?? $row['dim_type'] ?? 'country'), 0, 32),
+                    'dim_value' => mb_substr((string) ($row['value'] ?? $row['dim_value'] ?? ''), 0, 80),
+                ],
+                ['views' => max(0, (int) ($row['views'] ?? 0))]
+            );
+        }
     }
 
     /**

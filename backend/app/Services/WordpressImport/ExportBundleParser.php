@@ -19,6 +19,22 @@ final class ExportBundleParser
         'orders' => ['orders'],
         'menus' => ['menus'],
         'stats' => ['stats', 'analytics'],
+        'brands' => ['brands', 'product_brands'],
+        'blog_categories' => ['blog_categories', 'blog_category'],
+        'blog_tags' => ['blog_tags', 'post_tags'],
+        'coupons' => ['coupons', 'shop_coupon'],
+        'reviews' => ['reviews', 'comments', 'product_reviews'],
+        'redirects' => ['redirects', 'seo_redirects'],
+        'elementor_templates' => ['elementor_templates', 'elementor', 'theme_builder'],
+        'attribute_groups' => ['attribute_groups', 'swatches'],
+        'staff' => ['staff', 'staff_users'],
+        'settings' => ['settings'],
+        'tickets' => ['tickets'],
+        'returns' => ['returns'],
+        'wallet' => ['wallet'],
+        'waiting_list' => ['waiting_list', 'yith_waitlist'],
+        'permalinks' => ['permalinks'],
+        'review_queue' => ['review_queue'],
     ];
 
     /**
@@ -47,12 +63,32 @@ final class ExportBundleParser
         }
 
         $bundles = [];
+        $consumed = [];
         foreach (self::KEYS as $resource => $keys) {
             foreach ($keys as $key) {
-                if (isset($payload[$key]) && is_array($payload[$key])) {
+                if (isset($payload[$key]) && is_array($payload[$key]) && array_is_list($payload[$key])) {
                     $bundles[$resource] = array_merge($bundles[$resource] ?? [], $this->rows($payload[$key]));
+                    $consumed[] = $key;
                 }
             }
+        }
+        $reserved = [
+            'resource', 'items', 'schema', 'source_url', 'dry_run', 'currency', 'price_multiplier',
+            'media_hosts', 'download_media', 'publish_content', 'mode', 'job_id', 'contract_version', 'options',
+        ];
+        foreach ($payload as $key => $value) {
+            if (! is_string($key) || in_array($key, $reserved, true) || in_array($key, $consumed, true)) {
+                continue;
+            }
+            if (! is_array($value) || ! array_is_list($value)) {
+                continue;
+            }
+            try {
+                $resource = WordpressImportResources::canonical($key);
+            } catch (InvalidArgumentException) {
+                continue;
+            }
+            $bundles[$resource] = array_merge($bundles[$resource] ?? [], $this->rows($value));
         }
         if ($bundles === []) {
             throw new InvalidArgumentException('Export has no known resources.');
@@ -155,6 +191,9 @@ final class ExportBundleParser
             }
             if (! isset($row['customer_external_id']) && isset($row['customer_source_id']) && (string) $row['customer_source_id'] !== '' && (string) $row['customer_source_id'] !== '0') {
                 $row['customer_external_id'] = (string) $row['customer_source_id'];
+            }
+            if (! isset($row['product_external_id']) && isset($row['product_source_id']) && (string) $row['product_source_id'] !== '' && (string) $row['product_source_id'] !== '0') {
+                $row['product_external_id'] = (string) $row['product_source_id'];
             }
             if (isset($row['totals']) && is_array($row['totals'])) {
                 foreach (['total', 'subtotal', 'discount', 'shipping', 'tax'] as $moneyKey) {

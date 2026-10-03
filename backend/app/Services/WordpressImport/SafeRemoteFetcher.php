@@ -15,7 +15,7 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
     /** @param  null|callable(string): list<string>  $resolver */
     public function __construct(private readonly mixed $resolver = null) {}
 
-    public function fetch(string $url, array $allowedHosts, int $maxBytes = 8388608): FetchedAsset
+    public function fetch(string $url, array $allowedHosts, int $maxBytes = 8388608, string $kind = 'image'): FetchedAsset
     {
         if (! defined('CURLOPT_RESOLVE')) {
             throw new RuntimeException('Remote media download requires the curl extension.');
@@ -64,7 +64,7 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
             if ($body === '' || strlen($body) > $maxBytes) {
                 throw new RuntimeException('Media file is empty or too large.');
             }
-            $mime = $this->imageMime($body);
+            $mime = $this->imageMime($body, $kind);
             $filename = $this->filename($parts['path'], $mime);
 
             return new FetchedAsset($body, $mime, $filename);
@@ -144,12 +144,19 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
         return $origin.$dir.'/'.$location;
     }
 
-    private function imageMime(string $body): string
+    private function imageMime(string $body, string $kind = 'image'): string
     {
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($body) ?: '';
-        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $images = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $files = ['image/svg+xml', 'application/pdf', 'video/mp4', 'video/webm'];
+        $allowed = $kind === 'file' ? array_merge($images, $files) : $images;
         if (! in_array($mime, $allowed, true)) {
-            throw new RuntimeException('Only JPEG, PNG, GIF, and WebP images can be downloaded.');
+            throw new RuntimeException($kind === 'file'
+                ? 'File must be an image, SVG, PDF, or MP4/WebM video.'
+                : 'Only JPEG, PNG, GIF, and WebP images can be downloaded.');
+        }
+        if ($mime === 'image/svg+xml') {
+            return $mime;
         }
 
         return $mime;

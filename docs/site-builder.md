@@ -18,4 +18,4 @@ Pages are sections, then columns, then widgets. Container widgets can nest anoth
 
 ## WordPress
 
-`/dashboard/import/wordpress` only records a scaffold job. See `docs/wordpress-import.md`.
+WordPress import can turn Elementor pages into builder documents and open them at `/dashboard/builder`. See `docs/wordpress-import.md`.
