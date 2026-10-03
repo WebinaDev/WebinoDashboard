@@ -20,8 +20,15 @@ class AnalyticsController extends Controller
 
     public function summary(Request $request): \Illuminate\Http\JsonResponse
     {
-        // Keep home-dashboard KPIs (existing contract).
-        $tid = (int) $request->user()->tenant_id;
+        $user = $request->user();
+        $caps = app(\App\Support\CapabilityChecker::class);
+        if (! $caps->allows($user, 'reports.shop') && ! $caps->allows($user, 'orders.*')) {
+            return response()->json([
+                'message' => __('api.forbidden'),
+                'errors' => ['code' => 'CAPABILITY_DENIED'],
+            ], 403);
+        }
+        $tid = (int) $user->tenant_id;
         $cacheKey = "analytics:summary:tenant:{$tid}";
         $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 30, function () use ($tid) {
             return [

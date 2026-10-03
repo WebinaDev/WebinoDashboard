@@ -57,6 +57,7 @@ class TenantSettingsController extends Controller
         }
 
         $tenantId = (int) $request->user()->tenant_id;
+        $this->assertSensitiveRead($request, $key);
         if ($key === OrderDocumentSettings::KEY) {
             return response()->json(['data' => OrderDocumentSettings::get($tenantId, $this->locale($request))]);
         }
@@ -510,6 +511,20 @@ class TenantSettingsController extends Controller
             'modified_at' => $mtime ? date('c', $mtime) : null,
             'tail' => $tail,
         ];
+    }
+
+    private function assertSensitiveRead(\Illuminate\Http\Request $request, string $key): void
+    {
+        $caps = app(\App\Support\CapabilityChecker::class);
+        $user = $request->user();
+        $security = in_array($key, [SecuritySettings::KEY, OtpSettings::KEY, 'site.system-logs'], true);
+        $bots = str_starts_with($key, 'bots.');
+        if ($security && ! $caps->allows($user, 'settings.manage')) {
+            abort(403, __('api.forbidden'));
+        }
+        if ($bots && ! $caps->allows($user, 'marketing.*') && ! $caps->allows($user, 'settings.manage')) {
+            abort(403, __('api.forbidden'));
+        }
     }
 
     /** @return array<string, mixed> */

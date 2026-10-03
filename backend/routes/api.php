@@ -338,7 +338,8 @@ Route::prefix('v1')->group(function () {
                 Route::match(['get', 'post'], '/modules/marketplace/catalog', [ModuleMarketplaceController::class, 'catalog']);
                 Route::post('/modules/marketplace/purchase', [ModuleMarketplaceController::class, 'purchase']);
                 Route::match(['get', 'post'], '/modules/marketplace/payment-callback', [ModuleMarketplaceController::class, 'paymentCallback']);
-            Route::patch('/modules/{slug}', [ModuleController::class, 'update']);
+            Route::patch('/modules/{slug}', [ModuleController::class, 'update'])
+                ->middleware('can:settings.manage,system.manage');
 
             Route::post('/license/sync', [LicenseController::class, 'sync']);
             Route::get('/license/status', [LicenseController::class, 'status']);
@@ -346,17 +347,22 @@ Route::prefix('v1')->group(function () {
             Route::prefix('updates')->group(function () {
                 Route::get('/status', [CoreUpdateController::class, 'status']);
                 Route::post('/check', [CoreUpdateController::class, 'check']);
-                Route::post('/download', [CoreUpdateController::class, 'download']);
-                Route::post('/apply', [CoreUpdateController::class, 'apply']);
+                Route::post('/download', [CoreUpdateController::class, 'download'])
+                    ->middleware('can:settings.manage,system.manage');
+                Route::post('/apply', [CoreUpdateController::class, 'apply'])
+                    ->middleware('can:settings.manage,system.manage');
                 Route::get('/backups', [CoreUpdateController::class, 'backups']);
             });
 
             Route::prefix('build-pipeline')->group(function () {
                 Route::get('/status', [BuildPipelineController::class, 'status']);
-                Route::post('/start', [BuildPipelineController::class, 'start']);
-                Route::post('/cancel', [BuildPipelineController::class, 'cancel']);
+                Route::post('/start', [BuildPipelineController::class, 'start'])
+                    ->middleware('can:settings.manage,system.manage');
+                Route::post('/cancel', [BuildPipelineController::class, 'cancel'])
+                    ->middleware('can:settings.manage,system.manage');
             });
-            Route::post('/modules/{slug}/install', [ModuleInstallController::class, 'install']);
+            Route::post('/modules/{slug}/install', [ModuleInstallController::class, 'install'])
+                ->middleware('can:settings.manage,system.manage');
             Route::get('/modules/{slug}/status', [ModuleInstallController::class, 'status']);
 
             Route::post('/setup/apply-site-type', [SetupController::class, 'applySiteType']);
@@ -372,7 +378,8 @@ Route::prefix('v1')->group(function () {
                 ->middleware('can:settings.manage');
 
             Route::get('/kernel/site-types', [KernelController::class, 'siteTypes']);
-            Route::put('/loyalty/rewards', [ShopExtrasController::class, 'saveLoyaltyRewards']);
+            Route::put('/loyalty/rewards', [ShopExtrasController::class, 'saveLoyaltyRewards'])
+                ->middleware('can:settings.manage,system.manage');
 
             Route::get('/product-questions', [ProductQuestionController::class, 'adminIndex']);
             Route::patch('/product-questions/{question}', [ProductQuestionController::class, 'moderate'])
@@ -393,13 +400,17 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::get('/themes', [ThemeController::class, 'index']);
-            Route::post('/themes/{slug}/activate', [ThemeController::class, 'activate']);
-            Route::patch('/themes/branding', [ThemeController::class, 'updateBranding']);
+            Route::post('/themes/{slug}/activate', [ThemeController::class, 'activate'])
+                ->middleware('can:settings.manage,system.manage');
+            Route::patch('/themes/branding', [ThemeController::class, 'updateBranding'])
+                ->middleware('can:settings.manage,system.manage');
 
             Route::middleware('module:dashboard')->group(function () {
-                Route::get('/analytics/summary', [AnalyticsController::class, 'summary']);
+                Route::get('/analytics/summary', [AnalyticsController::class, 'summary'])
+                    ->middleware('can:reports.shop,orders.*');
                 Route::get('/dashboard/overview', [DashboardOverviewController::class, 'overview']);
-                Route::get('/dashboard/sms-panel', [DashboardOverviewController::class, 'smsPanel']);
+                Route::get('/dashboard/sms-panel', [DashboardOverviewController::class, 'smsPanel'])
+                    ->middleware('can:marketing.*');
             });
 
             Route::middleware('module:analytics')->group(function () {
@@ -550,7 +561,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/products/{product}/coffee-profile/price-by-attribute', [CoffeeController::class, 'applyPriceByAttribute'])->whereNumber('product');
             });
 
-            Route::middleware('module:variants')->group(function () {
+            Route::middleware(['module:variants', 'can:catalog.*'])->group(function () {
                 Route::get('/products/{product}/variants', [ProductVariantController::class, 'index'])->whereNumber('product');
                 Route::post('/products/{product}/variants', [ProductVariantController::class, 'store'])->whereNumber('product');
                 Route::delete('/products/{product}/variations', [ProductVariantController::class, 'destroyAll'])->whereNumber('product');
@@ -710,7 +721,7 @@ Route::prefix('v1')->group(function () {
             });
 
             foreach (['bale' => 'bots_bale', 'telegram' => 'bots_telegram'] as $provider => $moduleSlug) {
-                Route::middleware('module:'.$moduleSlug)->prefix('bots/'.$provider)->group(function () use ($provider) {
+                Route::middleware(['module:'.$moduleSlug, 'can:marketing.*'])->prefix('bots/'.$provider)->group(function () use ($provider) {
                     Route::get('/settings', fn (\Illuminate\Http\Request $r) => app(BotController::class)->settings($r, $provider));
                     Route::put('/settings', fn (\Illuminate\Http\Request $r) => app(BotController::class)->updateSettings($r, $provider));
                     Route::get('/sessions', fn (\Illuminate\Http\Request $r) => app(BotController::class)->sessions($r, $provider));
@@ -725,7 +736,7 @@ Route::prefix('v1')->group(function () {
                 });
             }
 
-            Route::middleware('module:sms')->group(function () {
+            Route::middleware(['module:sms', 'can:marketing.*'])->group(function () {
                 Route::match(['get', 'post'], '/modirpayamak/{path?}', [ModirPayamakController::class, 'proxy'])
                     ->where('path', '.*');
             });
@@ -806,7 +817,7 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::post('/blog/categories/{id}/restore', [BlogCategoryController::class, 'restore'])->whereNumber('id');
             });
 
-            Route::middleware('module:media')->group(function () {
+            Route::middleware(['module:media', 'can:catalog.*,content.manage,content.*'])->group(function () {
                 Route::get('/media', [MediaController::class, 'index']);
                 Route::post('/media', [MediaController::class, 'store']);
                 Route::patch('/media/{id}', [MediaController::class, 'update'])->whereNumber('id');

@@ -11,7 +11,11 @@ class HealthApiTest extends TestCase
 
     public function test_metrics_endpoint(): void
     {
-        $this->getJson('/api/v1/health/metrics')
+        config(['services.health.metrics_token' => 'metrics-test-token']);
+
+        $this->getJson('/api/v1/health/metrics')->assertNotFound();
+
+        $this->getJson('/api/v1/health/metrics', ['X-Health-Token' => 'metrics-test-token'])
             ->assertOk()
             ->assertJsonStructure(['data' => ['app', 'env', 'php']]);
     }

@@ -8,12 +8,12 @@ export const cafeManifest: ModuleManifest = {
   submodules: ["menu", "reservations", "hours", "gallery", "venue", "qr", "engagement", "item"],
   adminNav: { section: "cafe", order: 25 },
   adminRoutes: [
-    { path: "gallery", submodule: "gallery", labelKey: "nav.gallery", section: "cafe", order: 25 },
-    { path: "hours", submodule: "hours", labelKey: "nav.hours", section: "cafe", order: 26 },
-    { path: "menu", submodule: "menu", labelKey: "nav.menu", section: "cafe", order: 27 },
-    { path: "qr", submodule: "qr", labelKey: "nav.qr", section: "cafe", order: 28 },
-    { path: "reservations", submodule: "reservations", labelKey: "nav.reservations", section: "cafe", order: 29 },
-    { path: "venue", submodule: "venue", labelKey: "nav.venue", section: "cafe", order: 30 },
+    { path: "gallery", submodule: "gallery", labelKey: "nav.gallery", section: "cafe", order: 25, capability: "catalog.*" },
+    { path: "hours", submodule: "hours", labelKey: "nav.hours", section: "cafe", order: 26, capability: "catalog.*" },
+    { path: "menu", submodule: "menu", labelKey: "nav.menu", section: "cafe", order: 27, capability: "catalog.*" },
+    { path: "qr", submodule: "qr", labelKey: "nav.qr", section: "cafe", order: 28, capability: "catalog.*" },
+    { path: "reservations", submodule: "reservations", labelKey: "nav.reservations", section: "cafe", order: 29, capability: "catalog.*" },
+    { path: "venue", submodule: "venue", labelKey: "nav.venue", section: "cafe", order: 30, capability: "catalog.*" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },

@@ -35,6 +35,10 @@ return [
         ],
     ],
 
+    'health' => [
+        'metrics_token' => env('HEALTH_METRICS_TOKEN', ''),
+    ],
+
     'webino' => [
         'base_url' => env('WEBINO_BASE_URL', 'http://localhost'),
         'product' => env('TENANT_PRODUCT', 'webinodashboard'),

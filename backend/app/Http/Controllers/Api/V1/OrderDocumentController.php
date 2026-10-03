@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Services\Orders\OrderDocumentRenderer;
 use App\Services\Orders\OrderDocumentSettings;
+use App\Support\OrderAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,10 +26,11 @@ class OrderDocumentController extends Controller
             return response()->json(['message' => __('order_documents.disabled')], 400);
         }
 
-        $row = Order::query()
+        $owned = Order::query()
             ->where('tenant_id', $request->user()->tenant_id)
-            ->whereKey($order)
-            ->firstOrFail();
+            ->whereKey($order);
+        app(OrderAccess::class)->scopeOwned($owned, $request->user());
+        $row = $owned->firstOrFail();
         if ($type === 'receipt') {
             $row->update(['printed_at' => now()]);
         }
@@ -47,9 +49,12 @@ class OrderDocumentController extends Controller
             return response()->json(['message' => __('order_documents.disabled')], 400);
         }
 
-        $orders = Order::query()
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->whereIn('status', ['paid', 'processing', 'on_hold'])
+        $orders = app(OrderAccess::class)->scopeOwned(
+            Order::query()
+                ->where('tenant_id', $request->user()->tenant_id)
+                ->whereIn('status', ['paid', 'processing', 'on_hold']),
+            $request->user()
+        )
             ->orderBy('created_at')
             ->limit(200)
             ->get()

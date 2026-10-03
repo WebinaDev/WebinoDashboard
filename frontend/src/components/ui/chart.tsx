@@ -65,7 +65,11 @@ function ChartStyle({ id, config }: { id: string; config: ChartConfig }) {
     <style
       dangerouslySetInnerHTML={{
         __html: `[data-chart=${id}] {\n${colorConfig
-          .map(([key, item]) => `  --color-${key}: ${item.color};`)
+          .map(([key, item]) => {
+            const color = typeof item.color === "string" && /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20})$/.test(item.color) ? item.color : "transparent"
+            const token = key.replace(/[^a-zA-Z0-9_-]/g, "")
+            return `  --color-${token}: ${color};`
+          })
           .join("\n")}\n}`,
       }}
     />

@@ -168,7 +168,13 @@ class Product extends Model
 
     public function scopeStorefront(Builder $query): Builder
     {
-        return $query->where('status', 'publish')->where('is_hidden', false);
+        return $query
+            ->where('status', 'publish')
+            ->where('is_hidden', false)
+            ->where('is_available', true)
+            ->where(function (Builder $q) {
+                $q->where('is_sold_out', false)->orWhereNull('is_sold_out');
+            });
     }
 
     public function scopeSaleWindowOpen(Builder $query): Builder

@@ -297,7 +297,10 @@ function VideoWidget({ widget }: { widget: WidgetNode }) {
 function sanitizeHtml(html: string): string {
   const stripped = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
   if (typeof window === "undefined") return stripped
-  return DOMPurify.sanitize(stripped, { USE_PROFILES: { html: true } })
+  return DOMPurify.sanitize(stripped, {
+    ALLOWED_TAGS: ["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "blockquote", "span", "div", "img", "hr", "table", "thead", "tbody", "tr", "th", "td", "figure", "figcaption"],
+    ALLOWED_ATTR: ["href", "title", "target", "rel", "src", "alt", "class"],
+  })
 }
 
 function HtmlWidget({ widget }: { widget: WidgetNode }) {

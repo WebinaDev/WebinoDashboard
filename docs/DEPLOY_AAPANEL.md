@@ -17,6 +17,10 @@ WEBINO_DOMAIN=shop.example.com \
 
 ---
 
+## رمز نمونه را عوض کنید
+
+`.env.docker.example` و `deploy/hosting/template/.env.example` مقدار `POSTGRES_PASSWORD=change_me_strong_password` را فقط به‌عنوان نمونه دارند. قبل از هر استقرار این مقدار، `APP_KEY` و رازهای درگاه را با مقدار تصادفی عوض کنید. کلید زنده را در ریپو نگذارید. `docker-compose.prod.yml` مقدار `APP_DEBUG=false` می‌گذارد و فایل `.env` را فقط‌خواندنی سوار می‌کند؛ اگر رمز نمونه عوض نشود همان خطر است.
+
 ## پیش‌نیازها
 
 - Ubuntu 22/24 (یا Debian) با حداقل 2GB RAM

@@ -48,6 +48,7 @@ export const analyticsManifest: ModuleManifest = {
       order: 70,
       navGroup: "analytics",
       navOrder: i,
+      capability: "analytics.view",
     })),
     ...PERFORMANCE_SECTIONS.map((section, i) => ({
       path: `analytics/${section}`,
@@ -58,6 +59,7 @@ export const analyticsManifest: ModuleManifest = {
       order: 72,
       navGroup: "performance",
       navOrder: i,
+      capability: "analytics.view",
     })),
     ...REPORT_SECTIONS.map((section, i) => ({
       path: `reports/${section}`,
@@ -68,6 +70,7 @@ export const analyticsManifest: ModuleManifest = {
       order: 71,
       navGroup: "shop_reports",
       navOrder: i,
+      capability: "reports.shop",
     })),
   ],
   siteRoutes: [],

@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Services\Orders\OrderStock;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PublicGuestCartController extends Controller
@@ -85,53 +87,61 @@ class PublicGuestCartController extends Controller
             return response()->json(['message' => __('api.cart_empty')], 422);
         }
 
-        $subtotal = 0;
         foreach ($lines as $line) {
             $product = $line->product;
-            if (! $product || $product->status !== 'publish' || $product->is_hidden || ! $product->is_available) {
+            if (! $product || $product->status !== 'publish' || $product->is_hidden || ! $product->is_available || $product->is_sold_out) {
                 return response()->json(['message' => 'Cart contains a product that is not for sale.'], 422);
             }
-            $subtotal += $line->quantity * $product->storefrontPriceMinor();
         }
 
-        $tax = \App\Services\Orders\OrderTax::compute($tid, $subtotal, 0);
-        $metaOrder = ['source' => 'guest_table'];
-        if ($tax['lines'] !== []) {
-            $metaOrder['tax_lines'] = $tax['lines'];
-            $metaOrder['prices_include_tax'] = $tax['added_minor'] === 0;
-        }
+        $order = DB::transaction(function () use ($lines, $tid, $meta, $cart) {
+            app(OrderStock::class)->assertLinesAvailable($lines);
 
-        $order = \App\Models\Order::query()->create([
-            'tenant_id' => $tid,
-            'user_id' => null,
-            'status' => 'processing',
-            'subtotal_minor' => $subtotal,
-            'discount_minor' => 0,
-            'shipping_minor' => 0,
-            'tax_minor' => $tax['tax_minor'],
-            'total_minor' => max(0, $subtotal + $tax['added_minor']),
-            'currency' => $lines->first()->product->currency,
-            'customer_phone' => $meta['customer_phone'] ?? null,
-            'customer_note' => $meta['customer_note'] ?? null,
-            'table_number' => $meta['table_number'] ?? $cart->table_number,
-            'branch_slug' => $meta['branch_slug'] ?? $cart->branch_slug,
-            'meta' => $metaOrder,
-        ]);
+            $subtotal = 0;
+            foreach ($lines as $line) {
+                $subtotal += $line->quantity * $line->product->storefrontPriceMinor();
+            }
 
-        foreach ($lines as $line) {
-            \App\Models\OrderItem::query()->create([
-                'order_id' => $order->id,
-                'product_id' => $line->product_id,
-                'quantity' => $line->quantity,
-                'unit_price_minor' => $line->product->storefrontPriceMinor(),
+            $tax = \App\Services\Orders\OrderTax::compute($tid, $subtotal, 0);
+            $metaOrder = ['source' => 'guest_table'];
+            if ($tax['lines'] !== []) {
+                $metaOrder['tax_lines'] = $tax['lines'];
+                $metaOrder['prices_include_tax'] = $tax['added_minor'] === 0;
+            }
+
+            $order = \App\Models\Order::query()->create([
+                'tenant_id' => $tid,
+                'user_id' => null,
+                'status' => 'processing',
+                'subtotal_minor' => $subtotal,
+                'discount_minor' => 0,
+                'shipping_minor' => 0,
+                'tax_minor' => $tax['tax_minor'],
+                'total_minor' => max(0, $subtotal + $tax['added_minor']),
+                'currency' => $lines->first()->product->currency,
+                'customer_phone' => $meta['customer_phone'] ?? null,
+                'customer_note' => $meta['customer_note'] ?? null,
+                'table_number' => $meta['table_number'] ?? $cart->table_number,
+                'branch_slug' => $meta['branch_slug'] ?? $cart->branch_slug,
+                'meta' => $metaOrder,
             ]);
-        }
 
-        app(\App\Services\Orders\OrderLifecycle::class)->sync($order->fresh(), null);
+            foreach ($lines as $line) {
+                \App\Models\OrderItem::query()->create([
+                    'order_id' => $order->id,
+                    'product_id' => $line->product_id,
+                    'quantity' => $line->quantity,
+                    'unit_price_minor' => $line->product->storefrontPriceMinor(),
+                ]);
+            }
 
-        CartItem::query()->where('cart_id', $cart->id)->delete();
+            app(\App\Services\Orders\OrderLifecycle::class)->sync($order->fresh(), null);
+            CartItem::query()->where('cart_id', $cart->id)->delete();
 
-        return response()->json(['data' => $order->fresh()->load('items.product')], 201);
+            return $order->fresh()->load('items.product');
+        });
+
+        return response()->json(['data' => $order], 201);
     }
 
     /** @param  array<string, mixed>  $data */

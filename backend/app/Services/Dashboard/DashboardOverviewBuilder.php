@@ -26,6 +26,8 @@ final class DashboardOverviewBuilder
 {
     public const SMS_LOW_BALANCE = 10000;
 
+    private ?int $orderOwnerId = null;
+
     public const CACHE_TTL = 90;
 
     public const SMS_PANEL_CACHE_TTL = 300;
@@ -113,6 +115,7 @@ final class DashboardOverviewBuilder
         ];
 
         $caps = app(CapabilityChecker::class);
+        $this->orderOwnerId = app(\App\Support\OrderAccess::class)->restrictsToOwn($user) ? (int) $user->id : null;
         $canCatalog = $caps->allows($user, 'catalog.manage') || $caps->allows($user, 'commerce.*') || $caps->allows($user, 'catalog.*') || (string) $user->role === 'admin';
         $canSales = $caps->allows($user, 'reports.shop') || $caps->allows($user, 'orders.*') || (string) $user->role === 'admin';
         $canOrders = $caps->allows($user, 'orders.*') || $caps->allows($user, 'orders.own') || (string) $user->role === 'admin';
@@ -331,7 +334,8 @@ final class DashboardOverviewBuilder
             ],
         ];
 
-        if ($this->moduleEnabled($tid, 'marketing') || $this->moduleEnabled($tid, 'sms')) {
+        $caps = app(CapabilityChecker::class);
+        if (($this->moduleEnabled($tid, 'marketing') || $this->moduleEnabled($tid, 'sms')) && $caps->allows($user, 'marketing.*')) {
             $panels['sms'] = $this->smsPanelCachedPlaceholder($user);
         }
 
@@ -555,8 +559,7 @@ final class DashboardOverviewBuilder
     /** @return array{count: int, preview: list<array<string, mixed>>, href: string} */
     private function taskOrdersBlock(int $tid, string $status): array
     {
-        $preview = Order::query()
-            ->where('tenant_id', $tid)
+        $preview = $this->ownedOrders($tid)
             ->where('status', $status)
             ->with(['user:id,name,email', 'items'])
             ->orderByDesc('id')
@@ -565,7 +568,7 @@ final class DashboardOverviewBuilder
             ->map(fn (Order $o) => $this->orderRow($o))
             ->all();
 
-        $count = Order::query()->where('tenant_id', $tid)->where('status', $status)->count();
+        $count = $this->ownedOrders($tid)->where('status', $status)->count();
 
         return [
             'count' => $count,
@@ -579,8 +582,7 @@ final class DashboardOverviewBuilder
     {
         $packStatuses = ['processing', 'sent-to-warehouse', 'webino-in-stock'];
         $shipStatuses = ['webino-packaged'];
-        $trackingQ = Order::query()
-            ->where('tenant_id', $tid)
+        $trackingQ = $this->ownedOrders($tid)
             ->where('status', 'completed')
             ->where(function ($q) {
                 $q->whereNull('meta->tracking_code')
@@ -590,10 +592,13 @@ final class DashboardOverviewBuilder
                     });
             });
 
-        $returnsCount = OrderReturn::query()->where('tenant_id', $tid)->whereIn('status', ['requested', 'approved'])->count();
+        $returnsCount = OrderReturn::query()->where('tenant_id', $tid)->whereIn('status', ['requested', 'approved'])
+            ->when($this->orderOwnerId, fn ($q) => $q->whereHas('order', fn ($o) => $o->where('created_by', $this->orderOwnerId)))
+            ->count();
         $returnItems = OrderReturn::query()
             ->where('tenant_id', $tid)
             ->whereIn('status', ['requested', 'approved'])
+            ->when($this->orderOwnerId, fn ($q) => $q->whereHas('order', fn ($o) => $o->where('created_by', $this->orderOwnerId)))
             ->orderByDesc('id')
             ->limit(8)
             ->get()
@@ -625,8 +630,7 @@ final class DashboardOverviewBuilder
      */
     private function fulfillmentBucketMulti(int $tid, array $statuses, string $action, string $href, string $locale, ?int $withinDays = null): array
     {
-        $q = Order::query()
-            ->where('tenant_id', $tid)
+        $q = $this->ownedOrders($tid)
             ->whereIn('status', $statuses)
             ->with(['user:id,name,email']);
         if ($withinDays !== null) {
@@ -847,6 +851,17 @@ final class DashboardOverviewBuilder
         return $alerts;
     }
 
+    /** @return \Illuminate\Database\Eloquent\Builder<Order> */
+    private function ownedOrders(int $tid): \Illuminate\Database\Eloquent\Builder
+    {
+        $q = Order::query()->where('tenant_id', $tid);
+        if ($this->orderOwnerId) {
+            $q->where('created_by', $this->orderOwnerId);
+        }
+
+        return $q;
+    }
+
     /** @return array<string, mixed> */
     private function orderRow(Order $o, string $locale = 'fa'): array
     {
@@ -870,17 +885,7 @@ final class DashboardOverviewBuilder
         $last = (clone $ordersQ)->orderByDesc('id')->first();
         $recent = (clone $ordersQ)->orderByDesc('id')->limit(5)->get()->map(fn (Order $o) => $this->orderRow($o))->all();
 
-        $wallet = 0;
-        try {
-            if (\Illuminate\Support\Facades\Schema::hasTable('wallet_ledgers')) {
-                $wallet = (int) DB::table('wallet_ledgers')
-                    ->where('tenant_id', $tid)
-                    ->where('user_id', $user->id)
-                    ->sum('amount_minor');
-            }
-        } catch (\Throwable) {
-            $wallet = 0;
-        }
+        $wallet = (int) ($user->wallet_balance_minor ?? 0);
 
         $wishlist = 0;
         try {

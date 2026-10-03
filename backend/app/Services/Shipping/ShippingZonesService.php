@@ -270,6 +270,37 @@ class ShippingZonesService
         return false;
     }
 
+    public function hasConfiguredMethods(int $tenantId): bool
+    {
+        $cfg = $this->getConfig($tenantId);
+        foreach ($cfg['zones'] ?? [] as $zone) {
+            foreach ($zone['methods'] ?? [] as $method) {
+                if (! empty($method['enabled'])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /** @return list<string> */
+    public function methodTitles(int $tenantId): array
+    {
+        $cfg = $this->getConfig($tenantId);
+        $titles = [];
+        foreach ($cfg['zones'] ?? [] as $zone) {
+            foreach ($zone['methods'] ?? [] as $method) {
+                $title = trim((string) ($method['title'] ?? $method['method_id'] ?? ''));
+                if ($title !== '') {
+                    $titles[] = $title;
+                }
+            }
+        }
+
+        return array_values(array_unique($titles));
+    }
+
     /**
      * Match rates for checkout by province code (IR:XX) and optional postcode.
      *

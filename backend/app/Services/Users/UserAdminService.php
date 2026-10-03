@@ -13,6 +13,7 @@ use App\Services\Notifications\TenantMailer;
 use App\Services\Sms\ModirPayamakClient;
 use App\Services\Auth\OtpSettings;
 use App\Services\Modules\ModuleSettingsService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -165,6 +166,9 @@ class UserAdminService
         if ($forcedRole !== null) {
             $data['role'] = $forcedRole;
         }
+        $this->assertCanAssignRole($request, (string) $role);
+        $openingBalance = (int) ($data['wallet_balance_minor'] ?? 0);
+        unset($data['wallet_balance_minor']);
 
         if (empty($data['phone']) && empty($data['email'])) {
             throw ValidationException::withMessages([
@@ -193,8 +197,11 @@ class UserAdminService
             'bank_name' => $data['bank_name'] ?? null,
             'bank_account' => $data['bank_account'] ?? null,
             'bank_card' => $data['bank_card'] ?? null,
-            'wallet_balance_minor' => (int) ($data['wallet_balance_minor'] ?? 0),
+            'wallet_balance_minor' => 0,
         ]);
+        if ($openingBalance > 0) {
+            app(WalletService::class)->adjust($user, (int) $tid, 'credit', $openingBalance, 'admin_adjust', 'Opening balance', 'user', (int) $user->id);
+        }
         app(UserWelcomeService::class)->welcome($user);
 
         return $user;
@@ -284,6 +291,11 @@ class UserAdminService
         if ($roles !== null && isset($data['role']) && ! in_array($data['role'], $roles, true)) {
             unset($data['role']);
         }
+        if (isset($data['role'])) {
+            $this->assertCanAssignRole($request, (string) $data['role']);
+        }
+        $walletTarget = array_key_exists('wallet_balance_minor', $data) ? (int) $data['wallet_balance_minor'] : null;
+        unset($data['wallet_balance_minor']);
 
         if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
@@ -297,8 +309,26 @@ class UserAdminService
         }
 
         $user->update($data);
+        if ($walletTarget !== null) {
+            $delta = $walletTarget - (int) $user->fresh()->wallet_balance_minor;
+            if ($delta > 0) {
+                app(WalletService::class)->adjust($user, (int) $tid, 'credit', $delta, 'admin_adjust', 'Balance correction', 'user', (int) $user->id);
+            } elseif ($delta < 0) {
+                app(WalletService::class)->adjust($user, (int) $tid, 'debit', -$delta, 'admin_adjust', 'Balance correction', 'user', (int) $user->id);
+            }
+        }
 
         return $user->fresh();
+    }
+
+    private function assertCanAssignRole(Request $request, string $role): void
+    {
+        if ($role !== 'admin') {
+            return;
+        }
+        if ((string) $request->user()->role !== 'admin') {
+            throw ValidationException::withMessages(['role' => ['Only an admin can assign the admin role.']]);
+        }
     }
 
     public function destroy(Request $request, int $userId): void
@@ -327,6 +357,7 @@ class UserAdminService
             'ids.*' => ['integer', Rule::exists('users', 'id')->where('tenant_id', $tid)],
             'role' => ['required', 'string', Rule::in(self::ROLES)],
         ]);
+        $this->assertCanAssignRole($request, (string) $data['role']);
 
         return User::query()
             ->where('tenant_id', $tid)

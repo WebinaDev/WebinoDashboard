@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\C2cSetting;
 use App\Models\Order;
 use App\Services\Orders\OrderStatusService;
+use App\Services\Orders\OrderStatusTransitions;
+use App\Support\OrderAccess;
 use Illuminate\Http\Request;
 
 class C2cController extends Controller
@@ -56,9 +58,10 @@ class C2cController extends Controller
             ->where('tenant_id', $tid)
             ->where(function ($w) {
                 $w->where('payment_tender', 'card_to_card')
-                    ->orWhereNotNull('c2c_status');
+                    ->orWhere('payment_provider', 'card_to_card');
             })
             ->with(['user:id,name,email']);
+        app(OrderAccess::class)->scopeOwned($q, $request->user());
 
         if ($status && $status !== 'all') {
             $q->where('c2c_status', $status);
@@ -78,31 +81,47 @@ class C2cController extends Controller
 
     public function decide(Request $request, int $order): \Illuminate\Http\JsonResponse
     {
-        $row = Order::query()
+        $q = Order::query()
             ->where('tenant_id', $request->user()->tenant_id)
-            ->whereKey($order)
-            ->firstOrFail();
+            ->whereKey($order);
+        app(OrderAccess::class)->scopeOwned($q, $request->user());
+        $row = $q->firstOrFail();
 
         $data = $request->validate([
             'action' => ['required', 'string', 'in:approve,reject'],
             'receipt_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
+        $isCard = (string) ($row->payment_tender ?? '') === 'card_to_card'
+            || (string) ($row->payment_provider ?? '') === 'card_to_card';
+        $confirmable = ['pending_payment', 'awaiting_gateway', 'on_hold'];
+        $target = $data['action'] === 'approve' ? 'paid' : 'failed';
+        if (! $isCard || ! in_array((string) $row->status, $confirmable, true) || ! OrderStatusTransitions::canTransition((string) $row->status, $target)) {
+            return response()->json([
+                'message' => 'Only a card-to-card order waiting for confirmation can be decided.',
+                'errors' => ['action' => ['Only a card-to-card order waiting for confirmation can be decided.']],
+            ], 422);
+        }
+
         $statuses = app(OrderStatusService::class);
         $stamp = [
             'c2c_decided_by' => $request->user()->id,
             'c2c_decided_at' => now(),
         ];
-        if ($data['action'] === 'approve') {
-            $statuses->apply($row, 'paid', array_merge($stamp, [
+        $applied = $data['action'] === 'approve'
+            ? $statuses->apply($row, 'paid', array_merge($stamp, [
                 'c2c_status' => 'approved',
                 'c2c_receipt_url' => $data['receipt_url'] ?? $row->c2c_receipt_url,
                 'amount_paid_minor' => (int) $row->total_minor,
-            ]));
-        } else {
-            $statuses->apply($row, 'failed', array_merge($stamp, [
+            ]))
+            : $statuses->apply($row, 'failed', array_merge($stamp, [
                 'c2c_status' => 'rejected',
             ]));
+        if (! $applied) {
+            return response()->json([
+                'message' => 'Only a card-to-card order waiting for confirmation can be decided.',
+                'errors' => ['action' => ['Invalid status transition']],
+            ], 422);
         }
 
         return response()->json(['data' => $row->fresh()]);

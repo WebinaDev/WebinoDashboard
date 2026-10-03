@@ -12,10 +12,12 @@ use App\Services\Geo\IranGeoService;
 use App\Services\Marketplace\MarketplacePlatforms;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Orders\OrderWriter;
+use App\Services\Shipping\ShippingZonesService;
 use App\Services\Shipping\TapinShipmentService;
-use App\Services\Wallet\WalletService;
+use App\Support\OrderAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
@@ -32,14 +34,24 @@ class OrderController extends Controller
 
         $paidStatuses = \App\Services\Reports\OrderReports::salesStatuses();
         $statsQ = clone $q;
-        $paidCount = (clone $statsQ)->whereIn('status', $paidStatuses)->count();
-        $paidRevenue = (int) (clone $statsQ)->whereIn('status', $paidStatuses)->sum('total_minor');
+        $placeholders = implode(',', array_fill(0, count($paidStatuses), '?'));
+        $agg = $statsQ->clone()->selectRaw(
+            "count(*) as order_count,
+            sum(case when status in ($placeholders) then 1 else 0 end) as paid_count,
+            sum(case when status in ($placeholders) then total_minor else 0 end) as revenue,
+            sum(case when status = 'pending_payment' then 1 else 0 end) as pending,
+            sum(case when status = 'processing' then 1 else 0 end) as processing,
+            sum(case when status = 'completed' then 1 else 0 end) as completed",
+            array_merge($paidStatuses, $paidStatuses)
+        )->first();
+        $paidCount = (int) ($agg->paid_count ?? 0);
+        $paidRevenue = (int) ($agg->revenue ?? 0);
         $stats = [
-            'order_count' => (clone $statsQ)->count(),
+            'order_count' => (int) ($agg->order_count ?? 0),
             'revenue' => $paidRevenue,
-            'pending' => (clone $statsQ)->where('status', 'pending_payment')->count(),
-            'processing' => (clone $statsQ)->where('status', 'processing')->count(),
-            'completed' => (clone $statsQ)->where('status', 'completed')->count(),
+            'pending' => (int) ($agg->pending ?? 0),
+            'processing' => (int) ($agg->processing ?? 0),
+            'completed' => (int) ($agg->completed ?? 0),
             'aov' => $paidCount > 0 ? (int) round($paidRevenue / $paidCount) : 0,
         ];
 
@@ -83,20 +95,7 @@ class OrderController extends Controller
     public function filterOptions(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        $shippingMethods = Order::query()
-            ->where('tenant_id', $tid)
-            ->whereNotNull('meta')
-            ->limit(500)
-            ->get(['meta'])
-            ->map(function (Order $o) {
-                $meta = is_array($o->meta) ? $o->meta : [];
-
-                return $meta['shipping_title'] ?? $meta['shipping_method_id'] ?? null;
-            })
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        $shippingMethods = app(ShippingZonesService::class)->methodTitles((int) $tid);
 
         $provinces = [];
         try {
@@ -166,6 +165,9 @@ class OrderController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $data = $this->validateOrderPayload($request, $tid, false);
+        if ($denied = $this->rejectStaffWalletTender($data, null)) {
+            return $denied;
+        }
         $order = $this->writer->create($tid, $data, $request->user());
 
         return response()->json(['data' => $order], 201);
@@ -186,6 +188,9 @@ class OrderController extends Controller
             'tracking_code' => ['sometimes', 'nullable', 'string', 'max:128'],
             'tracking_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
         ]);
+        if ($denied = $this->rejectStaffWalletTender($data, $row)) {
+            return $denied;
+        }
         $locked = in_array($row->status, ['completed', 'refunded', 'cancelled', 'failed', 'webino-deleted'], true);
         if ($locked) {
             $allowed = array_intersect_key($data, array_flip(['status', 'printed_at', 'tracking_code', 'tracking_url']));
@@ -215,7 +220,9 @@ class OrderController extends Controller
             $data['meta'] = $meta;
         }
         $statusChanged = isset($data['status']) && $data['status'] !== $row->status;
-        $row->update($data);
+        DB::transaction(function () use ($row, $data) {
+            $row->update($data);
+        });
         if ($statusChanged) {
             app(TapinShipmentService::class)->maybeAutoRegister($row->fresh());
         }
@@ -234,6 +241,9 @@ class OrderController extends Controller
     {
         $row = $this->find($request, $order);
         $data = $this->validateOrderPayload($request, $row->tenant_id, true);
+        if ($denied = $this->rejectStaffWalletTender($data, $row)) {
+            return $denied;
+        }
         $updated = $this->writer->rewrite($row, $data);
 
         return response()->json(['data' => $updated]);
@@ -242,6 +252,7 @@ class OrderController extends Controller
     public function destroy(Request $request, int $order): \Illuminate\Http\JsonResponse
     {
         $row = $this->find($request, $order);
+        $this->releaseBeforeDelete($row);
         $row->delete();
 
         return response()->json([], 204);
@@ -259,8 +270,12 @@ class OrderController extends Controller
         ]);
 
         $q = Order::query()->where('tenant_id', $tid)->whereIn('id', $data['ids']);
+        app(OrderAccess::class)->scopeOwned($q, $request->user());
         if ($data['action'] === 'trash' || $data['action'] === 'delete') {
-            $q->delete();
+            foreach ($q->get() as $order) {
+                $this->releaseBeforeDelete($order);
+                $order->delete();
+            }
         } elseif ($data['action'] === 'change_status') {
             $statuses = app(\App\Services\Orders\OrderStatusService::class);
             foreach ($q->get() as $order) {
@@ -324,6 +339,7 @@ class OrderController extends Controller
     public function notesDestroy(Request $request, int $note): \Illuminate\Http\JsonResponse
     {
         $row = OrderNote::query()->where('tenant_id', $request->user()->tenant_id)->whereKey($note)->firstOrFail();
+        $this->find($request, (int) $row->order_id);
         $row->delete();
 
         return response()->json([], 204);
@@ -380,75 +396,137 @@ class OrderController extends Controller
 
     public function returnsAction(Request $request, int $returnId): \Illuminate\Http\JsonResponse
     {
-        $ret = OrderReturn::query()->where('tenant_id', $request->user()->tenant_id)->whereKey($returnId)->firstOrFail();
         $data = $request->validate([
             'action' => ['required', 'string', 'in:approve,reject,receive,refund,exchange'],
             'admin_note' => ['nullable', 'string'],
             'refund_minor' => ['nullable', 'integer', 'min:0'],
         ]);
-        $current = (string) $ret->status;
-        $allowed = match ($data['action']) {
-            'approve' => ['requested'],
-            'reject' => ['requested', 'approved'],
-            'receive' => ['approved'],
-            'refund', 'exchange' => ['parcel_received', 'received'],
-            default => [],
-        };
-        if (! in_array($current, $allowed, true)) {
-            return response()->json([
-                'message' => 'Invalid return transition',
-                'errors' => ['action' => ["Cannot {$data['action']} from status {$current}"]],
-            ], 422);
-        }
-        $map = [
-            'approve' => 'approved',
-            'reject' => 'rejected',
-            'receive' => 'parcel_received',
-            'refund' => 'refunded',
-            'exchange' => 'exchanged',
-        ];
-        $ret->update([
-            'status' => $map[$data['action']],
-            'admin_note' => $data['admin_note'] ?? $ret->admin_note,
-            'refund_minor' => $data['refund_minor'] ?? $ret->refund_minor,
-        ]);
-        if (in_array($data['action'], ['approve', 'reject'], true)) {
-            $returnOrder = $ret->order()->first();
-            if ($returnOrder) {
-                $this->notifyReturn($returnOrder, $ret, $data['action'] === 'approve' ? 'return_approved' : 'return_rejected');
+        $result = DB::transaction(function () use ($request, $returnId, $data) {
+            $ret = OrderReturn::query()
+                ->where('tenant_id', $request->user()->tenant_id)
+                ->whereKey($returnId)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $orderForScope = $ret->order()->first();
+            if ($orderForScope) {
+                $this->find($request, (int) $orderForScope->id);
             }
-        }
-        if ($data['action'] === 'refund') {
-            $order = $ret->order()->with('items')->first();
-            $refundMinor = (int) ($ret->refund_minor ?? 0);
-            if ($order) {
-                $items = is_array($ret->items) ? $ret->items : [];
-                app(\App\Services\Orders\OrderStock::class)->restoreReturned($order, $items);
-                $full = (int) $order->total_minor > 0
-                    ? $refundMinor >= (int) $order->total_minor
-                    : $items === [];
-                app(\App\Services\Orders\WalletCheckout::class)->creditRefund($order, $refundMinor, (int) $ret->id);
-                $walletPaid = (string) ($order->payment_tender ?? '') === 'wallet'
-                    || (string) ($order->payment_provider ?? '') === 'wallet';
-                if (! $walletPaid && $refundMinor > 0) {
-                    $note = trim((string) ($ret->admin_note ?? ''));
-                    if (! str_contains($note, 'needs_manual_refund')) {
-                        $ret->update([
-                            'admin_note' => $note === '' ? 'needs_manual_refund' : $note."\nneeds_manual_refund",
-                        ]);
+            $current = (string) $ret->status;
+            $allowed = match ($data['action']) {
+                'approve' => ['requested'],
+                'reject' => ['requested', 'approved'],
+                'receive' => ['approved'],
+                'refund', 'exchange' => ['parcel_received', 'received'],
+                default => [],
+            };
+            if (! in_array($current, $allowed, true)) {
+                return response()->json([
+                    'message' => 'Invalid return transition',
+                    'errors' => ['action' => ["Cannot {$data['action']} from status {$current}"]],
+                ], 422);
+            }
+            $map = [
+                'approve' => 'approved',
+                'reject' => 'rejected',
+                'receive' => 'parcel_received',
+                'refund' => 'refunded',
+                'exchange' => 'exchanged',
+            ];
+            $refundMinor = array_key_exists('refund_minor', $data)
+                ? (int) $data['refund_minor']
+                : (int) ($ret->refund_minor ?? 0);
+            $ret->update([
+                'status' => $map[$data['action']],
+                'admin_note' => $data['admin_note'] ?? $ret->admin_note,
+                'refund_minor' => $refundMinor,
+            ]);
+            if (in_array($data['action'], ['approve', 'reject'], true)) {
+                $returnOrder = $ret->order()->first();
+                if ($returnOrder) {
+                    $this->notifyReturn($returnOrder, $ret, $data['action'] === 'approve' ? 'return_approved' : 'return_rejected');
+                }
+            }
+            if ($data['action'] === 'refund') {
+                $order = Order::query()->whereKey($ret->order_id)->lockForUpdate()->first();
+                if ($order) {
+                    $order->load('items');
+                    $meta = is_array($order->meta) ? $order->meta : [];
+                    $already = (int) ($meta['partial_refund_minor'] ?? 0);
+                    $remaining = max(0, (int) $order->total_minor - $already);
+                    $refundMinor = min($refundMinor, $remaining);
+                    $ret->update(['refund_minor' => $refundMinor]);
+                    $items = is_array($ret->items) ? $ret->items : [];
+                    app(\App\Services\Orders\OrderStock::class)->restoreReturned($order, $items);
+                    $order->refresh();
+                    app(\App\Services\Orders\WalletCheckout::class)->creditRefund($order, $refundMinor, (int) $ret->id);
+                    $walletPaid = (string) ($order->payment_tender ?? '') === 'wallet'
+                        || (string) ($order->payment_provider ?? '') === 'wallet'
+                        || ! empty($meta['wallet_checkout']);
+                    if (! $walletPaid && $refundMinor > 0) {
+                        $note = trim((string) ($ret->admin_note ?? ''));
+                        if (! str_contains($note, 'needs_manual_refund')) {
+                            $ret->update([
+                                'admin_note' => $note === '' ? 'needs_manual_refund' : $note."\nneeds_manual_refund",
+                            ]);
+                        }
+                    }
+                    $meta = is_array($order->fresh()->meta) ? $order->fresh()->meta : $meta;
+                    $meta['partial_refund_minor'] = $already + $refundMinor;
+                    $order->meta = $meta;
+                    $order->save();
+                    $refundedTotal = $already + $refundMinor;
+                    if ($this->returnCompletesOrder($order->fresh()->load('items'), $refundedTotal)) {
+                        app(\App\Services\Orders\OrderStatusService::class)->apply($order->fresh(), 'refunded');
                     }
                 }
-                $meta = is_array($order->meta) ? $order->meta : [];
-                $meta['partial_refund_minor'] = (int) ($meta['partial_refund_minor'] ?? 0) + $refundMinor;
-                $order->meta = $meta;
-                $order->save();
-                if ($full) {
-                    app(\App\Services\Orders\OrderStatusService::class)->apply($order->fresh(), 'refunded');
+            }
+
+            return $ret->fresh();
+        });
+
+        if ($result instanceof \Illuminate\Http\JsonResponse) {
+            return $result;
+        }
+
+        return response()->json(['data' => $result]);
+    }
+
+    protected function returnCompletesOrder(Order $order, int $refundedTotal): bool
+    {
+        $amountFull = (int) $order->total_minor <= 0 || $refundedTotal >= (int) $order->total_minor;
+        if (! $amountFull) {
+            return false;
+        }
+        $order->loadMissing('items');
+        if ($order->items->isEmpty()) {
+            return true;
+        }
+        $covered = [];
+        $returns = $order->returns()->where('status', 'refunded')->get();
+        foreach ($returns as $ret) {
+            foreach (is_array($ret->items) ? $ret->items : [] as $row) {
+                if (! is_array($row)) {
+                    continue;
                 }
+                $qty = max(0, (int) ($row['quantity'] ?? $row['qty'] ?? 0));
+                $itemId = (int) ($row['order_item_id'] ?? $row['item_id'] ?? 0);
+                if ($itemId < 1) {
+                    $productId = (int) ($row['product_id'] ?? 0);
+                    $match = $order->items->firstWhere('product_id', $productId);
+                    $itemId = $match ? (int) $match->id : 0;
+                }
+                if ($itemId > 0 && $qty > 0) {
+                    $covered[$itemId] = ($covered[$itemId] ?? 0) + $qty;
+                }
+            }
+        }
+        foreach ($order->items as $item) {
+            if (($covered[$item->id] ?? 0) < (int) $item->quantity) {
+                return false;
             }
         }
 
-        return response()->json(['data' => $ret->fresh()]);
+        return $covered !== [];
     }
 
     public function posSearch(Request $request): \Illuminate\Http\JsonResponse
@@ -528,6 +606,7 @@ class OrderController extends Controller
 
     protected function applyOrderIndexFilters(Builder $q, Request $request, bool $excludeStatus = false): void
     {
+        app(OrderAccess::class)->scopeOwned($q, $request->user());
         if ($request->boolean('mine')) {
             $q->where('created_by', $request->user()->id);
         }
@@ -687,10 +766,43 @@ class OrderController extends Controller
 
     protected function find(Request $request, int $order): Order
     {
-        return Order::query()
+        $q = Order::query()
             ->where('tenant_id', $request->user()->tenant_id)
-            ->whereKey($order)
-            ->firstOrFail();
+            ->whereKey($order);
+        app(OrderAccess::class)->scopeOwned($q, $request->user());
+
+        return $q->firstOrFail();
+    }
+
+    /** @param  array<string, mixed>  $data */
+    protected function rejectStaffWalletTender(array $data, ?Order $order): ?\Illuminate\Http\JsonResponse
+    {
+        $next = array_key_exists('payment_tender', $data) ? (string) ($data['payment_tender'] ?? '') : null;
+        $provider = array_key_exists('payment_provider', $data) ? (string) ($data['payment_provider'] ?? '') : null;
+        $current = (string) ($order->payment_tender ?? '');
+        $currentProvider = (string) ($order->payment_provider ?? '');
+        $toWallet = ($next === 'wallet' && $current !== 'wallet') || ($provider === 'wallet' && $currentProvider !== 'wallet');
+        if (! $toWallet) {
+            return null;
+        }
+
+        return response()->json([
+            'message' => 'Wallet payment can only be chosen by the customer at checkout.',
+            'errors' => ['payment_tender' => ['Wallet payment can only be chosen by the customer at checkout.']],
+        ], 422);
+    }
+
+    protected function releaseBeforeDelete(Order $order): void
+    {
+        $sales = \App\Services\Reports\OrderReports::salesStatuses();
+        if (in_array((string) $order->status, $sales, true)) {
+            app(\App\Services\Orders\OrderStock::class)->restoreOutstanding($order->fresh() ?? $order);
+            app(\App\Services\Orders\WalletCheckout::class)->restoreRemainder($order->fresh() ?? $order, 'order_cancel');
+        }
+        if ($order->coupon_id) {
+            $meta = is_array($order->meta) ? $order->meta : [];
+            app(\App\Services\Coupons\CouponService::class)->release($order, ! empty($meta['coupon_consumed']));
+        }
     }
 
     /** @return array<string, mixed> */

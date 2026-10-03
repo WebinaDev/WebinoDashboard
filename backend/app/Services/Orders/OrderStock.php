@@ -6,6 +6,9 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Decrements stock when an order becomes a confirmed sale and restores it when that sale is undone.
@@ -13,9 +16,6 @@ use App\Models\ProductVariant;
  */
 final class OrderStock
 {
-    /** @var list<string> */
-    private const RELEASE = ['cancelled', 'refunded', 'failed', 'payment_failed', 'webino-deleted'];
-
     public function sync(Order $order, ?string $from, string $to): void
     {
         $sales = \App\Services\Reports\OrderReports::salesStatuses();
@@ -26,8 +26,53 @@ final class OrderStock
 
             return;
         }
-        if ($was && ! $now && in_array($to, self::RELEASE, true)) {
+        if ($was && ! $now) {
             $this->restoreOutstanding($order);
+        }
+    }
+
+    /**
+     * Lock product and variant rows and reject a cart that would oversell.
+     *
+     * @param  iterable<int, object>  $lines
+     */
+    public function assertLinesAvailable(iterable $lines): void
+    {
+        $totals = [];
+        foreach ($lines as $line) {
+            $pid = (int) ($line->product_id ?? 0);
+            $vid = (int) ($line->product_variant_id ?? 0);
+            if ($pid < 1) {
+                continue;
+            }
+            $key = $vid.'-'.$pid;
+            $totals[$key]['qty'] = ($totals[$key]['qty'] ?? 0) + max(0, (int) ($line->quantity ?? 0));
+            $totals[$key]['product_id'] = $pid;
+            $totals[$key]['variant_id'] = $vid > 0 ? $vid : null;
+        }
+        foreach ($totals as $row) {
+            $this->assertAvailable((int) $row['product_id'], $row['variant_id'], (int) $row['qty']);
+        }
+    }
+
+    public function assertAvailable(int $productId, ?int $variantId, int $qty): void
+    {
+        if ($qty < 1) {
+            return;
+        }
+        if ($variantId) {
+            $variant = ProductVariant::query()->whereKey($variantId)->lockForUpdate()->first();
+            if ($variant && $variant->manage_stock) {
+                if ((int) $variant->stock < $qty) {
+                    throw ValidationException::withMessages(['stock' => 'Not enough stock.']);
+                }
+
+                return;
+            }
+        }
+        $product = Product::query()->whereKey($productId)->lockForUpdate()->first();
+        if ($product && $product->manage_stock && (int) $product->stock < $qty) {
+            throw ValidationException::withMessages(['stock' => 'Not enough stock.']);
         }
     }
 
@@ -148,20 +193,37 @@ final class OrderStock
     private function adjust(OrderItem $item, int $delta): bool
     {
         if ($item->product_variant_id) {
-            $variant = ProductVariant::query()->find($item->product_variant_id);
+            $variant = ProductVariant::query()->whereKey($item->product_variant_id)->lockForUpdate()->first();
             if ($variant && $variant->manage_stock) {
-                $variant->update(['stock' => max(0, (int) $variant->stock + $delta)]);
+                $this->applyDelta($variant, $delta);
 
                 return true;
             }
         }
-        $product = Product::query()->find($item->product_id);
+        $product = Product::query()->whereKey($item->product_id)->lockForUpdate()->first();
         if ($product && $product->manage_stock) {
-            $product->update(['stock' => max(0, (int) $product->stock + $delta)]);
+            $this->applyDelta($product, $delta);
 
             return true;
         }
 
         return false;
+    }
+
+    private function applyDelta(Model $row, int $delta): void
+    {
+        if ($delta >= 0) {
+            $row->update(['stock' => (int) $row->stock + $delta]);
+
+            return;
+        }
+        $qty = -$delta;
+        $updated = $row->newQuery()
+            ->whereKey($row->getKey())
+            ->where('stock', '>=', $qty)
+            ->update(['stock' => DB::raw('stock - '.$qty)]);
+        if ($updated !== 1) {
+            throw ValidationException::withMessages(['stock' => 'Not enough stock.']);
+        }
     }
 }

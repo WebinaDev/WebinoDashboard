@@ -32,7 +32,7 @@ class BotController extends Controller
                 'enabled' => $row->enabled,
                 'token' => $row->token ? '••••••••' : '',
                 'has_token' => filled($row->token),
-                'webhook_secret' => $row->webhook_secret,
+                'has_webhook_secret' => filled($row->webhook_secret),
                 'webhook_url' => url('/api/v1/public/bots/'.$provider.'/webhook'),
                 'meta' => $row->meta ?? [],
             ],
@@ -324,30 +324,20 @@ class BotController extends Controller
     public function webhook(Request $request, string $provider): \Illuminate\Http\JsonResponse
     {
         $this->assertProvider($provider);
-        $secret = $request->query('secret') ?? $request->header('X-Bot-Secret');
+        $secret = trim((string) ($request->query('secret') ?? $request->header('X-Bot-Secret') ?? ''));
         $payload = $request->all();
 
         $message = $payload['message'] ?? $payload['edited_message'] ?? null;
         $chatId = data_get($message, 'chat.id') ?? data_get($payload, 'chat.id');
-        if (! $chatId) {
-            return response()->json(['ok' => true, 'ignored' => true]);
+        if ($secret === '' || ! $chatId) {
+            return response()->json(['ok' => false, 'message' => 'Unknown bot'], 404);
         }
 
         $setting = BotSetting::query()
             ->where('provider', $provider)
             ->where('enabled', true)
-            ->when($secret, fn ($q) => $q->where('webhook_secret', $secret))
+            ->where('webhook_secret', $secret)
             ->first();
-
-        if (! $setting) {
-            // Fallback: match by secret alone if provided
-            if ($secret) {
-                $setting = BotSetting::query()
-                    ->where('provider', $provider)
-                    ->where('webhook_secret', $secret)
-                    ->first();
-            }
-        }
 
         if (! $setting) {
             return response()->json(['ok' => false, 'message' => 'Unknown bot'], 404);

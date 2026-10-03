@@ -213,7 +213,7 @@ export const commerceManifest: ModuleManifest = {
       order: 21,
       navGroup: "orders",
       navOrder: 0,
-      capability: "orders.*",
+      capability: "orders.own",
     },
     {
       path: "orders/new",
@@ -224,7 +224,7 @@ export const commerceManifest: ModuleManifest = {
       order: 21,
       navGroup: "orders",
       navOrder: 1,
-      capability: "orders.*",
+      capability: "orders.own",
     },
     {
       path: "orders/c2c-receipts",
@@ -235,7 +235,7 @@ export const commerceManifest: ModuleManifest = {
       order: 21,
       navGroup: "orders",
       navOrder: 2,
-      capability: "orders.*",
+      capability: "orders.own",
     },
     {
       path: "orders/wallet-withdrawals",
@@ -246,7 +246,7 @@ export const commerceManifest: ModuleManifest = {
       order: 21,
       navGroup: "orders",
       navOrder: 3,
-      capability: "orders.*",
+      capability: "orders.own",
     },
     {
       path: "orders/:orderId/edit",
@@ -256,7 +256,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
-      capability: "orders.*",
+      capability: "orders.own",
     },
     {
       path: "orders/:orderId",
@@ -266,7 +266,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
-      capability: "orders.*",
+      capability: "orders.own",
     },
     {
       path: "settings/c2c",
@@ -276,7 +276,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
-      capability: "orders.*",
+      capability: "orders.own",
     },
     {
       path: "settings/wallet",
@@ -286,7 +286,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
-      capability: "orders.*",
+      capability: "orders.own",
     },
     {
       path: "pos",

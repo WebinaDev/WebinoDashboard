@@ -47,6 +47,16 @@ class PaymentCallbackController extends Controller
     {
         try {
             $hash = (string) ($request->input('hash_id') ?? $request->input('hash') ?? '');
+            $intent = PaymentIntent::query()
+                ->where('order_id', $order->id)
+                ->where('tenant_id', $order->tenant_id)
+                ->where('provider', BasalamPay::PROVIDER)
+                ->latest()
+                ->first();
+            $stored = (string) data_get($intent?->meta, 'hash_id', '');
+            if ($hash === '' || $stored === '' || ! hash_equals($stored, $hash)) {
+                return $this->finish(false);
+            }
             $result = BasalamPay::for((int) $order->tenant_id)->verify($order, $hash);
 
             return $this->finish($result['paid'], $order);
@@ -62,18 +72,28 @@ class PaymentCallbackController extends Controller
         $settings = $this->gateways->getRaw((int) $order->tenant_id, 'zarinpal');
         $merchantId = (string) ($settings['merchant_id'] ?? '');
         $sandbox = (bool) ($settings['sandbox'] ?? true);
-        $authority = $request->query('Authority');
+        $authority = (string) $request->query('Authority', '');
         $status = $request->query('Status');
 
         $intent = PaymentIntent::query()
             ->where('order_id', $order->id)
+            ->where('tenant_id', $order->tenant_id)
             ->where('provider', 'zarinpal')
             ->latest()
             ->first();
+        $storedAuthority = (string) data_get($intent?->meta, 'zarinpal_authority', '');
 
-        if ($merchantId === '' || ! $authority || $status !== 'OK') {
+        if ($authority === '' || $status === null || $status === '' || $storedAuthority === '' || ! hash_equals($storedAuthority, $authority)) {
+            return $this->finish(false);
+        }
+
+        if (strtoupper((string) $status) !== 'OK') {
             $this->markFailed($order);
 
+            return $this->finish(false);
+        }
+
+        if ($merchantId === '') {
             return $this->finish(false);
         }
 
@@ -116,17 +136,24 @@ class PaymentCallbackController extends Controller
         $trackingCode = $request->query('trackingCode') ?? $request->query('tracking_code');
         $intent = PaymentIntent::query()
             ->where('order_id', $order->id)
+            ->where('tenant_id', $order->tenant_id)
             ->where('provider', 'digipay')
             ->latest()
             ->first();
+        $storedTracking = (string) data_get($intent?->meta, 'tracking_code', '');
+
+        if ($trackingCode === null || $trackingCode === '' || ! $intent) {
+            return $this->finish(false);
+        }
+        if ($storedTracking !== '' && ! hash_equals($storedTracking, (string) $trackingCode)) {
+            return $this->finish(false);
+        }
 
         $token = $this->digipay->bearerToken($settings);
         $base = $this->digipay->baseUrl($settings);
-        $providerId = (string) (data_get($intent?->meta, 'provider_id') ?: $order->id);
+        $providerId = (string) (data_get($intent->meta, 'provider_id') ?: $order->id);
 
-        if ($trackingCode === null || $trackingCode === '' || $token === null) {
-            $this->markFailed($order);
-
+        if ($token === null) {
             return $this->finish(false);
         }
 
@@ -163,16 +190,18 @@ class PaymentCallbackController extends Controller
         $state = (string) ($request->query('state') ?? $request->query('Status') ?? '');
         $intent = PaymentIntent::query()
             ->where('order_id', $order->id)
+            ->where('tenant_id', $order->tenant_id)
             ->where('provider', $provider)
             ->latest()
             ->first();
-        $paymentToken = (string) (
-            $request->query('paymentToken')
-            ?? data_get($intent?->meta, 'payment_token')
-            ?? ''
-        );
+        $storedToken = (string) data_get($intent?->meta, 'payment_token', '');
+        $queryToken = (string) ($request->query('paymentToken') ?? '');
+        if ($state === '' || $storedToken === '' || $queryToken === '' || ! hash_equals($storedToken, $queryToken)) {
+            return $this->finish(false);
+        }
+        $paymentToken = $storedToken;
 
-        if (strtoupper($state) !== 'OK' || $paymentToken === '') {
+        if (strtoupper($state) !== 'OK') {
             $this->markFailed($order);
 
             return $this->finish(false);

@@ -25,6 +25,12 @@ class DashboardOverviewController extends Controller
 
     public function smsPanel(Request $request): JsonResponse
     {
+        if (! app(\App\Support\CapabilityChecker::class)->allows($request->user(), 'marketing.*')) {
+            return response()->json([
+                'message' => __('api.forbidden'),
+                'errors' => ['code' => 'CAPABILITY_DENIED'],
+            ], 403);
+        }
         $force = filter_var($request->query('refresh', false), FILTER_VALIDATE_BOOLEAN);
         $data = $this->builder->smsPanel($request->user(), $force);
 

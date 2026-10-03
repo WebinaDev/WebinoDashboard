@@ -199,6 +199,7 @@ return [
     |
     */
 
+    // Lax (or stricter) so cookie-authenticated API calls are not sent on cross-site POSTs.
     'same_site' => env('SESSION_SAME_SITE', 'lax'),
 
     /*

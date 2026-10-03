@@ -40,6 +40,25 @@ class Coupon extends Model
 
     public const CONDITION_TYPES = ['none', 'order_nth', 'min_amount', 'min_items'];
 
+    protected $hidden = [
+        'password',
+    ];
+
+    public function setPasswordAttribute(?string $value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['password'] = null;
+
+            return;
+        }
+        if (str_starts_with($value, '$2y$') || str_starts_with($value, '$2a$') || str_starts_with($value, '$2b$') || str_starts_with($value, '$argon2')) {
+            $this->attributes['password'] = $value;
+
+            return;
+        }
+        $this->attributes['password'] = password_hash($value, PASSWORD_DEFAULT);
+    }
+
     protected function casts(): array
     {
         return [

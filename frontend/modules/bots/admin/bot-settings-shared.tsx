@@ -21,7 +21,7 @@ type Settings = {
   enabled: boolean
   token: string
   has_token: boolean
-  webhook_secret?: string
+  has_webhook_secret?: boolean
   webhook_url?: string
   meta?: {
     addons?: Record<string, boolean>
@@ -153,7 +153,7 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
                 <Input
                   readOnly
                   className="font-mono text-xs"
-                  value={`${q.data.webhook_url}?secret=${q.data.webhook_secret ?? ""}`}
+                  value={q.data.webhook_url}
                 />
               </div>
             ) : null}

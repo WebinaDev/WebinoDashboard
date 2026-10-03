@@ -127,7 +127,12 @@ class CouponService
         if ((string) $coupon->visibility === 'password') {
             $expected = (string) ($coupon->password ?? '');
             $given = (string) ($password ?? '');
-            if ($expected === '' || ! hash_equals($expected, $given)) {
+            $matches = $expected !== '' && (
+                $this->passwordLooksHashed($expected)
+                    ? password_verify($given, $expected)
+                    : hash_equals($expected, $given)
+            );
+            if (! $matches) {
                 throw ValidationException::withMessages(['coupon_password' => 'Coupon password is required']);
             }
         }
@@ -295,7 +300,7 @@ class CouponService
 
             return;
         }
-        if (! $now && in_array($to, ['cancelled', 'failed', 'payment_failed'], true)) {
+        if (! $now && in_array($to, ['cancelled', 'failed', 'payment_failed', 'refunded'], true)) {
             $this->release($order, $consumed || $was);
         }
     }
@@ -320,6 +325,14 @@ class CouponService
             }
             $redemption?->delete();
         });
+    }
+
+    public function passwordLooksHashed(string $value): bool
+    {
+        return str_starts_with($value, '$2y$')
+            || str_starts_with($value, '$2a$')
+            || str_starts_with($value, '$2b$')
+            || str_starts_with($value, '$argon2');
     }
 
     /**

@@ -73,6 +73,7 @@ class CheckoutController extends Controller
             $linePayload = [];
             $unitPrices = [];
             $weightG = \App\Services\Shipping\ShipmentWeight::cartGrams($lines);
+            app(\App\Services\Orders\OrderStock::class)->assertLinesAvailable($lines);
             foreach ($lines as $line) {
                 $product = $line->product;
                 if (! $product || $product->status !== 'publish' || $product->is_hidden || ! $product->is_available || $product->is_sold_out) {
@@ -139,15 +140,25 @@ class CheckoutController extends Controller
                 max(0, $subtotal - $discount)
             );
             $picked = null;
-            if (! empty($checkoutMeta['shipping_instance_id'])) {
+            $requestedInstance = ! empty($checkoutMeta['shipping_instance_id']);
+            if ($requestedInstance) {
                 foreach ($rates as $rate) {
                     if ((int) $rate['instance_id'] === (int) $checkoutMeta['shipping_instance_id']) {
                         $picked = $rate;
                         break;
                     }
                 }
+                if ($picked === null) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'shipping_instance_id' => 'Choose a shipping method from the quoted rates.',
+                    ]);
+                }
             } elseif ($rates !== []) {
                 $picked = $rates[0];
+            } elseif ($this->shipping->hasConfiguredMethods((int) $user->tenant_id)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'shipping_instance_id' => 'Choose a shipping method from the quoted rates.',
+                ]);
             }
 
             if ($picked) {
@@ -185,7 +196,8 @@ class CheckoutController extends Controller
                 || (int) ($applied['shipping_percent'] ?? 0) >= 100
                 || in_array($methodId, ['free_shipping', 'local_pickup'], true)
                 || ($methodId === 'tapin' && $this->tapinShipments->freeByMinimum((int) $user->tenant_id, max(0, $subtotal - $discount)));
-            if ($picked && $shippingMinor <= 0 && ! $freeRule) {
+            $clientZero = ! $picked && array_key_exists('shipping_minor', $checkoutMeta) && $shippingMinor <= 0;
+            if (($picked && $shippingMinor <= 0 && ! $freeRule) || ($clientZero && ! $freeRule)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'shipping_minor' => 'Zero shipping is only allowed when a free-shipping rule applies.',
                 ]);
@@ -260,6 +272,9 @@ class CheckoutController extends Controller
             }
 
             if (($checkoutMeta['payment_method'] ?? null) === 'wallet') {
+                $meta = is_array($order->meta) ? $order->meta : [];
+                $meta['wallet_checkout'] = true;
+                $order->meta = $meta;
                 $order->payment_tender = 'wallet';
                 $order->payment_provider = 'wallet';
                 $order->status = 'paid';
