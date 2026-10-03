@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { toLocaleDigits } from "@/lib/locale"
 import { fmtDate } from "@/views/settings/panels/marketplace/MarketplaceShared"
 
 type QueueView = {
@@ -87,7 +88,7 @@ export function TorobToolsPanel() {
             <ul className="max-h-64 space-y-1 overflow-auto text-xs">
               {q.pending.map((p) => (
                 <li key={p.product_id} className="flex flex-wrap gap-2 rounded border px-2 py-1">
-                  <span className="font-medium">#{p.product_id}</span>
+                  <span className="font-medium">#{toLocaleDigits(p.product_id, locale)}</span>
                   <code dir="ltr" className="min-w-0 flex-1 truncate">{p.page_url}</code>
                   <span className="text-muted-foreground">{fmtDate(p.date_modified, locale)}</span>
                 </li>

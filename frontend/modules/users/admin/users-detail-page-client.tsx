@@ -6,9 +6,9 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -314,7 +314,7 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
             <Label>{t("birth_date")}</Label>
             <LocaleDatePicker
               locale={locale}
-              value={profile.birth_date || null}
+              value={profile.birth_date}
               onChange={(value) => setProfile({ ...profile, birth_date: value ?? "" })}
               aria-label={t("birth_date")}
             />

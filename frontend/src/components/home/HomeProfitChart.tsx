@@ -12,7 +12,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { formatChartDateLabel, formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatSeriesKey } from "../../../modules/analytics/components/reports/format"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type { OrderReportSeriesPoint } from "@/types/dashboardOverview"
 
 type ProfitChartProps = {
@@ -34,13 +35,13 @@ export function HomeProfitChart({
   const chartData = useMemo(
     () =>
       series.map((row, idx) => ({
-        label: formatChartDateLabel(row.key || row.label, lng),
+        label: row.label,
         revenue: row.revenue,
         cogs: row.cogs ?? 0,
         profit: row.profit ?? 0,
         compareProfit: compareSeries[idx]?.profit ?? 0,
       })),
-    [series, compareSeries, lng],
+    [series, compareSeries],
   )
 
   const empty = chartData.length === 0
@@ -68,7 +69,13 @@ export function HomeProfitChart({
           >
             <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(v) => formatSeriesKey(String(v), lng, String(v))}
+              />
               <YAxis
                 yAxisId="left"
                 tickFormatter={axisFmt}

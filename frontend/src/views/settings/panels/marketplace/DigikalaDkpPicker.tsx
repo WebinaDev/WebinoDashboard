@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { toLocaleDigits } from "@/lib/locale"
 import { fmtNum } from "@/views/settings/panels/marketplace/MarketplaceShared"
 
 type DkVariant = { variant_id: string; product_id: string; title: string; label?: string; price: number; stock: number }
@@ -59,7 +60,7 @@ export function DigikalaDkpPicker({ productId, variantId, currentDkp }: { produc
                 <span className="min-w-0 flex-1">
                   {v.label || v.title || `#${v.variant_id}`}
                   <span className="text-muted-foreground ms-2" dir="ltr">
-                    #{v.variant_id}
+                    #{toLocaleDigits(v.variant_id, locale)}
                   </span>
                 </span>
                 <span className="text-muted-foreground">

@@ -3,10 +3,12 @@
 import { useLocale, useTranslations } from "next-intl"
 
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
+
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEnumLabel } from "@/lib/enum-labels"
+import { normalizeUiLocale } from "@/lib/locale"
 
 const STATUSES = ["publish", "draft", "pending", "private", "future"] as const
 const VISIBILITIES = ["public", "private", "password"] as const
@@ -31,7 +33,7 @@ export function CouponPublishPanel({
   setScheduledAt?: (v: string) => void
 }) {
   const t = useTranslations("coupons")
-  const locale = useLocale()
+  const locale = normalizeUiLocale(useLocale())
   const enumLabel = useEnumLabel()
   return (
     <div className="space-y-3">
@@ -79,7 +81,7 @@ export function CouponPublishPanel({
           <LocaleDatePicker
             locale={locale}
             withTime
-            value={scheduledAt || null}
+            value={scheduledAt}
             onChange={(value) => setScheduledAt(value ?? "")}
             aria-label={t("fields.scheduled_at")}
           />

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatNumber, normalizeUiLocale, toLocaleDigits, type UiLocale } from "@/lib/locale"
 import { formatDate } from "@/lib/locale/format-date"
+import { formatSeriesKey } from "../reports/format"
 import { cn } from "@/lib/utils"
 
 import { AnalyticsPeriodFilter, type AnalyticsRange } from "./AnalyticsPeriodFilter"
@@ -266,7 +267,13 @@ export function DailyTrafficChart({
           <ChartContainer config={config} className="h-full min-h-[12rem] w-full min-w-0">
             <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" minTickGap={16} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11 }}
+                interval="preserveStartEnd"
+                minTickGap={16}
+                tickFormatter={(v) => formatSeriesKey(String(v), lng, String(v))}
+              />
               <YAxis
                 tick={{ fontSize: 11 }}
                 width={48}

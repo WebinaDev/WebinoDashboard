@@ -5,7 +5,7 @@ import { unwrapApiResponse } from "@webina/ui"
 import { KeyRound, MessageSquare, Pencil, Plus, Search, Trash2, UserCog } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +27,7 @@ import { dashboardPath } from "@/kernel/paths"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useEnumLabel } from "@/lib/enum-labels"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { SendUserMessageDialog, type SendMessageUser } from "@/components/users/SendUserMessageDialog"
 
 type UserRow = {
@@ -103,6 +104,7 @@ const emptyCreate = {
 
 export default function UsersPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("users_admin")
+  const locale = normalizeUiLocale(useLocale())
   const tRoles = useTranslations("rbac.roles")
   const tCommon = useTranslations("common")
   const enumLabel = useEnumLabel()
@@ -301,7 +303,7 @@ export default function UsersPageClient({ route: _route }: { route: ResolvedAdmi
               onClick={() => onRoleTab(role)}
             >
               {roleLabel(role)}
-              <span className="text-muted-foreground ms-1 text-xs">({count})</span>
+              <span className="text-muted-foreground ms-1 text-xs">({formatNumber(count, locale)})</span>
             </Button>
           )
         })}

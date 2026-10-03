@@ -6,6 +6,7 @@ import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { normalizeUiLocale } from "@/lib/locale"
 
 export function CouponUsagePanel(props: {
   freeShipping: boolean
@@ -26,7 +27,7 @@ export function CouponUsagePanel(props: {
   setExpiresAt: (v: string) => void
 }) {
   const t = useTranslations("coupons")
-  const locale = useLocale()
+  const locale = normalizeUiLocale(useLocale())
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -51,7 +52,7 @@ export function CouponUsagePanel(props: {
           <LocaleDatePicker
             locale={locale}
             withTime
-            value={props.expiresAt || null}
+            value={props.expiresAt}
             onChange={(value) => props.setExpiresAt(value ?? "")}
             aria-label={t("fields.expires")}
           />

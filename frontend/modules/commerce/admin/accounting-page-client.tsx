@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { useEnumLabel } from "@/lib/enum-labels"
-import { formatDisplayDate } from "@/lib/format-date"
-import { emptyMark, formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatDate } from "@/lib/locale/format-date"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
@@ -208,7 +208,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
             {ledgerQ.data?.message ? (
               <p className="text-destructive">{String(ledgerQ.data.message)}</p>
             ) : null}
-            <p dir="ltr">lines: {Array.isArray(ledgerQ.data?.lines) ? ledgerQ.data.lines.length : 0}</p>
+            <p>lines: {formatNumber(Array.isArray(ledgerQ.data?.lines) ? ledgerQ.data.lines.length : 0, locale)}</p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -223,7 +223,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
                 <CardTitle className="text-sm font-medium">{tAcc(key as never)}</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {typeof val === "number" ? formatNumber(val, locale) : emptyMark(locale)}
+                {typeof val === "number" ? formatNumber(val, locale) : "—"}
               </CardContent>
             </Card>
           ))}
@@ -246,7 +246,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
               <Label>{tAcc("journal_date")}</Label>
               <LocaleDatePicker
                 locale={locale}
-                value={journalForm.date || null}
+                value={journalForm.date}
                 onChange={(value) => setJournalForm((s) => ({ ...s, date: value ?? "" }))}
                 aria-label={tAcc("journal_date")}
               />
@@ -264,7 +264,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
             {(journalsQ.data ?? []).map((j) => (
               <div key={j.id} className="flex justify-between border-b py-2">
                 <span>
-                  {toLocaleDigits(j.number, locale)} · {formatDisplayDate(j.date, locale)}
+                  {j.number} · {j.date ? formatDate(j.date, { locale }) : "—"}
                 </span>
                 <span className="text-muted-foreground">{enumLabel("job_status", j.status)}</span>
               </div>

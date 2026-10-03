@@ -41,12 +41,12 @@ import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
+import { formatDate as formatIsoDate } from "@/lib/locale/format-date"
 import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
-import { formatDisplayDate } from "@/lib/format-date"
 import { printProductLabels } from "@/lib/order-print"
 
 type NamedRef = { id: number; name: string }
@@ -177,7 +177,8 @@ function loadVisibleColumns(): ColumnKey[] {
 }
 
 function formatListDate(iso?: string | null, locale?: string) {
-  return formatDisplayDate(iso, locale ?? "fa")
+  if (!iso) return "—"
+  return formatIsoDate(iso, { locale: locale === "en" ? "en" : "fa" })
 }
 
 function PriceRange({ row }: { row: ProductRow }) {

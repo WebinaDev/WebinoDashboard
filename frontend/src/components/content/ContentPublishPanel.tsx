@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -12,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -257,9 +257,10 @@ export function ContentPublishPanel({
               <div className="space-y-1">
                 <Label htmlFor="publish-date">{t("publish_scheduled")}</Label>
                 <LocaleDatePicker
+                  id="publish-date"
                   locale={locale}
                   withTime
-                  value={draftDate || null}
+                  value={draftDate}
                   onChange={(value) => setDraftDate(value ?? "")}
                   aria-label={t("publish_scheduled")}
                 />

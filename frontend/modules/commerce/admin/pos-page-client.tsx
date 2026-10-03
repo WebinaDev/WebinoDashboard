@@ -14,6 +14,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useEnumLabel } from "@/lib/enum-labels"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 import {
   POS_PAYMENT_TENDERS,
@@ -232,7 +233,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
         <p className="text-sm">
           {t("last_order")}{" "}
           <Link className="underline" href={`/dashboard/orders/${lastOrderId}`}>
-            #{lastOrderId}
+            #{toLocaleDigits(lastOrderId, normalizeUiLocale(locale))}
           </Link>
         </p>
       ) : null}
@@ -330,7 +331,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
                     >
                       <Minus className="size-4" />
                     </Button>
-                    <span className="w-8 text-center text-sm">{l.qty}</span>
+                    <span className="w-8 text-center text-sm">{formatNumber(l.qty, normalizeUiLocale(locale))}</span>
                     <Button
                       size="icon"
                       variant="outline"
@@ -382,7 +383,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
                       setCustomerHits([])
                     }}
                   >
-                    {c.name || c.email} #{c.id}
+                    {c.name || c.email} #{toLocaleDigits(c.id, normalizeUiLocale(locale))}
                   </button>
                 </li>
               ))}

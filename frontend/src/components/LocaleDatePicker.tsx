@@ -9,6 +9,7 @@ import { CalendarIcon } from "lucide-react"
 import { useState } from "react"
 import persian from "react-date-object/calendars/persian"
 import gregorian from "react-date-object/calendars/gregorian"
+import gregorianEn from "react-date-object/locales/gregorian_en"
 import persianFa from "react-date-object/locales/persian_fa"
 import DateObject from "react-date-object"
 import type { ChangedValue } from "react-multi-date-picker"
@@ -33,12 +34,25 @@ const DatePicker = dynamic(() => import("react-multi-date-picker"), {
 
 type Props = {
   locale: string
-  /** ISO `YYYY-MM-DD`, or `YYYY-MM-DDTHH:mm` when `withTime` */
+  /** ISO date `YYYY-MM-DD`, or `YYYY-MM-DDTHH:mm` when `withTime` is set. Empty string / null when unset. */
   value: string | null
-  /** Gregorian ISO. Date-only is `YYYY-MM-DD`; with time it is `YYYY-MM-DDTHH:mm`. */
+  /** Receives an ISO Gregorian value, or `null` when cleared. */
   onChange: (value: string | null) => void
+  /** Include a time of day. Stored value stays Gregorian `YYYY-MM-DDTHH:mm`. */
   withTime?: boolean
+  id?: string
   "aria-label"?: string
+}
+
+function jalaliSeed(value: string | null, withTime: boolean): DateObject | undefined {
+  if (value == null || value === "") return undefined
+  const raw = value.trim().replace("T", " ")
+  const hasTime = withTime && raw.length > 10
+  const format = hasTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD"
+  const date = raw.slice(0, hasTime ? 16 : 10)
+  const parsed = new DateObject({ date, format, calendar: gregorian })
+  if (!parsed.isValid) return undefined
+  return parsed.convert(persian, persianFa)
 }
 
 export function LocaleDatePicker({
@@ -46,6 +60,7 @@ export function LocaleDatePicker({
   value,
   onChange,
   withTime = false,
+  id,
   "aria-label": ariaLabel,
 }: Props) {
   if (isRtlLocale(locale)) {
@@ -54,7 +69,20 @@ export function LocaleDatePicker({
         value={value}
         onChange={onChange}
         withTime={withTime}
+        id={id}
         aria-label={ariaLabel}
+      />
+    )
+  }
+
+  if (withTime) {
+    return (
+      <Input
+        id={id}
+        type="datetime-local"
+        aria-label={ariaLabel}
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
       />
     )
   }
@@ -63,49 +91,37 @@ export function LocaleDatePicker({
     <GregorianLocaleDatePicker
       value={value}
       onChange={onChange}
-      withTime={withTime}
       aria-label={ariaLabel}
     />
   )
-}
-
-function jalaliValue(value: string | null, withTime: boolean) {
-  if (value == null || value === "") return undefined
-  const [datePart, timePart] = value.split(/[T ]/)
-  const obj = new DateObject({
-    date: datePart,
-    format: "YYYY-MM-DD",
-    calendar: gregorian,
-  })
-  if (withTime && timePart) {
-    const [hh, mm] = timePart.split(":")
-    obj.set({ hour: Number(hh) || 0, minute: Number(mm) || 0 })
-  }
-  return obj.convert(persian, persianFa)
 }
 
 function JalaliLocaleDatePicker({
   value,
   onChange,
   withTime = false,
+  id,
   "aria-label": ariaLabel,
 }: Omit<Props, "locale">) {
+  const dob = jalaliSeed(value, withTime)
+
   return (
     <div className="max-w-xs" dir={htmlDir("fa")}>
       <DatePicker
+        id={id}
         calendar={persian}
         locale={persianFa}
-        value={jalaliValue(value, withTime)}
+        value={dob}
         format={withTime ? "YYYY/MM/DD HH:mm" : "YYYY/MM/DD"}
-        plugins={withTime ? [<TimePicker key="time" hideSeconds position="bottom" />] : []}
+        plugins={withTime ? [<TimePicker key="time" position="bottom" hideSeconds />] : []}
         onChange={(d: ChangedValue) => {
-          if (d == null || Array.isArray(d)) {
+          const picked = Array.isArray(d) ? d[0] : d
+          if (picked == null) {
             onChange(null)
             return
           }
-          const g = d.convert(gregorian)
-          const date = g.format("YYYY-MM-DD")
-          onChange(withTime ? `${date}T${g.format("HH:mm")}` : date)
+          const g = picked.convert(gregorian).setLocale(gregorianEn)
+          onChange(withTime ? g.format("YYYY-MM-DDTHH:mm") : g.format("YYYY-MM-DD"))
         }}
         calendarPosition="bottom-end"
         inputClass="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -119,22 +135,10 @@ function JalaliLocaleDatePicker({
 function GregorianLocaleDatePicker({
   value,
   onChange,
-  withTime = false,
   "aria-label": ariaLabel,
 }: Omit<Props, "locale">) {
   const t = useTranslations("common")
   const [open, setOpen] = useState(false)
-  if (withTime) {
-    return (
-      <Input
-        type="datetime-local"
-        aria-label={ariaLabel}
-        className="max-w-xs"
-        value={value ?? ""}
-        onChange={(event) => onChange(event.target.value || null)}
-      />
-    )
-  }
   const date = value ? new Date(value) : undefined
 
   return (
