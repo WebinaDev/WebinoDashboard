@@ -28,6 +28,8 @@ const KEY_TO_MESSAGE: Record<string, string> = {
   "errors.server": "status_500",
   "validation.failed": "status_422",
   "Two-factor authentication required": "two_factor",
+  cart_not_for_sale: "cart_not_for_sale",
+  reviews_disabled: "reviews_disabled",
 }
 
 function uiLocale(): "fa" | "en" {
@@ -82,8 +84,10 @@ export function getApiErrorMessage(err: unknown, body?: ErrorBody | null): strin
   if (coded) return apiErrorText(coded)
 
   const validation = firstValidationError(body?.errors)
-  if (validation && validation !== "Server Error") {
-    return validation
+  if (validation) {
+    const mappedValidation = KEY_TO_MESSAGE[validation]
+    if (mappedValidation) return apiErrorText(mappedValidation)
+    if (validation !== "Server Error") return validation
   }
 
   const mappedBody = messageFromBody ? KEY_TO_MESSAGE[messageFromBody] : undefined

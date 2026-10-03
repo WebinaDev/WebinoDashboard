@@ -311,9 +311,11 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
         method: "POST",
         json: { ids: selected, action: "change_status", status: bulkStatus },
       }),
-    onSuccess: async () => {
+    onSuccess: async (res: { skipped?: number[] }) => {
+      const skipped = res?.skipped ?? []
       setSelected([])
       await invalidateOrders()
+      if (skipped.length) setError(t("bulk_skipped", { ids: skipped.join(", ") }))
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })

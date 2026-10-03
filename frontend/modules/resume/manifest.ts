@@ -8,7 +8,7 @@ export const resumeManifest: ModuleManifest = {
   submodules: ["profile", "experience", "education", "skills", "projects", "contact"],
   adminNav: { section: "resume", order: 16 },
   adminRoutes: [
-    { path: "resume", submodule: "profile", labelKey: "nav.resume", section: "resume", order: 16 },
+    { path: "resume", submodule: "profile", labelKey: "nav.resume", section: "resume", order: 16, capability: "content.manage" },
   ],
   siteRoutes: [
     { path: "resume", submodule: "profile", labelKey: "site.resume" },

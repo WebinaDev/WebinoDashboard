@@ -326,6 +326,9 @@ class PricingSettings
                     }
                     $current['sources'] = $sources;
                 }
+                if (array_key_exists('allowed_hosts', $data)) {
+                    $current['allowed_hosts'] = ReferencePriceService::normalizeHostList($data['allowed_hosts']);
+                }
 
                 return $current;
         }

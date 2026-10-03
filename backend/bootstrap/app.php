@@ -16,10 +16,19 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn () => null);
 
-        // Caddy (and any reverse proxy) sits in front — trust X-Forwarded-* so
-        // $request->ip() / isSecure() / URL generation are correct.
+        // Trust only configured proxies. `*` would let a client that can reach
+        // PHP directly rotate X-Forwarded-For and skip the login limiter.
+        // Loopback is the default (Caddy on the same host). Set TRUSTED_PROXIES
+        // to the edge proxy address; the value `*` is ignored.
+        $trustedProxies = array_values(array_filter(
+            array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1,::1'))),
+            static fn (string $proxy): bool => $proxy !== '' && $proxy !== '*' && $proxy !== '**',
+        ));
+        if ($trustedProxies === []) {
+            $trustedProxies = ['127.0.0.1', '::1'];
+        }
         $middleware->trustProxies(
-            at: '*',
+            at: $trustedProxies,
             headers: Request::HEADER_X_FORWARDED_FOR
                 | Request::HEADER_X_FORWARDED_HOST
                 | Request::HEADER_X_FORWARDED_PORT

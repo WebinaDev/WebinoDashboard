@@ -100,8 +100,9 @@ export const SAMPLE_PRODUCTS: ShopProduct[] = [
 
 export const SAMPLE_BRANDS = ["لومِن", "نورا", "آتریس", "ویوا", "کَلم", "ویبینو"]
 
-export function formatPrice(amount: number): string {
-  return `${new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(amount)))} تومان`
+export function formatPrice(amount: number, currencyLabel?: string): string {
+  const formatted = new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(amount)))
+  return currencyLabel ? `${formatted} ${currencyLabel}` : formatted
 }
 
 export function toneClass(tone: string): string {

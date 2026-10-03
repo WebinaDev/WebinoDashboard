@@ -53,7 +53,7 @@ class ProductReviewController extends Controller
         $tid = $this->publicTenantId($request);
         $settings = ShopSettings::getReviews($tid);
         if (empty($settings['enabled'])) {
-            return response()->json(['message' => 'Reviews disabled'], 422);
+            return response()->json(['message' => 'reviews_disabled', 'errors' => ['code' => 'reviews_disabled']], 422);
         }
 
         $data = $request->validate([

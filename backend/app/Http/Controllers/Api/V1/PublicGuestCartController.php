@@ -90,7 +90,7 @@ class PublicGuestCartController extends Controller
         foreach ($lines as $line) {
             $product = $line->product;
             if (! $product || $product->status !== 'publish' || $product->is_hidden || ! $product->is_available || $product->is_sold_out) {
-                return response()->json(['message' => 'Cart contains a product that is not for sale.'], 422);
+                return response()->json(['message' => 'cart_not_for_sale', 'errors' => ['code' => 'cart_not_for_sale']], 422);
             }
         }
 

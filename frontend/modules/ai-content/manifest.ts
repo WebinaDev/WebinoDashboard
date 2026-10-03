@@ -29,6 +29,7 @@ export const aiContentManifest: ModuleManifest = {
     order: 61,
     navGroup: "ai_content",
     navOrder: i,
+    capability: "content.manage",
   })),
   siteRoutes: [],
 }

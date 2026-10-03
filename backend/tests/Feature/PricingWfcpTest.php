@@ -280,4 +280,47 @@ class PricingWfcpTest extends TestCase
         $this->assertSame(['cash' => 120000, 'credit' => 132000], $res->json('data.pricing.types'));
         $this->assertArrayNotHasKey('purchase_price_minor', $res->json('data'));
     }
+
+    public function test_reference_fetch_rejects_unknown_and_private_hosts(): void
+    {
+        PricingSettings::saveSection($this->tenant->id, 'reference', ['enabled' => true, 'allowed_hosts' => ['shop.example']]);
+        Http::fake();
+        $product = $this->product();
+
+        foreach ([
+            'http://127.0.0.1/secret',
+            'http://169.254.169.254/latest/meta-data',
+            'https://eviltechnolife.com/product-1',
+            'https://technolife.com.evil.com/product-1',
+            'https://not-a-shop.example/product/widget',
+        ] as $url) {
+            $this->postJson("/api/v1/pricing/products/{$product->id}/reference-fetch", ['url' => $url])->assertStatus(422);
+        }
+        Http::assertNothingSent();
+
+        Http::fake([
+            'https://shop.example/*' => Http::response('', 302, ['Location' => 'http://127.0.0.1/secret']),
+        ]);
+        $this->postJson("/api/v1/pricing/products/{$product->id}/reference-fetch", [
+            'url' => 'https://shop.example/product/widget',
+        ])->assertStatus(422);
+        Http::assertNotSent(fn (HttpRequest $request) => str_contains($request->url(), '127.0.0.1'));
+
+        $service = new \App\Services\Pricing\ReferencePriceService($this->tenant->id);
+        $service->resolver = fn (string $host): array => $host === 'shop.example' ? ['10.0.0.8'] : ['1.1.1.1'];
+        $this->expectException(\RuntimeException::class);
+        $service->sync($product, null, 'https://shop.example/product/widget');
+    }
+
+    public function test_reference_source_detection_is_host_allowlisted(): void
+    {
+        $this->assertSame('digikala', \App\Services\Pricing\ReferencePriceService::detectSource('https://www.digikala.com/product/dkp-9/x/'));
+        $this->assertNull(\App\Services\Pricing\ReferencePriceService::detectSource('https://evil.example/youtube.com'));
+        $this->assertNull(\App\Services\Pricing\ReferencePriceService::detectSource('https://shop.example/product/a'));
+        $this->assertSame(
+            'woocommerce',
+            \App\Services\Pricing\ReferencePriceService::detectSource('https://shop.example/product/a', ['shop.example'])
+        );
+        $this->assertSame(['shop.example'], \App\Services\Pricing\ReferencePriceService::normalizeHostList(['127.0.0.1', 'localhost', 'shop.example']));
+    }
 }

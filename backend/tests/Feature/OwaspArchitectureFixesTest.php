@@ -136,6 +136,10 @@ class OwaspArchitectureFixesTest extends TestCase
             'api/v1/public/cafe/phone-register',
             'api/v1/public/cafe/cart/items',
             'api/v1/public/cafe/checkout',
+            'api/v1/public/catalog/items/{slug}/reviews',
+            'api/v1/public/cafe/products/{product}/like',
+            'api/v1/public/cafe/products/{product}/feedback',
+            'api/v1/public/orders/{order}/pay/intent',
         ] as $uri) {
             $route = collect(Route::getRoutes()->getRoutes())->first(fn ($r) => $r->uri() === $uri && in_array('POST', $r->methods(), true));
             $this->assertNotNull($route, $uri);
@@ -250,4 +254,149 @@ class OwaspArchitectureFixesTest extends TestCase
             ->get('/api/v1/zarinpal/settings')
             ->assertRedirect('/api/v1/payments/gateways/zarinpal');
     }
+
+    public function test_orders_own_cannot_discount_or_invent_a_sale(): void
+    {
+        $seller = $this->tenantUser('seller', ['commerce.orders' => true, 'commerce.catalog' => true]);
+        $product = Product::query()->create([
+            'tenant_id' => $seller->tenant_id,
+            'name' => 'Priced',
+            'slug' => 'priced',
+            'price_minor' => 50000,
+            'currency' => 'IRT',
+            'status' => 'publish',
+            'manage_stock' => true,
+            'stock' => 4,
+        ]);
+
+        $created = $this->actingAs($seller, 'sanctum')
+            ->postJson('/api/v1/orders', [
+                'items' => [['product_id' => $product->id, 'quantity' => 1]],
+                'discount_minor' => 50000,
+                'shipping_minor' => 9000,
+                'amount_paid_minor' => 1,
+                'status' => 'completed',
+            ])
+            ->assertCreated()
+            ->json('data');
+
+        $this->assertSame('pending_payment', $created['status']);
+        $this->assertSame(0, (int) $created['discount_minor']);
+        $this->assertSame(0, (int) $created['shipping_minor']);
+        $this->assertSame(50000, (int) $created['total_minor']);
+        $this->assertNull($created['amount_paid_minor']);
+        $this->assertSame(4, (int) $product->fresh()->stock);
+    }
+
+    public function test_rewrite_rebinds_stock_and_refuses_illegal_status(): void
+    {
+        $admin = $this->tenantUser('admin', ['commerce.orders' => true, 'commerce.catalog' => true]);
+        $first = Product::query()->create([
+            'tenant_id' => $admin->tenant_id,
+            'name' => 'Old',
+            'slug' => 'old-sku',
+            'price_minor' => 1000,
+            'currency' => 'IRT',
+            'status' => 'publish',
+            'manage_stock' => true,
+            'stock' => 8,
+        ]);
+        $second = Product::query()->create([
+            'tenant_id' => $admin->tenant_id,
+            'name' => 'New',
+            'slug' => 'new-sku',
+            'price_minor' => 1000,
+            'currency' => 'IRT',
+            'status' => 'publish',
+            'manage_stock' => true,
+            'stock' => 8,
+        ]);
+
+        $order = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/orders', [
+                'items' => [['product_id' => $first->id, 'quantity' => 2]],
+                'status' => 'processing',
+            ])
+            ->assertCreated()
+            ->json('data');
+
+        $this->assertSame(6, (int) $first->fresh()->stock);
+
+        $rewritten = $this->putJson('/api/v1/orders/'.$order['id'], [
+            'items' => [['product_id' => $second->id, 'quantity' => 3]],
+        ])->assertOk()->json('data');
+
+        $this->assertSame(8, (int) $first->fresh()->stock);
+        $this->assertSame(5, (int) $second->fresh()->stock);
+        $ledger = $rewritten['meta']['stock_reduced_qty'] ?? [];
+        $this->assertSame([(string) $rewritten['items'][0]['id'] => 3], $ledger);
+
+        $this->putJson('/api/v1/orders/'.$order['id'], [
+            'status' => 'pending_payment',
+            'items' => [['product_id' => $first->id, 'quantity' => 1]],
+        ])->assertStatus(422);
+
+        $fresh = Order::query()->find($order['id']);
+        $this->assertSame('processing', $fresh->status);
+        $this->assertSame(8, (int) $first->fresh()->stock);
+        $this->assertSame(5, (int) $second->fresh()->stock);
+    }
+
+    public function test_verified_payment_without_an_amount_is_not_paid(): void
+    {
+        $home = Tenant::query()->create([
+            'name' => 'Pay', 'slug' => 'pay', 'domain' => 'pay.test', 'license_key' => 'k', 'setup_completed' => true, 'default_currency' => 'IRT',
+        ]);
+        $order = Order::query()->create([
+            'tenant_id' => $home->id,
+            'status' => 'pending_payment',
+            'subtotal_minor' => 1000,
+            'total_minor' => 1000,
+            'currency' => 'IRT',
+            'number' => 'ORD-PAY',
+        ]);
+        PaymentIntent::query()->create([
+            'tenant_id' => $home->id,
+            'order_id' => $order->id,
+            'provider' => 'digipay',
+            'status' => 'created',
+            'meta' => ['provider_id' => 'PROV-AMT', 'amount_rial' => 10000],
+        ]);
+        app(\App\Services\Payments\PaymentGatewaySettingsService::class)->save($home->id, 'digipay', [
+            'enabled' => true,
+            'settings' => [
+                'client_id' => 'd',
+                'client_secret' => 'd',
+                'username' => 'd',
+                'password' => 'd',
+                'environment' => 'staging',
+            ],
+        ]);
+        Http::fake([
+            'https://uat.mydigipay.info/*' => Http::sequence()
+                ->push(['access_token' => 'tok', 'expires_in' => 3600])
+                ->push(['result' => ['status' => 0]]),
+        ]);
+
+        $this->call('GET', '/api/v1/payments/callback/digipay/'.$order->id.'?trackingCode=TRK&providerId=PROV-AMT', [], [], [], [
+            'HTTP_HOST' => 'pay.test',
+        ])->assertRedirect();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+    }
+
+    public function test_content_modules_require_content_manage(): void
+    {
+        $seller = $this->tenantUser('seller', [
+            'ai-content.studio' => true,
+            'corporate.portfolio' => true,
+        ]);
+        $this->actingAs($seller, 'sanctum')->getJson('/api/v1/ai-content/settings')->assertForbidden();
+        $this->actingAs($seller, 'sanctum')->getJson('/api/v1/portfolio/items')->assertForbidden();
+
+        $author = $this->tenantUser('author', ['ai-content.studio' => true]);
+        $this->actingAs($author, 'sanctum')->getJson('/api/v1/ai-content/settings')->assertOk();
+    }
+
+
 }

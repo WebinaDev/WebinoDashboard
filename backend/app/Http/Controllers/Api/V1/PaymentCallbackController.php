@@ -200,7 +200,7 @@ class PaymentCallbackController extends Controller
 
         $paidAmount = data_get($verify, 'amount') ?? data_get($verify, 'amountRial');
         $expected = (int) data_get($intent->meta, 'amount_rial', 0);
-        $amountOk = $paidAmount === null || $paidAmount === '' || (int) $paidAmount === $expected;
+        $amountOk = is_numeric($paidAmount) && (int) $paidAmount === $expected;
 
         if ((int) data_get($verify, 'result.status') === 0 && $amountOk && $expected > 0) {
             $this->markPaid($order, $intent, [
@@ -240,7 +240,7 @@ class PaymentCallbackController extends Controller
         ]);
         $expected = (int) data_get($intent->meta, 'amount_rial', 0);
         $reported = data_get($verify['data'], 'response.amount') ?? data_get($verify['data'], 'amount');
-        $amountOk = $reported === null || $reported === '' || (int) $reported === $expected;
+        $amountOk = is_numeric($reported) && (int) $reported === $expected;
         if (! $verify['ok'] || ! $amountOk || $expected < 1) {
             $this->markAttemptFailed($request, $order, $intent);
 

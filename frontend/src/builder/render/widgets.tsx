@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 
 import { addToCart, cartCount, cartSnapshot, clearCart, setQty, subscribeCart } from "../cart"
+import { embedVideoSrc, sanitizeBuilderHtml } from "./sanitize-html"
 import {
   SAMPLE_BRANDS,
   SAMPLE_CATEGORIES,
@@ -50,6 +51,11 @@ function useCartCount() {
 
 function useCartLines() {
   return useSyncExternalStore(subscribeCart, cartSnapshot, () => [])
+}
+
+function useMoney() {
+  const t = useTranslations("builder")
+  return (amount: number) => formatPrice(amount, t("currency_toman"))
 }
 
 function useCatalog(limit: number) {
@@ -284,19 +290,20 @@ function IconWidget({ widget }: { widget: WidgetNode }) {
 }
 
 function VideoWidget({ widget }: { widget: WidgetNode }) {
+  const t = useTranslations("builder")
   const src = propStr(widget.props, "src")
+  const embed = embedVideoSrc(src)
   if (!src) {
-    return <div className="grid aspect-video place-items-center rounded-2xl bg-[#0C2D63] text-sm text-white">ویدیو</div>
+    return <div className="grid aspect-video place-items-center rounded-2xl bg-[#0C2D63] text-sm text-white">{t("video")}</div>
   }
-  const embed = src.includes("youtube.com") || src.includes("youtu.be") || src.includes("aparat.com")
   if (embed) {
-    return <iframe title="ویدیو" src={src} className="aspect-video w-full rounded-2xl" allow="fullscreen" />
+    return <iframe title={t("video")} src={embed} className="aspect-video w-full rounded-2xl" allow="fullscreen" />
   }
   return <video src={src} controls className="aspect-video w-full rounded-2xl bg-black" />
 }
 
 function sanitizeHtml(html: string): string {
-  const stripped = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+  const stripped = sanitizeBuilderHtml(html)
   if (typeof window === "undefined") return stripped
   return DOMPurify.sanitize(stripped, {
     ALLOWED_TAGS: ["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "blockquote", "span", "div", "img", "hr", "table", "thead", "tbody", "tr", "th", "td", "figure", "figcaption"],
@@ -443,6 +450,7 @@ function CategoryWidget({ widget }: { widget: WidgetNode }) {
 }
 
 function ProductCard({ product }: { product: ShopProduct }) {
+  const money = useMoney()
   const t = useTranslations("cart")
   const [liked, setLiked] = useState(false)
   const off = product.compare && product.compare > product.price ? Math.round((1 - product.price / product.compare) * 100) : 0
@@ -465,8 +473,8 @@ function ProductCard({ product }: { product: ShopProduct }) {
       <p className="mt-1 text-xs text-[#7c5cbf]">{product.brand}</p>
       <div className="mt-auto flex items-end justify-between gap-2 pt-3">
         <div>
-          {product.compare ? <div className="text-[11px] text-[#0C2D63]/40 line-through">{formatPrice(product.compare)}</div> : null}
-          <div className="text-sm font-bold text-[#0C2D63]">{formatPrice(product.price)}</div>
+          {product.compare ? <div className="text-[11px] text-[#0C2D63]/40 line-through">{money(product.compare)}</div> : null}
+          <div className="text-sm font-bold text-[#0C2D63]">{money(product.price)}</div>
         </div>
         <button
           type="button"
@@ -522,6 +530,7 @@ function ProductGridWidget({ widget, editing }: { widget: WidgetNode; editing: b
 }
 
 function LoopCard({ product, template }: { product: ShopProduct; template: BuilderDocument }) {
+  const money = useMoney()
   const runtime = useBuilderRuntime()
   const widgets = template.sections.flatMap((section) => section.columns.flatMap((column) => column.widgets))
   if (widgets.length === 1 && widgets[0]?.type === "product-card") {
@@ -530,7 +539,7 @@ function LoopCard({ product, template }: { product: ShopProduct; template: Build
   const filled = fillDocumentTokens(widgets, {
     name: product.name,
     brand: product.brand,
-    price: formatPrice(product.price),
+    price: money(product.price),
     slug: product.slug,
     href: `/product/${product.slug}`,
   })
@@ -601,6 +610,7 @@ function PromoWidget({ widget }: { widget: WidgetNode }) {
 }
 
 function DealBar({ widget }: { widget: WidgetNode }) {
+  const money = useMoney()
   return (
     <div className="grid gap-3 rounded-[28px] bg-[#E16BA6] p-3 text-white md:grid-cols-4">
       <div className="rounded-2xl bg-white/15 px-4 py-3">
@@ -611,7 +621,7 @@ function DealBar({ widget }: { widget: WidgetNode }) {
         <div key={name} className="flex items-center justify-between rounded-2xl bg-white/15 px-4 py-3">
           <div>
             <div className="text-sm font-bold">{name}</div>
-            <div className="text-xs">{formatPrice([1860000, 640000, 540000][index] ?? 0)}</div>
+            <div className="text-xs">{money([1860000, 640000, 540000][index] ?? 0)}</div>
           </div>
           <span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold text-[#E16BA6]">ویژه</span>
         </div>
@@ -784,6 +794,7 @@ function FilterWidget({ editing }: { editing: boolean }) {
 }
 
 function ProductDetail({ slug, editing }: { slug?: string; editing: boolean }) {
+  const money = useMoney()
   const t = useTranslations("cart")
   const catalog = useCatalog(8)
   const product = catalog.products.find((item) => item.slug === slug) ?? catalog.products[0]
@@ -814,7 +825,7 @@ function ProductDetail({ slug, editing }: { slug?: string; editing: boolean }) {
         <p className="text-xs font-semibold text-[#7c5cbf]">{product.brand}</p>
         <h1 className="mt-1 text-2xl font-bold text-[#0C2D63] md:text-3xl">{product.name}</h1>
         <p className="mt-3 text-sm leading-7 text-[#0C2D63]/80">{product.description}</p>
-        <div className="mt-4 text-2xl font-bold text-[#0C2D63]">{formatPrice(product.price)}</div>
+        <div className="mt-4 text-2xl font-bold text-[#0C2D63]">{money(product.price)}</div>
         <div className="mt-4 flex flex-wrap gap-2">
           {swatches.map((swatch) => (
             <button key={swatch.id} type="button" onClick={() => setTone(swatch.id)} className={`rounded-full px-3 py-1 text-xs font-semibold ${tone === swatch.id ? "bg-[#E16BA6] text-white" : "bg-[#F5F8FB] text-[#0C2D63]"}`}>
@@ -835,7 +846,7 @@ function ProductDetail({ slug, editing }: { slug?: string; editing: boolean }) {
         <div className="mt-5 rounded-3xl border border-[#e6eef6] bg-[#F5F8FB] p-4">
           <div className="text-sm font-bold text-[#0C2D63]">خرید اقساطی ویبینو</div>
           <p className="mt-1 text-xs leading-6 text-[#0C2D63]/75">تا سه قسط، بدون بهره نمایشی. این جعبه نمونه است و هنوز به درگاه وصل نیست.</p>
-          <div className="mt-2 text-sm font-bold text-[#0C2D63]">{formatPrice(Math.round(product.price / 3))} هر قسط</div>
+          <div className="mt-2 text-sm font-bold text-[#0C2D63]">{money(Math.round(product.price / 3))} هر قسط</div>
         </div>
         <div className="mt-6 flex gap-2 border-b border-[#e6eef6]">
           {[
@@ -857,6 +868,7 @@ function ProductDetail({ slug, editing }: { slug?: string; editing: boolean }) {
 }
 
 function CartWidget() {
+  const money = useMoney()
   const lines = useCartLines()
   const total = lines.reduce((sum, line) => sum + line.price * line.qty, 0)
   if (!lines.length) {
@@ -875,7 +887,7 @@ function CartWidget() {
             <div className="size-20 overflow-hidden rounded-2xl">{line.image ? <img src={line.image} alt="" className="h-full w-full object-cover" /> : <AbstractArt tone={line.tone} label="" />}</div>
             <div className="flex-1">
               <div className="font-bold text-[#0C2D63]">{line.name}</div>
-              <div className="text-sm">{formatPrice(line.price)}</div>
+              <div className="text-sm">{money(line.price)}</div>
             </div>
             <input className="h-10 w-16 rounded-xl border border-[#e6eef6] text-center" type="number" min={0} value={line.qty} onChange={(event) => setQty(line.slug, Number(event.target.value))} />
           </div>
@@ -883,7 +895,7 @@ function CartWidget() {
       </div>
       <aside className="h-fit rounded-3xl bg-[#0C2D63] p-5 text-white">
         <div className="text-sm opacity-80">جمع</div>
-        <div className="mt-1 text-2xl font-bold">{formatPrice(total)}</div>
+        <div className="mt-1 text-2xl font-bold">{money(total)}</div>
         <Link href="/checkout" className="mt-4 block rounded-full bg-[#E16BA6] py-2.5 text-center text-sm font-bold">تسویه</Link>
         <button type="button" className="mt-2 w-full text-xs opacity-80" onClick={() => clearCart()}>خالی کردن سبد</button>
       </aside>

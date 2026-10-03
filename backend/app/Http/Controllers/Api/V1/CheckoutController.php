@@ -78,7 +78,7 @@ class CheckoutController extends Controller
                 $product = $line->product;
                 if (! $product || $product->status !== 'publish' || $product->is_hidden || ! $product->is_available || $product->is_sold_out) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'cart' => 'Cart contains a product that is not for sale.',
+                        'cart' => 'cart_not_for_sale',
                     ]);
                 }
                 $unit = $types->unitPrice($product, $purchaseType, $months);

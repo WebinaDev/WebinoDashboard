@@ -1070,7 +1070,8 @@
     "tapin_service_tipax": "Tipax",
     "tapin_service_courier": "Courier",
     "tapin_service_alonomic": "Alonomic",
-    "unavailable": "Unavailable"
+    "unavailable": "Unavailable",
+    "bulk_skipped": "These orders were not updated: {ids}"
   },
   "order_pay": {
     "title": "Pay order",
@@ -4224,7 +4225,9 @@
       "source_woocommerce": "WooCommerce / other shops",
       "sync_stock": "Sync stock",
       "sync_stock_locked": "Sync stock even when the price is locked",
-      "usage": "Set the reference URL in the product editor and click “Fetch from reference”."
+      "usage": "Set the reference URL in the product editor and click “Fetch from reference”.",
+      "allowed_hosts": "Allowed WooCommerce hosts",
+      "allowed_hosts_hint": "Only these hosts can be fetched as WooCommerce. One host per line."
     },
     "notifications": {
       "title": "Texts & alerts",
@@ -5981,7 +5984,9 @@
     "globals": "Global settings",
     "widget_search": "Search widgets",
     "theme_builder": "Theme builder",
-    "empty_list": "No pages yet. Create one or load the ishop starter."
+    "empty_list": "No pages yet. Create one or load the ishop starter.",
+    "video": "Video",
+    "currency_toman": "Toman"
   },
   "theme_builder": {
     "title": "Theme builder",
@@ -6112,8 +6117,7 @@
     "lightbox_enabled": "Lightbox enabled",
     "custom_vars": "CSS variables",
     "custom_vars_hint": "One custom property per line, such as --wb-extra: 4px."
-  }
-,
+  },
   "api_errors": {
     "status_401": "Your session expired. Sign in again.",
     "status_403": "You do not have access to this section.",
@@ -6133,6 +6137,8 @@
     "module_not_licensed": "This module is not licensed.",
     "network": "Could not reach the server. Check the API address.",
     "request_failed": "The request failed.",
-    "unknown": "Unknown error"
+    "unknown": "Unknown error",
+    "cart_not_for_sale": "Cart contains a product that is not for sale.",
+    "reviews_disabled": "Reviews are disabled."
   }
 }

@@ -165,7 +165,11 @@ class OrderController extends Controller
     public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        $data = $this->withoutUnauthorizedPrices($request, $this->validateOrderPayload($request, $tid, false));
+        $data = $this->withoutUnauthorizedCommercialTerms(
+            $request,
+            $this->withoutUnauthorizedPrices($request, $this->validateOrderPayload($request, $tid, false)),
+            true,
+        );
         if ($denied = $this->rejectStaffWalletTender($data, null)) {
             return $denied;
         }
@@ -241,7 +245,11 @@ class OrderController extends Controller
     public function rewrite(Request $request, int $order): \Illuminate\Http\JsonResponse
     {
         $row = $this->find($request, $order);
-        $data = $this->withoutUnauthorizedPrices($request, $this->validateOrderPayload($request, $row->tenant_id, true));
+        $data = $this->withoutUnauthorizedCommercialTerms(
+            $request,
+            $this->withoutUnauthorizedPrices($request, $this->validateOrderPayload($request, $row->tenant_id, true)),
+            false,
+        );
         if ($denied = $this->rejectStaffWalletTender($data, $row)) {
             return $denied;
         }
@@ -279,9 +287,17 @@ class OrderController extends Controller
             }
         } elseif ($data['action'] === 'change_status') {
             $statuses = app(\App\Services\Orders\OrderStatusService::class);
+            $updated = [];
+            $skipped = [];
             foreach ($q->get() as $order) {
-                $statuses->apply($order, (string) $data['status']);
+                if ($statuses->apply($order, (string) $data['status'])) {
+                    $updated[] = (int) $order->id;
+                } else {
+                    $skipped[] = (int) $order->id;
+                }
             }
+
+            return response()->json(['data' => ['ok' => $skipped === [], 'updated' => $updated, 'skipped' => $skipped]]);
         } elseif ($data['action'] === 'send_email') {
             foreach ($q->get() as $order) {
                 try {
@@ -821,6 +837,33 @@ class OrderController extends Controller
             if (is_array($item)) {
                 unset($data['items'][$index]['unit_price_minor']);
             }
+        }
+
+        return $data;
+    }
+
+    /**
+     * orders.own cannot invent a sale or a client discount. Coupons still price
+     * the discount inside OrderWriter. Shipping and amount paid stay server-side
+     * unless the actor has orders.* or is a POS cashier.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function withoutUnauthorizedCommercialTerms(Request $request, array $data, bool $creating): array
+    {
+        if ($this->mayOverrideUnitPrice($request)) {
+            return $data;
+        }
+        unset($data['discount_minor'], $data['shipping_minor'], $data['amount_paid_minor']);
+        $sales = \App\Services\Reports\OrderReports::salesStatuses();
+        $status = isset($data['status']) ? (string) $data['status'] : '';
+        if ($creating) {
+            if ($status === '' || in_array($status, $sales, true)) {
+                $data['status'] = 'pending_payment';
+            }
+        } elseif ($status !== '' && in_array($status, $sales, true)) {
+            unset($data['status']);
         }
 
         return $data;

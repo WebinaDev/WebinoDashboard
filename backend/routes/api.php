@@ -179,7 +179,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/geo/states', [GeoController::class, 'states']);
         Route::get('/geo/cities', [GeoController::class, 'cities']);
         Route::get('/orders/{order}/pay', [PublicOrderPaymentController::class, 'show'])->whereNumber('order');
-        Route::post('/orders/{order}/pay/intent', [PublicOrderPaymentController::class, 'intent'])->whereNumber('order');
+        Route::post('/orders/{order}/pay/intent', [PublicOrderPaymentController::class, 'intent'])->whereNumber('order')->middleware('throttle:public-writes');
         Route::get('/kernel/activations', [PublicKernelController::class, 'activations']);
         Route::get('/analytics/bootstrap', [PublicAnalyticsController::class, 'bootstrap']);
         Route::post('/analytics/hit', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
@@ -237,7 +237,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/catalog', [PublicCatalogController::class, 'index']);
             Route::get('/catalog/items/{slug}', [PublicCatalogController::class, 'show']);
             Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);
-            Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore']);
+            Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore'])->middleware('throttle:public-writes');
         });
 
         Route::middleware('public.module:cafe')->group(function () {
@@ -247,8 +247,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/cafe/events/{event}/bookings', [PublicReservationController::class, 'bookEvent'])->whereNumber('event')->middleware('throttle:public-writes');
             Route::get('/cafe/phone-gate', [PublicCafeEngagementController::class, 'checkPhoneGate']);
             Route::post('/cafe/phone-register', [PublicCafeEngagementController::class, 'registerPhone'])->middleware('throttle:public-writes');
-            Route::post('/cafe/products/{product}/like', [PublicCafeEngagementController::class, 'like'])->whereNumber('product');
-            Route::post('/cafe/products/{product}/feedback', [PublicCafeEngagementController::class, 'feedback'])->whereNumber('product');
+            Route::post('/cafe/products/{product}/like', [PublicCafeEngagementController::class, 'like'])->whereNumber('product')->middleware('throttle:public-writes');
+            Route::post('/cafe/products/{product}/feedback', [PublicCafeEngagementController::class, 'feedback'])->whereNumber('product')->middleware('throttle:public-writes');
             Route::get('/cafe/cart', [PublicGuestCartController::class, 'show']);
             Route::post('/cafe/cart/items', [PublicGuestCartController::class, 'addItem'])->middleware('throttle:public-writes');
             Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout'])->middleware('throttle:public-writes');
@@ -861,12 +861,12 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::get('/magazine/tags', [MagazineTaxonomyController::class, 'tags']);
             });
 
-            Route::middleware('module:profile')->group(function () {
+            Route::middleware(['module:profile', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/resume/profile', [ResumeProfileController::class, 'show']);
                 Route::put('/resume/profile', [ResumeProfileController::class, 'update']);
             });
 
-            Route::middleware('module:academy')->group(function () {
+            Route::middleware(['module:academy', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/academy/courses', [AcademyCourseController::class, 'index']);
                 Route::post('/academy/courses', [AcademyCourseController::class, 'store']);
                 Route::patch('/academy/courses/{course}', [AcademyCourseController::class, 'update'])->whereNumber('course');
@@ -874,21 +874,21 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::post('/academy/courses/{course}/lessons', [AcademyCourseController::class, 'storeLesson'])->whereNumber('course');
             });
 
-            Route::middleware('module:portfolio')->group(function () {
+            Route::middleware(['module:portfolio', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/portfolio/items', [PortfolioItemController::class, 'index']);
                 Route::post('/portfolio/items', [PortfolioItemController::class, 'store']);
                 Route::patch('/portfolio/items/{item}', [PortfolioItemController::class, 'update'])->whereNumber('item');
                 Route::delete('/portfolio/items/{item}', [PortfolioItemController::class, 'destroy'])->whereNumber('item');
             });
 
-            Route::middleware('module:announcements')->group(function () {
+            Route::middleware(['module:announcements', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/announcements', [AnnouncementController::class, 'index']);
                 Route::post('/announcements', [AnnouncementController::class, 'store']);
                 Route::patch('/announcements/{announcement}', [AnnouncementController::class, 'update'])->whereNumber('announcement');
                 Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->whereNumber('announcement');
             });
 
-            Route::middleware('module:testimonials')->group(function () {
+            Route::middleware(['module:testimonials', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/testimonials', [TestimonialController::class, 'index']);
                 Route::post('/testimonials', [TestimonialController::class, 'store']);
                 Route::patch('/testimonials/{testimonial}', [TestimonialController::class, 'update'])->whereNumber('testimonial');
@@ -927,14 +927,14 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::put('/roles/menu-acl', [RoleController::class, 'menuAclUpdate']);
             });
 
-            Route::middleware('module:team')->group(function () {
+            Route::middleware(['module:team', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/team/members', [TeamMemberController::class, 'index']);
                 Route::post('/team/members', [TeamMemberController::class, 'store']);
                 Route::patch('/team/members/{member}', [TeamMemberController::class, 'update'])->whereNumber('member');
                 Route::delete('/team/members/{member}', [TeamMemberController::class, 'destroy'])->whereNumber('member');
             });
 
-            Route::middleware('module:consultations')->group(function () {
+            Route::middleware(['module:consultations', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/consultations', [SiteConsultationController::class, 'index']);
                 Route::get('/consultations/{consultation}', [SiteConsultationController::class, 'show'])->whereNumber('consultation');
                 Route::patch('/consultations/{consultation}', [SiteConsultationController::class, 'update'])->whereNumber('consultation');
@@ -944,7 +944,7 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::get('/contracts/mobile', [MobileContractController::class, 'show']);
             });
 
-            Route::middleware('module:ai-content')->group(function () {
+            Route::middleware(['module:ai-content', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/ai-content/overview', [AiContentController::class, 'overview']);
                 Route::get('/ai-content/settings', [AiContentController::class, 'settings']);
                 Route::post('/ai-content/settings', [AiContentController::class, 'saveSettings']);
@@ -983,7 +983,7 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::post('/ai-content/terms/fill-batch', [AiContentController::class, 'termsFillBatch']);
             });
 
-            Route::middleware('module:ai_recommendations')->group(function () {
+            Route::middleware(['module:ai_recommendations', 'can:content.manage,content.*'])->group(function () {
                 Route::post('/ai/recommendations', [AiRecommendationController::class, 'store']);
             });
 

@@ -145,12 +145,29 @@ class OrderWriter
         }
 
         return DB::transaction(function () use ($order, $data) {
-            if (isset($data['items']) && is_array($data['items'])) {
+            $locked = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+            if (! $locked) {
+                throw ValidationException::withMessages(['order' => 'Order not found']);
+            }
+            $order = $locked;
+            $stock = app(OrderStock::class);
+            $sales = \App\Services\Reports\OrderReports::salesStatuses();
+            $itemsChanged = isset($data['items']) && is_array($data['items']);
+            $wasSale = in_array((string) $order->status, $sales, true);
+
+            // Restore against the current line ids before they are deleted.
+            if ($itemsChanged && $wasSale) {
+                $stock->restoreOutstanding($order);
+                $order->refresh();
+            }
+
+            if ($itemsChanged) {
                 $built = $this->buildItems($order->tenant_id, $data['items']);
                 $order->items()->delete();
                 foreach ($built as $row) {
                     OrderItem::query()->create(array_merge($row, ['order_id' => $order->id]));
                 }
+                $order->unsetRelation('items');
                 $subtotal = collect($built)->sum(fn ($i) => $i['unit_price_minor'] * $i['quantity']);
                 $discount = (int) ($data['discount_minor'] ?? $order->discount_minor);
                 $shipping = (int) ($data['shipping_minor'] ?? $order->shipping_minor);
@@ -160,15 +177,50 @@ class OrderWriter
                 $data['total_minor'] = max(0, $subtotal - $discount + $shipping);
             }
 
+            $nextStatus = array_key_exists('status', $data) ? (string) $data['status'] : null;
+            unset($data['status']);
+
             $allowed = [
-                'status', 'user_id', 'customer_phone', 'customer_name', 'customer_email', 'customer_note',
+                'user_id', 'customer_phone', 'customer_name', 'customer_email', 'customer_note',
                 'shipping_address', 'billing_address', 'payment_tender', 'payment_provider',
                 'sales_channel', 'discount_minor', 'shipping_minor', 'subtotal_minor', 'total_minor',
                 'amount_paid_minor', 'buyer_tax', 'meta', 'utm_source', 'utm_medium', 'utm_campaign',
             ];
             $patch = collect($data)->only($allowed)->all();
-            if ($patch) {
+            if (isset($patch['meta']) && is_array($patch['meta'])) {
+                foreach (['stock_reduced', 'stock_reduced_qty', 'stock_restored_qty', 'marketplace_stock_reduced'] as $key) {
+                    unset($patch['meta'][$key]);
+                }
+                $existing = is_array($order->meta) ? $order->meta : [];
+                $patch['meta'] = array_merge($existing, $patch['meta']);
+            }
+            if ($patch !== []) {
                 $order->update($patch);
+            }
+
+            if ($nextStatus !== null && $nextStatus !== (string) $order->status) {
+                $applied = app(OrderStatusService::class)->apply($order, $nextStatus);
+                if (! $applied) {
+                    throw ValidationException::withMessages(['status' => 'Transition not allowed']);
+                }
+            }
+
+            $order->refresh();
+            $nowSale = in_array((string) $order->status, $sales, true);
+            if ($itemsChanged && $nowSale) {
+                $meta = is_array($order->meta) ? $order->meta : [];
+                if (empty($meta['stock_reduced']) && empty($meta['marketplace_stock_reduced'])) {
+                    $meta['stock_reduced'] = false;
+                    $meta['marketplace_stock_reduced'] = false;
+                    $meta['stock_reduced_qty'] = [];
+                    $meta['stock_restored_qty'] = [];
+                    $order->meta = $meta;
+                    $order->saveQuietly();
+                    $order->unsetRelation('items');
+                    $order->load('items');
+                    $stock->assertLinesAvailable($order->items);
+                    $stock->reduce($order);
+                }
             }
 
             return $order->fresh()->load(['items.product', 'user', 'creator', 'notes', 'returns']);

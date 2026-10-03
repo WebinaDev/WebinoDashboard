@@ -641,6 +641,14 @@ function ReferenceTab() {
       </div>
       <SwitchRow label={t("reference.sync_stock")} checked={draft.sync_stock !== false} onChange={(v) => set("sync_stock", v)} />
       <SwitchRow label={t("reference.sync_stock_locked")} checked={Boolean(draft.sync_stock_when_locked)} onChange={(v) => set("sync_stock_when_locked", v)} />
+      <Field label={t("reference.allowed_hosts")}>
+        <Textarea
+          rows={3}
+          value={Array.isArray(draft.allowed_hosts) ? (draft.allowed_hosts as string[]).join("\n") : ""}
+          onChange={(e) => set("allowed_hosts", e.target.value.split(/[\s,]+/).map((host) => host.trim()).filter(Boolean))}
+        />
+      </Field>
+      <p className="text-muted-foreground text-xs">{t("reference.allowed_hosts_hint")}</p>
       <p className="text-muted-foreground text-xs">{t("reference.usage")}</p>
     </SectionCard>
   )

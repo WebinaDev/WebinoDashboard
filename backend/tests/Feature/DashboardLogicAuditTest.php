@@ -250,7 +250,9 @@ class DashboardLogicAuditTest extends TestCase
             'action' => 'change_status',
             'status' => 'paid',
             'ids' => [$order->id],
-        ])->assertOk();
+        ])->assertOk()
+            ->assertJsonPath('data.ok', false)
+            ->assertJsonPath('data.skipped.0', $order->id);
 
         $this->assertSame('cancelled', $order->fresh()->status);
     }

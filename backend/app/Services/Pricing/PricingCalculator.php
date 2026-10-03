@@ -127,6 +127,7 @@ class PricingCalculator
             'reference' => [
                 'enabled' => false,
                 'sources' => ['digikala' => true, 'technolife' => true, 'basalam' => true, 'woocommerce' => true],
+                'allowed_hosts' => [],
                 'sync_stock' => true,
                 'sync_stock_when_locked' => false,
             ],
