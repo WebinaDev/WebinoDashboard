@@ -14,13 +14,16 @@ use Illuminate\Support\Facades\Http;
  */
 class PaymentCheckoutService
 {
+    /** @var array<string, mixed> */
+    protected array $intentExtra = [];
+
     public function __construct(
         protected PaymentGatewaySettingsService $gateways,
         protected DigipayClient $digipay,
         protected BnplClient $bnpl,
     ) {}
 
-    public function createIntent(Order $order, string $provider): PaymentIntent
+    public function createIntent(Order $order, string $provider, ?string $mode = null): PaymentIntent
     {
         $provider = str_replace('-', '_', strtolower($provider));
         $allowed = ['zarinpal', 'digipay', 'snapppay', 'torobpay', 'bale_pay', BasalamPay::PROVIDER];
@@ -48,9 +51,22 @@ class PaymentCheckoutService
             throw new \RuntimeException('Payment gateway is not configured.');
         }
 
-        $callbackUrl = url('/api/v1/payments/callback/'.$provider.'/'.$order->id);
         $settings = $this->gateways->getRaw($tid, $provider);
-        $amountRial = $this->amountInRials($order);
+        $mode = $this->resolveMode($order, $mode, $settings, $provider);
+        $state = \Illuminate\Support\Str::random(40);
+        $callbackUrl = url('/api/v1/payments/callback/'.$provider.'/'.$order->id).'?nonce='.$state;
+        $quote = $this->gateways->feeQuote($settings, (int) $order->total_minor);
+        $amountRial = $this->amountInRials($order, (int) $quote['charge_minor']);
+        $this->intentExtra = [
+            'state' => $state,
+            'mode' => $mode,
+            'fee_percent' => $quote['fee_percent'],
+            'fee_payer' => $quote['fee_payer'],
+            'fee_minor' => $quote['fee_minor'],
+            'base_minor' => $quote['base_minor'],
+            'charge_minor' => $quote['charge_minor'],
+            'amount_rial' => $amountRial,
+        ];
 
         return match ($provider) {
             'zarinpal' => $this->createZarinpalIntent($order, $settings, $callbackUrl, $amountRial),
@@ -85,12 +101,12 @@ class PaymentCheckoutService
             'provider' => 'bale_pay',
             'status' => 'pending',
             'redirect_url' => $payUrl,
-            'meta' => [
+            'meta' => $this->withExtra([
                 'callback_url' => $callbackUrl,
                 'title' => (string) ($settings['title'] ?? 'بله پی'),
                 'amount_rial' => $amountRial,
                 'provider_ref' => 'bale-'.$order->id.'-'.uniqid(),
-            ],
+            ]),
         ]);
 
         $order->update([
@@ -149,12 +165,12 @@ class PaymentCheckoutService
             'provider' => 'zarinpal',
             'status' => 'created',
             'redirect_url' => $startPay,
-            'meta' => [
+            'meta' => $this->withExtra([
                 'stub' => false,
                 'zarinpal_authority' => $authority,
                 'amount_rial' => $amountRial,
                 'currency' => $currency,
-            ],
+            ]),
         ]);
     }
 
@@ -178,7 +194,10 @@ class PaymentCheckoutService
         }
 
         $providerId = (string) $order->id;
-        $pref = (int) ($settings['preferred_gateway'] ?? 2);
+        $mode = (string) ($this->intentExtra['mode'] ?? 'cash');
+        $pref = $mode === 'installment'
+            ? (int) ($settings['preferred_gateway_installment'] ?? 5)
+            : (int) ($settings['preferred_gateway'] ?? 2);
         $body = [
             'cellNumber' => $cell,
             'amount' => $amountRial,
@@ -216,12 +235,12 @@ class PaymentCheckoutService
             'provider' => 'digipay',
             'status' => 'created',
             'redirect_url' => $redirectUrl,
-            'meta' => [
+            'meta' => $this->withExtra([
                 'stub' => false,
                 'digipay_ticket' => data_get($response, 'ticket'),
                 'provider_id' => $providerId,
                 'amount_rial' => $amountRial,
-            ],
+            ]),
         ]);
     }
 
@@ -269,17 +288,46 @@ class PaymentCheckoutService
             'provider' => $provider,
             'status' => 'created',
             'redirect_url' => $pageUrl,
-            'meta' => [
+            'meta' => $this->withExtra([
                 'stub' => false,
                 'payment_token' => $paymentToken,
                 'amount_rial' => $amountRial,
-            ],
+            ]),
         ]);
     }
 
-    protected function amountInRials(Order $order): int
+    /**
+     * @param  array<string, mixed>  $meta
+     * @return array<string, mixed>
+     */
+    protected function withExtra(array $meta): array
     {
-        $minor = (int) $order->total_minor;
+        return array_merge($this->intentExtra, $meta);
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     */
+    protected function resolveMode(Order $order, ?string $mode, array $settings, string $provider): string
+    {
+        if ($mode === null || $mode === '') {
+            $purchase = (string) ($order->meta['wfcp_purchase_type'] ?? '');
+            $mode = $purchase === 'installment' ? 'installment' : 'cash';
+        }
+        if (! in_array($mode, ['cash', 'installment'], true)) {
+            throw new \InvalidArgumentException('Unsupported payment mode.');
+        }
+        if (in_array($provider, PaymentGatewaySettingsService::COMMERCE_GATEWAYS, true)
+            && ! $this->gateways->supportsMode($settings, $mode)) {
+            throw new \DomainException('Payment gateway does not support this mode.');
+        }
+
+        return $mode;
+    }
+
+    protected function amountInRials(Order $order, ?int $chargeMinor = null): int
+    {
+        $minor = $chargeMinor ?? (int) $order->total_minor;
         $currency = $this->storeCurrencyCode($order);
         // Store amounts are in minor units of the store currency.
         // IRT (toman): convert to rial ×10 for Digipay/BNPL; Zarinpal uses currency field.

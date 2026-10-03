@@ -28,9 +28,24 @@ class PaymentGatewaySettingsController extends Controller
         $body = $request->all();
         $input = is_array($body['settings'] ?? null) ? $body['settings'] : $body;
         unset($input['settings']);
+        $enabled = null;
+        if (array_key_exists('enabled', $input)) {
+            $enabled = (bool) $input['enabled'];
+            unset($input['enabled']);
+        }
+        if (array_key_exists('enabled', $body) && $enabled === null) {
+            $enabled = (bool) $body['enabled'];
+        }
+
+        $tid = (int) $request->user()->tenant_id;
+        $settings = $this->gateways->save($tid, $provider, $input);
+        if ($enabled !== null && in_array($provider, PaymentGatewaySettingsService::COMMERCE_GATEWAYS, true)) {
+            $this->gateways->setGatewayEnabled($tid, $provider, $enabled);
+        }
 
         return response()->json([
-            'settings' => $this->gateways->save((int) $request->user()->tenant_id, $provider, $input),
+            'settings' => $settings,
+            'enabled' => $this->gateways->isEnabled($tid, $provider),
         ]);
     }
 

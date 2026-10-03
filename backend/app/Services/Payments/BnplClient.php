@@ -73,8 +73,15 @@ class BnplClient
 
         $json = $res->json();
 
+        $successful = data_get($json, 'successful');
+        $accepted = $res->successful()
+            && $successful !== false
+            && $successful !== 'false'
+            && $successful !== 0
+            && $successful !== '0';
+
         return [
-            'ok' => $res->successful(),
+            'ok' => $accepted,
             'data' => $json,
             'message' => (string) (data_get($json, 'message') ?? data_get($json, 'error') ?? ''),
         ];

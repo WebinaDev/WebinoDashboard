@@ -38,6 +38,7 @@ import {
 } from "@/views/settings/panels/ShopModulePanels"
 import { PricingSettingsPanel } from "@/views/settings/panels/pricing/PricingSettingsPanel"
 import { PaymentHubPanel } from "@/views/settings/panels/PaymentHubPanel"
+import { CommerceGatewaysPanel } from "@/views/settings/panels/CommerceGatewaysPanel"
 import { GatewayProviderSettingsPanel } from "@/views/settings/panels/GatewayProviderSettingsPanel"
 import { MarketplaceRouter } from "@/views/settings/panels/marketplace/MarketplaceRouter"
 
@@ -72,6 +73,7 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (pricing) return <PricingSettingsPanel tab={pricing[1]} />
   if (path.endsWith("/shop/shipping/zones")) return <ShippingZonesPanel />
   if (path.endsWith("/shop/shipping/tapin")) return <ShippingTapinPanel />
+  if (path.endsWith("/shop/gateways")) return <CommerceGatewaysPanel />
   if (path.endsWith("/shop/payments")) return <PaymentHubPanel />
   if (path.endsWith("/shop/zarinpal")) return <GatewayProviderSettingsPanel provider="zarinpal" />
   if (path.endsWith("/shop/digipay")) return <GatewayProviderSettingsPanel provider="digipay" />

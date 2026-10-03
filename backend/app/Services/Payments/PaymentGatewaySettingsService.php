@@ -30,6 +30,9 @@ class PaymentGatewaySettingsService
         'cod',
     ];
 
+    /** Site commerce IPGs configured on «درگاه‌های پرداخت». */
+    public const COMMERCE_GATEWAYS = ['zarinpal', 'digipay', 'snapppay', 'torobpay'];
+
     /** @var list<string> */
     public const SECRET_KEYS = [
         'access_token',
@@ -172,6 +175,9 @@ class PaymentGatewaySettingsService
                 'payment_description' => 'Order #{order_id}',
                 'icon_url' => '',
                 'fee_payer' => 'merchant',
+                'fee_percent' => 0.0,
+                'cash_enabled' => true,
+                'installment_enabled' => false,
                 'redact_logs' => true,
             ],
             'digipay' => [
@@ -186,6 +192,11 @@ class PaymentGatewaySettingsService
                 'category_id' => '',
                 'product_type' => 1,
                 'preferred_gateway' => 2,
+                'preferred_gateway_installment' => 5,
+                'fee_percent' => 0.0,
+                'fee_payer' => 'merchant',
+                'cash_enabled' => true,
+                'installment_enabled' => true,
                 'title_ipg' => 'دیجی‌پی',
                 'description_ipg' => '',
                 'title_wallet' => 'کیف پول دیجی‌پی',
@@ -202,6 +213,11 @@ class PaymentGatewaySettingsService
             ],
             'snapppay' => [
                 'base_url' => 'https://api.snapppay.ir',
+                'sandbox' => false,
+                'fee_percent' => 0.0,
+                'fee_payer' => 'customer',
+                'cash_enabled' => false,
+                'installment_enabled' => true,
                 'client_id' => '',
                 'client_secret' => '',
                 'client_username' => '',
@@ -221,6 +237,11 @@ class PaymentGatewaySettingsService
             ],
             'torobpay' => [
                 'base_url' => 'https://cpg.torobpay.com',
+                'sandbox' => false,
+                'fee_percent' => 0.0,
+                'fee_payer' => 'customer',
+                'cash_enabled' => false,
+                'installment_enabled' => true,
                 'client_id' => '',
                 'client_secret' => '',
                 'client_username' => '',
@@ -338,9 +359,107 @@ class PaymentGatewaySettingsService
             }
             $merged[$key] = $this->castValue($input[$key], $default);
         }
+        if (array_key_exists('fee_percent', $merged)) {
+            $merged['fee_percent'] = $this->feePercent($merged);
+        }
+        if (isset($merged['fee_payer']) && ! in_array((string) $merged['fee_payer'], ['merchant', 'customer'], true)) {
+            $merged['fee_payer'] = 'merchant';
+        }
         $this->settings->put($tenantId, self::MODULE, $provider, $merged);
 
         return $this->getPublic($tenantId, $provider);
+    }
+
+    public function feePercent(array $settings): float
+    {
+        $percent = round((float) ($settings['fee_percent'] ?? 0), 2);
+
+        return max(0, min(100, $percent));
+    }
+
+    public function supportsMode(array $settings, string $mode): bool
+    {
+        return match ($mode) {
+            'cash' => (bool) ($settings['cash_enabled'] ?? false),
+            'installment' => (bool) ($settings['installment_enabled'] ?? false),
+            default => false,
+        };
+    }
+
+    /**
+     * Fee preview in store minor units. Customer-paid fees increase the charged total.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array{fee_percent: float, fee_payer: string, fee_minor: int, base_minor: int, charge_minor: int}
+     */
+    public function feeQuote(array $settings, int $baseMinor): array
+    {
+        $baseMinor = max(0, $baseMinor);
+        $percent = $this->feePercent($settings);
+        $payer = (string) ($settings['fee_payer'] ?? 'merchant');
+        if (! in_array($payer, ['merchant', 'customer'], true)) {
+            $payer = 'merchant';
+        }
+        $fee = (int) round($baseMinor * $percent / 100);
+
+        return [
+            'fee_percent' => $percent,
+            'fee_payer' => $payer,
+            'fee_minor' => $fee,
+            'base_minor' => $baseMinor,
+            'charge_minor' => $payer === 'customer' ? $baseMinor + $fee : $baseMinor,
+        ];
+    }
+
+    public function isSandbox(string $provider, array $settings): bool
+    {
+        if ($provider === 'digipay') {
+            return (string) ($settings['environment'] ?? 'staging') !== 'live';
+        }
+
+        return (bool) ($settings['sandbox'] ?? false);
+    }
+
+    /**
+     * Enabled, configured commerce gateways safe to show at checkout.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function checkoutGateways(int $tenantId, ?string $mode = null): array
+    {
+        $out = [];
+        foreach (self::COMMERCE_GATEWAYS as $id) {
+            if (! $this->isEnabled($tenantId, $id) || ! $this->configured($tenantId, $id)) {
+                continue;
+            }
+            $raw = $this->getRaw($tenantId, $id);
+            $cash = (bool) ($raw['cash_enabled'] ?? false);
+            $installment = (bool) ($raw['installment_enabled'] ?? false);
+            if ($mode === 'cash' && ! $cash) {
+                continue;
+            }
+            if ($mode === 'installment' && ! $installment) {
+                continue;
+            }
+            if (! $cash && ! $installment) {
+                continue;
+            }
+            $title = (string) ($raw['title'] ?? '');
+            if ($title === '' && $id === 'digipay') {
+                $title = (string) ($raw['title_ipg'] ?? 'دیجی‌پی');
+            }
+            $out[] = [
+                'id' => $id,
+                'title' => $title !== '' ? $title : $id,
+                'cash_enabled' => $cash,
+                'installment_enabled' => $installment,
+                'fee_percent' => $this->feePercent($raw),
+                'fee_payer' => (string) ($raw['fee_payer'] ?? 'merchant'),
+                'sandbox' => $this->isSandbox($id, $raw),
+            ];
+        }
+
+        return $out;
     }
 
     public function configured(int $tenantId, string $provider): bool

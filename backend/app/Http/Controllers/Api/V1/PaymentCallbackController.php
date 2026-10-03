@@ -7,10 +7,10 @@ use App\Models\Order;
 use App\Models\PaymentIntent;
 use App\Services\Marketplace\Basalam\BasalamPay;
 use App\Services\Marketplace\MarketplaceLogger;
+use App\Services\Orders\OrderStatusService;
 use App\Services\Payments\BnplClient;
 use App\Services\Payments\DigipayClient;
 use App\Services\Payments\PaymentGatewaySettingsService;
-use App\Services\Orders\OrderStatusService;
 use App\Services\Shop\LoyaltyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * Browser redirects from payment providers (no Sanctum session).
+ *
+ * Paid is recorded only after the provider verify call succeeds for the
+ * authority or token stored on this order's intent. A bare GET, a crawler,
+ * or another order's authority does not change status.
  */
 class PaymentCallbackController extends Controller
 {
@@ -32,6 +36,10 @@ class PaymentCallbackController extends Controller
     public function handle(Request $request, string $provider, Order $order): RedirectResponse
     {
         $provider = str_replace('-', '_', strtolower($provider));
+
+        if ($order->status === 'paid') {
+            return $this->finish(true, $order);
+        }
 
         return match ($provider) {
             'zarinpal' => $this->handleZarinpal($request, $order),
@@ -59,30 +67,32 @@ class PaymentCallbackController extends Controller
 
     protected function handleZarinpal(Request $request, Order $order): RedirectResponse
     {
-        $settings = $this->gateways->getRaw((int) $order->tenant_id, 'zarinpal');
-        $merchantId = (string) ($settings['merchant_id'] ?? '');
-        $sandbox = (bool) ($settings['sandbox'] ?? true);
-        $authority = $request->query('Authority');
-        $status = $request->query('Status');
+        $authority = (string) $request->query('Authority', '');
+        $status = strtoupper((string) $request->query('Status', ''));
+        $intent = $this->intentMatching($order, 'zarinpal', 'zarinpal_authority', $authority);
 
-        $intent = PaymentIntent::query()
-            ->where('order_id', $order->id)
-            ->where('provider', 'zarinpal')
-            ->latest()
-            ->first();
+        if ($intent === null || ! $this->stateAllows($request, $intent, false)) {
+            return $this->finish(false);
+        }
 
-        if ($merchantId === '' || ! $authority || $status !== 'OK') {
-            $this->markFailed($order);
+        if ($status !== 'OK') {
+            $this->markAttemptFailed($request, $order, $intent);
 
             return $this->finish(false);
         }
 
-        $currency = strtoupper((string) (data_get($intent?->meta, 'currency') ?: $order->currency ?: 'IRT'));
-        $amountRial = (int) (data_get($intent?->meta, 'amount_rial') ?: $order->total_minor);
+        $settings = $this->gateways->getRaw((int) $order->tenant_id, 'zarinpal');
+        $merchantId = (string) ($settings['merchant_id'] ?? '');
+        $amountRial = (int) data_get($intent->meta, 'amount_rial', 0);
+        if ($merchantId === '' || $amountRial < 1) {
+            return $this->finish(false);
+        }
+
+        $currency = strtoupper((string) (data_get($intent->meta, 'currency') ?: $order->currency ?: 'IRT'));
         $verifyAmount = $currency === 'IRT'
             ? (int) max(1, round($amountRial / 10))
             : $amountRial;
-
+        $sandbox = (bool) ($settings['sandbox'] ?? true);
         $verifyHost = $sandbox
             ? 'https://sandbox.zarinpal.com/pg/v4/payment/verify.json'
             : 'https://payment.zarinpal.com/pg/v4/payment/verify.json';
@@ -96,37 +106,43 @@ class PaymentCallbackController extends Controller
         $code = (int) data_get($verify, 'data.code');
         if ($code === 100 || $code === 101) {
             $refId = data_get($verify, 'data.ref_id');
-            $this->markPaid($order, [
+            $this->markPaid($order, $intent, [
                 'payment_ref' => $refId !== null ? (string) $refId : null,
                 'payment_provider' => 'zarinpal',
             ]);
-            $intent?->update(['status' => 'completed']);
+            $intent->update(['status' => 'completed']);
 
             return $this->finish(true, $order);
         }
 
-        $this->markFailed($order);
+        $this->markAttemptFailed($request, $order, $intent);
 
         return $this->finish(false);
     }
 
     protected function handleDigipay(Request $request, Order $order): RedirectResponse
     {
+        $trackingCode = (string) ($request->query('trackingCode') ?? $request->query('tracking_code') ?? '');
+        $providerId = (string) ($request->query('providerId') ?? $request->query('provider_id') ?? '');
+        if ($trackingCode === '') {
+            return $this->finish(false);
+        }
+
+        $intent = $providerId !== ''
+            ? $this->intentMatching($order, 'digipay', 'provider_id', $providerId)
+            : $this->latestIntent($order, 'digipay');
+        if ($intent === null || ! $this->stateAllows($request, $intent, false)) {
+            return $this->finish(false);
+        }
+
+        $storedProvider = (string) data_get($intent->meta, 'provider_id', '');
+        if ($storedProvider === '' || ($providerId !== '' && ! hash_equals($storedProvider, $providerId))) {
+            return $this->finish(false);
+        }
+
         $settings = $this->gateways->getRaw((int) $order->tenant_id, 'digipay');
-        $trackingCode = $request->query('trackingCode') ?? $request->query('tracking_code');
-        $intent = PaymentIntent::query()
-            ->where('order_id', $order->id)
-            ->where('provider', 'digipay')
-            ->latest()
-            ->first();
-
         $token = $this->digipay->bearerToken($settings);
-        $base = $this->digipay->baseUrl($settings);
-        $providerId = (string) (data_get($intent?->meta, 'provider_id') ?: $order->id);
-
-        if ($trackingCode === null || $trackingCode === '' || $token === null) {
-            $this->markFailed($order);
-
+        if ($token === null) {
             return $this->finish(false);
         }
 
@@ -136,53 +152,57 @@ class PaymentCallbackController extends Controller
                 'Content-Type' => 'application/json',
                 'Digipay-Version' => $this->digipay->version($settings),
             ])
-            ->post($base.'/purchases/verify?type=11', [
+            ->post($this->digipay->baseUrl($settings).'/purchases/verify?type=11', [
                 'trackingCode' => $trackingCode,
-                'providerId' => $providerId,
+                'providerId' => $storedProvider,
             ])
             ->json();
 
-        if ((int) data_get($verify, 'result.status') === 0) {
-            $this->markPaid($order, [
-                'payment_ref' => is_scalar($trackingCode) ? (string) $trackingCode : null,
+        $paidAmount = data_get($verify, 'amount') ?? data_get($verify, 'amountRial');
+        $expected = (int) data_get($intent->meta, 'amount_rial', 0);
+        $amountOk = $paidAmount === null || $paidAmount === '' || (int) $paidAmount === $expected;
+
+        if ((int) data_get($verify, 'result.status') === 0 && $amountOk && $expected > 0) {
+            $this->markPaid($order, $intent, [
+                'payment_ref' => $trackingCode,
                 'payment_provider' => 'digipay',
             ]);
-            $intent?->update(['status' => 'completed']);
+            $intent->update(['status' => 'completed', 'meta' => array_merge($intent->meta ?? [], [
+                'tracking_code' => $trackingCode,
+            ])]);
 
             return $this->finish(true, $order);
         }
 
-        $this->markFailed($order);
+        $this->markAttemptFailed($request, $order, $intent);
 
         return $this->finish(false);
     }
 
     protected function handleBnpl(Request $request, Order $order, string $provider, bool $requireSettle): RedirectResponse
     {
-        $settings = $this->gateways->getRaw((int) $order->tenant_id, $provider);
-        $state = (string) ($request->query('state') ?? $request->query('Status') ?? '');
-        $intent = PaymentIntent::query()
-            ->where('order_id', $order->id)
-            ->where('provider', $provider)
-            ->latest()
-            ->first();
-        $paymentToken = (string) (
-            $request->query('paymentToken')
-            ?? data_get($intent?->meta, 'payment_token')
-            ?? ''
-        );
+        $queryToken = (string) ($request->query('paymentToken') ?? '');
+        $state = strtoupper((string) ($request->query('state') ?? $request->query('Status') ?? ''));
+        $intent = $this->intentMatching($order, $provider, 'payment_token', $queryToken);
+        if ($intent === null || ! $this->stateAllows($request, $intent, false)) {
+            return $this->finish(false);
+        }
 
-        if (strtoupper($state) !== 'OK' || $paymentToken === '') {
-            $this->markFailed($order);
+        if ($state !== 'OK') {
+            $this->markAttemptFailed($request, $order, $intent);
 
             return $this->finish(false);
         }
 
+        $settings = $this->gateways->getRaw((int) $order->tenant_id, $provider);
         $verify = $this->bnpl->post($settings, $provider, 'api/online/payment/v1/verify', [
-            'paymentToken' => $paymentToken,
+            'paymentToken' => $queryToken,
         ]);
-        if (! $verify['ok']) {
-            $this->markFailed($order);
+        $expected = (int) data_get($intent->meta, 'amount_rial', 0);
+        $reported = data_get($verify['data'], 'response.amount') ?? data_get($verify['data'], 'amount');
+        $amountOk = $reported === null || $reported === '' || (int) $reported === $expected;
+        if (! $verify['ok'] || ! $amountOk || $expected < 1) {
+            $this->markAttemptFailed($request, $order, $intent);
 
             return $this->finish(false);
         }
@@ -190,35 +210,109 @@ class PaymentCallbackController extends Controller
         $shouldSettle = $requireSettle || ! empty($settings['settle_enabled']);
         if ($shouldSettle) {
             $settle = $this->bnpl->post($settings, $provider, 'api/online/payment/v1/settle', [
-                'paymentToken' => $paymentToken,
+                'paymentToken' => $queryToken,
             ]);
             if (! $settle['ok']) {
-                $this->markFailed($order);
+                $this->markAttemptFailed($request, $order, $intent);
 
                 return $this->finish(false);
             }
         }
 
-        $this->markPaid($order, [
-            'payment_ref' => $paymentToken,
+        $this->markPaid($order, $intent, [
+            'payment_ref' => $queryToken,
             'payment_provider' => $provider,
         ]);
-        $intent?->update(['status' => 'completed']);
+        $intent->update(['status' => 'completed']);
 
         return $this->finish(true, $order);
     }
 
-    /** @param  array<string, mixed>  $extra */
-    protected function markPaid(Order $order, array $extra): void
+    protected function intentMatching(Order $order, string $provider, string $metaKey, string $presented): ?PaymentIntent
     {
-        $this->statuses->apply($order, 'paid', array_merge($extra, [
-            'amount_paid_minor' => (int) $order->total_minor,
+        if ($presented === '') {
+            return null;
+        }
+
+        $rows = PaymentIntent::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('order_id', $order->id)
+            ->where('provider', $provider)
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        foreach ($rows as $row) {
+            $stored = (string) data_get($row->meta, $metaKey, '');
+            if ($stored !== '' && hash_equals($stored, $presented)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    protected function latestIntent(Order $order, string $provider): ?PaymentIntent
+    {
+        return PaymentIntent::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('order_id', $order->id)
+            ->where('provider', $provider)
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Missing state is tolerated on success (some gateways replace the query string).
+     * A presented state that does not match is always rejected.
+     * Failure updates require the state, so a leaked authority cannot burn the order.
+     */
+    protected function stateAllows(Request $request, PaymentIntent $intent, bool $required): bool
+    {
+        $expected = (string) data_get($intent->meta, 'state', '');
+        $given = (string) $request->query('nonce', '');
+        if ($given !== '' && $expected !== '' && ! hash_equals($expected, $given)) {
+            return false;
+        }
+        if ($required && ($given === '' || $expected === '')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function markAttemptFailed(Request $request, Order $order, PaymentIntent $intent): void
+    {
+        if (! $this->stateAllows($request, $intent, true)) {
+            return;
+        }
+        if ($intent->status !== 'completed') {
+            $intent->update(['status' => 'failed']);
+        }
+        $this->markFailed($order);
+    }
+
+    /** @param  array<string, mixed>  $extra */
+    protected function markPaid(Order $order, PaymentIntent $intent, array $extra): void
+    {
+        $fresh = $order->fresh() ?? $order;
+        if ($fresh->status === 'paid') {
+            return;
+        }
+        $charged = (int) data_get($intent->meta, 'charge_minor', 0);
+
+        $this->statuses->apply($fresh, 'paid', array_merge($extra, [
+            'amount_paid_minor' => $charged > 0 ? $charged : (int) $fresh->total_minor,
         ]));
     }
 
     protected function markFailed(Order $order): void
     {
-        $this->statuses->apply($order, 'payment_failed');
+        $fresh = $order->fresh() ?? $order;
+        if (! in_array($fresh->status, ['pending_payment', 'awaiting_gateway', 'payment_failed'], true)) {
+            return;
+        }
+        $this->statuses->apply($fresh, 'payment_failed');
     }
 
     protected function finish(bool $ok, ?Order $order = null): RedirectResponse

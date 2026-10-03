@@ -392,6 +392,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
     titleEn: "Payments",
     sections: [
       {
+        id: "gateways",
+        titleFa: "درگاه‌های پرداخت",
+        titleEn: "Payment gateways",
+        route: "/dashboard/settings/shop/gateways",
+      },
+      {
         id: "payments",
         titleFa: "درگاه‌ها",
         titleEn: "Gateways",

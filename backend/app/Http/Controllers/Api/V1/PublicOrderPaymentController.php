@@ -51,6 +51,7 @@ class PublicOrderPaymentController extends Controller
         $data = $request->validate([
             'provider' => ['required', 'string', 'max:32'],
             'token' => ['nullable', 'string', 'max:64'],
+            'mode' => ['nullable', 'string', 'in:cash,installment'],
         ]);
 
         $provider = str_replace('-', '_', strtolower($data['provider']));
@@ -64,17 +65,25 @@ class PublicOrderPaymentController extends Controller
         }
 
         try {
-            $intent = $checkout->createIntent($row, $provider);
+            $intent = $checkout->createIntent($row, $provider, $data['mode'] ?? null);
         } catch (\DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 502);
         }
 
+        $meta = is_array($intent->meta) ? $intent->meta : [];
+
         return response()->json([
             'data' => [
                 'redirect_url' => $intent->redirect_url,
                 'provider' => $intent->provider,
+                'mode' => $meta['mode'] ?? null,
+                'fee_percent' => $meta['fee_percent'] ?? 0,
+                'fee_payer' => $meta['fee_payer'] ?? 'merchant',
+                'fee_minor' => $meta['fee_minor'] ?? 0,
+                'base_minor' => $meta['base_minor'] ?? null,
+                'charge_minor' => $meta['charge_minor'] ?? null,
             ],
         ]);
     }
@@ -119,10 +128,41 @@ class PublicOrderPaymentController extends Controller
             );
         }
 
+        $purchase = (string) ($order->meta['wfcp_purchase_type'] ?? 'cash');
+        $mode = $purchase === 'installment' ? 'installment' : 'cash';
+        $allowBoth = (bool) ($order->meta['allow_both_purchase_types'] ?? $order->meta['allow_both_types'] ?? false);
+
         $out = [];
         foreach ($catalog as $gw) {
             $id = (string) $gw['id'];
             if ($filterIds !== null && ! in_array($id, $filterIds, true)) {
+                continue;
+            }
+            if (in_array($id, PaymentGatewaySettingsService::COMMERCE_GATEWAYS, true)) {
+                if (! $settings->isEnabled($tid, $id) || ! $settings->configured($tid, $id)) {
+                    continue;
+                }
+                $raw = $settings->getRaw($tid, $id);
+                $cash = (bool) ($raw['cash_enabled'] ?? false);
+                $installment = (bool) ($raw['installment_enabled'] ?? false);
+                if (! $allowBoth && ! $settings->supportsMode($raw, $mode)) {
+                    continue;
+                }
+                if ($allowBoth && ! $cash && ! $installment) {
+                    continue;
+                }
+                $quote = $settings->feeQuote($raw, (int) $order->total_minor);
+                $out[] = array_merge($gw, [
+                    'label' => (string) ($raw['title'] ?? ($id === 'digipay' ? ($raw['title_ipg'] ?? $gw['label']) : $gw['label'])),
+                    'cash_enabled' => $cash,
+                    'installment_enabled' => $installment,
+                    'fee_percent' => $quote['fee_percent'],
+                    'fee_payer' => $quote['fee_payer'],
+                    'fee_minor' => $quote['fee_minor'],
+                    'base_minor' => $quote['base_minor'],
+                    'charge_minor' => $quote['charge_minor'],
+                ]);
+
                 continue;
             }
             if (in_array($id, ['card_to_card', 'wallet', 'cod'], true)) {
