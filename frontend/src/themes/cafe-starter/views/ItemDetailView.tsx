@@ -12,12 +12,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api } from "@/lib/api"
 import { formatShopPrice } from "@/lib/format"
+import { toLocaleDigits } from "@/lib/locale"
 
 import { CafeCartDrawer } from "../components/CafeCartDrawer"
 import type { CatalogItem } from "../types"
 
-function formatPrice(amount: number, currency: string) {
-  return formatShopPrice(amount / 10, { currency }, currency)
+function formatPrice(amount: number, currency: string, locale: string) {
+  return toLocaleDigits(formatShopPrice(amount / 10, { currency }, currency), locale === "fa" ? "fa" : "en")
 }
 
 function localized(locale: string, fa?: string | null, en?: string | null) {
@@ -43,7 +44,7 @@ export function ItemDetailView({
   const [message, setMessage] = useState<string | null>(null)
 
   const image = item.cover_image_url ?? item.image_url
-  const price = formatPrice(item.discounted_price_minor, item.currency)
+  const price = formatPrice(item.discounted_price_minor, item.currency, locale)
 
   useEffect(() => {
     trackAnalyticsEvent("product_view", { productId: item.id })
@@ -52,6 +53,7 @@ export function ItemDetailView({
   async function addToCart() {
     const token = localStorage.getItem("cafe_guest_token") ?? crypto.randomUUID().replace(/-/g, "")
     localStorage.setItem("cafe_guest_token", token)
+    const optionIds = Object.values(selectedOptions).flat()
     await api("/api/v1/public/cafe/cart/items", {
       method: "POST",
       json: {
@@ -60,6 +62,8 @@ export function ItemDetailView({
         guest_token: token,
         table_number: tableNumber,
         branch_slug: branchSlug,
+        option_ids: optionIds,
+        variant_id: selectedVariant,
       },
     })
     trackAnalyticsEvent("add_to_cart", { productId: item.id })
@@ -89,7 +93,7 @@ export function ItemDetailView({
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <Button asChild variant="ghost" size="sm">
-          <Link href="/catalogue">{t("back_to_menu")}</Link>
+          <Link href={`/catalogue${tableNumber || branchSlug ? `?${new URLSearchParams(Object.entries({ table: tableNumber || "", branch: branchSlug || "" }).filter(([, v]) => v)).toString()}` : ""}`}>{t("back_to_menu")}</Link>
         </Button>
       </div>
 

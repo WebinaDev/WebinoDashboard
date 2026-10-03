@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { ModifierEditor } from "./modifier-editor"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import type {
   CafeEngagementSettings,
@@ -79,6 +80,19 @@ const menuDefaults: CafeMenuSettings = {
   header_cta_url: "",
   placeholder_logo_text_fa: "",
   placeholder_logo_text_en: "",
+  accent_color: "#c46b3a",
+  seasonal_theme: "none",
+  font_preset: "sans",
+  teaser_video_url: "",
+  packaging_fee_minor: 0,
+  delivery_fee_minor: 0,
+  free_delivery_threshold_minor: 0,
+  prep_minutes: 20,
+  max_orders_per_day: null,
+  block_orders_when_closed: true,
+  fulfillment_dine_in: true,
+  fulfillment_pickup: true,
+  fulfillment_delivery: false,
 }
 
 const engagementDefaults: CafeEngagementSettings = {
@@ -168,12 +182,14 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
     description: "",
     icon_url: "",
     image_url: "",
+    display_mode: "grid",
     sort_order: 0,
   })
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [bulkSoldOut, setBulkSoldOut] = useState(false)
   const [bulkAvailable, setBulkAvailable] = useState(true)
   const [bulkMenuId, setBulkMenuId] = useState("")
+  const [bulkPercent, setBulkPercent] = useState("")
 
   const saveCategory = useMutation({
     mutationFn: () =>
@@ -184,11 +200,12 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
           description: categoryForm.description || null,
           icon_url: categoryForm.icon_url || null,
           image_url: categoryForm.image_url || null,
+          display_mode: categoryForm.display_mode,
           sort_order: categoryForm.sort_order,
         },
       }),
     onSuccess: async () => {
-      setCategoryForm({ name: "", description: "", icon_url: "", image_url: "", sort_order: 0 })
+      setCategoryForm({ name: "", description: "", icon_url: "", image_url: "", display_mode: "grid", sort_order: 0 })
       await queryClient.invalidateQueries({ queryKey: ["categories"] })
       setMessage(tCatalog("category_saved"))
     },
@@ -270,6 +287,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
     slug: "",
     menu_type: "cafe",
     locale: "",
+    description: "",
     is_active: true,
     sort_order: 0,
   })
@@ -282,6 +300,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
         slug: menuForm.slug || undefined,
         menu_type: menuForm.menu_type || "cafe",
         locale: menuForm.locale || null,
+        description: menuForm.description || null,
         is_active: menuForm.is_active,
         sort_order: Number(menuForm.sort_order),
       }
@@ -292,7 +311,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
     },
     onSuccess: async () => {
       setEditingMenu(null)
-      setMenuForm({ name: "", slug: "", menu_type: "cafe", locale: "", is_active: true, sort_order: 0 })
+      setMenuForm({ name: "", slug: "", menu_type: "cafe", locale: "", description: "", is_active: true, sort_order: 0 })
       await queryClient.invalidateQueries({ queryKey: ["menus"] })
       setMessage(t("menu_saved"))
     },
@@ -413,6 +432,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
   function startEditMenu(menu: MenuRecord) {
     setEditingMenu(menu)
     setMenuForm({
+      description: menu.description ?? "",
       name: menu.name,
       slug: menu.slug,
       menu_type: menu.menu_type ?? "cafe",
@@ -490,12 +510,13 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   onChange={(e) =>
                     setSettingsForm({
                       ...settingsValues,
-                      default_view: e.target.value as "grid" | "list",
+                      default_view: e.target.value as "grid" | "list" | "cover",
                     })
                   }
                 >
                   <option value="grid">{t("view_grid")}</option>
                   <option value="list">{t("view_list")}</option>
+                  <option value="cover">{t("view_cover")}</option>
                 </select>
               </div>
               <label className="flex items-center gap-2 text-sm">
@@ -551,6 +572,63 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
             </CardContent>
           </Card>
 
+
+          <Card>
+            <CardHeader><CardTitle>{t("brand_heading")}</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>{t("accent_color")}</Label>
+                <Input value={settingsValues.accent_color ?? ""} onChange={(e) => setSettingsForm({ ...settingsValues, accent_color: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t("seasonal_theme")}</Label>
+                <select className="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm" value={settingsValues.seasonal_theme ?? "none"} onChange={(e) => setSettingsForm({ ...settingsValues, seasonal_theme: e.target.value as CafeMenuSettings["seasonal_theme"] })}>
+                  <option value="none">{t("season_none")}</option>
+                  <option value="nowruz">{t("season_nowruz")}</option>
+                  <option value="yalda">{t("season_yalda")}</option>
+                  <option value="ramadan">{t("season_ramadan")}</option>
+                  <option value="summer">{t("season_summer")}</option>
+                </select>
+              </div>
+              <div>
+                <Label>{t("font_preset")}</Label>
+                <select className="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm" value={settingsValues.font_preset ?? "sans"} onChange={(e) => setSettingsForm({ ...settingsValues, font_preset: e.target.value as CafeMenuSettings["font_preset"] })}>
+                  <option value="sans">{t("font_sans")}</option>
+                  <option value="serif">{t("font_serif")}</option>
+                  <option value="display">{t("font_display")}</option>
+                </select>
+              </div>
+              <div>
+                <Label>{t("teaser_video_url")}</Label>
+                <Input value={settingsValues.teaser_video_url ?? ""} onChange={(e) => setSettingsForm({ ...settingsValues, teaser_video_url: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t("packaging_fee_minor")}</Label>
+                <Input type="number" value={settingsValues.packaging_fee_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, packaging_fee_minor: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label>{t("delivery_fee_minor")}</Label>
+                <Input type="number" value={settingsValues.delivery_fee_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, delivery_fee_minor: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label>{t("free_delivery_threshold_minor")}</Label>
+                <Input type="number" value={settingsValues.free_delivery_threshold_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, free_delivery_threshold_minor: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label>{t("prep_minutes")}</Label>
+                <Input type="number" value={settingsValues.prep_minutes ?? 20} onChange={(e) => setSettingsForm({ ...settingsValues, prep_minutes: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label>{t("max_orders_per_day")}</Label>
+                <Input type="number" value={settingsValues.max_orders_per_day ?? ""} onChange={(e) => setSettingsForm({ ...settingsValues, max_orders_per_day: e.target.value === "" ? null : Number(e.target.value) })} />
+              </div>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.block_orders_when_closed !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, block_orders_when_closed: Boolean(v) })} />{t("block_orders_when_closed")}</label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.fulfillment_dine_in !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_dine_in: Boolean(v) })} />{t("fulfillment_dine_in")}</label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.fulfillment_pickup !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_pickup: Boolean(v) })} />{t("fulfillment_pickup")}</label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={Boolean(settingsValues.fulfillment_delivery)} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_delivery: Boolean(v) })} />{t("fulfillment_delivery")}</label>
+            </CardContent>
+          </Card>
+
           <Button onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending}>
             {tCommon("save")}
           </Button>
@@ -579,6 +657,14 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                       value={categoryForm.description}
                       onChange={(e) => setCategoryForm((f) => ({ ...f, description: e.target.value }))}
                     />
+                  </div>
+                  <div>
+                    <Label>{t("default_view")}</Label>
+                    <select className="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm" value={categoryForm.display_mode} onChange={(e) => setCategoryForm((f) => ({ ...f, display_mode: e.target.value }))}>
+                      <option value="grid">{t("view_grid")}</option>
+                      <option value="list">{t("view_list")}</option>
+                      <option value="cover">{t("view_cover")}</option>
+                    </select>
                   </div>
                   <Button onClick={() => saveCategory.mutate()} disabled={!categoryForm.name || saveCategory.isPending}>
                     <Plus className="mr-2 size-4" />
@@ -753,6 +839,8 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
             </Card>
           </div>
 
+          {editingProduct ? <ModifierEditor productId={editingProduct.id} /> : null}
+
           {selectedIds.length > 0 ? (
             <Card>
               <CardHeader>
@@ -782,8 +870,24 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                     ))}
                   </select>
                 </div>
+                <div>
+                  <Label>{t("bulk_percent")}</Label>
+                  <Input type="number" value={bulkPercent} onChange={(e) => setBulkPercent(e.target.value)} className="w-28" />
+                </div>
                 <Button onClick={() => bulkUpdate.mutate()} disabled={bulkUpdate.isPending}>
                   {t("bulk_apply")} ({selectedIds.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={bulkUpdate.isPending || bulkPercent === ""}
+                  onClick={() =>
+                    api("/api/v1/cafe/bulk-price", { method: "POST", json: { product_ids: selectedIds, percent: Number(bulkPercent) } }).then(async () => {
+                      setMessage(t("bulk_applied"))
+                      await queryClient.invalidateQueries({ queryKey: ["products"] })
+                    })
+                  }
+                >
+                  {t("bulk_price")}
                 </Button>
               </CardContent>
             </Card>
@@ -861,6 +965,8 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
               <div>
                 <Label>{t("menu_locale")}</Label>
                 <Input value={menuForm.locale} onChange={(e) => setMenuForm((f) => ({ ...f, locale: e.target.value }))} />
+                <Label>{t("menu_description")}</Label>
+                <Input value={menuForm.description} onChange={(e) => setMenuForm((f) => ({ ...f, description: e.target.value }))} />
               </div>
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <Checkbox
@@ -878,7 +984,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                     variant="outline"
                     onClick={() => {
                       setEditingMenu(null)
-                      setMenuForm({ name: "", slug: "", menu_type: "cafe", locale: "", is_active: true, sort_order: 0 })
+                      setMenuForm({ name: "", slug: "", menu_type: "cafe", locale: "", description: "", is_active: true, sort_order: 0 })
                     }}
                   >
                     {tCatalog("cancel_edit")}

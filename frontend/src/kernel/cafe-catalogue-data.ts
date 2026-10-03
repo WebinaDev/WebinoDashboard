@@ -7,11 +7,14 @@ export async function fetchCatalogueData(query?: string, menu?: string, branch?:
   venue: CafeVenuePayload | null
 }> {
   const params = new URLSearchParams()
+  params.set("per_page", "96")
+  params.set("sort", "menu")
+  params.set("show_unavailable", "1")
   if (query?.trim()) params.set("q", query.trim())
   if (menu?.trim()) params.set("menu", menu.trim())
   if (branch?.trim()) params.set("branch", branch.trim())
   const qs = params.toString()
-  const catalogPath = qs ? `/api/v1/public/catalog?${qs}` : "/api/v1/public/catalog"
+  const catalogPath = `/api/v1/public/catalog?${qs}`
 
   const [catalogRes, venueRes] = await Promise.all([
     apiServer<{ data: CatalogPayload }>(catalogPath, { revalidate: 60, tags: ["catalog"] }),

@@ -29,10 +29,10 @@ export default function HoursPageClient({ route }: { route: ResolvedAdminRoute }
   const [form, setForm] = useState<CafeHoursSettings | null>(null)
   const values: CafeHoursSettings = form ?? data ?? { timezone: "Asia/Tehran", days: [] }
 
-  const days: CafeHoursDay[] =
-    values.days.length > 0
-      ? values.days
-      : DAY_KEYS.map((day) => ({ day: t(`days.${day}`), open: "09:00", close: "22:00", closed: false }))
+  const days: CafeHoursDay[] = DAY_KEYS.map((key) => {
+    const found = values.days.find((row) => row.day === key || row.day === t(`days.${key}`))
+    return { day: key, open: found?.open ?? "09:00", close: found?.close ?? "22:00", closed: found?.closed ?? false }
+  })
 
   const save = useMutation({
     mutationFn: () =>
@@ -66,7 +66,7 @@ export default function HoursPageClient({ route }: { route: ResolvedAdminRoute }
         <CardContent className="space-y-3">
           {days.map((day, index) => (
             <div key={`${day.day}-${index}`} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-4">
-              <p className="font-medium sm:col-span-1">{day.day}</p>
+              <p className="font-medium sm:col-span-1">{t(`days.${day.day}`)}</p>
               <Input value={day.open ?? ""} onChange={(e) => updateDay(index, { open: e.target.value })} placeholder={t("open")} />
               <Input value={day.close ?? ""} onChange={(e) => updateDay(index, { close: e.target.value })} placeholder={t("close")} />
               <label className="flex items-center gap-2 text-sm">
@@ -75,6 +75,18 @@ export default function HoursPageClient({ route }: { route: ResolvedAdminRoute }
               </label>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>{t("closed_dates_heading")}</CardTitle></CardHeader>
+        <CardContent>
+          <Label>{t("closed_dates_hint")}</Label>
+          <Input
+            value={(values.closed_dates ?? []).join(", ")}
+            onChange={(e) => setForm({ ...values, days, closed_dates: e.target.value.split(",").map((part) => part.trim()).filter(Boolean) })}
+            placeholder="2026-03-20, 2026-03-21"
+          />
         </CardContent>
       </Card>
 

@@ -33,6 +33,7 @@ class MenuController extends Controller
             'schedule' => ['nullable', 'array'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'description' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $slug = $data['slug'] ?? Str::slug($data['name']);
@@ -47,6 +48,7 @@ class MenuController extends Controller
             'schedule' => $data['schedule'] ?? null,
             'is_active' => $data['is_active'] ?? true,
             'sort_order' => $data['sort_order'] ?? 0,
+            'description' => $data['description'] ?? null,
         ]);
 
         return response()->json(['data' => $menu], 201);
@@ -65,6 +67,7 @@ class MenuController extends Controller
             'schedule' => ['sometimes', 'nullable', 'array'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ]);
 
         if (isset($data['slug'])) {

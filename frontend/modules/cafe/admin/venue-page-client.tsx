@@ -25,6 +25,9 @@ const defaults: CafeVenueSettings = {
   address_en: "",
   map_url: "",
   mini_site_enabled: true,
+  whatsapp_url: "",
+  telegram_url: "",
+  bill_pay_url: "",
 }
 
 export default function VenuePageClient({ route }: { route: ResolvedAdminRoute }) {
@@ -102,6 +105,18 @@ export default function VenuePageClient({ route }: { route: ResolvedAdminRoute }
           <div className="sm:col-span-2">
             <Label>{t("map_url")}</Label>
             <Input value={values.map_url ?? ""} onChange={(e) => setForm({ ...values, map_url: e.target.value })} />
+          </div>
+          <div>
+            <Label>{t("whatsapp_url")}</Label>
+            <Input value={values.whatsapp_url ?? ""} onChange={(e) => setForm({ ...values, whatsapp_url: e.target.value })} />
+          </div>
+          <div>
+            <Label>{t("telegram_url")}</Label>
+            <Input value={values.telegram_url ?? ""} onChange={(e) => setForm({ ...values, telegram_url: e.target.value })} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>{t("bill_pay_url")}</Label>
+            <Input value={values.bill_pay_url ?? ""} onChange={(e) => setForm({ ...values, bill_pay_url: e.target.value })} />
           </div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <Checkbox checked={values.mini_site_enabled !== false} onCheckedChange={(v) => setForm({ ...values, mini_site_enabled: Boolean(v) })} />

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
 use App\Http\Controllers\Controller;
+use App\Services\Cafe\CafeOrdering;
 use App\Services\Modules\ModuleSettingsService;
 use Illuminate\Http\Request;
 
@@ -11,7 +12,7 @@ class PublicCafeController extends Controller
 {
     use ResolvesPublicTenant;
 
-    public function venue(Request $request, ModuleSettingsService $settings): \Illuminate\Http\JsonResponse
+    public function venue(Request $request, ModuleSettingsService $settings, CafeOrdering $ordering): \Illuminate\Http\JsonResponse
     {
         $tenant = $this->publicTenant($request);
         $tid = $tenant->id;
@@ -26,6 +27,7 @@ class PublicCafeController extends Controller
                 'hours' => $settings->get($tid, 'cafe', 'hours', ModuleSettingsService::cafeHoursDefaults()),
                 'gallery' => $settings->get($tid, 'cafe', 'gallery', ModuleSettingsService::cafeGalleryDefaults()),
                 'venue' => $settings->get($tid, 'cafe', 'venue', ModuleSettingsService::cafeVenueDefaults()),
+                'ordering' => $ordering->publicStatus($tid),
             ],
         ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
     }

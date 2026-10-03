@@ -14,6 +14,8 @@ export const cafeManifest: ModuleManifest = {
     { path: "qr", submodule: "qr", labelKey: "nav.qr", section: "cafe", order: 28, capability: "catalog.*" },
     { path: "reservations", submodule: "reservations", labelKey: "nav.reservations", section: "cafe", order: 29, capability: "catalog.*" },
     { path: "venue", submodule: "venue", labelKey: "nav.venue", section: "cafe", order: 30, capability: "catalog.*" },
+    { path: "kitchen", submodule: "menu", labelKey: "nav.kitchen", section: "cafe", order: 31, capability: "catalog.*" },
+    { path: "inbox", submodule: "engagement", labelKey: "nav.inbox", section: "cafe", order: 32, capability: "catalog.*" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },

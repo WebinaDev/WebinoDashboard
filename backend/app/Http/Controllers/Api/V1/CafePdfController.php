@@ -38,17 +38,19 @@ class CafePdfController extends Controller
 
         $products = $productsQuery->get();
 
+        $style = $request->query('style') === 'simple' ? 'simple' : 'color';
         $html = view('pdf.cafe-menu', [
             'menu' => $menu,
             'categories' => $categories,
             'products' => $products,
             'tenant' => $request->user()->tenant,
+            'style' => $style,
         ])->render();
 
         if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
 
-            return $pdf->download('menu.pdf');
+            return $pdf->download($style === 'simple' ? 'menu-simple.pdf' : 'menu-color.pdf');
         }
 
         return response($html, 200, [

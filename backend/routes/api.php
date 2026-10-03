@@ -19,6 +19,9 @@ use App\Http\Controllers\Api\V1\BuildPipelineController;
 use App\Http\Controllers\Api\V1\CoreUpdateController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CafeSettingsController;
+use App\Http\Controllers\Api\V1\CafeEngagementInboxController;
+use App\Http\Controllers\Api\V1\CafeTableController;
+use App\Http\Controllers\Api\V1\CafeKitchenController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
 use App\Http\Controllers\Api\V1\CafeQrController;
@@ -250,6 +253,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/cafe/products/{product}/like', [PublicCafeEngagementController::class, 'like'])->whereNumber('product')->middleware('throttle:public-writes');
             Route::post('/cafe/products/{product}/feedback', [PublicCafeEngagementController::class, 'feedback'])->whereNumber('product')->middleware('throttle:public-writes');
             Route::get('/cafe/cart', [PublicGuestCartController::class, 'show']);
+            Route::get('/cafe/order-status', [PublicGuestCartController::class, 'track']);
             Route::post('/cafe/cart/items', [PublicGuestCartController::class, 'addItem'])->middleware('throttle:public-writes');
             Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout'])->middleware('throttle:public-writes');
         });
@@ -580,8 +584,13 @@ Route::prefix('v1')->group(function () {
             Route::middleware(['module:cafe_menu', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/cafe/menu-settings', [CafeSettingsController::class, 'showMenu']);
                 Route::patch('/cafe/menu-settings', [CafeSettingsController::class, 'updateMenu']);
+                Route::post('/cafe/bulk-price', [CafeSettingsController::class, 'bulkPrice']);
+                Route::get('/cafe/kitchen-orders', [CafeKitchenController::class, 'index']);
+                Route::patch('/cafe/kitchen-orders/{order}', [CafeKitchenController::class, 'update'])->whereNumber('order');
                 Route::get('/cafe/engagement-settings', [CafeSettingsController::class, 'showEngagement']);
                 Route::patch('/cafe/engagement-settings', [CafeSettingsController::class, 'updateEngagement']);
+                Route::get('/cafe/feedback', [CafeEngagementInboxController::class, 'feedback']);
+                Route::get('/cafe/likes', [CafeEngagementInboxController::class, 'likes']);
             });
 
             Route::middleware(['module:cafe_qr', 'can:catalog.*,commerce.*'])->group(function () {
@@ -590,6 +599,10 @@ Route::prefix('v1')->group(function () {
                 Route::get('/cafe/qr', [CafeQrController::class, 'menuQr']);
                 Route::get('/cafe/menu-pdf', [CafePdfController::class, 'menuPdf']);
                 Route::apiResource('cafe/branches', CafeBranchController::class)->only(['index', 'store', 'update', 'destroy']);
+                Route::get('/cafe/tables', [CafeTableController::class, 'index']);
+                Route::post('/cafe/tables', [CafeTableController::class, 'store']);
+                Route::patch('/cafe/tables/{table}', [CafeTableController::class, 'update'])->whereNumber('table');
+                Route::delete('/cafe/tables/{table}', [CafeTableController::class, 'destroy'])->whereNumber('table');
             });
 
             Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {

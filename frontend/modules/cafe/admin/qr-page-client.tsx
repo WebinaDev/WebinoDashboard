@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { TablesCard } from "./tables-card"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import type { CafeBranch, CafeMenuListItem } from "@/themes/cafe-starter/types"
 
@@ -275,9 +276,10 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
             </select>
           </div>
           <Button asChild variant="outline">
-            <a href={pdfHref} target="_blank" rel="noreferrer">
-              {t("pdf_download")}
-            </a>
+            <a href={`${pdfHref}${pdfHref.includes("?") ? "&" : "?"}style=color`} target="_blank" rel="noreferrer">{t("pdf_color")}</a>
+          </Button>
+          <Button asChild variant="outline">
+            <a href={`${pdfHref}${pdfHref.includes("?") ? "&" : "?"}style=simple`} target="_blank" rel="noreferrer">{t("pdf_simple")}</a>
           </Button>
         </CardContent>
       </Card>
@@ -362,6 +364,7 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
           )}
         </CardContent>
       </Card>
+      <TablesCard />
       {confirmDialog}
     </div>
   )

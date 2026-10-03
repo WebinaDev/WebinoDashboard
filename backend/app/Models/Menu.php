@@ -17,6 +17,7 @@ class Menu extends Model
         'schedule',
         'is_active',
         'sort_order',
+        'description',
     ];
 
     protected function casts(): array

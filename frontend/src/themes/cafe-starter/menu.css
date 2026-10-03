@@ -1,0 +1,117 @@
+.cafe-shell {
+  --cafe-accent: #c46b3a;
+  --c-bg: #f4efe8;
+  --c-bg-2: #efe4d8;
+  --c-card: rgba(255, 252, 248, 0.92);
+  --c-ink: #241812;
+  --c-muted: #746256;
+  --c-line: rgba(36, 24, 18, 0.1);
+  --c-chip: #fff;
+  min-height: 70vh;
+  background:
+    radial-gradient(1200px 420px at 100% -10%, color-mix(in srgb, var(--cafe-accent) 28%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--c-bg-2), var(--c-bg) 280px);
+  color: var(--c-ink);
+  font-family: var(--cafe-font, inherit);
+}
+
+.cafe-shell[data-scheme="dark"] {
+  --c-bg: #120e0c;
+  --c-bg-2: #1c1411;
+  --c-card: rgba(32, 24, 20, 0.9);
+  --c-ink: #f7f1ea;
+  --c-muted: #cbbbae;
+  --c-line: rgba(247, 241, 234, 0.12);
+  --c-chip: #2a201b;
+}
+
+.cafe-shell[data-season="nowruz"] { --cafe-accent: #2f7d4a; }
+.cafe-shell[data-season="yalda"] { --cafe-accent: #9b2342; }
+.cafe-shell[data-season="ramadan"] { --cafe-accent: #c6a15b; }
+.cafe-shell[data-season="summer"] { --cafe-accent: #e07a2f; }
+.cafe-shell[data-font="serif"] { --cafe-font: "Noto Naskh Arabic", "Times New Roman", serif; }
+.cafe-shell[data-font="display"] { --cafe-font: "Vazirmatn", ui-rounded, sans-serif; }
+
+.cafe-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--c-line);
+  background: var(--c-card);
+  backdrop-filter: blur(10px);
+  border-radius: 28px;
+  padding: 1.25rem;
+}
+
+.cafe-kicker {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--cafe-accent);
+  font-weight: 700;
+}
+
+.cafe-chip {
+  border: 1px solid var(--c-line);
+  background: var(--c-chip);
+  color: var(--c-ink);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.cafe-chip[data-on="true"] {
+  background: var(--cafe-accent);
+  color: white;
+  border-color: transparent;
+}
+
+.cafe-card {
+  border: 1px solid var(--c-line);
+  background: var(--c-card);
+  border-radius: 22px;
+  overflow: hidden;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.cafe-card:hover { transform: translateY(-2px); }
+
+.cafe-card.is-sold { filter: grayscale(0.35); }
+
+.cafe-price {
+  background: color-mix(in srgb, var(--cafe-accent) 92%, black);
+  color: white;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.cafe-stamp {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 0.75rem;
+  rotate: -8deg;
+  border: 2px solid #fff;
+  color: #fff;
+  background: rgba(120, 20, 20, 0.82);
+  border-radius: 8px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.cafe-cover {
+  min-height: 220px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+}
+
+.cafe-cover .shade {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+  color: white;
+}

@@ -56,6 +56,19 @@ final class ModuleSettingsService
             'header_cta_url' => null,
             'placeholder_logo_text_fa' => null,
             'placeholder_logo_text_en' => null,
+            'accent_color' => '#c46b3a',
+            'seasonal_theme' => 'none',
+            'font_preset' => 'sans',
+            'teaser_video_url' => null,
+            'packaging_fee_minor' => 0,
+            'delivery_fee_minor' => 0,
+            'free_delivery_threshold_minor' => 0,
+            'prep_minutes' => 20,
+            'max_orders_per_day' => null,
+            'block_orders_when_closed' => true,
+            'fulfillment_dine_in' => true,
+            'fulfillment_pickup' => true,
+            'fulfillment_delivery' => false,
         ];
     }
 
@@ -64,6 +77,7 @@ final class ModuleSettingsService
         return [
             'timezone' => 'Asia/Tehran',
             'days' => [],
+            'closed_dates' => [],
         ];
     }
 
@@ -87,6 +101,9 @@ final class ModuleSettingsService
             'address_en' => null,
             'map_url' => null,
             'mini_site_enabled' => true,
+            'whatsapp_url' => null,
+            'telegram_url' => null,
+            'bill_pay_url' => null,
         ];
     }
 

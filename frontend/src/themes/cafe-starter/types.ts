@@ -108,6 +108,7 @@ export type CafeMenuListItem = {
   slug: string
   menu_type?: string
   locale?: string | null
+  description?: string | null
 }
 
 export type CafeEngagementSettings = {
@@ -119,7 +120,7 @@ export type CafeEngagementSettings = {
 }
 
 export type CafeMenuSettings = {
-  default_view: "grid" | "list"
+  default_view: "grid" | "list" | "cover"
   show_search: boolean
   show_category_bar: boolean
   show_new_badge: boolean
@@ -128,6 +129,30 @@ export type CafeMenuSettings = {
   header_cta_url?: string | null
   placeholder_logo_text_fa?: string | null
   placeholder_logo_text_en?: string | null
+  accent_color?: string | null
+  seasonal_theme?: "none" | "nowruz" | "yalda" | "ramadan" | "summer" | null
+  font_preset?: "sans" | "serif" | "display" | null
+  teaser_video_url?: string | null
+  packaging_fee_minor?: number | null
+  delivery_fee_minor?: number | null
+  free_delivery_threshold_minor?: number | null
+  prep_minutes?: number | null
+  max_orders_per_day?: number | null
+  block_orders_when_closed?: boolean
+  fulfillment_dine_in?: boolean
+  fulfillment_pickup?: boolean
+  fulfillment_delivery?: boolean
+}
+
+export type CafeOrderingStatus = {
+  is_open: boolean | null
+  reason?: string | null
+  accepting_orders: boolean
+  prep_minutes: number
+  packaging_fee_minor: number
+  delivery_fee_minor: number
+  free_delivery_threshold_minor: number
+  fulfillment: { dine_in: boolean; pickup: boolean; delivery: boolean }
 }
 
 export type CafeHoursDay = {
@@ -140,6 +165,7 @@ export type CafeHoursDay = {
 export type CafeHoursSettings = {
   timezone?: string
   days: CafeHoursDay[]
+  closed_dates?: string[]
 }
 
 export type CafeGalleryImage = {
@@ -164,6 +190,9 @@ export type CafeVenueSettings = {
   address_en?: string | null
   map_url?: string | null
   mini_site_enabled?: boolean
+  whatsapp_url?: string | null
+  telegram_url?: string | null
+  bill_pay_url?: string | null
 }
 
 export type CafeVenuePayload = {
@@ -172,6 +201,7 @@ export type CafeVenuePayload = {
   hours: CafeHoursSettings
   gallery: CafeGallerySettings
   venue: CafeVenueSettings
+  ordering?: CafeOrderingStatus
 }
 
 export type CatalogPayload = {
