@@ -90,7 +90,7 @@ Schema header `X-Webino-Import-Schema: webino.wordpress.import.v1` is optional. 
 | `permalinks` | Old path to the Webino product, page, or post path. Explicit redirects win on the same path. |
 | `settings` | Store address, shipping zones, the first tax rate, and payment config with secrets redacted. PWA, notify, brand style, swatches, attribute groups, module flags, and emails are stored on the settings package and queued for review. |
 | `waiting_list` (`yith_waitlist`) | YITH rows. No waiting-list model, so they stay on the review queue. |
-| `review_queue` | Wallet, ticket, and return rows sent with `needs_mapping: true`. Queued, not applied as live records. |
+| `review_queue` | Wallet, ticket, and return rows. Applied when the customer or order link exists; otherwise listed on the review queue. |
 | `stats` (`analytics`) | Job snapshots. A `day` (`YYYY-MM-DD`) also upserts analytics daily totals. |
 | anything else matching `[a-z0-9_]{1,32}` | Review queue (`needs_mapping`). Not a silent drop. |
 
@@ -173,8 +173,9 @@ Target tenant: `https://parisma.webinaagency.ir` (ecommerce, builder and ecommer
 - No live crawl of WordPress or WooCommerce REST. The plugin or an export has to send the data.
 - Unmapped Elementor widgets are HTML fallbacks, not editable native blocks. Tabs, accordions, forms, shortcodes, and maps stay as HTML.
 - Blog posts keep a builder document, but `/dashboard/builder` opens CMS pages and header/footer templates only.
-- YITH waiting lists, and wallet, ticket, and return rows sent as `review_queue`, stay on the operator queue (`needs_mapping`). They are not applied as live wallet ledger, ticket, or return rows.
-- Extra tax rates beyond the first, inactive redirects, and settings slices without a shop field (PWA, notify, brand style, swatches, module flags, emails) are stored and queued for review.
+- Wallet, ticket, and return rows sent as `review_queue` are applied onto the wallet ledger, support tickets, and order returns when the customer or order is already imported. Rows that cannot be applied stay on the review queue (`needs_mapping`) with payload preview, dismiss, and mark-reviewed. `GET/PATCH /api/v1/import/wordpress/review-queue` and `POST .../apply`.
+- YITH waiting lists have no destination model. They stay on that same queue.
+- Extra tax rates beyond the first, inactive redirects, and settings slices without a shop field (PWA, notify, brand style, swatches, module flags, emails) are stored on the review queue as `settings_slice`. They are not written into a fake model; an operator dismisses or marks them reviewed.
 - Customer and staff passwords cannot be reused. Staff must change the random password. Customers need a password reset or OTP on Webino.
 - An email that already exists on another tenant is stored as a placeholder (`@import.webino.invalid`); the original is kept on a customer note.
 - Header and footer imports change the draft only.

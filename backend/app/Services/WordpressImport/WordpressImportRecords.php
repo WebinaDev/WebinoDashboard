@@ -66,6 +66,7 @@ final class WordpressImportRecords
         if ($ctx->dryRun()) {
             return;
         }
+        app(WordpressImportReviewQueue::class)->applyPending($ctx->tenantId(), (int) $ctx->job->id);
         $items = $ctx->job->items()->where('status', 'done')->get();
         foreach ($items as $item) {
             $payload = is_array($item->payload) ? $item->payload : [];
@@ -1082,8 +1083,24 @@ final class WordpressImportRecords
     private function reviewQueue(ImportContext $ctx, string $externalId, array $payload): ImportOutcome
     {
         $kind = trim((string) ($payload['kind'] ?? 'review'));
+        $outcome = $this->queue($ctx, 'review_queue', $externalId, $payload, 'needs_mapping', 'Queued for operator review ('.$kind.').');
+        if ($ctx->dryRun() || ! in_array($kind, ['wallet', 'tickets', 'ticket', 'returns', 'return'], true)) {
+            return $outcome;
+        }
+        $row = WordpressImportQueue::query()
+            ->where('tenant_id', $ctx->tenantId())
+            ->where('resource', 'review_queue')
+            ->where('external_id', mb_substr($externalId, 0, 191))
+            ->first();
+        if (! $row) {
+            return $outcome;
+        }
+        $applied = app(WordpressImportReviewQueue::class)->apply($row);
+        if (! $applied['applied']) {
+            return $ctx->outcome(false, WordpressImportQueue::class, (int) $row->id, $applied['message']);
+        }
 
-        return $this->queue($ctx, 'review_queue', $externalId, $payload, 'needs_mapping', 'Queued for operator review ('.$kind.'). The exporter marks these needs_mapping.');
+        return $ctx->outcome(false, $applied['local_type'], $applied['local_id'], $applied['message']);
     }
 
     private function upsertRedirect(ImportContext $ctx, string $from, string $to, int $code, string $kind, string $resource, string $externalId, bool $force): WordpressRedirect

@@ -11,6 +11,7 @@ use App\Models\WordpressRedirect;
 use App\Services\WordpressImport\ExportBundleParser;
 use App\Services\WordpressImport\ImportUrlGuard;
 use App\Services\WordpressImport\WordpressImportResources;
+use App\Services\WordpressImport\WordpressImportReviewQueue;
 use App\Services\WordpressImport\WordpressImportRunner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class WordpressImportController extends Controller
     public function __construct(
         private readonly WordpressImportRunner $runner,
         private readonly ExportBundleParser $parser,
+        private readonly WordpressImportReviewQueue $reviews,
     ) {}
 
     public function ping(Request $request): JsonResponse
@@ -145,9 +147,57 @@ class WordpressImportController extends Controller
             ->where('job_id', $row->id)
             ->orderBy('id')
             ->limit(100)
-            ->get(['id', 'resource', 'external_id', 'label', 'status']);
+            ->get();
 
-        return response()->json(['data' => $items]);
+        return response()->json(['data' => $items->map(fn (WordpressImportQueue $item) => $this->reviews->present($item))->values()]);
+    }
+
+    public function reviewIndex(Request $request): JsonResponse
+    {
+        $this->assertSchema($request);
+        $query = WordpressImportQueue::query()->where('tenant_id', $request->user()->tenant_id);
+        $status = $request->query('status');
+        if ($status === 'pending') {
+            $query->where('status', 'needs_mapping');
+        } elseif (is_string($status) && $status !== '' && $status !== 'all') {
+            $query->where('status', $status);
+        }
+        if ($request->filled('job')) {
+            $query->where('job_id', (int) $request->query('job'));
+        }
+        $type = $request->query('type');
+        $items = $query->orderByDesc('id')->limit(200)->get();
+        if (is_string($type) && $type !== '' && $type !== 'all') {
+            $items = $items->filter(fn (WordpressImportQueue $item) => $this->reviews->type($item) === $type)->values();
+        }
+
+        return response()->json(['data' => $items->map(fn (WordpressImportQueue $item) => $this->reviews->present($item))->values()]);
+    }
+
+    public function reviewUpdate(Request $request, int $item): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => 'required|string|in:dismissed,reviewed',
+        ]);
+        $row = $this->queueItem($request, $item);
+        if ($row->status === 'applied') {
+            throw ValidationException::withMessages(['status' => 'Applied rows stay applied.']);
+        }
+        $row->status = $data['status'];
+        $row->save();
+
+        return response()->json(['data' => $this->reviews->present($row)]);
+    }
+
+    public function reviewApply(Request $request, int $item): JsonResponse
+    {
+        $row = $this->queueItem($request, $item);
+        $result = $this->reviews->apply($row);
+        if (! $result['applied']) {
+            throw ValidationException::withMessages(['item' => $result['message']]);
+        }
+
+        return response()->json(['data' => $this->reviews->present($row->fresh() ?? $row)]);
     }
 
     public function permalinks(Request $request): JsonResponse
@@ -356,6 +406,13 @@ class WordpressImportController extends Controller
         $row->delete();
 
         return response()->json(['data' => ['deleted' => true]]);
+    }
+
+    private function queueItem(Request $request, int $id): WordpressImportQueue
+    {
+        return WordpressImportQueue::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($id);
     }
 
     private function job(Request $request, int $id): WordpressImportJob

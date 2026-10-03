@@ -8,10 +8,13 @@ use App\Models\BuilderTemplate;
 use App\Models\CmsPage;
 use App\Models\Coupon;
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Models\Product;
 use App\Models\ProductReview;
+use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WalletLedger;
 use App\Models\WordpressImportQueue;
 use App\Models\WordpressRedirect;
 use App\Services\Reports\OrderReports;
@@ -517,6 +520,108 @@ class WordpressImportTest extends TestCase
         $this->assertSame(0, Product::query()->count());
         $this->assertSame(1, CmsPage::query()->count());
         $this->assertSame('only-page', CmsPage::query()->firstOrFail()->slug);
+    }
+
+    public function test_review_queue_applies_wallet_tickets_returns_and_keeps_settings_slices(): void
+    {
+        [$admin] = $this->operator();
+        $this->actingAs($admin, 'sanctum');
+        $jobId = $this->postJson('/api/v1/import/wordpress/start', [
+            'source_url' => 'https://parisma.ir',
+            'currency' => 'IRT',
+        ])->assertCreated()->json('data.id');
+
+        $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/upload', [
+            'customers' => [[
+                'source_id' => '42',
+                'email' => 'wallet@parisma.test',
+                'name' => 'کیف',
+            ]],
+            'orders' => [[
+                'source_id' => '77',
+                'status' => 'completed',
+                'total' => '1000',
+                'customer_source_id' => '42',
+                'line_items' => [[
+                    'name' => 'کالا',
+                    'quantity' => 1,
+                    'total' => '1000',
+                ]],
+            ]],
+            'review_queue' => [[
+                'source_id' => 'wallet:9',
+                'kind' => 'wallet',
+                'needs_mapping' => true,
+                'record' => [
+                    'id' => 9,
+                    'user_id' => 42,
+                    'direction' => 'credit',
+                    'amount' => '1500',
+                    'reason' => 'topup',
+                    'note' => 'migrated',
+                ],
+            ], [
+                'source_id' => 'tickets:3',
+                'kind' => 'tickets',
+                'record' => [
+                    'id' => 3,
+                    'user_id' => 42,
+                    'subject' => 'پیگیری سفارش',
+                    'status' => 'open',
+                ],
+            ], [
+                'source_id' => 'returns:4',
+                'kind' => 'returns',
+                'record' => [
+                    'id' => 4,
+                    'order_id' => 77,
+                    'item_name' => 'کالا',
+                    'qty' => 1,
+                    'reason' => 'آسیب',
+                    'status' => 'requested',
+                ],
+            ], [
+                'source_id' => 'wallet:orphan',
+                'kind' => 'wallet',
+                'record' => [
+                    'id' => 10,
+                    'user_id' => 999,
+                    'direction' => 'credit',
+                    'amount' => '20',
+                ],
+            ]],
+            'settings' => [[
+                'source_id' => 'shop',
+                'pwa' => ['name' => 'Parisma'],
+                'notify' => ['email' => true],
+            ]],
+        ])->assertOk();
+
+        $done = $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/run', ['limit' => 50])
+            ->assertOk()
+            ->json('data');
+        $this->assertSame('completed', $done['status']);
+        $this->assertSame(1500, (int) User::query()->where('email', 'wallet@parisma.test')->firstOrFail()->wallet_balance_minor);
+        $this->assertSame(1, WalletLedger::query()->count());
+        $this->assertSame('applied', WordpressImportQueue::query()->where('external_id', 'wallet:9')->firstOrFail()->status);
+        $this->assertSame('پیگیری سفارش', SupportTicket::query()->firstOrFail()->subject);
+        $this->assertSame('requested', OrderReturn::query()->firstOrFail()->status);
+        $this->assertSame('needs_mapping', WordpressImportQueue::query()->where('external_id', 'wallet:orphan')->firstOrFail()->status);
+
+        $pending = $this->getJson('/api/v1/import/wordpress/review-queue?status=pending')->assertOk()->json('data');
+        $types = array_column($pending, 'type');
+        $this->assertContains('settings_slice', $types);
+        $this->assertContains('wallet', $types);
+        $slice = collect($pending)->firstWhere('type', 'settings_slice');
+        $this->assertNotEmpty($slice['payload_preview']);
+        $this->assertFalse($slice['can_apply']);
+        $this->patchJson('/api/v1/import/wordpress/review-queue/'.$slice['id'], ['status' => 'dismissed'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'dismissed');
+        $orphan = collect($pending)->first(fn ($row) => $row['external_id'] === 'wallet:orphan');
+        $this->assertTrue($orphan['can_apply']);
+        $this->patchJson('/api/v1/import/wordpress/review-queue/'.$orphan['id'], ['status' => 'reviewed'])->assertOk();
+        $this->postJson('/api/v1/import/wordpress/review-queue/'.$orphan['id'].'/apply')->assertStatus(422);
     }
 
     /** @return array{0: User, 1: Tenant} */

@@ -56,6 +56,19 @@ type TokenRow = {
   token?: string
 }
 
+type ReviewItem = {
+  id: number
+  job_id: number | null
+  resource: string
+  external_id: string
+  label: string | null
+  status: string
+  status_label: string
+  type: string
+  payload_preview: string
+  can_apply: boolean
+}
+
 const CATALOG = [
   "media",
   "categories",
@@ -121,6 +134,37 @@ function resourceLabel(key: string): string {
 
 export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
   const t = useTranslations("builder")
+  const reviewTypeLabel = (type: string) => {
+    switch (type) {
+      case "wallet":
+        return t("import_type_wallet")
+      case "ticket":
+        return t("import_type_ticket")
+      case "return":
+        return t("import_type_return")
+      case "settings_slice":
+        return t("import_type_settings")
+      case "waiting_list":
+        return t("import_type_waiting")
+      default:
+        return type
+    }
+  }
+  const reviewStatusLabel = (status: string) => {
+    switch (status) {
+      case "pending":
+      case "needs_mapping":
+        return t("import_review_pending")
+      case "applied":
+        return t("import_review_applied")
+      case "dismissed":
+        return t("import_review_dismissed")
+      case "reviewed":
+        return t("import_review_status_reviewed")
+      default:
+        return status
+    }
+  }
   const [url, setUrl] = useState("https://parisma.ir")
   const [currency, setCurrency] = useState("IRT")
   const [multiplier, setMultiplier] = useState("1")
@@ -137,6 +181,7 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
   const [tokenName, setTokenName] = useState("parisma")
   const [freshToken, setFreshToken] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([])
 
   const statusLabel = useCallback((status: string) => {
     switch (status) {
@@ -158,12 +203,14 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
   }, [t])
 
   const load = useCallback(async () => {
-    const [listed, issued] = await Promise.all([
+    const [listed, issued, queued] = await Promise.all([
       api<Job[]>("/api/v1/import/wordpress/jobs"),
       api<TokenRow[]>("/api/v1/import/wordpress/tokens"),
+      api<ReviewItem[]>("/api/v1/import/wordpress/review-queue"),
     ])
     setJobs(listed)
     setTokens(issued)
+    setReviewItems(queued)
   }, [])
 
   useEffect(() => {
@@ -280,6 +327,25 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
         json: { name: tokenName },
       })
       setFreshToken(issued.token ?? null)
+      await load()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("save_failed"))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function reviewAct(id: number, action: "apply" | "dismiss" | "reviewed") {
+    setBusy(true)
+    try {
+      if (action === "apply") {
+        await api(`/api/v1/import/wordpress/review-queue/${id}/apply`, { method: "POST" })
+      } else {
+        await api(`/api/v1/import/wordpress/review-queue/${id}`, {
+          method: "PATCH",
+          json: { status: action === "dismiss" ? "dismissed" : "reviewed" },
+        })
+      }
       await load()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("save_failed"))
@@ -526,6 +592,43 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
               </CardContent>
             </Card>
           ) : null}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("import_review_title")}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              {reviewItems.length === 0 ? <p className="text-sm text-muted-foreground">{t("import_review_empty")}</p> : null}
+              {reviewItems.map((item) => (
+                <div key={item.id} className="grid gap-2 rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      {reviewTypeLabel(item.type)}
+                      {item.label ? ` — ${item.label}` : ""}
+                      <span className="text-muted-foreground" dir="ltr"> #{item.external_id}</span>
+                    </span>
+                    <Badge variant={item.status === "dismissed" ? "outline" : item.status === "applied" || item.status_label === "applied" ? "secondary" : "default"}>
+                      {reviewStatusLabel(item.status_label || item.status)}
+                    </Badge>
+                  </div>
+                  {item.payload_preview ? (
+                    <pre className="max-h-28 overflow-auto whitespace-pre-wrap break-all rounded bg-muted p-2 text-xs" dir="ltr">{item.payload_preview}</pre>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    {item.can_apply ? (
+                      <Button type="button" size="sm" disabled={busy} onClick={() => void reviewAct(item.id, "apply")}>{t("import_review_apply")}</Button>
+                    ) : null}
+                    {item.status !== "applied" && item.status !== "dismissed" ? (
+                      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void reviewAct(item.id, "reviewed")}>{t("import_review_reviewed")}</Button>
+                    ) : null}
+                    {item.status !== "applied" && item.status !== "dismissed" ? (
+                      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void reviewAct(item.id, "dismiss")}>{t("import_review_dismiss")}</Button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </PageShell>

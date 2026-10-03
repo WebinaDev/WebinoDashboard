@@ -731,6 +731,9 @@ Route::prefix('v1')->group(function () {
                 Route::get('/import/wordpress/permalinks', [WordpressImportController::class, 'permalinks']);
                 Route::get('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'show'])->whereNumber('job');
                 Route::get('/import/wordpress/jobs/{job}/queue', [WordpressImportController::class, 'queue'])->whereNumber('job');
+Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 'reviewIndex']);
+                Route::patch('/import/wordpress/review-queue/{item}', [WordpressImportController::class, 'reviewUpdate'])->whereNumber('item');
+                Route::post('/import/wordpress/review-queue/{item}/apply', [WordpressImportController::class, 'reviewApply'])->whereNumber('item');
                 Route::patch('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'update'])->whereNumber('job');
                 Route::post('/import/wordpress/jobs/{job}/batches', [WordpressImportController::class, 'batches'])->whereNumber('job');
                 Route::post('/import/wordpress/jobs/{job}/upload', [WordpressImportController::class, 'upload'])->whereNumber('job');
