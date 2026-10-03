@@ -43,6 +43,10 @@ return [
         'provision_hmac_secret' => env('WEBINO_PROVISION_HMAC_SECRET'),
         'basalam_oauth_base' => env('WEBINO_BASALAM_OAUTH_BASE'),
         'erp_api_token' => env('WEBINO_ERP_API_TOKEN'),
+        'erp_base_url' => env('WEBINO_ERP_BASE_URL'),
+        'staff_impersonation_secret' => env('WEBINO_STAFF_IMPERSONATION_SECRET'),
+        'staff_impersonation_ttl' => (int) env('WEBINO_STAFF_IMPERSONATION_TTL', 600),
+        'staff_impersonation_session_minutes' => (int) env('WEBINO_STAFF_IMPERSONATION_SESSION_MINUTES', 480),
     ],
 
     'zarinpal' => [

@@ -13,10 +13,11 @@
     "test:e2e": "playwright test",
     "test:nav": "node src/kernel/build-admin-nav.smoke.mjs",
     "test:auth-cookie": "node --experimental-strip-types --test src/lib/auth-cookie.test.ts",
+    "test:staff-impersonation": "node --experimental-strip-types --test src/lib/staff-impersonation.test.ts",
     "test:api-origin": "node --experimental-strip-types --test src/lib/server-api-base.test.ts",
     "check:i18n": "node scripts/check-i18n-duplicates.mjs",
     "check:links": "node scripts/check-dashboard-links.mjs",
-    "check:guards": "npm run check:i18n && npm run check:links && npm run check:english && npm run test:nav && npm run test:auth-cookie && npm run test:api-origin",
+    "check:guards": "npm run check:i18n && npm run check:links && npm run check:english && npm run test:nav && npm run test:auth-cookie && npm run test:api-origin && npm run test:staff-impersonation",
     "check:english": "node scripts/check-english-jsx.mjs"
   },
   "dependencies": {

@@ -74,6 +74,7 @@
     "signupLink": "Sign up",
     "errors_invalid": "Invalid credentials.",
     "errors_throttled": "Too many login attempts. Please wait a minute and try again.",
+    "impersonationPending": "Signing in as support…",
     "brandAlt": "Brand",
     "defaultCredentialsHint": "",
     "changePasswordTitle": "Change password",
@@ -557,6 +558,20 @@
     "exit_fullscreen": "Exit fullscreen",
     "breadcrumb_home": "Dashboard",
     "more_actions": "More actions"
+  },
+  "impersonation": {
+    "banner_label": "Webino support session",
+    "staff": "Staff: {name}",
+    "site": "Site: {name}",
+    "customer": "Customer: {name}",
+    "switch_site": "Other sites",
+    "current_site": "Current site",
+    "no_other_sites": "No other sites are assigned to this staff member.",
+    "page_builder": "Page builder",
+    "theme_builder": "Theme builder",
+    "exit": "Back to ERP",
+    "switch_failed": "Could not switch to that site.",
+    "exit_failed": "Could not leave the support session."
   },
   "pwa": {
     "installRegion": "Install dashboard",

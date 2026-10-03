@@ -73,6 +73,7 @@
     "signupLink": "ثبت‌نام",
     "errors_invalid": "اطلاعات ورود نادرست است.",
     "errors_throttled": "تعداد تلاش ورود زیاد است. یک دقیقه صبر کنید و دوباره امتحان کنید.",
+    "impersonationPending": "در حال ورود پشتیبانی…",
     "brandAlt": "برند",
     "defaultCredentialsHint": "",
     "changePasswordTitle": "تغییر رمز عبور",
@@ -314,6 +315,20 @@
     "exit_fullscreen": "خروج از تمام‌صفحه",
     "breadcrumb_home": "پیشخوان",
     "more_actions": "اقدامات بیشتر"
+  },
+  "impersonation": {
+    "banner_label": "ورود پشتیبانی وبینو",
+    "staff": "پشتیبان: {name}",
+    "site": "سایت: {name}",
+    "customer": "مشتری: {name}",
+    "switch_site": "سایت‌های دیگر",
+    "current_site": "سایت فعلی",
+    "no_other_sites": "سایت دیگری برای این پشتیبان ثبت نشده است.",
+    "page_builder": "صفحه‌ساز",
+    "theme_builder": "قالب‌ساز",
+    "exit": "بازگشت به ERP",
+    "switch_failed": "انتقال به سایت دیگر انجام نشد.",
+    "exit_failed": "خروج از حالت پشتیبانی انجام نشد."
   },
   "pwa": {
     "installRegion": "نصب پیشخوان",

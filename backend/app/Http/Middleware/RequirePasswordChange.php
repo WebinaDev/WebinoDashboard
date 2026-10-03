@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Auth\StaffImpersonationService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,6 +13,10 @@ class RequirePasswordChange
     {
         $user = $request->user();
         if (! $user || ! $user->password_must_change) {
+            return $next($request);
+        }
+
+        if (app(StaffImpersonationService::class)->isImpersonating($request)) {
             return $next($request);
         }
 

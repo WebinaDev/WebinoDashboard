@@ -15,6 +15,12 @@ import {
 } from "@/kernel/paths"
 import { DEFAULT_AUTH_COOKIE_NAME, readCookieValue } from "@/lib/auth-cookie"
 import { getServerApiBase } from "@/lib/server-api-base"
+import {
+  STAFF_IMPERSONATION_COOKIE,
+  STAFF_IMPERSONATION_EXCHANGE_FLAG,
+  STAFF_IMPERSONATION_QUERY,
+  staffImpersonationRedirect,
+} from "@/lib/staff-impersonation"
 
 const LOCALES = ["fa", "en"] as const
 
@@ -22,6 +28,7 @@ type GateData = {
   authenticated?: boolean
   setup_completed?: boolean | null
   password_must_change?: boolean
+  staff_impersonation?: boolean
 }
 
 function sessionToken(request: NextRequest): string | null {
@@ -114,6 +121,28 @@ export async function middleware(request: NextRequest) {
   const isChangePassword = pathname === "/account/change-password"
   const isDashboard = isDashboardPathname(pathname)
 
+  const impersonation = staffImpersonationRedirect({
+    pathname,
+    queryToken: request.nextUrl.searchParams.get(STAFF_IMPERSONATION_QUERY),
+    hasImpersonationCookie: Boolean(
+      request.cookies.get(STAFF_IMPERSONATION_COOKIE)?.value,
+    ),
+  })
+  if (impersonation.action === "redirect-query") {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = "/login"
+    loginUrl.search = ""
+    loginUrl.searchParams.set(STAFF_IMPERSONATION_QUERY, impersonation.token)
+    return NextResponse.redirect(loginUrl)
+  }
+  if (impersonation.action === "redirect-cookie") {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = "/login"
+    loginUrl.search = ""
+    loginUrl.searchParams.set(STAFF_IMPERSONATION_EXCHANGE_FLAG, "1")
+    return NextResponse.redirect(loginUrl)
+  }
+
   if (isDashboard || isSetup || isChangePassword) {
     const gate = await fetchGate(request)
     if (!gate?.authenticated) {
@@ -121,6 +150,15 @@ export async function middleware(request: NextRequest) {
       loginUrl.pathname = "/login"
       loginUrl.searchParams.set("next", pathname)
       return NextResponse.redirect(loginUrl)
+    }
+    if (gate.staff_impersonation) {
+      if (isChangePassword) {
+        const dashUrl = request.nextUrl.clone()
+        dashUrl.pathname = DASHBOARD_BASE
+        dashUrl.search = ""
+        return NextResponse.redirect(dashUrl)
+      }
+      return res
     }
     if (gate.password_must_change && !isChangePassword) {
       const changeUrl = request.nextUrl.clone()
@@ -147,8 +185,17 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isLogin) {
+    if (impersonation.action === "stay") {
+      return res
+    }
     const gate = await fetchGate(request)
     if (gate?.authenticated) {
+      if (gate.staff_impersonation) {
+        const dashUrl = request.nextUrl.clone()
+        dashUrl.pathname = DASHBOARD_BASE
+        dashUrl.search = ""
+        return NextResponse.redirect(dashUrl)
+      }
       if (gate.password_must_change) {
         const changeUrl = request.nextUrl.clone()
         changeUrl.pathname = "/account/change-password"

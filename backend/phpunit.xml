@@ -34,6 +34,7 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="WEBINO_PROVISION_HMAC_SECRET" value="test-provision-secret"/>
+        <env name="WEBINO_STAFF_IMPERSONATION_SECRET" value="test-staff-impersonation-secret"/>
         <env name="TENANT_PROVISION_TOKEN" value="test-token-123"/>
     </php>
 </phpunit>

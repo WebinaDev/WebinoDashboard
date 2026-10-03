@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CurrencySettingsFields } from "@/components/CurrencySettingsFields"
+import { StaffImpersonationBar } from "@/components/StaffImpersonationBar"
 import { api, ApiError } from "@/lib/api"
 import {
   DEFAULT_CURRENCY_SYMBOL,
@@ -255,6 +256,8 @@ export default function SetupWizardPage() {
     pending || (step === 0 && !siteType)
 
   return (
+    <>
+    <StaffImpersonationBar />
     <div
       className="mx-auto flex min-h-svh max-w-3xl flex-col justify-center space-y-6 px-4 py-10 text-start"
       dir="rtl"
@@ -426,5 +429,6 @@ export default function SetupWizardPage() {
         </Button>
       </div>
     </div>
+    </>
   )
 }

@@ -29,4 +29,12 @@ return [
     'otp_default_template' => 'کد شما: {code} — {site_name}',
     'otp_channel_bale' => 'گفت‌وگوی پیام‌رسان',
     'otp_channel_telegram' => 'گفت‌وگوی پیام‌رسان',
+    'impersonation_invalid' => 'ورود پشتیبانی نامعتبر است.',
+    'impersonation_expired' => 'ورود پشتیبانی منقضی شده است.',
+    'impersonation_replay' => 'این لینک ورود پشتیبانی قبلاً استفاده شده است.',
+    'impersonation_site_mismatch' => 'این لینک برای سایت دیگری صادر شده است.',
+    'impersonation_unavailable' => 'ورود پشتیبانی روی این سایت ممکن نیست.',
+    'impersonation_switch_unavailable' => 'انتقال به این سایت از اینجا ممکن نیست.',
+    'impersonation_current_site' => 'همین سایت الان باز است.',
+    'impersonation_not_active' => 'نشست پشتیبانی فعال نیست.',
 ];

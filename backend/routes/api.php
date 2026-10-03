@@ -1,146 +1,156 @@
 <?php
 
-use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\Api\V1\AcademyCourseController;
-use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AccountingController;
+use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AiContentController;
 use App\Http\Controllers\Api\V1\AiRecommendationController;
+use App\Http\Controllers\Api\V1\AllergenController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\OtpAuthController;
 use App\Http\Controllers\Api\V1\BlogCategoryController;
 use App\Http\Controllers\Api\V1\BlogPostController;
 use App\Http\Controllers\Api\V1\BootstrapController;
+use App\Http\Controllers\Api\V1\BotController;
+use App\Http\Controllers\Api\V1\BrandController;
+use App\Http\Controllers\Api\V1\BuilderController;
 use App\Http\Controllers\Api\V1\BuildPipelineController;
-use App\Http\Controllers\Api\V1\CoreUpdateController;
-use App\Http\Controllers\Api\V1\CartController;
-use App\Http\Controllers\Api\V1\CafeSettingsController;
+use App\Http\Controllers\Api\V1\BulkSaleController;
+use App\Http\Controllers\Api\V1\C2cController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
 use App\Http\Controllers\Api\V1\CafeQrController;
-use App\Http\Controllers\Api\V1\AllergenController;
-use App\Http\Controllers\Api\V1\MenuController;
-use App\Http\Controllers\Api\V1\MenuBannerController;
-use App\Http\Controllers\Api\V1\ProductModifierController;
-use App\Http\Controllers\Api\V1\ReservationController;
-use App\Http\Controllers\Api\V1\PublicPortfolioController;
-use App\Http\Controllers\Api\V1\PublicReservationController;
-use App\Http\Controllers\Api\V1\PublicCafeEngagementController;
-use App\Http\Controllers\Api\V1\PublicGuestCartController;
+use App\Http\Controllers\Api\V1\CafeSettingsController;
+use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
-use App\Http\Controllers\Api\V1\BuilderController;
 use App\Http\Controllers\Api\V1\CmsController;
-use App\Http\Controllers\Api\V1\PublicBuilderController;
-use App\Http\Controllers\Api\V1\WordpressImportController;
+use App\Http\Controllers\Api\V1\CoffeeController;
+use App\Http\Controllers\Api\V1\CoreUpdateController;
+use App\Http\Controllers\Api\V1\CouponController;
+use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\CustomerNoteController;
+use App\Http\Controllers\Api\V1\DashboardOverviewController;
+use App\Http\Controllers\Api\V1\GeoController;
+use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\KernelController;
 use App\Http\Controllers\Api\V1\LicenseController;
 use App\Http\Controllers\Api\V1\MagazineArticleController;
 use App\Http\Controllers\Api\V1\MagazineTaxonomyController;
 use App\Http\Controllers\Api\V1\MarketingController;
+use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\MediaTermController;
+use App\Http\Controllers\Api\V1\MenuBannerController;
+use App\Http\Controllers\Api\V1\MenuController;
 use App\Http\Controllers\Api\V1\MobileContractController;
+use App\Http\Controllers\Api\V1\ModirPayamakController;
 use App\Http\Controllers\Api\V1\ModuleController;
-use App\Http\Controllers\Api\V1\ModuleMarketplaceController;
 use App\Http\Controllers\Api\V1\ModuleInstallController;
+use App\Http\Controllers\Api\V1\ModuleMarketplaceController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\OrderDocumentController;
+use App\Http\Controllers\Api\V1\OtpAuthController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
 use App\Http\Controllers\Api\V1\PaymentGatewaySettingsController;
 use App\Http\Controllers\Api\V1\PaymentIntentController;
 use App\Http\Controllers\Api\V1\PaymentsHubController;
 use App\Http\Controllers\Api\V1\PortfolioItemController;
-use App\Http\Controllers\Api\V1\BrandController;
-use App\Http\Controllers\Api\V1\BulkSaleController;
-use App\Http\Controllers\Api\V1\C2cController;
-use App\Http\Controllers\Api\V1\CoffeeController;
-use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\PricingController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
 use App\Http\Controllers\Api\V1\ProductCatalogController;
 use App\Http\Controllers\Api\V1\ProductController;
-use App\Http\Controllers\Api\V1\ProductTagController;
 use App\Http\Controllers\Api\V1\ProductDownloadController;
+use App\Http\Controllers\Api\V1\ProductModifierController;
 use App\Http\Controllers\Api\V1\ProductQuestionController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
-use App\Http\Controllers\Api\V1\ShopExtrasController;
+use App\Http\Controllers\Api\V1\ProductTagController;
 use App\Http\Controllers\Api\V1\ProductVariantController;
-use App\Http\Controllers\Api\V1\WalletController;
-use App\Http\Controllers\Api\V1\CustomerController;
-use App\Http\Controllers\Api\V1\CustomerNoteController;
-use App\Http\Controllers\Api\V1\UserAdminController;
-use App\Http\Controllers\Api\V1\DashboardOverviewController;
-use App\Http\Controllers\Api\V1\StaffController;
-use App\Http\Controllers\Api\V1\SupportTicketController;
-use App\Http\Controllers\Api\V1\RoleController;
-use App\Http\Controllers\Api\V1\BotController;
-use App\Http\Controllers\Api\V1\CouponController;
-use App\Http\Controllers\Api\V1\ModirPayamakController;
-use App\Http\Controllers\Api\V1\PublicCatalogController;
-use App\Http\Controllers\Api\V1\PublicCafeController;
 use App\Http\Controllers\Api\V1\ProvisionController;
 use App\Http\Controllers\Api\V1\PublicAcademyController;
+use App\Http\Controllers\Api\V1\PublicAnalyticsController;
 use App\Http\Controllers\Api\V1\PublicBlogController;
+use App\Http\Controllers\Api\V1\PublicBuilderController;
+use App\Http\Controllers\Api\V1\PublicCafeController;
+use App\Http\Controllers\Api\V1\PublicCafeEngagementController;
+use App\Http\Controllers\Api\V1\PublicCatalogController;
 use App\Http\Controllers\Api\V1\PublicCmsController;
 use App\Http\Controllers\Api\V1\PublicConsultationController;
 use App\Http\Controllers\Api\V1\PublicCorporateController;
+use App\Http\Controllers\Api\V1\PublicGuestCartController;
 use App\Http\Controllers\Api\V1\PublicKernelController;
 use App\Http\Controllers\Api\V1\PublicMagazineController;
+use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
+use App\Http\Controllers\Api\V1\PublicPortfolioController;
+use App\Http\Controllers\Api\V1\PublicReservationController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
 use App\Http\Controllers\Api\V1\PublicSiteController;
-use App\Http\Controllers\Api\V1\GeoController;
-use App\Http\Controllers\Api\V1\PublicAnalyticsController;
-use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
 use App\Http\Controllers\Api\V1\ReportsController;
+use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\ResumeProfileController;
+use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SetupController;
 use App\Http\Controllers\Api\V1\ShippingZonesController;
+use App\Http\Controllers\Api\V1\ShopExtrasController;
 use App\Http\Controllers\Api\V1\SiteConsultationController;
+use App\Http\Controllers\Api\V1\StaffController;
+use App\Http\Controllers\Api\V1\StaffImpersonationController;
+use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\TapinController;
 use App\Http\Controllers\Api\V1\TeamMemberController;
 use App\Http\Controllers\Api\V1\TenantController;
-use App\Http\Controllers\Api\V1\OrderDocumentController;
 use App\Http\Controllers\Api\V1\TenantSettingsController;
-use App\Http\Controllers\Api\V1\ThemeController;
 use App\Http\Controllers\Api\V1\TestimonialController;
+use App\Http\Controllers\Api\V1\ThemeController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
+use App\Http\Controllers\Api\V1\UserAdminController;
+use App\Http\Controllers\Api\V1\WalletController;
+use App\Http\Controllers\Api\V1\WordpressImportController;
+use App\Http\Controllers\OpenApiController;
+use App\Http\Middleware\AuthenticateFromCookie;
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\RequirePasswordChange;
+use App\Http\Middleware\RequireTwoFactor;
+use App\Http\Middleware\ThrottleApiToken;
+use App\Services\Marketplace\MarketplacePlatforms;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 Route::prefix('v1')->group(function () {
     Route::get('/openapi.json', [OpenApiController::class, 'show']);
 
-    Route::get('/health/readiness', [\App\Http\Controllers\Api\V1\HealthController::class, 'readiness'])
+    Route::get('/health/readiness', [HealthController::class, 'readiness'])
         ->withoutMiddleware([
-            \App\Http\Middleware\ThrottleApiToken::class,
-            \App\Http\Middleware\AuthenticateFromCookie::class,
-            \App\Http\Middleware\EnsureUserIsActive::class,
-            \App\Http\Middleware\RequirePasswordChange::class,
-            \App\Http\Middleware\RequireTwoFactor::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            ThrottleApiToken::class,
+            AuthenticateFromCookie::class,
+            EnsureUserIsActive::class,
+            RequirePasswordChange::class,
+            RequireTwoFactor::class,
+            EnsureFrontendRequestsAreStateful::class,
         ]);
-    Route::get('/health/metrics', [\App\Http\Controllers\Api\V1\HealthController::class, 'metrics'])
+    Route::get('/health/metrics', [HealthController::class, 'metrics'])
         ->withoutMiddleware([
-            \App\Http\Middleware\ThrottleApiToken::class,
-            \App\Http\Middleware\AuthenticateFromCookie::class,
-            \App\Http\Middleware\EnsureUserIsActive::class,
-            \App\Http\Middleware\RequirePasswordChange::class,
-            \App\Http\Middleware\RequireTwoFactor::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            ThrottleApiToken::class,
+            AuthenticateFromCookie::class,
+            EnsureUserIsActive::class,
+            RequirePasswordChange::class,
+            RequireTwoFactor::class,
+            EnsureFrontendRequestsAreStateful::class,
         ]);
 
     Route::post('/public/bots/{provider}/webhook', [BotController::class, 'webhook'])
         ->whereIn('provider', ['bale', 'telegram'])
         ->withoutMiddleware([
-            \App\Http\Middleware\ThrottleApiToken::class,
-            \App\Http\Middleware\AuthenticateFromCookie::class,
-            \App\Http\Middleware\EnsureUserIsActive::class,
-            \App\Http\Middleware\RequirePasswordChange::class,
-            \App\Http\Middleware\RequireTwoFactor::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            ThrottleApiToken::class,
+            AuthenticateFromCookie::class,
+            EnsureUserIsActive::class,
+            RequirePasswordChange::class,
+            RequireTwoFactor::class,
+            EnsureFrontendRequestsAreStateful::class,
         ]);
 
     Route::get('/payments/callback/{provider}/{order}', [PaymentCallbackController::class, 'handle'])
@@ -155,6 +165,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/verify-otp', [OtpAuthController::class, 'verifyOtp'])->middleware('throttle:5,1');
     Route::post('/auth/session', [AuthController::class, 'session'])->middleware('throttle:5,1');
     Route::post('/auth/panel-login', [AuthController::class, 'panelLogin'])->middleware('throttle:10,1');
+    Route::post('/auth/impersonate', [StaffImpersonationController::class, 'exchange'])->middleware('throttle:10,1');
     Route::get('/auth/gate', [AuthController::class, 'gate']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/provision/bootstrap', [ProvisionController::class, 'bootstrap']);
@@ -251,6 +262,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/auth/check', [AuthController::class, 'check']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
         Route::get('/auth/user', [AuthController::class, 'user']);
+        Route::get('/auth/impersonation', [StaffImpersonationController::class, 'show']);
+        Route::post('/auth/impersonation/switch', [StaffImpersonationController::class, 'switch'])->middleware('throttle:20,1');
+        Route::post('/auth/impersonation/exit', [StaffImpersonationController::class, 'exit']);
         Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:10,1');
 
         Route::prefix('auth/2fa')->group(function () {
@@ -321,9 +335,9 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('staff')->group(function () {
             Route::get('/modules', [ModuleController::class, 'index']);
-                Route::match(['get', 'post'], '/modules/marketplace/catalog', [ModuleMarketplaceController::class, 'catalog']);
-                Route::post('/modules/marketplace/purchase', [ModuleMarketplaceController::class, 'purchase']);
-                Route::match(['get', 'post'], '/modules/marketplace/payment-callback', [ModuleMarketplaceController::class, 'paymentCallback']);
+            Route::match(['get', 'post'], '/modules/marketplace/catalog', [ModuleMarketplaceController::class, 'catalog']);
+            Route::post('/modules/marketplace/purchase', [ModuleMarketplaceController::class, 'purchase']);
+            Route::match(['get', 'post'], '/modules/marketplace/payment-callback', [ModuleMarketplaceController::class, 'paymentCallback']);
             Route::patch('/modules/{slug}', [ModuleController::class, 'update']);
 
             Route::post('/license/sync', [LicenseController::class, 'sync']);
@@ -477,7 +491,7 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware('module:marketplace')->prefix('marketplace')->group(function () {
-                $platforms = implode('|', array_map('preg_quote', \App\Services\Marketplace\MarketplacePlatforms::slugs()));
+                $platforms = implode('|', array_map('preg_quote', MarketplacePlatforms::slugs()));
 
                 Route::get('/hub', [MarketplaceController::class, 'hub']);
                 Route::get('/pricing', [MarketplaceController::class, 'pricing']);
@@ -636,16 +650,16 @@ Route::prefix('v1')->group(function () {
             Route::post('/orders/{order}/tapin/register', [TapinController::class, 'registerOrder'])->whereNumber('order');
             Route::post('/orders/{order}/tapin/status', [TapinController::class, 'orderStatus'])->whereNumber('order');
             Route::get('/orders/{order}/tapin/label', [TapinController::class, 'orderLabel'])->whereNumber('order');
-            Route::get('/zarinpal/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'zarinpal'));
-            Route::post('/zarinpal/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'zarinpal'));
-            Route::get('/digipay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'digipay'));
-            Route::post('/digipay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'digipay'));
-            Route::get('/snapppay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'snapppay'));
-            Route::post('/snapppay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'snapppay'));
-            Route::get('/torobpay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'torobpay'));
-            Route::post('/torobpay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'torobpay'));
-            Route::get('/bale-pay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'bale-pay'));
-            Route::post('/bale-pay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'bale-pay'));
+            Route::get('/zarinpal/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'zarinpal'));
+            Route::post('/zarinpal/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'zarinpal'));
+            Route::get('/digipay/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'digipay'));
+            Route::post('/digipay/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'digipay'));
+            Route::get('/snapppay/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'snapppay'));
+            Route::post('/snapppay/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'snapppay'));
+            Route::get('/torobpay/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'torobpay'));
+            Route::post('/torobpay/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'torobpay'));
+            Route::get('/bale-pay/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'bale-pay'));
+            Route::post('/bale-pay/settings', fn (Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'bale-pay'));
 
             Route::middleware('module:wallet')->group(function () {
                 Route::get('/wallet/settings', [WalletController::class, 'settings']);
@@ -687,17 +701,17 @@ Route::prefix('v1')->group(function () {
 
             foreach (['bale' => 'bots_bale', 'telegram' => 'bots_telegram'] as $provider => $moduleSlug) {
                 Route::middleware('module:'.$moduleSlug)->prefix('bots/'.$provider)->group(function () use ($provider) {
-                    Route::get('/settings', fn (\Illuminate\Http\Request $r) => app(BotController::class)->settings($r, $provider));
-                    Route::put('/settings', fn (\Illuminate\Http\Request $r) => app(BotController::class)->updateSettings($r, $provider));
-                    Route::get('/sessions', fn (\Illuminate\Http\Request $r) => app(BotController::class)->sessions($r, $provider));
-                    Route::get('/logs', fn (\Illuminate\Http\Request $r) => app(BotController::class)->logs($r, $provider));
-                    Route::post('/send', fn (\Illuminate\Http\Request $r) => app(BotController::class)->send($r, $provider));
-                    Route::get('/broadcast', fn (\Illuminate\Http\Request $r) => app(BotController::class)->broadcast($r, $provider));
-                    Route::post('/broadcast/start', fn (\Illuminate\Http\Request $r) => app(BotController::class)->broadcastStart($r, $provider));
-                    Route::post('/broadcast/cancel', fn (\Illuminate\Http\Request $r) => app(BotController::class)->broadcastCancel($r, $provider));
-                    Route::get('/campaigns', fn (\Illuminate\Http\Request $r) => app(BotController::class)->campaigns($r, $provider));
-                    Route::post('/campaigns', fn (\Illuminate\Http\Request $r) => app(BotController::class)->campaignsStore($r, $provider));
-                    Route::post('/users/import', fn (\Illuminate\Http\Request $r) => app(BotController::class)->importUsers($r, $provider));
+                    Route::get('/settings', fn (Request $r) => app(BotController::class)->settings($r, $provider));
+                    Route::put('/settings', fn (Request $r) => app(BotController::class)->updateSettings($r, $provider));
+                    Route::get('/sessions', fn (Request $r) => app(BotController::class)->sessions($r, $provider));
+                    Route::get('/logs', fn (Request $r) => app(BotController::class)->logs($r, $provider));
+                    Route::post('/send', fn (Request $r) => app(BotController::class)->send($r, $provider));
+                    Route::get('/broadcast', fn (Request $r) => app(BotController::class)->broadcast($r, $provider));
+                    Route::post('/broadcast/start', fn (Request $r) => app(BotController::class)->broadcastStart($r, $provider));
+                    Route::post('/broadcast/cancel', fn (Request $r) => app(BotController::class)->broadcastCancel($r, $provider));
+                    Route::get('/campaigns', fn (Request $r) => app(BotController::class)->campaigns($r, $provider));
+                    Route::post('/campaigns', fn (Request $r) => app(BotController::class)->campaignsStore($r, $provider));
+                    Route::post('/users/import', fn (Request $r) => app(BotController::class)->importUsers($r, $provider));
                 });
             }
 
@@ -731,7 +745,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/import/wordpress/permalinks', [WordpressImportController::class, 'permalinks']);
                 Route::get('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'show'])->whereNumber('job');
                 Route::get('/import/wordpress/jobs/{job}/queue', [WordpressImportController::class, 'queue'])->whereNumber('job');
-Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 'reviewIndex']);
+                Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 'reviewIndex']);
                 Route::patch('/import/wordpress/review-queue/{item}', [WordpressImportController::class, 'reviewUpdate'])->whereNumber('item');
                 Route::post('/import/wordpress/review-queue/{item}/apply', [WordpressImportController::class, 'reviewApply'])->whereNumber('item');
                 Route::patch('/import/wordpress/jobs/{job}', [WordpressImportController::class, 'update'])->whereNumber('job');

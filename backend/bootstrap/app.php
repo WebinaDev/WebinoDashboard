@@ -1,10 +1,26 @@
 <?php
 
+use App\Http\Middleware\ApiResponseFormatter;
+use App\Http\Middleware\AuthenticateFromCookie;
+use App\Http\Middleware\EnsureCapability;
 use App\Http\Middleware\EnsureModuleEnabled;
+use App\Http\Middleware\EnsurePublicModuleEnabled;
+use App\Http\Middleware\EnsureStaffRole;
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\RequireAjaxHeader;
+use App\Http\Middleware\RequirePasswordChange;
+use App\Http\Middleware\RequireTwoFactor;
+use App\Http\Middleware\ResolvePublicTenant;
+use App\Http\Middleware\RestrictScopedApiTokens;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\ThrottleApiToken;
+use App\Http\Middleware\WafGuard;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -32,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ?? $_SERVER['AUTH_COOKIE_NAME']
                 ?? 'webino_auth_token'),
             'torob_clid',
+            'webino_staff_impersonate',
         ]);
 
         // Cookie+Bearer SPA — not Sanctum session auth. Do NOT enable
@@ -44,32 +61,32 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->api(prepend: [
-            \App\Http\Middleware\ForceJsonResponse::class,
-            \App\Http\Middleware\ApiResponseFormatter::class,
-            \App\Http\Middleware\AuthenticateFromCookie::class,
-            \App\Http\Middleware\EnsureUserIsActive::class,
-            \App\Http\Middleware\RequireAjaxHeader::class,
-            \App\Http\Middleware\WafGuard::class,
+            ForceJsonResponse::class,
+            ApiResponseFormatter::class,
+            AuthenticateFromCookie::class,
+            EnsureUserIsActive::class,
+            RequireAjaxHeader::class,
+            WafGuard::class,
         ]);
         $middleware->api(append: [
-            \App\Http\Middleware\RequirePasswordChange::class,
-            \App\Http\Middleware\RequireTwoFactor::class,
-            \App\Http\Middleware\ThrottleApiToken::class,
-            \App\Http\Middleware\SecurityHeaders::class,
+            RequirePasswordChange::class,
+            RequireTwoFactor::class,
+            ThrottleApiToken::class,
+            SecurityHeaders::class,
         ]);
         $middleware->alias([
             'module' => EnsureModuleEnabled::class,
-            'staff' => \App\Http\Middleware\EnsureStaffRole::class,
-            'can' => \App\Http\Middleware\EnsureCapability::class,
-            'user.active' => \App\Http\Middleware\EnsureUserIsActive::class,
-            'public.module' => \App\Http\Middleware\EnsurePublicModuleEnabled::class,
-            'public.tenant' => \App\Http\Middleware\ResolvePublicTenant::class,
-            'token.scope' => \App\Http\Middleware\RestrictScopedApiTokens::class,
+            'staff' => EnsureStaffRole::class,
+            'can' => EnsureCapability::class,
+            'user.active' => EnsureUserIsActive::class,
+            'public.module' => EnsurePublicModuleEnabled::class,
+            'public.tenant' => ResolvePublicTenant::class,
+            'token.scope' => RestrictScopedApiTokens::class,
         ]);
         // Reject non-staff before route-model binding so record ids cannot be probed.
         $middleware->prependToPriorityList(
-            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            prepend: \App\Http\Middleware\EnsureStaffRole::class,
+            before: SubstituteBindings::class,
+            prepend: EnsureStaffRole::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

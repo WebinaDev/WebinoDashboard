@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { CloseMobileSidebarOnNavigate } from "@/components/CloseMobileSidebarOnNavigate"
+import { StaffImpersonationBar } from "@/components/StaffImpersonationBar"
 import { DashboardPrefetch } from "@/components/DashboardPrefetch"
 import { LicenseGate } from "@/components/LicenseGate"
 import { NotificationBell } from "@/components/NotificationBell"
@@ -45,6 +46,7 @@ import { PwaInstallBanner } from "@/components/pwa/PwaInstallBanner"
 import { PwaSplashOverlay } from "@/components/pwa/PwaSplashOverlay"
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister"
 import { mergePwaSettings, resolvePwaBootstrap, type PwaStoredSettings } from "@/lib/pwa-settings"
+import type { StaffImpersonationSession } from "@/lib/staff-impersonation"
 import { useThemeSettings } from "@/providers/AppProviders"
 
 type TenantBranding = {
@@ -76,6 +78,7 @@ type UserDto = {
     domain?: string | null
     branding?: TenantBranding | null
   }
+  impersonation?: StaffImpersonationSession | null
 }
 
 export default function DashboardLayoutPage({
@@ -185,11 +188,16 @@ export default function DashboardLayoutPage({
     document.title = `${breadcrumbCurrent} · ${site}`
   }, [breadcrumbCurrent, tenantLabel, tCommon])
 
+  const impersonation = user?.impersonation?.active ? user.impersonation : null
+
   const builderEditor = /\/builder\/.+/.test(pathname)
   if (builderEditor) {
     return (
-      <div className="h-svh overflow-hidden bg-[#e8eef5]">
-        <LicenseGate>{children}</LicenseGate>
+      <div className="flex h-svh flex-col overflow-hidden bg-[#e8eef5]">
+        {impersonation ? <StaffImpersonationBar session={impersonation} /> : null}
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <LicenseGate>{children}</LicenseGate>
+        </div>
       </div>
     )
   }
@@ -219,6 +227,7 @@ export default function DashboardLayoutPage({
         tenantPlanLabel={tSidebar("plan_tenant")}
       />
       <SidebarInset>
+        {impersonation ? <StaffImpersonationBar session={impersonation} /> : null}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/70 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 sm:h-16">
           <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4">
             <SidebarTrigger className="-ms-1" data-testid="sidebar-trigger" />

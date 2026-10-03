@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Auth\StaffImpersonationService;
 use App\Services\Security\SecuritySettings;
 use Closure;
 use Illuminate\Http\Request;
@@ -11,6 +12,10 @@ class RequireTwoFactor
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (app(StaffImpersonationService::class)->isImpersonating($request)) {
+            return $next($request);
+        }
+
         if (app()->environment('testing')) {
             return $next($request);
         }

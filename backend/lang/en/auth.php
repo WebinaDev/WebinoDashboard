@@ -29,4 +29,12 @@ return [
     'otp_default_template' => 'Your code: {code} — {site_name}',
     'otp_channel_bale' => 'Messenger chat',
     'otp_channel_telegram' => 'Messenger chat',
+    'impersonation_invalid' => 'Staff impersonation link is invalid.',
+    'impersonation_expired' => 'Staff impersonation link has expired.',
+    'impersonation_replay' => 'This staff impersonation link was already used.',
+    'impersonation_site_mismatch' => 'This staff impersonation link was issued for a different site.',
+    'impersonation_unavailable' => 'Staff impersonation is not available on this site.',
+    'impersonation_switch_unavailable' => 'That site cannot be opened from here.',
+    'impersonation_current_site' => 'This site is already open.',
+    'impersonation_not_active' => 'There is no active staff impersonation session.',
 ];

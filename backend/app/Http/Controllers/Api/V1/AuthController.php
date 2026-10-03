@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Auth\StaffImpersonationService;
+use App\Services\Auth\StaffImpersonationToken;
 use App\Services\Security\LoginAttemptService;
 use App\Services\Tenant\TenantResolver;
 use App\Support\AuthCookie;
+use App\Support\CapabilityChecker;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +20,7 @@ use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
-    public function login(Request $request, LoginAttemptService $attempts): \Illuminate\Http\JsonResponse
+    public function login(Request $request, LoginAttemptService $attempts): JsonResponse
     {
         $data = $request->validate([
             'email' => ['required', 'email'],
@@ -94,12 +98,12 @@ class AuthController extends Controller
         return AuthCookie::attach($response, $token, $request);
     }
 
-    public function session(Request $request): \Illuminate\Http\JsonResponse
+    public function session(Request $request): JsonResponse
     {
         return $this->login($request);
     }
 
-    public function panelLogin(Request $request): \Illuminate\Http\JsonResponse
+    public function panelLogin(Request $request): JsonResponse
     {
         $data = $request->validate([
             'panel_token' => ['required', 'string', 'min:32', 'max:128'],
@@ -127,29 +131,46 @@ class AuthController extends Controller
         return AuthCookie::attach($response, $token, $request);
     }
 
-    public function refresh(Request $request): \Illuminate\Http\JsonResponse
+    public function refresh(Request $request): JsonResponse
     {
         $user = $request->user();
         if (! $user) {
             return response()->json(['message' => __('api.unauthorized')], 401);
         }
 
+        $impersonation = app(StaffImpersonationService::class);
+        $impersonating = $impersonation->isImpersonating($request);
+        $oldTokenId = $request->user()?->currentAccessToken()?->id;
         $request->user()?->currentAccessToken()?->delete();
 
-        $token = $user->createToken('spa')->plainTextToken;
+        $minutes = null;
+        if ($impersonating && is_int($oldTokenId)) {
+            $issued = $user->createToken(
+                StaffImpersonationToken::NAME,
+                ['*'],
+                now()->addMinutes($impersonation->sessionMinutes()),
+            );
+            $impersonation->rebind($oldTokenId, (int) $issued->accessToken->id);
+            $token = $issued->plainTextToken;
+            $minutes = $impersonation->sessionMinutes();
+        } else {
+            $token = $user->createToken('spa')->plainTextToken;
+        }
 
         $response = response()->json([
             'user' => $user->load('tenant'),
             'refreshed' => true,
         ]);
 
-        return AuthCookie::attach($response, $token, $request);
+        return AuthCookie::attach($response, $token, $request, $minutes);
     }
 
-    public function gate(Request $request): \Illuminate\Http\JsonResponse
+    public function gate(Request $request): JsonResponse
     {
         $user = $this->resolveAuthenticatedUser($request);
         $authenticated = $user !== null;
+        $impersonating = $authenticated
+            && app(StaffImpersonationService::class)->isImpersonating($request);
 
         $setupCompleted = null;
         if ($authenticated) {
@@ -160,14 +181,15 @@ class AuthController extends Controller
             'data' => [
                 'authenticated' => $authenticated,
                 'setup_completed' => $setupCompleted,
-                'password_must_change' => $authenticated
+                'password_must_change' => $authenticated && ! $impersonating
                     ? (bool) $user->password_must_change
                     : false,
+                'staff_impersonation' => $impersonating,
             ],
         ]);
     }
 
-    public function check(Request $request): \Illuminate\Http\JsonResponse
+    public function check(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -175,14 +197,16 @@ class AuthController extends Controller
             return response()->json(['authenticated' => false], 401);
         }
 
+        $impersonating = app(StaffImpersonationService::class)->isImpersonating($request);
+
         return response()->json([
             'authenticated' => true,
-            'password_must_change' => (bool) $user->password_must_change,
+            'password_must_change' => ! $impersonating && (bool) $user->password_must_change,
             'user' => $user->load('tenant'),
         ]);
     }
 
-    public function changePassword(Request $request): \Illuminate\Http\JsonResponse
+    public function changePassword(Request $request): JsonResponse
     {
         $user = $request->user();
         if (! $user) {
@@ -210,8 +234,11 @@ class AuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request): \Illuminate\Http\JsonResponse
+    public function logout(Request $request): JsonResponse
     {
+        $impersonation = app(StaffImpersonationService::class);
+        $impersonation->discard($request);
+
         $cookieName = config('auth.cookie_name', 'webino_auth_token');
         $cookieToken = $request->cookie($cookieName);
         if (is_string($cookieToken) && $cookieToken !== '') {
@@ -225,14 +252,18 @@ class AuthController extends Controller
 
         $request->user()?->currentAccessToken()?->delete();
 
-        return AuthCookie::clear(response()->json(['message' => __('api.logged_out')]), $request);
+        return $impersonation->clearTransportCookie(
+            AuthCookie::clear(response()->json(['message' => __('api.logged_out')]), $request),
+            $request,
+        );
     }
 
-    public function user(Request $request): \Illuminate\Http\JsonResponse
+    public function user(Request $request): JsonResponse
     {
         $user = $request->user()->load('tenant');
         $payload = $user->toArray();
-        $payload['capabilities'] = app(\App\Support\CapabilityChecker::class)->capabilitiesForUser($user);
+        $payload['capabilities'] = app(CapabilityChecker::class)->capabilitiesForUser($user);
+        $payload['impersonation'] = app(StaffImpersonationService::class)->publicPayload($request);
 
         return response()->json($payload);
     }

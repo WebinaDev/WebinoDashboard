@@ -8,6 +8,12 @@ import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { api, ApiError } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import {
+  isStaffImpersonationJwt,
+  STAFF_IMPERSONATION_EXCHANGE_FLAG,
+  STAFF_IMPERSONATION_QUERY,
+  type StaffImpersonationSession,
+} from "@/lib/staff-impersonation"
 import { useAuth } from "@/providers/AppProviders"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,6 +24,7 @@ import { Label } from "@/components/ui/label"
 type LoginResult = {
   password_must_change?: boolean
   setup_completed?: boolean
+  impersonation?: StaffImpersonationSession | null
   user?: { tenant?: { setup_completed?: boolean; name?: string; branding?: { logo_url?: string } } }
   data?: LoginResult
 }
@@ -40,6 +47,10 @@ function unwrapLogin(result: LoginResult): LoginResult {
 
 function redirectAfterLogin(result: LoginResult, next: string | null) {
   const body = unwrapLogin(result)
+  if (body.impersonation?.active) {
+    window.location.assign(next ?? "/dashboard")
+    return
+  }
   if (body.password_must_change) {
     window.location.assign("/account/change-password")
     return
@@ -86,9 +97,17 @@ export function LoginForm({
       .catch(() => setTenant(null))
   }, [])
 
+  const impersonateToken = searchParams.get(STAFF_IMPERSONATION_QUERY)
+  const impersonationExchange =
+    isStaffImpersonationJwt(impersonateToken) ||
+    searchParams.get(STAFF_IMPERSONATION_EXCHANGE_FLAG) === "1"
+
   useEffect(() => {
     const panelToken = searchParams.get("panel_token")
-    if (!panelToken) return
+    const rawImpersonate = searchParams.get(STAFF_IMPERSONATION_QUERY)
+    const impersonate = isStaffImpersonationJwt(rawImpersonate) ? rawImpersonate : null
+    const cookieExchange = searchParams.get(STAFF_IMPERSONATION_EXCHANGE_FLAG) === "1"
+    if (!impersonate && !cookieExchange && !panelToken) return
 
     let cancelled = false
     setPanelPending(true)
@@ -96,14 +115,33 @@ export function LoginForm({
 
     void (async () => {
       try {
-        const result = await api<LoginResult>("/api/v1/auth/panel-login", {
-          method: "POST",
-          json: { panel_token: panelToken },
-        })
+        const result =
+          impersonate || cookieExchange
+            ? await api<LoginResult>("/api/v1/auth/impersonate", {
+                method: "POST",
+                json: impersonate ? { token: impersonate } : {},
+              })
+            : await api<LoginResult>("/api/v1/auth/panel-login", {
+                method: "POST",
+                json: { panel_token: panelToken },
+              })
         if (cancelled) return
         setAuthenticated(true)
         redirectAfterLogin(result, safeNextPath(searchParams.get("next")))
       } catch (err) {
+        if (cancelled) return
+        if (impersonate || cookieExchange) {
+          try {
+            const gate = await api<{ authenticated?: boolean }>("/api/v1/auth/gate")
+            if (!cancelled && gate.authenticated) {
+              setAuthenticated(true)
+              window.location.assign(safeNextPath(searchParams.get("next")) ?? "/dashboard")
+              return
+            }
+          } catch {
+            /* still show the exchange error */
+          }
+        }
         if (cancelled) return
         setError(getApiErrorMessage(err) || t("errors_invalid"))
         setPanelPending(false)
@@ -194,7 +232,9 @@ export function LoginForm({
       <div className={cn("flex flex-col gap-6", className)} {...props}>
         <Card className="overflow-hidden shadow-sm">
           <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
-            <p className="text-muted-foreground text-sm">{t("submit")}…</p>
+            <p className="text-muted-foreground text-sm">
+              {impersonationExchange ? t("impersonationPending") : `${t("submit")}…`}
+            </p>
             {error ? (
               <p className="text-destructive text-sm" role="alert">
                 {error}
