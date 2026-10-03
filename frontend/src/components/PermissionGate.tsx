@@ -57,7 +57,8 @@ function capabilityMatches(granted: string, required: string): boolean {
 export function userHasCapability(capabilities: string[] | undefined, required: string): boolean {
   if (!capabilities?.length) return false
   if (capabilities.includes("*")) return true
-  return capabilities.some((g) => capabilityMatches(g, required))
+  const requiredAny = required.split(",").map((part) => part.trim()).filter(Boolean)
+  return requiredAny.some((req) => capabilities.some((g) => capabilityMatches(g, req)))
 }
 
 /**

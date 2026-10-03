@@ -82,6 +82,9 @@ class MarketplaceController extends Controller
                 'last_sync_at' => $m->s ?? null,
                 'orders_count' => (int) ($orderCounts[$slug] ?? 0),
                 'failed_jobs' => (int) ($failedJobs[$slug] ?? 0),
+                'has_webhook_secret' => $slug === 'digikala'
+                    ? filled($raw['credentials']['webhook_secret'] ?? null)
+                    : null,
             ];
         }
 

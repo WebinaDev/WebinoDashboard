@@ -47,6 +47,7 @@ return [
     'digikala_status_queued' => 'Status change queued for Digikala.',
     'digikala_cancel_queued' => 'Cancellation queued for Digikala.',
     'digikala_webhook_subscribed' => 'Webhook registered at Digikala.',
+    'digikala_webhook_secret_required' => 'Set a webhook secret before enabling Digikala. Unsigned webhooks are rejected.',
     'digikala_bad_reconcile' => 'Invalid reconcile type.',
 
     'saved' => 'Settings saved.',

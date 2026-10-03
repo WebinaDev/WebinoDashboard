@@ -20,7 +20,11 @@ class ModirPayamakController extends Controller
         $user = $request->user();
         /** @var Tenant $tenant */
         $tenant = Tenant::query()->findOrFail($user->tenant_id);
-        $path = trim($path, '/');
+        try {
+            $path = ModirPayamakClient::normalizePath($path);
+        } catch (\InvalidArgumentException) {
+            return response()->json(['message' => 'مسیر درخواستی نامعتبر است.'], 422);
+        }
 
         if ($response = $this->local->handle($tenant, $request, $path)) {
             return $response;

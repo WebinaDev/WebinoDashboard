@@ -3,6 +3,7 @@
 namespace App\Services\Marketplace;
 
 use App\Services\Modules\ModuleSettingsService;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Per-tenant marketplace settings stored in module_settings (`marketplace.{platform}`),
@@ -79,6 +80,12 @@ class MarketplaceSettingsService
             if (in_array($key, $secrets, true)) {
                 $current['credentials'][$key] = '';
             }
+        }
+
+        if ($platform === 'digikala' && $current['enabled'] && ! filled($current['credentials']['webhook_secret'] ?? null)) {
+            throw ValidationException::withMessages([
+                'webhook_secret' => [__('marketplace.digikala_webhook_secret_required')],
+            ]);
         }
 
         $this->settings->put($tenantId, self::MODULE, $platform, $current);

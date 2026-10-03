@@ -825,6 +825,7 @@
     "quantity": "Qty",
     "remove": "Remove",
     "add_demo": "Add demo SKU to cart",
+    "add_to_cart": "Add to cart",
     "col_product": "Product",
     "col_price": "Price"
   },
@@ -1795,7 +1796,7 @@
     "client_password": "Merchant password",
     "save": "Save",
     "saved": "Saved",
-    "empty": "None",
+    "empty": "No payment gateway is configured.",
     "fee_hint": "A percent above zero is shown at checkout. A customer-paid fee is added to the gateway amount."
   },
   "platform_billing": {
@@ -1803,7 +1804,7 @@
     "hint": "SMS credit, invoices, and marketplace licenses are paid here. Paid status comes only from the ERP server.",
     "outstanding": "Outstanding",
     "history": "Payment history",
-    "empty": "None",
+    "empty": "Nothing to show yet.",
     "cash": "Pay cash",
     "installment": "Pay in installments",
     "gateway": "Gateway",
@@ -6111,5 +6112,27 @@
     "lightbox_enabled": "Lightbox enabled",
     "custom_vars": "CSS variables",
     "custom_vars_hint": "One custom property per line, such as --wb-extra: 4px."
+  }
+,
+  "api_errors": {
+    "status_401": "Your session expired. Sign in again.",
+    "status_403": "You do not have access to this section.",
+    "status_404": "The requested resource was not found.",
+    "status_409": "This action conflicts with the current state.",
+    "status_422": "The submitted information is not valid.",
+    "status_429": "Too many requests. Try again shortly.",
+    "status_500": "Internal server error. Refresh the page or try again shortly.",
+    "status_502": "The server is unavailable. Try again shortly.",
+    "status_503": "The server is temporarily unavailable. Try again shortly.",
+    "two_factor": "Two-factor authentication is required. Enter the code that was sent.",
+    "account_disabled": "This account is disabled.",
+    "forbidden": "You do not have access to this section.",
+    "unauthorized": "Your session expired. Sign in again.",
+    "ajax_required": "The request is invalid. Refresh the page.",
+    "module_not_active": "This module is not active.",
+    "module_not_licensed": "This module is not licensed.",
+    "network": "Could not reach the server. Check the API address.",
+    "request_failed": "The request failed.",
+    "unknown": "Unknown error"
   }
 }

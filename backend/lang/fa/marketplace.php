@@ -47,6 +47,7 @@ return [
     'digikala_status_queued' => 'تغییر وضعیت در صف ارسال به دیجی‌کالا قرار گرفت.',
     'digikala_cancel_queued' => 'درخواست لغو در صف ارسال به دیجی‌کالا قرار گرفت.',
     'digikala_webhook_subscribed' => 'وب‌هوک در دیجی‌کالا ثبت شد.',
+    'digikala_webhook_secret_required' => 'قبل از فعال‌کردن دیجی‌کالا رمز وب‌هوک را تنظیم کنید. درخواست بدون امضا رد می‌شود.',
     'digikala_bad_reconcile' => 'نوع تطبیق نامعتبر است.',
 
     'saved' => 'تنظیمات ذخیره شد.',

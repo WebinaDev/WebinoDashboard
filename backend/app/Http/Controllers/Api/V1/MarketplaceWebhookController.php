@@ -35,7 +35,7 @@ class MarketplaceWebhookController extends Controller
         return (int) $request->attributes->get('public_tenant_id');
     }
 
-    /** Digikala Open API webhook; `X-Digikala-Signature` = HMAC-SHA256(body, webhook_secret) when a secret is set. */
+    /** Digikala Open API webhook; `X-Digikala-Signature` = HMAC-SHA256(body, webhook_secret). Unsigned bodies are rejected. */
     public function digikala(Request $request, DigikalaWebhooks $webhooks): JsonResponse
     {
         $tid = $this->tid($request);
@@ -48,16 +48,19 @@ class MarketplaceWebhookController extends Controller
             return response()->json(['ok' => false, 'message' => __('marketplace.platform_disabled')], 403);
         }
         $secret = (string) ($this->settings->credentials($tid, 'digikala')['webhook_secret'] ?? '');
-        if ($secret !== '') {
-            $given = strtolower(trim((string) $request->header('X-Digikala-Signature', '')));
-            if (str_starts_with($given, 'sha256=')) {
-                $given = substr($given, 7);
-            }
-            if (! hash_equals(hash_hmac('sha256', $body, $secret), $given)) {
-                MarketplaceLogger::warning($tid, 'digikala', 'webhook', 'Invalid webhook signature');
+        if ($secret === '') {
+            MarketplaceLogger::warning($tid, 'digikala', 'webhook', 'Webhook secret is not configured');
 
-                return response()->json(['ok' => false, 'message' => 'invalid signature'], 403);
-            }
+            return response()->json(['ok' => false, 'message' => 'webhook secret required'], 403);
+        }
+        $given = strtolower(trim((string) $request->header('X-Digikala-Signature', '')));
+        if (str_starts_with($given, 'sha256=')) {
+            $given = substr($given, 7);
+        }
+        if (! hash_equals(hash_hmac('sha256', $body, $secret), $given)) {
+            MarketplaceLogger::warning($tid, 'digikala', 'webhook', 'Invalid webhook signature');
+
+            return response()->json(['ok' => false, 'message' => 'invalid signature'], 403);
         }
         $result = $webhooks->dispatch($tid, (string) ($data['event'] ?? ''), $data);
 

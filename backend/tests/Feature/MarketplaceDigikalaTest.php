@@ -62,7 +62,7 @@ class MarketplaceDigikalaTest extends TestCase
         $this->settings()->save($this->tenant->id, 'digikala', [
             'enabled' => true,
             'auto_sync' => $autoSync,
-            'credentials' => array_merge(['client_code' => 'C1'], $credentials),
+            'credentials' => array_merge(['client_code' => 'C1', 'webhook_secret' => 'whsec-test'], $credentials),
         ]);
         $this->settings()->putState($this->tenant->id, 'digikala', [
             'access_token' => 'AT',
@@ -101,7 +101,7 @@ class MarketplaceDigikalaTest extends TestCase
     public function test_keys_generation_and_token_issue_from_encrypted_code(): void
     {
         $this->actingAs($this->shopUser(), 'sanctum');
-        $this->settings()->save($this->tenant->id, 'digikala', ['enabled' => true, 'credentials' => ['client_code' => 'C1']]);
+        $this->settings()->save($this->tenant->id, 'digikala', ['enabled' => true, 'credentials' => ['client_code' => 'C1', 'webhook_secret' => 'whsec-test']]);
 
         $public = DigikalaAuth::for($this->tenant->id)->generateKeypair(2048);
         $this->assertStringContainsString('BEGIN PUBLIC KEY', $public);

@@ -17,7 +17,7 @@ class C2cController extends Controller
     {
         return [
             'enabled' => true,
-            'title' => 'کارت به کارت',
+            'title' => __('c2c.default_title'),
             'description' => '',
             'instructions' => '',
             'order_button_text' => '',

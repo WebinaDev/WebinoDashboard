@@ -12,14 +12,14 @@ Severities: **critical** / **high** / **medium** / **low**.
 
 ## Executive summary
 
-| Severity | Open (this audit) | Still Fixed (prior reaudit) |
-| --- | ---: | ---: |
-| critical | **0** | C1, C2 |
-| high | **2** | H1–H9 |
-| medium | **5** | M1–M10 |
-| low | **6** | L1–L4 |
+| Severity | Open (this audit) | Fixed in this pass | Still Fixed (prior reaudit) |
+| --- | ---: | --- | --- |
+| critical | **0** | — | C1, C2 |
+| high | **0** | A-H1, A-H2 | H1–H9 |
+| medium | **0** | A-M1–A-M5 | M1–M10 |
+| low | **0** | A-L1–A-L6 | L1–L4 |
 
-Prior security reaudit + Iranian gateway binding (**H3** / callback authority) still hold at `33de06a`. New open work is mostly **access-control gaps on staff routes** (C2C settings, setup wizard), **unsigned Digikala webhook when secret unset**, and **public endpoint rate-limit / design** edges. No new payment-callback “authority unbound” or wallet-staff-debit regressions found.
+Prior security reaudit + Iranian gateway binding (**H3** / callback authority) still hold. The open items from this audit (A-H1–A-H2, A-M1–A-M5, A-L1–A-L6) are **Fixed** in the follow-up commit: Digikala webhooks require a secret, C2C settings and setup mutations are capability-gated, marketplace `mark_paid` is not forwarded, public cafe/checkout writes are throttled, Modir paths reject `..`, and staff `orders.own` cannot set line prices. No new payment-callback “authority unbound” or wallet-staff-debit regressions found.
 
 **Iranian commerce gateways in tree:** `zarinpal`, `digipay`, `snapppay`, `torobpay` (+ hub toggles for `bale_pay`, `basalam_pay`, `wallet`, `c2c`, `cod`). Callbacks require intent-bound tokens; ERP platform billing never marks paid from the browser return URL.
 
@@ -29,18 +29,18 @@ Prior security reaudit + Iranian gateway binding (**H3** / callback authority) s
 
 | OWASP | Result | Finding IDs / notes |
 | --- | --- | --- |
-| A01 Broken Access Control | **Partial** | Open: **A-H2**, **A-M1**, **A-L4**. Prior **H1/H7/C1** still Fixed (`OrderAccess`, `can:` on updates/modules/bots). |
+| A01 Broken Access Control | **Pass** | **A-H2**, **A-M1**, **A-L1**, **A-L4** Fixed. Prior **H1/H7/C1** still Fixed (`OrderAccess`, `can:` on updates/modules/bots). |
 | A02 Cryptographic Failures | **Pass** | Coupon passwords hashed (`Coupon` mutator + `password_verify`); gateway secrets masked via `SECRET_KEYS` / `has_*` (`PaymentGatewaySettingsService::getPublic`); bot settings return `has_webhook_secret`. |
 | A03 Injection | **Pass** (no evidence of raw SQL concatenation of user input in audited paths); Eloquent/`whereKey` dominant. Modir path `..` is **A10-adjacent**, not classic SQLi. |
-| A04 Insecure Design | **Partial** | Open: **A-M2**, **A-M3**, **A-M5**. Checkout/guest pricing SoT still `storefrontPriceMinor` / `PurchaseTypeService::unitPrice`. |
-| A05 Security Misconfiguration | **Partial** | Health readiness ok/fail only; metrics token-gated (**M5** still Fixed). Open: Digikala optional HMAC (**A-H1**). Docker sample passwords documented (**L4** Fixed). |
+| A04 Insecure Design | **Pass** | **A-M2**, **A-M3**, **A-M5** Fixed. Checkout/guest pricing SoT still `storefrontPriceMinor` / `PurchaseTypeService::unitPrice`. |
+| A05 Security Misconfiguration | **Pass** | Health readiness ok/fail only; metrics token-gated (**M5** still Fixed). Digikala HMAC required when enabled (**A-H1** Fixed). Docker sample passwords documented (**L4** Fixed). |
 | A06 Vulnerable Components | **Partial / unproven** | Laravel `v13.20.0`, Sanctum `v4.3.2` in lockfile. No `composer audit` run in this pass; no known-exploited package callouts from code review alone. |
 | A07 Identification & Authentication Failures | **Pass** | Login/OTP throttled `5,1`; impersonation blocks security changes; 2FA endpoints call `blockSecurityChanges`. |
-| A08 Software & Data Integrity | **Partial** | Payment verify-before-paid holds (**H3**). Digikala unsigned when secret empty (**A-H1**). Module marketplace `mark_paid` client flag (**A-M2**). |
+| A08 Software & Data Integrity | **Pass** | Payment verify-before-paid holds (**H3**). Digikala unsigned bodies rejected (**A-H1** Fixed). Marketplace `mark_paid` stripped (**A-M2** Fixed). Digipay `providerId` required (**A-L5** Fixed). |
 | A09 Security Logging & Monitoring Failures | **Pass / partial** | Marketplace + bot webhook failures logged; `site.system-logs` tail gated by `settings.manage`. No finding that payment failures are silent. |
-| A10 SSRF | **Partial** | Maps search uses fixed Neshan/Mapbox hosts (**no user URL**). Open: **A-M4** Modir proxy `..` path segments against ERP base URL. |
+| A10 SSRF | **Pass** | Maps search uses fixed Neshan/Mapbox hosts (**no user URL**). **A-M4** Fixed: Modir paths reject `..` and non-allow-listed segments. |
 | CSRF / Sanctum | **Pass** | `SESSION_SAME_SITE=lax`; `RequireAjaxHeader` on cookie mutating APIs; public webhooks/callbacks exempt by design. |
-| IDOR | **Partial** | Staff orders scoped by `tenant_id` + `OrderAccess`; public pay-link requires `pay_token`. Open C2C settings is tenant-wide ACL, not cross-tenant IDOR. |
+| IDOR | **Pass** | Staff orders scoped by `tenant_id` + `OrderAccess`; public pay-link requires `pay_token`. C2C settings require `settings.manage` or `commerce.*` (**A-H2** Fixed). Payment callbacks on a public host are tenant-scoped (**A-L4** Fixed). |
 | XSS (builder HTML) | **Pass** | DOMPurify allow-list in `widgets.tsx`; chart colors hex/name-only (**L2** Fixed). |
 | Multi-tenant isolation | **Pass** (audited surfaces) | Controllers consistently `where('tenant_id', …)`; bot webhook selects by `webhook_secret` (**C2** Fixed). Payment `Order $order` binding is global ID but paid/fail still intent-bound (**A-L4**). |
 
@@ -52,21 +52,42 @@ Prior security reaudit + Iranian gateway binding (**H3** / callback authority) s
 | --- | --- | --- |
 | Single pricing source of truth (storefront) | **Pass** | `Product::storefrontPriceMinor`; checkout + guest cart use `PurchaseTypeService::unitPrice` / `storefrontPriceMinor`. Staff `OrderWriter` may override `unit_price_minor` (see **A-M5**). |
 | Page-builder vs hardcoded storefront | **Pass (hybrid by design)** | `(site)/layout.tsx` prefers published builder header/footer/`StorefrontDocument`, else theme `SiteHeader`/`SiteFooter`. Themes under `frontend/src/themes/*` remain fallbacks. |
-| FA/EN locale messages | **Partial** | `frontend/messages/{fa,en}.json`: FA 5450 keys, EN 5453; **0** FA-only; **3** EN-only (`common.edit`, `tickets.csat_prompt`, `tickets.csat_submit`). Some empty copy is literally «ندارد». |
+| FA/EN locale messages | **Pass** | **A-L3** Fixed: FA mirrors for `common.edit` and `tickets.csat_*`. Empty gateway/billing copy is no longer bare «ندارد». |
 | Persian digits / Jalali / breadcrumb | **Pass (admin)** | `frontend/src/lib/locale.ts` Jalali + `toLocaleDigits` for `fa`; M10 still Fixed. Public cafe reservations still `datetime-local` (documented exception). |
-| Hardcoded user-facing strings | **Partial** | Builder widgets hardcode `افزودن به سبد`; `api-helpers.ts` FA status map; C2C default title `کارت به کارت` in PHP. |
-| Nav vs API capabilities | **Partial** | Orders/analytics/bots/cafe caps aligned after prior M4. **Mismatch remaining:** C2C **settings** nav + API both use `orders.own` (should be settings/commerce). |
+| Hardcoded user-facing strings | **Pass** | **A-L2** Fixed: add-to-cart and API error map use `messages/{fa,en}.json`; C2C default title uses `c2c.default_title`. |
+| Nav vs API capabilities | **Pass** | **A-H2** Fixed: C2C settings nav and API use `settings.manage` or `commerce.*`. Receipts stay on `orders.own`. |
 | Module patterns | **Pass** | Kernel manifests + `module:` / `public.module:` middleware; external modules dirs present. |
-| Duplicate routes / aliases | **Low smell** | Dual `products/bulk-sale` and `shop/products/bulk-sale`; dual per-gateway settings aliases under payments hub. |
+| Duplicate routes / aliases | **Pass** | **A-L6** Fixed: `/products/bulk-sale` and `/…/settings` aliases 307/302 to the canonical paths. |
 | ERP platform billing integrity | **Pass** | `TenantBillingController`: browser return never sets paid; status from ERP/stub only; stub autopay only if `WEBINO_ERP_BILLING_STUB_AUTOPAY`. |
 
 ---
 
-## Findings (open)
+## Findings
+
+Status after the fix pass: **all rows Fixed**.
+
+| ID | Status | Note |
+| --- | --- | --- |
+| **A-H1** | Fixed | Webhook 403 when the secret is empty or the HMAC mismatches. Enabling Digikala without `webhook_secret` is 422. Admin hub will not toggle Digikala on while `has_webhook_secret` is false. |
+| **A-H2** | Fixed | `GET/PUT /c2c/settings` require `settings.manage` or `commerce.*`. Receipts and decide stay on `orders.*` / `orders.own`. Nav capability matches. |
+| **A-M1** | Fixed | Setup mutations (including license sync) require `settings.manage` or `system.manage`. `GET /setup/status` stays readable for staff. |
+| **A-M2** | Fixed | Client `mark_paid` / `pay` are not forwarded. The server requests a payment session itself. Local `licensed` updates only when ERP returns a license object. |
+| **A-M3** | Fixed | Public consultations, cafe reservations, event bookings, phone register, cart items, and checkout use the `public-writes` limiter (per IP+host and per tenant). |
+| **A-M4** | Fixed | Modir paths are decoded, then rejected on `..`, null bytes, or characters outside `[A-Za-z0-9_/-]`. |
+| **A-M5** | Fixed | Client `unit_price_minor` is ignored unless the user has `orders.*` or is calling `/pos/orders` with `pos.use`. Otherwise the line uses storefront or purchase-type price. |
+| **A-L1** | Fixed | `GET /inventory/summary` requires `catalog.*` or `reports.shop`. |
+| **A-L2** | Fixed | Add-to-cart and API status copy live in `messages/{fa,en}.json`. C2C default title is translated. |
+| **A-L3** | Fixed | FA keys added for `common.edit` and `tickets.csat_*`. Empty states for gateways and platform billing are full sentences. |
+| **A-L4** | Fixed | On a public host, the payment callback order must belong to the tenant for that host. Unknown hosts and cross-tenant ids redirect as failed without revealing paid state. |
+| **A-L5** | Fixed | Digipay callback requires `providerId` and matches it to the stored intent. No latest-intent fallback. |
+| **A-L6** | Fixed | Canonical bulk sale is `POST /shop/products/bulk-sale`. `POST /products/bulk-sale` is a 307. Per-gateway `/…/settings` aliases redirect to `/payments/gateways/{provider}`. |
+
+## Findings (detail, now fixed)
+
 
 | ID | Severity | Area | OWASP | Evidence | Impact | Recommended fix |
 | --- | --- | --- | --- | --- | --- | --- |
-| **A-H1** | high | marketplace / webhooks | A05 / A08 | `MarketplaceWebhookController::digikala` — HMAC checked **only if** `webhook_secret !== ''`; otherwise `DigikalaWebhooks::dispatch` runs for an enabled platform. Route is public under `public.tenant`. | Attacker who can hit the tenant host can forge Digikala events (order/status jobs) when the merchant left secret empty. | Require non-empty secret when Digikala is enabled; reject unsigned bodies with 403; surface `has_webhook_secret` in admin and block enable without secret. |
+| **A-H1** | high (Fixed) | marketplace / webhooks | A05 / A08 | `MarketplaceWebhookController::digikala` — HMAC checked **only if** `webhook_secret !== ''`; otherwise `DigikalaWebhooks::dispatch` runs for an enabled platform. Route is public under `public.tenant`. | Attacker who can hit the tenant host can forge Digikala events (order/status jobs) when the merchant left secret empty. | Require non-empty secret when Digikala is enabled; reject unsigned bodies with 403; surface `has_webhook_secret` in admin and block enable without secret. |
 | **A-H2** | high | payments / C2C / authz | A01 | `routes/api.php` `module:c2c` group: `PUT /c2c/settings` behind `can:orders.*,orders.own`. `C2cController::updateSettings` writes tenant IBAN/cards with no extra cap. Nav `settings/c2c` also `capability: "orders.own"` (`commerce/manifest.ts`). | Any seller (`orders.own`) can change settlement cards/IBAN for the whole tenant. | Gate settings read/write with `settings.manage` or `commerce.*`; keep receipts/decide on `orders.*` / `orders.own`. Align nav capability. |
 | **A-M1** | medium | setup / authz | A01 | Under `middleware('staff')` without `can:`: `POST /setup/apply-site-type`, `PATCH /setup/store`, `PATCH /setup/crm`, `POST /setup/complete` (`routes/api.php`). `EnsureStaffRole::ROLES` includes `author`, `editor`, `seller`, `accountant`. | Weak staff roles can switch site type / mark setup complete / rewrite store CRM fields. | Require `settings.manage` or `system.manage` (or admin-only) for mutating setup; leave `GET /setup/status` readable. |
 | **A-M2** | medium | modules / integrity | A04 / A08 | `ModuleMarketplaceController::purchase` validates `mark_paid` and forwards the full payload via `WebinoMarketplaceClient::purchase` to ERP. | If ERP honors client `mark_paid`, staff could license modules without payment. Risk is ERP-side; dashboard still forwards the flag. | Strip `mark_paid` / `pay` from client input; only ERP/webhook may grant; keep local `licensed` updates only when ERP returns a license object after real payment. |

@@ -14,6 +14,9 @@ use App\Services\WordpressImport\SafeRemoteFetcher;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +28,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        RateLimiter::for('public-writes', function (Request $request) {
+            $tenant = (string) ($request->attributes->get('public_tenant_id') ?: $request->getHost());
+            $ip = (string) ($request->ip() ?: 'unknown');
+
+            return [
+                Limit::perMinute(30)->by($ip.'|'.$tenant),
+                Limit::perMinute(120)->by('tenant:'.$tenant),
+            ];
+        });
+
         Product::observe(MarketplaceProductObserver::class);
         ProductVariant::observe(MarketplaceProductObserver::class);
         Order::observe(MarketplaceOrderObserver::class);

@@ -230,7 +230,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::middleware('public.module:consultations')->group(function () {
-            Route::post('/consultations', [PublicConsultationController::class, 'store']);
+            Route::post('/consultations', [PublicConsultationController::class, 'store'])->middleware('throttle:public-writes');
         });
 
         Route::middleware('public.module:catalog')->group(function () {
@@ -243,15 +243,15 @@ Route::prefix('v1')->group(function () {
         Route::middleware('public.module:cafe')->group(function () {
             Route::get('/cafe/venue', [PublicCafeController::class, 'venue']);
             Route::get('/cafe/events', [PublicReservationController::class, 'events']);
-            Route::post('/cafe/reservations', [PublicReservationController::class, 'store']);
-            Route::post('/cafe/events/{event}/bookings', [PublicReservationController::class, 'bookEvent'])->whereNumber('event');
+            Route::post('/cafe/reservations', [PublicReservationController::class, 'store'])->middleware('throttle:public-writes');
+            Route::post('/cafe/events/{event}/bookings', [PublicReservationController::class, 'bookEvent'])->whereNumber('event')->middleware('throttle:public-writes');
             Route::get('/cafe/phone-gate', [PublicCafeEngagementController::class, 'checkPhoneGate']);
-            Route::post('/cafe/phone-register', [PublicCafeEngagementController::class, 'registerPhone']);
+            Route::post('/cafe/phone-register', [PublicCafeEngagementController::class, 'registerPhone'])->middleware('throttle:public-writes');
             Route::post('/cafe/products/{product}/like', [PublicCafeEngagementController::class, 'like'])->whereNumber('product');
             Route::post('/cafe/products/{product}/feedback', [PublicCafeEngagementController::class, 'feedback'])->whereNumber('product');
             Route::get('/cafe/cart', [PublicGuestCartController::class, 'show']);
-            Route::post('/cafe/cart/items', [PublicGuestCartController::class, 'addItem']);
-            Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout']);
+            Route::post('/cafe/cart/items', [PublicGuestCartController::class, 'addItem'])->middleware('throttle:public-writes');
+            Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout'])->middleware('throttle:public-writes');
         });
     });
 
@@ -367,11 +367,13 @@ Route::prefix('v1')->group(function () {
                 ->middleware('can:settings.manage,system.manage');
             Route::get('/modules/{slug}/status', [ModuleInstallController::class, 'status']);
 
-            Route::post('/setup/apply-site-type', [SetupController::class, 'applySiteType']);
-            Route::patch('/setup/store', [SetupController::class, 'updateStore']);
-            Route::patch('/setup/crm', [SetupController::class, 'updateCrm']);
-            Route::post('/setup/sync-license', [SetupController::class, 'syncLicense']);
-            Route::post('/setup/complete', [SetupController::class, 'complete']);
+            Route::middleware('can:settings.manage,system.manage')->group(function () {
+                Route::post('/setup/apply-site-type', [SetupController::class, 'applySiteType']);
+                Route::patch('/setup/store', [SetupController::class, 'updateStore']);
+                Route::patch('/setup/crm', [SetupController::class, 'updateCrm']);
+                Route::post('/setup/sync-license', [SetupController::class, 'syncLicense']);
+                Route::post('/setup/complete', [SetupController::class, 'complete']);
+            });
 
             Route::post('/settings/site/notifications/test-email', [TenantSettingsController::class, 'testNotificationEmail'])
                 ->middleware('can:settings.manage');
@@ -436,8 +438,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('/shop/products/print-labels', [OrderDocumentController::class, 'productLabels']);
                 Route::post('/products/apply-english-slugs', [ProductController::class, 'applyEnglishSlugs']);
                 Route::patch('/products/bulk', [ProductController::class, 'bulkUpdate']);
-                Route::post('/products/bulk-sale', BulkSaleController::class);
-                Route::post('/shop/products/bulk-sale', BulkSaleController::class);
+                Route::post('/shop/products/bulk-sale', BulkSaleController::class)->name('catalog.bulk-sale');
+                Route::post('/products/bulk-sale', fn () => redirect()->route('catalog.bulk-sale', [], 307));
                 Route::post('/products/{product}/restore', [ProductController::class, 'restore'])->whereNumber('product');
                 Route::post('/products/{product}/duplicate', [ProductController::class, 'duplicate'])->whereNumber('product');
                 Route::put('/products/{product}/attributes', [ProductController::class, 'syncAttributes'])->whereNumber('product');
@@ -640,9 +642,12 @@ Route::prefix('v1')->group(function () {
                 Route::get('/pos/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
             });
 
-            Route::middleware(['module:c2c', 'can:orders.*,orders.own'])->group(function () {
+            Route::middleware(['module:c2c', 'can:settings.manage,commerce.*'])->group(function () {
                 Route::get('/c2c/settings', [C2cController::class, 'settings']);
                 Route::put('/c2c/settings', [C2cController::class, 'updateSettings']);
+            });
+
+            Route::middleware(['module:c2c', 'can:orders.*,orders.own'])->group(function () {
                 Route::get('/c2c/receipts', [C2cController::class, 'receipts']);
                 Route::post('/c2c/receipts/{order}', [C2cController::class, 'decide'])->whereNumber('order');
             });
@@ -676,16 +681,23 @@ Route::prefix('v1')->group(function () {
             Route::post('/orders/{order}/tapin/register', [TapinController::class, 'registerOrder'])->whereNumber('order');
             Route::post('/orders/{order}/tapin/status', [TapinController::class, 'orderStatus'])->whereNumber('order');
             Route::get('/orders/{order}/tapin/label', [TapinController::class, 'orderLabel'])->whereNumber('order');
-            Route::get('/zarinpal/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'zarinpal'));
-            Route::post('/zarinpal/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'zarinpal'));
-            Route::get('/digipay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'digipay'));
-            Route::post('/digipay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'digipay'));
-            Route::get('/snapppay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'snapppay'));
-            Route::post('/snapppay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'snapppay'));
-            Route::get('/torobpay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'torobpay'));
-            Route::post('/torobpay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'torobpay'));
-            Route::get('/bale-pay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'bale-pay'));
-            Route::post('/bale-pay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'bale-pay'));
+            foreach ([
+                'zarinpal' => 'zarinpal',
+                'digipay' => 'digipay',
+                'snapppay' => 'snapppay',
+                'torobpay' => 'torobpay',
+                'bale-pay' => 'bale-pay',
+            ] as $alias => $provider) {
+                Route::match(['get', 'post'], '/'.$alias.'/settings', function (\Illuminate\Http\Request $request) use ($provider) {
+                    $target = '/api/v1/payments/gateways/'.$provider;
+                    $qs = $request->getQueryString();
+                    if (is_string($qs) && $qs !== '') {
+                        $target .= '?'.$qs;
+                    }
+
+                    return redirect()->to($target, $request->isMethod('post') ? 307 : 302);
+                });
+            }
             });
 
             Route::middleware(['module:wallet', 'can:accounting.manage,commerce.*'])->group(function () {
@@ -699,7 +711,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/wallet/withdrawals', [WalletController::class, 'createWithdrawal']);
             });
 
-            Route::middleware('module:inventory')->group(function () {
+            Route::middleware(['module:inventory', 'can:catalog.*,reports.shop'])->group(function () {
                 Route::get('/inventory/summary', [InventoryController::class, 'summary']);
             });
 

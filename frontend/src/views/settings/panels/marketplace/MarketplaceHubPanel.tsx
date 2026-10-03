@@ -59,7 +59,13 @@ export function MarketplaceHubPanel() {
                       <Switch
                         checked={r.enabled}
                         disabled={toggle.isPending}
-                        onCheckedChange={(v) => toggle.mutate({ platform: r.platform, enabled: v })}
+                        onCheckedChange={(v) => {
+                          if (r.platform === "digikala" && v && !r.has_webhook_secret) {
+                            toast.error(t("digikala.secret_missing"))
+                            return
+                          }
+                          toggle.mutate({ platform: r.platform, enabled: v })
+                        }}
                         aria-label={t("enabled")}
                       />
                     </div>

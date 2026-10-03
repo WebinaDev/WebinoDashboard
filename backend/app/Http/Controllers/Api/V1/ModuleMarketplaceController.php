@@ -56,18 +56,23 @@ class ModuleMarketplaceController extends Controller
             'module_slug' => 'nullable|string|max:64',
             'module_id' => 'nullable|integer',
             'callback_url' => 'nullable|url',
-            'pay' => 'nullable|boolean',
-            'mark_paid' => 'nullable|boolean',
         ]);
 
         if (empty($data['module_slug']) && empty($data['module_id'])) {
             return response()->json(['message' => 'module_slug or module_id required'], 422);
         }
 
+        // Client mark_paid / pay are never forwarded. This action only opens a payment session.
         $callback = $data['callback_url'] ?? url('/dashboard/modules/payment-callback');
+        $forward = array_filter([
+            'module_slug' => $data['module_slug'] ?? null,
+            'module_id' => $data['module_id'] ?? null,
+            'callback_url' => $callback,
+            'pay' => true,
+        ], fn ($value) => $value !== null);
         $res = $client->purchase(
             $tenant->domain ?: $request->getHost(),
-            array_merge($data, ['callback_url' => $callback]),
+            $forward,
             config('services.webino.product', 'webinodashboard')
         );
 
@@ -82,7 +87,8 @@ class ModuleMarketplaceController extends Controller
 
         // If ERP granted immediately, mark local TenantModule licensed.
         $slug = $data['module_slug'] ?? data_get($payload, 'order.items.0.module_slug');
-        if (is_string($slug) && $slug !== '' && data_get($payload, 'license')) {
+        $license = data_get($payload, 'license');
+        if (is_string($slug) && $slug !== '' && is_array($license) && $license !== []) {
             TenantModule::query()->updateOrCreate(
                 ['tenant_id' => $tenant->id, 'module_slug' => $slug],
                 ['licensed' => true]
@@ -103,7 +109,7 @@ class ModuleMarketplaceController extends Controller
 
     public function paymentCallback(Request $request, WebinoMarketplaceClient $client): JsonResponse
     {
-        $res = $client->paymentCallback($request->all());
+        $res = $client->paymentCallback($request->except(['mark_paid', 'pay']));
         if (! $res['ok']) {
             return response()->json([
                 'message' => $res['message'] ?? 'Callback failed',
@@ -113,7 +119,8 @@ class ModuleMarketplaceController extends Controller
 
         $payload = is_array($res['data']) ? ($res['data']['data'] ?? $res['data']) : [];
         $slug = data_get($payload, 'order.items.0.module_slug');
-        if (is_string($slug) && $slug !== '') {
+        $license = data_get($payload, 'license');
+        if (is_string($slug) && $slug !== '' && is_array($license) && $license !== []) {
             $tenantId = $request->user()?->tenant_id;
             if ($tenantId) {
                 TenantModule::query()->updateOrCreate(

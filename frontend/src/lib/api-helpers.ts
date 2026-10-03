@@ -1,32 +1,44 @@
 import { ApiError } from "@/lib/api"
+import enMessages from "../../messages/en.json"
+import faMessages from "../../messages/fa.json"
 
-const STATUS_MESSAGES: Record<number, string> = {
-  401: "نشست شما منقضی شده است. دوباره وارد شوید.",
-  403: "دسترسی به این بخش مجاز نیست.",
-  404: "منبع درخواستی پیدا نشد.",
-  409: "این عملیات با وضعیت فعلی در تضاد است.",
-  422: "اطلاعات ارسال‌شده معتبر نیست.",
-  429: "تعداد درخواست‌ها زیاد است. کمی بعد دوباره تلاش کنید.",
-  500: "خطای داخلی سرور. صفحه را تازه کنید یا کمی بعد دوباره تلاش کنید.",
-  502: "سرور در دسترس نیست. کمی بعد دوباره تلاش کنید.",
-  503: "سرور موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.",
+const STATUS_KEYS: Record<number, string> = {
+  401: "status_401",
+  403: "status_403",
+  404: "status_404",
+  409: "status_409",
+  422: "status_422",
+  429: "status_429",
+  500: "status_500",
+  502: "status_502",
+  503: "status_503",
 }
 
-const KEY_MESSAGES: Record<string, string> = {
-  "2FA_REQUIRED": "احراز هویت دو مرحله‌ای لازم است. کد ارسال‌شده را وارد کنید.",
-  ACCOUNT_DISABLED: "این حساب غیرفعال است.",
-  FORBIDDEN: "دسترسی به این بخش مجاز نیست.",
-  UNAUTHORIZED: "نشست شما منقضی شده است. دوباره وارد شوید.",
-  AJAX_REQUIRED: "درخواست نامعتبر است. صفحه را تازه کنید.",
-  MODULE_NOT_ACTIVE: "این ماژول فعال نیست.",
-  MODULE_NOT_LICENSED: "این ماژول لایسنس ندارد.",
-  "auth.unauthorized": "نشست شما منقضی شده است. دوباره وارد شوید.",
-  "auth.forbidden": "دسترسی به این بخش مجاز نیست.",
-  "errors.not_found": "منبع درخواستی پیدا نشد.",
-  "errors.server": "خطای داخلی سرور. صفحه را تازه کنید یا کمی بعد دوباره تلاش کنید.",
-  "validation.failed": "اطلاعات ارسال‌شده معتبر نیست.",
-  "Two-factor authentication required":
-    "احراز هویت دو مرحله‌ای لازم است. کد ارسال‌شده را وارد کنید.",
+const KEY_TO_MESSAGE: Record<string, string> = {
+  "2FA_REQUIRED": "two_factor",
+  ACCOUNT_DISABLED: "account_disabled",
+  FORBIDDEN: "forbidden",
+  UNAUTHORIZED: "unauthorized",
+  AJAX_REQUIRED: "ajax_required",
+  MODULE_NOT_ACTIVE: "module_not_active",
+  MODULE_NOT_LICENSED: "module_not_licensed",
+  "auth.unauthorized": "unauthorized",
+  "auth.forbidden": "forbidden",
+  "errors.not_found": "status_404",
+  "errors.server": "status_500",
+  "validation.failed": "status_422",
+  "Two-factor authentication required": "two_factor",
+}
+
+function uiLocale(): "fa" | "en" {
+  if (typeof document === "undefined") return "fa"
+  const match = document.cookie.match(/(?:^|;\s*)NEXT_LOCALE=([^;]+)/)
+  return match?.[1] === "en" ? "en" : "fa"
+}
+
+function apiErrorText(key: string): string {
+  const pack = (uiLocale() === "en" ? enMessages : faMessages).api_errors
+  return pack[key as keyof typeof pack] ?? key
 }
 
 type ErrorBody = {
@@ -66,41 +78,40 @@ export function getApiErrorMessage(err: unknown, body?: ErrorBody | null): strin
       ? body.errors.code
       : undefined
 
-  if (code && KEY_MESSAGES[code]) {
-    return KEY_MESSAGES[code]
-  }
+  const coded = code ? KEY_TO_MESSAGE[code] : undefined
+  if (coded) return apiErrorText(coded)
 
   const validation = firstValidationError(body?.errors)
   if (validation && validation !== "Server Error") {
     return validation
   }
 
-  if (messageFromBody && KEY_MESSAGES[messageFromBody]) {
-    return KEY_MESSAGES[messageFromBody]
-  }
+  const mappedBody = messageFromBody ? KEY_TO_MESSAGE[messageFromBody] : undefined
+  if (mappedBody) return apiErrorText(mappedBody)
   if (messageFromBody === "Server Error") {
-    return STATUS_MESSAGES[500]
+    return apiErrorText("status_500")
   }
   if (messageFromBody && !/^[a-z0-9_.]+$/i.test(messageFromBody)) {
     return messageFromBody
   }
 
-  if (typeof status === "number" && STATUS_MESSAGES[status]) {
-    return STATUS_MESSAGES[status]
+  if (typeof status === "number" && STATUS_KEYS[status]) {
+    return apiErrorText(STATUS_KEYS[status])
   }
 
   if (err instanceof Error) {
     if (err.message === "Network Error" || err.message === "Failed to fetch") {
-      return "اتصال به سرور برقرار نشد. آدرس API را بررسی کنید."
+      return apiErrorText("network")
     }
     if (/^HTTP \d+/.test(err.message)) {
       const n = Number(err.message.replace(/^HTTP /, ""))
-      return STATUS_MESSAGES[n] ?? "درخواست ناموفق بود."
+      return STATUS_KEYS[n] ? apiErrorText(STATUS_KEYS[n]) : apiErrorText("request_failed")
     }
     if (err.message && !/^Request failed/i.test(err.message)) {
-      return KEY_MESSAGES[err.message] ?? err.message
+      const mapped = KEY_TO_MESSAGE[err.message]
+      return mapped ? apiErrorText(mapped) : err.message
     }
   }
 
-  return "خطای ناشناخته"
+  return apiErrorText("unknown")
 }

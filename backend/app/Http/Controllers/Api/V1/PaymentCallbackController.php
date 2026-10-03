@@ -11,6 +11,7 @@ use App\Services\Orders\OrderStatusService;
 use App\Services\Payments\BnplClient;
 use App\Services\Payments\DigipayClient;
 use App\Services\Payments\PaymentGatewaySettingsService;
+use App\Services\Tenant\TenantResolver;
 use App\Services\Shop\LoyaltyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,22 +34,46 @@ class PaymentCallbackController extends Controller
         protected OrderStatusService $statuses,
     ) {}
 
-    public function handle(Request $request, string $provider, Order $order): RedirectResponse
+    public function handle(Request $request, string $provider, int $order): RedirectResponse
     {
+        $row = $this->callbackOrder($request, $order);
+        if (! $row) {
+            return $this->finish(false);
+        }
         $provider = str_replace('-', '_', strtolower($provider));
 
-        if ($order->status === 'paid') {
-            return $this->finish(true, $order);
+        if ($row->status === 'paid') {
+            return $this->finish(true, $row);
         }
 
         return match ($provider) {
-            'zarinpal' => $this->handleZarinpal($request, $order),
-            'digipay' => $this->handleDigipay($request, $order),
-            'snapppay' => $this->handleBnpl($request, $order, 'snapppay', true),
-            'torobpay' => $this->handleBnpl($request, $order, 'torobpay', false),
-            BasalamPay::PROVIDER => $this->handleBasalamPay($request, $order),
+            'zarinpal' => $this->handleZarinpal($request, $row),
+            'digipay' => $this->handleDigipay($request, $row),
+            'snapppay' => $this->handleBnpl($request, $row, 'snapppay', true),
+            'torobpay' => $this->handleBnpl($request, $row, 'torobpay', false),
+            BasalamPay::PROVIDER => $this->handleBasalamPay($request, $row),
             default => $this->finish(false),
         };
+    }
+
+    /**
+     * On a public host the order must belong to that host's tenant.
+     * Internal hosts (tests, probes) keep numeric lookup so local callbacks still resolve.
+     */
+    protected function callbackOrder(Request $request, int $orderId): ?Order
+    {
+        $resolver = app(TenantResolver::class);
+        $query = Order::query()->whereKey($orderId);
+        $host = $resolver->normalizeHost($request->getHost());
+        if (! $resolver->isInternalHost($host)) {
+            $tenant = $resolver->identifyFromRequest($request);
+            if (! $tenant) {
+                return null;
+            }
+            $query->where('tenant_id', $tenant->id);
+        }
+
+        return $query->first();
     }
 
     public function handleBasalamPay(Request $request, Order $order): RedirectResponse
@@ -141,13 +166,11 @@ class PaymentCallbackController extends Controller
     {
         $trackingCode = (string) ($request->query('trackingCode') ?? $request->query('tracking_code') ?? '');
         $providerId = (string) ($request->query('providerId') ?? $request->query('provider_id') ?? '');
-        if ($trackingCode === '') {
+        if ($trackingCode === '' || $providerId === '') {
             return $this->finish(false);
         }
 
-        $intent = $providerId !== ''
-            ? $this->intentMatching($order, 'digipay', 'provider_id', $providerId)
-            : $this->latestIntent($order, 'digipay');
+        $intent = $this->intentMatching($order, 'digipay', 'provider_id', $providerId);
         if ($intent === null || ! $this->stateAllows($request, $intent, false)) {
             return $this->finish(false);
         }
@@ -269,15 +292,6 @@ class PaymentCallbackController extends Controller
         return null;
     }
 
-    protected function latestIntent(Order $order, string $provider): ?PaymentIntent
-    {
-        return PaymentIntent::query()
-            ->where('tenant_id', $order->tenant_id)
-            ->where('order_id', $order->id)
-            ->where('provider', $provider)
-            ->latest()
-            ->first();
-    }
 
     /**
      * Missing state is tolerated on success (some gateways replace the query string).

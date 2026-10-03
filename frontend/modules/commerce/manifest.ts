@@ -276,7 +276,7 @@ export const commerceManifest: ModuleManifest = {
       section: "commerce",
       order: 21,
       navHidden: true,
-      capability: "orders.own",
+      capability: "settings.manage,commerce.*",
     },
     {
       path: "settings/wallet",

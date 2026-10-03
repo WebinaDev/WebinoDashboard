@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\Coupons\CouponService;
+use App\Services\Pricing\PurchaseTypeService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -213,7 +214,7 @@ class OrderWriter
             }
             $unit = isset($item['unit_price_minor'])
                 ? (int) $item['unit_price_minor']
-                : $product->storefrontPriceMinor($variant);
+                : $this->catalogUnitPrice($product, $variant, (string) ($item['purchase_type'] ?? 'cash'));
 
             $built[] = [
                 'product_id' => $product->id,
@@ -228,6 +229,16 @@ class OrderWriter
         }
 
         return $built;
+    }
+
+    protected function catalogUnitPrice(Product $product, ?ProductVariant $variant, string $type): int
+    {
+        $types = PurchaseTypeService::forTenant((int) $product->tenant_id);
+        if ($types->active() && $type !== '' && $type !== 'cash') {
+            return $types->unitPrice($product, $type);
+        }
+
+        return $product->storefrontPriceMinor($variant);
     }
 
     protected function nextNumber(int $tenantId): string

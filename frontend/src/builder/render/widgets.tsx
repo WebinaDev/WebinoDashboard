@@ -15,6 +15,7 @@ import {
   UserRound,
 } from "lucide-react"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 
@@ -442,6 +443,7 @@ function CategoryWidget({ widget }: { widget: WidgetNode }) {
 }
 
 function ProductCard({ product }: { product: ShopProduct }) {
+  const t = useTranslations("cart")
   const [liked, setLiked] = useState(false)
   const off = product.compare && product.compare > product.price ? Math.round((1 - product.price / product.compare) * 100) : 0
   return (
@@ -471,7 +473,7 @@ function ProductCard({ product }: { product: ShopProduct }) {
           className="rounded-full bg-[#E16BA6] px-3 py-1.5 text-xs font-semibold text-white"
           onClick={() => addToCart(product)}
         >
-          افزودن به سبد
+          {t("add_to_cart")}
         </button>
       </div>
     </article>
@@ -782,6 +784,7 @@ function FilterWidget({ editing }: { editing: boolean }) {
 }
 
 function ProductDetail({ slug, editing }: { slug?: string; editing: boolean }) {
+  const t = useTranslations("cart")
   const catalog = useCatalog(8)
   const product = catalog.products.find((item) => item.slug === slug) ?? catalog.products[0]
   const [qty, setQuantity] = useState(1)
@@ -826,7 +829,7 @@ function ProductDetail({ slug, editing }: { slug?: string; editing: boolean }) {
             <button type="button" className="px-3 py-2" onClick={() => setQuantity((q) => q + 1)} aria-label="زیاد">+</button>
           </div>
           <button type="button" disabled={editing} className="rounded-full bg-[#E16BA6] px-6 py-2.5 text-sm font-bold text-white disabled:opacity-60" onClick={() => addToCart(product, qty)}>
-            افزودن به سبد
+            {t("add_to_cart")}
           </button>
         </div>
         <div className="mt-5 rounded-3xl border border-[#e6eef6] bg-[#F5F8FB] p-4">

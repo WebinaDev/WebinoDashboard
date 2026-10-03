@@ -141,6 +141,7 @@ export type MarketplaceHubRow = {
   last_sync_at: string | null
   orders_count: number
   failed_jobs: number
+  has_webhook_secret?: boolean | null
 }
 
 export type MarketplaceSettingsView = {

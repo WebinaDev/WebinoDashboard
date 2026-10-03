@@ -14,6 +14,7 @@ use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Orders\OrderWriter;
 use App\Services\Shipping\ShippingZonesService;
 use App\Services\Shipping\TapinShipmentService;
+use App\Support\CapabilityChecker;
 use App\Support\OrderAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -164,7 +165,7 @@ class OrderController extends Controller
     public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        $data = $this->validateOrderPayload($request, $tid, false);
+        $data = $this->withoutUnauthorizedPrices($request, $this->validateOrderPayload($request, $tid, false));
         if ($denied = $this->rejectStaffWalletTender($data, null)) {
             return $denied;
         }
@@ -240,7 +241,7 @@ class OrderController extends Controller
     public function rewrite(Request $request, int $order): \Illuminate\Http\JsonResponse
     {
         $row = $this->find($request, $order);
-        $data = $this->validateOrderPayload($request, $row->tenant_id, true);
+        $data = $this->withoutUnauthorizedPrices($request, $this->validateOrderPayload($request, $row->tenant_id, true));
         if ($denied = $this->rejectStaffWalletTender($data, $row)) {
             return $denied;
         }
@@ -803,6 +804,40 @@ class OrderController extends Controller
             $meta = is_array($order->meta) ? $order->meta : [];
             app(\App\Services\Coupons\CouponService::class)->release($order, ! empty($meta['coupon_consumed']));
         }
+    }
+
+    /**
+     * Catalog line prices are server-side unless the actor has orders.* or is on the POS route with pos.use.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function withoutUnauthorizedPrices(Request $request, array $data): array
+    {
+        if ($this->mayOverrideUnitPrice($request) || ! isset($data['items']) || ! is_array($data['items'])) {
+            return $data;
+        }
+        foreach ($data['items'] as $index => $item) {
+            if (is_array($item)) {
+                unset($data['items'][$index]['unit_price_minor']);
+            }
+        }
+
+        return $data;
+    }
+
+    protected function mayOverrideUnitPrice(Request $request): bool
+    {
+        $user = $request->user();
+        if (! $user) {
+            return false;
+        }
+        $caps = app(CapabilityChecker::class);
+        if ($caps->allows($user, 'orders.*')) {
+            return true;
+        }
+
+        return str_contains('/'.$request->path(), '/pos/orders') && $caps->allows($user, 'pos.use');
     }
 
     /** @return array<string, mixed> */

@@ -60,12 +60,40 @@ class ModirPayamakClient
         return $out;
     }
 
+    /**
+     * Reject traversal and unexpected characters before the path is joined to the ERP base URL.
+     */
+    public static function normalizePath(string $path): string
+    {
+        $path = str_replace('\\', '/', rawurldecode($path));
+        $path = trim($path);
+        if (str_contains($path, "\0") || str_contains($path, '..') || str_contains($path, '//')) {
+            throw new \InvalidArgumentException('Invalid ModirPayamak path');
+        }
+        $path = trim($path, '/');
+        if ($path !== '' && ! preg_match('#^[A-Za-z0-9_/-]+$#', $path)) {
+            throw new \InvalidArgumentException('Invalid ModirPayamak path');
+        }
+        if ($path !== '') {
+            foreach (explode('/', $path) as $segment) {
+                if ($segment === '' || $segment === '.' || $segment === '..') {
+                    throw new \InvalidArgumentException('Invalid ModirPayamak path');
+                }
+            }
+        }
+        if (str_starts_with($path, 'modirpayamak/')) {
+            $path = substr($path, strlen('modirpayamak/'));
+        } elseif ($path === 'modirpayamak') {
+            $path = '';
+        }
+
+        return $path;
+    }
+
     protected function url(string $path): string
     {
-        $path = ltrim($path, '/');
-        if (! str_starts_with($path, 'modirpayamak/')) {
-            $path = 'modirpayamak/'.$path;
-        }
+        $path = self::normalizePath($path);
+        $path = 'modirpayamak/'.$path;
 
         return rtrim($this->license->baseUrl(), '/').'/api/webinocrm/v1/'.$path;
     }
