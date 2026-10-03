@@ -9,9 +9,10 @@ import {
   Truck,
 } from "lucide-react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 import { Badge } from "@/components/ui/badge"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 import type {
   DashboardFulfillmentAction,
   DashboardFulfillmentBucket,
@@ -78,9 +79,10 @@ function shippingMethodLabel(
 function itemMessage(
   t: ReturnType<typeof useTranslations<"home">>,
   item: DashboardFulfillmentItem,
+  locale: string,
 ): string {
-  const number = item.number || String(item.id)
-  const name = item.customer_name || "—"
+  const number = toLocaleDigits(item.number || String(item.id), locale)
+  const name = item.customer_name || (locale === "fa" ? "-" : "—")
   switch (item.action) {
     case "pack":
       return t("fulfillment.pack", { number, name })
@@ -95,14 +97,14 @@ function itemMessage(
       if (item.return_status === "approved") {
         return t("fulfillment.return_approved", {
           number,
-          item: item.return_item || "—",
-          qty: String(item.return_qty ?? ""),
+          item: item.return_item || (locale === "fa" ? "-" : "—"),
+          qty: formatNumber(item.return_qty ?? 0, locale),
         })
       }
       return t("fulfillment.return_requested", {
         number,
-        item: item.return_item || "—",
-        qty: String(item.return_qty ?? 1),
+        item: item.return_item || (locale === "fa" ? "-" : "—"),
+        qty: formatNumber(item.return_qty ?? 1, locale),
       })
     case "refund":
       if (item.purchase_type === "installment") {
@@ -117,7 +119,7 @@ function itemMessage(
           : "",
       })
     default:
-      return `#${number} — ${name}`
+      return `#${number} - ${name}`
   }
 }
 
@@ -127,12 +129,14 @@ function GroupBlock({
   icon: Icon,
   tone,
   t,
+  locale,
 }: {
   groupKey: (typeof GROUPS)[number]["key"]
   bucket: DashboardFulfillmentBucket
   icon: (typeof GROUPS)[number]["icon"]
   tone: string
   t: ReturnType<typeof useTranslations<"home">>
+  locale: string
 }) {
   if (!bucket?.items?.length) return null
 
@@ -145,7 +149,7 @@ function GroupBlock({
           <Icon className="size-3.5 shrink-0" aria-hidden />
           {t(`fulfillment.group.${groupKey}`)}
           <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-            {bucket.count}
+            {formatNumber(bucket.count, locale)}
           </Badge>
         </div>
         {bucket.href ? (
@@ -161,7 +165,7 @@ function GroupBlock({
               href={item.href}
               className="block rounded-lg border bg-card px-3 py-2 text-sm leading-relaxed transition-colors hover:bg-muted/60"
             >
-              {itemMessage(t, item)}
+              {itemMessage(t, item, locale)}
             </Link>
           </li>
         ))}
@@ -172,6 +176,7 @@ function GroupBlock({
 
 export function HomeFulfillmentTodos({ fulfillment }: HomeFulfillmentTodosProps) {
   const t = useTranslations("home")
+  const locale = normalizeUiLocale(useLocale())
   if (!fulfillment) return null
 
   const total =
@@ -193,7 +198,7 @@ export function HomeFulfillmentTodos({ fulfillment }: HomeFulfillmentTodosProps)
           </h3>
           {total > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">
-              {total} {t("sections.fulfillment")}
+              {formatNumber(total, locale)} {t("sections.fulfillment")}
             </p>
           ) : null}
         </div>
@@ -211,6 +216,7 @@ export function HomeFulfillmentTodos({ fulfillment }: HomeFulfillmentTodosProps)
               icon={g.icon}
               tone={g.tone}
               t={t}
+              locale={locale}
             />
           ))}
         </div>

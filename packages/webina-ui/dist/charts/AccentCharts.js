@@ -1,6 +1,7 @@
 "use client";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useMemo } from "react";
+import { formatChartDateLabel, formatNumber, normalizeUiLocale } from "../locale";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, RadialBar, RadialBarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, } from "recharts";
 export function useChartColors() {
     return useMemo(() => {
@@ -25,28 +26,35 @@ export function useChartColors() {
         };
     }, []);
 }
-export function AccentBarChart({ data, height = 220, }) {
+function chartNumber(value, locale) {
+    const n = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(n) ? formatNumber(n, locale) : formatChartDateLabel(String(value ?? ""), locale);
+}
+export function AccentBarChart({ data, height = 220, locale, }) {
     const colors = useChartColors();
-    return (_jsx("div", { style: { width: "100%", height }, children: _jsx(ResponsiveContainer, { children: _jsxs(BarChart, { data: data, margin: { top: 8, right: 8, left: 0, bottom: 8 }, children: [_jsx(CartesianGrid, { strokeDasharray: "3 3", stroke: colors.border, vertical: false }), _jsx(XAxis, { dataKey: "label", tick: { fill: colors.foreground, fontSize: 12 }, axisLine: { stroke: colors.border }, tickLine: false }), _jsx(YAxis, { tick: { fill: colors.foreground, fontSize: 12 }, axisLine: false, tickLine: false, width: 40 }), _jsx(Tooltip, { contentStyle: {
+    const lng = normalizeUiLocale(locale);
+    return (_jsx("div", { style: { width: "100%", height }, children: _jsx(ResponsiveContainer, { children: _jsxs(BarChart, { data: data, margin: { top: 8, right: 8, left: 0, bottom: 8 }, children: [_jsx(CartesianGrid, { strokeDasharray: "3 3", stroke: colors.border, vertical: false }), _jsx(XAxis, { dataKey: "label", tick: { fill: colors.foreground, fontSize: 12 }, axisLine: { stroke: colors.border }, tickLine: false, tickFormatter: (value) => formatChartDateLabel(String(value), lng) }), _jsx(YAxis, { tick: { fill: colors.foreground, fontSize: 12 }, axisLine: false, tickLine: false, width: 48, tickFormatter: (value) => formatNumber(Number(value), lng) }), _jsx(Tooltip, { labelFormatter: (label) => formatChartDateLabel(String(label), lng), formatter: (value) => chartNumber(value, lng), contentStyle: {
                             background: colors.muted,
                             border: `1px solid ${colors.border}`,
                             borderRadius: 8,
                             color: colors.foreground,
                         } }), _jsx(Bar, { dataKey: "value", fill: colors.primary, radius: [6, 6, 0, 0] })] }) }) }));
 }
-export function AccentDonutChart({ segments, height = 220, }) {
+export function AccentDonutChart({ segments, height = 220, locale, }) {
     const colors = useChartColors();
+    const lng = normalizeUiLocale(locale);
     const data = segments.filter((s) => s.value > 0);
-    return (_jsx("div", { style: { width: "100%", height }, children: _jsx(ResponsiveContainer, { children: _jsxs(PieChart, { children: [_jsx(Pie, { data: data, dataKey: "value", nameKey: "label", innerRadius: "55%", outerRadius: "80%", paddingAngle: 2, children: data.map((entry) => (_jsx(Cell, { fill: entry.color ?? colors.primary, stroke: "transparent" }, entry.label))) }), _jsx(Tooltip, { contentStyle: {
+    return (_jsx("div", { style: { width: "100%", height }, children: _jsx(ResponsiveContainer, { children: _jsxs(PieChart, { children: [_jsx(Pie, { data: data, dataKey: "value", nameKey: "label", innerRadius: "55%", outerRadius: "80%", paddingAngle: 2, children: data.map((entry) => (_jsx(Cell, { fill: entry.color ?? colors.primary, stroke: "transparent" }, entry.label))) }), _jsx(Tooltip, { formatter: (value, name) => [chartNumber(value, lng), formatChartDateLabel(String(name ?? ""), lng)], contentStyle: {
                             background: colors.muted,
                             border: `1px solid ${colors.border}`,
                             borderRadius: 8,
                             color: colors.foreground,
                         } })] }) }) }));
 }
-export function AccentGaugeChart({ label, percent = 0, height = 180, }) {
+export function AccentGaugeChart({ label, percent = 0, height = 180, locale, }) {
     const colors = useChartColors();
+    const lng = normalizeUiLocale(locale);
     const value = Math.min(100, Math.max(0, percent ?? 0));
     const data = [{ name: label, value, fill: colors.primary }];
-    return (_jsxs("div", { className: "flex flex-col items-center gap-2", style: { width: "100%", height }, children: [_jsx(ResponsiveContainer, { width: "100%", height: height - 28, children: _jsx(RadialBarChart, { innerRadius: "70%", outerRadius: "100%", data: data, startAngle: 180, endAngle: 0, children: _jsx(RadialBar, { background: true, dataKey: "value", cornerRadius: 8 }) }) }), _jsxs("div", { className: "text-center text-sm", children: [_jsx("div", { className: "text-muted-foreground", children: label }), _jsxs("div", { className: "text-2xl font-semibold tabular-nums", children: [Math.round(value), "%"] })] })] }));
+    return (_jsxs("div", { className: "flex flex-col items-center gap-2", style: { width: "100%", height }, children: [_jsx(ResponsiveContainer, { width: "100%", height: height - 28, children: _jsx(RadialBarChart, { innerRadius: "70%", outerRadius: "100%", data: data, startAngle: 180, endAngle: 0, children: _jsx(RadialBar, { background: true, dataKey: "value", cornerRadius: 8 }) }) }), _jsxs("div", { className: "text-center text-sm", children: [_jsx("div", { className: "text-muted-foreground", children: label }), _jsxs("div", { className: "text-2xl font-semibold tabular-nums", children: [formatNumber(Math.round(value), lng), lng === "fa" ? "٪" : "%"] })] })] }));
 }

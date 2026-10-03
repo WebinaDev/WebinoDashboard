@@ -16,6 +16,7 @@ import { dashboardPath } from "@/kernel/paths"
 import { api, type ApiListPayload } from "@/lib/api"
 import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 import { formatDisplayDateTime } from "@/lib/format-date"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 import type { BotProvider } from "./BotProviderSwitcher"
 
@@ -33,7 +34,7 @@ type CouponRow = {
 export function BotCouponsPanel({ provider }: { provider: BotProvider }) {
   const t = useTranslations("bots")
   const enumLabel = useEnumLabel()
-  const locale = useLocale()
+  const locale = normalizeUiLocale(useLocale())
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
 
@@ -47,7 +48,7 @@ export function BotCouponsPanel({ provider }: { provider: BotProvider }) {
 
   const rows = q.data?.data ?? []
   const total = Number(q.data?.meta?.total ?? 0)
-  const number = new Intl.NumberFormat(locale)
+  const number = (value: number) => formatNumber(value, locale)
 
   return (
     <div className="space-y-4">
@@ -95,11 +96,11 @@ export function BotCouponsPanel({ provider }: { provider: BotProvider }) {
                     </td>
                     <td className="p-2">{enumLabel("coupon_type", row.type)}</td>
                     <td className="p-2">
-                      {row.type === "percent" ? `${number.format(row.amount)}%` : number.format(row.amount)}
+                      {row.type === "percent" ? `${number(row.amount)}${locale === "fa" ? "٪" : "%"}` : number(row.amount)}
                     </td>
                     <td className="p-2">
-                      {number.format(row.usage_count ?? 0)}
-                      {row.usage_limit ? ` / ${number.format(row.usage_limit)}` : ""}
+                      {number(row.usage_count ?? 0)}
+                      {row.usage_limit ? ` / ${number(row.usage_limit)}` : ""}
                     </td>
                     <td className="p-2">
                       <Badge variant={statusBadgeVariant(row.status)}>{enumLabel("post_status", row.status)}</Badge>

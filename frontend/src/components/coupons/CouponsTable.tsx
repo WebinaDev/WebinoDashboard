@@ -49,7 +49,9 @@ export function CouponsTable({
     onSelectedChange(v ? [...selectedIds, id] : selectedIds.filter((x) => x !== id))
 
   const amount = (row: CouponTableRow) =>
-    row.type === "percent" ? `${localizeNumber(row.amount, locale)}%` : <MoneyDisplay amount={row.amount} />
+    row.type === "percent"
+      ? `${localizeNumber(row.amount, locale)}${locale.startsWith("fa") ? "٪" : "%"}`
+      : <MoneyDisplay amount={row.amount} />
 
   const usage = (row: CouponTableRow) =>
     `${localizeNumber(row.usage_count ?? 0, locale)}${row.usage_limit != null ? ` / ${localizeNumber(row.usage_limit, locale)}` : ""}`

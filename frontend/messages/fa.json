@@ -46,7 +46,7 @@
     "yes": "بله",
     "no": "خیر",
     "error_generic": "خطایی رخ داد.",
-    "em_dash": "—",
+    "em_dash": "-",
     "datePicker_placeholder": "انتخاب تاریخ",
     "page_not_found": "صفحه یافت نشد.",
     "back_to_dashboard": "بازگشت به پنل مدیریت",
@@ -400,12 +400,12 @@
         "refund": "بازگشت وجه",
         "returns": "مرجوعی"
       },
-      "pack": "سفارش شماره {number} — {name} را بسته‌بندی کن.",
+      "pack": "سفارش شماره {number} - {name} را بسته‌بندی کن.",
       "ship": "سفارش {number} را با {method} ارسال کن.",
       "tracking": "کد رهگیری مرسوله سفارش {number} را برای مشتری بفرست.",
       "refund_cash": "مبلغ سفارش {number} را برگردان{gateway}.",
-      "return_requested": "بررسی درخواست مرجوعی سفارش {number} — {item} ×{qty}.",
-      "return_approved": "مرجوعی تأیید‌شده سفارش {number} — {item} ×{qty}.",
+      "return_requested": "بررسی درخواست مرجوعی سفارش {number} - {item} ×{qty}.",
+      "return_approved": "مرجوعی تأیید‌شده سفارش {number} - {item} ×{qty}.",
       "refund_installment": "بازگشت اقساط سفارش {number}.",
       "refund_cash_gateway": " ({gateway})",
       "shipping": {
@@ -635,7 +635,7 @@
     "sync_hint": "مجوز و امکانات فعال شما را از پنل وبینو دریافت کنید.",
     "finish_hint": "راه‌اندازی را تمام کنید و وارد پیشخوان شوید.",
     "finish": "اتمام راه‌اندازی",
-    "domain_hint": "دامنه سایت همان لایسنس است. ERP فقط دامنه + محصول را چک می‌کند — کد لایسنس لازم نیست."
+    "domain_hint": "دامنه سایت همان لایسنس است. ERP فقط دامنه + محصول را چک می‌کند - کد لایسنس لازم نیست."
   },
   "orders": {
     "title": "سفارش‌ها",
@@ -805,7 +805,7 @@
     "recent_orders": "سفارش‌های اخیر",
     "attribution": "منبع بازاریابی",
     "return_item": "قلم مرجوعی",
-    "return_item_optional": "— همه اقلام —",
+    "return_item_optional": "- همه اقلام -",
     "return_qty": "تعداد مرجوعی",
     "purchase_type_cash": "نقدی",
     "purchase_type_credit": "اعتباری",
@@ -937,7 +937,7 @@
     "unit": "واحد",
     "postcode": "کد پستی",
     "address_1": "آدرس",
-    "scan_hint": "بارکد یا SKU را اسکن کنید — با تطبیق یکتا خودکار اضافه می‌شود",
+    "scan_hint": "بارکد یا SKU را اسکن کنید - با تطبیق یکتا خودکار اضافه می‌شود",
     "products_search_ph": "جستجو یا اسکن بارکد / SKU"
   },
   "store_settings": {
@@ -1235,7 +1235,7 @@
       "decimals": "تعداد اعشار",
       "pages_units": "برگه و واحدها",
       "shop_page": "برگه فروشگاه",
-      "page_none": "— هیچ —",
+      "page_none": "- هیچ -",
       "cart_redirect": "پرش به سبد بعد از افزودن",
       "weight_unit": "واحد وزن",
       "dimension_unit": "واحد طول",
@@ -1564,7 +1564,7 @@
   "payments_gateway": {
     "yes": "بله",
     "no": "خیر",
-    "bale_status": "وضعیت ربات: {active} — توکن ارائه‌دهنده: {token}",
+    "bale_status": "وضعیت ربات: {active} - توکن ارائه‌دهنده: {token}",
     "add_card": "افزودن کارت",
     "fields": {
       "merchant_id": "کد پذیرنده",
@@ -2729,8 +2729,8 @@
     "estimatePrice": "برآورد هزینه",
     "estimatedCost": "هزینه تقریبی: {{cost}} تومان",
     "messageKind": "نوع پیام",
-    "kindTransactional": "تراکنشی (OTP / سفارش) — خط خدماتی + پترن",
-    "kindMarketing": "بازاریابی / خبرنامه — خط بازاریابی + عادی",
+    "kindTransactional": "تراکنشی (OTP / سفارش) - خط خدماتی + پترن",
+    "kindMarketing": "بازاریابی / خبرنامه - خط بازاریابی + عادی",
     "lineHint": "خطوط از سرویس پیامک همگام می‌شوند. تراکنشی از خط خدماتی و بازاریابی از خط عادی استفاده می‌کند.",
     "addPattern": "درخواست پترن",
     "patternRulesTitle": "قوانین پترن",
@@ -3208,7 +3208,7 @@
     "test_ok": "اتصال برقرار است.",
     "test_failed": "اتصال ناموفق بود.",
     "clear_secret": "حذف مقدار ذخیره‌شده",
-    "secret_saved": "•••••••• (ذخیره شده — برای تغییر مقدار جدید وارد کنید)",
+    "secret_saved": "•••••••• (ذخیره شده - برای تغییر مقدار جدید وارد کنید)",
     "connection": "اتصال و تنظیمات",
     "connection_api_hint": "اطلاعات دسترسی پنل فروشندگی را وارد کنید. مقادیر محرمانه پس از ذخیره نمایش داده نمی‌شوند.",
     "connection_feed_hint": "این سرویس محصولات را از فید فروشگاه شما می‌خواند. آدرس فید را در پنل سرویس ثبت کنید.",
@@ -4091,7 +4091,7 @@
       "auto_hour": "ساعت به‌روزرسانی (۰ تا ۲۳)",
       "test": "تست اتصال",
       "fetch": "دریافت نرخ و محاسبهٔ مجدد",
-      "test_ok": "اتصال موفق — نرخ: {price}",
+      "test_ok": "اتصال موفق - نرخ: {price}",
       "fetch_ok": "نرخ به‌روزرسانی شد: {price}"
     },
     "retail": {
@@ -4194,7 +4194,7 @@
       "status_done": "انجام شد",
       "status_failed": "خطا",
       "status_idle": "آماده",
-      "progress": "{processed} از {total} — تغییر: {updated}، رد شده: {skipped}",
+      "progress": "{processed} از {total} - تغییر: {updated}، رد شده: {skipped}",
       "from": "قیمت قبلی",
       "to": "قیمت جدید",
       "variant": "متغیر",
@@ -4748,7 +4748,7 @@
       "allPayments": "همه درگاه‌ها",
       "allUtm": "همه",
       "directNone": "مستقیم / بدون UTM",
-      "ordersFor": "سفارشات — {label}",
+      "ordersFor": "سفارشات - {label}",
       "clearFilters": "پاک کردن فیلترها"
     },
     "utm": {
@@ -4915,7 +4915,7 @@
       "date": "تاریخ",
       "name": "نام"
     },
-    "secret_saved": "•••••••• (ذخیره شده — برای تغییر مقدار جدید وارد کنید)",
+    "secret_saved": "•••••••• (ذخیره شده - برای تغییر مقدار جدید وارد کنید)",
     "keys": {
       "grok_api_key": "کلید Grok",
       "gemini_api_key": "کلید Gemini",
@@ -4941,6 +4941,16 @@
     "convert_task": "تبدیل به تسک",
     "sync_erp": "همگام‌سازی با ERP",
     "erp_unavailable": "ERP در دسترس نیست"
+  },
+  "erp_announcements": {
+    "bell_label": "اطلاعیه‌های سامانه",
+    "bell_title": "اطلاعیه‌های سامانه",
+    "empty": "اطلاعیه‌ای از سامانه نیست.",
+    "unread_count": "{count} خوانده‌نشده",
+    "mark_all_read": "خواندن همه",
+    "audience_all": "همه",
+    "audience_staff": "کارکنان",
+    "audience_admins": "مدیران"
   },
   "notifications_hub": {
     "title": "مرکز اعلان",
@@ -5842,7 +5852,7 @@
     "import_open": "جزئیات",
     "import_resources": "منابع",
     "import_scope": "دامنه انتقال",
-    "import_mode_full": "کامل — همه منابع",
+    "import_mode_full": "کامل - همه منابع",
     "import_mode_selective": "انتخابی",
     "import_select_one": "حداقل یک منبع را انتخاب کنید.",
     "import_queue": "صف بررسی (نیاز به نگاشت)",

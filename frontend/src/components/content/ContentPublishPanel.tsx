@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -255,11 +256,12 @@ export function ContentPublishPanel({
             {!draftImmediate ? (
               <div className="space-y-1">
                 <Label htmlFor="publish-date">{t("publish_scheduled")}</Label>
-                <Input
-                  id="publish-date"
-                  type="datetime-local"
-                  value={draftDate}
-                  onChange={(e) => setDraftDate(e.target.value)}
+                <LocaleDatePicker
+                  locale={locale}
+                  withTime
+                  value={draftDate || null}
+                  onChange={(value) => setDraftDate(value ?? "")}
+                  aria-label={t("publish_scheduled")}
                 />
               </div>
             ) : null}

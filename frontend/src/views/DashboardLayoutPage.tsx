@@ -10,6 +10,7 @@ import { CloseMobileSidebarOnNavigate } from "@/components/CloseMobileSidebarOnN
 import { ImpersonationBar } from "@/components/ImpersonationBar"
 import { DashboardPrefetch } from "@/components/DashboardPrefetch"
 import { LicenseGate } from "@/components/LicenseGate"
+import { AnnouncementInbox } from "@/components/AnnouncementInbox"
 import { NotificationBell } from "@/components/NotificationBell"
 import { AppSidebar } from "@/components/sidebar-07/app-sidebar"
 import { LocaleThemeToolbar } from "@/components/LocaleThemeToolbar"
@@ -239,13 +240,7 @@ export default function DashboardLayoutPage({
                     {tDashboard("breadcrumb_home")}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block">
-                  {locale === "fa" ? (
-                    <span dir="ltr" className="inline-block px-0.5">
-                      {">"}
-                    </span>
-                  ) : undefined}
-                </BreadcrumbSeparator>
+                <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="min-w-0">
                   <BreadcrumbPage
                     className="truncate"
@@ -257,6 +252,7 @@ export default function DashboardLayoutPage({
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ms-auto flex items-center gap-1 md:gap-2">
+              <AnnouncementInbox />
               <NotificationBell />
               <Button
                 type="button"

@@ -1,6 +1,6 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { formatChartDateLabel, formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 type Probe = {
   status: string
@@ -134,6 +135,7 @@ function resourceLabel(key: string): string {
 
 export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
   const t = useTranslations("builder")
+  const locale = normalizeUiLocale(useLocale())
   const reviewTypeLabel = (type: string) => {
     switch (type) {
       case "wallet":
@@ -517,9 +519,12 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                   <div className="h-full bg-primary" style={{ width: `${active.progress?.percent ?? 0}%` }} />
                 </div>
                 <p className="text-sm">
-                  {t("import_progress")}: {active.progress?.percent ?? 0}%
-                  {totals ? ` — ${totals.done ?? 0} / ${(totals.done ?? 0) + (totals.pending ?? 0) + (totals.failed ?? 0)}` : ""}
-                  {totals?.failed ? ` — ${t("import_errors")}: ${totals.failed}` : ""}
+                  {t("import_progress")}: {formatNumber(active.progress?.percent ?? 0, locale)}
+                  {locale === "fa" ? "٪" : "%"}
+                  {totals
+                    ? ` · ${formatNumber(totals.done ?? 0, locale)} / ${formatNumber((totals.done ?? 0) + (totals.pending ?? 0) + (totals.failed ?? 0), locale)}`
+                    : ""}
+                  {totals?.failed ? ` · ${t("import_errors")}: ${formatNumber(totals.failed, locale)}` : ""}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <label className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm">
@@ -545,8 +550,8 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                   <ul className="grid gap-1 text-sm">
                     {Object.entries(active.progress.by_resource).map(([resource, row]) => (
                       <li key={resource}>
-                        {resourceLabel(resource)}: {row.done ?? 0} {t("import_status_completed")}
-                        {row.failed ? ` / ${row.failed} ${t("import_errors")}` : ""}
+                        {resourceLabel(resource)}: {formatNumber(row.done ?? 0, locale)} {t("import_status_completed")}
+                        {row.failed ? ` / ${formatNumber(row.failed, locale)} ${t("import_errors")}` : ""}
                       </li>
                     ))}
                   </ul>
@@ -555,12 +560,12 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                   <div className="grid gap-2">
                     <h2 className="text-sm font-medium">{t("import_stats")}</h2>
                     <p className="text-sm">
-                      {t("import_orders")}: {active.stats.sales_orders} — {t("import_revenue")}: {active.stats.revenue_minor.toLocaleString("fa-IR")}
+                      {t("import_orders")}: {formatNumber(active.stats.sales_orders, locale)} · {t("import_revenue")}: {formatNumber(active.stats.revenue_minor, locale)}
                     </p>
                     <ul className="text-sm">
                       {active.stats.by_period.map((row) => (
-                        <li key={row.period} dir="ltr">
-                          {row.period}: {row.orders} / {row.revenue_minor}
+                        <li key={row.period}>
+                          {formatChartDateLabel(row.period, locale)}: {formatNumber(row.orders, locale)} / {formatNumber(row.revenue_minor, locale)}
                         </li>
                       ))}
                     </ul>

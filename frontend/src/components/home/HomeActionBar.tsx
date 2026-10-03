@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 
 import { HomeAlertsPanel } from "@/components/home/HomeAlertsPanel"
 import { Badge } from "@/components/ui/badge"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type {
   DashboardOverviewAlert,
   DashboardOverviewTasks,
@@ -18,6 +19,7 @@ type HomeActionBarProps = {
 
 export function HomeActionBar({ alerts, tasks, locale }: HomeActionBarProps) {
   const t = useTranslations("home")
+  const lng = normalizeUiLocale(locale)
   const chips: Array<{
     key: string
     label: string
@@ -74,7 +76,7 @@ export function HomeActionBar({ alerts, tasks, locale }: HomeActionBarProps) {
                 className="cursor-pointer gap-1 px-3 py-1 text-sm hover:opacity-90"
               >
                 {chip.label}
-                <span className="font-semibold">{chip.count}</span>
+                <span className="font-semibold">{formatNumber(chip.count, lng)}</span>
               </Badge>
             </Link>
           ))}

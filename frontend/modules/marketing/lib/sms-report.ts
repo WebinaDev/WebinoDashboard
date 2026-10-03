@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/locale"
+import { emptyMark, formatDate } from "@/lib/locale"
 
 import { translateSmsStatus } from "./sms-ui"
 
@@ -46,8 +46,9 @@ export function smsNum(row: Record<string, unknown> | null | undefined, ...keys:
   return Number.isFinite(n) ? n : null
 }
 
-export function formatSmsDateTime(value: unknown, locale: string, empty = "—"): string {
-  if (value == null || value === "") return empty
+export function formatSmsDateTime(value: unknown, locale: string, empty?: string): string {
+  const blank = empty ?? emptyMark(locale)
+  if (value == null || value === "") return blank
   if (typeof value === "number" && Number.isFinite(value)) {
     const sec = value > 1e12 ? Math.floor(value / 1000) : value
     return formatDate(sec * 1000, locale, { includeTime: true })
@@ -59,7 +60,7 @@ export function formatSmsDateTime(value: unknown, locale: string, empty = "—")
   if (/^\d{13}$/.test(s)) {
     return formatDate(Number(s), locale, { includeTime: true })
   }
-  return formatDate(s, locale, { includeTime: true }) || empty
+  return formatDate(s, locale, { includeTime: true }) || blank
 }
 
 const STATE_ID_MAP: Record<number, string> = {

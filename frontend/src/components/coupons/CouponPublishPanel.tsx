@@ -1,7 +1,8 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -30,6 +31,7 @@ export function CouponPublishPanel({
   setScheduledAt?: (v: string) => void
 }) {
   const t = useTranslations("coupons")
+  const locale = useLocale()
   const enumLabel = useEnumLabel()
   return (
     <div className="space-y-3">
@@ -74,11 +76,12 @@ export function CouponPublishPanel({
       {setScheduledAt && (status === "future" || status === "pending") ? (
         <div className="space-y-1">
           <Label>{t("fields.scheduled_at")}</Label>
-          <Input
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
-            dir="ltr"
+          <LocaleDatePicker
+            locale={locale}
+            withTime
+            value={scheduledAt || null}
+            onChange={(value) => setScheduledAt(value ?? "")}
+            aria-label={t("fields.scheduled_at")}
           />
         </div>
       ) : null}

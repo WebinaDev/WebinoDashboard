@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { api } from "@/lib/api"
-import { formatDate, normalizeUiLocale } from "@/lib/locale"
+import { formatDate, formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 import { isStaffRole, toNotificationNavPath } from "@/lib/notification-links"
 import { cn } from "@/lib/utils"
 
@@ -93,7 +93,7 @@ export function NotificationBell() {
           <Bell className="size-4" />
           {unread > 0 ? (
             <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
-              {unread > 99 ? "99+" : unread}
+              {unread > 99 ? toLocaleDigits("99+", lng) : formatNumber(unread, lng)}
             </span>
           ) : null}
         </Button>
@@ -103,7 +103,7 @@ export function NotificationBell() {
           <span>{t("bell_title")}</span>
           {unread > 0 ? (
             <span className="text-xs text-muted-foreground">
-              {t("unread_count", { count: unread })}
+              {t("unread_count", { count: formatNumber(unread, lng) })}
             </span>
           ) : null}
         </DropdownMenuLabel>

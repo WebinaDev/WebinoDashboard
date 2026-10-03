@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -311,7 +312,12 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
             <Label>{t("job")}</Label>
             <Input value={profile.job} onChange={(e) => setProfile({ ...profile, job: e.target.value })} />
             <Label>{t("birth_date")}</Label>
-            <Input type="date" value={profile.birth_date} onChange={(e) => setProfile({ ...profile, birth_date: e.target.value })} />
+            <LocaleDatePicker
+              locale={locale}
+              value={profile.birth_date || null}
+              onChange={(value) => setProfile({ ...profile, birth_date: value ?? "" })}
+              aria-label={t("birth_date")}
+            />
             <Label>{t("landline")}</Label>
             <Input value={profile.landline} onChange={(e) => setProfile({ ...profile, landline: e.target.value })} />
           </div>

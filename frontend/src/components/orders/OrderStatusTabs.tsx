@@ -1,5 +1,8 @@
 "use client"
 
+import { useLocale } from "next-intl"
+
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { cn } from "@/lib/utils"
 
 export type StatusCount = { slug: string; label: string; count: number }
@@ -13,6 +16,7 @@ export function OrderStatusTabs({
   active: string
   onChange: (slug: string) => void
 }) {
+  const locale = normalizeUiLocale(useLocale())
   if (counts.length === 0) return null
 
   return (
@@ -30,7 +34,7 @@ export function OrderStatusTabs({
               )}
               onClick={() => onChange(item.slug === "all" ? "" : item.slug)}
             >
-              {item.label} <span className="opacity-80">({item.count})</span>
+              {item.label} <span className="opacity-80">({formatNumber(item.count, locale)})</span>
             </button>
           </span>
         )

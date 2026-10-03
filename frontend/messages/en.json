@@ -4945,6 +4945,16 @@
     "sync_erp": "Sync with ERP",
     "erp_unavailable": "ERP unavailable"
   },
+  "erp_announcements": {
+    "bell_label": "Platform announcements",
+    "bell_title": "Platform announcements",
+    "empty": "No platform announcements.",
+    "unread_count": "{count} unread",
+    "mark_all_read": "Mark all read",
+    "audience_all": "Everyone",
+    "audience_staff": "Staff",
+    "audience_admins": "Admins"
+  },
   "notifications_hub": {
     "title": "Notification center",
     "subtitle": "In-panel notifications",

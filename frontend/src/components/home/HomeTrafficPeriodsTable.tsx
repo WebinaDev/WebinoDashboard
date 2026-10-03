@@ -35,9 +35,10 @@ function MetricCell({
   compact?: boolean
 }) {
   const lng = normalizeUiLocale(locale)
-  const formatted = compact && value >= 1000
-    ? new Intl.NumberFormat(lng, { notation: "compact", maximumFractionDigits: 1 }).format(value)
-    : formatNumber(value, lng)
+  const formatted =
+    compact && value >= 1000
+      ? formatNumber(value, lng, { notation: "compact", maximumFractionDigits: 1 })
+      : formatNumber(value, lng)
 
   return (
     <div className="flex flex-col items-end gap-0.5">

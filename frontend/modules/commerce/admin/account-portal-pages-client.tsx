@@ -2,11 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 import { PageShell } from "@/components/PageShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -128,6 +129,7 @@ export function AccountHomePageClient({ route: _route }: { route: ResolvedAdminR
 
 export function AccountOrdersPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("account_portal")
+  const locale = normalizeUiLocale(useLocale())
   const enumLabel = useEnumLabel()
   const tCommon = useTranslations("common")
   const [status, setStatus] = useState("")
@@ -164,7 +166,7 @@ export function AccountOrdersPageClient({ route: _route }: { route: ResolvedAdmi
             className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm hover:bg-muted/40"
           >
             <span>
-              #{o.number || o.id} · {enumLabel("order_status", o.status)}
+              #{toLocaleDigits(o.number || o.id, locale)} · {enumLabel("order_status", o.status)}
             </span>
             <MoneyDisplay amount={o.total_minor} currency={o.currency} />
           </Link>
@@ -177,6 +179,7 @@ export function AccountOrdersPageClient({ route: _route }: { route: ResolvedAdmi
 
 export function AccountOrderDetailPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("account_portal")
+  const locale = normalizeUiLocale(useLocale())
   const enumLabel = useEnumLabel()
   const orderId = route.params?.orderId
   const q = useQuery({
@@ -204,7 +207,7 @@ export function AccountOrderDetailPageClient({ route }: { route: ResolvedAdminRo
           <ul className="list-disc ps-5">
             {(o.items ?? []).map((it, i) => (
               <li key={i}>
-                {it.product?.name ?? "—"} × {it.quantity}
+                {it.product?.name ?? (locale === "fa" ? "-" : "—")} × {formatNumber(it.quantity, locale)}
               </li>
             ))}
           </ul>

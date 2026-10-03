@@ -9,9 +9,9 @@ import { ChangePctBadge } from "@/components/home/ChangePctBadge"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { pctDelta } from "@/lib/pctDelta"
-import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatChartDateLabel, formatMonthYear, formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type { DashboardOverviewSales } from "@/types/dashboardOverview"
 
 type HomeSalesStatCardProps = {
@@ -34,12 +34,12 @@ export function HomeSalesStatCard({
   const chartData = useMemo(
     () =>
       series.map((row, idx) => ({
-        label: row.label,
+        label: formatChartDateLabel(row.key || row.label, lng),
         revenue: row.revenue,
         orders: row.orders,
         compareRevenue: compareSeries[idx]?.revenue ?? 0,
       })),
-    [series, compareSeries],
+    [series, compareSeries, lng],
   )
   const revenueDelta = pctDelta(
     summary?.revenue ?? 0,
@@ -65,7 +65,9 @@ export function HomeSalesStatCard({
         </Button>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">{sales.month_label}</p>
+        <p className="text-xs text-muted-foreground">
+          {sales.from ? formatMonthYear(sales.from * 1000, lng) : formatChartDateLabel(sales.month_label, lng)}
+        </p>
         <MoneyDisplay
           amount={summary.revenue ?? 0}
           currency={currency}
@@ -104,6 +106,7 @@ export function HomeSalesStatCard({
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
                 <XAxis dataKey="label" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                 <YAxis tickFormatter={axisFmt} tick={{ fontSize: 9 }} width={40} />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 <Area
                   type="monotone"
                   dataKey="revenue"

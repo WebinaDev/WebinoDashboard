@@ -12,7 +12,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatChartDateLabel, formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type { OrderReportSeriesPoint } from "@/types/dashboardOverview"
 
 type ProfitChartProps = {
@@ -34,13 +34,13 @@ export function HomeProfitChart({
   const chartData = useMemo(
     () =>
       series.map((row, idx) => ({
-        label: row.label,
+        label: formatChartDateLabel(row.key || row.label, lng),
         revenue: row.revenue,
         cogs: row.cogs ?? 0,
         profit: row.profit ?? 0,
         compareProfit: compareSeries[idx]?.profit ?? 0,
       })),
-    [series, compareSeries],
+    [series, compareSeries, lng],
   )
 
   const empty = chartData.length === 0

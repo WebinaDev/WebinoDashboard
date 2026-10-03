@@ -1,9 +1,10 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { FormSettingsSkeleton } from "@/components/TableListSkeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useEnumLabel } from "@/lib/enum-labels"
 import { api } from "@/lib/api"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
 import type { BotProvider } from "./BotProviderSwitcher"
@@ -32,6 +34,7 @@ type CampaignsResponse = {
 }
 
 export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
+  const locale = normalizeUiLocale(useLocale())
   const enumLabel = useEnumLabel()
   const t = useTranslations("bots")
   const qc = useQueryClient()
@@ -101,7 +104,13 @@ export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
         </div>
         <div>
           <Label>{t("campaigns.schedule")}</Label>
-          <Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className="mt-1" />
+          <LocaleDatePicker
+            locale={locale}
+            withTime
+            value={scheduledAt || null}
+            onChange={(value) => setScheduledAt(value ?? "")}
+            aria-label={t("campaigns.schedule")}
+          />
         </div>
         <div className="space-y-2">
           <Label>{t("broadcast.type")}</Label>
@@ -180,8 +189,8 @@ export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
                   <tr key={it.id} className="border-t">
                     <td className="p-2">{it.name}</td>
                     <td className="p-2">{enumLabel("job_status", it.status)}</td>
-                    <td className="p-2">{it.sent}</td>
-                    <td className="p-2">{it.failed}</td>
+                    <td className="p-2">{formatNumber(it.sent, locale)}</td>
+                    <td className="p-2">{formatNumber(it.failed, locale)}</td>
                   </tr>
                 ))
               )}

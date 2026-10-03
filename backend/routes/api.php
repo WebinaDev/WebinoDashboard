@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\AiContentController;
 use App\Http\Controllers\Api\V1\AiRecommendationController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
+use App\Http\Controllers\Api\V1\ErpAnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ImpersonationController;
 use App\Http\Controllers\Api\V1\OtpAuthController;
@@ -167,6 +168,7 @@ Route::prefix('v1')->group(function () {
     Route::match(['get', 'post'], '/provision/modules/{slug}/status', [ProvisionController::class, 'moduleStatus']);
     Route::post('/provision/license-sync', [ProvisionController::class, 'licenseSync']);
     Route::post('/provision/panel-login', [ProvisionController::class, 'panelLogin']);
+    Route::post('/integrations/erp/announcements', [ErpAnnouncementController::class, 'ingest']);
 
     Route::prefix('public')->middleware('public.tenant')->group(function () {
         require __DIR__.'/marketplace_public.php';
@@ -302,6 +304,11 @@ Route::prefix('v1')->group(function () {
         Route::get('/account/notifications', [NotificationController::class, 'index']);
         Route::post('/account/notifications', [NotificationController::class, 'markAllRead']);
         Route::post('/account/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereNumber('notification');
+
+        Route::get('/account/announcements', [ErpAnnouncementController::class, 'index']);
+        Route::post('/account/announcements/read', [ErpAnnouncementController::class, 'markAllRead']);
+        Route::post('/account/announcements/{announcement}/read', [ErpAnnouncementController::class, 'markRead'])
+            ->where('announcement', '[A-Za-z0-9_-]+');
 
         Route::prefix('account')->group(function () {
             Route::get('/overview', [AccountPortalController::class, 'overview']);

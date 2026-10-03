@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { PageShell } from "@/components/PageShell"
 import { api } from "@/lib/api"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
 type RoleRow = { name: string; users_count: number; capabilities?: string[] }
@@ -63,6 +64,7 @@ const MENU_KEYS = [
 export default function RbacPage() {
   const tNav = useTranslations("nav")
   const t = useTranslations("rbac")
+  const locale = normalizeUiLocale(useLocale())
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
   const [userId, setUserId] = useState("")
@@ -286,7 +288,7 @@ export default function RbacPage() {
                 <li key={r.name} className="rounded-md border p-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono font-medium">{t(`roles.${r.name}`, { defaultValue: r.name })}</span>
-                    <Badge variant="secondary">{r.users_count}</Badge>
+                    <Badge variant="secondary">{formatNumber(r.users_count, locale)}</Badge>
                   </div>
                   <p className="text-muted-foreground mt-2 text-xs">
                     {(permissions[r.name] ?? r.capabilities ?? []).join(", ") || tCommon("em_dash")}

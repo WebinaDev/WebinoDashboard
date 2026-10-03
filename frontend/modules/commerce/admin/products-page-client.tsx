@@ -46,6 +46,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
+import { formatDisplayDate } from "@/lib/format-date"
 import { printProductLabels } from "@/lib/order-print"
 
 type NamedRef = { id: number; name: string }
@@ -176,12 +177,7 @@ function loadVisibleColumns(): ColumnKey[] {
 }
 
 function formatListDate(iso?: string | null, locale?: string) {
-  if (!iso) return "—"
-  try {
-    return new Date(iso).toLocaleDateString(locale === "fa" ? "fa-IR" : "en-US")
-  } catch {
-    return iso.slice(0, 10)
-  }
+  return formatDisplayDate(iso, locale ?? "fa")
 }
 
 function PriceRange({ row }: { row: ProductRow }) {

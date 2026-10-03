@@ -2,7 +2,7 @@ import type { SiteThemeManifest } from "@/kernel/theme-types"
 
 export const manifest: SiteThemeManifest = {
   slug: "ecommerce-starter",
-  nameFa: "فروشگاه — استارتر",
+  nameFa: "فروشگاه - استارتر",
   nameEn: "E-commerce starter",
   siteTypes: ["ecommerce", "coffee"],
   isDemo: false,

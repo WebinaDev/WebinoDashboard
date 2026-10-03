@@ -25,6 +25,7 @@ class RequireAjaxHeader
             || str_contains($path, 'webhooks/')
             || str_starts_with($path, 'api/v1/public/')
             || str_starts_with($path, 'api/v1/provision/')
+            || str_starts_with($path, 'api/v1/integrations/erp/')
             || str_starts_with($path, 'api/v1/payments/callback')
         ) {
             return $next($request);

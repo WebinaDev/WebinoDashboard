@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { formatChartDateLabel, formatNumber, normalizeUiLocale } from "../locale"
 import {
   Bar,
   BarChart,
@@ -42,14 +43,22 @@ export function useChartColors() {
 
 export type MetricBarPoint = { label: string; value: number }
 
+function chartNumber(value: unknown, locale?: string | null): string {
+  const n = typeof value === "number" ? value : Number(value)
+  return Number.isFinite(n) ? formatNumber(n, locale) : formatChartDateLabel(String(value ?? ""), locale)
+}
+
 export function AccentBarChart({
   data,
   height = 220,
+  locale,
 }: {
   data: MetricBarPoint[]
   height?: number
+  locale?: string | null
 }) {
   const colors = useChartColors()
+  const lng = normalizeUiLocale(locale)
   return (
     <div style={{ width: "100%", height }}>
       <ResponsiveContainer>
@@ -60,14 +69,18 @@ export function AccentBarChart({
             tick={{ fill: colors.foreground, fontSize: 12 }}
             axisLine={{ stroke: colors.border }}
             tickLine={false}
+            tickFormatter={(value) => formatChartDateLabel(String(value), lng)}
           />
           <YAxis
             tick={{ fill: colors.foreground, fontSize: 12 }}
             axisLine={false}
             tickLine={false}
-            width={40}
+            width={48}
+            tickFormatter={(value) => formatNumber(Number(value), lng)}
           />
           <Tooltip
+            labelFormatter={(label) => formatChartDateLabel(String(label), lng)}
+            formatter={(value) => chartNumber(value, lng)}
             contentStyle={{
               background: colors.muted,
               border: `1px solid ${colors.border}`,
@@ -87,11 +100,14 @@ export type DonutSegment = { label: string; value: number; color?: string }
 export function AccentDonutChart({
   segments,
   height = 220,
+  locale,
 }: {
   segments: DonutSegment[]
   height?: number
+  locale?: string | null
 }) {
   const colors = useChartColors()
+  const lng = normalizeUiLocale(locale)
   const data = segments.filter((s) => s.value > 0)
 
   return (
@@ -115,6 +131,7 @@ export function AccentDonutChart({
             ))}
           </Pie>
           <Tooltip
+            formatter={(value, name) => [chartNumber(value, lng), formatChartDateLabel(String(name ?? ""), lng)]}
             contentStyle={{
               background: colors.muted,
               border: `1px solid ${colors.border}`,
@@ -132,12 +149,15 @@ export function AccentGaugeChart({
   label,
   percent = 0,
   height = 180,
+  locale,
 }: {
   label: string
   percent?: number
   height?: number
+  locale?: string | null
 }) {
   const colors = useChartColors()
+  const lng = normalizeUiLocale(locale)
   const value = Math.min(100, Math.max(0, percent ?? 0))
   const data = [{ name: label, value, fill: colors.primary }]
 
@@ -156,7 +176,10 @@ export function AccentGaugeChart({
       </ResponsiveContainer>
       <div className="text-center text-sm">
         <div className="text-muted-foreground">{label}</div>
-        <div className="text-2xl font-semibold tabular-nums">{Math.round(value)}%</div>
+        <div className="text-2xl font-semibold tabular-nums">
+          {formatNumber(Math.round(value), lng)}
+          {lng === "fa" ? "٪" : "%"}
+        </div>
       </div>
     </div>
   )

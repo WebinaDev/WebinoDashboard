@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -69,7 +70,7 @@ function statusVariant(status: string): "default" | "secondary" | "outline" {
 export default function ReservationsPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.reservations")
   const tCommon = useTranslations("common")
-  const { formatDateTime } = useLocaleNext()
+  const { formatDateTime, formatNumber, locale } = useLocaleNext()
   const queryClient = useQueryClient()
 
   const [message, setMessage] = useState<string | null>(null)
@@ -170,7 +171,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
                     <p className="font-medium">{item.guest_name}</p>
                     <p className="text-muted-foreground">{item.guest_phone}</p>
                     <p className="mt-1">
-                      {t("party_size")}: {item.party_size} · {formatDate(item.reserved_at)}
+                      {t("party_size")}: {formatNumber(item.party_size)} · {formatDateTime(item.reserved_at)}
                     </p>
                     {item.branch ? (
                       <p className="text-muted-foreground text-xs">{item.branch.name_fa || item.branch.name_en}</p>
@@ -214,18 +215,22 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
           </div>
           <div>
             <Label>{t("starts_at")}</Label>
-            <Input
-              type="datetime-local"
-              value={eventForm.starts_at}
-              onChange={(e) => setEventForm((f) => ({ ...f, starts_at: e.target.value }))}
+            <LocaleDatePicker
+              locale={locale}
+              withTime
+              value={eventForm.starts_at || null}
+              onChange={(value) => setEventForm((f) => ({ ...f, starts_at: value ?? "" }))}
+              aria-label={t("starts_at")}
             />
           </div>
           <div>
             <Label>{t("ends_at")}</Label>
-            <Input
-              type="datetime-local"
-              value={eventForm.ends_at}
-              onChange={(e) => setEventForm((f) => ({ ...f, ends_at: e.target.value }))}
+            <LocaleDatePicker
+              locale={locale}
+              withTime
+              value={eventForm.ends_at || null}
+              onChange={(value) => setEventForm((f) => ({ ...f, ends_at: value ?? "" }))}
+              aria-label={t("ends_at")}
             />
           </div>
           <div>
@@ -311,7 +316,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
                         <div>
                           <p>{booking.guest_name}</p>
                           <p className="text-muted-foreground text-xs">
-                            {booking.guest_phone} · {t("seats")}: {booking.seats}
+                            {booking.guest_phone} · {t("seats")}: {formatNumber(booking.seats)}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">

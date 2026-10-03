@@ -14,8 +14,11 @@ import DateObject from "react-date-object"
 import type { ChangedValue } from "react-multi-date-picker"
 import { useTranslations } from "next-intl"
 
+import TimePicker from "react-multi-date-picker/plugins/time_picker"
+
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { htmlDir, isRtlLocale } from "@/lib/locale"
 import { formatDate } from "@/lib/locale/format-date"
@@ -30,10 +33,11 @@ const DatePicker = dynamic(() => import("react-multi-date-picker"), {
 
 type Props = {
   locale: string
-  /** ISO date `YYYY-MM-DD`, or empty string / null when unset */
+  /** ISO `YYYY-MM-DD`, or `YYYY-MM-DDTHH:mm` when `withTime` */
   value: string | null
-  /** Receives ISO Gregorian `YYYY-MM-DD`, or `null` when cleared */
+  /** Gregorian ISO. Date-only is `YYYY-MM-DD`; with time it is `YYYY-MM-DDTHH:mm`. */
   onChange: (value: string | null) => void
+  withTime?: boolean
   "aria-label"?: string
 }
 
@@ -41,6 +45,7 @@ export function LocaleDatePicker({
   locale,
   value,
   onChange,
+  withTime = false,
   "aria-label": ariaLabel,
 }: Props) {
   if (isRtlLocale(locale)) {
@@ -48,6 +53,7 @@ export function LocaleDatePicker({
       <JalaliLocaleDatePicker
         value={value}
         onChange={onChange}
+        withTime={withTime}
         aria-label={ariaLabel}
       />
     )
@@ -57,38 +63,49 @@ export function LocaleDatePicker({
     <GregorianLocaleDatePicker
       value={value}
       onChange={onChange}
+      withTime={withTime}
       aria-label={ariaLabel}
     />
   )
 }
 
+function jalaliValue(value: string | null, withTime: boolean) {
+  if (value == null || value === "") return undefined
+  const [datePart, timePart] = value.split(/[T ]/)
+  const obj = new DateObject({
+    date: datePart,
+    format: "YYYY-MM-DD",
+    calendar: gregorian,
+  })
+  if (withTime && timePart) {
+    const [hh, mm] = timePart.split(":")
+    obj.set({ hour: Number(hh) || 0, minute: Number(mm) || 0 })
+  }
+  return obj.convert(persian, persianFa)
+}
+
 function JalaliLocaleDatePicker({
   value,
   onChange,
+  withTime = false,
   "aria-label": ariaLabel,
 }: Omit<Props, "locale">) {
-  const dob =
-    value != null && value !== ""
-      ? new DateObject({
-          date: value,
-          format: "YYYY-MM-DD",
-          calendar: gregorian,
-        }).convert(persian, persianFa)
-      : undefined
-
   return (
     <div className="max-w-xs" dir={htmlDir("fa")}>
       <DatePicker
         calendar={persian}
         locale={persianFa}
-        value={dob}
+        value={jalaliValue(value, withTime)}
+        format={withTime ? "YYYY/MM/DD HH:mm" : "YYYY/MM/DD"}
+        plugins={withTime ? [<TimePicker key="time" hideSeconds position="bottom" />] : []}
         onChange={(d: ChangedValue) => {
-          if (d == null) {
+          if (d == null || Array.isArray(d)) {
             onChange(null)
             return
           }
           const g = d.convert(gregorian)
-          onChange(g.format("YYYY-MM-DD"))
+          const date = g.format("YYYY-MM-DD")
+          onChange(withTime ? `${date}T${g.format("HH:mm")}` : date)
         }}
         calendarPosition="bottom-end"
         inputClass="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -102,10 +119,22 @@ function JalaliLocaleDatePicker({
 function GregorianLocaleDatePicker({
   value,
   onChange,
+  withTime = false,
   "aria-label": ariaLabel,
 }: Omit<Props, "locale">) {
   const t = useTranslations("common")
   const [open, setOpen] = useState(false)
+  if (withTime) {
+    return (
+      <Input
+        type="datetime-local"
+        aria-label={ariaLabel}
+        className="max-w-xs"
+        value={value ?? ""}
+        onChange={(event) => onChange(event.target.value || null)}
+      />
+    )
+  }
   const date = value ? new Date(value) : undefined
 
   return (

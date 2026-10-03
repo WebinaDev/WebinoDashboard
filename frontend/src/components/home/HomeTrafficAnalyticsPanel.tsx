@@ -9,7 +9,7 @@ import { ChangePctBadge } from "@/components/home/ChangePctBadge"
 import { HomeTrafficPeriodsTable } from "@/components/home/HomeTrafficPeriodsTable"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type { DashboardOverviewTraffic } from "@/types/dashboardOverview"
 
@@ -180,6 +180,7 @@ export function HomeTrafficAnalyticsPanel({
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
                       <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
                       <YAxis tickFormatter={axisFmt} tick={{ fontSize: 10 }} width={48} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
                       <Legend />
                       <Line
                         type="monotone"
@@ -211,7 +212,8 @@ export function HomeTrafficAnalyticsPanel({
                     <li key={day.day} className="rounded-lg border px-3 py-2 text-sm">
                       <p className="font-medium">{formatDayLabel(day.day, locale)}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {tAnalytics("kpi.visitors")}: {formatNumber(day.visitors, lng)} —{" "}
+                        {tAnalytics("kpi.visitors")}: {formatNumber(day.visitors, lng)}
+                        {" · "}
                         {tAnalytics("kpi.views")}: {formatNumber(day.views, lng)}
                       </p>
                     </li>
