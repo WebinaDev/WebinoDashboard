@@ -87,6 +87,9 @@ class MagazineArticleController extends Controller
         $tid = $request->user()->tenant_id;
         $row = MagazineArticle::query()->where('tenant_id', $tid)->findOrFail($article);
         $data = $this->validated($request, partial: true);
+        if (($data['status'] ?? null) === 'published') {
+            \App\Support\StatusTrash::guardPublish($row);
+        }
         if (($data['status'] ?? null) === 'published' && empty($data['published_at']) && ! $row->published_at) {
             $data['published_at'] = now();
         }

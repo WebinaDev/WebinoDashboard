@@ -61,6 +61,7 @@ return new class extends Migration
                 'reports.shop',
                 'settings.manage',
                 'reviews.moderate',
+                'support.*',
             ],
             'seller' => [
                 'pos.use',
@@ -86,6 +87,7 @@ return new class extends Migration
             ],
             'subscriber' => [
                 'portal.read',
+                'account.portal',
             ],
         ];
 

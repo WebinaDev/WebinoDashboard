@@ -260,7 +260,7 @@ class PricingController extends Controller
             'category_id' => $categoryId > 0 ? $categoryId : null,
             'purchase_price_minor' => $data['purchase_price_minor'],
             'price_minor' => $retail,
-            'currency' => 'IRR',
+            'currency' => strtoupper((string) ($request->user()->tenant?->default_currency ?: 'IRT')),
             'status' => 'publish',
             'type' => 'simple',
             'catalog_visibility' => 'visible',
@@ -432,7 +432,7 @@ class PricingController extends Controller
         BulkPriceJob::query()
             ->where('tenant_id', $tid)
             ->where('locked', true)
-            ->where('updated_at', '<', now()->subMinutes(15))
+            ->where('updated_at', '<', now()->subMinutes(55))
             ->update(['locked' => false, 'status' => 'failed', 'last_log' => 'Unlocked stale job']);
         $running = BulkPriceJob::query()->where('tenant_id', $tid)->where('locked', true)->whereIn('status', ['pending', 'running'])->exists();
         if ($running) {
@@ -563,7 +563,7 @@ class PricingController extends Controller
     /** @param list<string> $slugs */
     protected function bulkPriceProductQuery(int $tenantId, array $slugs): \Illuminate\Database\Eloquent\Builder
     {
-        $q = Product::query()->where('tenant_id', $tenantId)->where('status', 'publish');
+        $q = Product::query()->where('tenant_id', $tenantId)->where('status', 'publish')->where('status', '!=', 'trash');
         if ($slugs !== []) {
             $q->where(function ($w) use ($slugs) {
                 $w->whereHas('category', fn ($c) => $c->whereIn('slug', $slugs))
@@ -609,24 +609,42 @@ class PricingController extends Controller
         $step = max(1, (int) ($params['round_step'] ?? 1000));
 
         foreach ($products as $product) {
-            if ($product->lock_price) {
+            if ($product->lock_price || (string) $product->status === 'trash') {
                 $skipped++;
                 continue;
             }
-            $price = (float) $product->price_minor;
+            $meta = is_array($product->meta) ? $product->meta : [];
+            $base = (int) ($meta['bulk_price_base_minor'] ?? 0);
+            if ($base <= 0) {
+                $base = (int) $product->price_minor;
+                $meta['bulk_price_base_minor'] = $base;
+            }
+            $signature = $changeType.'|'.$value.'|'.$base.'|'.($applySale ? '1' : '0');
+            if (($meta['bulk_price_applied'] ?? '') === $signature) {
+                $skipped++;
+                continue;
+            }
+            $price = (float) $base;
             $new = $changeType === 'fixed' ? $price + $value : $price + ($price * $value / 100);
             if ($round) {
                 $new = round($new / $step) * $step;
             }
             $fields = ['price_minor' => (int) max(0, $new)];
             if ($applySale && $product->sale_price_minor) {
-                $sale = (float) $product->sale_price_minor;
+                $saleBase = (int) ($meta['bulk_sale_base_minor'] ?? 0);
+                if ($saleBase <= 0) {
+                    $saleBase = (int) $product->sale_price_minor;
+                    $meta['bulk_sale_base_minor'] = $saleBase;
+                }
+                $sale = (float) $saleBase;
                 $newSale = $changeType === 'fixed' ? $sale + $value : $sale + ($sale * $value / 100);
                 if ($round) {
                     $newSale = round($newSale / $step) * $step;
                 }
                 $fields['sale_price_minor'] = (int) max(0, $newSale);
             }
+            $meta['bulk_price_applied'] = $signature;
+            $fields['meta'] = $meta;
             $product->update($fields);
             $updated++;
         }

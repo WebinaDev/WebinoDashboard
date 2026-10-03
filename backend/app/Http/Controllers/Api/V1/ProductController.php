@@ -178,6 +178,9 @@ class ProductController extends Controller
         abort_if($request->user()->tenant_id !== $product->tenant_id, 403);
         $tid = $product->tenant_id;
         $data = $this->validateProduct($request, $tid, true);
+        if (($data['status'] ?? null) === 'publish') {
+            \App\Support\StatusTrash::guardPublish($product);
+        }
 
         if (isset($data['slug'])) {
             $data['slug'] = $this->ensureUniqueSlug($tid, $data['slug'], $product->id);
@@ -265,10 +268,23 @@ class ProductController extends Controller
 
         $updates = collect($data)->except(['product_ids', 'force_delete', 'restore'])->filter(fn ($v) => $v !== null)->all();
 
-        Product::query()
-            ->where('tenant_id', $tid)
-            ->whereIn('id', $data['product_ids'])
-            ->update($updates);
+        if (($updates['status'] ?? null) === 'trash') {
+            unset($updates['status']);
+            Product::query()
+                ->where('tenant_id', $tid)
+                ->whereIn('id', $data['product_ids'])
+                ->get()
+                ->each(function (Product $product) {
+                    \App\Support\StatusTrash::trashOrDelete($product, false, 'status', 'draft', ['publish', 'draft', 'pending', 'private']);
+                });
+        }
+
+        if ($updates !== []) {
+            Product::query()
+                ->where('tenant_id', $tid)
+                ->whereIn('id', $data['product_ids'])
+                ->update($updates);
+        }
 
         $items = Product::query()
             ->where('tenant_id', $tid)

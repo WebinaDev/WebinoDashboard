@@ -9,9 +9,8 @@ trait SerializesCatalogProduct
     /** @return array<string, mixed> */
     protected function serializeProduct(Product $product, bool $includeEngagement = false): array
     {
-        $discounted = $product->discount_percent > 0
-            ? (int) round($product->price_minor * (100 - $product->discount_percent) / 100)
-            : $product->price_minor;
+        $regular = (int) $product->price_minor;
+        $discounted = $product->storefrontPriceMinor();
 
         $available = $product->is_available && ! $product->is_sold_out;
 
@@ -23,7 +22,8 @@ trait SerializesCatalogProduct
             'image_url' => $product->image_url,
             'cover_image_url' => $product->cover_image_url,
             'video_url' => $product->video_url,
-            'price_minor' => $product->price_minor,
+            'price_minor' => $regular,
+            'sale_price_minor' => $product->isOnSale() ? $discounted : null,
             'discounted_price_minor' => $discounted,
             'currency' => $product->currency,
             'is_available' => $available,

@@ -29,6 +29,10 @@ class CartController extends Controller
         $user = $request->user();
         $product = Product::query()->findOrFail($data['product_id']);
         abort_if($product->tenant_id !== $user->tenant_id, 403);
+        abort_unless(
+            $product->status === 'publish' && ! $product->is_hidden && $product->is_available && ! $product->is_sold_out,
+            422
+        );
 
         $cart = $this->cartFor($request);
         $types = PurchaseTypeService::forTenant($cart->tenant_id);

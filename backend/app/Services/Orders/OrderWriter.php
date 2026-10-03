@@ -119,8 +119,10 @@ class OrderWriter
             }
 
             if ($coupon) {
-                $this->coupons->redeem($coupon, $order, $discount, isset($data['user_id']) ? (int) $data['user_id'] : $actor?->id);
+                $this->coupons->hold($coupon, $order, $discount, isset($data['user_id']) ? (int) $data['user_id'] : $actor?->id);
             }
+
+            app(OrderLifecycle::class)->sync($order->fresh(), null);
 
             if (! empty($data['is_pay_link']) && empty($order->payment_url) && $payToken) {
                 $order->update([
@@ -201,20 +203,17 @@ class OrderWriter
             }
             $qty = max(1, (int) ($item['quantity'] ?? 1));
             $variantId = isset($item['product_variant_id']) ? (int) $item['product_variant_id'] : null;
-            $unit = isset($item['unit_price_minor'])
-                ? (int) $item['unit_price_minor']
-                : (int) $product->price_minor;
-
+            $variant = null;
             if ($variantId) {
                 $variant = ProductVariant::query()
                     ->where('tenant_id', $tenantId)
                     ->where('product_id', $product->id)
                     ->whereKey($variantId)
                     ->first();
-                if ($variant && ! isset($item['unit_price_minor'])) {
-                    $unit = (int) $variant->price_minor;
-                }
             }
+            $unit = isset($item['unit_price_minor'])
+                ? (int) $item['unit_price_minor']
+                : $product->storefrontPriceMinor($variant);
 
             $built[] = [
                 'product_id' => $product->id,

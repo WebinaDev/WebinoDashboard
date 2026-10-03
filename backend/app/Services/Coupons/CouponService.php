@@ -30,7 +30,7 @@ class CouponService
      * @param  list<string>  $otherCodes
      * @return array{discount_minor: int, coupon: Coupon, free_shipping: bool, shipping_percent: int, individual_use: bool}
      */
-    public function apply(int $tenantId, string $code, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site', array $otherCodes = []): array
+    public function apply(int $tenantId, string $code, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site', array $otherCodes = [], ?string $password = null): array
     {
         $coupon = Coupon::query()
             ->where('tenant_id', $tenantId)
@@ -54,7 +54,7 @@ class CouponService
             }
         }
 
-        return $this->evaluate($coupon, $subtotalMinor, $lines, $userId, $channel);
+        return $this->evaluate($coupon, $subtotalMinor, $lines, $userId, $channel, $password);
     }
 
     /**
@@ -67,6 +67,9 @@ class CouponService
             ->where('tenant_id', $tenantId)
             ->where('auto_apply', true)
             ->where('status', 'publish')
+            ->where(function ($q) {
+                $q->whereNull('visibility')->orWhere('visibility', '!=', 'password');
+            })
             ->orderBy('id')
             ->get();
 
@@ -111,13 +114,27 @@ class CouponService
      * @param  list<array{product_id?: int|null, unit_price_minor: int, quantity: int}>  $lines
      * @return array{discount_minor: int, coupon: Coupon, free_shipping: bool, shipping_percent: int, individual_use: bool}
      */
-    public function evaluate(Coupon $coupon, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site'): array
+    public function evaluate(Coupon $coupon, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site', ?string $password = null): array
     {
+        if ($coupon->scheduled_at && $coupon->scheduled_at->isFuture()) {
+            throw ValidationException::withMessages(['coupon_code' => 'Coupon is not active yet']);
+        }
+
         if ($coupon->expires_at && $coupon->expires_at->isPast()) {
             throw ValidationException::withMessages(['coupon_code' => 'Coupon expired']);
         }
 
-        if ($coupon->usage_limit !== null && $coupon->usage_count >= $coupon->usage_limit) {
+        if ((string) $coupon->visibility === 'password') {
+            $expected = (string) ($coupon->password ?? '');
+            $given = (string) ($password ?? '');
+            if ($expected === '' || ! hash_equals($expected, $given)) {
+                throw ValidationException::withMessages(['coupon_password' => 'Coupon password is required']);
+            }
+        }
+
+        $reserved = CouponRedemption::query()->where('coupon_id', $coupon->id)->count();
+        $usedCount = max((int) $coupon->usage_count, $reserved);
+        if ($coupon->usage_limit !== null && $usedCount >= $coupon->usage_limit) {
             throw ValidationException::withMessages(['coupon_code' => 'Coupon usage limit reached']);
         }
 
@@ -182,14 +199,127 @@ class CouponService
 
     public function redeem(Coupon $coupon, Order $order, int $discountMinor, ?int $userId = null): void
     {
-        CouponRedemption::query()->create([
-            'tenant_id' => $coupon->tenant_id,
-            'coupon_id' => $coupon->id,
-            'user_id' => $userId,
-            'order_id' => $order->id,
-            'discount_minor' => $discountMinor,
-        ]);
-        $coupon->increment('usage_count');
+        $this->hold($coupon, $order, $discountMinor, $userId);
+        if (in_array((string) $order->status, OrderReports::salesStatuses(), true)) {
+            $this->consumeHeld($order);
+        }
+    }
+
+    /**
+     * Reserve a usage slot at checkout. The counter moves only when the order is paid or confirmed.
+     */
+    public function hold(Coupon $coupon, Order $order, int $discountMinor, ?int $userId = null): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($coupon, $order, $discountMinor, $userId) {
+            if (CouponRedemption::query()->where('order_id', $order->id)->exists()) {
+                return;
+            }
+            $locked = Coupon::query()->whereKey($coupon->id)->lockForUpdate()->firstOrFail();
+            $active = CouponRedemption::query()->where('coupon_id', $locked->id)->count();
+            if ($locked->usage_limit !== null && $active >= $locked->usage_limit) {
+                throw ValidationException::withMessages(['coupon_code' => 'Coupon usage limit reached']);
+            }
+            if ($userId && $locked->usage_limit_per_user !== null) {
+                $used = CouponRedemption::query()
+                    ->where('coupon_id', $locked->id)
+                    ->where('user_id', $userId)
+                    ->count();
+                if ($used >= $locked->usage_limit_per_user) {
+                    throw ValidationException::withMessages(['coupon_code' => 'Per-user limit reached']);
+                }
+            }
+            CouponRedemption::query()->create([
+                'tenant_id' => $locked->tenant_id,
+                'coupon_id' => $locked->id,
+                'user_id' => $userId,
+                'order_id' => $order->id,
+                'discount_minor' => $discountMinor,
+            ]);
+        });
+    }
+
+    public function consumeHeld(Order $order): void
+    {
+        if (! $order->coupon_id) {
+            return;
+        }
+        $meta = is_array($order->meta) ? $order->meta : [];
+        if (! empty($meta['coupon_consumed'])) {
+            return;
+        }
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
+            $fresh = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+            if (! $fresh || ! $fresh->coupon_id) {
+                return;
+            }
+            $meta = is_array($fresh->meta) ? $fresh->meta : [];
+            if (! empty($meta['coupon_consumed'])) {
+                return;
+            }
+            $coupon = Coupon::query()->whereKey($fresh->coupon_id)->lockForUpdate()->first();
+            if (! $coupon) {
+                return;
+            }
+            if (! CouponRedemption::query()->where('order_id', $fresh->id)->exists()) {
+                $active = CouponRedemption::query()->where('coupon_id', $coupon->id)->count();
+                if ($coupon->usage_limit !== null && $active >= $coupon->usage_limit) {
+                    throw ValidationException::withMessages(['coupon_code' => 'Coupon usage limit reached']);
+                }
+                CouponRedemption::query()->create([
+                    'tenant_id' => $coupon->tenant_id,
+                    'coupon_id' => $coupon->id,
+                    'user_id' => $fresh->user_id,
+                    'order_id' => $fresh->id,
+                    'discount_minor' => (int) $fresh->discount_minor,
+                ]);
+            }
+            $coupon->increment('usage_count');
+            $meta['coupon_consumed'] = true;
+            $fresh->meta = $meta;
+            $fresh->saveQuietly();
+        });
+    }
+
+    public function syncOrder(Order $order, ?string $from, string $to): void
+    {
+        if (! $order->coupon_id) {
+            return;
+        }
+        $sales = OrderReports::salesStatuses();
+        $was = $from !== null && in_array($from, $sales, true);
+        $now = in_array($to, $sales, true);
+        $meta = is_array($order->meta) ? $order->meta : [];
+        $consumed = ! empty($meta['coupon_consumed']);
+        if ($now && ! $consumed) {
+            $this->consumeHeld($order);
+
+            return;
+        }
+        if (! $now && in_array($to, ['cancelled', 'failed', 'payment_failed'], true)) {
+            $this->release($order, $consumed || $was);
+        }
+    }
+
+    public function release(Order $order, bool $decrement): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $decrement) {
+            $fresh = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+            if (! $fresh) {
+                return;
+            }
+            $redemption = CouponRedemption::query()->where('order_id', $fresh->id)->first();
+            if ($decrement && $fresh->coupon_id) {
+                $coupon = Coupon::query()->whereKey($fresh->coupon_id)->lockForUpdate()->first();
+                $meta = is_array($fresh->meta) ? $fresh->meta : [];
+                if ($coupon && ! empty($meta['coupon_consumed']) && (int) $coupon->usage_count > 0) {
+                    $coupon->decrement('usage_count');
+                }
+                unset($meta['coupon_consumed']);
+                $fresh->meta = $meta;
+                $fresh->saveQuietly();
+            }
+            $redemption?->delete();
+        });
     }
 
     /**

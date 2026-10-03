@@ -24,7 +24,7 @@ class ProductReviewController extends Controller
             return response()->json(['data' => ['items' => [], 'average' => null, 'count' => 0]]);
         }
 
-        $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->firstOrFail();
+        $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->storefront()->firstOrFail();
         $items = ProductReview::query()
             ->where('tenant_id', $tid)
             ->where('product_id', $product->id)
@@ -62,7 +62,7 @@ class ProductReviewController extends Controller
             'author_name' => ['nullable', 'string', 'max:120'],
         ]);
 
-        $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->firstOrFail();
+        $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->storefront()->firstOrFail();
         $user = $request->user('sanctum');
 
         if (! empty($settings['verified_buyer_only'])) {

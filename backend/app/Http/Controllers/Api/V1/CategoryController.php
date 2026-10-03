@@ -122,7 +122,7 @@ class CategoryController extends Controller
     {
         $this->authorizeTenant($request, $category->tenant_id);
 
-        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($category, $request->boolean('force'), 'status', 'publish', ['publish'])]);
+        return response()->json(['data' => \App\Support\StatusTrash::trashTree($category, 'parent_id', $request->boolean('force'), 'status', 'publish', ['publish'])]);
     }
 
     public function restore(Request $request, Category $category): \Illuminate\Http\JsonResponse

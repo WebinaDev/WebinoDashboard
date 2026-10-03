@@ -5305,6 +5305,7 @@
     "balance": "موجودی",
     "wallet_topup": "مبلغ شارژ",
     "wallet_topup_submit": "شارژ",
+    "wallet_topup_note": "شارژ کیف پول فقط بعد از پرداخت موفق انجام می‌شود.",
     "wallet_withdraw": "مبلغ برداشت",
     "wallet_withdraw_submit": "درخواست برداشت",
     "wallet_ledger": "تراکنش‌های اخیر",

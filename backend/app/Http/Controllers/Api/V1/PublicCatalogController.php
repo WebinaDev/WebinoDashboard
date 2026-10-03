@@ -31,7 +31,7 @@ class PublicCatalogController extends Controller
         $categories = Category::query()
             ->where('tenant_id', $tid)
             ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', '!=', 'trash');
+                $q->whereNull('status')->orWhere('status', 'publish');
             })
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -39,10 +39,7 @@ class PublicCatalogController extends Controller
 
         $productsQuery = Product::query()
             ->where('tenant_id', $tid)
-            ->where('is_hidden', false)
-            ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', '!=', 'trash');
-            })
+            ->storefront()
             ->with([
                 'category',
                 'variants' => fn ($q) => $q->orderBy('sort_order'),
@@ -171,10 +168,7 @@ class PublicCatalogController extends Controller
         $product = Product::query()
             ->where('tenant_id', $tid)
             ->where('slug', $slug)
-            ->where('is_hidden', false)
-            ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', '!=', 'trash');
-            })
+            ->storefront()
             ->with([
                 'category',
                 'variants' => fn ($q) => $q->orderBy('sort_order'),

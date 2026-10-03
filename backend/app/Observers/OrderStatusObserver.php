@@ -3,7 +3,9 @@
 namespace App\Observers;
 
 use App\Models\Order;
+use App\Services\Orders\OrderLifecycle;
 use App\Services\Orders\OrderStatusNotifier;
+use App\Support\AuditActor;
 
 class OrderStatusObserver
 {
@@ -32,12 +34,11 @@ class OrderStatusObserver
 
         $meta = is_array($order->meta) ? $order->meta : [];
         $history = is_array($meta['status_history'] ?? null) ? $meta['status_history'] : [];
-        $history[] = [
+        $history[] = array_merge([
             'from' => $from,
             'to' => $to,
             'at' => now()->toIso8601String(),
-            'by' => auth()->id(),
-        ];
+        ], AuditActor::stamp());
         $meta['status_history'] = array_slice($history, -50);
         $order->meta = $meta;
     }
@@ -52,6 +53,7 @@ class OrderStatusObserver
             return;
         }
 
-        $this->notifier->notify($order, $from, (string) $order->status);
+        app(OrderLifecycle::class)->sync($order->fresh() ?? $order, $from);
+        $this->notifier->notify($order->fresh() ?? $order, $from, (string) $order->status);
     }
 }

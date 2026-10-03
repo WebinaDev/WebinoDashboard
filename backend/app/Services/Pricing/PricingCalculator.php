@@ -333,7 +333,7 @@ class PricingCalculator
      */
     public function unitPrice(Product $product, ?ProductVariant $variant, string $type, int $months = 0): int
     {
-        $store = $product->effectivePriceMinor($variant);
+        $store = $product->storefrontPriceMinor($variant);
 
         $purchase = (float) (($variant?->purchase_price_minor) ?: $product->purchase_price_minor ?: 0);
         $type = $this->normalizePurchaseType($type);

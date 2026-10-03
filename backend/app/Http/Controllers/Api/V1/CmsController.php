@@ -102,6 +102,9 @@ class CmsController extends Controller
         if (array_key_exists('featured_media_id', $data)) {
             $this->assertFeatured($tid, $data['featured_media_id']);
         }
+        if (($data['status'] ?? null) === 'published' || ($data['published'] ?? null) === true) {
+            \App\Support\StatusTrash::guardPublish($row);
+        }
         if (isset($data['status'])) {
             $data['published'] = $data['status'] === 'published';
         } elseif (array_key_exists('published', $data)) {

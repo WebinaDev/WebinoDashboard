@@ -21,6 +21,10 @@ class TapinShipmentService
         if (! $this->tapin->isReady($tenantId)) {
             return null;
         }
+        $weight = (int) ($context['weight_g'] ?? 0);
+        if ($weight <= 0) {
+            return null;
+        }
         $settings = $this->tapin->getRaw($tenantId);
         $payload = [
             'shop_id' => $settings['shop_id'],
@@ -29,7 +33,7 @@ class TapinShipmentService
                 'city_code' => (int) ($context['city_code'] ?? 0),
             ],
             'package' => [
-                'weight' => max(100, (int) ($context['weight_g'] ?? 500)),
+                'weight' => (int) ($context['weight_g'] ?? 0),
                 'box_id' => (int) ($settings['default_box_id'] ?? 1),
             ],
             'service' => (string) ($context['service'] ?? 'pishtaz'),
@@ -60,6 +64,14 @@ class TapinShipmentService
         return max(0, $cost);
     }
 
+    public function freeByMinimum(int $tenantId, int $cartSubtotal): bool
+    {
+        $settings = $this->tapin->getRaw($tenantId);
+        $freeMin = (int) ($settings['free_shipping_min'] ?? 0);
+
+        return $freeMin > 0 && $cartSubtotal >= $freeMin;
+    }
+
     /**
      * @return array{ok: bool, message: string, tapin: array<string, mixed>|null}
      */
@@ -80,12 +92,9 @@ class TapinShipmentService
         $phone = (string) ($order->customer_phone ?: ($addr['phone'] ?? ''));
         $name = (string) ($order->customer_name ?: ($addr['name'] ?? 'Customer'));
 
-        $weight = 0;
-        foreach ($order->items ?? [] as $item) {
-            $weight += max(100, (int) ($item->quantity ?? 1) * 200);
-        }
+        $weight = ShipmentWeight::orderGrams($order);
         if ($weight <= 0) {
-            $weight = 500;
+            return ['ok' => false, 'message' => 'Product weight is required', 'tapin' => null];
         }
 
         $payload = [
@@ -209,6 +218,12 @@ class TapinShipmentService
         }
         $mapped = \App\Services\Orders\OrderShippingStatuses::fromTapinCode($tapinCode);
         if ($mapped !== null && $mapped !== (string) $order->status) {
+            if (! \App\Services\Orders\OrderStatusTransitions::canTransition((string) $order->status, $mapped)) {
+                $order->meta = $meta;
+                $order->save();
+
+                return ['ok' => true, 'message' => 'Updated', 'tapin' => $tapin];
+            }
             $order->status = $mapped;
         }
 

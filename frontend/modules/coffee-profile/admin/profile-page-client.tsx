@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { toAsciiDigits } from "@/lib/digits"
 
 type Origin = {
   id: number
@@ -116,7 +117,7 @@ export default function ProfilePageClient({ route: _route }: { route: ResolvedAd
         .filter(Boolean)
         .map((line) => {
           const [name, price] = line.split(",")
-          return { name: (name ?? "").trim(), price_minor: Number(price ?? 0) }
+          return { name: (name ?? "").trim(), price_minor: Number(toAsciiDigits(String(price ?? 0))) }
         })
       return api("/api/v1/coffee/pricing-settings", {
         method: "PUT",

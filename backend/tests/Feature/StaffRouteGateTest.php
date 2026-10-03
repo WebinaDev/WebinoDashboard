@@ -22,6 +22,8 @@ class StaffRouteGateTest extends TestCase
         'api/v1/auth/refresh',
         'api/v1/auth/user',
         'api/v1/auth/change-password',
+        'api/v1/auth/impersonation/switch',
+        'api/v1/auth/impersonation/exit',
         'api/v1/tenant',
         'api/v1/bootstrap',
         'api/v1/setup/status',

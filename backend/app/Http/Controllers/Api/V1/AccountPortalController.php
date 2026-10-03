@@ -296,18 +296,10 @@ class AccountPortalController extends Controller
         if ($data['amount_minor'] < max(1, $min)) {
             return response()->json(['message' => 'Below minimum topup'], 422);
         }
-        $entry = $this->wallet->adjust(
-            $user,
-            (int) $user->tenant_id,
-            'credit',
-            (int) $data['amount_minor'],
-            'topup',
-            $data['note'] ?? 'account topup',
-            'account',
-            $user->id
-        );
 
-        return response()->json(['data' => $entry], 201);
+        return response()->json([
+            'message' => 'Wallet topup requires a completed payment.',
+        ], 422);
     }
 
     public function walletWithdraw(Request $request): JsonResponse

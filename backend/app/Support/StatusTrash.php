@@ -73,6 +73,32 @@ final class StatusTrash
         return $prev;
     }
 
+    public static function guardPublish(Model $model, string $column = 'status'): void
+    {
+        if ((string) ($model->getAttribute($column) ?? '') === self::TRASH) {
+            abort(422, 'Trashed items cannot be published. Restore them first.');
+        }
+    }
+
+    /**
+     * Soft-trash (or force-delete) a category and every descendant.
+     *
+     * @param  list<string>  $allowedRestore
+     * @return array{trashed?: bool, deleted?: bool}
+     */
+    public static function trashTree(Model $model, string $parentColumn, bool $force, string $statusColumn = 'status', string $fallback = 'publish', array $allowedRestore = ['publish']): array
+    {
+        $query = $model->newQuery()->where($parentColumn, $model->getKey());
+        if ($model->getAttribute('tenant_id') !== null) {
+            $query->where('tenant_id', $model->getAttribute('tenant_id'));
+        }
+        foreach ($query->get() as $child) {
+            self::trashTree($child, $parentColumn, $force, $statusColumn, $fallback, $allowedRestore);
+        }
+
+        return self::trashOrDelete($model, $force, $statusColumn, $fallback, $allowedRestore);
+    }
+
     private static function rememberPrevious(Model $model, string $current): void
     {
         if (! $model->isFillable('meta') && ! array_key_exists('meta', $model->getAttributes())) {

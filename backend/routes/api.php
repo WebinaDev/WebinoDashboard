@@ -376,12 +376,14 @@ Route::prefix('v1')->group(function () {
                 ->middleware('can:reviews.moderate')
                 ->whereNumber('review');
 
+            Route::middleware('can:support.*')->group(function () {
             Route::get('/shop/tickets', [SupportTicketController::class, 'staffIndex']);
             Route::get('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffShow'])->whereNumber('ticket');
             Route::patch('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffPatch'])->whereNumber('ticket');
             Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, 'staffReply'])->whereNumber('ticket');
             Route::post('/shop/tickets/{ticket}/convert-task', [SupportTicketController::class, 'staffConvertTask'])->whereNumber('ticket');
             Route::post('/shop/tickets/{ticket}/sync-erp', [SupportTicketController::class, 'staffSyncErp'])->whereNumber('ticket');
+            });
 
             Route::get('/themes', [ThemeController::class, 'index']);
             Route::post('/themes/{slug}/activate', [ThemeController::class, 'activate']);
@@ -405,7 +407,7 @@ Route::prefix('v1')->group(function () {
                     ->where('section', 'overview|visitors|pages|referrals|geo|devices|online|commerce|compare|seo|support|content|month-summary');
             });
 
-            Route::middleware('module:catalog')->group(function () {
+            Route::middleware(['module:catalog', 'can:catalog.*'])->group(function () {
                 Route::post('/categories/{category}/restore', [CategoryController::class, 'restore'])->whereNumber('category');
                 Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
                 Route::post('/product-tags/{product_tag}/restore', [ProductTagController::class, 'restore'])->whereNumber('product_tag');
@@ -438,12 +440,12 @@ Route::prefix('v1')->group(function () {
                 Route::post('/product-catalog/import', [ProductCatalogController::class, 'import']);
             });
 
-            Route::middleware('module:brands')->group(function () {
+            Route::middleware(['module:brands', 'can:catalog.*'])->group(function () {
                 Route::post('/brands/{brand}/restore', [BrandController::class, 'restore'])->whereNumber('brand');
                 Route::apiResource('brands', BrandController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
             });
 
-            Route::middleware('module:attributes')->group(function () {
+            Route::middleware(['module:attributes', 'can:catalog.*'])->group(function () {
                 Route::get('/attributes', [ProductAttributeController::class, 'index']);
                 Route::post('/attributes', [ProductAttributeController::class, 'store']);
                 Route::get('/attributes/{attribute}', [ProductAttributeController::class, 'show'])->whereNumber('attribute');
@@ -459,7 +461,7 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/attribute-groups/{group}', [ProductAttributeController::class, 'groupsDestroy'])->whereNumber('group');
             });
 
-            Route::middleware('module:pricing')->group(function () {
+            Route::middleware(['module:pricing', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/pricing/settings', [PricingController::class, 'settings']);
                 Route::put('/pricing/settings', [PricingController::class, 'updateSettings']);
                 Route::get('/pricing/settings/export', [PricingController::class, 'exportSettings']);
@@ -489,7 +491,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/pricing/bulk-price-change/state', [PricingController::class, 'bulkPriceState']);
             });
 
-            Route::middleware('module:marketplace')->prefix('marketplace')->group(function () {
+            Route::middleware(['module:marketplace', 'can:catalog.*,commerce.*'])->prefix('marketplace')->group(function () {
                 $platforms = implode('|', array_map('preg_quote', \App\Services\Marketplace\MarketplacePlatforms::slugs()));
 
                 Route::get('/hub', [MarketplaceController::class, 'hub']);
@@ -524,7 +526,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{platform}/feed-url', [MarketplaceController::class, 'feedUrls'])->where('platform', $platforms);
             });
 
-            Route::middleware('module:coffee_profile')->group(function () {
+            Route::middleware(['module:coffee_profile', 'site_type:coffee', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/coffee/profile-settings', [CoffeeController::class, 'profileSettings']);
                 Route::put('/coffee/profile-settings', [CoffeeController::class, 'updateProfileSettings']);
                 Route::get('/coffee/pricing-settings', [CoffeeController::class, 'pricingSettings']);
@@ -552,14 +554,14 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/variants/{variant}', [ProductVariantController::class, 'destroy'])->whereNumber('variant');
             });
 
-            Route::middleware('module:cafe_menu')->group(function () {
+            Route::middleware(['module:cafe_menu', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/cafe/menu-settings', [CafeSettingsController::class, 'showMenu']);
                 Route::patch('/cafe/menu-settings', [CafeSettingsController::class, 'updateMenu']);
                 Route::get('/cafe/engagement-settings', [CafeSettingsController::class, 'showEngagement']);
                 Route::patch('/cafe/engagement-settings', [CafeSettingsController::class, 'updateEngagement']);
             });
 
-            Route::middleware('module:cafe_qr')->group(function () {
+            Route::middleware(['module:cafe_qr', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/cafe/qr-settings', [CafeQrController::class, 'showSettings']);
                 Route::patch('/cafe/qr-settings', [CafeQrController::class, 'updateSettings']);
                 Route::get('/cafe/qr', [CafeQrController::class, 'menuQr']);
@@ -567,7 +569,7 @@ Route::prefix('v1')->group(function () {
                 Route::apiResource('cafe/branches', CafeBranchController::class)->only(['index', 'store', 'update', 'destroy']);
             });
 
-            Route::middleware('module:cafe_reservations')->group(function () {
+            Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/cafe/reservations', [ReservationController::class, 'index']);
                 Route::patch('/cafe/reservations/{reservation}', [ReservationController::class, 'updateReservation'])->whereNumber('reservation');
                 Route::post('/cafe/events', [ReservationController::class, 'storeEvent']);
@@ -575,22 +577,22 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/cafe/event-bookings/{booking}', [ReservationController::class, 'updateEventBooking'])->whereNumber('booking');
             });
 
-            Route::middleware('module:cafe_hours')->group(function () {
+            Route::middleware(['module:cafe_hours', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/cafe/hours-settings', [CafeSettingsController::class, 'showHours']);
                 Route::patch('/cafe/hours-settings', [CafeSettingsController::class, 'updateHours']);
             });
 
-            Route::middleware('module:cafe_gallery')->group(function () {
+            Route::middleware(['module:cafe_gallery', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/cafe/gallery-settings', [CafeSettingsController::class, 'showGallery']);
                 Route::patch('/cafe/gallery-settings', [CafeSettingsController::class, 'updateGallery']);
             });
 
-            Route::middleware('module:cafe_venue')->group(function () {
+            Route::middleware(['module:cafe_venue', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/cafe/venue-settings', [CafeSettingsController::class, 'showVenue']);
                 Route::patch('/cafe/venue-settings', [CafeSettingsController::class, 'updateVenue']);
             });
 
-            Route::middleware('module:orders')->group(function () {
+            Route::middleware(['module:orders', 'can:orders.*,orders.own'])->group(function () {
                 Route::get('/orders', [OrderController::class, 'index']);
                 Route::get('/orders/statuses', [OrderController::class, 'statuses']);
                 Route::get('/orders/filter-options', [OrderController::class, 'filterOptions']);
@@ -618,13 +620,14 @@ Route::prefix('v1')->group(function () {
                 Route::get('/pos/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
             });
 
-            Route::middleware('module:c2c')->group(function () {
+            Route::middleware(['module:c2c', 'can:orders.*,orders.own'])->group(function () {
                 Route::get('/c2c/settings', [C2cController::class, 'settings']);
                 Route::put('/c2c/settings', [C2cController::class, 'updateSettings']);
                 Route::get('/c2c/receipts', [C2cController::class, 'receipts']);
                 Route::post('/c2c/receipts/{order}', [C2cController::class, 'decide'])->whereNumber('order');
             });
 
+            Route::middleware('can:settings.manage,commerce.*,accounting.manage')->group(function () {
             Route::get('/payments/hub', [PaymentsHubController::class, 'show']);
             Route::post('/payments/hub', [PaymentsHubController::class, 'update']);
             Route::post('/payments/hub/{gateway}/toggle', [PaymentsHubController::class, 'toggle']);
@@ -659,8 +662,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/torobpay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'torobpay'));
             Route::get('/bale-pay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->show($r, 'bale-pay'));
             Route::post('/bale-pay/settings', fn (\Illuminate\Http\Request $r) => app(PaymentGatewaySettingsController::class)->update($r, 'bale-pay'));
+            });
 
-            Route::middleware('module:wallet')->group(function () {
+            Route::middleware(['module:wallet', 'can:accounting.manage,commerce.*'])->group(function () {
                 Route::get('/wallet/settings', [WalletController::class, 'settings']);
                 Route::put('/wallet/settings', [WalletController::class, 'updateSettings']);
                 Route::get('/wallet/users/{user}', [WalletController::class, 'userWallet'])->whereNumber('user');
@@ -682,11 +686,11 @@ Route::prefix('v1')->group(function () {
                     ->where('section', 'overview|revenue|orders|products|variations|categories|brands|coupons|taxes|customers|downloads|stock|sales|financial');
             });
 
-            Route::middleware('module:marketing')->group(function () {
+            Route::middleware(['module:marketing', 'can:marketing.*'])->group(function () {
                 Route::get('/marketing/campaigns', [MarketingController::class, 'campaigns']);
             });
 
-            Route::middleware('module:coupons')->group(function () {
+            Route::middleware(['module:coupons', 'can:marketing.*'])->group(function () {
                 Route::get('/marketing/coupons', [CouponController::class, 'index']);
                 Route::post('/marketing/coupons', [CouponController::class, 'store']);
                 Route::get('/marketing/coupons/generate-code', [CouponController::class, 'generateCode']);
@@ -719,7 +723,7 @@ Route::prefix('v1')->group(function () {
                     ->where('path', '.*');
             });
 
-            Route::middleware('module:cms')->group(function () {
+            Route::middleware(['module:cms', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/cms/pages', [CmsController::class, 'pages']);
                 Route::post('/cms/pages', [CmsController::class, 'store']);
                 Route::get('/cms/pages/{page}', [CmsController::class, 'show'])->whereNumber('page');
@@ -781,7 +785,7 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::delete('/import/wordpress/tokens/{token}', [WordpressImportController::class, 'destroyToken'])->whereNumber('token');
             });
 
-            Route::middleware('module:blog')->group(function () {
+            Route::middleware(['module:blog', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/blog/posts', [BlogPostController::class, 'index']);
                 Route::post('/blog/posts', [BlogPostController::class, 'store']);
                 Route::get('/blog/posts/{post}', [BlogPostController::class, 'show'])->whereNumber('post');
@@ -806,7 +810,7 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::delete('/media/terms/{id}', [MediaTermController::class, 'destroy'])->whereNumber('id');
             });
 
-            Route::middleware('module:magazine')->group(function () {
+            Route::middleware(['module:magazine', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/magazine/articles', [MagazineArticleController::class, 'index']);
                 Route::post('/magazine/articles', [MagazineArticleController::class, 'store']);
                 Route::get('/magazine/articles/{article}', [MagazineArticleController::class, 'show'])->whereNumber('article');

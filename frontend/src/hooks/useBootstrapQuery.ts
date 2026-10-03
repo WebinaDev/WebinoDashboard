@@ -21,6 +21,7 @@ export type BootstrapPayload = {
     domain?: string | null
     branding?: Record<string, unknown> | null
     default_currency?: string | null
+    site_type_slug?: string | null
     setup_completed?: boolean
   } | null
   license: {

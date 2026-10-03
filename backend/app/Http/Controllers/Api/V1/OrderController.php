@@ -262,8 +262,9 @@ class OrderController extends Controller
         if ($data['action'] === 'trash' || $data['action'] === 'delete') {
             $q->delete();
         } elseif ($data['action'] === 'change_status') {
+            $statuses = app(\App\Services\Orders\OrderStatusService::class);
             foreach ($q->get() as $order) {
-                $order->update(['status' => $data['status']]);
+                $statuses->apply($order, (string) $data['status']);
             }
         } elseif ($data['action'] === 'send_email') {
             foreach ($q->get() as $order) {
@@ -314,6 +315,7 @@ class OrderController extends Controller
             'user_id' => $request->user()->id,
             'body' => $data['body'],
             'is_customer' => $data['is_customer'] ?? false,
+            'meta' => \App\Support\AuditActor::stamp(),
         ]);
 
         return response()->json(['data' => $note->load('user:id,name')], 201);
@@ -417,34 +419,31 @@ class OrderController extends Controller
             }
         }
         if ($data['action'] === 'refund') {
-            $order = $ret->order()->first();
-            $order?->update(['status' => 'refunded']);
+            $order = $ret->order()->with('items')->first();
             $refundMinor = (int) ($ret->refund_minor ?? 0);
-            if ($order && $refundMinor > 0) {
-                $tender = (string) ($order->payment_tender ?? '');
-                $provider = (string) ($order->payment_provider ?? '');
-                $walletPaid = $tender === 'wallet' || $provider === 'wallet';
-                if ($walletPaid && $order->user_id) {
-                    $customer = User::query()->whereKey($order->user_id)->first();
-                    if ($customer) {
-                        app(WalletService::class)->adjust(
-                            $customer,
-                            (int) $order->tenant_id,
-                            'credit',
-                            $refundMinor,
-                            'order_refund',
-                            'Refund for order return #'.$ret->id,
-                            'order_return',
-                            (int) $ret->id
-                        );
-                    }
-                } else {
+            if ($order) {
+                $items = is_array($ret->items) ? $ret->items : [];
+                app(\App\Services\Orders\OrderStock::class)->restoreReturned($order, $items);
+                $full = (int) $order->total_minor > 0
+                    ? $refundMinor >= (int) $order->total_minor
+                    : $items === [];
+                app(\App\Services\Orders\WalletCheckout::class)->creditRefund($order, $refundMinor, (int) $ret->id);
+                $walletPaid = (string) ($order->payment_tender ?? '') === 'wallet'
+                    || (string) ($order->payment_provider ?? '') === 'wallet';
+                if (! $walletPaid && $refundMinor > 0) {
                     $note = trim((string) ($ret->admin_note ?? ''));
                     if (! str_contains($note, 'needs_manual_refund')) {
                         $ret->update([
                             'admin_note' => $note === '' ? 'needs_manual_refund' : $note."\nneeds_manual_refund",
                         ]);
                     }
+                }
+                $meta = is_array($order->meta) ? $order->meta : [];
+                $meta['partial_refund_minor'] = (int) ($meta['partial_refund_minor'] ?? 0) + $refundMinor;
+                $order->meta = $meta;
+                $order->save();
+                if ($full) {
+                    app(\App\Services\Orders\OrderStatusService::class)->apply($order->fresh(), 'refunded');
                 }
             }
         }
@@ -557,10 +556,10 @@ class OrderController extends Controller
             $q->whereDate('created_at', '<=', $request->query('date_to'));
         }
         if ($request->filled('min_total')) {
-            $q->where('total_minor', '>=', (int) $request->query('min_total'));
+            $q->where('total_minor', '>=', \App\Support\LatinDigits::int($request->query('min_total')));
         }
         if ($request->filled('max_total')) {
-            $q->where('total_minor', '<=', (int) $request->query('max_total'));
+            $q->where('total_minor', '<=', \App\Support\LatinDigits::int($request->query('max_total')));
         }
         if ($request->boolean('is_pos')) {
             $q->where('is_pos', true);

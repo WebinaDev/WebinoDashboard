@@ -34,7 +34,7 @@ final class OrderReports
 
     public const MAX_ORDERS = 10000;
 
-    public const REFUND_RETURN_STATUSES = ['approved', 'refunded', 'completed'];
+    public const REFUND_RETURN_STATUSES = ['refunded'];
 
     public const PRICE_TIERS = ['retail', 'credit', 'installment', 'wholesale'];
 
@@ -891,7 +891,7 @@ final class OrderReports
     }
 
     /**
-     * Refunds = approved/refunded returns in range + orders with status "refunded" (not already covered by a return).
+     * Refunds = returns in status refunded, plus orders with status refunded that have no such return.
      *
      * @param  array<string, mixed>  $summary
      * @param  array<string, array<string, mixed>>  $series

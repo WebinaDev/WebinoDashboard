@@ -110,6 +110,7 @@ class BuilderController extends Controller
     public function publish(Request $request, int $page): JsonResponse
     {
         $row = $this->page($request, $page);
+        \App\Support\StatusTrash::guardPublish($row);
         abort_if(! is_array($row->builder_draft), 422, 'draft missing');
         $row->builder_published = $row->builder_draft;
         $row->published = true;
@@ -149,6 +150,7 @@ class BuilderController extends Controller
     public function publishProduct(Request $request, Product $product): JsonResponse
     {
         abort_if((int) $request->user()->tenant_id !== (int) $product->tenant_id, 403);
+        \App\Support\StatusTrash::guardPublish($product);
         $meta = is_array($product->meta) ? $product->meta : [];
         abort_if(! is_array($meta['builder_document'] ?? null), 422, 'draft missing');
         $meta['builder_published'] = $meta['builder_document'];
@@ -186,6 +188,7 @@ class BuilderController extends Controller
     public function publishPost(Request $request, int $post): JsonResponse
     {
         $row = BlogPost::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($post);
+        \App\Support\StatusTrash::guardPublish($row);
         abort_if(! is_array($row->builder_draft), 422, 'draft missing');
         $row->builder_published = $row->builder_draft;
         $row->status = 'published';
@@ -227,6 +230,7 @@ class BuilderController extends Controller
     public function publishArticle(Request $request, int $article): JsonResponse
     {
         $row = MagazineArticle::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($article);
+        \App\Support\StatusTrash::guardPublish($row);
         $meta = is_array($row->meta) ? $row->meta : [];
         abort_if(! is_array($meta['builder_document'] ?? null), 422, 'draft missing');
         $meta['builder_published'] = $meta['builder_document'];
@@ -242,9 +246,17 @@ class BuilderController extends Controller
 
     public function destroy(Request $request, int $page): JsonResponse
     {
-        $this->page($request, $page)->delete();
+        $row = $this->page($request, $page);
+        $result = \App\Support\StatusTrash::trashOrDelete($row, $request->boolean('force'), 'status', 'draft', ['published', 'draft', 'private', 'pending']);
+        if (! empty($result['trashed'])) {
+            $row->refresh();
+            if ($row->status === 'trash') {
+                $row->published = false;
+                $row->save();
+            }
+        }
 
-        return response()->json(['data' => ['deleted' => true]]);
+        return response()->json(['data' => $result]);
     }
 
     public function showTemplate(Request $request, string $kind): JsonResponse

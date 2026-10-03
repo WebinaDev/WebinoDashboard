@@ -21,7 +21,7 @@ class PublicCafeEngagementController extends Controller
     public function like(Request $request, Product $product): \Illuminate\Http\JsonResponse
     {
         $tid = $this->publicTenantId($request);
-        abort_if($product->tenant_id !== $tid || $product->is_hidden, 404);
+        abort_if($product->tenant_id !== $tid || $product->is_hidden || $product->status !== 'publish', 404);
 
         $data = $request->validate([
             'fingerprint' => ['required', 'string', 'max:64'],
@@ -42,7 +42,7 @@ class PublicCafeEngagementController extends Controller
     public function feedback(Request $request, Product $product): \Illuminate\Http\JsonResponse
     {
         $tid = $this->publicTenantId($request);
-        abort_if($product->tenant_id !== $tid || $product->is_hidden, 404);
+        abort_if($product->tenant_id !== $tid || $product->is_hidden || $product->status !== 'publish', 404);
 
         $data = $request->validate([
             'rating' => ['required', 'integer', 'min:1', 'max:5'],

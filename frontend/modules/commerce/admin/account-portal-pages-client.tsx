@@ -577,7 +577,6 @@ export function AccountWalletPageClient({ route: _route }: { route: ResolvedAdmi
   const t = useTranslations("account_portal")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
-  const [topupAmount, setTopupAmount] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const q = useQuery({
     queryKey: ["account", "wallet"],
@@ -597,15 +596,6 @@ export function AccountWalletPageClient({ route: _route }: { route: ResolvedAdmi
       "/api/v1/account/wallet/ledger",
     ),
     enabled: Boolean(q.data?.enabled),
-  })
-  const topup = useMutation({
-    mutationFn: () => api("/api/v1/account/wallet/topup", { method: "POST", json: { amount_minor: Number(topupAmount) } }),
-    onSuccess: () => {
-      toast.success(tCommon("saved"))
-      setTopupAmount("")
-      void qc.invalidateQueries({ queryKey: ["account", "wallet"] })
-    },
-    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
   const withdraw = useMutation({
     mutationFn: () =>
@@ -630,9 +620,7 @@ export function AccountWalletPageClient({ route: _route }: { route: ResolvedAdmi
         <div className="grid max-w-lg gap-4">
           <Card>
             <CardContent className="space-y-2 pt-6">
-              <Label>{t("wallet_topup")}</Label>
-              <Input dir="ltr" value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} placeholder={String(w.min_topup_minor ?? "")} />
-              <Button type="button" size="sm" disabled={topup.isPending || !topupAmount} onClick={() => void topup.mutateAsync()}>{t("wallet_topup_submit")}</Button>
+              <p className="text-sm">{t("wallet_topup_note")}</p>
             </CardContent>
           </Card>
           <Card>

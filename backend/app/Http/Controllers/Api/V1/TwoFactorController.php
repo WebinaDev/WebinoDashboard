@@ -24,6 +24,7 @@ class TwoFactorController extends Controller
 
     public function enable(Request $request): JsonResponse
     {
+        \App\Support\ImpersonationSession::blockSecurityChanges($request);
         $user = $request->user();
         $google2fa = new Google2FA;
         $secret = $google2fa->generateSecretKey();
@@ -46,6 +47,7 @@ class TwoFactorController extends Controller
 
     public function confirm(Request $request): JsonResponse
     {
+        \App\Support\ImpersonationSession::blockSecurityChanges($request);
         $data = $request->validate(['otp' => ['required', 'string', 'size:6']]);
         $user = $request->user();
         $google2fa = new Google2FA;
@@ -69,6 +71,7 @@ class TwoFactorController extends Controller
 
     public function disable(Request $request): JsonResponse
     {
+        \App\Support\ImpersonationSession::blockSecurityChanges($request);
         $data = $request->validate([
             'password' => ['required', 'string'],
             'otp' => ['required', 'string', 'size:6'],

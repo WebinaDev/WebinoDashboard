@@ -5308,6 +5308,7 @@
     "balance": "Balance",
     "wallet_topup": "Top up amount",
     "wallet_topup_submit": "Top up",
+    "wallet_topup_note": "Wallet credit is added only after a successful payment.",
     "wallet_withdraw": "Withdraw amount",
     "wallet_withdraw_submit": "Request withdrawal",
     "wallet_ledger": "Recent transactions",

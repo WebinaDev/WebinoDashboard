@@ -199,6 +199,7 @@ class AuthController extends Controller
         if (! $user) {
             return response()->json(['message' => __('api.unauthorized')], 401);
         }
+        \App\Support\ImpersonationSession::blockSecurityChanges($request);
 
         $data = $request->validate([
             'current_password' => ['required', 'string'],

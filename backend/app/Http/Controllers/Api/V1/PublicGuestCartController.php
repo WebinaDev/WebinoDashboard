@@ -38,7 +38,14 @@ class PublicGuestCartController extends Controller
         ]);
 
         $product = Product::query()->findOrFail($data['product_id']);
-        abort_if($product->tenant_id !== $tid || $product->is_hidden || ! $product->is_available || $product->is_sold_out, 422);
+        abort_if(
+            $product->tenant_id !== $tid
+            || $product->status !== 'publish'
+            || $product->is_hidden
+            || ! $product->is_available
+            || $product->is_sold_out,
+            422
+        );
 
         $cart = $this->resolveCart($request, $data, true);
         $qty = $data['quantity'] ?? 1;
@@ -78,22 +85,37 @@ class PublicGuestCartController extends Controller
             return response()->json(['message' => __('api.cart_empty')], 422);
         }
 
-        $total = 0;
+        $subtotal = 0;
         foreach ($lines as $line) {
-            $total += $line->quantity * $line->product->price_minor;
+            $product = $line->product;
+            if (! $product || $product->status !== 'publish' || $product->is_hidden || ! $product->is_available) {
+                return response()->json(['message' => 'Cart contains a product that is not for sale.'], 422);
+            }
+            $subtotal += $line->quantity * $product->storefrontPriceMinor();
+        }
+
+        $tax = \App\Services\Orders\OrderTax::compute($tid, $subtotal, 0);
+        $metaOrder = ['source' => 'guest_table'];
+        if ($tax['lines'] !== []) {
+            $metaOrder['tax_lines'] = $tax['lines'];
+            $metaOrder['prices_include_tax'] = $tax['added_minor'] === 0;
         }
 
         $order = \App\Models\Order::query()->create([
             'tenant_id' => $tid,
             'user_id' => null,
-            'status' => 'pending_payment',
-            'total_minor' => $total,
+            'status' => 'processing',
+            'subtotal_minor' => $subtotal,
+            'discount_minor' => 0,
+            'shipping_minor' => 0,
+            'tax_minor' => $tax['tax_minor'],
+            'total_minor' => max(0, $subtotal + $tax['added_minor']),
             'currency' => $lines->first()->product->currency,
             'customer_phone' => $meta['customer_phone'] ?? null,
             'customer_note' => $meta['customer_note'] ?? null,
             'table_number' => $meta['table_number'] ?? $cart->table_number,
             'branch_slug' => $meta['branch_slug'] ?? $cart->branch_slug,
-            'meta' => ['source' => 'guest_table'],
+            'meta' => $metaOrder,
         ]);
 
         foreach ($lines as $line) {
@@ -101,13 +123,15 @@ class PublicGuestCartController extends Controller
                 'order_id' => $order->id,
                 'product_id' => $line->product_id,
                 'quantity' => $line->quantity,
-                'unit_price_minor' => $line->product->price_minor,
+                'unit_price_minor' => $line->product->storefrontPriceMinor(),
             ]);
         }
 
+        app(\App\Services\Orders\OrderLifecycle::class)->sync($order->fresh(), null);
+
         CartItem::query()->where('cart_id', $cart->id)->delete();
 
-        return response()->json(['data' => $order->load('items.product')], 201);
+        return response()->json(['data' => $order->fresh()->load('items.product')], 201);
     }
 
     /** @param  array<string, mixed>  $data */

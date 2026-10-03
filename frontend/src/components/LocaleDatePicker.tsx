@@ -71,9 +71,9 @@ function JalaliLocaleDatePicker({
     value != null && value !== ""
       ? new DateObject({
           date: value,
-          calendar: persian,
-          locale: persianFa,
-        })
+          format: "YYYY-MM-DD",
+          calendar: gregorian,
+        }).convert(persian, persianFa)
       : undefined
 
   return (

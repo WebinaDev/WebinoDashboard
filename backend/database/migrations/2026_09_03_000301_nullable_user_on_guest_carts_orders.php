@@ -25,6 +25,13 @@ return new class extends Migration
         } elseif ($driver === 'pgsql') {
             DB::statement('ALTER TABLE carts ALTER COLUMN user_id DROP NOT NULL');
             DB::statement('ALTER TABLE orders ALTER COLUMN user_id DROP NOT NULL');
+        } elseif ($driver === 'sqlite') {
+            Schema::table('carts', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->change();
+            });
+            Schema::table('orders', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->change();
+            });
         }
 
         Schema::table('carts', function (Blueprint $table) {

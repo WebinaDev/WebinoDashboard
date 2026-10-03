@@ -61,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'module' => EnsureModuleEnabled::class,
             'staff' => \App\Http\Middleware\EnsureStaffRole::class,
             'can' => \App\Http\Middleware\EnsureCapability::class,
+            'site_type' => \App\Http\Middleware\EnsureSiteType::class,
             'user.active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'public.module' => \App\Http\Middleware\EnsurePublicModuleEnabled::class,
             'public.tenant' => \App\Http\Middleware\ResolvePublicTenant::class,

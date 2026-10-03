@@ -38,6 +38,7 @@ import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { toAsciiDigits } from "@/lib/digits"
 import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 import { formatDisplayDateTime } from "@/lib/format-date"
 import { isMarketplaceChannel, marketplaceLabel } from "@/lib/marketplace"
@@ -246,8 +247,8 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
       if (utm.trim()) params.set("utm", utm.trim())
       if (userId.trim()) params.set("user_id", userId.trim())
       if (customerRole) params.set("customer_role", customerRole)
-      if (minTotal.trim()) params.set("min_total", minTotal.trim())
-      if (maxTotal.trim()) params.set("max_total", maxTotal.trim())
+      if (minTotal.trim()) params.set("min_total", toAsciiDigits(minTotal.trim()))
+      if (maxTotal.trim()) params.set("max_total", toAsciiDigits(maxTotal.trim()))
       return apiListWithMeta<OrderRow>(`/api/v1/orders?${params}`)
     },
   })

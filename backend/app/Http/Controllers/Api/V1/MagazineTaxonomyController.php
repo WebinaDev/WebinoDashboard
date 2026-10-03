@@ -106,17 +106,7 @@ class MagazineTaxonomyController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $row = MagazineCategory::query()->where('tenant_id', $tid)->findOrFail($id);
-        if ($request->boolean('force')) {
-            if (($row->status ?? 'publish') !== 'trash') {
-                return response()->json(['message' => 'Only trashed items can be permanently deleted.'], 422);
-            }
-            MagazineCategory::query()->where('tenant_id', $tid)->where('parent_id', $row->id)->update(['parent_id' => null]);
-            $row->delete();
-
-            return response()->json(['data' => ['deleted' => true]]);
-        }
-
-        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($row, false, 'status', 'publish', ['publish'])]);
+        return response()->json(['data' => \App\Support\StatusTrash::trashTree($row, 'parent_id', $request->boolean('force'), 'status', 'publish', ['publish'])]);
     }
 
     public function restoreCategory(Request $request, int $id): JsonResponse

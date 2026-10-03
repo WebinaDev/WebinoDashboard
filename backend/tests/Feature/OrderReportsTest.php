@@ -119,9 +119,9 @@ class OrderReportsTest extends TestCase
         $this->assertSame(2, (int) $data['summary']['order_count']);
         $this->assertSame(200000, (int) $data['summary']['revenue']);
         $this->assertSame(10000, (int) $data['summary']['tax_total']);
-        $this->assertSame(70000, (int) $data['summary']['refunds']);
-        $this->assertSame(2, (int) $data['summary']['refund_count']);
-        $this->assertSame(130000, (int) $data['summary']['net_revenue']);
+        $this->assertSame(50000, (int) $data['summary']['refunds']);
+        $this->assertSame(1, (int) $data['summary']['refund_count']);
+        $this->assertSame(150000, (int) $data['summary']['net_revenue']);
         $this->assertCount(168, $data['heatmap']);
         $this->assertCount(24, $data['by_hour']);
         $this->assertSame(2, array_sum(array_column($data['heatmap'], 'orders')));

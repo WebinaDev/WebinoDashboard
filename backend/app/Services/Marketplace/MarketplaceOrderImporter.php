@@ -162,10 +162,10 @@ class MarketplaceOrderImporter
         }
 
         $previous = $order->status;
-        $order->update(['status' => $localStatus]);
-        if (in_array($localStatus, ['cancelled', 'refunded', 'failed'], true)) {
-            $this->restoreStock($order);
+        if (! \App\Services\Orders\OrderStatusTransitions::canTransition((string) $order->status, $localStatus)) {
+            return $changed;
         }
+        $order->update(['status' => $localStatus]);
         OrderNote::query()->create([
             'tenant_id' => $order->tenant_id,
             'order_id' => $order->id,
@@ -265,7 +265,6 @@ class MarketplaceOrderImporter
                 ], $extra['meta'] ?? []),
             ]);
             $order->update(['amount_paid_minor' => $paid ? $order->total_minor : 0]);
-            $this->reduceStock($order);
             OrderNote::query()->create([
                 'tenant_id' => $tenantId,
                 'order_id' => $order->id,

@@ -43,6 +43,13 @@ final class ImpersonationSession
         return self::current($request) !== null;
     }
 
+    public static function blockSecurityChanges(Request $request): void
+    {
+        if (self::active($request)) {
+            abort(403, 'Security settings cannot be changed during impersonation.');
+        }
+    }
+
     /**
      * @return array<string, mixed>|null
      */

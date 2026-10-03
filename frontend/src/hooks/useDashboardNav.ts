@@ -48,6 +48,7 @@ export function useDashboardNav() {
   const roleAcl = bootstrapQ.data?.menu_acl
   const role = authQ.data?.role ?? ""
   const hidePortal = (STAFF_ROLES as readonly string[]).includes(role)
+  const siteType = bootstrapQ.data?.tenant?.site_type_slug ?? null
 
   const navSections: NavSection[] = useMemo(() => {
     const sections = buildAdminNav(activations)
@@ -56,6 +57,7 @@ export function useDashboardNav() {
     for (const sec of sections) {
       const items: NavMainItem[] = []
       for (const item of sec.items) {
+        if (item.moduleSlug === "coffee-profile" && siteType !== "coffee") continue
         if (hidePortal && isCustomerPortalUrl(item.url)) continue
         if (item.capability && !userHasCapability(capabilities, item.capability)) continue
         if (!menuAllowed(item.menuKey, roleAcl)) continue
@@ -96,7 +98,7 @@ export function useDashboardNav() {
     }
 
     return result
-  }, [activations, pathname, t, capabilities, roleAcl, hidePortal])
+  }, [activations, pathname, t, capabilities, roleAcl, hidePortal, siteType])
 
   return { navSections, activations, isLoading: isLoading || authQ.isLoading }
 }

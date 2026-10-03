@@ -10,6 +10,7 @@ use App\Services\Marketplace\MarketplaceLogger;
 use App\Services\Payments\BnplClient;
 use App\Services\Payments\DigipayClient;
 use App\Services\Payments\PaymentGatewaySettingsService;
+use App\Services\Orders\OrderStatusService;
 use App\Services\Shop\LoyaltyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class PaymentCallbackController extends Controller
         protected DigipayClient $digipay,
         protected BnplClient $bnpl,
         protected LoyaltyService $loyalty,
+        protected OrderStatusService $statuses,
     ) {}
 
     public function handle(Request $request, string $provider, Order $order): RedirectResponse
@@ -70,7 +72,7 @@ class PaymentCallbackController extends Controller
             ->first();
 
         if ($merchantId === '' || ! $authority || $status !== 'OK') {
-            $order->update(['status' => 'payment_failed']);
+            $this->markFailed($order);
 
             return $this->finish(false);
         }
@@ -94,8 +96,7 @@ class PaymentCallbackController extends Controller
         $code = (int) data_get($verify, 'data.code');
         if ($code === 100 || $code === 101) {
             $refId = data_get($verify, 'data.ref_id');
-            $order->update([
-                'status' => 'paid',
+            $this->markPaid($order, [
                 'payment_ref' => $refId !== null ? (string) $refId : null,
                 'payment_provider' => 'zarinpal',
             ]);
@@ -104,7 +105,7 @@ class PaymentCallbackController extends Controller
             return $this->finish(true, $order);
         }
 
-        $order->update(['status' => 'payment_failed']);
+        $this->markFailed($order);
 
         return $this->finish(false);
     }
@@ -124,7 +125,7 @@ class PaymentCallbackController extends Controller
         $providerId = (string) (data_get($intent?->meta, 'provider_id') ?: $order->id);
 
         if ($trackingCode === null || $trackingCode === '' || $token === null) {
-            $order->update(['status' => 'payment_failed']);
+            $this->markFailed($order);
 
             return $this->finish(false);
         }
@@ -142,8 +143,7 @@ class PaymentCallbackController extends Controller
             ->json();
 
         if ((int) data_get($verify, 'result.status') === 0) {
-            $order->update([
-                'status' => 'paid',
+            $this->markPaid($order, [
                 'payment_ref' => is_scalar($trackingCode) ? (string) $trackingCode : null,
                 'payment_provider' => 'digipay',
             ]);
@@ -152,7 +152,7 @@ class PaymentCallbackController extends Controller
             return $this->finish(true, $order);
         }
 
-        $order->update(['status' => 'payment_failed']);
+        $this->markFailed($order);
 
         return $this->finish(false);
     }
@@ -173,7 +173,7 @@ class PaymentCallbackController extends Controller
         );
 
         if (strtoupper($state) !== 'OK' || $paymentToken === '') {
-            $order->update(['status' => 'payment_failed']);
+            $this->markFailed($order);
 
             return $this->finish(false);
         }
@@ -182,7 +182,7 @@ class PaymentCallbackController extends Controller
             'paymentToken' => $paymentToken,
         ]);
         if (! $verify['ok']) {
-            $order->update(['status' => 'payment_failed']);
+            $this->markFailed($order);
 
             return $this->finish(false);
         }
@@ -193,20 +193,32 @@ class PaymentCallbackController extends Controller
                 'paymentToken' => $paymentToken,
             ]);
             if (! $settle['ok']) {
-                $order->update(['status' => 'payment_failed']);
+                $this->markFailed($order);
 
                 return $this->finish(false);
             }
         }
 
-        $order->update([
-            'status' => 'paid',
+        $this->markPaid($order, [
             'payment_ref' => $paymentToken,
             'payment_provider' => $provider,
         ]);
         $intent?->update(['status' => 'completed']);
 
         return $this->finish(true, $order);
+    }
+
+    /** @param  array<string, mixed>  $extra */
+    protected function markPaid(Order $order, array $extra): void
+    {
+        $this->statuses->apply($order, 'paid', array_merge($extra, [
+            'amount_paid_minor' => (int) $order->total_minor,
+        ]));
+    }
+
+    protected function markFailed(Order $order): void
+    {
+        $this->statuses->apply($order, 'payment_failed');
     }
 
     protected function finish(bool $ok, ?Order $order = null): RedirectResponse

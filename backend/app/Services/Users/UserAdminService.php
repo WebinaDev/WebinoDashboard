@@ -336,6 +336,7 @@ class UserAdminService
 
     public function resetPassword(Request $request, int $userId): User
     {
+        \App\Support\ImpersonationSession::blockSecurityChanges($request);
         $tid = $request->user()->tenant_id;
         $data = $request->validate([
             'password' => 'nullable|string|min:8',

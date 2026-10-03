@@ -37,12 +37,13 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
   const [description, setDescription] = useState("")
   const [seo, setSeo] = useState<{ title?: string; description?: string; focus_keyword?: string }>({})
   const [slugAuto, setSlugAuto] = useState(true)
+  const [status, setStatus] = useState("")
 
   const q = useQuery({
-    queryKey: ["magazine", "categories"],
+    queryKey: ["magazine", "categories", status],
     queryFn: () =>
       api<{ items: Cat[]; stats: { total: number; with_posts: number; empty: number } }>(
-        "/api/v1/magazine/categories",
+        `/api/v1/magazine/categories${status ? `?status=${status}` : ""}`,
       ),
   })
 
@@ -71,7 +72,7 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
   })
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/magazine/categories/${id}`, { method: "DELETE" }),
+    mutationFn: (id: number) => api(`/api/v1/magazine/categories/${id}${status === "trash" ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: () => {
       toast.success(tCommon("saved"))
       void qc.invalidateQueries({ queryKey: ["magazine", "categories"] })
@@ -83,7 +84,15 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
   const stats = q.data?.stats
 
   return (
-    <PageShell title={t("categories_title")} description={t("categories_subtitle")}>
+    <PageShell
+      title={t("categories_title")}
+      description={t("categories_subtitle")}
+      actions={
+        <Button type="button" variant={status === "trash" ? "default" : "outline"} onClick={() => setStatus((s) => (s === "trash" ? "" : "trash"))}>
+          {status === "trash" ? t("show_active") : t("show_trash")}
+        </Button>
+      }
+    >
       {stats ? (
         <ListStatsStrip
           className="mb-4"
@@ -160,9 +169,31 @@ export default function MagazineCategoriesPage(_props: { route: ResolvedAdminRou
                   {c.slug} · {c.count ?? 0}
                 </p>
               </div>
-              <Button type="button" size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteMut.mutateAsync(c.id) })}>
-                {t("delete")}
-              </Button>
+              <div className="flex gap-1">
+                {status === "trash" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      api(`/api/v1/magazine/categories/${c.id}/restore`, { method: "POST" }).then(() => {
+                        toast.success(tCommon("saved"))
+                        void qc.invalidateQueries({ queryKey: ["magazine", "categories"] })
+                      })
+                    }
+                  >
+                    {t("restore")}
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => confirm({ description: c.name, onConfirm: () => deleteMut.mutateAsync(c.id) })}
+                >
+                  {status === "trash" ? t("permanent_delete") : t("delete")}
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

@@ -51,6 +51,7 @@ class BootstrapController extends Controller
                     'domain' => $tenant->domain,
                     'branding' => $tenant->branding,
                     'default_currency' => $tenant->default_currency,
+                    'site_type_slug' => $tenant->site_type_slug,
                     'setup_completed' => (bool) $tenant->setup_completed,
                 ] : null,
                 'license' => [

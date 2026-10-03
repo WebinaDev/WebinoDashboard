@@ -149,6 +149,28 @@ class Product extends Model
         return $this->effectiveSalePriceMinor($variant, $at) ?? $this->regularPriceMinor($variant);
     }
 
+    /**
+     * Customer-facing unit price: sale window, otherwise a percent discount off the regular price.
+     */
+    public function storefrontPriceMinor(?ProductVariant $variant = null, ?CarbonInterface $at = null): int
+    {
+        if ($this->isOnSale($variant, $at)) {
+            return $this->effectivePriceMinor($variant, $at);
+        }
+        $regular = $this->regularPriceMinor($variant);
+        $percent = (int) $this->discount_percent;
+        if ($percent > 0 && $percent < 100) {
+            return (int) round($regular * (100 - $percent) / 100);
+        }
+
+        return $regular;
+    }
+
+    public function scopeStorefront(Builder $query): Builder
+    {
+        return $query->where('status', 'publish')->where('is_hidden', false);
+    }
+
     public function scopeSaleWindowOpen(Builder $query): Builder
     {
         $now = now();

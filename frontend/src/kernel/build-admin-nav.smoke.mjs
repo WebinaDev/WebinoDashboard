@@ -7,6 +7,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { LEGACY_DASHBOARD_REDIRECTS } from "./legacy-redirects.mjs"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../modules")
 
@@ -94,5 +95,10 @@ assert.equal(fs.existsSync(path.join(frontendRoot, "middleware.ts")), false)
 const middleware = fs.readFileSync(path.join(frontendRoot, "src/middleware.ts"), "utf8")
 assert.match(middleware, /Authorization = `Bearer \$\{token\}`/)
 assert.doesNotMatch(middleware, /Cookie: request\.headers\.get\("cookie"\)/)
+
+assert.equal(
+  LEGACY_DASHBOARD_REDIRECTS.some((row) => String(row.source).includes("/dashboard/account/tickets")),
+  false,
+)
 
 console.log("build-admin-nav.smoke.mjs OK")

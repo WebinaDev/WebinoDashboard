@@ -90,7 +90,7 @@ export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
       title={t("title")}
       description={t("subtitle")}
       actions={
-        <Button type="button" onClick={() => void sync.mutateAsync()} disabled={sync.isPending || q.isError}>
+        <Button type="button" onClick={() => void sync.mutateAsync()} disabled={sync.isPending}>
           {t("sync")}
         </Button>
       }

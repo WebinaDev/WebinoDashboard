@@ -29,6 +29,8 @@ class CheckoutController extends Controller
             'customer_phone' => ['nullable', 'string', 'max:32'],
             'customer_note' => ['nullable', 'string', 'max:500'],
             'coupon_code' => ['nullable', 'string', 'max:64'],
+            'coupon_password' => ['nullable', 'string', 'max:191'],
+            'payment_method' => ['nullable', 'string', 'in:wallet'],
             'channel' => ['nullable', 'string', 'in:site,bale,telegram'],
             'shipping_instance_id' => ['nullable', 'integer', 'min:1'],
             'shipping_state_code' => ['nullable', 'string', 'max:32'],
@@ -70,12 +72,17 @@ class CheckoutController extends Controller
             $subtotal = 0;
             $linePayload = [];
             $unitPrices = [];
-            $weightG = 0;
+            $weightG = \App\Services\Shipping\ShipmentWeight::cartGrams($lines);
             foreach ($lines as $line) {
-                $unit = $types->unitPrice($line->product, $purchaseType, $months);
+                $product = $line->product;
+                if (! $product || $product->status !== 'publish' || $product->is_hidden || ! $product->is_available || $product->is_sold_out) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'cart' => 'Cart contains a product that is not for sale.',
+                    ]);
+                }
+                $unit = $types->unitPrice($product, $purchaseType, $months);
                 $unitPrices[$line->id] = $unit;
                 $subtotal += $line->quantity * $unit;
-                $weightG += max(100, (int) $line->quantity * 200);
                 $linePayload[] = [
                     'product_id' => $line->product_id,
                     'unit_price_minor' => $unit,
@@ -95,7 +102,9 @@ class CheckoutController extends Controller
                     $subtotal,
                     $linePayload,
                     $user->id,
-                    $checkoutMeta['channel'] ?? 'site'
+                    $checkoutMeta['channel'] ?? 'site',
+                    [],
+                    $checkoutMeta['coupon_password'] ?? null
                 );
             } else {
                 $applied = $this->coupons->bestAutoApply(
@@ -166,6 +175,22 @@ class CheckoutController extends Controller
                 $shippingMinor = (int) $checkoutMeta['shipping_minor'];
             }
 
+            $methodId = (string) ($picked['method_id'] ?? '');
+            if ($picked && $methodId === 'tapin' && $weightG <= 0) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'shipping_minor' => 'Product weight is required for shipping.',
+                ]);
+            }
+            $freeRule = ! empty($applied['free_shipping'])
+                || (int) ($applied['shipping_percent'] ?? 0) >= 100
+                || in_array($methodId, ['free_shipping', 'local_pickup'], true)
+                || ($methodId === 'tapin' && $this->tapinShipments->freeByMinimum((int) $user->tenant_id, max(0, $subtotal - $discount)));
+            if ($picked && $shippingMinor <= 0 && ! $freeRule) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'shipping_minor' => 'Zero shipping is only allowed when a free-shipping rule applies.',
+                ]);
+            }
+
             if ($applied) {
                 $shippingBefore = $shippingMinor;
                 $shippingMinor = $this->coupons->shippingAfter($applied, $shippingMinor);
@@ -231,12 +256,20 @@ class CheckoutController extends Controller
             }
 
             if ($coupon) {
-                $this->coupons->redeem($coupon, $order, $discount, $user->id);
+                $this->coupons->hold($coupon, $order, $discount, $user->id);
+            }
+
+            if (($checkoutMeta['payment_method'] ?? null) === 'wallet') {
+                $order->payment_tender = 'wallet';
+                $order->payment_provider = 'wallet';
+                $order->status = 'paid';
+                $order->amount_paid_minor = (int) $order->total_minor;
+                $order->save();
             }
 
             CartItem::query()->where('cart_id', $cart->id)->delete();
 
-            return $order->load('items.product');
+            return $order->fresh()->load('items.product');
         });
 
         return response()->json(['data' => $order], 201);

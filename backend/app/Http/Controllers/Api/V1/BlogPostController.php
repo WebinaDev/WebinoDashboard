@@ -88,6 +88,9 @@ class BlogPostController extends Controller
         $tid = $request->user()->tenant_id;
         $row = BlogPost::query()->where('tenant_id', $tid)->findOrFail($post);
         $data = $this->validated($request, partial: true);
+        if (($data['status'] ?? null) === 'published') {
+            \App\Support\StatusTrash::guardPublish($row);
+        }
         if (($data['status'] ?? null) === 'published' && empty($data['published_at']) && ! $row->published_at) {
             $data['published_at'] = now();
         }

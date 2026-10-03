@@ -83,7 +83,7 @@ Artisan::command('pricing:bulk-price-schedule', function () {
         $running = \App\Models\BulkPriceJob::query()
             ->where('tenant_id', $row->tenant_id)
             ->where('locked', true)
-            ->where('updated_at', '>=', now()->subMinutes(15))
+            ->where('updated_at', '>=', now()->subMinutes(55))
             ->exists();
         if ($running) {
             return;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\C2cSetting;
 use App\Models\Order;
+use App\Services\Orders\OrderStatusService;
 use Illuminate\Http\Request;
 
 class C2cController extends Controller
@@ -87,21 +88,21 @@ class C2cController extends Controller
             'receipt_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
+        $statuses = app(OrderStatusService::class);
+        $stamp = [
+            'c2c_decided_by' => $request->user()->id,
+            'c2c_decided_at' => now(),
+        ];
         if ($data['action'] === 'approve') {
-            $row->update([
+            $statuses->apply($row, 'paid', array_merge($stamp, [
                 'c2c_status' => 'approved',
-                'c2c_decided_by' => $request->user()->id,
-                'c2c_decided_at' => now(),
                 'c2c_receipt_url' => $data['receipt_url'] ?? $row->c2c_receipt_url,
-                'status' => 'paid',
-            ]);
+                'amount_paid_minor' => (int) $row->total_minor,
+            ]));
         } else {
-            $row->update([
+            $statuses->apply($row, 'failed', array_merge($stamp, [
                 'c2c_status' => 'rejected',
-                'c2c_decided_by' => $request->user()->id,
-                'c2c_decided_at' => now(),
-                'status' => 'failed',
-            ]);
+            ]));
         }
 
         return response()->json(['data' => $row->fresh()]);

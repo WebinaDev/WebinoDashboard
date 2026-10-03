@@ -95,7 +95,8 @@ class MarketingBotsSmsApiTest extends TestCase
         $this->assertSame(1000, $order['discount_minor']);
         $this->assertSame(9000, $order['total_minor']);
         $this->assertSame('SAVE10', $order['coupon_code']);
-        $this->assertSame(1, Coupon::query()->find($created['id'])->usage_count);
+        $this->assertSame(0, Coupon::query()->find($created['id'])->usage_count);
+        $this->assertSame(1, \App\Models\CouponRedemption::query()->where('order_id', $order['id'])->count());
     }
 
     public function test_bot_settings_broadcast_start_stub(): void

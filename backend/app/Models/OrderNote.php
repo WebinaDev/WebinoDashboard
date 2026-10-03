@@ -13,12 +13,14 @@ class OrderNote extends Model
         'user_id',
         'body',
         'is_customer',
+        'meta',
     ];
 
     protected function casts(): array
     {
         return [
             'is_customer' => 'boolean',
+            'meta' => 'array',
         ];
     }
 

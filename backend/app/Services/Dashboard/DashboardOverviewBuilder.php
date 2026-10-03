@@ -435,15 +435,10 @@ final class DashboardOverviewBuilder
             ->locale($locale === 'fa' ? 'fa' : 'en')
             ->isoFormat('MMMM YYYY');
 
-        $activeStatuses = [
-            'paid', 'processing', 'sent-to-warehouse', 'webino-in-stock', 'webino-packaged',
-            'webino-courier', 'webino-post', 'webino-tipax', 'webino-ready-to-ship',
-            'webino-shipping', 'shipped', 'webino-need-review',
-        ];
         $recentOrders = Order::query()
             ->where('tenant_id', $tid)
             ->where('created_at', '>=', Carbon::createFromTimestamp($fromTs))
-            ->whereIn('status', $activeStatuses)
+            ->whereIn('status', $statuses)
             ->with(['user:id,name,email', 'items'])
             ->orderByDesc('id')
             ->limit(20)
