@@ -307,11 +307,11 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
 
   const bulk = useMutation({
     mutationFn: () =>
-      api("/api/v1/orders/bulk", {
+      api<{ skipped?: number[] }>("/api/v1/orders/bulk", {
         method: "POST",
         json: { ids: selected, action: "change_status", status: bulkStatus },
       }),
-    onSuccess: async (res: { skipped?: number[] }) => {
+    onSuccess: async (res) => {
       const skipped = res?.skipped ?? []
       setSelected([])
       await invalidateOrders()
@@ -322,7 +322,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
 
   const bulkEmail = useMutation({
     mutationFn: () =>
-      api("/api/v1/orders/bulk", {
+      api<{ skipped?: number[] }>("/api/v1/orders/bulk", {
         method: "POST",
         json: { ids: selected, action: "send_email", email_type: bulkEmailType },
       }),
@@ -335,7 +335,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
 
   const bulkTrash = useMutation({
     mutationFn: () =>
-      api("/api/v1/orders/bulk", {
+      api<{ skipped?: number[] }>("/api/v1/orders/bulk", {
         method: "POST",
         json: { ids: selected, action: "trash" },
       }),
@@ -348,7 +348,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
 
   const bulkDelete = useMutation({
     mutationFn: () =>
-      api("/api/v1/orders/bulk", {
+      api<{ skipped?: number[] }>("/api/v1/orders/bulk", {
         method: "POST",
         json: { ids: selected, action: "delete" },
       }),
