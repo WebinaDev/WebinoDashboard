@@ -1,14 +1,27 @@
 import Link from "next/link"
 
 import { PublishedDocument, activeThemeSlug } from "@/builder/public-document"
+import { ThemeSlot } from "@/builder/theme/ThemeSlot"
 import { ishopNotFoundDocument } from "@/builder/templates/ishop"
 import { getServerTranslations } from "@/lib/server-translations"
 
 export default async function SiteNotFound() {
   const theme = await activeThemeSlug()
   if (theme === "ecommerce-ishop") {
-    return <PublishedDocument document={ishopNotFoundDocument()} />
+    return (
+      <ThemeSlot kind="not_found" context={{ notFound: true }}>
+        <PublishedDocument document={ishopNotFoundDocument()} />
+      </ThemeSlot>
+    )
   }
+  return (
+    <ThemeSlot kind="not_found" context={{ notFound: true }}>
+      {await fallbackNotFound()}
+    </ThemeSlot>
+  )
+}
+
+async function fallbackNotFound() {
   const t = await getServerTranslations("common")
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-6">

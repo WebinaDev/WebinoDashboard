@@ -47,7 +47,7 @@ export async function loadSitePage(
     return mod.default as ComponentType<typeof props>
   }
   const mod = await import(
-    `../../modules/${route.moduleSlug}/site/${route.submodule}-page`
+    `../../modules/${route.moduleSlug}/site/${route.page ?? route.submodule}-page`
   )
   return mod.default as ComponentType<typeof props>
 }

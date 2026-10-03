@@ -1,10 +1,11 @@
 "use client"
 
+import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
 import { documentCss, mergeStyle, spanFor, styleToCss } from "../style"
 import type { ColumnNode, DeviceMode, EditorApi, BuilderDocument, RuntimeContext, SectionNode, WidgetNode } from "../types"
 import { DND_NODE, DND_WIDGET } from "../types"
-import { BuilderRuntimeProvider } from "./runtime"
+import { BuilderGlobalsProvider, BuilderRuntimeProvider } from "./runtime"
 import { WidgetBody } from "./widgets"
 
 import "../ishop.css"
@@ -16,6 +17,7 @@ type Props = {
   runtime?: RuntimeContext
   editor?: EditorApi
   themeClass?: string
+  globals?: BuilderGlobals
 }
 
 function importedCss(document: BuilderDocument): string {
@@ -23,20 +25,23 @@ function importedCss(document: BuilderDocument): string {
   return raw.replace(/<\/style/gi, "").replace(/<script/gi, "")
 }
 
-export function DocumentView({ document, mode = "view", device = "desktop", runtime, editor, themeClass }: Props) {
+export function DocumentView({ document, mode = "view", device = "desktop", runtime, editor, themeClass, globals }: Props) {
+  const activeGlobals = globals ?? DEFAULT_GLOBALS
   const nodeCss = mode === "view" ? documentCss(document) : ""
-  const css = [nodeCss, importedCss(document)].filter(Boolean).join("\n")
+  const css = [globalsCss(activeGlobals), nodeCss, importedCss(document)].filter(Boolean).join("\n")
   return (
-    <BuilderRuntimeProvider value={runtime ?? {}}>
-      <div className={themeClass} dir="rtl">
-        {css ? <style>{css}</style> : null}
-        <div className="flex flex-col gap-6">
-          {document.sections.map((section) => (
-            <SectionBlock key={section.id} section={section} device={device} editor={editor} />
-          ))}
+    <BuilderGlobalsProvider value={activeGlobals}>
+      <BuilderRuntimeProvider value={runtime ?? {}}>
+        <div className={`wb-canvas ${themeClass ?? ""}`} dir="rtl">
+          {css ? <style>{css}</style> : null}
+          <div className="wb-section-stack">
+            {document.sections.map((section) => (
+              <SectionBlock key={section.id} section={section} device={device} editor={editor} />
+            ))}
+          </div>
         </div>
-      </div>
-    </BuilderRuntimeProvider>
+      </BuilderRuntimeProvider>
+    </BuilderGlobalsProvider>
   )
 }
 
@@ -46,7 +51,7 @@ function SectionBlock({ section, device, editor }: { section: SectionNode; devic
   return (
     <section
       id={section.id}
-      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "mx-auto w-full max-w-6xl px-4"} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
+      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
       style={style}
       onClick={(event) => {
         if (!editor) return
@@ -55,10 +60,9 @@ function SectionBlock({ section, device, editor }: { section: SectionNode; devic
       }}
     >
       <div
-        className="grid items-start"
+        className="wb-columns grid items-start"
         style={{
           gridTemplateColumns: device === "mobile" ? "minmax(0,1fr)" : "repeat(12, minmax(0,1fr))",
-          gap: "1rem",
         }}
       >
         {section.columns.map((column) => (

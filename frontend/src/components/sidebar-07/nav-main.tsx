@@ -27,6 +27,7 @@ export type NavMainSubItem = {
   id?: string
   title: string
   url: string
+  icon?: LucideIcon
   items?: NavMainSubItem[]
 }
 
@@ -122,6 +123,7 @@ function NavSubMenu({
           <SidebarMenuSubItem key={id}>
             <SidebarMenuSubButton asChild isActive={subActive} size="md">
               <Link href={subItem.url} data-testid={subActive ? "nav-active" : undefined}>
+                {subItem.icon ? <subItem.icon className="size-3.5" aria-hidden /> : null}
                 <span>{subItem.title}</span>
               </Link>
             </SidebarMenuSubButton>

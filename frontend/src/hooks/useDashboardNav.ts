@@ -64,6 +64,7 @@ export function useDashboardNav() {
               id: child.url,
               title: t(child.titleKey.replace("nav.", "") as never),
               url: child.url,
+              icon: resolveNavIcon(child.url, child.titleKey),
             })) ?? undefined
 
         if (item.items?.length && (!nested || nested.length === 0)) continue

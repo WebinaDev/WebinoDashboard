@@ -1,7 +1,10 @@
-import { Suspense, type ReactNode } from "react"
+import { cache, Suspense, type ReactNode } from "react"
 
 import { apiServer } from "@/lib/api-server"
+import { asGlobals, type BuilderGlobals } from "./globals"
 import { DocumentView } from "./render/DocumentView"
+import { themeQueryString, type ThemeQuery } from "./theme/context"
+import { requestThemeContext } from "./theme/request"
 import { isDocument } from "./tree"
 import type { BuilderDocument, RuntimeContext } from "./types"
 
@@ -16,8 +19,17 @@ export function loadPublishedPage(slug: string): Promise<BuilderDocument | null>
 }
 
 export function loadPublishedTemplate(kind: "header" | "footer"): Promise<BuilderDocument | null> {
-  return readDocument(`/api/v1/public/builder/templates/${kind}`)
+  return loadResolvedTemplate(kind, { path: "/" })
 }
+
+export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | null> => {
+  const res = await apiServer<{ data?: { settings?: unknown } }>("/api/v1/public/builder/globals", { revalidate: 0 })
+  return res?.data?.settings ? asGlobals(res.data.settings) : null
+})
+
+export const loadResolvedTemplate = cache(async (kind: string, query: ThemeQuery): Promise<BuilderDocument | null> => {
+  return readDocument(`/api/v1/public/builder/resolve?${themeQueryString(kind, query)}`)
+})
 
 export async function activeThemeSlug(): Promise<string | null> {
   const res = await apiServer<{ data?: { active_theme_slug?: string | null } }>("/api/v1/public/tenant", {
@@ -30,14 +42,37 @@ export async function activeThemeSlug(): Promise<string | null> {
 export function PublishedDocument({
   document,
   runtime,
+  globals,
 }: {
   document: BuilderDocument
   runtime?: RuntimeContext
+  globals?: BuilderGlobals | null
 }) {
   return (
     <Suspense fallback={null}>
-      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} themeClass="ishop-store" />
+      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass="ishop-store" />
     </Suspense>
+  )
+}
+
+export async function StorefrontDocument({
+  document,
+  runtime,
+  context,
+}: {
+  document: BuilderDocument
+  runtime?: RuntimeContext
+  context?: ThemeQuery
+}) {
+  const globals = await loadPublishedGlobals()
+  const query = context ?? (await requestThemeContext())
+  const loop = runtime?.loopDocument ?? (await loadResolvedTemplate("loop_item", query))
+  return (
+    <PublishedDocument
+      document={document}
+      globals={globals}
+      runtime={{ ...runtime, loopDocument: loop ?? undefined }}
+    />
   )
 }
 
@@ -65,5 +100,5 @@ export async function StorefrontBody({
 }) {
   const document = await resolveStorefrontDocument(slug, fallback)
   if (!document) return empty ?? null
-  return <PublishedDocument document={document} runtime={runtime} />
+  return <StorefrontDocument document={document} runtime={runtime} />
 }

@@ -2,6 +2,9 @@ import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
 import { apiServer } from "@/lib/api-server"
+import { globalsCss } from "@/builder/globals"
+import { loadPublishedGlobals, loadResolvedTemplate, StorefrontDocument } from "@/builder/public-document"
+import { requestThemeContext } from "@/builder/theme/request"
 import { loadThemeComponents } from "@/kernel/theme-loader"
 import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
@@ -55,13 +58,30 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
 
   const theme = await loadThemeComponents(themeSlug)
   const { SiteHeader, SiteFooter } = theme
+  const themeContext = await requestThemeContext()
+  const [globals, header, footer] = await Promise.all([
+    loadPublishedGlobals(),
+    loadResolvedTemplate("header", themeContext),
+    loadResolvedTemplate("footer", themeContext),
+  ])
 
   return (
     <SiteBrandingShell branding={branding}>
-      <SiteHeader siteName={tenantName} branding={branding} />
-      <main className="flex-1">{children}</main>
-      <SiteFooter siteName={tenantName} />
-      <AnalyticsTrackerScript />
+        <div className={globals ? "wb-site flex min-h-svh flex-1 flex-col" : "flex min-h-svh flex-1 flex-col"}>
+        {globals ? <style>{globalsCss(globals)}</style> : null}
+        {header ? (
+          <StorefrontDocument document={header} runtime={{ siteName: tenantName, logoUrl: branding.logo_url }} context={themeContext} />
+        ) : (
+          <SiteHeader siteName={tenantName} branding={branding} />
+        )}
+        <main className="flex-1">{children}</main>
+        {footer ? (
+          <StorefrontDocument document={footer} runtime={{ siteName: tenantName }} context={themeContext} />
+        ) : (
+          <SiteFooter siteName={tenantName} />
+        )}
+        <AnalyticsTrackerScript />
+      </div>
     </SiteBrandingShell>
   )
 }

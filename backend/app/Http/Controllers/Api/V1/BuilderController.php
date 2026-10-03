@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\BuilderTemplate;
 use App\Models\CmsPage;
 use App\Models\Tenant;
+use App\Services\Builder\BuilderDocumentRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class BuilderController extends Controller
@@ -17,7 +19,13 @@ class BuilderController extends Controller
         $tid = (int) $request->user()->tenant_id;
         $tenant = Tenant::query()->findOrFail($tid);
         $pages = CmsPage::query()->where('tenant_id', $tid)->orderBy('title')->get();
-        $templates = BuilderTemplate::query()->where('tenant_id', $tid)->get()->keyBy('kind');
+        $templates = BuilderTemplate::query()
+            ->where('tenant_id', $tid)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get()
+            ->unique('kind')
+            ->keyBy('kind');
 
         return response()->json([
             'data' => [
@@ -116,10 +124,7 @@ class BuilderController extends Controller
     public function showTemplate(Request $request, string $kind): JsonResponse
     {
         $kind = $this->kind($kind);
-        $row = BuilderTemplate::query()
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->where('kind', $kind)
-            ->first();
+        $row = BuilderTemplate::preferred((int) $request->user()->tenant_id, $kind);
 
         return response()->json(['data' => [
             'kind' => $kind,
@@ -136,13 +141,23 @@ class BuilderController extends Controller
             'title' => 'nullable|string|max:255',
             'document' => 'required|array',
         ]);
-        $row = BuilderTemplate::query()->updateOrCreate(
-            ['tenant_id' => $request->user()->tenant_id, 'kind' => $kind],
-            [
-                'title' => $data['title'] ?? null,
-                'draft' => $this->document($data['document']),
-            ],
-        );
+        $tid = (int) $request->user()->tenant_id;
+        $row = BuilderTemplate::preferred($tid, $kind) ?? new BuilderTemplate([
+            'tenant_id' => $tid,
+            'kind' => $kind,
+            'slug' => $kind,
+            'is_default' => true,
+            'priority' => 0,
+        ]);
+        $row->title = $data['title'] ?? $row->title;
+        $row->draft = $this->document($data['document']);
+        if (! $row->slug) {
+            $row->slug = $kind;
+        }
+        $row->save();
+        if (! $row->is_default) {
+            $this->promoteDefault($row);
+        }
 
         return response()->json(['data' => [
             'kind' => $row->kind,
@@ -155,10 +170,8 @@ class BuilderController extends Controller
     public function publishTemplate(Request $request, string $kind): JsonResponse
     {
         $kind = $this->kind($kind);
-        $row = BuilderTemplate::query()
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->where('kind', $kind)
-            ->firstOrFail();
+        $row = BuilderTemplate::preferred((int) $request->user()->tenant_id, $kind);
+        abort_unless($row, 404);
         abort_if(! is_array($row->draft), 422, 'draft missing');
         $row->published = $row->draft;
         $row->save();
@@ -197,17 +210,20 @@ class BuilderController extends Controller
     /** @param  array<string, mixed>|null  $document */
     private function document(?array $document): array
     {
-        $document ??= ['version' => 1, 'sections' => []];
-        $json = json_encode($document);
-        abort_if($json === false || strlen($json) > 750000, 422, 'document too large');
-        if (! isset($document['version'])) {
-            $document['version'] = 1;
-        }
-        if (! isset($document['sections']) || ! is_array($document['sections'])) {
-            $document['sections'] = [];
-        }
+        return BuilderDocumentRules::normalize($document);
+    }
 
-        return $document;
+    private function promoteDefault(BuilderTemplate $row): void
+    {
+        DB::transaction(function () use ($row) {
+            BuilderTemplate::query()
+                ->where('tenant_id', $row->tenant_id)
+                ->where('kind', $row->kind)
+                ->where('id', '!=', $row->id)
+                ->update(['is_default' => false]);
+            $row->is_default = true;
+            $row->save();
+        });
     }
 
     /** @return array<string, mixed> */

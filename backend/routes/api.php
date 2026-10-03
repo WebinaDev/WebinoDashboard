@@ -32,8 +32,10 @@ use App\Http\Controllers\Api\V1\PublicGuestCartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\BuilderController;
+use App\Http\Controllers\Api\V1\BuilderGlobalsController;
 use App\Http\Controllers\Api\V1\CmsController;
 use App\Http\Controllers\Api\V1\PublicBuilderController;
+use App\Http\Controllers\Api\V1\ThemeBuilderController;
 use App\Http\Controllers\Api\V1\WordpressImportController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\KernelController;
@@ -219,6 +221,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/pages/{slug}', [PublicCmsController::class, 'page']);
             Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
             Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
+            Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve']);
+            Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow']);
         });
 
         Route::middleware('public.module:consultations')->group(function () {
@@ -723,6 +727,18 @@ Route::prefix('v1')->group(function () {
                 Route::get('/builder/templates/{kind}', [BuilderController::class, 'showTemplate']);
                 Route::put('/builder/templates/{kind}', [BuilderController::class, 'saveTemplate']);
                 Route::post('/builder/templates/{kind}/publish', [BuilderController::class, 'publishTemplate']);
+                Route::get('/builder/globals', [BuilderGlobalsController::class, 'show']);
+                Route::put('/builder/globals', [BuilderGlobalsController::class, 'update']);
+                Route::post('/builder/globals/publish', [BuilderGlobalsController::class, 'publish']);
+                Route::get('/theme-builder', [ThemeBuilderController::class, 'index']);
+                Route::get('/theme-builder/library', [ThemeBuilderController::class, 'library']);
+                Route::post('/theme-builder/library/apply', [ThemeBuilderController::class, 'apply']);
+                Route::post('/theme-builder/templates', [ThemeBuilderController::class, 'store']);
+                Route::get('/theme-builder/templates/{template}', [ThemeBuilderController::class, 'show'])->whereNumber('template');
+                Route::patch('/theme-builder/templates/{template}', [ThemeBuilderController::class, 'update'])->whereNumber('template');
+                Route::post('/theme-builder/templates/{template}/publish', [ThemeBuilderController::class, 'publish'])->whereNumber('template');
+                Route::post('/theme-builder/templates/{template}/default', [ThemeBuilderController::class, 'makeDefault'])->whereNumber('template');
+                Route::delete('/theme-builder/templates/{template}', [ThemeBuilderController::class, 'destroy'])->whereNumber('template');
                 Route::post('/import/wordpress/ping', [WordpressImportController::class, 'ping']);
                 Route::post('/import/wordpress/probe', [WordpressImportController::class, 'probe']);
                 Route::post('/import/wordpress/start', [WordpressImportController::class, 'start']);

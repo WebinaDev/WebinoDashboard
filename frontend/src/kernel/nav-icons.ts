@@ -61,6 +61,8 @@ const PATH_ICONS: Record<string, LucideIcon> = {
   media: Images,
   pages: FileText,
   builder: LayoutTemplate,
+  "theme-builder": Palette,
+  "builder/settings": Settings,
   "import/wordpress": FileText,
   cms: FileText,
   blog: BookOpen,
@@ -99,6 +101,8 @@ const PATH_ICONS: Record<string, LucideIcon> = {
 }
 
 const GROUP_ICONS: Record<string, LucideIcon> = {
+  "nav.group_theme_builder": Palette,
+  group_theme_builder: Palette,
   "nav.group_shop": ShoppingBag,
   "nav.group_magazine": Newspaper,
   "nav.group_bots": Bot,

@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
 use App\Http\Controllers\Controller;
-use App\Models\BuilderTemplate;
 use App\Models\CmsPage;
+use App\Services\Builder\ThemeRequestContext;
+use App\Services\Builder\ThemeTemplateKinds;
+use App\Services\Builder\ThemeTemplateResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,19 +37,35 @@ class PublicBuilderController extends Controller
 
     public function template(Request $request, string $kind): JsonResponse
     {
-        abort_unless(in_array($kind, ['header', 'footer'], true), 404);
-        $tid = $this->publicTenantId($request);
-        $row = BuilderTemplate::query()
-            ->where('tenant_id', $tid)
-            ->where('kind', $kind)
-            ->first();
+        return $this->resolved($request, $kind, new ThemeRequestContext);
+    }
 
+    public function resolve(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'kind' => 'required|string|max:32',
+            'path' => 'nullable|string|max:500',
+            'singular' => 'nullable|string|max:32',
+            'archive' => 'nullable|string|max:32',
+            'search' => 'nullable|boolean',
+            'not_found' => 'nullable|boolean',
+        ]);
+
+        return $this->resolved($request, $data['kind'], ThemeRequestContext::fromArray($data));
+    }
+
+    private function resolved(Request $request, string $kind, ThemeRequestContext $context): JsonResponse
+    {
+        abort_unless(ThemeTemplateKinds::is($kind), 404);
+        $row = app(ThemeTemplateResolver::class)->resolve($this->publicTenantId($request), $kind, $context);
         abort_unless($row && is_array($row->published), 404);
 
         return response()->json([
             'data' => [
+                'id' => $row->id,
                 'kind' => $row->kind,
                 'title' => $row->title,
+                'is_default' => (bool) $row->is_default,
                 'document' => $row->published,
             ],
         ]);
