@@ -328,11 +328,11 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const needle = widgetQuery.trim()
 
   if (loading) {
-    return <div className="grid h-svh place-items-center text-sm text-[#0C2D63]">{t("loading")}</div>
+    return <div className="grid h-svh max-h-full min-h-0 place-items-center text-sm text-[#0C2D63]">{t("loading")}</div>
   }
 
   return (
-    <div className="flex h-svh flex-col bg-[#101820] text-[#0C2D63]">
+    <div className="flex h-svh max-h-full min-h-0 flex-col bg-[#101820] text-[#0C2D63]">
       <header className="flex h-14 items-center gap-2 border-b border-white/10 px-3 text-white">
         <Link href={backHref} className="rounded-md px-2 py-1 text-xs text-white/70 hover:bg-white/10">{t("back")}</Link>
         <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-8 w-44 rounded-md bg-white/10 px-2 text-sm outline-none" aria-label={t("title")} />

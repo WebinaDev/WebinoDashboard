@@ -8,6 +8,8 @@ use App\Models\DashboardModule;
 use App\Models\Tenant;
 use App\Models\TenantModule;
 use App\Models\User;
+use App\Support\ImpersonationNextPath;
+use App\Support\ImpersonationPayload;
 use App\Services\Modules\ModuleGitInstaller;
 use App\Services\Provision\ProvisionContentSeeder;
 use App\Services\Webino\WebinoLicenseClient;
@@ -240,6 +242,8 @@ class ProvisionController extends Controller
 
         $data = $request->validate([
             'user_id' => ['nullable', 'integer', 'min:1'],
+            'next' => ['nullable', 'string', 'max:200'],
+            'impersonation' => ['nullable', 'array'],
         ]);
 
         $tenant = Tenant::query()->firstOrFail();
@@ -261,17 +265,23 @@ class ProvisionController extends Controller
             return response()->json(['message' => __('api.unauthorized')], 422);
         }
 
+        $impersonation = is_array($data['impersonation'] ?? null)
+            ? ImpersonationPayload::sanitize($data['impersonation'])
+            : null;
+        $next = ImpersonationNextPath::normalize($data['next'] ?? null);
+
         $token = Str::random(64);
         Cache::put('panel_login:'.$token, [
             'user_id' => $user->id,
             'tenant_id' => $tenant->id,
+            'impersonation' => $impersonation,
         ], now()->addMinutes(5));
 
         $domain = is_string($tenant->domain) ? trim($tenant->domain) : '';
         $base = $domain !== ''
             ? 'https://'.preg_replace('#^https?://#i', '', $domain)
             : rtrim((string) config('app.url'), '/');
-        $loginUrl = $base.'/login?panel_token='.urlencode($token);
+        $loginUrl = $base.'/login?panel_token='.urlencode($token).'&next='.urlencode($next);
 
         return response()->json([
             'data' => [

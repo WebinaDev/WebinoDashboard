@@ -1,4 +1,26 @@
 {
+  "impersonation": {
+    "label": "Staff impersonation bar",
+    "banner": "You are {staff} logged into site {site} as {customer}",
+    "expires": "About {minutes} minutes left in this session",
+    "sites": "Sites",
+    "current": "Current",
+    "dashboard": "Dashboard",
+    "builder": "Page builder",
+    "theme_builder": "Theme builder",
+    "pages": "Pages",
+    "pages_here": "Pages on this site",
+    "pages_other_sites": "Page builder on other sites",
+    "templates": "Templates",
+    "templates_here": "Templates on this site",
+    "templates_other_sites": "Theme builder on other sites",
+    "exit": "Exit impersonation",
+    "exit_confirm": "Leave this site and return to the ERP?",
+    "no_sites": "No other sites are available.",
+    "no_pages": "No pages.",
+    "loading": "Loading…",
+    "switch_failed": "Could not switch sites."
+  },
   "common": {
     "appName": "Webino Dashboard",
     "loading": "Loading…",

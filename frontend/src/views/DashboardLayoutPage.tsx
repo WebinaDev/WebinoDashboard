@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { CloseMobileSidebarOnNavigate } from "@/components/CloseMobileSidebarOnNavigate"
+import { ImpersonationBar } from "@/components/ImpersonationBar"
 import { DashboardPrefetch } from "@/components/DashboardPrefetch"
 import { LicenseGate } from "@/components/LicenseGate"
 import { NotificationBell } from "@/components/NotificationBell"
@@ -188,14 +189,19 @@ export default function DashboardLayoutPage({
   const builderEditor = /\/builder\/.+/.test(pathname)
   if (builderEditor) {
     return (
-      <div className="h-svh overflow-hidden bg-[#e8eef5]">
-        <LicenseGate>{children}</LicenseGate>
+      <div className="flex h-svh flex-col overflow-hidden bg-[#e8eef5]">
+        <ImpersonationBar />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <LicenseGate>{children}</LicenseGate>
+        </div>
       </div>
     )
   }
 
   return (
-    <SidebarProvider>
+    <div className="flex min-h-svh flex-col">
+      <ImpersonationBar />
+      <SidebarProvider className="min-h-0 w-full flex-1">
       {pwaBootstrap.enabled ? (
         <>
           <DashboardPwaHead pwa={pwaBootstrap} />
@@ -341,6 +347,7 @@ export default function DashboardLayoutPage({
           <p className="text-center md:text-start">{tenantLabel}</p>
         </footer>
       </SidebarInset>
-    </SidebarProvider>
+      </SidebarProvider>
+    </div>
   )
 }

@@ -1,4 +1,26 @@
 {
+  "impersonation": {
+    "label": "نوار جانشینی کارکنان",
+    "banner": "شما {staff} هستید و در سایت {site} به‌عنوان {customer} وارد شده‌اید",
+    "expires": "حدود {minutes} دقیقه تا پایان این نشست",
+    "sites": "سایت‌ها",
+    "current": "فعلی",
+    "dashboard": "داشبورد",
+    "builder": "صفحه‌ساز",
+    "theme_builder": "قالب‌ساز",
+    "pages": "صفحات",
+    "pages_here": "صفحات همین سایت",
+    "pages_other_sites": "صفحه‌ساز سایت‌های دیگر",
+    "templates": "قالب‌ها",
+    "templates_here": "قالب‌های همین سایت",
+    "templates_other_sites": "قالب‌ساز سایت‌های دیگر",
+    "exit": "خروج از جانشینی",
+    "exit_confirm": "از این سایت خارج شوید و به ERP برگردید؟",
+    "no_sites": "سایت دیگری در دسترس نیست.",
+    "no_pages": "صفحه‌ای نیست.",
+    "loading": "در حال بارگذاری…",
+    "switch_failed": "جابه‌جایی انجام نشد."
+  },
   "common": {
     "appName": "پنل وبینو",
     "loading": "در حال بارگذاری…",

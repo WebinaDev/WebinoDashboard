@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\ImpersonationSession;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,7 +12,7 @@ class RequirePasswordChange
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (! $user || ! $user->password_must_change) {
+        if (! $user || ! $user->password_must_change || ImpersonationSession::active($request)) {
             return $next($request);
         }
 
@@ -22,6 +23,8 @@ class RequirePasswordChange
             'api/v1/auth/user',
             'api/v1/auth/gate',
             'api/v1/auth/refresh',
+            'api/v1/auth/impersonation/exit',
+            'api/v1/auth/impersonation/switch',
             'api/v1/setup/status',
             'api/v1/setup/apply-site-type',
             'api/v1/setup/store',
@@ -34,6 +37,8 @@ class RequirePasswordChange
             'v1/auth/user',
             'v1/auth/gate',
             'v1/auth/refresh',
+            'v1/auth/impersonation/exit',
+            'v1/auth/impersonation/switch',
             'v1/setup/status',
             'v1/setup/apply-site-type',
             'v1/setup/store',

@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label"
 type LoginResult = {
   password_must_change?: boolean
   setup_completed?: boolean
+  impersonation?: { staff_name?: string } | null
   user?: { tenant?: { setup_completed?: boolean; name?: string; branding?: { logo_url?: string } } }
   data?: LoginResult
 }
@@ -40,6 +41,10 @@ function unwrapLogin(result: LoginResult): LoginResult {
 
 function redirectAfterLogin(result: LoginResult, next: string | null) {
   const body = unwrapLogin(result)
+  if (body.impersonation) {
+    window.location.assign(next ?? "/dashboard")
+    return
+  }
   if (body.password_must_change) {
     window.location.assign("/account/change-password")
     return

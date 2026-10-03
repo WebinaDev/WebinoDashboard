@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Services\Security\LoginAttemptService;
 use App\Services\Tenant\TenantResolver;
 use App\Support\AuthCookie;
+use App\Support\ImpersonationPayload;
+use App\Support\ImpersonationSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -116,15 +118,20 @@ class AuthController extends Controller
             return response()->json(['message' => __('api.unauthorized')], 401);
         }
 
-        $token = $user->createToken('spa-panel')->plainTextToken;
+        $context = is_array($payload['impersonation'] ?? null) ? $payload['impersonation'] : null;
+        $issued = $user->createToken($context ? 'spa-impersonation' : 'spa-panel', ['*']);
+        if ($context) {
+            ImpersonationSession::store((int) $issued->accessToken->id, $context);
+        }
 
         $response = response()->json([
             'user' => $user,
-            'password_must_change' => (bool) $user->password_must_change,
-            'setup_completed' => (bool) ($user->tenant?->setup_completed ?? true),
+            'password_must_change' => $context ? false : (bool) $user->password_must_change,
+            'setup_completed' => $context ? true : (bool) ($user->tenant?->setup_completed ?? true),
+            'impersonation' => $context ? ImpersonationPayload::publish($context) : null,
         ]);
 
-        return AuthCookie::attach($response, $token, $request);
+        return AuthCookie::attach($response, $issued->plainTextToken, $request);
     }
 
     public function refresh(Request $request): \Illuminate\Http\JsonResponse
@@ -134,16 +141,20 @@ class AuthController extends Controller
             return response()->json(['message' => __('api.unauthorized')], 401);
         }
 
+        $carried = ImpersonationSession::pull($request);
         $request->user()?->currentAccessToken()?->delete();
 
-        $token = $user->createToken('spa')->plainTextToken;
+        $token = $user->createToken($carried ? 'spa-impersonation' : 'spa', ['*']);
+        if ($carried) {
+            ImpersonationSession::store((int) $token->accessToken->id, $carried);
+        }
 
         $response = response()->json([
             'user' => $user->load('tenant'),
             'refreshed' => true,
         ]);
 
-        return AuthCookie::attach($response, $token, $request);
+        return AuthCookie::attach($response, $token->plainTextToken, $request);
     }
 
     public function gate(Request $request): \Illuminate\Http\JsonResponse
@@ -214,16 +225,40 @@ class AuthController extends Controller
     {
         $cookieName = config('auth.cookie_name', 'webino_auth_token');
         $cookieToken = $request->cookie($cookieName);
+        $tokens = [];
         if (is_string($cookieToken) && $cookieToken !== '') {
-            PersonalAccessToken::findToken($cookieToken)?->delete();
+            $found = PersonalAccessToken::findToken($cookieToken);
+            if ($found) {
+                $tokens[] = $found;
+            }
         }
 
         $bearer = $request->bearerToken();
         if (is_string($bearer) && $bearer !== '') {
-            PersonalAccessToken::findToken($bearer)?->delete();
+            $found = PersonalAccessToken::findToken($bearer);
+            if ($found) {
+                $tokens[] = $found;
+            }
         }
 
-        $request->user()?->currentAccessToken()?->delete();
+        $current = $request->user()?->currentAccessToken();
+        if ($current instanceof PersonalAccessToken) {
+            $tokens[] = $current;
+        }
+
+        $seen = [];
+        foreach ($tokens as $token) {
+            if (isset($seen[$token->id])) {
+                continue;
+            }
+            $seen[$token->id] = true;
+            $stored = ImpersonationSession::forTokenId((int) $token->id);
+            if (is_array($stored)) {
+                ImpersonationSession::revokeRemote($stored);
+                ImpersonationSession::forgetTokenId((int) $token->id);
+            }
+            $token->delete();
+        }
 
         return AuthCookie::clear(response()->json(['message' => __('api.logged_out')]), $request);
     }
@@ -233,6 +268,10 @@ class AuthController extends Controller
         $user = $request->user()->load('tenant');
         $payload = $user->toArray();
         $payload['capabilities'] = app(\App\Support\CapabilityChecker::class)->capabilitiesForUser($user);
+        $impersonation = ImpersonationSession::publishFor($request);
+        if ($impersonation) {
+            $payload['impersonation'] = $impersonation;
+        }
 
         return response()->json($payload);
     }

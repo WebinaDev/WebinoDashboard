@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\Security\SecuritySettings;
+use App\Support\ImpersonationSession;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +17,7 @@ class RequireTwoFactor
         }
 
         $user = $request->user();
-        if (! $user) {
+        if (! $user || ImpersonationSession::active($request)) {
             return $next($request);
         }
 
@@ -39,6 +40,8 @@ class RequireTwoFactor
                 'api/v1/auth/check',
                 'api/v1/auth/user',
                 'api/v1/auth/refresh',
+                'api/v1/auth/impersonation/exit',
+                'v1/auth/impersonation/exit',
             ];
             if (! in_array($request->path(), $allowed, true)) {
                 return response()->json([
