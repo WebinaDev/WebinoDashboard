@@ -155,6 +155,9 @@ export function PaymentHubPanel() {
 
   return (
     <div className="space-y-6">
+      <Button variant="outline" size="sm" asChild>
+        <Link href="/dashboard/settings/shop/gateways">{t("open_commerce_gateways")}</Link>
+      </Button>
       <div className="bg-background/60 space-y-4 rounded-xl border px-3 py-3">
         <div className="flex items-center gap-3">
           <Switch

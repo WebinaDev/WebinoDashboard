@@ -56,6 +56,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
 use App\Http\Controllers\Api\V1\PaymentGatewaySettingsController;
 use App\Http\Controllers\Api\V1\PaymentIntentController;
+use App\Http\Controllers\Api\V1\TenantBillingController;
 use App\Http\Controllers\Api\V1\PaymentsHubController;
 use App\Http\Controllers\Api\V1\PortfolioItemController;
 use App\Http\Controllers\Api\V1\BrandController;
@@ -292,6 +293,7 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('module:checkout')->group(function () {
             Route::post('/checkout', [CheckoutController::class, 'store']);
+            Route::get('/payments/checkout-options', [PaymentIntentController::class, 'options']);
             Route::post('/payments/intent', [PaymentIntentController::class, 'store']);
         });
 
@@ -646,6 +648,10 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware('can:settings.manage,commerce.*,accounting.manage')->group(function () {
+            Route::get('/billing/outstanding', [TenantBillingController::class, 'outstanding']);
+            Route::post('/billing/payments', [TenantBillingController::class, 'store']);
+            Route::get('/billing/payments/{payment}', [TenantBillingController::class, 'show'])->whereNumber('payment');
+
             Route::get('/payments/hub', [PaymentsHubController::class, 'show']);
             Route::post('/payments/hub', [PaymentsHubController::class, 'update']);
             Route::post('/payments/hub/{gateway}/toggle', [PaymentsHubController::class, 'toggle']);

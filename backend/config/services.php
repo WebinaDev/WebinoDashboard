@@ -47,6 +47,10 @@ return [
         'provision_hmac_secret' => env('WEBINO_PROVISION_HMAC_SECRET'),
         'basalam_oauth_base' => env('WEBINO_BASALAM_OAUTH_BASE'),
         'erp_api_token' => env('WEBINO_ERP_API_TOKEN'),
+        // live: always call ERP. stub: local contract fixture. auto: live when token + base URL exist.
+        'billing_mode' => env('WEBINO_ERP_BILLING_MODE', 'auto'),
+        // Stub only. When true, a later status read flips pending to paid on the server.
+        'billing_stub_autopay' => filter_var(env('WEBINO_ERP_BILLING_STUB_AUTOPAY', false), FILTER_VALIDATE_BOOLEAN),
     ],
 
     'zarinpal' => [
