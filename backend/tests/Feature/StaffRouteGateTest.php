@@ -40,6 +40,7 @@ class StaffRouteGateTest extends TestCase
         'api/v1/cart/purchase-type',
         'api/v1/cart/items/{product}',
         'api/v1/checkout',
+        'api/v1/payments/checkout-options',
         'api/v1/payments/intent',
     ];
 
