@@ -1,8 +1,80 @@
 .ishop-store {
-  background: #f5f8fb;
-  color: #0c2d63;
+  background: var(--color-background);
+  color: var(--color-foreground);
 }
 
 body:has(.ishop-store) {
-  background: #f5f8fb;
+  background: var(--color-background);
+}
+
+.sf-card {
+  background: var(--color-card);
+  color: var(--color-card-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.sf-muted {
+  background: var(--color-muted);
+  color: var(--color-foreground);
+}
+
+.sf-field {
+  height: 2.75rem;
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid var(--color-input);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  padding-inline: 0.85rem;
+  font-size: 0.875rem;
+}
+
+.sf-field:focus {
+  outline: 2px solid color-mix(in oklch, var(--color-ring) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.sf-sale {
+  background: var(--color-destructive);
+  color: var(--color-destructive-foreground);
+}
+
+.sf-hero {
+  background: linear-gradient(
+    120deg,
+    var(--color-primary),
+    color-mix(in oklch, var(--color-primary) 42%, var(--color-accent))
+  );
+  color: var(--color-primary-foreground);
+}
+
+.sf-pdp {
+  padding-bottom: 5.5rem;
+}
+
+.sf-sticky-cta {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: color-mix(in oklch, var(--color-card) 92%, transparent);
+  border-top: 1px solid var(--color-border);
+  backdrop-filter: blur(12px);
+}
+
+@media (min-width: 768px) {
+  .sf-pdp {
+    padding-bottom: 0;
+  }
+
+  .sf-sticky-cta {
+    display: none;
+  }
 }

@@ -10,6 +10,7 @@ return [
     'logged_out' => 'خروج انجام شد',
     'invalid_provision_token' => 'توکن پروویژن نامعتبر است.',
     'cart_empty' => 'سبد خرید خالی است',
+    'insufficient_stock' => 'موجودی این کالا کافی نیست',
     'banner_limit' => 'حداکثر ۳ بنر مجاز است',
     'event_full' => 'ظرفیت رویداد تکمیل شده است',
     'module_not_licensed' => 'ماژول لایسنس ندارد. ابتدا لایسنس CRM را همگام‌سازی کنید.',

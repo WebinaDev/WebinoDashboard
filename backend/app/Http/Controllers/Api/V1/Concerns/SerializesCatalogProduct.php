@@ -35,6 +35,9 @@ trait SerializesCatalogProduct
             'spice_level' => $product->spice_level,
             'menu_id' => $product->menu_id,
             'category' => $product->category,
+            'brands' => $product->relationLoaded('brands')
+                ? $product->brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'slug' => $b->slug])->values()
+                : [],
             'variants' => $product->variants,
             'media' => $product->relationLoaded('media') ? $product->media : [],
             'allergens' => $product->relationLoaded('allergens') ? $product->allergens : [],

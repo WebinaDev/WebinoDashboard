@@ -288,6 +288,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/cart', [CartController::class, 'show']);
             Route::post('/cart/items', [CartController::class, 'addItem']);
             Route::put('/cart/purchase-type', [CartController::class, 'setPurchaseType']);
+            Route::put('/cart/items/{product}', [CartController::class, 'setQuantity']);
             Route::delete('/cart/items/{product}', [CartController::class, 'removeItem']);
         });
 
