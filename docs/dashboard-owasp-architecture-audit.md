@@ -1,5 +1,8 @@
 # WebinoDashboard — OWASP + Architecture Audit
 
+> **r2:** open items after `2f6eba5` are in [`dashboard-owasp-architecture-audit-r2.md`](dashboard-owasp-architecture-audit-r2.md) (2026-10-03). This file stays the r1 record. The Fixed rows here were re-checked and still hold unless r2 says otherwise.
+
+
 **Scope:** local repo `/mnt/Mine/Projects/Webina/Webina/Plugins/Webina/WebinoDashboard`  
 **Base HEAD audited:** `33de06a320b0605aeb7e211d48f45dce1ae361c6` (`merge: land Iranian payment gateways onto reaudit main`)  
 **Prior reaudit:** `docs/dashboard-full-reaudit.md` (all C/H/M/L marked Fixed there)  
