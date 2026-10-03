@@ -10,6 +10,7 @@ return [
     'logged_out' => 'Logged out',
     'invalid_provision_token' => 'Invalid provision token.',
     'cart_empty' => 'Cart empty',
+    'insufficient_stock' => 'Not enough stock for this product',
     'banner_limit' => 'Maximum 3 banners allowed',
     'event_full' => 'Event is fully booked',
     'module_not_licensed' => 'Module not licensed. Sync CRM license first.',

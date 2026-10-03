@@ -42,6 +42,7 @@ class PublicCatalogController extends Controller
             ->storefront()
             ->with([
                 'category',
+                'brands' => fn ($q) => $q->select('brands.id', 'brands.name', 'brands.slug'),
                 'variants' => fn ($q) => $q->orderBy('sort_order'),
                 'media' => fn ($q) => $q->orderBy('sort_order'),
                 'allergens',
@@ -69,7 +70,7 @@ class PublicCatalogController extends Controller
         $generalSettings = ShopSettings::getGeneral($tid);
         $archive = ShopSettings::getArchive($tid);
 
-        if (! empty($productsSettings['hide_out_of_stock']) || $request->boolean('in_stock') || ($request->boolean('filter_in_stock') && ! empty($archive['filter_in_stock']))) {
+        if (! $request->boolean('show_unavailable') && (! empty($productsSettings['hide_out_of_stock']) || $request->boolean('in_stock') || ($request->boolean('filter_in_stock') && ! empty($archive['filter_in_stock'])))) {
             $productsQuery->where(function ($builder) {
                 $builder->whereNull('stock_status')
                     ->orWhere('stock_status', '!=', 'outofstock');
@@ -96,12 +97,18 @@ class PublicCatalogController extends Controller
             $productsQuery->whereHas('category', fn ($q) => $q->where('slug', $cat)->orWhere('id', $cat));
         }
 
+        if ($request->filled('brand')) {
+            $brand = trim((string) $request->query('brand'));
+            $productsQuery->whereHas('brands', fn ($q) => $q->where('slug', $brand)->orWhere('id', $brand));
+        }
+
         $sort = (string) $request->query('sort', $archive['default_sort'] ?? 'newest');
         $productsQuery->reorder();
         match ($sort) {
             'price_asc' => $productsQuery->orderBy('price_minor'),
             'price_desc' => $productsQuery->orderByDesc('price_minor'),
             'popular' => $productsQuery->orderByDesc('views_count'),
+            'menu' => $productsQuery->orderBy('sort_order')->orderBy('name'),
             default => $productsQuery->orderByDesc('id'),
         };
 
@@ -128,7 +135,7 @@ class PublicCatalogController extends Controller
             ->where('tenant_id', $tid)
             ->where('is_active', true)
             ->orderBy('sort_order')
-            ->get(['id', 'name', 'slug', 'menu_type', 'locale']);
+            ->get(['id', 'name', 'slug', 'menu_type', 'locale', 'description']);
 
         $hours = $settings->get($tid, 'cafe', 'hours', ModuleSettingsService::cafeHoursDefaults());
         $engagement = $settings->get($tid, 'cafe', 'engagement', ModuleSettingsService::cafeEngagementDefaults());
@@ -136,6 +143,7 @@ class PublicCatalogController extends Controller
         return response()->json([
             'data' => [
                 'categories' => $categories,
+                'brands' => \App\Models\Brand::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug']),
                 'items' => $products,
                 'menus' => $menus,
                 'banners' => $banners,
@@ -171,6 +179,7 @@ class PublicCatalogController extends Controller
             ->storefront()
             ->with([
                 'category',
+                'brands' => fn ($q) => $q->select('brands.id', 'brands.name', 'brands.slug'),
                 'variants' => fn ($q) => $q->orderBy('sort_order'),
                 'media' => fn ($q) => $q->orderBy('sort_order'),
                 'allergens',

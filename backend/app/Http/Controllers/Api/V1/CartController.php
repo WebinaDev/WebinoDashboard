@@ -72,6 +72,46 @@ class CartController extends Controller
         return $this->respond($cart, $types);
     }
 
+    public function setQuantity(Request $request, Product $product): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'quantity' => ['required', 'integer', 'min:0', 'max:999'],
+        ]);
+
+        $user = $request->user();
+        abort_if($product->tenant_id !== $user->tenant_id, 403);
+
+        $cart = $this->cartFor($request);
+        $existing = CartItem::query()
+            ->where('cart_id', $cart->id)
+            ->where('product_id', $product->id)
+            ->first();
+
+        $qty = (int) $data['quantity'];
+        if ($qty === 0) {
+            $existing?->delete();
+
+            return $this->respond($cart);
+        }
+
+        abort_unless(
+            $product->status === 'publish' && ! $product->is_hidden && $product->is_available && ! $product->is_sold_out,
+            422
+        );
+        if ($product->manage_stock && $product->stock !== null && $qty > (int) $product->stock) {
+            return response()->json(['message' => __('api.insufficient_stock')], 422);
+        }
+
+        $line = $existing ?? new CartItem([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+        ]);
+        $line->quantity = $qty;
+        $line->save();
+
+        return $this->respond($cart);
+    }
+
     public function removeItem(Request $request, Product $product): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
