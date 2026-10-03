@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { ScrollTable } from "@/components/ScrollTable"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 type Row = {
   slug: string
@@ -42,6 +43,7 @@ const SETTINGS_SHORTCUTS: Record<string, string> = {
 }
 
 export default function ModulesPage({ mode = "installed" }: { mode?: "catalog" | "installed" }) {
+  const locale = normalizeUiLocale(useLocale())
   const t = useTranslations("modules")
   const tCommon = useTranslations("common")
   const [rows, setRows] = useState<Row[]>([])
@@ -207,8 +209,8 @@ export default function ModulesPage({ mode = "installed" }: { mode?: "catalog" |
                           {m.slug}
                         </div>
                       </td>
-                      <td className="p-3" dir="ltr">
-                        {m.is_free || m.price <= 0 ? tCommon("yes") : `${m.price} ${m.currency || "IRT"}`}
+                      <td className="p-3">
+                        {m.is_free || m.price <= 0 ? tCommon("yes") : `${formatNumber(m.price, locale)} ${m.currency || "IRT"}`}
                       </td>
                       <td className="p-3 text-end">
                         <Button
@@ -263,7 +265,7 @@ export default function ModulesPage({ mode = "installed" }: { mode?: "catalog" |
                     ) : null}
                   </td>
                   <td className="p-3 font-mono text-xs" dir="ltr">
-                    {r.installed_version || "—"}
+                    {r.installed_version ? toLocaleDigits(r.installed_version, locale) : "—"}
                   </td>
                   <td className="p-3">
                     {r.enabled ? tCommon("yes") : tCommon("no")}

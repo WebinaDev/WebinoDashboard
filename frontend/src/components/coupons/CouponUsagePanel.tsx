@@ -1,9 +1,12 @@
 "use client"
 
+import { useLocale, useTranslations } from "next-intl"
+
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useTranslations } from "next-intl"
+import { normalizeUiLocale } from "@/lib/locale"
 
 export function CouponUsagePanel(props: {
   freeShipping: boolean
@@ -24,6 +27,7 @@ export function CouponUsagePanel(props: {
   setExpiresAt: (v: string) => void
 }) {
   const t = useTranslations("coupons")
+  const locale = normalizeUiLocale(useLocale())
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -45,7 +49,13 @@ export function CouponUsagePanel(props: {
         </div>
         <div className="space-y-1 sm:col-span-2">
           <Label>{t("fields.expires")}</Label>
-          <Input type="datetime-local" value={props.expiresAt} onChange={(e) => props.setExpiresAt(e.target.value)} />
+          <LocaleDatePicker
+            locale={locale}
+            withTime
+            value={props.expiresAt}
+            onChange={(value) => props.setExpiresAt(value ?? "")}
+            aria-label={t("fields.expires")}
+          />
         </div>
       </div>
       <div className="flex flex-wrap gap-4">

@@ -1,10 +1,11 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +13,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { useEnumLabel } from "@/lib/enum-labels"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatDate } from "@/lib/locale/format-date"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
@@ -54,6 +57,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
   const tMod = useTranslations("modules")
   const tAcc = useTranslations("accounting_portal")
   const tCommon = useTranslations("common")
+  const locale = normalizeUiLocale(useLocale())
   const section = useMemo(() => sectionFromRoute(route), [route.path])
   const qc = useQueryClient()
 
@@ -204,7 +208,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
             {ledgerQ.data?.message ? (
               <p className="text-destructive">{String(ledgerQ.data.message)}</p>
             ) : null}
-            <p dir="ltr">lines: {Array.isArray(ledgerQ.data?.lines) ? ledgerQ.data.lines.length : 0}</p>
+            <p>lines: {formatNumber(Array.isArray(ledgerQ.data?.lines) ? ledgerQ.data.lines.length : 0, locale)}</p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -218,7 +222,9 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">{tAcc(key as never)}</CardTitle>
               </CardHeader>
-              <CardContent className="text-2xl font-semibold">{val ?? "—"}</CardContent>
+              <CardContent className="text-2xl font-semibold">
+                {typeof val === "number" ? formatNumber(val, locale) : "—"}
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -238,7 +244,12 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
             </div>
             <div>
               <Label>{tAcc("journal_date")}</Label>
-              <Input type="date" value={journalForm.date} onChange={(e) => setJournalForm((s) => ({ ...s, date: e.target.value }))} />
+              <LocaleDatePicker
+                locale={locale}
+                value={journalForm.date}
+                onChange={(value) => setJournalForm((s) => ({ ...s, date: value ?? "" }))}
+                aria-label={tAcc("journal_date")}
+              />
             </div>
             <Button type="button" disabled={createJournal.isPending || !journalForm.number} onClick={() => void createJournal.mutateAsync()}>
               {tCommon("save")}
@@ -253,7 +264,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
             {(journalsQ.data ?? []).map((j) => (
               <div key={j.id} className="flex justify-between border-b py-2">
                 <span>
-                  {j.number} · {j.date}
+                  {j.number} · {j.date ? formatDate(j.date, { locale }) : "—"}
                 </span>
                 <span className="text-muted-foreground">{enumLabel("job_status", j.status)}</span>
               </div>

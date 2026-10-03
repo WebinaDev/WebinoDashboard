@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Minus, Plus, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
@@ -16,6 +16,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useEnumLabel } from "@/lib/enum-labels"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 import { ORDER_STATUSES } from "../lib/order-statuses"
 import {
@@ -82,6 +83,7 @@ const selectClass =
 
 export default function OrderComposerPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("orders_admin")
+  const locale = normalizeUiLocale(useLocale())
   const tPricing = useTranslations("pricing_settings.types")
   const tCommon = useTranslations("common")
   const enumLabel = useEnumLabel()
@@ -430,7 +432,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                         >
                           <Minus className="size-4" />
                         </Button>
-                        <span className="w-8 text-center text-sm">{l.qty}</span>
+                        <span className="w-8 text-center text-sm">{formatNumber(l.qty, locale)}</span>
                         <Button
                           size="icon"
                           variant="outline"
@@ -507,7 +509,7 @@ export default function OrderComposerPageClient({ route }: { route: ResolvedAdmi
                         setCustomerHits([])
                       }}
                     >
-                      {c.name || c.email} #{c.id}
+                      {c.name || c.email} #{toLocaleDigits(c.id, locale)}
                     </button>
                   </li>
                 ))}

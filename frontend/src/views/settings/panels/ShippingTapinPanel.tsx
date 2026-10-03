@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 type TapinSettings = {
   enabled: boolean
@@ -55,6 +56,7 @@ const METHOD_KEYS = ["pishtaz", "vip", "tipax", "courier", "tipax_api", "alonomi
 
 export function ShippingTapinPanel() {
   const t = useTranslations("settings_hub")
+  const locale = normalizeUiLocale(useLocale())
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [draft, setDraft] = useState<TapinSettings | null>(null)
@@ -103,7 +105,7 @@ export function ShippingTapinPanel() {
       }),
     onSuccess: async (res) => {
       if (res.ok) {
-        toast.success(`${t("shipping.tapin_sync_ok")} (${res.count})`)
+        toast.success(`${t("shipping.tapin_sync_ok")} (${formatNumber(res.count, locale)})`)
         await qc.invalidateQueries({ queryKey: ["shipping-tapin"] })
       } else toast.error(res.message)
     },

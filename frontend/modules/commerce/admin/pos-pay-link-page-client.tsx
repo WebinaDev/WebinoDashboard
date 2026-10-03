@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Minus, Plus, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 import {
   POS_PURCHASE_TYPES,
@@ -50,6 +51,7 @@ const selectClass =
 
 export default function PosPayLinkPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("pos_admin")
+  const locale = normalizeUiLocale(useLocale())
   const tPricing = useTranslations("pricing_settings.types")
   const [productQ, setProductQ] = useState("")
   const [productHits, setProductHits] = useState<ProductHit[]>([])
@@ -332,7 +334,7 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
                       >
                         <Minus className="size-4" />
                       </Button>
-                      <span className="w-8 text-center text-sm">{l.qty}</span>
+                      <span className="w-8 text-center text-sm">{formatNumber(l.qty, locale)}</span>
                       <Button
                         size="icon"
                         variant="outline"
@@ -389,7 +391,7 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
                         setCustomerHits([])
                       }}
                     >
-                      {c.name || c.email} #{c.id}
+                      {c.name || c.email} #{toLocaleDigits(c.id, locale)}
                     </button>
                   </li>
                 ))}

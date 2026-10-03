@@ -3,6 +3,10 @@
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
+import { useLocale } from "next-intl"
+
+import { formatSeriesKey } from "../../../modules/analytics/components/reports/format"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 import { cn } from "@/lib/utils"
 
 export type ChartConfig = Record<
@@ -82,13 +86,19 @@ function ChartTooltipContent({
     label?: string
   }) {
   const { config } = useChart()
+  const locale = normalizeUiLocale(useLocale())
   if (!active || !payload?.length) return null
+  const heading = label ? formatSeriesKey(String(label), locale, String(label)) : ""
   return (
     <div className={cn("grid min-w-[8rem] gap-1.5 rounded-lg border bg-background px-2.5 py-1.5 text-xs shadow-soft", className)}>
-      {label ? <div className="font-medium">{label}</div> : null}
+      {heading ? <div className="font-medium">{heading}</div> : null}
       {payload.map((item) => {
         const key = String(item.dataKey ?? item.name ?? "value")
         const itemConfig = config[key]
+        const numeric = typeof item.value === "number" ? item.value : Number(item.value)
+        const shown = Number.isFinite(numeric)
+          ? formatNumber(numeric, locale)
+          : toLocaleDigits(String(item.value ?? ""), locale)
         return (
           <div key={key} className="flex items-center gap-2">
             <span
@@ -97,7 +107,7 @@ function ChartTooltipContent({
             />
             <span className="text-muted-foreground">{itemConfig?.label ?? item.name}</span>
             <span className="ms-auto font-mono font-medium tabular-nums text-foreground">
-              {item.value}
+              {shown}
             </span>
           </div>
         )

@@ -9,13 +9,17 @@ import { CalendarIcon } from "lucide-react"
 import { useState } from "react"
 import persian from "react-date-object/calendars/persian"
 import gregorian from "react-date-object/calendars/gregorian"
+import gregorianEn from "react-date-object/locales/gregorian_en"
 import persianFa from "react-date-object/locales/persian_fa"
 import DateObject from "react-date-object"
 import type { ChangedValue } from "react-multi-date-picker"
 import { useTranslations } from "next-intl"
 
+import TimePicker from "react-multi-date-picker/plugins/time_picker"
+
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { htmlDir, isRtlLocale } from "@/lib/locale"
 import { formatDate } from "@/lib/locale/format-date"
@@ -30,17 +34,33 @@ const DatePicker = dynamic(() => import("react-multi-date-picker"), {
 
 type Props = {
   locale: string
-  /** ISO date `YYYY-MM-DD`, or empty string / null when unset */
+  /** ISO date `YYYY-MM-DD`, or `YYYY-MM-DDTHH:mm` when `withTime` is set. Empty string / null when unset. */
   value: string | null
-  /** Receives ISO Gregorian `YYYY-MM-DD`, or `null` when cleared */
+  /** Receives an ISO Gregorian value, or `null` when cleared. */
   onChange: (value: string | null) => void
+  /** Include a time of day. Stored value stays Gregorian `YYYY-MM-DDTHH:mm`. */
+  withTime?: boolean
+  id?: string
   "aria-label"?: string
+}
+
+function jalaliSeed(value: string | null, withTime: boolean): DateObject | undefined {
+  if (value == null || value === "") return undefined
+  const raw = value.trim().replace("T", " ")
+  const hasTime = withTime && raw.length > 10
+  const format = hasTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD"
+  const date = raw.slice(0, hasTime ? 16 : 10)
+  const parsed = new DateObject({ date, format, calendar: gregorian })
+  if (!parsed.isValid) return undefined
+  return parsed.convert(persian, persianFa)
 }
 
 export function LocaleDatePicker({
   locale,
   value,
   onChange,
+  withTime = false,
+  id,
   "aria-label": ariaLabel,
 }: Props) {
   if (isRtlLocale(locale)) {
@@ -48,7 +68,21 @@ export function LocaleDatePicker({
       <JalaliLocaleDatePicker
         value={value}
         onChange={onChange}
+        withTime={withTime}
+        id={id}
         aria-label={ariaLabel}
+      />
+    )
+  }
+
+  if (withTime) {
+    return (
+      <Input
+        id={id}
+        type="datetime-local"
+        aria-label={ariaLabel}
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
       />
     )
   }
@@ -65,30 +99,29 @@ export function LocaleDatePicker({
 function JalaliLocaleDatePicker({
   value,
   onChange,
+  withTime = false,
+  id,
   "aria-label": ariaLabel,
 }: Omit<Props, "locale">) {
-  const dob =
-    value != null && value !== ""
-      ? new DateObject({
-          date: value,
-          format: "YYYY-MM-DD",
-          calendar: gregorian,
-        }).convert(persian, persianFa)
-      : undefined
+  const dob = jalaliSeed(value, withTime)
 
   return (
     <div className="max-w-xs" dir={htmlDir("fa")}>
       <DatePicker
+        id={id}
         calendar={persian}
         locale={persianFa}
         value={dob}
+        format={withTime ? "YYYY/MM/DD HH:mm" : "YYYY/MM/DD"}
+        plugins={withTime ? [<TimePicker key="time" position="bottom" hideSeconds />] : []}
         onChange={(d: ChangedValue) => {
-          if (d == null) {
+          const picked = Array.isArray(d) ? d[0] : d
+          if (picked == null) {
             onChange(null)
             return
           }
-          const g = d.convert(gregorian)
-          onChange(g.format("YYYY-MM-DD"))
+          const g = picked.convert(gregorian).setLocale(gregorianEn)
+          onChange(withTime ? g.format("YYYY-MM-DDTHH:mm") : g.format("YYYY-MM-DD"))
         }}
         calendarPosition="bottom-end"
         inputClass="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"

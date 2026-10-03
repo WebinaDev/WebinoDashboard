@@ -41,6 +41,7 @@ import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
+import { formatDate as formatIsoDate } from "@/lib/locale/format-date"
 import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
@@ -177,11 +178,7 @@ function loadVisibleColumns(): ColumnKey[] {
 
 function formatListDate(iso?: string | null, locale?: string) {
   if (!iso) return "—"
-  try {
-    return new Date(iso).toLocaleDateString(locale === "fa" ? "fa-IR" : "en-US")
-  } catch {
-    return iso.slice(0, 10)
-  }
+  return formatIsoDate(iso, { locale: locale === "en" ? "en" : "fa" })
 }
 
 function PriceRange({ row }: { row: ProductRow }) {

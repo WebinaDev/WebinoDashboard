@@ -9,8 +9,9 @@ import { ChangePctBadge } from "@/components/home/ChangePctBadge"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { pctDelta } from "@/lib/pctDelta"
+import { formatSeriesKey } from "../../../modules/analytics/components/reports/format"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type { DashboardOverviewSales } from "@/types/dashboardOverview"
 
@@ -102,8 +103,14 @@ export function HomeSalesStatCard({
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
-                <XAxis dataKey="label" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 9 }}
+                  interval="preserveStartEnd"
+                  tickFormatter={(v) => formatSeriesKey(String(v), lng, String(v))}
+                />
                 <YAxis tickFormatter={axisFmt} tick={{ fontSize: 9 }} width={40} />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 <Area
                   type="monotone"
                   dataKey="revenue"

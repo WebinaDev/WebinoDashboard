@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { unwrapApiResponse } from "@webina/ui"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +20,7 @@ import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 type WithdrawalRow = {
   id: number
@@ -67,6 +68,7 @@ async function apiListWithMeta<T>(path: string): Promise<{ items: T[]; meta?: Pa
 }
 
 export default function WalletWithdrawalsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
+  const locale = normalizeUiLocale(useLocale())
   const t = useTranslations("wallet_admin")
   const enumLabel = useEnumLabel()
   const { confirm, dialog: confirmDialog } = useConfirm()
@@ -127,7 +129,7 @@ export default function WalletWithdrawalsPageClient({ route: _route }: { route: 
           onClick={() =>
             confirm({
               title: t("mark_paid"),
-              description: `#${r.id}`,
+              description: `#${toLocaleDigits(r.id, locale)}`,
               confirmLabel: t("mark_paid"),
               destructive: false,
               onConfirm: () => update.mutateAsync({ id: r.id, next: "paid" }),
@@ -143,7 +145,7 @@ export default function WalletWithdrawalsPageClient({ route: _route }: { route: 
           onClick={() =>
             confirm({
               title: t("reject"),
-              description: `#${r.id}`,
+              description: `#${toLocaleDigits(r.id, locale)}`,
               confirmLabel: t("reject"),
               onConfirm: () => update.mutateAsync({ id: r.id, next: "rejected" }),
             })
@@ -180,7 +182,7 @@ export default function WalletWithdrawalsPageClient({ route: _route }: { route: 
                     key={r.id}
                     media={
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium">{r.user?.name || r.user?.email || `#${r.user?.id ?? "—"}`}</span>
+                        <span className="font-medium">{r.user?.name || r.user?.email || `#${toLocaleDigits(r.user?.id ?? "—", locale)}`}</span>
                         <Badge variant={statusBadgeVariant(r.status)}>{enumLabel("withdrawal_status", r.status)}</Badge>
                       </div>
                     }
@@ -212,8 +214,8 @@ export default function WalletWithdrawalsPageClient({ route: _route }: { route: 
                   <tbody>
                     {rows.map((r) => (
                       <tr key={r.id} className="border-b last:border-0">
-                        <td className="p-2">#{r.id}</td>
-                        <td className="p-2">{r.user?.name || r.user?.email || `#${r.user?.id ?? "—"}`}</td>
+                        <td className="p-2">#{toLocaleDigits(r.id, locale)}</td>
+                        <td className="p-2">{r.user?.name || r.user?.email || `#${toLocaleDigits(r.user?.id ?? "—", locale)}`}</td>
                         <td className="p-2">
                           <MoneyDisplay amount={r.amount_minor} />
                         </td>

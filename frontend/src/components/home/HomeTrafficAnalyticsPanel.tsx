@@ -9,7 +9,8 @@ import { ChangePctBadge } from "@/components/home/ChangePctBadge"
 import { HomeTrafficPeriodsTable } from "@/components/home/HomeTrafficPeriodsTable"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { formatSeriesKey } from "../../../modules/analytics/components/reports/format"
 import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type { DashboardOverviewTraffic } from "@/types/dashboardOverview"
 
@@ -178,8 +179,14 @@ export function HomeTrafficAnalyticsPanel({
                   >
                     <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 10 }}
+                        interval="preserveStartEnd"
+                        tickFormatter={(v) => formatSeriesKey(String(v), lng, String(v))}
+                      />
                       <YAxis tickFormatter={axisFmt} tick={{ fontSize: 10 }} width={48} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
                       <Legend />
                       <Line
                         type="monotone"

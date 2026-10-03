@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { toLocaleDigits } from "@/lib/locale"
 import { marketplaceLabel } from "@/lib/marketplace"
 import { BasalamCategoriesTab, BasalamProductsTab } from "@/views/settings/panels/marketplace/BasalamProductsTab"
 import { ConnectionCard, JobsTable, LogsTable, PlatformTabsNav, fmtDate, fmtNum, selectClass, type PlatformTab } from "@/views/settings/panels/marketplace/MarketplaceShared"
@@ -558,7 +559,7 @@ function BasalamBoothTab() {
             <h3 className="text-xl font-semibold">{String(vendor?.title ?? status.data?.vendor_title ?? "—")}</h3>
             <p className="text-sm">
               {connected ? <span className="text-emerald-700 dark:text-emerald-400">{t("connected")}</span> : t("not_connected")}
-              {status.data?.vendor_id ? <span className="text-muted-foreground"> · {t("booth_id", { id: String(status.data.vendor_id) })}</span> : null}
+              {status.data?.vendor_id ? <span className="text-muted-foreground"> · {t("booth_id", { id: toLocaleDigits(String(status.data.vendor_id), locale) })}</span> : null}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -604,6 +605,7 @@ function BasalamBoothTab() {
 
 function BasalamWebhooksCard({ connected }: { connected: boolean }) {
   const t = useTranslations("marketplace_admin.basalam")
+  const locale = useLocale()
   const qc = useQueryClient()
   const q = useQuery({
     queryKey: ["basalam-webhooks"],
@@ -645,7 +647,7 @@ function BasalamWebhooksCard({ connected }: { connected: boolean }) {
             {hooks.map((h) => (
               <li key={String(h.id)} className="flex items-center justify-between gap-2 border-b py-1">
                 <span dir="ltr" className="truncate">
-                  #{String(h.id)} {String(h.url ?? "")}
+                  #{toLocaleDigits(String(h.id), locale)} {String(h.url ?? "")}
                 </span>
                 <Button size="sm" variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate(Number(h.id))}>
                   {t("delete")}

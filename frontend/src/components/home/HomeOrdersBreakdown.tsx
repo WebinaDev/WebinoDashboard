@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { useEnumLabel } from "@/lib/enum-labels"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
@@ -98,6 +98,7 @@ export function HomeOrdersBreakdown({
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                     <XAxis dataKey="hour" hide />
                     <YAxis hide />
+                    <ChartTooltip content={<ChartTooltipContent />} />
                     <Bar dataKey="orders" fill="var(--color-chart-3)" radius={2} />
                   </BarChart>
                 </ChartContainer>

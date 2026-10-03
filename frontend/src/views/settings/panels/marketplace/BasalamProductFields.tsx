@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { BasalamCategoryPicker, RemoteBasalamPicker } from "@/views/settings/panels/marketplace/BasalamProductsTab"
-import { fmtDate, selectClass } from "@/views/settings/panels/marketplace/MarketplaceShared"
+import { toLocaleDigits } from "@/lib/locale"
+import { fmtDate, fmtNum, selectClass } from "@/views/settings/panels/marketplace/MarketplaceShared"
 
 export const BASALAM_UNIT_TYPES = [
   6304, 6305, 6306, 6307, 6308, 6309, 6310, 6311, 6312, 6313, 6314, 6315, 6316, 6317, 6318, 6319, 6320, 6321, 6322, 6323, 6324, 6325, 6326, 6327,
@@ -121,7 +122,7 @@ export function BasalamProductFields({ productId, variantId }: { productId: stri
           <ul className="space-y-1 text-xs">
             {maps.map((m) => (
               <li key={m.id} className="flex flex-wrap items-center gap-2">
-                {m.variant_id ? <Badge variant="outline">#{m.variant_id}</Badge> : null}
+                {m.variant_id ? <Badge variant="outline">#{toLocaleDigits(m.variant_id, locale)}</Badge> : null}
                 {m.remote_url ? (
                   <a className="text-primary hover:underline" href={m.remote_url} target="_blank" rel="noreferrer" dir="ltr">
                     {m.remote_product_id}
@@ -129,7 +130,7 @@ export function BasalamProductFields({ productId, variantId }: { productId: stri
                 ) : null}
                 {m.status === STATUS_ARCHIVED ? <Badge variant="outline">{t("archived")}</Badge> : null}
                 <span className="text-muted-foreground">
-                  {m.remote_price ?? "—"} / {m.remote_stock ?? "—"} · {fmtDate(m.last_sync_at, locale)}
+                  {m.remote_price == null ? "—" : fmtNum(Number(m.remote_price), locale)} / {m.remote_stock == null ? "—" : fmtNum(Number(m.remote_stock), locale)} · {fmtDate(m.last_sync_at, locale)}
                 </span>
                 {m.last_error ? <span className="text-destructive">{m.last_error}</span> : null}
               </li>
@@ -143,7 +144,7 @@ export function BasalamProductFields({ productId, variantId }: { productId: stri
             <p className="text-destructive text-xs">{info.preview.error}</p>
           ) : (
             <p className="text-muted-foreground text-xs">
-              {t("preview_line", { name: info.preview.name ?? "", price: info.preview.price ?? 0, stock: info.preview.stock ?? 0 })}
+              {t("preview_line", { name: info.preview.name ?? "", price: fmtNum(info.preview.price ?? 0, locale), stock: fmtNum(info.preview.stock ?? 0, locale) })}
             </p>
           )
         ) : null}

@@ -807,7 +807,7 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                       <option value="">{t("return_item_optional")}</option>
                       {(order.items ?? []).map((it) => (
                         <option key={it.id} value={it.id}>
-                          {it.product_name} × {it.quantity}
+                          {it.product_name} × {localizeNumber(it.quantity, locale)}
                         </option>
                       ))}
                     </select>

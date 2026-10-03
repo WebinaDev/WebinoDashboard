@@ -12,6 +12,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { formatSeriesKey } from "../../../modules/analytics/components/reports/format"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import type { OrderReportSeriesPoint } from "@/types/dashboardOverview"
 
@@ -68,7 +69,13 @@ export function HomeProfitChart({
           >
             <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(v) => formatSeriesKey(String(v), lng, String(v))}
+              />
               <YAxis
                 yAxisId="left"
                 tickFormatter={axisFmt}

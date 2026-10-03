@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -255,11 +256,13 @@ export function ContentPublishPanel({
             {!draftImmediate ? (
               <div className="space-y-1">
                 <Label htmlFor="publish-date">{t("publish_scheduled")}</Label>
-                <Input
+                <LocaleDatePicker
                   id="publish-date"
-                  type="datetime-local"
+                  locale={locale}
+                  withTime
                   value={draftDate}
-                  onChange={(e) => setDraftDate(e.target.value)}
+                  onChange={(value) => setDraftDate(value ?? "")}
+                  aria-label={t("publish_scheduled")}
                 />
               </div>
             ) : null}

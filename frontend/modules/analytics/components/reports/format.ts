@@ -44,17 +44,22 @@ export function formatSeriesKey(key: string, locale: string, fallback?: string):
     kind = "month"
     if (y < 1700) {
       const j = new DateObject({ year: y, month: m, day: 1, calendar: persian, locale: fa ? persian_fa : gregorian_en })
-      return fa ? j.format("MMMM YYYY") : j.convert(gregorian, gregorian_en).format("MMM YYYY")
+      return fa
+        ? toLocaleDigits(j.format("MMMM YYYY"), "fa")
+        : j.convert(gregorian, gregorian_en).format("MMM YYYY")
     }
     // Mid-month so a Gregorian bucket maps to its dominant Jalali month.
     date = new Date(y, m - 1, fa ? 15 : 1)
   }
 
-  if (!date || Number.isNaN(date.getTime())) return fallback ?? key
+  if (!date || Number.isNaN(date.getTime())) {
+    return toLocaleDigits(fallback ?? key, fa ? "fa" : "en")
+  }
 
   if (fa) {
     const j = new DateObject({ date, calendar: persian, locale: persian_fa })
-    return kind === "month" ? j.format("MMMM YYYY") : j.format("D MMMM")
+    const raw = kind === "month" ? j.format("MMMM YYYY") : j.format("D MMMM")
+    return toLocaleDigits(raw, "fa")
   }
   const g = new DateObject({ date, calendar: gregorian, locale: gregorian_en })
   return kind === "month" ? g.format("MMM YYYY") : g.format("MMM D")

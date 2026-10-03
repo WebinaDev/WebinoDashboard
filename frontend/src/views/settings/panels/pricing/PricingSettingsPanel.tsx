@@ -20,7 +20,7 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import { cn } from "@/lib/utils"
 import { MarketplacePricingCard } from "@/views/settings/panels/marketplace/MarketplacePricingCard"
 import { selectClass } from "@/views/settings/panels/marketplace/MarketplaceShared"
-import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 export const PRICING_SETTINGS_BASE = "/dashboard/settings/shop/pricing"
 
@@ -289,9 +289,9 @@ function PricingCalculatorCard() {
               </TableRow>
               {r.installments.map((row) => (
                 <TableRow key={row.months}>
-                  <TableCell>{t("calculator.installment_row", { months: row.months, interest: row.interest })}</TableCell>
+                  <TableCell>{t("calculator.installment_row", { months: formatNum(row.months, locale), interest: toLocaleDigits(row.interest, locale) })}</TableCell>
                   <TableCell>
-                    {formatNum(row.monthly, locale)} × {row.months} = {formatNum(row.total, locale)}
+                    {formatNum(row.monthly, locale)} × {formatNum(row.months, locale)} = {formatNum(row.total, locale)}
                   </TableCell>
                 </TableRow>
               ))}

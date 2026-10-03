@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 type WalletSettings = {
   enabled?: boolean
@@ -39,6 +40,7 @@ const selectClass =
 
 export default function WalletSettingsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("wallet_admin")
+  const locale = normalizeUiLocale(useLocale())
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
 
@@ -237,7 +239,7 @@ export default function WalletSettingsPageClient({ route: _route }: { route: Res
                       setUserHits([])
                     }}
                   >
-                    #{u.id} {u.name || u.email} · <MoneyDisplay amount={u.wallet_balance_minor ?? 0} />
+                    #{toLocaleDigits(u.id, locale)} {u.name || u.email} · <MoneyDisplay amount={u.wallet_balance_minor ?? 0} />
                   </button>
                 </li>
               ))}
