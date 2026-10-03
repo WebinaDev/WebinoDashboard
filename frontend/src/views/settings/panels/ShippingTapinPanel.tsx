@@ -14,6 +14,7 @@ import { api } from "@/lib/api"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 type TapinSettings = {
   enabled: boolean

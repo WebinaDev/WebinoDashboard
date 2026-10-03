@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { toLocaleDigits, normalizeUiLocale } from "@/lib/locale"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import {
@@ -78,7 +79,7 @@ function normalizeIranPhone(raw: string): string | null {
 
 export default function PageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("sms")
-  const locale = useLocale()
+  const locale = normalizeUiLocale(useLocale())
   const [kind, setKind] = useState<MessageKind>("marketing")
   const [mode, setMode] = useState<SendMode>("webservice")
   const [phone, setPhone] = useState("")
@@ -360,13 +361,17 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
               </div>
             )}
-            {priceHint ? <p className="text-muted-foreground text-sm">{t("estimatedCost", { cost: priceHint })}</p> : null}
+            {priceHint ? (
+              <p className="text-muted-foreground text-sm">
+                {t("estimatedCost", { cost: toLocaleDigits(priceHint, locale) })}
+              </p>
+            ) : null}
             <div className="space-y-1">
               <Label>{t("sendTime")}</Label>
               <LocaleDatePicker
                 locale={locale}
                 withTime
-                value={sendTime || null}
+                value={sendTime}
                 onChange={(value) => setSendTime(value ?? "")}
                 aria-label={t("sendTime")}
               />

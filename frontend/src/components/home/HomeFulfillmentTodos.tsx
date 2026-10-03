@@ -82,7 +82,7 @@ function itemMessage(
   locale: string,
 ): string {
   const number = toLocaleDigits(item.number || String(item.id), locale)
-  const name = item.customer_name || (locale === "fa" ? "-" : "—")
+  const name = item.customer_name || "—"
   switch (item.action) {
     case "pack":
       return t("fulfillment.pack", { number, name })
@@ -97,14 +97,14 @@ function itemMessage(
       if (item.return_status === "approved") {
         return t("fulfillment.return_approved", {
           number,
-          item: item.return_item || (locale === "fa" ? "-" : "—"),
-          qty: formatNumber(item.return_qty ?? 0, locale),
+          item: item.return_item || "—",
+          qty: toLocaleDigits(String(item.return_qty ?? ""), locale),
         })
       }
       return t("fulfillment.return_requested", {
         number,
-        item: item.return_item || (locale === "fa" ? "-" : "—"),
-        qty: formatNumber(item.return_qty ?? 1, locale),
+        item: item.return_item || "—",
+        qty: toLocaleDigits(String(item.return_qty ?? 1), locale),
       })
     case "refund":
       if (item.purchase_type === "installment") {
@@ -119,7 +119,7 @@ function itemMessage(
           : "",
       })
     default:
-      return `#${number} - ${name}`
+      return `#${number} — ${name}`
   }
 }
 

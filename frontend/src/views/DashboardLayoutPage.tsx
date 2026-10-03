@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { ExternalLink, Maximize, Minimize, MoreVertical } from "lucide-react"
+import { ChevronLeft, ChevronRight, ExternalLink, Maximize, Minimize, MoreVertical } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
@@ -41,7 +41,7 @@ import { resolveAdminRoute } from "@/kernel/route-resolver"
 import { DASHBOARD_BASE, stripDashboardBase } from "@/kernel/paths"
 import { normalizeAccent } from "@/lib/accent"
 import { api } from "@/lib/api"
-import { htmlDir, sidebarSide } from "@/lib/locale"
+import { htmlDir, isRtlLocale, sidebarSide } from "@/lib/locale"
 import { DashboardPwaHead } from "@/components/pwa/DashboardPwaHead"
 import { PwaInstallBanner } from "@/components/pwa/PwaInstallBanner"
 import { PwaSplashOverlay } from "@/components/pwa/PwaSplashOverlay"
@@ -240,7 +240,9 @@ export default function DashboardLayoutPage({
                     {tDashboard("breadcrumb_home")}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbSeparator className="hidden md:block">
+                  {isRtlLocale(locale) ? <ChevronLeft /> : <ChevronRight />}
+                </BreadcrumbSeparator>
                 <BreadcrumbItem className="min-w-0">
                   <BreadcrumbPage
                     className="truncate"

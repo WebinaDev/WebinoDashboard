@@ -4,11 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -171,7 +171,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
                     <p className="font-medium">{item.guest_name}</p>
                     <p className="text-muted-foreground">{item.guest_phone}</p>
                     <p className="mt-1">
-                      {t("party_size")}: {formatNumber(item.party_size)} · {formatDateTime(item.reserved_at)}
+                      {t("party_size")}: {formatNumber(item.party_size)} · {formatDate(item.reserved_at)}
                     </p>
                     {item.branch ? (
                       <p className="text-muted-foreground text-xs">{item.branch.name_fa || item.branch.name_en}</p>
@@ -218,7 +218,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
             <LocaleDatePicker
               locale={locale}
               withTime
-              value={eventForm.starts_at || null}
+              value={eventForm.starts_at}
               onChange={(value) => setEventForm((f) => ({ ...f, starts_at: value ?? "" }))}
               aria-label={t("starts_at")}
             />
@@ -228,7 +228,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
             <LocaleDatePicker
               locale={locale}
               withTime
-              value={eventForm.ends_at || null}
+              value={eventForm.ends_at}
               onChange={(value) => setEventForm((f) => ({ ...f, ends_at: value ?? "" }))}
               aria-label={t("ends_at")}
             />
@@ -316,7 +316,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
                         <div>
                           <p>{booking.guest_name}</p>
                           <p className="text-muted-foreground text-xs">
-                            {booking.guest_phone} · {t("seats")}: {formatNumber(booking.seats)}
+                            {booking.guest_phone} · {t("seats")}: {booking.seats}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">

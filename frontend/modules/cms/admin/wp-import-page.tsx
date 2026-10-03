@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
-import { formatChartDateLabel, formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 type Probe = {
   status: string
@@ -134,8 +134,8 @@ function resourceLabel(key: string): string {
 }
 
 export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
-  const t = useTranslations("builder")
   const locale = normalizeUiLocale(useLocale())
+  const t = useTranslations("builder")
   const reviewTypeLabel = (type: string) => {
     switch (type) {
       case "wallet":
@@ -500,7 +500,7 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                   className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-start text-sm"
                   onClick={() => void openJob(job.id)}
                 >
-                  <span dir="ltr">#{job.id} {job.source_url}</span>
+                  <span dir="ltr">#{toLocaleDigits(job.id, locale)} {job.source_url}</span>
                   <Badge variant={job.status === "failed" || job.status === "completed_with_errors" ? "destructive" : "secondary"}>
                     {statusLabel(job.status)}
                   </Badge>
@@ -512,19 +512,16 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
           {active ? (
             <Card>
               <CardHeader>
-                <CardTitle>#{active.id} — {statusLabel(active.status)}</CardTitle>
+                <CardTitle>#{toLocaleDigits(active.id, locale)} — {statusLabel(active.status)}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4">
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <div className="h-full bg-primary" style={{ width: `${active.progress?.percent ?? 0}%` }} />
                 </div>
                 <p className="text-sm">
-                  {t("import_progress")}: {formatNumber(active.progress?.percent ?? 0, locale)}
-                  {locale === "fa" ? "٪" : "%"}
-                  {totals
-                    ? ` · ${formatNumber(totals.done ?? 0, locale)} / ${formatNumber((totals.done ?? 0) + (totals.pending ?? 0) + (totals.failed ?? 0), locale)}`
-                    : ""}
-                  {totals?.failed ? ` · ${t("import_errors")}: ${formatNumber(totals.failed, locale)}` : ""}
+                  {t("import_progress")}: {formatNumber(active.progress?.percent ?? 0, locale)}%
+                  {totals ? ` — ${formatNumber(totals.done ?? 0, locale)} / ${formatNumber((totals.done ?? 0) + (totals.pending ?? 0) + (totals.failed ?? 0), locale)}` : ""}
+                  {totals?.failed ? ` — ${t("import_errors")}: ${formatNumber(totals.failed, locale)}` : ""}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <label className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm">
@@ -560,12 +557,13 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                   <div className="grid gap-2">
                     <h2 className="text-sm font-medium">{t("import_stats")}</h2>
                     <p className="text-sm">
-                      {t("import_orders")}: {formatNumber(active.stats.sales_orders, locale)} · {t("import_revenue")}: {formatNumber(active.stats.revenue_minor, locale)}
+                      {t("import_orders")}: {formatNumber(active.stats.sales_orders, locale)} — {t("import_revenue")}:{" "}
+                      {formatNumber(active.stats.revenue_minor, locale)}
                     </p>
                     <ul className="text-sm">
                       {active.stats.by_period.map((row) => (
                         <li key={row.period}>
-                          {formatChartDateLabel(row.period, locale)}: {formatNumber(row.orders, locale)} / {formatNumber(row.revenue_minor, locale)}
+                          {toLocaleDigits(row.period, locale)}: {formatNumber(row.orders, locale)} / {formatNumber(row.revenue_minor, locale)}
                         </li>
                       ))}
                     </ul>
@@ -575,7 +573,7 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                   <ul className="grid gap-1 text-sm text-destructive">
                     {active.progress.errors.map((error) => (
                       <li key={error.id}>
-                        {resourceLabel(error.resource)} {error.external_id}: {error.message}
+                        {resourceLabel(error.resource)} {toLocaleDigits(error.external_id, locale)}: {error.message}
                       </li>
                     ))}
                   </ul>
@@ -586,7 +584,7 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                     <ul className="grid gap-1 text-sm">
                       {queued.map((row) => (
                         <li key={`${row.resource}:${row.external_id}`}>
-                          {resourceLabel(row.resource)} {row.external_id}
+                          {resourceLabel(row.resource)} {toLocaleDigits(row.external_id, locale)}
                           {row.label ? ` — ${row.label}` : ""}
                         </li>
                       ))}
@@ -610,7 +608,7 @@ export default function WpImportPage(_props: { route: ResolvedAdminRoute }) {
                     <span>
                       {reviewTypeLabel(item.type)}
                       {item.label ? ` — ${item.label}` : ""}
-                      <span className="text-muted-foreground" dir="ltr"> #{item.external_id}</span>
+                      <span className="text-muted-foreground" dir="ltr"> #{toLocaleDigits(item.external_id, locale)}</span>
                     </span>
                     <Badge variant={item.status === "dismissed" ? "outline" : item.status === "applied" || item.status_label === "applied" ? "secondary" : "default"}>
                       {reviewStatusLabel(item.status_label || item.status)}

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { useConfirm } from "@/components/ConfirmDialog"
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 
 type DigikalaOrderInfo = {
   remote_order_id: string | null
@@ -26,6 +27,7 @@ type DigikalaOrderInfo = {
 export function DigikalaOrderActions({ orderId }: { orderId: number }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("marketplace_admin.digikala")
+  const locale = normalizeUiLocale(useLocale())
   const qc = useQueryClient()
   const [code, setCode] = useState("")
   const [itemId, setItemId] = useState("")
@@ -106,7 +108,7 @@ export function DigikalaOrderActions({ orderId }: { orderId: number }) {
                 const id = it.id ?? it.order_item_id
                 return id ? (
                   <option key={id} value={id}>
-                    {(it.product_variant_title || it.title || `#${id}`) + ` × ${it.quantity ?? it.count ?? 1}`}
+                    {(it.product_variant_title || it.title || `#${toLocaleDigits(id, locale)}`) + ` × ${toLocaleDigits(it.quantity ?? it.count ?? 1, locale)}`}
                   </option>
                 ) : null
               })}

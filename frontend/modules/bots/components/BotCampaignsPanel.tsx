@@ -34,9 +34,9 @@ type CampaignsResponse = {
 }
 
 export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
-  const locale = normalizeUiLocale(useLocale())
   const enumLabel = useEnumLabel()
   const t = useTranslations("bots")
+  const locale = normalizeUiLocale(useLocale())
   const qc = useQueryClient()
   const [name, setName] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
@@ -107,7 +107,7 @@ export function BotCampaignsPanel({ provider }: { provider: BotProvider }) {
           <LocaleDatePicker
             locale={locale}
             withTime
-            value={scheduledAt || null}
+            value={scheduledAt}
             onChange={(value) => setScheduledAt(value ?? "")}
             aria-label={t("campaigns.schedule")}
           />
