@@ -1,3 +1,5 @@
+@import "./skins/demo-skins.css";
+
 .cafe-shell {
   --cafe-accent: #c46b3a;
   --c-bg: #f4efe8;

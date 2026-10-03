@@ -1,4 +1,4 @@
-import { fetchCatalogItem } from "@/kernel/cafe-catalogue-data"
+import { fetchAboutData, fetchCatalogItem } from "@/kernel/cafe-catalogue-data"
 import { ItemDetailView } from "@/themes/cafe-starter/views/ItemDetailView"
 import type { ResolvedSiteRoute } from "@/kernel/types"
 import { notFound } from "next/navigation"
@@ -13,7 +13,7 @@ type Props = {
 export default async function ItemPage({ route, searchParams }: Props) {
   const segments = route.fullPath.split("/").filter(Boolean)
   const slug = segments[segments.length - 1]
-  const item = await fetchCatalogItem(slug)
+  const [item, venue] = await Promise.all([fetchCatalogItem(slug), fetchAboutData()])
 
   if (!item) notFound()
 
@@ -22,6 +22,7 @@ export default async function ItemPage({ route, searchParams }: Props) {
       item={item}
       tableNumber={searchParams?.table ?? null}
       branchSlug={searchParams?.branch ?? null}
+      activeThemeSlug={venue?.tenant.active_theme_slug}
     />
   )
 }

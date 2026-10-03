@@ -33,6 +33,7 @@ export default async function CataloguePage({
       initialQuery={initialQuery}
       tableNumber={tableNumber}
       branchSlug={branchSlug}
+      activeThemeSlug={venue?.tenant.active_theme_slug}
     />
   )
 }

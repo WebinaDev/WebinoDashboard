@@ -15,7 +15,11 @@ import { formatShopPrice } from "@/lib/format"
 import { toLocaleDigits } from "@/lib/locale"
 
 import { CafeCartDrawer } from "../components/CafeCartDrawer"
+import { cafeSkinLayout, resolveCafeSkin } from "../skin"
+import "../menu.css"
 import type { CatalogItem } from "../types"
+
+const SCHEME_KEY = "cafe_menu_scheme"
 
 function formatPrice(amount: number, currency: string, locale: string) {
   return toLocaleDigits(formatShopPrice(amount / 10, { currency }, currency), locale === "fa" ? "fa" : "en")
@@ -29,13 +33,18 @@ export function ItemDetailView({
   item,
   tableNumber,
   branchSlug,
+  activeThemeSlug,
 }: {
   item: CatalogItem
   tableNumber?: string | null
   branchSlug?: string | null
+  activeThemeSlug?: string | null
 }) {
   const t = useTranslations("cafe_starter")
   const locale = useLocale()
+  const skin = resolveCafeSkin(activeThemeSlug)
+  const layout = cafeSkinLayout(skin)
+  const [scheme, setScheme] = useState<"light" | "dark">("light")
   const [likes, setLikes] = useState(item.likes_count ?? 0)
   const [selectedVariant, setSelectedVariant] = useState<number | null>(item.variants?.find((v) => v.is_default)?.id ?? item.variants?.[0]?.id ?? null)
   const [selectedOptions, setSelectedOptions] = useState<Record<number, number[]>>({})
@@ -49,6 +58,11 @@ export function ItemDetailView({
   useEffect(() => {
     trackAnalyticsEvent("product_view", { productId: item.id })
   }, [item.id])
+
+  useEffect(() => {
+    const stored = localStorage.getItem(SCHEME_KEY)
+    if (stored === "dark" || stored === "light") setScheme(stored)
+  }, [])
 
   async function addToCart() {
     const token = localStorage.getItem("cafe_guest_token") ?? crypto.randomUUID().replace(/-/g, "")
@@ -90,7 +104,8 @@ export function ItemDetailView({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="cafe-shell" data-skin={skin} data-layout={layout} data-scheme={scheme}>
+    <div className="cafe-frame px-4 py-8">
       <div className="mb-6">
         <Button asChild variant="ghost" size="sm">
           <Link href={`/catalogue${tableNumber || branchSlug ? `?${new URLSearchParams(Object.entries({ table: tableNumber || "", branch: branchSlug || "" }).filter(([, v]) => v)).toString()}` : ""}`}>{t("back_to_menu")}</Link>
@@ -185,8 +200,8 @@ export function ItemDetailView({
           ))}
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button disabled={!item.is_available || item.is_sold_out} onClick={() => void addToCart()}>
-              {t("add_to_cart")}
+            <Button className="cafe-buy-btn" disabled={!item.is_available || item.is_sold_out} onClick={() => void addToCart()}>
+              {item.is_sold_out ? t(skin === "cafe-super" ? "stock_gone" : "badge_sold_out") : t("add_to_cart")}
             </Button>
             <CafeCartDrawer tableNumber={tableNumber} branchSlug={branchSlug} />
           </div>
@@ -212,6 +227,7 @@ export function ItemDetailView({
           </div>
         </div>
       </div>
+    </div>
     </div>
   )
 }
