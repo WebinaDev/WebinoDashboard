@@ -54,7 +54,7 @@ type Outstanding = {
   payments: PaymentRow[]
 }
 
-const KINDS = ["sms", "invoice", "marketplace"] as const
+const KINDS = ["sms", "invoice", "marketplace", "other"] as const
 
 export default function PageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("platform_billing")
@@ -118,7 +118,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
       {q.isError ? <p className="text-destructive text-sm">{getApiErrorMessage(q.error)}</p> : null}
 
       <h2 className="text-base font-medium">{t("outstanding")}</h2>
-      {KINDS.concat("other").map((kind) => (
+      {KINDS.map((kind) => (
         <section key={kind} className="space-y-3">
           <h3 className="text-sm font-medium">{t(`kind_${kind}` as "kind_sms")}</h3>
           {grouped[kind].length === 0 ? <p className="text-muted-foreground text-sm">{t("empty")}</p> : null}
