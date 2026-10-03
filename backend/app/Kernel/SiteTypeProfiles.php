@@ -4,7 +4,7 @@ namespace App\Kernel;
 
 final class SiteTypeProfiles
 {
-    public const TYPES = ['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'];
+    public const TYPES = ['ecommerce', 'magazine', 'cafe', 'coffee', 'resume', 'corporate'];
 
     /** @return array<string, array{name_fa: string, name_en: string, theme: string, modules: array<string, list<string>>}> */
     public static function all(): array
@@ -16,7 +16,6 @@ final class SiteTypeProfiles
                 'theme' => 'ecommerce-starter',
                 'modules' => array_merge(self::coreModules(), [
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory'],
-                    'coffee-profile' => ['profile'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'blog' => ['posts', 'categories'],
@@ -54,6 +53,23 @@ final class SiteTypeProfiles
                     'bots' => ['bale', 'telegram'],
                     'sms-panel' => ['panel'],
                     'blog' => ['posts', 'categories'],
+                    'analytics' => ['overview', 'reports'],
+                    'ai-content' => ['studio'],
+                ]),
+            ],
+            'coffee' => [
+                'name_fa' => 'قهوه',
+                'name_en' => 'Coffee',
+                'theme' => 'ecommerce-starter',
+                'modules' => array_merge(self::coreModules(), [
+                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory'],
+                    'coffee-profile' => ['profile'],
+                    'users' => ['customers', 'staff', 'rbac'],
+                    'cms' => ['pages', 'menus', 'seo'],
+                    'blog' => ['posts', 'categories'],
+                    'marketing' => ['coupons', 'bot-broadcast', 'bot-campaigns', 'sms', 'newsletter'],
+                    'bots' => ['bale', 'telegram'],
+                    'sms-panel' => ['panel'],
                     'analytics' => ['overview', 'reports'],
                     'ai-content' => ['studio'],
                 ]),

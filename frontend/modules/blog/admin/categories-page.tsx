@@ -28,11 +28,14 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
   const [slug, setSlug] = useState("")
   const [slugAuto, setSlugAuto] = useState(true)
   const [seo, setSeo] = useState<{ title?: string; description?: string; focus_keyword?: string }>({})
+  const [status, setStatus] = useState("")
 
   const q = useQuery({
-    queryKey: ["blog", "categories"],
+    queryKey: ["blog", "categories", status],
     queryFn: () =>
-      api<{ items: Cat[]; stats: { total: number; with_posts: number } }>("/api/v1/blog/categories"),
+      api<{ items: Cat[]; stats: { total: number; with_posts: number } }>(
+        `/api/v1/blog/categories${status ? `?status=${status}` : ""}`,
+      ),
   })
 
   const createMut = useMutation({
@@ -53,7 +56,7 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
   })
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/blog/categories/${id}`, { method: "DELETE" }),
+    mutationFn: (id: number) => api(`/api/v1/blog/categories/${id}${status === "trash" ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: () => {
       toast.success(t("deleted"))
       void qc.invalidateQueries({ queryKey: ["blog", "categories"] })
@@ -65,7 +68,15 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
   const stats = q.data?.stats
 
   return (
-    <PageShell title={t("blog_categories_title")} description={t("blog_categories_subtitle")}>
+    <PageShell
+      title={t("blog_categories_title")}
+      description={t("blog_categories_subtitle")}
+      actions={
+        <Button type="button" variant={status === "trash" ? "default" : "outline"} onClick={() => setStatus((s) => (s === "trash" ? "" : "trash"))}>
+          {status === "trash" ? t("show_active") : t("show_trash")}
+        </Button>
+      }
+    >
       {stats ? (
         <ListStatsStrip
           className="mb-4"
@@ -123,14 +134,31 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
                   {c.seo?.focus_keyword ? ` · ${c.seo.focus_keyword}` : ""}
                 </p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => confirm({ description: c.name, onConfirm: () => deleteMut.mutateAsync(c.id) })}
-              >
-                {t("delete")}
-              </Button>
+              <div className="flex gap-1">
+                {status === "trash" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      api(`/api/v1/blog/categories/${c.id}/restore`, { method: "POST" }).then(() => {
+                        toast.success(tCommon("saved"))
+                        void qc.invalidateQueries({ queryKey: ["blog", "categories"] })
+                      })
+                    }
+                  >
+                    {t("restore")}
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => confirm({ description: c.name, onConfirm: () => deleteMut.mutateAsync(c.id) })}
+                >
+                  {status === "trash" ? t("permanent_delete") : t("delete")}
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

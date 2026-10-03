@@ -10,7 +10,7 @@ class BlogPost extends Model
 {
     protected $fillable = [
         'tenant_id', 'category_id', 'slug', 'title', 'excerpt', 'body',
-        'builder_draft', 'cover_url', 'cover_media_id', 'seo', 'status', 'published_at',
+        'builder_draft', 'builder_published', 'cover_url', 'cover_media_id', 'seo', 'status', 'published_at', 'meta',
         'visibility', 'password', 'comment_status',
     ];
 
@@ -19,7 +19,9 @@ class BlogPost extends Model
         return [
             'published_at' => 'datetime',
             'seo' => 'array',
+            'meta' => 'array',
             'builder_draft' => 'array',
+            'builder_published' => 'array',
         ];
     }
 

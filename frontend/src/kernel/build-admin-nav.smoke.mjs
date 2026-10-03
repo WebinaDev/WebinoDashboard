@@ -39,7 +39,8 @@ assert.match(marketing, /marketing\/sale-prices/)
 assert.match(marketing, /navGroup:\s*"marketing"/)
 assert.match(marketing, /navGroup:\s*"sms"/)
 assert.match(marketing, /navHidden:\s*true/)
-assert.match(marketing, /section:\s*"commerce"/)
+assert.match(marketing, /section:\s*"marketing"/)
+assert.doesNotMatch(marketing, /section:\s*"commerce"/)
 assert.match(marketing, /path:\s*"notifications"/)
 assert.match(marketing, /section:\s*"tools"/)
 assert.match(users, /path:\s*"tickets"/)
@@ -67,8 +68,8 @@ const layout = fs.readFileSync(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../views/DashboardLayoutPage.tsx"),
   "utf8",
 )
-assert.match(layout, /p-3 pt-0 sm:gap-4 sm:p-4 sm:pt-0/)
-assert.doesNotMatch(layout, /pt-3 sm:pt-4/)
+assert.match(layout, /p-3 sm:gap-4 sm:p-4/)
+assert.doesNotMatch(layout, /sm:pt-0/)
 assert.doesNotMatch(layout, /projects=\{\[\]\}/)
 
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")

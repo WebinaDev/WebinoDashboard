@@ -22,6 +22,7 @@ class Category extends Model
         'cover_image_url',
         'thumbnail_id',
         'views_count',
+        'status',
         'meta',
     ];
 

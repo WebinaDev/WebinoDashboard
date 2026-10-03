@@ -1,4 +1,4 @@
-export type SiteTypeSlug = "ecommerce" | "magazine" | "cafe" | "resume" | "corporate"
+export type SiteTypeSlug = "ecommerce" | "magazine" | "cafe" | "coffee" | "resume" | "corporate"
 
 export type ModuleManifest = {
   slug: string

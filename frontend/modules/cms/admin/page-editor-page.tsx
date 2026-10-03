@@ -137,6 +137,11 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {!isNew && id ? <AiGenerateButton type="page" id={id} onDone={() => void detailQ.refetch()} /> : null}
+          {!isNew && id ? (
+            <Button asChild type="button" size="sm" variant="outline">
+              <Link href={`/dashboard/builder/${id}`}>{t("open_builder")}</Link>
+            </Button>
+          ) : null}
           {publicPath ? (
             <Button asChild type="button" size="sm" variant="outline">
               <Link href={publicPath} target="_blank" rel="noreferrer">

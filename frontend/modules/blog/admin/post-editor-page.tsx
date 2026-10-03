@@ -157,6 +157,11 @@ export default function BlogEditorPage({ route }: { route: ResolvedAdminRoute })
       actions={
         <div className="flex items-center gap-2">
           {!isNew && id ? <AiGenerateButton type="blog" id={id} onDone={() => void detailQ.refetch()} /> : null}
+          {!isNew && id ? (
+            <Button asChild type="button" size="sm" variant="outline">
+              <Link href={`/dashboard/builder/post/${id}`}>{t("open_builder")}</Link>
+            </Button>
+          ) : null}
           {publicPath ? (
             <Button asChild type="button" size="sm" variant="outline">
               <Link href={publicPath} target="_blank" rel="noreferrer">

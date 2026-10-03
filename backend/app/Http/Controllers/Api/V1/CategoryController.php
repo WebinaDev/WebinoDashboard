@@ -16,6 +16,7 @@ class CategoryController extends Controller
         $q = Category::query()
             ->where('tenant_id', $tid)
             ->withCount(['products', 'productsMany']);
+        \App\Support\StatusTrash::apply($q, $request->filled('status') ? (string) $request->query('status') : null);
 
         if ($search = $request->query('search')) {
             $like = '%'.$search.'%';
@@ -120,9 +121,16 @@ class CategoryController extends Controller
     public function destroy(Request $request, Category $category): \Illuminate\Http\JsonResponse
     {
         $this->authorizeTenant($request, $category->tenant_id);
-        $category->delete();
 
-        return response()->json([], 204);
+        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($category, $request->boolean('force'), 'status', 'publish', ['publish'])]);
+    }
+
+    public function restore(Request $request, Category $category): \Illuminate\Http\JsonResponse
+    {
+        $this->authorizeTenant($request, $category->tenant_id);
+        $status = \App\Support\StatusTrash::restore($category, 'status', 'publish', ['publish']);
+
+        return response()->json(['data' => $category->fresh(), 'restored_status' => $status]);
     }
 
     protected function authorizeTenant(Request $request, int $tenantId): void

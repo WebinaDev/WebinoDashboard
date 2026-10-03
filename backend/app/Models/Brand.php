@@ -18,6 +18,7 @@ class Brand extends Model
         'image_url',
         'thumbnail_id',
         'views_count',
+        'status',
         'meta',
     ];
 

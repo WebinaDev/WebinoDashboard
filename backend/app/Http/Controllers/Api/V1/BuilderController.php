@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlogPost;
 use App\Models\BuilderTemplate;
 use App\Models\CmsPage;
+use App\Models\MagazineArticle;
+use App\Models\Product;
 use App\Models\Tenant;
 use App\Services\Builder\BuilderDocumentRules;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +21,9 @@ class BuilderController extends Controller
     {
         $tid = (int) $request->user()->tenant_id;
         $tenant = Tenant::query()->findOrFail($tid);
-        $pages = CmsPage::query()->where('tenant_id', $tid)->orderBy('title')->get();
+        $pages = CmsPage::query()->where('tenant_id', $tid)->where(function ($q) {
+            $q->whereNull('status')->orWhere('status', '!=', 'trash');
+        })->orderBy('title')->get();
         $templates = BuilderTemplate::query()
             ->where('tenant_id', $tid)
             ->orderByDesc('is_default')
@@ -112,6 +117,127 @@ class BuilderController extends Controller
         $row->save();
 
         return response()->json(['data' => $this->serializeDetail($row)]);
+    }
+
+    public function showProduct(Request $request, Product $product): JsonResponse
+    {
+        abort_if((int) $request->user()->tenant_id !== (int) $product->tenant_id, 403);
+
+        return response()->json(['data' => $this->metaDocument($product, (string) $product->name, (string) $product->slug, (string) $product->status)]);
+    }
+
+    public function updateProduct(Request $request, Product $product): JsonResponse
+    {
+        abort_if((int) $request->user()->tenant_id !== (int) $product->tenant_id, 403);
+        $data = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'document' => 'sometimes|array',
+        ]);
+        if (isset($data['title'])) {
+            $product->name = $data['title'];
+        }
+        if (array_key_exists('document', $data)) {
+            $meta = is_array($product->meta) ? $product->meta : [];
+            $meta['builder_document'] = $this->document($data['document']);
+            $product->meta = $meta;
+        }
+        $product->save();
+
+        return response()->json(['data' => $this->metaDocument($product, (string) $product->name, (string) $product->slug, (string) $product->status)]);
+    }
+
+    public function publishProduct(Request $request, Product $product): JsonResponse
+    {
+        abort_if((int) $request->user()->tenant_id !== (int) $product->tenant_id, 403);
+        $meta = is_array($product->meta) ? $product->meta : [];
+        abort_if(! is_array($meta['builder_document'] ?? null), 422, 'draft missing');
+        $meta['builder_published'] = $meta['builder_document'];
+        $product->meta = $meta;
+        $product->save();
+
+        return response()->json(['data' => $this->metaDocument($product, (string) $product->name, (string) $product->slug, (string) $product->status)]);
+    }
+
+    public function showPost(Request $request, int $post): JsonResponse
+    {
+        $row = BlogPost::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($post);
+
+        return response()->json(['data' => $this->columnDocument($row, 'builder_draft', 'builder_published')]);
+    }
+
+    public function updatePost(Request $request, int $post): JsonResponse
+    {
+        $row = BlogPost::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($post);
+        $data = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'document' => 'sometimes|array',
+        ]);
+        if (isset($data['title'])) {
+            $row->title = $data['title'];
+        }
+        if (array_key_exists('document', $data)) {
+            $row->builder_draft = $this->document($data['document']);
+        }
+        $row->save();
+
+        return response()->json(['data' => $this->columnDocument($row, 'builder_draft', 'builder_published')]);
+    }
+
+    public function publishPost(Request $request, int $post): JsonResponse
+    {
+        $row = BlogPost::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($post);
+        abort_if(! is_array($row->builder_draft), 422, 'draft missing');
+        $row->builder_published = $row->builder_draft;
+        $row->status = 'published';
+        if (! $row->published_at) {
+            $row->published_at = now();
+        }
+        $row->save();
+
+        return response()->json(['data' => $this->columnDocument($row, 'builder_draft', 'builder_published')]);
+    }
+
+    public function showArticle(Request $request, int $article): JsonResponse
+    {
+        $row = MagazineArticle::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($article);
+
+        return response()->json(['data' => $this->metaDocument($row, (string) $row->title, (string) $row->slug, (string) $row->status)]);
+    }
+
+    public function updateArticle(Request $request, int $article): JsonResponse
+    {
+        $row = MagazineArticle::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($article);
+        $data = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'document' => 'sometimes|array',
+        ]);
+        if (isset($data['title'])) {
+            $row->title = $data['title'];
+        }
+        if (array_key_exists('document', $data)) {
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $meta['builder_document'] = $this->document($data['document']);
+            $row->meta = $meta;
+        }
+        $row->save();
+
+        return response()->json(['data' => $this->metaDocument($row, (string) $row->title, (string) $row->slug, (string) $row->status)]);
+    }
+
+    public function publishArticle(Request $request, int $article): JsonResponse
+    {
+        $row = MagazineArticle::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($article);
+        $meta = is_array($row->meta) ? $row->meta : [];
+        abort_if(! is_array($meta['builder_document'] ?? null), 422, 'draft missing');
+        $meta['builder_published'] = $meta['builder_document'];
+        $row->meta = $meta;
+        $row->status = 'published';
+        if (! $row->published_at) {
+            $row->published_at = now();
+        }
+        $row->save();
+
+        return response()->json(['data' => $this->metaDocument($row, (string) $row->title, (string) $row->slug, (string) $row->status)]);
     }
 
     public function destroy(Request $request, int $page): JsonResponse
@@ -224,6 +350,34 @@ class BuilderController extends Controller
             $row->is_default = true;
             $row->save();
         });
+    }
+
+    /** @return array<string, mixed> */
+    private function metaDocument(object $row, string $title, string $slug, string $status): array
+    {
+        $meta = is_array($row->meta ?? null) ? $row->meta : [];
+
+        return [
+            'id' => $row->id,
+            'title' => $title,
+            'slug' => $slug,
+            'status' => $status,
+            'document' => $meta['builder_document'] ?? ['version' => 1, 'sections' => []],
+            'published_document' => $meta['builder_published'] ?? null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function columnDocument(object $row, string $draftKey, string $publishedKey): array
+    {
+        return [
+            'id' => $row->id,
+            'title' => (string) ($row->title ?? ''),
+            'slug' => (string) ($row->slug ?? ''),
+            'status' => (string) ($row->status ?? 'draft'),
+            'document' => $row->{$draftKey} ?? ['version' => 1, 'sections' => []],
+            'published_document' => $row->{$publishedKey} ?? null,
+        ];
     }
 
     /** @return array<string, mixed> */

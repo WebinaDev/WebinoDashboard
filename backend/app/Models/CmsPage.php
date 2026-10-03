@@ -23,6 +23,7 @@ class CmsPage extends Model
         'visibility',
         'password',
         'seo',
+        'meta',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class CmsPage extends Model
         return [
             'published' => 'boolean',
             'seo' => 'array',
+            'meta' => 'array',
             'builder_draft' => 'array',
             'builder_published' => 'array',
         ];

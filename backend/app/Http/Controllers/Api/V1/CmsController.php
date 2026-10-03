@@ -18,20 +18,25 @@ class CmsController extends Controller
         $page = max(1, (int) $request->query('page', 1));
         $perPage = min(100, max(1, (int) $request->query('per_page', 20)));
         $base = CmsPage::query()->where('tenant_id', $tid);
+        $visible = (clone $base)->where(function ($q) {
+            $q->whereNull('status')->orWhere('status', '!=', 'trash');
+        });
         $stats = [
-            'total' => (clone $base)->count(),
-            'publish' => (clone $base)->where(function ($q) {
+            'total' => (clone $visible)->count(),
+            'publish' => (clone $visible)->where(function ($q) {
                 $q->where('status', 'published')->orWhere('published', true);
             })->count(),
-            'draft' => (clone $base)->where(function ($q) {
+            'draft' => (clone $visible)->where(function ($q) {
                 $q->where('status', 'draft')->orWhere(function ($w) {
                     $w->where('published', false)->where(function ($x) {
                         $x->whereNull('status')->orWhere('status', 'draft');
                     });
                 });
             })->count(),
-            'pending' => (clone $base)->where('status', 'pending')->count(),
+            'pending' => (clone $visible)->where('status', 'pending')->count(),
+            'trash' => (clone $base)->where('status', 'trash')->count(),
         ];
+        \App\Support\StatusTrash::apply($base, $request->filled('status') ? (string) $request->query('status') : null);
         if ($search = trim((string) $request->query('search', ''))) {
             $like = '%'.$search.'%';
             $base->where(function ($w) use ($like) {
@@ -110,10 +115,32 @@ class CmsController extends Controller
     public function destroy(Request $request, int $page): JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        CmsPage::query()->where('tenant_id', $tid)->where('parent_id', $page)->update(['parent_id' => null]);
-        CmsPage::query()->where('tenant_id', $tid)->where('id', $page)->delete();
+        $row = CmsPage::query()->where('tenant_id', $tid)->findOrFail($page);
+        if ($request->boolean('force')) {
+            if ($row->status !== 'trash') {
+                return response()->json(['message' => 'Only trashed pages can be permanently deleted.'], 422);
+            }
+            CmsPage::query()->where('tenant_id', $tid)->where('parent_id', $page)->update(['parent_id' => null]);
+            $row->delete();
 
-        return response()->json(['data' => ['deleted' => true]]);
+            return response()->json(['data' => ['deleted' => true]]);
+        }
+        $result = \App\Support\StatusTrash::trashOrDelete($row, false, 'status', 'draft', ['draft', 'published', 'pending']);
+        $row->published = false;
+        $row->save();
+
+        return response()->json(['data' => $result]);
+    }
+
+    public function restore(Request $request, int $page): JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $row = CmsPage::query()->where('tenant_id', $tid)->findOrFail($page);
+        $status = \App\Support\StatusTrash::restore($row, 'status', 'draft', ['draft', 'published', 'pending']);
+        $row->published = $status === 'published';
+        $row->save();
+
+        return response()->json(['data' => $this->serializeDetail($row->fresh()), 'restored_status' => $status]);
     }
 
     public function homeBlocks(Request $request): JsonResponse
@@ -143,7 +170,7 @@ class CmsController extends Controller
             'excerpt' => 'nullable|string',
             'body' => 'nullable|string',
             'published' => 'sometimes|boolean',
-            'status' => 'nullable|string|in:draft,published,pending',
+            'status' => 'nullable|string|in:draft,published,pending,trash',
             'parent_id' => 'nullable|integer',
             'featured_media_id' => 'nullable|integer',
             'comment_status' => 'nullable|string|in:open,closed',

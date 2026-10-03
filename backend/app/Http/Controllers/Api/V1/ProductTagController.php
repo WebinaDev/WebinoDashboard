@@ -14,6 +14,7 @@ class ProductTagController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $q = ProductTag::query()->where('tenant_id', $tid)->withCount('products');
+        \App\Support\StatusTrash::apply($q, $request->filled('status') ? (string) $request->query('status') : null);
 
         if ($search = $request->query('search')) {
             $like = '%'.$search.'%';
@@ -68,9 +69,16 @@ class ProductTagController extends Controller
     public function destroy(Request $request, ProductTag $productTag): \Illuminate\Http\JsonResponse
     {
         $this->authorizeTenant($request, $productTag->tenant_id);
-        $productTag->delete();
 
-        return response()->json([], 204);
+        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($productTag, $request->boolean('force'), 'status', 'publish', ['publish'])]);
+    }
+
+    public function restore(Request $request, ProductTag $productTag): \Illuminate\Http\JsonResponse
+    {
+        $this->authorizeTenant($request, $productTag->tenant_id);
+        $status = \App\Support\StatusTrash::restore($productTag, 'status', 'publish', ['publish']);
+
+        return response()->json(['data' => $productTag->fresh(), 'restored_status' => $status]);
     }
 
     protected function authorizeTenant(Request $request, int $tenantId): void

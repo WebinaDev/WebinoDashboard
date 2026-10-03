@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 
@@ -47,12 +47,14 @@ export default function ProductTagsPageClient({ route: _route }: { route: Resolv
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [slugTouched, setSlugTouched] = useState(false)
+  const [status, setStatus] = useState("")
 
   const { data: tags = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["admin-product-tags", q],
+    queryKey: ["admin-product-tags", q, status],
     queryFn: () => {
       const params = new URLSearchParams()
       if (q.trim()) params.set("search", q.trim())
+      if (status) params.set("status", status)
       const qs = params.toString()
       return api<ProductTag[]>(`/api/v1/product-tags${qs ? `?${qs}` : ""}`)
     },
@@ -88,7 +90,7 @@ export default function ProductTagsPageClient({ route: _route }: { route: Resolv
   })
 
   const remove = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/product-tags/${id}`, { method: "DELETE" }),
+    mutationFn: (id: number) => api(`/api/v1/product-tags/${id}${status === "trash" ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-product-tags"] })
     },
@@ -101,10 +103,15 @@ export default function ProductTagsPageClient({ route: _route }: { route: Resolv
         <div>
           <h1 className="text-2xl font-bold">{t("product_tags_title")}</h1>
         </div>
+        <div className="flex gap-2">
+        <Button type="button" variant={status === "trash" ? "default" : "outline"} onClick={() => setStatus((s) => (s === "trash" ? "" : "trash"))}>
+          {status === "trash" ? t("show_active") : t("show_trash")}
+        </Button>
         <Button onClick={openCreate}>
           <Plus className="size-4" />
           {t("add_product_tag")}
         </Button>
+        </div>
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
@@ -167,6 +174,20 @@ export default function ProductTagsPageClient({ route: _route }: { route: Resolv
                             <Pencil className="size-4" />
                             <span className="sr-only">{t("edit")}</span>
                           </Button>
+                          {status === "trash" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                api(`/api/v1/product-tags/${tag.id}/restore`, { method: "POST" }).then(() =>
+                                  queryClient.invalidateQueries({ queryKey: ["admin-product-tags"] }),
+                                )
+                              }
+                            >
+                              <RotateCcw className="size-4" />
+                              <span className="sr-only">{t("restore")}</span>
+                            </Button>
+                          ) : null}
                           <Button
                             size="sm"
                             variant="ghost"

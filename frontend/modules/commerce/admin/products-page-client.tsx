@@ -6,9 +6,12 @@ import {
   Columns3,
   Copy,
   ExternalLink,
+  LayoutTemplate,
   Pencil,
   Plus,
+  RotateCcw,
   Search,
+  SlidersHorizontal,
   Trash2,
 } from "lucide-react"
 import Link from "next/link"
@@ -37,6 +40,7 @@ import { ScrollTable } from "@/components/ScrollTable"
 import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { OrderStatusTabs } from "@/components/orders/OrderStatusTabs"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { ApiError, api } from "@/lib/api"
@@ -369,8 +373,17 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
+  const restoreOne = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/products/${id}/restore`, { method: "POST" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
   const remove = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/products/${id}`, { method: "DELETE" }),
+    mutationFn: ({ id, force }: { id: number; force?: boolean }) =>
+      api(`/api/v1/products/${id}${force ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
     },
@@ -492,9 +505,16 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
             <Pencil className="size-4" />
           </Link>
         </Button>
+        <Button size="icon" variant="outline" asChild title={t("open_builder")}>
+          <Link href={`/dashboard/builder/product/${p.id}`}>
+            <LayoutTemplate className="size-4" />
+            <span className="sr-only">{t("open_builder")}</span>
+          </Link>
+        </Button>
         <Button
-          size="sm"
+          size="icon"
           variant="ghost"
+          title={t("quick_edit")}
           onClick={() => {
             setQuickId(p.id)
             setQuickName(p.name)
@@ -502,7 +522,8 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
             setQuickPrice(String(p.price_minor ?? ""))
           }}
         >
-          {t("quick_edit")}
+          <SlidersHorizontal className="size-4" />
+          <span className="sr-only">{t("quick_edit")}</span>
         </Button>
         <Button
           size="icon"
@@ -513,12 +534,29 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
         >
           <Copy className="size-4" />
         </Button>
+        {p.status === "trash" || status === "trash" ? (
+          <Button
+            size="icon"
+            variant="outline"
+            title={t("restore")}
+            disabled={restoreOne.isPending}
+            onClick={() => restoreOne.mutate(p.id)}
+          >
+            <RotateCcw className="size-4" />
+            <span className="sr-only">{t("restore")}</span>
+          </Button>
+        ) : null}
         <Button
           size="icon"
           variant="ghost"
-          title={t("delete")}
+          title={p.status === "trash" || status === "trash" ? t("permanent_delete") : t("delete")}
           disabled={remove.isPending}
-          onClick={() => confirm({ description: p.name, onConfirm: () => remove.mutateAsync(p.id) })}
+          onClick={() =>
+            confirm({
+              description: p.name,
+              onConfirm: () => remove.mutateAsync({ id: p.id, force: p.status === "trash" || status === "trash" }),
+            })
+          }
         >
           <Trash2 className="size-4" />
         </Button>
@@ -794,11 +832,15 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
           </div>
           <div>
             <Label>{t("date_from")}</Label>
-            <Input className="mt-1" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <div className="mt-1">
+              <LocaleDatePicker locale={locale} value={dateFrom} onChange={(value) => setDateFrom(value ?? "")} aria-label={t("date_from")} />
+            </div>
           </div>
           <div>
             <Label>{t("date_to")}</Label>
-            <Input className="mt-1" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <div className="mt-1">
+              <LocaleDatePicker locale={locale} value={dateTo} onChange={(value) => setDateTo(value ?? "")} aria-label={t("date_to")} />
+            </div>
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <Button
@@ -850,7 +892,7 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
             size="sm"
             variant="secondary"
             disabled={bulkPatch.isPending}
-            onClick={() => bulkPatch.mutate({ product_ids: selectedIds, status: "draft" })}
+            onClick={() => bulkPatch.mutate({ product_ids: selectedIds, restore: true })}
           >
             {t("restore_from_trash")}
           </Button>
@@ -864,7 +906,12 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
             onClick={() =>
               confirm({
                 description: t("bulk_trash_confirm", { count: selectedIds.length }),
-                onConfirm: () => bulkPatch.mutateAsync({ product_ids: selectedIds, status: "trash" }),
+                onConfirm: () =>
+                  bulkPatch.mutateAsync(
+                    status === "trash"
+                      ? { product_ids: selectedIds, force_delete: true }
+                      : { product_ids: selectedIds, status: "trash" },
+                  ),
               })
             }
           >

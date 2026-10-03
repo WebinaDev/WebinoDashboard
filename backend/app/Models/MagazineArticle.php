@@ -22,6 +22,7 @@ class MagazineArticle extends Model
         'visibility',
         'password',
         'seo',
+        'meta',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class MagazineArticle extends Model
         return [
             'published_at' => 'datetime',
             'seo' => 'array',
+            'meta' => 'array',
         ];
     }
 

@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { PageShell } from "@/components/PageShell"
 import {
   AlertDialog,
@@ -453,12 +454,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
             {duration === "custom" ? (
               <div className="space-y-1">
                 <Label htmlFor="sale-end-date">{t("end_date")}</Label>
-                <Input
-                  id="sale-end-date"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
+                <LocaleDatePicker locale={locale} value={endDate} onChange={(value) => setEndDate(value ?? "")} aria-label={t("end_date")} />
               </div>
             ) : null}
             {preview ? (

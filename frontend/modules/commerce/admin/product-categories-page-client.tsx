@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
@@ -42,13 +42,15 @@ export default function ProductCategoriesPageClient({ route: _route }: { route: 
   const [search, setSearch] = useState("")
   const [q, setQ] = useState("")
   const [parentFilter, setParentFilter] = useState("")
+  const [status, setStatus] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   const { data: categories = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["admin-categories", q, parentFilter],
+    queryKey: ["admin-categories", q, parentFilter, status],
     queryFn: () => {
       const params = new URLSearchParams()
       if (q.trim()) params.set("search", q.trim())
+      if (status) params.set("status", status)
       if (parentFilter === "root") params.set("parent", "root")
       else if (parentFilter) params.set("parent_id", parentFilter)
       const qs = params.toString()
@@ -59,7 +61,7 @@ export default function ProductCategoriesPageClient({ route: _route }: { route: 
   const parentOptions = useMemo(() => flatTreeOptions(categories), [categories])
 
   const remove = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/categories/${id}`, { method: "DELETE" }),
+    mutationFn: (id: number) => api(`/api/v1/categories/${id}${status === "trash" ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-categories"] })
     },
@@ -72,12 +74,17 @@ export default function ProductCategoriesPageClient({ route: _route }: { route: 
         <div>
           <h1 className="text-2xl font-bold">{t("categories_title")}</h1>
         </div>
+        <div className="flex gap-2">
+        <Button type="button" variant={status === "trash" ? "default" : "outline"} onClick={() => setStatus((s) => (s === "trash" ? "" : "trash"))}>
+          {status === "trash" ? t("show_active") : t("show_trash")}
+        </Button>
         <Button asChild>
           <Link href="/dashboard/product-categories/new">
             <Plus className="size-4" />
             {t("add_category")}
           </Link>
         </Button>
+        </div>
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
@@ -172,6 +179,20 @@ export default function ProductCategoriesPageClient({ route: _route }: { route: 
                                 <span className="sr-only">{t("edit")}</span>
                               </Link>
                             </Button>
+                            {status === "trash" ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  api(`/api/v1/categories/${c.id}/restore`, { method: "POST" }).then(() =>
+                                    queryClient.invalidateQueries({ queryKey: ["admin-categories"] }),
+                                  )
+                                }
+                              >
+                                <RotateCcw className="size-4" />
+                                <span className="sr-only">{t("restore")}</span>
+                              </Button>
+                            ) : null}
                             <Button
                               size="sm"
                               variant="ghost"

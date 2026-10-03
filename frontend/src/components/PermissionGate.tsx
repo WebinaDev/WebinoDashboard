@@ -99,7 +99,7 @@ export function PermissionGate({
         <p className="text-muted-foreground text-sm">{t("forbidden_body")}</p>
         <div>
           <Button type="button" variant="outline" size="sm" asChild>
-            <Link href="/dashboard/account">{t("go_account")}</Link>
+            <Link href={STAFF_ROLES.includes(role) ? "/dashboard" : "/dashboard/account"}>{t("go_account")}</Link>
           </Button>
         </div>
       </div>
@@ -113,7 +113,7 @@ export function PermissionGate({
         <p className="text-muted-foreground text-sm">{t("forbidden_body")}</p>
         <div>
           <Button type="button" variant="outline" size="sm" asChild>
-            <Link href="/dashboard/account">{t("go_account")}</Link>
+            <Link href={STAFF_ROLES.includes(role) ? "/dashboard" : "/dashboard/account"}>{t("go_account")}</Link>
           </Button>
         </div>
       </div>

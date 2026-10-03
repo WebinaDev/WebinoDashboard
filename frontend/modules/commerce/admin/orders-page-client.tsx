@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { ListFiltersCollapsible } from "@/components/ListFiltersCollapsible"
 import { MobileListCard, MobileListField } from "@/components/MobileListCard"
 import { PostsPagination } from "@/components/PostsPagination"
@@ -432,11 +433,15 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
           <div>
             <Label>{t("date_from")}</Label>
-            <Input className="mt-1" type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1) }} />
+            <div className="mt-1">
+              <LocaleDatePicker locale={locale} value={dateFrom} onChange={(value) => { setDateFrom(value ?? ""); setPage(1) }} aria-label={t("date_from")} />
+            </div>
           </div>
           <div>
             <Label>{t("date_to")}</Label>
-            <Input className="mt-1" type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1) }} />
+            <div className="mt-1">
+              <LocaleDatePicker locale={locale} value={dateTo} onChange={(value) => { setDateTo(value ?? ""); setPage(1) }} aria-label={t("date_to")} />
+            </div>
           </div>
           <div>
             <Label>{t("payment_tender")}</Label>

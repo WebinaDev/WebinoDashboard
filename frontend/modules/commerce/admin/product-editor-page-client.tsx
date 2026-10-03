@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowDown, ArrowUp, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, LayoutTemplate, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
@@ -1071,6 +1071,14 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       title={isNew ? t("new_product") : t("edit_product")}
       actions={
         <>
+          {productId ? (
+            <Button variant="outline" asChild>
+              <Link href={`/dashboard/builder/product/${productId}`}>
+                <LayoutTemplate className="size-4" />
+                {t("open_builder")}
+              </Link>
+            </Button>
+          ) : null}
           {productId ? <PrintProductLabelButton productIds={[Number(productId)]} /> : null}
           {aiEnabled && productId ? (
             <Button variant="outline" asChild>

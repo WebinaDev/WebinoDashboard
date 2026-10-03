@@ -144,6 +144,11 @@ export default function MagazineEditorPage({ route }: { route: ResolvedAdminRout
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {!isNew && id ? <AiGenerateButton type="post" id={id} onDone={() => void detailQ.refetch()} /> : null}
+          {!isNew && id ? (
+            <Button asChild type="button" size="sm" variant="outline">
+              <Link href={`/dashboard/builder/article/${id}`}>{t("open_builder")}</Link>
+            </Button>
+          ) : null}
           {permalink ? (
             <Button asChild type="button" size="sm" variant="outline">
               <Link href={permalink} target="_blank" rel="noreferrer">

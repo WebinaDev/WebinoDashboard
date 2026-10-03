@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { ShieldCheck } from "lucide-react"
+
 import { PageShell } from "@/components/PageShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -93,39 +95,48 @@ export default function Page({ route: _route }: { route: ResolvedAdminRoute }) {
         </Button>
       }
     >
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {t("status_label")}
-            <Badge variant={badgeVariant}>{statusLabel}</Badge>
-          </CardTitle>
-          <CardDescription>
-            {data?.unreachable ? t("unreachable") : t("status_hint")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>
-            {t("key_present")}: {domainConfigured ? tCommon("yes") : tCommon("no")}
-          </p>
-          <p className="font-mono text-xs" dir="ltr">
-            {data?.domain || t("domain_missing")}
-            {data?.product ? ` · ${data.product}` : ""}
-          </p>
-          {data?.demo ? <p>{t("demo_hint")}</p> : null}
-          {data?.expired ? <p className="text-destructive">{t("expired_hint")}</p> : null}
-          {data?.checked_at ? (
-            <p>
-              {t("checked_at")}: {data.checked_at}
-            </p>
-          ) : null}
-          {displayError ? (
-            <p className="text-destructive">{displayError}</p>
-          ) : null}
-          {q.isError ? (
-            <p className="text-destructive">{t("api_unavailable")}</p>
-          ) : null}
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="size-5" />
+              {t("status_label")}
+              <Badge variant={badgeVariant}>{statusLabel}</Badge>
+            </CardTitle>
+            <CardDescription>{data?.unreachable ? t("unreachable") : t("status_hint")}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="text-muted-foreground text-xs">{t("key_present")}</p>
+              <p className="mt-1 font-medium">{domainConfigured ? tCommon("yes") : tCommon("no")}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="text-muted-foreground text-xs">{t("checked_at")}</p>
+              <p className="mt-1 font-medium">{data?.checked_at || "—"}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3 sm:col-span-2">
+              <p className="text-muted-foreground text-xs">{t("domain_missing")}</p>
+              <p className="mt-1 font-mono text-sm" dir="ltr">
+                {data?.domain || "—"}
+                {data?.product ? ` · ${data.product}` : ""}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("title")}</CardTitle>
+            <CardDescription>{t("subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {data?.demo ? <p>{t("demo_hint")}</p> : null}
+            {data?.expired ? <p className="text-destructive">{t("expired_hint")}</p> : null}
+            {displayError ? <p className="text-destructive">{displayError}</p> : null}
+            {q.isError ? <p className="text-destructive">{t("api_unavailable")}</p> : null}
+            {!data?.demo && !data?.expired && !displayError && !q.isError ? <p className="text-muted-foreground">{t("status_hint")}</p> : null}
+          </CardContent>
+        </Card>
+      </div>
     </PageShell>
   )
 }

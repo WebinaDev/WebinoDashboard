@@ -12,7 +12,14 @@ class ProductTag extends Model
         'tenant_id',
         'name',
         'slug',
+        'status',
+        'meta',
     ];
+
+    protected function casts(): array
+    {
+        return ['meta' => 'array'];
+    }
 
     public function tenant(): BelongsTo
     {

@@ -1,7 +1,7 @@
 "use client"
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Pencil, Search, Trash2 } from "lucide-react"
+import { LayoutTemplate, Pencil, RotateCcw, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
@@ -64,6 +64,7 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
   const [perPage, setPerPage] = useState(20)
   const [search, setSearch] = useState("")
   const [appliedSearch, setAppliedSearch] = useState("")
+  const [status, setStatus] = useState("")
   const [columns, toggleColumn] = useListColumnVisibility(LS_MAG_COLUMNS, DEFAULT_MAG_COLUMNS)
   const columnLabels: Record<MagColumn, string> = {
     title: t("col_title"),
@@ -74,17 +75,19 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
   }
 
   const q = useQuery({
-    queryKey: ["magazine", "posts", page, perPage, appliedSearch],
+    queryKey: ["magazine", "posts", page, perPage, appliedSearch, status],
     placeholderData: keepPreviousData,
     queryFn: () => {
       const p = new URLSearchParams({ page: String(page), per_page: String(perPage) })
       if (appliedSearch) p.set("search", appliedSearch)
+      if (status) p.set("status", status)
       return api<ListPayload>(`/api/v1/magazine/articles?${p}`)
     },
   })
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/magazine/articles/${id}`, { method: "DELETE" }),
+    mutationFn: ({ id, force }: { id: number; force?: boolean }) =>
+      api(`/api/v1/magazine/articles/${id}${force ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: () => {
       toast.success(t("deleted"))
       void qc.invalidateQueries({ queryKey: ["magazine", "posts"] })
@@ -103,12 +106,37 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
             <Pencil className="size-4" />
           </Link>
         </Button>
+        <Button size="icon" variant="outline" asChild title={t("open_builder")}>
+          <Link href={`/dashboard/builder/article/${row.id}`}>
+            <LayoutTemplate className="size-4" />
+          </Link>
+        </Button>
+        {row.status === "trash" || status === "trash" ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            title={t("restore")}
+            onClick={() =>
+              api(`/api/v1/magazine/articles/${row.id}/restore`, { method: "POST" }).then(() =>
+                qc.invalidateQueries({ queryKey: ["magazine", "posts"] }),
+              )
+            }
+          >
+            <RotateCcw className="size-4" />
+          </Button>
+        ) : null}
         <Button
           type="button"
           size="icon"
           variant="ghost"
           title={t("delete")}
-          onClick={() => confirm({ description: row.title, onConfirm: () => deleteMut.mutateAsync(row.id) })}
+          onClick={() =>
+            confirm({
+              description: row.title,
+              onConfirm: () => deleteMut.mutateAsync({ id: row.id, force: row.status === "trash" || status === "trash" }),
+            })
+          }
         >
           <Trash2 className="size-4" />
         </Button>
@@ -121,9 +149,14 @@ export default function MagazinePostsPage(_props: { route: ResolvedAdminRoute })
       title={t("posts_title")}
       description={t("posts_subtitle")}
       actions={
-        <Button asChild>
-          <Link href="/dashboard/magazine/new">{t("add_post")}</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant={status === "trash" ? "default" : "outline"} onClick={() => { setStatus((s) => (s === "trash" ? "" : "trash")); setPage(1) }}>
+            {status === "trash" ? t("show_active") : t("show_trash")}
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/magazine/new">{t("add_post")}</Link>
+          </Button>
+        </div>
       }
     >
       {stats ? (

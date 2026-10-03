@@ -20,11 +20,13 @@ class BlogPostController extends Controller
         $perPage = min(100, max(1, (int) $request->query('per_page', 20)));
         $base = BlogPost::query()->where('tenant_id', $tid);
         $stats = [
-            'total' => (clone $base)->count(),
+            'total' => (clone $base)->where('status', '!=', 'trash')->count(),
             'publish' => (clone $base)->where('status', 'published')->count(),
             'draft' => (clone $base)->where('status', 'draft')->count(),
             'pending' => (clone $base)->where('status', 'pending')->count(),
+            'trash' => (clone $base)->where('status', 'trash')->count(),
         ];
+        \App\Support\StatusTrash::apply($base, $request->filled('status') ? (string) $request->query('status') : null);
         if ($search = trim((string) $request->query('search', ''))) {
             $base->where(function ($w) use ($search) {
                 $like = '%'.$search.'%';
@@ -109,9 +111,18 @@ class BlogPostController extends Controller
     public function destroy(Request $request, int $post): JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        BlogPost::query()->where('tenant_id', $tid)->where('id', $post)->delete();
+        $row = BlogPost::query()->where('tenant_id', $tid)->findOrFail($post);
 
-        return response()->json(['data' => ['deleted' => true]]);
+        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($row, $request->boolean('force'), 'status', 'draft', ['draft', 'published', 'pending'])]);
+    }
+
+    public function restore(Request $request, int $post): JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $row = BlogPost::query()->where('tenant_id', $tid)->findOrFail($post);
+        $status = \App\Support\StatusTrash::restore($row, 'status', 'draft', ['draft', 'published', 'pending']);
+
+        return response()->json(['data' => $this->serializeDetail($row->fresh()), 'restored_status' => $status]);
     }
 
     /**
@@ -132,7 +143,7 @@ class BlogPostController extends Controller
             'cover_url' => 'nullable|string|max:500',
             'cover_media_id' => 'nullable|integer',
             'seo' => 'nullable|array',
-            'status' => 'nullable|string|in:draft,published,pending',
+            'status' => 'nullable|string|in:draft,published,pending,trash',
             'published_at' => 'nullable|date',
             'comment_status' => 'nullable|string|in:open,closed',
             'visibility' => 'nullable|string|in:public,private,password',

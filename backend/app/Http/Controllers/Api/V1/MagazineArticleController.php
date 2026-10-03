@@ -20,11 +20,13 @@ class MagazineArticleController extends Controller
         $perPage = min(100, max(1, (int) $request->query('per_page', 20)));
         $base = MagazineArticle::query()->where('tenant_id', $tid);
         $stats = [
-            'total' => (clone $base)->count(),
+            'total' => (clone $base)->where('status', '!=', 'trash')->count(),
             'publish' => (clone $base)->where('status', 'published')->count(),
             'draft' => (clone $base)->where('status', 'draft')->count(),
             'pending' => (clone $base)->where('status', 'pending')->count(),
+            'trash' => (clone $base)->where('status', 'trash')->count(),
         ];
+        \App\Support\StatusTrash::apply($base, $request->filled('status') ? (string) $request->query('status') : null);
         if ($search = trim((string) $request->query('search', ''))) {
             $base->where(function ($w) use ($search) {
                 $like = '%'.$search.'%';
@@ -110,9 +112,18 @@ class MagazineArticleController extends Controller
     public function destroy(Request $request, int $article): JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        MagazineArticle::query()->where('tenant_id', $tid)->where('id', $article)->delete();
+        $row = MagazineArticle::query()->where('tenant_id', $tid)->findOrFail($article);
 
-        return response()->json(['data' => ['deleted' => true]]);
+        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($row, $request->boolean('force'), 'status', 'draft', ['draft', 'published', 'pending'])]);
+    }
+
+    public function restore(Request $request, int $article): JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $row = MagazineArticle::query()->where('tenant_id', $tid)->findOrFail($article);
+        $status = \App\Support\StatusTrash::restore($row, 'status', 'draft', ['draft', 'published', 'pending']);
+
+        return response()->json(['data' => $this->serializeDetail($row->fresh()), 'restored_status' => $status]);
     }
 
     /**
@@ -129,7 +140,7 @@ class MagazineArticleController extends Controller
             'body' => 'nullable|string',
             'cover_url' => 'nullable|string|max:500',
             'featured_media_id' => 'nullable|integer',
-            'status' => 'nullable|string|in:draft,published,pending',
+            'status' => 'nullable|string|in:draft,published,pending,trash',
             'published_at' => 'nullable|date',
             'comment_status' => 'nullable|string|in:open,closed',
             'visibility' => 'nullable|string|in:public,private,password',

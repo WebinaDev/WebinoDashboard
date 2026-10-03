@@ -23,15 +23,17 @@ class ProductController extends Controller
 
         $statsBase = Product::query()->where('tenant_id', $tid);
         $this->applyIndexFilters($request, $statsBase, false);
+        $visible = clone $statsBase;
+        \App\Support\StatusTrash::apply($visible, null);
         $stats = [
-            'total' => (clone $statsBase)->count(),
-            'publish' => (clone $statsBase)->where('status', 'publish')->count(),
-            'draft' => (clone $statsBase)->where('status', 'draft')->count(),
-            'pending' => (clone $statsBase)->where('status', 'pending')->count(),
-            'private' => (clone $statsBase)->where('status', 'private')->count(),
+            'total' => (clone $visible)->count(),
+            'publish' => (clone $visible)->where('status', 'publish')->count(),
+            'draft' => (clone $visible)->where('status', 'draft')->count(),
+            'pending' => (clone $visible)->where('status', 'pending')->count(),
+            'private' => (clone $visible)->where('status', 'private')->count(),
             'trash' => (clone $statsBase)->where('status', 'trash')->count(),
-            'outofstock' => (clone $statsBase)->where('stock_status', 'outofstock')->count(),
-            'instock' => (clone $statsBase)->where('stock_status', 'instock')->count(),
+            'outofstock' => (clone $visible)->where('stock_status', 'outofstock')->count(),
+            'instock' => (clone $visible)->where('stock_status', 'instock')->count(),
         ];
 
         $sort = $request->query('sort', 'sort_order');
@@ -144,7 +146,7 @@ class ProductController extends Controller
                 'brands' => \App\Models\Brand::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug', 'parent_id']),
                 'tags' => ProductTag::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug']),
                 'attributes' => \App\Models\ProductAttribute::query()->where('tenant_id', $tid)->with('terms')->orderBy('name')->get(),
-                'products' => Product::query()->where('tenant_id', $tid)->orderBy('name')->limit(500)->get(['id', 'name', 'sku']),
+                'products' => Product::query()->where('tenant_id', $tid)->where('status', '!=', 'trash')->orderBy('name')->limit(500)->get(['id', 'name', 'sku']),
             ],
         ]);
     }
@@ -227,9 +229,41 @@ class ProductController extends Controller
             'discount_percent' => ['sometimes', 'integer', 'min:0', 'max:100'],
             'menu_id' => ['sometimes', 'nullable', 'integer', Rule::exists('menus', 'id')->where('tenant_id', $tid)],
             'status' => ['sometimes', 'string', 'in:publish,draft,trash,pending,private'],
+            'force_delete' => ['sometimes', 'boolean'],
+            'restore' => ['sometimes', 'boolean'],
         ]);
 
-        $updates = collect($data)->except('product_ids')->filter(fn ($v) => $v !== null)->all();
+        if (! empty($data['restore'])) {
+            $restored = 0;
+            Product::query()
+                ->where('tenant_id', $tid)
+                ->whereIn('id', $data['product_ids'])
+                ->where('status', 'trash')
+                ->get()
+                ->each(function (Product $product) use (&$restored) {
+                    \App\Support\StatusTrash::restore($product, 'status', 'draft', ['publish', 'draft', 'pending', 'private']);
+                    $restored++;
+                });
+
+            return response()->json(['data' => ['restored' => $restored]]);
+        }
+
+        if (! empty($data['force_delete'])) {
+            $deleted = 0;
+            Product::query()
+                ->where('tenant_id', $tid)
+                ->whereIn('id', $data['product_ids'])
+                ->where('status', 'trash')
+                ->get()
+                ->each(function (Product $product) use (&$deleted) {
+                    $this->forceDeleteProduct($product);
+                    $deleted++;
+                });
+
+            return response()->json(['data' => ['deleted' => $deleted]]);
+        }
+
+        $updates = collect($data)->except(['product_ids', 'force_delete', 'restore'])->filter(fn ($v) => $v !== null)->all();
 
         Product::query()
             ->where('tenant_id', $tid)
@@ -248,10 +282,65 @@ class ProductController extends Controller
     public function destroy(Request $request, Product $product): \Illuminate\Http\JsonResponse
     {
         abort_if($request->user()->tenant_id !== $product->tenant_id, 403);
-        $product->update(['status' => 'trash']);
-        $product->delete();
 
-        return response()->json([], 204);
+        if ($request->boolean('force')) {
+            if ($product->status !== 'trash') {
+                return response()->json(['message' => 'Only trashed products can be permanently deleted.'], 422);
+            }
+            $this->forceDeleteProduct($product);
+
+            return response()->json(['data' => ['deleted' => true]]);
+        }
+
+        if ($product->status !== 'trash') {
+            $meta = is_array($product->meta) ? $product->meta : [];
+            $meta['pre_trash_status'] = $product->status ?: 'draft';
+            $product->update(['status' => 'trash', 'meta' => $meta]);
+        }
+
+        return response()->json(['data' => ['trashed' => true]]);
+    }
+
+    public function restore(Request $request, Product $product): \Illuminate\Http\JsonResponse
+    {
+        abort_if($request->user()->tenant_id !== $product->tenant_id, 403);
+        $status = \App\Support\StatusTrash::restore($product, 'status', 'draft', ['publish', 'draft', 'pending', 'private']);
+
+        return response()->json(['data' => $product->fresh(), 'restored_status' => $status]);
+    }
+
+    private function forceDeleteProduct(Product $product): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($product) {
+            $id = $product->id;
+            if (\Illuminate\Support\Facades\Schema::hasTable('basalam_discount_tasks')) {
+                \Illuminate\Support\Facades\DB::table('basalam_discount_tasks')->where('product_id', $id)->delete();
+            }
+            $product->loadMissing('modifiers');
+            foreach ($product->modifiers as $modifier) {
+                $modifier->options()->delete();
+                $modifier->delete();
+            }
+            $product->variants()->delete();
+            $product->media()->delete();
+            $product->downloads()->delete();
+            $product->reviews()->delete();
+            $product->marketplaceMaps()->delete();
+            $product->coffeeProfile()?->delete();
+            $product->likes()->delete();
+            $product->categories()->detach();
+            $product->brands()->detach();
+            $product->tags()->detach();
+            $product->attributes()->detach();
+            $product->allergens()->detach();
+            try {
+                $product->delete();
+            } catch (\Illuminate\Database\QueryException) {
+                \Illuminate\Support\Facades\DB::table('order_items')->where('product_id', $id)->update(['product_id' => null]);
+                \Illuminate\Support\Facades\DB::table('cart_items')->where('product_id', $id)->delete();
+                $product->delete();
+            }
+        });
     }
 
     public function syncAttributes(Request $request, Product $product): \Illuminate\Http\JsonResponse
@@ -292,8 +381,8 @@ class ProductController extends Controller
                     ->orWhere('slug', 'like', $like);
             });
         }
-        if ($includeStatus && $request->filled('status') && $request->query('status') !== 'all') {
-            $q->where('status', $request->query('status'));
+        if ($includeStatus) {
+            \App\Support\StatusTrash::apply($q, $request->filled('status') ? (string) $request->query('status') : null);
         }
         if ($request->filled('type')) {
             $q->where('type', $request->query('type'));

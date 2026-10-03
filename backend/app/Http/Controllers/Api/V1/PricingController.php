@@ -429,6 +429,11 @@ class PricingController extends Controller
     public function bulkPriceStart(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
+        BulkPriceJob::query()
+            ->where('tenant_id', $tid)
+            ->where('locked', true)
+            ->where('updated_at', '<', now()->subMinutes(15))
+            ->update(['locked' => false, 'status' => 'failed', 'last_log' => 'Unlocked stale job']);
         $running = BulkPriceJob::query()->where('tenant_id', $tid)->where('locked', true)->whereIn('status', ['pending', 'running'])->exists();
         if ($running) {
             return response()->json(['message' => 'A bulk price job is already running'], 409);
@@ -455,9 +460,56 @@ class PricingController extends Controller
             'last_log' => 'Job started',
         ]);
 
-        $this->runBulkPriceJob($job);
+        try {
+            $this->runBulkPriceJob($job);
+        } catch (\Throwable $e) {
+            $job->update([
+                'status' => 'failed',
+                'locked' => false,
+                'last_log' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Bulk price change failed', 'error' => $e->getMessage()], 500);
+        }
 
         return response()->json(['data' => $job->fresh()]);
+    }
+
+    public function bulkPriceScheduleShow(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $row = \App\Models\PricingSetting::query()->where('tenant_id', $request->user()->tenant_id)->first();
+        $payload = is_array($row?->payload) ? $row->payload : [];
+
+        return response()->json(['data' => $this->normalizeBulkSchedule($payload['bulk_price_schedule'] ?? [])]);
+    }
+
+    public function bulkPriceScheduleSave(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'change_type' => ['required', 'string', 'in:fixed,percent'],
+            'value' => ['required', 'numeric'],
+            'apply_to_sale' => ['nullable', 'boolean'],
+            'category_slugs' => ['nullable', 'array'],
+            'category_slugs.*' => ['string'],
+            'rounding' => ['nullable', 'boolean'],
+            'round_step' => ['nullable', 'integer', 'min:1'],
+            'frequency' => ['required', 'string', 'in:daily,weekly'],
+            'hour' => ['required', 'integer', 'min:0', 'max:23'],
+            'weekday' => ['nullable', 'integer', 'min:0', 'max:6'],
+        ]);
+        $tid = $request->user()->tenant_id;
+        $row = \App\Services\Pricing\PricingSettings::row($tid);
+        $payload = is_array($row->payload) ? $row->payload : [];
+        $prev = is_array($payload['bulk_price_schedule'] ?? null) ? $payload['bulk_price_schedule'] : [];
+        $payload['bulk_price_schedule'] = $this->normalizeBulkSchedule([
+            ...$prev,
+            ...$data,
+            'last_run_at' => $prev['last_run_at'] ?? null,
+        ]);
+        $row->update(['payload' => $payload]);
+
+        return response()->json(['data' => $payload['bulk_price_schedule']]);
     }
 
     public function bulkPriceState(Request $request): \Illuminate\Http\JsonResponse
@@ -522,7 +574,25 @@ class PricingController extends Controller
         return $q;
     }
 
-    protected function runBulkPriceJob(BulkPriceJob $job): void
+    /** @param  array<string, mixed>  $raw */
+    public function normalizeBulkSchedule(array $raw): array
+    {
+        return [
+            'enabled' => (bool) ($raw['enabled'] ?? false),
+            'change_type' => ($raw['change_type'] ?? 'percent') === 'fixed' ? 'fixed' : 'percent',
+            'value' => (float) ($raw['value'] ?? 0),
+            'apply_to_sale' => (bool) ($raw['apply_to_sale'] ?? false),
+            'category_slugs' => array_values(array_filter(array_map('strval', is_array($raw['category_slugs'] ?? null) ? $raw['category_slugs'] : []))),
+            'rounding' => (bool) ($raw['rounding'] ?? false),
+            'round_step' => max(1, (int) ($raw['round_step'] ?? 1000)),
+            'frequency' => ($raw['frequency'] ?? 'daily') === 'weekly' ? 'weekly' : 'daily',
+            'hour' => max(0, min(23, (int) ($raw['hour'] ?? 3))),
+            'weekday' => max(0, min(6, (int) ($raw['weekday'] ?? 0))),
+            'last_run_at' => $raw['last_run_at'] ?? null,
+        ];
+    }
+
+    public function runBulkPriceJob(BulkPriceJob $job): void
     {
         $params = $job->params ?? [];
         $tid = $job->tenant_id;

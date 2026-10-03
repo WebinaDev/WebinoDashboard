@@ -15,7 +15,9 @@ class MagazineTaxonomyController extends Controller
     public function categories(Request $request): JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        $rows = MagazineCategory::query()->where('tenant_id', $tid)->orderBy('name')->get();
+        $rowsQuery = MagazineCategory::query()->where('tenant_id', $tid);
+        \App\Support\StatusTrash::apply($rowsQuery, $request->filled('status') ? (string) $request->query('status') : null);
+        $rows = $rowsQuery->orderBy('name')->get();
         $counts = MagazineArticle::query()
             ->where('tenant_id', $tid)
             ->join('magazine_article_category', 'magazine_articles.id', '=', 'magazine_article_category.magazine_article_id')
@@ -104,10 +106,26 @@ class MagazineTaxonomyController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $row = MagazineCategory::query()->where('tenant_id', $tid)->findOrFail($id);
-        MagazineCategory::query()->where('tenant_id', $tid)->where('parent_id', $row->id)->update(['parent_id' => null]);
-        $row->delete();
+        if ($request->boolean('force')) {
+            if (($row->status ?? 'publish') !== 'trash') {
+                return response()->json(['message' => 'Only trashed items can be permanently deleted.'], 422);
+            }
+            MagazineCategory::query()->where('tenant_id', $tid)->where('parent_id', $row->id)->update(['parent_id' => null]);
+            $row->delete();
 
-        return response()->json(['data' => ['deleted' => true]]);
+            return response()->json(['data' => ['deleted' => true]]);
+        }
+
+        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($row, false, 'status', 'publish', ['publish'])]);
+    }
+
+    public function restoreCategory(Request $request, int $id): JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $row = MagazineCategory::query()->where('tenant_id', $tid)->findOrFail($id);
+        $status = \App\Support\StatusTrash::restore($row, 'status', 'publish', ['publish']);
+
+        return response()->json(['data' => ['id' => $row->id, 'status' => $status]]);
     }
 
     public function tags(Request $request): JsonResponse

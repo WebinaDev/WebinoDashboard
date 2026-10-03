@@ -14,7 +14,9 @@ class BlogCategoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        $rows = BlogCategory::query()->where('tenant_id', $tid)->orderBy('name')->get();
+        $rowsQuery = BlogCategory::query()->where('tenant_id', $tid);
+        \App\Support\StatusTrash::apply($rowsQuery, $request->filled('status') ? (string) $request->query('status') : null);
+        $rows = $rowsQuery->orderBy('name')->get();
         $counts = BlogPost::query()
             ->where('tenant_id', $tid)
             ->whereNotNull('category_id')
@@ -28,6 +30,7 @@ class BlogCategoryController extends Controller
             'slug' => $c->slug,
             'count' => (int) ($counts[$c->id] ?? 0),
             'seo' => $c->seo ?? [],
+            'status' => $c->status ?: 'publish',
         ])->all();
 
         return response()->json([
@@ -76,8 +79,17 @@ class BlogCategoryController extends Controller
     public function destroy(Request $request, int $id): JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        BlogCategory::query()->where('tenant_id', $tid)->where('id', $id)->delete();
+        $row = BlogCategory::query()->where('tenant_id', $tid)->findOrFail($id);
 
-        return response()->json(['data' => ['deleted' => true]]);
+        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($row, $request->boolean('force'), 'status', 'publish', ['publish'])]);
+    }
+
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $row = BlogCategory::query()->where('tenant_id', $tid)->findOrFail($id);
+        $status = \App\Support\StatusTrash::restore($row, 'status', 'publish', ['publish']);
+
+        return response()->json(['data' => ['id' => $row->id, 'status' => $status]]);
     }
 }

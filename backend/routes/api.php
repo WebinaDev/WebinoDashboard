@@ -406,7 +406,9 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware('module:catalog')->group(function () {
+                Route::post('/categories/{category}/restore', [CategoryController::class, 'restore'])->whereNumber('category');
                 Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+                Route::post('/product-tags/{product_tag}/restore', [ProductTagController::class, 'restore'])->whereNumber('product_tag');
                 Route::apiResource('product-tags', ProductTagController::class)->only(['index', 'store', 'update', 'destroy']);
                 Route::get('/products/lookup', [ProductController::class, 'lookup']);
                 Route::get('/shop/products/print-labels', [OrderDocumentController::class, 'productLabels']);
@@ -414,6 +416,7 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/products/bulk', [ProductController::class, 'bulkUpdate']);
                 Route::post('/products/bulk-sale', BulkSaleController::class);
                 Route::post('/shop/products/bulk-sale', BulkSaleController::class);
+                Route::post('/products/{product}/restore', [ProductController::class, 'restore'])->whereNumber('product');
                 Route::post('/products/{product}/duplicate', [ProductController::class, 'duplicate'])->whereNumber('product');
                 Route::put('/products/{product}/attributes', [ProductController::class, 'syncAttributes'])->whereNumber('product');
                 Route::apiResource('products', ProductController::class)
@@ -436,6 +439,7 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware('module:brands')->group(function () {
+                Route::post('/brands/{brand}/restore', [BrandController::class, 'restore'])->whereNumber('brand');
                 Route::apiResource('brands', BrandController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
             });
 
@@ -478,6 +482,8 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/pricing/bulk-products/{product}/lock', [PricingController::class, 'patchLock'])->whereNumber('product');
                 Route::patch('/pricing/bulk-products/{product}/wholesale-rule', [PricingController::class, 'patchWholesale'])->whereNumber('product');
                 Route::patch('/products/{product}/wfcp', [PricingController::class, 'patchProductWfcp'])->whereNumber('product');
+                Route::get('/pricing/bulk-price-change/schedule', [PricingController::class, 'bulkPriceScheduleShow']);
+                Route::put('/pricing/bulk-price-change/schedule', [PricingController::class, 'bulkPriceScheduleSave']);
                 Route::post('/pricing/bulk-price-change/start', [PricingController::class, 'bulkPriceStart']);
                 Route::get('/pricing/bulk-price-change/preview', [PricingController::class, 'bulkPricePreview']);
                 Route::get('/pricing/bulk-price-change/state', [PricingController::class, 'bulkPriceState']);
@@ -719,6 +725,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/cms/pages/{page}', [CmsController::class, 'show'])->whereNumber('page');
                 Route::patch('/cms/pages/{page}', [CmsController::class, 'update'])->whereNumber('page');
                 Route::delete('/cms/pages/{page}', [CmsController::class, 'destroy'])->whereNumber('page');
+                Route::post('/cms/pages/{page}/restore', [CmsController::class, 'restore'])->whereNumber('page');
                 Route::get('/cms/home-blocks', [CmsController::class, 'homeBlocks']);
                 Route::put('/cms/home-blocks', [CmsController::class, 'updateHomeBlocks']);
                 Route::get('/builder', [BuilderController::class, 'index']);
@@ -727,6 +734,15 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/builder/pages/{page}', [BuilderController::class, 'update'])->whereNumber('page');
                 Route::post('/builder/pages/{page}/publish', [BuilderController::class, 'publish'])->whereNumber('page');
                 Route::delete('/builder/pages/{page}', [BuilderController::class, 'destroy'])->whereNumber('page');
+                Route::get('/builder/products/{product}', [BuilderController::class, 'showProduct'])->whereNumber('product');
+                Route::patch('/builder/products/{product}', [BuilderController::class, 'updateProduct'])->whereNumber('product');
+                Route::post('/builder/products/{product}/publish', [BuilderController::class, 'publishProduct'])->whereNumber('product');
+                Route::get('/builder/posts/{post}', [BuilderController::class, 'showPost'])->whereNumber('post');
+                Route::patch('/builder/posts/{post}', [BuilderController::class, 'updatePost'])->whereNumber('post');
+                Route::post('/builder/posts/{post}/publish', [BuilderController::class, 'publishPost'])->whereNumber('post');
+                Route::get('/builder/articles/{article}', [BuilderController::class, 'showArticle'])->whereNumber('article');
+                Route::patch('/builder/articles/{article}', [BuilderController::class, 'updateArticle'])->whereNumber('article');
+                Route::post('/builder/articles/{article}/publish', [BuilderController::class, 'publishArticle'])->whereNumber('article');
                 Route::get('/builder/templates/{kind}', [BuilderController::class, 'showTemplate']);
                 Route::put('/builder/templates/{kind}', [BuilderController::class, 'saveTemplate']);
                 Route::post('/builder/templates/{kind}/publish', [BuilderController::class, 'publishTemplate']);
@@ -771,10 +787,12 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::get('/blog/posts/{post}', [BlogPostController::class, 'show'])->whereNumber('post');
                 Route::patch('/blog/posts/{post}', [BlogPostController::class, 'update'])->whereNumber('post');
                 Route::delete('/blog/posts/{post}', [BlogPostController::class, 'destroy'])->whereNumber('post');
+                Route::post('/blog/posts/{post}/restore', [BlogPostController::class, 'restore'])->whereNumber('post');
                 Route::get('/blog/categories', [BlogCategoryController::class, 'index']);
                 Route::post('/blog/categories', [BlogCategoryController::class, 'store']);
                 Route::patch('/blog/categories/{id}', [BlogCategoryController::class, 'update'])->whereNumber('id');
                 Route::delete('/blog/categories/{id}', [BlogCategoryController::class, 'destroy'])->whereNumber('id');
+                Route::post('/blog/categories/{id}/restore', [BlogCategoryController::class, 'restore'])->whereNumber('id');
             });
 
             Route::middleware('module:media')->group(function () {
@@ -794,10 +812,12 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::get('/magazine/articles/{article}', [MagazineArticleController::class, 'show'])->whereNumber('article');
                 Route::patch('/magazine/articles/{article}', [MagazineArticleController::class, 'update'])->whereNumber('article');
                 Route::delete('/magazine/articles/{article}', [MagazineArticleController::class, 'destroy'])->whereNumber('article');
+                Route::post('/magazine/articles/{article}/restore', [MagazineArticleController::class, 'restore'])->whereNumber('article');
                 Route::get('/magazine/categories', [MagazineTaxonomyController::class, 'categories']);
                 Route::post('/magazine/categories', [MagazineTaxonomyController::class, 'storeCategory']);
                 Route::patch('/magazine/categories/{id}', [MagazineTaxonomyController::class, 'updateCategory'])->whereNumber('id');
                 Route::delete('/magazine/categories/{id}', [MagazineTaxonomyController::class, 'destroyCategory'])->whereNumber('id');
+                Route::post('/magazine/categories/{id}/restore', [MagazineTaxonomyController::class, 'restoreCategory'])->whereNumber('id');
                 Route::get('/magazine/tags', [MagazineTaxonomyController::class, 'tags']);
             });
 

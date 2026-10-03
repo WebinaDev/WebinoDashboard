@@ -9,12 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class MagazineCategory extends Model
 {
     protected $fillable = [
-        'tenant_id', 'name', 'slug', 'parent_id', 'description', 'seo',
+        'tenant_id', 'name', 'slug', 'parent_id', 'description', 'seo', 'status', 'meta',
     ];
 
     protected function casts(): array
     {
-        return ['seo' => 'array'];
+        return ['seo' => 'array', 'meta' => 'array'];
     }
 
     public function tenant(): BelongsTo

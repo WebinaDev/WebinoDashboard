@@ -1,7 +1,7 @@
 "use client"
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ExternalLink, Pencil, Search, Trash2 } from "lucide-react"
+import { ExternalLink, LayoutTemplate, Pencil, RotateCcw, Search, SlidersHorizontal, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { Fragment, useState } from "react"
@@ -50,7 +50,7 @@ const DEFAULT_PAGE_COLUMNS: Record<PageColumn, boolean> = {
 type ListPayload = {
   items: PageRow[]
   found: number
-  stats: { total: number; publish: number; draft: number; pending: number }
+  stats: { total: number; publish: number; draft: number; pending: number; trash?: number }
 }
 
 const selectClass = "border-input bg-background h-9 rounded-md border px-2 text-sm"
@@ -66,6 +66,7 @@ export default function CmsPagesListPage(_props: { route: ResolvedAdminRoute }) 
   const [perPage, setPerPage] = useState(20)
   const [search, setSearch] = useState("")
   const [appliedSearch, setAppliedSearch] = useState("")
+  const [status, setStatus] = useState("")
   const [quickId, setQuickId] = useState<number | null>(null)
   const [quickTitle, setQuickTitle] = useState("")
   const [quickStatus, setQuickStatus] = useState("draft")
@@ -79,11 +80,12 @@ export default function CmsPagesListPage(_props: { route: ResolvedAdminRoute }) 
   }
 
   const q = useQuery({
-    queryKey: ["cms", "pages", page, perPage, appliedSearch],
+    queryKey: ["cms", "pages", page, perPage, appliedSearch, status],
     placeholderData: keepPreviousData,
     queryFn: () => {
       const p = new URLSearchParams({ page: String(page), per_page: String(perPage) })
       if (appliedSearch) p.set("search", appliedSearch)
+      if (status) p.set("status", status)
       return api<ListPayload>(`/api/v1/cms/pages?${p}`)
     },
   })
@@ -106,7 +108,8 @@ export default function CmsPagesListPage(_props: { route: ResolvedAdminRoute }) 
   })
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/cms/pages/${id}`, { method: "DELETE" }),
+    mutationFn: ({ id, force }: { id: number; force?: boolean }) =>
+      api(`/api/v1/cms/pages/${id}${force ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: () => {
       toast.success(t("deleted"))
       void qc.invalidateQueries({ queryKey: ["cms", "pages"] })
@@ -140,15 +143,43 @@ export default function CmsPagesListPage(_props: { route: ResolvedAdminRoute }) 
             <Pencil className="size-4" />
           </Link>
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => openQuick(row)}>
-          {t("quick_edit")}
+        <Button size="icon" variant="outline" asChild title={t("open_builder")}>
+          <Link href={`/dashboard/builder/${row.id}`}>
+            <LayoutTemplate className="size-4" />
+            <span className="sr-only">{t("open_builder")}</span>
+          </Link>
         </Button>
+        <Button type="button" size="icon" variant="ghost" title={t("quick_edit")} onClick={() => openQuick(row)}>
+          <SlidersHorizontal className="size-4" />
+          <span className="sr-only">{t("quick_edit")}</span>
+        </Button>
+        {row.status === "trash" || status === "trash" ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            title={t("restore")}
+            onClick={() =>
+              api(`/api/v1/cms/pages/${row.id}/restore`, { method: "POST" }).then(() => {
+                toast.success(tCommon("saved"))
+                void qc.invalidateQueries({ queryKey: ["cms", "pages"] })
+              })
+            }
+          >
+            <RotateCcw className="size-4" />
+          </Button>
+        ) : null}
         <Button
           type="button"
           size="icon"
           variant="ghost"
           title={t("delete")}
-          onClick={() => confirm({ description: row.title, onConfirm: () => deleteMut.mutateAsync(row.id) })}
+          onClick={() =>
+            confirm({
+              description: row.title,
+              onConfirm: () => deleteMut.mutateAsync({ id: row.id, force: row.status === "trash" || status === "trash" }),
+            })
+          }
         >
           <Trash2 className="size-4" />
         </Button>
@@ -202,9 +233,14 @@ export default function CmsPagesListPage(_props: { route: ResolvedAdminRoute }) 
       title={t("pages_title")}
       description={t("pages_subtitle")}
       actions={
-        <Button asChild>
-          <Link href="/dashboard/pages/new">{t("add_page")}</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant={status === "trash" ? "default" : "outline"} onClick={() => { setStatus((s) => (s === "trash" ? "" : "trash")); setPage(1) }}>
+            {status === "trash" ? t("show_active") : t("show_trash")}
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/pages/new">{t("add_page")}</Link>
+          </Button>
+        </div>
       }
     >
       {stats ? (
@@ -214,6 +250,7 @@ export default function CmsPagesListPage(_props: { route: ResolvedAdminRoute }) 
             { id: "publish", label: t("stat_publish"), value: stats.publish },
             { id: "draft", label: t("stat_draft"), value: stats.draft },
             { id: "pending", label: t("stat_pending"), value: stats.pending },
+            { id: "trash", label: t("show_trash"), value: stats.trash ?? 0 },
           ]}
         />
       ) : null}

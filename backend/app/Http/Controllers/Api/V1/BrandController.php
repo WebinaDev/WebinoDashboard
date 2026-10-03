@@ -14,6 +14,7 @@ class BrandController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $q = Brand::query()->where('tenant_id', $tid)->withCount('products');
+        \App\Support\StatusTrash::apply($q, $request->filled('status') ? (string) $request->query('status') : null);
 
         if ($search = $request->query('search')) {
             $like = '%'.$search.'%';
@@ -109,9 +110,16 @@ class BrandController extends Controller
     public function destroy(Request $request, Brand $brand): \Illuminate\Http\JsonResponse
     {
         $this->authorizeTenant($request, $brand->tenant_id);
-        $brand->delete();
 
-        return response()->json([], 204);
+        return response()->json(['data' => \App\Support\StatusTrash::trashOrDelete($brand, $request->boolean('force'), 'status', 'publish', ['publish'])]);
+    }
+
+    public function restore(Request $request, Brand $brand): \Illuminate\Http\JsonResponse
+    {
+        $this->authorizeTenant($request, $brand->tenant_id);
+        $status = \App\Support\StatusTrash::restore($brand, 'status', 'publish', ['publish']);
+
+        return response()->json(['data' => $brand->fresh(), 'restored_status' => $status]);
     }
 
     protected function authorizeTenant(Request $request, int $tenantId): void

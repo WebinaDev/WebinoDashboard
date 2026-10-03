@@ -4,7 +4,7 @@ export const coffeeProfileManifest: ModuleManifest = {
   slug: "coffee-profile",
   nameFa: "پروفایل قهوه",
   nameEn: "Coffee Profile",
-  siteTypes: ["ecommerce", "cafe"],
+  siteTypes: ["coffee"],
   submodules: ["profile"],
   adminNav: { section: "commerce", order: 24 },
   adminRoutes: [

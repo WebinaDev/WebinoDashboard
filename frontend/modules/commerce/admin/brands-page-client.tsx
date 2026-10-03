@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
@@ -40,13 +40,15 @@ export default function BrandsPageClient({ route: _route }: { route: ResolvedAdm
   const [search, setSearch] = useState("")
   const [q, setQ] = useState("")
   const [parentFilter, setParentFilter] = useState("")
+  const [status, setStatus] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   const { data: brands = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["admin-brands", q, parentFilter],
+    queryKey: ["admin-brands", q, parentFilter, status],
     queryFn: () => {
       const params = new URLSearchParams()
       if (q.trim()) params.set("search", q.trim())
+      if (status) params.set("status", status)
       if (parentFilter === "root") params.set("parent", "root")
       else if (parentFilter) params.set("parent_id", parentFilter)
       const qs = params.toString()
@@ -57,7 +59,7 @@ export default function BrandsPageClient({ route: _route }: { route: ResolvedAdm
   const parentOptions = useMemo(() => flatTreeOptions(brands), [brands])
 
   const remove = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/brands/${id}`, { method: "DELETE" }),
+    mutationFn: (id: number) => api(`/api/v1/brands/${id}${status === "trash" ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-brands"] })
     },
@@ -70,12 +72,17 @@ export default function BrandsPageClient({ route: _route }: { route: ResolvedAdm
         <div>
           <h1 className="text-2xl font-bold">{t("brands_title")}</h1>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <Button type="button" variant={status === "trash" ? "default" : "outline"} onClick={() => setStatus((s) => (s === "trash" ? "" : "trash"))}>
+          {status === "trash" ? t("show_active") : t("show_trash")}
+        </Button>
         <Button asChild>
           <Link href="/dashboard/brands/new">
             <Plus className="size-4" />
             {t("add_brand")}
           </Link>
         </Button>
+        </div>
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
@@ -169,6 +176,20 @@ export default function BrandsPageClient({ route: _route }: { route: ResolvedAdm
                               <span className="sr-only">{t("edit")}</span>
                             </Link>
                           </Button>
+                          {status === "trash" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                api(`/api/v1/brands/${b.id}/restore`, { method: "POST" }).then(() =>
+                                  queryClient.invalidateQueries({ queryKey: ["admin-brands"] }),
+                                )
+                              }
+                            >
+                              <RotateCcw className="size-4" />
+                              <span className="sr-only">{t("restore")}</span>
+                            </Button>
+                          ) : null}
                           <Button
                             size="sm"
                             variant="ghost"

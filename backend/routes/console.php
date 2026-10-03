@@ -61,7 +61,60 @@ Artisan::command('sms:dispatch-scheduled', function () {
     $this->info("Dispatched {$sent} scheduled SMS.");
 })->purpose('Send locally held scheduled SMS whose time has come');
 
+Artisan::command('pricing:bulk-price-schedule', function () {
+    $hour = (int) now()->format('G');
+    $weekday = (int) now()->dayOfWeek;
+    PricingSetting::query()->each(function (PricingSetting $row) use ($hour, $weekday) {
+        $payload = is_array($row->payload) ? $row->payload : [];
+        $schedule = is_array($payload['bulk_price_schedule'] ?? null) ? $payload['bulk_price_schedule'] : null;
+        if (! $schedule || empty($schedule['enabled'])) {
+            return;
+        }
+        if ((int) ($schedule['hour'] ?? 3) !== $hour) {
+            return;
+        }
+        if (($schedule['frequency'] ?? 'daily') === 'weekly' && (int) ($schedule['weekday'] ?? 0) !== $weekday) {
+            return;
+        }
+        $last = $schedule['last_run_at'] ?? null;
+        if (is_string($last) && \Illuminate\Support\Carbon::parse($last)->isSameHour(now())) {
+            return;
+        }
+        $running = \App\Models\BulkPriceJob::query()
+            ->where('tenant_id', $row->tenant_id)
+            ->where('locked', true)
+            ->where('updated_at', '>=', now()->subMinutes(15))
+            ->exists();
+        if ($running) {
+            return;
+        }
+        $job = \App\Models\BulkPriceJob::query()->create([
+            'tenant_id' => $row->tenant_id,
+            'status' => 'running',
+            'params' => [
+                'change_type' => $schedule['change_type'] ?? 'percent',
+                'value' => $schedule['value'] ?? 0,
+                'apply_to_sale' => (bool) ($schedule['apply_to_sale'] ?? false),
+                'category_slugs' => $schedule['category_slugs'] ?? [],
+                'rounding' => (bool) ($schedule['rounding'] ?? false),
+                'round_step' => $schedule['round_step'] ?? 1000,
+            ],
+            'state' => ['processed' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0],
+            'locked' => true,
+            'last_log' => 'Scheduled job started',
+        ]);
+        try {
+            app(\App\Http\Controllers\Api\V1\PricingController::class)->runBulkPriceJob($job);
+            $payload['bulk_price_schedule']['last_run_at'] = now()->toIso8601String();
+            $row->update(['payload' => $payload]);
+        } catch (\Throwable $e) {
+            $job->update(['status' => 'failed', 'locked' => false, 'last_log' => $e->getMessage()]);
+        }
+    });
+})->purpose('Run scheduled bulk price changes');
+
 Schedule::command('pricing:exchange-auto-update')->hourly()->withoutOverlapping();
+Schedule::command('pricing:bulk-price-schedule')->hourly()->withoutOverlapping();
 Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();
 Schedule::command('ai:tick')->everyMinute()->withoutOverlapping();
 Schedule::command('sms:dispatch-scheduled')->everyMinute()->withoutOverlapping();

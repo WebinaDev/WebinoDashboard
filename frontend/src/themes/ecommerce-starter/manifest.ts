@@ -4,7 +4,7 @@ export const manifest: SiteThemeManifest = {
   slug: "ecommerce-starter",
   nameFa: "فروشگاه — استارتر",
   nameEn: "E-commerce starter",
-  siteTypes: ["ecommerce"],
+  siteTypes: ["ecommerce", "coffee"],
   isDemo: false,
   preview: "/themes/ecommerce-starter/preview.svg",
   sortOrder: 0,

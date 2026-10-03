@@ -74,6 +74,9 @@ type Mode =
   | { kind: "page"; id: number | "new" }
   | { kind: "chrome"; chrome: "header" | "footer" }
   | { kind: "theme"; templateKind: string; id: number | "new" }
+  | { kind: "product"; id: number }
+  | { kind: "post"; id: number }
+  | { kind: "article"; id: number }
 
 const DEVICE_WIDTH: Record<DeviceMode, string> = {
   desktop: "100%",
@@ -160,6 +163,14 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             setTitle(row.title || t("create"))
             if (row.id) setPageId(row.id)
           }
+        } else if (mode.kind === "product" || mode.kind === "post" || mode.kind === "article") {
+          const base = mode.kind === "product" ? "products" : mode.kind === "post" ? "posts" : "articles"
+          const row = await api<PagePayload>(`/api/v1/builder/${base}/${mode.id}`)
+          if (cancel) return
+          setDoc(isDocument(row.document) ? row.document : emptyDocument())
+          setTitle(row.title)
+          setSlug(row.slug)
+          setPageId(row.id)
         } else if (mode.id !== "new") {
           const row = await api<PagePayload>(`/api/v1/builder/pages/${mode.id}`)
           if (cancel) return
@@ -295,6 +306,18 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         } else toast.success(t("saved"))
         return
       }
+      if (mode.kind === "product" || mode.kind === "post" || mode.kind === "article") {
+        const base = mode.kind === "product" ? "products" : mode.kind === "post" ? "posts" : "articles"
+        await api(`/api/v1/builder/${base}/${mode.id}`, {
+          method: "PATCH",
+          json: { title, document: doc },
+        })
+        if (publish) {
+          await api(`/api/v1/builder/${base}/${mode.id}/publish`, { method: "POST" })
+          toast.success(t("published"))
+        } else toast.success(t("saved"))
+        return
+      }
       let id = pageId
       if (!id) {
         const created = await api<PagePayload>("/api/v1/builder/pages", {
@@ -324,7 +347,16 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
 
   const selection = findSelection(doc, selectedId)
   const preview = mode.kind === "page" ? previewHref(slug || "home") : "/"
-  const backHref = mode.kind === "theme" ? "/dashboard/theme-builder" : "/dashboard/builder"
+  const backHref =
+    mode.kind === "theme"
+      ? "/dashboard/theme-builder"
+      : mode.kind === "product"
+        ? `/dashboard/products/${mode.id}`
+        : mode.kind === "post"
+          ? `/dashboard/blog/posts/${mode.id}`
+          : mode.kind === "article"
+            ? `/dashboard/magazine/posts/${mode.id}`
+            : "/dashboard/builder"
   const needle = widgetQuery.trim()
 
   if (loading) {

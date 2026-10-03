@@ -4,8 +4,7 @@
   "name_en": "Coffee Profile",
   "distribution": "git",
   "site_types": [
-    "ecommerce",
-    "cafe"
+    "coffee"
   ],
   "submodules": [
     "profile"

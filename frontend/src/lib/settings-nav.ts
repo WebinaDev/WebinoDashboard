@@ -62,6 +62,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         route: "/dashboard/license",
       },
       {
+        id: "wordpress-import",
+        titleFa: "درون‌ریزی وردپرس",
+        titleEn: "WordPress import",
+        route: "/dashboard/import/wordpress",
+      },
+      {
         id: "style",
         titleFa: "استایل و برند",
         titleEn: "Brand & style",
@@ -280,12 +286,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
   {
     id: "shop-marketplace",
     area: "shop",
-    titleFa: "بازارچه",
-    titleEn: "Marketplace",
+    titleFa: "مارکت‌ها",
+    titleEn: "Marketplaces",
     sections: [
       {
         id: "marketplace",
-        titleFa: "همه بازارچه‌ها",
+        titleFa: "همه مارکت‌ها",
         titleEn: "All marketplaces",
         route: "/dashboard/settings/shop/marketplace",
       },

@@ -1,7 +1,7 @@
 "use client"
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Pencil, Search, Trash2 } from "lucide-react"
+import { LayoutTemplate, Pencil, RotateCcw, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
@@ -44,6 +44,7 @@ type ListPayload = {
 
 export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
   const t = useTranslations("content_admin")
+  const tCommon = useTranslations("common")
   const tUi = useTranslations("ui")
   const locale = useLocale()
   const enumLabel = useEnumLabel()
@@ -53,19 +54,22 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
   const [perPage, setPerPage] = useState(20)
   const [search, setSearch] = useState("")
   const [appliedSearch, setAppliedSearch] = useState("")
+  const [status, setStatus] = useState("")
 
   const q = useQuery({
-    queryKey: ["blog", "posts", page, perPage, appliedSearch],
+    queryKey: ["blog", "posts", page, perPage, appliedSearch, status],
     placeholderData: keepPreviousData,
     queryFn: () => {
       const p = new URLSearchParams({ page: String(page), per_page: String(perPage) })
       if (appliedSearch) p.set("search", appliedSearch)
+      if (status) p.set("status", status)
       return api<ListPayload>(`/api/v1/blog/posts?${p}`)
     },
   })
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/blog/posts/${id}`, { method: "DELETE" }),
+    mutationFn: ({ id, force }: { id: number; force?: boolean }) =>
+      api(`/api/v1/blog/posts/${id}${force ? "?force=1" : ""}`, { method: "DELETE" }),
     onSuccess: () => {
       toast.success(t("deleted"))
       void qc.invalidateQueries({ queryKey: ["blog", "posts"] })
@@ -77,7 +81,10 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
   const items = q.data?.items ?? []
 
   function askDelete(row: PostRow) {
-    confirm({ description: row.title, onConfirm: () => deleteMut.mutateAsync(row.id) })
+    confirm({
+      description: row.title,
+      onConfirm: () => deleteMut.mutateAsync({ id: row.id, force: row.status === "trash" || status === "trash" }),
+    })
   }
 
   function rowActions(row: PostRow) {
@@ -88,6 +95,28 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
             <Pencil className="size-4" />
           </Link>
         </Button>
+        <Button size="icon" variant="outline" asChild title={t("open_builder")}>
+          <Link href={`/dashboard/builder/post/${row.id}`}>
+            <LayoutTemplate className="size-4" />
+            <span className="sr-only">{t("open_builder")}</span>
+          </Link>
+        </Button>
+        {row.status === "trash" || status === "trash" ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            title={t("restore")}
+            onClick={() =>
+              api(`/api/v1/blog/posts/${row.id}/restore`, { method: "POST" }).then(() => {
+                toast.success(tCommon("saved"))
+                void qc.invalidateQueries({ queryKey: ["blog", "posts"] })
+              })
+            }
+          >
+            <RotateCcw className="size-4" />
+          </Button>
+        ) : null}
         <Button type="button" size="icon" variant="ghost" title={t("delete")} onClick={() => askDelete(row)}>
           <Trash2 className="size-4" />
         </Button>
@@ -100,9 +129,14 @@ export default function BlogPostsPage(_props: { route: ResolvedAdminRoute }) {
       title={t("blog_posts_title")}
       description={t("blog_posts_subtitle")}
       actions={
-        <Button asChild>
-          <Link href="/dashboard/blog/new">{t("add_post")}</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant={status === "trash" ? "default" : "outline"} onClick={() => { setStatus((s) => (s === "trash" ? "" : "trash")); setPage(1) }}>
+            {status === "trash" ? t("show_active") : t("show_trash")}
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/blog/new">{t("add_post")}</Link>
+          </Button>
+        </div>
       }
     >
       {stats ? (
