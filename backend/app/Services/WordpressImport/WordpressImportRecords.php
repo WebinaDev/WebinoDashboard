@@ -510,14 +510,20 @@ final class WordpressImportRecords
             return $ctx->outcome(false, $chrome ? BuilderTemplate::class : CmsPage::class, null, $message);
         }
         if ($chrome) {
-            $existing = BuilderTemplate::query()->where('tenant_id', $ctx->tenantId())->where('kind', $chrome)->first();
+            $existing = BuilderTemplate::preferred($ctx->tenantId(), $chrome);
             $taken = $existing && is_array($existing->draft) && (($existing->draft['source'] ?? '') === 'elementor');
             $owner = $ctx->find('elementor_templates', $externalId);
             $owns = $owner && (int) $owner->local_id === (int) $existing?->id && $owner->local_type === BuilderTemplate::class;
             if ($existing && $taken && ! $owns) {
                 return $this->templatePage($ctx, $externalId, $title, $kind, $document, $message);
             }
-            $template = $existing ?? new BuilderTemplate(['tenant_id' => $ctx->tenantId(), 'kind' => $chrome]);
+            $template = $existing ?? new BuilderTemplate([
+                'tenant_id' => $ctx->tenantId(),
+                'kind' => $chrome,
+                'slug' => $chrome,
+                'is_default' => true,
+                'priority' => 0,
+            ]);
             $template->title = mb_substr($title, 0, 255);
             $template->draft = $document;
             if ($ctx->publishContent()) {

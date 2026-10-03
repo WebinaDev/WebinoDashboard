@@ -37,6 +37,8 @@ export type SiteRouteDef = {
   path: string
   submodule: string
   labelKey: string
+  /** Site page file stem under modules/{slug}/site/{page}-page. Defaults to submodule. */
+  page?: string
 }
 
 export type KernelRegistry = {

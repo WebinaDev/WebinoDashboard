@@ -74,6 +74,8 @@ export type RuntimeContext = {
   logoUrl?: string | null
   productSlug?: string
   categorySlug?: string
+  /** Published loop-item template rendered inside product grids. */
+  loopDocument?: BuilderDocument
 }
 
 export type EditorApi = {

@@ -1,5 +1,6 @@
 import type { ResolvedSiteRoute } from "@/kernel/types"
 import { fetchPublicItem, fetchPublicList } from "@/kernel/public-content"
+import { ThemeSlot } from "@/builder/theme/ThemeSlot"
 import { getServerTranslations } from "@/lib/server-translations"
 import { SiteContentDetail } from "@/themes/shared/content/SiteContentDetail"
 import { SiteContentGrid } from "@/themes/shared/content/SiteContentGrid"
@@ -33,19 +34,26 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
       )
     }
     return (
-      <SiteContentDetail
-        title={post.title}
-        subtitle={post.published_at}
-        body={post.body ?? post.excerpt}
-        imageUrl={post.cover_url}
-        backHref="/blog"
-        backLabel={t("blog_back")}
-      />
+      <ThemeSlot
+        kind="single_post"
+        tokens={{ title: post.title, excerpt: post.excerpt, body: post.body ?? post.excerpt }}
+        runtime={{ siteName: post.title }}
+      >
+        <SiteContentDetail
+          title={post.title}
+          subtitle={post.published_at}
+          body={post.body ?? post.excerpt}
+          imageUrl={post.cover_url}
+          backHref="/blog"
+          backLabel={t("blog_back")}
+        />
+      </ThemeSlot>
     )
   }
 
   const posts = await fetchPublicList<Post>("/api/v1/public/blog")
   return (
+    <ThemeSlot kind="archive">
     <SiteContentGrid
       title={t("blog")}
       emptyLabel={t("blog_empty")}
@@ -58,5 +66,6 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
         meta: p.published_at,
       }))}
     />
+    </ThemeSlot>
   )
 }

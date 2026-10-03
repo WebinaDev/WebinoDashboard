@@ -9,6 +9,38 @@ export const cmsManifest: ModuleManifest = {
   adminNav: { section: "content", order: 12 },
   adminRoutes: [
     {
+      path: "theme-builder",
+      submodule: "pages",
+      page: "theme-builder",
+      labelKey: "nav.theme_builder",
+      section: "content",
+      order: 10,
+      navGroup: "theme_builder",
+      navOrder: 0,
+      capability: "content.manage",
+    },
+    {
+      path: "builder/settings",
+      submodule: "pages",
+      page: "builder-settings",
+      labelKey: "nav.builder_globals",
+      section: "content",
+      order: 10,
+      navGroup: "theme_builder",
+      navOrder: 1,
+      capability: "content.manage",
+    },
+    {
+      path: "theme-builder/:kind/:templateId",
+      submodule: "pages",
+      page: "builder-editor",
+      labelKey: "nav.theme_builder",
+      section: "content",
+      order: 10,
+      navHidden: true,
+      capability: "content.manage",
+    },
+    {
       path: "builder",
       submodule: "pages",
       page: "builder",
@@ -97,6 +129,7 @@ export const cmsManifest: ModuleManifest = {
     },
   ],
   siteRoutes: [
+    { path: "search", submodule: "pages", page: "search", labelKey: "site.pages" },
     { path: "pages/:slug", submodule: "pages", labelKey: "site.pages" },
   ],
 }

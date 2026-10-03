@@ -30,9 +30,10 @@ import {
   type ShopCategory,
   type ShopProduct,
 } from "../catalog"
+import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks } from "../props"
-import type { EditorApi, WidgetNode } from "../types"
-import { useBuilderRuntime } from "./runtime"
+import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
+import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 
 const NAV = [
   { label: "خانه", href: "/" },
@@ -180,7 +181,9 @@ function HeadingWidget({ widget, editor }: { widget: WidgetNode; editor?: Editor
   const tag = propStr(widget.props, "tag", "h2")
   const text = propStr(widget.props, "text", "عنوان")
   const selected = editor?.selectedId === widget.id
-  const className = "font-bold text-[#0C2D63] text-2xl md:text-3xl"
+  const scale = widget.style?.base?.fontSize || widget.style?.tablet?.fontSize || widget.style?.mobile?.fontSize
+  const level = tag === "h1" || tag === "h2" || tag === "h3" || tag === "h4" || tag === "h5" || tag === "h6" ? tag : "h2"
+  const className = scale ? "font-bold text-[#0C2D63]" : `wb-type-${level} font-bold`
   if (selected && editor) {
     return (
       <div
@@ -193,7 +196,7 @@ function HeadingWidget({ widget, editor }: { widget: WidgetNode; editor?: Editor
       </div>
     )
   }
-  const Tag = tag === "h1" || tag === "h3" ? tag : "h2"
+  const Tag = level
   return <Tag className={className}>{text}</Tag>
 }
 
@@ -212,34 +215,56 @@ function TextWidget({ widget, editor }: { widget: WidgetNode; editor?: EditorApi
       </p>
     )
   }
-  return <p className="whitespace-pre-wrap text-sm leading-7 text-[#0C2D63]/80">{text}</p>
+  return <p className="wb-type-body whitespace-pre-wrap text-[#0C2D63]/80">{text}</p>
 }
 
 function ImageWidget({ widget }: { widget: WidgetNode }) {
+  const globals = useBuilderGlobals()
+  const [open, setOpen] = useState(false)
   const src = propStr(widget.props, "src")
   const alt = propStr(widget.props, "alt", "تصویر")
+  const lightbox = globals.images.lightbox && globals.lightbox.enabled
   if (!src) {
     return (
-      <div className="overflow-hidden rounded-2xl">
+      <div className="overflow-hidden" style={{ borderRadius: "var(--wb-img-radius)" }}>
         <div className="aspect-[4/3]">
           <AbstractArt tone="sky" label={alt} />
         </div>
       </div>
     )
   }
-  return <img src={src} alt={alt} className="h-auto w-full rounded-2xl object-cover" />
+  const image = (
+    <img
+      src={src}
+      alt={alt}
+      loading={globals.images.lazy ? "lazy" : "eager"}
+      className="wb-img"
+    />
+  )
+  if (!lightbox) return image
+  return (
+    <>
+      <button type="button" className="block w-full" onClick={() => setOpen(true)} aria-label={alt}>
+        {image}
+      </button>
+      {open ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center p-6"
+          style={{ background: "var(--wb-lightbox-bg)" }}
+          onClick={() => setOpen(false)}
+        >
+          <img src={src} alt={alt} className="max-h-[85vh] max-w-full rounded-2xl" />
+        </div>
+      ) : null}
+    </>
+  )
 }
 
 function ButtonWidget({ widget }: { widget: WidgetNode }) {
   const tone = propStr(widget.props, "tone", "pink")
-  const className =
-    tone === "navy"
-      ? "inline-flex rounded-full bg-[#0C2D63] px-5 py-2.5 text-sm font-semibold text-white"
-      : tone === "ghost"
-        ? "inline-flex rounded-full border border-[#0C2D63]/15 px-5 py-2.5 text-sm font-semibold text-[#0C2D63]"
-        : "inline-flex rounded-full bg-[#E16BA6] px-5 py-2.5 text-sm font-semibold text-white"
+  const variant = tone === "navy" ? "secondary" : tone === "ghost" ? "ghost" : tone === "outline" ? "outline" : "primary"
   return (
-    <Link href={propStr(widget.props, "href", "/shop")} className={className}>
+    <Link href={propStr(widget.props, "href", "/shop")} className={`wb-btn wb-btn-${variant}`}>
       {propStr(widget.props, "label", "ادامه")}
     </Link>
   )
@@ -285,7 +310,7 @@ function MenuWidget({ widget }: { widget: WidgetNode }) {
   return (
     <nav className="flex flex-wrap gap-2">
       {links.map((link) => (
-        <Link key={link.href + link.label} href={link.href} className="rounded-full px-3 py-1.5 text-sm font-medium text-[#0C2D63] hover:bg-[#F5F8FB]">
+        <Link key={link.href + link.label} href={link.href} className="wb-type-link rounded-full px-3 py-1.5 hover:bg-[#F5F8FB]">
           {link.label}
         </Link>
       ))}
@@ -295,20 +320,37 @@ function MenuWidget({ widget }: { widget: WidgetNode }) {
 
 function FormWidget({ widget }: { widget: WidgetNode }) {
   const [done, setDone] = useState(false)
-  if (done) return <p className="rounded-2xl bg-[#F5F8FB] p-4 text-sm text-[#0C2D63]">پیام شما ثبت شد. به‌زودی پاسخ می‌دهیم.</p>
+  const [error, setError] = useState("")
+  if (done) return <p className="wb-type-body rounded-2xl bg-[#F5F8FB] p-4 text-[#0C2D63]">پیام شما ثبت شد. به‌زودی پاسخ می‌دهیم.</p>
   return (
     <form
       className="grid gap-3 rounded-3xl border border-[#e6eef6] bg-white p-4"
       onSubmit={(event) => {
         event.preventDefault()
+        const data = new FormData(event.currentTarget)
+        if (!String(data.get("name") ?? "").trim() || !String(data.get("phone") ?? "").trim() || !String(data.get("message") ?? "").trim()) {
+          setError("همه فیلدها را کامل کنید.")
+          return
+        }
+        setError("")
         setDone(true)
       }}
     >
-      <h3 className="font-bold text-[#0C2D63]">{propStr(widget.props, "title", "فرم")}</h3>
-      <input required name="name" placeholder="نام" className="h-11 rounded-xl border border-[#e6eef6] px-3 text-sm" />
-      <input required name="phone" placeholder="موبایل" className="h-11 rounded-xl border border-[#e6eef6] px-3 text-sm" />
-      <textarea required name="message" placeholder="پیام" className="min-h-24 rounded-xl border border-[#e6eef6] px-3 py-2 text-sm" />
-      <button type="submit" className="h-11 rounded-full bg-[#E16BA6] text-sm font-semibold text-white">
+      <h3 className="wb-type-h3">{propStr(widget.props, "title", "فرم")}</h3>
+      <label className="grid gap-1">
+        <span className="wb-label">نام</span>
+        <input required name="name" className="wb-field" />
+      </label>
+      <label className="grid gap-1">
+        <span className="wb-label">موبایل</span>
+        <input required name="phone" className="wb-field" />
+      </label>
+      <label className="grid gap-1">
+        <span className="wb-label">پیام</span>
+        <textarea required name="message" className="wb-field min-h-24" />
+      </label>
+      {error ? <p className="wb-form-error">{error}</p> : null}
+      <button type="submit" className="wb-btn wb-btn-primary">
         {propStr(widget.props, "submit", "ارسال")}
       </button>
     </form>
@@ -463,10 +505,38 @@ function ProductGridWidget({ widget, editing }: { widget: WidgetNode; editing: b
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {products.map((product) => (
-          <ProductCard key={product.slug} product={product} />
+          runtime.loopDocument ? (
+            <LoopCard key={product.slug} product={product} template={runtime.loopDocument} />
+          ) : (
+            <ProductCard key={product.slug} product={product} />
+          )
         ))}
       </div>
     </section>
+  )
+}
+
+function LoopCard({ product, template }: { product: ShopProduct; template: BuilderDocument }) {
+  const runtime = useBuilderRuntime()
+  const widgets = template.sections.flatMap((section) => section.columns.flatMap((column) => column.widgets))
+  if (widgets.length === 1 && widgets[0]?.type === "product-card") {
+    return <ProductCard product={product} />
+  }
+  const filled = fillDocumentTokens(widgets, {
+    name: product.name,
+    brand: product.brand,
+    price: formatPrice(product.price),
+    slug: product.slug,
+    href: `/product/${product.slug}`,
+  })
+  return (
+    <BuilderRuntimeProvider value={{ ...runtime, loopDocument: undefined, productSlug: product.slug }}>
+      <article className="flex flex-col gap-2 rounded-3xl border border-[#e6eef6] bg-white p-3">
+        {filled.map((widget) => (
+          <WidgetBody key={widget.id} widget={widget} />
+        ))}
+      </article>
+    </BuilderRuntimeProvider>
   )
 }
 

@@ -1,6 +1,7 @@
 import CataloguePage from "@/kernel/pages/CataloguePage"
 import type { ResolvedSiteRoute } from "@/kernel/types"
-import { PublishedDocument, StorefrontBody, loadPublishedPage } from "@/builder/public-document"
+import { StorefrontBody, StorefrontDocument, loadPublishedPage } from "@/builder/public-document"
+import { ThemeSlot } from "@/builder/theme/ThemeSlot"
 import {
   ishopAccountDocument,
   ishopCartDocument,
@@ -17,7 +18,7 @@ async function themedOrPublished(
   runtime?: { productSlug?: string; categorySlug?: string },
 ) {
   const published = await loadPublishedPage(slug)
-  return <PublishedDocument document={published ?? fallback} runtime={runtime} />
+  return <StorefrontDocument document={published ?? fallback} runtime={runtime} />
 }
 
 export default async function Page({
@@ -28,7 +29,12 @@ export default async function Page({
   searchParams?: Record<string, string | undefined>
 }) {
   if (route.path === "product/:slug") {
-    return themedOrPublished("product", ishopProductDocument(), { productSlug: route.params?.slug })
+    const slug = route.params?.slug
+    return (
+      <ThemeSlot kind="single_product" runtime={{ productSlug: slug }}>
+        {await themedOrPublished("product", ishopProductDocument(), { productSlug: slug })}
+      </ThemeSlot>
+    )
   }
   if (route.path === "cart") {
     return themedOrPublished("cart", ishopCartDocument())
@@ -45,6 +51,9 @@ export default async function Page({
     fallback: ishopShopDocument(),
     runtime: { categorySlug: searchParams?.category },
   })
-  if (built) return built
-  return <CataloguePage />
+  return (
+    <ThemeSlot kind="product_archive" runtime={{ categorySlug: searchParams?.category }}>
+      {built ?? <CataloguePage />}
+    </ThemeSlot>
+  )
 }

@@ -1,7 +1,8 @@
 import type { ResolvedSiteRoute } from "@/kernel/types"
 import { fetchPublicItem } from "@/kernel/public-content"
 import { getServerTranslations } from "@/lib/server-translations"
-import { PublishedDocument } from "@/builder/public-document"
+import { StorefrontDocument } from "@/builder/public-document"
+import { ThemeSlot } from "@/builder/theme/ThemeSlot"
 import { isDocument } from "@/builder/tree"
 import { SiteContentDetail } from "@/themes/shared/content/SiteContentDetail"
 import { SiteEmptyState } from "@/themes/shared/content/SiteEmptyState"
@@ -42,15 +43,21 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
   }
 
   if (isDocument(page.builder_published) && page.builder_published.sections.length) {
-    return <PublishedDocument document={page.builder_published} runtime={{ siteName: page.title }} />
+    return <StorefrontDocument document={page.builder_published} runtime={{ siteName: page.title }} />
   }
 
   return (
-    <SiteContentDetail
-      title={page.title}
-      body={page.body}
-      backHref="/"
-      backLabel={t("back_home")}
-    />
+    <ThemeSlot
+      kind="single_page"
+      tokens={{ title: page.title, body: page.body, excerpt: page.title }}
+      runtime={{ siteName: page.title }}
+    >
+      <SiteContentDetail
+        title={page.title}
+        body={page.body}
+        backHref="/"
+        backLabel={t("back_home")}
+      />
+    </ThemeSlot>
   )
 }

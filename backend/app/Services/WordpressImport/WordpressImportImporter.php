@@ -589,9 +589,12 @@ final class WordpressImportImporter
         if ($ctx->dryRun()) {
             return $ctx->outcome($link !== null, BuilderTemplate::class, null);
         }
-        $template = BuilderTemplate::query()->firstOrNew([
+        $template = BuilderTemplate::preferred($ctx->tenantId(), $kind) ?? new BuilderTemplate([
             'tenant_id' => $ctx->tenantId(),
             'kind' => $kind,
+            'slug' => $kind,
+            'is_default' => true,
+            'priority' => 0,
         ]);
         $document = is_array($template->draft) ? $template->draft : (is_array($template->published) ? $template->published : ['version' => 1, 'sections' => []]);
         $template->title = $template->title ?: mb_substr((string) ($payload['name'] ?? ($kind === 'header' ? 'سربرگ' : 'پاورقی')), 0, 255);
