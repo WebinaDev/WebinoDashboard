@@ -13,14 +13,25 @@ type Props = {
   themeSlug?: string | null
 }
 
+/**
+ * Storefront color scheme comes from the shop's own Theme Settings
+ * (appearance.dark_mode_default), never from the dashboard / OS `html.dark`
+ * class that next-themes manages for the admin UI. Default: light.
+ */
+export function storefrontColorScheme(branding: SiteBranding): "light" | "dark" {
+  return branding.appearance?.dark_mode_default === true ? "dark" : "light"
+}
+
 export function SiteBrandingShell({ branding, children, themeSlug }: Props) {
   const styleCss = storefrontStyleCss(branding, themeSlug)
+  const isClassic = themeSlug === "ecommerce-classic"
   return (
     <SiteBrandingProvider branding={branding}>
       <div
         data-accent={branding.accent}
         data-font={branding.font}
         data-theme-slug={themeSlug || undefined}
+        data-sf-scheme={isClassic ? storefrontColorScheme(branding) : undefined}
         className={cn(
           "flex min-h-svh flex-col bg-background text-foreground",
           siteFontClass(branding.font),
@@ -29,7 +40,7 @@ export function SiteBrandingShell({ branding, children, themeSlug }: Props) {
       >
         {styleCss ? <style dangerouslySetInnerHTML={{ __html: styleCss }} /> : null}
         {children}
-        {themeSlug === "ecommerce-classic" ? <ClassicMobileBottomMenu /> : null}
+        {isClassic ? <ClassicMobileBottomMenu /> : null}
       </div>
     </SiteBrandingProvider>
   )

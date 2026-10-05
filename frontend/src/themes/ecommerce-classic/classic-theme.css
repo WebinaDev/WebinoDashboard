@@ -16,7 +16,7 @@
   font-feature-settings: "ss01";
 }
 
-.dark .sf-classic {
+:is(.sf-classic[data-sf-scheme="dark"], [data-sf-scheme="dark"] .sf-classic) {
   --sf-pink: var(--sfc-pink, #e775ae);
   --sf-pink-soft: var(--sfc-pink-soft, #e775ae2e);
   --sf-navy: var(--sfc-navy, #e6ebff);
@@ -244,8 +244,8 @@
   border: 1px solid color-mix(in oklch, var(--sf-pink) 25%, var(--color-border));
 }
 
-/* Dark mode — next-themes adds .dark on <html> */
-.dark .sf-classic {
+/* Dark mode — storefront-scoped: SiteBrandingShell sets data-sf-scheme (never html.dark) */
+:is(.sf-classic[data-sf-scheme="dark"], [data-sf-scheme="dark"] .sf-classic) {
   --sf-pink: #fb7185;
   --sf-pink-soft: color-mix(in oklch, #fb7185 18%, var(--color-card));
   --sf-navy: #93c5fd;
@@ -253,16 +253,16 @@
   --sf-shadow: 0 16px 48px -20px color-mix(in oklch, #000 55%, transparent);
 }
 
-.dark .sf-classic .sf-topbar {
+:is(.sf-classic[data-sf-scheme="dark"], [data-sf-scheme="dark"] .sf-classic) .sf-topbar {
   background: color-mix(in oklch, var(--color-card) 88%, #0c2d63);
   border-bottom: 1px solid var(--color-border);
 }
 
-.dark .sf-classic .sf-amazing-banner {
+:is(.sf-classic[data-sf-scheme="dark"], [data-sf-scheme="dark"] .sf-classic) .sf-amazing-banner {
   background: linear-gradient(120deg, color-mix(in oklch, var(--sf-pink) 55%, #111), color-mix(in oklch, var(--sf-navy) 45%, #111));
 }
 
-.dark .sf-classic .sf-hero {
+:is(.sf-classic[data-sf-scheme="dark"], [data-sf-scheme="dark"] .sf-classic) .sf-hero {
   background: linear-gradient(125deg, color-mix(in oklch, var(--sf-pink) 70%, #111), color-mix(in oklch, var(--sf-navy) 60%, #111));
 }
 
@@ -368,7 +368,7 @@
   color: var(--sf-navy);
 }
 
-.dark .sf-classic .sf-filters summary {
+:is(.sf-classic[data-sf-scheme="dark"], [data-sf-scheme="dark"] .sf-classic) .sf-filters summary {
   color: var(--sf-navy);
 }
 
@@ -477,7 +477,7 @@
   padding-inline: 1.15rem;
 }
 
-.dark .sf-classic .sf-product-card {
+:is(.sf-classic[data-sf-scheme="dark"], [data-sf-scheme="dark"] .sf-classic) .sf-product-card {
   background: var(--color-card);
   border-color: var(--color-border);
 }
@@ -504,10 +504,20 @@
   color: var(--sfc-muted, #4d5e8a); text-decoration: none; padding: 0.35rem;
 }
 .sfc-bottom-menu a.is-active { color: var(--sfc-pink, #e775ae); }
+/* Mobile-only chrome. This file is unlayered, so it beats Tailwind's layered
+ * `md:hidden` on the element — the desktop hide must live here, not in a utility. */
+@media (min-width: 768px) {
+  .sfc-bottom-menu { display: none; }
+}
 .sf-shell.sf-skin-classic, .sf-classic { padding-bottom: 0; }
 @media (max-width: 767px) {
   .sf-shell.sf-skin-classic:has(.sfc-bottom-menu), .sf-classic:has(.sfc-bottom-menu) {
     padding-bottom: 4.25rem;
+  }
+  /* PDP sticky add-to-cart sits above the fixed bottom menu instead of covering it. */
+  .sf-shell.sf-skin-classic:has(.sfc-bottom-menu) .sfc-sticky-cta {
+    bottom: calc(44px + env(safe-area-inset-bottom));
+    padding-bottom: 10px;
   }
 }
 .sfc-archive__grid {

@@ -49,6 +49,13 @@ function hex(value: unknown, fallback: string): string {
   return fallback
 }
 
+/** Relative luminance check for #rrggbb (true for whites / pale tints). */
+function isLightHex(value: string): boolean {
+  const v = hex(value, "#ffffff").slice(1)
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16) / 255)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6
+}
+
 export function resolveBrandPalette(
   branding?: Partial<SiteBranding> | null,
 ): SiteBrandPalette {
@@ -100,14 +107,19 @@ export function storefrontStyleCss(
   const pink = p.primary
   const pinkHover = p.accent
   const navy = p.navy ?? p.secondary
-  const scope = ".sf-shell.sf-skin-classic, .sf-classic, .wb-canvas.sf-skin-classic"
+  const scopes = [".sf-shell.sf-skin-classic", ".sf-classic", ".wb-canvas.sf-skin-classic"]
+  const scope = scopes.join(", ")
+  // A descendant selector must be appended to EVERY scope item. `${scope} .x` on a
+  // comma list only scopes the last item and turns the others into bare matches —
+  // that previously gave the whole shell / every canvas `height:48px`.
+  const within = (descendant: string) => scopes.map((s) => `${s} ${descendant}`).join(", ")
+  // Must mirror the dark selector in parity.css: storefront scheme attribute only,
+  // never the dashboard/OS `html.dark` class.
   const darkScope = [
-    ".dark .sf-shell.sf-skin-classic",
-    ".dark .sf-classic",
-    ".dark .wb-canvas.sf-skin-classic",
-    "html.dark .sf-shell.sf-skin-classic",
-    "html.dark .sf-classic",
-    "html.dark .wb-canvas.sf-skin-classic",
+    '.sf-shell.sf-skin-classic[data-sf-scheme="dark"]',
+    '[data-sf-scheme="dark"] .sf-classic',
+    '[data-sf-scheme="dark"] .wb-canvas.sf-skin-classic',
+    '.wb-canvas.sf-skin-classic[data-sf-scheme="dark"]',
   ].join(", ")
 
   const fontSize = Number(typo.font_size ?? 14)
@@ -170,23 +182,32 @@ export function storefrontStyleCss(
   font-size:var(--sfc-font-size);
   line-height:var(--sfc-line-height);
 }
-${scope} .sfc-header__logo img{
+${within(".sfc-header__logo img")}{
   height:var(--sfc-logo-h);
   width:auto;
   max-height:var(--sfc-logo-h);
 }
 @media (max-width:767px){
-  ${scope} .sfc-header__logo img{height:var(--sfc-logo-h-mobile);max-height:var(--sfc-logo-h-mobile);}
+  ${within(".sfc-header__logo img")}{height:var(--sfc-logo-h-mobile);max-height:var(--sfc-logo-h-mobile);}
 }`
 
-  // Dark keeps isolated surfaces; brand pink/accent/footer chrome still follow settings.
+  // Dark keeps isolated surfaces; brand pink/accent still follow settings. A light
+  // footer colour (the white default) is a light-mode choice — painting it in dark
+  // mode gave a white footer with light text. Builder canvases paint
+  // --wb-color-background/text, so those must follow the dark surfaces too.
+  const footerIsLight = isLightHex(p.footer ?? PARISMA_PALETTE.footer!)
   const dark = `${darkScope}{
   --sfc-pink:${pink};
   --sfc-pink-hover:${pinkHover};
   --sfc-pink-glow:${pink}66;
   --sfc-pink-soft:${pink}2e;
-  --sfc-footer-bg:${p.footer};
+  ${footerIsLight ? "" : `--sfc-footer-bg:${p.footer};`}
   --sfc-topbar-bg:${navy};
+  --wb-color-background:var(--sfc-bg);
+  --wb-color-surface:var(--sfc-surface);
+  --wb-color-text:var(--sfc-ink);
+  --wb-color-muted:var(--sfc-muted);
+  --wb-color-border:var(--sfc-border);
   --sf-pink:${pink};
   --sf-pink-soft:${pink}2e;
   --color-primary:${pink};

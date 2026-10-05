@@ -90,13 +90,14 @@
   color-scheme: light;
 }
 
-/* Parisma-like dark palette — standalone hex, never dashboard --color-* */
-.dark .sf-shell.sf-skin-classic,
-.dark .sf-classic,
-.dark .wb-canvas.sf-skin-classic,
-html.dark .sf-shell.sf-skin-classic,
-html.dark .sf-classic,
-html.dark .wb-canvas.sf-skin-classic {
+/* Parisma-like dark palette — standalone hex, never dashboard --color-*.
+ * Driven ONLY by the storefront's own scheme attribute (data-sf-scheme on the
+ * SiteBrandingShell, from Theme Settings → dark_mode_default). The dashboard /
+ * OS `html.dark` class must never flip the public storefront to dark. */
+.sf-shell.sf-skin-classic[data-sf-scheme="dark"],
+[data-sf-scheme="dark"] .sf-classic,
+[data-sf-scheme="dark"] .wb-canvas.sf-skin-classic,
+.wb-canvas.sf-skin-classic[data-sf-scheme="dark"] {
   --sfc-pink: #e775ae;
   --sfc-pink-hover: #f08ec0;
   --sfc-pink-glow: #e775ae66;
@@ -5458,5 +5459,32 @@ html.dark .wb-canvas.sf-skin-classic {
     inset-block-end: auto;
     width: auto;
     height: 1px;
+  }
+}
+
+/* ==========================================================================
+   Page-level color scheme follows the storefront scheme, not the dashboard.
+   next-themes writes `class="dark"` + inline `color-scheme` on <html> from the
+   admin/OS preference; on a classic storefront page the shell's data-sf-scheme
+   wins so scrollbars, form controls and overscroll match the shop.
+   ========================================================================== */
+html:has(.sf-shell.sf-skin-classic[data-sf-scheme="light"]) {
+  color-scheme: light !important;
+}
+html:has(.sf-shell.sf-skin-classic[data-sf-scheme="light"]) body {
+  background-color: #ffffff;
+}
+html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) {
+  color-scheme: dark !important;
+}
+html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
+  background-color: #0b1229;
+}
+
+/* Theme Settings → header "sticky desktop" off: the header canvas wrapper above
+ * is sticky unconditionally, which ignored the setting on desktop. */
+@media (min-width: 992px) {
+  .wb-canvas:has(> .wb-section-stack .sfc-header.is-static-desktop) {
+    position: relative;
   }
 }
