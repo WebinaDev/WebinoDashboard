@@ -118,32 +118,19 @@ export function storeCartDocument(): BuilderDocument {
 
 export function classicCheckoutDocument(): BuilderDocument {
   return doc([
-    sec("sec_checkout_bc", [col("col_checkout_bc", 12, [w("w_checkout_bc", "breadcrumbs", { trail: "خانه|/\nسبد|/cart\nتسویه|/checkout" })])]),
-    sec("sec_checkout", [col("col_checkout", 12, [w("w_checkout", "checkout")])]),
+    sec("sec_checkout", [col("col_checkout", 12, [w("w_checkout", "checkout")])], true),
   ])
 }
 
 export function classicAccountDocument(): BuilderDocument {
   return doc([
-    sec("sec_account_bc", [col("col_account_bc", 12, [w("w_account_bc", "breadcrumbs", { trail: "خانه|/\nحساب کاربری|/account" })])]),
-    sec("sec_account", [
-      col("col_account", 12, [
-        w("w_account_title", "heading", { text: "حساب ویبینو", tag: "h1" }),
-        w("w_account", "account-dashboard"),
-      ]),
-    ]),
+    sec("sec_account", [col("col_account", 12, [w("w_account", "account-dashboard")])], true),
   ])
 }
 
 export function classicNotFoundDocument(): BuilderDocument {
   return doc([
-    sec("sec_404", [
-      col("col_404", 12, [
-        w("w_404_title", "heading", { text: "این صفحه پیدا نشد", tag: "h1" }),
-        w("w_404_text", "text", { text: "نشانی را دوباره بررسی کنید یا به فروشگاه ویبینو برگردید." }),
-        w("w_404_btn", "button", { label: "بازگشت به خانه", href: "/", tone: "pink" }),
-      ]),
-    ]),
+    sec("sec_404", [col("col_404", 12, [w("w_404", "classic-not-found")])], true),
   ])
 }
 

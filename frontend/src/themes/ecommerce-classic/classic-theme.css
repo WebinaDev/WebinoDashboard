@@ -630,3 +630,13 @@
   .sfc-sticky-cta--mobile { display: flex; }
   .sfc-sticky-cta:not(.sfc-sticky-cta--mobile) { display: none !important; }
 }
+
+/* Reviews anchor for classic PDP tabs */
+#sfc-reviews { scroll-margin-top: 96px; }
+.sf-skin-classic .sf-review-card {
+  border: 1px solid var(--sfc-border, #e8edf3);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  background: var(--sfc-surface, #fff);
+}
+.sf-skin-classic .sf-secondary-page { padding-top: 0.5rem; }

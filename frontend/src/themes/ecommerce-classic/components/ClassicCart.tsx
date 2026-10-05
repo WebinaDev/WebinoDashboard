@@ -6,7 +6,9 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } fr
 import { cartSnapshot, clearCart, setQty, subscribeCart } from "@/builder/cart"
 import { setServerQty, useServerCart } from "@/builder/storefront/actions"
 
-import { IconArrowRight, IconBag, IconCard, IconCheck, IconChevronLeft, IconMinus, IconPin, IconPlus, IconUser } from "./icons"
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
+
+import { IconArrowRight, IconBag, IconCard, IconCheck, IconChevronLeft, IconMinus, IconPin, IconPlus, IconTruck, IconUser } from "./icons"
 import { ClassicAmount, useDigits } from "./parts"
 
 const STEPS: { label: string; icon: ReactNode }[] = [
@@ -89,8 +91,45 @@ function Countdown() {
 
 type Line = { key: string; name: string; image?: string | null; price: number; qty: number; href?: string; onQty: (qty: number) => void }
 
+
+function FreeShippingBar({ total, threshold }: { total: number; threshold: number }) {
+  const pct = Math.min(100, Math.round((total / Math.max(threshold, 1)) * 100))
+  const remain = Math.max(0, threshold - total)
+  return (
+    <div className="sfc-free-ship">
+      <div className="sfc-free-ship__copy">
+        <IconTruck size={18} />
+        <div>
+          <strong>ارسال رایگان برای سفارشات</strong>
+          <p>
+            {remain <= 0 ? (
+              <>تبریک! ارسال این سفارش رایگان است.</>
+            ) : (
+              <>
+                با حداقل خرید <ClassicAmount value={threshold} /> — هنوز <ClassicAmount value={remain} /> مانده است
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+      <div className="sfc-free-ship__bar" aria-hidden="true">
+        <div className="sfc-free-ship__thumb" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
+}
+
 export function ClassicCart() {
   const digits = useDigits()
+  const theme = useClassicThemeSettings()
+  const commerce = theme.commerce ?? {}
+  const showCoupon = commerce.cart_coupon !== false
+  const showFreeShip = Boolean(commerce.free_shipping_bar_enabled)
+  const freeShipThreshold = Math.max(0, Number(commerce.free_shipping_threshold ?? 500000))
+  const showCountdown = commerce.cart_deals_countdown !== false
+  const stickySummary = commerce.cart_sticky_summary !== false
+  const [coupon, setCoupon] = useState("")
+  const [couponNote, setCouponNote] = useState("")
   const local = useSyncExternalStore(subscribeCart, cartSnapshot, () => [])
   const { cart, auth } = useServerCart()
   const pricing = cart?.pricing
@@ -122,6 +161,9 @@ export function ClassicCart() {
     <div className="sfc-cart sfc-container">
       {!lines.length && auth !== "loading" ? <p className="sfc-cart__flash">سبد خرید شما در حال حاضر خالی است.</p> : null}
       <ClassicCheckoutSteps active={0} />
+      {showFreeShip && freeShipThreshold > 0 ? (
+        <FreeShippingBar total={total} threshold={freeShipThreshold} />
+      ) : null}
       <div className="sfc-cart__headline">
         <h1>
           سبد خرید <span className="sfc-pill">{digits(count)}</span>
@@ -181,10 +223,34 @@ export function ClassicCart() {
                   خالی کردن سبد
                 </button>
               ) : null}
+              {showCoupon ? (
+                <form
+                  className="sfc-coupon"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    setCouponNote(
+                      coupon.trim()
+                        ? "کد در مرحله تسویه اعمال می‌شود."
+                        : "کد تخفیف را وارد کنید.",
+                    )
+                  }}
+                >
+                  <input
+                    value={coupon}
+                    onChange={(e) => setCoupon(e.target.value)}
+                    placeholder="کد تخفیف را وارد نمایید"
+                    aria-label="کد تخفیف"
+                  />
+                  <button type="submit" className="sfc-btn sfc-btn--sm">
+                    اعمال کد تخفیف
+                  </button>
+                  {couponNote ? <span className="sfc-coupon__note">{couponNote}</span> : null}
+                </form>
+              ) : null}
             </div>
           )}
         </div>
-        <aside className="sfc-cart__side">
+        <aside className={`sfc-cart__side ${stickySummary ? "is-sticky" : ""}`}>
           {lines.length ? (
             <div className="sfc-box sfc-summary">
               <div className="sfc-summary__row">
@@ -221,15 +287,17 @@ export function ClassicCart() {
               <span className="sfc-side-card__text">جهت مشاهده محصولاتی که پیش‌تر به سبد خرید خود اضافه کرده‌اید وارد شوید.</span>
             </Link>
           ) : null}
-          <div className="sfc-box sfc-side-card">
-            <span className="sfc-side-card__head">
-              <strong>پیشنهاد شگفت‌انگیز</strong>
-              <Link href="/amazing-offers" className="sfc-side-card__more">
-                مشاهده محصولات <IconChevronLeft size={12} />
-              </Link>
-            </span>
-            <Countdown />
-          </div>
+          {showCountdown ? (
+            <div className="sfc-box sfc-side-card">
+              <span className="sfc-side-card__head">
+                <strong>پیشنهاد شگفت‌انگیز</strong>
+                <Link href="/amazing-offers" className="sfc-side-card__more">
+                  مشاهده محصولات <IconChevronLeft size={12} />
+                </Link>
+              </span>
+              <Countdown />
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>

@@ -2110,7 +2110,21 @@
       "show_top_bar": "Show top bar",
       "sticky_add_to_cart": "Sticky add to cart",
       "show_installment_badge": "Installment badge on PDP",
-      "footer_columns": "Footer columns"
+      "footer_columns": "Footer columns",
+      "cart_checkout_section": "Cart & checkout",
+      "cart_coupon": "Show coupon form on cart",
+      "cart_sticky_summary": "Sticky cart summary",
+      "cart_deals_countdown": "Deals countdown on cart",
+      "free_shipping_bar_enabled": "Free-shipping progress bar",
+      "free_shipping_threshold": "Free-shipping threshold (toman)",
+      "checkout_coupon": "Coupon field on checkout",
+      "checkout_shipping_quote": "Shipping quote on checkout",
+      "checkout_trust_badges": "Trust strip on checkout",
+      "checkout_payment_placeholders": "Show gateway placeholders when none live",
+      "checkout_sticky_summary": "Sticky order summary on checkout",
+      "checkout_require_phone": "Require phone on checkout",
+      "wishlist_enabled": "Wishlist enabled",
+      "order_tracking_enabled": "Order tracking page chrome"
     },
     "product_notifications": {
       "loading": "Loading…",

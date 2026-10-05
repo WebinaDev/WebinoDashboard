@@ -877,6 +877,76 @@ export function StorefrontAppearancePanel() {
                 value={Number(commerce.fake_stats_sensitivity ?? 5)}
                 onChange={(v) => setSection("commerce", { fake_stats_sensitivity: v })}
               />
+              <div className="border-border col-span-full mt-2 border-t pt-3">
+                <p className="text-muted-foreground mb-3 text-xs font-semibold tracking-wide uppercase">
+                  {t("cart_checkout_section")}
+                </p>
+              </div>
+              <FieldSwitch
+                label={t("cart_coupon")}
+                checked={Boolean(commerce.cart_coupon ?? true)}
+                onChange={(v) => setSection("commerce", { cart_coupon: v })}
+              />
+              <FieldSwitch
+                label={t("cart_sticky_summary")}
+                checked={Boolean(commerce.cart_sticky_summary ?? true)}
+                onChange={(v) => setSection("commerce", { cart_sticky_summary: v })}
+              />
+              <FieldSwitch
+                label={t("cart_deals_countdown")}
+                checked={Boolean(commerce.cart_deals_countdown ?? true)}
+                onChange={(v) => setSection("commerce", { cart_deals_countdown: v })}
+              />
+              <FieldSwitch
+                label={t("free_shipping_bar_enabled")}
+                checked={Boolean(commerce.free_shipping_bar_enabled)}
+                onChange={(v) => setSection("commerce", { free_shipping_bar_enabled: v })}
+              />
+              <FieldNumber
+                label={t("free_shipping_threshold")}
+                value={Number(commerce.free_shipping_threshold ?? 500000)}
+                onChange={(v) => setSection("commerce", { free_shipping_threshold: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_coupon")}
+                checked={Boolean(commerce.checkout_coupon ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_coupon: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_shipping_quote")}
+                checked={Boolean(commerce.checkout_shipping_quote ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_shipping_quote: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_trust_badges")}
+                checked={Boolean(commerce.checkout_trust_badges ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_trust_badges: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_payment_placeholders")}
+                checked={Boolean(commerce.checkout_payment_placeholders ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_payment_placeholders: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_sticky_summary")}
+                checked={Boolean(commerce.checkout_sticky_summary ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_sticky_summary: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_require_phone")}
+                checked={Boolean(commerce.checkout_require_phone ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_require_phone: v })}
+              />
+              <FieldSwitch
+                label={t("wishlist_enabled")}
+                checked={Boolean(commerce.wishlist_enabled ?? true)}
+                onChange={(v) => setSection("commerce", { wishlist_enabled: v })}
+              />
+              <FieldSwitch
+                label={t("order_tracking_enabled")}
+                checked={Boolean(commerce.order_tracking_enabled ?? true)}
+                onChange={(v) => setSection("commerce", { order_tracking_enabled: v })}
+              />
             </CardContent>
           </Card>
         </TabsContent>

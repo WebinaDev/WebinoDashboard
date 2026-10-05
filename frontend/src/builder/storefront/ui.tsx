@@ -1037,13 +1037,7 @@ export function StorefrontCart() {
 
 export function StorefrontCheckout() {
   const classic = useIsClassicSkin()
-  if (!classic) return <DefaultStorefrontCheckout />
-  return (
-    <div className="sfc-container sfc-checkout-wrap">
-      <ClassicCheckoutSteps active={1} />
-      <DefaultStorefrontCheckout />
-    </div>
-  )
+  return classic ? <ClassicCheckout /> : <DefaultStorefrontCheckout />
 }
 
 export function StorefrontHeader({

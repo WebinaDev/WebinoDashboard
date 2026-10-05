@@ -153,6 +153,20 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     fake_stats_factor?: number
     /** 1–10 range width for promotional stats */
     fake_stats_sensitivity?: number
+    /** Cart / checkout chrome (parisma-style) */
+    cart_coupon?: boolean
+    cart_sticky_summary?: boolean
+    cart_deals_countdown?: boolean
+    free_shipping_bar_enabled?: boolean
+    free_shipping_threshold?: number
+    checkout_coupon?: boolean
+    checkout_shipping_quote?: boolean
+    checkout_trust_badges?: boolean
+    checkout_payment_placeholders?: boolean
+    checkout_sticky_summary?: boolean
+    checkout_require_phone?: boolean
+    wishlist_enabled?: boolean
+    order_tracking_enabled?: boolean
   }
   archive?: {
     sidebar_enabled?: boolean
