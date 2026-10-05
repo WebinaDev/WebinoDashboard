@@ -107,6 +107,7 @@ use App\Http\Controllers\Api\V1\PollController;
 use App\Http\Controllers\Api\V1\ProductCompareController;
 use App\Http\Controllers\Api\V1\ProductEngagementController;
 use App\Http\Controllers\Api\V1\ProductStoryController;
+use App\Http\Controllers\Api\V1\PublicVendorStoreController;
 use App\Http\Controllers\Api\V1\PublicWishlistController;
 use App\Http\Controllers\Api\V1\VendorPortalController;
 use App\Http\Controllers\Api\V1\PublicAnalyticsController;
@@ -260,6 +261,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/polls/{poll}', [PollController::class, 'publicShow'])->whereNumber('poll');
             Route::post('/polls/{poll}/vote', [PollController::class, 'publicVote'])->whereNumber('poll')->middleware('throttle:public-writes');
             Route::get('/wishlist/{token}', [PublicWishlistController::class, 'show']);
+            Route::get('/vendor-stores/{slug}', [PublicVendorStoreController::class, 'show']);
             Route::get('/auth/google/redirect', [GoogleOAuthController::class, 'redirect']);
             Route::get('/auth/google/callback', [GoogleOAuthController::class, 'callback']);
         });

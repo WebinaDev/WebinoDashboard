@@ -16,6 +16,15 @@ import { parseLinks, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { addShopItem, setServerQty, syncGuestCart, useServerCart } from "./actions"
 import { ProductPriceHistory } from "./ishop-extras"
+import {
+  IshopAccountShell,
+  IshopBreadcrumbs,
+  IshopMegaMenuPanel,
+  IshopMobileNav,
+  IshopTopBar,
+  MobileNavToggle,
+  StockAlertForm,
+} from "./ishop-port"
 import { quietApi } from "./session"
 import { useCatalog } from "./use-catalog"
 
@@ -81,6 +90,9 @@ export function StoreProductCard({ product }: { product: ShopProduct }) {
           <span className="absolute inset-x-2 bottom-2 rounded-full bg-foreground/80 px-2 py-1 text-center text-[11px] font-bold text-background">
             {t("stock_out")}
           </span>
+        ) : null}
+        {product.isNew ? (
+          <span className="absolute bottom-2 start-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">جدید</span>
         ) : null}
       </div>
       <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-bold">
@@ -180,6 +192,7 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
   const [variantId, setVariantId] = useState<number | null>(null)
   const [tab, setTab] = useState("desc")
   const [note, setNote] = useState("")
+  const { auth } = useServerCart()
 
   useEffect(() => {
     if (!slug) {
@@ -224,6 +237,14 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
   }
 
   return (
+    <div className="mx-auto max-w-6xl px-4 py-6">
+      <IshopBreadcrumbs
+        items={[
+          { label: t("categories"), href: "/shop" },
+          { label: product.category, href: product.categorySlug ? `/shop?category=${product.categorySlug}` : "/shop" },
+          { label: product.name },
+        ]}
+      />
     <div className="sf-pdp grid gap-6 lg:grid-cols-12">
       <div className="lg:col-span-5">
         <div className="aspect-square overflow-hidden rounded-[28px] border border-border bg-card">
@@ -254,6 +275,7 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
         <p className="text-xs font-semibold text-primary">{product.brand}</p>
         <h1 className="mt-1 text-2xl font-bold md:text-3xl">{product.name}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{product.inStock ? t("stock_in") : t("stock_out")}</p>
+        {!product.inStock ? <StockAlertForm slug={product.slug} /> : null}
         <div className="mt-4 flex items-end gap-3">
           {product.compare ? <div className="text-sm text-muted-foreground line-through">{money(product.compare)}</div> : null}
           <div className="text-2xl font-bold">{money(product.price)}</div>
@@ -292,6 +314,15 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
           <button type="button" disabled={editing || blocked} onClick={add} className="rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
             {tCart("add_to_cart")}
           </button>
+          {product.id && auth === "auth" ? (
+            <button
+              type="button"
+              className="rounded-full border border-border px-4 py-2.5 text-sm font-semibold"
+              onClick={() => void quietApi(`/api/v1/cart/items/${product.id}/save-for-later`, { method: "POST" })}
+            >
+              {t("save_for_later")}
+            </button>
+          ) : null}
         </div>
         {note ? <p className="mt-2 text-xs text-muted-foreground">{note}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
@@ -363,6 +394,7 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
           {tCart("add_to_cart")}
         </button>
       </div>
+    </div>
     </div>
   )
 }
@@ -799,31 +831,33 @@ export function StorefrontAccount() {
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">{t("account_orders")}</h2>
-        <Link href="/dashboard/account/orders" className="text-sm font-semibold text-primary">
-          {t("account_portal")}
-        </Link>
+    <IshopAccountShell>
+      <div className="grid gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">{t("account_orders")}</h2>
+          <Link href="/dashboard/account/orders" className="text-sm font-semibold text-primary">
+            {t("account_portal")}
+          </Link>
+        </div>
+        {!orders?.length ? <p className="sf-card p-6 text-sm text-muted-foreground">{orders ? t("account_empty") : t("loading")}</p> : null}
+        <div className="grid gap-3">
+          {(orders ?? []).map((order) => {
+            const key = order.status.replace(/-/g, "_")
+            const label = tStatus.has(key) ? tStatus(key) : order.status
+            return (
+              <Link key={order.id} href={`/dashboard/account/orders/${order.id}`} className="sf-card flex flex-wrap items-center justify-between gap-3 p-4">
+                <div>
+                  <div className="font-bold">{order.number || `#${digits(order.id, locale)}`}</div>
+                  <div className="text-xs text-muted-foreground">{order.created_at ? formatDate(order.created_at, normalizeUiLocale(locale)) : t("empty_none")}</div>
+                </div>
+                <div className="text-sm">{label}</div>
+                {order.total_minor != null ? <div className="font-bold">{money(order.total_minor)}</div> : null}
+              </Link>
+            )
+          })}
+        </div>
       </div>
-      {!orders?.length ? <p className="sf-card p-6 text-sm text-muted-foreground">{orders ? t("account_empty") : t("loading")}</p> : null}
-      <div className="grid gap-3">
-        {(orders ?? []).map((order) => {
-          const key = order.status.replace(/-/g, "_")
-          const label = tStatus.has(key) ? tStatus(key) : order.status
-          return (
-            <Link key={order.id} href={`/dashboard/account/orders/${order.id}`} className="sf-card flex flex-wrap items-center justify-between gap-3 p-4">
-              <div>
-                <div className="font-bold">{order.number || `#${digits(order.id, locale)}`}</div>
-                <div className="text-xs text-muted-foreground">{order.created_at ? formatDate(order.created_at, normalizeUiLocale(locale)) : t("empty_none")}</div>
-              </div>
-              <div className="text-sm">{label}</div>
-              {order.total_minor != null ? <div className="font-bold">{money(order.total_minor)}</div> : null}
-            </Link>
-          )
-        })}
-      </div>
-    </div>
+    </IshopAccountShell>
   )
 }
 
@@ -844,6 +878,7 @@ export function StorefrontHeader({
   const shown = auth === "auth" ? serverCount : count
   const { resolvedMode, setMode } = useThemeSettings()
   const [open, setOpen] = useState(false)
+  const [mobileNav, setMobileNav] = useState(false)
   const [query, setQuery] = useState("")
   const router = useRouter()
   const catalog = useCatalog(8)
@@ -852,8 +887,12 @@ export function StorefrontHeader({
   const dark = resolvedMode === "dark"
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
+    <>
+      <IshopTopBar />
+      <IshopMobileNav open={mobileNav} onClose={() => setMobileNav(false)} links={links} />
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+        <MobileNavToggle onOpen={() => setMobileNav(true)} />
         <Link href="/" className="flex items-center gap-2">
           {logoUrl ? <img src={logoUrl} alt={name} className="h-11 w-auto" /> : <span className="grid size-11 place-items-center rounded-2xl bg-primary text-lg font-bold text-primary-foreground">{name.slice(0, 1)}</span>}
           <span className="hidden text-lg font-bold sm:inline">{name}</span>
@@ -902,24 +941,21 @@ export function StorefrontHeader({
         </nav>
       </div>
       {open ? (
-        <div className="border-t border-border bg-card">
-          <div className="mx-auto grid max-w-6xl gap-2 px-4 py-3 sm:grid-cols-3">
+        <div className="border-t border-border bg-card pb-4">
+          <div className="mx-auto hidden max-w-6xl px-4 pt-3 md:block">
+            <IshopMegaMenuPanel columnsText="" />
+          </div>
+          <div className="mx-auto grid max-w-6xl gap-2 px-4 py-3 md:hidden sm:grid-cols-3">
             {catalog.categories.map((item) => (
               <Link key={item.slug} href={`/shop?category=${item.slug}`} className="rounded-2xl bg-muted px-3 py-2 text-sm font-semibold" onClick={() => setOpen(false)}>
                 {item.name}
               </Link>
             ))}
-            <div className="grid gap-2 md:hidden">
-              {links.map((link) => (
-                <Link key={link.href + link.label} href={link.href} className="rounded-2xl px-3 py-2 text-sm" onClick={() => setOpen(false)}>
-                  {link.label}
-                </Link>
-              ))}
-            </div>
           </div>
         </div>
       ) : null}
     </header>
+    </>
   )
 }
 

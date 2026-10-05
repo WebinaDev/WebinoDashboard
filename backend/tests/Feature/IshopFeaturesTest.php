@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductCompareSession;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\VendorStore;
 use App\Services\Shop\PersianProfanityFilter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -89,5 +90,24 @@ class IshopFeaturesTest extends TestCase
             ->assertJsonPath('data.items.0.product_id', $product->id);
 
         $this->assertSame(0, ProductCompareSession::query()->count());
+    }
+
+    public function test_public_vendor_store_lists_products(): void
+    {
+        $user = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'seller']);
+        $store = VendorStore::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $user->id,
+            'name' => 'Beauty Hub',
+            'slug' => 'beauty-hub',
+            'status' => 'active',
+        ]);
+        $product = $this->product();
+        $product->update(['vendor_store_id' => $store->id]);
+
+        $this->getJson('/api/v1/public/vendor-stores/beauty-hub', ['HTTP_HOST' => 'shop.test'])
+            ->assertOk()
+            ->assertJsonPath('data.store.slug', 'beauty-hub')
+            ->assertJsonPath('data.products.0.slug', 'phone');
     }
 }

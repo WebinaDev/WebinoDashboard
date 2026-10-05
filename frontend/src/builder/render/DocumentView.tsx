@@ -9,6 +9,7 @@ import { BuilderGlobalsProvider, BuilderRuntimeProvider } from "./runtime"
 import { WidgetBody } from "./widgets"
 
 import "../ishop.css"
+import "@/themes/ecommerce-ishop/ishop-theme.css"
 
 type Props = {
   document: BuilderDocument

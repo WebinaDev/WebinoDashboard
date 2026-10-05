@@ -16,6 +16,17 @@ import {
 } from "../catalog"
 import { useCatalog } from "../storefront/use-catalog"
 import {
+  AccountDashboardWidget,
+  AmazingOffersBlockWidget,
+  BlogTocWidget,
+  BreadcrumbsWidget,
+  MegaMenuWidget,
+  MostViewedWidget,
+  PackageBlockWidget,
+  ProductReviewsWidget,
+  TasteBoxWidget,
+} from "./ishop-widgets"
+import {
   StoreFilters,
   StoreProductCard,
   StorefrontAccount,
@@ -113,14 +124,23 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "account-stub":
       return <AccountWidget />
     case "amazing-offers":
-      return <AmazingOffersWidget widget={widget} />
+      return <AmazingOffersBlockWidget widget={widget} />
     case "most-viewed":
-      return <ProductGridWidget widget={{ ...widget, props: { ...widget.props, source: "featured", title: propStr(widget.props, "title", "پربازدید") } }} editing={editing} />
+      return <MostViewedWidget widget={widget} />
     case "taste-box":
+      return <TasteBoxWidget widget={widget} />
     case "package-block":
+      return <PackageBlockWidget widget={widget} />
     case "blog-toc":
+      return <BlogTocWidget widget={widget} />
     case "mega-menu":
-      return <PromoWidget widget={{ ...widget, props: { title: propStr(widget.props, "title", widget.type), text: propStr(widget.props, "columns", ""), cta: "مشاهده", href: "/shop", tone: "mist" } }} />
+      return <MegaMenuWidget widget={widget} />
+    case "product-reviews":
+      return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} />
+    case "account-dashboard":
+      return <AccountDashboardWidget />
+    case "breadcrumbs":
+      return <BreadcrumbsWidget widget={widget} />
     case "store-header":
       return <StoreHeader widget={widget} siteName={runtime.siteName} logoUrl={runtime.logoUrl} />
     case "store-footer":
@@ -582,18 +602,6 @@ function CountdownWidget({ widget }: { widget: WidgetNode }) {
           </div>
         ))}
       </div>
-    </div>
-  )
-}
-
-function AmazingOffersWidget({ widget }: { widget: WidgetNode }) {
-  const title = propStr(widget.props, "title", "پیشنهادهای شگفت‌انگیز")
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] bg-primary px-6 py-5 text-primary-foreground">
-      <h3 className="text-xl font-bold">{title}</h3>
-      <Link href="/amazing-offers" className="rounded-full bg-card px-5 py-2 text-sm font-bold text-foreground">
-        مشاهده همه
-      </Link>
     </div>
   )
 }

@@ -2573,6 +2573,10 @@
     "cart": "سبد خرید",
     "checkout": "تسویه",
     "account": "حساب کاربری",
+    "compare": "مقایسه",
+    "amazing_offers": "پیشنهاد شگفت‌انگیز",
+    "wishlist": "لیست علاقه‌مندی",
+    "vendor_store": "فروشگاه فروشنده",
     "order_pay": "پرداخت سفارش",
     "default_site_name": "سایت شما",
     "home_welcome": "به سایت شما خوش آمدید.",
@@ -6366,6 +6370,12 @@
     "stock_alert_cta": "خبرم کن",
     "save_for_later": "بعداً می‌خرم",
     "reviews_title": "دیدگاه‌ها",
-    "review_report": "گزارش تخلف"
+    "review_report": "گزارش تخلف",
+    "home_crumb": "خانه",
+    "vendor_store_title": "فروشگاه فروشنده",
+    "vendor_store_missing": "فروشگاه پیدا نشد",
+    "vendor_store_bio_empty": "این فروشنده هنوز معرفی کوتاهی ثبت نکرده است.",
+    "vendor_store_empty": "محصولی از این فروشنده موجود نیست.",
+    "vendor_store_product_count": "{count} محصول"
   }
 }

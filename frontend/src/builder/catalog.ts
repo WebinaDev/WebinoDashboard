@@ -36,6 +36,7 @@ export type ShopProduct = {
   description: string
   live: boolean
   inStock: boolean
+  isNew?: boolean
   variants: ShopVariant[]
   installments: ShopInstallment[]
   faqs: Array<{ question: string; answer: string }>
@@ -222,6 +223,7 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     description: plainText(str(raw.description)) || sample.description,
     live: true,
     inStock: !soldOut,
+    isNew: raw.is_new === true,
     variants,
     installments,
     faqs: mapFaqs(raw.faqs),

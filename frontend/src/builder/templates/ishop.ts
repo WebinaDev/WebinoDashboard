@@ -46,6 +46,9 @@ export function ishopFooterDocument(siteName = "ویبینو"): BuilderDocument 
 export function ishopHomeDocument(): BuilderDocument {
   return doc([
     sec("sec_hero", [col("col_hero", 12, [w("w_hero", "hero-slider")])]),
+    sec("sec_mega", [col("col_mega", 12, [w("w_mega", "mega-menu", { columns: "مراقبت|/shop?category=skin\nآرایش|/shop?category=makeup\nمو|/shop?category=hair" })])]),
+    sec("sec_offers", [col("col_offers", 12, [w("w_offers", "amazing-offers", { title: "پیشنهادهای شگفت‌انگیز" })])]),
+    sec("sec_taste", [col("col_taste", 12, [w("w_taste", "taste-box", { title: "بر اساس سلیقه شما" })])]),
     sec("sec_deal", [col("col_deal", 12, [w("w_deal", "deal-bar", { title: "پیشنهاد امروز ویبینو" })])]),
     sec("sec_cats", [col("col_cats", 12, [w("w_cats", "category-grid", { title: "دسته‌بندی‌های محبوب", variant: "popular" })])]),
     sec("sec_new", [col("col_new", 12, [w("w_new", "product-grid", { title: "محصولات تازه", limit: 4, source: "new" })])]),
@@ -73,6 +76,7 @@ export function ishopHomeDocument(): BuilderDocument {
 
 export function ishopShopDocument(): BuilderDocument {
   return doc([
+    sec("sec_shop_bc", [col("col_shop_bc", 12, [w("w_shop_bc", "breadcrumbs", { trail: "خانه|/\nفروشگاه|/shop" })])]),
     sec("sec_shop_head", [
       col("col_shop_head", 12, [
         w("w_shop_title", "heading", { text: "فروشگاه ویبینو", tag: "h1" }),
@@ -89,12 +93,15 @@ export function ishopShopDocument(): BuilderDocument {
 export function ishopProductDocument(): BuilderDocument {
   return doc([
     sec("sec_pdp", [col("col_pdp", 12, [w("w_pdp", "product-detail")])]),
+    sec("sec_reviews", [col("col_reviews", 12, [w("w_reviews", "product-reviews")])]),
     sec("sec_related", [col("col_related", 12, [w("w_related", "product-grid", { title: "پیشنهادهای همراه", limit: 4, source: "related" })])]),
+    sec("sec_package", [col("col_package", 12, [w("w_package", "package-block", { title: "پکیج مکمل", text: "محصولات مرتبط با قیمت مناسب‌تر" })])]),
   ])
 }
 
 export function ishopCartDocument(): BuilderDocument {
   return doc([
+    sec("sec_cart_bc", [col("col_cart_bc", 12, [w("w_cart_bc", "breadcrumbs", { trail: "خانه|/\nسبد خرید|/cart" })])]),
     sec("sec_cart", [
       col("col_cart", 12, [
         w("w_cart_title", "heading", { text: "سبد خرید", tag: "h1" }),
@@ -106,16 +113,18 @@ export function ishopCartDocument(): BuilderDocument {
 
 export function ishopCheckoutDocument(): BuilderDocument {
   return doc([
+    sec("sec_checkout_bc", [col("col_checkout_bc", 12, [w("w_checkout_bc", "breadcrumbs", { trail: "خانه|/\nسبد|/cart\nتسویه|/checkout" })])]),
     sec("sec_checkout", [col("col_checkout", 12, [w("w_checkout", "checkout-stub")])]),
   ])
 }
 
 export function ishopAccountDocument(): BuilderDocument {
   return doc([
+    sec("sec_account_bc", [col("col_account_bc", 12, [w("w_account_bc", "breadcrumbs", { trail: "خانه|/\nحساب کاربری|/account" })])]),
     sec("sec_account", [
       col("col_account", 12, [
         w("w_account_title", "heading", { text: "حساب ویبینو", tag: "h1" }),
-        w("w_account", "account-stub"),
+        w("w_account", "account-dashboard"),
       ]),
     ]),
   ])

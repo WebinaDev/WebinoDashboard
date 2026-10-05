@@ -2573,6 +2573,10 @@
     "cart": "Cart",
     "checkout": "Checkout",
     "account": "Account",
+    "compare": "Compare",
+    "amazing_offers": "Amazing offers",
+    "wishlist": "Wishlist",
+    "vendor_store": "Vendor store",
     "order_pay": "Order payment",
     "default_site_name": "Your site",
     "home_welcome": "Welcome to your site.",
@@ -6366,6 +6370,12 @@
     "stock_alert_cta": "Notify me",
     "save_for_later": "Save for later",
     "reviews_title": "Reviews",
-    "review_report": "Report abuse"
+    "review_report": "Report abuse",
+    "home_crumb": "Home",
+    "vendor_store_title": "Vendor store",
+    "vendor_store_missing": "Store not found",
+    "vendor_store_bio_empty": "This vendor has not added a short bio yet.",
+    "vendor_store_empty": "No products from this vendor yet.",
+    "vendor_store_product_count": "{count} products"
   }
 }

@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { StorefrontCompareTable } from "@/builder/storefront/ishop-extras"
+import { IshopStorefrontPage } from "@/builder/storefront/ishop-port"
 
 type CompareItem = {
   id: number
@@ -40,12 +41,16 @@ export default function ComparePage() {
     `${formatNumber(Math.round(minor), normalizeUiLocale(locale))} ${t("currency_toman")}`
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">{t("compare_title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("compare_hint")}</p>
-        </div>
+    <IshopStorefrontPage
+      wide
+      title={t("compare_title")}
+      description={t("compare_hint")}
+      trail={[
+        { label: t("home_crumb"), href: "/" },
+        { label: t("compare_title") },
+      ]}
+    >
+      <div className="mb-6 flex flex-wrap items-end justify-end gap-3">
         <input
           className="sf-field h-11 min-w-[220px]"
           placeholder={t("compare_search")}
@@ -65,6 +70,6 @@ export default function ComparePage() {
       {!loading && items.length ? (
         <StorefrontCompareTable items={items} money={money} onRemove={(id) => setItems((rows) => rows.filter((row) => row.id !== id))} />
       ) : null}
-    </div>
+    </IshopStorefrontPage>
   )
 }

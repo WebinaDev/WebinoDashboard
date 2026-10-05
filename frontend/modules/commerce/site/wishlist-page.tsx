@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
 import type { ResolvedSiteRoute } from "@/kernel/types"
+import { IshopStorefrontPage } from "@/builder/storefront/ishop-port"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 type WishlistItem = {
@@ -37,14 +38,19 @@ export default function WishlistPage({ route }: { route: ResolvedSiteRoute }) {
     `${formatNumber(Math.round(minor), normalizeUiLocale(locale))} ${t("currency_toman")}`
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-2xl font-bold">{t("public_wishlist_title")}</h1>
-      {owner ? <p className="mt-1 text-sm text-muted-foreground">{t("public_wishlist_owner", { name: owner })}</p> : null}
-      <div className="mt-6 grid gap-3">
+    <IshopStorefrontPage
+      title={t("public_wishlist_title")}
+      description={owner ? t("public_wishlist_owner", { name: owner }) : undefined}
+      trail={[
+        { label: t("home_crumb"), href: "/" },
+        { label: t("public_wishlist_title") },
+      ]}
+    >
+      <div className="grid gap-3">
         {items.map((item) => (
           <Link key={item.id} href={`/product/${item.slug}`} className="sf-card flex items-center gap-3 p-3">
             <div className="size-16 overflow-hidden rounded-2xl bg-muted">
-              {item.image_url ? <img src={item.image_url} alt="" className="h-full w-full object-cover" /> : null}
+              {item.image_url ? <img src={item.image_url} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}
             </div>
             <div className="flex-1">
               <div className="font-bold">{item.name}</div>
@@ -53,7 +59,7 @@ export default function WishlistPage({ route }: { route: ResolvedSiteRoute }) {
           </Link>
         ))}
       </div>
-      {!items.length ? <p className="mt-6 text-sm text-muted-foreground">{t("compare_empty")}</p> : null}
-    </div>
+      {!items.length ? <p className="text-sm text-muted-foreground">{t("compare_empty")}</p> : null}
+    </IshopStorefrontPage>
   )
 }
