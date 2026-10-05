@@ -1,4 +1,4 @@
-import type { SiteBrandPalette, SiteBranding, StorefrontAppearanceColors } from "@/kernel/theme-types"
+import type { ClassicThemeSettings, SiteBrandPalette, SiteBranding, StorefrontAppearanceColors } from "@/kernel/theme-types"
 
 /** Parisma-like classic storefront defaults (light). */
 export const PARISMA_PALETTE: SiteBrandPalette = {
@@ -9,6 +9,7 @@ export const PARISMA_PALETTE: SiteBrandPalette = {
   surface: "#f3f5f8",
   text: "#021959",
   muted: "#4d5e8a",
+  text3: "#8b97b3",
   navy: "#021959",
   header: "#ffffff",
   footer: "#ffffff",
@@ -53,24 +54,28 @@ export function resolveBrandPalette(
 ): SiteBrandPalette {
   const p = branding?.palette ?? {}
   const a: StorefrontAppearanceColors = branding?.appearance ?? {}
-  const primary = hex(a.primary_color ?? p.primary, PARISMA_PALETTE.primary)
-  const accent = hex(a.accent_color ?? p.accent, PARISMA_PALETTE.accent)
-  const navy = hex(a.navy_color ?? p.navy ?? p.secondary ?? p.text, PARISMA_PALETTE.navy!)
-  const surface = hex(a.surface_color ?? p.surface, PARISMA_PALETTE.surface)
+  // Style (site.style palette) is canonical for brand colors; appearance fills chrome + gaps.
+  const primary = hex(p.primary ?? a.primary_color, PARISMA_PALETTE.primary)
+  const accent = hex(p.accent ?? a.accent_color, PARISMA_PALETTE.accent)
+  const navy = hex(p.navy ?? p.secondary ?? a.navy_color ?? a.secondary_color ?? p.text, PARISMA_PALETTE.navy!)
+  const secondary = hex(p.secondary ?? a.secondary_color ?? navy, PARISMA_PALETTE.secondary)
+  const surface = hex(p.surface ?? a.surface_color, PARISMA_PALETTE.surface)
   const bg = hex(p.bg, PARISMA_PALETTE.bg)
-  const text = hex(p.text ?? p.navy ?? p.secondary, PARISMA_PALETTE.text)
-  const muted = hex(p.muted, PARISMA_PALETTE.muted)
-  const header = hex(a.header_bg ?? p.header, PARISMA_PALETTE.header!)
-  const footer = hex(a.footer_bg ?? p.footer, PARISMA_PALETTE.footer!)
-  const border = hex(a.border_color ?? p.border, PARISMA_PALETTE.border!)
+  const text = hex(p.text ?? a.text1_color ?? p.navy ?? p.secondary, PARISMA_PALETTE.text)
+  const muted = hex(p.muted ?? a.text2_color, PARISMA_PALETTE.muted)
+  const text3 = hex(p.text3 ?? a.text3_color, PARISMA_PALETTE.text3!)
+  const header = hex(p.header ?? a.header_bg, PARISMA_PALETTE.header!)
+  const footer = hex(p.footer ?? a.footer_bg, PARISMA_PALETTE.footer!)
+  const border = hex(p.border ?? a.border_color, PARISMA_PALETTE.border!)
   return {
     primary,
-    secondary: navy,
+    secondary,
     accent,
     bg,
     surface,
     text,
     muted,
+    text3,
     navy,
     header,
     footer,
@@ -79,7 +84,7 @@ export function resolveBrandPalette(
 }
 
 /**
- * Scoped CSS so Style settings drive classic storefront tokens without fighting
+ * Scoped CSS so Style / Classic Theme settings drive storefront tokens without fighting
  * the isolated dark palette (inline styles would override `.dark` rules).
  */
 export function storefrontStyleCss(
@@ -89,6 +94,9 @@ export function storefrontStyleCss(
   // Classic storefront only — other skins keep their own tokens.
   if (themeSlug !== "ecommerce-classic") return ""
   const p = resolveBrandPalette(branding)
+  const appearance = (branding?.appearance ?? {}) as ClassicThemeSettings
+  const typo = appearance.typography ?? {}
+  const general = appearance.general ?? {}
   const pink = p.primary
   const pinkHover = p.accent
   const navy = p.navy ?? p.secondary
@@ -102,6 +110,11 @@ export function storefrontStyleCss(
     "html.dark .wb-canvas.sf-skin-classic",
   ].join(", ")
 
+  const fontSize = Number(typo.font_size ?? 14)
+  const lineHeight = Number(typo.line_height ?? 1.7)
+  const logoH = Number(general.logo_height_desktop ?? 48)
+  const logoHM = Number(general.logo_height_mobile ?? 36)
+
   const light = `${scope}{
   --sfc-pink:${pink};
   --sfc-pink-hover:${pinkHover};
@@ -111,6 +124,7 @@ export function storefrontStyleCss(
   --sfc-ink:${p.text};
   --sfc-ink-2:${navy};
   --sfc-muted:${p.muted};
+  --sfc-text-3:${p.text3 ?? PARISMA_PALETTE.text3};
   --sfc-bg:${p.bg};
   --sfc-card:${p.bg};
   --sfc-surface:${p.surface};
@@ -125,6 +139,10 @@ export function storefrontStyleCss(
   --sfc-footer-fg:${(p.footer ?? "#ffffff").toLowerCase() === "#ffffff" || (p.footer ?? "").toLowerCase() === "#fff" ? navy : "#ffffff"};
   --sfc-topbar-bg:${navy};
   --sfc-topbar-fg:#ffffff;
+  --sfc-logo-h:${logoH}px;
+  --sfc-logo-h-mobile:${logoHM}px;
+  --sfc-font-size:${fontSize}px;
+  --sfc-line-height:${lineHeight};
   --sf-pink:${pink};
   --sf-pink-soft:${pink}1f;
   --sf-navy:${navy};
@@ -149,6 +167,16 @@ export function storefrontStyleCss(
   --wb-color-text:${p.text};
   --wb-color-muted:${p.muted};
   --wb-color-border:${p.border};
+  font-size:var(--sfc-font-size);
+  line-height:var(--sfc-line-height);
+}
+${scope} .sfc-header__logo img{
+  height:var(--sfc-logo-h);
+  width:auto;
+  max-height:var(--sfc-logo-h);
+}
+@media (max-width:767px){
+  ${scope} .sfc-header__logo img{height:var(--sfc-logo-h-mobile);max-height:var(--sfc-logo-h-mobile);}
 }`
 
   // Dark keeps isolated surfaces; brand pink/accent/footer chrome still follow settings.

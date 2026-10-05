@@ -16,6 +16,7 @@ use App\Services\Payments\PaymentGatewaySettingsService;
 use App\Services\Pwa\PwaSettings;
 use App\Services\Security\SecuritySettings;
 use App\Services\Shop\ShopSettings;
+use App\Services\Shop\StorefrontAppearanceService;
 use Illuminate\Http\Request;
 
 class TenantSettingsController extends Controller
@@ -471,7 +472,26 @@ class TenantSettingsController extends Controller
         );
         $tenant->save();
 
-        return \App\Kernel\ThemeCatalog::normalizeBranding($tenant->branding);
+        $branding = \App\Kernel\ThemeCatalog::normalizeBranding($tenant->branding);
+        $palette = is_array($branding['palette'] ?? null) ? $branding['palette'] : [];
+        $colorSync = array_filter([
+            'primary_color' => $palette['primary'] ?? null,
+            'secondary_color' => $palette['secondary'] ?? null,
+            'accent_color' => $palette['accent'] ?? null,
+            'text1_color' => $palette['text'] ?? null,
+            'text2_color' => $palette['muted'] ?? null,
+            'text3_color' => $palette['text3'] ?? null,
+            'navy_color' => $palette['navy'] ?? null,
+            'surface_color' => $palette['surface'] ?? null,
+            'header_bg' => $palette['header'] ?? null,
+            'footer_bg' => $palette['footer'] ?? null,
+            'border_color' => $palette['border'] ?? null,
+        ], static fn ($v) => is_string($v) && $v !== '');
+        if ($colorSync !== []) {
+            app(StorefrontAppearanceService::class)->save($tenantId, $colorSync);
+        }
+
+        return $branding;
     }
 
     /**

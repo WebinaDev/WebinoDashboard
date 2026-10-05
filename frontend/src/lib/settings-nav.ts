@@ -69,8 +69,8 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
       },
       {
         id: "style",
-        titleFa: "استایل و برند",
-        titleEn: "Brand & style",
+        titleFa: "استایل (Style)",
+        titleEn: "Style",
         route: "/dashboard/settings/site/style",
       },
       {
@@ -417,8 +417,8 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
       },
       {
         id: "storefront-appearance",
-        titleFa: "ظاهر فروشگاه",
-        titleEn: "Storefront appearance",
+        titleFa: "تنظیمات قالب",
+        titleEn: "Classic theme settings",
         route: "/dashboard/settings/shop/storefront-appearance",
       },
       {

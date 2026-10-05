@@ -31,6 +31,8 @@ import {
   IconSearch,
   IconUser,
 } from "./icons"
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
+
 import { ClassicAmount, useDigits } from "./parts"
 
 export const CLASSIC_NAV = [
@@ -182,21 +184,39 @@ function LiveSearch({
   setQuery,
   products,
   onSubmit,
+  placeholder,
+  ajax,
+  searchSku,
+  titleOnly,
 }: {
   query: string
   setQuery: (v: string) => void
   products: ShopProduct[]
   onSubmit: () => void
+  placeholder?: string
+  ajax?: boolean
+  searchSku?: boolean
+  titleOnly?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const wrap = useRef<HTMLFormElement>(null)
   const q = query.trim().toLowerCase()
   const hits = useMemo(() => {
-    if (q.length < 1) return []
+    if (!ajax || q.length < 1) return []
     return products
-      .filter((p) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+      .filter((p) => {
+        const name = p.name.toLowerCase()
+        if (titleOnly) return name.includes(q)
+        const sku = String((p as { sku?: string }).sku ?? "").toLowerCase()
+        return (
+          name.includes(q) ||
+          p.brand.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          (searchSku && sku.includes(q))
+        )
+      })
       .slice(0, 6)
-  }, [products, q])
+  }, [products, q, ajax, searchSku, titleOnly])
 
   useEffect(() => {
     const onDoc = (event: MouseEvent) => {
@@ -225,8 +245,8 @@ function LiveSearch({
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}
-        placeholder="جستجوی محصولات"
-        aria-label="جستجوی محصولات"
+        placeholder={placeholder || "جستجوی محصولات"}
+        aria-label={placeholder || "جستجوی محصولات"}
         aria-autocomplete="list"
         aria-expanded={open && hits.length > 0}
       />
@@ -280,6 +300,10 @@ export function ClassicHeader({
 }) {
   const digits = useDigits()
   const router = useRouter()
+  const theme = useClassicThemeSettings()
+  const headerCfg = theme.header ?? {}
+  const megaEnabled = headerCfg.mega_menu ?? theme.mega_menu ?? true
+  const stickyDesktop = headerCfg.sticky_desktop !== false
   const localCount = useSyncExternalStore(subscribeCart, cartCount, () => 0)
   const { cart, auth } = useServerCart()
   const count = auth === "auth" ? (cart?.items ?? []).reduce((sum, line) => sum + line.quantity, 0) : localCount
@@ -322,7 +346,7 @@ export function ClassicHeader({
 
   return (
     <>
-      <header className={`sfc-header ${hidden ? "is-nav-hidden" : ""} ${scrolled ? "is-scrolled" : ""}`}>
+      <header className={`sfc-header ${stickyDesktop ? "is-sticky-desktop" : "is-static-desktop"} ${hidden ? "is-nav-hidden" : ""} ${scrolled ? "is-scrolled" : ""}`}>
         <div className="sfc-header__top">
           <div className="sfc-container sfc-header__top-inner">
             <div className="sfc-header__brand-search">
@@ -333,7 +357,16 @@ export function ClassicHeader({
                 {logoUrl ? <img src={logoUrl} alt={siteName} /> : <span className="sfc-header__mark">{siteName.slice(0, 1)}</span>}
                 {!logoUrl ? <span className="sfc-header__name">{siteName}</span> : null}
               </Link>
-              <LiveSearch query={query} setQuery={setQuery} products={catalog.products} onSubmit={submit} />
+              <LiveSearch
+                query={query}
+                setQuery={setQuery}
+                products={catalog.products}
+                onSubmit={submit}
+                placeholder={headerCfg.search_placeholder}
+                ajax={headerCfg.ajax_search !== false}
+                searchSku={Boolean(headerCfg.search_sku)}
+                titleOnly={Boolean(headerCfg.search_title_only)}
+              />
             </div>
             <div className="sfc-header__actions">
               <div className="sfc-login-wrap">
@@ -353,33 +386,35 @@ export function ClassicHeader({
         <div className="sfc-header__nav" aria-hidden={hidden || undefined}>
           <div className="sfc-container sfc-header__nav-inner">
             <div className="sfc-header__nav-main">
-              <div
-                ref={megaRef}
-                className={`sfc-mega ${mega ? "is-open" : ""}`}
-                onMouseEnter={() => setMega(true)}
-                onMouseLeave={() => setMega(false)}
-              >
-                <button
-                  type="button"
-                  className="sfc-mega__trigger"
-                  aria-expanded={mega}
-                  aria-haspopup="true"
-                  onClick={() => setMega((v) => !v)}
-                  onKeyDown={onMegaKey}
+              {megaEnabled ? (
+                <div
+                  ref={megaRef}
+                  className={`sfc-mega ${mega ? "is-open" : ""}`}
+                  onMouseEnter={() => setMega(true)}
+                  onMouseLeave={() => setMega(false)}
                 >
-                  <IconMenu size={20} />
-                  <span>دسته‌بندی محصولات</span>
-                </button>
-                {mega && categories.length ? (
-                  <DeepMegaPanel
-                    categories={categories}
-                    activeCat={activeCat}
-                    setActiveCat={setActiveCat}
-                    onClose={() => setMega(false)}
-                  />
-                ) : null}
-              </div>
-              <span className="sfc-header__sep" aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="sfc-mega__trigger"
+                    aria-expanded={mega}
+                    aria-haspopup="true"
+                    onClick={() => setMega((v) => !v)}
+                    onKeyDown={onMegaKey}
+                  >
+                    <IconMenu size={20} />
+                    <span>{headerCfg.mega_menu_title || "دسته‌بندی محصولات"}</span>
+                  </button>
+                  {mega && categories.length ? (
+                    <DeepMegaPanel
+                      categories={categories}
+                      activeCat={activeCat}
+                      setActiveCat={setActiveCat}
+                      onClose={() => setMega(false)}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+              {megaEnabled ? <span className="sfc-header__sep" aria-hidden="true" /> : null}
               <nav className="sfc-header__links" aria-label="منوی اصلی">
                 {nav.map((link) => (
                   <Link key={link.href + link.label} href={link.href}>
@@ -389,18 +424,65 @@ export function ClassicHeader({
                 ))}
               </nav>
             </div>
-            <div className="sfc-header__deals">
-              <span className="sfc-header__sep" aria-hidden="true" />
-              <Link href="/amazing-offers" className="sfc-deals">
-                <span className="sfc-deals__title">شگفت انگیز</span>
-                <span className="sfc-deals__badge">
-                  <IconPercent size={12} />
-                </span>
-              </Link>
-            </div>
+            {headerCfg.deals_enabled !== false ? (
+              <div className="sfc-header__deals">
+                <span className="sfc-header__sep" aria-hidden="true" />
+                <Link href={headerCfg.deals_link || "/amazing-offers"} className="sfc-deals">
+                  <span className="sfc-deals__title">{headerCfg.deals_title || "شگفت انگیز"}</span>
+                  {headerCfg.deals_subtitle ? (
+                    <span className="sfc-deals__sub">{headerCfg.deals_subtitle}</span>
+                  ) : null}
+                  <span className="sfc-deals__badge">
+                    <IconPercent size={12} />
+                  </span>
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
+      {headerCfg.banner_enabled ? (
+        <div
+          className="sfc-header-banner"
+          style={{
+            background: headerCfg.banner_bg || "#021959",
+            color: headerCfg.banner_text_color || "#ffffff",
+          }}
+        >
+          <div className="sfc-container sfc-header-banner__inner">
+            {headerCfg.banner_link ? (
+              <a href={headerCfg.banner_link} className="sfc-header-banner__link">
+                {headerCfg.banner_image_desktop ? (
+                  <img
+                    className="sfc-header-banner__img sfc-header-banner__img--desktop"
+                    src={headerCfg.banner_image_desktop}
+                    alt=""
+                  />
+                ) : null}
+                {headerCfg.banner_image_mobile ? (
+                  <img
+                    className="sfc-header-banner__img sfc-header-banner__img--mobile"
+                    src={headerCfg.banner_image_mobile}
+                    alt=""
+                  />
+                ) : null}
+                {headerCfg.banner_text ? <span>{headerCfg.banner_text}</span> : null}
+              </a>
+            ) : (
+              <>
+                {headerCfg.banner_image_desktop ? (
+                  <img
+                    className="sfc-header-banner__img sfc-header-banner__img--desktop"
+                    src={headerCfg.banner_image_desktop}
+                    alt=""
+                  />
+                ) : null}
+                {headerCfg.banner_text ? <span>{headerCfg.banner_text}</span> : null}
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
       {drawer ? (
         <div className="sfc-drawer" role="dialog" aria-modal="true">
           <button type="button" className="sfc-drawer__scrim" aria-label="بستن" onClick={() => setDrawer(false)} />

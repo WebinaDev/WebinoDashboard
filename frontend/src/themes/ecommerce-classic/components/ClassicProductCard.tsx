@@ -9,6 +9,7 @@ import { toneClass, type ShopProduct } from "@/builder/catalog"
 
 import { IconHeart } from "./icons"
 import { ClassicPrice, ClassicRating, useDigits } from "./parts"
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 /**
  * Classic product card anatomy:
@@ -23,6 +24,11 @@ export function ClassicProductCard({
   variant?: "slider" | "archive" | "mini"
 }) {
   const digits = useDigits()
+  const theme = useClassicThemeSettings()
+  const commerce = theme.commerce ?? {}
+  const showRating = commerce.show_rating !== false
+  const showCardAtc = commerce.card_add_to_cart !== false
+  const showInstallment = commerce.card_installment_enabled !== false && (theme.show_installment_badge !== false)
   const [liked, setLiked] = useState(false)
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle")
   const href = `/product/${product.slug}`
@@ -51,6 +57,11 @@ export function ClassicProductCard({
         <div className="sfc-card__labels">
           {product.isNew ? <span className="sfc-card__label">جدید</span> : null}
           {!product.inStock ? <span className="sfc-card__label sfc-card__label--muted">ناموجود</span> : null}
+          {showInstallment && product.inStock ? (
+            <span className="sfc-card__label sfc-card__label--installment">
+              {commerce.card_installment_text || "اقساطی"}
+            </span>
+          ) : null}
         </div>
         <Link href={href} className="sfc-card__image" tabIndex={-1} aria-hidden="true">
           {product.image ? (
@@ -64,7 +75,7 @@ export function ClassicProductCard({
         </h3>
         <div className="sfc-card__detail">
           <span className={`sfc-card__stock ${product.inStock ? "" : "is-out"}`}>{stockLabel}</span>
-          <ClassicRating value={product.rating} />
+          {showRating ? <ClassicRating value={product.rating} /> : null}
         </div>
         <div className="sfc-card__actions">
           <div className="sfc-card__price">
@@ -74,23 +85,25 @@ export function ClassicProductCard({
               <span className="sfc-card__soldout">ناموجود</span>
             )}
           </div>
-          {variable || !product.inStock ? (
-            <Link href={href} className="sfc-btn sfc-btn--card">
-              مشاهده محصول
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="sfc-btn sfc-btn--card"
-              disabled={state === "busy"}
-              onClick={() => {
-                setState("busy")
-                void addShopItem(product).then((result) => setState(result === "error" ? "error" : "done"))
-              }}
-            >
-              {state === "done" ? "افزوده شد" : state === "error" ? "خطا، دوباره" : "افزودن به سبد"}
-            </button>
-          )}
+          {showCardAtc ? (
+            variable || !product.inStock ? (
+              <Link href={href} className="sfc-btn sfc-btn--card">
+                مشاهده محصول
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="sfc-btn sfc-btn--card"
+                disabled={state === "busy"}
+                onClick={() => {
+                  setState("busy")
+                  void addShopItem(product).then((result) => setState(result === "error" ? "error" : "done"))
+                }}
+              >
+                {state === "done" ? "افزوده شد" : state === "error" ? "خطا، دوباره" : "افزودن به سبد"}
+              </button>
+            )
+          ) : null}
         </div>
       </div>
     </article>

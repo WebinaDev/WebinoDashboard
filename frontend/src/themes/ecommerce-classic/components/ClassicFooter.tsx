@@ -4,11 +4,12 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { useCatalog } from "@/builder/storefront/use-catalog"
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import { IconCard, IconChevronLeft, IconClock, IconMail, IconPhone, IconPin, IconShield, IconTruck, IconBadge } from "./icons"
 import { ClassicAmount } from "./parts"
 
-const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
+const FALLBACK_COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "راهنمای خرید",
     links: [
@@ -40,6 +41,18 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   },
 ]
 
+const SOCIAL_KEYS = [
+  ["social_telegram", "تلگرام"],
+  ["social_twitter", "ایکس"],
+  ["social_whatsapp", "واتساپ"],
+  ["social_facebook", "فیسبوک"],
+  ["social_igap", "آیگپ"],
+  ["social_rubika", "روبیکا"],
+  ["social_soroush", "سروش"],
+  ["social_bale", "بله"],
+  ["social_eitaa", "ایتا"],
+] as const
+
 export function ClassicFooter({
   siteName,
   phone,
@@ -54,8 +67,32 @@ export function ClassicFooter({
   address?: string
 }) {
   const catalog = useCatalog(4)
+  const theme = useClassicThemeSettings()
+  const cfg = theme.footer ?? {}
   const [expanded, setExpanded] = useState(false)
   const latest = catalog.products.slice(0, 3)
+
+  const supportPhone = cfg.support_phone || phone || ""
+  const supportEmail = cfg.support_email || email || ""
+  const aboutText = cfg.about || about || ""
+  const addressText = cfg.address || address || ""
+  const trust = cfg.trust_text || ""
+
+  const columns =
+    Array.isArray(cfg.footer_links) && cfg.footer_links.length
+      ? cfg.footer_links.map((col) => ({
+          title: String(col.title ?? ""),
+          links: Array.isArray(col.links)
+            ? col.links.map((l) => ({ label: String(l.label ?? ""), href: String(l.href ?? "/") }))
+            : [],
+        }))
+      : FALLBACK_COLUMNS
+
+  const socials = SOCIAL_KEYS.map(([key, label]) => ({
+    key,
+    label,
+    href: String((cfg as Record<string, unknown>)[key] ?? ""),
+  })).filter((s) => s.href)
 
   return (
     <footer className="sfc-footer">
@@ -95,36 +132,45 @@ export function ClassicFooter({
         <div className="sfc-footer__grid">
           <div className="sfc-footer__contact">
             <h3 className="sfc-footer__title">{siteName}</h3>
-            {phone ? (
-              <a href={`tel:${phone}`} className="sfc-footer__row">
+            {supportPhone ? (
+              <a href={`tel:${supportPhone}`} className="sfc-footer__row">
                 <IconPhone size={16} />
                 <span>
-                  تلفن پشتیبانی: <bdi>{phone}</bdi>
+                  تلفن پشتیبانی: <bdi>{supportPhone}</bdi>
                 </span>
               </a>
             ) : null}
-            {email ? (
-              <a href={`mailto:${email}`} className="sfc-footer__row">
+            {supportEmail ? (
+              <a href={`mailto:${supportEmail}`} className="sfc-footer__row">
                 <IconMail size={16} />
-                <span dir="ltr">{email}</span>
+                <span dir="ltr">{supportEmail}</span>
               </a>
             ) : null}
             <div className="sfc-footer__row">
               <IconClock size={16} />
               <span>شنبه تا پنجشنبه، ۹ تا ۱۸</span>
             </div>
-            {address ? (
+            {addressText ? (
               <div className="sfc-footer__row">
                 <IconPin size={16} />
-                <span>{address}</span>
+                <span>{addressText}</span>
+              </div>
+            ) : null}
+            {socials.length ? (
+              <div className="sfc-footer__social">
+                {socials.map((s) => (
+                  <a key={s.key} href={s.href} target="_blank" rel="noreferrer" className="sfc-footer__social-link">
+                    {s.label}
+                  </a>
+                ))}
               </div>
             ) : null}
           </div>
-          {COLUMNS.map((col) => (
+          {columns.map((col) => (
             <nav key={col.title} className="sfc-footer__col" aria-label={col.title}>
               <h3 className="sfc-footer__title">{col.title}</h3>
               {col.links.map((link) => (
-                <Link key={link.href} href={link.href}>
+                <Link key={link.href + link.label} href={link.href}>
                   {link.label}
                 </Link>
               ))}
@@ -145,20 +191,48 @@ export function ClassicFooter({
         </div>
 
         <div className="sfc-footer__trust">
-          <div className="sfc-footer__installment">
-            <strong>خرید اقساطی</strong>
-            <span>امکان خرید اقساطی بدون چک و ضامن از طریق درگاه‌های معتبر</span>
-          </div>
+          {trust ? (
+            <div className="sfc-footer__installment">
+              <strong>چگونه به ما اعتماد کنید</strong>
+              <span>{trust}</span>
+            </div>
+          ) : (
+            <div className="sfc-footer__installment">
+              <strong>خرید اقساطی</strong>
+              <span>امکان خرید اقساطی بدون چک و ضامن از طریق درگاه‌های معتبر</span>
+            </div>
+          )}
           <div className="sfc-footer__namad" aria-label="نمادهای اعتماد">
-            <span className="sfc-footer__namad-item">نماد اعتماد</span>
-            <span className="sfc-footer__namad-item">ساماندهی</span>
+            {cfg.enamad_html ? (
+              <div className="sfc-footer__namad-item" dangerouslySetInnerHTML={{ __html: cfg.enamad_html }} />
+            ) : (
+              <span className="sfc-footer__namad-item">نماد اعتماد</span>
+            )}
+            {cfg.samandehi_html ? (
+              <div className="sfc-footer__namad-item" dangerouslySetInnerHTML={{ __html: cfg.samandehi_html }} />
+            ) : (
+              <span className="sfc-footer__namad-item">ساماندهی</span>
+            )}
+            {cfg.ecommerce_badge_html ? (
+              <div className="sfc-footer__namad-item" dangerouslySetInnerHTML={{ __html: cfg.ecommerce_badge_html }} />
+            ) : null}
           </div>
         </div>
 
-        {about ? (
+        {Array.isArray(cfg.payment_methods) && cfg.payment_methods.length ? (
+          <div className="sfc-footer__payments">
+            {cfg.payment_methods.map((pm, i) => (
+              <span key={i} className="sfc-footer__payment">
+                {pm.image ? <img src={String(pm.image)} alt={String(pm.title ?? "")} /> : <span>{pm.title}</span>}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {aboutText ? (
           <div className={`sfc-footer__seo ${expanded ? "is-open" : ""}`}>
             <h3 className="sfc-footer__title">فروشگاه اینترنتی {siteName}</h3>
-            <p>{about}</p>
+            <p>{aboutText}</p>
             <button type="button" onClick={() => setExpanded((v) => !v)}>
               {expanded ? "بستن" : "مشاهده بیشتر"}
             </button>
@@ -167,9 +241,28 @@ export function ClassicFooter({
 
         <div className="sfc-footer__copy">
           <span>
-            کلیه حقوق مادی و معنوی این سایت متعلق به <strong>{siteName}</strong> است.
+            {cfg.copyright
+              ? cfg.copyright
+              : (
+                <>
+                  کلیه حقوق مادی و معنوی این سایت متعلق به <strong>{siteName}</strong> است.
+                </>
+              )}
           </span>
-          <span className="sfc-footer__made">ساخته‌شده با وبینو</span>
+          {cfg.copyright_sub ? <span className="sfc-footer__copy-sub">{cfg.copyright_sub}</span> : null}
+          {cfg.show_developer_credit !== false ? (
+            <span className="sfc-footer__made">
+              {cfg.developer_link ? (
+                <a href={cfg.developer_link} target="_blank" rel="noreferrer">
+                  {cfg.developer_title || "طراحی و توسعه"} {cfg.developer_name || "وبینو"}
+                </a>
+              ) : (
+                <>
+                  {cfg.developer_title || "ساخته‌شده با"} {cfg.developer_name || "وبینو"}
+                </>
+              )}
+            </span>
+          ) : null}
         </div>
       </div>
     </footer>

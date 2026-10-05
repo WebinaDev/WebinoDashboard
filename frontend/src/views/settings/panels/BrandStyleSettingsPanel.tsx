@@ -32,7 +32,7 @@ type Payload = {
   geo_notice_colors?: Palette
 }
 
-const PALETTE_KEYS = ["primary", "secondary", "accent", "bg", "surface", "text", "muted", "navy", "header", "footer", "border"] as const
+const PALETTE_KEYS = ["primary", "secondary", "accent", "bg", "surface", "text", "muted", "text3", "navy", "header", "footer", "border"] as const
 const PALETTE_FALLBACKS: Record<(typeof PALETTE_KEYS)[number], string> = {
   primary: "#e775ae",
   secondary: "#021959",
@@ -41,6 +41,7 @@ const PALETTE_FALLBACKS: Record<(typeof PALETTE_KEYS)[number], string> = {
   surface: "#f3f5f8",
   text: "#021959",
   muted: "#4d5e8a",
+  text3: "#8b97b3",
   navy: "#021959",
   header: "#ffffff",
   footer: "#ffffff",

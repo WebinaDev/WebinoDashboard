@@ -1,5 +1,7 @@
 "use client"
 
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
+
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -71,6 +73,14 @@ function Stepper({ qty, max, onChange }: { qty: number; max: number; onChange: (
 
 export function ClassicProduct({ slug, editing }: { slug?: string; editing: boolean }) {
   const digits = useDigits()
+  const theme = useClassicThemeSettings()
+  const commerce = theme.commerce ?? {}
+  const showShare = commerce.product_share !== false
+  const showCompare = commerce.compare_enabled !== false
+  const showRating = commerce.show_rating !== false
+  const showStickyMobile = commerce.sticky_cart_mobile !== false && theme.sticky_add_to_cart !== false
+  const showInstallmentBox = commerce.installment_enabled !== false
+  const showShipping = commerce.shipping_text_enabled !== false
   const catalog = useCatalog(8)
   const [remote, setRemote] = useState<ShopProduct | null | undefined>(undefined)
   const [qty, setQty] = useState(1)
@@ -168,7 +178,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
           <div className="sfc-pdp__body">
             <aside className="sfc-pdp__rail" aria-label="ابزارهای محصول">
               <span className="sfc-pdp__rail-rating">
-                <ClassicRating value={product.rating} />
+                {showRating ? <ClassicRating value={product.rating} /> : null}
               </span>
               <button
                 type="button"
@@ -182,27 +192,31 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               >
                 <IconHeart size={20} filled={liked} />
               </button>
-              <button
-                type="button"
-                aria-label="اشتراک‌گذاری"
-                onClick={() => {
-                  const url = typeof window !== "undefined" ? window.location.href : ""
-                  if (navigator.share) void navigator.share({ title: product.name, url }).catch(() => undefined)
-                  else void navigator.clipboard?.writeText(url)
-                }}
-              >
-                <IconShare size={20} />
-              </button>
+              {showShare ? (
+                <button
+                  type="button"
+                  aria-label="اشتراک‌گذاری"
+                  onClick={() => {
+                    const url = typeof window !== "undefined" ? window.location.href : ""
+                    if (navigator.share) void navigator.share({ title: product.name, url }).catch(() => undefined)
+                    else void navigator.clipboard?.writeText(url)
+                  }}
+                >
+                  <IconShare size={20} />
+                </button>
+              ) : null}
               <a href="#sfc-stock-alert" aria-label="اطلاع از موجودی">
                 <IconBell size={20} />
               </a>
-              <button
-                type="button"
-                aria-label="افزودن به مقایسه"
-                onClick={() => product.id && void quietApi(`/api/v1/public/compare/products/${product.id}`, { method: "POST" })}
-              >
-                <IconCompare size={20} />
-              </button>
+              {showCompare ? (
+                <button
+                  type="button"
+                  aria-label="افزودن به مقایسه"
+                  onClick={() => product.id && void quietApi(`/api/v1/public/compare/products/${product.id}`, { method: "POST" })}
+                >
+                  <IconCompare size={20} />
+                </button>
+              ) : null}
               <a href="#sfc-price-chart" aria-label="نمودار قیمت">
                 <IconChart size={20} />
               </a>
@@ -375,7 +389,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                 </span>
               </div>
             ) : null}
-            {product.installments.length ? (
+            {showInstallmentBox && product.installments.length ? (
               <div className="sfc-buy__installments">
                 {product.installments.slice(0, 2).map((plan) => (
                   <span key={plan.months}>
@@ -408,12 +422,40 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
         </aside>
       </div>
 
-      <div className="sf-sticky-cta sfc-sticky-cta md:hidden">
-        <ClassicAmount value={price} className="sfc-buy__now" />
-        <button type="button" disabled={editing || blocked} onClick={add} className="sfc-btn">
-          افزودن به سبد خرید
-        </button>
-      </div>
+
+
+      {Array.isArray(commerce.features) && commerce.features.length ? (
+        <div className="sfc-container sfc-pdp__features">
+          {commerce.features.map((f, i) => (
+            <div key={i} className="sfc-pdp__feature">
+              <strong>{String(f.title ?? "")}</strong>
+              <span>{String(f.text ?? "")}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {showShipping && commerce.shipping_text ? (
+        <div className="sfc-container sfc-pdp__shipping-note">
+          <p>{commerce.shipping_text}</p>
+        </div>
+      ) : null}
+      {showInstallmentBox && (commerce.installment_title || commerce.installment_text) ? (
+        <div className="sfc-container sfc-pdp__installment-box">
+          {commerce.installment_title ? <strong>{commerce.installment_title}</strong> : null}
+          {commerce.installment_text ? <p>{commerce.installment_text}</p> : null}
+          {commerce.installment_link ? (
+            <a href={commerce.installment_link}>راهنمای خرید اقساطی</a>
+          ) : null}
+        </div>
+      ) : null}
+      {showStickyMobile ? (
+        <div className="sf-sticky-cta sfc-sticky-cta md:hidden">
+          <ClassicAmount value={price} className="sfc-buy__now" />
+          <button type="button" disabled={editing || blocked} onClick={add} className="sfc-btn">
+            افزودن به سبد خرید
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -110,7 +110,11 @@ class ShopExtrasAdminController extends Controller
     {
         $data = $request->validate([
             'primary_color' => ['sometimes', 'string', 'max:9'],
+            'secondary_color' => ['sometimes', 'string', 'max:9'],
             'accent_color' => ['sometimes', 'string', 'max:9'],
+            'text1_color' => ['sometimes', 'string', 'max:9'],
+            'text2_color' => ['sometimes', 'string', 'max:9'],
+            'text3_color' => ['sometimes', 'string', 'max:9'],
             'navy_color' => ['sometimes', 'string', 'max:9'],
             'surface_color' => ['sometimes', 'string', 'max:9'],
             'header_bg' => ['sometimes', 'string', 'max:9'],
@@ -126,6 +130,16 @@ class ShopExtrasAdminController extends Controller
             'sticky_add_to_cart' => ['sometimes', 'boolean'],
             'show_installment_badge' => ['sometimes', 'boolean'],
             'footer_columns' => ['sometimes', 'integer', 'min:1', 'max:6'],
+            'typography' => ['sometimes', 'array'],
+            'typography.font_family' => ['sometimes', 'string', 'max:40'],
+            'typography.font_size' => ['sometimes', 'integer', 'min:10', 'max:24'],
+            'typography.font_weight' => ['sometimes', 'integer', 'min:300', 'max:900'],
+            'typography.line_height' => ['sometimes', 'numeric', 'min:1', 'max:3'],
+            'general' => ['sometimes', 'array'],
+            'header' => ['sometimes', 'array'],
+            'footer' => ['sometimes', 'array'],
+            'commerce' => ['sometimes', 'array'],
+            'archive' => ['sometimes', 'array'],
         ]);
 
         return response()->json(['data' => $appearance->save((int) $request->user()->tenant_id, $data)]);

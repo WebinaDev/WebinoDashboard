@@ -482,3 +482,49 @@
   border-color: var(--color-border);
 }
 
+/* Classic theme settings chrome */
+.sfc-header.is-sticky-desktop { position: sticky; top: 0; z-index: 40; }
+.sfc-header.is-static-desktop { position: relative; }
+.sfc-header-banner { padding: 0.5rem 0; text-align: center; font-size: 0.875rem; }
+.sfc-header-banner__inner { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+.sfc-header-banner__img { max-height: 48px; width: auto; }
+.sfc-header-banner__img--mobile { display: none; }
+@media (max-width: 767px) {
+  .sfc-header-banner__img--desktop { display: none; }
+  .sfc-header-banner__img--mobile { display: inline-block; }
+}
+.sfc-bottom-menu {
+  position: fixed; inset-inline: 0; bottom: 0; z-index: 45;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  background: var(--sfc-header-bg, #fff); border-top: 1px solid var(--sfc-border, #e8edf3);
+  padding: 0.4rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom));
+}
+.sfc-bottom-menu a {
+  display: grid; place-items: center; gap: 0.15rem; font-size: 0.7rem; font-weight: 600;
+  color: var(--sfc-muted, #4d5e8a); text-decoration: none; padding: 0.35rem;
+}
+.sfc-bottom-menu a.is-active { color: var(--sfc-pink, #e775ae); }
+.sf-shell.sf-skin-classic, .sf-classic { padding-bottom: 0; }
+@media (max-width: 767px) {
+  .sf-shell.sf-skin-classic:has(.sfc-bottom-menu), .sf-classic:has(.sfc-bottom-menu) {
+    padding-bottom: 4.25rem;
+  }
+}
+.sfc-archive__grid {
+  grid-template-columns: repeat(var(--sfc-archive-cols, 3), minmax(0, 1fr));
+}
+@media (max-width: 1023px) {
+  .sfc-archive__grid { grid-template-columns: repeat(min(2, var(--sfc-archive-cols, 3)), minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  .sfc-archive__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.sfc-footer__social { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.sfc-footer__social-link { font-size: 0.75rem; font-weight: 600; color: var(--sfc-pink); }
+.sfc-footer__payments { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.sfc-footer__payment img { height: 28px; width: auto; }
+.sfc-pdp__features { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin: 1rem auto; }
+.sfc-pdp__feature { border: 1px solid var(--sfc-border); border-radius: 12px; padding: 0.75rem; }
+.sfc-pdp__shipping-note, .sfc-pdp__installment-box { margin: 1rem auto; padding: 0.85rem 1rem; border-radius: 12px; background: var(--sfc-surface); }
+.sfc-card__label--installment { background: var(--sfc-pink-soft); color: var(--sfc-pink); }
+.sfc-deals__sub { display: block; font-size: 0.65rem; opacity: 0.8; }

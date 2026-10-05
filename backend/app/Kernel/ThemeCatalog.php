@@ -9,7 +9,7 @@ final class ThemeCatalog
     public const FONTS = ['yekan-bakh', 'system', 'vazirmatn', 'iran-sans'];
 
     /** @var list<string> */
-    public const PALETTE_KEYS = ['primary', 'secondary', 'accent', 'bg', 'surface', 'text', 'muted', 'navy', 'header', 'footer', 'border'];
+    public const PALETTE_KEYS = ['primary', 'secondary', 'accent', 'bg', 'surface', 'text', 'muted', 'text3', 'navy', 'header', 'footer', 'border'];
 
     /** @var list<string> */
     public const GEO_NOTICE_COLOR_KEYS = [
@@ -49,6 +49,7 @@ final class ThemeCatalog
             'surface' => '#f3f5f8',
             'text' => '#021959',
             'muted' => '#4d5e8a',
+            'text3' => '#8b97b3',
             'navy' => '#021959',
             'header' => '#ffffff',
             'footer' => '#ffffff',

@@ -23,7 +23,7 @@ class PublicSiteController extends Controller
     {
         $tenant = $this->publicTenant($request);
         $branding = ThemeCatalog::normalizeBranding($tenant->branding);
-        $branding['appearance'] = $appearance->get((int) $tenant->id);
+        $branding['appearance'] = $appearance->publicPayload((int) $tenant->id);
         $otp = OtpSettings::forTenant((int) $tenant->id, $settings);
         $privacy = $settings->get((int) $tenant->id, 'settings', 'site.privacy', [
             'guest_checkout' => false,

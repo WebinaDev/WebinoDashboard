@@ -1,5 +1,7 @@
 "use client"
 
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
+
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useMemo, useState, type ReactNode } from "react"
@@ -49,7 +51,16 @@ export function ClassicSortTabs({ editing, total }: { editing: boolean; total?: 
   const router = useRouter()
   const params = useSearchParams()
   const digits = useDigits()
-  const current = params.get("sort") ?? "new"
+  const archiveSort = useClassicThemeSettings().archive?.default_sort
+  const sortFallback =
+    archiveSort === "price_asc"
+      ? "price_asc"
+      : archiveSort === "price_desc"
+        ? "price_desc"
+        : archiveSort === "popular"
+          ? "popular"
+          : "new"
+  const current = params.get("sort") ?? sortFallback
   return (
     <div className="sfc-sort">
       <span className="sfc-sort__label">
@@ -94,8 +105,10 @@ export function ClassicArchiveGrid({
   title?: string
   showSort?: boolean
 }) {
+  const archive = useClassicThemeSettings().archive ?? {}
+  const columns = Math.min(6, Math.max(2, Number(archive.product_columns ?? 3)))
   return (
-    <section className="sfc-archive">
+    <section className="sfc-archive" style={{ ["--sfc-archive-cols" as string]: String(columns) }}>
       {title || showSort ? (
         <div className="sfc-archive__head">
           {title ? <h2 className="sfc-archive__title">{title}</h2> : null}
@@ -143,6 +156,9 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
   const params = useSearchParams()
   const catalog = useCatalog(48)
   const digits = useDigits()
+  const archive = useClassicThemeSettings().archive ?? {}
+  const filtersOpen = Boolean(archive.filters_open_default)
+  if (archive.sidebar_enabled === false) return null
   const category = params.get("category") ?? ""
   const brand = params.get("brand") ?? ""
   const inStock = params.get("in_stock") === "1"
@@ -178,7 +194,7 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
           </button>
         ) : null}
       </div>
-      <FilterGroup title="دسته‌بندی" count={catalog.categories.length}>
+      <FilterGroup title="دسته‌بندی" count={catalog.categories.length} defaultOpen={filtersOpen}>
         {catalog.categories.map((item) => (
           <label key={item.slug} className="sfc-check">
             <input type="checkbox" checked={category === item.slug} onChange={() => setParam("category", item.slug)} />
@@ -188,7 +204,7 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
           </label>
         ))}
       </FilterGroup>
-      <FilterGroup title="برند" count={catalog.brands.length}>
+      <FilterGroup title="برند" count={catalog.brands.length} defaultOpen={filtersOpen}>
         {catalog.brands.map((item) => (
           <label key={item.slug} className="sfc-check">
             <input type="checkbox" checked={brand === item.slug} onChange={() => setParam("brand", item.slug)} />
