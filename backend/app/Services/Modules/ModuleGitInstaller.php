@@ -161,6 +161,14 @@ class ModuleGitInstaller
     {
         $allowed = config('modules.git.allowed_hosts', []);
         if (! is_array($allowed) || $allowed === []) {
+            // Fail closed in production: git install requires an explicit allowlist.
+            if (app()->environment('production')) {
+                throw new RuntimeException(
+                    'MODULE_GIT_ALLOWED_HOSTS must be configured before cloning modules in production'
+                );
+            }
+
+            // Non-production: allowlist optional for local/dev convenience.
             return;
         }
         // Strip credentials for host parse

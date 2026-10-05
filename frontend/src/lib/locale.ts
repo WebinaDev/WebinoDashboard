@@ -1,6 +1,11 @@
 /**
  * Product locale helpers — re-exports from `@webina/ui` plus layout helpers.
  * `formatDate` for `fa` is Jalali via `react-date-object`, not ICU.
+ *
+ * Preferred FA date path for admin UI:
+ * - Display: `formatDate` / `formatDisplayDate` / `formatDisplayDateTime` from `@/lib/locale` or `@/lib/format-date`
+ * - Inputs: `LocaleDatePicker` (stores Gregorian ISO)
+ * Avoid masking raw ISO with `toLocaleDigits` alone.
  */
 import DateObject from "react-date-object"
 import gregorian from "react-date-object/calendars/gregorian"

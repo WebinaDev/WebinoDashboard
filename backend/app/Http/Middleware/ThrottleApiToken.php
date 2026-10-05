@@ -21,6 +21,8 @@ class ThrottleApiToken
             ? 'api-token:'.$token->id
             : 'api-user:'.($user?->id ?? 'guest').'|'.$request->ip();
 
+        $authSensitive = $this->isAuthSensitive($request);
+
         try {
             if (RateLimiter::tooManyAttempts($key, $limit)) {
                 $retryAfter = RateLimiter::availableIn($key);
@@ -36,10 +38,18 @@ class ThrottleApiToken
 
             RateLimiter::hit($key, 60);
         } catch (\Throwable $e) {
-            // Cache/Redis outage must not take down the whole API.
-            Log::warning('ThrottleApiToken fail-open: '.$e->getMessage(), [
+            Log::warning('ThrottleApiToken cache failure: '.$e->getMessage(), [
                 'path' => $request->path(),
+                'auth_sensitive' => $authSensitive,
             ]);
+
+            // Fail closed on auth-sensitive routes when the limiter store is down
+            // (abuse-sensitive). Other routes keep a local fail-open fallback.
+            if ($authSensitive) {
+                return response()->json([
+                    'message' => __('tokens.rate_limited'),
+                ], 503);
+            }
 
             return $next($request);
         }
@@ -57,5 +67,19 @@ class ThrottleApiToken
         }
 
         return $response;
+    }
+
+    private function isAuthSensitive(Request $request): bool
+    {
+        $path = trim($request->path(), '/');
+
+        return str_contains($path, 'auth/login')
+            || str_contains($path, 'auth/register')
+            || str_contains($path, 'auth/otp')
+            || str_contains($path, 'auth/password')
+            || str_contains($path, 'auth/forgot')
+            || str_contains($path, 'auth/reset')
+            || str_contains($path, 'two-factor')
+            || str_contains($path, '2fa');
     }
 }

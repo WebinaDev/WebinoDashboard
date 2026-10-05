@@ -256,7 +256,8 @@ final class OtpAuthService
 
         $name = $phone !== '' ? $phone : Str::before($email, '@');
 
-        $user = User::query()->create([
+        $user = new User;
+        $user->forceFill([
             'tenant_id' => $tenant->id,
             'name' => $name,
             'email' => $email,
@@ -265,7 +266,7 @@ final class OtpAuthService
             'role' => 'customer',
             'is_active' => true,
             'password_must_change' => false,
-        ]);
+        ])->save();
         app(UserWelcomeService::class)->welcome($user);
 
         return $user;

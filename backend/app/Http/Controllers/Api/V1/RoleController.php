@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\UpdateRoleRequest;
 use App\Models\RoleCapability;
 use App\Models\RoleMenuAcl;
 use App\Models\User;
+use App\Services\Users\UserAdminService;
 use App\Support\CapabilityChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class RoleController extends Controller
 {
+    public function __construct(private readonly UserAdminService $users) {}
+
     /** @var list<string> */
     private function predefinedRoles(): array
     {
@@ -62,16 +67,27 @@ class RoleController extends Controller
         ]);
     }
 
-    public function update(Request $request): \Illuminate\Http\JsonResponse
+    public function update(UpdateRoleRequest $request): \Illuminate\Http\JsonResponse
     {
-        $data = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
-            'role' => ['required', 'string', Rule::in($this->predefinedRoles())],
-        ]);
-
+        $data = $request->validated();
         $tid = $request->user()->tenant_id;
         $user = User::query()->where('tenant_id', $tid)->findOrFail($data['user_id']);
-        $user->update(['role' => $data['role']]);
+        $role = (string) $data['role'];
+
+        $this->users->assertCanAssignRole($request, $role);
+
+        // Forbid self-promotion to admin (defense in depth alongside assertCanAssignRole).
+        if (
+            (int) $request->user()->id === (int) $user->id
+            && $role === 'admin'
+            && (string) $user->role !== 'admin'
+        ) {
+            throw ValidationException::withMessages([
+                'role' => ['You cannot promote yourself to admin.'],
+            ]);
+        }
+
+        $user->forceFill(['role' => $role])->save();
 
         return response()->json(['data' => $user->fresh()]);
     }

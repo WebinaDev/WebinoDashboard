@@ -51,6 +51,53 @@ class RequireAjaxHeader
             ], 403);
         }
 
+        // Cookie-auth mutations: if Origin/Referer is present, require it to match
+        // an allowed CORS origin (or same host). Missing Origin is allowed for
+        // non-browser clients that already passed the AJAX header check.
+        if (
+            $request->cookie(config('auth.cookie_name', 'webino_auth_token'))
+            && ! $request->bearerToken()
+            && ! $this->originAllowed($request)
+        ) {
+            return response()->json([
+                'message' => 'Invalid Origin',
+                'errors' => ['code' => 'ORIGIN_FORBIDDEN'],
+            ], 403);
+        }
+
         return $next($request);
+    }
+
+    private function originAllowed(Request $request): bool
+    {
+        $origin = trim((string) $request->headers->get('Origin', ''));
+        $referer = trim((string) $request->headers->get('Referer', ''));
+        $candidate = $origin !== '' ? $origin : ($referer !== '' ? $this->originFromReferer($referer) : '');
+        if ($candidate === '') {
+            return true;
+        }
+
+        $allowed = config('cors.allowed_origins', []);
+        if (is_array($allowed) && in_array($candidate, $allowed, true)) {
+            return true;
+        }
+
+        $host = $request->getSchemeAndHttpHost();
+
+        return strcasecmp($candidate, $host) === 0;
+    }
+
+    private function originFromReferer(string $referer): string
+    {
+        $parts = parse_url($referer);
+        if (! is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+            return '';
+        }
+        $origin = $parts['scheme'].'://'.$parts['host'];
+        if (! empty($parts['port'])) {
+            $origin .= ':'.$parts['port'];
+        }
+
+        return $origin;
     }
 }

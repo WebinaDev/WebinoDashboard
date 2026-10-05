@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreMediaRequest;
 use App\Models\MediaAsset;
 use App\Models\MediaTerm;
 use Illuminate\Http\JsonResponse;
@@ -57,20 +58,13 @@ class MediaController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreMediaRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'file' => 'required|file|max:20480',
-            'folder' => 'nullable|string|max:120',
-            'folder_id' => 'nullable|integer',
-            'category_ids' => 'nullable',
-            'tag_ids' => 'nullable',
-            'alt' => 'nullable|string|max:255',
-            'title' => 'nullable|string|max:255',
-        ]);
+        $data = $request->validated();
 
         $tid = (int) $request->user()->tenant_id;
-        $file = $data['file'];
+        $file = $request->file('file');
+        abort_unless($file !== null, 422);
         $folderId = isset($data['folder_id']) ? (int) $data['folder_id'] : null;
         $folderSlug = $data['folder'] ?? null;
 
