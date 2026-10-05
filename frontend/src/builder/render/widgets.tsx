@@ -95,6 +95,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <MenuWidget widget={widget} />
     case "form":
       return <FormWidget widget={widget} />
+    case "popup":
+      return <PopupWidget widget={widget} />
     case "hero-slider":
       return <HeroWidget />
     case "category-grid":
@@ -309,17 +311,44 @@ function MenuWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
+function parseFormFields(raw: unknown): { label: string; name: string; type: string }[] {
+  const text = typeof raw === "string" ? raw : ""
+  const rows = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [label, name, type] = line.split("|").map((part) => part.trim())
+      return {
+        label: label || name || "فیلد",
+        name: name || label || "field",
+        type: type || "text",
+      }
+    })
+  if (rows.length) return rows
+  return [
+    { label: "نام", name: "name", type: "text" },
+    { label: "موبایل", name: "phone", type: "tel" },
+    { label: "پیام", name: "message", type: "textarea" },
+  ]
+}
+
 function FormWidget({ widget }: { widget: WidgetNode }) {
   const [done, setDone] = useState(false)
   const [error, setError] = useState("")
-  if (done) return <p className="wb-type-body rounded-2xl bg-muted p-4 text-foreground">پیام شما ثبت شد. به‌زودی پاسخ می‌دهیم.</p>
+  const fields = parseFormFields(widget.props.fields)
+  const showPhone = widget.props.showPhone !== false
+  const showEmail = widget.props.showEmail !== false
+  const success = propStr(widget.props, "success", "پیام شما ثبت شد. به‌زودی پاسخ می‌دهیم.")
+  if (done) return <p className="wb-type-body rounded-2xl bg-muted p-4 text-foreground">{success}</p>
   return (
     <form
       className="grid gap-3 rounded-3xl border border-border bg-card p-4"
       onSubmit={(event) => {
         event.preventDefault()
         const data = new FormData(event.currentTarget)
-        if (!String(data.get("name") ?? "").trim() || !String(data.get("phone") ?? "").trim() || !String(data.get("message") ?? "").trim()) {
+        const missing = fields.some((field) => !String(data.get(field.name) ?? "").trim())
+        if (missing) {
           setError("همه فیلدها را کامل کنید.")
           return
         }
@@ -328,23 +357,71 @@ function FormWidget({ widget }: { widget: WidgetNode }) {
       }}
     >
       <h3 className="wb-type-h3">{propStr(widget.props, "title", "فرم")}</h3>
-      <label className="grid gap-1">
-        <span className="wb-label">نام</span>
-        <input required name="name" className="wb-field" />
-      </label>
-      <label className="grid gap-1">
-        <span className="wb-label">موبایل</span>
-        <input required name="phone" className="wb-field" />
-      </label>
-      <label className="grid gap-1">
-        <span className="wb-label">پیام</span>
-        <textarea required name="message" className="wb-field min-h-24" />
-      </label>
+      {fields.map((field) => (
+        <label key={field.name} className="grid gap-1">
+          <span className="wb-label">{field.label}</span>
+          {field.type === "textarea" ? (
+            <textarea required name={field.name} className="wb-field min-h-24" />
+          ) : (
+            <input required name={field.name} type={field.type === "tel" ? "tel" : field.type === "email" ? "email" : "text"} className="wb-field" />
+          )}
+        </label>
+      ))}
+      {showEmail && !fields.some((f) => f.name === "email") ? (
+        <label className="grid gap-1">
+          <span className="wb-label">ایمیل</span>
+          <input name="email" type="email" className="wb-field" />
+        </label>
+      ) : null}
+      {showPhone && !fields.some((f) => f.name === "phone") ? (
+        <label className="grid gap-1">
+          <span className="wb-label">موبایل</span>
+          <input name="phone" type="tel" className="wb-field" />
+        </label>
+      ) : null}
       {error ? <p className="wb-form-error">{error}</p> : null}
       <button type="submit" className="wb-btn wb-btn-primary">
         {propStr(widget.props, "submit", "ارسال")}
       </button>
     </form>
+  )
+}
+
+function PopupWidget({ widget }: { widget: WidgetNode }) {
+  const [open, setOpen] = useState(false)
+  const trigger = propStr(widget.props, "trigger", "delay")
+  const delayMs = Math.max(0, Number(widget.props.delayMs ?? 2000))
+  useEffect(() => {
+    if (trigger === "load") {
+      setOpen(true)
+      return
+    }
+    if (trigger === "delay") {
+      const timer = window.setTimeout(() => setOpen(true), delayMs)
+      return () => window.clearTimeout(timer)
+    }
+    const onLeave = (event: MouseEvent) => {
+      if (event.clientY <= 0) setOpen(true)
+    }
+    document.addEventListener("mouseout", onLeave)
+    return () => document.removeEventListener("mouseout", onLeave)
+  }, [trigger, delayMs])
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-5 shadow-xl">
+        <h3 className="wb-type-h3">{propStr(widget.props, "title", "پاپ‌آپ")}</h3>
+        <p className="wb-type-body mt-2 text-muted-foreground">{propStr(widget.props, "text", "")}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href={propStr(widget.props, "href", "/")} className="wb-btn wb-btn-primary" onClick={() => setOpen(false)}>
+            {propStr(widget.props, "cta", "باشه")}
+          </Link>
+          <button type="button" className="wb-btn" onClick={() => setOpen(false)}>
+            بستن
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

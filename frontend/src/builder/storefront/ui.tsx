@@ -1,5 +1,7 @@
 "use client"
 
+import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
+
 import { Moon, Search, ShoppingBag, Sun, UserRound } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
@@ -283,6 +285,7 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
         {product.cashPrice && product.cashPrice !== product.price ? (
           <p className="mt-2 text-sm text-muted-foreground">{t("cash_hint", { amount: money(product.cashPrice) })}</p>
         ) : null}
+        <InstallmentBadges productId={product.id} amountMinor={product.price} />
         {product.variants.length ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {product.variants.map((item) => (

@@ -1921,6 +1921,78 @@
         "button_bg": "Button",
         "button_text": "Button text"
       }
+    },
+    "seo_native": {
+      "loading": "Loading…",
+      "title": "Native SEO",
+      "home_title": "Home title",
+      "home_description": "Home description",
+      "title_template": "Title template",
+      "separator": "Separator",
+      "og_image": "Default Open Graph image",
+      "organization_name": "Organization name",
+      "organization_logo": "Organization logo URL",
+      "organization_same_as": "Social profiles (one URL per line)",
+      "news_publication_name": "News publication name",
+      "robots_default": "Default robots",
+      "noindex_search": "Noindex search results",
+      "noindex_archives": "Noindex archives",
+      "sitemap_enabled": "Enable XML sitemaps",
+      "sitemap_include_products": "Include products",
+      "sitemap_include_posts": "Include posts",
+      "sitemap_include_pages": "Include pages",
+      "sitemap_include_news": "News sitemap",
+      "sitemap_include_videos": "Video sitemap",
+      "schema_organization_enabled": "Organization JSON-LD",
+      "schema_website_enabled": "WebSite JSON-LD",
+      "redirects_title": "Redirects",
+      "add_redirect": "Add",
+      "delete": "Delete",
+      "no_redirects": "No redirects yet."
+    },
+    "performance": {
+      "loading": "Loading…",
+      "title": "Performance & optimizer",
+      "webp_enabled": "WebP path",
+      "lazy_load": "Lazy-load images",
+      "minify_inline_css": "Minify inline CSS",
+      "purge_on_product_save": "Purge cache on product save",
+      "purge_on_content_save": "Purge cache on content save",
+      "cdn_cache_hint": "CDN cache hints",
+      "preload_fonts": "Preload fonts",
+      "defer_analytics": "Defer analytics script",
+      "isr_revalidate_seconds": "ISR revalidate (seconds)",
+      "image_quality": "Image quality",
+      "notes": "Performance notes",
+      "purge_now": "Purge cache now",
+      "purged": "Purged: {keys}"
+    },
+    "storefront_appearance": {
+      "loading": "Loading…",
+      "title": "Storefront appearance",
+      "primary_color": "Primary color",
+      "accent_color": "Accent color",
+      "header_style": "Header style",
+      "product_card_style": "Product card style",
+      "pdp_gallery_style": "PDP gallery style",
+      "top_bar_text": "Top bar text",
+      "mega_menu": "Mega menu",
+      "dark_mode_default": "Dark mode by default",
+      "show_top_bar": "Show top bar",
+      "sticky_add_to_cart": "Sticky add to cart",
+      "show_installment_badge": "Installment badge on PDP",
+      "footer_columns": "Footer columns"
+    },
+    "product_notifications": {
+      "loading": "Loading…",
+      "title": "Product notifications",
+      "back_in_stock_enabled": "Back in stock",
+      "on_sale_enabled": "On sale",
+      "channel_email": "Email",
+      "channel_sms": "SMS",
+      "from_name": "From name",
+      "sms_template_back_in_stock": "Back-in-stock SMS template",
+      "sms_template_on_sale": "On-sale SMS template"
     }
   },
   "commerce_gateways": {
@@ -6391,5 +6463,9 @@
     "vendor_store_bio_empty": "This vendor has not added a short bio yet.",
     "vendor_store_empty": "No products from this vendor yet.",
     "vendor_store_product_count": "{count} products"
+  },
+  "storefront_badges": {
+    "title": "Credit / installment",
+    "pay_with": "Pay with {gateway}"
   }
 }

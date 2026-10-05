@@ -9,6 +9,7 @@ import { loadThemeComponents } from "@/kernel/theme-loader"
 import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
 import { AnalyticsTrackerScript } from "@/components/AnalyticsTrackerScript"
+import { JsonLd } from "@/components/seo/JsonLd"
 
 export const revalidate = 60
 
@@ -21,15 +22,51 @@ type TenantPayload = {
   }
 }
 
+type SeoPayload = {
+  data?: {
+    meta?: {
+      title?: string
+      description?: string
+      robots?: string
+      canonical?: string
+      og?: { title?: string; description?: string; image?: string; url?: string; site_name?: string }
+      twitter?: { card?: string; title?: string; description?: string; image?: string }
+    }
+    json_ld?: Record<string, unknown>
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const res = await apiServer<TenantPayload>("/api/v1/public/tenant", {
-      revalidate: 60,
-      tags: ["tenant"],
-    })
-    const favicon = res?.data?.branding?.favicon_url
-    if (favicon) {
-      return { icons: { icon: favicon } }
+    const [tenantRes, seoRes] = await Promise.all([
+      apiServer<TenantPayload>("/api/v1/public/tenant", { revalidate: 60, tags: ["tenant"] }),
+      apiServer<SeoPayload>("/api/v1/public/seo/meta?path=/", { revalidate: 60, tags: ["seo"] }),
+    ])
+    const favicon = tenantRes?.data?.branding?.favicon_url
+    const meta = seoRes?.data?.meta
+    return {
+      title: meta?.title || tenantRes?.data?.store_display_name || tenantRes?.data?.name,
+      description: meta?.description || undefined,
+      robots: meta?.robots || undefined,
+      alternates: meta?.canonical ? { canonical: meta.canonical } : undefined,
+      openGraph: meta?.og
+        ? {
+            title: meta.og.title,
+            description: meta.og.description,
+            images: meta.og.image ? [meta.og.image] : undefined,
+            url: meta.og.url,
+            siteName: meta.og.site_name,
+          }
+        : undefined,
+      twitter: meta?.twitter
+        ? {
+            card: (meta.twitter.card as "summary_large_image" | "summary") || "summary_large_image",
+            title: meta.twitter.title,
+            description: meta.twitter.description,
+            images: meta.twitter.image ? [meta.twitter.image] : undefined,
+          }
+        : undefined,
+      icons: favicon ? { icon: favicon } : undefined,
     }
   } catch {
     /* fallback */
@@ -80,8 +117,22 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         ) : (
           <SiteFooter siteName={tenantName} />
         )}
+        <SiteJsonLd />
         <AnalyticsTrackerScript />
       </div>
     </SiteBrandingShell>
   )
+}
+
+
+async function SiteJsonLd() {
+  try {
+    const seoRes = await apiServer<SeoPayload>("/api/v1/public/seo/meta?path=/", {
+      revalidate: 60,
+      tags: ["seo"],
+    })
+    return <JsonLd data={seoRes?.data?.json_ld ?? null} />
+  } catch {
+    return null
+  }
 }

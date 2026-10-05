@@ -104,6 +104,41 @@ export async function middleware(request: NextRequest) {
     return res
   }
 
+  // Native SEO redirects (no Rank Math)
+  if (
+    !pathname.startsWith("/dashboard") &&
+    pathname !== "/login" &&
+    pathname !== "/setup" &&
+    pathname !== "/account/change-password"
+  ) {
+    try {
+      const apiBase = getServerApiBase()
+      if (apiBase) {
+        const lookup = await fetch(
+          `${apiBase}/api/v1/public/seo/redirect?path=${encodeURIComponent(pathname)}`,
+          { headers: { Accept: "application/json" }, cache: "no-store" },
+        )
+        if (lookup.ok) {
+          const json = (await lookup.json()) as {
+            data?: { to_path?: string; status_code?: number } | null
+          }
+          const to = json.data?.to_path
+          const code = Number(json.data?.status_code ?? 301)
+          if (to && to !== pathname) {
+            const url = request.nextUrl.clone()
+            url.pathname = to
+            return NextResponse.redirect(
+              url,
+              [301, 302, 307, 308].includes(code) ? (code as 301 | 302 | 307 | 308) : 301,
+            )
+          }
+        }
+      }
+    } catch {
+      /* ignore redirect lookup failures */
+    }
+  }
+
   // Legacy /admin → /dashboard (bookmarks & old links)
   if (isLegacyAdminPathname(pathname)) {
     const url = request.nextUrl.clone()

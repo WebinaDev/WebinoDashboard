@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\BlogPost;
+use App\Models\CmsPage;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -9,6 +11,7 @@ use App\Observers\MarketplaceOrderObserver;
 use App\Observers\MarketplaceProductObserver;
 use App\Observers\OrderStatusObserver;
 use App\Observers\ProductPriceHistoryObserver;
+use App\Observers\CachePurgeObserver;
 use App\Observers\ProductStockObserver;
 use App\Services\WordpressImport\RemoteAssetFetcher;
 use App\Services\WordpressImport\SafeRemoteFetcher;
@@ -45,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
         Order::observe(OrderStatusObserver::class);
         Product::observe(ProductStockObserver::class);
         Product::observe(ProductPriceHistoryObserver::class);
+        Product::observe(CachePurgeObserver::class);
+        BlogPost::observe(CachePurgeObserver::class);
+        CmsPage::observe(CachePurgeObserver::class);
 
         Scramble::ignoreDefaultRoutes();
 

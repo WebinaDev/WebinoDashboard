@@ -121,6 +121,18 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleEn: "Analytics",
         route: "/dashboard/settings/site/analytics",
       },
+      {
+        id: "seo",
+        titleFa: "سئو",
+        titleEn: "SEO",
+        route: "/dashboard/settings/site/seo",
+      },
+      {
+        id: "performance",
+        titleFa: "عملکرد",
+        titleEn: "Performance",
+        route: "/dashboard/settings/site/performance",
+      },
     ],
   },
   {
@@ -402,6 +414,24 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "درگاه‌ها",
         titleEn: "Gateways",
         route: "/dashboard/settings/shop/payments",
+      },
+      {
+        id: "storefront-appearance",
+        titleFa: "ظاهر فروشگاه",
+        titleEn: "Storefront appearance",
+        route: "/dashboard/settings/shop/storefront-appearance",
+      },
+      {
+        id: "product-notifications",
+        titleFa: "اعلان محصولات",
+        titleEn: "Product notifications",
+        route: "/dashboard/settings/shop/product-notifications",
+      },
+      {
+        id: "theme-optimizer",
+        titleFa: "بهینه‌ساز و عملکرد",
+        titleEn: "Performance & optimizer",
+        route: "/dashboard/settings/shop/theme-optimizer",
       },
       {
         id: "zarinpal",

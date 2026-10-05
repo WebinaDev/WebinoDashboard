@@ -71,6 +71,7 @@ export const THEME_KIND_ICONS: Record<ThemeKind, LucideIcon> = {
   product_archive: LayoutGrid,
   loop_item: GalleryHorizontalEnd,
   not_found: CircleHelp,
+  popup: CircleHelp,
 }
 
 export const SETTINGS_SECTION_ICONS = {

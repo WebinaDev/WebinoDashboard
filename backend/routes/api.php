@@ -103,6 +103,9 @@ use App\Http\Controllers\Api\V1\PublicSiteController;
 use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\GoogleOAuthController;
 use App\Http\Controllers\Api\V1\ShopExtrasAdminController;
+use App\Http\Controllers\Api\V1\SeoAdminController;
+use App\Http\Controllers\Api\V1\PublicSeoController;
+use App\Http\Controllers\Api\V1\PerformanceSettingsController;
 use App\Http\Controllers\Api\V1\PollController;
 use App\Http\Controllers\Api\V1\ProductCompareController;
 use App\Http\Controllers\Api\V1\ProductEngagementController;
@@ -194,6 +197,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/orders/{order}/pay/intent', [PublicOrderPaymentController::class, 'intent'])->whereNumber('order')->middleware('throttle:public-writes');
         Route::get('/kernel/activations', [PublicKernelController::class, 'activations']);
         Route::get('/analytics/bootstrap', [PublicAnalyticsController::class, 'bootstrap']);
+        Route::get('/seo/meta', [PublicSeoController::class, 'meta']);
+        Route::get('/seo/redirect', [PublicSeoController::class, 'redirectLookup']);
+        Route::get('/payments/installment-badges', [PublicSeoController::class, 'installmentBadges']);
+        Route::get('/seo/sitemap/{kind?}', [PublicSeoController::class, 'sitemap'])->where('kind', 'index|pages|products|posts|news|video');
+        Route::get('/seo/robots', [PublicSeoController::class, 'robots']);
         Route::post('/analytics/hit', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
 
         Route::middleware('public.module:blog')->group(function () {
@@ -422,6 +430,19 @@ Route::prefix('v1')->group(function () {
                 Route::put('/integrations/google-oauth', [GoogleOAuthController::class, 'settingsUpdate']);
                 Route::get('/shop/theme-optimizer', [ShopExtrasAdminController::class, 'themeOptimizerShow']);
                 Route::put('/shop/theme-optimizer', [ShopExtrasAdminController::class, 'themeOptimizerUpdate']);
+                Route::get('/shop/storefront-appearance', [ShopExtrasAdminController::class, 'storefrontAppearanceShow']);
+                Route::put('/shop/storefront-appearance', [ShopExtrasAdminController::class, 'storefrontAppearanceUpdate']);
+                Route::get('/shop/product-notifications', [ShopExtrasAdminController::class, 'productNotificationsShow']);
+                Route::put('/shop/product-notifications', [ShopExtrasAdminController::class, 'productNotificationsUpdate']);
+                Route::get('/seo/settings', [SeoAdminController::class, 'settings']);
+                Route::post('/seo/settings', [SeoAdminController::class, 'saveSettings']);
+                Route::get('/seo/redirects', [SeoAdminController::class, 'redirects']);
+                Route::post('/seo/redirects', [SeoAdminController::class, 'storeRedirect']);
+                Route::put('/seo/redirects/{id}', [SeoAdminController::class, 'updateRedirect'])->whereNumber('id');
+                Route::delete('/seo/redirects/{id}', [SeoAdminController::class, 'destroyRedirect'])->whereNumber('id');
+                Route::get('/performance/settings', [PerformanceSettingsController::class, 'show']);
+                Route::put('/performance/settings', [PerformanceSettingsController::class, 'update']);
+                Route::post('/performance/purge', [PerformanceSettingsController::class, 'purge']);
                 Route::get('/shop/shipping-carriers', [ShopExtrasAdminController::class, 'shippingCarriersShow']);
                 Route::put('/shop/shipping-carriers', [ShopExtrasAdminController::class, 'shippingCarriersUpdate']);
                 Route::get('/shop/sms-panels', [ShopExtrasAdminController::class, 'smsPanelsShow']);

@@ -13,6 +13,10 @@ import { SystemLogsSettingsPanel } from "@/views/settings/panels/SystemLogsSetti
 import { AiContentSettingsPanel } from "@/views/settings/panels/AiContentSettingsPanel"
 import { AnalyticsSettingsPanel } from "@/views/settings/panels/AnalyticsSettingsPanel"
 import { SmsSettingsPanel } from "@/views/settings/panels/SmsSettingsPanel"
+import { SeoSettingsPanel } from "@/views/settings/panels/SeoSettingsPanel"
+import { PerformanceSettingsPanel } from "@/views/settings/panels/PerformanceSettingsPanel"
+import { StorefrontAppearancePanel } from "@/views/settings/panels/StorefrontAppearancePanel"
+import { ProductNotificationsPanel } from "@/views/settings/panels/ProductNotificationsPanel"
 import { NotificationsSettingsPanel } from "@/views/settings/panels/NotificationsSettingsPanel"
 import { PwaSettingsPanel } from "@/views/settings/panels/PwaSettingsPanel"
 import { DashboardSiteSettingsPanel } from "@/views/settings/panels/DashboardSiteSettingsPanel"
@@ -62,6 +66,10 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/shop/reviews")) return <ShopReviewsSettingsPanel />
   if (path.endsWith("/shop/maps")) return <ShopMapsSettingsPanel />
   if (path.endsWith("/shop/loyalty")) return <ShopLoyaltySettingsPanel />
+  if (path.endsWith("/shop/storefront-appearance")) return <StorefrontAppearancePanel />
+  if (path.endsWith("/shop/product-notifications")) return <ProductNotificationsPanel />
+  if (path.endsWith("/shop/theme-optimizer") || path.endsWith("/site/performance")) return <PerformanceSettingsPanel />
+  if (path.endsWith("/site/seo") || path.endsWith("/site/seo-redirects")) return <SeoSettingsPanel />
   if (path.endsWith("/shop/archive")) return <ShopArchiveSettingsPanel />
   if (path.endsWith("/shop/accounting/tax")) return <AccountingTaxPanel />
   if (path.endsWith("/shop/accounting/modian")) return <AccountingModianPanel />

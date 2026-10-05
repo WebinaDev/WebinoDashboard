@@ -1538,6 +1538,78 @@
         "button_bg": "دکمه",
         "button_text": "متن دکمه"
       }
+    },
+    "seo_native": {
+      "loading": "در حال بارگذاری…",
+      "title": "سئوی بومی",
+      "home_title": "عنوان صفحه اصلی",
+      "home_description": "توضیح صفحه اصلی",
+      "title_template": "قالب عنوان",
+      "separator": "جداکننده",
+      "og_image": "تصویر Open Graph پیش‌فرض",
+      "organization_name": "نام سازمان",
+      "organization_logo": "لوگوی سازمان",
+      "organization_same_as": "پروفایل‌های اجتماعی (هر خط یک آدرس)",
+      "news_publication_name": "نام نشریه اخبار",
+      "robots_default": "robots پیش‌فرض",
+      "noindex_search": "noindex برای جستجو",
+      "noindex_archives": "noindex برای بایگانی‌ها",
+      "sitemap_enabled": "فعال‌سازی نقشه سایت",
+      "sitemap_include_products": "محصولات در نقشه سایت",
+      "sitemap_include_posts": "نوشته‌ها در نقشه سایت",
+      "sitemap_include_pages": "برگه‌ها در نقشه سایت",
+      "sitemap_include_news": "نقشه سایت اخبار",
+      "sitemap_include_videos": "نقشه سایت ویدیو",
+      "schema_organization_enabled": "اسکیما سازمان",
+      "schema_website_enabled": "اسکیما وب‌سایت",
+      "redirects_title": "ریدایرکت‌ها",
+      "add_redirect": "افزودن",
+      "delete": "حذف",
+      "no_redirects": "ریدایرکتی ثبت نشده است."
+    },
+    "performance": {
+      "loading": "در حال بارگذاری…",
+      "title": "عملکرد و بهینه‌ساز",
+      "webp_enabled": "مسیر WebP",
+      "lazy_load": "بارگذاری تنبل تصاویر",
+      "minify_inline_css": "فشرده‌سازی CSS درون‌خطی",
+      "purge_on_product_save": "پاک‌سازی کش با ذخیره محصول",
+      "purge_on_content_save": "پاک‌سازی کش با ذخیره محتوا",
+      "cdn_cache_hint": "راهنمای کش CDN",
+      "preload_fonts": "پیش‌بارگذاری فونت",
+      "defer_analytics": "تأخیر در اسکریپت آنالیتیکس",
+      "isr_revalidate_seconds": "بازه بازتولید ISR (ثانیه)",
+      "image_quality": "کیفیت تصویر",
+      "notes": "یادداشت‌های عملکرد",
+      "purge_now": "پاک‌سازی کش اکنون",
+      "purged": "پاک شد: {keys}"
+    },
+    "storefront_appearance": {
+      "loading": "در حال بارگذاری…",
+      "title": "ظاهر فروشگاه",
+      "primary_color": "رنگ اصلی",
+      "accent_color": "رنگ ثانویه",
+      "header_style": "سبک هدر",
+      "product_card_style": "سبک کارت محصول",
+      "pdp_gallery_style": "گالری صفحه محصول",
+      "top_bar_text": "متن نوار بالا",
+      "mega_menu": "مگامنو",
+      "dark_mode_default": "حالت تیره پیش‌فرض",
+      "show_top_bar": "نمایش نوار بالا",
+      "sticky_add_to_cart": "دکمه افزودن چسبان",
+      "show_installment_badge": "نشان اقساط در صفحه محصول",
+      "footer_columns": "ستون‌های فوتر"
+    },
+    "product_notifications": {
+      "loading": "در حال بارگذاری…",
+      "title": "اعلان محصولات",
+      "back_in_stock_enabled": "موجود شدن دوباره",
+      "on_sale_enabled": "شروع حراج",
+      "channel_email": "ایمیل",
+      "channel_sms": "پیامک",
+      "from_name": "نام فرستنده",
+      "sms_template_back_in_stock": "قالب پیامک موجود شدن",
+      "sms_template_on_sale": "قالب پیامک حراج"
     }
   },
   "commerce_gateways": {
@@ -6391,5 +6463,9 @@
     "vendor_store_bio_empty": "این فروشنده هنوز معرفی کوتاهی ثبت نکرده است.",
     "vendor_store_empty": "محصولی از این فروشنده موجود نیست.",
     "vendor_store_product_count": "{count} محصول"
+  },
+  "storefront_badges": {
+    "title": "پرداخت اعتباری / اقساط",
+    "pay_with": "پرداخت با {gateway}"
   }
 }

@@ -49,6 +49,8 @@ const PROVIDER_FIELDS: Record<string, FieldDef[]> = {
     { key: "callback_url", type: "readonly", label: "callback_url" },
   ],
   digipay: [
+    { key: "has_pdp", type: "switch", label: "has_pdp" },
+    { key: "dark_pdp", type: "switch", label: "dark_pdp" },
     {
       key: "environment",
       type: "select",
@@ -105,6 +107,8 @@ const PROVIDER_FIELDS: Record<string, FieldDef[]> = {
     { key: "callback_url", type: "readonly", label: "callback_url" },
   ],
   torobpay: [
+    { key: "has_pdp", type: "switch", label: "has_pdp" },
+    { key: "dark_pdp", type: "switch", label: "dark_pdp" },
     { key: "base_url", type: "text", label: "base_url" },
     { key: "client_id", type: "text", label: "client_id" },
     { key: "client_secret", type: "password", label: "client_secret" },

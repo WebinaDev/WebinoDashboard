@@ -9,6 +9,7 @@ export type ThemeKind =
   | "product_archive"
   | "loop_item"
   | "not_found"
+  | "popup"
 
 export type ThemeQuery = {
   path: string

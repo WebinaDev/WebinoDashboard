@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Shipping\ShippingCarrierRegistry;
+use App\Services\Shop\ProductNotificationSettings;
+use App\Services\Shop\StorefrontAppearanceService;
 use App\Services\Sms\SmsPanelAdapterRegistry;
 use Illuminate\Http\Request;
 
@@ -97,5 +99,50 @@ class ShopExtrasAdminController extends Controller
         abort_if((int) $order->tenant_id !== (int) $request->user()->tenant_id, 404);
 
         return response()->json(['data' => $registry->track((int) $order->tenant_id, $order)]);
+    }
+
+    public function storefrontAppearanceShow(Request $request, StorefrontAppearanceService $appearance): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(['data' => $appearance->get((int) $request->user()->tenant_id)]);
+    }
+
+    public function storefrontAppearanceUpdate(Request $request, StorefrontAppearanceService $appearance): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'primary_color' => ['sometimes', 'string', 'max:9'],
+            'accent_color' => ['sometimes', 'string', 'max:9'],
+            'header_style' => ['sometimes', 'string', 'max:40'],
+            'mega_menu' => ['sometimes', 'boolean'],
+            'dark_mode_default' => ['sometimes', 'boolean'],
+            'show_top_bar' => ['sometimes', 'boolean'],
+            'top_bar_text' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'product_card_style' => ['sometimes', 'string', 'max:40'],
+            'pdp_gallery_style' => ['sometimes', 'string', 'max:40'],
+            'sticky_add_to_cart' => ['sometimes', 'boolean'],
+            'show_installment_badge' => ['sometimes', 'boolean'],
+            'footer_columns' => ['sometimes', 'integer', 'min:1', 'max:6'],
+        ]);
+
+        return response()->json(['data' => $appearance->save((int) $request->user()->tenant_id, $data)]);
+    }
+
+    public function productNotificationsShow(Request $request, ProductNotificationSettings $settings): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(['data' => $settings->get((int) $request->user()->tenant_id)]);
+    }
+
+    public function productNotificationsUpdate(Request $request, ProductNotificationSettings $settings): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'back_in_stock_enabled' => ['sometimes', 'boolean'],
+            'on_sale_enabled' => ['sometimes', 'boolean'],
+            'channel_email' => ['sometimes', 'boolean'],
+            'channel_sms' => ['sometimes', 'boolean'],
+            'from_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'sms_template_back_in_stock' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'sms_template_on_sale' => ['sometimes', 'nullable', 'string', 'max:500'],
+        ]);
+
+        return response()->json(['data' => $settings->save((int) $request->user()->tenant_id, $data)]);
     }
 }

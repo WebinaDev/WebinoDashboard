@@ -16,6 +16,7 @@ class ThemeTemplateKinds
         'product_archive' => 'آرشیو محصولات',
         'loop_item' => 'آیتم‌های لوپ',
         'not_found' => 'صفحه ۴۰۴',
+        'popup' => 'پاپ‌آپ',
     ];
 
     public const RULE_TYPES = 'entire_site,url,url_prefix,url_contains,singular,archive,search,not_found';

@@ -120,8 +120,46 @@ export const WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "text", key: "submit", label: "دکمه" },
+      { kind: "textarea", key: "fields", label: "فیلدها (برچسب|name|text|email|tel|textarea)" },
+      { kind: "text", key: "success", label: "پیام موفقیت" },
+      { kind: "switch", key: "showPhone", label: "فیلد تلفن" },
+      { kind: "switch", key: "showEmail", label: "فیلد ایمیل" },
     ],
-    create: () => node("form", { title: "پیام به ویبینو", submit: "ارسال" }),
+    create: () =>
+      node("form", {
+        title: "پیام به ویبینو",
+        submit: "ارسال",
+        fields: "نام|name|text\nایمیل|email|email\nپیام|message|textarea",
+        success: "پیام شما ثبت شد.",
+        showPhone: true,
+        showEmail: true,
+      }),
+  },
+  {
+    type: "popup",
+    label: "پاپ‌آپ",
+    category: "basic",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "text", label: "متن" },
+      { kind: "text", key: "cta", label: "دکمه" },
+      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "select", key: "trigger", label: "نمایش", options: [
+        { value: "load", label: "ورود به صفحه" },
+        { value: "exit", label: "خروج" },
+        { value: "delay", label: "با تأخیر" },
+      ]},
+      { kind: "number", key: "delayMs", label: "تأخیر (ms)", min: 0, max: 60000 },
+    ],
+    create: () =>
+      node("popup", {
+        title: "پیشنهاد ویژه",
+        text: "با عضویت از تخفیف‌ها باخبر شوید.",
+        cta: "متوجه شدم",
+        href: "/shop",
+        trigger: "delay",
+        delayMs: 2500,
+      }),
   },
   {
     type: "hero-slider",
