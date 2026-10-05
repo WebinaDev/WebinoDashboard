@@ -244,7 +244,6 @@ class AccountPortalController extends Controller
             'bank_account' => ['sometimes', 'nullable', 'string', 'max:64'],
             'bank_card' => ['sometimes', 'nullable', 'string', 'max:24'],
             'national_id' => ['sometimes', 'nullable', 'string', 'max:20'],
-            'kyc_status' => ['sometimes', 'nullable', 'string', 'in:pending,verified,rejected'],
             'email' => [
                 'sometimes',
                 'email',
@@ -252,12 +251,8 @@ class AccountPortalController extends Controller
                 Rule::unique('users', 'email')->where('tenant_id', $user->tenant_id)->ignore($user->id),
             ],
         ]);
+        // kyc_status is staff-controlled; customers cannot self-verify via mass assignment.
         $user->update($data);
-
-        if (($data['kyc_status'] ?? null) === 'verified' && ! $user->kyc_verified_at) {
-            $user->kyc_verified_at = now();
-            $user->save();
-        }
 
         return response()->json(['data' => $user->fresh()->only(['id', 'name', 'email', 'phone', 'bank_sheba', 'bank_name', 'bank_account', 'bank_card', 'national_id', 'kyc_status'])]);
     }

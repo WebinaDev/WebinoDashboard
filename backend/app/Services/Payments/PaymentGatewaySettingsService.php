@@ -40,6 +40,7 @@ class PaymentGatewaySettingsService
         'client_secret',
         'password',
         'client_password',
+        'merchant_id',
     ];
 
     public function __construct(protected ModuleSettingsService $settings) {}

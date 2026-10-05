@@ -66,7 +66,7 @@ class WalletService
                 throw ValidationException::withMessages(['amount_minor' => 'Insufficient balance']);
             }
             $next = $direction === 'credit' ? $balance + $amountMinor : $balance - $amountMinor;
-            $locked->update(['wallet_balance_minor' => $next]);
+            $locked->forceFill(['wallet_balance_minor' => $next])->save();
 
             return WalletLedger::query()->create([
                 'tenant_id' => $tenantId,

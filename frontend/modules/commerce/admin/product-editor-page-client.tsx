@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowDown, ArrowUp, LayoutTemplate, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 
 import { useConfirm } from "@/components/ConfirmDialog"
@@ -27,6 +27,7 @@ import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useEnumLabel } from "@/lib/enum-labels"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { formatDisplayDateTime } from "@/lib/format-date"
 
 type TabId = "content" | "seo" | "pricing" | "attributes" | "downloads" | "coffee" | "marketplace" | "advanced"
 
@@ -450,6 +451,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   const enumLabel = useEnumLabel()
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
+  const locale = useLocale()
   const queryClient = useQueryClient()
   const { activations } = useDashboardNav()
   const coffeeEnabled = isSubmoduleEnabled(activations, "coffee-profile", "profile")
@@ -1531,7 +1533,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                         <p className="text-muted-foreground text-xs">
                           {product.reference_source ? `${t("reference_source")}: ${product.reference_source}` : null}
                           {product.reference_last_sync
-                            ? ` · ${t("reference_last_sync")}: ${product.reference_last_sync}`
+                            ? ` · ${t("reference_last_sync")}: ${formatDisplayDateTime(product.reference_last_sync, locale)}`
                             : null}
                         </p>
                       ) : null}
@@ -1540,9 +1542,32 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                   {!isNew && product?.platform_prices && Object.keys(product.platform_prices).length ? (
                     <div className="sm:col-span-2">
                       <Label>{t("platform_prices")}</Label>
-                      <pre className="bg-muted mt-1 max-h-32 overflow-auto rounded-md p-2 text-xs" dir="ltr">
-                        {JSON.stringify(product.platform_prices, null, 2)}
-                      </pre>
+                      <div className="mt-1 overflow-x-auto rounded-md border text-sm">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b text-start text-xs text-muted-foreground">
+                              <th className="p-2 font-medium">{t("platform_prices_platform")}</th>
+                              <th className="p-2 font-medium">{t("price")}</th>
+                              <th className="p-2 font-medium">{t("lock_price")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(product.platform_prices).map(([platform, raw]) => {
+                              const entry = (raw ?? {}) as Record<string, unknown>
+                              const priceMinor = Number(entry.price_minor ?? entry.price ?? 0)
+                              return (
+                                <tr key={platform} className="border-b">
+                                  <td className="p-2">{platform}</td>
+                                  <td className="p-2">
+                                    <MoneyDisplay amount={priceMinor} />
+                                  </td>
+                                  <td className="p-2">{entry.lock ? tCommon("yes") : tCommon("no")}</td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   ) : null}
                   {!isNew ? (
@@ -1984,27 +2009,39 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                               if (image_url !== (v.image_url ?? null)) updateVariant.mutate({ id: v.id, image_url })
                             }}
                           />
-                          <Input
-                            className="h-8"
-                            dir="ltr"
-                            defaultValue={
-                              v.wholesale_rule ? JSON.stringify(v.wholesale_rule) : ""
-                            }
-                            placeholder={t("variant_wholesale_ph")}
-                            onBlur={(e) => {
-                              const raw = e.target.value.trim()
-                              if (!raw) {
-                                if (v.wholesale_rule) updateVariant.mutate({ id: v.id, wholesale_rule: null })
-                                return
-                              }
-                              try {
-                                const wholesale_rule = JSON.parse(raw) as Record<string, unknown>
-                                updateVariant.mutate({ id: v.id, wholesale_rule })
-                              } catch {
-                                setError(t("invalid_json"))
-                              }
-                            }}
-                          />
+                          {(() => {
+                            const w = wholesaleFromRule(v.wholesale_rule ?? null)
+                            return (
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                <Input
+                                  className="h-8"
+                                  type="number"
+                                  defaultValue={w.wholesale_min_qty}
+                                  placeholder={t("wholesale_min_qty")}
+                                  onBlur={(e) => {
+                                    const min_qty = Number(e.target.value) || 0
+                                    const discount_percent = Number(w.wholesale_discount_percent) || 0
+                                    const wholesale_rule =
+                                      min_qty || discount_percent ? { min_qty, discount_percent } : null
+                                    updateVariant.mutate({ id: v.id, wholesale_rule })
+                                  }}
+                                />
+                                <Input
+                                  className="h-8"
+                                  type="number"
+                                  defaultValue={w.wholesale_discount_percent}
+                                  placeholder={t("wholesale_discount_percent")}
+                                  onBlur={(e) => {
+                                    const discount_percent = Number(e.target.value) || 0
+                                    const min_qty = Number(w.wholesale_min_qty) || 0
+                                    const wholesale_rule =
+                                      min_qty || discount_percent ? { min_qty, discount_percent } : null
+                                    updateVariant.mutate({ id: v.id, wholesale_rule })
+                                  }}
+                                />
+                              </div>
+                            )
+                          })()}
                         </li>
                       ))}
                     </ul>

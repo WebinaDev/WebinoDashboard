@@ -2,11 +2,14 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { useEnumLabel } from "@/lib/enum-labels"
+import { formatDisplayDate } from "@/lib/format-date"
 import { api } from "@/lib/api"
+import { normalizeUiLocale } from "@/lib/locale"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -151,9 +154,11 @@ export function AiJobsPanel() {
 export function AiCalendarPanel() {
   const enumLabel = useEnumLabel()
   const t = useTranslations("aiContent")
+  const locale = normalizeUiLocale(useLocale())
   const qc = useQueryClient()
   const [topic, setTopic] = useState("")
   const [keyword, setKeyword] = useState("")
+  const [slotDate, setSlotDate] = useState(() => new Date().toISOString().slice(0, 10))
   const q = useQuery({
     queryKey: ["ai-content", "calendar"],
     queryFn: () => api<{ items: Array<Record<string, unknown>> }>("/api/v1/ai-content/calendar"),
@@ -162,7 +167,7 @@ export function AiCalendarPanel() {
     mutationFn: () =>
       api("/api/v1/ai-content/calendar", {
         method: "POST",
-        json: { topic, focus_keyword: keyword, slot_date: new Date().toISOString().slice(0, 10), content_type: "blog" },
+        json: { topic, focus_keyword: keyword, slot_date: slotDate, content_type: "blog" },
       }),
     onSuccess: () => {
       setTopic("")
@@ -186,6 +191,15 @@ export function AiCalendarPanel() {
           <Label>{t("focusKeyword")}</Label>
           <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} className="w-40" />
         </div>
+        <div className="grid gap-1">
+          <Label>{t("col.date")}</Label>
+          <LocaleDatePicker
+            locale={locale}
+            value={slotDate}
+            onChange={(value) => setSlotDate(value ?? new Date().toISOString().slice(0, 10))}
+            aria-label={t("col.date")}
+          />
+        </div>
         <Button size="sm" onClick={() => create.mutate()} disabled={!topic.trim() || create.isPending}>
           {t("addSlot")}
         </Button>
@@ -205,7 +219,7 @@ export function AiCalendarPanel() {
           <TableBody>
             {(q.data?.items ?? []).map((r) => (
               <TableRow key={String(r.id)}>
-                <TableCell>{String(r.slot_date)}</TableCell>
+                <TableCell>{formatDisplayDate(String(r.slot_date ?? ""), locale)}</TableCell>
                 <TableCell>{String(r.topic)}</TableCell>
                 <TableCell>{enumLabel("job_status", String(r.status))}</TableCell>
               </TableRow>
@@ -512,7 +526,42 @@ export function AiAttributesPanel() {
         />
         <Button size="sm" onClick={() => save.mutate()}>{t("save")}</Button>
       </div>
-      <pre className="overflow-auto rounded border p-3 text-xs">{JSON.stringify(q.data?.items ?? [], null, 2)}</pre>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("categoryId")}</TableHead>
+              <TableHead>{t("attrIdsPlaceholder")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {q.isLoading ? (
+              <TableRow>
+                <TableCell colSpan={2} className="text-muted-foreground text-sm">
+                  {t("loading")}
+                </TableCell>
+              </TableRow>
+            ) : (q.data?.items ?? []).length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={2} className="text-muted-foreground text-sm">
+                  —
+                </TableCell>
+              </TableRow>
+            ) : (
+              (q.data?.items ?? []).map((row, idx) => (
+                <TableRow key={String(row.id ?? idx)}>
+                  <TableCell dir="ltr">{String(row.product_cat_id ?? "—")}</TableCell>
+                  <TableCell dir="ltr" className="font-mono text-xs">
+                    {Array.isArray(row.attribute_ids)
+                      ? (row.attribute_ids as unknown[]).join(", ")
+                      : String(row.attribute_ids ?? "—")}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

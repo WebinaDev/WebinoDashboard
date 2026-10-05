@@ -115,10 +115,18 @@ class GoogleOAuthController extends Controller
         $name = (string) (data_get($profile->json(), 'name') ?: $email);
         abort_if($email === '', 422);
 
-        $user = User::query()->firstOrCreate(
-            ['tenant_id' => $tenantId, 'email' => $email],
-            ['name' => $name, 'password' => bcrypt(Str::random(32)), 'role' => 'customer', 'is_active' => true]
-        );
+        $user = User::query()->where('tenant_id', $tenantId)->where('email', $email)->first();
+        if ($user === null) {
+            $user = new User;
+            $user->forceFill([
+                'tenant_id' => $tenantId,
+                'email' => $email,
+                'name' => $name,
+                'password' => bcrypt(Str::random(32)),
+                'role' => 'customer',
+                'is_active' => true,
+            ])->save();
+        }
         $token = $user->createToken('google-oauth')->plainTextToken;
         $front = rtrim((string) config('app.frontend_url', '/'), '/');
 

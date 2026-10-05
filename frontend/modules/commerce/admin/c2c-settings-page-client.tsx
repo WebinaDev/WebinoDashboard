@@ -15,13 +15,29 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
+type CardRow = { number: string; name: string; bank: string }
+
 type C2cSettings = {
   enabled?: boolean
   title?: string
   instructions?: string
   iban?: string
   deadline_hours?: number
-  cards?: unknown
+  cards?: CardRow[]
+}
+
+function parseCards(raw: unknown): CardRow[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((row) => {
+      const r = row as Record<string, unknown>
+      return {
+        number: String(r.number ?? ""),
+        name: String(r.name ?? ""),
+        bank: String(r.bank ?? ""),
+      }
+    })
+    .filter((c) => c.number || c.name || c.bank)
 }
 
 export default function C2cSettingsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
@@ -34,7 +50,7 @@ export default function C2cSettingsPageClient({ route: _route }: { route: Resolv
   const [instructions, setInstructions] = useState("")
   const [iban, setIban] = useState("")
   const [deadlineHours, setDeadlineHours] = useState(2)
-  const [cardsJson, setCardsJson] = useState("[]")
+  const [cards, setCards] = useState<CardRow[]>([{ number: "", name: "", bank: "" }])
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -50,17 +66,13 @@ export default function C2cSettingsPageClient({ route: _route }: { route: Resolv
     setInstructions(data.instructions || "")
     setIban(data.iban || "")
     setDeadlineHours(data.deadline_hours ?? 2)
-    setCardsJson(JSON.stringify(data.cards ?? [], null, 2))
+    const parsed = parseCards(data.cards)
+    setCards(parsed.length ? parsed : [{ number: "", name: "", bank: "" }])
   }, [data])
 
   const save = useMutation({
     mutationFn: async () => {
-      let cards: unknown = []
-      try {
-        cards = JSON.parse(cardsJson || "[]")
-      } catch {
-        throw new Error(t("cards_json_invalid"))
-      }
+      const payloadCards = cards.filter((c) => c.number.trim() || c.name.trim() || c.bank.trim())
       return api("/api/v1/c2c/settings", {
         method: "PUT",
         json: {
@@ -70,7 +82,7 @@ export default function C2cSettingsPageClient({ route: _route }: { route: Resolv
             instructions,
             iban,
             deadline_hours: deadlineHours,
-            cards,
+            cards: payloadCards,
           },
         },
       })
@@ -125,15 +137,41 @@ export default function C2cSettingsPageClient({ route: _route }: { route: Resolv
                   onChange={(e) => setDeadlineHours(Number(e.target.value) || 0)}
                 />
               </div>
-              <div>
-                <Label>{t("cards_json")}</Label>
-                <Textarea
-                  className="mt-1 font-mono text-sm"
-                  rows={8}
-                  value={cardsJson}
-                  onChange={(e) => setCardsJson(e.target.value)}
-                  dir="ltr"
-                />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>{t("cards_list")}</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCards((prev) => [...prev, { number: "", name: "", bank: "" }])}
+                  >
+                    {t("add_card")}
+                  </Button>
+                </div>
+                {cards.map((card, idx) => (
+                  <div key={idx} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                    <Input
+                      dir="ltr"
+                      placeholder={t("card_number")}
+                      value={card.number}
+                      onChange={(e) =>
+                        setCards((prev) => prev.map((c, i) => (i === idx ? { ...c, number: e.target.value } : c)))
+                      }
+                    />
+                    <Input placeholder={t("card_holder")} value={card.name} onChange={(e) => setCards((prev) => prev.map((c, i) => (i === idx ? { ...c, name: e.target.value } : c)))} />
+                    <Input placeholder={t("card_bank")} value={card.bank} onChange={(e) => setCards((prev) => prev.map((c, i) => (i === idx ? { ...c, bank: e.target.value } : c)))} />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={cards.length <= 1}
+                      onClick={() => setCards((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)))}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
               </div>
               <Button disabled={save.isPending} onClick={() => save.mutate()}>
                 {tCommon("save")}

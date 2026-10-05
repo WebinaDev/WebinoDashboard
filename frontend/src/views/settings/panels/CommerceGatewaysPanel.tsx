@@ -20,7 +20,7 @@ const GATEWAYS: GatewayId[] = ["zarinpal", "digipay", "snapppay", "torobpay"]
 
 type Settings = Record<string, unknown>
 
-const SECRET_KEYS = ["access_token", "client_secret", "password", "client_password"]
+const SECRET_KEYS = ["access_token", "client_secret", "password", "client_password", "merchant_id"]
 
 function blankSecrets(settings: Settings): Settings {
   const next = { ...settings }
@@ -219,7 +219,7 @@ function Flag({ label, checked, onChange }: { label: string; checked: boolean; o
 function fieldsFor(id: GatewayId): Array<{ key: string; label: "merchant_id" | "access_token" | "client_id" | "client_secret" | "username" | "password" | "client_username" | "client_password" | "base_url"; secret?: boolean }> {
   if (id === "zarinpal") {
     return [
-      { key: "merchant_id", label: "merchant_id" },
+      { key: "merchant_id", label: "merchant_id", secret: true },
       { key: "access_token", label: "access_token", secret: true },
     ]
   }

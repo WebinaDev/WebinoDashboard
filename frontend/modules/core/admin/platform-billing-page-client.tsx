@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
-import { toLocaleDigits } from "@/lib/locale"
+import { formatDisplayDateTime } from "@/lib/format-date"
 
 type Mode = "cash" | "installment"
 
@@ -240,8 +240,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 <td className="p-2">
                   <MoneyDisplay amount={row.total_minor} currency={row.currency ?? "IRT"} />
                 </td>
-                <td className="p-2" dir="ltr">
-                  {row.created_at ? toLocaleDigits(row.created_at.slice(0, 16).replace("T", " "), locale) : t("empty")}
+                <td className="p-2">
+                  {row.created_at ? formatDisplayDateTime(row.created_at, locale, t("empty")) : t("empty")}
                 </td>
               </tr>
             ))}

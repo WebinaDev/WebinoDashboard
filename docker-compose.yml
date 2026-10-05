@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-webino_dashboard}
       POSTGRES_USER: ${POSTGRES_USER:-webino}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,11 +20,11 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-webino}"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"]
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-webino}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -50,9 +50,9 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
       DB_USERNAME: ${POSTGRES_USER:-webino}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-webino}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
       CACHE_STORE: redis
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
@@ -89,9 +89,9 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
       DB_USERNAME: ${POSTGRES_USER:-webino}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-webino}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
       QUEUE_CONNECTION: redis
       RUN_MIGRATIONS: "0"
     depends_on:
@@ -123,9 +123,9 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-webino_dashboard}
       DB_USERNAME: ${POSTGRES_USER:-webino}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-webino}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
       QUEUE_CONNECTION: redis
       RUN_MIGRATIONS: "0"
     depends_on:

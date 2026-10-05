@@ -127,7 +127,8 @@ class ProvisionController extends Controller
             if (empty($data['email'])) {
                 return response()->json(['message' => __('api.unauthorized')], 422);
             }
-            $user = User::query()->create([
+            $user = new User;
+            $user->forceFill([
                 'name' => (string) ($data['name'] ?? 'Admin'),
                 'email' => (string) $data['email'],
                 'password' => Hash::make((string) ($data['password'] ?? Str::random(16))),
@@ -135,7 +136,7 @@ class ProvisionController extends Controller
                 'tenant_id' => $tenant->id,
                 'role' => 'admin',
                 'is_active' => true,
-            ]);
+            ])->save();
         } else {
             if (! empty($data['name'])) {
                 $user->name = $data['name'];
