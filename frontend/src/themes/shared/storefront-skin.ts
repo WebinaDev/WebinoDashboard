@@ -29,7 +29,8 @@ export function storefrontThemeClass(themeSlug?: string | null): string {
   }
 }
 
-/** Published builder chrome (store-header) is shaped for classic; other ecommerce themes use their own SiteHeader. */
-export function usePublishedStorefrontChrome(themeSlug?: string | null): boolean {
+/** Published builder chrome (store-header) is shaped for classic; other ecommerce themes use their own SiteHeader.
+ * Pure helper (not a React hook) — safe to call from async Server Components. */
+export function preferPublishedStorefrontChrome(themeSlug?: string | null): boolean {
   return themeSlug === "ecommerce-classic"
 }

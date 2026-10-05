@@ -9,7 +9,7 @@ import { BuilderRuntimeProvider } from "@/builder/render/runtime"
 import { loadThemeComponents } from "@/kernel/theme-loader"
 import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
-import { usePublishedStorefrontChrome } from "@/themes/shared/storefront-skin"
+import { preferPublishedStorefrontChrome } from "@/themes/shared/storefront-skin"
 import { AnalyticsTrackerScript } from "@/components/AnalyticsTrackerScript"
 import { JsonLd } from "@/components/seo/JsonLd"
 import { cn } from "@/lib/utils"
@@ -99,7 +99,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   const theme = await loadThemeComponents(themeSlug)
   const { SiteHeader, SiteFooter } = theme
   const themeContext = await requestThemeContext()
-  const preferPublishedChrome = usePublishedStorefrontChrome(themeSlug)
+  const preferPublishedChrome = preferPublishedStorefrontChrome(themeSlug)
   const [globals, header, footer] = await Promise.all([
     loadPublishedGlobals(),
     preferPublishedChrome ? loadResolvedTemplate("header", themeContext) : Promise.resolve(null),
