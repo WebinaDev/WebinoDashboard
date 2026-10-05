@@ -48,6 +48,7 @@ class PaymentCallbackController extends Controller
 
         return match ($provider) {
             'zarinpal' => $this->handleZarinpal($request, $row),
+            'zibal' => $this->handleZibal($request, $row),
             'digipay' => $this->handleDigipay($request, $row),
             'snapppay' => $this->handleBnpl($request, $row, 'snapppay', true),
             'torobpay' => $this->handleBnpl($request, $row, 'torobpay', false),

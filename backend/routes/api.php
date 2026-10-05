@@ -101,6 +101,14 @@ use App\Http\Controllers\Api\V1\PublicMagazineController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
 use App\Http\Controllers\Api\V1\PublicSiteController;
 use App\Http\Controllers\Api\V1\GeoController;
+use App\Http\Controllers\Api\V1\GoogleOAuthController;
+use App\Http\Controllers\Api\V1\IshopAdminController;
+use App\Http\Controllers\Api\V1\PollController;
+use App\Http\Controllers\Api\V1\ProductCompareController;
+use App\Http\Controllers\Api\V1\ProductEngagementController;
+use App\Http\Controllers\Api\V1\ProductStoryController;
+use App\Http\Controllers\Api\V1\PublicWishlistController;
+use App\Http\Controllers\Api\V1\VendorPortalController;
 use App\Http\Controllers\Api\V1\PublicAnalyticsController;
 use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
 use App\Http\Controllers\Api\V1\ReportsController;
@@ -241,6 +249,19 @@ Route::prefix('v1')->group(function () {
             Route::get('/catalog/items/{slug}', [PublicCatalogController::class, 'show']);
             Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);
             Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore'])->middleware('throttle:public-writes');
+            Route::post('/catalog/reviews/{review}/react', [ProductReviewController::class, 'react'])->whereNumber('review')->middleware('throttle:public-writes');
+            Route::post('/catalog/reviews/{review}/report', [ProductReviewController::class, 'reportAbuse'])->whereNumber('review')->middleware('throttle:public-writes');
+            Route::get('/catalog/items/{slug}/price-history', [ProductEngagementController::class, 'priceHistory']);
+            Route::post('/catalog/items/{slug}/stock-alerts', [ProductEngagementController::class, 'subscribeAlert'])->middleware('throttle:public-writes');
+            Route::get('/compare', [ProductCompareController::class, 'show']);
+            Route::post('/compare/products/{productId}', [ProductCompareController::class, 'add'])->whereNumber('productId')->middleware('throttle:public-writes');
+            Route::delete('/compare/products/{productId}', [ProductCompareController::class, 'remove'])->whereNumber('productId')->middleware('throttle:public-writes');
+            Route::get('/product-stories', [ProductStoryController::class, 'publicIndex']);
+            Route::get('/polls/{poll}', [PollController::class, 'publicShow'])->whereNumber('poll');
+            Route::post('/polls/{poll}/vote', [PollController::class, 'publicVote'])->whereNumber('poll')->middleware('throttle:public-writes');
+            Route::get('/wishlist/{token}', [PublicWishlistController::class, 'show']);
+            Route::get('/auth/google/redirect', [GoogleOAuthController::class, 'redirect']);
+            Route::get('/auth/google/callback', [GoogleOAuthController::class, 'callback']);
         });
 
         Route::middleware('public.module:cafe')->group(function () {
@@ -294,6 +315,9 @@ Route::prefix('v1')->group(function () {
             Route::put('/cart/purchase-type', [CartController::class, 'setPurchaseType']);
             Route::put('/cart/items/{product}', [CartController::class, 'setQuantity']);
             Route::delete('/cart/items/{product}', [CartController::class, 'removeItem']);
+            Route::get('/cart/saved-for-later', [CartController::class, 'savedForLater']);
+            Route::post('/cart/items/{product}/save-for-later', [CartController::class, 'saveForLater']);
+            Route::post('/cart/items/{product}/move-to-cart', [CartController::class, 'moveToCart']);
         });
 
         Route::middleware('module:checkout')->group(function () {
@@ -338,6 +362,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/wallet/withdrawals', [AccountPortalController::class, 'walletWithdrawals']);
             Route::get('/preferences', [AccountPortalController::class, 'preferencesShow']);
             Route::patch('/preferences', [AccountPortalController::class, 'preferencesUpdate']);
+            Route::get('/wishlist/share', [PublicWishlistController::class, 'settings']);
+            Route::patch('/wishlist/share', [PublicWishlistController::class, 'updateSettings']);
         });
 
         Route::middleware('staff')->group(function () {
@@ -378,6 +404,37 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/setup/crm', [SetupController::class, 'updateCrm']);
                 Route::post('/setup/sync-license', [SetupController::class, 'syncLicense']);
                 Route::post('/setup/complete', [SetupController::class, 'complete']);
+                Route::post('/setup/import-demo', [SetupController::class, 'importDemo']);
+            });
+
+            Route::middleware('can:settings.manage')->group(function () {
+                Route::get('/shop/product-stories', [ProductStoryController::class, 'adminIndex']);
+                Route::post('/shop/product-stories', [ProductStoryController::class, 'adminStore']);
+                Route::patch('/shop/product-stories/{story}', [ProductStoryController::class, 'adminUpdate'])->whereNumber('story');
+                Route::delete('/shop/product-stories/{story}', [ProductStoryController::class, 'adminDestroy'])->whereNumber('story');
+                Route::post('/shop/product-stories/upload', [ProductStoryController::class, 'adminUploadMedia']);
+                Route::get('/shop/polls', [PollController::class, 'adminIndex']);
+                Route::post('/shop/polls', [PollController::class, 'adminStore']);
+                Route::patch('/shop/polls/{poll}', [PollController::class, 'adminUpdate'])->whereNumber('poll');
+                Route::get('/integrations/google-oauth', [GoogleOAuthController::class, 'settingsShow']);
+                Route::put('/integrations/google-oauth', [GoogleOAuthController::class, 'settingsUpdate']);
+                Route::get('/shop/theme-optimizer', [IshopAdminController::class, 'themeOptimizerShow']);
+                Route::put('/shop/theme-optimizer', [IshopAdminController::class, 'themeOptimizerUpdate']);
+                Route::get('/shop/shipping-carriers', [IshopAdminController::class, 'shippingCarriersShow']);
+                Route::put('/shop/shipping-carriers', [IshopAdminController::class, 'shippingCarriersUpdate']);
+                Route::get('/shop/sms-panels', [IshopAdminController::class, 'smsPanelsShow']);
+                Route::put('/shop/sms-panels', [IshopAdminController::class, 'smsPanelsUpdate']);
+                Route::get('/vendor/withdrawals', [VendorPortalController::class, 'adminWithdrawals']);
+                Route::patch('/vendor/withdrawals/{withdrawal}', [VendorPortalController::class, 'adminPatchWithdrawal'])->whereNumber('withdrawal');
+            });
+
+            Route::prefix('vendor')->group(function () {
+                Route::get('/store', [VendorPortalController::class, 'myStore']);
+                Route::post('/store', [VendorPortalController::class, 'upsertStore']);
+                Route::get('/products', [VendorPortalController::class, 'products']);
+                Route::post('/products/{product}/attach', [VendorPortalController::class, 'attachProduct'])->whereNumber('product');
+                Route::get('/orders', [VendorPortalController::class, 'orders']);
+                Route::post('/withdrawals', [VendorPortalController::class, 'withdraw']);
             });
 
             Route::post('/settings/site/notifications/test-email', [TenantSettingsController::class, 'testNotificationEmail'])

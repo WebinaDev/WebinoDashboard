@@ -38,6 +38,8 @@ export type ShopProduct = {
   inStock: boolean
   variants: ShopVariant[]
   installments: ShopInstallment[]
+  faqs: Array<{ question: string; answer: string }>
+  priceUpdatedAt?: string | null
 }
 
 export type ShopCategory = {
@@ -61,6 +63,7 @@ function product(partial: Omit<ShopProduct, "images" | "variants" | "installment
     images: [],
     variants: [],
     installments: [],
+    faqs: [],
     inStock: true,
     live: false,
     brandSlug: partial.brandSlug || partial.brand,
@@ -221,7 +224,20 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     inStock: !soldOut,
     variants,
     installments,
+    faqs: mapFaqs(raw.faqs),
+    priceUpdatedAt: str(raw.price_updated_at) || null,
   }
+}
+
+function mapFaqs(raw: unknown): Array<{ question: string; answer: string }> {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((row): row is Record<string, unknown> => !!row && typeof row === "object")
+    .map((row) => ({
+      question: str(row.question) || str(row.q),
+      answer: str(row.answer) || str(row.a),
+    }))
+    .filter((row) => row.question && row.answer)
 }
 
 function mapVariant(raw: ApiRecord): ShopVariant | null {

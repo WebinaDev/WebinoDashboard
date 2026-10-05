@@ -221,6 +221,20 @@ export default function SetupWizardPage() {
     }
   }
 
+  async function importDemo() {
+    setPending(true)
+    setErr(null)
+    setMsg(null)
+    try {
+      await api("/api/v1/setup/import-demo", { method: "POST", json: { preset: "ishop-kit" } })
+      setMsg(t("demo_import_ok"))
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : tCommon("error_generic"))
+    } finally {
+      setPending(false)
+    }
+  }
+
   async function complete() {
     setErr(null)
     setPending(true)
@@ -395,6 +409,11 @@ export default function SetupWizardPage() {
                   {SITE_TYPES.find((s) => s.slug === siteType)?.name_fa}
                 </span>
               </div>
+            ) : null}
+            {siteType === "ecommerce" ? (
+              <Button type="button" variant="secondary" disabled={pending} onClick={() => void importDemo()}>
+                {t("demo_import")}
+              </Button>
             ) : null}
           </CardContent>
         </Card>

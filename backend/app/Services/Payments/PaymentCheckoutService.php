@@ -26,7 +26,7 @@ class PaymentCheckoutService
     public function createIntent(Order $order, string $provider, ?string $mode = null): PaymentIntent
     {
         $provider = str_replace('-', '_', strtolower($provider));
-        $allowed = ['zarinpal', 'digipay', 'snapppay', 'torobpay', 'bale_pay', BasalamPay::PROVIDER];
+        $allowed = ['zarinpal', 'zibal', 'digipay', 'snapppay', 'torobpay', 'bale_pay', BasalamPay::PROVIDER];
         if (! in_array($provider, $allowed, true)) {
             throw new \InvalidArgumentException('Unsupported payment provider: '.$provider);
         }
@@ -70,6 +70,7 @@ class PaymentCheckoutService
 
         return match ($provider) {
             'zarinpal' => $this->createZarinpalIntent($order, $settings, $callbackUrl, $amountRial),
+            'zibal' => $this->createZibalIntent($order, $settings, $callbackUrl, $amountRial),
             'digipay' => $this->createDigipayIntent($order, $settings, $callbackUrl, $amountRial),
             'snapppay' => $this->createBnplIntent($order, $settings, $callbackUrl, $amountRial, 'snapppay'),
             'torobpay' => $this->createBnplIntent($order, $settings, $callbackUrl, $amountRial, 'torobpay'),
@@ -168,6 +169,41 @@ class PaymentCheckoutService
             'meta' => $this->withExtra([
                 'stub' => false,
                 'zarinpal_authority' => $authority,
+                'amount_rial' => $amountRial,
+                'currency' => $currency,
+            ]),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     */
+    protected function createZibalIntent(Order $order, array $settings, string $callbackUrl, int $amountRial): PaymentIntent
+    {
+        $merchant = (string) ($settings['merchant_id'] ?? '');
+        $currency = $this->storeCurrencyCode($order);
+        $amount = $currency === 'IRT' ? (int) max(1, round($amountRial / 10)) : $amountRial;
+        $response = Http::timeout(30)->acceptJson()->asJson()->post('https://gateway.zibal.ir/v1/request', [
+            'merchant' => $merchant,
+            'amount' => $amount,
+            'callbackUrl' => $callbackUrl,
+            'description' => str_replace('{order_id}', (string) $order->id, (string) ($settings['payment_description'] ?? 'Order #'.$order->id)),
+            'orderId' => (string) $order->id,
+        ])->json();
+        $result = (int) data_get($response, 'result');
+        if ($result !== 100) {
+            throw new \RuntimeException('Zibal request failed: '.(data_get($response, 'message') ?? json_encode($response)));
+        }
+        $trackId = (string) data_get($response, 'trackId');
+
+        return PaymentIntent::query()->create([
+            'tenant_id' => $order->tenant_id,
+            'order_id' => $order->id,
+            'provider' => 'zibal',
+            'status' => 'created',
+            'redirect_url' => 'https://gateway.zibal.ir/start/'.$trackId,
+            'meta' => $this->withExtra([
+                'zibal_track_id' => $trackId,
                 'amount_rial' => $amountRial,
                 'currency' => $currency,
             ]),

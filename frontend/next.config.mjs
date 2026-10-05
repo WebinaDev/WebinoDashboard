@@ -19,6 +19,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
   async redirects() {
     return LEGACY_DASHBOARD_REDIRECTS.map((r) => ({
       source: r.source,

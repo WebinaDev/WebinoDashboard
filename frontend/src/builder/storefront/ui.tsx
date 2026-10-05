@@ -15,6 +15,7 @@ import { toneClass, mapApiProduct, type ShopProduct } from "../catalog"
 import { parseLinks, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { addShopItem, setServerQty, syncGuestCart, useServerCart } from "./actions"
+import { ProductPriceHistory } from "./ishop-extras"
 import { quietApi } from "./session"
 import { useCatalog } from "./use-catalog"
 
@@ -52,7 +53,7 @@ export function StoreProductCard({ product }: { product: ShopProduct }) {
     <article className="sf-card flex flex-col p-3 transition hover:-translate-y-0.5">
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted">
         {product.image ? (
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+          <img src={product.image} alt={product.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
         ) : (
           <div className={`grid h-full w-full place-items-center bg-gradient-to-br ${toneClass(product.tone)}`}>
             <span className="text-xs font-bold text-foreground/70">{product.brand}</span>
@@ -293,6 +294,21 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
           </button>
         </div>
         {note ? <p className="mt-2 text-xs text-muted-foreground">{note}</p> : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {product.id ? (
+            <button
+              type="button"
+              className="rounded-full border border-border px-4 py-2 text-xs font-semibold"
+              onClick={() => void quietApi(`/api/v1/public/compare/products/${product.id}`, { method: "POST" })}
+            >
+              {t("compare_add")}
+            </button>
+          ) : null}
+          <Link href="/compare" className="rounded-full bg-muted px-4 py-2 text-xs font-semibold">
+            {t("compare_title")}
+          </Link>
+        </div>
+        <ProductPriceHistory slug={product.slug} />
         <div className="mt-6 flex gap-2 border-b border-border">
           {(
             [
@@ -321,7 +337,18 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
               t("spec_empty")
             )
           ) : tab === "faq" ? (
-            t("faq_empty")
+            product.faqs?.length ? (
+              <ul className="grid gap-3">
+                {product.faqs.map((row) => (
+                  <li key={row.question} className="rounded-2xl bg-muted p-3">
+                    <div className="font-bold">{row.question}</div>
+                    <div className="mt-1 text-muted-foreground">{row.answer}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              t("faq_empty")
+            )
           ) : (
             product.description || t("empty_none")
           )}
@@ -852,6 +879,9 @@ export function StorefrontHeader({
         <Link href="/account" className="hidden items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-semibold sm:inline-flex">
           <UserRound className="size-4" />
           {t("account_login")}
+        </Link>
+        <Link href="/compare" className="hidden rounded-full bg-muted px-3 py-2 text-xs font-semibold sm:inline-flex">
+          {t("compare_add")}
         </Link>
         <Link href="/cart" className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
           <ShoppingBag className="size-4" />

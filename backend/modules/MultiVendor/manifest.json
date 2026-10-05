@@ -1,0 +1,12 @@
+{
+  "slug": "multivendor",
+  "name_fa": "بازارچه چندفروشنده",
+  "name_en": "Multi-vendor marketplace",
+  "distribution": "git",
+  "site_types": ["ecommerce"],
+  "submodules": ["sellers"],
+  "admin_nav": {
+    "section": "commerce",
+    "order": 25
+  }
+}

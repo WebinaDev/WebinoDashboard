@@ -7,6 +7,7 @@ use App\Kernel\SiteTypeProfiles;
 use App\Kernel\TenantActivationService;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Http\Controllers\Api\V1\ThemeBuilderController;
 use App\Services\Webino\WebinoLicenseClient;
 use Illuminate\Http\Request;
 
@@ -152,6 +153,14 @@ class SetupController extends Controller
     public function syncLicense(Request $request, WebinoLicenseClient $client): \Illuminate\Http\JsonResponse
     {
         return app(LicenseController::class)->sync($request, $client);
+    }
+
+    public function importDemo(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate(['preset' => ['nullable', 'string', 'max:64']]);
+        $preset = $request->input('preset', 'ishop-kit');
+
+        return app(ThemeBuilderController::class)->apply($request->merge(['preset' => $preset]));
     }
 
     public function complete(Request $request, TenantActivationService $activations): \Illuminate\Http\JsonResponse

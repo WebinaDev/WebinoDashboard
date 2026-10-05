@@ -112,6 +112,52 @@ class CartController extends Controller
         return $this->respond($cart);
     }
 
+    public function saveForLater(Request $request, Product $product): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        abort_if($product->tenant_id !== $user->tenant_id, 403);
+        $cart = $this->cartFor($request);
+        $line = CartItem::query()->where('cart_id', $cart->id)->where('product_id', $product->id)->first();
+        if ($line) {
+            $meta = is_array($line->meta) ? $line->meta : [];
+            $meta['save_for_later'] = true;
+            $line->meta = $meta;
+            $line->save();
+        } else {
+            CartItem::query()->create([
+                'cart_id' => $cart->id,
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'meta' => ['save_for_later' => true],
+            ]);
+        }
+
+        return $this->respond($cart);
+    }
+
+    public function moveToCart(Request $request, Product $product): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        abort_if($product->tenant_id !== $user->tenant_id, 403);
+        $cart = $this->cartFor($request);
+        $line = CartItem::query()->where('cart_id', $cart->id)->where('product_id', $product->id)->firstOrFail();
+        $meta = is_array($line->meta) ? $line->meta : [];
+        unset($meta['save_for_later']);
+        $line->meta = $meta;
+        $line->save();
+
+        return $this->respond($cart);
+    }
+
+    public function savedForLater(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $cart = $this->cartFor($request);
+        $cart->load(['items.product']);
+        $items = $cart->items->filter(fn (CartItem $line) => ! empty($line->meta['save_for_later']))->values();
+
+        return response()->json(['data' => ['items' => $items]]);
+    }
+
     public function removeItem(Request $request, Product $product): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
@@ -130,8 +176,10 @@ class CartController extends Controller
     {
         $cart->load(['items.product']);
         $types ??= PurchaseTypeService::forTenant($cart->tenant_id);
+        $activeItems = $cart->items->reject(fn (CartItem $line) => ! empty($line->meta['save_for_later']));
         $payload = $cart->toArray();
-        $payload['pricing'] = $types->quote($cart->items);
+        $payload['items'] = $activeItems->values()->all();
+        $payload['pricing'] = $types->quote($activeItems);
 
         return response()->json(['data' => $payload]);
     }

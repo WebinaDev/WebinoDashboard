@@ -5,10 +5,14 @@ namespace App\Observers;
 use App\Models\Product;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Shop\ShopSettings;
+use App\Services\Shop\StockAlertNotifier;
 
 class ProductStockObserver
 {
-    public function __construct(protected NotificationDispatcher $dispatcher) {}
+    public function __construct(
+        protected NotificationDispatcher $dispatcher,
+        protected StockAlertNotifier $customerAlerts,
+    ) {}
 
     public function updated(Product $product): void
     {
@@ -21,8 +25,15 @@ class ProductStockObserver
 
         $old = $product->getOriginal('stock');
         $new = (int) $product->stock;
-        if ($old !== null && (int) $old <= $new) {
+        $wasOut = $old !== null && (int) $old <= 0 && $new > 0;
+        if ($old !== null && (int) $old <= $new && ! $wasOut) {
             return;
+        }
+        if ($wasOut) {
+            try {
+                $this->customerAlerts->notifyBackInStock($product);
+            } catch (\Throwable) {
+            }
         }
         $old = $old === null ? PHP_INT_MAX : (int) $old;
 

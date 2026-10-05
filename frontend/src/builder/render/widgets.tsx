@@ -112,6 +112,15 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <CheckoutWidget />
     case "account-stub":
       return <AccountWidget />
+    case "amazing-offers":
+      return <AmazingOffersWidget widget={widget} />
+    case "most-viewed":
+      return <ProductGridWidget widget={{ ...widget, props: { ...widget.props, source: "featured", title: propStr(widget.props, "title", "پربازدید") } }} editing={editing} />
+    case "taste-box":
+    case "package-block":
+    case "blog-toc":
+    case "mega-menu":
+      return <PromoWidget widget={{ ...widget, props: { title: propStr(widget.props, "title", widget.type), text: propStr(widget.props, "columns", ""), cta: "مشاهده", href: "/shop", tone: "mist" } }} />
     case "store-header":
       return <StoreHeader widget={widget} siteName={runtime.siteName} logoUrl={runtime.logoUrl} />
     case "store-footer":
@@ -573,6 +582,18 @@ function CountdownWidget({ widget }: { widget: WidgetNode }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function AmazingOffersWidget({ widget }: { widget: WidgetNode }) {
+  const title = propStr(widget.props, "title", "پیشنهادهای شگفت‌انگیز")
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] bg-primary px-6 py-5 text-primary-foreground">
+      <h3 className="text-xl font-bold">{title}</h3>
+      <Link href="/amazing-offers" className="rounded-full bg-card px-5 py-2 text-sm font-bold text-foreground">
+        مشاهده همه
+      </Link>
     </div>
   )
 }

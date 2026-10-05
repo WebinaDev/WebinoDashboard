@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Observers\MarketplaceOrderObserver;
 use App\Observers\MarketplaceProductObserver;
 use App\Observers\OrderStatusObserver;
+use App\Observers\ProductPriceHistoryObserver;
 use App\Observers\ProductStockObserver;
 use App\Services\WordpressImport\RemoteAssetFetcher;
 use App\Services\WordpressImport\SafeRemoteFetcher;
@@ -43,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
         Order::observe(MarketplaceOrderObserver::class);
         Order::observe(OrderStatusObserver::class);
         Product::observe(ProductStockObserver::class);
+        Product::observe(ProductPriceHistoryObserver::class);
 
         Scramble::ignoreDefaultRoutes();
 

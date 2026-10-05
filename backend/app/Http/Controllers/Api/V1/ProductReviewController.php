@@ -7,9 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductReview;
+use App\Models\ProductReviewAbuseReport;
+use App\Models\ProductReviewReaction;
 use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Shop\PersianProfanityFilter;
 use App\Services\Shop\ShopSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ProductReviewController extends Controller
@@ -31,7 +35,7 @@ class ProductReviewController extends Controller
             ->where('status', ProductReview::STATUS_APPROVED)
             ->orderByDesc('id')
             ->limit(50)
-            ->get(['id', 'rating', 'body', 'author_name', 'created_at']);
+            ->get(['id', 'rating', 'body', 'author_name', 'voice_path', 'likes_count', 'dislikes_count', 'created_at']);
 
         $avg = null;
         $count = (int) ProductReview::query()
@@ -45,7 +49,9 @@ class ProductReviewController extends Controller
                 ->avg('rating'), 2);
         }
 
-        return response()->json(['data' => ['items' => $items, 'average' => $avg, 'count' => $count]]);
+        $mapped = $items->map(fn (ProductReview $r) => $this->mapPublicReview($r))->values();
+
+        return response()->json(['data' => ['items' => $mapped, 'average' => $avg, 'count' => $count]]);
     }
 
     public function publicStore(Request $request, string $slug): \Illuminate\Http\JsonResponse
@@ -60,7 +66,13 @@ class ProductReviewController extends Controller
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'body' => ['nullable', 'string', 'max:2000'],
             'author_name' => ['nullable', 'string', 'max:120'],
+            'voice' => ['nullable', 'file', 'max:5120', 'mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav'],
         ]);
+
+        $filter = app(PersianProfanityFilter::class);
+        if ($filter->containsProfanity($data['body'] ?? '')) {
+            return response()->json(['message' => $filter->rejectMessage()], 422);
+        }
 
         $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->storefront()->firstOrFail();
         $user = $request->user('sanctum');
@@ -75,6 +87,11 @@ class ProductReviewController extends Controller
         }
 
         $status = ! empty($settings['require_approval']) ? ProductReview::STATUS_PENDING : ProductReview::STATUS_APPROVED;
+        $voicePath = null;
+        if ($request->hasFile('voice')) {
+            $voicePath = $request->file('voice')->store("reviews/{$tid}", 'public');
+        }
+
         $review = ProductReview::query()->create([
             'tenant_id' => $tid,
             'product_id' => $product->id,
@@ -82,6 +99,7 @@ class ProductReviewController extends Controller
             'rating' => (int) $data['rating'],
             'body' => $data['body'] ?? null,
             'author_name' => $data['author_name'] ?? ($user?->name),
+            'voice_path' => $voicePath,
             'status' => $status,
         ]);
 
@@ -99,7 +117,53 @@ class ProductReviewController extends Controller
             }
         }
 
-        return response()->json(['data' => $review], 201);
+        return response()->json(['data' => $this->mapPublicReview($review)], 201);
+    }
+
+    public function react(Request $request, int $review): \Illuminate\Http\JsonResponse
+    {
+        $tid = $this->publicTenantId($request);
+        $row = ProductReview::query()->where('tenant_id', $tid)->where('id', $review)->where('status', ProductReview::STATUS_APPROVED)->firstOrFail();
+        $data = $request->validate(['reaction' => ['required', 'string', Rule::in(['like', 'dislike'])]]);
+        $user = $request->user('sanctum');
+        $guest = trim((string) $request->header('X-Guest-Token', ''));
+        abort_if(! $user && $guest === '', 401);
+
+        $existing = ProductReviewReaction::query()
+            ->when($user, fn ($q) => $q->where('user_id', $user->id))
+            ->when(! $user, fn ($q) => $q->where('guest_token', $guest))
+            ->where('review_id', $row->id)
+            ->first();
+
+        if ($existing && $existing->reaction === $data['reaction']) {
+            $existing->delete();
+        } else {
+            ProductReviewReaction::query()->updateOrCreate(
+                ['review_id' => $row->id, 'user_id' => $user?->id, 'guest_token' => $user ? null : $guest],
+                ['reaction' => $data['reaction']]
+            );
+        }
+
+        $likes = ProductReviewReaction::query()->where('review_id', $row->id)->where('reaction', 'like')->count();
+        $dislikes = ProductReviewReaction::query()->where('review_id', $row->id)->where('reaction', 'dislike')->count();
+        $row->update(['likes_count' => $likes, 'dislikes_count' => $dislikes]);
+
+        return response()->json(['data' => ['likes' => $likes, 'dislikes' => $dislikes]]);
+    }
+
+    public function reportAbuse(Request $request, int $review): \Illuminate\Http\JsonResponse
+    {
+        $tid = $this->publicTenantId($request);
+        $row = ProductReview::query()->where('tenant_id', $tid)->where('id', $review)->firstOrFail();
+        $data = $request->validate(['reason' => ['nullable', 'string', 'max:500']]);
+        ProductReviewAbuseReport::query()->create([
+            'review_id' => $row->id,
+            'user_id' => $request->user('sanctum')?->id,
+            'reason' => $data['reason'] ?? null,
+            'created_at' => now(),
+        ]);
+
+        return response()->json(['data' => ['ok' => true]], 201);
     }
 
     public function adminIndex(Request $request): \Illuminate\Http\JsonResponse
@@ -225,6 +289,21 @@ class ProductReviewController extends Controller
         }
 
         return $map;
+    }
+
+    /** @return array<string, mixed> */
+    private function mapPublicReview(ProductReview $review): array
+    {
+        return [
+            'id' => $review->id,
+            'rating' => (int) $review->rating,
+            'body' => $review->body,
+            'author_name' => $review->author_name,
+            'voice_url' => $review->voice_path ? Storage::disk('public')->url($review->voice_path) : null,
+            'likes_count' => (int) ($review->likes_count ?? 0),
+            'dislikes_count' => (int) ($review->dislikes_count ?? 0),
+            'created_at' => optional($review->created_at)?->toIso8601String(),
+        ];
     }
 
     /** @return array<string, mixed> */

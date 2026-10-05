@@ -9,6 +9,7 @@ import {
   ishopProductDocument,
   ishopShopDocument,
 } from "@/builder/templates/ishop"
+import { ProductStoriesStrip } from "@/builder/storefront/ishop-extras"
 
 export const revalidate = 60
 
@@ -53,6 +54,7 @@ export default async function Page({
   })
   return (
     <ThemeSlot kind="product_archive" runtime={{ categorySlug: searchParams?.category }}>
+      <ProductStoriesStrip />
       {built ?? <CataloguePage />}
     </ThemeSlot>
   )

@@ -229,7 +229,7 @@ class AccountPortalController extends Controller
         $user = PortalAccess::authorize($request);
 
         return response()->json([
-            'data' => $user->only(['id', 'name', 'email', 'phone', 'bank_sheba']),
+            'data' => $user->only(['id', 'name', 'email', 'phone', 'bank_sheba', 'bank_name', 'bank_account', 'bank_card', 'national_id', 'kyc_status']),
         ]);
     }
 
@@ -240,6 +240,11 @@ class AccountPortalController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:32'],
             'bank_sheba' => ['sometimes', 'nullable', 'string', 'max:34'],
+            'bank_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'bank_account' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'bank_card' => ['sometimes', 'nullable', 'string', 'max:24'],
+            'national_id' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'kyc_status' => ['sometimes', 'nullable', 'string', 'in:pending,verified,rejected'],
             'email' => [
                 'sometimes',
                 'email',
@@ -249,7 +254,12 @@ class AccountPortalController extends Controller
         ]);
         $user->update($data);
 
-        return response()->json(['data' => $user->fresh()->only(['id', 'name', 'email', 'phone', 'bank_sheba'])]);
+        if (($data['kyc_status'] ?? null) === 'verified' && ! $user->kyc_verified_at) {
+            $user->kyc_verified_at = now();
+            $user->save();
+        }
+
+        return response()->json(['data' => $user->fresh()->only(['id', 'name', 'email', 'phone', 'bank_sheba', 'bank_name', 'bank_account', 'bank_card', 'national_id', 'kyc_status'])]);
     }
 
     public function wallet(Request $request): JsonResponse

@@ -14,6 +14,7 @@ class Product extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'vendor_store_id',
         'category_id',
         'menu_id',
         'name',
@@ -27,6 +28,7 @@ class Product extends Model
         'sku',
         'price_minor',
         'sale_price_minor',
+        'price_updated_at',
         'sale_starts_at',
         'sale_ends_at',
         'currency',
@@ -79,6 +81,7 @@ class Product extends Model
             'sale_price_minor' => 'integer',
             'sale_starts_at' => 'datetime',
             'sale_ends_at' => 'datetime',
+            'price_updated_at' => 'datetime',
             'purchase_price_minor' => 'integer',
             'stock' => 'integer',
             'is_available' => 'boolean',

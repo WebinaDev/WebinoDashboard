@@ -20,6 +20,7 @@ class PaymentGatewaySettingsService
     /** @var list<string> */
     public const GATEWAY_IDS = [
         'zarinpal',
+        'zibal',
         'digipay',
         'snapppay',
         'torobpay',
@@ -31,7 +32,7 @@ class PaymentGatewaySettingsService
     ];
 
     /** Site commerce IPGs configured on «درگاه‌های پرداخت». */
-    public const COMMERCE_GATEWAYS = ['zarinpal', 'digipay', 'snapppay', 'torobpay'];
+    public const COMMERCE_GATEWAYS = ['zarinpal', 'zibal', 'digipay', 'snapppay', 'torobpay'];
 
     /** @var list<string> */
     public const SECRET_KEYS = [
@@ -158,6 +159,15 @@ class PaymentGatewaySettingsService
     public function defaultsFor(string $provider): array
     {
         return match ($provider) {
+            'zibal' => [
+                'merchant_id' => '',
+                'title' => 'زیبال',
+                'payment_description' => 'Order #{order_id}',
+                'fee_payer' => 'merchant',
+                'fee_percent' => 0.0,
+                'cash_enabled' => true,
+                'installment_enabled' => false,
+            ],
             'zarinpal' => [
                 'merchant_id' => '',
                 'access_token' => '',
@@ -470,7 +480,7 @@ class PaymentGatewaySettingsService
         $raw = $this->getRaw($tenantId, $provider);
 
         return match ($provider) {
-            'zarinpal' => filled($raw['merchant_id'] ?? null),
+            'zarinpal', 'zibal' => filled($raw['merchant_id'] ?? null),
             'digipay' => filled($raw['client_id'] ?? null)
                 && filled($raw['client_secret'] ?? null)
                 && filled($raw['username'] ?? null)
@@ -500,6 +510,7 @@ class PaymentGatewaySettingsService
         $hub = $this->getHub($tenantId);
         $catalog = [
             ['id' => 'zarinpal', 'title_key' => 'zarinpal', 'settings_path' => '/dashboard/settings/shop/zarinpal'],
+            ['id' => 'zibal', 'title_key' => 'zibal', 'settings_path' => '/dashboard/settings/shop/zibal'],
             ['id' => 'digipay', 'title_key' => 'digipay', 'settings_path' => '/dashboard/settings/shop/digipay'],
             ['id' => 'snapppay', 'title_key' => 'snapppay', 'settings_path' => '/dashboard/settings/shop/snapppay'],
             ['id' => 'torobpay', 'title_key' => 'torobpay', 'settings_path' => '/dashboard/settings/shop/torobpay'],
