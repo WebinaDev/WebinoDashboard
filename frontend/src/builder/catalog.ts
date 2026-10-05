@@ -41,6 +41,10 @@ export type ShopProduct = {
   installments: ShopInstallment[]
   faqs: Array<{ question: string; answer: string }>
   priceUpdatedAt?: string | null
+  /** Average review score (0–5) when the API exposes it. */
+  rating?: number
+  /** Simple-product stock count when managed; null = unmanaged. */
+  stock?: number | null
 }
 
 export type ShopCategory = {
@@ -228,6 +232,8 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     installments,
     faqs: mapFaqs(raw.faqs),
     priceUpdatedAt: str(raw.price_updated_at) || null,
+    rating: num(raw.average_rating) || num(raw.rating_average) || num(raw.rating) || undefined,
+    stock: raw.stock == null ? null : num(raw.stock),
   }
 }
 

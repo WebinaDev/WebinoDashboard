@@ -5,6 +5,7 @@ import { apiServer } from "@/lib/api-server"
 import { globalsCss } from "@/builder/globals"
 import { loadPublishedGlobals, loadResolvedTemplate, StorefrontDocument } from "@/builder/public-document"
 import { requestThemeContext } from "@/builder/theme/request"
+import { BuilderRuntimeProvider } from "@/builder/render/runtime"
 import { loadThemeComponents } from "@/kernel/theme-loader"
 import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
@@ -107,6 +108,8 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
 
   return (
     <SiteBrandingShell branding={branding} themeSlug={themeSlug}>
+      {/* Theme slug reaches client storefront widgets rendered outside a builder document (wishlist, offers, vendor). */}
+      <BuilderRuntimeProvider value={{ themeSlug, siteName: tenantName, logoUrl: branding.logo_url }}>
       <div className={globals ? "wb-site flex min-h-svh flex-1 flex-col" : "flex min-h-svh flex-1 flex-col"}>
         {globals ? <style>{globalsCss(globals)}</style> : null}
         {header ? (
@@ -127,6 +130,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         <SiteJsonLd />
         <AnalyticsTrackerScript />
       </div>
+      </BuilderRuntimeProvider>
     </SiteBrandingShell>
   )
 }

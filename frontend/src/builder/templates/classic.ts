@@ -21,7 +21,7 @@ function doc(sections: SectionNode[]): BuilderDocument {
   return { version: 1, sections }
 }
 
-const NAV = "خانه|/\nفروشگاه|/shop\nتازه‌ها|/shop?sort=new\nمجله|/blog\nدرباره|/pages/about"
+const NAV = "خانه|/\nفروشگاه|/shop\nمجله|/blog\nسوالات متداول|/pages/faq\nتماس با ما|/pages/contact\nدرباره ما|/pages/about"
 
 export function classicHeaderDocument(siteName = "ویبینو"): BuilderDocument {
   return doc([
@@ -45,52 +45,52 @@ export function classicFooterDocument(siteName = "ویبینو"): BuilderDocumen
 
 export function classicHomeDocument(): BuilderDocument {
   return doc([
+    sec("sec_stories", [col("col_stories", 12, [w("w_stories", "story-strip", { title: "استوری‌ها" })])]),
     sec("sec_hero", [col("col_hero", 12, [w("w_hero", "hero-slider")])]),
-    sec("sec_mega", [col("col_mega", 12, [w("w_mega", "mega-menu", { columns: "مراقبت|/shop?category=skin\nآرایش|/shop?category=makeup\nمو|/shop?category=hair" })])]),
-    sec("sec_offers", [col("col_offers", 12, [w("w_offers", "amazing-offers", { title: "پیشنهادهای شگفت‌انگیز" })])]),
-    sec("sec_taste", [col("col_taste", 12, [w("w_taste", "taste-box", { title: "بر اساس سلیقه شما" })])]),
-    sec("sec_deal", [col("col_deal", 12, [w("w_deal", "deal-bar", { title: "پیشنهاد امروز ویبینو" })])]),
+    sec("sec_tiles", [col("col_tiles", 12, [w("w_tiles", "category-tiles")])]),
     sec("sec_cats", [col("col_cats", 12, [w("w_cats", "category-grid", { title: "دسته‌بندی‌های محبوب", variant: "popular" })])]),
-    sec("sec_new", [col("col_new", 12, [w("w_new", "product-grid", { title: "محصولات تازه", limit: 4, source: "new" })])]),
-    sec("sec_promo", [
-      col("col_promo_a", 7, [w("w_promo", "promo-banner", {
-        title: "هدیه مراقبت پوست",
-        text: "با سفارش از مجموعه ویبینو، یک نمونه کوچک همراه بسته می‌آید.",
-        cta: "دیدن فروشگاه",
-        href: "/shop",
-        tone: "pink",
-      })]),
-      col("col_promo_b", 5, [w("w_count", "countdown", { title: "تا پایان پیشنهاد بهار" })]),
-    ]),
-    sec("sec_best", [col("col_best", 12, [w("w_best", "product-grid", { title: "پرفروش‌های ویبینو", limit: 3, source: "featured" })])]),
-    sec("sec_brands", [col("col_brands", 12, [w("w_brands", "brand-row", { title: "خانه‌های ویبینو" })])]),
-    sec("sec_blog", [col("col_blog", 12, [w("w_blog", "blog-slider", { title: "از مجله ویبینو" })])]),
-    sec("sec_trust", [
-      col("col_trust", 12, [
-        w("w_trust", "trust-badges"),
-        w("w_news", "newsletter", { title: "تازه‌های ویبینو", text: "تخفیف مجموعه را در ایمیل بگیرید." }),
-      ]),
-    ]),
+    sec("sec_new", [col("col_new", 12, [w("w_new", "product-grid", { title: "محصولات جدید", limit: 10, source: "new", layout: "slider" })])]),
+    sec("sec_promo", [col("col_promo", 12, [w("w_promo", "promo-trio")])]),
+    sec("sec_offers", [col("col_offers", 12, [w("w_offers", "amazing-offers", { title: "پیشنهاد شگفت‌انگیز" })])]),
+    sec("sec_best_row", [col("col_best_row", 12, [w("w_best_row", "product-grid", { title: "پرفروش‌ترین‌ها", limit: 10, source: "featured", layout: "slider" })])]),
+    sec("sec_best", [col("col_best", 12, [w("w_best", "best-sellers", { title: "پرفروش‌ترین محصولات", limit: 9 })])]),
+    sec("sec_brands", [col("col_brands", 12, [w("w_brands", "brand-row", { title: "برندهای محبوب" })])]),
+    sec("sec_blog", [col("col_blog", 12, [w("w_blog", "blog-slider", { title: "مجله" })])]),
+    sec("sec_recent", [col("col_recent", 12, [w("w_recent", "recently-viewed", { title: "بازدیدهای اخیر شما" })])]),
   ])
 }
 
 export function classicShopDocument(): BuilderDocument {
   return doc([
-    sec("sec_shop_bc", [col("col_shop_bc", 12, [w("w_shop_bc", "breadcrumbs", { trail: "خانه|/\nفروشگاه|/shop" })])]),
-    sec("sec_shop_head", [
-      col("col_shop_head", 12, [
-        w("w_shop_title", "heading", { text: "فروشگاه ویبینو", tag: "h1" }),
-        w("w_shop_cats", "category-grid", { title: "خرید بر اساس دسته", variant: "strip" }),
-      ]),
-    ]),
+    sec("sec_shop_bc", [col("col_shop_bc", 12, [w("w_shop_bc", "breadcrumbs", { trail: "خانه|/\nفروشگاه|/shop" })])], true),
+    sec("sec_shop_cats", [col("col_shop_cats", 12, [w("w_shop_cats", "category-grid", { title: "خرید بر اساس دسته", variant: "strip" })])]),
     sec("sec_shop_grid", [
-      col("col_filters", 3, [w("w_filters", "filter-panel")], 12),
-      col("col_grid", 9, [w("w_grid", "product-grid", { title: "همه محصولات", limit: 9, source: "all", showSort: true })], 12),
+      col("col_filters", 3, [
+        w("w_shop_title", "heading", { text: "فروشگاه", tag: "h1" }),
+        w("w_filters", "filter-panel"),
+      ], 12),
+      col("col_grid", 9, [w("w_grid", "product-grid", { title: "", limit: 12, source: "all", showSort: true, layout: "grid" })], 12),
     ]),
   ])
 }
 
 export function classicProductDocument(): BuilderDocument {
+  return doc([
+    sec("sec_pdp", [col("col_pdp", 12, [w("w_pdp", "product-detail")])], true),
+    sec("sec_reviews", [col("col_reviews", 12, [w("w_reviews", "product-reviews")])]),
+    sec("sec_related", [col("col_related", 12, [w("w_related", "product-grid", { title: "محصولات مرتبط", limit: 10, source: "related", layout: "slider" })])]),
+    sec("sec_recent", [col("col_recent", 12, [w("w_recent", "recently-viewed", { title: "بازدیدهای اخیر شما" })])]),
+  ])
+}
+
+export function classicCartDocument(): BuilderDocument {
+  return doc([
+    sec("sec_cart", [col("col_cart", 12, [w("w_cart", "cart-lines")])], true),
+  ])
+}
+
+/** Shared (non-classic) product page fallback — other ecommerce themes keep this layout. */
+export function storeProductDocument(): BuilderDocument {
   return doc([
     sec("sec_pdp", [col("col_pdp", 12, [w("w_pdp", "product-detail")])]),
     sec("sec_reviews", [col("col_reviews", 12, [w("w_reviews", "product-reviews")])]),
@@ -100,7 +100,8 @@ export function classicProductDocument(): BuilderDocument {
   ])
 }
 
-export function classicCartDocument(): BuilderDocument {
+/** Shared (non-classic) cart page fallback. */
+export function storeCartDocument(): BuilderDocument {
   return doc([
     sec("sec_cart_bc", [col("col_cart_bc", 12, [w("w_cart_bc", "breadcrumbs", { trail: "خانه|/\nسبد خرید|/cart" })])]),
     sec("sec_cart", [

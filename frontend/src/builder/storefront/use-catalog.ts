@@ -27,7 +27,7 @@ export type CatalogState = {
 function apiSort(sort: string): string {
   if (sort === "price") return "price_asc"
   if (sort === "price_desc") return "price_desc"
-  if (sort === "featured") return "popular"
+  if (sort === "featured" || sort === "best") return "popular"
   return "newest"
 }
 

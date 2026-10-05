@@ -5,6 +5,7 @@
 @import "../builder/storefront.css";
 @import "../themes/ecommerce-classic/classic-theme.css";
 @import "../themes/storefront-skins.css";
+@import "../themes/ecommerce-classic/parity.css";
 
 
 @custom-variant dark (&:is(.dark *));

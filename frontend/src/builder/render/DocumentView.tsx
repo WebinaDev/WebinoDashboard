@@ -11,6 +11,7 @@ import { WidgetBody } from "./widgets"
 import "../storefront.css"
 import "@/themes/ecommerce-classic/classic-theme.css"
 import "@/themes/storefront-skins.css"
+import "@/themes/ecommerce-classic/parity.css"
 
 type Props = {
   document: BuilderDocument

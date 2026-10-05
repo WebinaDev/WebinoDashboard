@@ -19,11 +19,11 @@
   padding-top: var(--sf-content-gap);
 }
 
-/* ---------- ecommerce-classic (dense, navy/coral — migration target look) ---------- */
+/* ---------- ecommerce-classic (dense, navy/pink — migration target look) ---------- */
 .sf-skin-classic,
 .sf-classic {
-  --sf-pink: #f04055;
-  --sf-pink-soft: #fde8eb;
+  --sf-pink: #e775ae;
+  --sf-pink-soft: #fdeef6;
   --sf-navy: #021959;
   --sf-navy-soft: #e8edf3;
   --sf-radius-lg: 1.1875rem; /* ~19px */

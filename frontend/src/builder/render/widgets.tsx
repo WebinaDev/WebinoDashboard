@@ -44,6 +44,19 @@ import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
+import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
+import {
+  ClassicBestSellers,
+  ClassicBrandGrid,
+  ClassicCategoryTiles,
+  ClassicHero,
+  ClassicIconCategories,
+  ClassicProductRow,
+  ClassicPromoTrio,
+  ClassicRecentlyViewed,
+  ClassicStoryStrip,
+} from "@/themes/ecommerce-classic/components/ClassicHome"
+import { ClassicTrustStrip } from "@/themes/ecommerce-classic/components/ClassicProduct"
 
 const NAV = [
   { label: "خانه", href: "/" },
@@ -72,6 +85,7 @@ function AbstractArt({ tone, label }: { tone: string; label: string }) {
 export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: EditorApi }) {
   const runtime = useBuilderRuntime()
   const editing = Boolean(editor)
+  const classic = runtime.themeSlug === "ecommerce-classic"
   switch (widget.type) {
     case "heading":
       return <HeadingWidget widget={widget} editor={editor} />
@@ -98,9 +112,30 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "popup":
       return <PopupWidget widget={widget} />
     case "hero-slider":
-      return <HeroWidget />
+      return classic ? (
+        <ClassicHero slidesText={propStr(widget.props, "slides", "")} />
+      ) : (
+        <HeroWidget />
+      )
     case "category-grid":
-      return <CategoryWidget widget={widget} />
+      return classic ? (
+        <ClassicIconCategories
+          title={propStr(widget.props, "variant", "popular") === "strip" ? undefined : propStr(widget.props, "title", "دسته‌بندی‌های محبوب")}
+          variant={propStr(widget.props, "variant", "popular") === "strip" ? "archive" : "home"}
+        />
+      ) : (
+        <CategoryWidget widget={widget} />
+      )
+    case "story-strip":
+      return <ClassicStoryStrip title={propStr(widget.props, "title", "")} />
+    case "category-tiles":
+      return <ClassicCategoryTiles tilesText={propStr(widget.props, "tiles", "")} />
+    case "promo-trio":
+      return <ClassicPromoTrio itemsText={propStr(widget.props, "items", "")} />
+    case "best-sellers":
+      return <ClassicBestSellers title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 9)} />
+    case "recently-viewed":
+      return <ClassicRecentlyViewed title={propStr(widget.props, "title", "")} />
     case "product-grid":
       return <ProductGridWidget widget={widget} editing={editing} />
     case "product-card":
@@ -112,11 +147,11 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "countdown":
       return <CountdownWidget widget={widget} />
     case "trust-badges":
-      return <TrustWidget />
+      return classic ? <ClassicTrustStrip /> : <TrustWidget />
     case "newsletter":
       return <NewsletterWidget widget={widget} />
     case "brand-row":
-      return <BrandRow widget={widget} />
+      return classic ? <ClassicBrandGrid title={propStr(widget.props, "title", "")} /> : <BrandRow widget={widget} />
     case "blog-teasers":
       return <BlogWidget widget={widget} />
     case "filter-panel":
@@ -563,6 +598,16 @@ function ProductGridWidget({ widget, editing }: { widget: WidgetNode; editing: b
     if (sort === "price_desc") rows.sort((a, b) => b.price - a.price)
     return rows.slice(0, limit)
   }, [brand, catalog.products, category, limit, runtime.productSlug, sort, source])
+
+  const classic = runtime.themeSlug === "ecommerce-classic"
+  const layout = propStr(widget.props, "layout", showSort ? "grid" : "slider")
+  if (classic && !runtime.loopDocument) {
+    return layout === "grid" ? (
+      <ClassicArchiveGrid products={products} editing={editing} title={title} showSort={showSort} />
+    ) : (
+      <ClassicProductRow title={title || "محصولات"} products={products} href={propStr(widget.props, "href", "/shop")} />
+    )
+  }
 
   return (
     <section>

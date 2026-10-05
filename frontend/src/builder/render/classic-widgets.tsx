@@ -11,7 +11,9 @@ import { addShopItem } from "../storefront/actions"
 import { useCatalog } from "../storefront/use-catalog"
 import { propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
-import { useBuilderRuntime } from "./runtime"
+import { useBuilderRuntime, useIsClassicSkin } from "./runtime"
+import { ClassicBreadcrumbBar } from "@/themes/ecommerce-classic/components/ClassicArchive"
+import { ClassicAmazingBand, ClassicBlogBlock, ClassicProductRow } from "@/themes/ecommerce-classic/components/ClassicHome"
 
 export function MegaMenuWidget({ widget }: { widget: WidgetNode }) {
   const columns = propStr(widget.props, "columns", "")
@@ -103,6 +105,8 @@ export function MostViewedWidget({ widget }: { widget: WidgetNode }) {
   const limit = propNum(widget.props, "limit", 6)
   const catalog = useCatalog(limit)
   const title = propStr(widget.props, "title", "پربازدیدترین")
+  const classic = useIsClassicSkin()
+  if (classic) return <ClassicProductRow title={title} products={catalog.products.slice(0, limit)} href="/shop?sort=featured" />
   return (
     <section className="mx-auto max-w-6xl px-4 py-6">
       <div className="sf-section-head">
@@ -142,6 +146,8 @@ export function AmazingOffersBlockWidget({ widget }: { widget: WidgetNode }) {
   const title = propStr(widget.props, "title", t("amazing_offers_title"))
   const catalog = useCatalog(8)
   const offers = catalog.products.filter((p) => p.compare && p.compare > p.price).slice(0, 4)
+  const classic = useIsClassicSkin()
+  if (classic) return <ClassicAmazingBand title={title} />
   return (
     <section className="mx-auto max-w-6xl px-4 py-6">
       <div className="sf-amazing-banner">
@@ -164,6 +170,12 @@ export function AmazingOffersBlockWidget({ widget }: { widget: WidgetNode }) {
 }
 
 export function BlogSliderWidget({ widget }: { widget: WidgetNode }) {
+  const classic = useIsClassicSkin()
+  if (classic) return <ClassicBlogBlock title={propStr(widget.props, "title", "مجله")} />
+  return <DefaultBlogSlider widget={widget} />
+}
+
+function DefaultBlogSlider({ widget }: { widget: WidgetNode }) {
   const title = propStr(widget.props, "title", "از مجله ویبینو")
   const [posts, setPosts] = useState<Array<{ slug: string; title: string; excerpt?: string; cover_url?: string }>>([])
   useEffect(() => {
@@ -294,6 +306,8 @@ export function BreadcrumbsWidget({ widget }: { widget: WidgetNode }) {
       const [label, href] = line.split("|").map((s) => s.trim())
       return { label: label || "", href: href || undefined }
     })
+  const classic = useIsClassicSkin()
+  if (classic) return <ClassicBreadcrumbBar items={items} />
   return (
     <nav className="sf-breadcrumb mx-auto max-w-6xl px-4 pt-4" aria-label="breadcrumb">
       {items.map((item, i) => (

@@ -23,3 +23,8 @@ export function useBuilderRuntime(): RuntimeContext {
 export function useBuilderGlobals(): BuilderGlobals {
   return useContext(Globals)
 }
+
+/** True when the active storefront theme is ecommerce-classic (deep chrome + card anatomy). */
+export function useIsClassicSkin(): boolean {
+  return useContext(Runtime).themeSlug === "ecommerce-classic"
+}

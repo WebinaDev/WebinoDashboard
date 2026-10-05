@@ -30,6 +30,13 @@ import {
 } from "./storefront-chrome"
 import { quietApi } from "./session"
 import { useCatalog } from "./use-catalog"
+import { useIsClassicSkin } from "../render/runtime"
+import { ClassicFilters } from "@/themes/ecommerce-classic/components/ClassicArchive"
+import { ClassicCart, ClassicCheckoutSteps } from "@/themes/ecommerce-classic/components/ClassicCart"
+import { ClassicFooter } from "@/themes/ecommerce-classic/components/ClassicFooter"
+import { CLASSIC_NAV, ClassicHeader } from "@/themes/ecommerce-classic/components/ClassicHeader"
+import { ClassicProduct } from "@/themes/ecommerce-classic/components/ClassicProduct"
+import { ClassicProductCard } from "@/themes/ecommerce-classic/components/ClassicProductCard"
 
 const NAV = [
   { label: "خانه", href: "/" },
@@ -50,7 +57,7 @@ function digits(value: number, locale: string) {
   return formatNumber(value, normalizeUiLocale(locale))
 }
 
-export function StoreProductCard({ product }: { product: ShopProduct }) {
+function DefaultStoreProductCard({ product }: { product: ShopProduct }) {
   const money = useMoney()
   const tCart = useTranslations("cart")
   const t = useTranslations("storefront")
@@ -123,7 +130,7 @@ export function StoreProductCard({ product }: { product: ShopProduct }) {
   )
 }
 
-export function StoreFilters({ editing }: { editing: boolean }) {
+function DefaultStoreFilters({ editing }: { editing: boolean }) {
   const router = useRouter()
   const params = useSearchParams()
   const catalog = useCatalog(12)
@@ -183,7 +190,7 @@ export function StoreFilters({ editing }: { editing: boolean }) {
   )
 }
 
-export function StorefrontProduct({ slug, editing }: { slug?: string; editing: boolean }) {
+function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: boolean }) {
   const money = useMoney()
   const t = useTranslations("storefront")
   const tCart = useTranslations("cart")
@@ -425,7 +432,7 @@ function QtyControl({ qty, onChange }: { qty: number; onChange: (qty: number) =>
   )
 }
 
-export function StorefrontCart() {
+function DefaultStorefrontCart() {
   const money = useMoney()
   const t = useTranslations("storefront")
   const tCart = useTranslations("cart")
@@ -563,7 +570,7 @@ function labelForGateway(id: string, tCheckout: (key: "pay_zarinpal" | "pay_digi
   return tCheckout("pay_zarinpal")
 }
 
-export function StorefrontCheckout() {
+function DefaultStorefrontCheckout() {
   const t = useTranslations("storefront")
   const tCheckout = useTranslations("checkout")
 
@@ -875,7 +882,7 @@ export function StorefrontAccount() {
   )
 }
 
-export function StorefrontHeader({
+function DefaultStorefrontHeader({
   widget,
   siteName,
   logoUrl,
@@ -973,7 +980,7 @@ export function StorefrontHeader({
   )
 }
 
-export function StorefrontFooter({ widget, siteName }: { widget: WidgetNode; siteName?: string }) {
+function DefaultStorefrontFooter({ widget, siteName }: { widget: WidgetNode; siteName?: string }) {
   const t = useTranslations("storefront")
   const locale = useLocale()
   const about = propStr(widget.props, "about", "")
@@ -1001,3 +1008,70 @@ export function StorefrontFooter({ widget, siteName }: { widget: WidgetNode; sit
   )
 }
 
+
+/* ------------------------------------------------------------------------
+ * Theme-aware entry points. ecommerce-classic renders its own deep chrome
+ * (header, card anatomy, archive filters, PDP buy box, cart stepper, footer);
+ * every other theme keeps the shared default markup above.
+ * --------------------------------------------------------------------- */
+
+export function StoreProductCard({ product }: { product: ShopProduct }) {
+  const classic = useIsClassicSkin()
+  return classic ? <ClassicProductCard product={product} /> : <DefaultStoreProductCard product={product} />
+}
+
+export function StoreFilters({ editing }: { editing: boolean }) {
+  const classic = useIsClassicSkin()
+  return classic ? <ClassicFilters editing={editing} /> : <DefaultStoreFilters editing={editing} />
+}
+
+export function StorefrontProduct({ slug, editing }: { slug?: string; editing: boolean }) {
+  const classic = useIsClassicSkin()
+  return classic ? <ClassicProduct slug={slug} editing={editing} /> : <DefaultStorefrontProduct slug={slug} editing={editing} />
+}
+
+export function StorefrontCart() {
+  const classic = useIsClassicSkin()
+  return classic ? <ClassicCart /> : <DefaultStorefrontCart />
+}
+
+export function StorefrontCheckout() {
+  const classic = useIsClassicSkin()
+  if (!classic) return <DefaultStorefrontCheckout />
+  return (
+    <div className="sfc-container sfc-checkout-wrap">
+      <ClassicCheckoutSteps active={1} />
+      <DefaultStorefrontCheckout />
+    </div>
+  )
+}
+
+export function StorefrontHeader({
+  widget,
+  siteName,
+  logoUrl,
+}: {
+  widget: WidgetNode
+  siteName?: string
+  logoUrl?: string | null
+}) {
+  const classic = useIsClassicSkin()
+  if (!classic) return <DefaultStorefrontHeader widget={widget} siteName={siteName} logoUrl={logoUrl} />
+  const links = parseLinks(widget.props.links, CLASSIC_NAV)
+  const name = siteName || propStr(widget.props, "mark", "ویبینو")
+  return <ClassicHeader siteName={name} logoUrl={logoUrl} links={links} />
+}
+
+export function StorefrontFooter({ widget, siteName }: { widget: WidgetNode; siteName?: string }) {
+  const classic = useIsClassicSkin()
+  if (!classic) return <DefaultStorefrontFooter widget={widget} siteName={siteName} />
+  return (
+    <ClassicFooter
+      siteName={siteName || "ویبینو"}
+      phone={propStr(widget.props, "phone", "")}
+      email={propStr(widget.props, "email", "")}
+      about={propStr(widget.props, "about", "")}
+      address={propStr(widget.props, "address", "")}
+    />
+  )
+}

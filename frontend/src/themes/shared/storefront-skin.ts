@@ -17,7 +17,7 @@ export function storefrontShellClass(themeSlug?: string | null): string {
 export function storefrontThemeClass(themeSlug?: string | null): string {
   switch (themeSlug) {
     case "ecommerce-classic":
-      return "sf-classic"
+      return "sf-classic sf-skin-classic"
     case "ecommerce-default":
       return "sf-skin-default"
     case "ecommerce-starter":

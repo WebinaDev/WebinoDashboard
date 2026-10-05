@@ -165,7 +165,10 @@ export const WIDGETS: WidgetDef[] = [
     type: "hero-slider",
     label: "اسلایدر هیرو",
     category: "commerce",
-    fields: [{ kind: "text", key: "eyebrow", label: "برچسب اسلاید اول" }],
+    fields: [
+      { kind: "text", key: "eyebrow", label: "برچسب اسلاید اول" },
+      { kind: "textarea", key: "slides", label: "اسلایدها (عنوان|برچسب|پیوند|تصویر|زیرعنوان در هر خط)" },
+    ],
     create: () => node("hero-slider", {}),
   },
   {
@@ -195,6 +198,10 @@ export const WIDGETS: WidgetDef[] = [
         { value: "all", label: "همه" },
       ] },
       { kind: "switch", key: "showSort", label: "مرتب‌سازی" },
+      { kind: "select", key: "layout", label: "چیدمان", options: [
+        { value: "slider", label: "اسلایدر افقی" },
+        { value: "grid", label: "شبکه" },
+      ] },
     ],
     create: () => node("product-grid", { title: "محصولات تازه", limit: 4, source: "new", showSort: false }),
   },
@@ -422,6 +429,44 @@ export const WIDGETS: WidgetDef[] = [
     category: "commerce",
     fields: [],
     create: () => node("add-to-cart-box", {}),
+  },
+  {
+    type: "story-strip",
+    label: "نوار استوری",
+    category: "commerce",
+    fields: [{ kind: "text", key: "title", label: "عنوان (دسترسی‌پذیری)" }],
+    create: () => node("story-strip", { title: "استوری‌ها" }),
+  },
+  {
+    type: "category-tiles",
+    label: "کاشی دسته + پیشنهاد ویژه",
+    category: "commerce",
+    fields: [{ kind: "textarea", key: "tiles", label: "کاشی‌ها (نام|پیوند|تصویر در هر خط)" }],
+    create: () => node("category-tiles", { tiles: "" }),
+  },
+  {
+    type: "promo-trio",
+    label: "سه بنر تیره",
+    category: "commerce",
+    fields: [{ kind: "textarea", key: "items", label: "بنرها (عنوان|برچسب|پیوند|تصویر|رنگ: wine/olive/charcoal)" }],
+    create: () => node("promo-trio", { items: "" }),
+  },
+  {
+    type: "best-sellers",
+    label: "پرفروش‌های شماره‌دار",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "number", key: "limit", label: "تعداد", min: 3, max: 12 },
+    ],
+    create: () => node("best-sellers", { title: "پرفروش‌ترین محصولات", limit: 9 }),
+  },
+  {
+    type: "recently-viewed",
+    label: "بازدیدهای اخیر",
+    category: "commerce",
+    fields: [{ kind: "text", key: "title", label: "عنوان" }],
+    create: () => node("recently-viewed", { title: "بازدیدهای اخیر شما" }),
   },
   {
     type: "store-footer",
