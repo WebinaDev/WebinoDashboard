@@ -4,7 +4,7 @@ const ALLOWED_TAGS = new Set([
   "table", "thead", "tbody", "tr", "th", "td", "figure", "figcaption",
 ])
 
-const ALLOWED_ATTR = new Set(["href", "title", "target", "rel", "src", "alt", "class"])
+const ALLOWED_ATTR = new Set(["href", "title", "target", "rel", "src", "alt", "class", "id"])
 const VOID_TAGS = new Set(["br", "hr", "img"])
 const DROP_WITH_CONTENT = /<\s*(script|style|iframe|object|embed|svg|math|noscript|textarea|title|xmp|noframes|form|link|meta|base)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi
 const DROP_VOID = /<\s*(script|style|iframe|object|embed|svg|math|noscript|textarea|title|xmp|noframes|form|link|meta|base)\b[^>]*\/?\s*>/gi

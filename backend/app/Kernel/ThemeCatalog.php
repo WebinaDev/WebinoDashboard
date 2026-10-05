@@ -71,7 +71,7 @@ final class ThemeCatalog
             self::entry('ecommerce-starter', 'فروشگاه — استارتر', 'E-commerce starter', ['ecommerce'], false, 0),
             self::entry('ecommerce-default', 'فروشگاه — پیش‌فرض', 'E-commerce default', ['ecommerce'], false, 1),
             self::entry('ecommerce-demo-v1', 'فروشگاه — دمو ۱', 'E-commerce demo v1', ['ecommerce'], true, 2),
-            self::entry('ecommerce-ishop', 'فروشگاه — آی‌شاپ', 'E-commerce ishop', ['ecommerce'], false, 3),
+            self::entry('ecommerce-classic', 'فروشگاه — کلاسیک', 'Classic e-commerce', ['ecommerce'], false, 3),
             self::entry('magazine-default', 'مجله — پیش‌فرض', 'Magazine default', ['magazine'], false, 1),
             self::entry('magazine-demo-v1', 'مجله — دمو ۱', 'Magazine demo v1', ['magazine'], true, 2),
             self::entry('cafe-starter', 'کافه — استارتر', 'Cafe starter', ['cafe'], false, 0),

@@ -8,7 +8,7 @@ export type CartLine = {
   productId?: number
 }
 
-const KEY = "webino.ishop.cart"
+const KEY = "webino.storefront.cart"
 const listeners = new Set<() => void>()
 
 function read(): CartLine[] {

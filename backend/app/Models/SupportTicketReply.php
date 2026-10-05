@@ -15,6 +15,7 @@ class SupportTicketReply extends Model
         'user_id',
         'is_staff',
         'body',
+        'attachments',
         'created_at',
     ];
 
@@ -22,6 +23,7 @@ class SupportTicketReply extends Model
     {
         return [
             'is_staff' => 'boolean',
+            'attachments' => 'array',
             'created_at' => 'datetime',
         ];
     }

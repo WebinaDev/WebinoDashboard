@@ -11,9 +11,9 @@ import { useCatalog } from "./use-catalog"
 import { quietApi } from "./session"
 import type { ShopProduct } from "../catalog"
 
-export function IshopBreadcrumbs({ items }: { items: { label: string; href?: string }[] }) {
+export function StorefrontBreadcrumbs({ items }: { items: { label: string; href?: string }[] }) {
   return (
-    <nav className="ishop-breadcrumb" aria-label="breadcrumb">
+    <nav className="sf-breadcrumb" aria-label="breadcrumb">
       {items.map((item, index) => (
         <span key={item.label + index}>
           {index > 0 ? <span aria-hidden="true"> / </span> : null}
@@ -24,10 +24,10 @@ export function IshopBreadcrumbs({ items }: { items: { label: string; href?: str
   )
 }
 
-export function IshopTopBar() {
+export function StorefrontTopBar() {
   const t = useTranslations("storefront")
   return (
-    <div className="ishop-topbar hidden md:block">
+    <div className="sf-topbar hidden md:block">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
         <span>{t("footer_hours")}</span>
         <div className="flex flex-wrap items-center gap-4">
@@ -40,7 +40,7 @@ export function IshopTopBar() {
   )
 }
 
-export function IshopMobileNav({
+export function StorefrontMobileNav({
   open,
   onClose,
   links,
@@ -52,9 +52,9 @@ export function IshopMobileNav({
   const catalog = useCatalog(12)
   if (!open) return null
   return (
-    <div className="ishop-mobile-nav md:hidden" role="dialog" aria-modal="true">
+    <div className="sf-mobile-nav md:hidden" role="dialog" aria-modal="true">
       <button type="button" className="absolute inset-0" aria-label="close" onClick={onClose} />
-      <div className="ishop-mobile-sheet">
+      <div className="sf-mobile-sheet">
         <div className="mb-3 flex items-center justify-between">
           <span className="font-bold">منو</span>
           <button type="button" onClick={onClose} aria-label="close">
@@ -81,7 +81,7 @@ export function IshopMobileNav({
   )
 }
 
-export function IshopMegaMenuPanel({ columnsText }: { columnsText: string }) {
+export function StorefrontMegaMenuPanel({ columnsText }: { columnsText: string }) {
   const catalog = useCatalog(8)
   const lines = columnsText
     .split("\n")
@@ -94,8 +94,8 @@ export function IshopMegaMenuPanel({ columnsText }: { columnsText: string }) {
 
   if (!parsed.length) {
     return (
-      <div className="ishop-mega-panel grid gap-4 md:grid-cols-3">
-        <div className="ishop-mega-col">
+      <div className="sf-mega-panel grid gap-4 md:grid-cols-3">
+        <div className="sf-mega-col">
           <h3>دسته‌ها</h3>
           {catalog.categories.slice(0, 6).map((c) => (
             <Link key={c.slug} href={`/shop?category=${c.slug}`}>
@@ -103,13 +103,13 @@ export function IshopMegaMenuPanel({ columnsText }: { columnsText: string }) {
             </Link>
           ))}
         </div>
-        <div className="ishop-mega-col">
+        <div className="sf-mega-col">
           <h3>فروشگاه</h3>
           <Link href="/shop">همه محصولات</Link>
           <Link href="/amazing-offers">پیشنهاد شگفت‌انگیز</Link>
           <Link href="/compare">مقایسه</Link>
         </div>
-        <div className="ishop-mega-col">
+        <div className="sf-mega-col">
           <h3>حساب</h3>
           <Link href="/account">ورود / سفارش‌ها</Link>
           <Link href="/dashboard/account/favorites">علاقه‌مندی‌ها</Link>
@@ -119,9 +119,9 @@ export function IshopMegaMenuPanel({ columnsText }: { columnsText: string }) {
   }
 
   return (
-    <div className="ishop-mega-panel grid gap-4 md:grid-cols-3">
+    <div className="sf-mega-panel grid gap-4 md:grid-cols-3">
       {parsed.map((col) => (
-        <div key={col.title} className="ishop-mega-col">
+        <div key={col.title} className="sf-mega-col">
           <h3>{col.title}</h3>
           {col.links.map((entry) => {
             const [label, href] = entry.includes("|") ? entry.split("|").map((s) => s.trim()) : [entry, "/shop"]
@@ -157,7 +157,7 @@ export function ProductReviewsPanel({ slug }: { slug: string }) {
 
   return (
     <section className="mt-6">
-      <div className="ishop-section-head">
+      <div className="sf-section-head">
         <h2>{t("reviews_title")}</h2>
         {average != null ? (
           <span className="text-sm font-bold text-primary">
@@ -167,7 +167,7 @@ export function ProductReviewsPanel({ slug }: { slug: string }) {
       </div>
       <div className="grid gap-3">
         {items.map((review) => (
-          <article key={review.id} className="ishop-review-card">
+          <article key={review.id} className="sf-review-card">
             <div className="flex items-center justify-between gap-2">
               <strong className="text-sm">{review.author_name || t("account_login")}</strong>
               <span className="text-xs text-muted-foreground">
@@ -181,7 +181,7 @@ export function ProductReviewsPanel({ slug }: { slug: string }) {
                 <source src={review.voice_url} />
               </audio>
             ) : null}
-            <div className="ishop-review-actions">
+            <div className="sf-review-actions">
               <button type="button" onClick={() => void quietApi(`/api/v1/public/catalog/reviews/${review.id}/react`, { method: "POST", json: { reaction: "like" } })}>
                 👍 {review.likes_count ?? 0}
               </button>
@@ -227,7 +227,7 @@ export function StockAlertForm({ slug }: { slug: string }) {
   )
 }
 
-export function IshopAccountShell({ children }: { children: ReactNode }) {
+export function StorefrontAccountShell({ children }: { children: ReactNode }) {
   const t = useTranslations("storefront")
   const pathname = usePathname()
   const links = [
@@ -238,8 +238,8 @@ export function IshopAccountShell({ children }: { children: ReactNode }) {
     { href: "/compare", label: t("compare_title") },
   ]
   return (
-    <div className="ishop-account-shell">
-      <nav className="ishop-account-nav" aria-label="account">
+    <div className="sf-account-shell">
+      <nav className="sf-account-nav" aria-label="account">
         {links.map((link) => (
           <Link key={link.href} href={link.href} aria-current={pathname === link.href ? "page" : undefined}>
             {link.label}
@@ -251,7 +251,7 @@ export function IshopAccountShell({ children }: { children: ReactNode }) {
   )
 }
 
-export function IshopProductCardActions({ product }: { product: ShopProduct }) {
+export function StorefrontProductCardActions({ product }: { product: ShopProduct }) {
   const t = useTranslations("storefront")
   if (!product.id) return null
   return (
@@ -275,7 +275,7 @@ export function MobileNavToggle({ onOpen }: { onOpen: () => void }) {
   )
 }
 
-export function IshopStorefrontPage({
+export function StorefrontPageShell({
   title,
   description,
   trail,
@@ -289,9 +289,9 @@ export function IshopStorefrontPage({
   wide?: boolean
 }) {
   return (
-    <div className={`ishop-secondary-page mx-auto px-4 py-8 ${wide ? "max-w-6xl" : "max-w-4xl"}`}>
-      <IshopBreadcrumbs items={trail} />
-      <header className="ishop-section-head mt-4">
+    <div className={`sf-secondary-page mx-auto px-4 py-8 ${wide ? "max-w-6xl" : "max-w-4xl"}`}>
+      <StorefrontBreadcrumbs items={trail} />
+      <header className="sf-section-head mt-4">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
           {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}

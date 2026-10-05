@@ -1,3 +1,3 @@
-export { SiteHeader, SiteFooter } from "../ecommerce-ishop"
+export { SiteHeader, SiteFooter } from "../ecommerce-classic"
 
 export const themeSlug = "ecommerce-default"

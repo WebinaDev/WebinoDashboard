@@ -10,7 +10,9 @@ use App\Support\PortalAccess;
 use App\Services\Webino\WebinoTicketsClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class SupportTicketController extends Controller
@@ -69,8 +71,8 @@ class SupportTicketController extends Controller
     {
         $row = $this->findTicket($request, $ticket);
         abort_if(! $row, 404);
-        $data = $request->validate(['body' => ['required', 'string', 'max:20000']]);
-        $this->insertReply($row, (int) $request->user()->id, $data['body'], true);
+        [$body, $attachments] = $this->validatedReplyPayload($request);
+        $this->insertReply($row, (int) $request->user()->id, $body, true, $attachments);
         $row->update(['status' => 'answered']);
         UserNotification::query()->create([
             'tenant_id' => $row->tenant_id,
@@ -91,8 +93,8 @@ class SupportTicketController extends Controller
         $row = $this->findTicket($request, $ticket, (int) $request->user()->id);
         abort_if(! $row, 404);
         abort_if($row->status === 'closed', 422, __('api.ticket_closed'));
-        $data = $request->validate(['body' => ['required', 'string', 'max:20000']]);
-        $this->insertReply($row, (int) $request->user()->id, $data['body'], false);
+        [$body, $attachments] = $this->validatedReplyPayload($request);
+        $this->insertReply($row, (int) $request->user()->id, $body, false, $attachments);
         if ($row->status === 'answered') {
             $row->update(['status' => 'open']);
         } else {
@@ -263,7 +265,61 @@ class SupportTicketController extends Controller
         return $q->first();
     }
 
-    private function insertReply(SupportTicket $ticket, int $userId, string $body, bool $isStaff): void
+    /**
+     * @return array{0: string, 1: list<array<string, mixed>>}
+     */
+    private function validatedReplyPayload(Request $request): array
+    {
+        $data = $request->validate([
+            'body' => ['nullable', 'string', 'max:20000'],
+            'attachments' => ['sometimes', 'array', 'max:5'],
+            'attachments.*' => ['file', 'max:8192', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf,audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav'],
+            'voice' => ['nullable', 'file', 'max:5120', 'mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav'],
+        ]);
+        $body = trim((string) ($data['body'] ?? ''));
+        $hasFiles = $request->hasFile('attachments') || $request->hasFile('voice');
+        abort_if($body === '' && ! $hasFiles, 422, __('validation.required', ['attribute' => 'body']));
+
+        $tid = (int) $request->user()->tenant_id;
+        $attachments = [];
+        /** @var array<int, UploadedFile>|UploadedFile|null $files */
+        $files = $request->file('attachments');
+        if ($files instanceof UploadedFile) {
+            $files = [$files];
+        }
+        foreach ($files ?? [] as $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+            $path = $file->store("tickets/{$tid}", 'public');
+            $attachments[] = [
+                'path' => $path,
+                'name' => $file->getClientOriginalName(),
+                'mime' => (string) $file->getMimeType(),
+                'kind' => str_starts_with((string) $file->getMimeType(), 'audio/') ? 'voice' : 'file',
+                'size' => $file->getSize(),
+            ];
+        }
+        if ($request->hasFile('voice')) {
+            /** @var UploadedFile $voice */
+            $voice = $request->file('voice');
+            $path = $voice->store("tickets/{$tid}", 'public');
+            $attachments[] = [
+                'path' => $path,
+                'name' => $voice->getClientOriginalName() ?: 'voice.webm',
+                'mime' => (string) $voice->getMimeType(),
+                'kind' => 'voice',
+                'size' => $voice->getSize(),
+            ];
+        }
+
+        return [$body !== '' ? $body : ' ', $attachments];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $attachments
+     */
+    private function insertReply(SupportTicket $ticket, int $userId, string $body, bool $isStaff, array $attachments = []): void
     {
         SupportTicketReply::query()->create([
             'tenant_id' => $ticket->tenant_id,
@@ -271,6 +327,7 @@ class SupportTicketController extends Controller
             'user_id' => $userId,
             'is_staff' => $isStaff,
             'body' => $body,
+            'attachments' => $attachments === [] ? null : $attachments,
             'created_at' => Carbon::now(),
         ]);
         $ticket->touch();
@@ -311,6 +368,17 @@ class SupportTicketController extends Controller
             'author' => $r->user?->name ?? '',
             'is_staff' => (bool) $r->is_staff,
             'body' => $r->body,
+            'attachments' => collect($r->attachments ?? [])->map(function (array $item) {
+                $path = (string) ($item['path'] ?? '');
+
+                return [
+                    'name' => (string) ($item['name'] ?? 'file'),
+                    'mime' => (string) ($item['mime'] ?? ''),
+                    'kind' => (string) ($item['kind'] ?? 'file'),
+                    'size' => (int) ($item['size'] ?? 0),
+                    'url' => $path !== '' ? Storage::disk('public')->url($path) : null,
+                ];
+            })->values()->all(),
             'created_at' => optional($r->created_at)?->toIso8601String(),
         ])->all();
 

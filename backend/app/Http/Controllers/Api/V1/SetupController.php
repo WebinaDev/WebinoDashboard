@@ -158,7 +158,7 @@ class SetupController extends Controller
     public function importDemo(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate(['preset' => ['nullable', 'string', 'max:64']]);
-        $preset = $request->input('preset', 'ishop-kit');
+        $preset = $request->input('preset', 'classic-kit');
 
         return app(ThemeBuilderController::class)->apply($request->merge(['preset' => $preset]));
     }

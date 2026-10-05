@@ -2,7 +2,7 @@ import Link from "next/link"
 import { getServerTranslations } from "@/lib/server-translations"
 
 import { StorefrontBody } from "@/builder/public-document"
-import { ishopHomeDocument } from "@/builder/templates/ishop"
+import { classicHomeDocument } from "@/builder/templates/classic"
 import { Button } from "@/components/ui/button"
 
 import CataloguePage from "@/kernel/pages/CataloguePage"
@@ -40,7 +40,7 @@ export default async function SiteHomePage() {
 
   const built = await StorefrontBody({
     slug: "home",
-    fallback: ishopHomeDocument(),
+    fallback: classicHomeDocument(),
     runtime: { siteName: home?.tenant?.name },
   })
   if (built) return built

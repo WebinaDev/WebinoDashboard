@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { useTranslations } from "next-intl"
 
-import { IshopStorefrontPage } from "@/builder/storefront/ishop-port"
+import { StorefrontPageShell } from "@/builder/storefront/storefront-chrome"
 import { StoreProductCard } from "@/builder/storefront/ui"
 import { useCatalog } from "@/builder/storefront/use-catalog"
 
@@ -16,7 +16,7 @@ export default function AmazingOffersPage() {
   )
 
   return (
-    <IshopStorefrontPage
+    <StorefrontPageShell
       wide
       title={t("amazing_offers_title")}
       description={t("amazing_offers_hint")}
@@ -31,6 +31,6 @@ export default function AmazingOffersPage() {
         ))}
       </div>
       {!offers.length ? <p className="mt-8 text-sm text-muted-foreground">{t("empty_none")}</p> : null}
-    </IshopStorefrontPage>
+    </StorefrontPageShell>
   )
 }

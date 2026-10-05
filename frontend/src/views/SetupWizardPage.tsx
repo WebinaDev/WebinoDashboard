@@ -226,7 +226,7 @@ export default function SetupWizardPage() {
     setErr(null)
     setMsg(null)
     try {
-      await api("/api/v1/setup/import-demo", { method: "POST", json: { preset: "ishop-kit" } })
+      await api("/api/v1/setup/import-demo", { method: "POST", json: { preset: "classic-kit" } })
       setMsg(t("demo_import_ok"))
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : tCommon("error_generic"))

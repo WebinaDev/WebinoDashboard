@@ -5,8 +5,8 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
-import { StorefrontCompareTable } from "@/builder/storefront/ishop-extras"
-import { IshopStorefrontPage } from "@/builder/storefront/ishop-port"
+import { StorefrontCompareTable } from "@/builder/storefront/storefront-extras"
+import { StorefrontPageShell } from "@/builder/storefront/storefront-chrome"
 
 type CompareItem = {
   id: number
@@ -41,7 +41,7 @@ export default function ComparePage() {
     `${formatNumber(Math.round(minor), normalizeUiLocale(locale))} ${t("currency_toman")}`
 
   return (
-    <IshopStorefrontPage
+    <StorefrontPageShell
       wide
       title={t("compare_title")}
       description={t("compare_hint")}
@@ -70,6 +70,6 @@ export default function ComparePage() {
       {!loading && items.length ? (
         <StorefrontCompareTable items={items} money={money} onRemove={(id) => setItems((rows) => rows.filter((row) => row.id !== id))} />
       ) : null}
-    </IshopStorefrontPage>
+    </StorefrontPageShell>
   )
 }

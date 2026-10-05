@@ -23,7 +23,7 @@ function doc(sections: SectionNode[]): BuilderDocument {
 
 const NAV = "خانه|/\nفروشگاه|/shop\nتازه‌ها|/shop?sort=new\nمجله|/blog\nدرباره|/pages/about"
 
-export function ishopHeaderDocument(siteName = "ویبینو"): BuilderDocument {
+export function classicHeaderDocument(siteName = "ویبینو"): BuilderDocument {
   return doc([
     sec("sec_header", [
       col("col_header", 12, [w("w_header", "store-header", { mark: siteName, links: NAV })]),
@@ -31,7 +31,7 @@ export function ishopHeaderDocument(siteName = "ویبینو"): BuilderDocument 
   ])
 }
 
-export function ishopFooterDocument(siteName = "ویبینو"): BuilderDocument {
+export function classicFooterDocument(siteName = "ویبینو"): BuilderDocument {
   return doc([
     sec("sec_footer", [
       col("col_footer", 12, [w("w_footer", "store-footer", {
@@ -43,7 +43,7 @@ export function ishopFooterDocument(siteName = "ویبینو"): BuilderDocument 
   ])
 }
 
-export function ishopHomeDocument(): BuilderDocument {
+export function classicHomeDocument(): BuilderDocument {
   return doc([
     sec("sec_hero", [col("col_hero", 12, [w("w_hero", "hero-slider")])]),
     sec("sec_mega", [col("col_mega", 12, [w("w_mega", "mega-menu", { columns: "مراقبت|/shop?category=skin\nآرایش|/shop?category=makeup\nمو|/shop?category=hair" })])]),
@@ -64,7 +64,7 @@ export function ishopHomeDocument(): BuilderDocument {
     ]),
     sec("sec_best", [col("col_best", 12, [w("w_best", "product-grid", { title: "پرفروش‌های ویبینو", limit: 3, source: "featured" })])]),
     sec("sec_brands", [col("col_brands", 12, [w("w_brands", "brand-row", { title: "خانه‌های ویبینو" })])]),
-    sec("sec_blog", [col("col_blog", 12, [w("w_blog", "blog-teasers", { title: "از مجله ویبینو" })])]),
+    sec("sec_blog", [col("col_blog", 12, [w("w_blog", "blog-slider", { title: "از مجله ویبینو" })])]),
     sec("sec_trust", [
       col("col_trust", 12, [
         w("w_trust", "trust-badges"),
@@ -74,7 +74,7 @@ export function ishopHomeDocument(): BuilderDocument {
   ])
 }
 
-export function ishopShopDocument(): BuilderDocument {
+export function classicShopDocument(): BuilderDocument {
   return doc([
     sec("sec_shop_bc", [col("col_shop_bc", 12, [w("w_shop_bc", "breadcrumbs", { trail: "خانه|/\nفروشگاه|/shop" })])]),
     sec("sec_shop_head", [
@@ -90,16 +90,17 @@ export function ishopShopDocument(): BuilderDocument {
   ])
 }
 
-export function ishopProductDocument(): BuilderDocument {
+export function classicProductDocument(): BuilderDocument {
   return doc([
     sec("sec_pdp", [col("col_pdp", 12, [w("w_pdp", "product-detail")])]),
     sec("sec_reviews", [col("col_reviews", 12, [w("w_reviews", "product-reviews")])]),
     sec("sec_related", [col("col_related", 12, [w("w_related", "product-grid", { title: "پیشنهادهای همراه", limit: 4, source: "related" })])]),
     sec("sec_package", [col("col_package", 12, [w("w_package", "package-block", { title: "پکیج مکمل", text: "محصولات مرتبط با قیمت مناسب‌تر" })])]),
+    sec("sec_most", [col("col_most", 12, [w("w_most", "most-viewed", { title: "پربازدیدترین‌ها", limit: 3 })])]),
   ])
 }
 
-export function ishopCartDocument(): BuilderDocument {
+export function classicCartDocument(): BuilderDocument {
   return doc([
     sec("sec_cart_bc", [col("col_cart_bc", 12, [w("w_cart_bc", "breadcrumbs", { trail: "خانه|/\nسبد خرید|/cart" })])]),
     sec("sec_cart", [
@@ -111,14 +112,14 @@ export function ishopCartDocument(): BuilderDocument {
   ])
 }
 
-export function ishopCheckoutDocument(): BuilderDocument {
+export function classicCheckoutDocument(): BuilderDocument {
   return doc([
     sec("sec_checkout_bc", [col("col_checkout_bc", 12, [w("w_checkout_bc", "breadcrumbs", { trail: "خانه|/\nسبد|/cart\nتسویه|/checkout" })])]),
     sec("sec_checkout", [col("col_checkout", 12, [w("w_checkout", "checkout-stub")])]),
   ])
 }
 
-export function ishopAccountDocument(): BuilderDocument {
+export function classicAccountDocument(): BuilderDocument {
   return doc([
     sec("sec_account_bc", [col("col_account_bc", 12, [w("w_account_bc", "breadcrumbs", { trail: "خانه|/\nحساب کاربری|/account" })])]),
     sec("sec_account", [
@@ -130,7 +131,7 @@ export function ishopAccountDocument(): BuilderDocument {
   ])
 }
 
-export function ishopNotFoundDocument(): BuilderDocument {
+export function classicNotFoundDocument(): BuilderDocument {
   return doc([
     sec("sec_404", [
       col("col_404", 12, [
@@ -142,13 +143,13 @@ export function ishopNotFoundDocument(): BuilderDocument {
   ])
 }
 
-export const ISHOP_PAGE_TEMPLATES: { slug: string; title: string; document: BuilderDocument }[] = [
-  { slug: "home", title: "خانه", document: ishopHomeDocument() },
-  { slug: "shop", title: "فروشگاه", document: ishopShopDocument() },
-  { slug: "product", title: "محصول", document: ishopProductDocument() },
-  { slug: "cart", title: "سبد خرید", document: ishopCartDocument() },
-  { slug: "checkout", title: "تسویه", document: ishopCheckoutDocument() },
-  { slug: "account", title: "حساب کاربری", document: ishopAccountDocument() },
+export const CLASSIC_PAGE_TEMPLATES: { slug: string; title: string; document: BuilderDocument }[] = [
+  { slug: "home", title: "خانه", document: classicHomeDocument() },
+  { slug: "shop", title: "فروشگاه", document: classicShopDocument() },
+  { slug: "product", title: "محصول", document: classicProductDocument() },
+  { slug: "cart", title: "سبد خرید", document: classicCartDocument() },
+  { slug: "checkout", title: "تسویه", document: classicCheckoutDocument() },
+  { slug: "account", title: "حساب کاربری", document: classicAccountDocument() },
 ]
 
 export function previewHref(slug: string): string {

@@ -10,34 +10,34 @@ class ThemePresetLibrary
     public function presets(): array
     {
         return [
-            $this->preset('ishop-header', 'header', 'هدر آی‌شاپ', 'منوی صورتی و سرمه‌ای فروشگاه', $this->header('ویبینو')),
-            $this->preset('ishop-footer', 'footer', 'فوتر آی‌شاپ', 'پاورقی تماس و معرفی گالری', $this->footer('ویبینو')),
+            $this->preset('classic-header', 'header', 'هدر کلاسیک', 'منوی صورتی و سرمه‌ای فروشگاه', $this->header('ویبینو')),
+            $this->preset('classic-footer', 'footer', 'فوتر کلاسیک', 'پاورقی تماس و معرفی گالری', $this->footer('ویبینو')),
             $this->preset('beauty-header', 'header', 'هدر بیوتی‌شاپ', 'نوار پیشنهاد و منوی مراقبت پوست', $this->beautyHeader()),
             $this->preset('beauty-footer', 'footer', 'فوتر بیوتی‌شاپ', 'پاورقی آرام با لحن گالری زیبایی', $this->footer('بیوتی‌شاپ', 'بیوتی‌شاپ ویترین مراقبت پوست و آرایش است؛ انتخاب کوتاه و توضیح روشن.')),
-            $this->preset('ishop-single-post', 'single_post', 'پست تکی آی‌شاپ', 'عنوان، خلاصه و متن نوشته', $this->stack('sec_post', [
+            $this->preset('classic-single-post', 'single_post', 'پست تکی کلاسیک', 'عنوان، خلاصه و متن نوشته', $this->stack('sec_post', [
                 $this->widget('w_post_title', 'heading', ['text' => '{{title}}', 'tag' => 'h1']),
                 $this->widget('w_post_excerpt', 'text', ['text' => '{{excerpt}}']),
                 $this->widget('w_post_body', 'text', ['text' => '{{body}}']),
             ])),
-            $this->preset('ishop-single-page', 'single_page', 'برگه تکی آی‌شاپ', 'چیدمان ساده برای برگه‌های سایت', $this->stack('sec_page', [
+            $this->preset('classic-single-page', 'single_page', 'برگه تکی کلاسیک', 'چیدمان ساده برای برگه‌های سایت', $this->stack('sec_page', [
                 $this->widget('w_page_title', 'heading', ['text' => '{{title}}', 'tag' => 'h1']),
                 $this->widget('w_page_body', 'text', ['text' => '{{body}}']),
             ])),
-            $this->preset('ishop-single-product', 'single_product', 'محصول تکی آی‌شاپ', 'جزئیات محصول و پیشنهادهای همراه', $this->doc([
+            $this->preset('classic-single-product', 'single_product', 'محصول تکی کلاسیک', 'جزئیات محصول و پیشنهادهای همراه', $this->doc([
                 $this->section('sec_pdp', [$this->widget('w_pdp', 'product-detail', [])]),
                 $this->section('sec_related', [$this->widget('w_related', 'product-grid', ['title' => 'پیشنهادهای همراه', 'limit' => 4, 'source' => 'related'])]),
             ])),
-            $this->preset('ishop-archive', 'archive', 'بایگانی مجله', 'سربرگ مجله و تازه‌های نوشته', $this->stack('sec_archive', [
+            $this->preset('classic-archive', 'archive', 'بایگانی مجله', 'سربرگ مجله و تازه‌های نوشته', $this->stack('sec_archive', [
                 $this->widget('w_archive_title', 'heading', ['text' => 'مجله ویبینو', 'tag' => 'h1']),
                 $this->widget('w_archive_text', 'text', ['text' => 'یادداشت‌های مراقبت و آرایش، کوتاه و قابل‌پیگیری.']),
                 $this->widget('w_archive_blog', 'blog-teasers', ['title' => 'تازه‌های مجله']),
             ])),
-            $this->preset('ishop-search', 'search', 'نتایج جستجو', 'عنوان جستجو برای فروشگاه', $this->stack('sec_search', [
+            $this->preset('classic-search', 'search', 'نتایج جستجو', 'عنوان جستجو برای فروشگاه', $this->stack('sec_search', [
                 $this->widget('w_search_title', 'heading', ['text' => 'نتایج جستجو', 'tag' => 'h1']),
                 $this->widget('w_search_text', 'text', ['text' => 'عبارت را در نام محصول یا نوشته پیدا کنید.']),
                 $this->widget('w_search_grid', 'product-grid', ['title' => 'محصولات نزدیک', 'limit' => 6, 'source' => 'all', 'showSort' => true]),
             ])),
-            $this->preset('ishop-product-archive', 'product_archive', 'آرشیو محصولات', 'فیلتر و شبکه فروشگاه آی‌شاپ', $this->doc([
+            $this->preset('classic-product-archive', 'product_archive', 'آرشیو محصولات', 'فیلتر و شبکه فروشگاه کلاسیک', $this->doc([
                 $this->section('sec_shop_head', [
                     $this->widget('w_shop_title', 'heading', ['text' => 'فروشگاه ویبینو', 'tag' => 'h1']),
                     $this->widget('w_shop_cats', 'category-grid', ['title' => 'خرید بر اساس دسته', 'variant' => 'strip']),
@@ -47,7 +47,7 @@ class ThemePresetLibrary
                     [9, [$this->widget('w_grid', 'product-grid', ['title' => 'همه محصولات', 'limit' => 9, 'source' => 'all', 'showSort' => true])]],
                 ]),
             ])),
-            $this->preset('ishop-loop', 'loop_item', 'کارت محصول آی‌شاپ', 'کارت آماده برای شبکه‌ها', $this->stack('sec_loop', [
+            $this->preset('classic-loop', 'loop_item', 'کارت محصول کلاسیک', 'کارت آماده برای شبکه‌ها', $this->stack('sec_loop', [
                 $this->widget('w_loop_card', 'product-card', []),
             ])),
             $this->preset('beauty-loop', 'loop_item', 'کارت بیوتی', 'نام، برند و قیمت با دکمه صورتی', $this->stack('sec_beauty_loop', [
@@ -55,7 +55,7 @@ class ThemePresetLibrary
                 $this->widget('w_loop_meta', 'text', ['text' => '{{brand}} — {{price}}']),
                 $this->widget('w_loop_btn', 'button', ['label' => 'مشاهده', 'href' => '{{href}}', 'tone' => 'pink']),
             ])),
-            $this->preset('ishop-404', 'not_found', 'صفحه ۴۰۴ آی‌شاپ', 'بازگشت آرام به خانه', $this->stack('sec_404', [
+            $this->preset('classic-404', 'not_found', 'صفحه ۴۰۴ کلاسیک', 'بازگشت آرام به خانه', $this->stack('sec_404', [
                 $this->widget('w_404_title', 'heading', ['text' => 'این صفحه پیدا نشد', 'tag' => 'h1']),
                 $this->widget('w_404_text', 'text', ['text' => 'نشانی را دوباره بررسی کنید یا به فروشگاه ویبینو برگردید.']),
                 $this->widget('w_404_btn', 'button', ['label' => 'بازگشت به خانه', 'href' => '/', 'tone' => 'pink']),
@@ -75,13 +75,13 @@ class ThemePresetLibrary
     {
         return [
             [
-                'id' => 'ishop-kit',
-                'title' => 'بسته آی‌شاپ',
+                'id' => 'classic-kit',
+                'title' => 'بسته کلاسیک',
                 'blurb' => 'هدر، فوتر، تکی‌ها، بایگانی، جستجو، آرشیو محصول، کارت لوپ و ۴۰۴',
                 'includes' => [
-                    'ishop-header', 'ishop-footer', 'ishop-single-post', 'ishop-single-page',
-                    'ishop-single-product', 'ishop-archive', 'ishop-search', 'ishop-product-archive',
-                    'ishop-loop', 'ishop-404',
+                    'classic-header', 'classic-footer', 'classic-single-post', 'classic-single-page',
+                    'classic-single-product', 'classic-archive', 'classic-search', 'classic-product-archive',
+                    'classic-loop', 'classic-404',
                 ],
             ],
             [

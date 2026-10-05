@@ -74,7 +74,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         ) : (
           <SiteHeader siteName={tenantName} branding={branding} />
         )}
-        <main className={themeSlug === "ecommerce-ishop" ? "ishop-store flex-1" : "flex-1"}>{children}</main>
+        <main className={themeSlug === "ecommerce-classic" ? "sf-classic flex-1" : "flex-1"}>{children}</main>
         {footer ? (
           <StorefrontDocument document={footer} runtime={{ siteName: tenantName }} context={themeContext} />
         ) : (

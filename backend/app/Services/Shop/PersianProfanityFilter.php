@@ -32,6 +32,6 @@ class PersianProfanityFilter
 
     public function rejectMessage(): string
     {
-        return __('ishop.profanity_rejected');
+        return __('shop_moderation.profanity_rejected');
     }
 }

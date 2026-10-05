@@ -12,7 +12,7 @@ const THEME_LOADERS: Record<string, () => Promise<ThemeModule>> = {
   "ecommerce-starter": () => import("@/themes/ecommerce-starter"),
   "ecommerce-default": () => import("@/themes/ecommerce-default"),
   "ecommerce-demo-v1": () => import("@/themes/ecommerce-demo-v1"),
-  "ecommerce-ishop": () => import("@/themes/ecommerce-ishop"),
+  "ecommerce-classic": () => import("@/themes/ecommerce-classic"),
   "magazine-default": () => import("@/themes/magazine-default"),
   "magazine-demo-v1": () => import("@/themes/magazine-demo-v1"),
   "cafe-starter": () => import("@/themes/cafe-starter"),

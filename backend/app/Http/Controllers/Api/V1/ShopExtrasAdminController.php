@@ -9,7 +9,7 @@ use App\Services\Shipping\ShippingCarrierRegistry;
 use App\Services\Sms\SmsPanelAdapterRegistry;
 use Illuminate\Http\Request;
 
-class IshopAdminController extends Controller
+class ShopExtrasAdminController extends Controller
 {
     public function themeOptimizerShow(Request $request, ModuleSettingsService $settings): \Illuminate\Http\JsonResponse
     {

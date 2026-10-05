@@ -14,8 +14,8 @@ All routes require Sanctum auth and the matching submodule activation (`commerce
 | Method | Path | Module gate | Notes |
 |--------|------|-------------|-------|
 | GET/POST | `/products` | `catalog` | Filters: search, status, type, stock_status, category_id, brand_id |
-| GET/PATCH/DELETE | `/products/{id}` | `catalog` | Full product incl. ishop + WFCP fields |
-| GET | `/products/lookup` | `catalog` | Categories, brands, tags, attributes, ishop labels |
+| GET/PATCH/DELETE | `/products/{id}` | `catalog` | Full product incl. storefront + WFCP fields |
+| GET | `/products/lookup` | `catalog` | Categories, brands, tags, attributes, storefront labels |
 | POST | `/products/{id}/duplicate` | `catalog` | Draft copy |
 | PUT | `/products/{id}/attributes` | `catalog` | Sync attribute pivots |
 | PATCH | `/products/bulk` | `catalog` | Cafe-compatible bulk flags |

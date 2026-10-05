@@ -17,15 +17,19 @@ import {
 import { useCatalog } from "../storefront/use-catalog"
 import {
   AccountDashboardWidget,
+  AddToCartBoxWidget,
+  AmazingHeaderWidget,
   AmazingOffersBlockWidget,
+  BlogSliderWidget,
   BlogTocWidget,
   BreadcrumbsWidget,
   MegaMenuWidget,
   MostViewedWidget,
   PackageBlockWidget,
+  ProductGalleryWidget,
   ProductReviewsWidget,
   TasteBoxWidget,
-} from "./ishop-widgets"
+} from "./classic-widgets"
 import {
   StoreFilters,
   StoreProductCard,
@@ -125,6 +129,14 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <AccountWidget />
     case "amazing-offers":
       return <AmazingOffersBlockWidget widget={widget} />
+    case "amazing-header":
+      return <AmazingHeaderWidget widget={widget} />
+    case "blog-slider":
+      return <BlogSliderWidget widget={widget} />
+    case "product-gallery":
+      return <ProductGalleryWidget productSlug={runtime.productSlug} />
+    case "add-to-cart-box":
+      return <AddToCartBoxWidget productSlug={runtime.productSlug} />
     case "most-viewed":
       return <MostViewedWidget widget={widget} />
     case "taste-box":

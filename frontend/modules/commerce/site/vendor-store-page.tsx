@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
 import type { ResolvedSiteRoute } from "@/kernel/types"
-import { IshopStorefrontPage } from "@/builder/storefront/ishop-port"
+import { StorefrontPageShell } from "@/builder/storefront/storefront-chrome"
 import { StoreProductCard } from "@/builder/storefront/ui"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { mapApiProduct, type ShopProduct } from "@/builder/catalog"
@@ -65,7 +65,7 @@ export default function VendorStorePage({ route }: { route: ResolvedSiteRoute })
 
   if (missing) {
     return (
-      <IshopStorefrontPage
+      <StorefrontPageShell
         title={t("vendor_store_missing")}
         trail={[
           { label: t("home_crumb"), href: "/" },
@@ -76,13 +76,13 @@ export default function VendorStorePage({ route }: { route: ResolvedSiteRoute })
         <Link href="/shop" className="mt-4 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">
           {t("continue_shop")}
         </Link>
-      </IshopStorefrontPage>
+      </StorefrontPageShell>
     )
   }
 
   if (!data) {
     return (
-      <IshopStorefrontPage
+      <StorefrontPageShell
         title={t("vendor_store_title")}
         trail={[
           { label: t("home_crumb"), href: "/" },
@@ -90,7 +90,7 @@ export default function VendorStorePage({ route }: { route: ResolvedSiteRoute })
         ]}
       >
         <p className="text-sm text-muted-foreground">{t("loading")}</p>
-      </IshopStorefrontPage>
+      </StorefrontPageShell>
     )
   }
 
@@ -98,7 +98,7 @@ export default function VendorStorePage({ route }: { route: ResolvedSiteRoute })
     `${formatNumber(Math.round(minor), normalizeUiLocale(locale))} ${t("currency_toman")}`
 
   return (
-    <IshopStorefrontPage
+    <StorefrontPageShell
       wide
       title={data.store.name}
       description={data.store.bio || undefined}
@@ -108,7 +108,7 @@ export default function VendorStorePage({ route }: { route: ResolvedSiteRoute })
         { label: data.store.name },
       ]}
     >
-      <div className="ishop-vendor-hero sf-card flex flex-col gap-4 p-6 md:flex-row md:items-center">
+      <div className="sf-vendor-hero sf-card flex flex-col gap-4 p-6 md:flex-row md:items-center">
         <div className="size-20 overflow-hidden rounded-2xl bg-muted">
           {data.store.logo_url ? (
             <img src={data.store.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" />
@@ -137,6 +137,6 @@ export default function VendorStorePage({ route }: { route: ResolvedSiteRoute })
           {products.map((p) => `${p.name} ${money(p.price)}`).join(", ")}
         </p>
       ) : null}
-    </IshopStorefrontPage>
+    </StorefrontPageShell>
   )
 }

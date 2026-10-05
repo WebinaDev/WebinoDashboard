@@ -14,8 +14,8 @@ APIهای ادمین تحت `/api/v1` برای مدیریت فروشگاه (مح
 | متد | مسیر | گیت ماژول | توضیح |
 |------|------|-----------|--------|
 | GET/POST | `/products` | `catalog` | فیلتر: search، status، type، stock_status، category_id، brand_id |
-| GET/PATCH/DELETE | `/products/{id}` | `catalog` | محصول کامل شامل فیلدهای ishop و WFCP |
-| GET | `/products/lookup` | `catalog` | دسته‌ها، برندها، تگ‌ها، ویژگی‌ها، برچسب‌های ishop |
+| GET/PATCH/DELETE | `/products/{id}` | `catalog` | محصول کامل شامل فیلدهای فروشگاه و WFCP |
+| GET | `/products/lookup` | `catalog` | دسته‌ها، برندها، تگ‌ها، ویژگی‌ها، برچسب‌های فروشگاه |
 | POST | `/products/{id}/duplicate` | `catalog` | کپی پیش‌نویس |
 | PUT | `/products/{id}/attributes` | `catalog` | همگام‌سازی ویژگی‌ها |
 | PATCH | `/products/bulk` | `catalog` | به‌روزرسانی گروهی سازگار با کافه |

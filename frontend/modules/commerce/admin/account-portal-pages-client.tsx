@@ -8,6 +8,11 @@ import { toast } from "sonner"
 
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { PageShell } from "@/components/PageShell"
+import {
+  TicketReplyAttachments,
+  TicketReplyComposer,
+  buildTicketReplyFormData,
+} from "@/components/tickets/TicketReplyComposer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -724,11 +729,22 @@ export function AccountTicketDetailPageClient({ route }: { route: ResolvedAdminR
         subject: string
         status: string
         csat_rating?: number | null
-        replies: Array<{ id: number; author: string; is_staff: boolean; body: string; created_at?: string }>
+        replies: Array<{
+          id: number
+          author: string
+          is_staff: boolean
+          body: string
+          created_at?: string
+          attachments?: Array<{ name: string; mime?: string; kind?: string; url?: string | null }>
+        }>
       }>(`/api/v1/account/tickets/${id}`),
   })
   const reply = useMutation({
-    mutationFn: () => api(`/api/v1/account/tickets/${id}/replies`, { method: "POST", json: { body } }),
+    mutationFn: (payload: { body: string; files: File[]; voice: File | null }) =>
+      api(`/api/v1/account/tickets/${id}/replies`, {
+        method: "POST",
+        body: buildTicketReplyFormData(payload),
+      }),
     onSuccess: () => {
       setBody("")
       void qc.invalidateQueries({ queryKey: ["account", "ticket", id] })
@@ -754,15 +770,18 @@ export function AccountTicketDetailPageClient({ route }: { route: ResolvedAdminR
             <CardContent className="p-4 text-sm">
               <p className="mb-1 font-medium">{r.author}{r.is_staff ? ` · ${t("staff_badge")}` : ""}</p>
               <p className="whitespace-pre-wrap">{r.body}</p>
+              <TicketReplyAttachments attachments={r.attachments} />
             </CardContent>
           </Card>
         ))}
       </div>
       {!closed ? (
-        <div className="space-y-2">
-          <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={t("reply_placeholder")} />
-          <Button type="button" disabled={!body.trim() || reply.isPending} onClick={() => void reply.mutateAsync()}>{t("send_reply")}</Button>
-        </div>
+        <TicketReplyComposer
+          body={body}
+          onBodyChange={setBody}
+          pending={reply.isPending}
+          onSubmit={(payload) => reply.mutateAsync(payload)}
+        />
       ) : (
         <p className="text-muted-foreground text-sm">{t("closed_hint")}</p>
       )}

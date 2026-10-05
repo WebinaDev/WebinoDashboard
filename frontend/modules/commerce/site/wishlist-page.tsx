@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
 import type { ResolvedSiteRoute } from "@/kernel/types"
-import { IshopStorefrontPage } from "@/builder/storefront/ishop-port"
+import { StorefrontPageShell } from "@/builder/storefront/storefront-chrome"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 type WishlistItem = {
@@ -38,7 +38,7 @@ export default function WishlistPage({ route }: { route: ResolvedSiteRoute }) {
     `${formatNumber(Math.round(minor), normalizeUiLocale(locale))} ${t("currency_toman")}`
 
   return (
-    <IshopStorefrontPage
+    <StorefrontPageShell
       title={t("public_wishlist_title")}
       description={owner ? t("public_wishlist_owner", { name: owner }) : undefined}
       trail={[
@@ -60,6 +60,6 @@ export default function WishlistPage({ route }: { route: ResolvedSiteRoute }) {
         ))}
       </div>
       {!items.length ? <p className="text-sm text-muted-foreground">{t("compare_empty")}</p> : null}
-    </IshopStorefrontPage>
+    </StorefrontPageShell>
   )
 }

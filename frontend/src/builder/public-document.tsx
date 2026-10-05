@@ -50,7 +50,7 @@ export function PublishedDocument({
 }) {
   return (
     <Suspense fallback={null}>
-      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass="ishop-store" />
+      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass="sf-classic" />
     </Suspense>
   )
 }
@@ -84,7 +84,7 @@ export async function resolveStorefrontDocument(
   if (published) return published
   if (!themeFallback) return null
   const theme = await activeThemeSlug()
-  return theme === "ecommerce-ishop" ? themeFallback : null
+  return theme === "ecommerce-classic" ? themeFallback : null
 }
 
 export async function StorefrontBody({

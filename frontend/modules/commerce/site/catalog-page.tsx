@@ -3,19 +3,19 @@ import type { ResolvedSiteRoute } from "@/kernel/types"
 import { StorefrontBody, StorefrontDocument, loadPublishedPage } from "@/builder/public-document"
 import { ThemeSlot } from "@/builder/theme/ThemeSlot"
 import {
-  ishopAccountDocument,
-  ishopCartDocument,
-  ishopCheckoutDocument,
-  ishopProductDocument,
-  ishopShopDocument,
-} from "@/builder/templates/ishop"
-import { ProductStoriesStrip } from "@/builder/storefront/ishop-extras"
+  classicAccountDocument,
+  classicCartDocument,
+  classicCheckoutDocument,
+  classicProductDocument,
+  classicShopDocument,
+} from "@/builder/templates/classic"
+import { ProductStoriesStrip } from "@/builder/storefront/storefront-extras"
 
 export const revalidate = 60
 
 async function themedOrPublished(
   slug: string,
-  fallback: ReturnType<typeof ishopProductDocument>,
+  fallback: ReturnType<typeof classicProductDocument>,
   runtime?: { productSlug?: string; categorySlug?: string },
 ) {
   const published = await loadPublishedPage(slug)
@@ -33,23 +33,23 @@ export default async function Page({
     const slug = route.params?.slug
     return (
       <ThemeSlot kind="single_product" runtime={{ productSlug: slug }}>
-        {await themedOrPublished("product", ishopProductDocument(), { productSlug: slug })}
+        {await themedOrPublished("product", classicProductDocument(), { productSlug: slug })}
       </ThemeSlot>
     )
   }
   if (route.path === "cart") {
-    return themedOrPublished("cart", ishopCartDocument())
+    return themedOrPublished("cart", classicCartDocument())
   }
   if (route.path === "checkout") {
-    return themedOrPublished("checkout", ishopCheckoutDocument())
+    return themedOrPublished("checkout", classicCheckoutDocument())
   }
   if (route.path === "account") {
-    return themedOrPublished("account", ishopAccountDocument())
+    return themedOrPublished("account", classicAccountDocument())
   }
 
   const built = await StorefrontBody({
     slug: "shop",
-    fallback: ishopShopDocument(),
+    fallback: classicShopDocument(),
     runtime: { categorySlug: searchParams?.category },
   })
   return (

@@ -134,7 +134,7 @@ class ProductController extends Controller
             'data' => [
                 'permalink_base' => $permalinkBase,
                 'site_url' => $baseUrl,
-                'ishop_labels' => [
+                'storefront_labels' => [
                     ['key' => 'check_purchase', 'label' => 'بررسی قبل از خرید'],
                     ['key' => 'installment_purchase', 'label' => 'خرید اقساطی'],
                     ['key' => 'credit_purchase', 'label' => 'خرید اعتباری'],

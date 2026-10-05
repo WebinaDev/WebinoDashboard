@@ -4,14 +4,19 @@ namespace Tests\Feature;
 
 use App\Models\Product;
 use App\Models\ProductCompareSession;
+use App\Models\RoleCapability;
+use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VendorStore;
 use App\Services\Shop\PersianProfanityFilter;
+use App\Support\CapabilityChecker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-class IshopFeaturesTest extends TestCase
+class StorefrontFeaturesTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -109,5 +114,29 @@ class IshopFeaturesTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.store.slug', 'beauty-hub')
             ->assertJsonPath('data.products.0.slug', 'phone');
+    }
+
+    public function test_account_ticket_reply_accepts_attachment(): void
+    {
+        Storage::fake('public');
+        RoleCapability::query()->firstOrCreate(['role' => 'customer', 'capability' => 'account.portal']);
+        CapabilityChecker::flushRoleCache('customer');
+        $user = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'customer']);
+        $this->actingAs($user, 'sanctum');
+        $ticket = SupportTicket::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $user->id,
+            'subject' => 'Need help',
+            'status' => 'open',
+        ]);
+        $file = UploadedFile::fake()->create('note.pdf', 120, 'application/pdf');
+
+        $this->post("/api/v1/account/tickets/{$ticket->id}/replies", [
+            'body' => 'Here is the file',
+            'attachments' => [$file],
+        ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.replies.0.attachments.0.kind', 'file')
+            ->assertJsonPath('data.replies.0.attachments.0.name', 'note.pdf');
     }
 }

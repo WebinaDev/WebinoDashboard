@@ -43,7 +43,7 @@ type ProductListHit = { id: number; name: string; sku?: string | null }
 type Lookup = {
   permalink_base?: string
   site_url?: string
-  ishop_labels: Array<{ key: string; label: string }>
+  storefront_labels: Array<{ key: string; label: string }>
   categories: Array<{ id: number; name: string; parent_id?: number | null }>
   brands: Array<{ id: number; name: string }>
   tags: Array<{ id: number; name: string }>
@@ -2163,11 +2163,11 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>{t("ishop_panel")}</CardTitle>
+                  <CardTitle>{t("storefront_labels_panel")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
-                    {(lookup?.ishop_labels ?? []).map((lab) => (
+                    {(lookup?.storefront_labels ?? []).map((lab) => (
                       <label key={lab.key} className="flex items-center gap-2 text-sm">
                         <Checkbox
                           checked={form.labels.includes(lab.key)}

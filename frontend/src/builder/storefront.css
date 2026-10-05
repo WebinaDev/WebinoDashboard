@@ -1,9 +1,9 @@
-.ishop-store {
+.sf-classic {
   background: var(--color-background);
   color: var(--color-foreground);
 }
 
-body:has(.ishop-store) {
+body:has(.sf-classic) {
   background: var(--color-background);
 }
 

@@ -2,15 +2,15 @@ import Link from "next/link"
 
 import { PublishedDocument, activeThemeSlug } from "@/builder/public-document"
 import { ThemeSlot } from "@/builder/theme/ThemeSlot"
-import { ishopNotFoundDocument } from "@/builder/templates/ishop"
+import { classicNotFoundDocument } from "@/builder/templates/classic"
 import { getServerTranslations } from "@/lib/server-translations"
 
 export default async function SiteNotFound() {
   const theme = await activeThemeSlug()
-  if (theme === "ecommerce-ishop") {
+  if (theme === "ecommerce-classic") {
     return (
       <ThemeSlot kind="not_found" context={{ notFound: true }}>
-        <PublishedDocument document={ishopNotFoundDocument()} />
+        <PublishedDocument document={classicNotFoundDocument()} />
       </ThemeSlot>
     )
   }

@@ -1,14 +1,14 @@
-# Site builder and ecommerce-ishop
+# Site builder and ecommerce-classic
 
-The dashboard page builder and the `ecommerce-ishop` storefront share one widget registry. A published document is the same JSON the public site renders.
+The dashboard page builder and the `ecommerce-classic` storefront share one widget registry. A published document is the same JSON the public site renders.
 
 ## Try it
 
 1. Open **صفحه‌ساز** in the dashboard (`/dashboard/builder`).
-2. Choose **فعال‌کردن پوسته آی‌شاپ** so the storefront uses the pink/navy RTL theme.
-3. Choose **بارگذاری قالب آی‌شاپ** to create draft pages (home, shop, product, cart, checkout, account) plus header and footer.
+2. Choose **فعال‌کردن پوسته کلاسیک** so the storefront uses the pink/navy RTL theme.
+3. Choose **بارگذاری قالب کلاسیک** to create draft pages (home, shop, product, cart, checkout, account) plus header and footer.
 4. Open a page, edit on the canvas, then **انتشار**.
-5. Visit `/` for the home document, `/shop` for the shop document, and `/product/{slug}` for a product. Until you publish, the ishop theme still renders its built-in documents.
+5. Visit `/` for the home document, `/shop` for the shop document, and `/product/{slug}` for a product. Until you publish, the classic theme still renders its built-in documents.
 
 Header and footer are edited at `/dashboard/builder/chrome/header` and `/dashboard/builder/chrome/footer`. Publishing them replaces the theme chrome. If nothing is published, the theme uses the same widgets with its default document.
 
@@ -16,7 +16,7 @@ Header and footer are edited at `/dashboard/builder/chrome/header` and `/dashboa
 
 Open **پوسته‌ساز** at `/dashboard/theme-builder`. Each area can hold several templates: headers, footers, single post, single page, single product, archives, search results, product archive, loop items, and 404. One template per area is the default. Other templates apply only when their include/exclude conditions match (entire site, URL, singular, archive, search, 404). Higher priority wins. Drafts stay off the storefront until **انتشار**.
 
-**کتابخانه** imports ishop and beauty-shop presets, including full starter kits. Applying a preset creates a draft; the first template of a kind becomes the default.
+**کتابخانه** imports classic and beauty-shop presets, including full starter kits. Applying a preset creates a draft; the first template of a kind becomes the default.
 
 The storefront resolves a published template from the current path (`x-webino-path`) and falls back to the default, then to the theme’s built-in chrome or page.
 

@@ -30,10 +30,10 @@ import { createWidget, WIDGET_CATEGORIES, WIDGETS, widgetDef } from "../registry
 import { documentCss, mergeStyle } from "../style"
 import { WidgetGlyph } from "../theme/icons"
 import {
-  ishopFooterDocument,
-  ishopHeaderDocument,
+  classicFooterDocument,
+  classicHeaderDocument,
   previewHref,
-} from "../templates/ishop"
+} from "../templates/classic"
 import {
   addColumn,
   addSection,
@@ -148,8 +148,8 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           const initial = isDocument(row.document) && row.document.sections.length
             ? row.document
             : mode.chrome === "header"
-              ? ishopHeaderDocument()
-              : ishopFooterDocument()
+              ? classicHeaderDocument()
+              : classicFooterDocument()
           setDoc(initial)
           setTitle(row.title || (mode.chrome === "header" ? t("header") : t("footer")))
         } else if (mode.kind === "theme") {

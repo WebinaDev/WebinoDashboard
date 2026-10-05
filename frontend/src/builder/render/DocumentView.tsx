@@ -8,8 +8,8 @@ import { DND_NODE, DND_WIDGET } from "../types"
 import { BuilderGlobalsProvider, BuilderRuntimeProvider } from "./runtime"
 import { WidgetBody } from "./widgets"
 
-import "../ishop.css"
-import "@/themes/ecommerce-ishop/ishop-theme.css"
+import "../storefront.css"
+import "@/themes/ecommerce-classic/classic-theme.css"
 
 type Props = {
   document: BuilderDocument

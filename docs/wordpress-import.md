@@ -18,7 +18,7 @@ Domain licensing is unchanged. Do not send license keys or HMAC entitlement code
 1. Enter the source URL, for example `https://parisma.ir`. **Check URL** only validates the shape.
 2. Set currency and the price multiplier. WooCommerce major-unit prices in `IRT` or `IRR` are stored as whole units. If the source prices are toman and this tenant stores rial, set the multiplier to `10`. A value sent as `price_minor` is stored as-is and is not multiplied.
 3. List extra image hosts (CDN) if they differ from the source host. The source host is always allowed. This list is fixed when the job is created; a plugin token cannot widen it later.
-4. Leave **Publish products and posts** off for the first pass. Imported products stay hidden and pages, posts, and header/footer changes stay drafts, so the live ishop theme is not replaced. Turn it on and run again when the drafts look right. Menus are merged into the header or footer **draft** and are not auto-published.
+4. Leave **Publish products and posts** off for the first pass. Imported products stay hidden and pages, posts, and header/footer changes stay drafts, so the live classic theme is not replaced. Turn it on and run again when the drafts look right. Menus are merged into the header or footer **draft** and are not auto-published.
 5. **Dry run** validates and counts rows without writing the catalog.
 6. Create the job, upload `export.json` / a ZIP, or let the plugin push batches, then **Continue until finished**. Failures stay on the job; **Retry failures** requeues them. **Pause** stops the next record.
 
@@ -152,13 +152,13 @@ Pages become `cms_pages` and open in `/dashboard/builder`. When the plugin sends
 
 Posts become blog posts. Elementor on a post is stored on `builder_draft` and the HTML body is kept. The page builder does not open blog posts.
 
-Menus flatten to `label|/path` lines and are merged into the header or footer builder draft (`location` containing `footer` targets the footer). Existing ishop chrome is kept; links are appended.
+Menus flatten to `label|/path` lines and are merged into the header or footer builder draft (`location` containing `footer` targets the footer). Existing classic chrome is kept; links are appended.
 
 `stats` items are snapshots on the job (`period`, `orders`, `revenue` or `revenue_minor`). They do not replace the figures computed from imported orders.
 
 ## Parisma.ir
 
-Target tenant: `https://parisma.webinaagency.ir` (ecommerce, builder and ecommerce-ishop already on main). Source: `https://parisma.ir`.
+Target tenant: `https://parisma.webinaagency.ir` (ecommerce, builder and ecommerce-classic already on main). Source: `https://parisma.ir`.
 
 1. Open `/dashboard/import/wordpress` on the tenant.
 2. Source URL `https://parisma.ir`. Currency `IRT` if WooCommerce stores toman. Multiplier `1` for toman-to-toman, or `10` if this tenant's `default_currency` is `IRR`.

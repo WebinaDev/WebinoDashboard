@@ -15,16 +15,16 @@ import { toneClass, mapApiProduct, type ShopProduct } from "../catalog"
 import { parseLinks, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { addShopItem, setServerQty, syncGuestCart, useServerCart } from "./actions"
-import { ProductPriceHistory } from "./ishop-extras"
+import { ProductPriceHistory } from "./storefront-extras"
 import {
-  IshopAccountShell,
-  IshopBreadcrumbs,
-  IshopMegaMenuPanel,
-  IshopMobileNav,
-  IshopTopBar,
+  StorefrontAccountShell,
+  StorefrontBreadcrumbs,
+  StorefrontMegaMenuPanel,
+  StorefrontMobileNav,
+  StorefrontTopBar,
   MobileNavToggle,
   StockAlertForm,
-} from "./ishop-port"
+} from "./storefront-chrome"
 import { quietApi } from "./session"
 import { useCatalog } from "./use-catalog"
 
@@ -140,7 +140,7 @@ export function StoreFilters({ editing }: { editing: boolean }) {
   }
 
   return (
-    <aside className="sf-card p-4">
+    <aside className="sf-filters sf-card p-4">
       <div className="mb-3 text-sm font-bold">{t("filters")}</div>
       <details open className="border-b border-border py-2">
         <summary className="cursor-pointer text-sm font-semibold">{t("category")}</summary>
@@ -237,8 +237,8 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
-      <IshopBreadcrumbs
+    <div className="sf-pdp-shell mx-auto max-w-6xl px-4 py-6">
+      <StorefrontBreadcrumbs
         items={[
           { label: t("categories"), href: "/shop" },
           { label: product.category, href: product.categorySlug ? `/shop?category=${product.categorySlug}` : "/shop" },
@@ -443,7 +443,7 @@ export function StorefrontCart() {
     }
     const total = pricing?.subtotal_minor ?? lines.reduce((sum, line) => sum + line.product.price_minor * line.quantity, 0)
     return (
-      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+      <div className="sf-cart grid gap-4 lg:grid-cols-[1fr_280px]">
         <div className="grid gap-3">
           {lines.map((line) => (
             <div key={line.id} className="sf-card flex items-center gap-3 p-3">
@@ -683,7 +683,7 @@ export function StorefrontCheckout() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+    <div className="sf-checkout grid gap-4 lg:grid-cols-[1fr_300px]">
       <form
         className="sf-card grid gap-3 p-5 md:grid-cols-2"
         onSubmit={(event) => {
@@ -831,7 +831,7 @@ export function StorefrontAccount() {
   }
 
   return (
-    <IshopAccountShell>
+    <StorefrontAccountShell>
       <div className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-bold">{t("account_orders")}</h2>
@@ -857,7 +857,7 @@ export function StorefrontAccount() {
           })}
         </div>
       </div>
-    </IshopAccountShell>
+    </StorefrontAccountShell>
   )
 }
 
@@ -888,8 +888,8 @@ export function StorefrontHeader({
 
   return (
     <>
-      <IshopTopBar />
-      <IshopMobileNav open={mobileNav} onClose={() => setMobileNav(false)} links={links} />
+      <StorefrontTopBar />
+      <StorefrontMobileNav open={mobileNav} onClose={() => setMobileNav(false)} links={links} />
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <MobileNavToggle onOpen={() => setMobileNav(true)} />
@@ -943,7 +943,7 @@ export function StorefrontHeader({
       {open ? (
         <div className="border-t border-border bg-card pb-4">
           <div className="mx-auto hidden max-w-6xl px-4 pt-3 md:block">
-            <IshopMegaMenuPanel columnsText="" />
+            <StorefrontMegaMenuPanel columnsText="" />
           </div>
           <div className="mx-auto grid max-w-6xl gap-2 px-4 py-3 md:hidden sm:grid-cols-3">
             {catalog.categories.map((item) => (

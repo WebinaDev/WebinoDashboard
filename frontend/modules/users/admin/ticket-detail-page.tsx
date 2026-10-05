@@ -6,10 +6,14 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { PageShell } from "@/components/PageShell"
+import {
+  TicketReplyAttachments,
+  TicketReplyComposer,
+  buildTicketReplyFormData,
+} from "@/components/tickets/TicketReplyComposer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -20,6 +24,7 @@ type Reply = {
   is_staff: boolean
   body: string
   created_at: string
+  attachments?: Array<{ name: string; mime?: string; kind?: string; url?: string | null }>
 }
 
 type TicketDetail = {
@@ -49,7 +54,11 @@ export default function TicketDetailPage({ route }: { route: ResolvedAdminRoute 
   })
 
   const reply = useMutation({
-    mutationFn: () => api(`/api/v1/shop/tickets/${id}/replies`, { method: "POST", json: { body } }),
+    mutationFn: (payload: { body: string; files: File[]; voice: File | null }) =>
+      api(`/api/v1/shop/tickets/${id}/replies`, {
+        method: "POST",
+        body: buildTicketReplyFormData(payload),
+      }),
     onSuccess: () => {
       toast.success(tCommon("saved"))
       setBody("")
@@ -144,27 +153,19 @@ export default function TicketDetailPage({ route }: { route: ResolvedAdminRoute 
                 <span className="text-muted-foreground">{r.created_at}</span>
               </div>
               <p className="whitespace-pre-wrap text-sm leading-relaxed">{r.body}</p>
+              <TicketReplyAttachments attachments={r.attachments} />
             </CardContent>
           </Card>
         ))}
       </div>
 
       {!closed ? (
-        <div className="space-y-3">
-          <Textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={t("reply_placeholder")}
-            rows={4}
-          />
-          <Button
-            type="button"
-            disabled={!body.trim() || reply.isPending}
-            onClick={() => void reply.mutateAsync()}
-          >
-            {t("send_reply")}
-          </Button>
-        </div>
+        <TicketReplyComposer
+          body={body}
+          onBodyChange={setBody}
+          pending={reply.isPending}
+          onSubmit={(payload) => reply.mutateAsync(payload)}
+        />
       ) : (
         <p className="text-muted-foreground text-sm">{t("closed_hint")}</p>
       )}

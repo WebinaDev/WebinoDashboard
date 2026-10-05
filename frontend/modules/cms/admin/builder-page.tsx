@@ -10,7 +10,7 @@ import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
-import { ISHOP_PAGE_TEMPLATES, ishopFooterDocument, ishopHeaderDocument } from "@/builder/templates/ishop"
+import { CLASSIC_PAGE_TEMPLATES, classicFooterDocument, classicHeaderDocument } from "@/builder/templates/classic"
 
 type PageRow = {
   id: number
@@ -47,7 +47,7 @@ export default function BuilderListPage(_props: { route: ResolvedAdminRoute }) {
     setBusy(true)
     try {
       const existing = new Set((rows ?? []).map((row) => row.slug))
-      for (const page of ISHOP_PAGE_TEMPLATES) {
+      for (const page of CLASSIC_PAGE_TEMPLATES) {
         if (existing.has(page.slug)) continue
         try {
           await api("/api/v1/builder/pages", {
@@ -60,11 +60,11 @@ export default function BuilderListPage(_props: { route: ResolvedAdminRoute }) {
       }
       await api("/api/v1/builder/templates/header", {
         method: "PUT",
-        json: { title: t("header"), document: ishopHeaderDocument() },
+        json: { title: t("header"), document: classicHeaderDocument() },
       })
       await api("/api/v1/builder/templates/footer", {
         method: "PUT",
-        json: { title: t("footer"), document: ishopFooterDocument() },
+        json: { title: t("footer"), document: classicFooterDocument() },
       })
       toast.success(t("seed_done"))
       await load()
@@ -78,9 +78,9 @@ export default function BuilderListPage(_props: { route: ResolvedAdminRoute }) {
   async function activate() {
     setBusy(true)
     try {
-      await api("/api/v1/themes/ecommerce-ishop/activate", { method: "POST" })
+      await api("/api/v1/themes/ecommerce-classic/activate", { method: "POST" })
       toast.success(t("activated"))
-      setTheme("ecommerce-ishop")
+      setTheme("ecommerce-classic")
     } catch {
       toast.error(t("save_failed"))
     } finally {
@@ -97,7 +97,7 @@ export default function BuilderListPage(_props: { route: ResolvedAdminRoute }) {
         <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/header"><PanelTop className="size-4" aria-hidden />{t("header")}</Link></Button>
         <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/footer"><PanelBottom className="size-4" aria-hidden />{t("footer")}</Link></Button>
         <Button variant="outline" disabled={busy} onClick={() => void seed()}>{t("seed")}</Button>
-        <Button variant="outline" disabled={busy || theme === "ecommerce-ishop"} onClick={() => void activate()}>{t("activate")}</Button>
+        <Button variant="outline" disabled={busy || theme === "ecommerce-classic"} onClick={() => void activate()}>{t("activate")}</Button>
         <Button variant="outline" asChild><Link href="/dashboard/import/wordpress">{t("import_link")}</Link></Button>
       </div>
       {rows && rows.length === 0 ? <p className="text-muted-foreground mb-3 text-sm">{t("empty_list")}</p> : null}

@@ -1,0 +1,399 @@
+/**
+ * Classic Webino storefront theme — tokens and components (RTL / FA-first).
+ * Scoped under .sf-classic.
+ */
+.sf-classic {
+  --sf-pink: #e91e8c;
+  --sf-pink-soft: #fce4f3;
+  --sf-navy: #0c2d63;
+  --sf-navy-soft: #e8eef7;
+  --sf-radius-lg: 1.75rem;
+  --sf-radius-md: 1.25rem;
+  --sf-shadow: 0 12px 40px -16px color-mix(in oklch, var(--sf-navy) 25%, transparent);
+  --sf-header-h: 4.25rem;
+  font-feature-settings: "ss01";
+}
+
+.sf-classic .sf-topbar {
+  background: var(--sf-navy);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.sf-classic .sf-topbar a {
+  color: inherit;
+  opacity: 0.92;
+}
+
+.sf-classic .sf-topbar a:hover {
+  opacity: 1;
+}
+
+.sf-classic .sf-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sf-classic .sf-section-head h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.sf-classic .sf-section-head a {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sf-pink);
+}
+
+.sf-classic .sf-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: color-mix(in oklch, var(--color-foreground) 55%, transparent);
+  margin-bottom: 1rem;
+}
+
+.sf-classic .sf-breadcrumb a:hover {
+  color: var(--sf-pink);
+}
+
+.sf-classic .sf-mega-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--sf-radius-lg);
+  background: var(--color-card);
+  box-shadow: var(--sf-shadow);
+  padding: 1rem;
+}
+
+.sf-classic .sf-mega-col h3 {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--sf-navy);
+  margin-bottom: 0.5rem;
+}
+
+.sf-classic .sf-mega-col a {
+  display: block;
+  padding: 0.35rem 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sf-classic .sf-mega-col a:hover {
+  color: var(--sf-pink);
+}
+
+.sf-classic .sf-taste-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .sf-classic .sf-taste-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.sf-classic .sf-taste-card {
+  border-radius: var(--sf-radius-md);
+  padding: 1rem;
+  background: linear-gradient(145deg, var(--sf-pink-soft), var(--color-card));
+  border: 1px solid color-mix(in oklch, var(--sf-pink) 18%, var(--color-border));
+  min-height: 7.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sf-classic .sf-package {
+  display: grid;
+  gap: 1rem;
+  border-radius: var(--sf-radius-lg);
+  border: 1px dashed color-mix(in oklch, var(--sf-pink) 35%, var(--color-border));
+  padding: 1.25rem;
+  background: color-mix(in oklch, var(--sf-pink-soft) 40%, var(--color-card));
+}
+
+@media (min-width: 768px) {
+  .sf-classic .sf-package {
+    grid-template-columns: 1fr 1.2fr;
+    align-items: center;
+  }
+}
+
+.sf-classic .sf-blog-toc {
+  border-inline-start: 3px solid var(--sf-pink);
+  padding-inline-start: 1rem;
+}
+
+.sf-classic .sf-blog-toc a {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0;
+}
+
+.sf-classic .sf-review-card {
+  border-radius: var(--sf-radius-md);
+  border: 1px solid var(--color-border);
+  padding: 1rem;
+  background: var(--color-card);
+}
+
+.sf-classic .sf-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.sf-classic .sf-review-actions button {
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sf-classic .sf-account-shell {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .sf-classic .sf-account-shell {
+    grid-template-columns: 240px 1fr;
+  }
+}
+
+.sf-classic .sf-account-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sf-classic .sf-account-nav a {
+  border-radius: 0.9rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--color-muted);
+}
+
+.sf-classic .sf-account-nav a[aria-current="page"] {
+  background: var(--sf-pink);
+  color: #fff;
+}
+
+.sf-classic .sf-mobile-nav {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: color-mix(in oklch, var(--color-background) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.sf-classic .sf-mobile-sheet {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  max-height: 85vh;
+  overflow: auto;
+  border-radius: var(--sf-radius-lg) var(--sf-radius-lg) 0 0;
+  background: var(--color-card);
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  box-shadow: var(--sf-shadow);
+}
+
+.sf-classic .sf-card {
+  box-shadow: var(--sf-shadow);
+}
+
+.sf-classic .sf-hero {
+  background: linear-gradient(125deg, var(--sf-pink), var(--sf-navy));
+}
+
+.sf-classic a:focus-visible,
+.sf-classic button:focus-visible {
+  outline: 2px solid var(--sf-pink);
+  outline-offset: 2px;
+}
+
+.sf-classic .sf-secondary-page .sf-breadcrumb {
+  font-size: 0.8125rem;
+  color: color-mix(in oklch, var(--color-foreground) 70%, transparent);
+}
+
+.sf-classic .sf-vendor-hero {
+  border: 1px solid color-mix(in oklch, var(--sf-pink) 25%, var(--color-border));
+}
+
+/* Dark mode — next-themes adds .dark on <html> */
+.dark .sf-classic {
+  --sf-pink: #f472b6;
+  --sf-pink-soft: color-mix(in oklch, #f472b6 18%, var(--color-card));
+  --sf-navy: #93c5fd;
+  --sf-navy-soft: color-mix(in oklch, #93c5fd 14%, var(--color-card));
+  --sf-shadow: 0 16px 48px -20px color-mix(in oklch, #000 55%, transparent);
+}
+
+.dark .sf-classic .sf-topbar {
+  background: color-mix(in oklch, var(--color-card) 88%, #0c2d63);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dark .sf-classic .sf-amazing-banner {
+  background: linear-gradient(120deg, color-mix(in oklch, var(--sf-pink) 55%, #111), color-mix(in oklch, var(--sf-navy) 45%, #111));
+}
+
+.dark .sf-classic .sf-hero {
+  background: linear-gradient(125deg, color-mix(in oklch, var(--sf-pink) 70%, #111), color-mix(in oklch, var(--sf-navy) 60%, #111));
+}
+
+/* Blog */
+.sf-classic .sf-blog-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .sf-classic .sf-blog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .sf-classic .sf-blog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.sf-classic .sf-blog-card {
+  border-radius: var(--sf-radius-md);
+  padding: 0.25rem;
+  transition: transform 180ms ease;
+}
+
+.sf-classic .sf-blog-card:hover {
+  transform: translateY(-2px);
+}
+
+.sf-classic .sf-blog-single {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .sf-classic .sf-blog-single {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: start;
+  }
+}
+
+.sf-classic .sf-blog-aside {
+  position: sticky;
+  top: 1rem;
+}
+
+.sf-classic .sf-blog-prose :is(h2, h3) {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 800;
+}
+
+.sf-classic .sf-blog-prose p {
+  margin-bottom: 0.85rem;
+}
+
+.sf-classic .sf-blog-slider {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 280px);
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x mandatory;
+}
+
+.sf-classic .sf-blog-slide {
+  scroll-snap-align: start;
+}
+
+/* Amazing header */
+.sf-classic .sf-amazing-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: var(--sf-radius-lg);
+  padding: 1.5rem;
+  color: #fff;
+  background: linear-gradient(120deg, var(--sf-pink), var(--sf-navy));
+  box-shadow: var(--sf-shadow);
+}
+
+/* PDP / cart / checkout / filters fidelity */
+.sf-classic .sf-pdp-shell {
+  animation: sf-fade-up 320ms ease both;
+}
+
+.sf-classic .sf-pdp .aspect-square {
+  border-radius: var(--sf-radius-lg);
+  box-shadow: var(--sf-shadow);
+}
+
+.sf-classic .sf-filters {
+  border-radius: var(--sf-radius-md);
+  border-color: color-mix(in oklch, var(--sf-pink) 18%, var(--color-border));
+}
+
+.sf-classic .sf-filters summary {
+  color: var(--sf-navy);
+}
+
+.dark .sf-classic .sf-filters summary {
+  color: var(--sf-navy);
+}
+
+.sf-classic .sf-cart .sf-card,
+.sf-classic .sf-checkout .sf-card,
+.sf-classic .sf-account-shell .sf-card {
+  border-radius: var(--sf-radius-md);
+}
+
+.sf-classic .sf-atc-box {
+  border: 1px solid color-mix(in oklch, var(--sf-pink) 22%, var(--color-border));
+  box-shadow: var(--sf-shadow);
+}
+
+.sf-classic .sf-sticky-cta {
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in oklch, var(--color-background) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+@keyframes sf-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-classic .sf-pdp-shell,
+  .sf-classic .sf-blog-card {
+    animation: none;
+    transition: none;
+  }
+}

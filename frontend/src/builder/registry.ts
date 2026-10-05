@@ -354,6 +354,38 @@ export const WIDGETS: WidgetDef[] = [
     create: () => node("amazing-offers", { title: "پیشنهادهای شگفت‌انگیز" }),
   },
   {
+    type: "amazing-header",
+    label: "سربرگ پیشنهاد شگفت‌انگیز",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "text", label: "توضیح" },
+      { kind: "url", key: "href", label: "پیوند" },
+    ],
+    create: () => node("amazing-header", { title: "پیشنهادهای شگفت‌انگیز", text: "تخفیف‌های محدود امروز", href: "/amazing-offers" }),
+  },
+  {
+    type: "blog-slider",
+    label: "اسلایدر مجله",
+    category: "commerce",
+    fields: [{ kind: "text", key: "title", label: "عنوان" }],
+    create: () => node("blog-slider", { title: "از مجله ویبینو" }),
+  },
+  {
+    type: "product-gallery",
+    label: "گالری محصول",
+    category: "commerce",
+    fields: [],
+    create: () => node("product-gallery", {}),
+  },
+  {
+    type: "add-to-cart-box",
+    label: "باکس افزودن به سبد",
+    category: "commerce",
+    fields: [],
+    create: () => node("add-to-cart-box", {}),
+  },
+  {
     type: "store-footer",
     label: "پاورقی فروشگاه",
     category: "chrome",
