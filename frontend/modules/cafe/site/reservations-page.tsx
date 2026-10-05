@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -127,10 +128,12 @@ export default function Page(_props: { route: ResolvedSiteRoute }) {
           </div>
           <div>
             <Label>{t("reserved_at")}</Label>
-            <Input
-              type="datetime-local"
-              value={form.reserved_at}
-              onChange={(e) => setForm((f) => ({ ...f, reserved_at: e.target.value }))}
+            <LocaleDatePicker
+              locale={locale}
+              withTime
+              value={form.reserved_at || null}
+              onChange={(value) => setForm((f) => ({ ...f, reserved_at: value ?? "" }))}
+              aria-label={t("reserved_at")}
             />
           </div>
           <div>

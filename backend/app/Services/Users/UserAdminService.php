@@ -178,7 +178,8 @@ class UserAdminService
 
         $name = $this->resolveDisplayName($data);
 
-        $user = User::query()->create([
+        $user = new User;
+        $user->forceFill([
             'tenant_id' => $tid,
             'name' => $name,
             'username' => $data['username'] ?? null,
@@ -198,7 +199,7 @@ class UserAdminService
             'bank_account' => $data['bank_account'] ?? null,
             'bank_card' => $data['bank_card'] ?? null,
             'wallet_balance_minor' => 0,
-        ]);
+        ])->save();
         if ($openingBalance > 0) {
             app(WalletService::class)->adjust($user, (int) $tid, 'credit', $openingBalance, 'admin_adjust', 'Opening balance', 'user', (int) $user->id);
         }
@@ -308,7 +309,13 @@ class UserAdminService
             $data['name'] = $this->resolveDisplayName($merged);
         }
 
-        $user->update($data);
+        $roleValue = $data['role'] ?? null;
+        unset($data['role']);
+        $user->fill($data);
+        if ($roleValue !== null) {
+            $user->role = (string) $roleValue;
+        }
+        $user->save();
         if ($walletTarget !== null) {
             $delta = $walletTarget - (int) $user->fresh()->wallet_balance_minor;
             if ($delta > 0) {
@@ -321,7 +328,7 @@ class UserAdminService
         return $user->fresh();
     }
 
-    private function assertCanAssignRole(Request $request, string $role): void
+    public function assertCanAssignRole(Request $request, string $role): void
     {
         if ($role !== 'admin') {
             return;
@@ -359,10 +366,17 @@ class UserAdminService
         ]);
         $this->assertCanAssignRole($request, (string) $data['role']);
 
-        return User::query()
+        $role = (string) $data['role'];
+        $query = User::query()
             ->where('tenant_id', $tid)
-            ->whereIn('id', $data['ids'])
-            ->update(['role' => $data['role']]);
+            ->whereIn('id', $data['ids']);
+        $count = 0;
+        foreach ($query->cursor() as $user) {
+            $user->forceFill(['role' => $role])->save();
+            $count++;
+        }
+
+        return $count;
     }
 
     public function resetPassword(Request $request, int $userId): User

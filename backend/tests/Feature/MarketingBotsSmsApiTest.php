@@ -159,12 +159,14 @@ class MarketingBotsSmsApiTest extends TestCase
             'webhook_secret' => 'sec123',
         ]);
 
-        $this->postJson('/api/v1/public/bots/telegram/webhook?secret=sec123', [
+        $this->postJson('/api/v1/public/bots/telegram/webhook', [
             'message' => [
                 'chat' => ['id' => 999],
                 'text' => 'hi',
                 'from' => ['id' => 1],
             ],
+        ], [
+            'X-Bot-Secret' => 'sec123',
         ])->assertOk();
 
         $this->assertDatabaseHas('bot_sessions', [

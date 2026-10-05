@@ -29,15 +29,31 @@ class ProductDownloadController extends Controller
     {
         $this->authorizeProduct($request, $product);
         $data = $request->validate([
-            'file' => ['required', 'file', 'max:51200'],
+            'file' => [
+                'required',
+                'file',
+                'max:51200',
+                'mimes:zip,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,mp3,mp4,jpg,jpeg,png,webp,gif',
+                'mimetypes:application/zip,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,audio/mpeg,video/mp4,image/jpeg,image/png,image/webp,image/gif,application/octet-stream',
+            ],
             'name' => ['nullable', 'string', 'max:120'],
             'download_limit' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $file = $request->file('file');
+        abort_unless($file !== null, 422);
+        $ext = strtolower((string) $file->getClientOriginalExtension());
+        if (in_array($ext, ['svg', 'php', 'phtml', 'phar', 'exe', 'sh', 'bat', 'cmd', 'js'], true)) {
+            return response()->json([
+                'message' => __('validation.failed'),
+                'errors' => ['file' => ['File type is not allowed.']],
+            ], 422);
+        }
+
         $row = $this->downloads->storeUpload(
             (int) $request->user()->tenant_id,
             $product,
-            $data['file'],
+            $file,
             (string) ($data['name'] ?? '')
         );
         if (isset($data['download_limit'])) {

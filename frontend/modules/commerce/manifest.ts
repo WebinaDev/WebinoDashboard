@@ -479,6 +479,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 1,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/tax-setup",
@@ -491,6 +492,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 2,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/chart",
@@ -539,6 +541,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 6,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/invoices",
@@ -551,6 +554,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 7,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/purchases",
@@ -563,6 +567,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 8,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/expenses",
@@ -575,6 +580,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 9,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/treasury",
@@ -587,6 +593,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 10,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/checks",
@@ -599,6 +606,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 11,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/installments",
@@ -611,6 +619,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 12,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/warehouses",
@@ -623,6 +632,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 13,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/production",
@@ -635,6 +645,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 14,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/moadian",
@@ -647,6 +658,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 15,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/hesabfa",
@@ -659,6 +671,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 16,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/payroll",
@@ -671,6 +684,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 17,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/my-payroll",
@@ -683,6 +697,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 18,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/projects",
@@ -695,6 +710,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 19,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/reports",
@@ -707,6 +723,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 20,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "accounting/tools",
@@ -719,6 +736,7 @@ export const commerceManifest: ModuleManifest = {
       navOrder: 21,
       capability: "accounting.manage",
       menuKey: "accounting",
+      navHidden: true,
     },
     {
       path: "cart",

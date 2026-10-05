@@ -88,7 +88,10 @@ class DashboardFullReauditTest extends TestCase
         $payload = ['message' => ['chat' => ['id' => 42], 'text' => 'hi', 'from' => ['id' => 1]]];
         $this->postJson('/api/v1/public/bots/telegram/webhook', $payload)->assertNotFound();
         $this->postJson('/api/v1/public/bots/telegram/webhook?secret=nope', $payload)->assertNotFound();
-        $this->postJson('/api/v1/public/bots/telegram/webhook?secret=secret-b', $payload)->assertOk();
+        $this->postJson('/api/v1/public/bots/telegram/webhook?secret=secret-b', $payload)->assertNotFound();
+        $this->postJson('/api/v1/public/bots/telegram/webhook', $payload, [
+            'X-Bot-Secret' => 'secret-b',
+        ])->assertOk();
 
         $this->assertDatabaseHas('bot_sessions', ['tenant_id' => $other->id, 'chat_id' => '42']);
         $this->assertDatabaseMissing('bot_sessions', ['tenant_id' => $this->tenant->id, 'chat_id' => '42']);

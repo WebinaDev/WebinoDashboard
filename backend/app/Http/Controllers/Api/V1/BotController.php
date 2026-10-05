@@ -33,7 +33,9 @@ class BotController extends Controller
                 'token' => $row->token ? '••••••••' : '',
                 'has_token' => filled($row->token),
                 'has_webhook_secret' => filled($row->webhook_secret),
+                // Clients must send X-Bot-Secret; query ?secret= is no longer accepted.
                 'webhook_url' => url('/api/v1/public/bots/'.$provider.'/webhook'),
+                'webhook_secret_header' => 'X-Bot-Secret',
                 'meta' => $row->meta ?? [],
             ],
         ]);
@@ -324,7 +326,8 @@ class BotController extends Controller
     public function webhook(Request $request, string $provider): \Illuminate\Http\JsonResponse
     {
         $this->assertProvider($provider);
-        $secret = trim((string) ($request->query('secret') ?? $request->header('X-Bot-Secret') ?? ''));
+        // Prefer header only — query ?secret= leaks into access logs and Referer.
+        $secret = trim((string) ($request->header('X-Bot-Secret') ?? ''));
         $payload = $request->all();
 
         $message = $payload['message'] ?? $payload['edited_message'] ?? null;

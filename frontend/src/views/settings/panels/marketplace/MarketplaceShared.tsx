@@ -32,7 +32,7 @@ import {
 } from "@/lib/marketplace"
 import { cn } from "@/lib/utils"
 import { formatDisplayDateTime } from "@/lib/format-date"
-import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 export const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
@@ -44,6 +44,37 @@ export function fmtDate(value: string | null | undefined, locale: string): strin
 export function fmtNum(value: number | null | undefined, locale: string): string {
   if (value === null || value === undefined) return "—"
   return formatNumber(Number(value), normalizeUiLocale(locale))
+}
+
+function formatMetaScalar(value: unknown, locale: string): string {
+  if (value === null || value === undefined || value === "") return "—"
+  if (typeof value === "number") return fmtNum(value, locale)
+  if (typeof value === "boolean") return value ? "true" : "false"
+  if (typeof value === "string") {
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return fmtDate(value, locale)
+    return value
+  }
+  return String(value)
+}
+
+/** Human-readable key/value rows for marketplace log meta; raw JSON only in advanced expand. */
+export function formatLogMetaEntries(meta: Record<string, unknown>, locale: string): Array<{ key: string; value: string }> {
+  const rows: Array<{ key: string; value: string }> = []
+  for (const [key, raw] of Object.entries(meta)) {
+    if (raw === null || raw === undefined || raw === "") continue
+    if (typeof raw === "object" && !Array.isArray(raw)) {
+      for (const [subKey, subVal] of Object.entries(raw as Record<string, unknown>)) {
+        rows.push({ key: `${key}.${subKey}`, value: formatMetaScalar(subVal, locale) })
+      }
+      continue
+    }
+    if (Array.isArray(raw)) {
+      rows.push({ key, value: raw.map((v) => formatMetaScalar(v, locale)).join(", ") })
+      continue
+    }
+    rows.push({ key, value: formatMetaScalar(raw, locale) })
+  }
+  return rows
 }
 
 export type PlatformTab = { key: string; label: string }
@@ -69,14 +100,17 @@ export function PlatformTabsNav({ platform, tabs, active }: { platform: string; 
 
 export function Pager({ meta, page, setPage }: { meta?: Paginated<unknown>["meta"]; page: number; setPage: (p: number) => void }) {
   const t = useTranslations("marketplace_admin")
+  const locale = useLocale()
   if (!meta || meta.last_page <= 1) return null
+  const current = toLocaleDigits(String(meta.current_page), locale)
+  const last = toLocaleDigits(String(meta.last_page), locale)
   return (
     <div className="flex items-center justify-end gap-2 pt-2 text-sm">
       <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>
         {t("prev")}
       </Button>
       <span className="text-muted-foreground">
-        {meta.current_page} / {meta.last_page}
+        {current} / {last}
       </span>
       <Button size="sm" variant="outline" disabled={page >= meta.last_page} onClick={() => setPage(page + 1)}>
         {t("next")}
@@ -703,10 +737,23 @@ export function LogsTable({ platform }: { platform: string }) {
                   <span className="min-w-0 flex-1 truncate">{l.message}</span>
                   <span className="text-muted-foreground text-xs">{fmtDate(l.created_at, locale)}</span>
                 </summary>
-                {l.meta ? (
-                  <pre dir="ltr" className="bg-muted mt-2 max-h-64 overflow-auto rounded p-2 text-xs">
-                    {JSON.stringify(l.meta, null, 2)}
-                  </pre>
+                {l.meta && typeof l.meta === "object" ? (
+                  <div className="mt-2 space-y-2 text-xs">
+                    <dl className="grid gap-1 sm:grid-cols-2">
+                      {formatLogMetaEntries(l.meta as Record<string, unknown>, locale).map((row) => (
+                        <div key={row.key} className="flex gap-2">
+                          <dt className="text-muted-foreground shrink-0 font-medium">{row.key}</dt>
+                          <dd className="min-w-0 break-all">{row.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <details>
+                      <summary className="text-muted-foreground cursor-pointer">{t("raw_json")}</summary>
+                      <pre dir="ltr" className="bg-muted mt-1 max-h-48 overflow-auto rounded p-2 text-xs">
+                        {JSON.stringify(l.meta, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
                 ) : null}
               </details>
             ))}

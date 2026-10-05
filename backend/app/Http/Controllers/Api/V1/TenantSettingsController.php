@@ -518,7 +518,10 @@ class TenantSettingsController extends Controller
         $caps = app(\App\Support\CapabilityChecker::class);
         $user = $request->user();
         $security = in_array($key, [SecuritySettings::KEY, OtpSettings::KEY, 'site.system-logs'], true);
-        $bots = str_starts_with($key, 'bots.');
+        // Match bots.* and nested keys like shop.bots.* / *.bots.*
+        $bots = str_starts_with($key, 'bots.')
+            || str_contains($key, '.bots.')
+            || str_ends_with($key, '.bots');
         if ($security && ! $caps->allows($user, 'settings.manage')) {
             abort(403, __('api.forbidden'));
         }

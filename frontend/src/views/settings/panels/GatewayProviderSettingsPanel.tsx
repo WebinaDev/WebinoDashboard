@@ -22,7 +22,7 @@ type FieldDef =
 
 const PROVIDER_FIELDS: Record<string, FieldDef[]> = {
   zarinpal: [
-    { key: "merchant_id", type: "text", label: "merchant_id" },
+    { key: "merchant_id", type: "password", label: "merchant_id" },
     { key: "access_token", type: "password", label: "access_token" },
     { key: "sandbox", type: "switch", label: "sandbox" },
     { key: "title", type: "text", label: "title" },
@@ -187,7 +187,7 @@ export function GatewayProviderSettingsPanel({
   useEffect(() => {
     if (!q.data?.settings) return
     const s = { ...q.data.settings }
-    for (const key of ["access_token", "client_secret", "password", "client_password"]) {
+    for (const key of ["access_token", "client_secret", "password", "client_password", "merchant_id"]) {
       if (s[`has_${key}`]) s[key] = ""
       delete s[`has_${key}`]
     }

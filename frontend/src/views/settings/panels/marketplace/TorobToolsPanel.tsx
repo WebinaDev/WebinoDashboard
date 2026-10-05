@@ -115,9 +115,40 @@ export function TorobToolsPanel() {
             </Button>
           </div>
           {preview.data ? (
-            <pre dir="ltr" className="bg-muted max-h-96 overflow-auto rounded p-2 text-xs">
-              {JSON.stringify(preview.data, null, 2)}
-            </pre>
+            <div className="space-y-3 text-sm">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">{preview.data.format}</Badge>
+                <Badge variant="secondary">
+                  {t("torob.preview_total", { count: preview.data.total ?? preview.data.products?.length ?? 0 })}
+                </Badge>
+              </div>
+              {(preview.data.products ?? []).length ? (
+                <ul className="max-h-96 space-y-2 overflow-auto">
+                  {(preview.data.products as Array<Record<string, unknown>>).map((p, idx) => (
+                    <li key={String(p.product_id ?? p.page_url ?? idx)} className="rounded border px-3 py-2 text-xs">
+                      <div className="font-medium">
+                        #{toLocaleDigits(String(p.product_id ?? "—"), locale)}{" "}
+                        {String(p.title ?? p.name ?? "")}
+                      </div>
+                      <div className="text-muted-foreground truncate" dir="ltr">
+                        {String(p.page_url ?? p.url ?? "")}
+                      </div>
+                      {p.price != null || p.price_minor != null ? (
+                        <div className="mt-1">{String(p.price ?? p.price_minor)}</div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground text-sm">{t("torob.preview_empty")}</p>
+              )}
+              <details>
+                <summary className="text-muted-foreground cursor-pointer text-xs">{t("raw_json")}</summary>
+                <pre dir="ltr" className="bg-muted mt-1 max-h-48 overflow-auto rounded p-2 text-xs">
+                  {JSON.stringify(preview.data, null, 2)}
+                </pre>
+              </details>
+            </div>
           ) : null}
         </CardContent>
       </Card>
