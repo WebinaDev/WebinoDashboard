@@ -51,7 +51,7 @@ export function SeoSettingsPanel() {
     setPending(true)
     setError(null)
     try {
-      const res = await api<{ data: SeoSettings }>("/api/v1/seo/settings", { method: "POST", body: draft })
+      const res = await api<{ data: SeoSettings }>("/api/v1/seo/settings", { method: "POST", json: draft })
       setDraft(res.data)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -67,7 +67,7 @@ export function SeoSettingsPanel() {
     try {
       const res = await api<{ data: RedirectRow }>("/api/v1/seo/redirects", {
         method: "POST",
-        body: { from_path: fromPath, to_path: toPath, status_code: Number(statusCode), enabled: true },
+        json: { from_path: fromPath, to_path: toPath, status_code: Number(statusCode), enabled: true },
       })
       setRedirects((rows) => [res.data, ...rows])
       setFromPath("")

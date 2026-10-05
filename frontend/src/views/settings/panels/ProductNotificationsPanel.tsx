@@ -30,7 +30,7 @@ export function ProductNotificationsPanel() {
     if (!draft) return
     setPending(true)
     try {
-      const res = await api<{ data: Notif }>("/api/v1/shop/product-notifications", { method: "PUT", body: draft })
+      const res = await api<{ data: Notif }>("/api/v1/shop/product-notifications", { method: "PUT", json: draft })
       setDraft(res.data)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)

@@ -59,16 +59,16 @@ export const SAMPLE_CATEGORIES: ShopCategory[] = [
 ]
 
 
-function product(partial: Omit<ShopProduct, "images" | "variants" | "installments" | "inStock" | "live" | "brandSlug"> & Partial<ShopProduct>): ShopProduct {
+function product(partial: Omit<ShopProduct, "images" | "variants" | "installments" | "faqs" | "inStock" | "live" | "brandSlug"> & Partial<ShopProduct>): ShopProduct {
   return {
-    images: [],
-    variants: [],
-    installments: [],
-    faqs: [],
-    inStock: true,
-    live: false,
-    brandSlug: partial.brandSlug || partial.brand,
     ...partial,
+    images: partial.images ?? [],
+    variants: partial.variants ?? [],
+    installments: partial.installments ?? [],
+    faqs: partial.faqs ?? [],
+    inStock: partial.inStock ?? true,
+    live: partial.live ?? false,
+    brandSlug: partial.brandSlug || partial.brand,
   }
 }
 

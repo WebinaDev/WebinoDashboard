@@ -29,7 +29,7 @@ export function StorefrontAppearancePanel() {
     if (!draft) return
     setPending(true)
     try {
-      const res = await api<{ data: Appearance }>("/api/v1/shop/storefront-appearance", { method: "PUT", body: draft })
+      const res = await api<{ data: Appearance }>("/api/v1/shop/storefront-appearance", { method: "PUT", json: draft })
       setDraft(res.data)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)

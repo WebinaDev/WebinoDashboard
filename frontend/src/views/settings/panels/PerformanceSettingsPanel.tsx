@@ -33,7 +33,7 @@ export function PerformanceSettingsPanel() {
     setPending(true)
     setError(null)
     try {
-      const res = await api<{ data: Perf }>("/api/v1/performance/settings", { method: "PUT", body: draft })
+      const res = await api<{ data: Perf }>("/api/v1/performance/settings", { method: "PUT", json: draft })
       setDraft(res.data)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -49,7 +49,7 @@ export function PerformanceSettingsPanel() {
     try {
       const res = await api<{ data: { cleared: string[] } }>("/api/v1/performance/purge", {
         method: "POST",
-        body: { reason: "manual" },
+        json: { reason: "manual" },
       })
       setPurgeNote(t("purged", { keys: (res.data.cleared ?? []).join(", ") }))
     } catch (e: unknown) {
