@@ -32,7 +32,20 @@ type Payload = {
   geo_notice_colors?: Palette
 }
 
-const PALETTE_KEYS = ["primary", "secondary", "accent", "bg", "surface", "text", "muted"] as const
+const PALETTE_KEYS = ["primary", "secondary", "accent", "bg", "surface", "text", "muted", "navy", "header", "footer", "border"] as const
+const PALETTE_FALLBACKS: Record<(typeof PALETTE_KEYS)[number], string> = {
+  primary: "#e775ae",
+  secondary: "#021959",
+  accent: "#dc5f9d",
+  bg: "#ffffff",
+  surface: "#f3f5f8",
+  text: "#021959",
+  muted: "#4d5e8a",
+  navy: "#021959",
+  header: "#ffffff",
+  footer: "#ffffff",
+  border: "#e8edf3",
+}
 const GEO_KEYS = ["bg", "border", "text", "icon", "button_bg", "button_text"] as const
 const FONTS = ["yekan-bakh", "system", "vazirmatn", "iran-sans"] as const
 const ACCENTS = ["zinc", "slate", "blue", "green", "rose", "orange"] as const
@@ -139,7 +152,7 @@ export function BrandStyleSettingsPanel() {
               <Input
                 type="color"
                 dir="ltr"
-                value={palette[key] ?? "#000000"}
+                value={palette[key] ?? PALETTE_FALLBACKS[key]}
                 onChange={(e) =>
                   setDraft({
                     ...draft,

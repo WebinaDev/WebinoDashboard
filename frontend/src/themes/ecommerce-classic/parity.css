@@ -6,8 +6,17 @@
  * default/starter/demo skins; page-level overrides are scoped to .sf-skin-classic.
  */
 
-/* ------------------------------------------------------------------ tokens */
-:root {
+/* ------------------------------------------------------------------ tokens
+ * Scoped under classic storefront shells only — never on :root — so dashboard
+ * accent/surface tokens cannot leak into (or out of) the public site.
+ * Light + dark palettes are self-contained Parisma-like hex values.
+ * Saved Style / appearance settings override these via inline CSS vars on
+ * SiteBrandingShell (--sfc-* / --sf-* / --color-*).
+ */
+.sf-shell.sf-skin-classic,
+.sf-classic,
+.wb-canvas.sf-skin-classic {
+  /* brand / chrome */
   --sfc-pink: #e775ae;
   --sfc-pink-hover: #dc5f9d;
   --sfc-pink-glow: #e775ae8a;
@@ -31,6 +40,11 @@
   --sfc-border-2: #eef2f9;
   --sfc-border-3: #e6eaf0;
   --sfc-rule: #e2e4eb;
+  --sfc-header-bg: #ffffff;
+  --sfc-footer-bg: #ffffff;
+  --sfc-footer-fg: var(--sfc-navy);
+  --sfc-topbar-bg: #021959;
+  --sfc-topbar-fg: #ffffff;
   --sfc-radius: 10px;
   --sfc-radius-md: 15px;
   --sfc-radius-card: 19px;
@@ -42,60 +56,102 @@
   --sfc-gutter: 15px;
   --sfc-header-top: 60px;
   --sfc-header-nav: 45px;
-}
 
-/* ------------------------------------------------------- skin-level tokens */
-.sf-shell.sf-skin-classic,
-.wb-canvas.sf-skin-classic {
-  --sf-pink: #e775ae;
+  /* shared skin aliases */
+  --sf-pink: var(--sfc-pink);
   --sf-pink-soft: #fdeef6;
-  --sf-navy: #021959;
-  --sf-navy-soft: #e8edf3;
+  --sf-navy: var(--sfc-navy);
+  --sf-navy-soft: var(--sfc-border);
   --sf-radius-lg: 1.1875rem;
   --sf-radius-md: 0.625rem;
   --sf-card-radius: 1.1875rem;
-  --sf-search-bg: #f3f5f8;
+  --sf-search-bg: var(--sfc-surface);
   --sf-content-gap: 1.25rem;
   --wb-container: calc(var(--sfc-container) + var(--sfc-gutter) * 2);
   --wb-content-pad: var(--sfc-gutter);
-}
 
-html:not(.dark) .sf-shell.sf-skin-classic,
-html:not(.dark) .wb-canvas.sf-skin-classic {
-  --color-primary: #e775ae;
+  /* isolate from dashboard/theme OKLCH tokens (light) */
+  --color-primary: var(--sfc-pink);
   --color-primary-foreground: #ffffff;
-  --color-ring: #e775ae;
-  --color-foreground: #021959;
-  --color-card-foreground: #021959;
-  --color-background: #ffffff;
-  --color-card: #ffffff;
-  --color-muted: #f3f5f8;
-  --color-muted-foreground: #4d5e8a;
-  --color-border: #e8edf3;
-  --color-input: #e6eaf0;
-  --color-destructive: #f04055;
+  --color-secondary: var(--sfc-navy);
+  --color-secondary-foreground: #ffffff;
+  --color-accent: var(--sfc-pink-soft);
+  --color-accent-foreground: var(--sfc-navy);
+  --color-ring: var(--sfc-pink);
+  --color-foreground: var(--sfc-navy);
+  --color-card-foreground: var(--sfc-navy);
+  --color-background: var(--sfc-bg);
+  --color-card: var(--sfc-card);
+  --color-muted: var(--sfc-surface);
+  --color-muted-foreground: var(--sfc-muted);
+  --color-border: var(--sfc-border);
+  --color-input: var(--sfc-border-3);
+  --color-destructive: var(--sfc-red);
+  color-scheme: light;
 }
 
-.dark .sf-skin-classic,
-.dark .sfc-header,
-.dark .sfc-footer {
+/* Parisma-like dark palette — standalone hex, never dashboard --color-* */
+.dark .sf-shell.sf-skin-classic,
+.dark .sf-classic,
+.dark .wb-canvas.sf-skin-classic,
+html.dark .sf-shell.sf-skin-classic,
+html.dark .sf-classic,
+html.dark .wb-canvas.sf-skin-classic {
+  --sfc-pink: #e775ae;
+  --sfc-pink-hover: #f08ec0;
+  --sfc-pink-glow: #e775ae66;
+  --sfc-pink-soft: #e775ae2e;
   --sfc-navy: #e6ebff;
   --sfc-ink: #e6ebff;
   --sfc-ink-2: #cdd6f5;
   --sfc-link: #b8c3e6;
+  --sfc-blue: #7eb6ff;
   --sfc-muted: #a6b1d1;
   --sfc-muted-2: #8b97b8;
-  --sfc-bg: var(--color-background);
-  --sfc-card: var(--color-card);
-  --sfc-surface: color-mix(in oklch, var(--color-muted) 85%, #021959);
-  --sfc-surface-2: color-mix(in oklch, var(--color-card) 90%, #021959);
-  --sfc-surface-3: var(--sfc-surface-2);
-  --sfc-border: var(--color-border);
-  --sfc-border-2: var(--color-border);
-  --sfc-border-3: var(--color-border);
-  --sfc-rule: var(--color-border);
-  --sfc-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6);
+  --sfc-muted-3: #6f7c9e;
+  --sfc-red: #ff6b7d;
+  --sfc-red-2: #ff4d6d;
+  --sfc-bg: #0b1229;
+  --sfc-card: #121a33;
+  --sfc-surface: #161f3d;
+  --sfc-surface-2: #1a2445;
+  --sfc-surface-3: #1e2a4f;
+  --sfc-border: #2a3558;
+  --sfc-border-2: #334066;
+  --sfc-border-3: #3a4870;
+  --sfc-rule: #2a3558;
+  --sfc-header-bg: #121a33;
+  --sfc-footer-bg: #080e22;
+  --sfc-footer-fg: #e6ebff;
+  --sfc-topbar-bg: #080e22;
+  --sfc-topbar-fg: #e6ebff;
+  --sfc-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.65);
   --sfc-shadow-soft: var(--sfc-shadow);
+  --sfc-shadow-pop: 0 14px 28px -16px rgba(0, 0, 0, 0.7);
+
+  --sf-pink: var(--sfc-pink);
+  --sf-pink-soft: var(--sfc-pink-soft);
+  --sf-navy: var(--sfc-navy);
+  --sf-navy-soft: var(--sfc-surface);
+  --sf-search-bg: var(--sfc-surface);
+
+  --color-primary: var(--sfc-pink);
+  --color-primary-foreground: #0b1229;
+  --color-secondary: var(--sfc-surface-2);
+  --color-secondary-foreground: var(--sfc-navy);
+  --color-accent: var(--sfc-pink-soft);
+  --color-accent-foreground: var(--sfc-navy);
+  --color-ring: var(--sfc-pink);
+  --color-foreground: var(--sfc-navy);
+  --color-card-foreground: var(--sfc-navy);
+  --color-background: var(--sfc-bg);
+  --color-card: var(--sfc-card);
+  --color-muted: var(--sfc-surface);
+  --color-muted-foreground: var(--sfc-muted);
+  --color-border: var(--sfc-border);
+  --color-input: var(--sfc-border-2);
+  --color-destructive: var(--sfc-red);
+  color-scheme: dark;
 }
 
 /* Container + density inside the classic shell */
@@ -449,7 +505,7 @@ html:not(.dark) .wb-canvas.sf-skin-classic {
 .sfc-header__top {
   position: relative;
   z-index: 3;
-  background: var(--sfc-card);
+  background: var(--sfc-header-bg, var(--sfc-card));
   border-bottom: 1px solid var(--sfc-border);
 }
 
@@ -652,7 +708,7 @@ html:not(.dark) .wb-canvas.sf-skin-classic {
 .sfc-header__nav {
   position: relative;
   z-index: 2;
-  background: var(--sfc-card);
+  background: var(--sfc-header-bg, var(--sfc-card));
   border-bottom: 1px solid var(--sfc-border);
   transition: transform 0.28s ease, opacity 0.2s ease, box-shadow 0.2s;
 }
@@ -4045,8 +4101,8 @@ html:not(.dark) .wb-canvas.sf-skin-classic {
 .sfc-footer {
   margin-top: 30px;
   padding-bottom: 10px;
-  background: var(--sfc-card);
-  color: var(--sfc-navy);
+  background: var(--sfc-footer-bg, var(--sfc-card));
+  color: var(--sfc-footer-fg, var(--sfc-navy));
   font-size: 12px;
 }
 
@@ -4505,6 +4561,17 @@ html:not(.dark) .wb-canvas.sf-skin-classic {
 
 .sfc-mega__level3 a:hover {
   color: var(--sfc-pink);
+}
+
+.sfc-mega__empty {
+  margin: 8px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sfc-surface-2);
+  color: var(--sfc-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
 }
 
 .sfc-mega__featured {

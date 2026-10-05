@@ -16,8 +16,13 @@ final class StorefrontAppearanceService
     public function defaults(): array
     {
         return [
-            'primary_color' => '#ea580c',
-            'accent_color' => '#0f172a',
+            'primary_color' => '#e775ae',
+            'accent_color' => '#dc5f9d',
+            'navy_color' => '#021959',
+            'surface_color' => '#f3f5f8',
+            'header_bg' => '#ffffff',
+            'footer_bg' => '#ffffff',
+            'border_color' => '#e8edf3',
             'header_style' => 'classic',
             'mega_menu' => true,
             'dark_mode_default' => false,
@@ -55,7 +60,7 @@ final class StorefrontAppearanceService
                 $current[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool) $value;
             } elseif (is_int($default)) {
                 $current[$key] = (int) $value;
-            } elseif (str_ends_with($key, '_color') && is_string($value)) {
+            } elseif ((str_ends_with($key, '_color') || str_ends_with($key, '_bg')) && is_string($value)) {
                 $v = trim($value);
                 if (preg_match('/^#?[0-9a-fA-F]{6}$/', $v)) {
                     $current[$key] = str_starts_with($v, '#') ? strtolower($v) : '#'.strtolower($v);

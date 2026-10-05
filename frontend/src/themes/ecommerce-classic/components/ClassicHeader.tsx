@@ -127,22 +127,17 @@ function MegaChildList({
 
 function DeepMegaPanel({
   categories,
-  products,
   activeCat,
   setActiveCat,
   onClose,
 }: {
   categories: ShopCategory[]
-  products: ShopProduct[]
   activeCat: number
   setActiveCat: (i: number) => void
   onClose: () => void
 }) {
   const active = categories[activeCat] ?? categories[0]
   const children = active?.children ?? []
-  const featured = products
-    .filter((p) => !active || p.categorySlug === active.slug || p.category === active.name || children.some((c) => c.slug === p.categorySlug))
-    .slice(0, 3)
 
   return (
     <div className="sfc-mega__panel" role="menu" aria-label="دسته‌بندی محصولات">
@@ -175,29 +170,8 @@ function DeepMegaPanel({
         {children.length ? (
           <MegaChildList items={children} onNavigate={onClose} />
         ) : (
-          <div className="sfc-mega__grid">
-            {featured.map((p) => (
-              <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-mega__item" onClick={onClose}>
-                {p.name}
-              </Link>
-            ))}
-          </div>
+          <p className="sfc-mega__empty">زیردسته‌ای برای این گروه ثبت نشده است.</p>
         )}
-        {featured.length ? (
-          <div className="sfc-mega__featured">
-            {featured.map((p) => (
-              <Link key={`f-${p.slug}`} href={`/product/${p.slug}`} className="sfc-mega__feature" onClick={onClose}>
-                <span className="sfc-mega__feature-img">
-                  {p.image ? <img src={p.image} alt="" loading="lazy" /> : <span>{p.name.slice(0, 1)}</span>}
-                </span>
-                <span className="sfc-mega__feature-body">
-                  <strong>{p.name}</strong>
-                  <ClassicAmount value={p.price} />
-                </span>
-              </Link>
-            ))}
-          </div>
-        ) : null}
       </div>
     </div>
   )
@@ -399,7 +373,6 @@ export function ClassicHeader({
                 {mega && categories.length ? (
                   <DeepMegaPanel
                     categories={categories}
-                    products={catalog.products}
                     activeCat={activeCat}
                     setActiveCat={setActiveCat}
                     onClose={() => setMega(false)}

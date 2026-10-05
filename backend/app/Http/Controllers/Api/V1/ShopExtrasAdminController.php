@@ -111,6 +111,11 @@ class ShopExtrasAdminController extends Controller
         $data = $request->validate([
             'primary_color' => ['sometimes', 'string', 'max:9'],
             'accent_color' => ['sometimes', 'string', 'max:9'],
+            'navy_color' => ['sometimes', 'string', 'max:9'],
+            'surface_color' => ['sometimes', 'string', 'max:9'],
+            'header_bg' => ['sometimes', 'string', 'max:9'],
+            'footer_bg' => ['sometimes', 'string', 'max:9'],
+            'border_color' => ['sometimes', 'string', 'max:9'],
             'header_style' => ['sometimes', 'string', 'max:40'],
             'mega_menu' => ['sometimes', 'boolean'],
             'dark_mode_default' => ['sometimes', 'boolean'],

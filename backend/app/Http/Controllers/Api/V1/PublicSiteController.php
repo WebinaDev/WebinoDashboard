@@ -12,16 +12,18 @@ use App\Models\Testimonial;
 use App\Services\Auth\OtpSettings;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Shop\ShopSettings;
+use App\Services\Shop\StorefrontAppearanceService;
 use Illuminate\Http\Request;
 
 class PublicSiteController extends Controller
 {
     use ResolvesPublicTenant;
 
-    public function tenant(Request $request, ModuleSettingsService $settings): \Illuminate\Http\JsonResponse
+    public function tenant(Request $request, ModuleSettingsService $settings, StorefrontAppearanceService $appearance): \Illuminate\Http\JsonResponse
     {
         $tenant = $this->publicTenant($request);
         $branding = ThemeCatalog::normalizeBranding($tenant->branding);
+        $branding['appearance'] = $appearance->get((int) $tenant->id);
         $otp = OtpSettings::forTenant((int) $tenant->id, $settings);
         $privacy = $settings->get((int) $tenant->id, 'settings', 'site.privacy', [
             'guest_checkout' => false,

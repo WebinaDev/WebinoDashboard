@@ -119,57 +119,56 @@ export const SAMPLE_CATEGORIES: ShopCategory[] = [
   },
 ]
 
-/** Build a rooted tree from a flat category list that may carry parentId. */
+/** Build a rooted tree from a flat/nested category list that may carry parentId.
+ * Uses the real product-category hierarchy only — never invents sibling groupings
+ * or promotes products into fake sub-items for the mega menu.
+ */
 export function buildCategoryTree(categories: ShopCategory[]): ShopCategory[] {
-  const withKids = categories.filter((c) => Array.isArray(c.children) && c.children.length > 0)
-  if (withKids.length && withKids.length >= Math.ceil(categories.length / 2)) {
-    return withKids.map((c) => ({ ...c, children: c.children ?? [] }))
+  if (!categories.length) return []
+
+  // Prefer API-nested children when the payload already carried a tree.
+  const withKids = categories.filter((c) => Array.isArray(c.children) && (c.children?.length ?? 0) > 0)
+  const nestedRoots = categories.filter(
+    (c) => (c.parentId == null || c.parentId === undefined) && Array.isArray(c.children),
+  )
+  if (nestedRoots.length && withKids.length) {
+    return nestedRoots.map((c) => ({ ...c, children: c.children ?? [] }))
+  }
+  if (withKids.length === categories.length) {
+    return categories.map((c) => ({ ...c, children: c.children ?? [] }))
   }
 
   const byId = new Map<number, ShopCategory & { children: ShopCategory[] }>()
   const roots: Array<ShopCategory & { children: ShopCategory[] }> = []
-  const flat = categories.map((c) => ({ ...c, children: [] as ShopCategory[] }))
+  const flat = categories.map((c) => ({
+    ...c,
+    children: Array.isArray(c.children) ? [...c.children] : ([] as ShopCategory[]),
+  }))
 
   for (const c of flat) {
     if (typeof c.id === "number") byId.set(c.id, c)
   }
 
+  const claimed = new Set<string>()
   for (const c of flat) {
     const parent = typeof c.parentId === "number" ? byId.get(c.parentId) : undefined
-    if (parent && parent !== c) parent.children.push(c)
-    else if (c.parentId == null || c.parentId === undefined) roots.push(c)
-  }
-
-  if (roots.length) {
-    // Drop orphan leaves that were nested under a known parent elsewhere
-    const nested = new Set<string>()
-    const walk = (nodes: ShopCategory[]) => {
-      for (const n of nodes) {
-        for (const ch of n.children ?? []) {
-          nested.add(ch.slug)
-          walk([ch])
-        }
-      }
+    if (parent && parent !== c) {
+      parent.children.push(c)
+      claimed.add(c.slug)
     }
-    walk(roots)
-    return roots.filter((r) => !nested.has(r.slug) || (r.children?.length ?? 0) > 0)
   }
 
-  // Flat API: invent a 2-level layout by grouping leftover leaf categories under the top ones.
-  const tops = categories.filter((c) => c.parentId == null || c.parentId === undefined).slice(0, 6)
-  if (tops.length <= 1) {
-    return categories.map((c, i) => ({
-      ...c,
-      children: categories.filter((_, j) => j !== i).slice(0, 6).map((ch) => ({ ...ch, children: undefined })),
-    }))
+  for (const c of flat) {
+    if (claimed.has(c.slug)) continue
+    if (c.parentId == null || c.parentId === undefined || !byId.has(c.parentId)) {
+      roots.push(c)
+    }
   }
-  return tops.map((top, i) => ({
-    ...top,
-    children: categories
-      .filter((c) => c.slug !== top.slug)
-      .slice(i * 3, i * 3 + 4)
-      .map((ch) => ({ ...ch, children: undefined })),
-  }))
+
+  if (roots.length) return roots
+
+  // No parent links at all: flat list of roots with empty children (honest tree).
+  return flat.map((c) => ({ ...c, children: c.children ?? [] }))
 }
 
 

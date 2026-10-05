@@ -1531,7 +1531,11 @@
         "bg": "پس‌زمینه",
         "surface": "سطح",
         "text": "متن",
-        "muted": "کم‌رنگ"
+        "muted": "کم‌رنگ",
+        "navy": "سرمه‌ای",
+        "header": "هدر",
+        "footer": "فوتر",
+        "border": "حاشیه"
       },
       "geo": {
         "bg": "پس‌زمینه",
@@ -1601,7 +1605,13 @@
       "show_top_bar": "نمایش نوار بالا",
       "sticky_add_to_cart": "دکمه افزودن چسبان",
       "show_installment_badge": "نشان اقساط در صفحه محصول",
-      "footer_columns": "ستون‌های فوتر"
+      "footer_columns": "ستون‌های فوتر",
+      "description": "رنگ‌ها و سبک ظاهر فروشگاه کلاسیک؛ روی متغیرهای CSS ویترین اعمال می‌شود.",
+      "navy_color": "نمایشی / سرمه‌ای",
+      "surface_color": "سطح",
+      "header_bg": "پس‌زمینه هدر",
+      "footer_bg": "پس‌زمینه فوتر",
+      "border_color": "حاشیه"
     },
     "product_notifications": {
       "loading": "در حال بارگذاری…",

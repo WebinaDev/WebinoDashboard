@@ -9,7 +9,7 @@ final class ThemeCatalog
     public const FONTS = ['yekan-bakh', 'system', 'vazirmatn', 'iran-sans'];
 
     /** @var list<string> */
-    public const PALETTE_KEYS = ['primary', 'secondary', 'accent', 'bg', 'surface', 'text', 'muted'];
+    public const PALETTE_KEYS = ['primary', 'secondary', 'accent', 'bg', 'surface', 'text', 'muted', 'navy', 'header', 'footer', 'border'];
 
     /** @var list<string> */
     public const GEO_NOTICE_COLOR_KEYS = [
@@ -40,14 +40,19 @@ final class ThemeCatalog
     /** @return array<string, string> */
     public static function defaultPalette(): array
     {
+        // Parisma-like classic storefront defaults (also used by ecommerce-classic CSS vars).
         return [
-            'primary' => '#0f172a',
-            'secondary' => '#334155',
-            'accent' => '#e775ae',
+            'primary' => '#e775ae',
+            'secondary' => '#021959',
+            'accent' => '#dc5f9d',
             'bg' => '#ffffff',
-            'surface' => '#f8fafc',
-            'text' => '#0f172a',
-            'muted' => '#64748b',
+            'surface' => '#f3f5f8',
+            'text' => '#021959',
+            'muted' => '#4d5e8a',
+            'navy' => '#021959',
+            'header' => '#ffffff',
+            'footer' => '#ffffff',
+            'border' => '#e8edf3',
         ];
     }
 

@@ -1914,7 +1914,11 @@
         "bg": "Background",
         "surface": "Surface",
         "text": "Text",
-        "muted": "Muted"
+        "muted": "Muted",
+        "navy": "Navy",
+        "header": "Header",
+        "footer": "Footer",
+        "border": "Border"
       },
       "geo": {
         "bg": "Background",
@@ -1984,7 +1988,13 @@
       "show_top_bar": "Show top bar",
       "sticky_add_to_cart": "Sticky add to cart",
       "show_installment_badge": "Installment badge on PDP",
-      "footer_columns": "Footer columns"
+      "footer_columns": "Footer columns",
+      "description": "Classic storefront colors and chrome; applied as storefront CSS variables.",
+      "navy_color": "Navy",
+      "surface_color": "Surface",
+      "header_bg": "Header background",
+      "footer_bg": "Footer background",
+      "border_color": "Border"
     },
     "product_notifications": {
       "loading": "Loading…",

@@ -71,9 +71,21 @@ export function StorefrontMobileNav({
         <p className="mb-2 mt-4 text-xs font-bold text-muted-foreground">دسته‌ها</p>
         <div className="grid gap-1">
           {catalog.categories.map((cat) => (
-            <Link key={cat.slug} href={`/shop?category=${cat.slug}`} className="text-sm font-semibold" onClick={onClose}>
-              {cat.name}
-            </Link>
+            <div key={cat.slug} className="grid gap-1">
+              <Link href={`/shop?category=${cat.slug}`} className="text-sm font-semibold" onClick={onClose}>
+                {cat.name}
+              </Link>
+              {(cat.children ?? []).slice(0, 6).map((child) => (
+                <Link
+                  key={child.slug}
+                  href={`/shop?category=${child.slug}`}
+                  className="ps-3 text-xs font-medium text-muted-foreground"
+                  onClick={onClose}
+                >
+                  {child.name}
+                </Link>
+              ))}
+            </div>
           ))}
         </div>
       </div>
@@ -93,27 +105,24 @@ export function StorefrontMegaMenuPanel({ columnsText }: { columnsText: string }
   })
 
   if (!parsed.length) {
+    const roots = catalog.categories
     return (
       <div className="sf-mega-panel grid gap-4 md:grid-cols-3">
-        <div className="sf-mega-col">
-          <h3>دسته‌ها</h3>
-          {catalog.categories.slice(0, 6).map((c) => (
-            <Link key={c.slug} href={`/shop?category=${c.slug}`}>
-              {c.name}
-            </Link>
-          ))}
-        </div>
-        <div className="sf-mega-col">
-          <h3>فروشگاه</h3>
-          <Link href="/shop">همه محصولات</Link>
-          <Link href="/amazing-offers">پیشنهاد شگفت‌انگیز</Link>
-          <Link href="/compare">مقایسه</Link>
-        </div>
-        <div className="sf-mega-col">
-          <h3>حساب</h3>
-          <Link href="/account">ورود / سفارش‌ها</Link>
-          <Link href="/dashboard/account/favorites">علاقه‌مندی‌ها</Link>
-        </div>
+        {roots.slice(0, 6).map((c) => (
+          <div key={c.slug} className="sf-mega-col">
+            <h3>
+              <Link href={`/shop?category=${c.slug}`}>{c.name}</Link>
+            </h3>
+            {(c.children ?? []).slice(0, 8).map((child) => (
+              <Link key={child.slug} href={`/shop?category=${child.slug}`}>
+                {child.name}
+              </Link>
+            ))}
+            {!(c.children ?? []).length ? (
+              <Link href={`/shop?category=${c.slug}`}>مشاهده همه</Link>
+            ) : null}
+          </div>
+        ))}
       </div>
     )
   }

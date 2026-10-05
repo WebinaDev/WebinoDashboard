@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 
 import type { SiteBranding } from "@/kernel/theme-types"
 import { cn } from "@/lib/utils"
-import { siteFontClass } from "./branding"
+import { siteFontClass, storefrontStyleCss } from "./branding"
 import { storefrontShellClass } from "./storefront-skin"
 
 type Props = {
@@ -12,6 +12,7 @@ type Props = {
 }
 
 export function SiteBrandingShell({ branding, children, themeSlug }: Props) {
+  const styleCss = storefrontStyleCss(branding, themeSlug)
   return (
     <div
       data-accent={branding.accent}
@@ -23,6 +24,7 @@ export function SiteBrandingShell({ branding, children, themeSlug }: Props) {
         storefrontShellClass(themeSlug),
       )}
     >
+      {styleCss ? <style dangerouslySetInnerHTML={{ __html: styleCss }} /> : null}
       {children}
     </div>
   )

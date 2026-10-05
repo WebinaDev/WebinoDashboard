@@ -8,12 +8,43 @@ export type SiteThemeManifest = {
   sortOrder: number
 }
 
+export type SiteBrandFont = "yekan-bakh" | "system" | "vazirmatn" | "iran-sans"
+
+export type SiteBrandPalette = {
+  primary: string
+  secondary: string
+  accent: string
+  bg: string
+  surface: string
+  text: string
+  muted: string
+  navy?: string
+  header?: string
+  footer?: string
+  border?: string
+}
+
+export type StorefrontAppearanceColors = {
+  primary_color?: string
+  accent_color?: string
+  navy_color?: string
+  surface_color?: string
+  header_bg?: string
+  footer_bg?: string
+  border_color?: string
+}
+
 export type SiteBranding = {
   logo_url: string | null
   logo_dark_url: string | null
   favicon_url: string | null
   accent: "zinc" | "slate" | "blue" | "green" | "rose" | "orange"
-  font: "yekan-bakh" | "system"
+  font: SiteBrandFont
+  font_body?: SiteBrandFont
+  font_heading?: SiteBrandFont
+  font_ui?: SiteBrandFont
+  palette?: Partial<SiteBrandPalette> | null
+  appearance?: StorefrontAppearanceColors | null
 }
 
 export type SiteThemeCatalogItem = {

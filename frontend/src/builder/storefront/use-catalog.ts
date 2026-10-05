@@ -83,11 +83,11 @@ export function useCatalog(limit: number): CatalogState {
           .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
           .map((item) => mapApiBrand(item))
           .filter((item): item is ShopBrand => item !== null)
-        const categorySource = mappedCategories.length ? mappedCategories : SAMPLE_CATEGORIES
+        // Live catalog: never invent sample categories for the mega menu.
         setState({
           products,
-          categories: buildCategoryTree(categorySource),
-          brands: mappedBrands.length ? mappedBrands : SAMPLE_BRANDS.map((name) => ({ name, slug: name })),
+          categories: buildCategoryTree(mappedCategories),
+          brands: mappedBrands,
           live: true,
           total: Number(json.data.pagination?.total ?? products.length) || 0,
           page,

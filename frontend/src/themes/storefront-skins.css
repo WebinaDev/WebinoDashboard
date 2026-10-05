@@ -89,6 +89,42 @@
   color: #fff;
 }
 
+/* Classic dark: keep Parisma surfaces; do not inherit dashboard teal/cyan tokens */
+.dark .sf-skin-classic,
+.dark .sf-classic {
+  --sf-pink: var(--sfc-pink, #e775ae);
+  --sf-pink-soft: var(--sfc-pink-soft, #e775ae2e);
+  --sf-navy: var(--sfc-navy, #e6ebff);
+  --sf-navy-soft: var(--sfc-surface, #161f3d);
+  --sf-search-bg: var(--sfc-surface, #161f3d);
+  --sf-shadow: var(--sfc-shadow, 0 10px 30px -18px rgba(0, 0, 0, 0.65));
+}
+
+.dark .sf-skin-classic .sf-topbar,
+.dark .sf-classic .sf-topbar {
+  background: var(--sfc-topbar-bg, #080e22);
+  color: var(--sfc-topbar-fg, #e6ebff);
+}
+
+.dark .sf-skin-classic header.sticky,
+.dark .sf-classic header.sticky {
+  border-bottom-color: var(--sfc-border, #2a3558);
+  background: color-mix(in oklab, var(--sfc-header-bg, #121a33) 94%, transparent);
+}
+
+.dark .sf-skin-classic .sf-search,
+.dark .sf-classic .sf-search,
+.dark .sf-skin-classic form.sf-muted,
+.dark .sf-classic form.sf-muted {
+  color: var(--sfc-navy, #e6ebff);
+}
+
+.dark .sf-skin-classic .sf-card,
+.dark .sf-classic .sf-card {
+  border-color: var(--sfc-border, #2a3558);
+  background: var(--sfc-card, #121a33);
+}
+
 .sf-skin-classic .wb-section-stack > section,
 .sf-classic .wb-section-stack > section {
   margin-block: 0.65rem;
