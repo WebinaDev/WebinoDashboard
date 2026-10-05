@@ -12,6 +12,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatDisplayDateTime } from "@/lib/format-date"
+import { toLocaleDigits } from "@/lib/locale"
 
 type Mode = "cash" | "installment"
 
