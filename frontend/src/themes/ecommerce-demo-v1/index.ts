@@ -1,2 +1,4 @@
-export { SiteHeader, SiteFooter } from "../ecommerce-default"
+export { SiteHeader } from "./components/SiteHeader"
+export { SiteFooter } from "./components/SiteFooter"
+
 export const themeSlug = "ecommerce-demo-v1"

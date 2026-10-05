@@ -41,7 +41,10 @@ export default async function SiteHomePage() {
   const built = await StorefrontBody({
     slug: "home",
     fallback: classicHomeDocument(),
-    runtime: { siteName: home?.tenant?.name },
+    runtime: {
+      siteName: home?.tenant?.name,
+      themeSlug: home?.tenant?.active_theme_slug,
+    },
   })
   if (built) return built
 

@@ -7,6 +7,7 @@ import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
 import { isDocument } from "./tree"
 import type { BuilderDocument, RuntimeContext } from "./types"
+import { storefrontThemeClass } from "@/themes/shared/storefront-skin"
 
 async function readDocument(path: string): Promise<BuilderDocument | null> {
   const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: 0 })
@@ -50,7 +51,7 @@ export function PublishedDocument({
 }) {
   return (
     <Suspense fallback={null}>
-      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass="sf-classic" />
+      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass={storefrontThemeClass(runtime?.themeSlug) || "sf-classic"} />
     </Suspense>
   )
 }
@@ -67,11 +68,12 @@ export async function StorefrontDocument({
   const globals = await loadPublishedGlobals()
   const query = context ?? (await requestThemeContext())
   const loop = runtime?.loopDocument ?? (await loadResolvedTemplate("loop_item", query))
+  const themeSlug = runtime?.themeSlug ?? (await activeThemeSlug())
   return (
     <PublishedDocument
       document={document}
       globals={globals}
-      runtime={{ ...runtime, loopDocument: loop ?? undefined }}
+      runtime={{ ...runtime, themeSlug, loopDocument: loop ?? undefined }}
     />
   )
 }

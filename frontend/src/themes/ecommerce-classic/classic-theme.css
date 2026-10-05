@@ -3,14 +3,16 @@
  * Scoped under .sf-classic.
  */
 .sf-classic {
-  --sf-pink: #e91e8c;
-  --sf-pink-soft: #fce4f3;
-  --sf-navy: #0c2d63;
-  --sf-navy-soft: #e8eef7;
-  --sf-radius-lg: 1.75rem;
-  --sf-radius-md: 1.25rem;
-  --sf-shadow: 0 12px 40px -16px color-mix(in oklch, var(--sf-navy) 25%, transparent);
-  --sf-header-h: 4.25rem;
+  /* Visual target: dense Iranian storefront chrome (Webino-native names only). */
+  --sf-pink: #f04055;
+  --sf-pink-soft: #fde8eb;
+  --sf-navy: #021959;
+  --sf-navy-soft: #e8edf3;
+  --sf-radius-lg: 1.1875rem;
+  --sf-radius-md: 0.625rem;
+  --sf-shadow: 0 6px 10px 0 rgba(178, 189, 206, 0.2);
+  --sf-header-h: 5.5rem;
+  --sf-content-gap: 1.5rem;
   font-feature-settings: "ss01";
 }
 
@@ -236,8 +238,8 @@
 
 /* Dark mode — next-themes adds .dark on <html> */
 .dark .sf-classic {
-  --sf-pink: #f472b6;
-  --sf-pink-soft: color-mix(in oklch, #f472b6 18%, var(--color-card));
+  --sf-pink: #fb7185;
+  --sf-pink-soft: color-mix(in oklch, #fb7185 18%, var(--color-card));
   --sf-navy: #93c5fd;
   --sf-navy-soft: color-mix(in oklch, #93c5fd 14%, var(--color-card));
   --sf-shadow: 0 16px 48px -20px color-mix(in oklch, #000 55%, transparent);
@@ -397,3 +399,78 @@
     transition: none;
   }
 }
+
+
+/* Classic denser chrome (header search + category row) */
+.sf-classic header.sticky > div:first-of-type {
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+}
+
+.sf-classic header.sticky form.sf-muted {
+  background: #f3f5f8;
+  border-radius: 0.625rem;
+  height: 3rem;
+}
+
+.sf-classic header.sticky form.sf-muted input {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--sf-navy);
+}
+
+.sf-classic header.sticky nav a {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #364775;
+}
+
+.sf-classic header.sticky nav a:hover {
+  color: var(--sf-pink);
+}
+
+.sf-classic .sf-card .aspect-square {
+  border-radius: 0.9rem;
+}
+
+.sf-classic .wb-section-stack {
+  gap: 0;
+}
+
+.sf-classic .wb-container {
+  padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+  .sf-classic .wb-container {
+    padding-inline: 1.25rem;
+  }
+}
+
+
+/* Product card chrome closer to classic dense storefront */
+.sf-classic .sf-product-card {
+  padding: 1.5rem 1rem 1.1rem;
+  border-radius: 19px;
+  background: #fff;
+  box-shadow: 0 6px 10px 0 rgba(178, 189, 206, 0.2);
+  border: 1px solid #eef2f9;
+}
+
+.sf-classic .sf-product-card .aspect-square {
+  border-radius: 14px;
+}
+
+.sf-classic .sf-store-header {
+  border-bottom: 1px solid #e8edf3;
+}
+
+.sf-classic .sf-store-header .sf-search {
+  padding-inline: 1.15rem;
+}
+
+.dark .sf-classic .sf-product-card {
+  background: var(--color-card);
+  border-color: var(--color-border);
+}
+

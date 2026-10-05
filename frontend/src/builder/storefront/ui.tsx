@@ -62,7 +62,7 @@ export function StoreProductCard({ product }: { product: ShopProduct }) {
       ? Math.round((1 - product.price / product.compare) * 100)
       : 0
   return (
-    <article className="sf-card flex flex-col p-3 transition hover:-translate-y-0.5">
+    <article className="sf-card sf-product-card flex flex-col p-3 transition hover:-translate-y-0.5">
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted">
         {product.image ? (
           <img src={product.image} alt={product.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
@@ -904,7 +904,7 @@ export function StorefrontHeader({
     <>
       <StorefrontTopBar />
       <StorefrontMobileNav open={mobileNav} onClose={() => setMobileNav(false)} links={links} />
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
+      <header className="sf-store-header sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <MobileNavToggle onOpen={() => setMobileNav(true)} />
         <Link href="/" className="flex items-center gap-2">
@@ -912,7 +912,7 @@ export function StorefrontHeader({
           <span className="hidden text-lg font-bold sm:inline">{name}</span>
         </Link>
         <form
-          className="sf-muted flex h-11 flex-1 items-center gap-2 rounded-full px-4"
+          className="sf-muted sf-search flex h-11 flex-1 items-center gap-2 rounded-full px-4"
           onSubmit={(event) => {
             event.preventDefault()
             router.push(query.trim() ? `/shop?q=${encodeURIComponent(query.trim())}` : "/shop")

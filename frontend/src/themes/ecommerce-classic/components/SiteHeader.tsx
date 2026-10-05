@@ -6,7 +6,7 @@ export async function SiteHeader({ siteName, branding }: SiteChromeProps) {
   return (
     <PublishedDocument
       document={classicHeaderDocument(siteName)}
-      runtime={{ siteName, logoUrl: branding?.logo_url ?? null }}
+      runtime={{ siteName, logoUrl: branding?.logo_url ?? null, themeSlug: "ecommerce-classic" }}
     />
   )
 }

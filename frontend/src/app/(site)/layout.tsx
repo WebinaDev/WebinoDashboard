@@ -8,8 +8,10 @@ import { requestThemeContext } from "@/builder/theme/request"
 import { loadThemeComponents } from "@/kernel/theme-loader"
 import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
+import { usePublishedStorefrontChrome } from "@/themes/shared/storefront-skin"
 import { AnalyticsTrackerScript } from "@/components/AnalyticsTrackerScript"
 import { JsonLd } from "@/components/seo/JsonLd"
+import { cn } from "@/lib/utils"
 
 export const revalidate = 60
 
@@ -96,24 +98,29 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   const theme = await loadThemeComponents(themeSlug)
   const { SiteHeader, SiteFooter } = theme
   const themeContext = await requestThemeContext()
+  const preferPublishedChrome = usePublishedStorefrontChrome(themeSlug)
   const [globals, header, footer] = await Promise.all([
     loadPublishedGlobals(),
-    loadResolvedTemplate("header", themeContext),
-    loadResolvedTemplate("footer", themeContext),
+    preferPublishedChrome ? loadResolvedTemplate("header", themeContext) : Promise.resolve(null),
+    preferPublishedChrome ? loadResolvedTemplate("footer", themeContext) : Promise.resolve(null),
   ])
 
   return (
-    <SiteBrandingShell branding={branding}>
-        <div className={globals ? "wb-site flex min-h-svh flex-1 flex-col" : "flex min-h-svh flex-1 flex-col"}>
+    <SiteBrandingShell branding={branding} themeSlug={themeSlug}>
+      <div className={globals ? "wb-site flex min-h-svh flex-1 flex-col" : "flex min-h-svh flex-1 flex-col"}>
         {globals ? <style>{globalsCss(globals)}</style> : null}
         {header ? (
-          <StorefrontDocument document={header} runtime={{ siteName: tenantName, logoUrl: branding.logo_url }} context={themeContext} />
+          <StorefrontDocument
+            document={header}
+            runtime={{ siteName: tenantName, logoUrl: branding.logo_url, themeSlug }}
+            context={themeContext}
+          />
         ) : (
           <SiteHeader siteName={tenantName} branding={branding} />
         )}
-        <main className={themeSlug === "ecommerce-classic" ? "sf-classic flex-1" : "flex-1"}>{children}</main>
+        <main className={cn("sf-main flex-1")}>{children}</main>
         {footer ? (
-          <StorefrontDocument document={footer} runtime={{ siteName: tenantName }} context={themeContext} />
+          <StorefrontDocument document={footer} runtime={{ siteName: tenantName, themeSlug }} context={themeContext} />
         ) : (
           <SiteFooter siteName={tenantName} />
         )}
@@ -123,7 +130,6 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
     </SiteBrandingShell>
   )
 }
-
 
 async function SiteJsonLd() {
   try {

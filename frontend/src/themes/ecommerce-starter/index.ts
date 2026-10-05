@@ -1,4 +1,4 @@
-export { SiteHeader } from "../shared/SiteHeader"
-export { SiteFooter } from "../shared/SiteFooter"
+export { SiteHeader } from "./components/SiteHeader"
+export { SiteFooter } from "./components/SiteFooter"
 
 export const themeSlug = "ecommerce-starter"

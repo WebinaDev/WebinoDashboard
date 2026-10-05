@@ -74,6 +74,8 @@ export type RuntimeContext = {
   logoUrl?: string | null
   productSlug?: string
   categorySlug?: string
+  /** Active storefront theme slug — drives DocumentView skin class. */
+  themeSlug?: string | null
   /** Published loop-item template rendered inside product grids. */
   loopDocument?: BuilderDocument
 }
