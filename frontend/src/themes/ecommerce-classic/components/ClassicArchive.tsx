@@ -158,13 +158,6 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
   const digits = useDigits()
   const archive = useClassicThemeSettings().archive ?? {}
   const filtersOpen = Boolean(archive.filters_open_default)
-  if (archive.sidebar_enabled === false) return null
-  const category = params.get("category") ?? ""
-  const brand = params.get("brand") ?? ""
-  const inStock = params.get("in_stock") === "1"
-  const onSale = params.get("on_sale") === "1"
-  const any = Boolean(category || brand || inStock || onSale || params.get("q"))
-
   const counts = useMemo(() => {
     const cat = new Map<string, number>()
     const br = new Map<string, number>()
@@ -174,6 +167,12 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
     }
     return { cat, br }
   }, [catalog.products])
+  if (archive.sidebar_enabled === false) return null
+  const category = params.get("category") ?? ""
+  const brand = params.get("brand") ?? ""
+  const inStock = params.get("in_stock") === "1"
+  const onSale = params.get("on_sale") === "1"
+  const any = Boolean(category || brand || inStock || onSale || params.get("q"))
 
   function setParam(key: string, value: string) {
     if (editing) return
