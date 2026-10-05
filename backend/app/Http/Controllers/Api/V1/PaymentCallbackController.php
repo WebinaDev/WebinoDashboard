@@ -101,6 +101,31 @@ class PaymentCallbackController extends Controller
         }
     }
 
+    protected function handleZibal(Request $request, Order $order): RedirectResponse
+    {
+        $success = (int) $request->query('success', 0) === 1;
+        $trackId = (string) $request->query('trackId', '');
+        $intent = $this->intentMatching($order, 'zibal', 'zibal_track_id', $trackId);
+        if ($intent === null || ! $success) {
+            return $this->finish(false);
+        }
+        $settings = $this->gateways->getRaw((int) $order->tenant_id, 'zibal');
+        $merchant = (string) ($settings['merchant_id'] ?? '');
+        if ($merchant === '') {
+            return $this->finish(false);
+        }
+        $verify = Http::timeout(30)->acceptJson()->asJson()->post('https://gateway.zibal.ir/v1/verify', [
+            'merchant' => $merchant,
+            'trackId' => $trackId,
+        ])->json();
+        if ((int) data_get($verify, 'result') !== 100) {
+            return $this->finish(false);
+        }
+        $this->markPaid($order, $intent, (string) data_get($verify, 'refNumber', $trackId));
+
+        return $this->finish(true, $order);
+    }
+
     protected function handleZarinpal(Request $request, Order $order): RedirectResponse
     {
         $authority = (string) $request->query('Authority', '');
