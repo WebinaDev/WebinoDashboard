@@ -7,6 +7,7 @@ import {
   SAMPLE_BRANDS,
   SAMPLE_CATEGORIES,
   SAMPLE_PRODUCTS,
+  buildCategoryTree,
   mapApiBrand,
   mapApiCategory,
   mapApiProduct,
@@ -43,7 +44,7 @@ export function useCatalog(limit: number): CatalogState {
 
   const [state, setState] = useState<CatalogState>({
     products: SAMPLE_PRODUCTS,
-    categories: SAMPLE_CATEGORIES,
+    categories: buildCategoryTree(SAMPLE_CATEGORIES),
     brands: SAMPLE_BRANDS.map((name) => ({ name, slug: name })),
     live: false,
     total: SAMPLE_PRODUCTS.length,
@@ -82,9 +83,10 @@ export function useCatalog(limit: number): CatalogState {
           .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
           .map((item) => mapApiBrand(item))
           .filter((item): item is ShopBrand => item !== null)
+        const categorySource = mappedCategories.length ? mappedCategories : SAMPLE_CATEGORIES
         setState({
           products,
-          categories: mappedCategories.length ? mappedCategories : SAMPLE_CATEGORIES,
+          categories: buildCategoryTree(categorySource),
           brands: mappedBrands.length ? mappedBrands : SAMPLE_BRANDS.map((name) => ({ name, slug: name })),
           live: true,
           total: Number(json.data.pagination?.total ?? products.length) || 0,

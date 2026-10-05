@@ -2,9 +2,19 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react"
 
 import { cartCount, subscribeCart } from "@/builder/cart"
+import { type ShopCategory, type ShopProduct } from "@/builder/catalog"
 import { useServerCart } from "@/builder/storefront/actions"
 import { useCatalog } from "@/builder/storefront/use-catalog"
 
@@ -21,7 +31,7 @@ import {
   IconSearch,
   IconUser,
 } from "./icons"
-import { useDigits } from "./parts"
+import { ClassicAmount, useDigits } from "./parts"
 
 export const CLASSIC_NAV = [
   { label: "خانه", href: "/" },
@@ -71,6 +81,220 @@ function useNavReveal() {
   return { hidden, scrolled }
 }
 
+function megaGridStyle(count: number): CSSProperties {
+  const columns = Math.min(4, Math.max(1, Math.ceil(count / 8)))
+  const rows = Math.min(10, Math.max(1, Math.ceil(count / columns)))
+  return {
+    ["--megamenu-columns" as string]: String(columns),
+    ["--megamenu-rows" as string]: String(rows),
+  }
+}
+
+function MegaChildList({
+  items,
+  onNavigate,
+}: {
+  items: ShopCategory[]
+  onNavigate: () => void
+}) {
+  if (!items.length) return null
+  return (
+    <ul className="sfc-mega__level2" style={megaGridStyle(items.length)}>
+      {items.map((child) => {
+        const grand = child.children ?? []
+        return (
+          <li key={child.slug} className={`sfc-mega__l2 ${grand.length ? "has-kids" : ""}`}>
+            <Link href={`/shop?category=${child.slug}`} className="sfc-mega__l2-link" onClick={onNavigate}>
+              {child.name}
+            </Link>
+            {grand.length ? (
+              <ul className="sfc-mega__level3">
+                {grand.map((g) => (
+                  <li key={g.slug}>
+                    <Link href={`/shop?category=${g.slug}`} onClick={onNavigate}>
+                      {g.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+function DeepMegaPanel({
+  categories,
+  products,
+  activeCat,
+  setActiveCat,
+  onClose,
+}: {
+  categories: ShopCategory[]
+  products: ShopProduct[]
+  activeCat: number
+  setActiveCat: (i: number) => void
+  onClose: () => void
+}) {
+  const active = categories[activeCat] ?? categories[0]
+  const children = active?.children ?? []
+  const featured = products
+    .filter((p) => !active || p.categorySlug === active.slug || p.category === active.name || children.some((c) => c.slug === p.categorySlug))
+    .slice(0, 3)
+
+  return (
+    <div className="sfc-mega__panel" role="menu" aria-label="دسته‌بندی محصولات">
+      <ul className="sfc-mega__parents" role="tablist">
+        {categories.map((cat, index) => (
+          <li key={cat.slug} role="none">
+            <Link
+              href={`/shop?category=${cat.slug}`}
+              role="tab"
+              aria-selected={index === activeCat}
+              className={index === activeCat ? "is-active" : ""}
+              onMouseEnter={() => setActiveCat(index)}
+              onFocus={() => setActiveCat(index)}
+              onClick={onClose}
+            >
+              <span className="sfc-mega__parent-label">
+                {cat.image ? <img src={cat.image} alt="" width={24} height={24} /> : null}
+                <span>{cat.name}</span>
+              </span>
+              <IconChevronLeft size={14} />
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div className="sfc-mega__childs">
+        <Link href={`/shop?category=${active?.slug ?? ""}`} className="sfc-mega__all" onClick={onClose}>
+          همه محصولات {active?.name}
+          <IconChevronLeft size={14} />
+        </Link>
+        {children.length ? (
+          <MegaChildList items={children} onNavigate={onClose} />
+        ) : (
+          <div className="sfc-mega__grid">
+            {featured.map((p) => (
+              <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-mega__item" onClick={onClose}>
+                {p.name}
+              </Link>
+            ))}
+          </div>
+        )}
+        {featured.length ? (
+          <div className="sfc-mega__featured">
+            {featured.map((p) => (
+              <Link key={`f-${p.slug}`} href={`/product/${p.slug}`} className="sfc-mega__feature" onClick={onClose}>
+                <span className="sfc-mega__feature-img">
+                  {p.image ? <img src={p.image} alt="" loading="lazy" /> : <span>{p.name.slice(0, 1)}</span>}
+                </span>
+                <span className="sfc-mega__feature-body">
+                  <strong>{p.name}</strong>
+                  <ClassicAmount value={p.price} />
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function LiveSearch({
+  query,
+  setQuery,
+  products,
+  onSubmit,
+}: {
+  query: string
+  setQuery: (v: string) => void
+  products: ShopProduct[]
+  onSubmit: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const wrap = useRef<HTMLFormElement>(null)
+  const q = query.trim().toLowerCase()
+  const hits = useMemo(() => {
+    if (q.length < 1) return []
+    return products
+      .filter((p) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+      .slice(0, 6)
+  }, [products, q])
+
+  useEffect(() => {
+    const onDoc = (event: MouseEvent) => {
+      if (!wrap.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onDoc)
+    return () => document.removeEventListener("mousedown", onDoc)
+  }, [])
+
+  return (
+    <form
+      ref={wrap}
+      className="sfc-search"
+      role="search"
+      autoComplete="off"
+      onSubmit={(event) => {
+        event.preventDefault()
+        setOpen(false)
+        onSubmit()
+      }}
+    >
+      <input
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder="جستجوی محصولات"
+        aria-label="جستجوی محصولات"
+        aria-autocomplete="list"
+        aria-expanded={open && hits.length > 0}
+      />
+      <button type="submit" aria-label="جستجو">
+        <IconSearch size={18} />
+      </button>
+      {open && hits.length ? (
+        <div className="sfc-search__suggest" role="listbox">
+          {hits.map((p) => (
+            <Link
+              key={p.slug}
+              href={`/product/${p.slug}`}
+              role="option"
+              className="sfc-search__hit"
+              onClick={() => setOpen(false)}
+            >
+              <span className="sfc-search__hit-img">
+                {p.image ? <img src={p.image} alt="" loading="lazy" /> : <span>{p.name.slice(0, 1)}</span>}
+              </span>
+              <span className="sfc-search__hit-body">
+                <strong>{p.name}</strong>
+                <span>{p.brand}</span>
+              </span>
+              <ClassicAmount value={p.price} />
+            </Link>
+          ))}
+          <button
+            type="button"
+            className="sfc-search__all"
+            onClick={() => {
+              setOpen(false)
+              onSubmit()
+            }}
+          >
+            مشاهده همه نتایج
+          </button>
+        </div>
+      ) : null}
+    </form>
+  )
+}
+
 export function ClassicHeader({
   siteName,
   logoUrl,
@@ -85,22 +309,41 @@ export function ClassicHeader({
   const localCount = useSyncExternalStore(subscribeCart, cartCount, () => 0)
   const { cart, auth } = useServerCart()
   const count = auth === "auth" ? (cart?.items ?? []).reduce((sum, line) => sum + line.quantity, 0) : localCount
-  const catalog = useCatalog(12)
+  const catalog = useCatalog(24)
   const { hidden, scrolled } = useNavReveal()
   const [query, setQuery] = useState("")
   const [mega, setMega] = useState(false)
   const [activeCat, setActiveCat] = useState(0)
   const [drawer, setDrawer] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState<string | null>(null)
+  const megaRef = useRef<HTMLDivElement>(null)
   const nav = links.length ? links : CLASSIC_NAV
   const categories = catalog.categories
-  const active = categories[activeCat] ?? categories[0]
-  const activeProducts = catalog.products
-    .filter((p) => !active || p.categorySlug === active.slug || p.category === active.name)
-    .slice(0, 6)
 
   const submit = () => {
     const q = query.trim()
     router.push(q ? `/shop?q=${encodeURIComponent(q)}` : "/shop")
+  }
+
+  useEffect(() => {
+    if (!mega) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMega(false)
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [mega])
+
+  const onMegaKey = (event: ReactKeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      setMega((v) => !v)
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault()
+      setMega(true)
+    } else if (event.key === "Escape") {
+      setMega(false)
+    }
   }
 
   return (
@@ -116,24 +359,7 @@ export function ClassicHeader({
                 {logoUrl ? <img src={logoUrl} alt={siteName} /> : <span className="sfc-header__mark">{siteName.slice(0, 1)}</span>}
                 {!logoUrl ? <span className="sfc-header__name">{siteName}</span> : null}
               </Link>
-              <form
-                className="sfc-search"
-                role="search"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  submit()
-                }}
-              >
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="جستجوی محصولات"
-                  aria-label="جستجوی محصولات"
-                />
-                <button type="submit" aria-label="جستجو">
-                  <IconSearch size={18} />
-                </button>
-              </form>
+              <LiveSearch query={query} setQuery={setQuery} products={catalog.products} onSubmit={submit} />
             </div>
             <div className="sfc-header__actions">
               <div className="sfc-login-wrap">
@@ -154,45 +380,30 @@ export function ClassicHeader({
           <div className="sfc-container sfc-header__nav-inner">
             <div className="sfc-header__nav-main">
               <div
-                className="sfc-mega"
+                ref={megaRef}
+                className={`sfc-mega ${mega ? "is-open" : ""}`}
                 onMouseEnter={() => setMega(true)}
                 onMouseLeave={() => setMega(false)}
               >
-                <button type="button" className="sfc-mega__trigger" aria-expanded={mega} onClick={() => setMega((v) => !v)}>
+                <button
+                  type="button"
+                  className="sfc-mega__trigger"
+                  aria-expanded={mega}
+                  aria-haspopup="true"
+                  onClick={() => setMega((v) => !v)}
+                  onKeyDown={onMegaKey}
+                >
                   <IconMenu size={20} />
-                  <span>دسته بندی محصولات</span>
+                  <span>دسته‌بندی محصولات</span>
                 </button>
                 {mega && categories.length ? (
-                  <div className="sfc-mega__panel" role="menu">
-                    <ul className="sfc-mega__parents">
-                      {categories.map((cat, index) => (
-                        <li key={cat.slug}>
-                          <Link
-                            href={`/shop?category=${cat.slug}`}
-                            className={index === activeCat ? "is-active" : ""}
-                            onMouseEnter={() => setActiveCat(index)}
-                            onClick={() => setMega(false)}
-                          >
-                            <span>{cat.name}</span>
-                            <IconChevronLeft size={14} />
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="sfc-mega__childs">
-                      <Link href={`/shop?category=${active?.slug ?? ""}`} className="sfc-mega__all" onClick={() => setMega(false)}>
-                        همه محصولات {active?.name}
-                        <IconChevronLeft size={14} />
-                      </Link>
-                      <div className="sfc-mega__grid">
-                        {activeProducts.map((p) => (
-                          <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-mega__item" onClick={() => setMega(false)}>
-                            {p.name}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  <DeepMegaPanel
+                    categories={categories}
+                    products={catalog.products}
+                    activeCat={activeCat}
+                    setActiveCat={setActiveCat}
+                    onClose={() => setMega(false)}
+                  />
                 ) : null}
               </div>
               <span className="sfc-header__sep" aria-hidden="true" />
@@ -236,12 +447,39 @@ export function ClassicHeader({
               ))}
             </nav>
             <p className="sfc-drawer__label">دسته بندی محصولات</p>
-            <nav className="sfc-drawer__links">
-              {categories.map((cat) => (
-                <Link key={cat.slug} href={`/shop?category=${cat.slug}`} onClick={() => setDrawer(false)}>
-                  {cat.name}
-                </Link>
-              ))}
+            <nav className="sfc-drawer__links sfc-drawer__cats">
+              {categories.map((cat) => {
+                const open = drawerOpen === cat.slug
+                const kids = cat.children ?? []
+                return (
+                  <div key={cat.slug} className="sfc-drawer__cat">
+                    <div className="sfc-drawer__cat-row">
+                      <Link href={`/shop?category=${cat.slug}`} onClick={() => setDrawer(false)}>
+                        {cat.name}
+                      </Link>
+                      {kids.length ? (
+                        <button
+                          type="button"
+                          aria-expanded={open}
+                          aria-label="زیرمجموعه‌ها"
+                          onClick={() => setDrawerOpen(open ? null : cat.slug)}
+                        >
+                          {open ? "−" : "+"}
+                        </button>
+                      ) : null}
+                    </div>
+                    {open ? (
+                      <div className="sfc-drawer__sub">
+                        {kids.map((child) => (
+                          <Link key={child.slug} href={`/shop?category=${child.slug}`} onClick={() => setDrawer(false)}>
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
             </nav>
           </div>
         </div>

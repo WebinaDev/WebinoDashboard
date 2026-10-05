@@ -1,12 +1,22 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { SAMPLE_BRANDS, toneClass, type ShopProduct } from "@/builder/catalog"
 import { useCatalog, type CatalogState } from "@/builder/storefront/use-catalog"
 
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconFire, IconPercent } from "./icons"
+import {
+  IconBag,
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
+  IconClock,
+  IconFire,
+  IconPercent,
+  IconShield,
+  IconTruck,
+} from "./icons"
 import { ClassicProductCard } from "./ClassicProductCard"
 import { ClassicAmount, ClassicSectionHead, useDigits } from "./parts"
 
@@ -25,53 +35,280 @@ function lines(raw: string): string[][] {
 
 /* ------------------------------------------------------------------ stories */
 
-type Story = { id: string; title: string; image: string | null; href: string; badge?: string }
+type Story = {
+  id: string
+  title: string
+  image: string | null
+  href: string
+  badge?: string
+  mediaType?: "image" | "video"
+  productSlug?: string
+  productName?: string
+  productPrice?: number
+}
+
+const STORY_DURATION_MS = 5500
+const STORY_SEEN_KEY = "wb_story_seen"
+
+function readSeen(): Set<string> {
+  if (typeof window === "undefined") return new Set()
+  try {
+    const raw = window.localStorage.getItem(STORY_SEEN_KEY)
+    const parsed = raw ? (JSON.parse(raw) as unknown) : []
+    return new Set(Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string") : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function writeSeen(ids: Set<string>) {
+  try {
+    window.localStorage.setItem(STORY_SEEN_KEY, JSON.stringify([...ids].slice(-40)) )
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function ClassicStoryViewer({
+  stories,
+  index,
+  onClose,
+  onIndex,
+}: {
+  stories: Story[]
+  index: number
+  onClose: () => void
+  onIndex: (i: number) => void
+}) {
+  const story = stories[index]
+  const [progress, setProgress] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const digits = useDigits()
+
+  const go = useCallback(
+    (dir: 1 | -1) => {
+      const next = index + dir
+      if (next < 0 || next >= stories.length) {
+        onClose()
+        return
+      }
+      onIndex(next)
+    },
+    [index, onClose, onIndex, stories.length],
+  )
+
+  useEffect(() => {
+    setProgress(0)
+    const seen = readSeen()
+    if (story) {
+      seen.add(story.id)
+      writeSeen(seen)
+    }
+  }, [story?.id])
+
+  useEffect(() => {
+    if (!story || paused) return
+    const started = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      const ratio = Math.min(1, (now - started) / STORY_DURATION_MS)
+      setProgress(ratio)
+      if (ratio >= 1) go(1)
+      else raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [go, paused, story?.id])
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose()
+      if (event.key === "ArrowLeft") go(1) // RTL: left = next
+      if (event.key === "ArrowRight") go(-1)
+    }
+    document.addEventListener("keydown", onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prev
+    }
+  }, [go, onClose])
+
+  if (!story) return null
+
+  return (
+    <div className="sfc-story-viewer" role="dialog" aria-modal="true" aria-label={story.title}>
+      <button type="button" className="sfc-story-viewer__scrim" aria-label="بستن" onClick={onClose} />
+      <div
+        className="sfc-story-viewer__frame"
+        onPointerDown={() => setPaused(true)}
+        onPointerUp={() => setPaused(false)}
+        onPointerLeave={() => setPaused(false)}
+      >
+        <div className="sfc-story-viewer__bars" aria-hidden="true">
+          {stories.map((s, i) => (
+            <span key={s.id} className={i === index ? "is-active" : i < index ? "is-done" : ""}>
+              <i style={i === index ? { transform: `scaleX(${progress})` } : undefined} />
+            </span>
+          ))}
+        </div>
+        <div className="sfc-story-viewer__top">
+          <div className="sfc-story-viewer__profile">
+            <span className="sfc-story-viewer__avatar">
+              {story.image ? <img src={story.image} alt="" /> : <span>{story.title.slice(0, 1)}</span>}
+            </span>
+            <strong>{story.title}</strong>
+          </div>
+          <button type="button" className="sfc-story-viewer__close" aria-label="بستن" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        <div className="sfc-story-viewer__media">
+          {story.mediaType === "video" && story.image ? (
+            <video src={story.image} autoPlay muted playsInline loop />
+          ) : story.image ? (
+            <img src={story.image} alt={story.title} />
+          ) : (
+            <div className="sfc-story-viewer__ph">{story.title}</div>
+          )}
+        </div>
+        <button type="button" className="sfc-story-viewer__hit sfc-story-viewer__hit--prev" aria-label="قبلی" onClick={() => go(-1)} />
+        <button type="button" className="sfc-story-viewer__hit sfc-story-viewer__hit--next" aria-label="بعدی" onClick={() => go(1)} />
+        <div className="sfc-story-viewer__cta">
+          {typeof story.productPrice === "number" ? (
+            <span className="sfc-story-viewer__price">
+              <ClassicAmount value={story.productPrice} />
+            </span>
+          ) : null}
+          <Link href={story.href} className="sfc-story-viewer__btn" onClick={onClose}>
+            {story.productName ? `مشاهده ${story.productName}` : "مشاهده محصول"}
+          </Link>
+        </div>
+        <div className="sfc-story-viewer__nav">
+          <button type="button" aria-label="قبلی" onClick={() => go(-1)}>
+            <IconChevronRight size={18} />
+          </button>
+          <span>
+            {digits(index + 1)} / {digits(stories.length)}
+          </span>
+          <button type="button" aria-label="بعدی" onClick={() => go(1)}>
+            <IconChevronLeft size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function ClassicStoryStrip({ title }: { title?: string }) {
   const catalog = useCatalog(16)
   const [remote, setRemote] = useState<Story[] | null>(null)
+  const [viewer, setViewer] = useState<number | null>(null)
+  const [seen, setSeen] = useState<Set<string>>(() => new Set())
+
   useEffect(() => {
+    setSeen(readSeen())
     const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    let cancel = false
     fetch(`${base}/api/v1/public/product-stories`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
+        if (cancel) return
         const items = Array.isArray(json?.data?.items) ? json.data.items : []
         setRemote(
-          items.map((item: { id: number; title: string; media_url: string; link_url?: string | null; product_id?: number | null }) => ({
-            id: String(item.id),
-            title: item.title,
-            image: item.media_url,
-            href: item.link_url || (item.product_id ? `/product/${item.product_id}` : "#"),
-          })),
+          items.map(
+            (item: {
+              id: number
+              title: string
+              media_url: string
+              media_type?: string
+              link_url?: string | null
+              product_id?: number | null
+            }) => ({
+              id: String(item.id),
+              title: item.title,
+              image: item.media_url,
+              mediaType: (item.media_type === "video" ? "video" : "image") as "image" | "video",
+              href: item.link_url || (item.product_id ? `/product/${item.product_id}` : "/shop"),
+              productSlug: item.product_id ? String(item.product_id) : undefined,
+            }),
+          ),
         )
       })
-      .catch(() => setRemote([]))
+      .catch(() => {
+        if (!cancel) setRemote([])
+      })
+    return () => {
+      cancel = true
+    }
   }, [])
+
+  const storiesEnriched = useMemo(() => {
+    const base = remote && remote.length ? remote : null
+    if (!base) return null
+    return base.map((story) => {
+      const product =
+        catalog.products.find((p) => p.slug === story.productSlug || String(p.id ?? "") === story.productSlug) ??
+        catalog.products.find((p) => story.href.includes(`/product/${p.slug}`))
+      if (!product) return story
+      return {
+        ...story,
+        href: story.href.startsWith("/product/") && product.slug ? `/product/${product.slug}` : story.href,
+        productSlug: product.slug,
+        productName: product.name,
+        productPrice: product.price,
+      }
+    })
+  }, [catalog.products, remote])
+
   const fallback: Story[] = catalog.products.slice(0, 14).map((p, i) => ({
     id: p.slug,
     title: p.name,
     image: p.image ?? null,
     href: `/product/${p.slug}`,
     badge: p.compare ? "تخفیف" : p.isNew || i % 4 === 1 ? "جدید" : undefined,
+    productSlug: p.slug,
+    productName: p.name,
+    productPrice: p.price,
   }))
-  const stories = remote && remote.length ? remote : fallback
+  const stories = storiesEnriched && storiesEnriched.length ? storiesEnriched : fallback
   if (!stories.length) return null
+
   return (
-    <section className="sfc-stories" aria-label={title || "استوری"}>
-      <div className="sfc-stories__track">
-        {stories.map((story) => (
-          <Link key={story.id} href={story.href} className="sfc-story">
-            <span className="sfc-story__ring">
-              <span className="sfc-story__img">
-                {story.image ? <img src={story.image} alt="" loading="lazy" /> : <span>{story.title.slice(0, 1)}</span>}
+    <>
+      <section className="sfc-stories" aria-label={title || "استوری"}>
+        <div className="sfc-stories__track">
+          {stories.map((story, index) => (
+            <button
+              key={story.id}
+              type="button"
+              className={`sfc-story ${seen.has(story.id) ? "is-seen" : ""}`}
+              onClick={() => setViewer(index)}
+            >
+              <span className="sfc-story__ring">
+                <span className="sfc-story__img">
+                  {story.image ? <img src={story.image} alt="" loading="lazy" /> : <span>{story.title.slice(0, 1)}</span>}
+                </span>
+                {story.badge ? <span className="sfc-story__badge">{story.badge}</span> : null}
               </span>
-              {story.badge ? <span className="sfc-story__badge">{story.badge}</span> : null}
-            </span>
-            <span className="sfc-story__label">{story.title}</span>
-          </Link>
-        ))}
-      </div>
-    </section>
+              <span className="sfc-story__label">{story.title}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+      {viewer != null ? (
+        <ClassicStoryViewer
+          stories={stories}
+          index={viewer}
+          onClose={() => {
+            setSeen(readSeen())
+            setViewer(null)
+          }}
+          onIndex={setViewer}
+        />
+      ) : null}
+    </>
   )
 }
 
@@ -111,16 +348,15 @@ export function ClassicHero({ slidesText, height }: { slidesText?: string; heigh
             aria-hidden={i !== index}
             tabIndex={i === index ? 0 : -1}
           >
-            {s.image ? <img src={s.image} alt={s.title} className="sfc-hero__img" /> : null}
-            {!s.image ? (
-              <span className="sfc-hero__copy">
-                <span className="sfc-hero__corner sfc-hero__corner--top" aria-hidden="true" />
-                <span className="sfc-hero__kicker">{s.kicker}</span>
-                <strong className="sfc-hero__title">{s.title}</strong>
-                {s.sub ? <span className="sfc-hero__sub">{s.sub}</span> : null}
-                <span className="sfc-hero__corner sfc-hero__corner--bottom" aria-hidden="true" />
-              </span>
-            ) : null}
+            {s.image ? <img src={s.image} alt={s.title} className="sfc-hero__img" /> : <span className="sfc-hero__fallback" aria-hidden="true" />}
+            <span className={`sfc-hero__copy ${s.image ? "sfc-hero__copy--over" : ""}`}>
+              <span className="sfc-hero__corner sfc-hero__corner--top" aria-hidden="true" />
+              {s.kicker ? <span className="sfc-hero__kicker">{s.kicker}</span> : null}
+              <strong className="sfc-hero__title">{s.title}</strong>
+              {s.sub ? <span className="sfc-hero__sub">{s.sub}</span> : null}
+              <span className="sfc-hero__cta">مشاهده محصولات</span>
+              <span className="sfc-hero__corner sfc-hero__corner--bottom" aria-hidden="true" />
+            </span>
           </Link>
         ))}
         <div className="sfc-hero__dots" role="tablist">
@@ -153,6 +389,12 @@ export function ClassicHero({ slidesText, height }: { slidesText?: string; heigh
 export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
   const catalog = useCatalog(16)
   const digits = useDigits()
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => {
+    setNow(Date.now())
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
   const custom = lines(tilesText ?? "").map(([name, href, image]) => ({ name: name || "", href: href || "/shop", image: image || null }))
   const tiles = custom.length
     ? custom.slice(0, 3)
@@ -163,9 +405,13 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
       }))
   const offer = catalog.products.find((p) => p.compare && p.compare > p.price) ?? catalog.products[0]
   const off = offer?.compare && offer.compare > offer.price ? Math.round((1 - offer.price / offer.compare) * 100) : 0
-  const left = typeof offer?.stock === "number" ? offer.stock : 1
-  const sold = 0
+  const left = typeof offer?.stock === "number" ? Math.max(0, offer.stock) : 1
+  const sold = Math.max(0, 12 - left)
   const total = Math.max(left + sold, 1)
+  const end = new Date()
+  end.setHours(23, 59, 59, 0)
+  const diff = now == null ? 0 : Math.max(0, end.getTime() - now)
+  const hms = [Math.floor(diff / 3600000), Math.floor((diff % 3600000) / 60000), Math.floor((diff % 60000) / 1000)]
   return (
     <section className="sfc-tiles">
       {tiles.map((tile) => (
@@ -188,6 +434,15 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
                 <IconPercent size={16} />
               </span>
               <strong className="sfc-offer__title">{offer.name}</strong>
+              <div className="sfc-offer__countdown" dir="ltr" aria-label="شمارش معکوس">
+                {hms.map((v, i) => (
+                  <span key={i}>
+                    {i > 0 ? <i>:</i> : null}
+                    <b>{digits(Math.floor(v / 10))}</b>
+                    <b>{digits(v % 10)}</b>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
           <div className="sfc-offer__foot">
@@ -502,3 +757,193 @@ export function ClassicAmazingBand({ title }: { title?: string }) {
     </section>
   )
 }
+
+
+/* -------------------------------------------------------------- taste box */
+
+export function ClassicTasteBox({ title }: { title?: string }) {
+  const catalog = useCatalog(24)
+  const groups = catalog.categories.slice(0, 3).map((cat) => {
+    const kids = cat.children?.length ? cat.children : [{ slug: cat.slug, name: cat.name, tone: cat.tone }]
+    const products = catalog.products
+      .filter((p) => p.categorySlug === cat.slug || p.category === cat.name || kids.some((k) => k.slug === p.categorySlug))
+      .slice(0, 4)
+    return { cat, kids: kids.slice(0, 4), products }
+  })
+  if (!groups.some((g) => g.products.length || g.kids.length)) return null
+  return (
+    <section className="sfc-taste">
+      <div className="sfc-taste__head">
+        <div className="sfc-taste__title">
+          <IconBag size={22} />
+          <div>
+            <strong>{title || "پیشنهاد برای سلیقه شما"}</strong>
+            <span>بر اساس دسته‌های محبوب فروشگاه</span>
+          </div>
+        </div>
+        <Link href="/shop" className="sfc-taste__more">
+          مشاهده همه <IconChevronLeft size={14} />
+        </Link>
+      </div>
+      <div className="sfc-taste__body">
+        {groups.map(({ cat, kids, products }) => (
+          <div key={cat.slug} className="sfc-taste__col">
+            <div className="sfc-taste__cats">
+              {kids.map((k) => (
+                <Link key={k.slug} href={`/shop?category=${k.slug}`} className="sfc-taste__cat">
+                  <span className="sfc-taste__cat-img">
+                    {imageForCategory(catalog, k.slug, k.name) ? (
+                      <img src={imageForCategory(catalog, k.slug, k.name)!} alt="" loading="lazy" />
+                    ) : (
+                      <span className={`bg-gradient-to-br ${toneClass(k.tone)}`}>{k.name.slice(0, 1)}</span>
+                    )}
+                  </span>
+                  <span className="sfc-taste__cat-label">
+                    <span>{k.name}</span>
+                    <span>{cat.name}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <div className="sfc-taste__products">
+              {products.map((p) => (
+                <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-taste__product">
+                  {p.image ? <img src={p.image} alt="" loading="lazy" /> : <span>{p.name.slice(0, 1)}</span>}
+                </Link>
+              ))}
+              <Link href={`/shop?category=${cat.slug}`} className="sfc-taste__showmore">
+                <span>بیشتر</span>
+                <IconChevronLeft size={14} />
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ----------------------------------------------------- special banners */
+
+export function ClassicSpecialBanners({ title }: { title?: string }) {
+  const catalog = useCatalog(16)
+  const digits = useDigits()
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => {
+    setNow(Date.now())
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const offers = catalog.products.filter((p) => p.compare && p.compare > p.price)
+  const list = (offers.length ? offers : catalog.products).slice(0, 8)
+  if (!list.length) return null
+  const end = new Date()
+  end.setHours(23, 59, 59, 0)
+  const diff = now == null ? 0 : Math.max(0, end.getTime() - now)
+  const hms = [Math.floor(diff / 3600000), Math.floor((diff % 3600000) / 60000), Math.floor((diff % 60000) / 1000)]
+  const vertical = list.slice(0, 2)
+  const strip = list.slice(0, 6)
+  return (
+    <section className="sfc-special">
+      {title ? <ClassicSectionHead title={title} href="/amazing-offers" /> : null}
+      <div className="sfc-special__grid">
+        <div className="sfc-special__banner">
+          <div className="sfc-special__banner-head">
+            <span className="sfc-special__badge">٪</span>
+            <strong>پیشنهادهای ویژه امروز</strong>
+            <div className="sfc-special__timer" dir="ltr">
+              {hms.map((v, i) => (
+                <span key={i}>
+                  {i > 0 ? <i>:</i> : null}
+                  <b>{digits(Math.floor(v / 10))}</b>
+                  <b>{digits(v % 10)}</b>
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="sfc-special__strip">
+            {strip.map((p) => {
+              const off = p.compare && p.compare > p.price ? Math.round((1 - p.price / p.compare) * 100) : 0
+              return (
+                <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-special__item">
+                  <span className="sfc-special__img">
+                    {p.image ? <img src={p.image} alt="" loading="lazy" /> : null}
+                    {off > 0 ? <em>{digits(off)}٪</em> : null}
+                  </span>
+                  <span className="sfc-special__name">{p.name}</span>
+                  <ClassicAmount value={p.price} />
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+        <div className="sfc-special__verticals">
+          {vertical.map((p, i) => {
+            const off = p.compare && p.compare > p.price ? Math.round((1 - p.price / p.compare) * 100) : 0
+            return (
+              <Link key={p.slug} href={`/product/${p.slug}`} className={`sfc-special__vert sfc-special__vert--${i % 2 ? "b" : "a"}`}>
+                <div className="sfc-special__vert-timer" dir="ltr">
+                  {hms.map((v, j) => (
+                    <span key={j}>
+                      {j > 0 ? <i>:</i> : null}
+                      <b>{digits(Math.floor(v / 10))}</b>
+                      <b>{digits(v % 10)}</b>
+                    </span>
+                  ))}
+                </div>
+                <span className="sfc-special__vert-img">
+                  {p.image ? <img src={p.image} alt="" loading="lazy" /> : <span className={`bg-gradient-to-br ${toneClass(p.tone)}`} />}
+                </span>
+                <strong>{p.name}</strong>
+                <div className="sfc-special__vert-price">
+                  {off > 0 ? <em>{digits(off)}٪</em> : null}
+                  <ClassicAmount value={p.price} />
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ------------------------------------------------------- customer guide */
+
+const GUIDE_DEFAULTS = [
+  { title: "ارسال سریع", text: "تحویل اکسپرس در شهر شما", icon: "truck" as const, href: "/pages/shipping" },
+  { title: "پرداخت امن", text: "درگاه امن و خرید اقساطی", icon: "bag" as const, href: "/pages/payment" },
+  { title: "ضمانت بازگشت", text: "۷ روز ضمانت بازگشت کالا", icon: "shield" as const, href: "/pages/returns" },
+  { title: "اصالت کالا", text: "تضمین اصالت و اورجینال بودن", icon: "clock" as const, href: "/pages/about" },
+]
+
+export function ClassicCustomerGuide({ title, itemsText }: { title?: string; itemsText?: string }) {
+  const custom = lines(itemsText ?? "").map(([t, text, href]) => ({
+    title: t || "",
+    text: text || "",
+    href: href || "/shop",
+    icon: "bag" as const,
+  }))
+  const items = custom.length >= 4 ? custom.slice(0, 4) : GUIDE_DEFAULTS
+  const iconFor = (key: string) => {
+    if (key === "truck") return <IconTruck size={28} />
+    if (key === "shield") return <IconShield size={28} />
+    if (key === "clock") return <IconClock size={28} />
+    return <IconBag size={28} />
+  }
+  return (
+    <section className="sfc-guide" aria-label={title || "راهنمای مشتریان"}>
+      {title ? <ClassicSectionHead title={title} /> : null}
+      <div className="sfc-guide__grid">
+        {items.map((item) => (
+          <Link key={item.title} href={item.href} className="sfc-guide__tile">
+            <span className="sfc-guide__icon">{iconFor(item.icon)}</span>
+            <strong>{item.title}</strong>
+            <span>{item.text}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+

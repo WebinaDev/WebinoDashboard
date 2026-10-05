@@ -357,6 +357,23 @@ export const WIDGETS: WidgetDef[] = [
     create: () => node("taste-box", { title: "پیشنهاد برای سلیقه شما" }),
   },
   {
+    type: "special-banners",
+    label: "بنرهای ویژه",
+    category: "commerce",
+    fields: [{ kind: "text", key: "title", label: "عنوان" }],
+    create: () => node("special-banners", { title: "پیشنهادهای ویژه" }),
+  },
+  {
+    type: "customer-guide",
+    label: "راهنمای مشتریان",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "items", label: "آیتم‌ها (عنوان|متن|لینک)" },
+    ],
+    create: () => node("customer-guide", { title: "راهنمای مشتریان" }),
+  },
+  {
     type: "package-block",
     label: "پکیج محصول",
     category: "commerce",

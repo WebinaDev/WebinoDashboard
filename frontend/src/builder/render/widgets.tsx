@@ -49,13 +49,17 @@ import {
   ClassicBestSellers,
   ClassicBrandGrid,
   ClassicCategoryTiles,
+  ClassicCustomerGuide,
   ClassicHero,
   ClassicIconCategories,
   ClassicProductRow,
   ClassicPromoTrio,
   ClassicRecentlyViewed,
+  ClassicSpecialBanners,
   ClassicStoryStrip,
+  ClassicTasteBox,
 } from "@/themes/ecommerce-classic/components/ClassicHome"
+
 import { ClassicTrustStrip } from "@/themes/ecommerce-classic/components/ClassicProduct"
 
 const NAV = [
@@ -179,7 +183,11 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "most-viewed":
       return <MostViewedWidget widget={widget} />
     case "taste-box":
-      return <TasteBoxWidget widget={widget} />
+      return classic ? <ClassicTasteBox title={propStr(widget.props, "title", "")} /> : <TasteBoxWidget widget={widget} />
+    case "special-banners":
+      return <ClassicSpecialBanners title={propStr(widget.props, "title", "")} />
+    case "customer-guide":
+      return <ClassicCustomerGuide title={propStr(widget.props, "title", "")} itemsText={propStr(widget.props, "items", "")} />
     case "package-block":
       return <PackageBlockWidget widget={widget} />
     case "blog-toc":

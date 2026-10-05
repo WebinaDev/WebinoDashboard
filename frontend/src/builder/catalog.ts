@@ -51,16 +51,126 @@ export type ShopCategory = {
   slug: string
   name: string
   tone: string
+  /** Present when the public catalog exposes hierarchy. */
+  id?: number
+  parentId?: number | null
+  image?: string | null
+  children?: ShopCategory[]
 }
 
 export const SAMPLE_CATEGORIES: ShopCategory[] = [
-  { slug: "skin", name: "مراقبت پوست", tone: "pink" },
-  { slug: "hair", name: "مراقبت مو", tone: "lilac" },
-  { slug: "wash", name: "شوینده", tone: "sky" },
-  { slug: "makeup", name: "آرایش", tone: "rose" },
-  { slug: "lip", name: "آرایش لب", tone: "coral" },
-  { slug: "eye", name: "آرایش چشم", tone: "navy" },
+  {
+    slug: "skin",
+    name: "مراقبت پوست",
+    tone: "pink",
+    children: [
+      { slug: "sunscreen", name: "کرم ضد آفتاب", tone: "pink" },
+      { slug: "serum", name: "سرم پوست", tone: "pink" },
+      { slug: "moisturizer", name: "مرطوب‌کننده", tone: "pink" },
+      { slug: "eye-cream", name: "کرم دور چشم", tone: "pink" },
+      {
+        slug: "repair",
+        name: "ترمیم‌کننده",
+        tone: "pink",
+        children: [
+          { slug: "repair-gel", name: "ژل ترمیم", tone: "pink" },
+          { slug: "repair-cream", name: "کرم ترمیم", tone: "pink" },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "hair",
+    name: "مراقبت مو",
+    tone: "lilac",
+    children: [
+      { slug: "shampoo", name: "شامپو", tone: "lilac" },
+      { slug: "conditioner", name: "نرم‌کننده", tone: "lilac" },
+      { slug: "hair-oil", name: "روغن مو", tone: "lilac" },
+      { slug: "hair-mask", name: "ماسک مو", tone: "lilac" },
+    ],
+  },
+  {
+    slug: "wash",
+    name: "شوینده",
+    tone: "sky",
+    children: [
+      { slug: "face-wash", name: "شوینده صورت", tone: "sky" },
+      { slug: "makeup-remover", name: "پاک‌کننده آرایش", tone: "sky" },
+      { slug: "toner", name: "تونر", tone: "sky" },
+    ],
+  },
+  {
+    slug: "makeup",
+    name: "آرایش",
+    tone: "rose",
+    children: [
+      { slug: "lip", name: "آرایش لب", tone: "coral", children: [
+        { slug: "lipstick", name: "رژ لب", tone: "coral" },
+        { slug: "lipgloss", name: "لیپ‌گلاس", tone: "coral" },
+      ]},
+      { slug: "eye", name: "آرایش چشم", tone: "navy", children: [
+        { slug: "mascara", name: "ریمل", tone: "navy" },
+        { slug: "eyeliner", name: "خط چشم", tone: "navy" },
+      ]},
+      { slug: "face-makeup", name: "آرایش صورت", tone: "rose" },
+      { slug: "tools", name: "ابزار آرایشی", tone: "rose" },
+    ],
+  },
 ]
+
+/** Build a rooted tree from a flat category list that may carry parentId. */
+export function buildCategoryTree(categories: ShopCategory[]): ShopCategory[] {
+  const withKids = categories.filter((c) => Array.isArray(c.children) && c.children.length > 0)
+  if (withKids.length && withKids.length >= Math.ceil(categories.length / 2)) {
+    return withKids.map((c) => ({ ...c, children: c.children ?? [] }))
+  }
+
+  const byId = new Map<number, ShopCategory & { children: ShopCategory[] }>()
+  const roots: Array<ShopCategory & { children: ShopCategory[] }> = []
+  const flat = categories.map((c) => ({ ...c, children: [] as ShopCategory[] }))
+
+  for (const c of flat) {
+    if (typeof c.id === "number") byId.set(c.id, c)
+  }
+
+  for (const c of flat) {
+    const parent = typeof c.parentId === "number" ? byId.get(c.parentId) : undefined
+    if (parent && parent !== c) parent.children.push(c)
+    else if (c.parentId == null || c.parentId === undefined) roots.push(c)
+  }
+
+  if (roots.length) {
+    // Drop orphan leaves that were nested under a known parent elsewhere
+    const nested = new Set<string>()
+    const walk = (nodes: ShopCategory[]) => {
+      for (const n of nodes) {
+        for (const ch of n.children ?? []) {
+          nested.add(ch.slug)
+          walk([ch])
+        }
+      }
+    }
+    walk(roots)
+    return roots.filter((r) => !nested.has(r.slug) || (r.children?.length ?? 0) > 0)
+  }
+
+  // Flat API: invent a 2-level layout by grouping leftover leaf categories under the top ones.
+  const tops = categories.filter((c) => c.parentId == null || c.parentId === undefined).slice(0, 6)
+  if (tops.length <= 1) {
+    return categories.map((c, i) => ({
+      ...c,
+      children: categories.filter((_, j) => j !== i).slice(0, 6).map((ch) => ({ ...ch, children: undefined })),
+    }))
+  }
+  return tops.map((top, i) => ({
+    ...top,
+    children: categories
+      .filter((c) => c.slug !== top.slug)
+      .slice(i * 3, i * 3 + 4)
+      .map((ch) => ({ ...ch, children: undefined })),
+  }))
+}
 
 
 function product(partial: Omit<ShopProduct, "images" | "variants" | "installments" | "faqs" | "inStock" | "live" | "brandSlug"> & Partial<ShopProduct>): ShopProduct {
@@ -283,5 +393,33 @@ export function mapApiCategory(raw: ApiRecord, index: number): ShopCategory | nu
   const name = str(raw.name)
   const slug = str(raw.slug)
   if (!name || !slug) return null
-  return { slug, name, tone: SAMPLE_CATEGORIES[index % SAMPLE_CATEGORIES.length].tone }
+  const id = num(raw.id)
+  const parentRaw = raw.parent_id
+  const parentId =
+    parentRaw === null || parentRaw === undefined || parentRaw === ""
+      ? null
+      : typeof parentRaw === "number"
+        ? parentRaw
+        : Number(parentRaw) || null
+  const image =
+    str(raw.image_url) ||
+    str(raw.icon_url) ||
+    str(raw.cover_image_url) ||
+    str(raw.thumbnail_url) ||
+    null
+  const nested = Array.isArray(raw.children)
+    ? raw.children
+        .filter((item): item is ApiRecord => !!item && typeof item === "object")
+        .map((item, i) => mapApiCategory(item, i))
+        .filter((item): item is ShopCategory => item !== null)
+    : undefined
+  return {
+    slug,
+    name,
+    tone: SAMPLE_CATEGORIES[index % SAMPLE_CATEGORIES.length].tone,
+    id: id || undefined,
+    parentId,
+    image: image || null,
+    children: nested?.length ? nested : undefined,
+  }
 }
