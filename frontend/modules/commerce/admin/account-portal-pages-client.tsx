@@ -780,7 +780,9 @@ export function AccountTicketDetailPageClient({ route }: { route: ResolvedAdminR
           body={body}
           onBodyChange={setBody}
           pending={reply.isPending}
-          onSubmit={(payload) => reply.mutateAsync(payload)}
+          onSubmit={async (payload) => {
+            await reply.mutateAsync(payload)
+          }}
         />
       ) : (
         <p className="text-muted-foreground text-sm">{t("closed_hint")}</p>
