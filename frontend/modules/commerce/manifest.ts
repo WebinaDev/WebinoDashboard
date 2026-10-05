@@ -781,6 +781,7 @@ export const commerceManifest: ModuleManifest = {
     { path: "account", submodule: "catalog", labelKey: "site.account" },
     { path: "compare", submodule: "catalog", page: "compare", labelKey: "site.compare" },
     { path: "amazing-offers", submodule: "catalog", page: "amazing-offers", labelKey: "site.amazing_offers" },
+    { path: "order-tracking", submodule: "catalog", page: "order-tracking", labelKey: "site.order_tracking" },
     { path: "wishlist/:token", submodule: "catalog", page: "wishlist", labelKey: "site.wishlist" },
     { path: "store/:slug", submodule: "catalog", page: "vendor-store", labelKey: "site.vendor_store" },
     { path: "pay/:orderId", submodule: "checkout", labelKey: "site.order_pay" },

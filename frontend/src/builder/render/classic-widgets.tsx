@@ -1,5 +1,6 @@
 "use client"
 
+import { ClassicAccountHome } from "@/themes/ecommerce-classic/components/ClassicPages"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
@@ -290,6 +291,8 @@ export function ProductReviewsWidget({ widget, productSlug }: { widget: WidgetNo
 }
 
 export function AccountDashboardWidget() {
+  const classic = useIsClassicSkin()
+  if (classic) return <ClassicAccountHome />
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <StorefrontAccount />

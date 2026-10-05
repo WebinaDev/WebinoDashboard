@@ -165,7 +165,7 @@ export function ProductReviewsPanel({ slug }: { slug: string }) {
   }, [slug])
 
   return (
-    <section className="mt-6">
+    <section className="mt-6" id="sfc-reviews">
       <div className="sf-section-head">
         <h2>{t("reviews_title")}</h2>
         {average != null ? (

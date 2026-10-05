@@ -45,6 +45,7 @@ import { propBool, propNum, propStr, parseLinks } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
+import { ClassicNotFound, ClassicOrderTrack, ClassicComparePage } from "@/themes/ecommerce-classic/components/ClassicPages"
 import {
   ClassicBestSellers,
   ClassicBrandGrid,
@@ -198,6 +199,12 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} />
     case "account-dashboard":
       return <AccountDashboardWidget />
+    case "classic-not-found":
+      return <ClassicNotFound />
+    case "classic-order-track":
+      return <ClassicOrderTrack />
+    case "classic-compare":
+      return <ClassicComparePage />
     case "breadcrumbs":
       return <BreadcrumbsWidget widget={widget} />
     case "store-header":

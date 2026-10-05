@@ -7,6 +7,8 @@ import { useLocale, useTranslations } from "next-intl"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { StorefrontCompareTable } from "@/builder/storefront/storefront-extras"
 import { StorefrontPageShell } from "@/builder/storefront/storefront-chrome"
+import { useIsClassicSkin } from "@/builder/render/runtime"
+import { ClassicComparePage } from "@/themes/ecommerce-classic/components/ClassicPages"
 
 type CompareItem = {
   id: number
@@ -19,7 +21,7 @@ type CompareItem = {
   in_stock?: boolean
 }
 
-export default function ComparePage() {
+function DefaultComparePage() {
   const t = useTranslations("storefront")
   const locale = useLocale()
   const [items, setItems] = useState<CompareItem[]>([])
@@ -72,4 +74,9 @@ export default function ComparePage() {
       ) : null}
     </StorefrontPageShell>
   )
+}
+
+export default function ComparePage() {
+  const classic = useIsClassicSkin()
+  return classic ? <ClassicComparePage /> : <DefaultComparePage />
 }
