@@ -125,9 +125,11 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <ProductDetail editing={editing} slug={runtime.productSlug} />
     case "cart-lines":
       return <CartWidget />
-    case "checkout-stub":
+    case "checkout":
+    case "checkout-stub": // legacy alias
       return <CheckoutWidget />
-    case "account-stub":
+    case "account":
+    case "account-stub": // legacy alias
       return <AccountWidget />
     case "amazing-offers":
       return <AmazingOffersBlockWidget widget={widget} />
@@ -335,6 +337,7 @@ function parseFormFields(raw: unknown): { label: string; name: string; type: str
 
 function FormWidget({ widget }: { widget: WidgetNode }) {
   const [done, setDone] = useState(false)
+  const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
   const fields = parseFormFields(widget.props.fields)
   const showPhone = widget.props.showPhone !== false
@@ -346,14 +349,43 @@ function FormWidget({ widget }: { widget: WidgetNode }) {
       className="grid gap-3 rounded-3xl border border-border bg-card p-4"
       onSubmit={(event) => {
         event.preventDefault()
+        if (pending) return
         const data = new FormData(event.currentTarget)
         const missing = fields.some((field) => !String(data.get(field.name) ?? "").trim())
         if (missing) {
           setError("همه فیلدها را کامل کنید.")
           return
         }
+        const payload: Record<string, string> = {}
+        data.forEach((value, key) => {
+          payload[key] = String(value ?? "")
+        })
         setError("")
-        setDone(true)
+        setPending(true)
+        const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+        const host = typeof window !== "undefined" ? window.location.host : ""
+        void fetch(`${base}/api/v1/public/forms/submit`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(host ? { "X-Tenant-Domain": host } : {}),
+          },
+          body: JSON.stringify({
+            form_key: propStr(widget.props, "title", "contact") || "contact",
+            page_uri: typeof window !== "undefined" ? window.location.pathname : "",
+            fields: payload,
+          }),
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const msg = (await res.json().catch(() => null)) as { message?: string } | null
+              throw new Error(msg?.message || "submit_failed")
+            }
+            setDone(true)
+          })
+          .catch(() => setError("ارسال ناموفق بود. دوباره تلاش کنید."))
+          .finally(() => setPending(false))
       }}
     >
       <h3 className="wb-type-h3">{propStr(widget.props, "title", "فرم")}</h3>
@@ -380,8 +412,8 @@ function FormWidget({ widget }: { widget: WidgetNode }) {
         </label>
       ) : null}
       {error ? <p className="wb-form-error">{error}</p> : null}
-      <button type="submit" className="wb-btn wb-btn-primary">
-        {propStr(widget.props, "submit", "ارسال")}
+      <button type="submit" className="wb-btn wb-btn-primary" disabled={pending}>
+        {pending ? "…" : propStr(widget.props, "submit", "ارسال")}
       </button>
     </form>
   )

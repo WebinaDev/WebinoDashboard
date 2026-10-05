@@ -26,6 +26,8 @@ type AnalyticsPayload = {
   online_timeout?: number
   retention_days?: number
   record_logged_in?: boolean
+  bypass_adblocker?: boolean
+  geoip_path?: string
   enabled?: boolean
   provider?: string
   track_admin?: boolean
@@ -106,6 +108,27 @@ export function AnalyticsSettingsPanel() {
               checked={Boolean(draft.record_logged_in)}
               onCheckedChange={(v) => setDraft({ ...draft, record_logged_in: v })}
             />
+          </div>
+          <div className="flex max-w-lg items-center justify-between gap-3">
+            <div>
+              <Label>{tA("settings.bypassAdblocker")}</Label>
+              <p className="text-muted-foreground text-xs">{t("analytics.bypass_hint")}</p>
+            </div>
+            <Switch
+              checked={Boolean(draft.bypass_adblocker)}
+              onCheckedChange={(v) => setDraft({ ...draft, bypass_adblocker: v })}
+            />
+          </div>
+          <div className="grid max-w-lg gap-2">
+            <Label>{tA("settings.geoipPath")}</Label>
+            <Input
+              dir="ltr"
+              className="font-mono text-sm"
+              value={draft.geoip_path ?? ""}
+              onChange={(e) => setDraft({ ...draft, geoip_path: e.target.value })}
+              placeholder="/usr/share/GeoIP/GeoLite2-Country.mmdb"
+            />
+            <p className="text-muted-foreground text-xs">{tA("settings.geoipHint")}</p>
           </div>
           <div className="grid max-w-md gap-2">
             <Label>{t("analytics.online_timeout")}</Label>

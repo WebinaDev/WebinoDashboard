@@ -18,11 +18,17 @@ class PublicAnalyticsController extends Controller
         $settings = AnalyticsSettings::get($tenantId);
         $skip = AnalyticsTracker::userSkipReason($tenantId, auth('sanctum')->user()) !== null;
 
+        $bypass = ! empty($settings['bypass_adblocker']);
+        $endpoint = $bypass
+            ? url('/api/v1/public/metrics/collect')
+            : url('/api/v1/public/analytics/hit');
+
         return response()->json([
             'data' => [
                 'tracking_enabled' => true,
                 'hit_token' => (string) $settings['hit_token'],
-                'endpoint' => url('/api/v1/public/analytics/hit'),
+                'endpoint' => $endpoint,
+                'bypass_adblocker' => $bypass,
                 'skip' => $skip,
             ],
         ])->header('Cache-Control', 'private, no-store');

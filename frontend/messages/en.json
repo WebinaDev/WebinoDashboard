@@ -1497,7 +1497,10 @@
       "no_roles": "No roles available.",
       "maintenance": "Maintenance",
       "purge_hint": "Recompute daily aggregates from raw events (use after changing exclusions).",
-      "purge_running": "Rebuilding…"
+      "purge_running": "Rebuilding…",
+      "bypass_hint": "Uses a collect path without the word analytics so adblockers are less likely to block hits.",
+      "bypass_adblocker": "Random script filename (adblock bypass)",
+      "geoip_path": "GeoLite2 database path"
     },
     "pwa": {
       "title": "Progressive Web App",

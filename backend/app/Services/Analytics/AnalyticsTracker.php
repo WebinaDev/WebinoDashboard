@@ -64,7 +64,7 @@ final class AnalyticsTracker
         $siteHost = (string) (parse_url((string) $request->headers->get('Origin', ''), PHP_URL_HOST)
             ?: $request->getHost());
         $ref = AnalyticsReferrer::categorize($referrer, $siteHost);
-        $geo = $this->geo($request);
+        $geo = $this->geo($request, $tenantId);
         $now = Carbon::now('UTC');
 
         DB::table('analytics_events')->insert([
@@ -211,11 +211,39 @@ final class AnalyticsTracker
     }
 
     /** @return array{country: string, city: string} */
-    private function geo(Request $request): array
+    private function geo(Request $request, int $tenantId = 0): array
     {
         $c = strtoupper((string) $request->header('CF-IPCountry', ''));
         if (preg_match('/^[A-Z]{2}$/', $c) && $c !== 'XX') {
             return ['country' => $c, 'city' => ''];
+        }
+
+        if ($tenantId > 0) {
+            $path = (string) (AnalyticsSettings::get($tenantId)['geoip_path'] ?? '');
+            if ($path !== '' && is_readable($path)) {
+                $ip = $this->clientIp($request);
+                if (class_exists(\MaxMind\Db\Reader::class)) {
+                    try {
+                        $reader = new \MaxMind\Db\Reader($path);
+                        $rec = $reader->get($ip);
+                        $reader->close();
+                        if (is_array($rec)) {
+                            $country = strtoupper((string) data_get($rec, 'country.iso_code', ''));
+                            $city = (string) data_get($rec, 'city.names.en', '');
+                            if (preg_match('/^[A-Z]{2}$/', $country)) {
+                                return ['country' => $country, 'city' => mb_substr($city, 0, 100)];
+                            }
+                        }
+                    } catch (\Throwable) {
+                        // ignore unreadable / corrupt DB
+                    }
+                } elseif (function_exists('geoip_country_code_by_name')) {
+                    $code = geoip_country_code_by_name($ip);
+                    if (is_string($code) && preg_match('/^[A-Za-z]{2}$/', $code)) {
+                        return ['country' => strtoupper($code), 'city' => ''];
+                    }
+                }
+            }
         }
 
         return ['country' => '', 'city' => ''];

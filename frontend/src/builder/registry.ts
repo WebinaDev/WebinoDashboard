@@ -298,18 +298,18 @@ export const WIDGETS: WidgetDef[] = [
     create: () => node("cart-lines", {}),
   },
   {
-    type: "checkout-stub",
+    type: "checkout",
     label: "تسویه",
     category: "commerce",
     fields: [],
-    create: () => node("checkout-stub", {}),
+    create: () => node("checkout", {}),
   },
   {
-    type: "account-stub",
+    type: "account",
     label: "حساب کاربری",
     category: "commerce",
     fields: [],
-    create: () => node("account-stub", {}),
+    create: () => node("account", {}),
   },
   {
     type: "account-dashboard",

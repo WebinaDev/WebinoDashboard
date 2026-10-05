@@ -23,6 +23,8 @@ final class AnalyticsSettings
             'online_timeout' => 5,
             'retention_days' => 90,
             'record_logged_in' => false,
+            'bypass_adblocker' => false,
+            'geoip_path' => '',
             'hit_token' => '',
             'daily_salt' => '',
             'daily_salt_date' => '',
@@ -110,10 +112,18 @@ final class AnalyticsSettings
     public static function sanitize(array $raw): array
     {
         $out = [];
-        foreach (['tracking_enabled', 'anonymize_ip', 'record_logged_in', 'track_admin'] as $k) {
+        foreach (['tracking_enabled', 'anonymize_ip', 'record_logged_in', 'track_admin', 'bypass_adblocker'] as $k) {
             if (array_key_exists($k, $raw)) {
                 $out[$k] = filter_var($raw[$k], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
             }
+        }
+        if (array_key_exists('geoip_path', $raw) && is_scalar($raw['geoip_path'])) {
+            $path = preg_replace('/[\x00\r\n]/', '', trim((string) $raw['geoip_path'])) ?? '';
+            // Absolute readable path only; empty clears the override.
+            if ($path === '' || (str_starts_with($path, '/') && ! str_contains($path, '..'))) {
+                $out['geoip_path'] = $path;
+            }
+        }
         }
         if (array_key_exists('enabled', $raw) && ! array_key_exists('tracking_enabled', $raw)) {
             $out['tracking_enabled'] = filter_var($raw['enabled'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;

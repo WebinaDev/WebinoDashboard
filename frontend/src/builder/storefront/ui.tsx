@@ -1,6 +1,7 @@
 "use client"
 
 import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
+import { trackAnalyticsEvent } from "@/lib/analytics-track"
 
 import { Moon, Search, ShoppingBag, Sun, UserRound } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
@@ -223,6 +224,11 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
 
   const fallback = catalog.products.find((item) => item.slug === slug) ?? (catalog.live ? null : catalog.products[0] ?? null)
   const product = remote === undefined ? fallback : (remote ?? fallback)
+
+  useEffect(() => {
+    if (editing || !product?.id) return
+    trackAnalyticsEvent("product_view", { productId: product.id })
+  }, [editing, product?.id])
   const variant = product?.variants.find((item) => item.id === variantId) ?? null
   const gallery = product?.images.length ? product.images : product?.image ? [product.image] : []
   const activeImage = variant?.image || gallery[image] || product?.image
@@ -235,6 +241,7 @@ export function StorefrontProduct({ slug, editing }: { slug?: string; editing: b
 
   function add() {
     if (editing || blocked) return
+    trackAnalyticsEvent("add_to_cart", { productId: product.id })
     void addShopItem(product as ShopProduct, qty).then((result) => setNote(result === "error" ? t("add_failed") : t("added")))
   }
 
@@ -559,6 +566,10 @@ function labelForGateway(id: string, tCheckout: (key: "pay_zarinpal" | "pay_digi
 export function StorefrontCheckout() {
   const t = useTranslations("storefront")
   const tCheckout = useTranslations("checkout")
+
+  useEffect(() => {
+    trackAnalyticsEvent("checkout_start")
+  }, [])
   const money = useMoney()
   const locale = useLocale()
   const params = useSearchParams()

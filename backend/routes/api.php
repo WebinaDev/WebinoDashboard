@@ -114,6 +114,7 @@ use App\Http\Controllers\Api\V1\PublicVendorStoreController;
 use App\Http\Controllers\Api\V1\PublicWishlistController;
 use App\Http\Controllers\Api\V1\VendorPortalController;
 use App\Http\Controllers\Api\V1\PublicAnalyticsController;
+use App\Http\Controllers\Api\V1\PublicBuilderFormController;
 use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
 use App\Http\Controllers\Api\V1\ReportsController;
 use App\Http\Controllers\Api\V1\ResumeProfileController;
@@ -203,6 +204,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/seo/sitemap/{kind?}', [PublicSeoController::class, 'sitemap'])->where('kind', 'index|pages|products|posts|news|video');
         Route::get('/seo/robots', [PublicSeoController::class, 'robots']);
         Route::post('/analytics/hit', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
+        // Alias without "analytics" in the path (adblock bypass).
+        Route::post('/metrics/collect', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
+        Route::post('/forms/submit', [PublicBuilderFormController::class, 'submit'])->middleware('throttle:public-writes');
 
         Route::middleware('public.module:blog')->group(function () {
             Route::get('/blog', [PublicBlogController::class, 'index']);

@@ -115,7 +115,7 @@ export function classicCartDocument(): BuilderDocument {
 export function classicCheckoutDocument(): BuilderDocument {
   return doc([
     sec("sec_checkout_bc", [col("col_checkout_bc", 12, [w("w_checkout_bc", "breadcrumbs", { trail: "خانه|/\nسبد|/cart\nتسویه|/checkout" })])]),
-    sec("sec_checkout", [col("col_checkout", 12, [w("w_checkout", "checkout-stub")])]),
+    sec("sec_checkout", [col("col_checkout", 12, [w("w_checkout", "checkout")])]),
   ])
 }
 
