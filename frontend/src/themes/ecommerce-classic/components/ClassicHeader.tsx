@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   useEffect,
   useMemo,
@@ -26,12 +26,19 @@ import {
   IconInfo,
   IconMail,
   IconMenu,
+  IconMic,
   IconPercent,
   IconQuestion,
   IconSearch,
   IconUser,
 } from "./icons"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
+import {
+  dealsCountdownParts,
+  getSpeechRecognitionCtor,
+  isVoiceExcludedPath,
+  parseDealsEnd,
+} from "@/themes/ecommerce-classic/lib/classic-chrome"
 
 import { ClassicAmount, useDigits } from "./parts"
 
@@ -188,18 +195,25 @@ function LiveSearch({
   ajax,
   searchSku,
   titleOnly,
+  voiceEnabled,
+  quickVoice,
 }: {
   query: string
   setQuery: (v: string) => void
   products: ShopProduct[]
-  onSubmit: () => void
+  onSubmit: (override?: string) => void
   placeholder?: string
   ajax?: boolean
   searchSku?: boolean
   titleOnly?: boolean
+  voiceEnabled?: boolean
+  quickVoice?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [listening, setListening] = useState(false)
+  const [voiceNote, setVoiceNote] = useState("")
   const wrap = useRef<HTMLFormElement>(null)
+  const recognitionRef = useRef<{ stop: () => void; abort: () => void } | null>(null)
   const q = query.trim().toLowerCase()
   const hits = useMemo(() => {
     if (!ajax || q.length < 1) return []
@@ -226,6 +240,81 @@ function LiveSearch({
     return () => document.removeEventListener("mousedown", onDoc)
   }, [])
 
+  useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.abort()
+      } catch {
+        /* ignore */
+      }
+      recognitionRef.current = null
+    }
+  }, [])
+
+  const startVoice = () => {
+    const Ctor = getSpeechRecognitionCtor()
+    if (!Ctor) {
+      setVoiceNote("جستجوی صوتی در این مرورگر پشتیبانی نمی‌شود.")
+      return
+    }
+    try {
+      recognitionRef.current?.abort()
+    } catch {
+      /* ignore */
+    }
+    const recognition = new Ctor()
+    recognition.lang = "fa-IR"
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognitionRef.current = recognition
+    setVoiceNote("")
+    setListening(true)
+    recognition.onresult = (event) => {
+      let transcript = ""
+      for (let i = 0; i < event.results.length; i++) {
+        const row = event.results[i]
+        if (row?.[0]?.transcript) transcript = row[0].transcript
+      }
+      const cleaned = transcript.trim()
+      if (!cleaned) return
+      setQuery(cleaned)
+      setOpen(true)
+      const last = event.results[event.results.length - 1]
+      if (last?.isFinal && quickVoice) {
+        setOpen(false)
+        setListening(false)
+        onSubmit(cleaned)
+      }
+    }
+    recognition.onerror = (event) => {
+      setListening(false)
+      if (event.error === "not-allowed") {
+        setVoiceNote("دسترسی میکروفون مجاز نیست.")
+      } else if (event.error && event.error !== "aborted" && event.error !== "no-speech") {
+        setVoiceNote("خطا در تشخیص گفتار.")
+      }
+    }
+    recognition.onend = () => {
+      setListening(false)
+      recognitionRef.current = null
+    }
+    try {
+      recognition.start()
+    } catch {
+      setListening(false)
+      setVoiceNote("امکان شروع جستجوی صوتی نبود.")
+    }
+  }
+
+  const stopVoice = () => {
+    try {
+      recognitionRef.current?.stop()
+    } catch {
+      /* ignore */
+    }
+    setListening(false)
+  }
+
   return (
     <form
       ref={wrap}
@@ -235,6 +324,7 @@ function LiveSearch({
       onSubmit={(event) => {
         event.preventDefault()
         setOpen(false)
+        stopVoice()
         onSubmit()
       }}
     >
@@ -250,9 +340,22 @@ function LiveSearch({
         aria-autocomplete="list"
         aria-expanded={open && hits.length > 0}
       />
+      {voiceEnabled ? (
+        <button
+          type="button"
+          className={`sfc-search__voice ${listening ? "is-listening" : ""}`}
+          aria-label={listening ? "توقف جستجوی صوتی" : "جستجوی صوتی"}
+          aria-pressed={listening}
+          title={listening ? "توقف" : "جستجوی صوتی"}
+          onClick={() => (listening ? stopVoice() : startVoice())}
+        >
+          <IconMic size={18} />
+        </button>
+      ) : null}
       <button type="submit" aria-label="جستجو">
         <IconSearch size={18} />
       </button>
+      {voiceNote ? <span className="sfc-search__voice-note">{voiceNote}</span> : null}
       {open && hits.length ? (
         <div className="sfc-search__suggest" role="listbox">
           {hits.map((p) => (
@@ -289,6 +392,46 @@ function LiveSearch({
   )
 }
 
+function DealsCountdown({ end, title }: { end?: string; title?: string }) {
+  const digits = useDigits()
+  const endMs = useMemo(() => parseDealsEnd(end), [end])
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => {
+    if (endMs == null) return
+    setNow(Date.now())
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [endMs])
+  if (endMs == null) return null
+  const parts = dealsCountdownParts(endMs, now ?? endMs)
+  if (parts.expired) {
+    return title ? <span className="sfc-deals__timer sfc-deals__timer--ended">{title}</span> : null
+  }
+  const cells =
+    parts.days > 0
+      ? [parts.days, parts.hours, parts.minutes, parts.seconds]
+      : [parts.hours, parts.minutes, parts.seconds]
+  return (
+    <span className="sfc-deals__timer" dir="ltr" aria-label={title || "زمان باقی‌مانده"}>
+      {title ? <span className="sfc-deals__timer-title">{title}</span> : null}
+      <span className="sfc-deals__timer-digits">
+        {cells.map((value, index) => (
+          <span key={index} className="sfc-deals__timer-cell">
+            {index > 0 ? <i>:</i> : null}
+            <b>
+              {String(value)
+                .padStart(2, "0")
+                .split("")
+                .map((ch) => digits(Number(ch)))
+                .join("")}
+            </b>
+          </span>
+        ))}
+      </span>
+    </span>
+  )
+}
+
 export function ClassicHeader({
   siteName,
   logoUrl,
@@ -300,8 +443,12 @@ export function ClassicHeader({
 }) {
   const digits = useDigits()
   const router = useRouter()
+  const pathname = usePathname() || "/"
   const theme = useClassicThemeSettings()
   const headerCfg = theme.header ?? {}
+  const voiceEnabled =
+    Boolean(headerCfg.voice_search) &&
+    !isVoiceExcludedPath(pathname, (headerCfg as { voice_excluded_paths?: unknown }).voice_excluded_paths)
   const megaEnabled = headerCfg.mega_menu ?? theme.mega_menu ?? true
   const stickyDesktop = headerCfg.sticky_desktop !== false
   const localCount = useSyncExternalStore(subscribeCart, cartCount, () => 0)
@@ -318,8 +465,9 @@ export function ClassicHeader({
   const nav = links.length ? links : CLASSIC_NAV
   const categories = catalog.categories
 
-  const submit = () => {
-    const q = query.trim()
+  const submit = (override?: string) => {
+    const q = (override ?? query).trim()
+    if (override != null) setQuery(override)
     router.push(q ? `/shop?q=${encodeURIComponent(q)}` : "/shop")
   }
 
@@ -366,6 +514,8 @@ export function ClassicHeader({
                 ajax={headerCfg.ajax_search !== false}
                 searchSku={Boolean(headerCfg.search_sku)}
                 titleOnly={Boolean(headerCfg.search_title_only)}
+                voiceEnabled={voiceEnabled}
+                quickVoice={Boolean(headerCfg.quick_voice_search)}
               />
             </div>
             <div className="sfc-header__actions">
@@ -432,6 +582,7 @@ export function ClassicHeader({
                   {headerCfg.deals_subtitle ? (
                     <span className="sfc-deals__sub">{headerCfg.deals_subtitle}</span>
                   ) : null}
+                  <DealsCountdown end={headerCfg.deals_timer_end} title={headerCfg.deals_timer_title} />
                   <span className="sfc-deals__badge">
                     <IconPercent size={12} />
                   </span>

@@ -8,6 +8,7 @@ import { quietApi } from "@/builder/storefront/session"
 import { toneClass, type ShopProduct } from "@/builder/catalog"
 
 import { IconHeart } from "./icons"
+import { promoStatsForProduct } from "@/themes/ecommerce-classic/lib/classic-chrome"
 import { ClassicPrice, ClassicRating, useDigits } from "./parts"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
@@ -29,6 +30,13 @@ export function ClassicProductCard({
   const showRating = commerce.show_rating !== false
   const showCardAtc = commerce.card_add_to_cart !== false
   const showInstallment = commerce.card_installment_enabled !== false && (theme.show_installment_badge !== false)
+  const showFakeStats = Boolean(commerce.fake_stats_enabled)
+  const promo = showFakeStats
+    ? promoStatsForProduct(product.id || product.slug, {
+        factor: Number(commerce.fake_stats_factor ?? 1),
+        sensitivity: Number(commerce.fake_stats_sensitivity ?? 5),
+      })
+    : null
   const [liked, setLiked] = useState(false)
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle")
   const href = `/product/${product.slug}`
@@ -77,6 +85,11 @@ export function ClassicProductCard({
           <span className={`sfc-card__stock ${product.inStock ? "" : "is-out"}`}>{stockLabel}</span>
           {showRating ? <ClassicRating value={product.rating} /> : null}
         </div>
+        {promo ? (
+          <p className="sfc-card__promo-stats" title="نمایش تشویقی">
+            {digits(promo.sold)}+ فروش نمایشی
+          </p>
+        ) : null}
         <div className="sfc-card__actions">
           <div className="sfc-card__price">
             {product.inStock ? (

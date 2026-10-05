@@ -73,6 +73,8 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     search_placeholder?: string
     voice_search?: boolean
     quick_voice_search?: boolean
+    /** Path prefixes where voice mic is hidden (newline/comma list or string[]). */
+    voice_excluded_paths?: string | string[]
     search_title_only?: boolean
     search_sku?: boolean
     deals_enabled?: boolean
@@ -142,12 +144,15 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     card_installment_image?: string
     sticky_cart_mobile?: boolean
     sticky_cart_desktop?: boolean
+    /** bottom | left | right */
     sticky_cart_side?: string
     card_add_to_cart?: boolean
     compare_enabled?: boolean
     show_rating?: boolean
     fake_stats_enabled?: boolean
     fake_stats_factor?: number
+    /** 1–10 range width for promotional stats */
+    fake_stats_sensitivity?: number
   }
   archive?: {
     sidebar_enabled?: boolean

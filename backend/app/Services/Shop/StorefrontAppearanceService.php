@@ -69,6 +69,7 @@ final class StorefrontAppearanceService
                 'search_placeholder' => 'جستجوی محصولات',
                 'voice_search' => false,
                 'quick_voice_search' => false,
+                'voice_excluded_paths' => '',
                 'search_title_only' => false,
                 'search_sku' => false,
                 'deals_enabled' => true,
@@ -144,6 +145,7 @@ final class StorefrontAppearanceService
                 'show_rating' => true,
                 'fake_stats_enabled' => false,
                 'fake_stats_factor' => 1,
+                'fake_stats_sensitivity' => 5,
             ],
             'archive' => [
                 'sidebar_enabled' => true,

@@ -397,6 +397,20 @@ export function StorefrontAppearancePanel() {
                 onChange={(v) => setSection("header", { voice_search: v })}
               />
               <FieldSwitch
+                label={t("quick_voice_search")}
+                checked={Boolean(header.quick_voice_search)}
+                onChange={(v) => setSection("header", { quick_voice_search: v })}
+              />
+              <FieldText
+                label={t("voice_excluded_paths")}
+                value={Array.isArray(header.voice_excluded_paths)
+                  ? header.voice_excluded_paths.join("\n")
+                  : String(header.voice_excluded_paths ?? "")}
+                multiline
+                dir="ltr"
+                onChange={(v) => setSection("header", { voice_excluded_paths: v })}
+              />
+              <FieldSwitch
                 label={t("search_sku")}
                 checked={Boolean(header.search_sku)}
                 onChange={(v) => setSection("header", { search_sku: v })}
@@ -817,6 +831,22 @@ export function StorefrontAppearancePanel() {
                 checked={Boolean(commerce.sticky_cart_desktop)}
                 onChange={(v) => setSection("commerce", { sticky_cart_desktop: v })}
               />
+              <div className="grid gap-1">
+                <Label>{t("sticky_cart_side")}</Label>
+                <Select
+                  value={String(commerce.sticky_cart_side ?? "bottom")}
+                  onValueChange={(v) => setSection("commerce", { sticky_cart_side: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bottom">{t("sticky_cart_side_bottom")}</SelectItem>
+                    <SelectItem value="left">{t("sticky_cart_side_left")}</SelectItem>
+                    <SelectItem value="right">{t("sticky_cart_side_right")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <FieldSwitch
                 label={t("card_add_to_cart")}
                 checked={Boolean(commerce.card_add_to_cart ?? true)}
@@ -841,6 +871,11 @@ export function StorefrontAppearancePanel() {
                 label={t("fake_stats_factor")}
                 value={Number(commerce.fake_stats_factor ?? 1)}
                 onChange={(v) => setSection("commerce", { fake_stats_factor: v })}
+              />
+              <FieldNumber
+                label={t("fake_stats_sensitivity")}
+                value={Number(commerce.fake_stats_sensitivity ?? 5)}
+                onChange={(v) => setSection("commerce", { fake_stats_sensitivity: v })}
               />
             </CardContent>
           </Card>

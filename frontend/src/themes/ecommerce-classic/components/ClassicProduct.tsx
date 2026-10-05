@@ -21,7 +21,9 @@ import {
   IconCard,
   IconChart,
   IconChevronLeft,
+  IconClose,
   IconCompare,
+  IconEye,
   IconHeart,
   IconInfo,
   IconMinus,
@@ -30,6 +32,7 @@ import {
   IconShield,
   IconTruck,
 } from "./icons"
+import { promoStatsForProduct } from "@/themes/ecommerce-classic/lib/classic-chrome"
 import { ClassicAmount, ClassicRating, rememberViewedProduct, useDigits } from "./parts"
 
 export function ClassicTrustStrip() {
@@ -79,12 +82,18 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   const showCompare = commerce.compare_enabled !== false
   const showRating = commerce.show_rating !== false
   const showStickyMobile = commerce.sticky_cart_mobile !== false && theme.sticky_add_to_cart !== false
+  const showStickyDesktop = Boolean(commerce.sticky_cart_desktop)
+  const stickySide = String(commerce.sticky_cart_side || "bottom")
+  const lightboxEnabled = commerce.gallery_lightbox !== false
+  const thumbsLayout = String(commerce.gallery_thumbs || theme.pdp_gallery_style || "bottom")
+  const showFakeStats = Boolean(commerce.fake_stats_enabled)
   const showInstallmentBox = commerce.installment_enabled !== false
   const showShipping = commerce.shipping_text_enabled !== false
   const catalog = useCatalog(8)
   const [remote, setRemote] = useState<ShopProduct | null | undefined>(undefined)
   const [qty, setQty] = useState(1)
   const [image, setImage] = useState(0)
+  const [lightbox, setLightbox] = useState(false)
   const [variantId, setVariantId] = useState<number | null>(null)
   const [tab, setTab] = useState<"desc" | "spec" | "faq">("desc")
   const [liked, setLiked] = useState(false)
@@ -121,6 +130,26 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
     if (product.id) trackAnalyticsEvent("product_view", { productId: product.id })
   }, [editing, product?.id, product?.slug])
 
+  const galleryLen = product
+    ? (product.images.length ? product.images.length : product.image ? 1 : 0)
+    : 0
+
+  useEffect(() => {
+    if (!lightbox) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightbox(false)
+      if (event.key === "ArrowRight" && galleryLen) setImage((i) => (i + 1) % galleryLen)
+      if (event.key === "ArrowLeft" && galleryLen) setImage((i) => (i - 1 + galleryLen) % galleryLen)
+    }
+    document.addEventListener("keydown", onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prev
+    }
+  }, [lightbox, galleryLen])
+
   if (!product) {
     return <p className="sfc-container sfc-empty-note">محصولی پیدا نشد.</p>
   }
@@ -134,6 +163,12 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   const off = compare && compare > price ? Math.round((1 - price / compare) * 100) : 0
   const stock = variant ? variant.stock : (product.stock ?? null)
   const maxQty = typeof stock === "number" && stock > 0 ? Math.min(stock, 99) : 99
+  const promo = showFakeStats
+    ? promoStatsForProduct(product.id || product.slug, {
+        factor: Number(commerce.fake_stats_factor ?? 1),
+        sensitivity: Number(commerce.fake_stats_sensitivity ?? 5),
+      })
+    : null
 
   function add() {
     if (editing || blocked || !product) return
@@ -222,10 +257,21 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               </a>
             </aside>
 
-            <div className="sfc-pdp__gallery">
+            <div className={`sfc-pdp__gallery ${thumbsLayout === "side" ? "sfc-pdp__gallery--side" : "sfc-pdp__gallery--bottom"}`}>
               <div className="sfc-pdp__image">
                 {activeImage ? (
-                  <img src={activeImage} alt={product.name} />
+                  lightboxEnabled ? (
+                    <button
+                      type="button"
+                      className="sfc-pdp__image-btn"
+                      onClick={() => setLightbox(true)}
+                      aria-label="بزرگ‌نمایی تصویر"
+                    >
+                      <img src={activeImage} alt={product.name} />
+                    </button>
+                  ) : (
+                    <img src={activeImage} alt={product.name} />
+                  )
                 ) : (
                   <span className={`sfc-pdp__ph bg-gradient-to-br ${toneClass(product.tone)}`}>{product.brand}</span>
                 )}
@@ -250,11 +296,13 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
 
             <div className="sfc-pdp__info">
               <div className="sfc-attrs">
-                <a href="#sfc-reviews" className="sfc-attr sfc-attr--rating">
-                  <span className="sfc-attr__label">امتیاز و دیدگاه</span>
-                  <ClassicRating value={product.rating} />
-                  <IconChevronLeft size={16} className="sfc-attr__chev" />
-                </a>
+                {showRating ? (
+                  <a href="#sfc-reviews" className="sfc-attr sfc-attr--rating">
+                    <span className="sfc-attr__label">امتیاز و دیدگاه</span>
+                    <ClassicRating value={product.rating} />
+                    <IconChevronLeft size={16} className="sfc-attr__chev" />
+                  </a>
+                ) : null}
                 {attrs.map((a) => (
                   <div key={a.label} className="sfc-attr">
                     <span className="sfc-attr__label">{a.label}</span>
@@ -262,6 +310,15 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                   </div>
                 ))}
               </div>
+              {promo ? (
+                <p className="sfc-pdp__promo-stats" title="نمایش تشویقی — آمار واقعی فروشگاه نیست">
+                  <IconEye size={16} />
+                  <span>
+                    {digits(promo.views)} بازدید · {digits(promo.sold)} فروش نمایشی
+                  </span>
+                  <em>نمایش تشویقی</em>
+                </p>
+              ) : null}
 
               {product.variants.length ? (
                 <div className="sfc-pdp__variants">
@@ -448,12 +505,54 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
           ) : null}
         </div>
       ) : null}
-      {showStickyMobile ? (
-        <div className="sf-sticky-cta sfc-sticky-cta md:hidden">
+      {showStickyMobile || showStickyDesktop ? (
+        <div
+          className={[
+            "sf-sticky-cta sfc-sticky-cta",
+            showStickyMobile ? "sfc-sticky-cta--mobile" : "",
+            showStickyDesktop ? "sfc-sticky-cta--desktop" : "",
+            stickySide === "left" ? "sfc-sticky-cta--side-left" : "",
+            stickySide === "right" ? "sfc-sticky-cta--side-right" : "sfc-sticky-cta--side-bottom",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <ClassicAmount value={price} className="sfc-buy__now" />
           <button type="button" disabled={editing || blocked} onClick={add} className="sfc-btn">
             افزودن به سبد خرید
           </button>
+        </div>
+      ) : null}
+
+      {lightbox && lightboxEnabled && activeImage ? (
+        <div
+          className="sfc-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label="گالری محصول"
+          onClick={() => setLightbox(false)}
+        >
+          <button type="button" className="sfc-lightbox__close" aria-label="بستن" onClick={() => setLightbox(false)}>
+            <IconClose size={22} />
+          </button>
+          <div className="sfc-lightbox__stage" onClick={(event) => event.stopPropagation()}>
+            <img src={activeImage} alt={product.name} />
+            {gallery.length > 1 ? (
+              <div className="sfc-lightbox__thumbs">
+                {gallery.map((src, index) => (
+                  <button
+                    key={src + index}
+                    type="button"
+                    className={index === image ? "is-active" : ""}
+                    onClick={() => setImage(index)}
+                    aria-label={`تصویر ${digits(index + 1)}`}
+                  >
+                    <img src={src} alt="" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>
