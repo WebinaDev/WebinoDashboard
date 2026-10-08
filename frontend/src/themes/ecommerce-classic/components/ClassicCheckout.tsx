@@ -119,11 +119,11 @@ export function ClassicCheckout() {
     [gateways, mode],
   )
 
-  const displayGateways =
+  const displayGateways: Gateway[] =
     allowed.length > 0
       ? allowed
       : showPaymentPlaceholders
-        ? PLACEHOLDER_GATEWAYS.map((g) => ({
+        ? PLACEHOLDER_GATEWAYS.map((g): Gateway => ({
             id: g.id,
             title: g.title,
             cash_enabled: true,
@@ -388,7 +388,7 @@ export function ClassicCheckout() {
                           ) : live ? (
                             <em>آماده پرداخت امن</em>
                           ) : (
-                            <em>نمایش نمونه — درگاه را از تنظیمات پرداخت فعال کنید</em>
+                            <em>نمایش نمونه - درگاه را از تنظیمات پرداخت فعال کنید</em>
                           )}
                         </span>
                         <IconCheck size={18} className="sfc-pay-method__check" />
