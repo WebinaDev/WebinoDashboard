@@ -1,4 +1,5 @@
 import { fetchCatalogueData } from "@/kernel/cafe-catalogue-data"
+import { getServerTranslations } from "@/lib/server-translations"
 import { CatalogueView } from "@/themes/cafe-starter/views/CatalogueView"
 
 export const revalidate = 60
@@ -19,11 +20,8 @@ export default async function CataloguePage({
   const { catalog, venue } = await fetchCatalogueData(initialQuery, menuSlug, branchSlug)
 
   if (!catalog) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center text-muted-foreground">
-        Menu is not available yet.
-      </div>
-    )
+    const t = await getServerTranslations("cafe_starter")
+    return <div className="container mx-auto px-4 py-16 text-center text-muted-foreground">{t("menu_unavailable")}</div>
   }
 
   return (
@@ -33,6 +31,7 @@ export default async function CataloguePage({
       initialQuery={initialQuery}
       tableNumber={tableNumber}
       branchSlug={branchSlug}
+      menuSlug={menuSlug}
       activeThemeSlug={venue?.tenant.active_theme_slug}
     />
   )

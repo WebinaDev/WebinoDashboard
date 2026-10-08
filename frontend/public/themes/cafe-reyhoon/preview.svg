@@ -1,12 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" fill="none">
-  <rect width="400" height="240" rx="16" fill="#f3f4f6"/>
-  <rect x="24" y="20" width="352" height="64" rx="14" fill="#036666"/>
-  <rect x="40" y="38" width="120" height="12" rx="6" fill="#ffffff" opacity="0.9"/>
-  <rect x="40" y="56" width="72" height="8" rx="4" fill="#FFB901"/>
-  <rect x="24" y="100" width="70" height="22" rx="11" fill="#ffffff" stroke="#036666"/>
-  <rect x="102" y="100" width="70" height="22" rx="11" fill="#036666"/>
-  <rect x="180" y="100" width="70" height="22" rx="11" fill="#ffffff" stroke="#036666"/>
-  <rect x="24" y="140" width="168" height="76" rx="14" fill="#ffffff" stroke="#036666"/>
-  <rect x="208" y="140" width="168" height="76" rx="14" fill="#ffffff" stroke="#036666"/>
-  <rect x="40" y="188" width="64" height="12" rx="6" fill="#FFB901"/>
+  <rect width="400" height="240" rx="16" fill="#eef2f2"/>
+  <rect x="128" y="10" width="144" height="230" rx="18" fill="#ffffff"/>
+  <rect x="140" y="20" width="40" height="8" rx="4" fill="#036666" opacity="0.25"/>
+  <rect x="226" y="18" width="36" height="12" rx="6" fill="#036666"/>
+  <rect x="136" y="36" width="128" height="52" rx="12" fill="#036666"/>
+  <rect x="136" y="36" width="128" height="52" rx="12" fill="url(#g)"/>
+  <circle cx="200" cy="88" r="13" fill="#ffffff"/>
+  <circle cx="200" cy="88" r="10" fill="#FFB901"/>
+  <rect x="172" y="106" width="56" height="7" rx="3.5" fill="#1f2a2a"/>
+  <rect x="146" y="118" width="108" height="11" rx="5.5" fill="#e5f3f3"/>
+  <rect x="146" y="136" width="22" height="4" rx="2" fill="#94a3a3"/>
+  <rect x="176" y="136" width="22" height="4" rx="2" fill="#94a3a3"/>
+  <rect x="206" y="136" width="22" height="4" rx="2" fill="#036666"/>
+  <rect x="206" y="142" width="22" height="2" rx="1" fill="#036666"/>
+  <rect x="146" y="150" width="108" height="16" rx="8" fill="#fde7ef"/>
+  <rect x="152" y="155" width="40" height="6" rx="3" fill="#e1306c"/>
+  <g>
+    <rect x="140" y="172" width="120" height="26" rx="8" fill="#f8fafa" stroke="#e2e8e8"/>
+    <rect x="232" y="176" width="22" height="18" rx="6" fill="#c9a27e"/>
+    <rect x="186" y="179" width="40" height="5" rx="2.5" fill="#1f2a2a"/>
+    <rect x="196" y="188" width="30" height="4" rx="2" fill="#036666"/>
+    <rect x="146" y="184" width="18" height="10" rx="5" fill="#e5f3f3"/>
+  </g>
+  <g>
+    <rect x="140" y="202" width="120" height="14" rx="7" fill="#f8fafa" stroke="#e2e8e8"/>
+  </g>
+  <rect x="140" y="220" width="120" height="16" rx="8" fill="#1f2a2a"/>
+  <circle cx="200" cy="228" r="5" fill="#FFB901"/>
+  <rect x="20" y="40" width="88" height="10" rx="5" fill="#036666" opacity="0.9"/>
+  <rect x="20" y="56" width="60" height="6" rx="3" fill="#036666" opacity="0.35"/>
+  <rect x="292" y="190" width="88" height="10" rx="5" fill="#036666" opacity="0.15"/>
+  <defs>
+    <linearGradient id="g" x1="136" y1="36" x2="264" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0a8a7f" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#022d2d" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
 </svg>

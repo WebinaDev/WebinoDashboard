@@ -88,6 +88,7 @@ final class ThemeCatalog
             self::entry('cafe-kerase', 'کافه کِراسِه', 'Cafe Kerase', ['cafe'], true, 5),
             self::entry('cafe-super', 'سوپر پریمیوم', 'Super premium', ['cafe'], true, 6),
             self::entry('cafe-menew', 'منیو برند', 'MeNew brand', ['cafe'], true, 7),
+            self::entry('cafe-signature', 'کافه سیگنیچر', 'Cafe Signature', ['cafe'], false, 8),
             self::entry('resume-default', 'رزومه — پیش‌فرض', 'Resume default', ['resume'], false, 1),
             self::entry('resume-demo-v1', 'رزومه — دمو ۱', 'Resume demo v1', ['resume'], true, 2),
             self::entry('corporate-default', 'شرکتی — پیش‌فرض', 'Corporate default', ['corporate'], false, 1),

@@ -23,6 +23,7 @@ export default async function ItemPage({ route, searchParams }: Props) {
       tableNumber={searchParams?.table ?? null}
       branchSlug={searchParams?.branch ?? null}
       activeThemeSlug={venue?.tenant.active_theme_slug}
+      ordering={venue?.ordering ?? null}
     />
   )
 }

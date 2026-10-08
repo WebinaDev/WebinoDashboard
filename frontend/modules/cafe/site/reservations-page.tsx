@@ -16,6 +16,7 @@ import type { ResolvedSiteRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useLocaleNext } from "@/hooks/use-locale-next"
+import { money } from "@/themes/cafe-starter/lib/helpers"
 import type { CafeEvent } from "@/themes/cafe-starter/types"
 
 type BookingForm = {
@@ -173,7 +174,7 @@ export default function Page(_props: { route: ResolvedSiteRoute }) {
                   ) : null}
                 </div>
                 {event.price_minor > 0 ? (
-                  <Badge variant="outline">{event.price_minor}</Badge>
+                  <Badge variant="outline">{money(event.price_minor, "IRT", null, locale)}</Badge>
                 ) : (
                   <Badge variant="secondary">{t("free")}</Badge>
                 )}

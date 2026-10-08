@@ -433,7 +433,13 @@
       "table": "Table {number}",
       "phone": "Mobile",
       "note": "Note for the kitchen",
-      "subtotal": "Total"
+      "subtotal": "Total",
+      "view_cart": "View cart",
+      "order_placed": "Order placed",
+      "fulfillment": "Fulfillment",
+      "items_total": "Items",
+      "fees": "Fees",
+      "sending": "Placing…"
     },
     "kitchen": {
       "new": "New",
@@ -447,7 +453,40 @@
       "dine_in": "Dine in",
       "pickup": "Pickup",
       "delivery": "Delivery"
-    }
+    },
+    "close": "Close",
+    "scroll_to_menu": "View menu",
+    "scroll_to_menu_hint": "Browse menus and dishes further down the page",
+    "quick_add": "Quick add",
+    "qty": "Qty",
+    "in_stock": "In stock",
+    "qty_left": "{count} left",
+    "save_amount": "Save {amount}",
+    "hero_cue": "Scroll down to explore the menu",
+    "loading_menu": "Preparing the menu…",
+    "share_menu": "Share menu",
+    "nav_orders": "Orders",
+    "deal_banner": "Today's special",
+    "combo_cta": "See combos",
+    "no_image": "No image",
+    "branch_label": "Branch",
+    "menu_label": "Menu",
+    "size_label": "Size",
+    "milk_label": "Milk",
+    "shots_label": "Extra shots",
+    "items_count": "{count} items",
+    "login_cta": "Log in / Sign up",
+    "menu_unavailable": "The menu is not available yet.",
+    "days": {
+      "saturday": "Saturday",
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday"
+    },
+    "hours_range": "{open} - {close}"
   },
   "cafe_admin": {
     "menu": {

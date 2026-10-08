@@ -1,0 +1,86 @@
+/* Per-skin site header/footer. Hidden on the catalogue page, where each skin renders its own app chrome. */
+
+body:has(.cafe-shell.is-catalogue) .cafe-chrome[data-hide-on-catalogue="true"] { display: none; }
+
+.cafe-chrome {
+  --ch-bg: #fff;
+  --ch-ink: #1f2a2a;
+  --ch-muted: #6b7280;
+  --ch-line: rgba(0, 0, 0, 0.08);
+  --ch-accent: #036666;
+  --ch-accent-ink: #fff;
+  background: var(--ch-bg);
+  color: var(--ch-ink);
+}
+.cafe-chrome-head { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid var(--ch-line); backdrop-filter: blur(12px); }
+.cafe-chrome-foot { border-top: 1px solid var(--ch-line); }
+.cafe-chrome-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding: 0.75rem 1rem;
+}
+.cafe-chrome-foot .cafe-chrome-inner { padding-block: 1.6rem; }
+.cafe-chrome-brand { display: inline-flex; align-items: center; gap: 0.55rem; font-weight: 900; }
+.cafe-chrome-mark {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  background: var(--ch-accent);
+  color: var(--ch-accent-ink);
+}
+.cafe-chrome-nav { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; font-size: 0.9rem; color: var(--ch-muted); }
+.cafe-chrome-nav a:hover { color: var(--ch-ink); }
+.cafe-chrome-actions { display: inline-flex; align-items: center; gap: 0.5rem; }
+.cafe-chrome-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  background: var(--ch-accent);
+  color: var(--ch-accent-ink);
+  padding: 0.45rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.cafe-chrome-admin {
+  border-radius: 999px;
+  border: 1px solid var(--ch-line);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  color: var(--ch-muted);
+}
+@media (max-width: 640px) {
+  .cafe-chrome-head .cafe-chrome-nav { order: 3; width: 100%; justify-content: center; }
+  .cafe-chrome-admin { display: none; }
+}
+.cafe-chrome-foot-name { font-weight: 900; }
+.cafe-chrome-foot-meta { color: var(--ch-muted); font-size: 0.8rem; }
+
+.cafe-chrome[data-skin="cafe-mash-donald"] { --ch-bg: #0e0e0e; --ch-ink: #fff; --ch-muted: #bdbdbd; --ch-line: rgba(255,255,255,.08); --ch-accent: #ffc400; --ch-accent-ink: #111; }
+.cafe-chrome[data-skin="cafe-mash-donald"] .cafe-chrome-brand { text-transform: uppercase; letter-spacing: 0.02em; }
+.cafe-chrome[data-skin="cafe-mash-donald"] .cafe-chrome-cta { border-radius: 14px; background: #e10600; color: #fff; }
+.cafe-chrome[data-skin="cafe-kerase"] { --ch-bg: #f6f1ea; --ch-ink: #2c241c; --ch-muted: #84735f; --ch-line: rgba(107,79,58,.14); --ch-accent: #6b4f3a; }
+.cafe-chrome-head[data-skin="cafe-kerase"] .cafe-chrome-inner { justify-content: center; flex-direction: column; }
+.cafe-chrome[data-skin="cafe-kerase"] .cafe-chrome-brand { font-weight: 300; font-size: 1.15rem; }
+.cafe-chrome[data-skin="cafe-super"] { --ch-bg: #ffb000; --ch-ink: #1c1404; --ch-muted: #3a2a05; --ch-line: rgba(0,0,0,.08); --ch-accent: #1c1404; --ch-accent-ink: #ffb000; }
+.cafe-chrome-head[data-skin="cafe-super"] { background: linear-gradient(115deg, #ffb000 0 62%, #ffc640 62% 78%, #ffb000 78%); }
+.cafe-chrome[data-skin="cafe-super"] .cafe-chrome-cta { border-radius: 10px; }
+.cafe-chrome[data-skin="cafe-menew"] { --ch-bg: #15100c; --ch-ink: #f7f3ec; --ch-muted: #cdbb9f; --ch-line: rgba(247,243,236,.1); --ch-accent: #c49b59; --ch-accent-ink: #1a140c; }
+.cafe-chrome[data-skin="cafe-menew"] .cafe-chrome-cta { background: linear-gradient(90deg, #ff6b00, #f52f5e); color: #fff; }
+.cafe-chrome[data-skin="cafe-signature"] { --ch-bg: rgba(251,247,241,.82); --ch-ink: #1c1915; --ch-muted: #7a6f63; --ch-line: rgba(28,25,21,.08); --ch-accent: #1c1915; --ch-accent-ink: #fbf7f1; }
+.cafe-chrome-foot[data-skin="cafe-signature"] { --ch-bg: #fbf7f1; }
+
+html[data-cafe-scheme="dark"] .cafe-chrome:is([data-skin="cafe-reyhoon"]) { --ch-bg: #0d2222; --ch-ink: #eef6f6; --ch-muted: #a9c3c3; --ch-line: rgba(255,255,255,.1); --ch-accent: #2fb5a8; }
+html[data-cafe-scheme="dark"] .cafe-chrome[data-skin="cafe-kerase"] { --ch-bg: #15100c; --ch-ink: #f6efe6; --ch-muted: #c9b8a5; --ch-line: rgba(255,255,255,.1); --ch-accent: #d8b48c; --ch-accent-ink: #1a120b; }
+html[data-cafe-scheme="dark"] .cafe-chrome[data-skin="cafe-super"] { --ch-bg: #1d1d1d; --ch-ink: #f5f5f5; --ch-muted: #bcbcbc; --ch-accent: #ffb000; --ch-accent-ink: #1c1404; }
+html[data-cafe-scheme="dark"] .cafe-chrome-head[data-skin="cafe-super"] { background: #1d1d1d; }
+html[data-cafe-scheme="dark"] .cafe-chrome[data-skin="cafe-menew"] { --ch-bg: #0b0806; }
+html[data-cafe-scheme="dark"] .cafe-chrome[data-skin="cafe-signature"] { --ch-bg: rgba(14,12,10,.85); --ch-ink: #f3ede4; --ch-muted: #b4a796; --ch-line: rgba(255,255,255,.08); --ch-accent: #e0a862; --ch-accent-ink: #1b120a; }
+html[data-cafe-scheme="dark"] .cafe-chrome-foot[data-skin="cafe-signature"] { --ch-bg: #0e0c0a; }

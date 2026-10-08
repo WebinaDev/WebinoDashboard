@@ -1,0 +1,151 @@
+/* Full item page (/catalogue/:slug): the same item panel as the in-menu sheet, laid out as a page per skin palette. */
+
+.cafe-item-page { padding: 1rem 0 3rem; background: var(--c-bg) !important; }
+.cafe-item-page-frame {
+  max-width: 980px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+.cafe-item-page[data-layout="phone"] .cafe-item-page-frame,
+.cafe-item-page[data-layout="market"] .cafe-item-page-frame { max-width: 480px; }
+
+.cafe-item-page-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.cafe-item-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--c-line);
+  background: var(--c-card);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.cafe-item-page .cafe-icon-btn { width: auto; min-width: 2.35rem; padding-inline: 0.6rem; gap: 0.3rem; display: inline-flex; }
+.cafe-like-count { font-size: 0.78rem; font-weight: 800; }
+
+.cafe-item-page .cafe-item-layout {
+  overflow: hidden;
+  border-radius: var(--cafe-radius);
+  background: var(--c-card);
+  box-shadow: var(--cafe-shadow);
+}
+.cafe-item-page .cafe-item-bar { position: sticky; bottom: 0; z-index: 5; }
+.cafe-item-page .cafe-item-hero { height: clamp(220px, 42vh, 420px); }
+
+@media (min-width: 860px) {
+  .cafe-item-page:not([data-layout="phone"]):not([data-layout="market"]) .cafe-item-layout {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  .cafe-item-page:not([data-layout="phone"]):not([data-layout="market"]) .cafe-item-hero {
+    grid-row: 1 / span 2;
+    height: auto;
+    min-height: 520px;
+  }
+  .cafe-item-page:not([data-layout="phone"]):not([data-layout="market"]) .cafe-item-bar { grid-column: 2; }
+}
+
+.cafe-item-page[data-skin="cafe-mash-donald"] .cafe-add-btn { background: var(--c-accent-2); color: #111; border-radius: 16px; }
+.cafe-item-page[data-skin="cafe-reyhoon"] .cafe-add-btn { background: var(--c-soft); color: var(--cafe-accent); border-radius: 14px; }
+.cafe-item-page[data-skin="cafe-super"] .cafe-add-btn { background: var(--cafe-accent); color: var(--c-accent-ink); border-radius: 12px; }
+.cafe-item-page[data-skin="cafe-menew"] .cafe-add-btn { background: var(--c-grad); }
+.cafe-item-page[data-skin="cafe-signature"] .cafe-add-btn { background: var(--c-ink); color: var(--c-card); }
+.cafe-item-page[data-skin="cafe-kerase"] .cafe-item-hero { border-radius: 0 0 120px 120px; }
+
+.cafe-feedback {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+  padding: 1.1rem;
+  border-radius: var(--cafe-radius);
+  border: 1px solid var(--c-line);
+  background: var(--c-card);
+}
+.cafe-feedback h2 { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 900; }
+.cafe-stars { display: flex; gap: 0.25rem; }
+.cafe-stars button { color: var(--c-line); }
+.cafe-stars button[data-on="true"] { color: #f5a623; }
+.cafe-stars button[data-on="true"] svg { fill: currentColor; }
+.cafe-feedback .cafe-primary-btn { justify-self: start; width: auto; padding-inline: 1.4rem; }
+
+/* About page (/about), skin-aware */
+.cafe-about { min-height: 100vh; background: var(--c-bg) !important; color: var(--c-ink); padding-bottom: 3rem; }
+.cafe-about :where(h1, h2, p) { margin: 0; }
+.cafe-about-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-items: end;
+  min-height: clamp(260px, 46vh, 460px);
+  overflow: hidden;
+  color: #fff;
+}
+.cafe-about-hero-img { object-fit: cover; z-index: -2; animation: cafe-kenburns 18s ease-in-out infinite alternate; }
+.cafe-about-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(0,0,0,.05) 20%, rgba(0,0,0,.72));
+}
+.cafe-about-hero-copy {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 980px;
+  margin-inline: auto;
+  padding: 2rem 1rem 2.4rem;
+}
+.cafe-about-hero h1 { font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 900; letter-spacing: -0.02em; }
+.cafe-about-hero p { max-width: 36rem; opacity: 0.9; }
+.cafe-about-hero .cafe-primary-btn { display: inline-flex; align-items: center; gap: 0.45rem; width: auto; border-radius: 999px; padding-inline: 1.2rem; margin-top: 0.4rem; }
+.cafe-about-body { display: grid; gap: 1.1rem; max-width: 980px; margin: -1.4rem auto 0; padding-inline: 1rem; position: relative; }
+.cafe-about[data-layout="phone"] .cafe-about-body,
+.cafe-about[data-layout="market"] .cafe-about-body { max-width: 560px; }
+.cafe-about-card {
+  border: 1px solid var(--c-line);
+  border-radius: var(--cafe-radius);
+  background: var(--c-card);
+  box-shadow: var(--cafe-shadow);
+  padding: 1.2rem 1.25rem;
+}
+.cafe-about-card h2, .cafe-about-gallery-wrap h2 { display: flex; align-items: center; gap: 0.45rem; font-size: 1.05rem; font-weight: 900; margin-bottom: 0.8rem; }
+.cafe-about-story p { white-space: pre-line; line-height: 2; color: var(--c-muted); }
+.cafe-about-grid { display: grid; gap: 1.1rem; }
+@media (min-width: 760px) { .cafe-about:not([data-layout="phone"]):not([data-layout="market"]) .cafe-about-grid { grid-template-columns: 1fr 1fr; } }
+.cafe-about-hours { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+.cafe-about-hours li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.45rem 0; border-bottom: 1px dashed var(--c-line); font-size: 0.9rem; }
+.cafe-about-hours li:last-child { border-bottom: 0; }
+.cafe-about-hours [data-closed="true"] { color: #dc2626; font-weight: 700; }
+.cafe-about-contact { display: grid; gap: 0.7rem; font-size: 0.92rem; }
+.cafe-about-contact :is(a, p) { display: flex; align-items: center; gap: 0.55rem; }
+.cafe-about-contact .cafe-ghost-btn { justify-content: center; }
+.cafe-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--c-line);
+  padding: 0.55rem 1rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+.cafe-about-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+@media (min-width: 760px) { .cafe-about:not([data-layout="phone"]):not([data-layout="market"]) .cafe-about-gallery { grid-template-columns: repeat(3, 1fr); } }
+.cafe-about-gallery figure { margin: 0; }
+.cafe-about-gallery-media { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: calc(var(--cafe-radius) * 0.75); background: var(--c-soft); }
+.cafe-about-gallery figcaption { margin-top: 0.35rem; text-align: center; font-size: 0.78rem; color: var(--c-muted); }
+.cafe-about[data-skin="cafe-mash-donald"] .cafe-about-hero h1 { text-transform: uppercase; }
+.cafe-about[data-skin="cafe-kerase"] .cafe-about-hero-copy { justify-items: center; text-align: center; }
+.cafe-about[data-skin="cafe-kerase"] .cafe-about-hero h1 { font-weight: 300; }
+.cafe-about[data-skin="cafe-menew"] .cafe-about-hero .cafe-primary-btn { background: var(--c-grad); }
+.cafe-about[data-skin="cafe-signature"] .cafe-about-hero .cafe-primary-btn { background: #fbf7f1; color: #1c1915; }

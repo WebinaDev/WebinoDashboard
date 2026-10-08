@@ -1,44 +1,33 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
-import { Heart, Star } from "lucide-react"
+import { ArrowRight, Heart, Star } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api } from "@/lib/api"
-import { formatShopPrice } from "@/lib/format"
-import { toLocaleDigits } from "@/lib/locale"
+import { cn } from "@/lib/utils"
 
 import { CafeCartDrawer } from "../components/CafeCartDrawer"
+import { ItemPanel } from "../components/ItemSheet"
+import { digits, keepQuery, readScheme } from "../lib/helpers"
 import { cafeSkinLayout, resolveCafeSkin } from "../skin"
 import "../menu.css"
-import type { CatalogItem } from "../types"
-
-const SCHEME_KEY = "cafe_menu_scheme"
-
-function formatPrice(amount: number, currency: string, locale: string) {
-  return toLocaleDigits(formatShopPrice(amount / 10, { currency }, currency), locale === "fa" ? "fa" : "en")
-}
-
-function localized(locale: string, fa?: string | null, en?: string | null) {
-  return locale === "fa" ? fa ?? en : en ?? fa
-}
+import "../skins/item-page.css"
+import type { CafeOrderingStatus, CatalogItem } from "../types"
 
 export function ItemDetailView({
   item,
   tableNumber,
   branchSlug,
   activeThemeSlug,
+  ordering,
 }: {
   item: CatalogItem
   tableNumber?: string | null
   branchSlug?: string | null
   activeThemeSlug?: string | null
+  ordering?: CafeOrderingStatus | null
 }) {
   const t = useTranslations("cafe_starter")
   const locale = useLocale()
@@ -46,188 +35,100 @@ export function ItemDetailView({
   const layout = cafeSkinLayout(skin)
   const [scheme, setScheme] = useState<"light" | "dark">("light")
   const [likes, setLikes] = useState(item.likes_count ?? 0)
-  const [selectedVariant, setSelectedVariant] = useState<number | null>(item.variants?.find((v) => v.is_default)?.id ?? item.variants?.[0]?.id ?? null)
-  const [selectedOptions, setSelectedOptions] = useState<Record<number, number[]>>({})
+  const [liked, setLiked] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
   const [message, setMessage] = useState<string | null>(null)
-
-  const image = item.cover_image_url ?? item.image_url
-  const price = formatPrice(item.discounted_price_minor, item.currency, locale)
+  const qs = { table: tableNumber, branch: branchSlug }
 
   useEffect(() => {
-    trackAnalyticsEvent("product_view", { productId: item.id })
-  }, [item.id])
+    const stored = readScheme()
+    if (stored) setScheme(stored)
+    else if (skin === "cafe-signature" && window.matchMedia?.("(prefers-color-scheme: dark)").matches) setScheme("dark")
+  }, [skin])
 
   useEffect(() => {
-    const stored = localStorage.getItem(SCHEME_KEY)
-    if (stored === "dark" || stored === "light") setScheme(stored)
-  }, [])
-
-  async function addToCart() {
-    const token = localStorage.getItem("cafe_guest_token") ?? crypto.randomUUID().replace(/-/g, "")
-    localStorage.setItem("cafe_guest_token", token)
-    const optionIds = Object.values(selectedOptions).flat()
-    await api("/api/v1/public/cafe/cart/items", {
-      method: "POST",
-      json: {
-        product_id: item.id,
-        quantity: 1,
-        guest_token: token,
-        table_number: tableNumber,
-        branch_slug: branchSlug,
-        option_ids: optionIds,
-        variant_id: selectedVariant,
-      },
-    })
-    trackAnalyticsEvent("add_to_cart", { productId: item.id })
-    setMessage(t("added_to_cart"))
-  }
+    document.documentElement.dataset.cafeScheme = scheme
+  }, [scheme])
 
   async function likeItem() {
     const fp = localStorage.getItem("cafe_fingerprint") ?? crypto.randomUUID().replace(/-/g, "")
     localStorage.setItem("cafe_fingerprint", fp)
-    const res = await api<{ likes_count: number }>(`/api/v1/public/cafe/products/${item.id}/like`, {
-      method: "POST",
-      json: { fingerprint: fp },
-    })
-    setLikes(res.likes_count)
+    try {
+      const res = await api<{ likes_count: number }>(`/api/v1/public/cafe/products/${item.id}/like`, {
+        method: "POST",
+        json: { fingerprint: fp },
+      })
+      setLikes(res.likes_count)
+      setLiked(true)
+    } catch {
+      /* likes are best-effort */
+    }
   }
 
   async function submitFeedback() {
     const fp = localStorage.getItem("cafe_fingerprint") ?? ""
-    await api(`/api/v1/public/cafe/products/${item.id}/feedback`, {
-      method: "POST",
-      json: { rating, comment, fingerprint: fp || undefined },
-    })
-    setMessage(t("feedback_sent"))
+    try {
+      await api(`/api/v1/public/cafe/products/${item.id}/feedback`, {
+        method: "POST",
+        json: { rating, comment, fingerprint: fp || undefined },
+      })
+      setMessage(t("feedback_sent"))
+      setComment("")
+    } catch {
+      setMessage(null)
+    }
+  }
+
+  const ctx = {
+    t: t as unknown as (key: string, values?: Record<string, string | number>) => string,
+    locale,
+    skin,
+    scheme,
+    ordering,
+    qs,
+    tableNumber,
+    branchSlug,
   }
 
   return (
-    <div className="cafe-shell" data-skin={skin} data-layout={layout} data-scheme={scheme}>
-    <div className="cafe-frame px-4 py-8">
-      <div className="mb-6">
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/catalogue${tableNumber || branchSlug ? `?${new URLSearchParams(Object.entries({ table: tableNumber || "", branch: branchSlug || "" }).filter(([, v]) => v)).toString()}` : ""}`}>{t("back_to_menu")}</Link>
-        </Button>
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div>
-          {item.video_url ? (
-            <video src={item.video_url} controls className="aspect-video w-full rounded-xl bg-black" />
-          ) : image ? (
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-              <Image src={image} alt={item.name} fill className="object-cover" unoptimized />
-            </div>
-          ) : null}
-          {item.media && item.media.length > 1 ? (
-            <div className="mt-3 flex gap-2 overflow-x-auto">
-              {item.media.map((m) => (
-                <div key={m.id} className="relative size-20 shrink-0 overflow-hidden rounded-lg">
-                  <Image src={m.url} alt="" fill className="object-cover" unoptimized />
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">{item.name}</h1>
-              {item.category ? <p className="text-muted-foreground mt-1">{item.category.name}</p> : null}
-            </div>
-            <Button variant="outline" size="sm" onClick={() => void likeItem()}>
-              <Heart className="mr-1 size-4" />
-              {likes}
-            </Button>
+    <div className="cafe-shell cafe-item-page" data-skin={skin} data-layout={layout} data-scheme={scheme}>
+      <div className="cafe-item-page-frame">
+        <header className="cafe-item-page-top">
+          <Link href={`/catalogue${keepQuery(qs)}`} className="cafe-item-back">
+            <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" />
+            {t("back_to_menu")}
+          </Link>
+          <div className="cafe-tool-cluster">
+            <button type="button" className={cn("cafe-icon-btn", liked && "is-on")} onClick={() => void likeItem()} aria-label={t("feedback_heading")}>
+              <Heart className="size-4" />
+              <span className="cafe-like-count">{digits(likes, locale)}</span>
+            </button>
+            <CafeCartDrawer tableNumber={tableNumber} branchSlug={branchSlug} ordering={ordering} currency={item.currency} skin={skin} scheme={scheme} />
           </div>
+        </header>
 
-          <p className="mt-4 text-2xl font-bold">{price}</p>
+        <ItemPanel ctrl={ctx} item={item} />
 
-          {item.description ? <p className="text-muted-foreground mt-4 whitespace-pre-line">{item.description}</p> : null}
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {item.calories ? <Badge variant="outline">{t("calories", { count: item.calories })}</Badge> : null}
-            {(item.spice_level ?? 0) > 0 ? <Badge variant="outline">{t("spice_level", { level: item.spice_level })}</Badge> : null}
-            {item.allergens?.map((a) => (
-              <Badge key={a.id} variant="secondary">{localized(locale, a.name_fa, a.name_en)}</Badge>
+        <section className="cafe-feedback">
+          <h2>
+            <Star className="size-4" />
+            {t("feedback_heading")}
+          </h2>
+          <div className="cafe-stars" role="radiogroup" aria-label={t("feedback_heading")}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} type="button" role="radio" aria-checked={rating === n} data-on={rating >= n ? "true" : "false"} onClick={() => setRating(n)} aria-label={digits(n, locale)}>
+                <Star className="size-5" />
+              </button>
             ))}
           </div>
-
-          {item.variants && item.variants.length > 0 ? (
-            <div className="mt-6">
-              <p className="mb-2 text-sm font-medium">{t("select_variant")}</p>
-              <div className="flex flex-wrap gap-2">
-                {item.variants.map((v) => (
-                  <Button key={v.id} size="sm" variant={selectedVariant === v.id ? "default" : "outline"} onClick={() => setSelectedVariant(v.id)}>
-                    {v.name}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {item.modifiers?.map((mod) => (
-            <div key={mod.id} className="mt-6">
-              <p className="mb-2 text-sm font-medium">
-                {localized(locale, mod.name_fa, mod.name_en)}
-                {mod.is_required ? ` (${t("required")})` : ""}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {mod.options.map((opt) => {
-                  const selected = selectedOptions[mod.id]?.includes(opt.id)
-                  return (
-                    <Button
-                      key={opt.id}
-                      size="sm"
-                      variant={selected ? "default" : "outline"}
-                      onClick={() => {
-                        setSelectedOptions((prev) => {
-                          const current = prev[mod.id] ?? []
-                          const next = selected ? current.filter((id) => id !== opt.id) : [...current, opt.id]
-                          return { ...prev, [mod.id]: next.slice(0, mod.max_select) }
-                        })
-                      }}
-                    >
-                      {localized(locale, opt.name_fa, opt.name_en)}
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button className="cafe-buy-btn" disabled={!item.is_available || item.is_sold_out} onClick={() => void addToCart()}>
-              {item.is_sold_out ? t(skin === "cafe-super" ? "stock_gone" : "badge_sold_out") : t("add_to_cart")}
-            </Button>
-            <CafeCartDrawer tableNumber={tableNumber} branchSlug={branchSlug} />
-          </div>
-
-          {message ? <p className="mt-3 text-sm text-green-600">{message}</p> : null}
-
-          <div className="mt-10 rounded-xl border p-4">
-            <p className="mb-2 flex items-center gap-1 font-medium">
-              <Star className="size-4" />
-              {t("feedback_heading")}
-            </p>
-            <div className="mb-2 flex gap-1">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <Button key={n} size="sm" variant={rating >= n ? "default" : "outline"} onClick={() => setRating(n)}>
-                  {n}
-                </Button>
-              ))}
-            </div>
-            <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t("feedback_placeholder")} />
-            <Button className="mt-2" size="sm" variant="outline" onClick={() => void submitFeedback()}>
-              {t("feedback_submit")}
-            </Button>
-          </div>
-        </div>
+          <textarea className="cafe-field" value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t("feedback_placeholder")} aria-label={t("feedback_placeholder")} rows={3} />
+          <button type="button" className="cafe-primary-btn" onClick={() => void submitFeedback()}>
+            {t("feedback_submit")}
+          </button>
+          {message ? <p className="cafe-ok">{message}</p> : null}
+        </section>
       </div>
-    </div>
     </div>
   )
 }

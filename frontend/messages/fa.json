@@ -2087,7 +2087,13 @@
       "table": "میز {number}",
       "phone": "موبایل",
       "note": "یادداشت برای آشپزخانه",
-      "subtotal": "جمع"
+      "subtotal": "جمع",
+      "view_cart": "مشاهده سبد",
+      "order_placed": "سفارش ثبت شد",
+      "fulfillment": "نحوه دریافت",
+      "items_total": "جمع اقلام",
+      "fees": "هزینه‌ها",
+      "sending": "در حال ثبت…"
     },
     "kitchen": {
       "new": "جدید",
@@ -2101,7 +2107,40 @@
       "dine_in": "سرو در محل",
       "pickup": "تحویل حضوری",
       "delivery": "پیک"
-    }
+    },
+    "close": "بستن",
+    "scroll_to_menu": "مشاهده منیو",
+    "scroll_to_menu_hint": "منوها و محصولات را پایین صفحه ببینید",
+    "quick_add": "افزودن سریع",
+    "qty": "تعداد",
+    "in_stock": "موجود",
+    "qty_left": "{count} عدد باقی‌مانده",
+    "save_amount": "{amount} صرفه‌جویی",
+    "hero_cue": "برای دیدن منو پایین بکشید",
+    "loading_menu": "در حال آماده‌سازی منو…",
+    "share_menu": "اشتراک منو",
+    "nav_orders": "سفارش‌ها",
+    "deal_banner": "پیشنهاد ویژه امروز",
+    "combo_cta": "مشاهده کمبوها",
+    "no_image": "بدون تصویر",
+    "branch_label": "شعبه",
+    "menu_label": "منو",
+    "size_label": "سایز",
+    "milk_label": "شیر",
+    "shots_label": "شات اضافه",
+    "items_count": "{count} کالا",
+    "login_cta": "ورود / ثبت‌نام",
+    "menu_unavailable": "منو هنوز آماده نیست.",
+    "days": {
+      "saturday": "شنبه",
+      "sunday": "یکشنبه",
+      "monday": "دوشنبه",
+      "tuesday": "سه‌شنبه",
+      "wednesday": "چهارشنبه",
+      "thursday": "پنج‌شنبه",
+      "friday": "جمعه"
+    },
+    "hours_range": "{open} تا {close}"
   },
   "cafe_admin": {
     "menu": {

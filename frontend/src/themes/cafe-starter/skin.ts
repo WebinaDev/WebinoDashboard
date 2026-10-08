@@ -4,22 +4,20 @@ export const CAFE_MENU_SKINS = [
   "cafe-kerase",
   "cafe-super",
   "cafe-menew",
+  "cafe-signature",
 ] as const
 
 export type CafeMenuSkin = (typeof CAFE_MENU_SKINS)[number]
 
-/** Map the site theme slug onto a catalogue skin. cafe-starter is the Reyhoon skin. */
-export function resolveCafeSkin(slug?: string | null): string {
-  if (slug === "cafe-mash-donald" || slug === "cafe-kerase" || slug === "cafe-super" || slug === "cafe-menew" || slug === "cafe-reyhoon") {
-    return slug
-  }
-  if (!slug || slug === "cafe-starter") return "cafe-reyhoon"
-  return slug
+/** Map the site theme slug onto a catalogue skin. cafe-starter (and unknown cafe slugs) use Reyhoon. */
+export function resolveCafeSkin(slug?: string | null): CafeMenuSkin {
+  if ((CAFE_MENU_SKINS as readonly string[]).includes(slug ?? "")) return slug as CafeMenuSkin
+  return "cafe-reyhoon"
 }
 
-export function cafeSkinLayout(skin: string): "phone" | "market" | "catalogue" | "plain" {
+export function cafeSkinLayout(skin: string): "phone" | "market" | "catalogue" | "signature" {
   if (skin === "cafe-menew") return "catalogue"
+  if (skin === "cafe-signature") return "signature"
   if (skin === "cafe-super") return "market"
-  if (skin === "cafe-reyhoon" || skin === "cafe-mash-donald" || skin === "cafe-kerase") return "phone"
-  return "plain"
+  return "phone"
 }

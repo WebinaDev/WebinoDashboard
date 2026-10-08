@@ -23,6 +23,7 @@ const THEME_LOADERS: Record<string, () => Promise<ThemeModule>> = {
   "cafe-kerase": () => import("@/themes/cafe-kerase"),
   "cafe-super": () => import("@/themes/cafe-super"),
   "cafe-menew": () => import("@/themes/cafe-menew"),
+  "cafe-signature": () => import("@/themes/cafe-signature"),
   "resume-default": () => import("@/themes/resume-default"),
   "resume-demo-v1": () => import("@/themes/resume-demo-v1"),
   "corporate-default": () => import("@/themes/corporate-default"),
