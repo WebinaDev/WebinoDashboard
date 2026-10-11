@@ -131,8 +131,8 @@ class CafeSeedDemoCommand extends Command
                 'header_cta_url' => '/reservations',
                 'placeholder_logo_text_fa' => mb_substr($mark, 0, 12),
                 'placeholder_logo_text_en' => null,
-                // Keep the settings default so each skin shows its own palette.
-                'accent_color' => '#c46b3a',
+                // Custom accent paints the active skin; Blue Cafe uses the printed cobalt brand.
+                'accent_color' => preg_match('/blue/iu', $brand) ? '#1b6bc4' : '#c46b3a',
                 'seasonal_theme' => 'none',
                 'font_preset' => 'sans',
                 'packaging_fee_minor' => 0,

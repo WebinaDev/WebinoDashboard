@@ -42,6 +42,7 @@ import { DASHBOARD_BASE, stripDashboardBase } from "@/kernel/paths"
 import { normalizeAccent } from "@/lib/accent"
 import { api } from "@/lib/api"
 import { htmlDir, isRtlLocale, sidebarSide } from "@/lib/locale"
+import { brandFontStack } from "@/themes/shared/branding"
 import { DashboardPwaHead } from "@/components/pwa/DashboardPwaHead"
 import { PwaInstallBanner } from "@/components/pwa/PwaInstallBanner"
 import { PwaSplashOverlay } from "@/components/pwa/PwaSplashOverlay"
@@ -124,12 +125,15 @@ export default function DashboardLayoutPage({
     const branding = user?.tenant?.branding
     if (!branding) return
     const root = document.documentElement
-    const body = branding.font_body || branding.font
-    const heading = branding.font_heading || branding.font
-    const ui = branding.font_ui || branding.font
-    if (body) root.style.setProperty("--wd-font-body", body)
-    if (heading) root.style.setProperty("--wd-font-heading", heading)
-    if (ui) root.style.setProperty("--wd-font-ui", ui)
+    const bodyStack = brandFontStack(branding.font_body || branding.font)
+    const headingStack = brandFontStack(branding.font_heading || branding.font)
+    const uiStack = brandFontStack(branding.font_ui || branding.font)
+    if (bodyStack) root.style.setProperty("--wd-font-body", bodyStack)
+    else root.style.removeProperty("--wd-font-body")
+    if (headingStack) root.style.setProperty("--wd-font-heading", headingStack)
+    else root.style.removeProperty("--wd-font-heading")
+    if (uiStack) root.style.setProperty("--wd-font-ui", uiStack)
+    else root.style.removeProperty("--wd-font-ui")
     const userAccent = user?.ui_preferences?.accent
     if (!userAccent && branding.accent) {
       root.setAttribute("data-accent", normalizeAccent(branding.accent))

@@ -14,10 +14,11 @@ import type { ShopCurrencyDisplay } from "@/lib/format"
 import type { CafeOrderingStatus, CatalogItem } from "../types"
 import { CafeSheet } from "./CafeSheet"
 
-/** Where each skin shows item details: phone skins use a bottom sheet, Super a side panel, MeNew a centered editorial card. */
+/** Where each skin shows item details: Super a side panel; others bottom on phone, centered on md+ (CSS). */
 export function sheetPlacement(skin: string): "bottom" | "side" | "center" {
   if (skin === "cafe-super") return "side"
   if (skin === "cafe-menew") return "center"
+  // Signature / Reyhoon / Kerase / Mash: bottom on mobile; menu.css promotes to center from 720px.
   return "bottom"
 }
 

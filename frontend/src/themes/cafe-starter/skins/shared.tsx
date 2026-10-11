@@ -31,7 +31,13 @@ export function CafeShell({
   children: ReactNode
   className?: string
 }) {
-  const style = ctrl.accent ? ({ ["--cafe-accent" as string]: ctrl.accent } as CSSProperties) : undefined
+  const style = ctrl.accent
+    ? ({
+        ["--cafe-accent" as string]: ctrl.accent,
+        ["--c-soft" as string]: `color-mix(in srgb, ${ctrl.accent} 14%, white)`,
+        ["--c-line" as string]: `color-mix(in srgb, ${ctrl.accent} 18%, transparent)`,
+      } as CSSProperties)
+    : undefined
   useReveal()
   return (
     <div

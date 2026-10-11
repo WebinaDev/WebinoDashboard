@@ -96,27 +96,30 @@
   --c-line: rgba(247, 243, 236, 0.12);
 }
 
+/* Blue Cafe brand: cobalt blue + white arch menu identity */
 :is(.cafe-shell, .cafe-sheet)[data-skin="cafe-signature"] {
-  --cafe-accent: #b8742a;
-  --c-accent-2: #1f3b2d;
-  --c-bg: #fbf7f1;
+  --cafe-accent: #1b6bc4;
+  --c-accent-2: #0d3d7a;
+  --c-bg: #eef4fb;
   --c-card: #ffffff;
-  --c-ink: #1c1915;
-  --c-muted: #7a6f63;
-  --c-line: rgba(28, 25, 21, 0.09);
-  --c-glass: rgba(251, 247, 241, 0.78);
-  --cafe-shadow: 0 24px 60px rgba(60, 40, 20, 0.1);
+  --c-ink: #0d2b4a;
+  --c-muted: #5a7390;
+  --c-line: rgba(13, 43, 74, 0.1);
+  --c-glass: rgba(238, 244, 251, 0.82);
+  --c-soft: #d7e6f7;
+  --cafe-shadow: 0 24px 60px rgba(15, 61, 115, 0.12);
 }
 :is(.cafe-shell, .cafe-sheet)[data-skin="cafe-signature"][data-scheme="dark"] {
-  --cafe-accent: #e0a862;
-  --c-accent-2: #9cc5a8;
-  --c-bg: #0e0c0a;
-  --c-card: #19150f;
-  --c-ink: #f3ede4;
-  --c-muted: #b4a796;
-  --c-line: rgba(243, 237, 228, 0.1);
-  --c-glass: rgba(14, 12, 10, 0.72);
-  --cafe-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  --cafe-accent: #5ba8e8;
+  --c-accent-2: #8ec5f0;
+  --c-bg: #071525;
+  --c-card: #0e2138;
+  --c-ink: #e8f1fb;
+  --c-muted: #9bb4cc;
+  --c-line: rgba(232, 241, 251, 0.12);
+  --c-glass: rgba(7, 21, 37, 0.78);
+  --c-soft: #143252;
+  --cafe-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
 /* Sheet personalities */

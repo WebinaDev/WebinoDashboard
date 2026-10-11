@@ -1,12 +1,13 @@
 "use client"
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useId, useState } from "react"
 
 import { PostsPagination } from "@/components/PostsPagination"
 import { QueryErrorState } from "@/components/QueryErrorState"
+import { MediaDropzone } from "@/components/media/MediaDropzone"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -14,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MEDIA_TERM_ALL, MediaTermTreeSelect } from "@/components/media/MediaTermTreeSelect"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 import { resolveMediaAlt, type MediaAltFields } from "@/lib/media-alt"
 
 type MediaItem = MediaAltFields & {
@@ -41,11 +43,14 @@ export function MediaPickerDialog({
 }) {
   const t = useTranslations("ui")
   const id = useId()
+  const qc = useQueryClient()
   const [folder, setFolder] = useState(MEDIA_TERM_ALL)
   const [category, setCategory] = useState(MEDIA_TERM_ALL)
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -78,12 +83,49 @@ export function MediaPickerDialog({
   const folders = termsQ.data?.folders ?? []
   const categories = termsQ.data?.categories ?? []
 
+  async function uploadFiles(files: File[]) {
+    setUploading(true)
+    setUploadError(null)
+    try {
+      let last: MediaItem | null = null
+      for (const file of files) {
+        const body = new FormData()
+        body.append("file", file)
+        if (folder !== MEDIA_TERM_ALL) body.append("folder_id", folder)
+        if (category !== MEDIA_TERM_ALL) body.append("category_ids", JSON.stringify([Number(category)]))
+        last = await api<MediaItem>("/api/v1/media", { method: "POST", body })
+      }
+      await qc.invalidateQueries({ queryKey: ["media"] })
+      if (last?.url && files.length === 1) {
+        onPick({ id: last.id, url: last.url, alt: resolveMediaAlt(last) })
+        onOpenChange(false)
+      } else {
+        setPage(1)
+        void listQ.refetch()
+      }
+    } catch (e) {
+      setUploadError(getApiErrorMessage(e as Error))
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{title ?? t("media_pick_title")}</DialogTitle>
         </DialogHeader>
+
+        <MediaDropzone
+          multiple={false}
+          busy={uploading}
+          accept="image/*"
+          onFiles={(files) => void uploadFiles(files)}
+          emptyLabel={t("media_dropzone")}
+          className="min-h-24"
+        />
+        {uploadError ? <p className="text-destructive text-sm">{uploadError}</p> : null}
 
         <div className="grid gap-3 sm:grid-cols-3">
           <MediaTermTreeSelect
@@ -131,7 +173,6 @@ export function MediaPickerDialog({
           <div className="text-muted-foreground space-y-2 py-8 text-center text-sm">
             <p>{t("media_empty")}</p>
             <p>
-              {t("media_upload_hint")}{" "}
               <Link href="/dashboard/media" className="text-primary underline-offset-4 hover:underline">
                 {t("media_open_library")}
               </Link>

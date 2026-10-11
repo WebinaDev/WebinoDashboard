@@ -20,6 +20,9 @@ export const DEFAULT_SITE_BRANDING: SiteBranding = {
   logo_url: null,
   logo_dark_url: null,
   favicon_url: null,
+  logo_id: null,
+  logo_dark_id: null,
+  favicon_id: null,
   accent: "zinc",
   font: "yekan-bakh",
   font_body: "yekan-bakh",
@@ -31,6 +34,23 @@ export const DEFAULT_SITE_BRANDING: SiteBranding = {
 
 export function siteFontClass(font: SiteBranding["font"] | undefined): string {
   return font === "system" ? "font-[system-ui,sans-serif]" : "font-sans"
+}
+
+/** Map branding font slugs to a CSS font-family stack (never set the slug itself as the family). */
+export function brandFontStack(font: string | null | undefined): string | null {
+  if (!font) return null
+  switch (font) {
+    case "yekan-bakh":
+      return 'var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif'
+    case "vazirmatn":
+      return 'var(--font-yekan), "Vazirmatn", "Yekan Bakh", Tahoma, sans-serif'
+    case "iran-sans":
+      return 'var(--font-yekan), "IRANSans", "Yekan Bakh", Tahoma, sans-serif'
+    case "system":
+      return "system-ui, -apple-system, Segoe UI, Tahoma, sans-serif"
+    default:
+      return null
+  }
 }
 
 export function siteAccentAttr(accent: SiteBranding["accent"]): string {

@@ -7,10 +7,10 @@ import { useCallback, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { ExternalLink, Palette, RotateCcw } from "lucide-react"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import type { SiteBranding, ThemeCatalogResponse } from "@/kernel/theme-types"
@@ -18,6 +18,17 @@ import { api } from "@/lib/api"
 
 type Props = {
   route: ResolvedAdminRoute
+}
+
+const EMPTY_BRANDING: SiteBranding = {
+  logo_url: null,
+  logo_dark_url: null,
+  favicon_url: null,
+  logo_id: null,
+  logo_dark_id: null,
+  favicon_id: null,
+  accent: "zinc",
+  font: "yekan-bakh",
 }
 
 export default function ThemesPageClient({ route }: Props) {
@@ -42,14 +53,18 @@ export default function ThemesPageClient({ route }: Props) {
   const setBrandingField = useCallback(
     <K extends keyof SiteBranding>(key: K, value: SiteBranding[K]) => {
       setForm((prev) => ({
-        ...(prev ?? data?.branding ?? {
-          logo_url: null,
-          logo_dark_url: null,
-          favicon_url: null,
-          accent: "zinc",
-          font: "yekan-bakh",
-        }),
+        ...(prev ?? data?.branding ?? EMPTY_BRANDING),
         [key]: value,
+      }))
+    },
+    [data?.branding],
+  )
+
+  const patchBranding = useCallback(
+    (patch: Partial<SiteBranding>) => {
+      setForm((prev) => ({
+        ...(prev ?? data?.branding ?? EMPTY_BRANDING),
+        ...patch,
       }))
     },
     [data?.branding],
@@ -82,6 +97,9 @@ export default function ThemesPageClient({ route }: Props) {
             logo_url: branding?.logo_url ?? null,
             logo_dark_url: branding?.logo_dark_url ?? null,
             favicon_url: branding?.favicon_url ?? null,
+            logo_id: branding?.logo_id ?? null,
+            logo_dark_id: branding?.logo_dark_id ?? null,
+            favicon_id: branding?.favicon_id ?? null,
             accent: branding?.accent ?? "zinc",
             font: branding?.font ?? "yekan-bakh",
           }
@@ -178,33 +196,24 @@ export default function ThemesPageClient({ route }: Props) {
         <h2 className="text-lg font-medium">{t("branding_heading")}</h2>
         <Card>
           <CardContent className="grid gap-4 pt-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="logo_url">{t("logo_url")}</Label>
-              <Input
-                id="logo_url"
-                value={branding?.logo_url ?? ""}
-                onChange={(e) => setBrandingField("logo_url", e.target.value || null)}
-                placeholder="https://..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="logo_dark_url">{t("logo_dark_url")}</Label>
-              <Input
-                id="logo_dark_url"
-                value={branding?.logo_dark_url ?? ""}
-                onChange={(e) => setBrandingField("logo_dark_url", e.target.value || null)}
-                placeholder="https://..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="favicon_url">{t("favicon_url")}</Label>
-              <Input
-                id="favicon_url"
-                value={branding?.favicon_url ?? ""}
-                onChange={(e) => setBrandingField("favicon_url", e.target.value || null)}
-                placeholder="https://..."
-              />
-            </div>
+            <MediaPickerField
+              label={t("logo_light")}
+              imageUrl={branding?.logo_url ?? ""}
+              onPick={(item) => patchBranding({ logo_id: item.id, logo_url: item.url })}
+              onClear={() => patchBranding({ logo_id: null, logo_url: null })}
+            />
+            <MediaPickerField
+              label={t("logo_dark")}
+              imageUrl={branding?.logo_dark_url ?? ""}
+              onPick={(item) => patchBranding({ logo_dark_id: item.id, logo_dark_url: item.url })}
+              onClear={() => patchBranding({ logo_dark_id: null, logo_dark_url: null })}
+            />
+            <MediaPickerField
+              label={t("favicon")}
+              imageUrl={branding?.favicon_url ?? ""}
+              onPick={(item) => patchBranding({ favicon_id: item.id, favicon_url: item.url })}
+              onClear={() => patchBranding({ favicon_id: null, favicon_url: null })}
+            />
             <div className="space-y-2">
               <Label>{t("accent")}</Label>
               <div className="flex flex-wrap gap-2">

@@ -182,6 +182,9 @@ export type SiteBranding = {
   logo_url: string | null
   logo_dark_url: string | null
   favicon_url: string | null
+  logo_id?: number | null
+  logo_dark_id?: number | null
+  favicon_id?: number | null
   accent: "zinc" | "slate" | "blue" | "green" | "rose" | "orange"
   font: SiteBrandFont
   font_body?: SiteBrandFont

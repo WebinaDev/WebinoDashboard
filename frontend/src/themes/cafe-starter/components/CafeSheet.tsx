@@ -2,7 +2,7 @@
 
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
-import type { ReactNode } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 /**
@@ -36,6 +36,20 @@ export function CafeSheet({
   trigger?: ReactNode
   hideTitle?: boolean
 }) {
+  const scrollYRef = useRef(0)
+
+  useEffect(() => {
+    if (!open) return
+    scrollYRef.current = window.scrollY
+    // Restore after Radix locks body / moves focus (prevents jump-to-top).
+    const id = window.requestAnimationFrame(() => {
+      if (Math.abs(window.scrollY - scrollYRef.current) > 1) {
+        window.scrollTo(0, scrollYRef.current)
+      }
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [open])
+
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       {trigger ? <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger> : null}
@@ -47,6 +61,8 @@ export function CafeSheet({
           data-skin={skin}
           data-scheme={scheme}
           aria-describedby={description ? undefined : undefined}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
         >
           <span className="cafe-sheet-grip" aria-hidden="true" />
           <DialogPrimitive.Title className={cn("cafe-sheet-title", hideTitle && "sr-only")}>{title}</DialogPrimitive.Title>
