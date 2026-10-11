@@ -48,12 +48,21 @@ class TenantResolver
             return null;
         }
 
-        return Tenant::query()
+        $byDomain = Tenant::query()
             ->where(function ($q) use ($host): void {
                 $q->where('domain', $host)
                     ->orWhere('domain', 'www.'.$host);
             })
             ->first();
+        if ($byDomain) {
+            return $byDomain;
+        }
+
+        // LinkHub / contact.* aliases stored as JSON on tenants.domain_aliases
+        return Tenant::query()
+            ->whereNotNull('domain_aliases')
+            ->get()
+            ->first(fn (Tenant $t) => $t->isLinkHubHost($host));
     }
 
     public function normalizeHost(string $host): string

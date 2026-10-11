@@ -1,0 +1,28 @@
+{
+  "slug": "link-hub",
+  "name_fa": "لینک کوتاه",
+  "name_en": "Link Hub",
+  "distribution": "git",
+  "site_types": [
+    "ecommerce",
+    "cafe",
+    "coffee",
+    "resume",
+    "corporate"
+  ],
+  "submodules": [
+    "home",
+    "page",
+    "profiles",
+    "inbox",
+    "settings"
+  ],
+  "admin_nav": {
+    "section": "link_hub",
+    "order": 45
+  },
+  "public_routes": [
+    "/",
+    "/{slug}"
+  ]
+}

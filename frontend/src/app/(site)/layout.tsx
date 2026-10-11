@@ -22,6 +22,7 @@ type TenantPayload = {
     store_display_name?: string | null
     active_theme_slug?: string | null
     branding?: Partial<import("@/kernel/theme-types").SiteBranding> | null
+    host_mode?: "link-hub" | "primary" | string | null
   }
 }
 
@@ -81,6 +82,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   let tenantName = "Webino"
   let themeSlug = "corporate-default"
   let branding = resolveSiteBranding(null)
+  let hostMode: string = "primary"
 
   try {
     const res = await apiServer<TenantPayload>("/api/v1/public/tenant", {
@@ -91,9 +93,20 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       tenantName = res.data.store_display_name ?? res.data.name ?? tenantName
       themeSlug = res.data.active_theme_slug ?? themeSlug
       branding = resolveSiteBranding(res.data.branding)
+      hostMode = res.data.host_mode || "primary"
     }
   } catch {
     /* fallback */
+  }
+
+  // LinkHub alias hosts: bare mobile page without storefront chrome.
+  if (hostMode === "link-hub") {
+    return (
+      <div className="min-h-svh bg-slate-100" dir="rtl">
+        {children}
+        <AnalyticsTrackerScript />
+      </div>
+    )
   }
 
   const theme = await loadThemeComponents(themeSlug)

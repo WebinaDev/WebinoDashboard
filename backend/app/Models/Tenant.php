@@ -11,6 +11,8 @@ class Tenant extends Model
         'name',
         'slug',
         'domain',
+        'domain_aliases',
+        'alias_subdomain',
         'license_key',
         'license_status',
         'license_checked_at',
@@ -43,7 +45,42 @@ class Tenant extends Model
             'nav_preset' => 'array',
             'branding' => 'array',
             'home_blocks' => 'array',
+            'domain_aliases' => 'array',
         ];
+    }
+
+    /** @return list<string> */
+    public function normalizedDomainAliases(): array
+    {
+        $aliases = $this->domain_aliases;
+        if (! is_array($aliases)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($aliases as $alias) {
+            if (! is_string($alias)) {
+                continue;
+            }
+            $host = strtolower(trim($alias));
+            $host = preg_replace('#^https?://#', '', $host) ?? $host;
+            $host = explode('/', $host)[0] ?? $host;
+            $host = preg_replace('/:\d+$/', '', $host) ?? $host;
+            $host = preg_replace('/^www\./', '', $host) ?? $host;
+            if ($host !== '' && str_contains($host, '.')) {
+                $out[] = $host;
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    public function isLinkHubHost(string $host): bool
+    {
+        $host = strtolower(trim($host));
+        $host = preg_replace('/^www\./', '', $host) ?? $host;
+
+        return in_array($host, $this->normalizedDomainAliases(), true);
     }
 
     public function users(): HasMany

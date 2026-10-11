@@ -24,6 +24,7 @@ final class SiteTypeProfiles
                     'sms-panel' => ['panel'],
                     'analytics' => ['overview', 'reports'],
                     'ai-content' => ['studio'],
+                    'link-hub' => ['home', 'page', 'profiles', 'inbox', 'settings'],
                 ]),
             ],
             'magazine' => [
@@ -55,6 +56,7 @@ final class SiteTypeProfiles
                     'blog' => ['posts', 'categories'],
                     'analytics' => ['overview', 'reports'],
                     'ai-content' => ['studio'],
+                    'link-hub' => ['home', 'page', 'profiles', 'inbox', 'settings'],
                 ]),
             ],
             'coffee' => [
@@ -72,6 +74,7 @@ final class SiteTypeProfiles
                     'sms-panel' => ['panel'],
                     'analytics' => ['overview', 'reports'],
                     'ai-content' => ['studio'],
+                    'link-hub' => ['home', 'page', 'profiles', 'inbox', 'settings'],
                 ]),
             ],
             'resume' => [
@@ -81,6 +84,7 @@ final class SiteTypeProfiles
                 'modules' => array_merge(self::coreModules(), [
                     'resume' => ['profile', 'experience', 'education', 'skills', 'projects', 'contact'],
                     'cms' => ['pages', 'menus', 'seo'],
+                    'link-hub' => ['home', 'page', 'profiles', 'inbox', 'settings'],
                 ]),
             ],
             'corporate' => [
@@ -98,6 +102,7 @@ final class SiteTypeProfiles
                     'sms-panel' => ['panel'],
                     'analytics' => ['overview', 'reports'],
                     'ai-content' => ['studio'],
+                    'link-hub' => ['home', 'page', 'profiles', 'inbox', 'settings'],
                 ]),
             ],
         ];

@@ -45,6 +45,10 @@ use App\Http\Controllers\Api\V1\WordpressImportController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\KernelController;
 use App\Http\Controllers\Api\V1\LicenseController;
+use App\Http\Controllers\Api\V1\LinkHubInboxController;
+use App\Http\Controllers\Api\V1\LinkHubProfileController;
+use App\Http\Controllers\Api\V1\LinkHubSettingsController;
+use App\Http\Controllers\Api\V1\PublicLinkHubController;
 use App\Http\Controllers\Api\V1\MagazineArticleController;
 use App\Http\Controllers\Api\V1\MagazineTaxonomyController;
 use App\Http\Controllers\Api\V1\MarketingController;
@@ -221,6 +225,16 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:profile')->group(function () {
             Route::get('/resume', [PublicResumeController::class, 'show']);
+        });
+
+        // Host-mode must work even before the module is activated (alias DNS check).
+        Route::get('/link-hub/host-mode', [PublicLinkHubController::class, 'hostMode']);
+
+        Route::middleware('public.module:link-hub')->group(function () {
+            Route::get('/link-hub/page', [PublicLinkHubController::class, 'page']);
+            Route::post('/link-hub/forms/{blockId}/submit', [PublicLinkHubController::class, 'submitForm'])
+                ->whereNumber('blockId')
+                ->middleware('throttle:public-writes');
         });
 
         Route::middleware('public.module:academy')->group(function () {
@@ -962,6 +976,21 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
             Route::middleware(['module:profile', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/resume/profile', [ResumeProfileController::class, 'show']);
                 Route::put('/resume/profile', [ResumeProfileController::class, 'update']);
+            });
+
+            Route::middleware(['module:link-hub', 'can:content.manage,content.*'])->group(function () {
+                Route::get('/link-hub/overview', [LinkHubProfileController::class, 'overview']);
+                Route::get('/link-hub/profiles', [LinkHubProfileController::class, 'index']);
+                Route::post('/link-hub/profiles', [LinkHubProfileController::class, 'store']);
+                Route::get('/link-hub/profiles/{profile}', [LinkHubProfileController::class, 'show'])->whereNumber('profile');
+                Route::put('/link-hub/profiles/{profile}', [LinkHubProfileController::class, 'update'])->whereNumber('profile');
+                Route::patch('/link-hub/profiles/{profile}', [LinkHubProfileController::class, 'update'])->whereNumber('profile');
+                Route::delete('/link-hub/profiles/{profile}', [LinkHubProfileController::class, 'destroy'])->whereNumber('profile');
+                Route::put('/link-hub/profiles/{profile}/blocks', [LinkHubProfileController::class, 'syncBlocks'])->whereNumber('profile');
+                Route::get('/link-hub/inbox', [LinkHubInboxController::class, 'index']);
+                Route::delete('/link-hub/inbox/{submission}', [LinkHubInboxController::class, 'destroy'])->whereNumber('submission');
+                Route::get('/link-hub/settings', [LinkHubSettingsController::class, 'show']);
+                Route::put('/link-hub/settings', [LinkHubSettingsController::class, 'update']);
             });
 
             Route::middleware(['module:academy', 'can:content.manage,content.*'])->group(function () {

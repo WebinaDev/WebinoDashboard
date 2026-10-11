@@ -1,5 +1,5 @@
 import { cache } from "react"
-import { cookies } from "next/headers"
+import { cookies, headers as nextHeaders } from "next/headers"
 
 import { unwrapApiData } from "@webina/ui"
 
@@ -19,6 +19,14 @@ async function serverFetch(path: string, init?: FetchOptions): Promise<unknown |
     .map((c) => `${c.name}=${c.value}`)
     .join("; ")
 
+  let tenantHost = ""
+  try {
+    const h = await nextHeaders()
+    tenantHost = (h.get("x-forwarded-host") || h.get("host") || "").replace(/:\d+$/, "")
+  } catch {
+    /* headers() unavailable outside a request */
+  }
+
   const revalidate = init?.revalidate
   const nextOpts =
     revalidate === false
@@ -36,6 +44,7 @@ async function serverFetch(path: string, init?: FetchOptions): Promise<unknown |
     headers: {
       Accept: "application/json",
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      ...(tenantHost ? { "X-Tenant-Domain": tenantHost } : {}),
       ...(init?.headers ?? {}),
     },
   })

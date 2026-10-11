@@ -38,6 +38,13 @@ class PublicSiteController extends Controller
                 'name' => $tenant->name,
                 'slug' => $tenant->slug,
                 'domain' => $tenant->domain,
+                'domain_aliases' => $tenant->normalizedDomainAliases(),
+                'alias_subdomain' => $tenant->alias_subdomain ?: 'contact',
+                'host_mode' => $tenant->isLinkHubHost(
+                    \App\Services\LinkHub\LinkHubAliasService::normalizeHost(
+                        (string) ($request->header('X-Tenant-Domain') ?: $request->getHost())
+                    )
+                ) ? 'link-hub' : 'primary',
                 'store_display_name' => $tenant->store_display_name,
                 'business_category_slug' => $tenant->business_category_slug,
                 'business_type_slug' => $tenant->business_type_slug,

@@ -63,11 +63,41 @@ async function fetchGate(request: NextRequest): Promise<GateData | null> {
   }
 }
 
+const LINK_HUB_RESERVED = new Set([
+  "dashboard",
+  "login",
+  "setup",
+  "account",
+  "api",
+  "link-hub",
+  "_next",
+])
+
+async function resolveHostMode(request: NextRequest): Promise<"link-hub" | "primary"> {
+  const apiBase = getServerApiBase()
+  if (!apiBase) return "primary"
+  try {
+    const host = request.headers.get("host") || ""
+    const res = await fetch(`${apiBase}/api/v1/public/link-hub/host-mode`, {
+      headers: {
+        Accept: "application/json",
+        "X-Tenant-Domain": host.replace(/:\d+$/, ""),
+        Host: host,
+      },
+      cache: "no-store",
+    })
+    if (!res.ok) return "primary"
+    const json = (await res.json()) as { data?: { host_mode?: string } }
+    return json.data?.host_mode === "link-hub" ? "link-hub" : "primary"
+  } catch {
+    return "primary"
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-webino-path", `${pathname}${request.nextUrl.search}`)
-  const res = NextResponse.next({ request: { headers: requestHeaders } })
 
   const cookie =
     request.cookies.get("NEXT_LOCALE")?.value ??
@@ -76,6 +106,56 @@ export async function middleware(request: NextRequest) {
     cookie && LOCALES.includes(cookie as (typeof LOCALES)[number])
       ? cookie
       : "fa"
+
+  const isPublicAsset =
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.includes(".")
+
+  if (isPublicAsset) {
+    const res = NextResponse.next({ request: { headers: requestHeaders } })
+    if (!request.cookies.get("NEXT_LOCALE")) {
+      res.cookies.set("NEXT_LOCALE", locale, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+      })
+    }
+    res.headers.set("x-webina-locale", locale)
+    return res
+  }
+
+  // On LinkHub alias hosts, serve bio pages instead of the main storefront.
+  const isDashboard = isDashboardPathname(pathname)
+  const isLogin = pathname === "/login"
+  const isSetup = pathname === "/setup"
+  const isChangePassword = pathname === "/account/change-password"
+  if (!isDashboard && !isLogin && !isSetup && !isChangePassword) {
+    const hostMode = await resolveHostMode(request)
+    if (hostMode === "link-hub") {
+      const segments = pathname.split("/").filter(Boolean)
+      const first = segments[0] ?? ""
+      if (segments.length === 0 || !LINK_HUB_RESERVED.has(first)) {
+        const rewriteUrl = request.nextUrl.clone()
+        rewriteUrl.pathname =
+          segments.length === 0 ? "/link-hub" : `/link-hub/${segments[0]}`
+        requestHeaders.set("x-webino-host-mode", "link-hub")
+        const rewriteRes = NextResponse.rewrite(rewriteUrl, {
+          request: { headers: requestHeaders },
+        })
+        if (!request.cookies.get("NEXT_LOCALE")) {
+          rewriteRes.cookies.set("NEXT_LOCALE", locale, {
+            path: "/",
+            maxAge: 60 * 60 * 24 * 365,
+          })
+        }
+        rewriteRes.headers.set("x-webina-locale", locale)
+        rewriteRes.headers.set("x-webino-host-mode", "link-hub")
+        return rewriteRes
+      }
+    }
+  }
+
+  const res = NextResponse.next({ request: { headers: requestHeaders } })
   if (!request.cookies.get("NEXT_LOCALE")) {
     res.cookies.set("NEXT_LOCALE", locale, {
       path: "/",
@@ -93,15 +173,6 @@ export async function middleware(request: NextRequest) {
       sameSite: "lax",
       secure: request.nextUrl.protocol === "https:",
     })
-  }
-
-  const isPublicAsset =
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname.includes(".")
-
-  if (isPublicAsset) {
-    return res
   }
 
   // Native SEO redirects (no Rank Math)
@@ -145,11 +216,6 @@ export async function middleware(request: NextRequest) {
     url.pathname = legacyAdminToDashboardPath(pathname)
     return NextResponse.redirect(url)
   }
-
-  const isLogin = pathname === "/login"
-  const isSetup = pathname === "/setup"
-  const isChangePassword = pathname === "/account/change-password"
-  const isDashboard = isDashboardPathname(pathname)
 
   if (isDashboard || isSetup || isChangePassword) {
     const gate = await fetchGate(request)

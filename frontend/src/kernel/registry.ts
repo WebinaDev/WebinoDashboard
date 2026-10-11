@@ -14,6 +14,7 @@ import { coreManifest } from "../../modules/core/manifest"
 import { corporateManifest } from "../../modules/corporate/manifest"
 import { magazineManifest } from "../../modules/magazine/manifest"
 import { marketingManifest } from "../../modules/marketing/manifest"
+import { linkHubManifest } from "../../modules/link-hub/manifest"
 import { resumeManifest } from "../../modules/resume/manifest"
 import { usersManifest } from "../../modules/users/manifest"
 
@@ -55,6 +56,7 @@ const GIT_TRANSITION_MANIFESTS: ModuleManifest[] = [
   { ...cafeManifest, distribution: "git" },
   { ...resumeManifest, distribution: "git" },
   { ...corporateManifest, distribution: "git" },
+  { ...linkHubManifest, distribution: "git" },
 ]
 
 function loadExternalOverrides(): ModuleManifest[] {

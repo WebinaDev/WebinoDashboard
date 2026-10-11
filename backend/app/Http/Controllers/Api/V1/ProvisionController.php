@@ -46,12 +46,21 @@ class ProvisionController extends Controller
             ]);
         }
 
+        $domainAliases = $seed['domain_aliases'] ?? null;
+        if (! is_array($domainAliases)) {
+            $domainAliases = null;
+        }
+        $aliasSubdomain = isset($seed['alias_subdomain']) && is_string($seed['alias_subdomain'])
+            ? $seed['alias_subdomain']
+            : null;
+
         $tenant->fill([
             'name' => $seed['tenant_name'] ?? $tenant->name,
             'store_display_name' => $seed['store_display_name'] ?? $tenant->store_display_name,
             'default_currency' => $seed['default_currency'] ?? $tenant->default_currency ?? 'IRT',
             'domain' => $seed['domain'] ?? $tenant->domain,
-            'domain' => $seed['domain'] ?? $tenant->domain,
+            'domain_aliases' => $domainAliases ?? $tenant->domain_aliases,
+            'alias_subdomain' => $aliasSubdomain ?? $tenant->alias_subdomain ?? 'contact',
             'product' => $seed['product'] ?? env('TENANT_PRODUCT', 'webinodashboard'),
             'business_category_slug' => $seed['business_category_slug'] ?? null,
             'business_type_slug' => $seed['business_type_slug'] ?? null,
