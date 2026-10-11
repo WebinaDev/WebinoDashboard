@@ -170,4 +170,41 @@ class LinkHubTest extends TestCase
         $this->assertSame('bio', $this->tenant->alias_subdomain);
         $this->assertContains('bio.shop.linkhub.test', $this->tenant->normalizedDomainAliases());
     }
+
+    public function test_public_events_and_overview_stats(): void
+    {
+        $business = LinkHubProfile::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'kind' => LinkHubProfile::KIND_BUSINESS,
+            'title' => 'Shop',
+            'is_published' => true,
+        ]);
+        $block = LinkHubBlock::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'profile_id' => $business->id,
+            'type' => 'link',
+            'sort' => 0,
+            'is_visible' => true,
+            'payload' => ['label' => 'IG', 'url' => 'https://instagram.com/x'],
+        ]);
+
+        $this->withHeader('X-Tenant-Domain', 'contact.shop.linkhub.test')
+            ->postJson('/api/v1/public/link-hub/events/view', [])
+            ->assertOk()
+            ->assertJsonPath('data.ok', true);
+
+        $this->withHeader('X-Tenant-Domain', 'contact.shop.linkhub.test')
+            ->postJson('/api/v1/public/link-hub/events/click', [
+                'block_id' => $block->id,
+                'target' => 'https://instagram.com/x',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.ok', true);
+
+        $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/v1/link-hub/overview')
+            ->assertOk()
+            ->assertJsonPath('data.stats.views', 1)
+            ->assertJsonPath('data.stats.clicks', 1);
+    }
 }

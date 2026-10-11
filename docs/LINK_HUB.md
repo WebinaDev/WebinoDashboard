@@ -26,8 +26,10 @@ ERP Site Builder نیز فیلد `alias_subdomain` را روی provision نگه 
 - در پروفایل‌های site type (ecommerce، cafe، coffee، resume، corporate) ماژول پیشفرض است.
 - برای سایت‌های قدیمی: از کنترل سایت ERP ماژول `link-hub` را فعال کنید یا `TenantActivationService::applySiteType` را دوباره اجرا کنید.
 
-## بلاک‌های MVP
+## بلاک‌های فاز ۱
 
 `link` · `contact` · `form` · `faq` · `event`
 
-پاسخ فرم‌ها در `/dashboard/link-hub/inbox` دیده می‌شود.
+- پاسخ فرم‌ها / هماهنگی‌ها: `/dashboard/link-hub/inbox`
+- آمار بازدید و کلیک (۳۰ روز): `/dashboard/link-hub`
+- رویدادها در این فاز فقط بلاک نمایشی/CTA هستند؛ رزرو تقویمی در فاز ۲ می‌آید.

@@ -21,6 +21,14 @@ export type LinkHubProfile = {
   blocks_count?: number
 }
 
+export type LinkHubStats = {
+  views: number
+  visitors: number
+  clicks: number
+  ctr: number
+  days: number
+}
+
 export type LinkHubOverview = {
   business: LinkHubProfile
   member_count: number
@@ -30,6 +38,7 @@ export type LinkHubOverview = {
   alias_hostname: string | null
   primary_domain: string | null
   dns_hint: string | null
+  stats?: LinkHubStats
 }
 
 export function emptyBlock(type: LinkHubBlockType, sort = 0): LinkHubBlock {

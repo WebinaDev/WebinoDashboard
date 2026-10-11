@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\LinkHubBlock;
 use App\Models\LinkHubProfile;
 use App\Services\LinkHub\LinkHubAliasService;
+use App\Services\LinkHub\LinkHubAnalytics;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class LinkHubProfileController extends Controller
 {
-    public function overview(Request $request, LinkHubAliasService $aliases): \Illuminate\Http\JsonResponse
+    public function overview(Request $request, LinkHubAnalytics $analytics): \Illuminate\Http\JsonResponse
     {
         $tid = (int) $request->user()->tenant_id;
         $tenant = $request->user()->tenant;
@@ -33,8 +34,9 @@ class LinkHubProfileController extends Controller
                 'alias_hostname' => $aliasHost,
                 'primary_domain' => $tenant->domain,
                 'dns_hint' => $aliasHost
-                    ? 'رکورد A/AAAA برای '.$aliasHost.' را به همان سرور سایت اشاره دهید.'
+                    ? 'یک رکورد A/AAAA برای '.$aliasHost.' به همان IP سرور سایت بسازید. بعد از ذخیره، SSL از طریق Caddy ساخته می‌شود.'
                     : null,
+                'stats' => $analytics->summary($tid, (int) $business->id, 30),
             ],
         ]);
     }

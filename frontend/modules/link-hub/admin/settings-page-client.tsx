@@ -48,9 +48,15 @@ export default function SettingsPageClient({ route: _route }: { route: ResolvedA
       })
       setMeta(res)
       setAlias(res.alias_subdomain)
-      toast.success(tCommon("saved"))
-      if (res.erp_synced === false && res.erp_message) {
-        toast.message(res.erp_message)
+      toast.success(t("saved"))
+      if (res.erp_synced === true) {
+        toast.success(t("erp_synced"))
+      } else if (res.erp_synced === false) {
+        toast.message(t("erp_sync_failed"), {
+          description: res.erp_message
+            ? t("erp_sync_message", { message: res.erp_message })
+            : undefined,
+        })
       }
     } catch {
       toast.error(t("save_error"))
@@ -59,17 +65,28 @@ export default function SettingsPageClient({ route: _route }: { route: ResolvedA
     }
   }
 
+  const hostPreview = meta?.alias_hostname || `${alias}.${meta?.primary_domain || "domain.com"}`
+
   return (
     <PageShell title={t("settings")} description={t("settings_desc")}>
       <div className="max-w-xl space-y-4 rounded-2xl border p-5">
         <div className="space-y-1">
           <Label>{t("alias_label")}</Label>
           <Input value={alias} onChange={(e) => setAlias(e.target.value)} dir="ltr" placeholder="contact" />
-          <p className="text-muted-foreground text-xs leading-6">
-            {t("alias_hint", { host: meta?.alias_hostname || `${alias}.${meta?.primary_domain || "domain.com"}` })}
+          <p className="text-muted-foreground text-xs leading-6" dir="ltr">
+            {t("alias_hint", { host: hostPreview })}
           </p>
         </div>
+        <p className="text-muted-foreground text-sm leading-7">
+          {t("alias_dns_hint", { host: hostPreview })}
+        </p>
         {meta?.dns_hint ? <p className="text-muted-foreground text-sm leading-6">{meta.dns_hint}</p> : null}
+        {typeof meta?.erp_synced === "boolean" ? (
+          <p className={`text-sm font-medium ${meta.erp_synced ? "text-emerald-700" : "text-amber-700"}`}>
+            {meta.erp_synced ? t("erp_synced") : t("erp_sync_failed")}
+            {meta.erp_message ? ` · ${meta.erp_message}` : null}
+          </p>
+        ) : null}
         <Button type="button" onClick={save} disabled={saving || !alias.trim()}>
           {saving ? tCommon("saving") : tCommon("save")}
         </Button>

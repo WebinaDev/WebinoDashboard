@@ -235,6 +235,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/link-hub/forms/{blockId}/submit', [PublicLinkHubController::class, 'submitForm'])
                 ->whereNumber('blockId')
                 ->middleware('throttle:public-writes');
+            Route::post('/link-hub/events/view', [PublicLinkHubController::class, 'recordView'])
+                ->middleware('throttle:public-writes');
+            Route::post('/link-hub/events/click', [PublicLinkHubController::class, 'recordClick'])
+                ->middleware('throttle:public-writes');
         });
 
         Route::middleware('public.module:academy')->group(function () {

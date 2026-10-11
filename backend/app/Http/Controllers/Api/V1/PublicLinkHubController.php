@@ -8,6 +8,7 @@ use App\Models\LinkHubBlock;
 use App\Models\LinkHubFormSubmission;
 use App\Models\LinkHubProfile;
 use App\Services\LinkHub\LinkHubAliasService;
+use App\Services\LinkHub\LinkHubAnalytics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -123,6 +124,69 @@ class PublicLinkHubController extends Controller
         ]);
 
         return response()->json(['data' => ['ok' => true, 'id' => $submission->id]], 201);
+    }
+
+    public function recordView(Request $request, LinkHubAnalytics $analytics): \Illuminate\Http\JsonResponse
+    {
+        $tenant = $this->publicTenant($request);
+        $profile = $this->resolvePublishedProfile($tenant->id, $request->input('slug'));
+        if (! $profile) {
+            return response()->json(['message' => 'صفحه یافت نشد.'], 404);
+        }
+
+        $ok = $analytics->recordView($request, $profile);
+
+        return response()->json(['data' => ['ok' => $ok]]);
+    }
+
+    public function recordClick(Request $request, LinkHubAnalytics $analytics): \Illuminate\Http\JsonResponse
+    {
+        $tenant = $this->publicTenant($request);
+        $data = $request->validate([
+            'slug' => 'nullable|string|max:64',
+            'block_id' => 'nullable|integer',
+            'target' => 'nullable|string|max:500',
+        ]);
+
+        $profile = $this->resolvePublishedProfile($tenant->id, $data['slug'] ?? null);
+        if (! $profile) {
+            return response()->json(['message' => 'صفحه یافت نشد.'], 404);
+        }
+
+        $blockId = isset($data['block_id']) ? (int) $data['block_id'] : null;
+        if ($blockId) {
+            $owned = LinkHubBlock::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('profile_id', $profile->id)
+                ->where('id', $blockId)
+                ->exists();
+            if (! $owned) {
+                $blockId = null;
+            }
+        }
+
+        $ok = $analytics->recordClick($request, $profile, $blockId, $data['target'] ?? null);
+
+        return response()->json(['data' => ['ok' => $ok]]);
+    }
+
+    protected function resolvePublishedProfile(int $tenantId, mixed $slug): ?LinkHubProfile
+    {
+        $slug = is_string($slug) ? trim($slug) : '';
+        $slug = $slug === '' ? null : strtolower($slug);
+
+        $query = LinkHubProfile::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_published', true);
+
+        if ($slug === null) {
+            return (clone $query)->where('kind', LinkHubProfile::KIND_BUSINESS)->first();
+        }
+
+        return (clone $query)
+            ->where('kind', LinkHubProfile::KIND_MEMBER)
+            ->where('slug', $slug)
+            ->first();
     }
 
     /** @return array<string, mixed> */

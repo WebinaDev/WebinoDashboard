@@ -162,12 +162,57 @@ export default function PageEditorClient({ route, mode, profileId }: Props) {
               {t("published")}
             </label>
           </section>
-          <section className="rounded-2xl border p-4">
-            <h2 className="mb-3 font-semibold">{t("blocks")}</h2>
-            <BlockEditor blocks={blocks} onChange={setBlocks} />
-          </section>
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <section className="rounded-2xl border p-4">
+              <h2 className="mb-3 font-semibold">{t("blocks")}</h2>
+              <BlockEditor blocks={blocks} onChange={setBlocks} />
+            </section>
+            <section className="rounded-2xl border p-4">
+              <h2 className="mb-3 font-semibold">{t("preview")}</h2>
+              <div className="mx-auto w-full max-w-[22rem] rounded-[1.75rem] border bg-slate-100 p-3 shadow-inner">
+                <div className="overflow-hidden rounded-[1.35rem] bg-white">
+                  <div className="flex flex-col items-center gap-2 px-4 py-5 text-center">
+                    {profile.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={profile.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover" />
+                    ) : (
+                      <div className="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold">
+                        {(profile.title || "?").slice(0, 1)}
+                      </div>
+                    )}
+                    <div className="font-bold">{profile.title || t("untitled")}</div>
+                    {profile.bio ? (
+                      <p className="text-muted-foreground line-clamp-3 text-xs leading-5">{profile.bio}</p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2 px-3 pb-4">
+                    {blocks
+                      .filter((b) => b.is_visible)
+                      .map((b, i) => (
+                        <div
+                          key={b.id ?? i}
+                          className="rounded-xl border px-3 py-2.5 text-center text-sm font-medium"
+                        >
+                          {previewLabel(b)}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       )}
     </PageShell>
   )
+}
+
+function previewLabel(block: LinkHubBlock): string {
+  const p = block.payload
+  if (block.type === "link") return String(p.label || "لینک")
+  if (block.type === "contact") return "تماس"
+  if (block.type === "form") return String(p.title || "فرم")
+  if (block.type === "faq") return String(p.title || "سوالات متداول")
+  if (block.type === "event") return String(p.title || "رویداد")
+  return block.type
 }

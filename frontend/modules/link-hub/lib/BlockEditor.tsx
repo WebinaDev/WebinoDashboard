@@ -126,6 +126,7 @@ function BlockFields({
   }
 
   if (block.type === "contact") {
+    const socials = Array.isArray(p.socials) ? (p.socials as Array<{ label?: string; url?: string }>) : []
     return (
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
@@ -144,13 +145,63 @@ function BlockFields({
             dir="ltr"
           />
         </div>
-        <div className="space-y-1 sm:col-span-2">
-          <Label>شبکه‌ها (هر خط: عنوان|آدرس)</Label>
-          <textarea
-            className="border-input bg-background min-h-24 w-full rounded-md border px-3 py-2 text-sm"
-            value={socialsToText(p.socials)}
-            onChange={(e) => onPayload({ ...p, socials: textToSocials(e.target.value) })}
-          />
+        <div className="space-y-2 sm:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label>شبکه‌های اجتماعی</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                onPayload({
+                  ...p,
+                  socials: [...socials, { label: "اینستاگرام", url: "https://instagram.com/" }],
+                })
+              }
+            >
+              + شبکه
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {socials.map((row, i) => (
+              <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
+                <Input
+                  placeholder="عنوان (مثلاً تلگرام)"
+                  value={row.label ?? ""}
+                  onChange={(e) => {
+                    const next = socials.map((s, idx) =>
+                      idx === i ? { ...s, label: e.target.value } : s
+                    )
+                    onPayload({ ...p, socials: next })
+                  }}
+                />
+                <Input
+                  placeholder="https://"
+                  value={row.url ?? ""}
+                  dir="ltr"
+                  onChange={(e) => {
+                    const next = socials.map((s, idx) =>
+                      idx === i ? { ...s, url: e.target.value } : s
+                    )
+                    onPayload({ ...p, socials: next })
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    onPayload({ ...p, socials: socials.filter((_, idx) => idx !== i) })
+                  }
+                >
+                  حذف
+                </Button>
+              </div>
+            ))}
+          </div>
+          <p className="text-muted-foreground text-xs leading-5">
+            برای آیکن رسمی، عنوان را مثل اینستاگرام، تلگرام، واتساپ، لینکدین، بله، ایتا یا روبیکا بگذارید.
+          </p>
         </div>
       </div>
     )
@@ -223,29 +274,6 @@ function BlockFields({
       </div>
     </div>
   )
-}
-
-function socialsToText(value: unknown): string {
-  if (!Array.isArray(value)) return ""
-  return value
-    .map((item) => {
-      if (!item || typeof item !== "object") return ""
-      const row = item as { label?: string; url?: string }
-      return `${row.label ?? ""}|${row.url ?? ""}`
-    })
-    .filter(Boolean)
-    .join("\n")
-}
-
-function textToSocials(text: string): Array<{ label: string; url: string }> {
-  return text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [label, url] = line.split("|").map((s) => s.trim())
-      return { label: label || url || "", url: url || label || "" }
-    })
 }
 
 function faqToText(value: unknown): string {

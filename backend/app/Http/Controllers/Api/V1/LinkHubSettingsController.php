@@ -25,7 +25,7 @@ class LinkHubSettingsController extends Controller
                 'domain_aliases' => $tenant->normalizedDomainAliases(),
                 'primary_domain' => $tenant->domain,
                 'dns_hint' => $host
-                    ? 'رکورد A/AAAA برای '.$host.' را به همان سرور سایت اشاره دهید.'
+                    ? 'یک رکورد A/AAAA برای '.$host.' به همان IP سرور سایت بسازید. بعد از ذخیره، SSL از طریق Caddy ساخته می‌شود.'
                     : null,
             ]),
         ]);
@@ -68,7 +68,7 @@ class LinkHubSettingsController extends Controller
                 'erp_synced' => $aliasResult['erp_synced'] ?? null,
                 'erp_message' => $aliasResult['erp_message'] ?? null,
                 'dns_hint' => ($h = LinkHubAliasService::hostnameFor($tenant))
-                    ? 'رکورد A/AAAA برای '.$h.' را به همان سرور سایت اشاره دهید.'
+                    ? 'یک رکورد A/AAAA برای '.$h.' به همان IP سرور سایت بسازید. بعد از ذخیره، SSL از طریق Caddy ساخته می‌شود.'
                     : null,
             ]),
         ]);
