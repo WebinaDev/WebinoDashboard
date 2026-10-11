@@ -177,8 +177,8 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
     foreach (['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day) {
         $days[] = [
             'day' => $day,
-            'open' => $day === 'friday' ? '10:00' : '08:00',
-            'close' => in_array($day, ['wednesday', 'thursday'], true) ? '23:59' : '23:30',
+            'open' => '09:00',
+            'close' => '23:00',
             'closed' => false,
         ];
     }
@@ -191,14 +191,15 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
     $settings->put($tid, 'cafe', 'venue', array_merge(
         $settings->get($tid, 'cafe', 'venue', ModuleSettingsService::cafeVenueDefaults()),
         [
-            'tagline_fa' => 'قهوه، ماکتل و شیک‌های آبی — منوی رسمی بلو کافه',
-            'tagline_en' => 'Coffee, mocktails and shakes — the official Blue Cafe menu',
-            'about_fa' => "Blue Cafe جایی برای نوشیدنی‌های گرم و سرد، دمنوش، ماکتل و شیک‌های مخصوص است.\nمنوی دیجیتال مطابق منوی چاپی کافه آماده شده تا سفارش سر میز سریع و دقیق باشد.",
-            'about_en' => 'Blue Cafe serves hot and cold drinks, herbal teas, mocktails and signature shakes.',
-            'phone' => '021-88776655',
-            'instagram' => '@bluecafe',
-            'address_fa' => 'تهران',
-            'address_en' => 'Tehran',
+            // From Instagram @cafebluedez (Cafe blue|کافه آبی)
+            'tagline_fa' => 'یک روز با آرامش برای شما',
+            'tagline_en' => 'A calm day for you',
+            'about_fa' => "کافه آبی (@cafebluedez)\nیک روز با آرامش برای شما.\nساعت کاری: تمام هفته ۹ صبح تا ۱۱ شب.\nآدرس: بلوار شریعتی، کوچه ساسان، جنب پاساژ امین.",
+            'about_en' => "Cafe Blue (@cafebluedez)\nOpen every day 9:00–23:00.\nAddress: Shariati Blvd, Sasan Alley, next to Amin Passage.",
+            'instagram' => '@cafebluedez',
+            'address_fa' => 'بلوار شریعتی، کوچه ساسان، جنب پاساژ امین',
+            'address_en' => 'Shariati Blvd, Sasan Alley, next to Amin Passage',
+            'map_url' => 'https://www.google.com/maps/search/?api=1&query='.rawurlencode('بلوار شریعتی کوچه ساسان پاساژ امین'),
             'mini_site_enabled' => true,
         ],
     ));
@@ -309,11 +310,15 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
         }
     }
 
-    $tenant->name = 'Blue Cafe';
+    $tenant->name = 'کافه آبی';
+    $tenant->store_display_name = 'کافه آبی';
     $tenant->active_theme_slug = 'cafe-signature';
     $tenant->site_type_slug = 'cafe';
     $branding = ThemeCatalog::normalizeBranding($tenant->branding);
     $branding['accent'] = 'blue';
+    $branding['logo_url'] = $branding['logo_url'] ?: '/brand/bluecafe/logo.png';
+    $branding['logo_dark_url'] = $branding['logo_dark_url'] ?: '/brand/bluecafe/logo.png';
+    $branding['favicon_url'] = $branding['favicon_url'] ?: '/brand/bluecafe/favicon.png';
     $branding['palette'] = array_merge($branding['palette'] ?? [], [
         'primary' => ACCENT,
         'secondary' => '#0d3d7a',
