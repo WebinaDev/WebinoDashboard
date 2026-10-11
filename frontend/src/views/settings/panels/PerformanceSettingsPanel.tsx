@@ -23,8 +23,8 @@ export function PerformanceSettingsPanel() {
   const [purgeNote, setPurgeNote] = useState<string | null>(null)
 
   useEffect(() => {
-    api<{ data: Perf }>("/api/v1/performance/settings")
-      .then((res) => setDraft(res.data))
+    api<Perf>("/api/v1/performance/settings")
+      .then((res) => setDraft(res))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "error"))
   }, [])
 
@@ -33,8 +33,8 @@ export function PerformanceSettingsPanel() {
     setPending(true)
     setError(null)
     try {
-      const res = await api<{ data: Perf }>("/api/v1/performance/settings", { method: "PUT", json: draft })
-      setDraft(res.data)
+      const res = await api<Perf>("/api/v1/performance/settings", { method: "PUT", json: draft })
+      setDraft(res)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e: unknown) {
@@ -47,11 +47,11 @@ export function PerformanceSettingsPanel() {
   async function purge() {
     setPending(true)
     try {
-      const res = await api<{ data: { cleared: string[] } }>("/api/v1/performance/purge", {
+      const res = await api<{ cleared: string[] }>("/api/v1/performance/purge", {
         method: "POST",
         json: { reason: "manual" },
       })
-      setPurgeNote(t("purged", { keys: (res.data.cleared ?? []).join(", ") }))
+      setPurgeNote(t("purged", { keys: (res.cleared ?? []).join(", ") }))
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "error")
     } finally {
@@ -59,7 +59,9 @@ export function PerformanceSettingsPanel() {
     }
   }
 
-  if (!draft) return <p className="text-muted-foreground text-sm">{t("loading")}</p>
+  if (!draft) {
+    return <p className="text-muted-foreground text-sm">{error ? error : t("loading")}</p>
+  }
 
   const switches = [
     "webp_enabled",

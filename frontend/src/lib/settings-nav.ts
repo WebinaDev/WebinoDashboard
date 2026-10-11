@@ -16,6 +16,7 @@ export type SettingsUnitId =
   | "shop-marketplace"
   | "shop-pricing"
   | "shop-shipping"
+  | "shop-storefront"
   | "shop-payments"
   | "shop-invoices"
   | "shop-advanced"
@@ -398,6 +399,32 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
     ],
   },
   {
+    id: "shop-storefront",
+    area: "shop",
+    titleFa: "ویترین و قالب",
+    titleEn: "Storefront & theme",
+    sections: [
+      {
+        id: "storefront-appearance",
+        titleFa: "تنظیمات قالب",
+        titleEn: "Classic theme settings",
+        route: "/dashboard/settings/shop/storefront-appearance",
+      },
+      {
+        id: "theme-optimizer",
+        titleFa: "بهینه‌ساز و عملکرد",
+        titleEn: "Performance & optimizer",
+        route: "/dashboard/settings/shop/theme-optimizer",
+      },
+      {
+        id: "product-notifications",
+        titleFa: "اعلان محصولات",
+        titleEn: "Product notifications",
+        route: "/dashboard/settings/shop/product-notifications",
+      },
+    ],
+  },
+  {
     id: "shop-payments",
     area: "shop",
     titleFa: "درگاه پرداخت",
@@ -414,24 +441,6 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "درگاه‌ها",
         titleEn: "Gateways",
         route: "/dashboard/settings/shop/payments",
-      },
-      {
-        id: "storefront-appearance",
-        titleFa: "تنظیمات قالب",
-        titleEn: "Classic theme settings",
-        route: "/dashboard/settings/shop/storefront-appearance",
-      },
-      {
-        id: "product-notifications",
-        titleFa: "اعلان محصولات",
-        titleEn: "Product notifications",
-        route: "/dashboard/settings/shop/product-notifications",
-      },
-      {
-        id: "theme-optimizer",
-        titleFa: "بهینه‌ساز و عملکرد",
-        titleEn: "Performance & optimizer",
-        route: "/dashboard/settings/shop/theme-optimizer",
       },
       {
         id: "zarinpal",

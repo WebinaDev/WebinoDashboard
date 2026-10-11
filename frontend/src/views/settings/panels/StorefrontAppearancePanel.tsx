@@ -179,8 +179,8 @@ export function StorefrontAppearancePanel() {
   const [tab, setTab] = useState("colors")
 
   useEffect(() => {
-    api<{ data: Appearance }>("/api/v1/shop/storefront-appearance")
-      .then((res) => setDraft(res.data))
+    api<Appearance>("/api/v1/shop/storefront-appearance")
+      .then((res) => setDraft(res))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "error"))
   }, [])
 
@@ -188,11 +188,11 @@ export function StorefrontAppearancePanel() {
     if (!draft) return
     setPending(true)
     try {
-      const res = await api<{ data: Appearance }>("/api/v1/shop/storefront-appearance", {
+      const res = await api<Appearance>("/api/v1/shop/storefront-appearance", {
         method: "PUT",
         json: draft,
       })
-      setDraft(res.data)
+      setDraft(res)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e: unknown) {
@@ -202,7 +202,13 @@ export function StorefrontAppearancePanel() {
     }
   }
 
-  if (!draft) return <p className="text-muted-foreground text-sm">{t("loading")}</p>
+  if (!draft) {
+    return (
+      <div className="space-y-2">
+        <p className="text-muted-foreground text-sm">{error ? error : t("loading")}</p>
+      </div>
+    )
+  }
 
   const typography = asObj(draft.typography)
   const general = asObj(draft.general)

@@ -36,12 +36,13 @@ export function SeoSettingsPanel() {
 
   useEffect(() => {
     void Promise.all([
-      api<{ data: SeoSettings }>("/api/v1/seo/settings"),
-      api<{ data: RedirectRow[] }>("/api/v1/seo/redirects"),
+      api<SeoSettings>("/api/v1/seo/settings"),
+      api<RedirectRow[] | { data: RedirectRow[] }>("/api/v1/seo/redirects"),
     ])
       .then(([settings, list]) => {
-        setDraft(settings.data)
-        setRedirects(list.data ?? [])
+        setDraft(settings)
+        const rows = Array.isArray(list) ? list : Array.isArray(list?.data) ? list.data : []
+        setRedirects(rows)
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "error"))
   }, [])
@@ -51,8 +52,8 @@ export function SeoSettingsPanel() {
     setPending(true)
     setError(null)
     try {
-      const res = await api<{ data: SeoSettings }>("/api/v1/seo/settings", { method: "POST", json: draft })
-      setDraft(res.data)
+      const res = await api<SeoSettings>("/api/v1/seo/settings", { method: "POST", json: draft })
+      setDraft(res)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e: unknown) {
@@ -65,11 +66,11 @@ export function SeoSettingsPanel() {
   async function addRedirect() {
     setPending(true)
     try {
-      const res = await api<{ data: RedirectRow }>("/api/v1/seo/redirects", {
+      const res = await api<RedirectRow>("/api/v1/seo/redirects", {
         method: "POST",
         json: { from_path: fromPath, to_path: toPath, status_code: Number(statusCode), enabled: true },
       })
-      setRedirects((rows) => [res.data, ...rows])
+      setRedirects((rows) => [res, ...rows])
       setFromPath("")
       setToPath("")
     } catch (e: unknown) {
@@ -84,7 +85,9 @@ export function SeoSettingsPanel() {
     setRedirects((rows) => rows.filter((r) => r.id !== id))
   }
 
-  if (!draft) return <p className="text-muted-foreground text-sm">{t("loading")}</p>
+  if (!draft) {
+    return <p className="text-muted-foreground text-sm">{error ? error : t("loading")}</p>
+  }
 
   const boolKeys = [
     "noindex_search",

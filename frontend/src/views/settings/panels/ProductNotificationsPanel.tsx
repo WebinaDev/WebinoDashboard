@@ -21,8 +21,8 @@ export function ProductNotificationsPanel() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api<{ data: Notif }>("/api/v1/shop/product-notifications")
-      .then((res) => setDraft(res.data))
+    api<Notif>("/api/v1/shop/product-notifications")
+      .then((res) => setDraft(res))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "error"))
   }, [])
 
@@ -30,8 +30,8 @@ export function ProductNotificationsPanel() {
     if (!draft) return
     setPending(true)
     try {
-      const res = await api<{ data: Notif }>("/api/v1/shop/product-notifications", { method: "PUT", json: draft })
-      setDraft(res.data)
+      const res = await api<Notif>("/api/v1/shop/product-notifications", { method: "PUT", json: draft })
+      setDraft(res)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e: unknown) {
@@ -41,7 +41,9 @@ export function ProductNotificationsPanel() {
     }
   }
 
-  if (!draft) return <p className="text-muted-foreground text-sm">{t("loading")}</p>
+  if (!draft) {
+    return <p className="text-muted-foreground text-sm">{error ? error : t("loading")}</p>
+  }
 
   return (
     <div className="space-y-4">
