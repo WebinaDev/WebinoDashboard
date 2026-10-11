@@ -1,12 +1,23 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 
-import { useFeaturedProducts } from "@/builder/storefront/use-catalog"
+import { useCatalog, useFeaturedProducts } from "@/builder/storefront/use-catalog"
+import type { ShopProduct } from "@/builder/catalog"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
-import { IconChevronLeft, IconClock, IconMail, IconPhone, IconPin } from "./icons"
+import {
+  IconBadge,
+  IconCard,
+  IconChevronLeft,
+  IconClock,
+  IconMail,
+  IconPhone,
+  IconPin,
+  IconShield,
+  IconTruck,
+} from "./icons"
 import { ClassicAmount } from "./parts"
 
 const FALLBACK_GUIDE = {
@@ -20,6 +31,13 @@ const FALLBACK_GUIDE = {
     { label: "شرایط و قوانین", href: "/pages/terms" },
   ],
 }
+
+const DEFAULT_SERVICES = [
+  { title: "ارسال سریع", text: "تحویل اکسپرس", icon: "truck" },
+  { title: "پرداخت امن", text: "امکان پرداخت اقساطی", icon: "card" },
+  { title: "ضمانت بازگشت", text: "۷ روز ضمانت بازگشت کالا", icon: "shield" },
+  { title: "اصالت کالا", text: "تضمین اصالت و اورجینال بودن", icon: "badge" },
+]
 
 const SOCIAL_DEFS = [
   { key: "social_instagram", label: "اینستاگرام", icon: "/brand/connect/instagram.svg" },
@@ -54,6 +72,93 @@ function parseLinkColumns(
   })
 }
 
+function serviceIcon(icon: string): ReactNode {
+  const key = icon.trim().toLowerCase()
+  if (key === "truck") return <IconTruck size={26} />
+  if (key === "card") return <IconCard size={26} />
+  if (key === "shield") return <IconShield size={26} />
+  if (key === "badge") return <IconBadge size={26} />
+  if (/^https?:\/\//i.test(icon) || icon.startsWith("/")) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={icon} alt="" width={26} height={26} />
+    )
+  }
+  return <IconBadge size={26} />
+}
+
+function ProductSlideList({
+  title,
+  products,
+  pageSize = 4,
+}: {
+  title: string
+  products: ShopProduct[]
+  pageSize?: number
+}) {
+  const [slide, setSlide] = useState(0)
+  const maxSlide = Math.max(0, Math.ceil(products.length / pageSize) - 1)
+  const visible = useMemo(() => {
+    const start = slide * pageSize
+    return products.slice(start, start + pageSize)
+  }, [products, slide, pageSize])
+
+  if (!products.length) return null
+
+  return (
+    <div className="sfc-footer__bestsellers">
+      <div className="sfc-footer__bestsellers-head">
+        <button
+          type="button"
+          className="sfc-footer__nav-btn"
+          aria-label="قبلی"
+          disabled={slide <= 0}
+          onClick={() => setSlide((s) => Math.max(0, s - 1))}
+        >
+          <IconChevronLeft size={14} />
+        </button>
+        <h3 className="sfc-footer__title sfc-footer__title--center">{title}</h3>
+        <button
+          type="button"
+          className="sfc-footer__nav-btn"
+          aria-label="بعدی"
+          disabled={slide >= maxSlide}
+          onClick={() => setSlide((s) => Math.min(maxSlide, s + 1))}
+        >
+          <span className="sfc-footer__nav-flip">
+            <IconChevronLeft size={14} />
+          </span>
+        </button>
+      </div>
+      <div className="sfc-footer__bestsellers-list">
+        {visible.map((p) => (
+          <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-footer__best-item">
+            <span className="sfc-footer__best-name">{p.name}</span>
+            <ClassicAmount value={p.price} className="sfc-footer__best-price" />
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function useRecentlyViewedProducts(): ShopProduct[] {
+  const catalog = useCatalog(48)
+  const [slugs, setSlugs] = useState<string[]>([])
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("wb_recently_viewed")
+      const parsed = raw ? (JSON.parse(raw) as unknown) : []
+      setSlugs(Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string") : [])
+    } catch {
+      setSlugs([])
+    }
+  }, [])
+  return slugs
+    .map((slug) => catalog.products.find((p) => p.slug === slug))
+    .filter((p): p is ShopProduct => Boolean(p))
+}
+
 export function ClassicFooter({
   siteName,
   phone,
@@ -71,15 +176,9 @@ export function ClassicFooter({
   const cfg = theme.footer ?? {}
   const limit = Math.max(1, Math.min(20, Number(cfg.bestsellers_limit ?? 6) || 6))
   const products = useFeaturedProducts(limit)
-  const [slide, setSlide] = useState(0)
-  const pageSize = 4
-  const maxSlide = Math.max(0, Math.ceil(products.length / pageSize) - 1)
-  const visibleProducts = useMemo(() => {
-    const start = slide * pageSize
-    return products.slice(start, start + pageSize)
-  }, [products, slide])
+  const recent = useRecentlyViewedProducts()
 
-  const guideColumns = parseLinkColumns(cfg.footer_links)
+  const linkColumns = parseLinkColumns(cfg.footer_links)
   const brandsTitle = String(cfg.brands_title || "برندهای مطرح")
   const brandLinks = Array.isArray(cfg.brand_links)
     ? cfg.brand_links.map((l) => ({
@@ -88,7 +187,18 @@ export function ClassicFooter({
       }))
     : []
 
+  const services =
+    Array.isArray(cfg.service_badges) && cfg.service_badges.length
+      ? cfg.service_badges.map((s) => ({
+          title: String(s.title ?? ""),
+          text: String(s.text ?? ""),
+          icon: String(s.icon ?? s.image ?? "badge"),
+        }))
+      : DEFAULT_SERVICES
+
   const bestsellersTitle = String(cfg.bestsellers_title || "پرفروش‌ترین محصولات")
+  const recentTitle = String(cfg.recently_viewed_title || "آخرین محصولاتی که بازدید کردید")
+  const showRecent = cfg.show_recently_viewed !== false
   const trustTitle = String(cfg.trust_title || "چگونه به ما اعتماد کنید")
   const trustText = String(cfg.trust_text || "")
   const socialTitle = String(cfg.social_title || "ما در شبکه‌های اجتماعی")
@@ -109,13 +219,28 @@ export function ClassicFooter({
   })).filter((s) => s.href)
 
   const badges = Array.isArray(cfg.payment_methods) ? cfg.payment_methods : []
+  const hasNamad = Boolean(cfg.enamad_html || cfg.samandehi_html || cfg.ecommerce_badge_html)
 
   return (
     <footer className="sfc-footer">
       <div className="sfc-container">
+        {services.length ? (
+          <div className="sfc-footer__services">
+            {services.map((s, i) => (
+              <div key={`${s.title}-${i}`} className="sfc-footer__service">
+                <span className="sfc-footer__service-icon">{serviceIcon(s.icon)}</span>
+                <div>
+                  <strong>{s.title}</strong>
+                  {s.text ? <span>{s.text}</span> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         <div className="sfc-footer__board">
-          {guideColumns.map((col) => (
-            <nav key={col.title || "guide"} className="sfc-footer__col" aria-label={col.title}>
+          {linkColumns.map((col, idx) => (
+            <nav key={`${col.title}-${idx}`} className="sfc-footer__col" aria-label={col.title}>
               <h3 className="sfc-footer__title">{col.title || FALLBACK_GUIDE.title}</h3>
               <div className="sfc-footer__link-grid">
                 {col.links.map((link) => (
@@ -140,39 +265,9 @@ export function ClassicFooter({
             </nav>
           ) : null}
 
-          <div className="sfc-footer__bestsellers">
-            <div className="sfc-footer__bestsellers-head">
-              <button
-                type="button"
-                className="sfc-footer__nav-btn"
-                aria-label="قبلی"
-                disabled={slide <= 0}
-                onClick={() => setSlide((s) => Math.max(0, s - 1))}
-              >
-                <IconChevronLeft size={14} />
-              </button>
-              <h3 className="sfc-footer__title sfc-footer__title--center">{bestsellersTitle}</h3>
-              <button
-                type="button"
-                className="sfc-footer__nav-btn"
-                aria-label="بعدی"
-                disabled={slide >= maxSlide}
-                onClick={() => setSlide((s) => Math.min(maxSlide, s + 1))}
-              >
-                <span className="sfc-footer__nav-flip">
-                  <IconChevronLeft size={14} />
-                </span>
-              </button>
-            </div>
-            <div className="sfc-footer__bestsellers-list">
-              {visibleProducts.map((p) => (
-                <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-footer__best-item">
-                  <span className="sfc-footer__best-name">{p.name}</span>
-                  <ClassicAmount value={p.price} className="sfc-footer__best-price" />
-                </Link>
-              ))}
-            </div>
-          </div>
+          <ProductSlideList title={bestsellersTitle} products={products} />
+
+          {showRecent ? <ProductSlideList title={recentTitle} products={recent} /> : null}
 
           <div className="sfc-footer__trust-social">
             <div className="sfc-footer__trust">
@@ -186,9 +281,7 @@ export function ClassicFooter({
               <div className="sfc-footer__namad" aria-label="نمادهای اعتماد">
                 {cfg.enamad_html ? (
                   <div className="sfc-footer__namad-item" dangerouslySetInnerHTML={{ __html: cfg.enamad_html }} />
-                ) : (
-                  <span className="sfc-footer__namad-item">نماد اعتماد</span>
-                )}
+                ) : null}
                 {cfg.samandehi_html ? (
                   <div className="sfc-footer__namad-item" dangerouslySetInnerHTML={{ __html: cfg.samandehi_html }} />
                 ) : null}
@@ -198,6 +291,7 @@ export function ClassicFooter({
                     dangerouslySetInnerHTML={{ __html: cfg.ecommerce_badge_html }}
                   />
                 ) : null}
+                {!hasNamad ? <span className="sfc-footer__namad-item">نماد اعتماد</span> : null}
               </div>
             </div>
 
@@ -217,10 +311,11 @@ export function ClassicFooter({
                     >
                       {s.icon ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.icon} alt="" width={22} height={22} />
+                        <img src={s.icon} alt="" width={20} height={20} />
                       ) : (
-                        <span>{s.label.slice(0, 1)}</span>
+                        <i aria-hidden="true">{s.label.slice(0, 1)}</i>
                       )}
+                      <span>{s.label}</span>
                     </a>
                   ))}
                 </div>
@@ -323,12 +418,7 @@ export function ClassicFooter({
             </span>
             {copyrightYears ? <span className="sfc-footer__copy-years">{copyrightYears}</span> : null}
           </div>
-          <a
-            href={WEBINA_CREDIT_HREF}
-            target="_blank"
-            rel="noreferrer"
-            className="sfc-footer__made"
-          >
+          <a href={WEBINA_CREDIT_HREF} target="_blank" rel="noreferrer" className="sfc-footer__made">
             <span className="sfc-footer__made-mark" aria-hidden="true">
               W
             </span>

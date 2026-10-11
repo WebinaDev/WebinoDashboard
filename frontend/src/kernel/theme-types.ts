@@ -71,6 +71,10 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     ajax_search?: boolean
     ajax_search_mobile?: boolean
     search_placeholder?: string
+    /** Popular keyword chips shown when search is focused and empty */
+    popular_search_keywords?: (string | { label?: string; title?: string })[]
+    search_banner_image?: string
+    search_banner_link?: string
     voice_search?: boolean
     quick_voice_search?: boolean
     /** Path prefixes where voice mic is hidden (newline/comma list or string[]). */
@@ -108,6 +112,10 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     brand_links?: ClassicThemeLink[]
     bestsellers_title?: string
     bestsellers_limit?: number
+    show_recently_viewed?: boolean
+    recently_viewed_title?: string
+    /** Service row above footer board: title, text, icon key or image URL */
+    service_badges?: ClassicThemeLink[]
     copyright_years?: string
     /** @deprecated free-text copyright removed; kept for legacy merge only */
     copyright?: string

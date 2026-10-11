@@ -213,6 +213,8 @@ export function StorefrontAppearancePanel() {
   const bottomMenu = asList(general.mobile_bottom_menu)
   const footerLinks = asList(footer.footer_links)
   const brandLinks = asList(footer.brand_links)
+  const serviceBadges = asList(footer.service_badges)
+  const popularKeywords = asList(header.popular_search_keywords)
   const features = asList(commerce.features)
   const payments = asList(footer.payment_methods)
 
@@ -392,6 +394,43 @@ export function StorefrontAppearancePanel() {
                 value={String(header.search_placeholder ?? "")}
                 onChange={(v) => setSection("header", { search_placeholder: v })}
               />
+              <RepeaterShell
+                title={t("popular_search_keywords")}
+                items={popularKeywords}
+                onAdd={() =>
+                  setSection("header", {
+                    popular_search_keywords: [...popularKeywords, { label: "" }],
+                  })
+                }
+                onRemove={(index) =>
+                  setSection("header", {
+                    popular_search_keywords: popularKeywords.filter((_, i) => i !== index),
+                  })
+                }
+              >
+                {(item, index) => (
+                  <FieldText
+                    label={t("popular_keyword")}
+                    value={String(item.label ?? item.title ?? "")}
+                    onChange={(v) => {
+                      const next = popularKeywords.map((row, i) => (i === index ? { ...row, label: v } : row))
+                      setSection("header", { popular_search_keywords: next })
+                    }}
+                  />
+                )}
+              </RepeaterShell>
+              <FieldText
+                label={t("search_banner_image")}
+                value={String(header.search_banner_image ?? "")}
+                dir="ltr"
+                onChange={(v) => setSection("header", { search_banner_image: v })}
+              />
+              <FieldText
+                label={t("search_banner_link")}
+                value={String(header.search_banner_link ?? "")}
+                dir="ltr"
+                onChange={(v) => setSection("header", { search_banner_link: v })}
+              />
               <FieldSwitch
                 label={t("voice_search")}
                 checked={Boolean(header.voice_search)}
@@ -534,6 +573,49 @@ export function StorefrontAppearancePanel() {
               />
 
               <RepeaterShell
+                title={t("service_badges")}
+                items={serviceBadges}
+                onAdd={() =>
+                  setSection("footer", {
+                    service_badges: [...serviceBadges, { title: "", text: "", icon: "truck" }],
+                  })
+                }
+                onRemove={(index) =>
+                  setSection("footer", { service_badges: serviceBadges.filter((_, i) => i !== index) })
+                }
+              >
+                {(item, index) => (
+                  <>
+                    <FieldText
+                      label={t("item_label")}
+                      value={String(item.title ?? "")}
+                      onChange={(v) => {
+                        const next = serviceBadges.map((row, i) => (i === index ? { ...row, title: v } : row))
+                        setSection("footer", { service_badges: next })
+                      }}
+                    />
+                    <FieldText
+                      label={t("service_badge_text")}
+                      value={String(item.text ?? "")}
+                      onChange={(v) => {
+                        const next = serviceBadges.map((row, i) => (i === index ? { ...row, text: v } : row))
+                        setSection("footer", { service_badges: next })
+                      }}
+                    />
+                    <FieldText
+                      label={t("service_badge_icon")}
+                      value={String(item.icon ?? item.image ?? "")}
+                      dir="ltr"
+                      onChange={(v) => {
+                        const next = serviceBadges.map((row, i) => (i === index ? { ...row, icon: v } : row))
+                        setSection("footer", { service_badges: next })
+                      }}
+                    />
+                  </>
+                )}
+              </RepeaterShell>
+
+              <RepeaterShell
                 title={t("footer_links")}
                 items={footerLinks}
                 onAdd={() =>
@@ -609,6 +691,16 @@ export function StorefrontAppearancePanel() {
                 label={t("bestsellers_limit")}
                 value={Number(footer.bestsellers_limit ?? 6)}
                 onChange={(v) => setSection("footer", { bestsellers_limit: Math.max(1, Math.min(20, v || 6)) })}
+              />
+              <FieldSwitch
+                label={t("show_recently_viewed")}
+                checked={footer.show_recently_viewed !== false}
+                onChange={(v) => setSection("footer", { show_recently_viewed: v })}
+              />
+              <FieldText
+                label={t("recently_viewed_title")}
+                value={String(footer.recently_viewed_title ?? "")}
+                onChange={(v) => setSection("footer", { recently_viewed_title: v })}
               />
 
               <FieldText
