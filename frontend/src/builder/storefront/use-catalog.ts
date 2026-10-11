@@ -32,6 +32,38 @@ function apiSort(sort: string): string {
   return "newest"
 }
 
+/** Featured / popular products for chrome (footer bestsellers), ignores page URL filters. */
+export function useFeaturedProducts(limit: number): ShopProduct[] {
+  const [products, setProducts] = useState<ShopProduct[]>(SAMPLE_PRODUCTS.slice(0, limit))
+
+  useEffect(() => {
+    let cancel = false
+    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const query = new URLSearchParams({
+      per_page: String(Math.max(limit, 4)),
+      page: "1",
+      sort: "popular",
+    })
+    fetch(`${base}/api/v1/public/catalog?${query.toString()}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { data?: { items?: unknown[] } } | null) => {
+        if (cancel || !json?.data) return
+        const items = Array.isArray(json.data.items) ? json.data.items : []
+        const mapped = items
+          .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+          .map((item, index) => mapApiProduct(item, index))
+          .slice(0, limit)
+        if (mapped.length) setProducts(mapped)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancel = true
+    }
+  }, [limit])
+
+  return products
+}
+
 export function useCatalog(limit: number): CatalogState {
   const params = useSearchParams()
   const q = params.get("q") ?? ""

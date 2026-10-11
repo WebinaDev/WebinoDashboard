@@ -92,18 +92,31 @@ final class StorefrontAppearanceService
             ],
             'footer' => [
                 'about' => '',
+                'footer_logo' => '',
+                'trust_title' => 'چگونه به ما اعتماد کنید',
                 'trust_text' => '',
                 'enamad_html' => '',
                 'samandehi_html' => '',
                 'ecommerce_badge_html' => '',
                 'footer_links' => [],
+                'brands_title' => 'برندهای مطرح',
+                'brand_links' => [],
+                'bestsellers_title' => 'پرفروش‌ترین محصولات',
+                'bestsellers_limit' => 6,
+                'copyright_years' => '',
                 'copyright' => '',
                 'copyright_sub' => '',
+                'contact_title' => 'مرکز تماس مشتریان',
+                'contact_tagline_1' => 'به صورت شبانه‌روزی پشتیبان شما هستیم',
+                'contact_tagline_2' => 'رضایت مشتری برای ما در اولویت است',
                 'support_phone' => '',
                 'support_email_title' => 'ایمیل پشتیبانی',
                 'support_email' => '',
+                'support_hours' => '',
                 'address_title' => 'آدرس',
                 'address' => '',
+                'social_title' => 'ما در شبکه‌های اجتماعی',
+                'social_instagram' => '',
                 'social_telegram' => '',
                 'social_twitter' => '',
                 'social_whatsapp' => '',
@@ -115,9 +128,9 @@ final class StorefrontAppearanceService
                 'social_eitaa' => '',
                 'payment_methods' => [],
                 'show_developer_credit' => true,
-                'developer_title' => 'طراحی و توسعه',
-                'developer_name' => 'وبینو',
-                'developer_link' => '',
+                'developer_title' => 'طراحی و توسعه توسط',
+                'developer_name' => 'توسعه کسب و کار وبینا',
+                'developer_link' => 'https://webina.dev',
                 'developer_logo' => '',
             ],
             'commerce' => [
@@ -322,7 +335,7 @@ final class StorefrontAppearanceService
 
     private function maxLen(string $key): int
     {
-        if (str_contains($key, 'html') || str_contains($key, 'text') || str_contains($key, 'about') || str_contains($key, 'copyright')) {
+        if (str_contains($key, 'html') || str_contains($key, 'text') || str_contains($key, 'about') || str_contains($key, 'copyright') || str_contains($key, 'tagline')) {
             return 5000;
         }
 

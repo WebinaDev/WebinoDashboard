@@ -97,18 +97,32 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
   }
   footer?: {
     about?: string
+    footer_logo?: string
+    trust_title?: string
     trust_text?: string
     enamad_html?: string
     samandehi_html?: string
     ecommerce_badge_html?: string
     footer_links?: ClassicThemeLink[]
+    brands_title?: string
+    brand_links?: ClassicThemeLink[]
+    bestsellers_title?: string
+    bestsellers_limit?: number
+    copyright_years?: string
+    /** @deprecated free-text copyright removed; kept for legacy merge only */
     copyright?: string
     copyright_sub?: string
+    contact_title?: string
+    contact_tagline_1?: string
+    contact_tagline_2?: string
     support_phone?: string
     support_email_title?: string
     support_email?: string
+    support_hours?: string
     address_title?: string
     address?: string
+    social_title?: string
+    social_instagram?: string
     social_telegram?: string
     social_twitter?: string
     social_whatsapp?: string
@@ -118,6 +132,7 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     social_soroush?: string
     social_bale?: string
     social_eitaa?: string
+    /** Feature / payment badges: title, image, href */
     payment_methods?: ClassicThemeLink[]
     show_developer_credit?: boolean
     developer_title?: string

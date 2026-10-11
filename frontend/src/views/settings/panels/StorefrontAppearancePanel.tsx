@@ -212,6 +212,7 @@ export function StorefrontAppearancePanel() {
   const archive = asObj(draft.archive)
   const bottomMenu = asList(general.mobile_bottom_menu)
   const footerLinks = asList(footer.footer_links)
+  const brandLinks = asList(footer.brand_links)
   const features = asList(commerce.features)
   const payments = asList(footer.payment_methods)
 
@@ -524,39 +525,14 @@ export function StorefrontAppearancePanel() {
         <TabsContent value="footer" className="space-y-4">
           <Card>
             <CardContent className="grid max-w-2xl gap-3 pt-6">
+              <p className="text-muted-foreground text-sm leading-6">{t("copyright_fixed_hint")}</p>
               <FieldText
-                label={t("about")}
-                value={String(footer.about ?? "")}
-                multiline
-                onChange={(v) => setSection("footer", { about: v })}
-              />
-              <FieldText
-                label={t("trust_text")}
-                value={String(footer.trust_text ?? "")}
-                multiline
-                onChange={(v) => setSection("footer", { trust_text: v })}
-              />
-              <FieldText
-                label={t("enamad_html")}
-                value={String(footer.enamad_html ?? "")}
-                multiline
+                label={t("copyright_years")}
+                value={String(footer.copyright_years ?? "")}
                 dir="ltr"
-                onChange={(v) => setSection("footer", { enamad_html: v })}
+                onChange={(v) => setSection("footer", { copyright_years: v })}
               />
-              <FieldText
-                label={t("samandehi_html")}
-                value={String(footer.samandehi_html ?? "")}
-                multiline
-                dir="ltr"
-                onChange={(v) => setSection("footer", { samandehi_html: v })}
-              />
-              <FieldText
-                label={t("ecommerce_badge_html")}
-                value={String(footer.ecommerce_badge_html ?? "")}
-                multiline
-                dir="ltr"
-                onChange={(v) => setSection("footer", { ecommerce_badge_html: v })}
-              />
+
               <RepeaterShell
                 title={t("footer_links")}
                 items={footerLinks}
@@ -601,17 +577,115 @@ export function StorefrontAppearancePanel() {
                   </>
                 )}
               </RepeaterShell>
+
               <FieldText
-                label={t("copyright")}
-                value={String(footer.copyright ?? "")}
-                multiline
-                onChange={(v) => setSection("footer", { copyright: v })}
+                label={t("brands_title")}
+                value={String(footer.brands_title ?? "")}
+                onChange={(v) => setSection("footer", { brands_title: v })}
               />
               <FieldText
-                label={t("copyright_sub")}
-                value={String(footer.copyright_sub ?? "")}
+                label={t("brand_links_hint")}
+                value={brandLinks.map((l) => `${l.label ?? ""}|${l.href ?? ""}`).join("\n")}
                 multiline
-                onChange={(v) => setSection("footer", { copyright_sub: v })}
+                onChange={(v) => {
+                  const links = v
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter(Boolean)
+                    .map((line) => {
+                      const [label, href] = line.split("|").map((s) => s.trim())
+                      return { label: label ?? "", href: href ?? "/" }
+                    })
+                  setSection("footer", { brand_links: links })
+                }}
+              />
+
+              <FieldText
+                label={t("bestsellers_title")}
+                value={String(footer.bestsellers_title ?? "")}
+                onChange={(v) => setSection("footer", { bestsellers_title: v })}
+              />
+              <FieldNumber
+                label={t("bestsellers_limit")}
+                value={Number(footer.bestsellers_limit ?? 6)}
+                onChange={(v) => setSection("footer", { bestsellers_limit: Math.max(1, Math.min(20, v || 6)) })}
+              />
+
+              <FieldText
+                label={t("trust_title")}
+                value={String(footer.trust_title ?? "")}
+                onChange={(v) => setSection("footer", { trust_title: v })}
+              />
+              <FieldText
+                label={t("trust_text")}
+                value={String(footer.trust_text ?? "")}
+                multiline
+                onChange={(v) => setSection("footer", { trust_text: v })}
+              />
+              <FieldText
+                label={t("enamad_html")}
+                value={String(footer.enamad_html ?? "")}
+                multiline
+                dir="ltr"
+                onChange={(v) => setSection("footer", { enamad_html: v })}
+              />
+              <FieldText
+                label={t("samandehi_html")}
+                value={String(footer.samandehi_html ?? "")}
+                multiline
+                dir="ltr"
+                onChange={(v) => setSection("footer", { samandehi_html: v })}
+              />
+              <FieldText
+                label={t("ecommerce_badge_html")}
+                value={String(footer.ecommerce_badge_html ?? "")}
+                multiline
+                dir="ltr"
+                onChange={(v) => setSection("footer", { ecommerce_badge_html: v })}
+              />
+
+              <FieldText
+                label={t("social_title")}
+                value={String(footer.social_title ?? "")}
+                onChange={(v) => setSection("footer", { social_title: v })}
+              />
+              {(
+                [
+                  "social_instagram",
+                  "social_telegram",
+                  "social_whatsapp",
+                  "social_bale",
+                  "social_eitaa",
+                  "social_rubika",
+                  "social_igap",
+                  "social_soroush",
+                  "social_facebook",
+                  "social_twitter",
+                ] as const
+              ).map((key) => (
+                <FieldText
+                  key={key}
+                  label={t(key)}
+                  value={String(footer[key] ?? "")}
+                  dir="ltr"
+                  onChange={(v) => setSection("footer", { [key]: v })}
+                />
+              ))}
+
+              <FieldText
+                label={t("contact_title")}
+                value={String(footer.contact_title ?? "")}
+                onChange={(v) => setSection("footer", { contact_title: v })}
+              />
+              <FieldText
+                label={t("contact_tagline_1")}
+                value={String(footer.contact_tagline_1 ?? "")}
+                onChange={(v) => setSection("footer", { contact_tagline_1: v })}
+              />
+              <FieldText
+                label={t("contact_tagline_2")}
+                value={String(footer.contact_tagline_2 ?? "")}
+                onChange={(v) => setSection("footer", { contact_tagline_2: v })}
               />
               <FieldText
                 label={t("support_phone")}
@@ -626,36 +700,36 @@ export function StorefrontAppearancePanel() {
                 onChange={(v) => setSection("footer", { support_email: v })}
               />
               <FieldText
+                label={t("support_hours")}
+                value={String(footer.support_hours ?? "")}
+                onChange={(v) => setSection("footer", { support_hours: v })}
+              />
+              <FieldText
                 label={t("address")}
                 value={String(footer.address ?? "")}
                 multiline
                 onChange={(v) => setSection("footer", { address: v })}
               />
-              {(
-                [
-                  "social_telegram",
-                  "social_twitter",
-                  "social_whatsapp",
-                  "social_facebook",
-                  "social_igap",
-                  "social_rubika",
-                  "social_soroush",
-                  "social_bale",
-                  "social_eitaa",
-                ] as const
-              ).map((key) => (
-                <FieldText
-                  key={key}
-                  label={t(key)}
-                  value={String(footer[key] ?? "")}
-                  dir="ltr"
-                  onChange={(v) => setSection("footer", { [key]: v })}
-                />
-              ))}
+
+              <FieldText
+                label={t("footer_logo")}
+                value={String(footer.footer_logo ?? "")}
+                dir="ltr"
+                onChange={(v) => setSection("footer", { footer_logo: v })}
+              />
+              <FieldText
+                label={t("about")}
+                value={String(footer.about ?? "")}
+                multiline
+                onChange={(v) => setSection("footer", { about: v })}
+              />
+
               <RepeaterShell
                 title={t("payment_methods")}
                 items={payments}
-                onAdd={() => setSection("footer", { payment_methods: [...payments, { title: "", image: "" }] })}
+                onAdd={() =>
+                  setSection("footer", { payment_methods: [...payments, { title: "", image: "", href: "" }] })
+                }
                 onRemove={(index) =>
                   setSection("footer", { payment_methods: payments.filter((_, i) => i !== index) })
                 }
@@ -679,30 +753,18 @@ export function StorefrontAppearancePanel() {
                         setSection("footer", { payment_methods: next })
                       }}
                     />
+                    <FieldText
+                      label={t("item_href")}
+                      value={String(item.href ?? "")}
+                      dir="ltr"
+                      onChange={(v) => {
+                        const next = payments.map((row, i) => (i === index ? { ...row, href: v } : row))
+                        setSection("footer", { payment_methods: next })
+                      }}
+                    />
                   </>
                 )}
               </RepeaterShell>
-              <FieldSwitch
-                label={t("show_developer_credit")}
-                checked={Boolean(footer.show_developer_credit ?? true)}
-                onChange={(v) => setSection("footer", { show_developer_credit: v })}
-              />
-              <FieldText
-                label={t("developer_title")}
-                value={String(footer.developer_title ?? "")}
-                onChange={(v) => setSection("footer", { developer_title: v })}
-              />
-              <FieldText
-                label={t("developer_name")}
-                value={String(footer.developer_name ?? "")}
-                onChange={(v) => setSection("footer", { developer_name: v })}
-              />
-              <FieldText
-                label={t("developer_link")}
-                value={String(footer.developer_link ?? "")}
-                dir="ltr"
-                onChange={(v) => setSection("footer", { developer_link: v })}
-              />
             </CardContent>
           </Card>
         </TabsContent>
