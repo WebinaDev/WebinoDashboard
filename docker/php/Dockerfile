@@ -1,3 +1,7 @@
+# Dev / base PHP tooling image only (no app code, default CMD is php -a).
+# Tenant production images MUST be built from Dockerfile.platform:
+#   docker build -t webino-backend:beta -f docker/php/Dockerfile.platform .
+# See also WebinoERP/scripts/build-webino-dashboard-images.sh
 FROM php:8.3-cli-bookworm
 
 ARG REDIS_PECL_VERSION=6.0.2
