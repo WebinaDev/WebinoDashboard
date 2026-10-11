@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useConfirm } from "@/components/ConfirmDialog"
 import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { RichTextEditor } from "@/components/content/RichTextEditor"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -1294,22 +1295,19 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     )}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <Label>{t("video_url")}</Label>
-                      <Input
-                        value={form.video_url}
-                        onChange={(e) => setForm((f) => ({ ...f, video_url: e.target.value }))}
-                        dir="ltr"
-                      />
-                    </div>
-                    <div>
-                      <Label>{t("video_cover_url")}</Label>
-                      <Input
-                        value={form.video_cover_url}
-                        onChange={(e) => setForm((f) => ({ ...f, video_cover_url: e.target.value }))}
-                        dir="ltr"
-                      />
-                    </div>
+                    <MediaPickerField
+                      label={t("video_url")}
+                      accept="video"
+                      imageUrl={form.video_url}
+                      onPick={(item) => setForm((f) => ({ ...f, video_url: item.url }))}
+                      onClear={() => setForm((f) => ({ ...f, video_url: "" }))}
+                    />
+                    <MediaPickerField
+                      label={t("video_cover_url")}
+                      imageUrl={form.video_cover_url}
+                      onPick={(item) => setForm((f) => ({ ...f, video_cover_url: item.url }))}
+                      onClear={() => setForm((f) => ({ ...f, video_cover_url: "" }))}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -1352,11 +1350,11 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <Label>{t("seo_og_image")}</Label>
-                    <Input
-                      dir="ltr"
-                      value={form.seo_og_image}
-                      onChange={(e) => setForm((f) => ({ ...f, seo_og_image: e.target.value }))}
+                    <MediaPickerField
+                      label={t("seo_og_image")}
+                      imageUrl={form.seo_og_image}
+                      onPick={(item) => setForm((f) => ({ ...f, seo_og_image: item.url }))}
+                      onClear={() => setForm((f) => ({ ...f, seo_og_image: "" }))}
                     />
                   </div>
                 </div>
@@ -1999,14 +1997,16 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                               }}
                             />
                           </div>
-                          <Input
-                            className="h-8"
-                            dir="ltr"
-                            defaultValue={v.image_url ?? ""}
-                            placeholder={t("variant_image_url")}
-                            onBlur={(e) => {
-                              const image_url = e.target.value || null
-                              if (image_url !== (v.image_url ?? null)) updateVariant.mutate({ id: v.id, image_url })
+                          <MediaPickerField
+                            label={t("variant_image_url")}
+                            imageUrl={v.image_url ?? ""}
+                            onPick={(item) => {
+                              if (item.url !== (v.image_url ?? null)) {
+                                updateVariant.mutate({ id: v.id, image_url: item.url })
+                              }
+                            }}
+                            onClear={() => {
+                              if (v.image_url) updateVariant.mutate({ id: v.id, image_url: null })
                             }}
                           />
                           {(() => {

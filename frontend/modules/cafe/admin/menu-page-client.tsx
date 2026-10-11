@@ -6,6 +6,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 import { useConfirm } from "@/components/ConfirmDialog"
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -598,10 +599,13 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   <option value="display">{t("font_display")}</option>
                 </select>
               </div>
-              <div>
-                <Label>{t("teaser_video_url")}</Label>
-                <Input value={settingsValues.teaser_video_url ?? ""} onChange={(e) => setSettingsForm({ ...settingsValues, teaser_video_url: e.target.value })} />
-              </div>
+              <MediaPickerField
+                label={t("teaser_video_url")}
+                accept="video"
+                imageUrl={settingsValues.teaser_video_url ?? ""}
+                onPick={(item) => setSettingsForm({ ...settingsValues, teaser_video_url: item.url })}
+                onClear={() => setSettingsForm({ ...settingsValues, teaser_video_url: "" })}
+              />
               <div>
                 <Label>{t("packaging_fee_minor")}</Label>
                 <Input type="number" value={settingsValues.packaging_fee_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, packaging_fee_minor: Number(e.target.value) })} />
@@ -666,6 +670,18 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                       <option value="cover">{t("view_cover")}</option>
                     </select>
                   </div>
+                  <MediaPickerField
+                    label={tCatalog("image_url")}
+                    imageUrl={categoryForm.image_url}
+                    onPick={(item) => setCategoryForm((f) => ({ ...f, image_url: item.url }))}
+                    onClear={() => setCategoryForm((f) => ({ ...f, image_url: "" }))}
+                  />
+                  <MediaPickerField
+                    label={tCatalog("icon_url")}
+                    imageUrl={categoryForm.icon_url}
+                    onPick={(item) => setCategoryForm((f) => ({ ...f, icon_url: item.url }))}
+                    onClear={() => setCategoryForm((f) => ({ ...f, icon_url: "" }))}
+                  />
                   <Button onClick={() => saveCategory.mutate()} disabled={!categoryForm.name || saveCategory.isPending}>
                     <Plus className="mr-2 size-4" />
                     {tCatalog("add_category")}
@@ -725,28 +741,26 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <Label>{t("cover_image_url")}</Label>
-                    <Input
-                      value={productForm.cover_image_url}
-                      onChange={(e) => setProductForm((f) => ({ ...f, cover_image_url: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label>{t("video_url")}</Label>
-                    <Input
-                      value={productForm.video_url}
-                      onChange={(e) => setProductForm((f) => ({ ...f, video_url: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>{tCatalog("image_url")}</Label>
-                  <Input
-                    value={productForm.image_url}
-                    onChange={(e) => setProductForm((f) => ({ ...f, image_url: e.target.value }))}
+                  <MediaPickerField
+                    label={t("cover_image_url")}
+                    imageUrl={productForm.cover_image_url}
+                    onPick={(item) => setProductForm((f) => ({ ...f, cover_image_url: item.url }))}
+                    onClear={() => setProductForm((f) => ({ ...f, cover_image_url: "" }))}
+                  />
+                  <MediaPickerField
+                    label={t("video_url")}
+                    accept="video"
+                    imageUrl={productForm.video_url}
+                    onPick={(item) => setProductForm((f) => ({ ...f, video_url: item.url }))}
+                    onClear={() => setProductForm((f) => ({ ...f, video_url: "" }))}
                   />
                 </div>
+                <MediaPickerField
+                  label={tCatalog("image_url")}
+                  imageUrl={productForm.image_url}
+                  onPick={(item) => setProductForm((f) => ({ ...f, image_url: item.url }))}
+                  onClear={() => setProductForm((f) => ({ ...f, image_url: "" }))}
+                />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <Label>{tCatalog("category")}</Label>
@@ -1048,10 +1062,11 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                 />
               </div>
               <div className="sm:col-span-2">
-                <Label>{tCatalog("image_url")}</Label>
-                <Input
-                  value={bannerForm.image_url}
-                  onChange={(e) => setBannerForm((f) => ({ ...f, image_url: e.target.value }))}
+                <MediaPickerField
+                  label={tCatalog("image_url")}
+                  imageUrl={bannerForm.image_url}
+                  onPick={(item) => setBannerForm((f) => ({ ...f, image_url: item.url }))}
+                  onClear={() => setBannerForm((f) => ({ ...f, image_url: "" }))}
                 />
               </div>
               <div className="sm:col-span-2">

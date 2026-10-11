@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { useConfirm } from "@/components/ConfirmDialog"
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -224,8 +225,13 @@ export function BasalamProductFields({ productId, variantId }: { productId: stri
             <Input dir="ltr" placeholder="+10% / -5000" value={meta.price_change ?? ""} onChange={(e) => set("price_change", e.target.value || undefined)} />
           </div>
           <div className="grid gap-1 sm:col-span-2">
-            <Label className="text-xs">{t("video_url")}</Label>
-            <Input dir="ltr" value={meta.video_url ?? ""} onChange={(e) => set("video_url", e.target.value || undefined)} />
+            <MediaPickerField
+              label={t("video_url")}
+              accept="video"
+              imageUrl={meta.video_url ?? ""}
+              onPick={(item) => set("video_url", item.url)}
+              onClear={() => set("video_url", undefined)}
+            />
           </div>
         </div>
         <p className="text-muted-foreground text-xs">{t("price_change_hint")}</p>

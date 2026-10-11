@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -163,11 +164,11 @@ export function PwaSettingsPanel() {
               ) : (
                 <>
                   <p className="text-muted-foreground text-xs">{t("iconCustomHint")}</p>
-                  <Input
-                    dir="ltr"
-                    value={draft.icon_url ?? ""}
-                    onChange={(e) => setDraft({ ...draft, icon_url: e.target.value })}
-                    placeholder={draft.site_icon_url ?? "https://…"}
+                  <MediaPickerField
+                    label={t("iconCustom")}
+                    imageUrl={draft.icon_url ?? ""}
+                    onPick={(item) => setDraft({ ...draft, icon_url: item.url })}
+                    onClear={() => setDraft({ ...draft, icon_url: "" })}
                   />
                 </>
               )}

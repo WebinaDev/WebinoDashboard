@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -138,11 +139,11 @@ export default function PageEditorClient({ route, mode, profileId }: Props) {
               </div>
             ) : null}
             <div className="space-y-1 sm:col-span-2">
-              <Label>{t("avatar")}</Label>
-              <Input
-                value={profile.avatar_url ?? ""}
-                onChange={(e) => setProfile({ ...profile, avatar_url: e.target.value })}
-                dir="ltr"
+              <MediaPickerField
+                label={t("avatar")}
+                imageUrl={profile.avatar_url ?? ""}
+                onPick={(item) => setProfile({ ...profile, avatar_url: item.url })}
+                onClear={() => setProfile({ ...profile, avatar_url: null })}
               />
             </div>
             <div className="space-y-1 sm:col-span-2">

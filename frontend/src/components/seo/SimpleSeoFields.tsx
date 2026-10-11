@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl"
 import { useId } from "react"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -184,15 +185,12 @@ export function SimpleSeoFields({
               onChange={(e) => patch({ og_description: e.target.value })}
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${id}-og-image`}>{t("seo_og_image")}</Label>
-            <Input
-              id={`${id}-og-image`}
-              dir="ltr"
-              value={value.og_image ?? ""}
-              onChange={(e) => patch({ og_image: e.target.value })}
-            />
-          </div>
+          <MediaPickerField
+            label={t("seo_og_image")}
+            imageUrl={value.og_image ?? ""}
+            onPick={(item) => patch({ og_image: item.url })}
+            onClear={() => patch({ og_image: "" })}
+          />
           <div className="space-y-1">
             <Label htmlFor={`${id}-schema`}>{t("seo_schema_type")}</Label>
             <Select value={value.schema_type ?? ""} onValueChange={(v) => patch({ schema_type: v || undefined })}>

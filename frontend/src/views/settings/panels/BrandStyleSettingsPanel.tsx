@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -110,35 +111,18 @@ export function BrandStyleSettingsPanel() {
               </Select>
             </div>
           ))}
-          <div className="grid gap-1">
-            <Label>{t("logo_id")}</Label>
-            <Input
-              type="number"
-              dir="ltr"
-              value={draft.logo_id ?? ""}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  logo_id: e.target.value ? Number(e.target.value) : null,
-                })
-              }
-            />
-            <p className="text-muted-foreground text-xs">{t("media_id_hint")}</p>
-          </div>
-          <div className="grid gap-1">
-            <Label>{t("favicon_id")}</Label>
-            <Input
-              type="number"
-              dir="ltr"
-              value={draft.favicon_id ?? ""}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  favicon_id: e.target.value ? Number(e.target.value) : null,
-                })
-              }
-            />
-          </div>
+          <MediaPickerField
+            label={t("logo_id")}
+            imageUrl={draft.logo_url ?? ""}
+            onPick={(item) => setDraft({ ...draft, logo_id: item.id, logo_url: item.url })}
+            onClear={() => setDraft({ ...draft, logo_id: null, logo_url: null })}
+          />
+          <MediaPickerField
+            label={t("favicon_id")}
+            imageUrl={draft.favicon_url ?? ""}
+            onPick={(item) => setDraft({ ...draft, favicon_id: item.id, favicon_url: item.url })}
+            onClear={() => setDraft({ ...draft, favicon_id: null, favicon_url: null })}
+          />
         </CardContent>
       </Card>
 

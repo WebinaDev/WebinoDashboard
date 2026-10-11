@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react"
 import { useTranslations } from "next-intl"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -65,6 +66,18 @@ export function OrderDocumentsSettingsPanel() {
           onChange={(e) => set(k, e.target.value)}
         />
       )}
+      {opts.hint ? <p className="text-muted-foreground text-xs">{opts.hint}</p> : null}
+    </div>
+  )
+
+  const media = (k: string, opts: { hint?: string } = {}) => (
+    <div key={k} className="grid gap-2">
+      <MediaPickerField
+        label={t(`fields.${k}`)}
+        imageUrl={str(k)}
+        onPick={(item) => set(k, item.url)}
+        onClear={() => set(k, "")}
+      />
       {opts.hint ? <p className="text-muted-foreground text-xs">{opts.hint}</p> : null}
     </div>
   )
@@ -184,7 +197,7 @@ export function OrderDocumentsSettingsPanel() {
         <div className="grid gap-4 sm:grid-cols-2">
           {select("invoice_orientation", ["portrait", "landscape"], "orientations")}
           {select("invoice_parties_order", ["sender_first", "recipient_first"], "parties")}
-          {text("invoice_logo_url", { ltr: true, hint: t("hints.logo_url") })}
+          {media("invoice_logo_url", { hint: t("hints.logo_url") })}
           {text("invoice_thanks")}
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -199,7 +212,7 @@ export function OrderDocumentsSettingsPanel() {
       <>
         {themeGrid("receipt_theme", RECEIPT_THEMES)}
         <div className="grid gap-4 sm:grid-cols-2">
-          {text("receipt_logo_url", { ltr: true, hint: t("hints.logo_url") })}
+          {media("receipt_logo_url", { hint: t("hints.logo_url") })}
           {text("receipt_thanks")}
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -217,7 +230,7 @@ export function OrderDocumentsSettingsPanel() {
             <div className="grid gap-4 sm:grid-cols-3">
               {select("label_size", LABEL_SIZES)}
               {select("label_orientation", ["portrait", "landscape"], "orientations")}
-              {text("label_logo_url", { ltr: true, hint: t("hints.logo_url") })}
+              {media("label_logo_url", { hint: t("hints.logo_url") })}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {text("label_note")}

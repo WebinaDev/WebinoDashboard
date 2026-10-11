@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -341,6 +342,18 @@ export function GatewayProviderSettingsPanel({
                         </option>
                       ))}
                     </select>
+                  </div>
+                )
+              }
+              if (field.key === "icon_url") {
+                return (
+                  <div key={field.key} className="space-y-2 sm:col-span-2">
+                    <MediaPickerField
+                      label={label}
+                      imageUrl={String(draft[field.key] ?? "")}
+                      onPick={(item) => setDraft({ ...draft, [field.key]: item.url })}
+                      onClear={() => setDraft({ ...draft, [field.key]: "" })}
+                    />
                   </div>
                 )
               }

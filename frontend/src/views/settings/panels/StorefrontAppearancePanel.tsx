@@ -17,8 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { api } from "@/lib/api"
 import { SettingsSaveBar } from "@/views/settings/use-tenant-settings"
+
+const SERVICE_ICON_PRESETS = ["truck", "card", "shield", "badge"] as const
 
 type Dict = Record<string, unknown>
 type Appearance = Dict
@@ -319,23 +322,23 @@ export function StorefrontAppearancePanel() {
                 value={Number(general.logo_height_mobile ?? 36)}
                 onChange={(v) => setSection("general", { logo_height_mobile: v })}
               />
-              <FieldText
+              <MediaPickerField
                 label={t("logo_404_url")}
-                value={String(general.logo_404_url ?? "")}
-                dir="ltr"
-                onChange={(v) => setSection("general", { logo_404_url: v })}
+                imageUrl={String(general.logo_404_url ?? "")}
+                onPick={(item) => setSection("general", { logo_404_url: item.url })}
+                onClear={() => setSection("general", { logo_404_url: "" })}
               />
-              <FieldText
+              <MediaPickerField
                 label={t("bg_404")}
-                value={String(general.bg_404 ?? "")}
-                dir="ltr"
-                onChange={(v) => setSection("general", { bg_404: v })}
+                imageUrl={String(general.bg_404 ?? "")}
+                onPick={(item) => setSection("general", { bg_404: item.url })}
+                onClear={() => setSection("general", { bg_404: "" })}
               />
-              <FieldText
+              <MediaPickerField
                 label={t("loading_icon_url")}
-                value={String(general.loading_icon_url ?? "")}
-                dir="ltr"
-                onChange={(v) => setSection("general", { loading_icon_url: v })}
+                imageUrl={String(general.loading_icon_url ?? "")}
+                onPick={(item) => setSection("general", { loading_icon_url: item.url })}
+                onClear={() => setSection("general", { loading_icon_url: "" })}
               />
               <FieldSwitch
                 label={t("mobile_bottom_menu_enabled")}
@@ -425,11 +428,11 @@ export function StorefrontAppearancePanel() {
                   />
                 )}
               </RepeaterShell>
-              <FieldText
+              <MediaPickerField
                 label={t("search_banner_image")}
-                value={String(header.search_banner_image ?? "")}
-                dir="ltr"
-                onChange={(v) => setSection("header", { search_banner_image: v })}
+                imageUrl={String(header.search_banner_image ?? "")}
+                onPick={(item) => setSection("header", { search_banner_image: item.url })}
+                onClear={() => setSection("header", { search_banner_image: "" })}
               />
               <FieldText
                 label={t("search_banner_link")}
@@ -533,17 +536,17 @@ export function StorefrontAppearancePanel() {
                 dir="ltr"
                 onChange={(v) => setSection("header", { banner_link: v })}
               />
-              <FieldText
+              <MediaPickerField
                 label={t("banner_image_desktop")}
-                value={String(header.banner_image_desktop ?? "")}
-                dir="ltr"
-                onChange={(v) => setSection("header", { banner_image_desktop: v })}
+                imageUrl={String(header.banner_image_desktop ?? "")}
+                onPick={(item) => setSection("header", { banner_image_desktop: item.url })}
+                onClear={() => setSection("header", { banner_image_desktop: "" })}
               />
-              <FieldText
+              <MediaPickerField
                 label={t("banner_image_mobile")}
-                value={String(header.banner_image_mobile ?? "")}
-                dir="ltr"
-                onChange={(v) => setSection("header", { banner_image_mobile: v })}
+                imageUrl={String(header.banner_image_mobile ?? "")}
+                onPick={(item) => setSection("header", { banner_image_mobile: item.url })}
+                onClear={() => setSection("header", { banner_image_mobile: "" })}
               />
               <FieldText
                 label={t("banner_text")}
@@ -608,15 +611,64 @@ export function StorefrontAppearancePanel() {
                         setSection("footer", { service_badges: next })
                       }}
                     />
-                    <FieldText
-                      label={t("service_badge_icon")}
-                      value={String(item.icon ?? item.image ?? "")}
-                      dir="ltr"
-                      onChange={(v) => {
-                        const next = serviceBadges.map((row, i) => (i === index ? { ...row, icon: v } : row))
-                        setSection("footer", { service_badges: next })
-                      }}
-                    />
+                    <div className="grid gap-1">
+                      <Label className="text-sm">{t("service_badge_icon")}</Label>
+                      <Select
+                        value={
+                          SERVICE_ICON_PRESETS.includes(
+                            String(item.icon ?? "truck") as (typeof SERVICE_ICON_PRESETS)[number],
+                          )
+                            ? String(item.icon)
+                            : "custom"
+                        }
+                        onValueChange={(v) => {
+                          const next = serviceBadges.map((row, i) =>
+                            i === index
+                              ? { ...row, icon: v === "custom" ? String(row.icon ?? "") : v }
+                              : row,
+                          )
+                          setSection("footer", { service_badges: next })
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SERVICE_ICON_PRESETS.map((key) => (
+                            <SelectItem key={key} value={key}>
+                              {key}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="custom">image</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {!SERVICE_ICON_PRESETS.includes(
+                      String(item.icon ?? "") as (typeof SERVICE_ICON_PRESETS)[number],
+                    ) || String(item.icon ?? "").startsWith("http") || String(item.icon ?? "").startsWith("/") ? (
+                      <MediaPickerField
+                        label={t("item_image")}
+                        imageUrl={
+                          SERVICE_ICON_PRESETS.includes(
+                            String(item.icon ?? "") as (typeof SERVICE_ICON_PRESETS)[number],
+                          )
+                            ? ""
+                            : String(item.icon ?? item.image ?? "")
+                        }
+                        onPick={(picked) => {
+                          const next = serviceBadges.map((row, i) =>
+                            i === index ? { ...row, icon: picked.url } : row,
+                          )
+                          setSection("footer", { service_badges: next })
+                        }}
+                        onClear={() => {
+                          const next = serviceBadges.map((row, i) =>
+                            i === index ? { ...row, icon: "truck" } : row,
+                          )
+                          setSection("footer", { service_badges: next })
+                        }}
+                      />
+                    ) : null}
                   </>
                 )}
               </RepeaterShell>
@@ -809,11 +861,11 @@ export function StorefrontAppearancePanel() {
                 onChange={(v) => setSection("footer", { address: v })}
               />
 
-              <FieldText
+              <MediaPickerField
                 label={t("footer_logo")}
-                value={String(footer.footer_logo ?? "")}
-                dir="ltr"
-                onChange={(v) => setSection("footer", { footer_logo: v })}
+                imageUrl={String(footer.footer_logo ?? "")}
+                onPick={(item) => setSection("footer", { footer_logo: item.url })}
+                onClear={() => setSection("footer", { footer_logo: "" })}
               />
               <FieldText
                 label={t("about")}
@@ -842,12 +894,15 @@ export function StorefrontAppearancePanel() {
                         setSection("footer", { payment_methods: next })
                       }}
                     />
-                    <FieldText
+                    <MediaPickerField
                       label={t("item_image")}
-                      value={String(item.image ?? "")}
-                      dir="ltr"
-                      onChange={(v) => {
-                        const next = payments.map((row, i) => (i === index ? { ...row, image: v } : row))
+                      imageUrl={String(item.image ?? "")}
+                      onPick={(picked) => {
+                        const next = payments.map((row, i) => (i === index ? { ...row, image: picked.url } : row))
+                        setSection("footer", { payment_methods: next })
+                      }}
+                      onClear={() => {
+                        const next = payments.map((row, i) => (i === index ? { ...row, image: "" } : row))
                         setSection("footer", { payment_methods: next })
                       }}
                     />

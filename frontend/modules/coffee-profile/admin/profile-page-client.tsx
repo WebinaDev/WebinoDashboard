@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
 import { useConfirm } from "@/components/ConfirmDialog"
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -304,10 +305,12 @@ export default function ProfilePageClient({ route: _route }: { route: ResolvedAd
               <Label>{t("iso_code")}</Label>
               <Input value={originForm.iso_code} onChange={(e) => setOriginForm((f) => ({ ...f, iso_code: e.target.value }))} />
             </div>
-            <div>
-              <Label>{t("image_url")}</Label>
-              <Input value={originForm.image_url} onChange={(e) => setOriginForm((f) => ({ ...f, image_url: e.target.value }))} />
-            </div>
+            <MediaPickerField
+              label={t("image_url")}
+              imageUrl={originForm.image_url}
+              onPick={(item) => setOriginForm((f) => ({ ...f, image_url: item.url }))}
+              onClear={() => setOriginForm((f) => ({ ...f, image_url: "" }))}
+            />
           </div>
           <Button disabled={!originForm.name || addOrigin.isPending} onClick={() => addOrigin.mutate()}>
             <Plus className="size-4" />

@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 
 import { useConfirm } from "@/components/ConfirmDialog"
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -227,14 +228,18 @@ export default function CatalogPageClient({ route: _route }: { route: ResolvedAd
                 <Textarea value={categoryForm.description} onChange={(e) => setCategoryForm((f) => ({ ...f, description: e.target.value }))} />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label>{t("icon_url")}</Label>
-                  <Input value={categoryForm.icon_url} onChange={(e) => setCategoryForm((f) => ({ ...f, icon_url: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>{t("image_url")}</Label>
-                  <Input value={categoryForm.image_url} onChange={(e) => setCategoryForm((f) => ({ ...f, image_url: e.target.value }))} />
-                </div>
+                <MediaPickerField
+                  label={t("icon_url")}
+                  imageUrl={categoryForm.icon_url}
+                  onPick={(item) => setCategoryForm((f) => ({ ...f, icon_url: item.url }))}
+                  onClear={() => setCategoryForm((f) => ({ ...f, icon_url: "" }))}
+                />
+                <MediaPickerField
+                  label={t("image_url")}
+                  imageUrl={categoryForm.image_url}
+                  onPick={(item) => setCategoryForm((f) => ({ ...f, image_url: item.url }))}
+                  onClear={() => setCategoryForm((f) => ({ ...f, image_url: "" }))}
+                />
               </div>
               <Button onClick={() => saveCategory.mutate()} disabled={!categoryForm.name || saveCategory.isPending}>
                 <Plus className="mr-2 size-4" />
@@ -285,10 +290,12 @@ export default function CatalogPageClient({ route: _route }: { route: ResolvedAd
                 <Input type="number" value={productForm.discount_percent} onChange={(e) => setProductForm((f) => ({ ...f, discount_percent: Number(e.target.value) }))} />
               </div>
             </div>
-            <div>
-              <Label>{t("image_url")}</Label>
-              <Input value={productForm.image_url} onChange={(e) => setProductForm((f) => ({ ...f, image_url: e.target.value }))} />
-            </div>
+            <MediaPickerField
+              label={t("image_url")}
+              imageUrl={productForm.image_url}
+              onPick={(item) => setProductForm((f) => ({ ...f, image_url: item.url }))}
+              onClear={() => setProductForm((f) => ({ ...f, image_url: "" }))}
+            />
             <div>
               <Label>{t("category")}</Label>
               <select

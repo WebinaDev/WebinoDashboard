@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { Plus, Trash2 } from "lucide-react"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -61,8 +62,12 @@ export default function GalleryPageClient({ route }: { route: ResolvedAdminRoute
         <CardHeader><CardTitle>{t("add_heading")}</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label>{t("image_url")}</Label>
-            <Input value={draft.url} onChange={(e) => setDraft((d) => ({ ...d, url: e.target.value }))} />
+            <MediaPickerField
+              label={t("image_url")}
+              imageUrl={draft.url}
+              onPick={(item) => setDraft((d) => ({ ...d, url: item.url }))}
+              onClear={() => setDraft((d) => ({ ...d, url: "" }))}
+            />
           </div>
           <div>
             <Label>{t("caption_fa")}</Label>

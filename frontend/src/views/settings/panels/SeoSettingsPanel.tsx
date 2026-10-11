@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
 
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -109,16 +110,28 @@ export function SeoSettingsPanel() {
           <CardTitle className="text-base">{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="grid max-w-2xl gap-3">
-          {(["home_title", "home_description", "title_template", "separator", "og_image", "organization_name", "organization_logo", "news_publication_name", "robots_default"] as const).map((key) => (
+          {(["home_title", "home_description", "title_template", "separator", "organization_name", "news_publication_name", "robots_default"] as const).map((key) => (
             <div key={key} className="grid gap-1">
               <Label>{t(key)}</Label>
-              {key === "home_description" || key === "organization_logo" ? (
+              {key === "home_description" ? (
                 <Textarea value={String(draft[key] ?? "")} onChange={(e) => setDraft({ ...draft, [key]: e.target.value })} />
               ) : (
                 <Input value={String(draft[key] ?? "")} onChange={(e) => setDraft({ ...draft, [key]: e.target.value })} />
               )}
             </div>
           ))}
+          <MediaPickerField
+            label={t("og_image")}
+            imageUrl={String(draft.og_image ?? "")}
+            onPick={(item) => setDraft({ ...draft, og_image: item.url })}
+            onClear={() => setDraft({ ...draft, og_image: "" })}
+          />
+          <MediaPickerField
+            label={t("organization_logo")}
+            imageUrl={String(draft.organization_logo ?? "")}
+            onPick={(item) => setDraft({ ...draft, organization_logo: item.url })}
+            onClear={() => setDraft({ ...draft, organization_logo: "" })}
+          />
           <div className="grid gap-1">
             <Label>{t("organization_same_as")}</Label>
             <Textarea
