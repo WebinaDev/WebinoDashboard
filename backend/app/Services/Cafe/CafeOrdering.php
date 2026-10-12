@@ -183,12 +183,16 @@ class CafeOrdering
             $open = self::clockMinutes((string) ($today['open'] ?? ''));
             $close = self::clockMinutes((string) ($today['close'] ?? ''));
             if ($open !== null && $close !== null) {
-                // A close of "23:00" is commonly understood as "until 11pm" (through 23:59),
-                // not a hard cut at 23:00:00. Only exact HH:00 closes get that grace.
-                $closeInclusive = ($close > $open && ($close % 60) === 0) ? min(24 * 60 - 1, $close + 59) : $close;
-                $isOpen = $close >= $open
-                    ? ($mins >= $open && $mins <= $closeInclusive)
-                    : ($mins >= $open || $mins <= $close);
+                // Half-open interval [open, close): closed at exactly the close minute.
+                // close < open is an overnight range; the after-midnight part is
+                // handled by yesterday's entry below. open == close means 24 hours.
+                if ($open === $close || ($open === 0 && $close === 24 * 60)) {
+                    $isOpen = true;
+                } elseif ($close > $open) {
+                    $isOpen = $mins >= $open && $mins < $close;
+                } else {
+                    $isOpen = $mins >= $open;
+                }
             }
         }
 
@@ -201,7 +205,7 @@ class CafeOrdering
                 $known = true;
                 $yOpen = self::clockMinutes((string) ($day['open'] ?? ''));
                 $yClose = self::clockMinutes((string) ($day['close'] ?? ''));
-                if ($yOpen !== null && $yClose !== null && $yClose < $yOpen && $mins <= $yClose && empty($day['closed'])) {
+                if ($yOpen !== null && $yClose !== null && $yClose < $yOpen && $mins < $yClose && empty($day['closed'])) {
                     $isOpen = true;
                 }
             }
@@ -270,6 +274,10 @@ class CafeOrdering
         }
         $h = (int) $m[1];
         $min = (int) $m[2];
+        // "24:00" is a valid close meaning end of day.
+        if ($h === 24 && $min === 0) {
+            return 24 * 60;
+        }
         if ($h > 23 || $min > 59) {
             return null;
         }
