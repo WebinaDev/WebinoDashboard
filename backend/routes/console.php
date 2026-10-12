@@ -113,6 +113,12 @@ Artisan::command('pricing:bulk-price-schedule', function () {
     });
 })->purpose('Run scheduled bulk price changes');
 
+Artisan::command('stock:release-reservations', function () {
+    $released = app(\App\Services\Orders\OrderStock::class)->releaseExpired();
+    $this->info("Released {$released} expired stock reservations.");
+})->purpose('Give back stock held by unpaid orders whose reservation expired');
+
+Schedule::command('stock:release-reservations')->everyMinute()->withoutOverlapping();
 Schedule::command('pricing:exchange-auto-update')->hourly()->withoutOverlapping();
 Schedule::command('pricing:bulk-price-schedule')->hourly()->withoutOverlapping();
 Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();

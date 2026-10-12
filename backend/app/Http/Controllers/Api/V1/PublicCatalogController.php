@@ -166,7 +166,7 @@ class PublicCatalogController extends Controller
                 'query' => $q !== '' ? $q : null,
                 'branch' => $branchSlug !== '' ? $branchSlug : null,
             ],
-        ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
+        ])->header('Cache-Control', 'no-cache, must-revalidate');
     }
 
     public function show(Request $request, string $slug): \Illuminate\Http\JsonResponse
@@ -203,7 +203,7 @@ class PublicCatalogController extends Controller
 
         return response()->json([
             'data' => $data,
-        ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
+        ])->header('Cache-Control', 'no-cache, must-revalidate');
     }
 
     /**

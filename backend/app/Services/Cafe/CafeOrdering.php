@@ -278,6 +278,35 @@ class CafeOrdering
     }
 
     /** Great-circle distance in km. */
+    /**
+     * Tables staff manage in the dashboard are the source of truth. When a cafe has none, any
+     * typed table label is accepted (older setups); once tables exist only an active one is valid.
+     *
+     * @return array{id: int|null, code: string, label: string|null, branch_slug: string|null}|null
+     */
+    public function resolveTable(int $tenantId, ?string $code, ?int $id = null): ?array
+    {
+        $code = $code !== null ? trim($code) : '';
+        if ($code === '' && ! $id) {
+            return null;
+        }
+        $hasTables = \App\Models\CafeTable::query()->where('tenant_id', $tenantId)->exists();
+        if (! $hasTables) {
+            return $code !== '' ? ['id' => null, 'code' => $code, 'label' => null, 'branch_slug' => null] : null;
+        }
+        $row = \App\Models\CafeTable::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->when($id, fn ($q) => $q->whereKey($id), fn ($q) => $q->where('code', $code))
+            ->with('branch:id,slug')
+            ->first();
+        if (! $row || ($id && $code !== '' && $row->code !== $code)) {
+            return null;
+        }
+
+        return ['id' => (int) $row->id, 'code' => (string) $row->code, 'label' => $row->label, 'branch_slug' => $row->branch?->slug];
+    }
+
     public static function distanceKm(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
         $r = 6371.0;

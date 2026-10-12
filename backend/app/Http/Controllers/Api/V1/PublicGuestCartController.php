@@ -187,6 +187,22 @@ class PublicGuestCartController extends Controller
             return response()->json(['message' => __('api.cafe_fulfillment')], 422);
         }
 
+        if ($fulfillment === 'dine_in') {
+            $cartRow = $this->resolveCart($request, $request->only(['guest_token']));
+            $typed = trim((string) ($meta['table_number'] ?? ''));
+            $wanted = $typed !== '' ? $typed : (string) ($cartRow?->table_number ?? '');
+            if ($wanted !== '') {
+                $table = $ordering->resolveTable($this->publicTenantId($request), $wanted);
+                if (! $table) {
+                    return response()->json([
+                        'message' => __('api.cafe_table_invalid'),
+                        'errors' => ['table_number' => [__('api.cafe_table_invalid')]],
+                    ], 422);
+                }
+                $meta['table_number'] = $table['code'];
+            }
+        }
+
         if ($fulfillment === 'delivery' && $status['delivery_radius_km'] > 0 && $status['cafe_location'] && isset($meta['lat'], $meta['lng'])) {
             $km = CafeOrdering::distanceKm($status['cafe_location']['lat'], $status['cafe_location']['lng'], (float) $meta['lat'], (float) $meta['lng']);
             if ($km > $status['delivery_radius_km']) {
@@ -363,6 +379,19 @@ class PublicGuestCartController extends Controller
         }
     }
 
+    /** Validate a table from a QR link (by id or code) so the menu can prefill dine-in. */
+    public function table(Request $request, CafeOrdering $ordering): \Illuminate\Http\JsonResponse
+    {
+        $id = (int) $request->query('table_id', 0);
+        $code = $request->query('table');
+        $table = $ordering->resolveTable($this->publicTenantId($request), is_string($code) ? $code : null, $id > 0 ? $id : null);
+        if (! $table) {
+            return response()->json(['message' => __('api.cafe_table_invalid')], 404)->header('Cache-Control', 'no-store');
+        }
+
+        return response()->json(['data' => $table])->header('Cache-Control', 'no-store');
+    }
+
     public function pickupSlots(Request $request, CafeOrdering $ordering): \Illuminate\Http\JsonResponse
     {
         return response()->json(['data' => $ordering->pickupSlots($this->publicTenantId($request))])
@@ -413,7 +442,8 @@ class PublicGuestCartController extends Controller
     {
         $cart = $this->resolveCart($request, $request->only(['guest_token']));
 
-        return $cart !== null && is_string($cart->table_number) && $cart->table_number !== '';
+        return $cart !== null && is_string($cart->table_number) && $cart->table_number !== ''
+            && app(CafeOrdering::class)->resolveTable((int) $cart->tenant_id, $cart->table_number) !== null;
     }
 
     /** Where the gateway callback sends the guest back: this site's menu, never a client-supplied URL. */
@@ -466,14 +496,22 @@ class PublicGuestCartController extends Controller
 
         $table = $data['table_number'] ?? $request->query('table');
         $branch = $data['branch_slug'] ?? $request->query('branch');
+        // Only a table staff manage (or any label when the cafe has none) sticks to the cart.
+        $resolved = is_string($table) && $table !== '' ? app(CafeOrdering::class)->resolveTable($tid, $table) : null;
 
-        return Cart::query()->firstOrCreate(
+        $cart = Cart::query()->firstOrCreate(
             ['tenant_id' => $tid, 'guest_token' => $token],
             [
                 'user_id' => null,
-                'table_number' => is_string($table) ? $table : null,
-                'branch_slug' => is_string($branch) ? $branch : null,
+                'table_number' => $resolved['code'] ?? null,
+                'branch_slug' => is_string($branch) && $branch !== '' ? $branch : ($resolved['branch_slug'] ?? null),
             ],
         );
+        // Scanning another table's QR moves the cart to that table.
+        if ($resolved && ! $cart->wasRecentlyCreated && $cart->table_number !== $resolved['code']) {
+            $cart->update(['table_number' => $resolved['code']]);
+        }
+
+        return $cart;
     }
 }

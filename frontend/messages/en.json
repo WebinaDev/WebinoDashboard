@@ -703,7 +703,8 @@
       "add_table": "Add table",
       "table_qr": "Table QR",
       "remove": "Remove",
-      "public_base_url_auto": "Leave empty to auto-detect. Current address: {url}"
+      "public_base_url_auto": "Leave empty to auto-detect. Current address: {url}",
+      "table_inactive": "Inactive"
     },
     "reservations": {
       "title": "Reservations & events",

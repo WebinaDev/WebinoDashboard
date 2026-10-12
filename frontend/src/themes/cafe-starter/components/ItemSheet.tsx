@@ -43,6 +43,8 @@ export type ItemCtx = {
   qs: Record<string, string | null | undefined>
   tableNumber?: string | null
   branchSlug?: string | null
+  /** Menu setting; badges show unless it is explicitly off. */
+  showNewBadge?: boolean
 }
 
 export function ItemSheet({
@@ -173,7 +175,7 @@ export function ItemPanel({
             <h2 className="cafe-item-name">{item.name}</h2>
             <div className="cafe-item-tags">
               {item.is_featured ? <span>{t("badge_featured")}</span> : null}
-              {item.is_new ? <span>{t("badge_new")}</span> : null}
+              {item.is_new && ctrl.showNewBadge !== false ? <span>{t("badge_new")}</span> : null}
               {item.calories ? <span>{t("calories", { count: digits(item.calories, locale) })}</span> : null}
               {(item.spice_level ?? 0) > 0 ? (
                 <span>

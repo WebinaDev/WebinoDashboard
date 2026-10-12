@@ -23,12 +23,14 @@ export function ItemDetailView({
   branchSlug,
   activeThemeSlug,
   ordering,
+  showNewBadge,
 }: {
   item: CatalogItem
   tableNumber?: string | null
   branchSlug?: string | null
   activeThemeSlug?: string | null
   ordering?: CafeOrderingStatus | null
+  showNewBadge?: boolean
 }) {
   const t = useTranslations("cafe_starter")
   const locale = useLocale()
@@ -92,6 +94,7 @@ export function ItemDetailView({
     tableNumber,
     branchSlug,
     currencyDisplay,
+    showNewBadge,
   }
 
   return (

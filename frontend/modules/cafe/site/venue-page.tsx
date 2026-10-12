@@ -4,7 +4,7 @@ import { fetchAboutData } from "@/kernel/cafe-catalogue-data"
 import { AboutView } from "@/themes/cafe-starter/views/AboutView"
 import type { ResolvedSiteRoute } from "@/kernel/types"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 export default async function Page(_props: { route: ResolvedSiteRoute }) {
   const venue = await fetchAboutData()

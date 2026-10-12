@@ -131,6 +131,13 @@ class OrderWriter
                 ]);
             }
 
+            if ($itemsChanged && $wasReserved && in_array((string) $order->status, OrderStock::RESERVE_STATUSES, true)) {
+                $order->unsetRelation('items');
+                $order->load('items');
+                $stock->assertLinesAvailable($order->items);
+                $stock->reserve($order);
+            }
+
             return $order->fresh()->load(['items.product', 'user', 'creator', 'notes', 'returns']);
         });
     }
@@ -156,7 +163,8 @@ class OrderWriter
             $wasSale = in_array((string) $order->status, $sales, true);
 
             // Restore against the current line ids before they are deleted.
-            if ($itemsChanged && $wasSale) {
+            $wasReserved = ! $wasSale && ! empty(($order->meta ?? [])['stock_reserved']);
+            if ($itemsChanged && ($wasSale || $wasReserved)) {
                 $stock->restoreOutstanding($order);
                 $order->refresh();
             }
@@ -188,7 +196,7 @@ class OrderWriter
             ];
             $patch = collect($data)->only($allowed)->all();
             if (isset($patch['meta']) && is_array($patch['meta'])) {
-                foreach (['stock_reduced', 'stock_reduced_qty', 'stock_restored_qty', 'marketplace_stock_reduced'] as $key) {
+                foreach (['stock_reduced', 'stock_reduced_qty', 'stock_restored_qty', 'marketplace_stock_reduced', 'stock_reserved', 'stock_reserved_until'] as $key) {
                     unset($patch['meta'][$key]);
                 }
                 $existing = is_array($order->meta) ? $order->meta : [];

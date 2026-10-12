@@ -267,6 +267,10 @@ class CheckoutController extends Controller
                 ]);
             }
 
+            // Hold the stock while the customer pays; released on failure, cancel or expiry.
+            app(\App\Services\Orders\OrderStock::class)->sync($order, null, (string) $order->status);
+            $order->refresh();
+
             if ($coupon) {
                 $this->coupons->hold($coupon, $order, $discount, $user->id);
             }

@@ -1,7 +1,7 @@
 import CataloguePage from "@/kernel/pages/CataloguePage"
 import type { ResolvedSiteRoute } from "@/kernel/types"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 type Props = {
   route: ResolvedSiteRoute
@@ -15,6 +15,7 @@ export default async function Page({ searchParams }: Props) {
       menuSlug={searchParams?.menu}
       branchSlug={searchParams?.branch}
       tableNumber={searchParams?.table}
+      tableId={searchParams?.table_id}
     />
   )
 }

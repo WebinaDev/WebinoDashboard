@@ -2392,7 +2392,8 @@
       "add_table": "افزودن میز",
       "table_qr": "کیوآر میز",
       "remove": "حذف",
-      "public_base_url_auto": "خالی بگذارید تا خودکار تشخیص داده شود. آدرس فعلی: {url}"
+      "public_base_url_auto": "خالی بگذارید تا خودکار تشخیص داده شود. آدرس فعلی: {url}",
+      "table_inactive": "غیرفعال"
     },
     "reservations": {
       "title": "رزرو و رویدادها",

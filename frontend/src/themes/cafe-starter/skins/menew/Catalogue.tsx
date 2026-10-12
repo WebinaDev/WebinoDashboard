@@ -74,14 +74,19 @@ export function MenewCatalogue(props: Props) {
           <div className="me-stage-tools">
             <h2>{ctrl.t("categories_heading")}</h2>
             <div className="me-tools">
-              <button type="button" className="me-icon" onClick={() => setSearchOpen((v) => !v)} aria-label={ctrl.t("search_placeholder")}>
-                <Search className="size-4" />
-              </button>
+              {ctrl.menu.show_search ? (
+                <button type="button" className="me-icon" onClick={() => setSearchOpen((v) => !v)} aria-label={ctrl.t("search_placeholder")}>
+                  <Search className="size-4" />
+                </button>
+              ) : null}
               <CartButton ctrl={ctrl} variant="pill" />
             </div>
           </div>
 
-          {searchOpen ? (
+          {ctrl.ordering?.is_open === false ? <p className="cafe-notice">{ctrl.t("status_closed")}</p> : null}
+          {ctrl.ordering?.accepting_orders === false ? <p className="cafe-notice">{ctrl.t("orders_paused")}</p> : null}
+
+          {searchOpen && ctrl.menu.show_search ? (
             <input
               className="me-search"
               autoFocus

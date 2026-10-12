@@ -287,4 +287,58 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->patchJson('/api/v1/cafe/kitchen-orders/'.$order->id, ['kitchen_status' => 'done'])->assertOk();
         $this->assertSame('completed', $order->fresh()->status);
     }
+
+    public function test_settings_changes_show_on_public_endpoints_immediately(): void
+    {
+        $first = $this->getJson('/api/v1/public/cafe/venue', $this->h)->assertOk();
+        $this->assertStringContainsString('no-cache', (string) $first->headers->get('Cache-Control'));
+        $this->assertStringNotContainsString('max-age=60', (string) $first->headers->get('Cache-Control'));
+
+        $this->menu(['show_search' => false, 'packaging_fee_minor' => 7000]);
+        ShopSettings::saveTax($this->tenant->id, ['enabled' => true, 'rate_percent' => 9, 'show_on_invoice' => false]);
+        $venue = $this->getJson('/api/v1/public/cafe/venue', $this->h)->assertOk()->json('data');
+        $this->assertFalse((bool) $venue['menu']['show_search']);
+        $this->assertSame(7000, (int) $venue['menu']['packaging_fee_minor']);
+
+        // A write that bypasses the service still drops the cached copy.
+        \App\Models\ModuleSetting::query()->where('tenant_id', $this->tenant->id)->where('module_slug', 'cafe')->where('submodule_slug', 'menu')
+            ->firstOrFail()->update(['payload' => array_merge(ModuleSettingsService::cafeMenuDefaults(), ['show_search' => true])]);
+        $this->assertTrue((bool) $this->getJson('/api/v1/public/cafe/venue', $this->h)->json('data.menu.show_search'));
+
+        $catalog = $this->getJson('/api/v1/public/catalog', $this->h)->assertOk();
+        $this->assertStringContainsString('no-cache', (string) $catalog->headers->get('Cache-Control'));
+    }
+
+    public function test_table_qr_carries_id_and_checkout_rejects_unknown_or_deleted_tables(): void
+    {
+        $branch = \App\Models\CafeBranch::query()->create(['tenant_id' => $this->tenant->id, 'name_fa' => 'مرکزی', 'slug' => 'center']);
+        $t5 = \App\Models\CafeTable::query()->create(['tenant_id' => $this->tenant->id, 'branch_id' => $branch->id, 'code' => '5', 'seats' => 4, 'is_active' => true]);
+        $off = \App\Models\CafeTable::query()->create(['tenant_id' => $this->tenant->id, 'code' => '9', 'seats' => 2, 'is_active' => false]);
+
+        $admin = \App\Models\User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+        $url = $this->getJson('/api/v1/cafe/qr?table_id='.$t5->id)->assertOk()->json('data.url');
+        $this->assertStringContainsString('table=5', $url);
+        $this->assertStringContainsString('table_id='.$t5->id, $url);
+        $this->assertStringContainsString('branch=center', $url);
+
+        $this->getJson('/api/v1/public/cafe/table?table_id='.$t5->id, $this->h)->assertOk()->assertJsonPath('data.code', '5')->assertJsonPath('data.branch_slug', 'center');
+        $this->getJson('/api/v1/public/cafe/table?table=9', $this->h)->assertNotFound();
+        $this->getJson('/api/v1/public/cafe/table?table=77', $this->h)->assertNotFound();
+
+        $p = $this->product('Tea', 30000);
+        $this->add($p, 'tok-tbl');
+        $base = ['guest_token' => 'tok-tbl', 'fulfillment' => 'dine_in', 'payment_method' => 'cash'];
+        $this->postJson('/api/v1/public/cafe/checkout', $base + ['table_number' => '77', 'idempotency_key' => 'tbl-key-1'], $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['table_number']);
+        $this->postJson('/api/v1/public/cafe/checkout', $base + ['table_number' => (string) $off->code, 'idempotency_key' => 'tbl-key-2'], $this->h)
+            ->assertStatus(422);
+        $order = $this->postJson('/api/v1/public/cafe/checkout', $base + ['table_number' => '5', 'idempotency_key' => 'tbl-key-3'], $this->h)
+            ->assertCreated()->json('data');
+        $this->assertSame('5', (string) $order['table_number']);
+
+        // A table deleted after its QR was printed no longer validates.
+        $t5->delete();
+        $this->getJson('/api/v1/public/cafe/table?table_id='.$t5->id, $this->h)->assertNotFound();
+    }
 }

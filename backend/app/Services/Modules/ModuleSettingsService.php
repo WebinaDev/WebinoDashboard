@@ -10,21 +10,25 @@ final class ModuleSettingsService
     /** @return array<string, mixed> */
     public function get(int $tenantId, string $moduleSlug, string $submoduleSlug, array $defaults = []): array
     {
-        $cacheKey = "module_settings:{$tenantId}:{$moduleSlug}.{$submoduleSlug}";
+        $cacheKey = self::cacheKey($tenantId, $moduleSlug, $submoduleSlug);
 
-        return Cache::remember($cacheKey, 60, function () use ($tenantId, $moduleSlug, $submoduleSlug, $defaults) {
+        // Cache only the stored payload: callers pass different defaults for the same key.
+        $payload = Cache::remember($cacheKey, 60, function () use ($tenantId, $moduleSlug, $submoduleSlug) {
             $row = ModuleSetting::query()
                 ->where('tenant_id', $tenantId)
                 ->where('module_slug', $moduleSlug)
                 ->where('submodule_slug', $submoduleSlug)
                 ->first();
 
-            if (! $row || ! is_array($row->payload)) {
-                return $defaults;
-            }
-
-            return array_merge($defaults, $row->payload);
+            return $row && is_array($row->payload) ? $row->payload : null;
         });
+
+        return is_array($payload) ? array_merge($defaults, $payload) : $defaults;
+    }
+
+    public static function cacheKey(int $tenantId, string $moduleSlug, string $submoduleSlug): string
+    {
+        return "module_settings:{$tenantId}:{$moduleSlug}.{$submoduleSlug}";
     }
 
     /** @param  array<string, mixed>  $payload */

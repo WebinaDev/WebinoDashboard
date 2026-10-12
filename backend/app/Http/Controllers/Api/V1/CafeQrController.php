@@ -25,6 +25,16 @@ class CafeQrController extends Controller
         $menuSlug = $request->query('menu');
         $branch = $request->query('branch');
         $table = $request->query('table');
+        $tableId = (int) $request->query('table_id', 0);
+        if ($tableId > 0) {
+            // Table QR codes point at a dashboard table: its id survives a rename, its code is shown to guests.
+            $row = \App\Models\CafeTable::query()->where('tenant_id', $request->user()->tenant_id)->whereKey($tableId)->with('branch:id,slug')->first();
+            abort_unless($row, 404);
+            $table = $row->code;
+            if ((! is_string($branch) || $branch === '') && $row->branch?->slug) {
+                $branch = $row->branch->slug;
+            }
+        }
 
         $url = rtrim((string) $baseUrl, '/').'/catalogue';
         $params = [];
@@ -36,6 +46,9 @@ class CafeQrController extends Controller
         }
         if (is_string($table) && $table !== '') {
             $params['table'] = $table;
+        }
+        if ($tableId > 0) {
+            $params['table_id'] = $tableId;
         }
         if ($params !== []) {
             $url .= '?'.http_build_query($params);

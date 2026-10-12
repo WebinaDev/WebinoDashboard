@@ -20,6 +20,8 @@ return [
     'cafe_order_not_payable' => 'This order cannot be paid.',
     'cafe_gateway_unavailable' => 'This payment gateway is not available.',
     'cafe_gateway_error' => 'Could not reach the payment gateway. Please try again.',
+    'cafe_kitchen_order_not_payable' => 'This order is not paid or is closed, so the kitchen cannot update it.',
+    'cafe_table_invalid' => 'This table is not available. Ask staff or pick another table.',
     'cafe_pickup_unavailable' => 'This pickup time is not available. Please choose another.',
     'cafe_item_unavailable' => 'This item can\'t be ordered right now.',
     'cafe_modifier_required' => 'Choose the required extras for this item.',

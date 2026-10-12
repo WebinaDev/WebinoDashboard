@@ -131,7 +131,7 @@ export function SignatureCatalogue(props: Props) {
                   <Search className="size-4" />
                 </button>
               ) : null}
-              <div className="sig-nav-track" ref={spy.navRef}>
+              <div className="sig-nav-track" ref={spy.navRef} hidden={!ctrl.menu.show_category_bar}>
                 {groups.map(({ cat, items }) => (
                   <button
                     key={cat.id}
@@ -169,7 +169,7 @@ export function SignatureCatalogue(props: Props) {
                   <div className="sig-pick-copy">
                     {offPercent(item) > 0 ? (
                       <span className="sig-chip is-hot">{ctrl.t("discount_percent", { percent: digits(offPercent(item), ctrl.locale) })}</span>
-                    ) : item.is_new ? (
+                    ) : ctrl.showNew(item) ? (
                       <span className="sig-chip">{ctrl.t("badge_new")}</span>
                     ) : null}
                     <h3>{item.name}</h3>
@@ -266,7 +266,7 @@ function SigCard({ item, ctrl }: { item: CatalogItem; ctrl: CatalogueController 
       <div className="sig-card-copy">
         <div className="sig-card-tags">
           {item.is_featured ? <span className="sig-chip">{ctrl.t("badge_featured")}</span> : null}
-          {item.is_new ? <span className="sig-chip">{ctrl.t("badge_new")}</span> : null}
+          {ctrl.showNew(item) ? <span className="sig-chip">{ctrl.t("badge_new")}</span> : null}
           {off > 0 ? <span className="sig-chip is-hot">{ctrl.t("discount_percent", { percent: digits(off, ctrl.locale) })}</span> : null}
         </div>
         <h3>{item.name}</h3>

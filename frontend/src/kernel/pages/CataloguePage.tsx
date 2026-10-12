@@ -1,14 +1,15 @@
-import { fetchCatalogueData } from "@/kernel/cafe-catalogue-data"
+import { fetchCatalogueData, resolveCafeTable } from "@/kernel/cafe-catalogue-data"
 import { getServerTranslations } from "@/lib/server-translations"
 import { CatalogueView } from "@/themes/cafe-starter/views/CatalogueView"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 type Props = {
   initialQuery?: string
   menuSlug?: string
   branchSlug?: string
   tableNumber?: string
+  tableId?: string
 }
 
 export default async function CataloguePage({
@@ -16,8 +17,11 @@ export default async function CataloguePage({
   menuSlug,
   branchSlug,
   tableNumber,
+  tableId,
 }: Props = {}) {
-  const { catalog, venue } = await fetchCatalogueData(initialQuery, menuSlug, branchSlug)
+  const table = await resolveCafeTable(tableNumber, tableId)
+  const branch = branchSlug || table?.branch_slug || undefined
+  const { catalog, venue } = await fetchCatalogueData(initialQuery, menuSlug, branch)
 
   if (!catalog) {
     const t = await getServerTranslations("cafe_starter")
@@ -29,8 +33,8 @@ export default async function CataloguePage({
       catalog={catalog}
       venue={venue}
       initialQuery={initialQuery}
-      tableNumber={tableNumber}
-      branchSlug={branchSlug}
+      tableNumber={table?.code ?? null}
+      branchSlug={branch}
       menuSlug={menuSlug}
       activeThemeSlug={venue?.tenant.active_theme_slug}
     />

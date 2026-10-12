@@ -149,7 +149,7 @@ function MashCard({ item, ctrl }: { item: CatalogItem; ctrl: CatalogueController
   return (
     <Link {...pickProps(ctrl, item)} className={cn("mash-card", item.is_sold_out && "is-sold")} data-reveal>
       <ItemMedia item={item} className="mash-card-media" stamp={sold} />
-      {item.is_new ? <span className="mash-sticker">{ctrl.t("badge_new")}</span> : null}
+      {ctrl.showNew(item) ? <span className="mash-sticker">{ctrl.t("badge_new")}</span> : null}
       <div className="mash-card-body">
         <h3>{item.name}</h3>
         {item.description ? <p>{item.description}</p> : null}

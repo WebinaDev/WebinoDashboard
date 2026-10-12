@@ -41,7 +41,7 @@ class CafeTableController extends Controller
 
     public function update(Request $request, CafeTable $table): \Illuminate\Http\JsonResponse
     {
-        abort_if($request->user()->tenant_id !== $table->tenant_id, 403);
+        abort_if((int) $request->user()->tenant_id !== (int) $table->tenant_id, 403);
         $data = $this->validateTable($request, $table->tenant_id, true);
         $table->update($data);
 
@@ -50,7 +50,7 @@ class CafeTableController extends Controller
 
     public function destroy(Request $request, CafeTable $table): \Illuminate\Http\JsonResponse
     {
-        abort_if($request->user()->tenant_id !== $table->tenant_id, 403);
+        abort_if((int) $request->user()->tenant_id !== (int) $table->tenant_id, 403);
         $table->delete();
 
         return response()->json([], 204);

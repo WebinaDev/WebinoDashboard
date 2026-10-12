@@ -111,7 +111,7 @@ export function CafeCartDrawer({
     queryKey: ["cafe-venue-pickup"],
     enabled: open && fulfillment === "pickup",
     queryFn: () => api<CafeVenuePayload>("/api/v1/public/cafe/venue"),
-    staleTime: 60_000,
+    staleTime: 0,
   })
 
   // Slots come from the server: after prep time and inside opening hours (holidays, overnight).

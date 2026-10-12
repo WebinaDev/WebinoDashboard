@@ -1,7 +1,9 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
+
+import { toLocaleDigits } from "@/lib/locale"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -14,6 +16,7 @@ type TableRow = { id: number; code: string; label?: string | null; seats: number
 
 export function TablesCard() {
   const t = useTranslations("cafe_admin.qr")
+  const locale = useLocale()
   const queryClient = useQueryClient()
   const [code, setCode] = useState("")
   const [label, setLabel] = useState("")
@@ -47,10 +50,13 @@ export function TablesCard() {
         <ul className="space-y-2">
           {tables.map((table) => (
             <li key={table.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-              <span>{table.label || table.code} · {table.seats}</span>
+              <span>
+                {table.label || table.code} · {toLocaleDigits(String(table.seats), locale)}
+                {table.is_active ? null : <span className="text-muted-foreground"> · {t("table_inactive")}</span>}
+              </span>
               <span className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={async () => {
-                  const res = await api<{ url: string; qr_svg: string }>(`/api/v1/cafe/qr?table=${encodeURIComponent(table.code)}`)
+                  const res = await api<{ url: string; qr_svg: string }>(`/api/v1/cafe/qr?table_id=${table.id}`)
                   setQr({ code: table.code, svg: res.qr_svg, url: res.url })
                 }}>{t("table_qr")}</Button>
                 <Button size="sm" variant="ghost" onClick={() => api(`/api/v1/cafe/tables/${table.id}`, { method: "DELETE" }).then(() => queryClient.invalidateQueries({ queryKey: ["cafe-tables"] }))}>{t("remove")}</Button>
@@ -61,7 +67,9 @@ export function TablesCard() {
         {qr ? (
           <div className="rounded-lg border p-3">
             <p className="mb-2 text-sm">{qr.code}</p>
-            <div dangerouslySetInnerHTML={{ __html: qr.svg }} />
+            {/* The API returns an image URL, not inline SVG markup. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qr.svg} alt={qr.url} width={200} height={200} className="bg-white p-2" />
             <p className="text-muted-foreground mt-2 break-all text-xs">{qr.url}</p>
           </div>
         ) : null}

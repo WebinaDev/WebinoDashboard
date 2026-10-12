@@ -151,6 +151,11 @@ export function useCatalogueController({
     return money(minor, catalog.items[0]?.currency || "IRT", currencyDisplay, locale)
   }
 
+  /** "New" badges follow the menu setting in every skin. */
+  function showNew(item: CatalogItem) {
+    return menu.show_new_badge !== false && Boolean(item.is_new)
+  }
+
   function priceOf(item: CatalogItem) {
     return money(item.discounted_price_minor, item.currency, currencyDisplay, locale)
   }
@@ -196,6 +201,8 @@ export function useCatalogueController({
     branchSlug,
     menuSlug,
     priceOf,
+    showNew,
+    showNewBadge: menu.show_new_badge !== false,
     wasOf,
     moneyOf,
     picked,

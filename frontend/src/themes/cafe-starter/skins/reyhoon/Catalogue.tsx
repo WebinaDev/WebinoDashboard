@@ -169,7 +169,7 @@ function ReyCard({ item, ctrl }: { item: CatalogItem; ctrl: CatalogueController 
       <div className="rey-card-body">
         <div className="rey-badges">
           {item.is_featured ? <span>{ctrl.t("badge_featured")}</span> : null}
-          {item.is_new ? <span>{ctrl.t("badge_new")}</span> : null}
+          {ctrl.showNew(item) ? <span>{ctrl.t("badge_new")}</span> : null}
         </div>
         <h3>{item.name}</h3>
         {item.description ? <p>{item.description}</p> : null}

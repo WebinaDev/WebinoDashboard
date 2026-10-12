@@ -37,16 +37,27 @@ class CafeKitchenController extends Controller
         $data = $request->validate([
             'kitchen_status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)],
         ]);
-        $meta = is_array($order->meta) ? $order->meta : [];
-        $meta['kitchen_status'] = $data['kitchen_status'];
-        $meta['kitchen_updated_at'] = now()->toIso8601String();
-        $order->meta = $meta;
-        $order->save();
-
-        // Handing the order over closes it, so reports and the order list stop showing it as open.
-        if ($data['kitchen_status'] === 'done' && \App\Services\Orders\OrderStatusTransitions::canTransition((string) $order->status, 'completed')) {
-            app(\App\Services\Orders\OrderStatusService::class)->apply($order, 'completed');
+        if (in_array((string) $order->status, ['pending_payment', 'awaiting_gateway', 'payment_failed', 'cancelled', 'failed', 'refunded'], true)) {
+            return response()->json(['message' => __('api.cafe_kitchen_order_not_payable')], 422);
         }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $data) {
+            $meta = is_array($order->meta) ? $order->meta : [];
+            $meta['kitchen_status'] = $data['kitchen_status'];
+            $meta['kitchen_updated_at'] = now()->toIso8601String();
+            $order->meta = $meta;
+            $order->save();
+
+            // Kitchen steps drive the order through the normal status service (stock, coupons, notifications):
+            // a paid online order starts processing once the kitchen picks it up, and handing it over completes it.
+            $statuses = app(\App\Services\Orders\OrderStatusService::class);
+            if ($data['kitchen_status'] !== 'new' && (string) $order->status === 'paid') {
+                $statuses->apply($order, 'processing');
+            }
+            if ($data['kitchen_status'] === 'done' && \App\Services\Orders\OrderStatusTransitions::canTransition((string) $order->status, 'completed')) {
+                $statuses->apply($order, 'completed');
+            }
+        });
 
         return response()->json(['data' => $this->present($order->fresh()->load('items.product:id,name'))]);
     }

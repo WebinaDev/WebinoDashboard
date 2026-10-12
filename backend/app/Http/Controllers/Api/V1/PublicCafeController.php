@@ -29,6 +29,6 @@ class PublicCafeController extends Controller
                 'venue' => $settings->get($tid, 'cafe', 'venue', ModuleSettingsService::cafeVenueDefaults()),
                 'ordering' => $ordering->publicStatus($tid),
             ],
-        ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
+        ])->header('Cache-Control', 'no-cache, must-revalidate');
     }
 }
