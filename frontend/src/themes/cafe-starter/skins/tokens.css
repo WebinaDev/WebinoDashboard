@@ -153,10 +153,14 @@
 .cafe-sheet[data-skin="cafe-signature"][data-scheme="dark"] .cafe-mod-options button[data-on="true"] { color: #1b120a; }
 
 @media (min-width: 720px) {
-  .cafe-sheet[data-placement="bottom"] {
+  /* Keep bottom sheets as floated rounded cards (do not flush to screen edges). */
+  .cafe-sheet[data-placement="bottom"]:not(.cafe-item-sheet) {
     left: 50%;
     right: auto;
-    width: min(560px, 100vw);
+    inset-inline: auto;
+    bottom: 1rem;
+    width: min(560px, calc(100vw - 1.5rem));
+    border-radius: 32px;
     transform: translateX(-50%);
     animation-name: cafe-rise-center;
   }

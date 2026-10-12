@@ -40,5 +40,21 @@ class CafeOrderingTest extends TestCase
 
         $this->assertTrue($status['is_open']);
     }
+
+    public function test_hourly_close_stays_open_through_that_hour(): void
+    {
+        $hours = [
+            'timezone' => 'Asia/Tehran',
+            'days' => [
+                ['day' => 'monday', 'open' => '09:00', 'close' => '23:00', 'closed' => false],
+            ],
+        ];
+
+        $open = CafeOrdering::openAt($hours, Carbon::parse('2026-10-12 23:30:00', 'Asia/Tehran'));
+        $this->assertTrue($open['is_open']);
+
+        $closed = CafeOrdering::openAt($hours, Carbon::parse('2026-10-13 00:05:00', 'Asia/Tehran'));
+        $this->assertFalse($closed['is_open']);
+    }
 }
 

@@ -8,6 +8,7 @@ import type { CatalogItem } from "../../types"
 import { offPercent, useCatalogueController, type CatalogueController } from "../../lib/useCatalogueController"
 import { useScrollSpy } from "../../lib/useScrollSpy"
 import { digits, localizedField } from "../../lib/helpers"
+import { WebinaCredit } from "@/components/brand/WebinaCredit"
 import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps, soldLabel } from "../shared"
 import "./signature.css"
 
@@ -243,7 +244,9 @@ export function SignatureCatalogue(props: Props) {
               </li>
             ) : null}
           </ul>
-          <p className="sig-powered">{ctrl.t("footer_powered")}</p>
+          <div className="sig-powered">
+            <WebinaCredit />
+          </div>
         </footer>
       </div>
 

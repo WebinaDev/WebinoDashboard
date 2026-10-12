@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { CalendarClock, Coffee, ShoppingBasket, Store, UtensilsCrossed } from "lucide-react"
 
+import { WebinaCredit } from "@/components/brand/WebinaCredit"
 import { apiServer } from "@/lib/api-server"
 import { getServerTranslations } from "@/lib/server-translations"
 import { SiteLogo } from "@/themes/shared/SiteLogo"
@@ -103,7 +104,9 @@ export async function CafeSkinFooter({ siteName, skin }: { siteName: string; ski
           <Link href="/about">{t("nav_about")}</Link>
           <Link href="/reservations">{t("nav_reservations")}</Link>
         </nav>
-        <p className="cafe-chrome-foot-meta">{t("footer_powered")}</p>
+        <div className="cafe-chrome-foot-credit">
+          <WebinaCredit />
+        </div>
       </div>
     </footer>
   )

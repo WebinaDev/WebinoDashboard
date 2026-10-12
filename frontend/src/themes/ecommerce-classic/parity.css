@@ -4850,6 +4850,7 @@
   text-decoration: none;
 }
 
+.sfc-footer__made .webina-dev-credit__mark,
 .sfc-footer__made-mark {
   display: grid;
   place-items: center;
@@ -4862,6 +4863,7 @@
   font-weight: 500;
 }
 
+.sfc-footer__made .webina-dev-credit__text,
 .sfc-footer__made-text {
   display: flex;
   flex-direction: column;
@@ -4872,6 +4874,7 @@
   line-height: 1.4;
 }
 
+.sfc-footer__made .webina-dev-credit__text strong,
 .sfc-footer__made-text strong {
   font-size: 12px;
   font-weight: 500;

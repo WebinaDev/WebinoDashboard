@@ -153,10 +153,17 @@
 .cafe-empty {
   margin: 1rem;
   padding: 1rem 1.1rem;
-  border-radius: 18px;
+  border-radius: 22px;
   border: 1px dashed var(--c-line);
   color: var(--c-muted);
   text-align: center;
+}
+
+/* Webina credit (Parisma 1:1, styles inline in WebinaCredit). Dark surfaces get a light chip so the original colors stay legible. */
+:is(.cafe-chrome[data-skin="cafe-mash-donald"], [data-scheme="dark"]) .webina-credit {
+  background: #fff;
+  border-radius: 12px;
+  padding: 6px 10px;
 }
 
 .cafe-media {
@@ -328,9 +335,15 @@
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: rgba(10, 8, 6, 0.48);
-  backdrop-filter: blur(4px);
+  /* Light neutral dim + slight blur: the page behind stays visible, never a brown wash. */
+  background: rgba(15, 18, 24, 0.3);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   animation: cafe-fade 180ms ease;
+  pointer-events: auto;
+}
+.cafe-sheet-overlay[data-scheme="dark"] {
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .cafe-sheet {
@@ -340,24 +353,39 @@
   flex-direction: column;
   background: var(--c-card, #fff);
   color: var(--c-ink, #18120e);
-  box-shadow: 0 -20px 60px rgba(0,0,0,.28);
+  box-shadow: 0 12px 48px rgba(0,0,0,.35);
   outline: none;
+  overflow: hidden;
   animation: cafe-rise 280ms cubic-bezier(.2,.9,.2,1);
+  /* Force all four corners so nothing can flatten the bottom edge. */
+  border-radius: 32px;
+  /* Shared token block above gives .cafe-sheet min-height:70vh; sheets size to content. */
+  min-height: 0;
+  isolation: isolate;
+}
+.cafe-sheet > :last-child { border-end-start-radius: inherit; border-end-end-radius: inherit; }
+
+.cafe-phone-body {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.5rem 1.1rem 1.25rem;
 }
 
 .cafe-sheet[data-placement="bottom"] {
-  inset-inline: 0;
-  bottom: 0;
-  max-height: min(92vh, 860px);
-  border-radius: 28px 28px 0 0;
+  /* Floated card: round ALL corners — never flush/sharp against the screen edge. */
+  inset-inline: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  max-height: min(86vh, 860px);
+  border-radius: 32px;
+  border-bottom-left-radius: 32px;
+  border-bottom-right-radius: 32px;
 }
 
 .cafe-sheet[data-placement="side"] {
-  inset-block: 0;
-  inset-inline-end: 0;
-  width: min(100vw, 420px);
-  border-start-start-radius: 28px;
-  border-end-start-radius: 28px;
+  inset-block: 0.75rem;
+  inset-inline-end: 0.75rem;
+  width: min(calc(100vw - 1.5rem), 400px);
+  border-radius: 32px;
   animation-name: cafe-slide;
 }
 
@@ -368,7 +396,7 @@
   left: 50%;
   width: min(100vw - 1.5rem, 560px);
   max-height: min(92vh, 820px);
-  border-radius: 28px;
+  border-radius: 32px;
   transform: translate(-50%, -50%);
   animation-name: cafe-pop-in;
 }
@@ -382,7 +410,7 @@
     bottom: auto;
     width: min(100vw - 2rem, 560px);
     max-height: min(88vh, 820px);
-    border-radius: 28px;
+    border-radius: 32px;
     transform: translate(-50%, -50%);
     animation-name: cafe-pop-in;
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
@@ -525,6 +553,7 @@
   background: #cfc6bc center/cover no-repeat;
   overflow: hidden;
   flex: 0 0 auto;
+  /* Sheet clips with overflow:hidden + border-radius; hero stays flush to the card. */
 }
 
 .cafe-item-off {
@@ -608,10 +637,12 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom));
+  padding: 0.85rem 1rem;
   border-top: 1px solid var(--c-line);
   background: color-mix(in srgb, var(--c-card) 92%, transparent);
   backdrop-filter: blur(10px);
+  /* Sheet already floats above the safe area; keep bar flush inside rounded card. */
+  border-radius: 0 0 32px 32px;
 }
 
 .cafe-stepper {

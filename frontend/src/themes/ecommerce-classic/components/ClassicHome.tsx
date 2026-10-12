@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { toneClass, type ShopProduct } from "@/builder/catalog"
 import { useCatalog, type CatalogState } from "@/builder/storefront/use-catalog"
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 
 import {
   IconBag,
@@ -120,6 +121,8 @@ function ClassicStoryViewer({
     return () => cancelAnimationFrame(raf)
   }, [go, paused, story?.id])
 
+  useBodyScrollLock(Boolean(story))
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose()
@@ -127,12 +130,7 @@ function ClassicStoryViewer({
       if (event.key === "ArrowRight") go(-1)
     }
     document.addEventListener("keydown", onKey)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.removeEventListener("keydown", onKey)
-      document.body.style.overflow = prev
-    }
+    return () => document.removeEventListener("keydown", onKey)
   }, [go, onClose])
 
   if (!story) return null

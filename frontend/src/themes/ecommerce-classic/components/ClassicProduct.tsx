@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { mapApiProduct, toneClass, type ShopProduct } from "@/builder/catalog"
 import { addShopItem } from "@/builder/storefront/actions"
@@ -134,6 +135,8 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
     ? (product.images.length ? product.images.length : product.image ? 1 : 0)
     : 0
 
+  useBodyScrollLock(lightbox && lightboxEnabled)
+
   useEffect(() => {
     if (!lightbox) return
     const onKey = (event: KeyboardEvent) => {
@@ -142,12 +145,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
       if (event.key === "ArrowLeft" && galleryLen) setImage((i) => (i - 1 + galleryLen) % galleryLen)
     }
     document.addEventListener("keydown", onKey)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.removeEventListener("keydown", onKey)
-      document.body.style.overflow = prev
-    }
+    return () => document.removeEventListener("keydown", onKey)
   }, [lightbox, galleryLen])
 
   if (!product) {

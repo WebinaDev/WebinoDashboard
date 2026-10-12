@@ -183,8 +183,11 @@ class CafeOrdering
             $open = self::clockMinutes((string) ($today['open'] ?? ''));
             $close = self::clockMinutes((string) ($today['close'] ?? ''));
             if ($open !== null && $close !== null) {
+                // A close of "23:00" is commonly understood as "until 11pm" (through 23:59),
+                // not a hard cut at 23:00:00. Only exact HH:00 closes get that grace.
+                $closeInclusive = ($close > $open && ($close % 60) === 0) ? min(24 * 60 - 1, $close + 59) : $close;
                 $isOpen = $close >= $open
-                    ? ($mins >= $open && $mins <= $close)
+                    ? ($mins >= $open && $mins <= $closeInclusive)
                     : ($mins >= $open || $mins <= $close);
             }
         }

@@ -18,6 +18,7 @@ import {
   IconShield,
   IconTruck,
 } from "./icons"
+import { WebinaCredit } from "@/components/brand/WebinaCredit"
 import { ClassicAmount } from "./parts"
 
 const FALLBACK_GUIDE = {
@@ -52,9 +53,6 @@ const SOCIAL_DEFS = [
   { key: "social_soroush", label: "سروش", icon: "" },
 ] as const
 
-const WEBINA_CREDIT_HREF = "https://webina.dev"
-const WEBINA_CREDIT_TITLE = "طراحی و توسعه توسط"
-const WEBINA_CREDIT_NAME = "توسعه کسب و کار وبینا"
 
 function parseLinkColumns(
   raw: unknown,
@@ -418,15 +416,7 @@ export function ClassicFooter({
             </span>
             {copyrightYears ? <span className="sfc-footer__copy-years">{copyrightYears}</span> : null}
           </div>
-          <a href={WEBINA_CREDIT_HREF} target="_blank" rel="noreferrer" className="sfc-footer__made">
-            <span className="sfc-footer__made-mark" aria-hidden="true">
-              W
-            </span>
-            <span className="sfc-footer__made-text">
-              <span>{WEBINA_CREDIT_TITLE}</span>
-              <strong>{WEBINA_CREDIT_NAME}</strong>
-            </span>
-          </a>
+          <WebinaCredit />
         </div>
       </div>
     </footer>

@@ -50,7 +50,7 @@ export function CafeShell({
       data-hydrated={ctrl.hydrated ? "true" : "false"}
       style={style}
     >
-      <PhoneGateDialog engagement={ctrl.catalog.engagement} />
+      <PhoneGateDialog engagement={ctrl.catalog.engagement} skin={ctrl.skin} scheme={ctrl.scheme} />
       {children}
       <ItemSheet ctrl={ctrl} item={ctrl.picked} onClose={() => ctrl.setPicked(null)} />
     </div>

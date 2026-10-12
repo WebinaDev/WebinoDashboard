@@ -326,8 +326,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.9rem;
   align-items: center;
-  padding: 0.8rem;
-  border-radius: 24px;
+  padding: 0.85rem;
+  border-radius: 28px;
   background: var(--c-card);
   border: 1px solid var(--c-line);
   transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
@@ -357,7 +357,7 @@
 .sig-card-price strong { font-size: 0.98rem; font-weight: 900; font-variant-numeric: tabular-nums; }
 .sig-card-price s { color: var(--c-muted); font-size: 0.75rem; }
 .sig-card-visual { position: relative; }
-.sig-card-media { width: 7.25rem; height: 7.25rem; border-radius: 20px; }
+.sig-card-media { width: 7.25rem; height: 7.25rem; border-radius: 22px; }
 @media (min-width: 760px) { .sig-card-media { width: 8.25rem; height: 8.25rem; } }
 .sig-card-add {
   position: absolute;
@@ -389,7 +389,11 @@
 .sig-foot ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem 1.4rem; margin: 0.5rem 0 0; padding: 0; list-style: none; }
 .sig-foot li { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--c-muted); font-size: 0.85rem; }
 .sig-foot li a:hover { color: var(--cafe-accent); }
-.sig-powered { margin-top: 1rem; color: var(--c-muted); font-size: 0.72rem; opacity: 0.7; }
+.sig-powered {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
 
 .sig-cart-float {
   position: fixed;

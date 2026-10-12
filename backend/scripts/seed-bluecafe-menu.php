@@ -178,7 +178,8 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
         $days[] = [
             'day' => $day,
             'open' => '09:00',
-            'close' => '23:00',
+            // Inclusive through 23:59 — "تا ۱۱ شب" means the whole 11pm hour, not a hard cut at 23:00:00.
+            'close' => '23:59',
             'closed' => false,
         ];
     }
