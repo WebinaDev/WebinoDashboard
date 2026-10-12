@@ -213,6 +213,46 @@ export type CafeVenueSettings = {
   whatsapp_url?: string | null
   telegram_url?: string | null
   bill_pay_url?: string | null
+  contact_page_enabled?: boolean
+  email?: string | null
+  bale_url?: string | null
+  website_url?: string | null
+}
+
+export type CafeContactPayload = {
+  tenant: { name: string; domain?: string | null; active_theme_slug?: string | null; logo_url?: string | null; logo_dark_url?: string | null }
+  tagline_fa?: string | null
+  tagline_en?: string | null
+  accent_color?: string | null
+  contact: {
+    phone?: string | null
+    email?: string | null
+    whatsapp?: string | null
+    telegram?: string | null
+    bale?: string | null
+    instagram?: string | null
+    website?: string | null
+    address_fa?: string | null
+    address_en?: string | null
+    map_url?: string | null
+  }
+  socials: { label: string; url: string }[]
+  links: { id: number; label: string; url: string; icon?: string }[]
+  form: {
+    id: number
+    title?: string | null
+    submit_label?: string | null
+    fields: { name: string; label?: string; type?: string; required?: boolean }[]
+  } | null
+  location: { lat: number; lng: number } | null
+  hours: {
+    timezone?: string
+    days: { day: string; open?: string | null; close?: string | null; closed?: boolean }[]
+    closed_dates: string[]
+    is_open: boolean | null
+    reason?: string | null
+  }
+  branches: { id: number; name_fa: string; name_en?: string | null; slug: string; address_fa?: string | null; address_en?: string | null; phone?: string | null }[]
 }
 
 export type CafeVenuePayload = {

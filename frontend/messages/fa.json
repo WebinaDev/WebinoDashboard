@@ -2231,7 +2231,47 @@
       "thursday": "پنج‌شنبه",
       "friday": "جمعه"
     },
-    "hours_range": "{open} تا {close}"
+    "hours_range": "{open} تا {close}",
+    "contact": {
+      "meta_title": "تماس با {name}",
+      "meta_description": "راه‌های تماس، ساعت کاری، نشانی و مسیر {name}",
+      "hero_fallback": "خوشحال می‌شویم از شما بشنویم",
+      "open_now": "الان باز است",
+      "closed_now": "الان بسته است",
+      "closed_holiday": "امروز تعطیل است",
+      "hours_unknown": "ساعت کاری ثبت نشده",
+      "links_heading": "راه‌های ارتباط",
+      "call": "تماس تلفنی",
+      "whatsapp": "واتس‌اپ",
+      "telegram": "تلگرام",
+      "bale": "بله",
+      "instagram": "اینستاگرام",
+      "email": "ایمیل",
+      "website": "وب‌سایت",
+      "copy_label": "کپی {what}",
+      "copied": "کپی شد",
+      "hours_heading": "ساعت کاری",
+      "today": "امروز",
+      "holidays_heading": "تعطیلی‌های پیش رو",
+      "address_heading": "نشانی",
+      "map_label": "نقشه موقعیت کافه",
+      "open_neshan": "مسیریابی با نشان",
+      "open_balad": "مسیریابی با بلد",
+      "open_google": "گوگل مپ",
+      "open_map": "باز کردن نقشه",
+      "branches_heading": "شعبه‌ها",
+      "branch_menu": "منوی این شعبه",
+      "form_heading": "برای ما پیام بگذارید",
+      "form_submit": "ارسال پیام",
+      "form_sending": "در حال ارسال...",
+      "form_sent": "پیام شما رسید. به‌زودی پاسخ می‌دهیم.",
+      "form_error": "ارسال نشد. لطفاً دوباره تلاش کنید.",
+      "qr_heading": "این صفحه را به اشتراک بگذارید",
+      "qr_alt": "کد QR صفحه تماس {name}",
+      "qr_hint": "کد را با دوربین گوشی اسکن کنید",
+      "none": "ندارد"
+    },
+    "nav_contact": "تماس"
   },
   "cafe_admin": {
     "menu": {
@@ -2490,7 +2530,12 @@
       "saved": "پروفایل مجموعه ذخیره شد.",
       "whatsapp_url": "لینک واتساپ",
       "telegram_url": "لینک تلگرام",
-      "bill_pay_url": "لینک پرداخت صورتحساب"
+      "bill_pay_url": "لینک پرداخت صورتحساب",
+      "bale_url": "لینک بله",
+      "email": "ایمیل",
+      "website_url": "وب‌سایت",
+      "contact_page_enabled": "نمایش صفحه تماس (/contact)",
+      "contact_page_hint": "صفحه تماس عمومی با لینک‌ها، ساعت کاری، نقشه و فرم پیام. لینک‌ها و فرم از «لینک کوتاه» خوانده می‌شوند."
     },
     "kitchen": {
       "title": "تابلو آشپزخانه",
@@ -3099,7 +3144,8 @@
     "footer": {
       "about": "درباره ما",
       "contact": "تماس"
-    }
+    },
+    "contact": "تماس با ما"
   },
   "coupons_admin": {
     "title": "کدهای تخفیف",

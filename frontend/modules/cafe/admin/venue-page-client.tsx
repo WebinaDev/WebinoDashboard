@@ -28,6 +28,10 @@ const defaults: CafeVenueSettings = {
   whatsapp_url: "",
   telegram_url: "",
   bill_pay_url: "",
+  contact_page_enabled: false,
+  email: "",
+  bale_url: "",
+  website_url: "",
 }
 
 export default function VenuePageClient({ route }: { route: ResolvedAdminRoute }) {
@@ -118,6 +122,25 @@ export default function VenuePageClient({ route }: { route: ResolvedAdminRoute }
             <Label>{t("bill_pay_url")}</Label>
             <Input value={values.bill_pay_url ?? ""} onChange={(e) => setForm({ ...values, bill_pay_url: e.target.value })} />
           </div>
+          <div>
+            <Label>{t("bale_url")}</Label>
+            <Input dir="ltr" value={values.bale_url ?? ""} onChange={(e) => setForm({ ...values, bale_url: e.target.value })} />
+          </div>
+          <div>
+            <Label>{t("email")}</Label>
+            <Input dir="ltr" type="email" value={values.email ?? ""} onChange={(e) => setForm({ ...values, email: e.target.value })} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>{t("website_url")}</Label>
+            <Input dir="ltr" value={values.website_url ?? ""} onChange={(e) => setForm({ ...values, website_url: e.target.value })} />
+          </div>
+          <label className="flex items-start gap-2 text-sm sm:col-span-2">
+            <Checkbox checked={values.contact_page_enabled === true} onCheckedChange={(v) => setForm({ ...values, contact_page_enabled: Boolean(v) })} />
+            <span>
+              {t("contact_page_enabled")}
+              <span className="text-muted-foreground block text-xs">{t("contact_page_hint")}</span>
+            </span>
+          </label>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <Checkbox checked={values.mini_site_enabled !== false} onCheckedChange={(v) => setForm({ ...values, mini_site_enabled: Boolean(v) })} />
             {t("mini_site_enabled")}

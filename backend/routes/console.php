@@ -113,6 +113,28 @@ Artisan::command('pricing:bulk-price-schedule', function () {
     });
 })->purpose('Run scheduled bulk price changes');
 
+Artisan::command('cafe:contact-page {tenant : Tenant id, slug or domain} {--disable : Turn the page off}', function () {
+    $key = (string) $this->argument('tenant');
+    $tenant = \App\Models\Tenant::query()
+        ->where(fn ($q) => $q->where('slug', $key)->orWhere('domain', $key)->when(ctype_digit($key), fn ($q) => $q->orWhere('id', (int) $key)))
+        ->first();
+    if (! $tenant) {
+        $this->error("Tenant not found: {$key}");
+
+        return 1;
+    }
+    $settings = app(\App\Services\Modules\ModuleSettingsService::class);
+    $venue = array_merge(
+        \App\Services\Modules\ModuleSettingsService::cafeVenueDefaults(),
+        $settings->get((int) $tenant->id, 'cafe', 'venue', \App\Services\Modules\ModuleSettingsService::cafeVenueDefaults()),
+        ['contact_page_enabled' => ! $this->option('disable')],
+    );
+    $settings->put((int) $tenant->id, 'cafe', 'venue', $venue);
+    $this->info(($venue['contact_page_enabled'] ? 'Enabled' : 'Disabled')." /contact for tenant #{$tenant->id} ({$tenant->domain}).");
+
+    return 0;
+})->purpose('Turn the public cafe contact page on or off for one tenant');
+
 Artisan::command('stock:release-reservations', function () {
     $released = app(\App\Services\Orders\OrderStock::class)->releaseExpired();
     $this->info("Released {$released} expired stock reservations.");

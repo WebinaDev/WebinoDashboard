@@ -22,6 +22,7 @@ return [
     'cafe_gateway_error' => 'Could not reach the payment gateway. Please try again.',
     'cafe_kitchen_order_not_payable' => 'This order is not paid or is closed, so the kitchen cannot update it.',
     'stock_hold_lost' => 'The hold on this order's items expired and some are no longer in stock. Payment was not started; update your cart and order again.',
+    'cafe_contact_disabled' => 'The contact page is not enabled for this cafe.',
     'cafe_table_invalid' => 'This table is not available. Ask staff or pick another table.',
     'cafe_pickup_unavailable' => 'This pickup time is not available. Please choose another.',
     'cafe_item_unavailable' => 'This item can\'t be ordered right now.',

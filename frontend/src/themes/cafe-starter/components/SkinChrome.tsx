@@ -25,8 +25,7 @@ const MARKS: Record<CafeMenuSkin, typeof Coffee> = {
 async function venueSettings(): Promise<CafeVenuePayload | null> {
   try {
     const res = await apiServer<{ data: CafeVenuePayload }>("/api/v1/public/cafe/venue", {
-      revalidate: 60,
-      tags: ["cafe-venue"],
+      revalidate: false,
     })
     return res?.data ?? null
   } catch {
@@ -64,6 +63,7 @@ export async function CafeSkinHeader({ siteName, branding, skin }: SiteChromePro
           <Link href="/catalogue">{t("nav_menu")}</Link>
           <Link href="/about">{t("nav_about")}</Link>
           <Link href="/reservations">{t("nav_reservations")}</Link>
+          {venue?.venue.contact_page_enabled ? <Link href="/contact">{t("nav_contact")}</Link> : null}
         </nav>
         <div className="cafe-chrome-actions">
           {ctaLabel && ctaUrl ? (
@@ -103,6 +103,7 @@ export async function CafeSkinFooter({ siteName, skin }: { siteName: string; ski
           <Link href="/catalogue">{t("nav_menu")}</Link>
           <Link href="/about">{t("nav_about")}</Link>
           <Link href="/reservations">{t("nav_reservations")}</Link>
+          {venue?.venue.contact_page_enabled ? <Link href="/contact">{t("nav_contact")}</Link> : null}
         </nav>
         <div className="cafe-chrome-foot-credit">
           <WebinaCredit />

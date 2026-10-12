@@ -298,6 +298,7 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:cafe')->group(function () {
             Route::get('/cafe/venue', [PublicCafeController::class, 'venue']);
+            Route::get('/cafe/contact', [PublicCafeController::class, 'contact']);
             Route::get('/cafe/events', [PublicReservationController::class, 'events']);
             Route::post('/cafe/reservations', [PublicReservationController::class, 'store'])->middleware('throttle:public-writes');
             Route::post('/cafe/events/{event}/bookings', [PublicReservationController::class, 'bookEvent'])->whereNumber('event')->middleware('throttle:public-writes');

@@ -122,6 +122,11 @@ final class ModuleSettingsService
             'whatsapp_url' => null,
             'telegram_url' => null,
             'bill_pay_url' => null,
+            // Public /contact page. Off for every cafe until staff (or cafe:contact-page) turn it on.
+            'contact_page_enabled' => false,
+            'email' => null,
+            'bale_url' => null,
+            'website_url' => null,
         ];
     }
 
