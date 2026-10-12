@@ -152,9 +152,15 @@ class WordpressImportTest extends TestCase
             ]],
         ])->assertOk();
 
+        // A blocked image host is a per-item warning (the product itself is importable),
+        // so the dry run completes and reports the host instead of failing the item.
         $this->postJson('/api/v1/import/wordpress/jobs/'.$jobId.'/run', ['limit' => 10])
             ->assertOk()
-            ->assertJsonPath('data.status', 'completed_with_errors');
+            ->assertJsonPath('data.status', 'completed');
+        $this->assertStringContainsString(
+            'not allowed',
+            (string) \App\Models\WordpressImportItem::query()->where('job_id', $jobId)->value('message')
+        );
 
         $this->assertSame(0, Product::query()->count());
         Http::assertNothingSent();
@@ -592,8 +598,10 @@ class WordpressImportTest extends TestCase
             ]],
             'settings' => [[
                 'source_id' => 'shop',
+                // pwa/notify now map straight onto shop settings; swatches still need review.
                 'pwa' => ['name' => 'Parisma'],
                 'notify' => ['email' => true],
+                'swatches' => [['attribute' => 'color', 'term' => 'red', 'value' => '#f00']],
             ]],
         ])->assertOk();
 
@@ -607,6 +615,8 @@ class WordpressImportTest extends TestCase
         $this->assertSame('پیگیری سفارش', SupportTicket::query()->firstOrFail()->subject);
         $this->assertSame('requested', OrderReturn::query()->firstOrFail()->status);
         $this->assertSame('needs_mapping', WordpressImportQueue::query()->where('external_id', 'wallet:orphan')->firstOrFail()->status);
+
+        $this->assertSame('Parisma', app(\App\Services\Modules\ModuleSettingsService::class)->get((int) \App\Models\Tenant::query()->value('id'), 'settings', 'shop.pwa', [])['name'] ?? null);
 
         $pending = $this->getJson('/api/v1/import/wordpress/review-queue?status=pending')->assertOk()->json('data');
         $types = array_column($pending, 'type');

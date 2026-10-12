@@ -24,6 +24,8 @@ class ProductTrashTest extends TestCase
             'store_display_name' => 'Shop',
             'default_currency' => 'IRR',
         ]);
+        // Catalog/brand APIs are module-gated; activate what the merchant would have.
+        $this->enableSubmodules($tenant->id, ['commerce.catalog' => true, 'commerce.brands' => true]);
         $user = User::factory()->create([
             'tenant_id' => $tenant->id,
             'role' => 'admin',
@@ -62,6 +64,8 @@ class ProductTrashTest extends TestCase
             'store_display_name' => 'Shop',
             'default_currency' => 'IRR',
         ]);
+        // Catalog/brand APIs are module-gated; activate what the merchant would have.
+        $this->enableSubmodules($tenant->id, ['commerce.catalog' => true, 'commerce.brands' => true]);
         $user = User::factory()->create([
             'tenant_id' => $tenant->id,
             'role' => 'admin',

@@ -58,11 +58,13 @@ class StorefrontFeaturesTest extends TestCase
     public function test_compare_add_and_list_public(): void
     {
         $product = $this->product();
-        $this->postJson('/api/v1/public/compare/products/'.$product->id, [], ['HTTP_HOST' => 'shop.test'])
+        $token = $this->postJson('/api/v1/public/compare/products/'.$product->id, [], ['HTTP_HOST' => 'shop.test'])
             ->assertOk()
-            ->assertJsonPath('data.product_ids.0', $product->id);
+            ->assertJsonPath('data.product_ids.0', $product->id)
+            ->json('data.guest_token');
 
-        $this->getJson('/api/v1/public/compare', ['HTTP_HOST' => 'shop.test'])
+        // The test client does not replay response cookies; send the guest token explicitly.
+        $this->getJson('/api/v1/public/compare', ['HTTP_HOST' => 'shop.test', 'X-Compare-Token' => $token])
             ->assertOk()
             ->assertJsonCount(1, 'data.items');
     }

@@ -131,6 +131,16 @@ class ShippingZonesTest extends CommerceAndSetupTest
             'shipping_address' => 'Tehran',
         ]);
 
+        // Tapin needs a parcel weight; register refuses weightless orders by design.
+        $parcel = Product::query()->create([
+            'tenant_id' => $user->tenant_id, 'name' => 'Beans', 'slug' => 'beans-tapin',
+            'price_minor' => 1000, 'currency' => 'IRR', 'weight' => 500,
+        ]);
+        \App\Models\OrderItem::query()->create([
+            'order_id' => $order->id, 'product_id' => $parcel->id, 'product_name' => 'Beans',
+            'quantity' => 1, 'unit_price_minor' => 1000,
+        ]);
+
         $this->postJson("/api/v1/orders/{$order->id}/tapin/register", ['service' => 'pishtaz'])
             ->assertOk()
             ->assertJsonPath('data.tapin.barcode', '123456789');

@@ -155,6 +155,9 @@ class ShopManagementApiTest extends TestCase
         ])->assertOk()
             ->assertJsonFragment(['platform' => 'digikala', 'remote_product_id' => '123']);
 
+        // Coffee-profile routes are limited to coffee-shop sites (site_type:coffee).
+        \App\Models\Tenant::query()->whereKey($user->tenant_id)->update(['site_type_slug' => 'coffee']);
+
         $this->putJson('/api/v1/products/'.$product->id.'/coffee-profile', [
             'blend_arabica' => 70,
             'blend_robusta' => 30,

@@ -258,8 +258,12 @@ class MarketplaceBasalamTest extends TestCase
 
         $orders->handleEvent(['event_id' => 3, 'status' => BasalamEndpoints::STATUS_COMPLETED, 'more_data' => ['invoice_id' => 5001]]);
         $this->assertSame('completed', $order->fresh()->status);
+        // The order workflow forbids completed -> cancelled (stock/accounting would double
+        // count); a remote cancel after completion is recorded on the map but the local
+        // order stays completed until a refund/return is processed.
         $orders->handleEvent(['event_id' => 7, 'invoice_id' => 5001, 'type' => 'cancelled']);
-        $this->assertSame('cancelled', $order->fresh()->status);
+        $this->assertSame('completed', $order->fresh()->status);
+        $this->assertSame('bslm-rejected', $order->fresh()->meta['basalam']['status_key']);
 
         $this->assertSame(1, $this->getJson('/api/v1/marketplace/basalam/orders')->assertOk()->json('data.total'));
     }
