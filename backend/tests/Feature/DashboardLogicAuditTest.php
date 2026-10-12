@@ -103,6 +103,50 @@ class DashboardLogicAuditTest extends TestCase
         $this->assertSame(8, (int) $cafe->fresh()->stock);
     }
 
+    public function test_cafe_guest_flow_with_modifiers_table_and_order_status(): void
+    {
+        app(\App\Services\Modules\ModuleSettingsService::class)->put($this->tenant->id, 'cafe', 'menu', array_merge(
+            \App\Services\Modules\ModuleSettingsService::cafeMenuDefaults(),
+            ['block_orders_when_closed' => false],
+        ));
+        $h = ['X-Tenant-Domain' => $this->tenant->domain];
+        $latte = $this->product('Latte', 'publish', ['price_minor' => 900000]);
+        $size = \App\Models\ProductModifier::query()->create([
+            'tenant_id' => $this->tenant->id, 'product_id' => $latte->id,
+            'name_fa' => 'اندازه', 'name_en' => 'Size', 'min_select' => 1, 'max_select' => 1, 'is_required' => true,
+        ]);
+        $big = \App\Models\ProductModifierOption::query()->create(['modifier_id' => $size->id, 'name_fa' => 'بزرگ', 'name_en' => 'Large', 'price_minor' => 150000]);
+        $small = \App\Models\ProductModifierOption::query()->create(['modifier_id' => $size->id, 'name_fa' => 'کوچک', 'name_en' => 'Small', 'price_minor' => 0]);
+        $token = 'guest-flow-token-1';
+
+        // Required modifier missing or foreign option ids are rejected.
+        $this->postJson('/api/v1/public/cafe/cart/items', ['product_id' => $latte->id, 'guest_token' => $token], $h)->assertStatus(422);
+        $this->postJson('/api/v1/public/cafe/cart/items', ['product_id' => $latte->id, 'guest_token' => $token, 'option_ids' => [$big->id, $small->id]], $h)->assertStatus(422);
+
+        $this->postJson('/api/v1/public/cafe/cart/items', [
+            'product_id' => $latte->id, 'quantity' => 2, 'guest_token' => $token, 'table_number' => '7', 'option_ids' => [$big->id],
+        ], $h)->assertOk();
+        $this->postJson('/api/v1/public/cafe/cart/items', [
+            'product_id' => $latte->id, 'guest_token' => $token, 'option_ids' => [$small->id],
+        ], $h)->assertOk();
+        $cart = $this->getJson('/api/v1/public/cafe/cart?guest_token='.$token, $h)->assertOk()->json('data');
+        $this->assertCount(2, $cart['items']);
+
+        $order = $this->postJson('/api/v1/public/cafe/checkout', [
+            'guest_token' => $token, 'customer_phone' => '09120000000',
+        ], $h)->assertCreated()->json('data');
+        $this->assertSame(2 * 1050000 + 900000, (int) $order['subtotal_minor']);
+        $this->assertSame('7', (string) $order['table_number']);
+
+        $this->getJson('/api/v1/public/cafe/order-status?guest_token='.$token, $h)
+            ->assertOk()
+            ->assertJsonPath('data.id', $order['id'])
+            ->assertJsonPath('data.kitchen_status', 'new');
+
+        // Cart is emptied, so a second checkout is refused.
+        $this->postJson('/api/v1/public/cafe/checkout', ['guest_token' => $token], $h)->assertStatus(422);
+    }
+
     public function test_coupon_is_held_until_payment_and_usage_limit_blocks_a_second_hold(): void
     {
         $product = $this->product('Coupon item', 'publish');

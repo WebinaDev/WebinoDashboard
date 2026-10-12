@@ -124,7 +124,6 @@ final class AnalyticsSettings
                 $out['geoip_path'] = $path;
             }
         }
-        }
         if (array_key_exists('enabled', $raw) && ! array_key_exists('tracking_enabled', $raw)) {
             $out['tracking_enabled'] = filter_var($raw['enabled'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
         }
