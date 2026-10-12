@@ -123,7 +123,8 @@ final class DashboardOverviewBuilder
         $canPortal = $caps->allows($user, 'account.portal') || $caps->allows($user, 'partner.portal');
         $isPartner = $caps->allows($user, 'partner.portal');
 
-        $shopActive = ($this->moduleEnabled($tid, 'catalog') || $this->moduleEnabled($tid, 'commerce')) && ($canCatalog || $canSales || $canOrders);
+        // Cafe tenants sell through the cafe module; give them the same sales/orders widgets.
+        $shopActive = ($this->moduleEnabled($tid, 'catalog') || $this->moduleEnabled($tid, 'commerce') || $this->moduleEnabled($tid, 'cafe')) && ($canCatalog || $canSales || $canOrders);
         $analyticsActive = $this->moduleEnabled($tid, 'analytics') || $this->moduleEnabled($tid, 'dashboard');
 
         if ($shopActive && $canCatalog) {

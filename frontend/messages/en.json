@@ -332,7 +332,8 @@
     "group_blog": "Magazine",
     "group_page_builder": "Page builder",
     "kitchen": "Kitchen board",
-    "inbox": "Feedback"
+    "inbox": "Feedback",
+    "section_link_hub": "Link hub"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -445,7 +446,11 @@
       "fulfillment": "Fulfillment",
       "items_total": "Items",
       "fees": "Fees",
-      "sending": "Placing…"
+      "sending": "Placing…",
+      "packaging_fee": "Packaging",
+      "delivery_fee": "Delivery",
+      "service_fee": "Service charge",
+      "tax": "Tax"
     },
     "kitchen": {
       "new": "New",
@@ -586,7 +591,13 @@
       "add_modifier": "Add group",
       "remove": "Remove",
       "allergens_heading": "Allergens",
-      "save_allergens": "Save allergens"
+      "save_allergens": "Save allergens",
+      "packaging_fee_mode": "Packaging fee basis",
+      "packaging_per_order": "Once per order",
+      "packaging_per_item": "Per item",
+      "packaging_applies": "Charge packaging for",
+      "service_fee_percent": "Service charge (% of items)",
+      "service_fee_dine_in_only": "Service charge for dine-in only"
     },
     "qr": {
       "title": "QR & branches",
@@ -625,7 +636,8 @@
       "seats": "Seats",
       "add_table": "Add table",
       "table_qr": "Table QR",
-      "remove": "Remove"
+      "remove": "Remove",
+      "public_base_url_auto": "Leave empty to auto-detect. Current address: {url}"
     },
     "reservations": {
       "title": "Reservations & events",
@@ -678,7 +690,10 @@
         "sunday": "Sunday"
       },
       "closed_dates_heading": "Closed dates",
-      "closed_dates_hint": "Comma-separated Gregorian dates (YYYY-MM-DD)"
+      "closed_dates_hint": "Pick a closed date from the calendar and press Add.",
+      "add_date": "Add",
+      "remove_date": "Remove date",
+      "no_dates": "None"
     },
     "gallery": {
       "title": "Gallery",
@@ -973,6 +988,22 @@
       "spam": "Reject",
       "delete": "Remove",
       "confirm_delete": "Remove this review from the queue?"
+    },
+    "todos": {
+      "title": "My to-dos",
+      "open_count": "{count} open",
+      "placeholder": "New task, e.g. order milk for tomorrow",
+      "add": "Add",
+      "priority": "Priority",
+      "priority_high": "Urgent",
+      "priority_normal": "Normal",
+      "priority_low": "Low",
+      "due": "Due",
+      "no_due": "No due date",
+      "empty": "No tasks yet.",
+      "delete": "Delete",
+      "show_done": "Show done ({count})",
+      "hide_done": "Hide done"
     }
   },
   "catalog": {

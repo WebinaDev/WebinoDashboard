@@ -16,6 +16,7 @@ import { HomeOrdersTable } from "@/components/home/HomeOrdersTable"
 import { HomeOverviewSkeleton } from "@/components/home/HomeOverviewSkeleton"
 import { HomeProductStatsCard } from "@/components/home/HomeProductStatsCard"
 import { HomeProductTable } from "@/components/home/HomeProductTable"
+import { HomeTodoList } from "@/components/home/HomeTodoList"
 import { TopCategoriesTable, TopCustomersTable } from "@/components/home/HomeTopTables"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -214,6 +215,8 @@ export default function DashboardHome({
             trafficOnline={trafficOnline}
             shopActive={shopActive}
           />
+
+          <HomeTodoList locale={lng} />
 
           {(hasSection("account") || hasSection("partner")) &&
           ((data?.account && !("error" in data.account)) ||

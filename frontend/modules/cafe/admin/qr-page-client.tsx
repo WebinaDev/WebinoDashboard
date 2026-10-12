@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { Pencil, Plus, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { useConfirm } from "@/components/ConfirmDialog"
 import { Button } from "@/components/ui/button"
@@ -62,6 +62,10 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
 
   const [settingsForm, setSettingsForm] = useState<QrSettings | null>(null)
   const settingsValues = settingsForm ?? settings ?? { public_base_url: "", default_table_prefix: "T" }
+  const [detectedOrigin, setDetectedOrigin] = useState("")
+  useEffect(() => {
+    setDetectedOrigin(window.location.origin)
+  }, [])
 
   const saveSettings = useMutation({
     mutationFn: () =>
@@ -82,6 +86,7 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
       if (tableNumber.trim()) params.set("table", tableNumber.trim())
       if (menuSlug.trim()) params.set("menu", menuSlug.trim())
       if (branchSlug.trim()) params.set("branch", branchSlug.trim())
+      if (typeof window !== "undefined") params.set("origin", window.location.origin)
       const qs = params.toString()
       return api<QrResponse>(`/api/v1/cafe/qr${qs ? `?${qs}` : ""}`)
     },
@@ -178,8 +183,12 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
             <Input
               value={settingsValues.public_base_url ?? ""}
               onChange={(e) => setSettingsForm({ ...settingsValues, public_base_url: e.target.value })}
-              placeholder="https://cafe.example.com"
+              placeholder={detectedOrigin || "https://cafe.example.com"}
+              dir="ltr"
             />
+            <p className="text-muted-foreground mt-1 text-xs">
+              {t("public_base_url_auto", { url: settingsValues.public_base_url?.trim() || detectedOrigin || "ندارد" })}
+            </p>
           </div>
           <div>
             <Label>{t("default_table_prefix")}</Label>

@@ -51,7 +51,7 @@ export function CafeCartDrawer({
   const [done, setDone] = useState(false)
   const fulfillmentOptions = (["dine_in", "pickup", "delivery"] as const).filter((key) => ordering?.fulfillment?.[key] !== false)
   const [fulfillment, setFulfillment] = useState<(typeof fulfillmentOptions)[number]>(fulfillmentOptions[0] ?? "dine_in")
-  const { token, cart, count, subtotal } = useGuestCart(tableNumber, branchSlug)
+  const { token, cart, count, subtotal, totals } = useGuestCart(tableNumber, branchSlug, fulfillment)
   const lang = locale === "fa" ? "fa" : "en"
 
   const checkout = useMutation({
@@ -75,7 +75,12 @@ export function CafeCartDrawer({
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
-  const fee = (ordering?.packaging_fee_minor ?? 0) + (fulfillment === "delivery" ? ordering?.delivery_fee_minor ?? 0 : 0)
+  // Totals come from the server quote, which follows the menu settings exactly.
+  const packagingFee = totals?.packaging_minor ?? 0
+  const deliveryFee = totals?.delivery_minor ?? 0
+  const serviceFee = totals?.service_minor ?? 0
+  const taxAdded = totals?.tax_added_minor ?? 0
+  const grandTotal = totals?.grand_total_minor ?? subtotal
 
   function price(amount: number) {
     return money(amount, currency || "IRT", currencyDisplay, lang)
@@ -172,15 +177,33 @@ export function CafeCartDrawer({
                 <dt>{t("items_total")}</dt>
                 <dd>{price(subtotal)}</dd>
               </div>
-              {fee > 0 ? (
+              {packagingFee > 0 ? (
                 <div>
-                  <dt>{t("fees")}</dt>
-                  <dd>{price(fee)}</dd>
+                  <dt>{t("packaging_fee")}</dt>
+                  <dd>{price(packagingFee)}</dd>
+                </div>
+              ) : null}
+              {deliveryFee > 0 ? (
+                <div>
+                  <dt>{t("delivery_fee")}</dt>
+                  <dd>{price(deliveryFee)}</dd>
+                </div>
+              ) : null}
+              {serviceFee > 0 ? (
+                <div>
+                  <dt>{t("service_fee")}</dt>
+                  <dd>{price(serviceFee)}</dd>
+                </div>
+              ) : null}
+              {taxAdded > 0 ? (
+                <div>
+                  <dt>{t("tax")}</dt>
+                  <dd>{price(taxAdded)}</dd>
                 </div>
               ) : null}
               <div className="is-total">
                 <dt>{t("subtotal")}</dt>
-                <dd>{price(subtotal + fee)}</dd>
+                <dd>{price(grandTotal)}</dd>
               </div>
             </dl>
             {error ? <p className="cafe-error">{error}</p> : null}

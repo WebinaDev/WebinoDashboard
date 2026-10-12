@@ -65,7 +65,12 @@ function firstValidationError(errors: Record<string, unknown> | undefined): stri
 /**
  * Persian-friendly message for fetch/`ApiError` failures (ERP `getAxiosMessage` parity).
  */
-export function getApiErrorMessage(err: unknown, body?: ErrorBody | null): string {
+export function getApiErrorMessage(err: unknown, bodyArg?: ErrorBody | null): string {
+  // Fall back to the response body the ApiError carries so server messages
+  // (e.g. "cafe is closed") are shown instead of a generic status text.
+  const body: ErrorBody | null | undefined =
+    bodyArg ??
+    (err instanceof ApiError && err.body && typeof err.body === "object" ? (err.body as ErrorBody) : undefined)
   const status =
     err instanceof ApiError
       ? err.status

@@ -12,6 +12,7 @@ return [
     'cart_empty' => 'سبد خرید خالی است',
     'cafe_closed' => 'مجموعه در این ساعت سفارش نمی‌گیرد.',
     'cafe_order_limit' => 'سقف سفارش امروز پر شده است.',
+    'cafe_item_unavailable' => 'این آیتم الان قابل سفارش نیست.',
     'cafe_modifier_required' => 'افزودنی‌های الزامی این آیتم را انتخاب کنید.',
     'cafe_modifier_invalid' => 'این افزودنی برای آیتم معتبر نیست.',
     'cafe_fulfillment' => 'این روش سرو در دسترس نیست.',

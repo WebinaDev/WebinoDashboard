@@ -36,6 +36,12 @@ class CafeSettingsController extends Controller
             'font_preset' => ['nullable', 'string', 'in:sans,serif,display'],
             'teaser_video_url' => ['nullable', 'string', 'max:2048'],
             'packaging_fee_minor' => ['nullable', 'integer', 'min:0'],
+            'packaging_fee_mode' => ['nullable', 'string', 'in:per_order,per_item'],
+            'packaging_dine_in' => ['nullable', 'boolean'],
+            'packaging_pickup' => ['nullable', 'boolean'],
+            'packaging_delivery' => ['nullable', 'boolean'],
+            'service_fee_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'service_fee_dine_in_only' => ['nullable', 'boolean'],
             'delivery_fee_minor' => ['nullable', 'integer', 'min:0'],
             'free_delivery_threshold_minor' => ['nullable', 'integer', 'min:0'],
             'prep_minutes' => ['nullable', 'integer', 'min:0', 'max:240'],
@@ -76,6 +82,14 @@ class CafeSettingsController extends Controller
             'closed_dates' => ['nullable', 'array', 'max:60'],
             'closed_dates.*' => ['date_format:Y-m-d'],
         ]);
+
+        foreach ($data['days'] as $i => $day) {
+            foreach (['open', 'close'] as $k) {
+                if (isset($day[$k]) && is_string($day[$k])) {
+                    $data['days'][$i][$k] = \App\Services\Cafe\CafeOrdering::normalizeClock($day[$k]);
+                }
+            }
+        }
 
         $tenantId = $request->user()->tenant_id;
         $current = $settings->get($tenantId, 'cafe', 'hours', ModuleSettingsService::cafeHoursDefaults());

@@ -12,6 +12,7 @@ return [
     'cart_empty' => 'Cart empty',
     'cafe_closed' => 'The venue is not taking orders right now.',
     'cafe_order_limit' => 'Today\'s order limit has been reached.',
+    'cafe_item_unavailable' => 'This item can\'t be ordered right now.',
     'cafe_modifier_required' => 'Choose the required extras for this item.',
     'cafe_modifier_invalid' => 'That extra is not available for this item.',
     'cafe_fulfillment' => 'That service type is not available.',

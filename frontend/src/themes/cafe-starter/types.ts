@@ -134,6 +134,12 @@ export type CafeMenuSettings = {
   font_preset?: "sans" | "serif" | "display" | null
   teaser_video_url?: string | null
   packaging_fee_minor?: number | null
+  packaging_fee_mode?: "per_order" | "per_item" | null
+  packaging_dine_in?: boolean | null
+  packaging_pickup?: boolean | null
+  packaging_delivery?: boolean | null
+  service_fee_percent?: number | null
+  service_fee_dine_in_only?: boolean | null
   delivery_fee_minor?: number | null
   free_delivery_threshold_minor?: number | null
   prep_minutes?: number | null

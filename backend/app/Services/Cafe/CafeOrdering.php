@@ -47,6 +47,14 @@ class CafeOrdering
             'accepting_orders' => $accepting,
             'prep_minutes' => max(0, (int) ($menu['prep_minutes'] ?? 20)),
             'packaging_fee_minor' => max(0, (int) ($menu['packaging_fee_minor'] ?? 0)),
+            'packaging_fee_mode' => ($menu['packaging_fee_mode'] ?? 'per_order') === 'per_item' ? 'per_item' : 'per_order',
+            'packaging_applies' => [
+                'dine_in' => (bool) ($menu['packaging_dine_in'] ?? false),
+                'pickup' => (bool) ($menu['packaging_pickup'] ?? true),
+                'delivery' => (bool) ($menu['packaging_delivery'] ?? true),
+            ],
+            'service_fee_percent' => min(100, max(0, (float) ($menu['service_fee_percent'] ?? 0))),
+            'service_fee_dine_in_only' => (bool) ($menu['service_fee_dine_in_only'] ?? true),
             'delivery_fee_minor' => max(0, (int) ($menu['delivery_fee_minor'] ?? 0)),
             'free_delivery_threshold_minor' => max(0, (int) ($menu['free_delivery_threshold_minor'] ?? 0)),
             'fulfillment' => [
@@ -134,17 +142,67 @@ class CafeOrdering
         ];
     }
 
-    public function shippingMinor(int $tenantId, string $fulfillment, int $subtotal): int
+    /** Packaging + delivery + service fee, following the menu settings. */
+    public function shippingMinor(int $tenantId, string $fulfillment, int $subtotal, int $itemCount = 1): int
+    {
+        return $this->fees($tenantId, $fulfillment, $subtotal, $itemCount)['total_minor'];
+    }
+
+    /**
+     * Fee breakdown for a guest order, read from the saved menu settings.
+     *
+     * @return array{packaging_minor: int, delivery_minor: int, service_minor: int, total_minor: int}
+     */
+    public function fees(int $tenantId, string $fulfillment, int $subtotal, int $itemCount = 1): array
     {
         $status = $this->publicStatus($tenantId);
-        $packaging = (int) $status['packaging_fee_minor'];
+
+        $packaging = 0;
+        if (! empty($status['packaging_applies'][$fulfillment])) {
+            $packaging = (int) $status['packaging_fee_minor'];
+            if ($status['packaging_fee_mode'] === 'per_item') {
+                $packaging *= max(0, $itemCount);
+            }
+        }
+
         $delivery = 0;
         if ($fulfillment === 'delivery') {
             $threshold = (int) $status['free_delivery_threshold_minor'];
             $delivery = ($threshold > 0 && $subtotal >= $threshold) ? 0 : (int) $status['delivery_fee_minor'];
         }
 
-        return $packaging + $delivery;
+        $service = 0;
+        $percent = (float) $status['service_fee_percent'];
+        if ($percent > 0 && (! $status['service_fee_dine_in_only'] || $fulfillment === 'dine_in')) {
+            $service = (int) round(max(0, $subtotal) * $percent / 100);
+        }
+
+        return [
+            'packaging_minor' => $packaging,
+            'delivery_minor' => $delivery,
+            'service_minor' => $service,
+            'total_minor' => $packaging + $delivery + $service,
+        ];
+    }
+
+    /**
+     * Full server-side quote (fees + tax) so the cart drawer shows what checkout charges.
+     *
+     * @return array<string, int|string>
+     */
+    public function quote(int $tenantId, string $fulfillment, int $subtotal, int $itemCount): array
+    {
+        $fees = $this->fees($tenantId, $fulfillment, $subtotal, $itemCount);
+        $tax = \App\Services\Orders\OrderTax::compute($tenantId, $subtotal, $fees['total_minor']);
+
+        return $fees + [
+            'fulfillment' => $fulfillment,
+            'subtotal_minor' => $subtotal,
+            'fees_minor' => $fees['total_minor'],
+            'tax_minor' => $tax['tax_minor'],
+            'tax_added_minor' => $tax['added_minor'],
+            'grand_total_minor' => max(0, $subtotal + $fees['total_minor'] + $tax['added_minor']),
+        ];
     }
 
     /**
@@ -267,9 +325,21 @@ class CafeOrdering
         return 'Asia/Tehran';
     }
 
+    /** Persian/Arabic digits and `٫`/`.` separators to ASCII `H:mm`. */
+    public static function normalizeClock(string $clock): string
+    {
+        $clock = strtr(trim($clock), [
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '٫' => ':', '.' => ':', '،' => ':',
+        ]);
+
+        return $clock;
+    }
+
     private static function clockMinutes(string $clock): ?int
     {
-        if (! preg_match('/^(\d{1,2}):(\d{2})$/', trim($clock), $m)) {
+        if (! preg_match('/^(\d{1,2}):(\d{2})$/', self::normalizeClock($clock), $m)) {
             return null;
         }
         $h = (int) $m[1];

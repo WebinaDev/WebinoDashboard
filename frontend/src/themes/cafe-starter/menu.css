@@ -689,6 +689,19 @@
 }
 .cafe-add-total { font-variant-numeric: tabular-nums; opacity: 0.92; }
 
+/* Add-to-cart and the quantity stepper share one height in every skin. */
+.cafe-item-bar { --cafe-bar-h: 3rem; align-items: stretch; }
+.cafe-item-bar .cafe-stepper,
+.cafe-item-bar .cafe-add-btn {
+  box-sizing: border-box;
+  height: var(--cafe-bar-h);
+  min-height: var(--cafe-bar-h);
+  max-height: var(--cafe-bar-h);
+}
+.cafe-item-bar .cafe-add-btn { padding-block: 0; }
+.cafe-item-bar .cafe-stepper { padding-block: 0; }
+.cafe-item-bar .cafe-stepper button { height: calc(var(--cafe-bar-h) - 0.6rem); width: calc(var(--cafe-bar-h) - 0.6rem); }
+
 .cafe-shell[data-motion="on"] [data-reveal] {
   transition: opacity 460ms ease, transform 460ms cubic-bezier(.2,.8,.2,1);
 }

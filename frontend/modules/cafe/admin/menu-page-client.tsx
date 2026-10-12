@@ -86,6 +86,12 @@ const menuDefaults: CafeMenuSettings = {
   font_preset: "sans",
   teaser_video_url: "",
   packaging_fee_minor: 0,
+  packaging_fee_mode: "per_order",
+  packaging_dine_in: false,
+  packaging_pickup: true,
+  packaging_delivery: true,
+  service_fee_percent: 0,
+  service_fee_dine_in_only: true,
   delivery_fee_minor: 0,
   free_delivery_threshold_minor: 0,
   prep_minutes: 20,
@@ -608,8 +614,32 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
               />
               <div>
                 <Label>{t("packaging_fee_minor")}</Label>
-                <Input type="number" value={settingsValues.packaging_fee_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, packaging_fee_minor: Number(e.target.value) })} />
+                <Input type="number" min={0} value={settingsValues.packaging_fee_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, packaging_fee_minor: Math.max(0, Number(e.target.value) || 0) })} />
               </div>
+              <div>
+                <Label>{t("packaging_fee_mode")}</Label>
+                <select
+                  className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+                  value={settingsValues.packaging_fee_mode ?? "per_order"}
+                  onChange={(e) => setSettingsForm({ ...settingsValues, packaging_fee_mode: e.target.value === "per_item" ? "per_item" : "per_order" })}
+                >
+                  <option value="per_order">{t("packaging_per_order")}</option>
+                  <option value="per_item">{t("packaging_per_item")}</option>
+                </select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t("packaging_applies")}</Label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={Boolean(settingsValues.packaging_dine_in)} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_dine_in: Boolean(v) })} />{t("fulfillment_dine_in")}</label>
+                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.packaging_pickup !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_pickup: Boolean(v) })} />{t("fulfillment_pickup")}</label>
+                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.packaging_delivery !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_delivery: Boolean(v) })} />{t("fulfillment_delivery")}</label>
+                </div>
+              </div>
+              <div>
+                <Label>{t("service_fee_percent")}</Label>
+                <Input type="number" min={0} max={100} step="0.5" value={settingsValues.service_fee_percent ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, service_fee_percent: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })} />
+              </div>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.service_fee_dine_in_only !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, service_fee_dine_in_only: Boolean(v) })} />{t("service_fee_dine_in_only")}</label>
               <div>
                 <Label>{t("delivery_fee_minor")}</Label>
                 <Input type="number" value={settingsValues.delivery_fee_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, delivery_fee_minor: Number(e.target.value) })} />

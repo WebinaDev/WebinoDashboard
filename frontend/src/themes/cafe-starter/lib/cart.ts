@@ -17,6 +17,18 @@ export type GuestCart = {
   guest_token?: string | null
   table_number?: string | null
   items?: CartLine[]
+  /** Server quote following the cafe menu settings (fees + tax). */
+  totals?: {
+    fulfillment: string
+    subtotal_minor: number
+    packaging_minor: number
+    delivery_minor: number
+    service_minor: number
+    fees_minor: number
+    tax_minor: number
+    tax_added_minor: number
+    grand_total_minor: number
+  }
 }
 
 export const TOKEN_KEY = "cafe_guest_token"
@@ -31,24 +43,24 @@ export function getGuestToken(): string {
   return token
 }
 
-export function useGuestCart(tableNumber?: string | null, branchSlug?: string | null) {
+export function useGuestCart(tableNumber?: string | null, branchSlug?: string | null, fulfillment?: string | null) {
   const [token, setToken] = useState("")
   useEffect(() => {
     setToken(getGuestToken())
   }, [])
   const query = useQuery({
-    queryKey: ["guest-cart", token, tableNumber ?? "", branchSlug ?? ""],
+    queryKey: ["guest-cart", token, tableNumber ?? "", branchSlug ?? "", fulfillment ?? ""],
     enabled: Boolean(token),
     queryFn: () =>
       api<GuestCart>(
-        `/api/v1/public/cafe/cart?guest_token=${encodeURIComponent(token)}&table=${encodeURIComponent(tableNumber ?? "")}&branch=${encodeURIComponent(branchSlug ?? "")}`,
+        `/api/v1/public/cafe/cart?guest_token=${encodeURIComponent(token)}&table=${encodeURIComponent(tableNumber ?? "")}&branch=${encodeURIComponent(branchSlug ?? "")}${fulfillment ? `&fulfillment=${encodeURIComponent(fulfillment)}` : ""}`,
       ),
   })
   const cart = query.data
   const count = cart?.items?.reduce((sum, line) => sum + line.quantity, 0) ?? 0
   const subtotal =
     cart?.items?.reduce((sum, line) => sum + line.quantity * (line.meta?.unit_minor ?? line.product?.price_minor ?? 0), 0) ?? 0
-  return { token, cart, count, subtotal, isLoading: query.isLoading }
+  return { token, cart, count, subtotal, totals: cart?.totals, isLoading: query.isLoading }
 }
 
 export function useAddToCart(tableNumber?: string | null, branchSlug?: string | null) {

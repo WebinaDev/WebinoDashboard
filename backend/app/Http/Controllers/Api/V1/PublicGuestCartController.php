@@ -18,7 +18,7 @@ class PublicGuestCartController extends Controller
 {
     use ResolvesPublicTenant;
 
-    public function show(Request $request): \Illuminate\Http\JsonResponse
+    public function show(Request $request, CafeOrdering $ordering): \Illuminate\Http\JsonResponse
     {
         $cart = $this->resolveCart($request);
         if (! $cart) {
@@ -26,7 +26,21 @@ class PublicGuestCartController extends Controller
         }
         $cart->load(['items.product']);
 
-        return response()->json(['data' => $cart]);
+        $fulfillment = (string) $request->query('fulfillment', 'dine_in');
+        if (! in_array($fulfillment, ['dine_in', 'pickup', 'delivery'], true)) {
+            $fulfillment = 'dine_in';
+        }
+        $subtotal = 0;
+        $count = 0;
+        foreach ($cart->items as $line) {
+            $meta = is_array($line->meta) ? $line->meta : [];
+            $subtotal += (int) $line->quantity * (int) ($meta['unit_minor'] ?? $line->product?->price_minor ?? 0);
+            $count += (int) $line->quantity;
+        }
+
+        return response()->json(['data' => array_merge($cart->toArray(), [
+            'totals' => $ordering->quote($this->publicTenantId($request), $fulfillment, $subtotal, $count),
+        ])]);
     }
 
     public function track(Request $request): \Illuminate\Http\JsonResponse
@@ -74,15 +88,20 @@ class PublicGuestCartController extends Controller
             'variant_id' => ['nullable', 'integer'],
         ]);
 
-        $product = Product::query()->findOrFail($data['product_id']);
-        abort_if(
-            $product->tenant_id !== $tid
+        $product = Product::query()->find($data['product_id']);
+        if (
+            ! $product
+            || (int) $product->tenant_id !== $tid
             || $product->status !== 'publish'
             || $product->is_hidden
-            || ! $product->is_available
-            || $product->is_sold_out,
-            422
-        );
+            || $product->is_available === false
+            || $product->is_sold_out
+        ) {
+            return response()->json([
+                'message' => __('api.cafe_item_unavailable'),
+                'errors' => ['product_id' => [__('api.cafe_item_unavailable')]],
+            ], 422);
+        }
 
         $priced = $ordering->priceLine($product, $data['option_ids'] ?? [], isset($data['variant_id']) ? (int) $data['variant_id'] : null);
         $cart = $this->resolveCart($request, $data, true);
@@ -148,6 +167,7 @@ class PublicGuestCartController extends Controller
             app(OrderStock::class)->assertLinesAvailable($lines);
 
             $subtotal = 0;
+            $itemCount = 0;
             $pricedLines = [];
             foreach ($lines as $line) {
                 $stored = is_array($line->meta) ? $line->meta : [];
@@ -162,9 +182,11 @@ class PublicGuestCartController extends Controller
                 );
                 $pricedLines[] = [$line, $priced];
                 $subtotal += $line->quantity * $priced['unit_minor'];
+                $itemCount += (int) $line->quantity;
             }
 
-            $shipping = $ordering->shippingMinor($tid, $fulfillment, $subtotal);
+            $fees = $ordering->fees($tid, $fulfillment, $subtotal, $itemCount);
+            $shipping = $fees['total_minor'];
             $tax = \App\Services\Orders\OrderTax::compute($tid, $subtotal, $shipping);
             $token = $meta['guest_token'] ?? $cart->guest_token;
             $metaOrder = [
@@ -172,7 +194,8 @@ class PublicGuestCartController extends Controller
                 'guest_token' => is_string($token) ? $token : null,
                 'fulfillment' => $fulfillment,
                 'kitchen_status' => 'new',
-                'packaging_included' => true,
+                'packaging_included' => $fees['packaging_minor'] > 0,
+                'fees' => $fees,
             ];
             if ($tax['lines'] !== []) {
                 $metaOrder['tax_lines'] = $tax['lines'];

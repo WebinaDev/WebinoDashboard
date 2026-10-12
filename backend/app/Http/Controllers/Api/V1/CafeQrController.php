@@ -13,8 +13,14 @@ class CafeQrController extends Controller
     public function menuQr(Request $request, ModuleSettingsService $settings): \Illuminate\Http\JsonResponse
     {
         $tenant = $request->user()->tenant;
-        $baseUrl = $settings->get($request->user()->tenant_id, 'cafe', 'qr', ModuleSettingsService::cafeQrDefaults())['public_base_url']
-            ?? ('https://'.$tenant->domain);
+        $saved = trim((string) ($settings->get($request->user()->tenant_id, 'cafe', 'qr', ModuleSettingsService::cafeQrDefaults())['public_base_url'] ?? ''));
+        // Auto-detect: saved URL, else the origin the dashboard is open on, else the tenant domain.
+        $origin = $request->query('origin');
+        $detected = is_string($origin) && preg_match('#^https?://[^/\s?#]+$#i', rtrim($origin, '/')) ? rtrim($origin, '/') : null;
+        $baseUrl = $saved !== '' ? $saved : ($detected ?? ($tenant?->domain ? 'https://'.$tenant->domain : ''));
+        if ($baseUrl !== '' && ! preg_match('#^https?://#i', $baseUrl)) {
+            $baseUrl = 'https://'.$baseUrl;
+        }
 
         $menuSlug = $request->query('menu');
         $branch = $request->query('branch');

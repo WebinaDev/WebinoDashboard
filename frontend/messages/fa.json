@@ -332,7 +332,8 @@
     "group_blog": "مجله",
     "group_page_builder": "صفحه‌ساز",
     "kitchen": "تابلو آشپزخانه",
-    "inbox": "بازخورد"
+    "inbox": "بازخورد",
+    "section_link_hub": "لینک کوتاه"
   },
   "dashboard": {
     "title": "نمای کلی",
@@ -546,6 +547,22 @@
       "spam": "رد",
       "delete": "حذف",
       "confirm_delete": "این نظر از صف حذف شود؟"
+    },
+    "todos": {
+      "title": "کارهای من",
+      "open_count": "{count} باز",
+      "placeholder": "کار جدید، مثلا سفارش شیر برای فردا",
+      "add": "افزودن",
+      "priority": "اولویت",
+      "priority_high": "فوری",
+      "priority_normal": "معمولی",
+      "priority_low": "کم",
+      "due": "سررسید",
+      "no_due": "سررسید: ندارد",
+      "empty": "کاری ثبت نشده است.",
+      "delete": "حذف",
+      "show_done": "نمایش انجام‌شده‌ها ({count})",
+      "hide_done": "پنهان کردن انجام‌شده‌ها"
     }
   },
   "catalog": {
@@ -2117,7 +2134,11 @@
       "fulfillment": "نحوه دریافت",
       "items_total": "جمع اقلام",
       "fees": "هزینه‌ها",
-      "sending": "در حال ثبت…"
+      "sending": "در حال ثبت…",
+      "packaging_fee": "هزینه بسته‌بندی",
+      "delivery_fee": "هزینه ارسال",
+      "service_fee": "حق سرویس",
+      "tax": "مالیات"
     },
     "kitchen": {
       "new": "جدید",
@@ -2258,7 +2279,13 @@
       "add_modifier": "افزودن گروه",
       "remove": "حذف",
       "allergens_heading": "حساسیت‌های غذایی",
-      "save_allergens": "ذخیره حساسیت‌ها"
+      "save_allergens": "ذخیره حساسیت‌ها",
+      "packaging_fee_mode": "نحوه محاسبه بسته‌بندی",
+      "packaging_per_order": "یک‌بار برای هر سفارش",
+      "packaging_per_item": "به ازای هر آیتم",
+      "packaging_applies": "بسته‌بندی برای این روش‌ها گرفته شود",
+      "service_fee_percent": "حق سرویس (درصد از جمع آیتم‌ها)",
+      "service_fee_dine_in_only": "حق سرویس فقط برای سرو در مجموعه"
     },
     "qr": {
       "title": "کیوآر و شعب",
@@ -2297,7 +2324,8 @@
       "seats": "ظرفیت",
       "add_table": "افزودن میز",
       "table_qr": "کیوآر میز",
-      "remove": "حذف"
+      "remove": "حذف",
+      "public_base_url_auto": "خالی بگذارید تا خودکار تشخیص داده شود. آدرس فعلی: {url}"
     },
     "reservations": {
       "title": "رزرو و رویدادها",
@@ -2350,7 +2378,10 @@
         "sunday": "یکشنبه"
       },
       "closed_dates_heading": "روزهای تعطیل",
-      "closed_dates_hint": "تاریخ میلادی با ویرگول، مثال ۱۴۰۵ را به میلادی وارد کنید"
+      "closed_dates_hint": "تاریخ تعطیلی را از تقویم انتخاب کنید و «افزودن» را بزنید.",
+      "add_date": "افزودن",
+      "remove_date": "حذف تاریخ",
+      "no_dates": "ندارد"
     },
     "gallery": {
       "title": "گالری",

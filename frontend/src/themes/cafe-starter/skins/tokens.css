@@ -123,7 +123,8 @@
 }
 
 /* Sheet personalities */
-.cafe-sheet[data-skin="cafe-mash-donald"] .cafe-add-btn { background: var(--c-accent-2); color: #111; border-radius: 16px; min-height: 3.4rem; font-size: 1.05rem; }
+.cafe-sheet[data-skin="cafe-mash-donald"] .cafe-add-btn { background: var(--c-accent-2); color: #111; border-radius: 16px; font-size: 1.05rem; }
+.cafe-sheet[data-skin="cafe-mash-donald"] .cafe-item-bar { --cafe-bar-h: 3.4rem; }
 .cafe-sheet[data-skin="cafe-mash-donald"] .cafe-mod-options button[data-on="true"] { background: #111; color: var(--c-accent-2); }
 .cafe-sheet[data-skin="cafe-mash-donald"] .cafe-item-name { font-size: 1.7rem; letter-spacing: -0.02em; }
 .cafe-sheet[data-skin="cafe-mash-donald"][data-scheme="dark"] .cafe-mod-options button[data-on="true"] { background: var(--c-accent-2); color: #111; }

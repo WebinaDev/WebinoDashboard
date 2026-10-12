@@ -520,6 +520,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('/analytics/summary', [AnalyticsController::class, 'summary'])
                     ->middleware('can:reports.shop,orders.*');
                 Route::get('/dashboard/overview', [DashboardOverviewController::class, 'overview']);
+                Route::get('/dashboard/todos', [\App\Http\Controllers\Api\V1\DashboardTodoController::class, 'index']);
+                Route::put('/dashboard/todos', [\App\Http\Controllers\Api\V1\DashboardTodoController::class, 'update']);
                 Route::get('/dashboard/sms-panel', [DashboardOverviewController::class, 'smsPanel'])
                     ->middleware('can:marketing.*');
             });
