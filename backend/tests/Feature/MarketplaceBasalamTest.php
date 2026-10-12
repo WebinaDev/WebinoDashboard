@@ -241,6 +241,10 @@ class MarketplaceBasalamTest extends TestCase
         $this->assertSame('P1', $order->meta['basalam']['customer']['payment_id']);
         $this->assertSame(30_000, (int) $order->shipping_minor);
 
+        // Link the imported line to a stock-managed local product so we can watch stock.
+        $local = $this->product(['stock' => 4]);
+        $order->items()->update(['product_id' => $local->id]);
+
         $this->assertSame('exists', $orders->handleEvent(['event_id' => 5, 'invoice_id' => 5001])['result']);
         $this->assertSame(1, MarketplaceOrderMap::query()->where('platform', 'basalam')->count());
 
@@ -258,12 +262,27 @@ class MarketplaceBasalamTest extends TestCase
 
         $orders->handleEvent(['event_id' => 3, 'status' => BasalamEndpoints::STATUS_COMPLETED, 'more_data' => ['invoice_id' => 5001]]);
         $this->assertSame('completed', $order->fresh()->status);
-        // The order workflow forbids completed -> cancelled (stock/accounting would double
-        // count); a remote cancel after completion is recorded on the map but the local
-        // order stays completed until a refund/return is processed.
+        $this->assertSame(2, (int) $local->fresh()->stock, 'stock reduced once on entering sales');
+
+        // Basalam cancels after completion: completed -> refunded via the workflow; restock once.
         $orders->handleEvent(['event_id' => 7, 'invoice_id' => 5001, 'type' => 'cancelled']);
-        $this->assertSame('completed', $order->fresh()->status);
-        $this->assertSame('bslm-rejected', $order->fresh()->meta['basalam']['status_key']);
+        $fresh = $order->fresh();
+        $this->assertSame('refunded', $fresh->status);
+        $this->assertSame('bslm-rejected', $fresh->meta['basalam']['status_key']);
+        $this->assertSame(4, (int) $local->fresh()->stock);
+        $this->assertNotContains($fresh->id, Order::query()->whereIn('status', \App\Services\Reports\OrderReports::salesStatuses())->pluck('id')->all());
+        $this->assertSame(1, \App\Models\OrderNote::query()->where('order_id', $order->id)->where('body', 'like', '%پس از تکمیل لغو کرد%')->count());
+        $history = collect($fresh->meta['status_history'] ?? [])->where('from', 'completed')->where('to', 'refunded');
+        $this->assertCount(1, $history);
+
+        // Idempotent: repeated webhooks (both event shapes) change nothing.
+        $orders->handleEvent(['event_id' => 7, 'invoice_id' => 5001, 'type' => 'cancelled']);
+        $orders->handleEvent(['event_id' => 3, 'status' => BasalamEndpoints::STATUS_CANCELLED, 'more_data' => ['invoice_id' => 5001]]);
+        $again = $order->fresh();
+        $this->assertSame('refunded', $again->status);
+        $this->assertSame(4, (int) $local->fresh()->stock);
+        $this->assertSame(1, \App\Models\OrderNote::query()->where('order_id', $order->id)->where('body', 'like', '%پس از تکمیل لغو کرد%')->count());
+        $this->assertCount(1, collect($again->meta['status_history'] ?? [])->where('to', 'refunded'));
 
         $this->assertSame(1, $this->getJson('/api/v1/marketplace/basalam/orders')->assertOk()->json('data.total'));
     }

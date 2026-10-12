@@ -161,11 +161,28 @@ class MarketplaceOrderImporter
             return $changed;
         }
 
+        // A completed order cannot be cancelled (workflow guard). When the platform
+        // cancels after completion the buyer is refunded there, so take the legal
+        // completed -> refunded edge; the status observer then restocks and reverses
+        // coupon/wallet exactly like a manual refund. Once refunded, repeats are no-ops.
+        $afterCompletion = $order->status === 'completed' && $localStatus === 'cancelled';
+        if ($afterCompletion) {
+            $localStatus = 'refunded';
+        }
+
         $previous = $order->status;
         if (! \App\Services\Orders\OrderStatusTransitions::canTransition((string) $order->status, $localStatus)) {
             return $changed;
         }
         $order->update(['status' => $localStatus]);
+        if ($afterCompletion) {
+            OrderNote::query()->create([
+                'tenant_id' => $order->tenant_id,
+                'order_id' => $order->id,
+                'body' => sprintf('%s این سفارش را پس از تکمیل لغو کرد؛ سفارش به‌صورت خودکار به «مسترد شده» منتقل شد و موجودی برگشت داده شد.', MarketplacePlatforms::label($map->platform)),
+                'is_customer' => false,
+            ]);
+        }
         OrderNote::query()->create([
             'tenant_id' => $order->tenant_id,
             'order_id' => $order->id,
