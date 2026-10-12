@@ -159,10 +159,6 @@ class CafeSettingsController extends Controller
             'whatsapp_url' => ['nullable', 'string', 'max:2048'],
             'telegram_url' => ['nullable', 'string', 'max:2048'],
             'bill_pay_url' => ['nullable', 'string', 'max:2048'],
-            'contact_page_enabled' => ['sometimes', 'boolean'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'bale_url' => ['nullable', 'string', 'max:2048'],
-            'website_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
         $tenantId = $request->user()->tenant_id;

@@ -70,9 +70,3 @@ export async function resolveCafeTable(table?: string | null, tableId?: string |
   const res = await apiServer<{ data: ResolvedCafeTable }>(`/api/v1/public/cafe/table?${params.toString()}`, { revalidate: false })
   return res?.data ?? null
 }
-
-/** Public contact page data; null when the cafe has not turned the page on. */
-export async function fetchCafeContact(): Promise<import("@/themes/cafe-starter/types").CafeContactPayload | null> {
-  const res = await apiServer<{ data: import("@/themes/cafe-starter/types").CafeContactPayload }>("/api/v1/public/cafe/contact", { revalidate: false })
-  return res?.data ?? null
-}

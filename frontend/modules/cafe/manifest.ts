@@ -21,8 +21,6 @@ export const cafeManifest: ModuleManifest = {
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },
     { path: "catalogue/:slug", submodule: "item", labelKey: "site.catalogue_item" },
     { path: "about", submodule: "venue", labelKey: "site.about" },
-    // Opt-in per tenant (venue.contact_page_enabled); the page 404s when off.
-    { path: "contact", submodule: "venue", page: "contact", labelKey: "site.contact" },
     { path: "menu", submodule: "menu", labelKey: "site.menu" },
     { path: "reservations", submodule: "reservations", labelKey: "site.reservations" },
   ],

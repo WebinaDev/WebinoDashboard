@@ -198,8 +198,6 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
             'about_fa' => "کافه آبی (@cafebluedez)\nیک روز با آرامش برای شما.\nساعت کاری: تمام هفته ۹ صبح تا ۱۱ شب.\nآدرس: بلوار شریعتی، کوچه ساسان، جنب پاساژ امین.",
             'about_en' => "Cafe Blue (@cafebluedez)\nOpen every day 9:00–23:00.\nAddress: Shariati Blvd, Sasan Alley, next to Amin Passage.",
             'instagram' => '@cafebluedez',
-            // Blue Cafe is the one tenant with the public /contact page.
-            'contact_page_enabled' => true,
             'address_fa' => 'بلوار شریعتی، کوچه ساسان، جنب پاساژ امین',
             'address_en' => 'Shariati Blvd, Sasan Alley, next to Amin Passage',
             'map_url' => 'https://www.google.com/maps/search/?api=1&query='.rawurlencode('بلوار شریعتی کوچه ساسان پاساژ امین'),

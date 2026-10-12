@@ -145,58 +145,6 @@ function BlockFields({
             dir="ltr"
           />
         </div>
-        <div className="space-y-1">
-          <Label>واتس‌اپ</Label>
-          <Input
-            value={String(p.whatsapp ?? "")}
-            placeholder="https://wa.me/98912..."
-            onChange={(e) => onPayload({ ...p, whatsapp: e.target.value })}
-            dir="ltr"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label>تلگرام</Label>
-          <Input
-            value={String(p.telegram ?? "")}
-            placeholder="https://t.me/..."
-            onChange={(e) => onPayload({ ...p, telegram: e.target.value })}
-            dir="ltr"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label>بله</Label>
-          <Input
-            value={String(p.bale ?? "")}
-            placeholder="https://ble.ir/..."
-            onChange={(e) => onPayload({ ...p, bale: e.target.value })}
-            dir="ltr"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label>اینستاگرام</Label>
-          <Input
-            value={String(p.instagram ?? "")}
-            placeholder="@cafe"
-            onChange={(e) => onPayload({ ...p, instagram: e.target.value })}
-            dir="ltr"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label>وب‌سایت</Label>
-          <Input
-            value={String(p.website ?? "")}
-            placeholder="https://"
-            onChange={(e) => onPayload({ ...p, website: e.target.value })}
-            dir="ltr"
-          />
-        </div>
-        <div className="space-y-1 sm:col-span-2">
-          <Label>نشانی</Label>
-          <Input value={String(p.address ?? "")} onChange={(e) => onPayload({ ...p, address: e.target.value })} />
-          <p className="text-muted-foreground text-xs">
-            در صفحه تماس کافه، موقعیت نقشه و ساعت کاری از تنظیمات کافه (مشخصات و ساعت کاری) خوانده می‌شود. فیلدهای خالی این بلوک هم از همان‌جا پر می‌شوند.
-          </p>
-        </div>
         <div className="space-y-2 sm:col-span-2">
           <div className="flex items-center justify-between gap-2">
             <Label>شبکه‌های اجتماعی</Label>

@@ -113,25 +113,7 @@ class PublicLinkHubController extends Controller
 
         $data = $request->validate([
             'fields' => 'required|array|max:40',
-            'fields.*' => 'nullable|string|max:2000',
         ]);
-        $payload = is_array($block->payload) ? $block->payload : [];
-        $defs = is_array($payload['fields'] ?? null) ? $payload['fields'] : [
-            ['name' => 'name', 'required' => true], ['name' => 'phone', 'required' => true], ['name' => 'message', 'required' => false],
-        ];
-        $known = [];
-        foreach ($defs as $def) {
-            $name = is_array($def) ? (string) ($def['name'] ?? '') : '';
-            if ($name === '') {
-                continue;
-            }
-            $known[] = $name;
-            if (! empty($def['required']) && trim((string) ($data['fields'][$name] ?? '')) === '') {
-                return response()->json(['message' => __('validation.required', ['attribute' => (string) ($def['label'] ?? $name)]), 'errors' => ['fields.'.$name => ['required']]], 422);
-            }
-        }
-        // Keep only the fields the block defines.
-        $data['fields'] = array_intersect_key($data['fields'], array_flip($known));
 
         $submission = LinkHubFormSubmission::query()->create([
             'tenant_id' => $tenant->id,
