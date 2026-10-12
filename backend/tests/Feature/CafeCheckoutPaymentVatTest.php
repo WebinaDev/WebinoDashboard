@@ -321,7 +321,7 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $url = $qr->json('data.url');
         // QR images are drawn in the dashboard; no third-party QR service is referenced.
         $this->assertArrayNotHasKey('qr_svg', $qr->json('data'));
-        $this->assertStringNotContainsString('qrserver', $qr->getContent());
+        $this->assertStringNotContainsString('create-qr-code', $qr->getContent());
         $this->assertStringContainsString('table=5', $url);
         $this->assertStringContainsString('table_id='.$t5->id, $url);
         $this->assertStringContainsString('branch=center', $url);
