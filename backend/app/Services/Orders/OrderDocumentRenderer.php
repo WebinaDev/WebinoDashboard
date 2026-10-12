@@ -217,6 +217,7 @@ final class OrderDocumentRenderer
             'discount' => (int) $order->discount_minor,
             'shipping' => (int) $order->shipping_minor,
             'tax' => (int) ($order->tax_minor ?? 0),
+            'showTax' => OrderTax::showOnInvoice((int) $order->tenant_id),
             'total' => (int) $order->total_minor,
             'note' => (string) ($order->customer_note ?? ''),
         ];

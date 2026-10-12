@@ -308,6 +308,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/cafe/cart', [PublicGuestCartController::class, 'show']);
             Route::get('/cafe/order-status', [PublicGuestCartController::class, 'track']);
             Route::post('/cafe/cart/items', [PublicGuestCartController::class, 'addItem'])->middleware('throttle:public-writes');
+            Route::get('/cafe/pickup-slots', [PublicGuestCartController::class, 'pickupSlots']);
             Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout'])->middleware('throttle:public-writes');
             Route::post('/cafe/orders/{order}/pay', [PublicGuestCartController::class, 'pay'])->whereNumber('order')->middleware('throttle:public-writes');
         });

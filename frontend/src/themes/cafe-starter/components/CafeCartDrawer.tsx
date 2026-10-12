@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api, type ApiError } from "@/lib/api"
-import { MapPinPicker } from "@/components/MapPinPicker"
+import { MapPinPicker } from "@/components/MapPinPickerLazy"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import type { ShopCurrencyDisplay } from "@/lib/format"
 import { toLocaleDigits } from "@/lib/locale"
@@ -114,7 +114,14 @@ export function CafeCartDrawer({
     staleTime: 60_000,
   })
 
-  const slots = pickupSlots(ordering?.prep_minutes ?? 20, ordering?.pickup_slot_minutes ?? 15)
+  // Slots come from the server: after prep time and inside opening hours (holidays, overnight).
+  const slotsQ = useQuery({
+    queryKey: ["cafe-pickup-slots"],
+    enabled: open && fulfillment === "pickup",
+    queryFn: () => api<{ time: string; at: string }[]>("/api/v1/public/cafe/pickup-slots"),
+    refetchInterval: 60_000,
+  })
+  const slots = (slotsQ.data ?? []).map((s) => s.time)
 
   function validate(): Record<string, string> {
     const errs: Record<string, string> = {}
@@ -419,6 +426,7 @@ export function CafeCartDrawer({
                     <option key={s} value={s}>{toLocaleDigits(s, lang)}</option>
                   ))}
                 </select>
+                {slotsQ.isSuccess && slots.length === 0 ? <p className="cafe-error">{t("no_pickup_slots")}</p> : null}
                 {fe("pickup_time")}
               </div>
             ) : null}
@@ -516,16 +524,3 @@ function newKey(): string {
 function toAscii(v: string): string {
   return v.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
 }
-
-/** Pickup slots for today from now + prep time, rounded up to the slot size. */
-function pickupSlots(prep: number, step: number): string[] {
-  const now = new Date()
-  let mins = now.getHours() * 60 + now.getMinutes() + Math.max(0, prep)
-  mins = Math.ceil(mins / step) * step
-  const out: string[] = []
-  for (let m = mins; m < 24 * 60 && out.length < 32; m += step) {
-    out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`)
-  }
-  return out
-}
-

@@ -149,6 +149,7 @@ class OrderController extends Controller
         $payload['next_statuses'] = \App\Services\Orders\OrderStatusTransitions::nextStatuses((string) $row->status);
         $payload['status_label'] = \App\Services\Orders\OrderShippingStatuses::label((string) $row->status);
         $payload['status_history'] = is_array($row->meta['status_history'] ?? null) ? $row->meta['status_history'] : [];
+        $payload['show_vat'] = \App\Services\Orders\OrderTax::showOnInvoice((int) $row->tenant_id);
         if ($row->user_id) {
             $payload['customer_recent_orders'] = Order::query()
                 ->where('tenant_id', $row->tenant_id)

@@ -28,6 +28,7 @@ class PublicOrderPaymentController extends Controller
                 'discount_minor' => $row->discount_minor,
                 'shipping_minor' => $row->shipping_minor,
                 'tax_minor' => (int) ($row->tax_minor ?? 0),
+                'show_vat' => \App\Services\Orders\OrderTax::showOnInvoice((int) $row->tenant_id),
                 'currency' => $row->currency,
                 'customer_name' => $row->customer_name,
                 'shipping_address' => $row->shipping_address,

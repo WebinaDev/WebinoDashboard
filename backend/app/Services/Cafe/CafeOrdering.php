@@ -219,7 +219,7 @@ class CafeOrdering
             'tax_lines' => $tax['lines'],
             'vat_rate' => $rate,
             'vat_inclusive' => $tax['tax_minor'] > 0 && $tax['added_minor'] === 0,
-            'show_vat' => (bool) ($tax['show_on_invoice'] ?? false),
+            'show_vat' => \App\Services\Orders\OrderTax::showOnInvoice($tenantId),
             'grand_total_minor' => max(0, $subtotal + $fees['total_minor'] + $tax['added_minor']),
         ];
     }
@@ -241,6 +241,37 @@ class CafeOrdering
         }
         if ((bool) ($menu['pay_cash_enabled'] ?? true)) {
             $out[] = ['id' => 'cash', 'title' => '', 'type' => 'cash'];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Pickup slots from now + prep time, rounded up to the slot size, within opening hours
+     * (per weekday, overnight ranges, holidays). Looks up to 24 hours ahead.
+     *
+     * @return list<array{time: string, at: string}>
+     */
+    public function pickupSlots(int $tenantId, ?CarbonInterface $now = null): array
+    {
+        $hours = $this->hours($tenantId);
+        $menu = $this->menu($tenantId);
+        $tz = $this->timezone($hours);
+        $now = Carbon::parse($now ?? Carbon::now())->timezone($tz);
+        $prep = max(0, (int) ($menu['prep_minutes'] ?? 20));
+        $step = max(5, (int) ($menu['pickup_slot_minutes'] ?? 15));
+
+        $start = $now->copy()->addMinutes($prep)->second(0);
+        $mins = $start->hour * 60 + $start->minute;
+        $start->setTime(0, 0)->addMinutes((int) (ceil($mins / $step) * $step));
+
+        $out = [];
+        $end = $now->copy()->addDay();
+        for ($t = $start->copy(); $t->lt($end) && count($out) < 64; $t->addMinutes($step)) {
+            if (self::openAt($hours, $t)['is_open'] === false) {
+                continue;
+            }
+            $out[] = ['time' => $t->format('H:i'), 'at' => $t->toIso8601String()];
         }
 
         return $out;

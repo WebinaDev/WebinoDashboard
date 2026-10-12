@@ -22,6 +22,7 @@ export function AccountingTaxPanel() {
     rate_percent?: number
     tax_rate_percent?: number
     prices_include_tax?: boolean
+    show_on_invoice?: boolean
     tax_based_on?: string
     round_at_subtotal?: boolean
     display_shop?: string
@@ -31,7 +32,7 @@ export function AccountingTaxPanel() {
 
   if (loading || !draft) return <p className="text-muted-foreground text-sm">{t("loading")}</p>
 
-  const rate = Number(draft.rate_percent ?? draft.tax_rate_percent ?? 9)
+  const rate = Number(draft.rate_percent ?? draft.tax_rate_percent ?? 10)
   const displayShop = draft.display_shop ?? draft.display_prices ?? "excl"
   const displayCart = draft.display_cart ?? draft.display_prices ?? "excl"
 
@@ -47,6 +48,13 @@ export function AccountingTaxPanel() {
             <Switch
               checked={Boolean(draft.enabled ?? true)}
               onCheckedChange={(v) => setDraft({ ...draft, enabled: v })}
+            />
+          </div>
+          <div className="flex max-w-lg items-center justify-between gap-3">
+            <Label>{t("accounting.show_on_invoice")}</Label>
+            <Switch
+              checked={draft.show_on_invoice !== false}
+              onCheckedChange={(v) => setDraft({ ...draft, show_on_invoice: v })}
             />
           </div>
           <div className="flex max-w-lg items-center justify-between gap-3">

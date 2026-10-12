@@ -489,7 +489,8 @@
       "err_plaque": "Enter the plaque.",
       "err_postal": "Postal code must be 10 digits.",
       "err_pin": "Drop a pin on the map.",
-      "err_pickup": "Choose a pickup time."
+      "err_pickup": "Choose a pickup time.",
+      "no_pickup_slots": "No pickup times are left within opening hours."
     },
     "kitchen": {
       "new": "New",
@@ -806,7 +807,12 @@
         "dine_in": "Dine in",
         "pickup": "Pickup",
         "delivery": "Delivery"
-      }
+      },
+      "none": "None",
+      "paid_online": "Paid online",
+      "pay_on_site": "Pay on site",
+      "pickup_at": "Pickup",
+      "open_map": "Map"
     },
     "inbox": {
       "title": "Guest feedback",
@@ -1906,7 +1912,8 @@
       "economic_code": "Economic code",
       "national_id": "National ID",
       "api_key": "API key",
-      "sandbox": "Sandbox"
+      "sandbox": "Sandbox",
+      "show_on_invoice": "Show the VAT line on invoices"
     },
     "bots": {
       "enabled": "Bot enabled",

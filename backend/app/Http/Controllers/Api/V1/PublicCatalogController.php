@@ -191,6 +191,15 @@ class PublicCatalogController extends Controller
 
         $data = $this->withPricing($this->serializeProduct($product, true), $product, PurchaseTypeService::forTenant($tid));
         $data['likes_count'] = $likesCount;
+        // Same price formatting as the catalogue list (item page used to fall back to defaults).
+        $general = \App\Services\Shop\ShopSettings::getGeneral($tid);
+        $data['currency_display'] = [
+            'currency' => $general['currency'] ?? null,
+            'currency_position' => $general['currency_position'] ?? null,
+            'thousand_separator' => $general['thousand_separator'] ?? null,
+            'decimal_separator' => $general['decimal_separator'] ?? null,
+            'price_decimals' => $general['price_decimals'] ?? null,
+        ];
 
         return response()->json([
             'data' => $data,

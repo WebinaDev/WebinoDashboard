@@ -128,7 +128,7 @@ function SupCard({ item, ctrl }: { item: CatalogItem; ctrl: CatalogueController 
   const add = useAddToCart(ctrl.tableNumber, ctrl.branchSlug)
   const off = offPercent(item)
   const was = ctrl.wasOf(item)
-  const needsChoice = (item.modifiers ?? []).some((m) => m.is_required) || (item.variants?.length ?? 0) > 1
+  const needsChoice = (item.modifiers ?? []).some((m) => m.is_required || m.min_select > 0) || (item.variants?.length ?? 0) > 1
   const blocked = item.is_sold_out || !item.is_available || ctrl.ordering?.accepting_orders === false
   const saved = off > 0 ? ctrl.moneyOf(item.price_minor - item.discounted_price_minor) : null
 
@@ -140,13 +140,15 @@ function SupCard({ item, ctrl }: { item: CatalogItem; ctrl: CatalogueController 
       return
     }
     add.mutate(
-      { productId: item.id, quantity: qty, optionIds: [], variantId: null },
+      { productId: item.id, quantity: qty, optionIds: [], variantId: item.variants?.[0]?.id ?? null },
       {
         onSuccess: () => {
           setDone(true)
           setQty(1)
           window.setTimeout(() => setDone(false), 1200)
         },
+        // Quick add failed (closed, sold out, needs options): open the item sheet, which shows the reason.
+        onError: () => ctrl.setPicked(item),
       },
     )
   }

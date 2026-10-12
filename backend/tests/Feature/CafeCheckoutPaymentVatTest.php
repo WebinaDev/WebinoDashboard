@@ -205,4 +205,86 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->assertSame(9091, $inc['tax_minor']);
         $this->assertSame(100000, $inc['grand_total_minor']);
     }
+
+    private function hours(array $days, array $closed = []): void
+    {
+        app(ModuleSettingsService::class)->put($this->tenant->id, 'cafe', 'hours', [
+            'timezone' => 'Asia/Tehran', 'days' => $days, 'closed_dates' => $closed,
+        ]);
+    }
+
+    public function test_pickup_slots_follow_hours_prep_and_holidays(): void
+    {
+        $this->menu(['prep_minutes' => 20, 'pickup_slot_minutes' => 30]);
+        // Tuesday 2026-10-13 21:50 Tehran; open 08:00-23:00 every day.
+        \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-10-13 21:50', 'Asia/Tehran'));
+        $all = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        $this->hours(array_map(fn ($d) => ['day' => $d, 'open' => '08:00', 'close' => '23:00'], $all));
+
+        $times = array_column($this->getJson('/api/v1/public/cafe/pickup-slots', $this->h)->assertOk()->json('data'), 'time');
+        // 21:50 + 20 = 22:10, rounded to 22:30; 23:00 is closing (half-open); next day from 08:00.
+        $this->assertSame('22:30', $times[0]);
+        $this->assertNotContains('23:00', $times);
+        $this->assertNotContains('02:00', $times);
+        $this->assertContains('08:00', $times);
+
+        // Overnight: Tuesday 18:00-02:00 keeps slots after midnight.
+        $this->hours([['day' => 'tuesday', 'open' => '18:00', 'close' => '02:00'], ['day' => 'wednesday', 'closed' => true]]);
+        $times = array_column($this->getJson('/api/v1/public/cafe/pickup-slots', $this->h)->json('data'), 'time');
+        $this->assertContains('01:30', $times);
+        $this->assertNotContains('02:00', $times);
+        $this->assertNotContains('10:00', $times);
+
+        // Holiday tomorrow: only tonight's slots before 23:00.
+        $this->hours(array_map(fn ($d) => ['day' => $d, 'open' => '08:00', 'close' => '23:00'], $all), ['2026-10-14']);
+        $times = array_column($this->getJson('/api/v1/public/cafe/pickup-slots', $this->h)->json('data'), 'time');
+        $this->assertSame(['22:30'], $times);
+
+        // Server rejects an unoffered time and accepts an offered one.
+        $p = $this->product('Latte', 100000);
+        $this->add($p, 'tok-pickup-1');
+        $base = ['guest_token' => 'tok-pickup-1', 'fulfillment' => 'pickup', 'payment_method' => 'cash',
+            'customer_name' => 'رضا', 'customer_phone' => '09121234567'];
+        $this->postJson('/api/v1/public/cafe/checkout', $base + ['pickup_time' => '22:00', 'idempotency_key' => 'pk-1-aaaa'], $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['pickup_time']);
+        $this->postJson('/api/v1/public/cafe/checkout', $base + ['pickup_time' => '09:00', 'idempotency_key' => 'pk-2-aaaa'], $this->h)
+            ->assertStatus(422);
+        $order = $this->postJson('/api/v1/public/cafe/checkout', $base + ['pickup_time' => '22:30', 'idempotency_key' => 'pk-3-aaaa'], $this->h)
+            ->assertCreated()->json('data');
+        $this->assertStringStartsWith('2026-10-13T22:30', Order::query()->find($order['id'])->meta['pickup_at']);
+        \Carbon\Carbon::setTestNow();
+    }
+
+    public function test_vat_line_hidden_when_show_on_invoice_is_off(): void
+    {
+        ShopSettings::saveTax($this->tenant->id, ['enabled' => true, 'rate_percent' => 10, 'prices_include_tax' => false, 'show_on_invoice' => false]);
+        $coffee = $this->product('Coffee', 100000);
+        $this->add($coffee, 'tok-hide-vat');
+        $totals = $this->getJson('/api/v1/public/cafe/cart?guest_token=tok-hide-vat&fulfillment=dine_in', $this->h)->assertOk()->json('data.totals');
+        $this->assertFalse($totals['show_vat']);
+        $this->assertSame(10000, $totals['tax_minor']);
+
+        $order = $this->postJson('/api/v1/public/cafe/checkout', [
+            'guest_token' => 'tok-hide-vat', 'fulfillment' => 'dine_in', 'table_number' => '2', 'payment_method' => 'cash', 'idempotency_key' => 'hide-vat-key-1',
+        ], $this->h)->assertCreated()->json('data');
+
+        $admin = \App\Models\User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+        $this->getJson('/api/v1/orders/'.$order['id'])->assertOk()->assertJsonPath('data.show_vat', false);
+
+        ShopSettings::saveTax($this->tenant->id, ['enabled' => true, 'rate_percent' => 10, 'show_on_invoice' => true]);
+        $this->getJson('/api/v1/orders/'.$order['id'])->assertOk()->assertJsonPath('data.show_vat', true);
+    }
+
+    public function test_kitchen_done_completes_cash_order(): void
+    {
+        $order = Order::query()->create([
+            'tenant_id' => $this->tenant->id, 'status' => 'processing', 'subtotal_minor' => 1000, 'total_minor' => 1000,
+            'currency' => 'IRR', 'meta' => ['source' => 'guest_table', 'kitchen_status' => 'ready'],
+        ]);
+        $admin = \App\Models\User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+        $this->patchJson('/api/v1/cafe/kitchen-orders/'.$order->id, ['kitchen_status' => 'done'])->assertOk();
+        $this->assertSame('completed', $order->fresh()->status);
+    }
 }

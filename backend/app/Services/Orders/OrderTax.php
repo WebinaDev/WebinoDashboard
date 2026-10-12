@@ -78,6 +78,12 @@ final class OrderTax
         ];
     }
 
+    /** Whether invoices/receipts show the VAT line (store tax setting "show on invoice", default on). */
+    public static function showOnInvoice(int $tenantId): bool
+    {
+        return filter_var(ShopSettings::getTax($tenantId)['show_on_invoice'] ?? true, FILTER_VALIDATE_BOOLEAN);
+    }
+
     /** Product flag wins; null follows its category; default subject to VAT. */
     public static function productTaxable(?\App\Models\Product $product): bool
     {

@@ -199,15 +199,15 @@ class PublicGuestCartController extends Controller
 
         $pickupAt = null;
         if ($fulfillment === 'pickup') {
-            $tz = (string) $status['timezone'];
-            $now = \Carbon\Carbon::now($tz);
-            $pickupAt = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $now->toDateString().' '.$meta['pickup_time'], $tz);
-            if ($pickupAt->lt($now->copy()->addMinutes((int) $status['prep_minutes'] - 1))) {
+            // Only offered slots are accepted: after prep time and inside opening hours.
+            $slot = collect($ordering->pickupSlots($tid))->firstWhere('time', $meta['pickup_time']);
+            if (! $slot) {
                 return response()->json([
-                    'message' => __('api.cafe_pickup_too_soon'),
-                    'errors' => ['pickup_time' => [__('api.cafe_pickup_too_soon')]],
+                    'message' => __('api.cafe_pickup_unavailable'),
+                    'errors' => ['pickup_time' => [__('api.cafe_pickup_unavailable')]],
                 ], 422);
             }
+            $pickupAt = \Carbon\Carbon::parse($slot['at']);
         }
 
         $phone = isset($meta['customer_phone']) ? '0'.substr(preg_replace('/\D/', '', $meta['customer_phone']), -10) : null;
@@ -361,6 +361,12 @@ class PublicGuestCartController extends Controller
         } finally {
             $lock->release();
         }
+    }
+
+    public function pickupSlots(Request $request, CafeOrdering $ordering): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(['data' => $ordering->pickupSlots($this->publicTenantId($request))])
+            ->header('Cache-Control', 'no-store');
     }
 
     /** Retry online payment for a pending guest order (same guest token + pay token). */

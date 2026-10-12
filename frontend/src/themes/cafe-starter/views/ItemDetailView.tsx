@@ -7,6 +7,7 @@ import { ArrowRight, Heart, Star } from "lucide-react"
 
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import type { ShopCurrencyDisplay } from "@/lib/format"
 
 import { CafeCartDrawer } from "../components/CafeCartDrawer"
 import { ItemPanel } from "../components/ItemSheet"
@@ -40,6 +41,7 @@ export function ItemDetailView({
   const [comment, setComment] = useState("")
   const [message, setMessage] = useState<string | null>(null)
   const qs = { table: tableNumber, branch: branchSlug }
+  const currencyDisplay = (item as CatalogItem & { currency_display?: ShopCurrencyDisplay | null }).currency_display ?? null
 
   useEffect(() => {
     const stored = readScheme()
@@ -89,6 +91,7 @@ export function ItemDetailView({
     qs,
     tableNumber,
     branchSlug,
+    currencyDisplay,
   }
 
   return (
@@ -104,7 +107,7 @@ export function ItemDetailView({
               <Heart className="size-4" />
               <span className="cafe-like-count">{digits(likes, locale)}</span>
             </button>
-            <CafeCartDrawer tableNumber={tableNumber} branchSlug={branchSlug} ordering={ordering} currency={item.currency} skin={skin} scheme={scheme} />
+            <CafeCartDrawer tableNumber={tableNumber} branchSlug={branchSlug} ordering={ordering} currency={item.currency} currencyDisplay={currencyDisplay} skin={skin} scheme={scheme} />
           </div>
         </header>
 

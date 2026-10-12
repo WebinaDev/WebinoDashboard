@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toLocaleDigits } from "@/lib/locale"
 import { useTranslations } from "next-intl"
 import { useEffect, useRef } from "react"
 
@@ -19,10 +20,16 @@ type KitchenOrder = {
   fulfillment: string
   table_number?: string | null
   customer_phone?: string | null
+  status?: string
+  customer_name?: string | null
+  shipping_address?: string | null
+  delivery?: { lat?: number | null; lng?: number | null } | null
+  pickup_at?: string | null
+  payment_method?: string | null
   customer_note?: string | null
   total_minor: number
   created_at: string
-  items: { id: number; name?: string | null; quantity: number; selections?: { name_fa?: string }[] }[]
+  items: { id: number; name?: string | null; quantity: number; selections?: { name_fa?: string; name_en?: string }[] }[]
 }
 
 const FLOW = ["new", "preparing", "ready", "served", "out_for_delivery", "done"] as const
@@ -88,12 +95,35 @@ export default function KitchenPageClient({ route }: { route: ResolvedAdminRoute
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p>{t("table")}: {order.table_number || "—"} · {t(`fulfillment.${order.fulfillment}`)}</p>
+              <p>
+                {t(`fulfillment.${order.fulfillment}`)}
+                {order.fulfillment === "dine_in" ? ` · ${t("table")}: ${order.table_number ? toLocaleDigits(order.table_number, locale) : t("none")}` : ""}
+              </p>
+              <p className="text-muted-foreground">{t(order.status === "paid" ? "paid_online" : "pay_on_site")}</p>
+              {order.customer_name || order.customer_phone ? (
+                <p>
+                  {order.customer_name ?? ""} {order.customer_phone ? <a dir="ltr" href={`tel:${order.customer_phone}`}>{toLocaleDigits(order.customer_phone, locale)}</a> : null}
+                </p>
+              ) : null}
+              {order.pickup_at ? <p>{t("pickup_at")}: {formatDisplayDateTime(order.pickup_at, locale)}</p> : null}
+              {order.fulfillment === "delivery" ? (
+                <p>
+                  {order.shipping_address || t("none")}
+                  {order.delivery?.lat != null && order.delivery?.lng != null ? (
+                    <>
+                      {" "}
+                      <a className="text-primary underline" target="_blank" rel="noreferrer" href={`https://www.openstreetmap.org/?mlat=${order.delivery.lat}&mlon=${order.delivery.lng}#map=18/${order.delivery.lat}/${order.delivery.lng}`}>
+                        {t("open_map")}
+                      </a>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
               <p className="text-muted-foreground">{formatDisplayDateTime(order.created_at, locale)}</p>
               {order.customer_note ? <p>{order.customer_note}</p> : null}
               <ul className="space-y-1">
                 {order.items.map((item) => (
-                  <li key={item.id}>{item.quantity}× {item.name}{item.selections?.length ? ` (${item.selections.map((s) => s.name_fa).join("، ")})` : ""}</li>
+                  <li key={item.id}>{toLocaleDigits(String(item.quantity), locale)}× {item.name}{item.selections?.length ? ` (${item.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en || s.name_fa)).join("، ")})` : ""}</li>
                 ))}
               </ul>
               <div className="flex flex-wrap gap-1 pt-2">

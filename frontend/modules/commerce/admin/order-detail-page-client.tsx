@@ -85,6 +85,7 @@ type OrderDetail = {
   discount_minor?: number
   shipping_minor?: number
   tax_minor?: number
+  show_vat?: boolean
   amount_paid_minor?: number | null
   currency?: string
   customer_name?: string | null
@@ -900,7 +901,7 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                       <MoneyDisplay amount={order.shipping_minor} currency={order.currency} />
                     </div>
                   ) : null}
-                  {order.tax_minor != null && order.tax_minor > 0 ? (
+                  {order.show_vat !== false && order.tax_minor != null && order.tax_minor > 0 ? (
                     <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">{t("tax_minor")}</span>
                       <MoneyDisplay amount={order.tax_minor} currency={order.currency} />
