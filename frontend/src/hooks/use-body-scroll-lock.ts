@@ -1,47 +1,65 @@
 "use client"
 
-import { useLayoutEffect } from "react"
+import { useEffect } from "react"
 
 /**
- * Lock document scroll without the position:fixed body trick.
- * That pattern paints a solid theme background (brown/black on cafe dark)
- * over the page and makes storefront content disappear behind overlays.
+ * Stop the page behind an overlay from scrolling WITHOUT touching html/body overflow
+ * or calling scrollTo. Changing overflow on the root (or the position:fixed trick)
+ * makes mobile browsers jump to the top while the popup is open and jump back on close.
+ * Instead we swallow wheel/touch scrolling that does not happen inside a scrollable
+ * area of the open sheet, so the page stays exactly where the user was.
  */
-export function useBodyScrollLock(locked: boolean) {
-  useLayoutEffect(() => {
-    if (!locked) return
+export function useBodyScrollLock(locked: boolean, allowSelector = ".cafe-sheet") {
+  useEffect(() => {
+    if (!locked || typeof window === "undefined") return
 
-    const html = document.documentElement
-    const body = document.body
-    const scrollY = window.scrollY || window.pageYOffset || 0
-
-    const prevHtmlOverflow = html.style.overflow
-    const prevBodyOverflow = body.style.overflow
-    const prevBodyOverscroll = body.style.overscrollBehavior
-
-    html.style.overflow = "hidden"
-    body.style.overflow = "hidden"
-    body.style.overscrollBehavior = "none"
-
-    const pin = () => {
-      if (Math.abs(window.scrollY - scrollY) > 1) {
-        window.scrollTo(0, scrollY)
+    const canScrollInside = (target: EventTarget | null, deltaY: number) => {
+      let el = target instanceof Element ? target : null
+      const root = el?.closest(allowSelector)
+      if (!root) return false
+      while (el && el !== root.parentElement) {
+        const style = window.getComputedStyle(el)
+        const scrollable = /(auto|scroll)/.test(style.overflowY) && el.scrollHeight > el.clientHeight + 1
+        if (scrollable) {
+          if (deltaY < 0 && el.scrollTop > 0) return true
+          if (deltaY > 0 && el.scrollTop + el.clientHeight < el.scrollHeight - 1) return true
+          if (deltaY === 0) return true
+        }
+        el = el.parentElement
       }
+      return false
     }
-    const raf = window.requestAnimationFrame(pin)
-    const t0 = window.setTimeout(pin, 0)
-    const t1 = window.setTimeout(pin, 50)
-    const t2 = window.setTimeout(pin, 120)
 
-    return () => {
-      window.cancelAnimationFrame(raf)
-      window.clearTimeout(t0)
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-      html.style.overflow = prevHtmlOverflow
-      body.style.overflow = prevBodyOverflow
-      body.style.overscrollBehavior = prevBodyOverscroll
-      window.scrollTo(0, scrollY)
+    const onWheel = (e: WheelEvent) => {
+      if (!canScrollInside(e.target, e.deltaY)) e.preventDefault()
     }
-  }, [locked])
+    let lastY = 0
+    const onTouchStart = (e: TouchEvent) => {
+      lastY = e.touches[0]?.clientY ?? 0
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? 0
+      const deltaY = lastY - y
+      lastY = y
+      if (!canScrollInside(e.target, deltaY)) e.preventDefault()
+    }
+    const keys = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "])
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+      if (keys.has(e.key) && !t?.closest(allowSelector)) e.preventDefault()
+    }
+
+    const opts: AddEventListenerOptions = { passive: false }
+    document.addEventListener("wheel", onWheel, opts)
+    document.addEventListener("touchstart", onTouchStart, { passive: true })
+    document.addEventListener("touchmove", onTouchMove, opts)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("wheel", onWheel)
+      document.removeEventListener("touchstart", onTouchStart)
+      document.removeEventListener("touchmove", onTouchMove)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [locked, allowSelector])
 }
