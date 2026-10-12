@@ -32,6 +32,10 @@ class RequireAjaxHeader
         }
 
         $requestedWith = (string) $request->header('X-Requested-With', '');
+        // AuthenticateFromCookie copies the cookie into Authorization, so bearerToken()
+        // alone cannot tell a real API client from a browser riding the cookie.
+        $cookieAuth = $request->cookie(config('auth.cookie_name', 'webino_auth_token'))
+            && (! $request->bearerToken() || $request->attributes->get('auth_via_cookie') === true);
         $acceptsJson = $request->expectsJson()
             || str_contains((string) $request->header('Accept', ''), 'application/json');
 
@@ -42,9 +46,7 @@ class RequireAjaxHeader
             ], 403);
         }
 
-        if ($request->cookie(config('auth.cookie_name', 'webino_auth_token'))
-            && strcasecmp($requestedWith, 'XMLHttpRequest') !== 0
-            && ! $request->bearerToken()) {
+        if ($cookieAuth && strcasecmp($requestedWith, 'XMLHttpRequest') !== 0) {
             return response()->json([
                 'message' => 'Missing X-Requested-With header',
                 'errors' => ['code' => 'AJAX_REQUIRED'],
@@ -54,11 +56,7 @@ class RequireAjaxHeader
         // Cookie-auth mutations: if Origin/Referer is present, require it to match
         // an allowed CORS origin (or same host). Missing Origin is allowed for
         // non-browser clients that already passed the AJAX header check.
-        if (
-            $request->cookie(config('auth.cookie_name', 'webino_auth_token'))
-            && ! $request->bearerToken()
-            && ! $this->originAllowed($request)
-        ) {
+        if ($cookieAuth && ! $this->originAllowed($request)) {
             return response()->json([
                 'message' => 'Invalid Origin',
                 'errors' => ['code' => 'ORIGIN_FORBIDDEN'],

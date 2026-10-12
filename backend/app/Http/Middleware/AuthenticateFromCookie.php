@@ -17,6 +17,9 @@ class AuthenticateFromCookie
                 'Authorization',
                 'Bearer '.$request->cookie($cookieName)
             );
+            // Remember the bearer came from the cookie so CSRF checks downstream
+            // (RequireAjaxHeader) still treat this as a cookie-authenticated request.
+            $request->attributes->set('auth_via_cookie', true);
         }
 
         return $next($request);

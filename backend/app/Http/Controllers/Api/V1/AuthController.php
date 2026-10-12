@@ -96,9 +96,9 @@ class AuthController extends Controller
         return AuthCookie::attach($response, $token, $request);
     }
 
-    public function session(Request $request): \Illuminate\Http\JsonResponse
+    public function session(Request $request, LoginAttemptService $attempts): \Illuminate\Http\JsonResponse
     {
-        return $this->login($request);
+        return $this->login($request, $attempts);
     }
 
     public function panelLogin(Request $request): \Illuminate\Http\JsonResponse

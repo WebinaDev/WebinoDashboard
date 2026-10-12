@@ -167,15 +167,15 @@ class ProvisionBootstrapCommand extends Command
         $hasExplicitPassword = filled($seed['admin_password'] ?? null);
         $password = (string) ($seed['admin_password'] ?? Str::random(12));
 
-        User::query()->updateOrCreate(
+        // tenant_id/role are not mass-assignable on User; assign explicitly (trusted provisioning path).
+        $admin = User::query()->updateOrCreate(
             ['email' => $email],
             [
                 'name' => (string) ($seed['admin_name'] ?? 'Admin'),
                 'password' => Hash::make($password),
                 'password_must_change' => ! $hasExplicitPassword,
-                'tenant_id' => $tenant->id,
-                'role' => 'admin',
             ]
         );
+        $admin->forceFill(['tenant_id' => $tenant->id, 'role' => 'admin'])->save();
     }
 }

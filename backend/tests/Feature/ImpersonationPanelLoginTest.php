@@ -17,7 +17,7 @@ class ImpersonationPanelLoginTest extends TestCase
     public function test_panel_login_keeps_staff_context_off_the_browser_and_can_switch(): void
     {
         $tenant = $this->createTenant(['domain' => 'cafe.test', 'name' => 'Cafe']);
-        $admin = User::query()->create([
+        $admin = User::query()->forceCreate([
             'name' => 'Owner',
             'email' => 'owner@cafe.test',
             'password' => Hash::make('secret-not-used'),
@@ -119,7 +119,7 @@ class ImpersonationPanelLoginTest extends TestCase
     public function test_legacy_panel_login_still_issues_a_url_without_impersonation(): void
     {
         $tenant = $this->createTenant(['domain' => 'cafe.test']);
-        User::query()->create([
+        User::query()->forceCreate([
             'name' => 'Owner',
             'email' => 'owner@cafe.test',
             'password' => Hash::make('secret'),

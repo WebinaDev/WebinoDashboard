@@ -96,16 +96,16 @@ class ProvisionController extends Controller
 
         if (filled($seed['admin_email'] ?? null)) {
             $hasExplicitPassword = filled($seed['admin_password'] ?? null);
-            User::query()->updateOrCreate(
+            // tenant_id/role are not mass-assignable on User; assign explicitly (trusted provisioning path).
+            $admin = User::query()->updateOrCreate(
                 ['email' => (string) $seed['admin_email']],
                 [
                     'name' => (string) ($seed['admin_name'] ?? 'Admin'),
                     'password' => Hash::make((string) ($seed['admin_password'] ?? Str::random(12))),
                     'password_must_change' => ! $hasExplicitPassword,
-                    'tenant_id' => $tenant->id,
-                    'role' => 'admin',
                 ]
             );
+            $admin->forceFill(['tenant_id' => $tenant->id, 'role' => 'admin'])->save();
         }
 
         return response()->json(['data' => ['ok' => true, 'tenant_id' => $tenant->id]]);
