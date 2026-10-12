@@ -64,6 +64,7 @@ type OrderRow = {
   gateway_title?: string | null
   utm?: string | null
   marketplace?: string | null
+  meta?: { refund_required?: boolean } | null
 }
 
 type OrdersMeta = {
@@ -592,6 +593,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
                           {o.number || `#${o.id}`}
                         </Link>
                         <Badge variant={statusBadgeVariant(o.status)}>{enumLabel("order_status", o.status)}</Badge>
+                        {o.meta?.refund_required ? <Badge variant="destructive">{t("refund_required_badge")}</Badge> : null}
                       </div>
                     }
                     actions={
@@ -664,6 +666,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
                         </td>
                         <td className="p-2">
                           <Badge variant={statusBadgeVariant(o.status)}>{enumLabel("order_status", o.status)}</Badge>
+                        {o.meta?.refund_required ? <Badge variant="destructive">{t("refund_required_badge")}</Badge> : null}
                         </td>
                         <td className="p-2">
                           <MoneyDisplay amount={o.total_minor} />

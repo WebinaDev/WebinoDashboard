@@ -17,7 +17,7 @@ class CafeKitchenController extends Controller
             ->where('tenant_id', $tid)
             ->where('created_at', '>=', now()->subHours(18))
             // Unpaid online orders stay off the kitchen board until the gateway verifies payment.
-            ->whereNotIn('status', ['pending_payment', 'awaiting_gateway', 'payment_failed', 'cancelled', 'failed', 'refunded'])
+            ->whereNotIn('status', ['pending_payment', 'awaiting_gateway', 'payment_failed', 'on_hold', 'cancelled', 'failed', 'refunded'])
             ->where(function ($q) {
                 $q->whereNotNull('table_number')
                     ->orWhere('meta->source', 'guest_table');
@@ -37,7 +37,7 @@ class CafeKitchenController extends Controller
         $data = $request->validate([
             'kitchen_status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)],
         ]);
-        if (in_array((string) $order->status, ['pending_payment', 'awaiting_gateway', 'payment_failed', 'cancelled', 'failed', 'refunded'], true)) {
+        if (in_array((string) $order->status, ['pending_payment', 'awaiting_gateway', 'payment_failed', 'on_hold', 'cancelled', 'failed', 'refunded'], true)) {
             return response()->json(['message' => __('api.cafe_kitchen_order_not_payable')], 422);
         }
 

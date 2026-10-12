@@ -20,7 +20,7 @@ final class OrderStatusTransitions
         return [
             'pending_payment' => ['awaiting_gateway', 'on_hold', 'paid', 'payment_failed', 'cancelled', 'failed'],
             'awaiting_gateway' => ['paid', 'payment_failed', 'on_hold', 'cancelled', 'failed'],
-            'on_hold' => ['paid', 'processing', 'cancelled', 'webino-need-review'],
+            'on_hold' => ['paid', 'processing', 'cancelled', 'refunded', 'webino-need-review'],
             'paid' => ['processing', 'sent-to-warehouse', 'webino-in-stock', 'cancelled', 'refunded'],
             'payment_failed' => ['pending_payment', 'awaiting_gateway', 'cancelled', 'failed'],
             'processing' => array_merge(

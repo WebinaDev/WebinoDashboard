@@ -36,6 +36,11 @@ return [
         'customer' => '{product_name} ناموجود شد.',
         'admin' => 'موجودی {product_name} به پایان رسید.',
     ],
+    'order_refund_required' => [
+        'title' => 'بازپرداخت لازم: سفارش {order_number}',
+        'customer' => 'موجودی کالای سفارش {order_number} پیش از تأیید پرداخت تمام شد. مبلغ {amount} به شما بازگردانده می‌شود.',
+        'admin' => 'پرداخت سفارش {order_number} ({customer_name} {customer_phone}) تأیید شد اما موجودی تمام شده بود. مبلغ {amount} را بازپرداخت کنید و وضعیت سفارش را «بازپرداخت شده» کنید.',
+    ],
     'review_pending' => [
         'title' => 'دیدگاه جدید در انتظار تأیید',
         'customer' => 'دیدگاه شما برای {product_name} در انتظار تأیید است.',

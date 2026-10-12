@@ -22,11 +22,12 @@ final class NotificationSettings
         'stock_low',
         'stock_out',
         'review_pending',
+        'order_refund_required',
     ];
 
-    private const CUSTOMER_EVENTS = ['order_status', 'return_requested', 'return_approved', 'return_rejected', 'user_welcome'];
+    private const CUSTOMER_EVENTS = ['order_refund_required', 'order_status', 'return_requested', 'return_approved', 'return_rejected', 'user_welcome'];
 
-    private const ADMIN_EVENTS = ['return_requested', 'stock_low', 'stock_out', 'review_pending'];
+    private const ADMIN_EVENTS = ['order_refund_required', 'return_requested', 'stock_low', 'stock_out', 'review_pending'];
 
     private const MASK = '••••••••';
 
@@ -73,6 +74,10 @@ final class NotificationSettings
     {
         if ($channel === 'site') {
             return in_array($event, $audience === 'customer' ? self::CUSTOMER_EVENTS : self::ADMIN_EVENTS, true);
+        }
+        if ($event === 'order_refund_required') {
+            // Money is owed back: alert staff on every channel they enable, and tell the customer by email/SMS.
+            return $audience === 'admin' || in_array($channel, ['email', 'sms'], true);
         }
         if ($channel === 'email') {
             return $audience === 'customer' && $event === 'order_status';

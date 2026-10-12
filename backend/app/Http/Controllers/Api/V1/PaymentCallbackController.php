@@ -42,7 +42,7 @@ class PaymentCallbackController extends Controller
         }
         $provider = str_replace('-', '_', strtolower($provider));
 
-        if ($row->status === 'paid') {
+        if ($row->status === 'paid' || ($row->status === 'on_hold' && ! empty(($row->meta ?? [])['refund_required']))) {
             return $this->finish(true, $row);
         }
 
@@ -368,7 +368,8 @@ class PaymentCallbackController extends Controller
     protected function markPaid(Order $order, PaymentIntent $intent, array $extra): void
     {
         $fresh = $order->fresh() ?? $order;
-        if ($fresh->status === 'paid') {
+        // Already paid, or already parked for a refund by an earlier (duplicate) callback.
+        if ($fresh->status === 'paid' || ! empty(($fresh->meta ?? [])['refund_required'])) {
             return;
         }
         $charged = (int) data_get($intent->meta, 'charge_minor', 0);
@@ -389,7 +390,10 @@ class PaymentCallbackController extends Controller
 
     protected function finish(bool $ok, ?Order $order = null): RedirectResponse
     {
-        if ($ok && $order) {
+        $order = $order?->fresh() ?? $order;
+        $refund = $order && ! empty(($order->meta ?? [])['refund_required']);
+        $outcome = $refund ? 'refund_pending' : ($ok ? 'success' : 'failed');
+        if ($ok && $order && ! $refund) {
             try {
                 $this->loyalty->awardForPaidOrder($order->fresh());
             } catch (\Throwable) {
@@ -400,10 +404,10 @@ class PaymentCallbackController extends Controller
         $cafeReturn = ($meta['source'] ?? null) === 'guest_table' ? (string) ($meta['return_url'] ?? '') : '';
         if ($cafeReturn !== '' && preg_match('#^https?://[^/\s]+/catalogue$#i', $cafeReturn)) {
             // Cafe guests go back to the menu on the site they ordered from (URL was built server-side).
-            return redirect()->away($cafeReturn.'?order='.$order->id.'&payment='.($ok ? 'success' : 'failed'));
+            return redirect()->away($cafeReturn.'?order='.$order->id.'&payment='.$outcome);
         }
         $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
 
-        return redirect()->away($base.'/checkout?payment='.($ok ? 'success' : 'failed'));
+        return redirect()->away($base.'/checkout?payment='.$outcome);
     }
 }

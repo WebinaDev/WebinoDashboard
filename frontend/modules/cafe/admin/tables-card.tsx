@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 
+import { QrCodeView, printTableCards } from "./qr-code"
+
 type TableRow = { id: number; code: string; label?: string | null; seats: number; is_active: boolean }
 
 export function TablesCard() {
@@ -21,7 +23,26 @@ export function TablesCard() {
   const [code, setCode] = useState("")
   const [label, setLabel] = useState("")
   const [seats, setSeats] = useState(4)
-  const [qr, setQr] = useState<{ code: string; svg: string; url: string } | null>(null)
+  const [qr, setQr] = useState<{ code: string; url: string } | null>(null)
+  const [printing, setPrinting] = useState(false)
+
+  async function printAll() {
+    setPrinting(true)
+    try {
+      const active = tables.filter((row) => row.is_active)
+      const urls = await Promise.all(active.map((row) => api<{ url: string }>(`/api/v1/cafe/qr?table_id=${row.id}`)))
+      await printTableCards(
+        active.map((row, i) => ({
+          title: t("card_title", { table: toLocaleDigits(row.label || row.code, locale) }),
+          subtitle: t("card_seats", { count: toLocaleDigits(String(row.seats), locale) }),
+          url: urls[i].url,
+        })),
+        { heading: t("tables_heading"), hint: t("card_hint"), dir: locale === "fa" ? "rtl" : "ltr" },
+      )
+    } finally {
+      setPrinting(false)
+    }
+  }
 
   const { data: tables = [] } = useQuery({
     queryKey: ["cafe-tables"],
@@ -47,6 +68,11 @@ export function TablesCard() {
           <div><Label>{t("seats")}</Label><Input type="number" value={seats} onChange={(e) => setSeats(Number(e.target.value))} /></div>
           <Button className="self-end" disabled={!code || save.isPending} onClick={() => save.mutate()}>{t("add_table")}</Button>
         </div>
+        {tables.some((row) => row.is_active) ? (
+          <Button type="button" variant="secondary" disabled={printing} onClick={() => void printAll()}>
+            {t("print_table_cards")}
+          </Button>
+        ) : null}
         <ul className="space-y-2">
           {tables.map((table) => (
             <li key={table.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
@@ -56,8 +82,8 @@ export function TablesCard() {
               </span>
               <span className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={async () => {
-                  const res = await api<{ url: string; qr_svg: string }>(`/api/v1/cafe/qr?table_id=${table.id}`)
-                  setQr({ code: table.code, svg: res.qr_svg, url: res.url })
+                  const res = await api<{ url: string }>(`/api/v1/cafe/qr?table_id=${table.id}`)
+                  setQr({ code: table.code, url: res.url })
                 }}>{t("table_qr")}</Button>
                 <Button size="sm" variant="ghost" onClick={() => api(`/api/v1/cafe/tables/${table.id}`, { method: "DELETE" }).then(() => queryClient.invalidateQueries({ queryKey: ["cafe-tables"] }))}>{t("remove")}</Button>
               </span>
@@ -67,9 +93,7 @@ export function TablesCard() {
         {qr ? (
           <div className="rounded-lg border p-3">
             <p className="mb-2 text-sm">{qr.code}</p>
-            {/* The API returns an image URL, not inline SVG markup. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qr.svg} alt={qr.url} width={200} height={200} className="bg-white p-2" />
+            <QrCodeView url={qr.url} name={`table-${qr.code}`} size={200} />
             <p className="text-muted-foreground mt-2 break-all text-xs">{qr.url}</p>
           </div>
         ) : null}

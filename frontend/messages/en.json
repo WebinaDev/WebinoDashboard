@@ -490,7 +490,8 @@
       "err_postal": "Postal code must be 10 digits.",
       "err_pin": "Drop a pin on the map.",
       "err_pickup": "Choose a pickup time.",
-      "no_pickup_slots": "No pickup times are left within opening hours."
+      "no_pickup_slots": "No pickup times are left within opening hours.",
+      "pay_refund_pending": "Your payment was confirmed, but an item ran out before confirmation. The order was not placed and your money will be refunded."
     },
     "kitchen": {
       "new": "New",
@@ -704,7 +705,13 @@
       "table_qr": "Table QR",
       "remove": "Remove",
       "public_base_url_auto": "Leave empty to auto-detect. Current address: {url}",
-      "table_inactive": "Inactive"
+      "table_inactive": "Inactive",
+      "download_svg": "Download SVG",
+      "download_png": "Download PNG",
+      "print_table_cards": "Print table cards",
+      "card_title": "Table {table}",
+      "card_seats": "{count} seats",
+      "card_hint": "Scan to see the menu and order"
     },
     "reservations": {
       "title": "Reservations & events",
@@ -1145,7 +1152,8 @@
     "no_gateway_mode": "No enabled gateway for this method.",
     "shipping_address": "Shipping address",
     "customer_phone": "Phone",
-    "customer_note": "Order note"
+    "customer_note": "Order note",
+    "payment_refund_pending": "Your payment was confirmed, but an item ran out before confirmation. The order was not placed and your money will be refunded."
   },
   "setup": {
     "title": "Site setup",
@@ -1369,7 +1377,10 @@
     "tapin_service_courier": "Courier",
     "tapin_service_alonomic": "Alonomic",
     "unavailable": "Unavailable",
-    "bulk_skipped": "These orders were not updated: {ids}"
+    "bulk_skipped": "These orders were not updated: {ids}",
+    "refund_required_badge": "Refund needed",
+    "refund_required_title": "Payment verified but stock had run out",
+    "refund_required_body": "Refund the paid amount to the customer through the gateway panel or by card, then set the order to Refunded. This order is not sent to the kitchen or stock."
   },
   "order_pay": {
     "title": "Pay order",
@@ -5672,7 +5683,8 @@
       "user_welcome": "Welcome",
       "stock_low": "Low stock",
       "stock_out": "Out of stock",
-      "review_pending": "Pending review"
+      "review_pending": "Pending review",
+      "order_refund_required": "Refund needed (out of stock)"
     },
     "settings_link": "Notification settings",
     "settings": {
@@ -5706,7 +5718,8 @@
         "user_welcome": "New user welcome",
         "stock_low": "Low stock",
         "stock_out": "Out of stock",
-        "review_pending": "Review awaiting approval"
+        "review_pending": "Review awaiting approval",
+        "order_refund_required": "Refund needed (out of stock)"
       },
       "smtp": {
         "title": "SMTP settings",

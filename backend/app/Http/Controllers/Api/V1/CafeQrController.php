@@ -57,7 +57,6 @@ class CafeQrController extends Controller
         return response()->json([
             'data' => [
                 'url' => $url,
-                'qr_svg' => $this->qrSvg($url),
                 'type' => $table ? 'table' : 'menu',
             ],
         ]);
@@ -83,13 +82,5 @@ class CafeQrController extends Controller
         return response()->json([
             'data' => $settings->get($request->user()->tenant_id, 'cafe', 'qr', ModuleSettingsService::cafeQrDefaults()),
         ]);
-    }
-
-    private function qrSvg(string $url): string
-    {
-        $encoded = rawurlencode($url);
-        $api = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={$encoded}";
-
-        return $api;
     }
 }

@@ -49,7 +49,7 @@ export function CafeCartDrawer({
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [receipt, setReceipt] = useState<CafeOrderReceipt | null>(null)
-  const [returnNotice, setReturnNotice] = useState<"success" | "failed" | null>(null)
+  const [returnNotice, setReturnNotice] = useState<"success" | "failed" | "refund_pending" | null>(null)
   const fulfillmentOptions = (["dine_in", "pickup", "delivery"] as const).filter((key) => ordering?.fulfillment?.[key] !== false)
   const [fulfillment, setFulfillment] = useState<(typeof fulfillmentOptions)[number]>(fulfillmentOptions[0] ?? "dine_in")
   const { token, cart, count, subtotal, totals } = useGuestCart(tableNumber, branchSlug, fulfillment)
@@ -101,7 +101,7 @@ export function CafeCartDrawer({
   useEffect(() => {
     const qs = new URLSearchParams(window.location.search)
     const p = qs.get("payment")
-    if (qs.get("order") && (p === "success" || p === "failed")) {
+    if (qs.get("order") && (p === "success" || p === "failed" || p === "refund_pending")) {
       setReturnNotice(p)
       setOpen(true)
     }
@@ -271,7 +271,7 @@ export function CafeCartDrawer({
       <div className="cafe-cart-body">
         {returnNotice ? (
           <p className={returnNotice === "success" ? "cafe-ok-note" : "cafe-error"}>
-            {returnNotice === "success" ? t("pay_success") : t("pay_failed")}
+            {returnNotice === "success" ? t("pay_success") : returnNotice === "refund_pending" ? t("pay_refund_pending") : t("pay_failed")}
           </p>
         ) : null}
         {receipt ? (

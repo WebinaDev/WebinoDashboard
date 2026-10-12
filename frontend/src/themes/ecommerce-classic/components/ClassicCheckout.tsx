@@ -237,7 +237,8 @@ export function ClassicCheckout() {
       </div>
 
       {flash === "success" ? <p className="sfc-flash sfc-flash--ok">{tCheckout("payment_ok")}</p> : null}
-      {flash === "failed" ? <p className="sfc-flash sfc-flash--err">{tCheckout("payment_failed")}</p> : null}
+      {flash === "refund_pending" ? <p role="alert" className="sfc-flash sfc-flash--err">{tCheckout("payment_refund_pending")}</p> : null}
+        {flash === "failed" ? <p className="sfc-flash sfc-flash--err">{tCheckout("payment_failed")}</p> : null}
 
       <div className="sfc-checkout__grid">
         <div className="sfc-checkout__main">

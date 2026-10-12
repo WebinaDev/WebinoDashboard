@@ -103,6 +103,8 @@ type OrderDetail = {
   tracking_url?: string | null
   attribution?: Record<string, unknown> | null
   meta?: {
+    refund_required?: boolean
+    refund_reason?: string
     shipping_title?: string
     shipping_method_id?: string
     transaction_id?: string | null
@@ -448,6 +450,12 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
         </>
       }
     >
+      {order?.meta?.refund_required ? (
+        <div role="alert" className="mb-4 rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+          <p className="font-semibold">{t("refund_required_title")}</p>
+          <p>{t("refund_required_body")}</p>
+        </div>
+      ) : null}
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {isLoading || !order ? (
         <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>

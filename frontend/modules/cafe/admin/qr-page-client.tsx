@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { QrCodeView } from "./qr-code"
 import { TablesCard } from "./tables-card"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import type { CafeBranch, CafeMenuListItem } from "@/themes/cafe-starter/types"
@@ -24,7 +25,6 @@ type QrSettings = {
 
 type QrResponse = {
   url: string
-  qr_svg: string
   type: "table" | "menu"
 }
 
@@ -257,8 +257,7 @@ export default function QrPageClient({ route }: { route: ResolvedAdminRoute }) {
                   {qrResult.url}
                 </a>
               </p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrResult.qr_svg} alt="QR" className="size-[300px] rounded-lg border" />
+              <QrCodeView url={qrResult.url} name={tableNumber.trim() ? `table-${tableNumber.trim()}` : "menu-qr"} size={300} />
             </div>
           ) : null}
         </CardContent>

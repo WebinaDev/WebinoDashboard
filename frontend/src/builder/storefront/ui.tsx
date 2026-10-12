@@ -715,6 +715,7 @@ function DefaultStorefrontCheckout() {
       >
         <h2 className="text-xl font-bold md:col-span-2">{tCheckout("title")}</h2>
         {flash === "success" ? <p className="text-sm text-primary md:col-span-2">{tCheckout("payment_ok")}</p> : null}
+        {flash === "refund_pending" ? <p role="alert" className="text-sm text-destructive md:col-span-2">{tCheckout("payment_refund_pending")}</p> : null}
         {flash === "failed" ? <p className="text-sm text-destructive md:col-span-2">{tCheckout("payment_failed")}</p> : null}
         <label className="grid gap-1 text-sm">
           <span>{t("shipping_state")}</span>

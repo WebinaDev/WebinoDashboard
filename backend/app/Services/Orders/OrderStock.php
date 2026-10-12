@@ -77,6 +77,52 @@ final class OrderStock
         $order->saveQuietly();
     }
 
+    /**
+     * Called right before redirecting to a gateway (first try and retries): keep or re-take the hold
+     * under row locks and push its expiry out so the customer has time to pay.
+     *
+     * @throws StockUnavailableException when the hold lapsed and the items are no longer in stock
+     */
+    public function ensureHoldForPayment(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            $locked = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+            if (! $locked) {
+                return;
+            }
+            $meta = is_array($locked->meta) ? $locked->meta : [];
+            if (! empty($meta['stock_reduced']) && empty($meta['stock_reserved'])) {
+                return; // already a sale (or stock is not tracked on these lines)
+            }
+            try {
+                // Savepoint: a line that fails must not leave earlier lines decremented.
+                DB::transaction(fn () => $this->reserve($locked));
+            } catch (\Illuminate\Validation\ValidationException) {
+                throw new StockUnavailableException(__('api.stock_hold_lost'));
+            }
+            $order->setRawAttributes($locked->fresh()->getAttributes(), true);
+        });
+    }
+
+    /**
+     * A verified payment arrived for an order whose hold lapsed. Re-take the stock if it is still
+     * there; false means it is gone and the payment has to be refunded.
+     */
+    public function retakeForLatePayment(Order $locked): bool
+    {
+        $meta = is_array($locked->meta) ? $locked->meta : [];
+        if (! empty($meta['stock_reduced'])) {
+            return true;
+        }
+        try {
+            DB::transaction(fn () => $this->reserve($locked));
+        } catch (\Illuminate\Validation\ValidationException) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function releaseReservation(Order $order): bool
     {
         $meta = is_array($order->meta) ? $order->meta : [];

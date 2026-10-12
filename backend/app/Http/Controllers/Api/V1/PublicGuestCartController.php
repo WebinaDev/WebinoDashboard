@@ -428,6 +428,8 @@ class PublicGuestCartController extends Controller
     {
         try {
             $intent = app(\App\Services\Payments\PaymentCheckoutService::class)->createIntent($order, $provider);
+        } catch (\App\Services\Orders\StockUnavailableException $e) {
+            return ['ok' => false, 'code' => 'stock_unavailable', 'message' => $e->getMessage()];
         } catch (\Throwable $e) {
             report($e);
 

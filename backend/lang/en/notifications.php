@@ -36,6 +36,11 @@ return [
         'customer' => '{product_name} is out of stock.',
         'admin' => '{product_name} is out of stock.',
     ],
+    'order_refund_required' => [
+        'title' => 'Refund needed: order {order_number}',
+        'customer' => 'An item in order {order_number} ran out before your payment was confirmed. {amount} will be refunded to you.',
+        'admin' => 'Payment for order {order_number} ({customer_name} {customer_phone}) was verified but the stock had run out. Refund {amount} and mark the order refunded.',
+    ],
     'review_pending' => [
         'title' => 'New review awaiting approval',
         'customer' => 'Your review for {product_name} is awaiting approval.',

@@ -96,7 +96,7 @@ class StockReservationTest extends TestCase
         $this->assertSame(3, (int) $p->fresh()->stock);
     }
 
-    public function test_expired_hold_is_released_by_scheduled_command_and_late_payment_still_succeeds(): void
+    public function test_expired_hold_is_released_by_scheduled_command(): void
     {
         config(['shop.stock_reservation_minutes' => 15]);
         $p = $this->product(2);
@@ -111,12 +111,71 @@ class StockReservationTest extends TestCase
         $this->artisan('stock:release-reservations')->assertSuccessful();
         $this->assertSame(2, (int) $p->fresh()->stock);
         $this->assertSame('pending_payment', $order->fresh()->status);
+    }
 
-        // Someone else buys one in the meantime, then the late gateway confirmation arrives.
-        $this->pendingOrder($p, 1);
+    public function test_late_payment_retakes_stock_when_still_available(): void
+    {
+        $p = $this->product(3);
+        $order = $this->pendingOrder($p, 2);
+        app(OrderStock::class)->releaseReservation($order->fresh());
+        $this->assertSame(3, (int) $p->fresh()->stock);
+
         $this->assertTrue(app(OrderStatusService::class)->apply($order->fresh(), 'paid'));
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertSame(1, (int) $p->fresh()->stock);
+    }
+
+    public function test_verified_payment_after_stock_ran_out_needs_refund(): void
+    {
+        $admin = \App\Models\User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin']);
+        $p = $this->product(2);
+        $order = $this->pendingOrder($p, 2);
+        $order->forceFill(['status' => 'awaiting_gateway'])->saveQuietly();
+        app(OrderStock::class)->releaseReservation($order->fresh());
+        $this->pendingOrder($p, 1);
+        $this->assertSame(1, (int) $p->fresh()->stock);
+
+        app(OrderStatusService::class)->apply($order->fresh(), 'paid', ['amount_paid_minor' => 100000]);
+        $fresh = $order->fresh();
+        $this->assertSame('on_hold', $fresh->status);
+        $this->assertTrue((bool) $fresh->meta['refund_required']);
+        $this->assertSame('stock_unavailable', $fresh->meta['refund_reason']);
+        $this->assertSame(100000, (int) $fresh->amount_paid_minor);
+        $this->assertSame(1, (int) $p->fresh()->stock); // nothing sold, nothing double counted
+        $this->assertTrue(\App\Models\UserNotification::query()->where('user_id', $admin->id)->where('type', 'order_refund_required')->exists());
+
+        $this->actingAs($admin, 'sanctum');
+        $ids = collect($this->getJson('/api/v1/cafe/kitchen-orders')->json('data'))->pluck('id')->all();
+        $this->assertNotContains($order->id, $ids);
+        $this->getJson('/api/v1/orders/'.$order->id)->assertOk()->assertJsonPath('data.meta.refund_required', true);
+
+        // Staff refund by hand.
+        $this->assertTrue(app(OrderStatusService::class)->apply($fresh, 'refunded'));
+    }
+
+    public function test_payment_start_reacquires_or_refuses_expired_hold(): void
+    {
+        config(['shop.stock_reservation_minutes' => 15]);
+        $p = $this->product(2);
+        $order = $this->pendingOrder($p, 2);
+        $this->travel(14)->minutes();
+        app(OrderStock::class)->ensureHoldForPayment($order);
+        // Still held, expiry pushed out again from now.
+        $until = \Carbon\Carbon::parse($order->fresh()->meta['stock_reserved_until']);
+        $this->assertTrue($until->greaterThan(now()->addMinutes(14)));
         $this->assertSame(0, (int) $p->fresh()->stock);
-        $this->assertTrue((bool) $order->fresh()->meta['stock_shortfall']);
+
+        app(OrderStock::class)->releaseReservation($order->fresh());
+        $this->pendingOrder($p, 1);
+        try {
+            app(OrderStock::class)->ensureHoldForPayment($order->fresh());
+            $this->fail('payment must not start without stock');
+        } catch (\App\Services\Orders\StockUnavailableException $e) {
+            $this->assertSame(__('api.stock_hold_lost'), $e->getMessage());
+        }
+        // The failed attempt did not take the one unit that is left.
+        $this->assertSame(1, (int) $p->fresh()->stock);
+        $this->assertEmpty($order->fresh()->meta['stock_reserved'] ?? false);
     }
 
     public function test_cafe_online_checkout_holds_stock_and_failed_callback_releases_it(): void

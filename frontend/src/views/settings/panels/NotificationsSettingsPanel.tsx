@@ -31,6 +31,7 @@ const EVENTS = [
   "stock_low",
   "stock_out",
   "review_pending",
+  "order_refund_required",
 ] as const
 type EventKey = (typeof EVENTS)[number]
 
@@ -45,6 +46,7 @@ const EVENT_VARS: Record<EventKey, string[]> = {
   stock_low: ["product_name", "stock", "site_name"],
   stock_out: ["product_name", "stock", "site_name"],
   review_pending: ["product_name", "customer_name", "site_name"],
+  order_refund_required: ["order_number", "customer_name", "customer_phone", "amount", "site_name"],
 }
 
 type EventConfig = {

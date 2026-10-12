@@ -73,7 +73,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const p = searchParams?.get("payment")
-    if (p === "success" || p === "failed") {
+    if (p === "success" || p === "failed" || p === "refund_pending") {
       setPaymentFlash(p)
     }
   }, [searchParams])
@@ -117,6 +117,9 @@ export default function CheckoutPage() {
         <p className="text-sm text-green-600 dark:text-green-400">
           {t("payment_ok")}
         </p>
+      ) : null}
+      {paymentFlash === "refund_pending" ? (
+        <p role="alert" className="text-destructive text-sm">{t("payment_refund_pending")}</p>
       ) : null}
       {paymentFlash === "failed" ? (
         <p className="text-destructive text-sm">{t("payment_failed")}</p>

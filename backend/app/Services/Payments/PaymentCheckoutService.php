@@ -35,6 +35,8 @@ class PaymentCheckoutService
         if (! $this->gateways->isEnabled($tid, $provider)) {
             throw new \RuntimeException('Payment gateway is disabled.');
         }
+        // Never send a customer to pay for items that are no longer held for them.
+        app(\App\Services\Orders\OrderStock::class)->ensureHoldForPayment($order);
         $purchaseType = (string) ($order->meta['wfcp_purchase_type'] ?? '');
         if ($purchaseType !== '' && ! PurchaseTypeService::forTenant($tid)->gatewayAllowed($purchaseType, $provider)) {
             throw new \DomainException(__('Payment gateway is not allowed for this purchase type.'));
