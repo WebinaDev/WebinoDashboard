@@ -309,6 +309,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/cafe/order-status', [PublicGuestCartController::class, 'track']);
             Route::post('/cafe/cart/items', [PublicGuestCartController::class, 'addItem'])->middleware('throttle:public-writes');
             Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout'])->middleware('throttle:public-writes');
+            Route::post('/cafe/orders/{order}/pay', [PublicGuestCartController::class, 'pay'])->whereNumber('order')->middleware('throttle:public-writes');
         });
     });
 

@@ -55,6 +55,14 @@ class CafeOrdering
             ],
             'service_fee_percent' => min(100, max(0, (float) ($menu['service_fee_percent'] ?? 0))),
             'service_fee_dine_in_only' => (bool) ($menu['service_fee_dine_in_only'] ?? true),
+            'payment_methods' => $this->paymentMethods($tenantId),
+            'delivery_radius_km' => max(0, (float) ($menu['delivery_radius_km'] ?? 0)),
+            'cafe_location' => is_numeric($menu['cafe_lat'] ?? null) && is_numeric($menu['cafe_lng'] ?? null)
+                ? ['lat' => (float) $menu['cafe_lat'], 'lng' => (float) $menu['cafe_lng']]
+                : null,
+            'delivery_require_pin' => (bool) ($menu['delivery_require_pin'] ?? true),
+            'pickup_slot_minutes' => max(5, (int) ($menu['pickup_slot_minutes'] ?? 15)),
+            'dine_in_require_table' => (bool) ($menu['dine_in_require_table'] ?? true),
             'delivery_fee_minor' => max(0, (int) ($menu['delivery_fee_minor'] ?? 0)),
             'free_delivery_threshold_minor' => max(0, (int) ($menu['free_delivery_threshold_minor'] ?? 0)),
             'fulfillment' => [
@@ -186,14 +194,21 @@ class CafeOrdering
     }
 
     /**
-     * Full server-side quote (fees + tax) so the cart drawer shows what checkout charges.
+     * Full server-side quote (fees + VAT) so cart, checkout and the order record agree.
+     * Client prices are never used: callers pass line amounts recomputed from the catalog.
      *
-     * @return array<string, int|string>
+     * @param  list<array{amount: int, taxable: bool}>  $lines
+     * @return array<string, mixed>
      */
-    public function quote(int $tenantId, string $fulfillment, int $subtotal, int $itemCount): array
+    public function quote(int $tenantId, string $fulfillment, array $lines, int $itemCount): array
     {
+        $subtotal = 0;
+        foreach ($lines as $line) {
+            $subtotal += max(0, (int) $line['amount']);
+        }
         $fees = $this->fees($tenantId, $fulfillment, $subtotal, $itemCount);
-        $tax = \App\Services\Orders\OrderTax::compute($tenantId, $subtotal, $fees['total_minor']);
+        $tax = \App\Services\Orders\OrderTax::computeLines($tenantId, $lines, $fees['total_minor']);
+        $rate = (float) ($tax['lines'][0]['rate'] ?? 0);
 
         return $fees + [
             'fulfillment' => $fulfillment,
@@ -201,8 +216,45 @@ class CafeOrdering
             'fees_minor' => $fees['total_minor'],
             'tax_minor' => $tax['tax_minor'],
             'tax_added_minor' => $tax['added_minor'],
+            'tax_lines' => $tax['lines'],
+            'vat_rate' => $rate,
+            'vat_inclusive' => $tax['tax_minor'] > 0 && $tax['added_minor'] === 0,
+            'show_vat' => (bool) ($tax['show_on_invoice'] ?? false),
             'grand_total_minor' => max(0, $subtotal + $fees['total_minor'] + $tax['added_minor']),
         ];
+    }
+
+    /**
+     * Payment methods a guest can pick: enabled + configured online gateways (store gateway
+     * settings) and, when allowed in cafe settings, cash / pay at counter.
+     *
+     * @return list<array{id: string, title: string, type: string}>
+     */
+    public function paymentMethods(int $tenantId, string $fulfillment = 'dine_in'): array
+    {
+        $menu = $this->menu($tenantId);
+        $out = [];
+        if ((bool) ($menu['pay_online_enabled'] ?? true)) {
+            foreach (app(\App\Services\Payments\PaymentGatewaySettingsService::class)->checkoutGateways($tenantId, 'cash') as $gw) {
+                $out[] = ['id' => (string) $gw['id'], 'title' => (string) $gw['title'], 'type' => 'online'];
+            }
+        }
+        if ((bool) ($menu['pay_cash_enabled'] ?? true)) {
+            $out[] = ['id' => 'cash', 'title' => '', 'type' => 'cash'];
+        }
+
+        return $out;
+    }
+
+    /** Great-circle distance in km. */
+    public static function distanceKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $r = 6371.0;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
+        return 2 * $r * asin(min(1, sqrt($a)));
     }
 
     /**

@@ -356,7 +356,9 @@ final class ShopSettings
     {
         return [
             'enabled' => true,
-            'rate_percent' => 9,
+            // Iran VAT (ارزش افزوده) is 10% from 1403.
+            'rate_percent' => 10,
+            'show_on_invoice' => true,
             'prices_include_tax' => false,
             'shipping_taxable' => false,
             'tax_based_on' => 'shipping',
@@ -582,6 +584,7 @@ final class ShopSettings
             'rate_percent' => $rate,
             'prices_include_tax' => filter_var($input['prices_include_tax'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'shipping_taxable' => filter_var($input['shipping_taxable'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'show_on_invoice' => filter_var($input['show_on_invoice'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'tax_based_on' => $basedOn,
             'round_at_subtotal' => filter_var($input['round_at_subtotal'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'display_shop' => $displayShop,

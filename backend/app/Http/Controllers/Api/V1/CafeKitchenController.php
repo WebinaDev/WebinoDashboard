@@ -16,6 +16,8 @@ class CafeKitchenController extends Controller
         $orders = Order::query()
             ->where('tenant_id', $tid)
             ->where('created_at', '>=', now()->subHours(18))
+            // Unpaid online orders stay off the kitchen board until the gateway verifies payment.
+            ->whereNotIn('status', ['pending_payment', 'awaiting_gateway', 'payment_failed'])
             ->where(function ($q) {
                 $q->whereNotNull('table_number')
                     ->orWhere('meta->source', 'guest_table');

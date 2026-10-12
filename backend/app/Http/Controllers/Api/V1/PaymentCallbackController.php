@@ -89,7 +89,7 @@ class PaymentCallbackController extends Controller
                 ->first();
             $stored = (string) data_get($intent?->meta, 'hash_id', '');
             if ($hash === '' || $stored === '' || ! hash_equals($stored, $hash)) {
-                return $this->finish(false);
+                return $this->finish(false, $order);
             }
             $result = BasalamPay::for((int) $order->tenant_id)->verify($order, $hash);
 
@@ -97,7 +97,7 @@ class PaymentCallbackController extends Controller
         } catch (\Throwable $e) {
             MarketplaceLogger::error((int) $order->tenant_id, 'basalam', 'pay', 'Basalam Pay verify failed: '.$e->getMessage(), ['order_id' => $order->id]);
 
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
     }
 
@@ -107,19 +107,19 @@ class PaymentCallbackController extends Controller
         $trackId = (string) $request->query('trackId', '');
         $intent = $this->intentMatching($order, 'zibal', 'zibal_track_id', $trackId);
         if ($intent === null || ! $success) {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
         $settings = $this->gateways->getRaw((int) $order->tenant_id, 'zibal');
         $merchant = (string) ($settings['merchant_id'] ?? '');
         if ($merchant === '') {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
         $verify = Http::timeout(30)->acceptJson()->asJson()->post('https://gateway.zibal.ir/v1/verify', [
             'merchant' => $merchant,
             'trackId' => $trackId,
         ])->json();
         if ((int) data_get($verify, 'result') !== 100) {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
         $this->markPaid($order, $intent, (string) data_get($verify, 'refNumber', $trackId));
 
@@ -134,7 +134,7 @@ class PaymentCallbackController extends Controller
         $intent = $this->intentMatching($order, 'zarinpal', 'zarinpal_authority', $authority);
 
         if ($intent === null || ! $this->stateAllows($request, $intent, false)) {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         // A bare GET has no Status and must not change the order. An explicit
@@ -146,14 +146,14 @@ class PaymentCallbackController extends Controller
                 $this->failMatchedIntent($request, $order, $intent);
             }
 
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         $settings = $this->gateways->getRaw((int) $order->tenant_id, 'zarinpal');
         $merchantId = (string) ($settings['merchant_id'] ?? '');
         $amountRial = (int) data_get($intent->meta, 'amount_rial', 0);
         if ($merchantId === '' || $amountRial < 1) {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         $currency = strtoupper((string) (data_get($intent->meta, 'currency') ?: $order->currency ?: 'IRT'));
@@ -185,7 +185,7 @@ class PaymentCallbackController extends Controller
 
         $this->markAttemptFailed($request, $order, $intent);
 
-        return $this->finish(false);
+        return $this->finish(false, $order);
     }
 
     protected function handleDigipay(Request $request, Order $order): RedirectResponse
@@ -193,23 +193,23 @@ class PaymentCallbackController extends Controller
         $trackingCode = (string) ($request->query('trackingCode') ?? $request->query('tracking_code') ?? '');
         $providerId = (string) ($request->query('providerId') ?? $request->query('provider_id') ?? '');
         if ($trackingCode === '' || $providerId === '') {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         $intent = $this->intentMatching($order, 'digipay', 'provider_id', $providerId);
         if ($intent === null || ! $this->stateAllows($request, $intent, false)) {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         $storedProvider = (string) data_get($intent->meta, 'provider_id', '');
         if ($storedProvider === '' || ($providerId !== '' && ! hash_equals($storedProvider, $providerId))) {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         $settings = $this->gateways->getRaw((int) $order->tenant_id, 'digipay');
         $token = $this->digipay->bearerToken($settings);
         if ($token === null) {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         $verify = Http::timeout(30)
@@ -242,7 +242,7 @@ class PaymentCallbackController extends Controller
 
         $this->markAttemptFailed($request, $order, $intent);
 
-        return $this->finish(false);
+        return $this->finish(false, $order);
     }
 
     protected function handleBnpl(Request $request, Order $order, string $provider, bool $requireSettle): RedirectResponse
@@ -251,13 +251,13 @@ class PaymentCallbackController extends Controller
         $state = strtoupper((string) ($request->query('state') ?? $request->query('Status') ?? ''));
         $intent = $this->intentMatching($order, $provider, 'payment_token', $queryToken);
         if ($intent === null || ! $this->stateAllows($request, $intent, false)) {
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         if ($state !== 'OK') {
             $this->markAttemptFailed($request, $order, $intent);
 
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         $settings = $this->gateways->getRaw((int) $order->tenant_id, $provider);
@@ -270,7 +270,7 @@ class PaymentCallbackController extends Controller
         if (! $verify['ok'] || ! $amountOk || $expected < 1) {
             $this->markAttemptFailed($request, $order, $intent);
 
-            return $this->finish(false);
+            return $this->finish(false, $order);
         }
 
         $shouldSettle = $requireSettle || ! empty($settings['settle_enabled']);
@@ -281,7 +281,7 @@ class PaymentCallbackController extends Controller
             if (! $settle['ok']) {
                 $this->markAttemptFailed($request, $order, $intent);
 
-                return $this->finish(false);
+                return $this->finish(false, $order);
             }
         }
 
@@ -395,6 +395,12 @@ class PaymentCallbackController extends Controller
             } catch (\Throwable) {
                 // Loyalty must not block payment success redirect.
             }
+        }
+        $meta = $order && is_array($order->meta) ? $order->meta : [];
+        $cafeReturn = ($meta['source'] ?? null) === 'guest_table' ? (string) ($meta['return_url'] ?? '') : '';
+        if ($cafeReturn !== '' && preg_match('#^https?://[^/\s]+/catalogue$#i', $cafeReturn)) {
+            // Cafe guests go back to the menu on the site they ordered from (URL was built server-side).
+            return redirect()->away($cafeReturn.'?order='.$order->id.'&payment='.($ok ? 'success' : 'failed'));
         }
         $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
 

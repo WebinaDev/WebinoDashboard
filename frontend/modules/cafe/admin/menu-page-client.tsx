@@ -14,6 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { MapPinPicker } from "@/components/MapPinPicker"
+import { useDraftSettings } from "@/views/settings/use-tenant-settings"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { ModifierEditor } from "./modifier-editor"
@@ -37,6 +39,7 @@ type Category = {
   icon_url?: string | null
   image_url?: string | null
   sort_order?: number
+  vat_applicable?: boolean
 }
 
 type Product = {
@@ -58,6 +61,7 @@ type Product = {
   is_new?: boolean
   is_featured?: boolean
   is_sold_out?: boolean
+  vat_applicable?: boolean | null
   calories?: number | null
   spice_level?: number
   sort_order?: number
@@ -126,6 +130,7 @@ const emptyProduct = {
   is_new: false,
   is_featured: false,
   is_sold_out: false,
+  vat_mode: "inherit" as "inherit" | "yes" | "no",
   calories: "" as string | number,
   spice_level: 0,
   sort_order: 0,
@@ -198,6 +203,14 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
   const [bulkMenuId, setBulkMenuId] = useState("")
   const [bulkPercent, setBulkPercent] = useState("")
 
+  const toggleCategoryVat = useMutation({
+    mutationFn: (v: { id: number; vat_applicable: boolean }) =>
+      api<Category>(`/api/v1/categories/${v.id}`, { method: "PATCH", json: { vat_applicable: v.vat_applicable } }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["categories"] })
+    },
+  })
+
   const saveCategory = useMutation({
     mutationFn: () =>
       api<Category>("/api/v1/categories", {
@@ -237,6 +250,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
         is_new: productForm.is_new,
         is_featured: productForm.is_featured,
         is_sold_out: productForm.is_sold_out,
+        vat_applicable: productForm.vat_mode === "inherit" ? null : productForm.vat_mode === "yes",
         calories: productForm.calories !== "" ? Number(productForm.calories) : null,
         spice_level: Number(productForm.spice_level),
         sort_order: Number(productForm.sort_order),
@@ -429,6 +443,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       is_new: product.is_new ?? false,
       is_featured: product.is_featured ?? false,
       is_sold_out: product.is_sold_out ?? false,
+      vat_mode: (product.vat_applicable == null ? "inherit" : product.vat_applicable ? "yes" : "no") as "inherit" | "yes" | "no",
       calories: product.calories ?? "",
       spice_level: product.spice_level ?? 0,
       sort_order: product.sort_order ?? 0,
@@ -619,7 +634,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
               <div>
                 <Label>{t("packaging_fee_mode")}</Label>
                 <select
-                  className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+                  className="border-input bg-background text-foreground h-9 w-full rounded-md border [color-scheme:light] dark:[color-scheme:dark] px-3 text-sm"
                   value={settingsValues.packaging_fee_mode ?? "per_order"}
                   onChange={(e) => setSettingsForm({ ...settingsValues, packaging_fee_mode: e.target.value === "per_item" ? "per_item" : "per_order" })}
                 >
@@ -660,12 +675,42 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
               <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.fulfillment_dine_in !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_dine_in: Boolean(v) })} />{t("fulfillment_dine_in")}</label>
               <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.fulfillment_pickup !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_pickup: Boolean(v) })} />{t("fulfillment_pickup")}</label>
               <label className="flex items-center gap-2 text-sm"><Checkbox checked={Boolean(settingsValues.fulfillment_delivery)} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_delivery: Boolean(v) })} />{t("fulfillment_delivery")}</label>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t("payment_heading")}</Label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.pay_online_enabled !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, pay_online_enabled: Boolean(v) })} />{t("pay_online_enabled")}</label>
+                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.pay_cash_enabled !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, pay_cash_enabled: Boolean(v) })} />{t("pay_cash_enabled")}</label>
+                </div>
+                <p className="text-muted-foreground text-xs">{t("payment_hint")}</p>
+              </div>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.dine_in_require_table !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, dine_in_require_table: Boolean(v) })} />{t("dine_in_require_table")}</label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.delivery_require_pin !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, delivery_require_pin: Boolean(v) })} />{t("delivery_require_pin")}</label>
+              <div>
+                <Label>{t("delivery_radius_km")}</Label>
+                <Input type="number" min={0} step="0.5" value={settingsValues.delivery_radius_km ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, delivery_radius_km: Math.max(0, Number(e.target.value) || 0) })} />
+              </div>
+              <div>
+                <Label>{t("pickup_slot_minutes")}</Label>
+                <Input type="number" min={5} max={120} value={settingsValues.pickup_slot_minutes ?? 15} onChange={(e) => setSettingsForm({ ...settingsValues, pickup_slot_minutes: Math.min(120, Math.max(5, Number(e.target.value) || 15)) })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t("cafe_location")}</Label>
+                <MapPinPicker
+                  value={settingsValues.cafe_lat != null && settingsValues.cafe_lng != null ? { lat: Number(settingsValues.cafe_lat), lng: Number(settingsValues.cafe_lng) } : null}
+                  onChange={(p) => setSettingsForm({ ...settingsValues, cafe_lat: Number(p.lat.toFixed(6)), cafe_lng: Number(p.lng.toFixed(6)) })}
+                  radiusKm={settingsValues.delivery_radius_km ?? 0}
+                  center={settingsValues.cafe_lat != null && settingsValues.cafe_lng != null ? { lat: Number(settingsValues.cafe_lat), lng: Number(settingsValues.cafe_lng) } : null}
+                  labels={{ hint: t("cafe_location_hint"), locate: t("my_location"), failed: t("map_failed") }}
+                />
+              </div>
             </CardContent>
           </Card>
 
           <Button onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending}>
             {tCommon("save")}
           </Button>
+
+          <CafeVatCard />
         </>
       ) : null}
 
@@ -724,6 +769,13 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                         <p className="font-medium">{cat.name}</p>
                         <p className="text-muted-foreground text-xs">{cat.slug}</p>
                       </div>
+                      <label className="ms-auto me-2 flex items-center gap-2 text-xs">
+                        <Checkbox
+                          checked={cat.vat_applicable !== false}
+                          onCheckedChange={(v) => toggleCategoryVat.mutate({ id: cat.id, vat_applicable: Boolean(v) })}
+                        />
+                        {t("vat_subject")}
+                      </label>
                       <Button size="icon" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteCategory.mutateAsync(cat.id) })}>
                         <Trash2 className="size-4" />
                       </Button>
@@ -854,6 +906,18 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                       onCheckedChange={(v) => setProductForm((f) => ({ ...f, is_sold_out: Boolean(v) }))}
                     />
                     {t("is_sold_out")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    {t("vat_subject")}
+                    <select
+                      className="border-input bg-background text-foreground h-8 rounded-md border px-2 text-sm [color-scheme:light] dark:[color-scheme:dark]"
+                      value={productForm.vat_mode}
+                      onChange={(e) => setProductForm((f) => ({ ...f, vat_mode: e.target.value as "inherit" | "yes" | "no" }))}
+                    >
+                      <option value="inherit">{t("vat_inherit")}</option>
+                      <option value="yes">{t("vat_yes")}</option>
+                      <option value="no">{t("vat_no")}</option>
+                    </select>
                   </label>
                   <label className="flex items-center gap-2 text-sm">
                     <Checkbox
@@ -1245,5 +1309,58 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       ) : null}
       {confirmDialog}
     </div>
+  )
+}
+
+/** VAT (ارزش افزوده) on the cafe invoice. Reuses the store tax settings (shop.accounting.tax). */
+function CafeVatCard() {
+  const t = useTranslations("cafe_admin.menu")
+  const tCommon = useTranslations("common")
+  const { loading, draft, setDraft, persist, pending, saved, error } = useDraftSettings<{
+    enabled?: boolean
+    rate_percent?: number
+    prices_include_tax?: boolean
+    shipping_taxable?: boolean
+    show_on_invoice?: boolean
+  }>("shop", "accounting", "tax")
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("vat_heading")}</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-2">
+        {loading || !draft ? (
+          <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+        ) : (
+          <>
+            <label className="flex items-center gap-2 text-sm"><Checkbox checked={Boolean(draft.enabled)} onCheckedChange={(v) => setDraft({ ...draft, enabled: Boolean(v) })} />{t("vat_enabled")}</label>
+            <label className="flex items-center gap-2 text-sm"><Checkbox checked={draft.show_on_invoice !== false} onCheckedChange={(v) => setDraft({ ...draft, show_on_invoice: Boolean(v) })} />{t("vat_show_on_invoice")}</label>
+            <div>
+              <Label>{t("vat_rate")}</Label>
+              <Input type="number" min={0} max={100} step="0.5" value={draft.rate_percent ?? 10} onChange={(e) => setDraft({ ...draft, rate_percent: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })} />
+            </div>
+            <div>
+              <Label>{t("vat_prices")}</Label>
+              <select
+                className="border-input bg-background text-foreground h-9 w-full rounded-md border px-3 text-sm [color-scheme:light] dark:[color-scheme:dark]"
+                value={draft.prices_include_tax ? "incl" : "excl"}
+                onChange={(e) => setDraft({ ...draft, prices_include_tax: e.target.value === "incl" })}
+              >
+                <option value="excl">{t("vat_exclusive")}</option>
+                <option value="incl">{t("vat_inclusive")}</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-sm sm:col-span-2"><Checkbox checked={Boolean(draft.shipping_taxable)} onCheckedChange={(v) => setDraft({ ...draft, shipping_taxable: Boolean(v) })} />{t("vat_on_fees")}</label>
+            <p className="text-muted-foreground text-xs sm:col-span-2">{t("vat_hint")}</p>
+            <div className="flex items-center gap-3 sm:col-span-2">
+              <Button onClick={() => void persist()} disabled={pending}>{tCommon("save")}</Button>
+              {saved ? <span className="text-sm text-green-600">{t("vat_saved")}</span> : null}
+              {error ? <span className="text-destructive text-sm">{error}</span> : null}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }

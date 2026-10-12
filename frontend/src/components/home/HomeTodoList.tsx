@@ -105,7 +105,7 @@ export function HomeTodoList({ locale }: { locale: Locale }) {
       >
         <Input className="min-w-[12rem] flex-1" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("placeholder")} aria-label={t("placeholder")} maxLength={300} />
         <select
-          className="border-input h-9 rounded-md border bg-transparent px-2 text-sm"
+          className="border-input bg-background text-foreground h-9 rounded-md border [color-scheme:light] dark:[color-scheme:dark] px-2 text-sm"
           value={priority}
           onChange={(e) => setPriority(e.target.value as "low" | "normal" | "high")}
           aria-label={t("priority")}

@@ -140,6 +140,14 @@ export type CafeMenuSettings = {
   packaging_delivery?: boolean | null
   service_fee_percent?: number | null
   service_fee_dine_in_only?: boolean | null
+  pay_online_enabled?: boolean | null
+  pay_cash_enabled?: boolean | null
+  delivery_radius_km?: number | null
+  cafe_lat?: number | null
+  cafe_lng?: number | null
+  delivery_require_pin?: boolean | null
+  pickup_slot_minutes?: number | null
+  dine_in_require_table?: boolean | null
   delivery_fee_minor?: number | null
   free_delivery_threshold_minor?: number | null
   prep_minutes?: number | null
@@ -159,6 +167,12 @@ export type CafeOrderingStatus = {
   delivery_fee_minor: number
   free_delivery_threshold_minor: number
   fulfillment: { dine_in: boolean; pickup: boolean; delivery: boolean }
+  payment_methods?: { id: string; title: string; type: "online" | "cash" }[]
+  delivery_radius_km?: number
+  cafe_location?: { lat: number; lng: number } | null
+  delivery_require_pin?: boolean
+  pickup_slot_minutes?: number
+  dine_in_require_table?: boolean
 }
 
 export type CafeHoursDay = {

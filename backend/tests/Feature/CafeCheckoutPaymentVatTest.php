@@ -1,0 +1,208 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Order;
+use App\Models\PaymentIntent;
+use App\Models\Product;
+use App\Services\Modules\ModuleSettingsService;
+use App\Services\Shop\ShopSettings;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class CafeCheckoutPaymentVatTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private \App\Models\Tenant $tenant;
+
+    private array $h;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->tenant = $this->createTenant(['domain' => 'cafe-pay.test', 'slug' => 'cafe-pay']);
+        $this->enableSubmodules($this->tenant->id, [
+            'commerce.catalog' => true,
+            'commerce.cart' => true,
+            'commerce.checkout' => true,
+            'commerce.orders' => true,
+            'cafe.menu' => true,
+        ]);
+        $this->h = ['X-Tenant-Domain' => $this->tenant->domain];
+        $this->menu([]);
+    }
+
+    private function menu(array $overrides): void
+    {
+        app(ModuleSettingsService::class)->put($this->tenant->id, 'cafe', 'menu', array_merge(
+            ModuleSettingsService::cafeMenuDefaults(),
+            ['block_orders_when_closed' => false, 'fulfillment_delivery' => true],
+            $overrides,
+        ));
+    }
+
+    private function product(string $name, int $price, array $extra = []): Product
+    {
+        return Product::query()->create(array_merge([
+            'tenant_id' => $this->tenant->id,
+            'name' => $name,
+            'slug' => str($name)->slug().'-'.uniqid(),
+            'status' => 'publish',
+            'price_minor' => $price,
+            'currency' => 'IRR',
+            'is_available' => true,
+            'is_hidden' => false,
+            'is_sold_out' => false,
+            'stock_status' => 'instock',
+            'manage_stock' => false,
+            'stock' => 10,
+        ], $extra));
+    }
+
+    private function add(Product $p, string $token, int $qty = 1): void
+    {
+        $this->postJson('/api/v1/public/cafe/cart/items', ['product_id' => $p->id, 'quantity' => $qty, 'guest_token' => $token], $this->h)->assertOk();
+    }
+
+    private function delivery(string $token, array $extra = []): array
+    {
+        return array_merge([
+            'idempotency_key' => 'key-'.$token,
+            'guest_token' => $token,
+            'fulfillment' => 'delivery',
+            'payment_method' => 'cash',
+            'customer_name' => 'سارا محمدی',
+            'customer_phone' => '09121234567',
+            'address' => 'تهران، خیابان انقلاب، کوچه نرگس',
+            'plaque' => '8',
+            'unit' => '2',
+            'lat' => 35.70,
+            'lng' => 51.40,
+        ], $extra);
+    }
+
+    public function test_delivery_requires_complete_valid_data(): void
+    {
+        $p = $this->product('Latte', 100000);
+        $this->add($p, 'tok-delivery-1');
+
+        $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-delivery-1', ['customer_phone' => '0212345678']), $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['customer_phone']);
+        $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-delivery-1', ['lat' => null, 'lng' => null]), $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['lat']);
+        $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-delivery-1', ['postal_code' => '123']), $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['postal_code']);
+        $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-delivery-1', ['address' => null]), $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['address']);
+
+        $order = $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-delivery-1'), $this->h)->assertCreated()->json('data');
+        $row = Order::query()->findOrFail($order['id']);
+        $this->assertSame('processing', $row->status);
+        $this->assertSame('09121234567', $row->customer_phone);
+        $this->assertSame(35.7, $row->meta['delivery']['lat']);
+    }
+
+    public function test_checkout_is_idempotent_and_ignores_client_prices(): void
+    {
+        $p = $this->product('Mocha', 120000);
+        $this->add($p, 'tok-idem-1', 2);
+        $payload = $this->delivery('tok-idem-1', ['total_minor' => 1, 'subtotal_minor' => 1]);
+
+        $first = $this->postJson('/api/v1/public/cafe/checkout', $payload, $this->h)->assertCreated()->json('data');
+        $second = $this->postJson('/api/v1/public/cafe/checkout', $payload, $this->h)->assertOk()->json('data');
+
+        $this->assertSame($first['id'], $second['id']);
+        $this->assertSame(1, Order::query()->where('tenant_id', $this->tenant->id)->count());
+        $this->assertSame(240000, (int) $first['subtotal_minor']);
+    }
+
+    public function test_delivery_zone_is_enforced(): void
+    {
+        $this->menu(['delivery_radius_km' => 3, 'cafe_lat' => 35.70, 'cafe_lng' => 51.40]);
+        $p = $this->product('Tea', 50000);
+        $this->add($p, 'tok-zone-1');
+
+        $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-zone-1', ['lat' => 35.80, 'lng' => 51.60]), $this->h)
+            ->assertStatus(422)->assertJsonPath('message', __('api.cafe_out_of_zone'));
+        $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-zone-1', ['lat' => 35.71, 'lng' => 51.41]), $this->h)
+            ->assertCreated();
+    }
+
+    public function test_unconfigured_gateway_cannot_be_chosen_and_cash_can_be_disabled(): void
+    {
+        $p = $this->product('Cake', 90000);
+        $this->add($p, 'tok-gw-1');
+
+        $methods = $this->getJson('/api/v1/public/cafe/venue', $this->h)->assertOk()->json('data.ordering.payment_methods');
+        $this->assertSame(['cash'], array_column($methods, 'id'));
+
+        $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-gw-1', ['payment_method' => 'zarinpal']), $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['payment_method']);
+
+        $this->menu(['pay_cash_enabled' => false]);
+        $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-gw-1'), $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['payment_method']);
+    }
+
+    public function test_pending_online_order_returns_to_cafe_menu_after_failed_callback_and_stays_off_kitchen(): void
+    {
+        $p = $this->product('Espresso', 80000);
+        $order = Order::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'status' => 'awaiting_gateway',
+            'subtotal_minor' => 80000,
+            'total_minor' => 80000,
+            'currency' => 'IRR',
+            'meta' => ['source' => 'guest_table', 'return_url' => 'https://cafe-pay.test/catalogue', 'kitchen_status' => 'new'],
+        ]);
+        PaymentIntent::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'order_id' => $order->id,
+            'provider' => 'zarinpal',
+            'status' => 'created',
+            'meta' => ['zarinpal_authority' => 'AUTH-CAFE', 'amount_rial' => 80000],
+        ]);
+
+        $admin = \App\Models\User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+        $ids = collect($this->getJson('/api/v1/cafe/kitchen-orders')->json('data'))->pluck('id')->all();
+        $this->assertNotContains($order->id, $ids);
+
+        $res = $this->get('/api/v1/payments/callback/zarinpal/'.$order->id.'?Authority=AUTH-CAFE&Status=NOK');
+        $res->assertRedirect('https://cafe-pay.test/catalogue?order='.$order->id.'&payment=failed');
+        $this->assertSame('payment_failed', $order->fresh()->status);
+    }
+
+    public function test_vat_applies_per_item_and_category_flags(): void
+    {
+        ShopSettings::saveTax($this->tenant->id, ['enabled' => true, 'rate_percent' => 10, 'prices_include_tax' => false, 'show_on_invoice' => true]);
+        $exemptCat = \App\Models\Category::query()->create(['tenant_id' => $this->tenant->id, 'name' => 'Bread', 'slug' => 'bread', 'vat_applicable' => false]);
+        $coffee = $this->product('Coffee', 100000);
+        $bread = $this->product('Bread', 50000, ['category_id' => $exemptCat->id]);
+        $water = $this->product('Water', 20000, ['vat_applicable' => false]);
+        $token = 'tok-vat-1';
+        $this->add($coffee, $token);
+        $this->add($bread, $token);
+        $this->add($water, $token);
+
+        $totals = $this->getJson('/api/v1/public/cafe/cart?guest_token='.$token.'&fulfillment=dine_in', $this->h)->assertOk()->json('data.totals');
+        $this->assertSame(10000, $totals['tax_minor']);
+        $this->assertTrue($totals['show_vat']);
+        $this->assertSame(170000 + 10000, $totals['grand_total_minor']);
+
+        $order = $this->postJson('/api/v1/public/cafe/checkout', [
+            'guest_token' => $token, 'fulfillment' => 'dine_in', 'table_number' => '5', 'payment_method' => 'cash', 'idempotency_key' => 'vat-key-123',
+        ], $this->h)->assertCreated()->json('data');
+        $this->assertSame(10000, (int) $order['tax_minor']);
+        $this->assertSame(180000, (int) $order['total_minor']);
+        $this->assertSame(10.0, (float) $order['vat']['rate']);
+
+        // Inclusive prices: VAT is extracted, total unchanged.
+        ShopSettings::saveTax($this->tenant->id, ['enabled' => true, 'rate_percent' => 10, 'prices_include_tax' => true]);
+        $this->add($coffee, 'tok-vat-2');
+        $inc = $this->getJson('/api/v1/public/cafe/cart?guest_token=tok-vat-2', $this->h)->json('data.totals');
+        $this->assertSame(9091, $inc['tax_minor']);
+        $this->assertSame(100000, $inc['grand_total_minor']);
+    }
+}

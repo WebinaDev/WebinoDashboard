@@ -119,7 +119,11 @@ class CafeCartFeesAndHoursTest extends TestCase
         $this->assertSame(10000, $pickup['packaging_minor']);
         $this->assertSame(0, $pickup['service_minor']);
 
-        $order = $this->postJson('/api/v1/public/cafe/checkout', ['guest_token' => $token, 'fulfillment' => 'delivery'], $this->h)
+        $order = $this->postJson('/api/v1/public/cafe/checkout', [
+            'guest_token' => $token, 'fulfillment' => 'delivery', 'payment_method' => 'cash',
+            'customer_name' => 'علی رضایی', 'customer_phone' => '۰۹۱۲۱۲۳۴۵۶۷',
+            'address' => 'تهران، خیابان ولیعصر، کوچه یاس', 'plaque' => '۱۲', 'lat' => 35.7, 'lng' => 51.4,
+        ], $this->h)
             ->assertCreated()->json('data');
         $this->assertSame(10000 + 20000, (int) $order['shipping_minor']);
         $this->assertSame(200000 + 30000, (int) $order['total_minor']);

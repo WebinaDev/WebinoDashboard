@@ -59,6 +59,7 @@ class CategoryController extends Controller
             'thumbnail_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', $tid)],
             'meta' => ['nullable', 'array'],
+            'vat_applicable' => ['nullable', 'boolean'],
         ]);
 
         $slug = $data['slug'] ?? Str::slug($data['name']);
@@ -77,6 +78,7 @@ class CategoryController extends Controller
             'cover_image_url' => $data['cover_image_url'] ?? null,
             'thumbnail_id' => $data['thumbnail_id'] ?? null,
             'meta' => $meta,
+            'vat_applicable' => $data['vat_applicable'] ?? true,
         ]);
 
         return response()->json(['data' => $cat], 201);
@@ -99,6 +101,7 @@ class CategoryController extends Controller
             'thumbnail_id' => ['sometimes', 'nullable', 'integer'],
             'parent_id' => ['sometimes', 'nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', $tid)],
             'meta' => ['sometimes', 'nullable', 'array'],
+            'vat_applicable' => ['sometimes', 'boolean'],
         ]);
 
         if (array_key_exists('parent_id', $data) && (int) $data['parent_id'] === $category->id) {

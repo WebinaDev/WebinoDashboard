@@ -27,6 +27,9 @@ export type GuestCart = {
     fees_minor: number
     tax_minor: number
     tax_added_minor: number
+    vat_rate?: number
+    vat_inclusive?: boolean
+    show_vat?: boolean
     grand_total_minor: number
   }
 }

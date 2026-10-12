@@ -764,3 +764,37 @@ html[data-cafe-scheme="dark"] .sf-main:has(.cafe-shell[data-skin="cafe-mash-dona
 /* Keep scrolling inside the sheet from chaining to the page. */
 .cafe-sheet, .cafe-sheet * { overscroll-behavior: contain; }
 .cafe-sheet-overlay { touch-action: none; }
+
+/* Cafe checkout */
+.cafe-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.cafe-hint { font-size: 0.8rem; color: var(--c-muted); }
+.cafe-ok-note { color: var(--c-ok); font-size: 0.9rem; font-weight: 700; }
+.cafe-map { display: grid; gap: 0.4rem; }
+.cafe-map-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.cafe-map .cafe-chip,
+.cafe-pickup-info .cafe-chip {
+  border: 1px solid var(--c-line);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  background: var(--c-card);
+  color: var(--c-ink);
+}
+.cafe-pickup-info { display: grid; gap: 0.5rem; }
+.cafe-pay-methods { display: grid; gap: 0.4rem; }
+.cafe-pay-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid var(--c-line);
+  border-radius: 14px;
+  padding: 0.65rem 0.8rem;
+  background: var(--c-card);
+  color: var(--c-ink);
+  cursor: pointer;
+}
+.cafe-pay-option[data-on="true"] { border-color: var(--cafe-accent); box-shadow: 0 0 0 1px var(--cafe-accent); }
+.cafe-pay-option input { accent-color: var(--cafe-accent); }
+.cafe-pay-list { display: grid; gap: 0.5rem; width: 100%; }
+select.cafe-field { color-scheme: light dark; }
+select.cafe-field option { background: var(--c-card); color: var(--c-ink); }

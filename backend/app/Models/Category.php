@@ -18,6 +18,7 @@ class Category extends Model
         'icon_url',
         'image_url',
         'sort_order',
+        'vat_applicable',
         'display_mode',
         'cover_image_url',
         'thumbnail_id',
@@ -32,6 +33,7 @@ class Category extends Model
             'sort_order' => 'integer',
             'views_count' => 'integer',
             'thumbnail_id' => 'integer',
+            'vat_applicable' => 'boolean',
             'meta' => 'array',
         ];
     }

@@ -46,7 +46,7 @@ type Props = {
 }
 
 const selectClass =
-  "h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+  "h-9 rounded-md border border-input bg-background text-foreground [color-scheme:light] dark:[color-scheme:dark] px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 
 export function LocaleTimePicker({ locale, value, onChange, disabled, "aria-label": ariaLabel, className }: Props) {
   const clock = normalizeClock(value) ?? "00:00"
@@ -59,13 +59,13 @@ export function LocaleTimePicker({ locale, value, onChange, disabled, "aria-labe
       <Clock className="text-muted-foreground size-4 shrink-0" aria-hidden />
       <select className={selectClass} value={h} disabled={disabled} onChange={(e) => onChange(`${e.target.value}:${m}`)}>
         {hours.map((x) => (
-          <option key={x} value={x}>{localeDigits(x, locale)}</option>
+          <option key={x} value={x} className="bg-background text-foreground">{localeDigits(x, locale)}</option>
         ))}
       </select>
       <span>:</span>
       <select className={selectClass} value={m} disabled={disabled} onChange={(e) => onChange(`${h}:${e.target.value}`)}>
         {minutes.map((x) => (
-          <option key={x} value={x}>{localeDigits(x, locale)}</option>
+          <option key={x} value={x} className="bg-background text-foreground">{localeDigits(x, locale)}</option>
         ))}
       </select>
     </div>
