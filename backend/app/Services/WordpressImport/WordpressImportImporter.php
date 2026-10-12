@@ -21,6 +21,7 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\WordpressImportLink;
 use App\Services\Modules\ModuleSettingsService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -163,15 +164,20 @@ final class WordpressImportImporter
     /** @param  array<string, mixed>  $payload */
     private function customer(ImportContext $ctx, string $externalId, array $payload): ImportOutcome
     {
+        $billing = is_array($payload['billing'] ?? null) ? $payload['billing'] : [];
+        $originalEmail = strtolower(trim((string) ($payload['email'] ?? $billing['email'] ?? '')));
+        $phone = $this->phone($payload['phone'] ?? $billing['phone'] ?? null);
         $name = $this->personName($payload);
         if ($name === '') {
-            throw new InvalidArgumentException('Customer name, email, or phone is required.');
+            $name = $originalEmail !== '' ? $originalEmail : ($phone ?: ('Customer '.$externalId));
         }
-        $originalEmail = strtolower(trim((string) ($payload['email'] ?? '')));
-        $phone = $this->phone($payload['phone'] ?? $payload['billing']['phone'] ?? null);
         [$email, $emailNote] = $this->customerEmail($ctx, $externalId, $originalEmail);
         $link = $ctx->find('customers', $externalId);
         $row = $link ? User::query()->find($link->local_id) : null;
+        // Stale links from other tenants / deleted users must not block customer creation.
+        if ($row && (int) $row->tenant_id !== $ctx->tenantId()) {
+            $row = null;
+        }
         if (! $row && $originalEmail !== '') {
             $sameTenant = User::query()->where('tenant_id', $ctx->tenantId())->where('email', $originalEmail)->first();
             if ($sameTenant) {
@@ -180,9 +186,34 @@ final class WordpressImportImporter
                 $emailNote = null;
             }
         }
+        if (! $row && $email !== '') {
+            $sameSynthetic = User::query()->where('tenant_id', $ctx->tenantId())->where('email', $email)->first();
+            if ($sameSynthetic) {
+                $row = $sameSynthetic;
+            }
+        }
+        // Phone: reuse same-tenant owner when emails match; otherwise drop phone to avoid
+        // users_tenant_phone_unique. Never catch QueryException inside the outer PG txn.
+        if (! $row && $phone !== null && $phone !== '') {
+            $byPhone = User::query()->where('tenant_id', $ctx->tenantId())->where('phone', $phone)->first();
+            if ($byPhone) {
+                $ownerEmail = strtolower(trim((string) $byPhone->email));
+                if ($ownerEmail !== '' && ($ownerEmail === $originalEmail || $ownerEmail === $email)) {
+                    $row = $byPhone;
+                    $email = (string) $byPhone->email;
+                } else {
+                    $phone = null;
+                    $messagePhone = 'Phone already used by another customer; omitted.';
+                }
+            }
+        }
         $existed = $row !== null;
         $message = $emailNote;
-        if (isset($payload['role']) && ! in_array(strtolower((string) $payload['role']), ['customer', 'subscriber', ''], true)) {
+        if (isset($messagePhone)) {
+            $message = trim(($message ? $message.' ' : '').$messagePhone);
+        }
+        $roleHint = strtolower((string) ($payload['role'] ?? (is_array($payload['roles'] ?? null) ? (string) ($payload['roles'][0] ?? '') : '')));
+        if ($roleHint !== '' && ! in_array($roleHint, ['customer', 'subscriber'], true)) {
             $message = trim(($message ? $message.' ' : '').'Source role was ignored.');
         }
         if ($ctx->dryRun()) {
@@ -191,29 +222,70 @@ final class WordpressImportImporter
 
         $staff = $row && in_array((string) $row->role, ['admin', 'staff', 'shop_manager', 'seller', 'accountant', 'author', 'editor'], true);
         if ($staff) {
-            $ctx->link('customers', $externalId, User::class, (int) $row->id, $this->guid($payload));
-
-            return $ctx->outcome(true, User::class, (int) $row->id, 'Matched an existing staff user; profile was left unchanged.');
+            // Never attach WP customers onto the tenant admin/staff account.
+            $row = null;
+            $existed = false;
+            $message = trim(($message ? $message.' ' : '').'Avoided overwriting a staff user; creating a separate customer.');
+            [$email, $emailNote2] = $this->customerEmail($ctx, $externalId, '');
+            if ($emailNote2) {
+                $message = trim($message.' '.$emailNote2);
+            }
+            // Staff kept the phone — do not steal it onto the new customer row.
+            if ($phone !== null && $phone !== '') {
+                $phone = null;
+            }
         }
         if (! $row) {
-            $row = new User([
+            $row = new User;
+            $row->forceFill([
                 'tenant_id' => $ctx->tenantId(),
                 'role' => 'customer',
                 'password' => Str::password(40),
                 'is_active' => true,
             ]);
         }
-        $row->name = mb_substr($name, 0, 255);
-        $row->first_name = $this->nullableString($payload['first_name'] ?? null, 80);
-        $row->last_name = $this->nullableString($payload['last_name'] ?? null, 80);
-        $row->email = $email;
-        $row->phone = $phone ?? $row->phone;
+        if ($phone !== null && $phone !== '' && $row->exists) {
+            $phoneOwner = User::query()
+                ->where('tenant_id', $ctx->tenantId())
+                ->where('phone', $phone)
+                ->where('id', '!=', (int) $row->id)
+                ->first();
+            if ($phoneOwner) {
+                $phone = null;
+                $message = trim(($message ? $message.' ' : '').'Phone already used by another customer; left unchanged.');
+            }
+        }
+        // Email must be unique globally. Never UPDATE an existing row onto someone else's email
+        // (including a previously minted synthetic) — that aborts the PG transaction and
+        // cascades "commands ignored" onto the rest of the batch.
+        $emailOwner = User::query()->where('email', $email)->first();
+        if ($emailOwner && (! $row->exists || (int) $emailOwner->id !== (int) $row->id)) {
+            if ($row->exists && is_string($row->email) && $row->email !== '') {
+                $email = (string) $row->email;
+                $message = trim(($message ? $message.' ' : '').'Kept existing user email to avoid unique collision.');
+            } else {
+                $email = $this->mintUniqueImportEmail($ctx, $externalId);
+                $message = trim(($message ? $message.' ' : '').'Email collided globally; synthetic address used.');
+            }
+        }
+        $row->forceFill([
+            'tenant_id' => $ctx->tenantId(),
+            'role' => $row->role && in_array((string) $row->role, ['admin', 'staff', 'shop_manager', 'seller', 'accountant', 'author', 'editor'], true)
+                ? $row->role
+                : 'customer',
+            'name' => mb_substr($name, 0, 255),
+            'first_name' => $this->nullableString($payload['first_name'] ?? $billing['first_name'] ?? null, 80),
+            'last_name' => $this->nullableString($payload['last_name'] ?? $billing['last_name'] ?? null, 80),
+            'email' => $email,
+            'phone' => $phone ?? $row->phone,
+            'is_active' => true,
+        ]);
         if (isset($payload['wallet_balance_minor']) && is_numeric($payload['wallet_balance_minor'])) {
-            $row->wallet_balance_minor = max(0, (int) $payload['wallet_balance_minor']);
+            $row->forceFill(['wallet_balance_minor' => max(0, (int) $payload['wallet_balance_minor'])]);
         }
         $addresses = $this->addresses($payload);
         if ($addresses !== []) {
-            $row->addresses = $addresses;
+            $row->forceFill(['addresses' => $addresses]);
         }
         $row->save();
         $ctx->link('customers', $externalId, User::class, (int) $row->id, $this->guid($payload));
@@ -266,14 +338,18 @@ final class WordpressImportImporter
         if ($ctx->dryRun()) {
             foreach ($this->imagePayloads($payload) as $image) {
                 if (! empty($image['url'])) {
-                    ImportUrlGuard::parseHttp((string) $image['url']);
-                    if (! ImportUrlGuard::hostAllowed(ImportUrlGuard::parseHttp((string) $image['url'])['host'], $ctx->hosts())) {
-                        throw new InvalidArgumentException('Image host is not on the allowlist.');
+                    try {
+                        $parts = ImportUrlGuard::parseHttp((string) $image['url']);
+                        if (! ImportUrlGuard::hostAllowed($parts['host'], $ctx->hosts())) {
+                            $warnings[] = 'Image host is not on the allowlist: '.$parts['host'];
+                        }
+                    } catch (\Throwable $e) {
+                        $warnings[] = $e->getMessage();
                     }
                 }
             }
 
-            return $ctx->outcome($link !== null, Product::class, $row?->id);
+            return $ctx->outcome($link !== null, Product::class, $row?->id, $warnings === [] ? null : implode(' ', array_unique($warnings)));
         }
 
         $gallery = [];
@@ -493,7 +569,20 @@ final class WordpressImportImporter
         if ($ctx->dryRun()) {
             return $ctx->outcome($link !== null, Order::class, $row?->id);
         }
-        $number = $row?->number ?: $this->orderNumber($ctx, $externalId, $payload);
+        if (! $userId && ($email !== '' || $name !== '')) {
+            $userId = $this->ensureOrderCustomer($ctx, $externalId, $email, $name, $billing);
+        }
+        $preferredNumber = $this->preferredOrderNumber($externalId, $payload);
+        if (! $row) {
+            $byNumber = Order::query()
+                ->where('tenant_id', $ctx->tenantId())
+                ->where('number', $preferredNumber)
+                ->first();
+            if ($byNumber) {
+                $row = $byNumber;
+            }
+        }
+        $number = $row?->number ?: $preferredNumber;
         $meta = is_array($row?->meta) ? $row->meta : [];
         $meta['wordpress_import'] = [
             'external_id' => $externalId,
@@ -501,10 +590,30 @@ final class WordpressImportImporter
             'source_guid' => $this->guid($payload),
             'source_status' => (string) ($payload['status'] ?? ''),
         ];
-        $row = $row ?? new Order;
+        // Prefer firstOrNew so we never INSERT then catch unique — PG aborts the txn.
+        if (! $row) {
+            $row = Order::query()->firstOrNew([
+                'tenant_id' => $ctx->tenantId(),
+                'number' => $number,
+            ]);
+            if (! $row->exists) {
+                // Race-safe fallback number if preferred is somehow taken mid-flight.
+                $clash = Order::query()
+                    ->where('tenant_id', $ctx->tenantId())
+                    ->where('number', $number)
+                    ->exists();
+                if ($clash) {
+                    $number = $this->orderNumber($ctx, $externalId, $payload);
+                    $row = Order::query()->firstOrNew([
+                        'tenant_id' => $ctx->tenantId(),
+                        'number' => $number,
+                    ]);
+                }
+            }
+        }
         $row->fill([
             'tenant_id' => $ctx->tenantId(),
-            'user_id' => $userId,
+            'user_id' => $userId ?? $row->user_id,
             'number' => $number,
             'status' => $status,
             'currency' => $ctx->currency($payload),
@@ -516,12 +625,12 @@ final class WordpressImportImporter
             'amount_paid_minor' => in_array($status, ['paid', 'processing', 'completed', 'shipped'], true) ? $total : $ctx->minor($payload, 'amount_paid'),
             'payment_provider' => $this->nullableString($payload['payment_method'] ?? null, 64),
             'payment_ref' => $this->nullableString($payload['transaction_id'] ?? null, 191),
-            'customer_name' => $name !== '' ? mb_substr($name, 0, 255) : null,
-            'customer_email' => $email !== '' ? mb_substr($email, 0, 255) : null,
-            'customer_phone' => $this->phone($payload['customer_phone'] ?? $billing['phone'] ?? null),
-            'customer_note' => $this->nullableString($payload['customer_note'] ?? null, 500),
-            'shipping_address' => $ctx->mapper->addressLine($payload['shipping_address'] ?? $shipping),
-            'billing_address' => $billing !== [] ? $billing : null,
+            'customer_name' => $name !== '' ? mb_substr($name, 0, 255) : $row->customer_name,
+            'customer_email' => $email !== '' ? mb_substr($email, 0, 255) : $row->customer_email,
+            'customer_phone' => $this->phone($payload['customer_phone'] ?? $billing['phone'] ?? null) ?? $row->customer_phone,
+            'customer_note' => $this->nullableString($payload['customer_note'] ?? null, 500) ?? $row->customer_note,
+            'shipping_address' => $ctx->mapper->addressLine($payload['shipping_address'] ?? $shipping) ?? $row->shipping_address,
+            'billing_address' => $billing !== [] ? $billing : $row->billing_address,
             'sales_channel' => 'online',
             'meta' => $meta,
         ]);
@@ -1141,31 +1250,86 @@ final class WordpressImportImporter
     }
 
     /** @param  array<string, mixed>  $payload */
-    private function orderNumber(ImportContext $ctx, string $externalId, array $payload): string
+    private function preferredOrderNumber(string $externalId, array $payload): string
     {
         $raw = trim((string) ($payload['number'] ?? ''));
         $number = $raw !== '' ? 'WP-'.$raw : 'WP-'.$externalId;
-        $number = mb_substr(preg_replace('/\s+/', '', $number) ?? $number, 0, 64);
-        $base = $number;
-        $i = 2;
-        while (Order::query()->where('tenant_id', $ctx->tenantId())->where('number', $number)->exists()) {
-            $number = mb_substr($base, 0, 58).'-'.$i;
-            $i++;
-        }
 
-        return $number;
+        return mb_substr(preg_replace('/\s+/', '', $number) ?? $number, 0, 64);
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    private function orderNumber(ImportContext $ctx, string $externalId, array $payload): string
+    {
+        $base = $this->preferredOrderNumber($externalId, $payload);
+
+        return DB::transaction(function () use ($ctx, $base) {
+            $number = $base;
+            $i = 2;
+            while (
+                Order::query()
+                    ->where('tenant_id', $ctx->tenantId())
+                    ->where('number', $number)
+                    ->lockForUpdate()
+                    ->exists()
+            ) {
+                $number = mb_substr($base, 0, 58).'-'.$i;
+                $i++;
+            }
+
+            return $number;
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $billing
+     */
+    private function ensureOrderCustomer(ImportContext $ctx, string $orderExternalId, string $email, string $name, array $billing): ?int
+    {
+        $email = strtolower(trim($email));
+        if ($email === '' && $name === '') {
+            return null;
+        }
+        $guestKey = $email !== '' ? 'guest-'.substr(sha1('e:'.$email), 0, 16) : 'guest-order-'.$orderExternalId;
+        $link = $ctx->find('customers', $guestKey);
+        if ($link) {
+            return (int) $link->local_id;
+        }
+        if ($email !== '') {
+            $existing = User::query()->where('tenant_id', $ctx->tenantId())->where('email', $email)->first();
+            if ($existing) {
+                $ctx->link('customers', $guestKey, User::class, (int) $existing->id, null);
+
+                return (int) $existing->id;
+            }
+        }
+        $outcome = $this->customer($ctx, $guestKey, [
+            'external_id' => $guestKey,
+            'email' => $email,
+            'name' => $name !== '' ? $name : ($email !== '' ? $email : 'Guest'),
+            'first_name' => $billing['first_name'] ?? null,
+            'last_name' => $billing['last_name'] ?? null,
+            'phone' => $billing['phone'] ?? null,
+            'billing' => $billing,
+            'roles' => ['customer'],
+        ]);
+
+        return $outcome->localId;
     }
 
     /** @return array{0: string, 1: ?string} */
     private function customerEmail(ImportContext $ctx, string $externalId, string $email): array
     {
         if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ['wp-'.$ctx->tenantId().'-'.$this->safeEmailKey($externalId).'@import.webino.invalid', $email === '' ? null : 'Source email was not a valid address.'];
+            return [
+                $this->mintUniqueImportEmail($ctx, $externalId),
+                $email === '' ? null : 'Source email was not a valid address.',
+            ];
         }
         $owner = User::query()->where('email', $email)->first();
         if ($owner && (int) $owner->tenant_id !== $ctx->tenantId()) {
             return [
-                'wp-'.$ctx->tenantId().'-'.$this->safeEmailKey($externalId).'@import.webino.invalid',
+                $this->mintUniqueImportEmail($ctx, $externalId),
                 'Original email belongs to another tenant and was not copied.',
             ];
         }
@@ -1179,6 +1343,18 @@ final class WordpressImportImporter
         $key = trim($key, '-');
 
         return $key !== '' ? mb_substr($key, 0, 40) : substr(sha1($externalId), 0, 10);
+    }
+
+    private function mintUniqueImportEmail(ImportContext $ctx, string $externalId): string
+    {
+        for ($i = 0; $i < 12; $i++) {
+            $email = 'wp-'.$ctx->tenantId().'-'.$this->safeEmailKey($externalId).'-'.substr(sha1($externalId.'|'.$i.'|'.microtime(true).'|'.Str::random(4)), 0, 10).'@import.webino.invalid';
+            if (! User::query()->where('email', $email)->exists()) {
+                return $email;
+            }
+        }
+
+        return 'wp-'.$ctx->tenantId().'-'.substr(sha1($externalId.'|'.Str::uuid()->toString()), 0, 24).'@import.webino.invalid';
     }
 
     /** @param  array<string, mixed>  $payload */

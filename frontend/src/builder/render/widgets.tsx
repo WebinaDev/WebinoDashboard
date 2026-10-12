@@ -10,7 +10,6 @@ import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 import { embedVideoSrc, sanitizeBuilderHtml } from "./sanitize-html"
 import {
-  SAMPLE_BRANDS,
   toneClass,
   type ShopProduct,
 } from "../catalog"
@@ -830,7 +829,8 @@ function NewsletterWidget({ widget }: { widget: WidgetNode }) {
 
 function BrandRow({ widget }: { widget: WidgetNode }) {
   const catalog = useCatalog(6)
-  const brands = catalog.brands.length ? catalog.brands : SAMPLE_BRANDS.map((name) => ({ name, slug: name }))
+  const brands = catalog.brands
+  if (!brands.length) return null
   return (
     <section>
       <h2 className="mb-4 text-xl font-bold text-foreground">{propStr(widget.props, "title", "برندها")}</h2>

@@ -96,6 +96,12 @@ class ProvisionBootstrapCommand extends Command
             'crm_account_id' => $seed['crm_account_id'] ?? null,
             'setup_completed' => false,
         ]);
+        if (array_key_exists('domain_aliases', $seed) && is_array($seed['domain_aliases'])) {
+            $tenant->domain_aliases = array_values(array_filter(array_map('strval', $seed['domain_aliases'])));
+        }
+        if (filled($seed['alias_subdomain'] ?? null)) {
+            $tenant->alias_subdomain = (string) $seed['alias_subdomain'];
+        }
         $tenant->save();
     }
 

@@ -43,18 +43,40 @@ final class ImportContext
         $hosts = [];
         $source = parse_url((string) $this->job->source_url, PHP_URL_HOST);
         if (is_string($source) && $source !== '') {
-            $hosts[] = strtolower($source);
+            $hosts = array_merge($hosts, $this->hostVariants(strtolower($source)));
         }
         $extra = $this->job->options['media_hosts'] ?? [];
         if (is_array($extra)) {
             foreach ($extra as $host) {
                 if (is_string($host) && trim($host) !== '') {
-                    $hosts[] = strtolower(trim($host));
+                    $hosts = array_merge($hosts, $this->hostVariants(strtolower(trim($host))));
                 }
             }
         }
 
         return array_values(array_unique($hosts));
+    }
+
+    /** @return list<string> */
+    private function hostVariants(string $host): array
+    {
+        $host = strtolower(trim($host));
+        if ($host === '') {
+            return [];
+        }
+        $out = [$host];
+        if (str_starts_with($host, 'www.')) {
+            $out[] = substr($host, 4);
+        } else {
+            $out[] = 'www.'.$host;
+        }
+        // Common WP CDN / cache frontends for the same origin site.
+        $bare = str_starts_with($host, 'www.') ? substr($host, 4) : $host;
+        foreach (['cdn.', 'media.', 'img.', 'static.'] as $prefix) {
+            $out[] = $prefix.$bare;
+        }
+
+        return array_values(array_unique(array_filter($out)));
     }
 
     public function sourceHost(): ?string

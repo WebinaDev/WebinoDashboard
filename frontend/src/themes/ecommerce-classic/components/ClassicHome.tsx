@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import { SAMPLE_BRANDS, toneClass, type ShopProduct } from "@/builder/catalog"
+import { toneClass, type ShopProduct } from "@/builder/catalog"
 import { useCatalog, type CatalogState } from "@/builder/storefront/use-catalog"
 
 import {
@@ -609,12 +609,13 @@ export function ClassicBestSellers({ title, limit = 9 }: { title?: string; limit
 export function ClassicBrandGrid({ title }: { title?: string }) {
   const catalog = useCatalog(24)
   const digits = useDigits()
-  const brands = catalog.brands.length ? catalog.brands : SAMPLE_BRANDS.map((name) => ({ name, slug: name }))
+  const brands = catalog.brands
   const counts = useMemo(() => {
     const map = new Map<string, number>()
     for (const p of catalog.products) map.set(p.brandSlug || p.brand, (map.get(p.brandSlug || p.brand) ?? 0) + 1)
     return map
   }, [catalog.products])
+  if (!brands.length) return null
   return (
     <section className="sfc-brands">
       <ClassicSectionHead title={title || "برندهای محبوب"} href="/shop" />
@@ -638,13 +639,6 @@ export function ClassicBrandGrid({ title }: { title?: string }) {
 
 type Post = { slug: string; title: string; excerpt?: string; cover_url?: string; published_at?: string }
 
-const POST_DEFAULTS: Post[] = [
-  { slug: "routine", title: "روتین صبحگاهی برای پوست شهری", excerpt: "سه گام کوتاه که قبل از آفتاب جواب می‌دهد." },
-  { slug: "cleanser", title: "شوینده را با نوع پوست جور کنید", excerpt: "خشک، مختلط یا چرب؛ یک راهنمای ساده." },
-  { slug: "hair-oil", title: "درخشش مو بدون روغن اضافه", excerpt: "کی و چقدر از روغن مو استفاده کنیم." },
-  { slug: "sunscreen", title: "ضدآفتاب کرمی یا استیکی؟", excerpt: "کدام گزینه برای شما مناسب‌تر است." },
-]
-
 export function ClassicBlogBlock({ title }: { title?: string }) {
   const [posts, setPosts] = useState<Post[]>([])
   useEffect(() => {
@@ -657,7 +651,7 @@ export function ClassicBlogBlock({ title }: { title?: string }) {
       })
       .catch(() => setPosts([]))
   }, [])
-  const list = posts.length ? posts : POST_DEFAULTS
+  const list = posts
   const [lead, ...rest] = list
   if (!lead) return null
   return (

@@ -239,6 +239,18 @@ final class WordpressImportRunner
             $item->message = $outcome->message;
             $item->save();
         } catch (Throwable $e) {
+            // PostgreSQL leaves the connection unusable after a failed statement if anything
+            // swallowed the error inside the txn; reconnect so the next item is clean.
+            try {
+                DB::connection()->rollBack();
+            } catch (Throwable) {
+                // already rolled back
+            }
+            try {
+                DB::reconnect();
+            } catch (Throwable) {
+                // ignore
+            }
             $item->status = 'failed';
             $item->action = 'failed';
             $item->message = mb_substr($e->getMessage(), 0, 2000);

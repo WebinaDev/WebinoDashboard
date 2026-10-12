@@ -4,6 +4,7 @@ namespace App\Services\WordpressImport;
 
 use App\Models\AttributeGroup;
 use App\Models\BlogCategory;
+use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\BlogTag;
 use App\Models\Brand;
@@ -19,6 +20,7 @@ use App\Models\ProductAttribute;
 use App\Models\ProductAttributeTerm;
 use App\Models\ProductDownload;
 use App\Models\ProductReview;
+use App\Models\ProductStory;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\User;
@@ -28,6 +30,7 @@ use App\Models\WordpressRedirect;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Shipping\ShippingZonesService;
 use App\Services\Shop\ShopSettings;
+use App\Services\Shop\StorefrontAppearanceService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -46,6 +49,8 @@ final class WordpressImportRecords
             'blog_tags' => $this->blogTag($ctx, $externalId, $payload),
             'coupons' => $this->coupon($ctx, $externalId, $payload),
             'reviews' => $this->review($ctx, $externalId, $payload),
+            'blog_comments' => $this->blogComment($ctx, $externalId, $payload),
+            'stories' => $this->story($ctx, $externalId, $payload),
             'redirects' => $this->redirect($ctx, $externalId, $payload),
             'elementor_templates' => $this->template($ctx, $externalId, $payload),
             'attribute_groups' => $this->attributeGroup($ctx, $externalId, $payload),
@@ -454,6 +459,136 @@ final class WordpressImportRecords
     }
 
     /** @param  array<string, mixed>  $payload */
+    private function blogComment(ImportContext $ctx, string $externalId, array $payload): ImportOutcome
+    {
+        $body = trim((string) ($payload['content'] ?? $payload['body'] ?? ''));
+        if ($body === '') {
+            throw new InvalidArgumentException('Comment body is required.');
+        }
+        $postExternal = trim((string) ($payload['post_external_id'] ?? $payload['post_source_id'] ?? ''));
+        $postType = strtolower((string) ($payload['post_type'] ?? 'post'));
+        $postLink = null;
+        $pageLink = null;
+        if ($postExternal !== '') {
+            if ($postType === 'page') {
+                $pageLink = $ctx->find('pages', $postExternal);
+                $postLink = $pageLink ? null : $ctx->find('posts', $postExternal);
+            } else {
+                $postLink = $ctx->find('posts', $postExternal);
+                $pageLink = $postLink ? null : $ctx->find('pages', $postExternal);
+            }
+        }
+        $link = $ctx->find('blog_comments', $externalId);
+        $row = $link ? BlogComment::query()->where('tenant_id', $ctx->tenantId())->find($link->local_id) : null;
+        if ($ctx->dryRun()) {
+            return $ctx->outcome($link !== null, BlogComment::class, $row?->id);
+        }
+        $rawStatus = (string) ($payload['status'] ?? '1');
+        $status = match (true) {
+            in_array($rawStatus, ['1', 'approve', 'approved'], true) => 'approved',
+            in_array($rawStatus, ['spam'], true) => 'spam',
+            in_array($rawStatus, ['trash'], true) => 'trash',
+            default => 'pending',
+        };
+        $parentId = null;
+        $parentExternal = trim((string) ($payload['parent_external_id'] ?? ''));
+        if ($parentExternal !== '' && $parentExternal !== '0') {
+            $parent = $ctx->find('blog_comments', $parentExternal);
+            $parentId = $parent?->local_id;
+        }
+        $row = $row ?? new BlogComment;
+        $row->fill([
+            'tenant_id' => $ctx->tenantId(),
+            'blog_post_id' => $postLink?->local_id,
+            'cms_page_id' => $pageLink?->local_id,
+            'parent_id' => $parentId,
+            'author_name' => $this->text($payload['author_name'] ?? $payload['author'] ?? null, 255),
+            'author_email' => $this->text($payload['author_email'] ?? null, 255),
+            'content' => mb_substr($body, 0, 20000),
+            'status' => $status,
+            'meta' => ['wordpress_external_id' => $externalId, 'post_type' => $postType],
+        ]);
+        $createdAt = $ctx->mapper->date($payload['created_at'] ?? null);
+        if ($createdAt) {
+            $row->timestamps = false;
+            $row->created_at = $createdAt;
+            $row->updated_at = $createdAt;
+        }
+        $row->save();
+        $ctx->link('blog_comments', $externalId, BlogComment::class, (int) $row->id, $this->guid($payload));
+        $note = ($postLink || $pageLink) ? null : 'Comment stored without a linked post/page (target not imported yet).';
+
+        return $ctx->outcome($link !== null, BlogComment::class, (int) $row->id, $note);
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    private function story(ImportContext $ctx, string $externalId, array $payload): ImportOutcome
+    {
+        $title = trim((string) ($payload['title'] ?? $payload['name'] ?? ''));
+        $mediaUrl = trim((string) ($payload['media_url'] ?? ''));
+        $mediaExternal = trim((string) ($payload['media_external_id'] ?? ''));
+        if ($mediaUrl === '' && $mediaExternal !== '') {
+            $media = $ctx->find('media', $mediaExternal);
+            if ($media) {
+                $asset = \App\Models\MediaAsset::query()->where('tenant_id', $ctx->tenantId())->find($media->local_id);
+                $mediaUrl = (string) ($asset?->url ?? $asset?->path ?? '');
+            }
+        }
+        if ($mediaUrl === '' && is_array($payload['media'] ?? null)) {
+            $mediaUrl = trim((string) ($payload['media']['url'] ?? ''));
+        }
+        if ($title === '') {
+            $title = $mediaUrl !== '' ? 'Story' : '';
+        }
+        if ($title === '' || $mediaUrl === '') {
+            throw new InvalidArgumentException('Story needs a title and media_url.');
+        }
+        $link = $ctx->find('stories', $externalId);
+        $row = $link ? ProductStory::query()->where('tenant_id', $ctx->tenantId())->find($link->local_id) : null;
+        if ($ctx->dryRun()) {
+            return $ctx->outcome($link !== null, ProductStory::class, $row?->id);
+        }
+        $productId = null;
+        $productExternal = trim((string) ($payload['product_external_id'] ?? ''));
+        if ($productExternal !== '') {
+            $product = $ctx->find('products', $productExternal);
+            $productId = $product?->local_id;
+        }
+        $mediaType = strtolower((string) ($payload['media_type'] ?? 'image'));
+        if (! in_array($mediaType, ['image', 'video'], true)) {
+            $mediaType = str_contains($mediaUrl, '.mp4') || str_contains($mediaUrl, 'video') ? 'video' : 'image';
+        }
+        // Prefer storing remote media when download is on; fall back to source URL.
+        if ($ctx->downloadMedia() && str_starts_with($mediaUrl, 'http')) {
+            try {
+                $stored = $ctx->storeImage(['url' => $mediaUrl], 'story-'.$externalId);
+                if ($stored) {
+                    $mediaUrl = $stored;
+                }
+            } catch (\Throwable) {
+                // Keep source URL when CDN/MIME blocks download.
+            }
+        }
+        $row = $row ?? new ProductStory;
+        $row->fill([
+            'tenant_id' => $ctx->tenantId(),
+            'title' => mb_substr($title, 0, 255),
+            'media_url' => mb_substr($mediaUrl, 0, 2000),
+            'media_type' => $mediaType,
+            'product_id' => $productId,
+            'link_url' => $this->text($payload['link_url'] ?? null, 2000),
+            'sort_order' => (int) ($payload['sort_order'] ?? 0),
+            'is_active' => (bool) ($payload['is_active'] ?? (($payload['status'] ?? 'publish') === 'publish')),
+            'starts_at' => $ctx->mapper->date($payload['starts_at'] ?? null),
+            'ends_at' => $ctx->mapper->date($payload['ends_at'] ?? null),
+        ]);
+        $row->save();
+        $ctx->link('stories', $externalId, ProductStory::class, (int) $row->id, $this->guid($payload));
+
+        return $ctx->outcome($link !== null, ProductStory::class, (int) $row->id);
+    }
+
+    /** @param  array<string, mixed>  $payload */
     private function redirect(ImportContext $ctx, string $externalId, array $payload): ImportOutcome
     {
         $fromRaw = (string) ($payload['from'] ?? $payload['from_path'] ?? '');
@@ -656,18 +791,17 @@ final class WordpressImportRecords
             return $ctx->outcome($row !== null, User::class, $row?->id, 'Staff user will be asked to set a new password.');
         }
         if (! $row) {
-            $row = new User([
-                'tenant_id' => $ctx->tenantId(),
-                'email' => $email,
-                'password' => Str::password(40),
-                'is_active' => true,
-            ]);
+            $row = new User;
         }
-        $row->name = mb_substr($name, 0, 255);
-        $row->email = $email;
-        $row->role = $role;
-        $row->password_must_change = true;
-        $row->is_active = true;
+        $row->forceFill([
+            'tenant_id' => $ctx->tenantId(),
+            'email' => $email,
+            'name' => mb_substr($name, 0, 255),
+            'role' => $role,
+            'password' => $row->password ?: Str::password(40),
+            'password_must_change' => true,
+            'is_active' => true,
+        ]);
         $row->save();
         $ctx->link('staff', $externalId, User::class, (int) $row->id, $this->guid($payload));
 
@@ -700,9 +834,30 @@ final class WordpressImportRecords
             app(ModuleSettingsService::class)->put($ctx->tenantId(), 'settings', 'shop.gateways', ['gateways' => $this->redact($payments)]);
             $applied[] = 'gateways';
         }
+        $brandSlice = [];
+        if (is_array($payload['brand_style'] ?? null)) {
+            $brandSlice = array_merge($brandSlice, $payload['brand_style']);
+        }
+        if (is_array($payload['theme_mods'] ?? null)) {
+            $brandSlice = array_merge($brandSlice, $this->themeModsToAppearance($payload['theme_mods']));
+        }
+        if (is_array($payload['webino_options'] ?? null)) {
+            $brandSlice = array_merge($brandSlice, $this->webinoOptionsToAppearance($payload['webino_options']));
+        }
+        if ($brandSlice !== []) {
+            $this->applyBrandStyle($ctx, $brandSlice);
+            $applied[] = 'brand_style';
+        }
+        foreach (['emails' => 'shop.emails', 'pwa' => 'shop.pwa', 'notify' => 'shop.notify', 'modules' => 'shop.modules'] as $key => $settingKey) {
+            if (! is_array($payload[$key] ?? null)) {
+                continue;
+            }
+            app(ModuleSettingsService::class)->put($ctx->tenantId(), 'settings', $settingKey, $this->redact($payload[$key]));
+            $applied[] = $key;
+        }
         app(ModuleSettingsService::class)->put($ctx->tenantId(), 'settings', 'wordpress.import', $redacted);
         $queued = [];
-        foreach (['emails', 'pwa', 'notify', 'brand_style', 'swatches', 'attribute_groups', 'modules', 'elementor_kit', 'yith', 'yith_waitlist', 'accounting', 'marketplace', 'bots', 'sms', 'otp'] as $key) {
+        foreach (['swatches', 'attribute_groups', 'elementor_kit', 'yith', 'yith_waitlist', 'accounting', 'marketplace', 'bots', 'sms', 'otp'] as $key) {
             if (! array_key_exists($key, $payload)) {
                 continue;
             }
@@ -719,8 +874,94 @@ final class WordpressImportRecords
         if ($queued !== []) {
             $message .= '. Queued for review: '.implode(', ', $queued);
         }
+        $message .= '. Passwords and payment gateway secrets are never imported.';
 
         return $ctx->outcome(false, 'settings', null, $message);
+    }
+
+    /** @param  array<string, mixed>  $slice */
+    private function applyBrandStyle(ImportContext $ctx, array $slice): void
+    {
+        $appearance = [];
+        $colorMap = [
+            'primary_color' => ['primary_color', 'primary', 'color_primary'],
+            'secondary_color' => ['secondary_color', 'secondary', 'color_secondary'],
+            'accent_color' => ['accent_color', 'accent', 'color_accent'],
+            'text1_color' => ['text1_color', 'text', 'text_color'],
+            'text2_color' => ['text2_color', 'muted', 'text_muted'],
+            'header_bg' => ['header_bg', 'header_background'],
+            'footer_bg' => ['footer_bg', 'footer_background'],
+            'surface_color' => ['surface_color', 'surface', 'background'],
+            'border_color' => ['border_color', 'border'],
+        ];
+        foreach ($colorMap as $target => $keys) {
+            foreach ($keys as $key) {
+                $value = $slice[$key] ?? null;
+                if (is_string($value) && preg_match('/^#?[0-9a-fA-F]{3,8}$/', trim($value))) {
+                    $hex = str_starts_with(trim($value), '#') ? trim($value) : '#'.trim($value);
+                    $appearance[$target] = $hex;
+                    break;
+                }
+            }
+        }
+        $logo = $slice['logo_url'] ?? $slice['custom_logo_url'] ?? $slice['logo'] ?? null;
+        if (is_string($logo) && $logo !== '') {
+            $appearance['general'] = array_merge($appearance['general'] ?? [], ['logo_url' => $logo]);
+        }
+        if (isset($slice['top_bar_text']) && is_scalar($slice['top_bar_text'])) {
+            $appearance['top_bar_text'] = (string) $slice['top_bar_text'];
+        }
+        if ($appearance === []) {
+            // Persist raw slice for operators even when no known keys matched.
+            app(ModuleSettingsService::class)->put($ctx->tenantId(), 'settings', 'wordpress.brand_style', $this->redact($slice));
+
+            return;
+        }
+        app(StorefrontAppearanceService::class)->save($ctx->tenantId(), $appearance);
+        app(ModuleSettingsService::class)->put($ctx->tenantId(), 'settings', 'wordpress.brand_style', $this->redact($slice));
+    }
+
+    /**
+     * @param  array<string, mixed>  $mods
+     * @return array<string, mixed>
+     */
+    private function themeModsToAppearance(array $mods): array
+    {
+        $out = [];
+        foreach (['primary_color', 'secondary_color', 'accent_color', 'background_color', 'header_textcolor'] as $key) {
+            if (! empty($mods[$key]) && is_scalar($mods[$key])) {
+                $out[$key === 'background_color' ? 'surface_color' : $key] = (string) $mods[$key];
+            }
+        }
+        if (! empty($mods['custom_logo']) && is_numeric($mods['custom_logo'])) {
+            $out['custom_logo_id'] = (int) $mods['custom_logo'];
+        }
+        foreach ($mods as $key => $value) {
+            if (is_string($key) && str_contains($key, 'color') && is_scalar($value) && is_string($value) && str_starts_with($value, '#')) {
+                $out[$key] = $value;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    private function webinoOptionsToAppearance(array $options): array
+    {
+        $out = [];
+        foreach (['primary_color', 'secondary_color', 'accent_color', 'logo_url', 'logo', 'favicon_url', 'top_bar_text'] as $key) {
+            if (isset($options[$key]) && is_scalar($options[$key]) && (string) $options[$key] !== '') {
+                $out[$key] = $options[$key];
+            }
+        }
+        if (is_array($options['brand_style'] ?? null)) {
+            $out = array_merge($out, $options['brand_style']);
+        }
+
+        return $out;
     }
 
     /** @param  array<string, mixed>  $store */

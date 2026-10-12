@@ -11,4 +11,9 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+# Public /storage/* URLs need this symlink; missing link → broken product images.
+if [ ! -e public/storage ]; then
+  php artisan storage:link >/dev/null 2>&1 || ln -sfn /var/www/html/storage/app/public /var/www/html/public/storage || true
+fi
+
 exec "$@"
