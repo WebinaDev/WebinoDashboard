@@ -226,6 +226,7 @@ final class WordpressImportRunner
 
     private function process(WordpressImportJob $job, WordpressImportItem $item): void
     {
+        $level = DB::transactionLevel();
         try {
             $outcome = DB::transaction(function () use ($job, $item) {
                 return $this->importer->import(
@@ -239,17 +240,23 @@ final class WordpressImportRunner
             $item->message = $outcome->message;
             $item->save();
         } catch (Throwable $e) {
-            // PostgreSQL leaves the connection unusable after a failed statement if anything
-            // swallowed the error inside the txn; reconnect so the next item is clean.
+            // Only unwind transactions opened for this item; never roll back a caller's
+            // outer transaction (that would silently discard the job's earlier work).
             try {
-                DB::connection()->rollBack();
+                while (DB::transactionLevel() > $level) {
+                    DB::rollBack();
+                }
             } catch (Throwable) {
                 // already rolled back
             }
-            try {
-                DB::reconnect();
-            } catch (Throwable) {
-                // ignore
+            // PostgreSQL can leave the session in an aborted state if something swallowed
+            // the error inside the txn; reconnect only when no outer transaction depends on it.
+            if ($level === 0 && DB::connection()->getDriverName() === 'pgsql') {
+                try {
+                    DB::reconnect();
+                } catch (Throwable) {
+                    // ignore
+                }
             }
             $item->status = 'failed';
             $item->action = 'failed';
