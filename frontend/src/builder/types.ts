@@ -140,6 +140,8 @@ export type BuilderDocument = {
 }
 
 export type RuntimeContext = {
+  /** Page language (multilingual pages); RTL unless an LTR language is set. */
+  lang?: string | null
   siteName?: string
   logoUrl?: string | null
   productSlug?: string

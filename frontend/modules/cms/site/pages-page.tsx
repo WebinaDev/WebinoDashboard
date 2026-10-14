@@ -15,6 +15,7 @@ type CmsPage = {
   title: string
   body?: string | null
   builder_published?: unknown
+  lang?: string | null
   ab?: { id: number; split: number; variant?: { document?: unknown } } | null
 }
 
@@ -45,10 +46,10 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
   }
 
   if (isDocument(page.builder_published) && page.builder_published.sections.length) {
-    const original = <StorefrontDocument document={page.builder_published} runtime={{ siteName: page.title }} />
+    const original = <StorefrontDocument document={page.builder_published} runtime={{ siteName: page.title, lang: page.lang }} />
     const variant = page.ab?.variant?.document
     if (page.ab && isDocument(variant)) {
-      return <AbSwitch testId={page.ab.id} split={page.ab.split} a={original} b={<StorefrontDocument document={variant} runtime={{ siteName: page.title }} />} />
+      return <AbSwitch testId={page.ab.id} split={page.ab.split} a={original} b={<StorefrontDocument document={variant} runtime={{ siteName: page.title, lang: page.lang }} />} />
     }
     return original
   }
