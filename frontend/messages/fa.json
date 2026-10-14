@@ -1834,7 +1834,8 @@
       "checkout_field_city": "شهر",
       "checkout_field_phone": "تلفن",
       "checkout_field_address": "نشانی",
-      "checkout_field_coupon": "کد تخفیف"
+      "checkout_field_coupon": "کد تخفیف",
+      "login_image_url": "تصویر کنار فرم ورود"
     },
     "product_notifications": {
       "loading": "در حال بارگذاری…",

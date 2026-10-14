@@ -416,6 +416,12 @@ export function StorefrontAppearancePanel() {
                 onClear={() => setSection("general", { bg_404: "" })}
               />
               <MediaPickerField
+                label={t("login_image_url")}
+                imageUrl={String(general.login_image_url ?? "")}
+                onPick={(item) => setSection("general", { login_image_url: item.url })}
+                onClear={() => setSection("general", { login_image_url: "" })}
+              />
+              <MediaPickerField
                 label={t("loading_icon_url")}
                 imageUrl={String(general.loading_icon_url ?? "")}
                 onPick={(item) => setSection("general", { loading_icon_url: item.url })}

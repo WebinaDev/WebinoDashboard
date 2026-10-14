@@ -2354,7 +2354,8 @@
       "checkout_field_city": "City",
       "checkout_field_phone": "Phone",
       "checkout_field_address": "Address",
-      "checkout_field_coupon": "Coupon"
+      "checkout_field_coupon": "Coupon",
+      "login_image_url": "Login page side image"
     },
     "product_notifications": {
       "loading": "Loading…",

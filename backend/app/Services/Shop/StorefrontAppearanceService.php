@@ -55,6 +55,7 @@ final class StorefrontAppearanceService
                 'logo_height_mobile' => 36,
                 'logo_404_url' => '',
                 'bg_404' => '',
+                'login_image_url' => '',
                 'loading_icon_url' => '',
                 'mobile_bottom_menu_enabled' => true,
                 'mobile_bottom_menu' => [
@@ -327,6 +328,8 @@ final class StorefrontAppearanceService
                     'select_placeholder' => 'انتخاب کنید',
                     'city_label' => 'شهر',
                     'postcode_label' => 'کد پستی',
+                    'national_id_label' => 'کد ملی',
+                    'national_id_invalid' => 'کد ملی معتبر نیست.',
                     'phone_label' => 'موبایل',
                     'address_label' => 'آدرس کامل',
                     'coupon_label' => 'کد تخفیف',

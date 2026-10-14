@@ -65,6 +65,7 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     logo_height_mobile?: number
     logo_404_url?: string
     bg_404?: string
+    login_image_url?: string
     loading_icon_url?: string
     mobile_bottom_menu_enabled?: boolean
     mobile_bottom_menu?: ClassicThemeLink[]
