@@ -5,6 +5,8 @@
  * Defaults equal the previous hardcoded copy so nothing changes until the admin edits it.
  * Keep in sync with StorefrontAppearanceService::defaults()["texts"]. */
 
+import { useLocale } from "next-intl"
+import { CLASSIC_TEXTS_EN } from "./texts-en"
 import { useCallback } from "react"
 
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
@@ -170,14 +172,17 @@ export const CLASSIC_TEXTS: ClassicTextEntry[] = [
 const DEFAULTS: Record<string, string> = Object.fromEntries(CLASSIC_TEXTS.map((e) => [`${e.group}.${e.key}`, e.fa]))
 
 /** Read a stored override (appearance.texts[group][key]) or the built-in default. A single "-" hides the text. */
-export function classicText(texts: unknown, id: string, vars?: Record<string, string>): string {
+export function classicText(texts: unknown, id: string, vars?: Record<string, string>, locale?: string): string {
   const [group, key] = id.split(".", 2)
-  let value = DEFAULTS[id] ?? ""
+  const english = Boolean(locale) && !String(locale).toLowerCase().startsWith("fa")
+  const faDefault = DEFAULTS[id] ?? ""
+  let value = english ? (CLASSIC_TEXTS_EN[id] ?? faDefault) : faDefault
   if (texts && typeof texts === "object") {
     const section = (texts as Record<string, unknown>)[group]
     if (section && typeof section === "object") {
       const raw = (section as Record<string, unknown>)[key]
-      if (typeof raw === "string" && raw.trim() !== "") value = raw.trim() === "-" ? "" : raw
+      // Stored values equal to the Persian default are not customisations: keep the locale default.
+      if (typeof raw === "string" && raw.trim() !== "" && !(english && raw === faDefault)) value = raw.trim() === "-" ? "" : raw
     }
   }
   if (vars) {
@@ -190,5 +195,6 @@ export function classicText(texts: unknown, id: string, vars?: Record<string, st
 export function useClassicText(): (id: string, vars?: Record<string, string>) => string {
   const theme = useClassicThemeSettings()
   const texts = theme.texts
-  return useCallback((id: string, vars?: Record<string, string>) => classicText(texts, id, vars), [texts])
+  const locale = useLocale()
+  return useCallback((id: string, vars?: Record<string, string>) => classicText(texts, id, vars, locale), [locale, texts])
 }
