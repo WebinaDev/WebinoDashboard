@@ -262,7 +262,7 @@ export function resizeColumn(doc: BuilderDocument, columnId: string, span: numbe
   }))
 }
 
-function cloneWidget(widget: WidgetNode): WidgetNode {
+export function cloneWidget(widget: WidgetNode): WidgetNode {
   return {
     ...widget,
     id: uid("w"),
@@ -272,7 +272,7 @@ function cloneWidget(widget: WidgetNode): WidgetNode {
   }
 }
 
-function cloneSection(section: SectionNode): SectionNode {
+export function cloneSection(section: SectionNode): SectionNode {
   return {
     ...section,
     id: uid("sec"),

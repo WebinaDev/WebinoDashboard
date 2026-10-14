@@ -918,6 +918,10 @@ Route::prefix('v1')->group(function () {
                 Route::get('/builder/revisions', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'index']);
                 Route::get('/builder/revisions/{revision}', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'show'])->whereNumber('revision');
                 Route::post('/builder/revisions/{revision}/restore', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'restore'])->whereNumber('revision');
+                Route::get('/builder/library', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'index']);
+                Route::post('/builder/library', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'store']);
+                Route::get('/builder/library/{item}', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'show'])->whereNumber('item');
+                Route::delete('/builder/library/{item}', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'destroy'])->whereNumber('item');
                 Route::get('/builder/globals', [BuilderGlobalsController::class, 'show']);
                 Route::put('/builder/globals', [BuilderGlobalsController::class, 'update']);
                 Route::post('/builder/globals/publish', [BuilderGlobalsController::class, 'publish']);

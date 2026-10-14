@@ -18,6 +18,12 @@ import {
   Undo2,
   type LucideIcon,
   History,
+  Download,
+  Keyboard,
+  LayoutTemplate,
+  Lock,
+  Upload,
+  ZoomIn,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -57,6 +63,11 @@ import { DocumentView } from "../render/DocumentView"
 import { migrateDocument } from "../migrate"
 import { DynamicEditor, DynamicToggle, EXTENDED_KINDS, ExtendedField } from "./fields"
 import { isDynamic } from "../dynamic"
+import { ContextMenu, type MenuItem } from "./ContextMenu"
+import { LibraryPanel } from "./LibraryPanel"
+import { Navigator } from "./Navigator"
+import { ShortcutHelp } from "./ShortcutHelp"
+import { CLIPBOARD_KEY, duplicateSection, exportPayload, findNode, importPayload, isLocked, makeClip, parseClip, pasteClip, pasteStyle, patchNode, type Clip } from "../ops"
 import { RevisionsPanel, type RevisionTarget } from "./RevisionsPanel"
 import { widgetLabel } from "../render/widgets"
 
@@ -113,7 +124,12 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [future, setFuture] = useState<BuilderDocument[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [device, setDevice] = useState<DeviceMode>("desktop")
-  const [panel, setPanel] = useState<"widgets" | "navigator">("widgets")
+  const [panel, setPanel] = useState<"widgets" | "navigator" | "library">("widgets")
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [showHelp, setShowHelp] = useState(false)
+  const [zoom, setZoom] = useState(100)
+  const [libraryKey, setLibraryKey] = useState(0)
+  const importRef = useRef<HTMLInputElement>(null)
   const [tab, setTab] = useState<"content" | "style" | "advanced">("content")
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
@@ -208,16 +224,180 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     }
   }, [mode, t])
 
+  /* ---------- node actions (shared by shortcuts, context menu and inspector) ---------- */
+
+  function readClip(): Clip | null {
+    try {
+      return parseClip(window.localStorage.getItem(CLIPBOARD_KEY))
+    } catch {
+      return null
+    }
+  }
+
+  function copyNode(id: string, cut = false) {
+    const clip = makeClip(doc, id)
+    if (!clip) return
+    try {
+      window.localStorage.setItem(CLIPBOARD_KEY, JSON.stringify(clip))
+    } catch {
+      toast.error(t("clipboard_failed"))
+      return
+    }
+    if (cut && !isLocked(doc, id)) {
+      commit(removeNode(doc, id))
+      setSelectedId(null)
+    } else toast.success(t("copied"))
+  }
+
+  function pasteNode() {
+    const clip = readClip()
+    if (!clip) {
+      toast.error(t("clipboard_empty"))
+      return
+    }
+    const result = pasteClip(doc, clip, selectedId)
+    commit(result.doc)
+    setSelectedId(result.id)
+  }
+
+  function pasteStyleOn(id: string) {
+    const clip = readClip()
+    if (!clip || isLocked(doc, id)) return
+    commit(pasteStyle(doc, id, clip))
+  }
+
+  function duplicateNode(id: string) {
+    const hit = findNode(doc, id)
+    if (!hit || isLocked(doc, id)) return
+    if (hit.kind === "widget") commit(duplicateWidget(doc, id))
+    else if (hit.kind === "section") {
+      const result = duplicateSection(doc, id)
+      if (result.id) {
+        commit(result.doc)
+        setSelectedId(result.id)
+      }
+    }
+  }
+
+  function deleteNode(id: string) {
+    if (isLocked(doc, id)) {
+      toast.error(t("node_locked"))
+      return
+    }
+    commit(removeNode(doc, id))
+    setSelectedId(null)
+  }
+
+  async function saveToLibrary(id: string | null) {
+    const hit = id ? findNode(doc, id) : null
+    const kind = !hit ? "page" : hit.kind === "widget" ? "widget" : "section"
+    const name = window.prompt(t("library_name_prompt"), hit?.node.label ?? title)
+    if (!name?.trim()) return
+    let payload: BuilderDocument = doc
+    if (hit?.kind === "widget") payload = { version: 2, sections: [{ id: "lib", columns: [{ id: "lib-c", span: 12, widgets: [hit.node] }] }] }
+    else if (hit) {
+      const clip = makeClip(doc, hit.node.id)
+      if (clip?.kind === "section") payload = { version: 2, sections: [clip.node] }
+    }
+    try {
+      await api("/api/v1/builder/library", { method: "POST", json: { kind, title: name.trim(), document: payload } })
+      toast.success(t("library_saved"))
+      setLibraryKey((key) => key + 1)
+    } catch {
+      toast.error(t("save_failed"))
+    }
+  }
+
+  function insertLibrary(part: BuilderDocument, kind: string) {
+    if (kind === "widget") {
+      const widget = part.sections[0]?.columns[0]?.widgets[0]
+      if (!widget) return
+      const result = pasteClip(doc, { v: 1, kind: "widget", node: widget }, selectedId)
+      commit(result.doc)
+      setSelectedId(result.id)
+      return
+    }
+    const selection = findSelection(doc, selectedId)
+    const at = selection?.kind === "section" ? doc.sections.findIndex((item) => item.id === selection.id) + 1 : doc.sections.length
+    const sections = [...doc.sections]
+    sections.splice(at < 0 ? sections.length : at, 0, ...part.sections)
+    commit({ ...doc, sections })
+    setSelectedId(part.sections[0]?.id ?? null)
+  }
+
+  function exportJson() {
+    const blob = new Blob([exportPayload(doc, title)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `${(slug || title || "builder").replace(/[^\p{L}\p{N}_-]+/gu, "-")}.webino.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function importJson(file: File) {
+    if (file.size > 2_000_000) {
+      toast.error(t("import_too_large"))
+      return
+    }
+    const imported = importPayload(await file.text())
+    if (!imported) {
+      toast.error(t("import_invalid"))
+      return
+    }
+    const replace = doc.sections.length === 0 || window.confirm(t("import_replace_confirm"))
+    commit(replace ? imported : { ...doc, sections: [...doc.sections, ...imported.sections] })
+    toast.success(t("imported"))
+  }
+
+  // Central keyboard shortcuts (ignored while typing in inputs / inline text).
   useEffect(() => {
+    function typing(target: EventTarget | null): boolean {
+      const el = target as HTMLElement | null
+      return Boolean(el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)))
+    }
     function onKey(event: KeyboardEvent) {
       const meta = event.metaKey || event.ctrlKey
-      if (!meta) return
-      if (event.key === "z" && !event.shiftKey) {
+      const key = event.key.toLowerCase()
+      if (meta && key === "s") {
         event.preventDefault()
-        undo()
-      } else if (event.key === "z" && event.shiftKey) {
+        void save(event.shiftKey)
+        return
+      }
+      if (typing(event.target)) return
+      if (meta && key === "z") {
+        event.preventDefault()
+        if (event.shiftKey) redo()
+        else undo()
+      } else if (meta && key === "y") {
         event.preventDefault()
         redo()
+      } else if (meta && key === "c" && selectedId) {
+        event.preventDefault()
+        copyNode(selectedId)
+      } else if (meta && key === "x" && selectedId) {
+        event.preventDefault()
+        copyNode(selectedId, true)
+      } else if (meta && key === "v" && event.shiftKey && selectedId) {
+        event.preventDefault()
+        pasteStyleOn(selectedId)
+      } else if (meta && key === "v") {
+        event.preventDefault()
+        pasteNode()
+      } else if (meta && key === "d" && selectedId) {
+        event.preventDefault()
+        duplicateNode(selectedId)
+      } else if ((event.key === "Delete" || event.key === "Backspace") && selectedId) {
+        event.preventDefault()
+        deleteNode(selectedId)
+      } else if (event.key === "Escape") {
+        setSelectedId(null)
+        setMenu(null)
+      } else if (event.key === "?" || (event.shiftKey && event.key === "/")) {
+        setShowHelp(true)
+      } else if (meta && key === "p") {
+        event.preventDefault()
+        setDevice((current) => (current === "desktop" ? "tablet" : current === "tablet" ? "mobile" : "desktop"))
       }
     }
     window.addEventListener("keydown", onKey)
@@ -261,6 +441,10 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     },
     onResize: (columnId, span) => {
       setDoc((current) => resizeColumn(current, columnId, span))
+    },
+    onContextMenu: (id, x, y) => {
+      setSelectedId(id)
+      setMenu({ id, x, y })
     },
   }), [commit, doc, selectedId])
 
@@ -399,6 +583,30 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     saveRef.current = save
   })
 
+  function nodeMenu(id: string): MenuItem[] {
+    const hit = findNode(doc, id)
+    const locked = isLocked(doc, id)
+    const hasClip = Boolean(readClip())
+    const meta = hit?.node ?? {}
+    return [
+      { id: "edit", label: t("menu_edit"), onSelect: () => { setSelectedId(id); setTab("content") } },
+      { id: "duplicate", label: t("duplicate"), shortcut: "Ctrl+D", disabled: locked || hit?.kind === "column", onSelect: () => duplicateNode(id) },
+      "sep",
+      { id: "copy", label: t("copy"), shortcut: "Ctrl+C", onSelect: () => copyNode(id) },
+      { id: "cut", label: t("cut"), shortcut: "Ctrl+X", disabled: locked, onSelect: () => copyNode(id, true) },
+      { id: "paste", label: t("paste"), shortcut: "Ctrl+V", disabled: !hasClip, onSelect: pasteNode },
+      { id: "paste-style", label: t("paste_style"), shortcut: "Ctrl+Shift+V", disabled: !hasClip || locked, onSelect: () => pasteStyleOn(id) },
+      { id: "reset-style", label: t("reset_style"), disabled: locked, onSelect: () => commit(patchNode(doc, id, { style: undefined })) },
+      "sep",
+      { id: "hide", label: "hidden" in meta && meta.hidden ? t("show_node") : t("hide_node"), onSelect: () => commit(patchNode(doc, id, { hidden: "hidden" in meta && meta.hidden ? undefined : true })) },
+      { id: "lock", label: "locked" in meta && meta.locked ? t("unlock_node") : t("lock_node"), onSelect: () => commit(patchNode(doc, id, { locked: "locked" in meta && meta.locked ? undefined : true })) },
+      { id: "navigator", label: t("navigator"), onSelect: () => { setPanel("navigator"); setSelectedId(id) } },
+      { id: "save-template", label: t("save_as_template"), onSelect: () => void saveToLibrary(id) },
+      "sep",
+      { id: "delete", label: t("delete"), shortcut: "Del", danger: true, disabled: locked, onSelect: () => deleteNode(id) },
+    ]
+  }
+
   const selection = findSelection(doc, selectedId)
   const preview = mode.kind === "page" ? previewHref(slug || "home") : "/"
   const backHref =
@@ -436,6 +644,27 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           <Settings2 className="size-3.5" aria-hidden />
           {t("globals")}
         </Link>
+        <label className="flex items-center gap-1 text-[11px] text-white/70" title={t("zoom")}>
+          <ZoomIn className="size-3.5" aria-hidden />
+          <select aria-label={t("zoom")} className="rounded bg-transparent text-white" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
+            {[50, 75, 90, 100, 125].map((value) => <option key={value} value={value} className="text-black">{value}٪</option>)}
+          </select>
+        </label>
+        <IconButton label={t("export_json")} onClick={exportJson}><Download className="size-4" /></IconButton>
+        <IconButton label={t("import_json")} onClick={() => importRef.current?.click()}><Upload className="size-4" /></IconButton>
+        <input
+          ref={importRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            event.target.value = ""
+            if (file) void importJson(file)
+          }}
+        />
+        <IconButton label={t("save_page_template")} onClick={() => void saveToLibrary(null)}><LayoutTemplate className="size-4" /></IconButton>
+        <IconButton label={t("shortcuts")} onClick={() => setShowHelp(true)}><Keyboard className="size-4" /></IconButton>
         {revisionTarget ? (
           <IconButton label={t("revisions")} onClick={() => setShowRevisions(true)}><History className="size-4" /></IconButton>
         ) : null}
@@ -455,6 +684,15 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           }}
         />
       ) : null}
+      {menu ? (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          onClose={() => setMenu(null)}
+          items={nodeMenu(menu.id)}
+        />
+      ) : null}
+      {showHelp ? <ShortcutHelp onClose={() => setShowHelp(false)} /> : null}
       <div className="flex min-h-0 flex-1">
         <aside className="flex w-72 shrink-0 flex-col border-e border-[#e6eef6] bg-[#f7f9fc]">
           <div className="flex border-b border-[#e6eef6] text-xs font-semibold">
@@ -465,6 +703,10 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "navigator" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("navigator")}>
               <ListTree className="size-3.5" aria-hidden />
               {t("navigator")}
+            </button>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "library" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("library")}>
+              <LayoutTemplate className="size-3.5" aria-hidden />
+              {t("library")}
             </button>
           </div>
           {panel === "widgets" ? (
@@ -506,34 +748,15 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
               })}
             </div>
           ) : (
-            <nav className="min-h-0 flex-1 overflow-auto p-2 text-sm">
-              {doc.sections.map((section, index) => (
-                <div key={section.id} className="mb-2 rounded-lg p-1">
-                  <button type="button" className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-start font-bold ${selectedId === section.id ? "bg-white text-[#E16BA6]" : ""}`} onClick={() => setSelectedId(section.id)}>
-                    <Blocks className="size-3.5" aria-hidden />
-                    {t("section")} {index + 1}
-                  </button>
-                  {section.columns.map((column, colIndex) => (
-                    <div key={column.id} className="ms-3">
-                      <button type="button" className={`flex items-center gap-1 text-xs ${selectedId === column.id ? "text-[#E16BA6]" : "text-[#0C2D63]/70"}`} onClick={() => setSelectedId(column.id)}>
-                        <ListTree className="size-3" aria-hidden />
-                        {t("column")} {colIndex + 1}
-                      </button>
-                      {column.widgets.map((widget) => (
-                        <button key={widget.id} type="button" className={`flex w-full items-center gap-1.5 truncate rounded px-2 py-1 text-start hover:bg-white ${selectedId === widget.id ? "bg-white text-[#E16BA6]" : ""}`} onClick={() => setSelectedId(widget.id)}>
-                          <WidgetGlyph type={widget.type} className="size-3.5 shrink-0" />
-                          <span className="truncate">{widgetLabel(widget)}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </nav>
+            panel === "navigator" ? (
+              <Navigator doc={doc} selectedId={selectedId} onSelect={setSelectedId} commit={commit} onContextMenu={(id, x, y) => { setSelectedId(id); setMenu({ id, x, y }) }} />
+            ) : (
+              <LibraryPanel refreshKey={libraryKey} onInsert={insertLibrary} />
+            )
           )}
         </aside>
         <main className="min-w-0 flex-1 overflow-auto bg-[#d7e0ea] p-6" onClick={() => setSelectedId(null)}>
-          <div className="mx-auto min-h-full overflow-hidden rounded-2xl bg-[#f5f8fb] shadow-xl" style={{ width: DEVICE_WIDTH[device] }}>
+          <div className="mx-auto min-h-full overflow-hidden rounded-2xl bg-[#f5f8fb] shadow-xl" style={{ width: DEVICE_WIDTH[device], zoom: zoom / 100 }}>
             {doc.sections.length === 0 ? (
               <div className="grid min-h-80 place-items-center gap-2 text-sm">
                 <Blocks className="size-5 text-[#0C2D63]/30" aria-hidden />
@@ -567,10 +790,17 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
               {t("no_selection")}
             </div>
           ) : null}
+          {selection && isLocked(doc, selection.id) ? (
+            <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-[#e6eef6] bg-[#f7f9fc] p-2 text-[11px]">
+              <Lock className="size-3.5" aria-hidden />
+              {t("node_locked")}
+            </div>
+          ) : null}
           {selection?.kind === "section" ? (
             <div className="grid gap-2">
+              <Button type="button" variant="outline" onClick={() => void saveToLibrary(selection.id)}>{t("save_as_template")}</Button>
               <Button type="button" variant="outline" onClick={() => commit(addColumn(doc, selection.id))}>{t("add_column")}</Button>
-              <Button type="button" variant="outline" onClick={() => { commit(removeNode(doc, selection.id)); setSelectedId(null) }}>{t("delete")}</Button>
+              <Button type="button" variant="outline" onClick={() => deleteNode(selection.id)}>{t("delete")}</Button>
               {selection.section.legacy ? (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5">
                   {t("legacy_section_note")}
@@ -650,8 +880,8 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                 />
               )}
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => commit(duplicateWidget(doc, selection.id))}>{t("duplicate")}</Button>
-                <Button type="button" variant="outline" onClick={() => { commit(removeNode(doc, selection.id)); setSelectedId(null) }}>{t("delete")}</Button>
+                <Button type="button" variant="outline" onClick={() => duplicateNode(selection.id)}>{t("duplicate")}</Button>
+                <Button type="button" variant="outline" onClick={() => deleteNode(selection.id)}>{t("delete")}</Button>
               </div>
             </div>
           ) : null}

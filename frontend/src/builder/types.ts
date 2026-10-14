@@ -68,6 +68,10 @@ export type ResponsiveStyle = {
 
 export type WidgetNode = {
   id: string
+  /** Editor metadata (Navigator): custom name, lock (no canvas select/drag/delete), hidden (not rendered on site). */
+  label?: string
+  locked?: boolean
+  hidden?: boolean
   type: string
   props: Record<string, unknown>
   style?: ResponsiveStyle
@@ -78,6 +82,10 @@ export type WidgetNode = {
 
 export type ColumnNode = {
   id: string
+  /** Editor metadata (Navigator): custom name, lock (no canvas select/drag/delete), hidden (not rendered on site). */
+  label?: string
+  locked?: boolean
+  hidden?: boolean
   span: number
   tabletSpan?: number
   mobileSpan?: number
@@ -87,6 +95,10 @@ export type ColumnNode = {
 
 export type SectionNode = {
   id: string
+  /** Editor metadata (Navigator): custom name, lock (no canvas select/drag/delete), hidden (not rendered on site). */
+  label?: string
+  locked?: boolean
+  hidden?: boolean
   /** Set by the v1→v2 migration: keep the old fixed 12-column rendering exactly. */
   legacy?: boolean
   fullWidth?: boolean
@@ -127,6 +139,8 @@ export type EditorApi = {
   onDropNew: (columnId: string, index: number, type: string) => void
   onDropMove: (columnId: string, index: number, nodeId: string) => void
   onResize: (columnId: string, span: number) => void
+  /** Right-click on a node in the canvas. */
+  onContextMenu?: (id: string, x: number, y: number) => void
 }
 
 export const DND_WIDGET = "application/x-webino-widget"

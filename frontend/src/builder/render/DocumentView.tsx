@@ -56,16 +56,22 @@ function SectionBlock({ section, device, editor }: { section: SectionNode; devic
   const selected = editor?.selectedId === section.id
   const sectionStyle = mergeStyle(section.style, device)
   const style = editor ? styleToCss(sectionStyle) : undefined
+  if (section.hidden && !editor) return null
   return (
     <section
       id={section.id}
-      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
+      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""} ${editor && section.hidden ? "opacity-40" : ""}`}
       style={style}
       onClick={(event) => {
         if (!editor) return
         event.stopPropagation()
-        editor.onSelect(section.id)
+        if (!section.locked) editor.onSelect(section.id)
       }}
+      onContextMenu={editor?.onContextMenu ? (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        editor.onContextMenu?.(section.id, event.clientX, event.clientY)
+      } : undefined}
     >
       <div
         className={`wb-columns grid items-start ${section.legacy ? "" : "wb-flow"}`}
@@ -116,15 +122,21 @@ function ColumnBlock({
     : editor && !freeLayout
       ? `span ${span}`
       : undefined
+  if (column.hidden && !editor) return null
   return (
     <div
-      className={`${safeClass(column.id)} relative min-w-0 ${selected ? "outline outline-2 outline-dashed outline-[#0C2D63]" : ""}`}
+      className={`${safeClass(column.id)} relative min-w-0 ${selected ? "outline outline-2 outline-dashed outline-[#0C2D63]" : ""} ${editor && column.hidden ? "opacity-40" : ""}`}
       style={{ ...style, gridColumn }}
       onClick={(event) => {
         if (!editor) return
         event.stopPropagation()
-        editor.onSelect(column.id)
+        if (!column.locked) editor.onSelect(column.id)
       }}
+      onContextMenu={editor?.onContextMenu ? (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        editor.onContextMenu?.(column.id, event.clientX, event.clientY)
+      } : undefined}
     >
       {editor ? <DropSlot columnId={column.id} index={0} editor={editor} /> : null}
       <div className="wb-col-body flex flex-col" style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
@@ -150,14 +162,15 @@ function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: D
   const resolved = useResolvedWidget(widget)
   const raw = editor ? styleToCss(mergeStyle(widget.style, device)) : undefined
   // In the editor, hidden widgets stay visible but faded so they can still be selected.
-  const hiddenOnDevice = Boolean(editor && (raw?.display === "none" || widget.advanced?.hideOn?.[device]))
+  const hiddenOnDevice = Boolean(editor && (raw?.display === "none" || widget.advanced?.hideOn?.[device] || widget.hidden))
   const style = raw && hiddenOnDevice ? { ...raw, display: undefined, opacity: 0.35 } : raw
+  if (widget.hidden && !editor) return null
   return (
     <div
       id={advancedId(widget.advanced)}
       className={`${safeClass(widget.id)} ${advancedClass(widget.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
       style={style}
-      draggable={Boolean(editor)}
+      draggable={Boolean(editor) && !widget.locked}
       onDragStart={(event) => {
         event.dataTransfer.setData(DND_NODE, widget.id)
         event.dataTransfer.effectAllowed = "move"
@@ -165,8 +178,13 @@ function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: D
       onClick={(event) => {
         if (!editor) return
         event.stopPropagation()
-        editor.onSelect(widget.id)
+        if (!widget.locked) editor.onSelect(widget.id)
       }}
+      onContextMenu={editor?.onContextMenu ? (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        editor.onContextMenu?.(widget.id, event.clientX, event.clientY)
+      } : undefined}
     >
       <WidgetBody widget={resolved} editor={editor} />
       {widget.type === "container" && widget.children
