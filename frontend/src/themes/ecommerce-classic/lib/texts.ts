@@ -163,7 +163,6 @@ export const CLASSIC_TEXTS: ClassicTextEntry[] = [
   { group: "blog", key: "toc", fa: "فهرست مطالب", labelFa: "عنوان فهرست مطالب", labelEn: "Table of contents" },
   { group: "blog", key: "most_viewed", fa: "پربازدیدترین", labelFa: "عنوان پربازدیدترین", labelEn: "Most viewed" },
   { group: "footer", key: "back_to_top", fa: "برگشت به بالا", labelFa: "دکمه برگشت به بالا", labelEn: "Back to top" },
-  { group: "footer", key: "rights", fa: "تمامی حقوق برای {site} محفوظ است.", labelFa: "متن کپی‌رایت ({site} = نام سایت)", labelEn: "Copyright line ({site} = site name)" },
 ]
 
 const DEFAULTS: Record<string, string> = Object.fromEntries(CLASSIC_TEXTS.map((e) => [`${e.group}.${e.key}`, e.fa]))

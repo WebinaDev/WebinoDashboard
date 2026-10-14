@@ -422,6 +422,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleEn: "Product notifications",
         route: "/dashboard/settings/shop/product-notifications",
       },
+      {
+        id: "newsletter",
+        titleFa: "مشترکان خبرنامه",
+        titleEn: "Newsletter subscribers",
+        route: "/dashboard/settings/shop/newsletter",
+      },
     ],
   },
   {

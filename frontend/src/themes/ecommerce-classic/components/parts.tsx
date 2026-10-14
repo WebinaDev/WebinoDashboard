@@ -6,8 +6,20 @@ import type { ReactNode } from "react"
 
 import { CurrencyMark } from "@/components/CurrencyMark"
 import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import { IconChevronLeft } from "./icons"
+
+/** Loading state: the admin's loading icon (Theme Settings → General) when set, else a CSS spinner. */
+export function ClassicLoader({ label }: { label?: string }) {
+  const icon = useClassicThemeSettings().general?.loading_icon_url
+  return (
+    <span className="sfc-loader" role="status" aria-live="polite">
+      {icon ? <img src={icon} alt="" className="sfc-loader__img" /> : <span className="sfc-loader__spin" aria-hidden="true" />}
+      {label ? <span className="sfc-loader__label">{label}</span> : null}
+    </span>
+  )
+}
 
 /** Persian-digit number formatter bound to the active UI locale. */
 export function useDigits() {
@@ -82,7 +94,7 @@ export function ClassicRating({ value }: { value?: number }) {
     <span className="sfc-rating">
       <span>{label}</span>
       <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="#f9bc00" d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9L12 2.8Z" />
+        <path fill="var(--sfc-rating, #f9bc00)" d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9L12 2.8Z" />
       </svg>
     </span>
   )

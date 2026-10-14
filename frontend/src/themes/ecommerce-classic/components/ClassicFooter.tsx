@@ -212,13 +212,6 @@ export function ClassicFooter({
   const aboutText = String(cfg.about || about || "")
   const footerLogo = String(cfg.footer_logo || "")
   const copyrightYears = String(cfg.copyright_years || "").trim()
-  const legacyCopyright = String(cfg.copyright || "").trim()
-  const copyrightSub = String(cfg.copyright_sub || "").trim()
-  const showCredit = cfg.show_developer_credit !== false
-  const developerTitle = String(cfg.developer_title || "").trim()
-  const developerName = String(cfg.developer_name || "").trim()
-  const developerLink = String(cfg.developer_link || "").trim()
-  const developerLogo = String(cfg.developer_logo || "").trim()
   const emailTitle = String(cfg.support_email_title || "").trim()
   const addressTitle = String(cfg.address_title || "").trim()
   const footerCols = Math.max(1, Math.min(6, Number(theme.footer_columns ?? 0) || 0))
@@ -425,31 +418,15 @@ export function ClassicFooter({
           </div>
         ) : null}
 
+        {/* Copyright wording and the Webina credit are fixed platform-wide (see settings hint). */}
         <div className="sfc-footer__copy">
           <div className="sfc-footer__copy-main">
-            <span>{legacyCopyright || tx("footer.rights", { site: siteName })}</span>
+            <span>
+              تمامی حقوق برای <strong>{siteName}</strong> محفوظ است.
+            </span>
             {copyrightYears ? <span className="sfc-footer__copy-years">{copyrightYears}</span> : null}
-            {copyrightSub ? <span className="sfc-footer__copy-sub">{copyrightSub}</span> : null}
           </div>
-          {showCredit ? (
-            developerName ? (
-              <a
-                className="sfc-footer__credit"
-                href={developerLink || undefined}
-                target={developerLink.startsWith("http") ? "_blank" : undefined}
-                rel={developerLink.startsWith("http") ? "noreferrer" : undefined}
-              >
-                {developerLogo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={developerLogo} alt="" width={20} height={20} />
-                ) : null}
-                {developerTitle ? <span>{developerTitle}</span> : null}
-                <strong>{developerName}</strong>
-              </a>
-            ) : (
-              <WebinaCredit />
-            )
-          ) : null}
+          <WebinaCredit />
         </div>
       </div>
     </footer>

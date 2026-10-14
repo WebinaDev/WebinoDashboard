@@ -57,6 +57,8 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     font_size?: number
     font_weight?: number
     line_height?: number
+    /** Star/rating colour (hex). */
+    rating_color?: string
   }
   general?: {
     logo_height_desktop?: number

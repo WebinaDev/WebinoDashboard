@@ -48,6 +48,7 @@ final class StorefrontAppearanceService
                 'font_size' => 14,
                 'font_weight' => 400,
                 'line_height' => 1.7,
+                'rating_color' => '#f9bc00',
             ],
             'general' => [
                 'logo_height_desktop' => 48,
@@ -375,7 +376,6 @@ final class StorefrontAppearanceService
                 ],
                 'footer' => [
                     'back_to_top' => 'برگشت به بالا',
-                    'rights' => 'تمامی حقوق برای {site} محفوظ است.',
                 ],
             ],
         ];

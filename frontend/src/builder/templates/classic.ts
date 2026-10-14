@@ -23,7 +23,7 @@ function doc(sections: SectionNode[]): BuilderDocument {
 
 const NAV = "خانه|/\nفروشگاه|/shop\nمجله|/blog\nسوالات متداول|/pages/faq\nتماس با ما|/pages/contact\nدرباره ما|/pages/about"
 
-export function classicHeaderDocument(siteName = "ویبینو"): BuilderDocument {
+export function classicHeaderDocument(siteName = ""): BuilderDocument {
   return doc([
     sec("sec_header", [
       col("col_header", 12, [w("w_header", "store-header", { mark: siteName, links: NAV })]),
@@ -31,13 +31,14 @@ export function classicHeaderDocument(siteName = "ویبینو"): BuilderDocumen
   ])
 }
 
-export function classicFooterDocument(siteName = "ویبینو"): BuilderDocument {
+export function classicFooterDocument(_siteName = ""): BuilderDocument {
   return doc([
     sec("sec_footer", [
+      // Contact details and about text come from Theme Settings → Footer; nothing is invented here.
       col("col_footer", 12, [w("w_footer", "store-footer", {
-        phone: "۰۲۱۹۱۰۹۱۰۹۱",
-        email: "hello@webino.shop",
-        about: `${siteName} گالری مراقبت و آرایش است؛ انتخاب کوتاه، توضیح روشن، و فروش روی وبینو. این متن نمونه ویبینو است.`,
+        phone: "",
+        email: "",
+        about: "",
       })]),
     ], true),
   ])

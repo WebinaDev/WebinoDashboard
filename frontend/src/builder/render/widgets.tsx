@@ -44,7 +44,31 @@ import { propBool, propNum, propStr, parseLinks } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
-import { ClassicNotFound, ClassicOrderTrack, ClassicComparePage } from "@/themes/ecommerce-classic/components/ClassicPages"
+import { ClassicNotFound, ClassicOrderTrack, ClassicComparePage, ClassicWishlist } from "@/themes/ecommerce-classic/components/ClassicPages"
+import {
+  AccordionWidget,
+  AnnouncementWidget,
+  BannerGridWidget,
+  BlogPostsWidget,
+  BrandSliderWidget,
+  CategoryListWidget,
+  CounterWidget,
+  IconBoxWidget,
+  IconListWidget,
+  ImageCarouselWidget,
+  ImageGalleryWidget,
+  LoginCtaWidget,
+  MapWidget,
+  PricingWidget,
+  ProductQueryWidget,
+  SearchBoxWidget,
+  ShareButtonsWidget,
+  SocialIconsWidget,
+  TabsWidget,
+  TestimonialsWidget,
+  WidgetIntro,
+  splitRows,
+} from "./extra-widgets"
 import {
   ClassicBestSellers,
   ClassicBrandGrid,
@@ -150,8 +174,10 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <DealBar widget={widget} />
     case "countdown":
       return <CountdownWidget widget={widget} />
-    case "trust-badges":
-      return classic ? <ClassicTrustStrip /> : <TrustWidget />
+    case "trust-badges": {
+      const badgeItems = splitRows(propStr(widget.props, "items", "")).map(([title, text, icon]) => ({ title, text: text ?? "", icon: icon || "badge" }))
+      return classic ? <ClassicTrustStrip items={badgeItems} /> : <TrustWidget />
+    }
     case "newsletter":
       return <NewsletterWidget widget={widget} />
     case "brand-row":
@@ -159,17 +185,17 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "blog-teasers":
       return <BlogWidget widget={widget} />
     case "filter-panel":
-      return <FilterWidget editing={editing} />
+      return <WidgetIntro widget={widget}><FilterWidget editing={editing} /></WidgetIntro>
     case "product-detail":
-      return <ProductDetail editing={editing} slug={runtime.productSlug} />
+      return <WidgetIntro widget={widget}><ProductDetail editing={editing} slug={propStr(widget.props, "slug", "") || runtime.productSlug} /></WidgetIntro>
     case "cart-lines":
-      return <CartWidget />
+      return <WidgetIntro widget={widget}><CartWidget /></WidgetIntro>
     case "checkout":
     case "checkout-stub": // legacy alias
-      return <CheckoutWidget />
+      return <WidgetIntro widget={widget}><CheckoutWidget /></WidgetIntro>
     case "account":
     case "account-stub": // legacy alias
-      return <AccountWidget />
+      return <WidgetIntro widget={widget}><AccountWidget /></WidgetIntro>
     case "amazing-offers":
       return <AmazingOffersBlockWidget widget={widget} />
     case "amazing-header":
@@ -177,9 +203,9 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "blog-slider":
       return <BlogSliderWidget widget={widget} />
     case "product-gallery":
-      return <ProductGalleryWidget productSlug={runtime.productSlug} />
+      return <WidgetIntro widget={widget}><ProductGalleryWidget productSlug={propStr(widget.props, "slug", "") || runtime.productSlug} editing={editing} /></WidgetIntro>
     case "add-to-cart-box":
-      return <AddToCartBoxWidget productSlug={runtime.productSlug} />
+      return <WidgetIntro widget={widget}><AddToCartBoxWidget productSlug={propStr(widget.props, "slug", "") || runtime.productSlug} editing={editing} /></WidgetIntro>
     case "most-viewed":
       return <MostViewedWidget widget={widget} />
     case "taste-box":
@@ -197,13 +223,55 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "product-reviews":
       return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} />
     case "account-dashboard":
-      return <AccountDashboardWidget />
+      return <WidgetIntro widget={widget}><AccountDashboardWidget /></WidgetIntro>
     case "classic-not-found":
       return <ClassicNotFound />
     case "classic-order-track":
       return <ClassicOrderTrack />
     case "classic-compare":
       return <ClassicComparePage />
+    case "classic-wishlist":
+      return <ClassicWishlist />
+    case "product-carousel":
+      return <ProductQueryWidget widget={widget} />
+    case "banner-grid":
+      return <BannerGridWidget widget={widget} />
+    case "tabs":
+      return <TabsWidget widget={widget} />
+    case "accordion":
+      return <AccordionWidget widget={widget} />
+    case "icon-box":
+      return <IconBoxWidget widget={widget} />
+    case "icon-list":
+      return <IconListWidget widget={widget} />
+    case "testimonials":
+      return <TestimonialsWidget widget={widget} />
+    case "brand-slider":
+      return <BrandSliderWidget widget={widget} />
+    case "image-gallery":
+      return <ImageGalleryWidget widget={widget} />
+    case "image-carousel":
+      return <ImageCarouselWidget widget={widget} />
+    case "announcement-bar":
+      return <AnnouncementWidget widget={widget} />
+    case "map":
+      return <MapWidget widget={widget} />
+    case "counter":
+      return <CounterWidget widget={widget} />
+    case "social-icons":
+      return <SocialIconsWidget widget={widget} />
+    case "share-buttons":
+      return <ShareButtonsWidget widget={widget} />
+    case "pricing-table":
+      return <PricingWidget widget={widget} />
+    case "blog-posts":
+      return <BlogPostsWidget widget={widget} />
+    case "search-box":
+      return <SearchBoxWidget widget={widget} />
+    case "category-list":
+      return <CategoryListWidget widget={widget} />
+    case "login-cta":
+      return <LoginCtaWidget widget={widget} />
     case "breadcrumbs":
       return <BreadcrumbsWidget widget={widget} />
     case "store-header":
@@ -706,7 +774,7 @@ function SortTabs({ editing }: { editing: boolean }) {
 function SingleCard({ widget }: { widget: WidgetNode }) {
   const slug = propStr(widget.props, "slug")
   const catalog = useCatalog(6)
-  const product = catalog.products.find((item) => item.slug === slug) ?? catalog.products[0]
+  const product = slug ? catalog.products.find((item) => item.slug === slug) : catalog.products[0]
   if (!product) return null
   return <ProductCard product={product} />
 }
@@ -808,21 +876,71 @@ function TrustWidget() {
 }
 
 function NewsletterWidget({ widget }: { widget: WidgetNode }) {
-  const [done, setDone] = useState(false)
+  const channel = propStr(widget.props, "channel", "email")
+  const [value, setValue] = useState("")
+  const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle")
+  const [error, setError] = useState("")
+  const placeholder = propStr(widget.props, "placeholder", "") || (channel === "phone" ? "شماره موبایل" : channel === "both" ? "ایمیل یا شماره موبایل" : "ایمیل")
+  const success = propStr(widget.props, "success", "") || "عضویت شما ثبت شد."
   return (
     <form
       className="flex flex-col gap-3 rounded-[28px] bg-card p-6 md:flex-row md:items-end"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault()
-        setDone(true)
+        const v = value.trim()
+        if (!v) return
+        const isEmail = v.includes("@")
+        if ((channel === "email" && !isEmail) || (channel === "phone" && isEmail)) {
+          setState("error")
+          setError(channel === "email" ? "لطفاً یک ایمیل معتبر وارد کنید." : "لطفاً یک شماره موبایل معتبر وارد کنید.")
+          return
+        }
+        setState("sending")
+        setError("")
+        const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+        fetch(`${base}/api/v1/public/newsletter/subscribe`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(isEmail ? { email: v, source: "builder" } : { phone: v, source: "builder" }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              setState("done")
+              setValue("")
+              return
+            }
+            const json = (await res.json().catch(() => null)) as { message?: string } | null
+            setState("error")
+            setError(res.status === 429 ? "تعداد درخواست‌ها زیاد است؛ کمی بعد دوباره تلاش کنید." : json?.message || "ثبت انجام نشد. ورودی را بررسی کنید.")
+          })
+          .catch(() => {
+            setState("error")
+            setError("ارتباط برقرار نشد. دوباره تلاش کنید.")
+          })
       }}
     >
       <div className="flex-1">
         <h3 className="text-xl font-bold text-foreground">{propStr(widget.props, "title", "خبرنامه")}</h3>
-        <p className="mt-1 text-sm text-foreground/70">{done ? "ایمیل شما ثبت شد." : propStr(widget.props, "text", "")}</p>
+        <p className="mt-1 text-sm text-foreground/70" aria-live="polite">
+          {state === "done" ? success : state === "error" ? <span className="text-destructive">{error}</span> : propStr(widget.props, "text", "")}
+        </p>
       </div>
-      <input required type="email" placeholder="ایمیل" className="h-11 rounded-full border border-border px-4 text-sm md:w-64" />
-      <button type="submit" className="h-11 rounded-full bg-primary px-5 text-sm font-semibold text-white">عضویت</button>
+      <input
+        required
+        type={channel === "email" ? "email" : channel === "phone" ? "tel" : "text"}
+        inputMode={channel === "phone" ? "tel" : channel === "email" ? "email" : "text"}
+        dir="ltr"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="h-11 rounded-full border border-border bg-background px-4 text-sm md:w-64"
+      />
+      <button type="submit" disabled={state === "sending"} className="h-11 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+        {state === "sending" ? "…" : propStr(widget.props, "button", "") || "عضویت"}
+      </button>
     </form>
   )
 }

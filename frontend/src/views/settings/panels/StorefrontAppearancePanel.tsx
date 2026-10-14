@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, type ReactNode } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +20,7 @@ import {
 import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { api } from "@/lib/api"
 import { SettingsSaveBar } from "@/views/settings/use-tenant-settings"
+import { CLASSIC_TEXT_GROUPS, CLASSIC_TEXTS } from "@/themes/ecommerce-classic/lib/texts"
 
 const SERVICE_ICON_PRESETS = ["truck", "card", "shield", "badge"] as const
 
@@ -140,6 +141,76 @@ function FieldColor({
   )
 }
 
+function FieldSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="grid gap-1">
+      <Label className="text-sm">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
+/** «متن‌ها» tab: every storefront copy string, grouped, with FA/EN labels and the built-in default as placeholder. */
+function TextsEditor({
+  texts,
+  onChange,
+  hint,
+  groupLabel,
+}: {
+  texts: Dict
+  onChange: (group: string, key: string, value: string) => void
+  hint: string
+  groupLabel: string
+}) {
+  const locale = useLocale()
+  const en = locale.startsWith("en")
+  const [group, setGroup] = useState(CLASSIC_TEXT_GROUPS[0]?.id ?? "header")
+  const entries = CLASSIC_TEXTS.filter((e) => e.group === group)
+  const section = asObj(texts[group])
+  return (
+    <div className="grid gap-3">
+      <p className="text-muted-foreground text-sm leading-6">{hint}</p>
+      <FieldSelect
+        label={groupLabel}
+        value={group}
+        options={CLASSIC_TEXT_GROUPS.map((g) => ({ value: g.id, label: en ? g.labelEn : g.labelFa }))}
+        onChange={setGroup}
+      />
+      {entries.map((e) => (
+        <div key={e.key} className="grid gap-1">
+          <Label className="text-sm">{en ? e.labelEn : e.labelFa}</Label>
+          <Input
+            value={String(section[e.key] ?? "")}
+            placeholder={e.fa}
+            onChange={(ev) => onChange(group, e.key, ev.target.value)}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function RepeaterShell({
   title,
   items,
@@ -219,6 +290,8 @@ export function StorefrontAppearancePanel() {
   const footer = asObj(draft.footer)
   const commerce = asObj(draft.commerce)
   const archive = asObj(draft.archive)
+  const home = asObj(draft.home)
+  const texts = asObj(draft.texts)
   const bottomMenu = asList(general.mobile_bottom_menu)
   const footerLinks = asList(footer.footer_links)
   const brandLinks = asList(footer.brand_links)
@@ -248,6 +321,8 @@ export function StorefrontAppearancePanel() {
           <TabsTrigger value="footer">{t("tab_footer")}</TabsTrigger>
           <TabsTrigger value="commerce">{t("tab_commerce")}</TabsTrigger>
           <TabsTrigger value="archive">{t("tab_archive")}</TabsTrigger>
+          <TabsTrigger value="home">{t("tab_home")}</TabsTrigger>
+          <TabsTrigger value="texts">{t("tab_texts")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="colors" className="space-y-4">
@@ -312,6 +387,11 @@ export function StorefrontAppearancePanel() {
         <TabsContent value="general" className="space-y-4">
           <Card>
             <CardContent className="grid max-w-xl gap-3 pt-6">
+              <FieldColor
+                label={t("rating_color")}
+                value={String(typography.rating_color ?? "#f9bc00")}
+                onChange={(v) => setSection("typography", { rating_color: v })}
+              />
               <FieldNumber
                 label={t("logo_height_desktop")}
                 value={Number(general.logo_height_desktop ?? 48)}
@@ -388,6 +468,35 @@ export function StorefrontAppearancePanel() {
         <TabsContent value="header" className="space-y-4">
           <Card>
             <CardContent className="grid max-w-xl gap-3 pt-6">
+              <FieldSelect
+                label={t("header_style")}
+                value={String(draft.header_style ?? "classic")}
+                options={[
+                  { value: "classic", label: t("header_style_classic") },
+                  { value: "compact", label: t("header_style_compact") },
+                  { value: "centered", label: t("header_style_centered") },
+                ]}
+                onChange={(v) => setDraft({ ...draft, header_style: v })}
+              />
+              <FieldSwitch
+                label={t("show_top_bar")}
+                checked={draft.show_top_bar !== false}
+                onChange={(v) => setDraft({ ...draft, show_top_bar: v })}
+              />
+              <FieldText
+                label={t("top_bar_text")}
+                value={String(draft.top_bar_text ?? "")}
+                onChange={(v) => setDraft({ ...draft, top_bar_text: v })}
+              />
+              <FieldSelect
+                label={t("banner_type")}
+                value={String(header.banner_type ?? "image")}
+                options={[
+                  { value: "image", label: t("banner_type_image") },
+                  { value: "text", label: t("banner_type_text") },
+                ]}
+                onChange={(v) => setSection("header", { banner_type: v })}
+              />
               <FieldSwitch
                 label={t("ajax_search")}
                 checked={Boolean(header.ajax_search ?? true)}
@@ -579,6 +688,21 @@ export function StorefrontAppearancePanel() {
                 value={String(footer.copyright_years ?? "")}
                 dir="ltr"
                 onChange={(v) => setSection("footer", { copyright_years: v })}
+              />
+              <FieldNumber
+                label={t("footer_columns")}
+                value={Number(draft.footer_columns ?? 4)}
+                onChange={(v) => setDraft({ ...draft, footer_columns: Math.max(1, Math.min(6, v || 4)) })}
+              />
+              <FieldText
+                label={t("support_email_title")}
+                value={String(footer.support_email_title ?? "")}
+                onChange={(v) => setSection("footer", { support_email_title: v })}
+              />
+              <FieldText
+                label={t("address_title")}
+                value={String(footer.address_title ?? "")}
+                onChange={(v) => setSection("footer", { address_title: v })}
               />
 
               <RepeaterShell
@@ -925,6 +1049,59 @@ export function StorefrontAppearancePanel() {
         <TabsContent value="commerce" className="space-y-4">
           <Card>
             <CardContent className="grid max-w-xl gap-3 pt-6">
+              <FieldSelect
+                label={t("product_card_style")}
+                value={String(draft.product_card_style ?? "classic")}
+                options={[
+                  { value: "classic", label: t("card_style_classic") },
+                  { value: "minimal", label: t("card_style_minimal") },
+                  { value: "bordered", label: t("card_style_bordered") },
+                  { value: "compact", label: t("card_style_compact") },
+                ]}
+                onChange={(v) => setDraft({ ...draft, product_card_style: v })}
+              />
+              <MediaPickerField
+                label={t("installment_image")}
+                imageUrl={String(commerce.installment_image ?? "")}
+                onPick={(item) => setSection("commerce", { installment_image: item.url })}
+                onClear={() => setSection("commerce", { installment_image: "" })}
+              />
+              <MediaPickerField
+                label={t("card_installment_image")}
+                imageUrl={String(commerce.card_installment_image ?? "")}
+                onPick={(item) => setSection("commerce", { card_installment_image: item.url })}
+                onClear={() => setSection("commerce", { card_installment_image: "" })}
+              />
+              <FieldSwitch
+                label={t("product_faq_tab")}
+                checked={Boolean(commerce.product_faq_tab ?? true)}
+                onChange={(v) => setSection("commerce", { product_faq_tab: v })}
+              />
+              <FieldSwitch
+                label={t("product_spec_tab")}
+                checked={Boolean(commerce.product_spec_tab ?? true)}
+                onChange={(v) => setSection("commerce", { product_spec_tab: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_show_recipient")}
+                checked={Boolean(commerce.checkout_show_recipient ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_show_recipient: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_show_postcode")}
+                checked={Boolean(commerce.checkout_show_postcode ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_show_postcode: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_require_postcode")}
+                checked={Boolean(commerce.checkout_require_postcode)}
+                onChange={(v) => setSection("commerce", { checkout_require_postcode: v })}
+              />
+              <FieldSwitch
+                label={t("checkout_show_note")}
+                checked={Boolean(commerce.checkout_show_note ?? true)}
+                onChange={(v) => setSection("commerce", { checkout_show_note: v })}
+              />
               <FieldSwitch
                 label={t("ajax_add_to_cart")}
                 checked={Boolean(commerce.ajax_add_to_cart ?? true)}
@@ -1138,11 +1315,6 @@ export function StorefrontAppearancePanel() {
                 onChange={(v) => setSection("commerce", { checkout_trust_badges: v })}
               />
               <FieldSwitch
-                label={t("checkout_payment_placeholders")}
-                checked={Boolean(commerce.checkout_payment_placeholders ?? true)}
-                onChange={(v) => setSection("commerce", { checkout_payment_placeholders: v })}
-              />
-              <FieldSwitch
                 label={t("checkout_sticky_summary")}
                 checked={Boolean(commerce.checkout_sticky_summary ?? true)}
                 onChange={(v) => setSection("commerce", { checkout_sticky_summary: v })}
@@ -1210,6 +1382,68 @@ export function StorefrontAppearancePanel() {
                 label={t("filters_open_default")}
                 checked={Boolean(archive.filters_open_default)}
                 onChange={(v) => setSection("archive", { filters_open_default: v })}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="home" className="space-y-4">
+          <Card>
+            <CardContent className="grid max-w-xl gap-3 pt-6">
+              <FieldSwitch
+                label={t("home_stories_from_products")}
+                checked={Boolean(home.stories_from_products)}
+                onChange={(v) => setSection("home", { stories_from_products: v })}
+              />
+              <FieldNumber
+                label={t("home_stories_count")}
+                value={Number(home.stories_count ?? 14)}
+                onChange={(v) => setSection("home", { stories_count: Math.max(1, v || 14) })}
+              />
+              <FieldNumber
+                label={t("home_amazing_limit")}
+                value={Number(home.amazing_limit ?? 10)}
+                onChange={(v) => setSection("home", { amazing_limit: Math.max(1, v || 10) })}
+              />
+              <FieldNumber
+                label={t("home_promo_limit")}
+                value={Number(home.promo_limit ?? 3)}
+                onChange={(v) => setSection("home", { promo_limit: Math.max(1, v || 3) })}
+              />
+              <FieldNumber
+                label={t("home_icon_categories_limit")}
+                value={Number(home.icon_categories_limit ?? 6)}
+                onChange={(v) => setSection("home", { icon_categories_limit: Math.max(1, v || 6) })}
+              />
+              <FieldNumber
+                label={t("home_brands_limit")}
+                value={Number(home.brands_limit ?? 12)}
+                onChange={(v) => setSection("home", { brands_limit: Math.max(1, v || 12) })}
+              />
+              <FieldNumber
+                label={t("home_blog_limit")}
+                value={Number(home.blog_limit ?? 5)}
+                onChange={(v) => setSection("home", { blog_limit: Math.max(1, v || 5) })}
+              />
+              <FieldNumber
+                label={t("home_taste_groups")}
+                value={Number(home.taste_groups ?? 3)}
+                onChange={(v) => setSection("home", { taste_groups: Math.max(1, v || 3) })}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="texts" className="space-y-4">
+          <Card>
+            <CardContent className="max-w-2xl pt-6">
+              <TextsEditor
+                texts={texts}
+                hint={t("texts_hint")}
+                groupLabel={t("texts_group")}
+                onChange={(group, key, value) =>
+                  setSection("texts", { [group]: { ...asObj(texts[group]), [key]: value } })
+                }
               />
             </CardContent>
           </Card>

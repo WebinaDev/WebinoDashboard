@@ -13,7 +13,7 @@ import { StorefrontCompareTable } from "@/builder/storefront/storefront-extras"
 
 import { ClassicBreadcrumbBar } from "./ClassicArchive"
 import { IconBag, IconHeart, IconPin, IconSearch, IconUser } from "./icons"
-import { ClassicAmount } from "./parts"
+import { ClassicAmount, ClassicLoader } from "./parts"
 
 export function ClassicPageShell({
   title,
@@ -267,7 +267,7 @@ export function ClassicWishlist() {
   if (auth === "loading" || (auth === "auth" && items === null)) {
     return (
       <ClassicPageShell title={tx("pages.wishlist_title")} trail={trail}>
-        <p className="sfc-empty-note">{tx("header.loading")}</p>
+        <p className="sfc-empty-note"><ClassicLoader label={tx("header.loading")} /></p>
       </ClassicPageShell>
     )
   }
@@ -425,7 +425,7 @@ export function ClassicComparePage() {
         />
       }
     >
-      {loading ? <p className="sfc-empty-note">{t("loading")}</p> : null}
+      {loading ? <p className="sfc-empty-note"><ClassicLoader label={t("loading")} /></p> : null}
       {!loading && !items.length ? (
         <div className="sfc-box sfc-cart__empty">
           <h2>{t("compare_empty")}</h2>

@@ -1,6 +1,7 @@
 import { uid } from "./ids"
 import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
+import { ICON_OPTIONS } from "./render/icon-options"
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
@@ -45,7 +46,7 @@ export const WIDGETS: WidgetDef[] = [
       { kind: "url", key: "src", label: "نشانی تصویر" },
       { kind: "text", key: "alt", label: "متن جایگزین" },
     ],
-    create: () => node("image", { src: "", alt: "تصویر ویبینو" }),
+    create: () => node("image", { src: "", alt: "" }),
   },
   {
     type: "button",
@@ -127,7 +128,7 @@ export const WIDGETS: WidgetDef[] = [
     ],
     create: () =>
       node("form", {
-        title: "پیام به ویبینو",
+        title: "ارسال پیام",
         submit: "ارسال",
         fields: "نام|name|text\nایمیل|email|email\nپیام|message|textarea",
         success: "پیام شما ثبت شد.",
@@ -229,7 +230,7 @@ export const WIDGETS: WidgetDef[] = [
     ],
     create: () => node("promo-banner", {
       title: "هدیه مراقبت پوست",
-      text: "با خرید از مجموعه ویبینو، نمونه کوچک همراه سفارش می‌آید.",
+      text: "متن بنر را از تنظیمات ویجت وارد کنید.",
       cta: "جزئیات",
       href: "/shop",
       tone: "pink",
@@ -240,7 +241,7 @@ export const WIDGETS: WidgetDef[] = [
     label: "نوار پیشنهاد",
     category: "commerce",
     fields: [{ kind: "text", key: "title", label: "عنوان" }],
-    create: () => node("deal-bar", { title: "پیشنهاد امروز ویبینو" }),
+    create: () => node("deal-bar", { title: "پیشنهاد امروز" }),
   },
   {
     type: "countdown",
@@ -256,8 +257,10 @@ export const WIDGETS: WidgetDef[] = [
     type: "trust-badges",
     label: "نشان اعتماد",
     category: "commerce",
-    fields: [],
-    create: () => node("trust-badges", {}),
+    fields: [
+      { kind: "textarea", key: "items", label: "نشان‌ها (عنوان|متن|آیکن در هر خط؛ خالی = تنظیمات فوتر)" },
+    ],
+    create: () => node("trust-badges", { items: "" }),
   },
   {
     type: "newsletter",
@@ -266,63 +269,90 @@ export const WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "text", key: "text", label: "توضیح" },
+      { kind: "select", key: "channel", label: "روش عضویت", options: [
+        { value: "email", label: "ایمیل" },
+        { value: "phone", label: "شماره موبایل" },
+        { value: "both", label: "ایمیل یا موبایل" },
+      ] },
+      { kind: "text", key: "placeholder", label: "متن راهنمای فیلد" },
+      { kind: "text", key: "button", label: "متن دکمه" },
+      { kind: "text", key: "success", label: "پیام موفقیت" },
     ],
-    create: () => node("newsletter", { title: "تازه‌های ویبینو", text: "تخفیف‌های مجموعه را در ایمیل بگیرید." }),
+    create: () => node("newsletter", { title: "خبرنامه", text: "از تخفیف‌ها و محصولات تازه باخبر شوید.", channel: "email", placeholder: "", button: "عضویت", success: "عضویت شما ثبت شد." }),
   },
   {
     type: "brand-row",
     label: "ردیف برند",
     category: "commerce",
     fields: [{ kind: "text", key: "title", label: "عنوان" }],
-    create: () => node("brand-row", { title: "خانه‌های ویبینو" }),
+    create: () => node("brand-row", { title: "برندها" }),
   },
   {
     type: "blog-teasers",
     label: "مجله",
     category: "commerce",
     fields: [{ kind: "text", key: "title", label: "عنوان" }],
-    create: () => node("blog-teasers", { title: "از مجله ویبینو" }),
+    create: () => node("blog-teasers", { title: "از مجله" }),
   },
   {
     type: "filter-panel",
     label: "فیلتر فروشگاه",
     category: "commerce",
-    fields: [],
+    fields: [
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
+    ],
     create: () => node("filter-panel", {}),
   },
   {
     type: "product-detail",
     label: "جزئیات محصول",
     category: "commerce",
-    fields: [],
+    fields: [
+      { kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" },
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
+    ],
     create: () => node("product-detail", {}),
   },
   {
     type: "cart-lines",
     label: "سبد خرید",
     category: "commerce",
-    fields: [],
+    fields: [
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
+    ],
     create: () => node("cart-lines", {}),
   },
   {
     type: "checkout",
     label: "تسویه",
     category: "commerce",
-    fields: [],
+    fields: [
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
+    ],
     create: () => node("checkout", {}),
   },
   {
     type: "account",
     label: "حساب کاربری",
     category: "commerce",
-    fields: [],
+    fields: [
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
+    ],
     create: () => node("account", {}),
   },
   {
     type: "account-dashboard",
     label: "پیشخوان حساب",
     category: "commerce",
-    fields: [],
+    fields: [
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
+    ],
     create: () => node("account-dashboard", {}),
   },
   {
@@ -347,7 +377,7 @@ export const WIDGETS: WidgetDef[] = [
       { kind: "text", key: "mark", label: "نشان" },
       { kind: "textarea", key: "links", label: "منو (برچسب|نشانی)" },
     ],
-    create: () => node("store-header", { mark: "ویبینو", links: "" }),
+    create: () => node("store-header", { mark: "", links: "" }),
   },
   {
     type: "taste-box",
@@ -431,20 +461,28 @@ export const WIDGETS: WidgetDef[] = [
     label: "اسلایدر مجله",
     category: "commerce",
     fields: [{ kind: "text", key: "title", label: "عنوان" }],
-    create: () => node("blog-slider", { title: "از مجله ویبینو" }),
+    create: () => node("blog-slider", { title: "از مجله" }),
   },
   {
     type: "product-gallery",
     label: "گالری محصول",
     category: "commerce",
-    fields: [],
+    fields: [
+      { kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" },
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
+    ],
     create: () => node("product-gallery", {}),
   },
   {
     type: "add-to-cart-box",
     label: "باکس افزودن به سبد",
     category: "commerce",
-    fields: [],
+    fields: [
+      { kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" },
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
+    ],
     create: () => node("add-to-cart-box", {}),
   },
   {
@@ -494,7 +532,284 @@ export const WIDGETS: WidgetDef[] = [
       { kind: "text", key: "email", label: "ایمیل" },
       { kind: "textarea", key: "about", label: "درباره" },
     ],
-    create: () => node("store-footer", { phone: "۰۲۱۹۱۰۹۱۰۹۱", email: "hello@webino.shop", about: "" }),
+    create: () => node("store-footer", { phone: "", email: "", about: "" }),
+  },
+  {
+    type: "product-carousel",
+    label: "کاروسل محصولات (کوئری)",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "select", key: "sort", label: "مرتب‌سازی", options: [
+        { value: "newest", label: "جدیدترین" },
+        { value: "best_selling", label: "پرفروش‌ترین" },
+        { value: "popular", label: "محبوب‌ترین" },
+        { value: "price", label: "ارزان‌ترین" },
+        { value: "price_desc", label: "گران‌ترین" },
+      ] },
+      { kind: "number", key: "limit", label: "تعداد", min: 1, max: 24 },
+      { kind: "text", key: "category", label: "نامک دسته (اختیاری)" },
+      { kind: "text", key: "brand", label: "نامک برند (اختیاری)" },
+      { kind: "switch", key: "onSale", label: "فقط تخفیف‌دار" },
+      { kind: "switch", key: "inStock", label: "فقط موجود" },
+      { kind: "select", key: "layout", label: "چیدمان", options: [
+        { value: "slider", label: "اسلایدر" },
+        { value: "grid", label: "شبکه" },
+      ] },
+      { kind: "url", key: "href", label: "پیوند «مشاهده همه» (اختیاری)" },
+    ],
+    create: () => node("product-carousel", { title: "محصولات", sort: "newest", limit: 10, layout: "slider", onSale: false, inStock: false }),
+  },
+  {
+    type: "banner-grid",
+    label: "شبکه بنر",
+    category: "basic",
+    fields: [
+      { kind: "textarea", key: "items", label: "بنرها (تصویر|پیوند|متن جایگزین در هر خط)" },
+      { kind: "number", key: "columns", label: "ستون‌ها", min: 1, max: 4 },
+      { kind: "select", key: "ratio", label: "نسبت تصویر", options: [
+        { value: "16/7", label: "۱۶:۷" },
+        { value: "16/9", label: "۱۶:۹" },
+        { value: "4/3", label: "۴:۳" },
+        { value: "1/1", label: "مربع" },
+        { value: "3/4", label: "عمودی" },
+      ] },
+      { kind: "number", key: "radius", label: "گردی گوشه", min: 0, max: 40 },
+    ],
+    create: () => node("banner-grid", { items: "", columns: 2, ratio: "16/7", radius: 16 }),
+  },
+  {
+    type: "tabs",
+    label: "زبانه‌ها",
+    category: "basic",
+    fields: [{ kind: "textarea", key: "items", label: "زبانه‌ها (عنوان|محتوا در هر خط؛ \\n = خط جدید)" }],
+    create: () => node("tabs", { items: "زبانه اول|محتوای زبانه اول\nزبانه دوم|محتوای زبانه دوم" }),
+  },
+  {
+    type: "accordion",
+    label: "آکاردئون / سؤالات متداول",
+    category: "basic",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "items", label: "پرسش|پاسخ در هر خط" },
+      { kind: "switch", key: "firstOpen", label: "باز بودن مورد اول" },
+      { kind: "switch", key: "faqSchema", label: "داده ساختاریافته FAQ (سئو)" },
+    ],
+    create: () => node("accordion", { title: "سؤالات متداول", items: "", firstOpen: true, faqSchema: true }),
+  },
+  {
+    type: "icon-box",
+    label: "باکس آیکن",
+    category: "basic",
+    fields: [
+      { kind: "select", key: "icon", label: "آیکن", options: ICON_OPTIONS },
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "text", label: "متن" },
+      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "select", key: "layout", label: "چیدمان", options: [
+        { value: "top", label: "آیکن بالا" },
+        { value: "side", label: "آیکن کنار" },
+      ] },
+    ],
+    create: () => node("icon-box", { icon: "truck", title: "ارسال سریع", text: "", layout: "top" }),
+  },
+  {
+    type: "icon-list",
+    label: "فهرست آیکن‌دار",
+    category: "basic",
+    fields: [
+      { kind: "textarea", key: "items", label: "آیکن|متن|پیوند در هر خط (آیکن: truck, shield, star, gift, phone, clock, card, badge, support, map)" },
+      { kind: "select", key: "direction", label: "جهت", options: [
+        { value: "column", label: "عمودی" },
+        { value: "row", label: "افقی" },
+      ] },
+    ],
+    create: () => node("icon-list", { items: "", direction: "column" }),
+  },
+  {
+    type: "testimonials",
+    label: "نظرات مشتریان",
+    category: "basic",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "items", label: "نام|متن|امتیاز ۱ تا ۵|تصویر در هر خط" },
+    ],
+    create: () => node("testimonials", { title: "نظر مشتریان", items: "" }),
+  },
+  {
+    type: "brand-slider",
+    label: "اسلایدر برندها",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "number", key: "limit", label: "تعداد", min: 1, max: 48 },
+      { kind: "switch", key: "showNames", label: "نمایش نام" },
+    ],
+    create: () => node("brand-slider", { title: "برندها", limit: 12, showNames: true }),
+  },
+  {
+    type: "image-gallery",
+    label: "گالری تصاویر",
+    category: "basic",
+    fields: [
+      { kind: "textarea", key: "images", label: "تصویر|متن جایگزین در هر خط" },
+      { kind: "number", key: "columns", label: "ستون‌ها", min: 1, max: 6 },
+      { kind: "switch", key: "lightbox", label: "بزرگ‌نمایی با کلیک" },
+    ],
+    create: () => node("image-gallery", { images: "", columns: 3, lightbox: true }),
+  },
+  {
+    type: "image-carousel",
+    label: "کاروسل تصاویر",
+    category: "basic",
+    fields: [
+      { kind: "textarea", key: "images", label: "تصویر|پیوند|متن جایگزین در هر خط" },
+      { kind: "number", key: "autoplay", label: "پخش خودکار (ثانیه، ۰ = خاموش)", min: 0, max: 30 },
+      { kind: "select", key: "ratio", label: "نسبت", options: [
+        { value: "16/6", label: "پهن" },
+        { value: "16/9", label: "۱۶:۹" },
+        { value: "4/3", label: "۴:۳" },
+        { value: "1/1", label: "مربع" },
+      ] },
+    ],
+    create: () => node("image-carousel", { images: "", autoplay: 5, ratio: "16/6" }),
+  },
+  {
+    type: "announcement-bar",
+    label: "نوار اطلاعیه",
+    category: "basic",
+    fields: [
+      { kind: "text", key: "text", label: "متن" },
+      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "color", key: "background", label: "رنگ زمینه" },
+      { kind: "color", key: "color", label: "رنگ متن" },
+      { kind: "switch", key: "dismissible", label: "قابل بستن" },
+    ],
+    create: () => node("announcement-bar", { text: "", dismissible: true }),
+  },
+  {
+    type: "map",
+    label: "نقشه",
+    category: "basic",
+    fields: [
+      { kind: "text", key: "lat", label: "عرض جغرافیایی" },
+      { kind: "text", key: "lng", label: "طول جغرافیایی" },
+      { kind: "number", key: "zoom", label: "بزرگ‌نمایی", min: 3, max: 18 },
+      { kind: "number", key: "height", label: "ارتفاع (px)", min: 160, max: 800 },
+      { kind: "text", key: "address", label: "نشانی" },
+    ],
+    create: () => node("map", { lat: "35.6892", lng: "51.389", zoom: 15, height: 320, address: "" }),
+  },
+  {
+    type: "counter",
+    label: "شمارنده",
+    category: "basic",
+    fields: [{ kind: "textarea", key: "items", label: "عدد|برچسب|پسوند در هر خط" }],
+    create: () => node("counter", { items: "" }),
+  },
+  {
+    type: "social-icons",
+    label: "شبکه‌های اجتماعی",
+    category: "basic",
+    fields: [{ kind: "textarea", key: "items", label: "شبکه|پیوند در هر خط (instagram, telegram, whatsapp, x, linkedin, youtube, aparat, eitaa, bale, rubika)" }],
+    create: () => node("social-icons", { items: "" }),
+  },
+  {
+    type: "share-buttons",
+    label: "دکمه‌های اشتراک‌گذاری",
+    category: "basic",
+    fields: [{ kind: "text", key: "title", label: "عنوان" }],
+    create: () => node("share-buttons", { title: "اشتراک‌گذاری" }),
+  },
+  {
+    type: "pricing-table",
+    label: "جدول قیمت",
+    category: "basic",
+    fields: [
+      { kind: "textarea", key: "plans", label: "نام|قیمت|ویژگی‌ها با ; |پیوند|ویژه (1) در هر خط" },
+      { kind: "text", key: "cta", label: "متن دکمه" },
+    ],
+    create: () => node("pricing-table", { plans: "", cta: "انتخاب" }),
+  },
+  {
+    type: "blog-posts",
+    label: "نوشته‌های وبلاگ (کوئری)",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "number", key: "limit", label: "تعداد", min: 1, max: 12 },
+      { kind: "text", key: "category", label: "نامک دسته (اختیاری)" },
+      { kind: "select", key: "layout", label: "چیدمان", options: [
+        { value: "grid", label: "شبکه" },
+        { value: "list", label: "فهرست" },
+      ] },
+    ],
+    create: () => node("blog-posts", { title: "از مجله", limit: 3, layout: "grid" }),
+  },
+  {
+    type: "search-box",
+    label: "جعبه جستجو",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "placeholder", label: "متن راهنما" },
+      { kind: "text", key: "button", label: "متن دکمه" },
+    ],
+    create: () => node("search-box", { placeholder: "جستجوی محصول…", button: "جستجو" }),
+  },
+  {
+    type: "category-list",
+    label: "فهرست دسته‌ها",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "text", key: "parent", label: "نامک دسته والد (خالی = دسته‌های اصلی)" },
+      { kind: "number", key: "limit", label: "تعداد", min: 1, max: 48 },
+      { kind: "select", key: "layout", label: "چیدمان", options: [
+        { value: "list", label: "فهرست" },
+        { value: "chips", label: "برچسبی" },
+      ] },
+    ],
+    create: () => node("category-list", { title: "دسته‌بندی‌ها", limit: 12, layout: "list" }),
+  },
+  {
+    type: "login-cta",
+    label: "دعوت به ورود",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "text", label: "متن" },
+      { kind: "text", key: "button", label: "متن دکمه" },
+      { kind: "text", key: "next", label: "بازگشت پس از ورود (مسیر)" },
+    ],
+    create: () => node("login-cta", { title: "ورود یا ثبت‌نام", button: "ورود به حساب", next: "/account" }),
+  },
+  {
+    type: "classic-order-track",
+    label: "پیگیری سفارش",
+    category: "commerce",
+    fields: [],
+    create: () => node("classic-order-track", {}),
+  },
+  {
+    type: "classic-wishlist",
+    label: "علاقه‌مندی‌ها",
+    category: "commerce",
+    fields: [],
+    create: () => node("classic-wishlist", {}),
+  },
+  {
+    type: "classic-compare",
+    label: "مقایسه محصولات",
+    category: "commerce",
+    fields: [],
+    create: () => node("classic-compare", {}),
+  },
+  {
+    type: "classic-not-found",
+    label: "صفحه ۴۰۴",
+    category: "commerce",
+    fields: [],
+    create: () => node("classic-not-found", {}),
   },
 ]
 

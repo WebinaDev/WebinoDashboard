@@ -292,6 +292,7 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
   const category = raw.category && typeof raw.category === "object" ? (raw.category as ApiRecord) : null
   const price = num(raw.discounted_price_minor) || num(raw.price_minor)
   const compare = num(raw.price_minor)
+  // Only the decorative tone comes from the sample set; real fields never fall back to sample data.
   const sample = SAMPLE_PRODUCTS[index % SAMPLE_PRODUCTS.length]
   const brands = Array.isArray(raw.brands) ? raw.brands : []
   const firstBrand = brands.find((item): item is ApiRecord => !!item && typeof item === "object")
@@ -321,19 +322,19 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
   const soldOut = raw.is_sold_out === true || raw.is_available === false
   return {
     id: num(raw.id) || undefined,
-    slug: str(raw.slug) || sample.slug,
-    name: str(raw.name) || sample.name,
-    price: price || sample.price,
+    slug: str(raw.slug) || String(raw.id ?? index),
+    name: str(raw.name),
+    price,
     compare: compare > price ? compare : undefined,
     cashPrice: types && num(types.cash) > 0 ? num(types.cash) : undefined,
     tone: sample.tone,
-    category: str(category?.name) || sample.category,
-    categorySlug: str(category?.slug) || sample.categorySlug,
-    brand: str(firstBrand?.name) || str(raw.brand_name) || sample.brand,
-    brandSlug: str(firstBrand?.slug) || sample.brandSlug,
+    category: str(category?.name),
+    categorySlug: str(category?.slug),
+    brand: str(firstBrand?.name) || str(raw.brand_name),
+    brandSlug: str(firstBrand?.slug),
     image: images[0] || null,
     images,
-    description: plainText(str(raw.description)) || sample.description,
+    description: plainText(str(raw.description)),
     live: true,
     inStock: !soldOut,
     isNew: raw.is_new === true,

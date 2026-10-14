@@ -146,6 +146,9 @@ export function storefrontStyleCss(
   const lineHeight = Number(typo.line_height ?? 1.7)
   const logoH = Number(general.logo_height_desktop ?? 48)
   const logoHM = Number(general.logo_height_mobile ?? 36)
+  const fontStack = brandFontStack(typeof typo.font_family === "string" ? typo.font_family : null)
+  const fontWeight = Number(typo.font_weight ?? 400)
+  const rating = hex(typo.rating_color, "#f9bc00")
 
   const light = `${scope}{
   --sfc-pink:${pink};
@@ -175,6 +178,7 @@ export function storefrontStyleCss(
   --sfc-logo-h-mobile:${logoHM}px;
   --sfc-font-size:${fontSize}px;
   --sfc-line-height:${lineHeight};
+  --sfc-rating:${rating};
   --sf-pink:${pink};
   --sf-pink-soft:${pink}1f;
   --sf-navy:${navy};
@@ -201,6 +205,8 @@ export function storefrontStyleCss(
   --wb-color-border:${p.border};
   font-size:var(--sfc-font-size);
   line-height:var(--sfc-line-height);
+  ${fontStack ? `font-family:${fontStack};` : ""}
+  ${Number.isFinite(fontWeight) && fontWeight >= 100 && fontWeight <= 900 ? `font-weight:${Math.round(fontWeight / 100) * 100};` : ""}
 }
 ${within(".sfc-header__logo img")}{
   height:var(--sfc-logo-h);

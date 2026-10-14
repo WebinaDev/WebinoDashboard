@@ -210,11 +210,12 @@ function DefaultBlogSlider({ widget }: { widget: WidgetNode }) {
   )
 }
 
-export function ProductGalleryWidget({ productSlug }: { productSlug?: string }) {
+export function ProductGalleryWidget({ productSlug, editing = false }: { productSlug?: string; editing?: boolean }) {
   const runtime = useBuilderRuntime()
   const slug = productSlug || runtime.productSlug
   const catalog = useCatalog(24)
-  const product = catalog.products.find((item) => item.slug === slug) ?? catalog.products[0]
+  // Live pages show only the requested product; the first product is a preview stand-in in the editor only.
+  const product = catalog.products.find((item) => item.slug === slug) ?? (editing ? catalog.products[0] : undefined)
   const [active, setActive] = useState(0)
   if (!product) return <p className="p-4 text-sm text-muted-foreground">گالری محصول</p>
   const gallery = product.images?.length ? product.images : product.image ? [product.image] : []
@@ -248,14 +249,14 @@ export function ProductGalleryWidget({ productSlug }: { productSlug?: string }) 
   )
 }
 
-export function AddToCartBoxWidget({ productSlug }: { productSlug?: string }) {
+export function AddToCartBoxWidget({ productSlug, editing = false }: { productSlug?: string; editing?: boolean }) {
   const runtime = useBuilderRuntime()
   const slug = productSlug || runtime.productSlug
   const catalog = useCatalog(24)
   const tCart = useTranslations("cart")
   const t = useTranslations("storefront")
   const locale = useLocale()
-  const product = catalog.products.find((item) => item.slug === slug) ?? catalog.products[0]
+  const product = catalog.products.find((item) => item.slug === slug) ?? (editing ? catalog.products[0] : undefined)
   const [note, setNote] = useState("")
   if (!product) return null
   const money = `${formatNumber(Math.round(product.price), normalizeUiLocale(locale))} ${t("currency_toman")}`

@@ -52,7 +52,7 @@ export const IconHeart = (p: IconProps & { filled?: boolean }) => {
 export const IconStar = (p: IconProps) => (
   <svg width={p.size ?? 14} height={p.size ?? 14} viewBox="0 0 24 24" aria-hidden="true" className={p.className}>
     <path
-      fill="#f9bc00"
+      fill="var(--sfc-rating, #f9bc00)"
       d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9L12 2.8Z"
     />
   </svg>
