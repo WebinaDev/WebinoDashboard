@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { readRules, rulesAllow } from "../popup-rules"
 import { linkAttrs, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
+import { Img } from "./img"
 
 const PV_KEY = "wb_pv"
 const SESSION_KEY = "wb_sessions"
@@ -209,7 +210,7 @@ export function PopupWidget({ widget, editing }: { widget: WidgetNode; editing: 
         {propBool(widget.props, "closeButton", true) ? (
           <button type="button" aria-label="بستن" className="absolute end-3 top-3 grid size-8 place-items-center rounded-full hover:bg-muted" onClick={close}><X className="size-4" /></button>
         ) : null}
-        {image ? <img src={image} alt="" className="mb-3 max-h-48 w-full rounded-2xl object-cover" /> : null}
+        {image ? <Img src={image} alt="" className="mb-3 max-h-48 w-full rounded-2xl object-cover" /> : null}
         <h3 id={`${anchor}-title`} className="wb-type-h3 pe-8">{propStr(widget.props, "title", "پاپ‌آپ")}</h3>
         <p className="wb-type-body mt-2 text-muted-foreground">{propStr(widget.props, "text", "")}</p>
         <div className="mt-4 flex flex-wrap gap-2">

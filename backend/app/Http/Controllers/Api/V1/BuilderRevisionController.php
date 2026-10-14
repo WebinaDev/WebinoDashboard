@@ -55,6 +55,7 @@ class BuilderRevisionController extends Controller
     /** Copies the revision into the draft (never touches the published copy). */
     public function restore(Request $request, int $revision): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $row = $this->row($request, $revision);
         $model = BuilderRevisions::target($row->target_type, (int) $row->tenant_id, (int) $row->target_id);
         [, $draft] = BuilderRevisions::TARGETS[$row->target_type];

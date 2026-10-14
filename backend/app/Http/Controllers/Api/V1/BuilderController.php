@@ -53,6 +53,7 @@ class BuilderController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'slug' => 'nullable|string|max:120',
@@ -81,6 +82,7 @@ class BuilderController extends Controller
 
     public function update(Request $request, int $page): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $row = $this->page($request, $page);
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -109,6 +111,7 @@ class BuilderController extends Controller
 
     public function publish(Request $request, int $page): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'publish');
         $row = $this->page($request, $page);
         \App\Support\StatusTrash::guardPublish($row);
         abort_if(! is_array($row->builder_draft), 422, 'draft missing');
@@ -129,6 +132,7 @@ class BuilderController extends Controller
 
     public function updateProduct(Request $request, Product $product): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         abort_if((int) $request->user()->tenant_id !== (int) $product->tenant_id, 403);
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -149,6 +153,7 @@ class BuilderController extends Controller
 
     public function publishProduct(Request $request, Product $product): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'publish');
         abort_if((int) $request->user()->tenant_id !== (int) $product->tenant_id, 403);
         \App\Support\StatusTrash::guardPublish($product);
         $meta = is_array($product->meta) ? $product->meta : [];
@@ -169,6 +174,7 @@ class BuilderController extends Controller
 
     public function updatePost(Request $request, int $post): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $row = BlogPost::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($post);
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -187,6 +193,7 @@ class BuilderController extends Controller
 
     public function publishPost(Request $request, int $post): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'publish');
         $row = BlogPost::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($post);
         \App\Support\StatusTrash::guardPublish($row);
         abort_if(! is_array($row->builder_draft), 422, 'draft missing');
@@ -209,6 +216,7 @@ class BuilderController extends Controller
 
     public function updateArticle(Request $request, int $article): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $row = MagazineArticle::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($article);
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -229,6 +237,7 @@ class BuilderController extends Controller
 
     public function publishArticle(Request $request, int $article): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'publish');
         $row = MagazineArticle::query()->where('tenant_id', $request->user()->tenant_id)->findOrFail($article);
         \App\Support\StatusTrash::guardPublish($row);
         $meta = is_array($row->meta) ? $row->meta : [];
@@ -246,6 +255,7 @@ class BuilderController extends Controller
 
     public function destroy(Request $request, int $page): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $row = $this->page($request, $page);
         $result = \App\Support\StatusTrash::trashOrDelete($row, $request->boolean('force'), 'status', 'draft', ['published', 'draft', 'private', 'pending']);
         if (! empty($result['trashed'])) {
@@ -274,6 +284,7 @@ class BuilderController extends Controller
 
     public function saveTemplate(Request $request, string $kind): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'design');
         $kind = $this->kind($kind);
         $data = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -307,6 +318,7 @@ class BuilderController extends Controller
 
     public function publishTemplate(Request $request, string $kind): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'design');
         $kind = $this->kind($kind);
         $row = BuilderTemplate::preferred((int) $request->user()->tenant_id, $kind);
         abort_unless($row, 404);

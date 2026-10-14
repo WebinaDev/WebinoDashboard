@@ -27,6 +27,7 @@ class BuilderGlobalsController extends Controller
 
     public function update(Request $request): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'design');
         $data = $request->validate(['settings' => 'required|array']);
         $settings = app(BuilderGlobalsNormalizer::class)->normalize($data['settings']);
         $json = json_encode($settings);
@@ -45,6 +46,7 @@ class BuilderGlobalsController extends Controller
 
     public function publish(Request $request): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'design');
         $row = BuilderGlobal::query()->where('tenant_id', $request->user()->tenant_id)->firstOrFail();
         abort_if(! is_array($row->draft), 422, 'draft missing');
         $row->published = $row->draft;

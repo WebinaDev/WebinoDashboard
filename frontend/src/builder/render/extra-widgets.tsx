@@ -35,6 +35,7 @@ import { linkAttrs, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { useIsClassicSkin } from "./runtime"
 import { ClassicProductRow } from "@/themes/ecommerce-classic/components/ClassicHome"
+import { Img } from "./img"
 
 /* ------------------------------------------------------------------ utils */
 
@@ -160,7 +161,7 @@ export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
     <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {rows.map(([image, href, alt], i) => (
         <Link key={i} href={safeHref(href || "", "/shop")} className="block overflow-hidden bg-muted" style={{ aspectRatio: ratio.replace(":", "/"), borderRadius: radius }}>
-          {image ? <img src={image} alt={alt || ""} loading="lazy" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-sm font-bold">{alt}</span>}
+          {image ? <Img src={image} alt={alt || ""} loading="lazy" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-sm font-bold">{alt}</span>}
         </Link>
       ))}
     </div>
@@ -315,7 +316,7 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
               ) : null}
               <blockquote className="text-sm leading-7 text-foreground/80">{text}</blockquote>
               <figcaption className="mt-3 flex items-center gap-2 text-xs font-bold text-foreground">
-                {avatar ? <img src={avatar} alt="" className="size-8 rounded-full object-cover" loading="lazy" /> : null}
+                {avatar ? <Img src={avatar} alt="" className="size-8 rounded-full object-cover" loading="lazy" /> : null}
                 {name}
               </figcaption>
             </figure>
@@ -352,7 +353,7 @@ export function BrandSliderWidget({ widget }: { widget: WidgetNode }) {
           return (
             <Link key={brand.slug} href={`/shop?brand=${encodeURIComponent(brand.slug)}`} className="grid w-32 shrink-0 snap-start place-items-center gap-2 rounded-2xl border border-border bg-card p-3 text-center">
               <span className="grid size-16 place-items-center overflow-hidden rounded-xl bg-muted">
-                {logo ? <img src={logo} alt="" loading="lazy" className="h-full w-full object-contain" /> : <span className="text-xs font-bold">{brand.name}</span>}
+                {logo ? <Img src={logo} alt="" loading="lazy" className="h-full w-full object-contain" /> : <span className="text-xs font-bold">{brand.name}</span>}
               </span>
               {showNames ? <span className="text-xs font-semibold text-foreground">{brand.name}</span> : null}
             </Link>
@@ -384,7 +385,7 @@ export function ImageGalleryWidget({ widget }: { widget: WidgetNode }) {
       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {rows.map(([src, alt], i) => (
           <button key={i} type="button" disabled={!lightbox} onClick={() => setOpen(i)} className="aspect-square overflow-hidden rounded-xl bg-muted">
-            <img src={src} alt={alt || ""} loading="lazy" className="h-full w-full object-cover" />
+            <Img src={src} alt={alt || ""} loading="lazy" className="h-full w-full object-cover" />
           </button>
         ))}
       </div>
@@ -393,7 +394,7 @@ export function ImageGalleryWidget({ widget }: { widget: WidgetNode }) {
           <button type="button" aria-label="بستن" className="absolute end-4 top-4 rounded-full bg-white/15 p-2 text-white">
             <X size={20} />
           </button>
-          <img src={rows[open][0]} alt={rows[open][1] || ""} className="max-h-[85vh] max-w-full rounded-xl object-contain" />
+          <Img src={rows[open][0]} alt={rows[open][1] || ""} className="max-h-[85vh] max-w-full rounded-xl object-contain" />
         </div>
       ) : null}
     </>
@@ -413,7 +414,7 @@ export function ImageCarouselWidget({ widget }: { widget: WidgetNode }) {
   }, [count, seconds])
   if (!count) return null
   const [src, href, alt] = rows[Math.min(index, count - 1)]
-  const img = <img src={src} alt={alt || ""} className="h-full w-full object-cover" />
+  const img = <Img src={src} alt={alt || ""} className="h-full w-full object-cover" />
   return (
     <div className="relative overflow-hidden rounded-2xl bg-muted" style={{ aspectRatio: ratio.replace(":", "/") }}>
       {href ? <Link href={safeHref(href)}>{img}</Link> : img}
@@ -685,7 +686,7 @@ export function BlogPostsWidget({ widget }: { widget: WidgetNode }) {
         {posts.map((post) => (
           <Link key={post.slug} href={`/blog/${post.slug}`} className={`overflow-hidden rounded-2xl border border-border bg-card ${layout === "list" ? "flex gap-3" : "block"}`}>
             <span className={`block bg-muted ${layout === "list" ? "w-32 shrink-0" : "aspect-video"}`}>
-              {post.cover_url ? <img src={post.cover_url} alt="" loading="lazy" className="h-full w-full object-cover" /> : null}
+              {post.cover_url ? <Img src={post.cover_url} alt="" loading="lazy" className="h-full w-full object-cover" /> : null}
             </span>
             <span className="block p-4">
               <strong className="line-clamp-2 text-sm font-extrabold text-foreground">{post.title}</strong>
@@ -818,7 +819,7 @@ export function FeedWidget({ widget }: { widget: WidgetNode }) {
       </div>
       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {rows.map(([src, href, caption], i) => {
-          const img = <img src={src} alt={caption || ""} loading="lazy" className="h-full w-full object-cover transition-transform hover:scale-105" />
+          const img = <Img src={src} alt={caption || ""} loading="lazy" className="h-full w-full object-cover transition-transform hover:scale-105" />
           return (
             <div key={i} className="aspect-square overflow-hidden rounded-xl bg-muted">
               {href ? (

@@ -16,6 +16,7 @@ import type { WidgetNode } from "../types"
 import { buildNavTree, type NavItem } from "../nav-tree"
 import { WIcon } from "./extra-widgets"
 import { useBuilderRuntime } from "./runtime"
+import { Img } from "./img"
 
 function useMoney() {
   const t = useTranslations("builder")
@@ -100,7 +101,7 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
       <StoreProductCard key={item.key} product={item.product} />
     ) : (
       <Link key={item.key} href={item.href} className="block overflow-hidden rounded-2xl border border-border bg-card">
-        <span className="block aspect-video bg-muted">{item.image ? <img src={item.image} alt="" loading="lazy" className="h-full w-full object-cover" /> : null}</span>
+        <span className="block aspect-video bg-muted">{item.image ? <Img src={item.image} alt="" loading="lazy" className="h-full w-full object-cover" /> : null}</span>
         <span className="block p-4">
           <strong className="line-clamp-2 text-sm font-extrabold text-foreground">{item.title}</strong>
           {item.excerpt ? <span className="mt-1 line-clamp-2 block text-xs leading-6 text-foreground/70">{item.excerpt}</span> : null}
@@ -143,7 +144,7 @@ export function ImageBoxWidget({ widget }: { widget: WidgetNode }) {
   const side = propStr(widget.props, "layout", "top") === "side"
   const body = (
     <div className={`flex h-full gap-3 overflow-hidden rounded-2xl border border-border bg-card ${side ? "items-center" : "flex-col"}`}>
-      {image ? <img src={image} alt={propStr(widget.props, "alt", "")} loading="lazy" className={side ? "h-28 w-28 shrink-0 object-cover" : "aspect-[4/3] w-full object-cover"} /> : <span className={`bg-muted ${side ? "h-28 w-28" : "aspect-[4/3] w-full"}`} />}
+      {image ? <Img src={image} alt={propStr(widget.props, "alt", "")} loading="lazy" className={side ? "h-28 w-28 shrink-0 object-cover" : "aspect-[4/3] w-full object-cover"} /> : <span className={`bg-muted ${side ? "h-28 w-28" : "aspect-[4/3] w-full"}`} />}
       <span className="block p-4">
         <strong className="block text-base font-extrabold text-foreground">{propStr(widget.props, "title", "")}</strong>
         <span className="mt-1 block text-sm leading-7 text-foreground/70">{propStr(widget.props, "text", "")}</span>
@@ -253,7 +254,7 @@ export function HotspotWidget({ widget }: { widget: WidgetNode }) {
   const [active, setActive] = useState<number | null>(null)
   return (
     <div className="relative overflow-hidden rounded-2xl" onKeyDown={(event) => { if (event.key === "Escape") setActive(null) }}>
-      {image ? <img src={image} alt={propStr(widget.props, "alt", "")} loading="lazy" className="block w-full" /> : <div className="aspect-video bg-muted" />}
+      {image ? <Img src={image} alt={propStr(widget.props, "alt", "")} loading="lazy" className="block w-full" /> : <div className="aspect-video bg-muted" />}
       {points.map((point, index) => {
         const x = Math.max(0, Math.min(100, Number(point.x) || 50))
         const y = Math.max(0, Math.min(100, Number(point.y) || 50))
@@ -358,7 +359,7 @@ export function StateBoxWidget({ widget }: { widget: WidgetNode }) {
           <strong className="block text-lg font-extrabold">{current.title}</strong>
           <p className="mt-1 whitespace-pre-line text-sm leading-7 text-foreground/75">{current.text}</p>
         </div>
-        {current.image ? <img src={current.image} alt="" loading="lazy" className="max-h-56 rounded-xl object-cover" /> : null}
+        {current.image ? <Img src={current.image} alt="" loading="lazy" className="max-h-56 rounded-xl object-cover" /> : null}
       </div>
     </div>
   )
@@ -408,7 +409,7 @@ export function MenuCartWidget({ widget }: { widget: WidgetNode }) {
               {lines.length === 0 ? <li className="text-sm text-foreground/60">سبد خرید خالی است.</li> : null}
               {lines.map((line) => (
                 <li key={line.key} className="mb-3 flex items-center gap-3">
-                  <span className="size-14 shrink-0 overflow-hidden rounded-xl bg-muted">{line.image ? <img src={line.image} alt="" className="h-full w-full object-cover" /> : null}</span>
+                  <span className="size-14 shrink-0 overflow-hidden rounded-xl bg-muted">{line.image ? <Img src={line.image} alt="" className="h-full w-full object-cover" /> : null}</span>
                   <span className="min-w-0 flex-1">
                     <Link href={line.slug ? `/product/${line.slug}` : "#"} className="line-clamp-1 text-sm font-bold">{line.name}</Link>
                     <span className="flex items-center gap-1 text-xs text-foreground/60">{line.qty.toLocaleString("fa-IR")} × {money(line.price)}</span>

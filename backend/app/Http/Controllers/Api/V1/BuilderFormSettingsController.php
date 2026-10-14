@@ -18,6 +18,7 @@ class BuilderFormSettingsController extends Controller
 
     public function update(Request $request, string $key): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $data = $request->validate([
             'email_to' => ['nullable', 'string', 'max:500'],
             'sms_to' => ['nullable', 'string', 'regex:/^0?9\d{9}$/'],

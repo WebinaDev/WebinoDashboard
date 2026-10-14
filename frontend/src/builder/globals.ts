@@ -56,6 +56,44 @@ export type BuilderGlobals = {
   }
   lightbox: { enabled: boolean; background: string }
   cssVariables: string
+  /** Uploaded/hosted fonts turned into @font-face rules. */
+  customFonts: CustomFont[]
+  /** Responsive breakpoints (tablet max width, mobile max width) in px. */
+  breakpoints: { tablet: number; mobile: number }
+}
+
+export type CustomFont = { family: string; url: string; weight?: string; style?: "normal" | "italic" }
+
+const JSD = "https://cdn.jsdelivr.net/gh/rastikerdar"
+/** Persian font presets (open licence, served from jsDelivr; Yekan Bakh is self-hosted). */
+export const FONT_PRESETS: { id: string; label: string; stack: string; faces: CustomFont[] }[] = [
+  { id: "yekan", label: "یکان بخ", stack: "Yekan Bakh, Vazirmatn, Tahoma, sans-serif", faces: [] },
+  { id: "vazirmatn", label: "وزیرمتن", stack: "Vazirmatn, Tahoma, sans-serif", faces: [{ family: "Vazirmatn", url: `${JSD}/vazirmatn@v33.003/fonts/webfonts/Vazirmatn%5Bwght%5D.woff2`, weight: "100 900" }] },
+  { id: "shabnam", label: "شبنم", stack: "Shabnam, Tahoma, sans-serif", faces: [{ family: "Shabnam", url: `${JSD}/shabnam-font@v5.0.1/dist/Shabnam.woff2`, weight: "400" }, { family: "Shabnam", url: `${JSD}/shabnam-font@v5.0.1/dist/Shabnam-Bold.woff2`, weight: "700" }] },
+  { id: "sahel", label: "ساحل", stack: "Sahel, Tahoma, sans-serif", faces: [{ family: "Sahel", url: `${JSD}/sahel-font@v3.4.0/dist/Sahel.woff2`, weight: "400" }, { family: "Sahel", url: `${JSD}/sahel-font@v3.4.0/dist/Sahel-Bold.woff2`, weight: "700" }] },
+  { id: "samim", label: "صمیم", stack: "Samim, Tahoma, sans-serif", faces: [{ family: "Samim", url: `${JSD}/samim-font@v4.0.5/dist/Samim.woff2`, weight: "400" }, { family: "Samim", url: `${JSD}/samim-font@v4.0.5/dist/Samim-Bold.woff2`, weight: "700" }] },
+  { id: "tahoma", label: "Tahoma (سیستمی)", stack: "Tahoma, sans-serif", faces: [] },
+]
+
+function safeFontUrl(url: string): string | null {
+  const value = url.trim()
+  if (!/^(https:\/\/|\/)[^\s"'()<>\\]+$/.test(value) || value.startsWith("//")) return null
+  return value
+}
+
+/** @font-face rules for custom fonts (family/weight sanitised, https or same-origin URLs only). */
+export function fontFaceCss(fonts: CustomFont[] | undefined): string {
+  return (fonts ?? [])
+    .slice(0, 24)
+    .map((font) => {
+      const family = String(font.family ?? "").replace(/[^\p{L}\p{N} _-]/gu, "").trim().slice(0, 60)
+      const url = safeFontUrl(String(font.url ?? ""))
+      const weight = /^\d{3}( \d{3})?$/.test(String(font.weight ?? "")) ? font.weight : "400"
+      if (!family || !url) return ""
+      const format = url.endsWith(".woff") ? "woff" : url.endsWith(".ttf") ? "truetype" : "woff2"
+      return `@font-face{font-family:"${family}";src:url("${url}") format("${format}");font-weight:${weight};font-style:${font.style === "italic" ? "italic" : "normal"};font-display:swap}`
+    })
+    .join("")
 }
 
 const type = (fontSize: string, fontWeight: string, lineHeight: string, color?: string): TypeStyle => ({
@@ -140,6 +178,8 @@ export const DEFAULT_GLOBALS: BuilderGlobals = {
   },
   lightbox: { enabled: true, background: "rgba(16,24,32,0.72)" },
   cssVariables: "",
+  customFonts: [],
+  breakpoints: { tablet: 1024, mobile: 767 },
 }
 
 export const COLOR_TOKENS: { value: string; label: string }[] = [
@@ -227,6 +267,7 @@ export function globalsCss(globals: BuilderGlobals): string {
     `.wb-type-${tag}{font-family:var(--wb-font-heading);font-size:var(--wb-${tag}-size);font-weight:var(--wb-${tag}-weight);line-height:var(--wb-${tag}-leading);color:var(--wb-color-text)}`
 
   return [
+    fontFaceCss(globals.customFonts),
     `.wb-canvas,.wb-site{${vars}}`,
     `.wb-site{font-family:var(--wb-font-body);color:var(--wb-color-text);background:var(--wb-layout-bg)}`,
     `.wb-canvas{font-family:var(--wb-font-body);color:var(--wb-color-text);background:var(--wb-color-background)}`,
@@ -274,5 +315,7 @@ export function asGlobals(value: unknown): BuilderGlobals {
     lightbox: { ...DEFAULT_GLOBALS.lightbox, ...(incoming.lightbox ?? {}) },
     palette: incoming.palette?.length ? incoming.palette : DEFAULT_GLOBALS.palette,
     cssVariables: typeof incoming.cssVariables === "string" ? incoming.cssVariables : "",
+    customFonts: Array.isArray(incoming.customFonts) ? incoming.customFonts.filter((f) => f && typeof f.family === "string" && typeof f.url === "string") : [],
+    breakpoints: { ...DEFAULT_GLOBALS.breakpoints, ...(incoming.breakpoints ?? {}) },
   }
 }

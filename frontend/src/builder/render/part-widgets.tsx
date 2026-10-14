@@ -25,6 +25,7 @@ import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
 import { ProductQueryWidget, splitRows } from "./extra-widgets"
 import { sanitizeBuilderHtml } from "./sanitize-html"
+import { Img } from "./img"
 
 function Placeholder({ label }: { label: string }) {
   return <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">{label}</p>
@@ -151,7 +152,7 @@ export function InstallmentWidget({ widget, editing }: { widget: WidgetNode; edi
           ))}
         </ul>
       ) : null}
-      {image ? <img src={image} alt="" loading="lazy" className="mt-3 max-h-12 w-auto" /> : null}
+      {image ? <Img src={image} alt="" loading="lazy" className="mt-3 max-h-12 w-auto" /> : null}
     </section>
   )
 }
@@ -400,7 +401,7 @@ export function HeaderPartWidget({ widget }: { widget: WidgetNode }) {
       const height = propNum(widget.props, "height", 40)
       return (
         <Link href="/" className="inline-flex items-center gap-2" aria-label={runtime.siteName || "home"}>
-          {runtime.logoUrl ? <img src={runtime.logoUrl} alt={runtime.siteName || ""} style={{ height, width: "auto" }} /> : <strong className="text-lg font-black">{runtime.siteName}</strong>}
+          {runtime.logoUrl ? <Img src={runtime.logoUrl} alt={runtime.siteName || ""} style={{ height, width: "auto" }} /> : <strong className="text-lg font-black">{runtime.siteName}</strong>}
         </Link>
       )
     }
@@ -554,7 +555,7 @@ export function PostPartWidget({ widget, editing, locale }: { widget: WidgetNode
     case "post-title":
       return <h1 className="text-2xl font-extrabold text-foreground">{post.title}</h1>
     case "post-cover":
-      return post.cover_url ? <img src={post.cover_url} alt="" className="w-full rounded-2xl object-cover" /> : null
+      return post.cover_url ? <Img src={post.cover_url} alt="" className="w-full rounded-2xl object-cover" /> : null
     case "post-meta": {
       const author = typeof post.author === "string" ? post.author : post.author?.name
       return (

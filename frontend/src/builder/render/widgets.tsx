@@ -102,6 +102,7 @@ import {
 } from "@/themes/ecommerce-classic/components/ClassicHome"
 
 import { ClassicTrustStrip } from "@/themes/ecommerce-classic/components/ClassicProduct"
+import { Img } from "./img"
 
 const NAV = [
   { label: "خانه", href: "/" },
@@ -429,7 +430,7 @@ function ImageWidget({ widget }: { widget: WidgetNode }) {
     )
   }
   const image = (
-    <img
+    <Img
       src={src}
       alt={alt}
       loading={globals.images.lazy ? "lazy" : "eager"}
@@ -448,7 +449,7 @@ function ImageWidget({ widget }: { widget: WidgetNode }) {
           style={{ background: "var(--wb-lightbox-bg)" }}
           onClick={() => setOpen(false)}
         >
-          <img src={src} alt={alt} className="max-h-[85vh] max-w-full rounded-2xl" />
+          <Img src={src} alt={alt} className="max-h-[85vh] max-w-full rounded-2xl" />
         </div>
       ) : null}
     </>

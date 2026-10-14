@@ -135,6 +135,8 @@ export type BuilderDocument = {
   css?: string
   source?: string
   page_settings?: Record<string, unknown>
+  /** Node CSS compiled at save/publish (see compile.ts). */
+  compiled?: { v: number; bp: string; hash: string; css: string }
 }
 
 export type RuntimeContext = {

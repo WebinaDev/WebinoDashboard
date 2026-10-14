@@ -34,6 +34,7 @@ class BuilderLibraryController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $data = $request->validate([
             'kind' => ['required', Rule::in(self::KINDS)],
             'title' => ['required', 'string', 'max:160'],
@@ -58,6 +59,7 @@ class BuilderLibraryController extends Controller
 
     public function destroy(Request $request, int $item): JsonResponse
     {
+        \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $this->find($request, $item)->delete();
 
         return response()->json(['data' => ['deleted' => true]]);

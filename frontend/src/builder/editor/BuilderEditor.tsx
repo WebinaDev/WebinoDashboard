@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { asGlobals, COLOR_TOKENS, DEFAULT_GLOBALS, type BuilderGlobals } from "../globals"
 import { createWidget, WIDGET_CATEGORIES, WIDGETS, widgetDef } from "../registry"
+import { compileDocument } from "../compile"
 import { documentCss, mergeStyle } from "../style"
 import { WidgetGlyph } from "../theme/icons"
 import {
@@ -504,12 +505,13 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   async function save(publish: boolean, autosave = false) {
     if (autosave && saving) return
     const snapshot = docJson
+    const outDoc = compileDocument(doc, globals.breakpoints)
     setSaving(true)
     try {
       if (mode.kind === "chrome") {
         await api(`/api/v1/builder/templates/${mode.chrome}`, {
           method: "PUT",
-          json: { title, document: doc, ...(autosave ? { autosave: true } : {}) },
+          json: { title, document: outDoc, ...(autosave ? { autosave: true } : {}) },
         })
         if (publish) {
           await api(`/api/v1/builder/templates/${mode.chrome}/publish`, { method: "POST" })
@@ -523,7 +525,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         if (!id) {
           const created = await api<TemplatePayload>("/api/v1/theme-builder/templates", {
             method: "POST",
-            json: { kind: mode.templateKind, title: title || t("create"), document: doc },
+            json: { kind: mode.templateKind, title: title || t("create"), document: outDoc },
           })
           id = created.id ?? null
           setPageId(id)
@@ -531,7 +533,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         } else {
           await api(`/api/v1/theme-builder/templates/${id}`, {
             method: "PATCH",
-            json: { title, document: doc, ...(autosave ? { autosave: true } : {}) },
+            json: { title, document: outDoc, ...(autosave ? { autosave: true } : {}) },
           })
         }
         if (publish && id) {
@@ -545,7 +547,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         const base = mode.kind === "product" ? "products" : mode.kind === "post" ? "posts" : "articles"
         await api(`/api/v1/builder/${base}/${mode.id}`, {
           method: "PATCH",
-          json: { title, document: doc, ...(autosave ? { autosave: true } : {}) },
+          json: { title, document: outDoc, ...(autosave ? { autosave: true } : {}) },
         })
         if (publish) {
           await api(`/api/v1/builder/${base}/${mode.id}/publish`, { method: "POST" })
@@ -558,7 +560,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       if (!id) {
         const created = await api<PagePayload>("/api/v1/builder/pages", {
           method: "POST",
-          json: { title: title || t("create"), slug, document: doc },
+          json: { title: title || t("create"), slug, document: outDoc },
         })
         id = created.id
         setPageId(id)
@@ -567,7 +569,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       } else {
         await api(`/api/v1/builder/pages/${id}`, {
           method: "PATCH",
-          json: { title, slug, document: doc, ...(autosave ? { autosave: true } : {}) },
+          json: { title, slug, document: outDoc, ...(autosave ? { autosave: true } : {}) },
         })
       }
       if (publish) {

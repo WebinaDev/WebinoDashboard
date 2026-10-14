@@ -89,6 +89,8 @@ class BuilderGlobalsNormalizer
                 'background' => 'rgba(16,24,32,0.72)',
             ],
             'cssVariables' => '',
+            'customFonts' => [],
+            'breakpoints' => ['tablet' => 1024, 'mobile' => 767],
         ];
     }
 
@@ -182,6 +184,32 @@ class BuilderGlobalsNormalizer
         $base['lightbox']['background'] = $this->color($lightbox['background'] ?? null, $base['lightbox']['background'], true);
 
         $base['cssVariables'] = $this->variables($input['cssVariables'] ?? '');
+
+        $fontsIn = is_array($input['customFonts'] ?? null) ? array_slice($input['customFonts'], 0, 24) : [];
+        foreach ($fontsIn as $font) {
+            if (! is_array($font)) {
+                continue;
+            }
+            $family = trim(preg_replace('/[^\p{L}\p{N} _-]/u', '', (string) ($font['family'] ?? '')) ?? '');
+            $url = trim((string) ($font['url'] ?? ''));
+            $okUrl = (str_starts_with($url, 'https://') || (str_starts_with($url, '/') && ! str_starts_with($url, '//')))
+                && preg_match('/^[^\s"\'()<>\\\\]+$/', $url) && strlen($url) <= 500;
+            if ($family === '' || ! $okUrl) {
+                continue;
+            }
+            $weight = preg_match('/^\d{3}( \d{3})?$/', (string) ($font['weight'] ?? '')) ? (string) $font['weight'] : '400';
+            $base['customFonts'][] = [
+                'family' => mb_substr($family, 0, 60),
+                'url' => $url,
+                'weight' => $weight,
+                'style' => ($font['style'] ?? '') === 'italic' ? 'italic' : 'normal',
+            ];
+        }
+
+        $bp = is_array($input['breakpoints'] ?? null) ? $input['breakpoints'] : [];
+        $tablet = max(600, min(1600, (int) ($bp['tablet'] ?? 1024) ?: 1024));
+        $mobile = max(320, min($tablet - 1, (int) ($bp['mobile'] ?? 767) ?: 767));
+        $base['breakpoints'] = ['tablet' => $tablet, 'mobile' => $mobile];
 
         return $base;
     }

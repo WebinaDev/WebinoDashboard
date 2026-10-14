@@ -4,8 +4,9 @@ import { useRef } from "react"
 
 import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
-import { advancedClass, advancedId, documentCss, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
+import { advancedClass, advancedId, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
 import { migrateDocument } from "../migrate"
+import { viewCss } from "../compile"
 import { Decor, motionAttrs, useCanvasMotion } from "./decor"
 import { useConditionsVisible } from "./use-conditions"
 import { useResolvedWidget } from "./use-dynamic"
@@ -38,7 +39,7 @@ export function DocumentView({ document: rawDocument, mode = "view", device = "d
   // v1 documents render through the legacy path (unchanged output).
   const document = migrateDocument(rawDocument)
   const activeGlobals = globals ?? DEFAULT_GLOBALS
-  const nodeCss = mode === "view" ? documentCss(document) : ""
+  const nodeCss = mode === "view" ? viewCss(document, activeGlobals.breakpoints) : ""
   const css = [globalsCss(activeGlobals), nodeCss, importedCss(document)].filter(Boolean).join("\n")
   const canvasRef = useRef<HTMLDivElement>(null)
   useCanvasMotion(canvasRef, mode === "view")

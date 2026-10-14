@@ -16,6 +16,20 @@ class BuilderDocumentRules
         if (! isset($document['sections']) || ! is_array($document['sections'])) {
             $document['sections'] = [];
         }
+        // Publish-time CSS from the editor: keep only a plain CSS string (no markup).
+        if (isset($document['compiled'])) {
+            $c = $document['compiled'];
+            if (is_array($c) && is_string($c['css'] ?? null) && strlen($c['css']) <= 300000) {
+                $document['compiled'] = [
+                    'v' => (int) ($c['v'] ?? 0),
+                    'bp' => preg_replace('/[^0-9\/]/', '', (string) ($c['bp'] ?? '')),
+                    'hash' => preg_replace('/[^a-z0-9]/', '', (string) ($c['hash'] ?? '')),
+                    'css' => str_replace(['<', '>'], ['', '>'], $c['css']),
+                ];
+            } else {
+                unset($document['compiled']);
+            }
+        }
 
         return $document;
     }

@@ -15,6 +15,7 @@ import type { WidgetNode } from "../types"
 import { useBuilderRuntime, useIsClassicSkin } from "./runtime"
 import { ClassicBreadcrumbBar } from "@/themes/ecommerce-classic/components/ClassicArchive"
 import { ClassicAmazingBand, ClassicBlogBlock, ClassicProductRow } from "@/themes/ecommerce-classic/components/ClassicHome"
+import { Img } from "./img"
 
 export function MegaMenuWidget({ widget }: { widget: WidgetNode }) {
   const columns = propStr(widget.props, "columns", "")
@@ -39,7 +40,7 @@ export function TasteBoxWidget({ widget }: { widget: WidgetNode }) {
           <Link key={product.slug} href={`/product/${product.slug}`} className="sf-taste-card">
             <div className="mb-2 aspect-square overflow-hidden rounded-2xl bg-muted">
               {product.image ? (
-                <img src={product.image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                <Img src={product.image} alt="" className="h-full w-full object-cover" loading="lazy" />
               ) : null}
             </div>
             <span className="text-xs font-bold text-primary">{product.brand}</span>
@@ -71,7 +72,7 @@ export function PackageBlockWidget({ widget }: { widget: WidgetNode }) {
           {pack.map((product) => (
             <Link key={product.slug} href={`/product/${product.slug}`} className="rounded-2xl bg-card p-3 text-center">
               <div className="mx-auto mb-2 size-14 overflow-hidden rounded-xl bg-muted">
-                {product.image ? <img src={product.image} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}
+                {product.image ? <Img src={product.image} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}
               </div>
               <span className="line-clamp-2 text-xs font-bold">{product.name}</span>
             </Link>
@@ -199,7 +200,7 @@ function DefaultBlogSlider({ widget }: { widget: WidgetNode }) {
         {posts.map((post) => (
           <Link key={post.slug} href={`/blog/${post.slug}`} className="sf-blog-slide">
             <div className="aspect-[16/10] overflow-hidden rounded-2xl bg-muted">
-              {post.cover_url ? <img src={post.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}
+              {post.cover_url ? <Img src={post.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}
             </div>
             <h3 className="mt-3 line-clamp-2 text-sm font-bold">{post.title}</h3>
             {post.excerpt ? <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{post.excerpt}</p> : null}
@@ -225,7 +226,7 @@ export function ProductGalleryWidget({ productSlug, editing = false }: { product
       <div className="sf-widget-gallery">
         <div className="aspect-square overflow-hidden rounded-[28px] border border-border bg-card">
           {current ? (
-            <img src={current} alt={product.name} className="h-full w-full object-cover" />
+            <Img src={current} alt={product.name} className="h-full w-full object-cover" />
           ) : (
             <div className="grid h-full place-items-center text-sm font-bold text-muted-foreground">{product.brand}</div>
           )}
@@ -239,7 +240,7 @@ export function ProductGalleryWidget({ productSlug, editing = false }: { product
                 onClick={() => setActive(index)}
                 className={`h-16 w-16 overflow-hidden rounded-2xl border ${index === active ? "border-primary" : "border-border"}`}
               >
-                <img src={src} alt="" className="h-full w-full object-cover" />
+                <Img src={src} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>

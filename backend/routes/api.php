@@ -925,6 +925,10 @@ Route::prefix('v1')->group(function () {
                 Route::post('/builder/library', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'store']);
                 Route::get('/builder/library/{item}', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'show'])->whereNumber('item');
                 Route::delete('/builder/library/{item}', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'destroy'])->whereNumber('item');
+                Route::get('/builder/kit', [\App\Http\Controllers\Api\V1\BuilderKitController::class, 'export']);
+                Route::post('/builder/kit', [\App\Http\Controllers\Api\V1\BuilderKitController::class, 'import'])->middleware('throttle:10,1');
+                Route::get('/builder/roles', [\App\Http\Controllers\Api\V1\BuilderRolesController::class, 'show']);
+                Route::put('/builder/roles', [\App\Http\Controllers\Api\V1\BuilderRolesController::class, 'update']);
                 Route::get('/builder/globals', [BuilderGlobalsController::class, 'show']);
                 Route::put('/builder/globals', [BuilderGlobalsController::class, 'update']);
                 Route::post('/builder/globals/publish', [BuilderGlobalsController::class, 'publish']);

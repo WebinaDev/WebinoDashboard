@@ -1,4 +1,5 @@
 import {
+  ShieldCheck as ShieldIcon,
   CreditCard,
   ShoppingCart,
   UserRound,
@@ -92,6 +93,8 @@ export const SETTINGS_SECTION_ICONS = {
   layout: Columns3,
   lightbox: GalleryHorizontalEnd,
   variables: Braces,
+  kit: Package,
+  roles: ShieldIcon,
 } as const
 
 export function widgetIcon(type: string): LucideIcon {
