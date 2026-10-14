@@ -108,6 +108,13 @@ class PublicCatalogController extends Controller
             'price_asc' => $productsQuery->orderBy('price_minor'),
             'price_desc' => $productsQuery->orderByDesc('price_minor'),
             'popular' => $productsQuery->orderByDesc('views_count'),
+            'best_selling' => $productsQuery->orderByDesc(
+                \App\Models\OrderItem::query()
+                    ->selectRaw('COALESCE(SUM(order_items.quantity), 0)')
+                    ->join('orders', 'orders.id', '=', 'order_items.order_id')
+                    ->whereColumn('order_items.product_id', 'products.id')
+                    ->whereNotIn('orders.status', ['cancelled', 'canceled', 'failed', 'payment_failed', 'refunded', 'pending_payment', 'awaiting_gateway'])
+            )->orderByDesc('id'),
             'menu' => $productsQuery->orderBy('sort_order')->orderBy('name'),
             default => $productsQuery->orderByDesc('id'),
         };

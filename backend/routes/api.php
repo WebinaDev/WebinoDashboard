@@ -116,6 +116,7 @@ use App\Http\Controllers\Api\V1\ProductEngagementController;
 use App\Http\Controllers\Api\V1\ProductStoryController;
 use App\Http\Controllers\Api\V1\PublicVendorStoreController;
 use App\Http\Controllers\Api\V1\PublicWishlistController;
+use App\Http\Controllers\Api\V1\PublicStorefrontController;
 use App\Http\Controllers\Api\V1\VendorPortalController;
 use App\Http\Controllers\Api\V1\PublicAnalyticsController;
 use App\Http\Controllers\Api\V1\PublicBuilderFormController;
@@ -211,6 +212,8 @@ Route::prefix('v1')->group(function () {
         // Alias without "analytics" in the path (adblock bypass).
         Route::post('/metrics/collect', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
         Route::post('/forms/submit', [PublicBuilderFormController::class, 'submit'])->middleware('throttle:public-writes');
+        Route::post('/newsletter/subscribe', [PublicStorefrontController::class, 'subscribe'])->middleware('throttle:public-writes');
+        Route::post('/orders/track', [PublicStorefrontController::class, 'trackOrder'])->middleware('throttle:10,1');
 
         Route::middleware('public.module:blog')->group(function () {
             Route::get('/blog', [PublicBlogController::class, 'index']);
@@ -278,6 +281,8 @@ Route::prefix('v1')->group(function () {
         Route::middleware('public.module:catalog')->group(function () {
             Route::get('/catalog', [PublicCatalogController::class, 'index']);
             Route::get('/catalog/items/{slug}', [PublicCatalogController::class, 'show']);
+            Route::get('/catalog/categories/tree', [PublicStorefrontController::class, 'categoryTree']);
+            Route::post('/coupons/preview', [PublicStorefrontController::class, 'previewCoupon'])->middleware('throttle:20,1');
             Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);
             Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore'])->middleware('throttle:public-writes');
             Route::post('/catalog/reviews/{review}/react', [ProductReviewController::class, 'react'])->whereNumber('review')->middleware('throttle:public-writes');
@@ -443,6 +448,8 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware('can:settings.manage')->group(function () {
+                Route::get('/shop/newsletter-subscribers', [PublicStorefrontController::class, 'adminSubscribers']);
+                Route::delete('/shop/newsletter-subscribers/{id}', [PublicStorefrontController::class, 'adminDeleteSubscriber'])->whereNumber('id');
                 Route::get('/shop/product-stories', [ProductStoryController::class, 'adminIndex']);
                 Route::post('/shop/product-stories', [ProductStoryController::class, 'adminStore']);
                 Route::patch('/shop/product-stories/{story}', [ProductStoryController::class, 'adminUpdate'])->whereNumber('story');
