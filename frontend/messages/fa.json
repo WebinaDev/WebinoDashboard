@@ -6752,7 +6752,13 @@
     "move_up": "بالا",
     "move_down": "پایین",
     "link_new_tab": "برگه جدید",
-    "link_nofollow": "nofollow"
+    "link_nofollow": "nofollow",
+    "dynamic_bind": "اتصال به برچسب پویا",
+    "dynamic_unbind": "حذف اتصال پویا",
+    "dynamic_key": "کلید فیلد",
+    "dynamic_before": "پیشوند",
+    "dynamic_after": "پسوند",
+    "dynamic_fallback": "مقدار جایگزین"
   },
   "theme_builder": {
     "title": "پوسته‌ساز",

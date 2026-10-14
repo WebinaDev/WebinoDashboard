@@ -34,7 +34,7 @@ function Placeholder({ label }: { label: string }) {
 
 const productCache = new Map<string, Promise<ShopProduct | null>>()
 
-function fetchProduct(slug: string): Promise<ShopProduct | null> {
+export function fetchProduct(slug: string): Promise<ShopProduct | null> {
   const hit = productCache.get(slug)
   if (hit) return hit
   const base = process.env.NEXT_PUBLIC_API_URL ?? ""

@@ -55,7 +55,8 @@ import type { FieldDef, AdvancedProps, BoxEdges, BuilderDocument, DeviceMode, Ed
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
 import { migrateDocument } from "../migrate"
-import { EXTENDED_KINDS, ExtendedField } from "./fields"
+import { DynamicEditor, DynamicToggle, EXTENDED_KINDS, ExtendedField } from "./fields"
+import { isDynamic } from "../dynamic"
 import { RevisionsPanel, type RevisionTarget } from "./RevisionsPanel"
 import { widgetLabel } from "../render/widgets"
 
@@ -690,8 +691,17 @@ function WidgetFields({ type, props, onChange }: { type: string; props: Record<s
           <span className="flex items-center gap-1.5">
             <FieldMark name={field.key} />
             {field.label}
+            <DynamicToggle field={field} value={value} onChange={onChange} />
           </span>
         )
+        if (isDynamic(value)) {
+          return (
+            <div key={field.key} className="grid gap-1 text-xs">
+              {label}
+              <DynamicEditor field={field} binding={value.dynamic} onChange={(binding) => onChange(field.key, { dynamic: binding })} />
+            </div>
+          )
+        }
         if (EXTENDED_KINDS.has(field.kind)) {
           return (
             <div key={field.key} className="grid gap-1 text-xs">

@@ -4,6 +4,7 @@ import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
 import { advancedClass, advancedId, documentCss, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
 import { migrateDocument } from "../migrate"
+import { useResolvedWidget } from "./use-dynamic"
 import type { ColumnNode, DeviceMode, EditorApi, BuilderDocument, RuntimeContext, SectionNode, WidgetNode } from "../types"
 import { DND_NODE, DND_WIDGET } from "../types"
 import { BuilderGlobalsProvider, BuilderRuntimeProvider } from "./runtime"
@@ -146,6 +147,7 @@ function ColumnBlock({
 
 function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: DeviceMode; editor?: EditorApi }) {
   const selected = editor?.selectedId === widget.id
+  const resolved = useResolvedWidget(widget)
   const raw = editor ? styleToCss(mergeStyle(widget.style, device)) : undefined
   // In the editor, hidden widgets stay visible but faded so they can still be selected.
   const hiddenOnDevice = Boolean(editor && (raw?.display === "none" || widget.advanced?.hideOn?.[device]))
@@ -166,7 +168,7 @@ function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: D
         editor.onSelect(widget.id)
       }}
     >
-      <WidgetBody widget={widget} editor={editor} />
+      <WidgetBody widget={resolved} editor={editor} />
       {widget.type === "container" && widget.children
         ? widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} />)
         : null}

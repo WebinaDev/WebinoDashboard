@@ -112,6 +112,10 @@ export type RuntimeContext = {
   categorySlug?: string
   /** Active storefront theme slug — drives DocumentView skin class. */
   themeSlug?: string | null
+  /** Page/post title for the `page.title` dynamic tag (falls back to document.title). */
+  pageTitle?: string
+  /** Values for the `custom.field` dynamic tag (merged over product meta). */
+  customFields?: Record<string, string>
   /** Published loop-item template rendered inside product grids. */
   loopDocument?: BuilderDocument
 }

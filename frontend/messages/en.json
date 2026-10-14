@@ -6752,7 +6752,13 @@
     "move_up": "Move up",
     "move_down": "Move down",
     "link_new_tab": "New tab",
-    "link_nofollow": "nofollow"
+    "link_nofollow": "nofollow",
+    "dynamic_bind": "Bind to dynamic tag",
+    "dynamic_unbind": "Remove dynamic binding",
+    "dynamic_key": "Field key",
+    "dynamic_before": "Before",
+    "dynamic_after": "After",
+    "dynamic_fallback": "Fallback"
   },
   "theme_builder": {
     "title": "Theme builder",

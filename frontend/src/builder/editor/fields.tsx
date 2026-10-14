@@ -1,10 +1,11 @@
 "use client"
 
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, Database, Plus, Trash2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
+import { DYNAMIC_TAGS, isDynamic, type DynamicBinding, type DynamicKind } from "../dynamic"
 import { COLOR_TOKENS } from "../globals"
 import { parseRows, rowsToLines } from "../props"
 import { WIcon } from "../render/extra-widgets"
@@ -168,3 +169,58 @@ export function ExtendedField({ field, props, onChange }: { field: FieldDef; pro
 }
 
 export const EXTENDED_KINDS = new Set<FieldDef["kind"]>(["media", "icon", "color", "link", "slider", "date", "time", "datetime", "repeater"])
+
+/** Field kinds that can be bound to a Dynamic Tag, and which tag kinds they accept. */
+export function dynamicKindFor(field: FieldDef): DynamicKind | null {
+  if (field.kind === "text" || field.kind === "textarea") return "text"
+  if (field.kind === "media") return field.accept === "video" ? null : "image"
+  if (field.kind === "url" || field.kind === "link") return "link"
+  return null
+}
+
+export function DynamicToggle({ field, value, onChange }: { field: FieldDef; value: unknown; onChange: (key: string, value: unknown) => void }) {
+  const t = useTranslations("builder")
+  const kind = dynamicKindFor(field)
+  if (!kind) return null
+  const bound = isDynamic(value)
+  const first = DYNAMIC_TAGS.find((item) => item.kinds.includes(kind))
+  return (
+    <button
+      type="button"
+      title={bound ? t("dynamic_unbind") : t("dynamic_bind")}
+      aria-label={bound ? t("dynamic_unbind") : t("dynamic_bind")}
+      aria-pressed={bound}
+      className={`ms-auto grid size-5 place-items-center rounded ${bound ? "bg-[#E16BA6] text-white" : "text-[#0C2D63]/50 hover:bg-[#0C2D63]/10"}`}
+      onClick={(event) => {
+        event.preventDefault()
+        if (bound) onChange(field.key, value.dynamic.fallback ?? "")
+        else onChange(field.key, { dynamic: { tag: first?.tag ?? "site.name", fallback: typeof value === "string" ? value : "" } })
+      }}
+    >
+      <Database className="size-3" aria-hidden />
+    </button>
+  )
+}
+
+export function DynamicEditor({ field, binding, onChange }: { field: FieldDef; binding: DynamicBinding; onChange: (binding: DynamicBinding) => void }) {
+  const t = useTranslations("builder")
+  const kind = dynamicKindFor(field) ?? "text"
+  const set = (patch: Partial<DynamicBinding>) => onChange({ ...binding, ...patch })
+  return (
+    <div className="grid gap-1 rounded-md border border-[#E16BA6]/40 bg-[#E16BA6]/5 p-2 text-[11px]">
+      <select className="h-8 rounded-md border px-1" value={binding.tag} onChange={(event) => set({ tag: event.target.value })}>
+        {DYNAMIC_TAGS.filter((item) => item.kinds.includes(kind)).map((item) => <option key={item.tag} value={item.tag}>{item.label}</option>)}
+      </select>
+      {binding.tag === "custom.field" ? (
+        <input className="h-8 rounded-md border px-2" dir="ltr" placeholder={t("dynamic_key")} value={binding.key ?? ""} onChange={(event) => set({ key: event.target.value })} />
+      ) : null}
+      {kind === "text" ? (
+        <div className="grid grid-cols-2 gap-1">
+          <input className="h-8 min-w-0 rounded-md border px-2" placeholder={t("dynamic_before")} value={binding.before ?? ""} onChange={(event) => set({ before: event.target.value })} />
+          <input className="h-8 min-w-0 rounded-md border px-2" placeholder={t("dynamic_after")} value={binding.after ?? ""} onChange={(event) => set({ after: event.target.value })} />
+        </div>
+      ) : null}
+      <input className="h-8 rounded-md border px-2" placeholder={t("dynamic_fallback")} value={binding.fallback ?? ""} onChange={(event) => set({ fallback: event.target.value })} />
+    </div>
+  )
+}
