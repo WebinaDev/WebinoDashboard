@@ -65,8 +65,9 @@ function redirectAfterLogin(result: LoginResult, next: string | null) {
 
 export function LoginForm({
   className,
+  preferOtp = false,
   ...props
-}: ComponentPropsWithoutRef<"div">) {
+}: ComponentPropsWithoutRef<"div"> & { preferOtp?: boolean }) {
   const t = useTranslations("auth")
   const searchParams = useSearchParams()
   const { setAuthenticated } = useAuth()
@@ -193,6 +194,14 @@ export function LoginForm({
   useEffect(() => {
     if (!otpEnabled && mode === "otp") setMode("password")
   }, [otpEnabled, mode])
+
+  // Storefront login (classic shop) opens on mobile OTP when the store enabled it.
+  const [otpDefaulted, setOtpDefaulted] = useState(false)
+  useEffect(() => {
+    if (!preferOtp || otpDefaulted || !otpEnabled) return
+    setMode("otp")
+    setOtpDefaulted(true)
+  }, [preferOtp, otpDefaulted, otpEnabled])
 
   if (panelPending) {
     return (

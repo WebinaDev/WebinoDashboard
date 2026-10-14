@@ -205,6 +205,46 @@ final class SeoMetaBuilder
                     'url' => $meta['canonical'] ?? null,
                 ],
             ];
+            $productGraph = &$graphs[array_key_last($graphs)];
+            $brand = method_exists($product, 'brands') ? $product->brands()->first() : null;
+            if ($brand) {
+                $productGraph['brand'] = ['@type' => 'Brand', 'name' => $brand->name];
+            }
+            $reviewStats = \App\Models\ProductReview::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('product_id', $product->id)
+                ->where('status', \App\Models\ProductReview::STATUS_APPROVED)
+                ->selectRaw('COUNT(*) as c, AVG(rating) as a')
+                ->first();
+            if ($reviewStats && (int) $reviewStats->c > 0) {
+                $productGraph['aggregateRating'] = [
+                    '@type' => 'AggregateRating',
+                    'ratingValue' => round((float) $reviewStats->a, 1),
+                    'reviewCount' => (int) $reviewStats->c,
+                ];
+            }
+            unset($productGraph);
+
+            $canonicalParts = parse_url((string) ($meta['canonical'] ?? ''));
+            $root = isset($canonicalParts['scheme'], $canonicalParts['host'])
+                ? $canonicalParts['scheme'].'://'.$canonicalParts['host'].(isset($canonicalParts['port']) ? ':'.$canonicalParts['port'] : '')
+                : ($tenant->domain ? 'https://'.$tenant->domain : rtrim((string) config('app.frontend_url', ''), '/'));
+            $crumbs = [['name' => $site, 'url' => $root.'/']];
+            $crumbs[] = ['name' => 'فروشگاه', 'url' => $root.'/shop'];
+            $category = $product->category_id ? \App\Models\Category::query()->find($product->category_id) : null;
+            if ($category) {
+                $crumbs[] = ['name' => $category->name, 'url' => $root.'/shop?category='.rawurlencode((string) $category->slug)];
+            }
+            $crumbs[] = ['name' => $product->name, 'url' => $meta['canonical'] ?? ($root.'/product/'.rawurlencode((string) $product->slug))];
+            $graphs[] = [
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => array_map(fn ($c, $i) => [
+                    '@type' => 'ListItem',
+                    'position' => $i + 1,
+                    'name' => $c['name'],
+                    'item' => $c['url'],
+                ], $crumbs, array_keys($crumbs)),
+            ];
         }
 
         if ($post !== null) {

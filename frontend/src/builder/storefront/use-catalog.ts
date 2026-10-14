@@ -34,7 +34,8 @@ const EMPTY_CATALOG: CatalogState = {
 function apiSort(sort: string): string {
   if (sort === "price") return "price_asc"
   if (sort === "price_desc") return "price_desc"
-  if (sort === "featured" || sort === "best") return "popular"
+  if (sort === "featured" || sort === "popular") return "popular"
+  if (sort === "best" || sort === "best_selling" || sort === "sales") return "best_selling"
   return "newest"
 }
 
@@ -151,6 +152,44 @@ export function useCatalog(limit: number): CatalogState {
       cancel = true
     }
   }, [brand, category, inStock, limit, onSale, page, q, sort])
+
+  return state
+}
+
+export type ProductQuery = {
+  /** newest | price | price_desc | popular | best_selling */
+  sort?: string
+  limit: number
+  category?: string
+  brand?: string
+  onSale?: boolean
+  inStock?: boolean
+}
+
+/** Explicit product query for builder widgets (ignores the page URL filters). */
+export function useProductQuery(query: ProductQuery): { products: ShopProduct[]; loading: boolean } {
+  const { sort = "newest", limit, category = "", brand = "", onSale = false, inStock = false } = query
+  const [state, setState] = useState<{ products: ShopProduct[]; loading: boolean }>({ products: [], loading: true })
+
+  useEffect(() => {
+    let cancel = false
+    const params = new URLSearchParams({
+      per_page: String(Math.max(1, Math.min(48, limit))),
+      page: "1",
+      sort: apiSort(sort),
+    })
+    if (category) params.set("category", category)
+    if (brand) params.set("brand", brand)
+    if (onSale) params.set("on_sale", "1")
+    if (inStock) params.set("in_stock", "1")
+    void fetchCatalogPayload(params.toString()).then((payload) => {
+      if (cancel) return
+      setState({ products: payload ? payload.items.slice(0, limit) : [], loading: false })
+    })
+    return () => {
+      cancel = true
+    }
+  }, [brand, category, inStock, limit, onSale, sort])
 
   return state
 }

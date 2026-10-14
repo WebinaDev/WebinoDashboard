@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode, type CSSProperties } from "react"
 
 import { useCatalog, useFeaturedProducts } from "@/builder/storefront/use-catalog"
 import type { ShopProduct } from "@/builder/catalog"
@@ -20,6 +20,7 @@ import {
 } from "./icons"
 import { WebinaCredit } from "@/components/brand/WebinaCredit"
 import { ClassicAmount } from "./parts"
+import { useClassicText } from "../lib/texts"
 
 const FALLBACK_GUIDE = {
   title: "راهنمای مشتریان",
@@ -170,6 +171,7 @@ export function ClassicFooter({
   about?: string
   address?: string
 }) {
+  const tx = useClassicText()
   const theme = useClassicThemeSettings()
   const cfg = theme.footer ?? {}
   const limit = Math.max(1, Math.min(20, Number(cfg.bestsellers_limit ?? 6) || 6))
@@ -210,6 +212,16 @@ export function ClassicFooter({
   const aboutText = String(cfg.about || about || "")
   const footerLogo = String(cfg.footer_logo || "")
   const copyrightYears = String(cfg.copyright_years || "").trim()
+  const legacyCopyright = String(cfg.copyright || "").trim()
+  const copyrightSub = String(cfg.copyright_sub || "").trim()
+  const showCredit = cfg.show_developer_credit !== false
+  const developerTitle = String(cfg.developer_title || "").trim()
+  const developerName = String(cfg.developer_name || "").trim()
+  const developerLink = String(cfg.developer_link || "").trim()
+  const developerLogo = String(cfg.developer_logo || "").trim()
+  const emailTitle = String(cfg.support_email_title || "").trim()
+  const addressTitle = String(cfg.address_title || "").trim()
+  const footerCols = Math.max(1, Math.min(6, Number(theme.footer_columns ?? 0) || 0))
 
   const socials = SOCIAL_DEFS.map((def) => ({
     ...def,
@@ -236,7 +248,7 @@ export function ClassicFooter({
           </div>
         ) : null}
 
-        <div className="sfc-footer__board">
+        <div className="sfc-footer__board" style={footerCols ? ({ "--sfc-footer-cols": String(footerCols) } as CSSProperties) : undefined} data-cols={footerCols || undefined}>
           {linkColumns.map((col, idx) => (
             <nav key={`${col.title}-${idx}`} className="sfc-footer__col" aria-label={col.title}>
               <h3 className="sfc-footer__title">{col.title || FALLBACK_GUIDE.title}</h3>
@@ -268,6 +280,7 @@ export function ClassicFooter({
           {showRecent ? <ProductSlideList title={recentTitle} products={recent} /> : null}
 
           <div className="sfc-footer__trust-social">
+            {hasNamad || trustText ? (
             <div className="sfc-footer__trust">
               <h3 className="sfc-footer__title">
                 {trustTitle}
@@ -289,9 +302,10 @@ export function ClassicFooter({
                     dangerouslySetInnerHTML={{ __html: cfg.ecommerce_badge_html }}
                   />
                 ) : null}
-                {!hasNamad ? <span className="sfc-footer__namad-item">نماد اعتماد</span> : null}
+                
               </div>
             </div>
+            ) : null}
 
             {socials.length ? (
               <div className="sfc-footer__social-block">
@@ -338,12 +352,14 @@ export function ClassicFooter({
             {supportEmail ? (
               <a href={`mailto:${supportEmail}`} className="sfc-footer__row">
                 <IconMail size={16} />
+                {emailTitle ? <span className="sfc-footer__row-label">{emailTitle}:</span> : null}
                 <span dir="ltr">{supportEmail}</span>
               </a>
             ) : null}
             {addressText ? (
               <div className="sfc-footer__row">
                 <IconPin size={16} />
+                {addressTitle ? <span className="sfc-footer__row-label">{addressTitle}:</span> : null}
                 <span>{addressText}</span>
               </div>
             ) : null}
@@ -376,7 +392,7 @@ export function ClassicFooter({
             <i className="sfc-chip-arrow sfc-chip-arrow--up" aria-hidden="true">
               <IconChevronLeft size={14} />
             </i>
-            <span>برگشت به بالا</span>
+            <span>{tx("footer.back_to_top")}</span>
           </button>
           <span className="sfc-footer__totop-line" aria-hidden="true" />
         </div>
@@ -411,12 +427,29 @@ export function ClassicFooter({
 
         <div className="sfc-footer__copy">
           <div className="sfc-footer__copy-main">
-            <span>
-              تمامی حقوق برای <strong>{siteName}</strong> محفوظ است.
-            </span>
+            <span>{legacyCopyright || tx("footer.rights", { site: siteName })}</span>
             {copyrightYears ? <span className="sfc-footer__copy-years">{copyrightYears}</span> : null}
+            {copyrightSub ? <span className="sfc-footer__copy-sub">{copyrightSub}</span> : null}
           </div>
-          <WebinaCredit />
+          {showCredit ? (
+            developerName ? (
+              <a
+                className="sfc-footer__credit"
+                href={developerLink || undefined}
+                target={developerLink.startsWith("http") ? "_blank" : undefined}
+                rel={developerLink.startsWith("http") ? "noreferrer" : undefined}
+              >
+                {developerLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={developerLogo} alt="" width={20} height={20} />
+                ) : null}
+                {developerTitle ? <span>{developerTitle}</span> : null}
+                <strong>{developerName}</strong>
+              </a>
+            ) : (
+              <WebinaCredit />
+            )
+          ) : null}
         </div>
       </div>
     </footer>

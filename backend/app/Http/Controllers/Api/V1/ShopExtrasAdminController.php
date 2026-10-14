@@ -140,6 +140,8 @@ class ShopExtrasAdminController extends Controller
             'footer' => ['sometimes', 'array'],
             'commerce' => ['sometimes', 'array'],
             'archive' => ['sometimes', 'array'],
+            'home' => ['sometimes', 'array'],
+            'texts' => ['sometimes', 'array'],
         ]);
 
         return response()->json(['data' => $appearance->save((int) $request->user()->tenant_id, $data)]);

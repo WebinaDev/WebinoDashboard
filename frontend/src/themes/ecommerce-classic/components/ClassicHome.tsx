@@ -4,7 +4,8 @@ import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { toneClass, type ShopProduct } from "@/builder/catalog"
-import { useCatalog, type CatalogState } from "@/builder/storefront/use-catalog"
+import { useCatalog, useProductQuery, type CatalogState } from "@/builder/storefront/use-catalog"
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 
 import {
@@ -20,6 +21,7 @@ import {
 } from "./icons"
 import { ClassicProductCard } from "./ClassicProductCard"
 import { ClassicAmount, ClassicSectionHead, useDigits } from "./parts"
+import { useClassicText } from "../lib/texts"
 
 function imageForCategory(catalog: CatalogState, slug: string, name: string): string | null {
   const hit = catalog.products.find((p) => (p.categorySlug === slug || p.category === name) && p.image)
@@ -81,6 +83,7 @@ function ClassicStoryViewer({
   onClose: () => void
   onIndex: (i: number) => void
 }) {
+  const tx = useClassicText()
   const story = stories[index]
   const [progress, setProgress] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -180,7 +183,7 @@ function ClassicStoryViewer({
             </span>
           ) : null}
           <Link href={story.href} className="sfc-story-viewer__btn" onClick={onClose}>
-            {story.productName ? `مشاهده ${story.productName}` : "مشاهده محصول"}
+            {story.productName ? `${tx("home.story_view_product").split(" ")[0]} ${story.productName}` : tx("home.story_view_product")}
           </Link>
         </div>
         <div className="sfc-story-viewer__nav">
@@ -200,6 +203,8 @@ function ClassicStoryViewer({
 }
 
 export function ClassicStoryStrip({ title }: { title?: string }) {
+  const tx = useClassicText()
+  const theme = useClassicThemeSettings()
   const catalog = useCatalog(16)
   const [remote, setRemote] = useState<Story[] | null>(null)
   const [viewer, setViewer] = useState<number | null>(null)
@@ -260,16 +265,20 @@ export function ClassicStoryStrip({ title }: { title?: string }) {
     })
   }, [catalog.products, remote])
 
-  const fallback: Story[] = catalog.products.slice(0, 14).map((p, i) => ({
-    id: p.slug,
-    title: p.name,
-    image: p.image ?? null,
-    href: `/product/${p.slug}`,
-    badge: p.compare ? "تخفیف" : p.isNew || i % 4 === 1 ? "جدید" : undefined,
-    productSlug: p.slug,
-    productName: p.name,
-    productPrice: p.price,
-  }))
+  // Product-derived stories are opt-in (Theme Settings → خانه → «ساخت استوری از محصولات»), never silent demo data.
+  const productStoriesFallback = theme.home?.stories_from_products === true
+  const fallback: Story[] = productStoriesFallback
+    ? catalog.products.slice(0, Math.max(1, Number(theme.home?.stories_count) || 14)).map((p) => ({
+        id: p.slug,
+        title: p.name,
+        image: p.image ?? null,
+        href: `/product/${p.slug}`,
+        badge: p.compare ? tx("home.badge_sale") : p.isNew ? tx("home.badge_new") : undefined,
+        productSlug: p.slug,
+        productName: p.name,
+        productPrice: p.price,
+      }))
+    : []
   const stories = storiesEnriched && storiesEnriched.length ? storiesEnriched : fallback
   if (!stories.length) return null
 
@@ -319,14 +328,16 @@ const HERO_DEFAULTS = [
 ]
 
 export function ClassicHero({ slidesText, height }: { slidesText?: string; height?: number }) {
-  const parsed = lines(slidesText ?? "").map(([title, kicker, href, image, sub]) => ({
+  const tx = useClassicText()
+  const parsed = lines(slidesText ?? "").map(([title, kicker, href, image, sub, cta]) => ({
     title: title || "",
     kicker: kicker || "",
     href: href || "/shop",
     image: image || "",
     sub: sub || "",
+    cta: cta || "",
   }))
-  const slides = parsed.length ? parsed : HERO_DEFAULTS.map((s) => ({ ...s, image: "" }))
+  const slides = parsed.length ? parsed : HERO_DEFAULTS.map((s) => ({ ...s, image: "", cta: "" }))
   const [index, setIndex] = useState(0)
   const count = slides.length
   useEffect(() => {
@@ -352,7 +363,7 @@ export function ClassicHero({ slidesText, height }: { slidesText?: string; heigh
               {s.kicker ? <span className="sfc-hero__kicker">{s.kicker}</span> : null}
               <strong className="sfc-hero__title">{s.title}</strong>
               {s.sub ? <span className="sfc-hero__sub">{s.sub}</span> : null}
-              <span className="sfc-hero__cta">مشاهده محصولات</span>
+              <span className="sfc-hero__cta">{s.cta || tx("home.cta_view_products")}</span>
               <span className="sfc-hero__corner sfc-hero__corner--bottom" aria-hidden="true" />
             </span>
           </Link>
@@ -385,6 +396,7 @@ export function ClassicHero({ slidesText, height }: { slidesText?: string; heigh
 /* --------------------------------------------- pink category tiles + offer */
 
 export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
+  const tx = useClassicText()
   const catalog = useCatalog(16)
   const digits = useDigits()
   const [now, setNow] = useState<number | null>(null)
@@ -401,11 +413,10 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
         href: `/shop?category=${c.slug}`,
         image: imageForCategory(catalog, c.slug, c.name),
       }))
-  const offer = catalog.products.find((p) => p.compare && p.compare > p.price) ?? catalog.products[0]
+  const offer = catalog.products.find((p) => p.compare && p.compare > p.price)
   const off = offer?.compare && offer.compare > offer.price ? Math.round((1 - offer.price / offer.compare) * 100) : 0
-  const left = typeof offer?.stock === "number" ? Math.max(0, offer.stock) : 1
-  const sold = Math.max(0, 12 - left)
-  const total = Math.max(left + sold, 1)
+  // Real stock only; without stock data the progress block is hidden (no invented "sold" counts).
+  const left = typeof offer?.stock === "number" ? Math.max(0, offer.stock) : null
   const end = new Date()
   end.setHours(23, 59, 59, 0)
   const diff = now == null ? 0 : Math.max(0, end.getTime() - now)
@@ -445,14 +456,13 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
           </div>
           <div className="sfc-offer__foot">
             <div className="sfc-offer__stock">
-              <span className="sfc-offer__left">{digits(left)}</span>
+              <span className="sfc-offer__left">{digits(left ?? 0)}</span>
               <div className="sfc-offer__progress">
                 <div className="sfc-offer__progress-title">
-                  <span>عدد باقی‌مانده</span>
-                  <span>{digits(sold)} فروخته‌شده</span>
+                  <span>{tx("home.remaining_label")}</span>
                 </div>
                 <div className="sfc-offer__bars">
-                  <span style={{ width: `${(left / total) * 100}%` }} />
+                  <span style={{ width: `${Math.min(100, ((left ?? 0) / Math.max(left ?? 0, 10)) * 100)}%` }} />
                 </div>
               </div>
             </div>
@@ -470,8 +480,9 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
 /* ------------------------------------------------------ icon category grid */
 
 export function ClassicIconCategories({ title, variant = "home" }: { title?: string; variant?: "home" | "archive" }) {
+  const homeCfg = useClassicThemeSettings().home ?? {}
   const catalog = useCatalog(16)
-  const items = catalog.categories.slice(0, variant === "archive" ? 8 : 6)
+  const items = catalog.categories.slice(0, variant === "archive" ? 8 : Math.max(1, Number(homeCfg.icon_categories_limit) || 6))
   return (
     <section className={`sfc-catgrid sfc-catgrid--${variant}`}>
       {title ? <ClassicSectionHead title={title} href="/shop" /> : null}
@@ -507,6 +518,7 @@ export function ClassicProductRow({
   more?: string
   tone?: "light" | "pink"
 }) {
+  const tx = useClassicText()
   const track = useRef<HTMLDivElement>(null)
   const scroll = (dir: 1 | -1) => {
     const el = track.current
@@ -516,7 +528,7 @@ export function ClassicProductRow({
   if (!products.length) return null
   return (
     <section className={`sfc-row sfc-row--${tone}`}>
-      <ClassicSectionHead title={title} href={href} more={more ?? "مشاهده همه محصولات"} />
+      <ClassicSectionHead title={title} href={href} more={more ?? tx("home.view_all_products")} />
       <div className="sfc-row__viewport">
         <div className="sfc-row__track" ref={track}>
           {products.map((p) => (
@@ -545,6 +557,8 @@ const PROMO_DEFAULTS = [
 ]
 
 export function ClassicPromoTrio({ itemsText }: { itemsText?: string }) {
+  const homeCfg = useClassicThemeSettings().home ?? {}
+  const tx = useClassicText()
   const parsed = lines(itemsText ?? "").map(([title, kicker, href, image, tone]) => ({
     title: title || "",
     kicker: kicker || "",
@@ -555,7 +569,7 @@ export function ClassicPromoTrio({ itemsText }: { itemsText?: string }) {
   const items = parsed.length ? parsed : PROMO_DEFAULTS
   return (
     <section className="sfc-promos">
-      {items.slice(0, 3).map((item) => (
+      {items.slice(0, Math.max(1, Number(homeCfg.promo_limit) || 3)).map((item) => (
         <Link key={item.title + item.href} href={item.href} className={`sfc-promo sfc-promo--${item.tone}`}>
           {item.image ? <img src={item.image} alt="" className="sfc-promo__img" loading="lazy" /> : null}
           <span className="sfc-promo__corner sfc-promo__corner--a" aria-hidden="true" />
@@ -563,7 +577,7 @@ export function ClassicPromoTrio({ itemsText }: { itemsText?: string }) {
           <span className="sfc-promo__copy">
             <span className="sfc-promo__kicker">{item.kicker}</span>
             <strong className="sfc-promo__title">{item.title}</strong>
-            <span className="sfc-promo__cta">مشاهده محصولات</span>
+            <span className="sfc-promo__cta">{tx("home.cta_view_products")}</span>
           </span>
         </Link>
       ))}
@@ -574,13 +588,13 @@ export function ClassicPromoTrio({ itemsText }: { itemsText?: string }) {
 /* ----------------------------------------------------- numbered bestsellers */
 
 export function ClassicBestSellers({ title, limit = 9 }: { title?: string; limit?: number }) {
-  const catalog = useCatalog(Math.max(limit, 9))
+  const tx = useClassicText()
+  const { products: rows } = useProductQuery({ sort: "best_selling", limit })
   const digits = useDigits()
-  const rows = catalog.products.slice().reverse().slice(0, limit)
   if (!rows.length) return null
   return (
     <section className="sfc-best">
-      <ClassicSectionHead title={title || "پرفروش‌ترین محصولات"} href="/shop?sort=featured" />
+      <ClassicSectionHead title={title || tx("home.best_sellers_title")} href="/shop?sort=best" />
       <div className="sfc-best__grid">
         {rows.map((p, i) => (
           <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-best__item">
@@ -605,6 +619,8 @@ export function ClassicBestSellers({ title, limit = 9 }: { title?: string; limit
 /* ---------------------------------------------------------------- brands */
 
 export function ClassicBrandGrid({ title }: { title?: string }) {
+  const tx = useClassicText()
+  const homeCfg = useClassicThemeSettings().home ?? {}
   const catalog = useCatalog(24)
   const digits = useDigits()
   const brands = catalog.brands
@@ -616,15 +632,15 @@ export function ClassicBrandGrid({ title }: { title?: string }) {
   if (!brands.length) return null
   return (
     <section className="sfc-brands">
-      <ClassicSectionHead title={title || "برندهای محبوب"} href="/shop" />
+      <ClassicSectionHead title={title || tx("home.brands_title")} href="/shop" />
       <div className="sfc-brands__grid">
-        {brands.slice(0, 12).map((brand) => {
+        {brands.slice(0, Math.max(1, Number(homeCfg.brands_limit) || 12)).map((brand) => {
           const logo = catalog.products.find((p) => (p.brandSlug === brand.slug || p.brand === brand.name) && p.image)?.image
           return (
             <Link key={brand.slug} href={`/shop?brand=${encodeURIComponent(brand.slug)}`} className="sfc-brand">
               <span className="sfc-brand__logo">{logo ? <img src={logo} alt="" loading="lazy" /> : <span>{brand.name}</span>}</span>
               <span className="sfc-brand__name">{brand.name}</span>
-              <span className="sfc-brand__count">{digits(counts.get(brand.slug) ?? counts.get(brand.name) ?? 0)} کالا</span>
+              <span className="sfc-brand__count">{digits(counts.get(brand.slug) ?? counts.get(brand.name) ?? 0)} {tx("home.items_suffix")}</span>
             </Link>
           )
         })}
@@ -638,6 +654,9 @@ export function ClassicBrandGrid({ title }: { title?: string }) {
 type Post = { slug: string; title: string; excerpt?: string; cover_url?: string; published_at?: string }
 
 export function ClassicBlogBlock({ title }: { title?: string }) {
+  const homeCfg = useClassicThemeSettings().home ?? {}
+  const blogLimit = Math.max(1, Number(homeCfg.blog_limit) || 5)
+  const tx = useClassicText()
   const [posts, setPosts] = useState<Post[]>([])
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_API_URL ?? ""
@@ -645,16 +664,16 @@ export function ClassicBlogBlock({ title }: { title?: string }) {
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         const items = Array.isArray(json?.data) ? json.data : Array.isArray(json?.data?.items) ? json.data.items : []
-        setPosts(items.slice(0, 5))
+        setPosts(items.slice(0, blogLimit))
       })
       .catch(() => setPosts([]))
-  }, [])
+  }, [blogLimit])
   const list = posts
   const [lead, ...rest] = list
   if (!lead) return null
   return (
     <section className="sfc-blog">
-      <ClassicSectionHead title={title || "مجله"} href="/blog" more="مشاهده همه مقالات" />
+      <ClassicSectionHead title={title || tx("home.blog_title")} href="/blog" more={tx("home.blog_view_all")} />
       <div className="sfc-blog__grid">
         <Link href={`/blog/${lead.slug}`} className="sfc-blog__lead">
           {lead.cover_url ? <img src={lead.cover_url} alt="" loading="lazy" /> : <span className="sfc-blog__ph" />}
@@ -671,7 +690,7 @@ export function ClassicBlogBlock({ title }: { title?: string }) {
                 <strong>{post.title}</strong>
                 {post.excerpt ? <span>{post.excerpt}</span> : null}
                 <span className="sfc-blog__more">
-                  ادامه مطلب <IconChevronLeft size={12} />
+                  {tx("blog.read_more")} <IconChevronLeft size={12} />
                 </span>
               </span>
             </Link>
@@ -685,6 +704,7 @@ export function ClassicBlogBlock({ title }: { title?: string }) {
 /* ------------------------------------------------------- recently viewed */
 
 export function ClassicRecentlyViewed({ title }: { title?: string }) {
+  const tx = useClassicText()
   const catalog = useCatalog(48)
   const [slugs, setSlugs] = useState<string[]>([])
   useEffect(() => {
@@ -700,12 +720,14 @@ export function ClassicRecentlyViewed({ title }: { title?: string }) {
     .map((slug) => catalog.products.find((p) => p.slug === slug))
     .filter((p): p is ShopProduct => Boolean(p))
   if (!products.length) return null
-  return <ClassicProductRow title={title || "بازدیدهای اخیر شما"} products={products} href="/shop" more="مشاهده همه" />
+  return <ClassicProductRow title={title || tx("home.recent_title")} products={products} href="/shop" more={tx("home.view_all")} />
 }
 
 /* ------------------------------------------------- amazing offers pink band */
 
 export function ClassicAmazingBand({ title }: { title?: string }) {
+  const tx = useClassicText()
+  const theme = useClassicThemeSettings()
   const catalog = useCatalog(24)
   const digits = useDigits()
   const track = useRef<HTMLDivElement>(null)
@@ -716,7 +738,8 @@ export function ClassicAmazingBand({ title }: { title?: string }) {
     return () => window.clearInterval(timer)
   }, [])
   const offers = catalog.products.filter((p) => p.compare && p.compare > p.price)
-  const list = (offers.length ? offers : catalog.products).slice(0, 10)
+  // Only real discounts are shown as «شگفت‌انگیز»; no discounted products → section hides.
+  const list = offers.slice(0, Math.max(1, Number(theme.home?.amazing_limit) || 10))
   if (!list.length) return null
   const end = new Date()
   end.setHours(23, 59, 59, 0)
@@ -725,7 +748,7 @@ export function ClassicAmazingBand({ title }: { title?: string }) {
   return (
     <section className="sfc-amazing">
       <div className="sfc-amazing__intro">
-        <strong className="sfc-amazing__title">{title || "پیشنهاد شگفت‌انگیز"}</strong>
+        <strong className="sfc-amazing__title">{title || tx("home.amazing_title")}</strong>
         <div className="sfc-amazing__timer" dir="ltr">
           {hms.map((v, i) => (
             <span key={i}>
@@ -736,7 +759,7 @@ export function ClassicAmazingBand({ title }: { title?: string }) {
           ))}
         </div>
         <Link href="/amazing-offers" className="sfc-amazing__all">
-          مشاهده همه <IconChevronLeft size={14} />
+          {tx("home.view_all")} <IconChevronLeft size={14} />
         </Link>
       </div>
       <div className="sfc-amazing__track" ref={track}>
@@ -754,8 +777,10 @@ export function ClassicAmazingBand({ title }: { title?: string }) {
 /* -------------------------------------------------------------- taste box */
 
 export function ClassicTasteBox({ title }: { title?: string }) {
+  const homeCfg = useClassicThemeSettings().home ?? {}
+  const tx = useClassicText()
   const catalog = useCatalog(24)
-  const groups = catalog.categories.slice(0, 3).map((cat) => {
+  const groups = catalog.categories.slice(0, Math.max(1, Number(homeCfg.taste_groups) || 3)).map((cat) => {
     const kids = cat.children?.length ? cat.children : [{ slug: cat.slug, name: cat.name, tone: cat.tone }]
     const products = catalog.products
       .filter((p) => p.categorySlug === cat.slug || p.category === cat.name || kids.some((k) => k.slug === p.categorySlug))
@@ -769,12 +794,12 @@ export function ClassicTasteBox({ title }: { title?: string }) {
         <div className="sfc-taste__title">
           <IconBag size={22} />
           <div>
-            <strong>{title || "پیشنهاد برای سلیقه شما"}</strong>
-            <span>بر اساس دسته‌های محبوب فروشگاه</span>
+            <strong>{title || tx("home.taste_title")}</strong>
+            {tx("home.taste_subtitle") ? <span>{tx("home.taste_subtitle")}</span> : null}
           </div>
         </div>
         <Link href="/shop" className="sfc-taste__more">
-          مشاهده همه <IconChevronLeft size={14} />
+          {tx("home.view_all")} <IconChevronLeft size={14} />
         </Link>
       </div>
       <div className="sfc-taste__body">
@@ -804,7 +829,7 @@ export function ClassicTasteBox({ title }: { title?: string }) {
                 </Link>
               ))}
               <Link href={`/shop?category=${cat.slug}`} className="sfc-taste__showmore">
-                <span>بیشتر</span>
+                <span>{tx("home.more_label")}</span>
                 <IconChevronLeft size={14} />
               </Link>
             </div>
@@ -818,6 +843,7 @@ export function ClassicTasteBox({ title }: { title?: string }) {
 /* ----------------------------------------------------- special banners */
 
 export function ClassicSpecialBanners({ title }: { title?: string }) {
+  const tx = useClassicText()
   const catalog = useCatalog(16)
   const digits = useDigits()
   const [now, setNow] = useState<number | null>(null)
@@ -827,7 +853,7 @@ export function ClassicSpecialBanners({ title }: { title?: string }) {
     return () => window.clearInterval(timer)
   }, [])
   const offers = catalog.products.filter((p) => p.compare && p.compare > p.price)
-  const list = (offers.length ? offers : catalog.products).slice(0, 8)
+  const list = offers.slice(0, 8)
   if (!list.length) return null
   const end = new Date()
   end.setHours(23, 59, 59, 0)
@@ -842,7 +868,7 @@ export function ClassicSpecialBanners({ title }: { title?: string }) {
         <div className="sfc-special__banner">
           <div className="sfc-special__banner-head">
             <span className="sfc-special__badge">٪</span>
-            <strong>پیشنهادهای ویژه امروز</strong>
+            <strong>{tx("home.special_title")}</strong>
             <div className="sfc-special__timer" dir="ltr">
               {hms.map((v, i) => (
                 <span key={i}>

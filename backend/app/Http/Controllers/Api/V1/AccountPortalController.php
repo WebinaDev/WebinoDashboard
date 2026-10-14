@@ -145,12 +145,13 @@ class AccountPortalController extends Controller
             : Product::query()
                 ->where('tenant_id', $user->tenant_id)
                 ->whereIn('id', $ids)
-                ->get(['id', 'name', 'slug', 'sku', 'price_minor', 'sale_price_minor', 'sale_starts_at', 'sale_ends_at', 'currency'])
+                ->get(['id', 'name', 'slug', 'sku', 'price_minor', 'sale_price_minor', 'sale_starts_at', 'sale_ends_at', 'currency', 'cover_image_url', 'image_url'])
                 ->map(fn (Product $p) => [
                     'id' => $p->id,
                     'name' => $p->name,
                     'slug' => $p->slug,
                     'sku' => $p->sku,
+                    'image_url' => $p->cover_image_url ?: $p->image_url,
                     'price_minor' => $p->price_minor,
                     'sale_price_minor' => $p->effectiveSalePriceMinor(),
                     'currency' => $p->currency,

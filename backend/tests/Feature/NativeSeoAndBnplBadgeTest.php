@@ -137,4 +137,21 @@ class NativeSeoAndBnplBadgeTest extends TestCase
             ->assertJsonPath('data.primary_color', '#112233')
             ->assertJsonPath('data.show_installment_badge', true);
     }
+
+    public function test_storefront_appearance_persists_commerce_home_and_texts(): void
+    {
+        $this->putJson('/api/v1/shop/storefront-appearance', [
+            'commerce' => ['wishlist_enabled' => false, 'checkout_show_postcode' => false, 'free_shipping_threshold' => 900000],
+            'home' => ['amazing_limit' => 6, 'stories_from_products' => true],
+            'texts' => ['cart' => ['empty_title' => 'سبد شما خالی است']],
+        ])->assertOk();
+
+        $data = $this->getJson('/api/v1/shop/storefront-appearance')->assertOk()->json('data');
+        $this->assertFalse($data['commerce']['wishlist_enabled']);
+        $this->assertFalse($data['commerce']['checkout_show_postcode']);
+        $this->assertSame(6, (int) $data['home']['amazing_limit']);
+        $this->assertTrue((bool) $data['home']['stories_from_products']);
+        $this->assertSame('سبد شما خالی است', $data['texts']['cart']['empty_title']);
+        $this->assertArrayHasKey('view_all', $data['texts']['home']);
+    }
 }

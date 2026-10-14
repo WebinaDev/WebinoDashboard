@@ -3,7 +3,8 @@
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState, type ReactNode } from "react"
 
 import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
@@ -35,19 +36,45 @@ import {
 } from "./icons"
 import { promoStatsForProduct } from "@/themes/ecommerce-classic/lib/classic-chrome"
 import { ClassicAmount, ClassicRating, rememberViewedProduct, useDigits } from "./parts"
+import { useClassicText } from "../lib/texts"
 
-export function ClassicTrustStrip() {
-  const items = [
-    { icon: <IconTruck size={22} />, title: "ارسال سریع", text: "امکان تحویل اکسپرس" },
-    { icon: <IconCard size={22} />, title: "پرداخت", text: "امکان پرداخت اقساطی" },
-    { icon: <IconShield size={22} />, title: "ضمانت", text: "هفت روز ضمانت بازگشت کالا" },
-    { icon: <IconBadge size={22} />, title: "اصالت", text: "تضمین اصالت و اورجینال بودن کالا" },
-  ]
+const TRUST_DEFAULTS = [
+  { title: "ارسال سریع", text: "امکان تحویل اکسپرس", icon: "truck" },
+  { title: "پرداخت", text: "امکان پرداخت اقساطی", icon: "card" },
+  { title: "ضمانت", text: "هفت روز ضمانت بازگشت کالا", icon: "shield" },
+  { title: "اصالت", text: "تضمین اصالت و اورجینال بودن کالا", icon: "badge" },
+]
+
+function trustIcon(icon: string): ReactNode {
+  const key = icon.trim().toLowerCase()
+  if (key === "truck") return <IconTruck size={22} />
+  if (key === "card") return <IconCard size={22} />
+  if (key === "shield") return <IconShield size={22} />
+  if (/^https?:\/\//i.test(icon) || icon.startsWith("/")) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={icon} alt="" width={22} height={22} />
+  }
+  return <IconBadge size={22} />
+}
+
+/** Trust row. Items come from props (builder widget), else Theme Settings → فوتر → نشان‌های خدمات, else defaults. */
+export function ClassicTrustStrip({ items }: { items?: { title?: string; text?: string; icon?: string }[] } = {}) {
+  const theme = useClassicThemeSettings()
+  const configured = Array.isArray(theme.footer?.service_badges) ? theme.footer?.service_badges : []
+  const source = items && items.length ? items : configured && configured.length ? configured : TRUST_DEFAULTS
+  const rows = source
+    .map((item) => ({
+      title: String(item.title ?? ""),
+      text: String(item.text ?? ""),
+      icon: String(item.icon ?? (item as { image?: string }).image ?? "badge"),
+    }))
+    .filter((row) => row.title || row.text)
+  if (!rows.length) return null
   return (
     <div className="sfc-trust">
-      {items.map((item) => (
-        <div key={item.title} className="sfc-trust__item">
-          <span className="sfc-trust__icon">{item.icon}</span>
+      {rows.map((item, index) => (
+        <div key={`${item.title}-${index}`} className="sfc-trust__item">
+          <span className="sfc-trust__icon">{trustIcon(item.icon)}</span>
           <div>
             <strong>{item.title}</strong>
             <span>{item.text}</span>
@@ -76,6 +103,7 @@ function Stepper({ qty, max, onChange }: { qty: number; max: number; onChange: (
 }
 
 export function ClassicProduct({ slug, editing }: { slug?: string; editing: boolean }) {
+  const tx = useClassicText()
   const digits = useDigits()
   const theme = useClassicThemeSettings()
   const commerce = theme.commerce ?? {}
@@ -90,6 +118,12 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   const showFakeStats = Boolean(commerce.fake_stats_enabled)
   const showInstallmentBox = commerce.installment_enabled !== false
   const showShipping = commerce.shipping_text_enabled !== false
+  const ajaxAdd = commerce.ajax_add_to_cart !== false
+  const importantAttrs = Math.max(0, Math.min(20, Number(commerce.important_attrs_count ?? 4) || 0))
+  const showFaqTab = commerce.product_faq_tab !== false
+  const showSpecTab = commerce.product_spec_tab !== false
+  const wishlistEnabled = commerce.wishlist_enabled !== false
+  const router = useRouter()
   const catalog = useCatalog(8)
   const [remote, setRemote] = useState<ShopProduct | null | undefined>(undefined)
   const [qty, setQty] = useState(1)
@@ -149,7 +183,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   }, [lightbox, galleryLen])
 
   if (!product) {
-    return <p className="sfc-container sfc-empty-note">محصولی پیدا نشد.</p>
+    return <p className="sfc-container sfc-empty-note">{tx("product.not_found")}</p>
   }
 
   const variant = product.variants.find((item) => item.id === variantId) ?? null
@@ -171,13 +205,20 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   function add() {
     if (editing || blocked || !product) return
     trackAnalyticsEvent("add_to_cart", { productId: product.id })
-    void addShopItem(product, qty).then((result) => setNote(result === "error" ? "افزودن ناموفق بود." : "به سبد خرید افزوده شد."))
+    void addShopItem(product, qty).then((result) => {
+      if (result !== "error" && !ajaxAdd) {
+        // Theme Settings → «افزودن به سبد بدون رفرش» off: go to the cart like a classic form post.
+        router.push("/cart")
+        return
+      }
+      setNote(result === "error" ? "افزودن ناموفق بود." : "به سبد خرید افزوده شد.")
+    })
   }
 
   const attrs: { label: string; value: string }[] = [
     { label: "برند", value: product.brand },
     { label: "دسته‌بندی", value: product.category },
-    { label: "وضعیت", value: product.inStock ? "موجود در انبار" : "ناموجود" },
+    { label: "وضعیت", value: product.inStock ? tx("product.in_stock") : tx("product.out_of_stock") },
   ]
   if (typeof stock === "number") attrs.push({ label: "موجودی", value: `${digits(stock)} عدد` })
   if (product.variants.length) attrs.push({ label: "تنوع", value: `${digits(product.variants.length)} مدل` })
@@ -202,7 +243,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               <Link href={`/shop?brand=${encodeURIComponent(product.brandSlug)}`} className="sfc-tag sfc-tag--alt">
                 {product.brand}
               </Link>
-              {product.isNew ? <span className="sfc-tag sfc-tag--pink">جدید</span> : null}
+              {product.isNew ? <span className="sfc-tag sfc-tag--pink">{tx("product.new_badge")}</span> : null}
             </div>
             <h1 className="sfc-pdp__title">{product.name}</h1>
             <p className="sfc-pdp__sub">{product.brand}</p>
@@ -213,6 +254,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               <span className="sfc-pdp__rail-rating">
                 {showRating ? <ClassicRating value={product.rating} /> : null}
               </span>
+              {wishlistEnabled ? (
               <button
                 type="button"
                 aria-label="علاقه‌مندی"
@@ -225,6 +267,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               >
                 <IconHeart size={20} filled={liked} />
               </button>
+              ) : null}
               {showShare ? (
                 <button
                   type="button"
@@ -296,12 +339,12 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               <div className="sfc-attrs">
                 {showRating ? (
                   <a href="#sfc-reviews" className="sfc-attr sfc-attr--rating">
-                    <span className="sfc-attr__label">امتیاز و دیدگاه</span>
+                    <span className="sfc-attr__label">{tx("product.rating_label")}</span>
                     <ClassicRating value={product.rating} />
                     <IconChevronLeft size={16} className="sfc-attr__chev" />
                   </a>
                 ) : null}
-                {attrs.map((a) => (
+                {attrs.slice(0, importantAttrs).map((a) => (
                   <div key={a.label} className="sfc-attr">
                     <span className="sfc-attr__label">{a.label}</span>
                     <span className="sfc-attr__value">{a.value}</span>
@@ -314,13 +357,13 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                   <span>
                     {digits(promo.views)} بازدید · {digits(promo.sold)} فروش نمایشی
                   </span>
-                  <em>نمایش تشویقی</em>
+                  <em>{tx("product.stats_label")}</em>
                 </p>
               ) : null}
 
               {product.variants.length ? (
                 <div className="sfc-pdp__variants">
-                  <span className="sfc-divider-title">انتخاب مدل</span>
+                  <span className="sfc-divider-title">{tx("product.select_model")}</span>
                   <div className="sfc-pdp__variant-list">
                     {product.variants.map((item) => (
                       <button
@@ -337,16 +380,18 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                 </div>
               ) : null}
 
-              <span className="sfc-divider-title">مشاهده ویژگی‌های محصول</span>
+              <span className="sfc-divider-title">{tx("product.features_title")}</span>
               <p className={`sfc-pdp__desc ${expanded ? "is-open" : ""}`}>{product.description}</p>
               <button type="button" className="sfc-divider-title sfc-divider-title--btn" onClick={() => setExpanded((v) => !v)}>
-                {expanded ? "بستن توضیحات" : "مشاهده توضیحات محصول"}
+                {expanded ? tx("product.desc_close") : tx("product.desc_open")}
               </button>
 
-              <div className="sfc-notice">
-                <IconInfo size={18} />
-                <span>امکان برگشت کالا در گروه آرایشی و بهداشتی با دلیل «انصراف از خرید» تنها در صورتی مورد قبول است که پلمب کالا باز نشده باشد.</span>
-              </div>
+              {tx("product.return_notice") ? (
+                <div className="sfc-notice">
+                  <IconInfo size={18} />
+                  <span>{tx("product.return_notice")}</span>
+                </div>
+              ) : null}
 
               {!product.inStock ? (
                 <div id="sfc-stock-alert">
@@ -369,20 +414,20 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
 
           <div className="sfc-tabs" id="sfc-tabs">
             <div className="sfc-tabs__head">
-              <h2 className="sfc-tabs__title">{tab === "desc" ? "توضیحات" : tab === "spec" ? "مشخصات" : "پرسش‌ها"}</h2>
+              <h2 className="sfc-tabs__title">{tab === "desc" ? tx("product.tab_desc") : tab === "spec" ? tx("product.tab_spec") : tx("product.tab_faq")}</h2>
               <div className="sfc-tabs__links" role="tablist">
                 {(
                   [
-                    ["desc", "توضیحات"],
-                    ["spec", "توضیحات تکمیلی"],
-                    ["faq", "پرسش‌ها"],
+                    ["desc", tx("product.tab_desc")],
+                    ...(showSpecTab ? [["spec", tx("product.tab_spec")] as const] : []),
+                    ...(showFaqTab && product.faqs.length ? [["faq", tx("product.tab_faq")] as const] : []),
                   ] as const
                 ).map(([id, label]) => (
                   <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)}>
                     {label}
                   </button>
                 ))}
-                <a href="#sfc-reviews">نظرات</a>
+                <a href="#sfc-reviews">{tx("product.tab_reviews")}</a>
               </div>
             </div>
             <div className="sfc-tabs__body">
@@ -412,11 +457,11 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                     ))}
                   </div>
                 ) : (
-                  <p className="sfc-empty-note">هنوز پرسشی ثبت نشده است.</p>
+                  <p className="sfc-empty-note">{tx("product.faq_empty")}</p>
                 )
               ) : (
                 <div className="sfc-prose">
-                  <h3>نقد و بررسی</h3>
+                  <h3>{tx("product.reviews_title")}</h3>
                   <p>{product.description}</p>
                 </div>
               )}
@@ -429,13 +474,15 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
 
         <aside className="sfc-pdp__buy">
           <div className="sfc-buy">
-            <div className="sfc-buy__row sfc-buy__row--ok">
-              <IconShield size={18} />
-              <span>۷ روز ضمانت بازگشت بی قید و شرط</span>
-            </div>
+            {tx("product.guarantee_text") ? (
+              <div className="sfc-buy__row sfc-buy__row--ok">
+                <IconShield size={18} />
+                <span>{tx("product.guarantee_text")}</span>
+              </div>
+            ) : null}
             <div className="sfc-buy__row">
               <span className={`sfc-dot ${product.inStock ? "is-ok" : "is-out"}`} aria-hidden="true" />
-              <span>{product.inStock ? "موجود در انبار" : "ناموجود"}</span>
+              <span>{product.inStock ? tx("product.in_stock") : tx("product.out_of_stock")}</span>
             </div>
             {typeof stock === "number" ? (
               <div className="sfc-buy__split">
@@ -456,7 +503,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
             <InstallmentBadges productId={product.id} amountMinor={price} />
             <Stepper qty={qty} max={maxQty} onChange={setQty} />
             <button type="button" className="sfc-btn sfc-btn--block sfc-btn--lg" disabled={editing || blocked} onClick={add}>
-              {blocked ? "ناموجود" : "افزودن به سبد خرید"}
+              {blocked ? tx("product.out_of_stock") : tx("product.add_to_cart")}
             </button>
             {note ? <p className="sfc-buy__note">{note}</p> : null}
             <div className="sfc-buy__price">
@@ -496,10 +543,14 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
       ) : null}
       {showInstallmentBox && (commerce.installment_title || commerce.installment_text) ? (
         <div className="sfc-container sfc-pdp__installment-box">
+          {commerce.installment_image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={commerce.installment_image} alt="" className="sfc-pdp__installment-img" loading="lazy" />
+          ) : null}
           {commerce.installment_title ? <strong>{commerce.installment_title}</strong> : null}
           {commerce.installment_text ? <p>{commerce.installment_text}</p> : null}
           {commerce.installment_link ? (
-            <a href={commerce.installment_link}>راهنمای خرید اقساطی</a>
+            <a href={commerce.installment_link}>{tx("product.installment_guide")}</a>
           ) : null}
         </div>
       ) : null}
@@ -517,7 +568,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
         >
           <ClassicAmount value={price} className="sfc-buy__now" />
           <button type="button" disabled={editing || blocked} onClick={add} className="sfc-btn">
-            افزودن به سبد خرید
+            {tx("product.add_to_cart")}
           </button>
         </div>
       ) : null}

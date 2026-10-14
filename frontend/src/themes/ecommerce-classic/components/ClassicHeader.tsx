@@ -46,6 +46,7 @@ import {
 } from "@/themes/ecommerce-classic/lib/classic-chrome"
 
 import { ClassicAmount, useDigits } from "./parts"
+import { useClassicText } from "../lib/texts"
 
 export const CLASSIC_NAV = [
   { label: "خانه", href: "/" },
@@ -151,13 +152,14 @@ function DeepMegaPanel({
   setActiveCat: (i: number) => void
   onClose: () => void
 }) {
+  const tx = useClassicText()
   const active = categories[activeCat] ?? categories[0]
   const children = active?.children ?? []
 
   if (!categories.length) {
     return (
       <div className="sfc-mega__panel sfc-mega__panel--empty" role="menu" aria-label="دسته‌بندی محصولات">
-        <p className="sfc-mega__empty">هنوز دسته‌بندی ثبت نشده است.</p>
+        <p className="sfc-mega__empty">{tx("header.mega_empty")}</p>
       </div>
     )
   }
@@ -187,13 +189,13 @@ function DeepMegaPanel({
       </ul>
       <div className="sfc-mega__childs">
         <Link href={`/shop?category=${active?.slug ?? ""}`} className="sfc-mega__all" onClick={onClose}>
-          همه محصولات {active?.name}
+          {tx("header.mega_all_prefix")} {active?.name}
           <IconChevronLeft size={14} />
         </Link>
         {children.length ? (
           <MegaChildList items={children} onNavigate={onClose} />
         ) : (
-          <p className="sfc-mega__empty">زیردسته‌ای برای این گروه ثبت نشده است.</p>
+          <p className="sfc-mega__empty">{tx("header.mega_no_children")}</p>
         )}
       </div>
     </div>
@@ -221,13 +223,14 @@ function MiniCartPanel({
   auth: "loading" | "auth" | "guest"
   onClose: () => void
 }) {
+  const tx = useClassicText()
   const digits = useDigits()
   const checkoutHref = auth === "auth" ? "/checkout" : `/login?next=${encodeURIComponent("/checkout")}`
 
   if (auth === "loading") {
     return (
       <div className="sfc-mini-cart" role="dialog" aria-label="سبد خرید">
-        <p className="sfc-mini-cart__empty">در حال بارگذاری…</p>
+        <p className="sfc-mini-cart__empty">{tx("header.loading")}</p>
       </div>
     )
   }
@@ -235,7 +238,7 @@ function MiniCartPanel({
   if (!lines.length) {
     return (
       <div className="sfc-mini-cart" role="dialog" aria-label="سبد خرید">
-        <p className="sfc-mini-cart__empty">هیچ محصولی در سبد خرید نیست.</p>
+        <p className="sfc-mini-cart__empty">{tx("header.minicart_empty")}</p>
       </div>
     )
   }
@@ -269,22 +272,22 @@ function MiniCartPanel({
                 <ClassicAmount value={line.price * line.qty} className="sfc-mini-cart__price" />
               </div>
               <button type="button" className="sfc-mini-cart__remove" onClick={() => line.onQty(0)}>
-                حذف
+                {tx("header.minicart_remove")}
               </button>
             </div>
           </li>
         ))}
       </ul>
       <div className="sfc-mini-cart__subtotal">
-        <p>جمع جزء</p>
+        <p>{tx("header.minicart_subtotal")}</p>
         <ClassicAmount value={total} />
       </div>
       <div className="sfc-mini-cart__buttons">
         <Link href="/cart" className="sfc-mini-cart__btn sfc-mini-cart__btn--view" onClick={onClose}>
-          مشاهده سبد
+          {tx("header.minicart_view")}
         </Link>
         <Link href={checkoutHref} className="sfc-mini-cart__btn sfc-mini-cart__btn--checkout" onClick={onClose}>
-          تسویه حساب
+          {tx("header.minicart_checkout")}
         </Link>
       </div>
     </div>
@@ -298,6 +301,8 @@ function AccountMenuPanel({
   auth: "loading" | "auth" | "guest"
   onClose: () => void
 }) {
+  const wishlistEnabled = useClassicThemeSettings().commerce?.wishlist_enabled !== false
+  const tx = useClassicText()
   const logout = async () => {
     await quietApi("/api/v1/auth/logout", { method: "POST" })
     onClose()
@@ -307,7 +312,7 @@ function AccountMenuPanel({
   if (auth === "loading") {
     return (
       <div className="sfc-account-menu" role="menu" aria-label="حساب کاربری">
-        <span className="sfc-account-menu__note">در حال بارگذاری…</span>
+        <span className="sfc-account-menu__note">{tx("header.loading")}</span>
       </div>
     )
   }
@@ -315,13 +320,13 @@ function AccountMenuPanel({
   if (auth !== "auth") {
     return (
       <div className="sfc-account-menu" role="menu" aria-label="حساب کاربری">
-        <Link href="/login" className="sfc-account-menu__link" role="menuitem" onClick={onClose}>
+        <Link href="/login?next=%2Faccount" className="sfc-account-menu__link" role="menuitem" onClick={onClose}>
           <IconUser size={16} />
-          <span>ورود و عضویت</span>
+          <span>{tx("header.account_login")}</span>
         </Link>
         <Link href="/order-tracking" className="sfc-account-menu__link" role="menuitem" onClick={onClose}>
           <IconBag size={16} />
-          <span>پیگیری سفارش</span>
+          <span>{tx("header.account_tracking")}</span>
         </Link>
       </div>
     )
@@ -331,22 +336,24 @@ function AccountMenuPanel({
     <div className="sfc-account-menu" role="menu" aria-label="حساب کاربری">
       <Link href="/dashboard/account/orders" className="sfc-account-menu__link" role="menuitem" onClick={onClose}>
         <IconBag size={16} />
-        <span>سفارش‌ها</span>
+        <span>{tx("header.account_orders")}</span>
       </Link>
-      <Link href="/dashboard/account/favorites" className="sfc-account-menu__link" role="menuitem" onClick={onClose}>
-        <IconHeart size={16} />
-        <span>علاقه‌مندی</span>
-      </Link>
+      {wishlistEnabled ? (
+        <Link href="/wishlist" className="sfc-account-menu__link" role="menuitem" onClick={onClose}>
+          <IconHeart size={16} />
+          <span>{tx("header.account_wishlist")}</span>
+        </Link>
+      ) : null}
       <Link href="/dashboard/account/addresses" className="sfc-account-menu__link" role="menuitem" onClick={onClose}>
         <IconPin size={16} />
-        <span>آدرس‌ها</span>
+        <span>{tx("header.account_addresses")}</span>
       </Link>
       <Link href="/dashboard/account/profile" className="sfc-account-menu__link" role="menuitem" onClick={onClose}>
         <IconUser size={16} />
-        <span>پروفایل</span>
+        <span>{tx("header.account_profile")}</span>
       </Link>
       <button type="button" className="sfc-account-menu__link sfc-account-menu__logout" role="menuitem" onClick={() => void logout()}>
-        <span>خروج</span>
+        <span>{tx("header.account_logout")}</span>
       </button>
     </div>
   )
@@ -405,6 +412,7 @@ function LiveSearch({
   bannerImage?: string
   bannerLink?: string
 }) {
+  const tx = useClassicText()
   const [open, setOpen] = useState(false)
   const [listening, setListening] = useState(false)
   const [voiceNote, setVoiceNote] = useState("")
@@ -587,7 +595,7 @@ function LiveSearch({
         <div className="sfc-search__suggest sfc-search__suggest--empty" role="listbox">
           {popular.length ? (
             <div className="sfc-search__block">
-              <div className="sfc-search__block-title">جستجوهای پرتکرار</div>
+              <div className="sfc-search__block-title">{tx("header.search_popular_title")}</div>
               <div className="sfc-search__chips">
                 {popular.map((kw) => (
                   <button
@@ -606,7 +614,7 @@ function LiveSearch({
             </div>
           ) : null}
           <div className="sfc-search__block">
-            <div className="sfc-search__block-title">آخرین جستجوهای شما</div>
+            <div className="sfc-search__block-title">{tx("header.search_recent_title")}</div>
             {history.length ? (
               <div className="sfc-search__chips">
                 {history.map((term) => (
@@ -624,7 +632,7 @@ function LiveSearch({
                 ))}
               </div>
             ) : (
-              <p className="sfc-search__empty-note">موردی وجود ندارد</p>
+              <p className="sfc-search__empty-note">{tx("header.search_none")}</p>
             )}
           </div>
           {bannerImage ? (
@@ -663,7 +671,7 @@ function LiveSearch({
               </Link>
             ))
           ) : (
-            <p className="sfc-search__empty-note">نتیجه‌ای یافت نشد</p>
+            <p className="sfc-search__empty-note">{tx("header.search_no_result")}</p>
           )}
           <button
             type="button"
@@ -672,7 +680,7 @@ function LiveSearch({
               runSubmit()
             }}
           >
-            مشاهده همه نتایج
+            {tx("header.search_view_all")}
           </button>
         </div>
       ) : null}
@@ -729,6 +737,7 @@ export function ClassicHeader({
   logoUrl?: string | null
   links: { label: string; href: string }[]
 }) {
+  const tx = useClassicText()
   const digits = useDigits()
   const router = useRouter()
   const pathname = usePathname() || "/"
@@ -739,6 +748,10 @@ export function ClassicHeader({
     !isVoiceExcludedPath(pathname, (headerCfg as { voice_excluded_paths?: unknown }).voice_excluded_paths)
   const megaEnabled = headerCfg.mega_menu ?? theme.mega_menu ?? true
   const stickyDesktop = headerCfg.sticky_desktop !== false
+  // header_style: classic | compact | centered (Theme Settings → عمومی/هدر)
+  const headerStyle = ["compact", "centered"].includes(String(theme.header_style ?? "")) ? String(theme.header_style) : "classic"
+  const topBarText = theme.show_top_bar !== false ? String(theme.top_bar_text ?? "").trim() : ""
+  const bannerType = headerCfg.banner_type === "text" ? "text" : "image"
   const localCount = useSyncExternalStore(subscribeCart, cartCount, () => 0)
   const [localLines, setLocalLines] = useState<CartLine[]>([])
   const { cart, auth } = useServerCart()
@@ -841,8 +854,14 @@ export function ClassicHeader({
 
   return (
     <>
+      {topBarText ? (
+        <div className="sfc-topbar" role="note">
+          <div className="sfc-container sfc-topbar__inner">{topBarText}</div>
+        </div>
+      ) : null}
       <header
-        className={`sfc-header ${stickyDesktop ? "is-sticky-desktop" : "is-static-desktop"} ${hidden ? "is-nav-hidden" : ""} ${scrolled ? "is-scrolled" : ""} ${cartOpen || accountOpen ? "is-flyout-open" : ""}`}
+        data-header-style={headerStyle}
+        className={`sfc-header sfc-header--${headerStyle} ${stickyDesktop ? "is-sticky-desktop" : "is-static-desktop"} ${hidden ? "is-nav-hidden" : ""} ${scrolled ? "is-scrolled" : ""} ${cartOpen || accountOpen ? "is-flyout-open" : ""}`}
       >
         <div className="sfc-header__top">
           <div className="sfc-container sfc-header__top-inner">
@@ -893,7 +912,7 @@ export function ClassicHeader({
                   onClick={() => (accountOpen ? setAccountOpen(false) : openAccount())}
                 >
                   <IconUser size={20} />
-                  <span className="sfc-login__text">{auth === "auth" ? "حساب کاربری" : "ورود و عضویت"}</span>
+                  <span className="sfc-login__text">{auth === "auth" ? "حساب کاربری" : tx("header.account_login")}</span>
                 </button>
                 {accountOpen ? <AccountMenuPanel auth={auth} onClose={() => setAccountOpen(false)} /> : null}
               </div>
@@ -915,7 +934,7 @@ export function ClassicHeader({
                   aria-haspopup="true"
                   onClick={() => (cartOpen ? setCartOpen(false) : openCart())}
                 >
-                  <span className="sfc-cart-btn__title">سبد خرید</span>
+                  <span className="sfc-cart-btn__title">{tx("header.cart_label")}</span>
                   <span className="sfc-cart-btn__count">{count > 0 ? digits(count) : ":)"}</span>
                 </button>
                 {cartOpen ? (
@@ -999,23 +1018,23 @@ export function ClassicHeader({
       ) : null}
       {headerCfg.banner_enabled ? (
         <div
-          className="sfc-header-banner"
+          className={`sfc-header-banner sfc-header-banner--${bannerType}`}
           style={{
-            background: headerCfg.banner_bg || "#021959",
-            color: headerCfg.banner_text_color || "#ffffff",
+            background: headerCfg.banner_bg || "var(--sfc-topbar-bg)",
+            color: headerCfg.banner_text_color || "var(--sfc-topbar-fg)",
           }}
         >
           <div className="sfc-container sfc-header-banner__inner">
             {headerCfg.banner_link ? (
               <a href={headerCfg.banner_link} className="sfc-header-banner__link">
-                {headerCfg.banner_image_desktop ? (
+                {bannerType === "image" && headerCfg.banner_image_desktop ? (
                   <img
                     className="sfc-header-banner__img sfc-header-banner__img--desktop"
                     src={headerCfg.banner_image_desktop}
                     alt=""
                   />
                 ) : null}
-                {headerCfg.banner_image_mobile ? (
+                {bannerType === "image" && headerCfg.banner_image_mobile ? (
                   <img
                     className="sfc-header-banner__img sfc-header-banner__img--mobile"
                     src={headerCfg.banner_image_mobile}
@@ -1026,7 +1045,7 @@ export function ClassicHeader({
               </a>
             ) : (
               <>
-                {headerCfg.banner_image_desktop ? (
+                {bannerType === "image" && headerCfg.banner_image_desktop ? (
                   <img
                     className="sfc-header-banner__img sfc-header-banner__img--desktop"
                     src={headerCfg.banner_image_desktop}
@@ -1057,7 +1076,7 @@ export function ClassicHeader({
                 </Link>
               ))}
             </nav>
-            <p className="sfc-drawer__label">دسته بندی محصولات</p>
+            <p className="sfc-drawer__label">{tx("header.drawer_categories")}</p>
             <nav className="sfc-drawer__links sfc-drawer__cats">
               {categories.map((cat) => {
                 const open = drawerOpen === cat.slug

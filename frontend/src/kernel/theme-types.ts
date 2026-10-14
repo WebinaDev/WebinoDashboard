@@ -185,9 +185,16 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     checkout_coupon?: boolean
     checkout_shipping_quote?: boolean
     checkout_trust_badges?: boolean
+    /** @deprecated placeholder gateway cards were removed from the storefront */
     checkout_payment_placeholders?: boolean
     checkout_sticky_summary?: boolean
     checkout_require_phone?: boolean
+    checkout_show_recipient?: boolean
+    checkout_show_postcode?: boolean
+    checkout_require_postcode?: boolean
+    checkout_show_note?: boolean
+    product_faq_tab?: boolean
+    product_spec_tab?: boolean
     wishlist_enabled?: boolean
     order_tracking_enabled?: boolean
   }
@@ -199,6 +206,19 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     default_sort?: string
     filters_open_default?: boolean
   }
+  home?: {
+    /** Build the story strip from products when no stories are published (off by default). */
+    stories_from_products?: boolean
+    stories_count?: number
+    amazing_limit?: number
+    promo_limit?: number
+    icon_categories_limit?: number
+    brands_limit?: number
+    blog_limit?: number
+    taste_groups?: number
+  }
+  /** Editable storefront copy: texts[group][key] (see themes/ecommerce-classic/lib/texts.ts). */
+  texts?: Record<string, Record<string, string>>
 }
 
 export type SiteBranding = {

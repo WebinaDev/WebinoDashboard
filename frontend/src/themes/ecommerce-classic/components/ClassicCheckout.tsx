@@ -12,11 +12,13 @@ import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import { syncGuestCart, useServerCart } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
+import { readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
 
 import { ClassicCheckoutSteps } from "./ClassicCart"
 import { ClassicTrustStrip } from "./ClassicProduct"
 import { IconBadge, IconCard, IconCheck, IconShield, IconTruck } from "./icons"
 import { ClassicAmount, useDigits } from "./parts"
+import { useClassicText } from "../lib/texts"
 
 type Gateway = {
   id: "zarinpal" | "digipay" | "snapppay" | "torobpay" | "bale_pay" | "basalam_pay"
@@ -39,20 +41,17 @@ function labelForGateway(
   return id
 }
 
-const PLACEHOLDER_GATEWAYS: { id: Gateway["id"]; title: string }[] = [
-  { id: "zarinpal", title: "زرین‌پال" },
-  { id: "digipay", title: "دیجی‌پی" },
-  { id: "snapppay", title: "اسنپ‌پی" },
-  { id: "torobpay", title: "ترب‌پی" },
-]
-
 export function ClassicCheckout() {
+  const tx = useClassicText()
   const theme = useClassicThemeSettings()
   const commerce = theme.commerce ?? {}
   const showCoupon = commerce.checkout_coupon !== false
   const showShippingQuote = commerce.checkout_shipping_quote !== false
   const showTrust = commerce.checkout_trust_badges !== false
-  const showPaymentPlaceholders = commerce.checkout_payment_placeholders !== false
+  const showRecipient = commerce.checkout_show_recipient !== false
+  const showPostcode = commerce.checkout_show_postcode !== false
+  const requirePostcode = showPostcode && Boolean(commerce.checkout_require_postcode)
+  const showNote = commerce.checkout_show_note !== false
   const stickySummary = commerce.checkout_sticky_summary !== false
   const requirePhone = commerce.checkout_require_phone !== false
 
@@ -71,6 +70,7 @@ export function ClassicCheckout() {
   const [phone, setPhone] = useState("")
   const [note, setNote] = useState("")
   const [coupon, setCoupon] = useState("")
+  const [recipient, setRecipient] = useState("")
   const [rates, setRates] = useState<Rate[]>([])
   const [rateId, setRateId] = useState<number | null>(null)
   const [orderId, setOrderId] = useState<number | null>(null)
@@ -90,6 +90,8 @@ export function ClassicCheckout() {
 
   useEffect(() => {
     trackAnalyticsEvent("checkout_start")
+    const stored = readStoredCoupon()
+    if (stored) setCoupon(stored)
   }, [])
 
   useEffect(() => {
@@ -119,24 +121,22 @@ export function ClassicCheckout() {
     [gateways, mode],
   )
 
-  const displayGateways: Gateway[] =
-    allowed.length > 0
-      ? allowed
-      : showPaymentPlaceholders
-        ? PLACEHOLDER_GATEWAYS.map((g): Gateway => ({
-            id: g.id,
-            title: g.title,
-            cash_enabled: true,
-            installment_enabled: true,
-          }))
-        : []
+  // Only gateways the store really enabled are shown to customers (no sample/placeholder cards).
+  const displayGateways: Gateway[] = allowed
+  const hasCash = gateways.some((gateway) => gateway.cash_enabled)
+  const hasInstallment = gateways.some((gateway) => gateway.installment_enabled)
+
+  useEffect(() => {
+    if (mode === "installment" && !hasInstallment && hasCash) setMode("cash")
+    if (mode === "cash" && !hasCash && hasInstallment) setMode("installment")
+  }, [hasCash, hasInstallment, mode])
 
   if (auth === "loading") {
     return (
       <div className="sfc-checkout sfc-container">
         <ClassicCheckoutSteps active={1} />
         <div className="sfc-box sfc-checkout__empty">
-          <span className="sfc-empty-note">در حال بارگذاری…</span>
+          <span className="sfc-empty-note">{tx("header.loading")}</span>
         </div>
       </div>
     )
@@ -148,10 +148,10 @@ export function ClassicCheckout() {
         <ClassicCheckoutSteps active={1} />
         <div className="sfc-box sfc-checkout__guest">
           <IconUserHint />
-          <h2>ورود برای ادامه خرید</h2>
-          <p>برای ثبت سفارش و پرداخت، وارد حساب کاربری شوید. سبد خرید شما حفظ می‌شود.</p>
+          <h2>{tx("checkout.login_title")}</h2>
+          <p>{tx("checkout.login_text")}</p>
           <Link href={`/login?next=${encodeURIComponent("/checkout")}`} className="sfc-btn sfc-btn--lg">
-            ورود و ادامه خرید
+            {tx("checkout.login_button")}
           </Link>
         </div>
       </div>
@@ -182,7 +182,8 @@ export function ClassicCheckout() {
     setBusy(true)
     setError("")
     try {
-      const shippingAddress = [stateCode, city, address, postcode].filter(Boolean).join("، ")
+      const stateName = states.find((item) => item.code === stateCode)?.name ?? stateCode
+      const shippingAddress = [recipient.trim(), stateName, city, address, postcode].filter(Boolean).join("، ")
       const order = await api<{ id: number }>("/api/v1/checkout", {
         method: "POST",
         json: {
@@ -195,6 +196,7 @@ export function ClassicCheckout() {
           shipping_postcode: postcode || null,
         },
       })
+      if (showCoupon && coupon) storeCoupon(null)
       setOrderId(order.id)
       setStep(2)
     } catch (err) {
@@ -250,12 +252,18 @@ export function ClassicCheckout() {
                 void placeOrder()
               }}
             >
-              <h2 className="sfc-checkout__section-title">اطلاعات تحویل‌گیرنده و آدرس</h2>
+              <h2 className="sfc-checkout__section-title">{tx("checkout.address_title")}</h2>
               <div className="sfc-checkout__fields">
+                {showRecipient ? (
+                  <label className="sfc-field sfc-field--full">
+                    <span>{tx("checkout.recipient_label")}</span>
+                    <input value={recipient} onChange={(e) => setRecipient(e.target.value)} autoComplete="name" />
+                  </label>
+                ) : null}
                 <label className="sfc-field">
-                  <span>استان</span>
+                  <span>{tx("checkout.state_label")}</span>
                   <select value={stateCode} onChange={(e) => setStateCode(e.target.value)}>
-                    <option value="">انتخاب کنید</option>
+                    <option value="">{tx("checkout.select_placeholder")}</option>
                     {states.map((item) => (
                       <option key={item.code} value={item.code}>
                         {item.name}
@@ -264,19 +272,24 @@ export function ClassicCheckout() {
                   </select>
                 </label>
                 <label className="sfc-field">
-                  <span>شهر</span>
+                  <span>{tx("checkout.city_label")}</span>
                   <input value={city} onChange={(e) => setCity(e.target.value)} />
                 </label>
+                {showPostcode ? (
+                  <label className="sfc-field">
+                    <span>{tx("checkout.postcode_label")}</span>
+                    <input
+                      dir="ltr"
+                      inputMode="numeric"
+                      required={requirePostcode}
+                      pattern={requirePostcode ? "\\d{10}" : undefined}
+                      value={postcode}
+                      onChange={(e) => setPostcode(toLatinDigits(e.target.value).replace(/\D/g, "").slice(0, 10))}
+                    />
+                  </label>
+                ) : null}
                 <label className="sfc-field">
-                  <span>کد پستی</span>
-                  <input
-                    dir="ltr"
-                    value={postcode}
-                    onChange={(e) => setPostcode(toLatinDigits(e.target.value).replace(/\D/g, ""))}
-                  />
-                </label>
-                <label className="sfc-field">
-                  <span>موبایل</span>
+                  <span>{tx("checkout.phone_label")}</span>
                   <input
                     required={requirePhone}
                     dir="ltr"
@@ -285,36 +298,38 @@ export function ClassicCheckout() {
                   />
                 </label>
                 <label className="sfc-field sfc-field--full">
-                  <span>آدرس کامل</span>
+                  <span>{tx("checkout.address_label")}</span>
                   <textarea required value={address} onChange={(e) => setAddress(e.target.value)} rows={3} />
                 </label>
                 {showCoupon ? (
                   <label className="sfc-field">
-                    <span>کد تخفیف</span>
+                    <span>{tx("checkout.coupon_label")}</span>
                     <input
                       value={coupon}
                       onChange={(e) => setCoupon(e.target.value)}
-                      placeholder="کد تخفیف را وارد نمایید"
+                      placeholder={tx("cart.coupon_placeholder")}
                     />
                   </label>
                 ) : null}
-                <label className="sfc-field">
-                  <span>یادداشت سفارش</span>
-                  <input value={note} onChange={(e) => setNote(e.target.value)} />
-                </label>
+                {showNote ? (
+                  <label className="sfc-field">
+                    <span>{tx("checkout.note_label")}</span>
+                    <input value={note} onChange={(e) => setNote(e.target.value)} />
+                  </label>
+                ) : null}
               </div>
 
               {showShippingQuote ? (
                 <div className="sfc-checkout__shipping">
                   <div className="sfc-checkout__shipping-head">
-                    <strong>هزینه ارسال</strong>
+                    <strong>{tx("checkout.shipping_title")}</strong>
                     <button type="button" className="sfc-link-btn" onClick={() => void quoteShipping()}>
-                      محاسبه هزینه ارسال
+                      {tx("checkout.shipping_quote")}
                     </button>
                   </div>
                   <div className="sfc-checkout__rates">
                     {rates.length === 0 ? (
-                      <p className="sfc-empty-note">پس از وارد کردن استان و کد پستی، هزینه را محاسبه کنید.</p>
+                      <p className="sfc-empty-note">{tx("checkout.shipping_hint")}</p>
                     ) : (
                       rates.map((rate) => (
                         <label key={rate.instance_id} className={`sfc-rate ${rateId === rate.instance_id ? "is-active" : ""}`}>
@@ -341,37 +356,36 @@ export function ClassicCheckout() {
             </form>
           ) : (
             <div className="sfc-box sfc-checkout__pay">
-              <h2 className="sfc-checkout__section-title">روش پرداخت</h2>
+              <h2 className="sfc-checkout__section-title">{tx("checkout.payment_title")}</h2>
+              {hasCash && hasInstallment ? (
               <div className="sfc-pay-modes">
                 <button
                   type="button"
                   className={mode === "cash" ? "is-active" : ""}
                   onClick={() => setMode("cash")}
                 >
-                  پرداخت نقدی
+                  {tx("checkout.cash_tab")}
                 </button>
                 <button
                   type="button"
                   className={mode === "installment" ? "is-active" : ""}
                   onClick={() => setMode("installment")}
                 >
-                  پرداخت اقساطی
+                  {tx("checkout.installment_tab")}
                 </button>
               </div>
+              ) : null}
               <div className="sfc-pay-list">
                 {displayGateways.length === 0 ? (
                   <p className="sfc-empty-note">{tCheckout("no_gateway_mode")}</p>
                 ) : (
                   displayGateways.map((gateway) => {
-                    const live = allowed.some((g) => g.id === gateway.id)
                     return (
                       <button
                         key={gateway.id}
                         type="button"
-                        disabled={!live}
                         onClick={() => void pay(gateway.id)}
                         className="sfc-pay-method"
-                        title={live ? undefined : "درگاه در تنظیمات فروشگاه فعال نیست"}
                       >
                         <span className="sfc-pay-method__icon">
                           <IconCard size={22} />
@@ -386,10 +400,8 @@ export function ClassicCheckout() {
                               {" · "}
                               {formatNumber(gateway.quote.charge_minor, normalizeUiLocale(locale))} تومان
                             </em>
-                          ) : live ? (
-                            <em>آماده پرداخت امن</em>
                           ) : (
-                            <em>نمایش نمونه - درگاه را از تنظیمات پرداخت فعال کنید</em>
+                            <em>{tx("checkout.gateway_ready")}</em>
                           )}
                         </span>
                         <IconCheck size={18} className="sfc-pay-method__check" />
@@ -400,7 +412,7 @@ export function ClassicCheckout() {
               </div>
               {error ? <p className="sfc-flash sfc-flash--err">{error}</p> : null}
               <button type="button" className="sfc-link-btn" onClick={() => { setOrderId(null); setStep(1) }}>
-                بازگشت به ویرایش اطلاعات
+                {tx("checkout.back_to_edit")}
               </button>
             </div>
           )}
@@ -410,10 +422,10 @@ export function ClassicCheckout() {
 
         <aside className={`sfc-checkout__side ${stickySummary ? "is-sticky" : ""}`}>
           <div className="sfc-box sfc-summary">
-            <h3 className="sfc-summary__title">خلاصه سفارش</h3>
+            <h3 className="sfc-summary__title">{tx("checkout.summary_title")}</h3>
             <div className="sfc-checkout__items">
               {lines.length === 0 ? (
-                <p className="sfc-empty-note">سبد خرید خالی است.</p>
+                <p className="sfc-empty-note">{tx("checkout.summary_empty")}</p>
               ) : (
                 lines.map((line) => (
                   <div key={line.id} className="sfc-checkout-item">
@@ -442,23 +454,23 @@ export function ClassicCheckout() {
             </div>
             {shipCost > 0 ? (
               <div className="sfc-summary__row">
-                <span>هزینه ارسال</span>
+                <span>{tx("checkout.shipping_title")}</span>
                 <ClassicAmount value={shipCost} />
               </div>
             ) : null}
             <div className="sfc-summary__row sfc-summary__row--total">
-              <span>مبلغ قابل پرداخت</span>
+              <span>{tx("checkout.payable_label")}</span>
               <ClassicAmount value={total} />
             </div>
             <ul className="sfc-checkout__assurances">
               <li>
-                <IconShield size={16} /> ضمانت بازگشت کالا
+                <IconShield size={16} /> {tx("checkout.assurance_1")}
               </li>
               <li>
-                <IconTruck size={16} /> ارسال سریع
+                <IconTruck size={16} /> {tx("checkout.assurance_2")}
               </li>
               <li>
-                <IconBadge size={16} /> پرداخت امن
+                <IconBadge size={16} /> {tx("checkout.assurance_3")}
               </li>
             </ul>
           </div>
