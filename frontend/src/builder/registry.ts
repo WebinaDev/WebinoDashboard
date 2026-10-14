@@ -797,6 +797,8 @@ export const WIDGETS: WidgetDef[] = [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "select", key: "source", label: "منبع", options: [{ value: "products", label: "محصولات" }, { value: "posts", label: "نوشته‌های وبلاگ" }, { value: "collection", label: "مجموعه محتوایی (CMS)" }] },
       { kind: "text", key: "collection", label: "نامک مجموعه (برای منبع مجموعه)" },
+      { kind: "text", key: "collectionFilter", label: "فیلتر مجموعه (مثل city=تهران, role=مدیر)" },
+      { kind: "text", key: "collectionSearch", label: "جستجو در عنوان آیتم‌های مجموعه" },
       { kind: "text", key: "category", label: "نامک دسته" },
       { kind: "switch", key: "currentQuery", label: "دسته صفحه جاری (در قالب آرشیو)" },
       { kind: "text", key: "brand", label: "نامک برند (محصولات)" },

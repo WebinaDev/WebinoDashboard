@@ -176,5 +176,6 @@ export const cmsManifest: ModuleManifest = {
     { path: "search", submodule: "pages", page: "search", labelKey: "site.pages" },
     { path: "pages/:slug", submodule: "pages", labelKey: "site.pages" },
     { path: "preview/:token", submodule: "pages", page: "preview", labelKey: "site.pages" },
+    { path: "c/:collection/:item", submodule: "pages", page: "collection-item", labelKey: "site.pages" },
   ],
 }

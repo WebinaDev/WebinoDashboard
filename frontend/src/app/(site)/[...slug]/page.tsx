@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { JsonLd } from "@/components/seo/JsonLd"
 import { renderSitePage } from "@/kernel/render-pages"
 import { apiServer } from "@/lib/api-server"
+import { loadCollectionItem } from "../../../../modules/cms/site/collection-item-page"
 import { loadLinkHubPage } from "../../../../modules/link-hub/site/page-page"
 
 export const revalidate = 60
@@ -65,6 +66,22 @@ export async function generateMetadata({ params }: Pick<Props, "params">): Promi
     }
   }
   if (segments[0] === "preview") return { robots: { index: false, follow: false } }
+  if (segments[0] === "c" && segments.length === 3) {
+    const payload = await loadCollectionItem(decodeURIComponent(segments[1]), decodeURIComponent(segments[2]))
+    if (!payload) return {}
+    const fields = payload.collection.fields
+    const textKey = fields.find((f) => f.type === "textarea" || f.type === "text")?.key
+    const imageKey = fields.find((f) => f.type === "image")?.key
+    const description = textKey ? (payload.item.data[textKey] ?? "").slice(0, 160) || undefined : undefined
+    const image = imageKey ? payload.item.data[imageKey] : undefined
+    const title = `${payload.item.title} | ${payload.collection.name}`
+    return {
+      title,
+      description,
+      alternates: { canonical: `/c/${segments[1]}/${segments[2]}` },
+      openGraph: { title, description, images: image ? [image] : undefined },
+    }
+  }
   if (segments[0] === "pages" && segments[1] && segments.length === 2) {
     const meta = (await loadProductSeo(decodeURIComponent(segments[1]), "page"))?.meta
     if (!meta) return {}

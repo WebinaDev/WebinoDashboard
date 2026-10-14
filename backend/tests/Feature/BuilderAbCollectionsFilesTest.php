@@ -80,6 +80,12 @@ class BuilderAbCollectionsFilesTest extends TestCase
         $this->getJson("/api/v1/public/builder/collections/{$c['slug']}/items/ali", self::H)->assertOk()->assertJsonPath('data.item.data.photo', '/media/a.jpg');
         $this->getJson("/api/v1/public/builder/collections/{$c['slug']}/items/draft", self::H)->assertNotFound();
 
+        $this->getJson("/api/v1/public/builder/collections/{$c['slug']}/items?filter[role]=مدیر", self::H)->assertOk()->assertJsonPath('data.total', 1);
+        $this->getJson("/api/v1/public/builder/collections/{$c['slug']}/items?filter[role]=x", self::H)->assertOk()->assertJsonPath('data.total', 0);
+        $this->getJson("/api/v1/public/builder/collections/{$c['slug']}/items?filter[nope]=x", self::H)->assertOk()->assertJsonPath('data.total', 2);
+        $this->getJson("/api/v1/public/builder/collections/{$c['slug']}/items?q=".urlencode('عل'), self::H)->assertOk()->assertJsonPath('data.total', 2);
+        $this->getJson("/api/v1/public/builder/collections/{$c['slug']}/items?q=%25", self::H)->assertOk()->assertJsonPath('data.total', 0);
+
         $other = $this->createTenant(['slug' => 'abc-other']);
         $this->enableSubmodule($other->id, 'cms', 'pages');
         $this->actingAs(User::factory()->create(['tenant_id' => $other->id, 'role' => 'admin']), 'sanctum');

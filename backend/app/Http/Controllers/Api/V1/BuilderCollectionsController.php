@@ -109,6 +109,20 @@ class BuilderCollectionsController extends Controller
         $limit = max(1, min(48, (int) $request->query('limit', 12)));
         $page = max(1, (int) $request->query('page', 1));
         $query = $collection->items()->where('published', true);
+        // Filters: ?q= (title contains) and ?filter[field]=value (exact match on declared, non-rich fields).
+        $q = trim((string) $request->query('q', ''));
+        if ($q !== '') {
+            $query->where('title', 'like', '%'.addcslashes(mb_substr($q, 0, 80), '%_\\').'%');
+        }
+        $filters = $request->query('filter');
+        if (is_array($filters)) {
+            $allowed = collect($collection->fields)->reject(fn ($f) => $f['type'] === 'richtext')->pluck('key')->all();
+            foreach (array_slice($filters, 0, 5, true) as $key => $value) {
+                if (in_array($key, $allowed, true) && is_scalar($value) && (string) $value !== '') {
+                    $query->where('data->'.$key, mb_substr((string) $value, 0, 200));
+                }
+            }
+        }
         $total = (clone $query)->count();
         $sort = (string) $request->query('sort', 'sort');
         $query = match ($sort) {

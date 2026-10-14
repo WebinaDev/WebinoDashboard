@@ -17,6 +17,7 @@ import { buildNavTree, type NavItem } from "../nav-tree"
 import { WIcon } from "./extra-widgets"
 import { useBuilderRuntime } from "./runtime"
 import { Img } from "./img"
+import { collectionQuery, collectionRows } from "../collections"
 
 function useMoney() {
   const t = useTranslations("builder")
@@ -34,26 +35,6 @@ function safeHref(href: string): string {
 /* ------------------------------------------------------------ loop grid */
 
 type LoopItem = { key: string; href: string; title: string; image?: string | null; excerpt?: string; product?: ShopProduct }
-
-type CollectionPayload = {
-  collection?: { fields?: { key: string; type: string }[] }
-  items?: { slug: string; title: string; data?: Record<string, string> }[]
-  total?: number
-}
-
-/** Maps CMS collection items to loop cards: first image field, first text field, first URL field as link. */
-export function collectionRows(payload: CollectionPayload | null | undefined): { rows: LoopItem[]; total: number } {
-  const fields = payload?.collection?.fields ?? []
-  const imageKey = fields.find((f) => f.type === "image")?.key
-  const textKey = fields.find((f) => f.type === "textarea" || f.type === "text")?.key
-  const urlKey = fields.find((f) => f.type === "url")?.key
-  const rows = (payload?.items ?? []).map((item) => {
-    const data = item.data ?? {}
-    const href = urlKey ? safeHref(data[urlKey] ?? "") : ""
-    return { key: item.slug, href: href === "#" ? "" : href, title: item.title, image: imageKey ? data[imageKey] || null : null, excerpt: textKey ? data[textKey] : undefined }
-  })
-  return { rows, total: Number(payload?.total ?? rows.length) || 0 }
-}
 
 /** Loop Grid / Carousel over products or posts with a query builder and pagination (none / load more / numbers). */
 export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editing: boolean }) {
@@ -93,12 +74,12 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
     const job: Promise<{ rows: LoopItem[]; total: number }> =
       source === "collection"
         ? collection
-          ? fetch(`${base}/api/v1/public/builder/collections/${encodeURIComponent(collection)}/items?limit=${perPage + offset}&page=${page}&sort=${collectionSort}`, {
+          ? fetch(`${base}/api/v1/public/builder/collections/${encodeURIComponent(collection)}/items?${collectionQuery(widget.props, perPage + offset, page, collectionSort)}`, {
               credentials: "include",
               headers: { "X-Tenant-Domain": window.location.host },
             })
               .then((res) => (res.ok ? res.json() : null))
-              .then((json) => collectionRows(json?.data))
+              .then((json) => collectionRows(json?.data, collection))
               .catch(() => ({ rows: [], total: 0 }))
           : Promise.resolve({ rows: [], total: 0 })
         : source === "posts"

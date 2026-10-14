@@ -3174,7 +3174,8 @@
       "contact": "Contact"
     },
     "preview_banner": "Draft preview — not visible to visitors",
-    "preview_expired": "This preview link is invalid or has expired"
+    "preview_expired": "This preview link is invalid or has expired",
+    "breadcrumb": "Breadcrumb"
   },
   "coupons_admin": {
     "title": "Coupons",
