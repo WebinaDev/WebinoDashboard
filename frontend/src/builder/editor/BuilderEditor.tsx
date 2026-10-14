@@ -51,10 +51,11 @@ import {
   updateSection,
   updateWidget,
 } from "../tree"
-import type { AdvancedProps, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
+import type { FieldDef, AdvancedProps, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
 import { migrateDocument } from "../migrate"
+import { EXTENDED_KINDS, ExtendedField } from "./fields"
 import { RevisionsPanel, type RevisionTarget } from "./RevisionsPanel"
 import { widgetLabel } from "../render/widgets"
 
@@ -678,7 +679,12 @@ function WidgetFields({ type, props, onChange }: { type: string; props: Record<s
   if (!def?.fields.length) return null
   return (
     <div className="grid gap-2">
-      {def.fields.map((field) => {
+      {def.fields.map((rawField) => {
+        // Bounded numbers render as sliders.
+        const field: FieldDef =
+          rawField.kind === "number" && rawField.min !== undefined && rawField.max !== undefined && rawField.max - rawField.min <= 100
+            ? { kind: "slider", key: rawField.key, label: rawField.label, min: rawField.min, max: rawField.max }
+            : rawField
         const value = props[field.key]
         const label = (
           <span className="flex items-center gap-1.5">
@@ -686,6 +692,14 @@ function WidgetFields({ type, props, onChange }: { type: string; props: Record<s
             {field.label}
           </span>
         )
+        if (EXTENDED_KINDS.has(field.kind)) {
+          return (
+            <div key={field.key} className="grid gap-1 text-xs">
+              {label}
+              <ExtendedField field={field} props={props} onChange={onChange} />
+            </div>
+          )
+        }
         if (field.kind === "textarea") {
           return (
             <label key={field.key} className="grid gap-1 text-xs">

@@ -6746,7 +6746,13 @@
     "close": "بستن",
     "saving": "در حال ذخیره…",
     "unsaved": "تغییرات ذخیره‌نشده",
-    "all_saved": "ذخیره شده"
+    "all_saved": "ذخیره شده",
+    "media_library": "کتابخانه",
+    "repeater_add": "افزودن ردیف",
+    "move_up": "بالا",
+    "move_down": "پایین",
+    "link_new_tab": "برگه جدید",
+    "link_nofollow": "nofollow"
   },
   "theme_builder": {
     "title": "پوسته‌ساز",

@@ -10,7 +10,7 @@ import { StorefrontMegaMenuPanel, ProductReviewsPanel, ProductQuestionsPanel } f
 import { StoreProductCard, StorefrontAccount } from "../storefront/ui"
 import { addShopItem } from "../storefront/actions"
 import { useCatalog } from "../storefront/use-catalog"
-import { propNum, propStr } from "../props"
+import { linkAttrs, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime, useIsClassicSkin } from "./runtime"
 import { ClassicBreadcrumbBar } from "@/themes/ecommerce-classic/components/ClassicArchive"
@@ -63,7 +63,7 @@ export function PackageBlockWidget({ widget }: { widget: WidgetNode }) {
         <div>
           <h2 className="text-xl font-bold">{title}</h2>
           <p className="mt-2 text-sm leading-7 text-muted-foreground">{text}</p>
-          <Link href={href} className="mt-4 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">
+          <Link href={href} {...linkAttrs(widget.props, "href")} className="mt-4 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">
             مشاهده پکیج
           </Link>
         </div>
@@ -134,7 +134,7 @@ export function AmazingHeaderWidget({ widget }: { widget: WidgetNode }) {
           <h2 className="mt-1 text-2xl font-extrabold md:text-3xl">{title}</h2>
           <p className="mt-2 max-w-xl text-sm leading-7 opacity-90">{text}</p>
         </div>
-        <Link href={href} className="rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[var(--sf-navy)]">
+        <Link href={href} {...linkAttrs(widget.props, "href")} className="rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[var(--sf-navy)]">
           مشاهده همه
         </Link>
       </div>

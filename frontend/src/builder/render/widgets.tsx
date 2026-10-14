@@ -40,7 +40,7 @@ import {
   StorefrontProduct,
 } from "../storefront/ui"
 import { fillDocumentTokens } from "../theme/tokens"
-import { propBool, propNum, propStr, parseLinks } from "../props"
+import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
@@ -436,7 +436,7 @@ function ButtonWidget({ widget }: { widget: WidgetNode }) {
   const tone = propStr(widget.props, "tone", "pink")
   const variant = tone === "navy" ? "secondary" : tone === "ghost" ? "ghost" : tone === "outline" ? "outline" : "primary"
   return (
-    <Link href={propStr(widget.props, "href", "/shop")} className={`wb-btn wb-btn-${variant}`}>
+    <Link href={propStr(widget.props, "href", "/shop")} {...linkAttrs(widget.props, "href")} className={`wb-btn wb-btn-${variant}`}>
       {propStr(widget.props, "label", "ادامه")}
     </Link>
   )
@@ -626,7 +626,7 @@ function PopupWidget({ widget }: { widget: WidgetNode }) {
         <h3 className="wb-type-h3">{propStr(widget.props, "title", "پاپ‌آپ")}</h3>
         <p className="wb-type-body mt-2 text-muted-foreground">{propStr(widget.props, "text", "")}</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link href={propStr(widget.props, "href", "/")} className="wb-btn wb-btn-primary" onClick={() => setOpen(false)}>
+          <Link href={propStr(widget.props, "href", "/")} {...linkAttrs(widget.props, "href")} className="wb-btn wb-btn-primary" onClick={() => setOpen(false)}>
             {propStr(widget.props, "cta", "باشه")}
           </Link>
           <button type="button" className="wb-btn" onClick={() => setOpen(false)}>
@@ -762,7 +762,7 @@ function ProductGridInner({ widget, editing }: { widget: WidgetNode; editing: bo
     return layout === "grid" ? (
       <ClassicArchiveGrid products={products} editing={editing} title={title} showSort={showSort} />
     ) : (
-      <ClassicProductRow title={title || "محصولات"} products={products} href={propStr(widget.props, "href", "/shop")} />
+      <ClassicProductRow title={title || "محصولات"} products={products} href={propStr(widget.props, "href", "/shop")} {...linkAttrs(widget.props, "href")} />
     )
   }
 
@@ -863,7 +863,7 @@ function PromoWidget({ widget }: { widget: WidgetNode }) {
         <h3 className="text-2xl font-bold">{propStr(widget.props, "title", "پیشنهاد")}</h3>
         <p className="mt-2 text-sm opacity-90">{propStr(widget.props, "text", "")}</p>
       </div>
-      <Link href={propStr(widget.props, "href", "/shop")} className="mt-6 inline-flex w-fit rounded-full bg-card px-4 py-2 text-sm font-bold text-foreground">
+      <Link href={propStr(widget.props, "href", "/shop")} {...linkAttrs(widget.props, "href")} className="mt-6 inline-flex w-fit rounded-full bg-card px-4 py-2 text-sm font-bold text-foreground">
         {propStr(widget.props, "cta", "بیشتر")}
       </Link>
     </div>

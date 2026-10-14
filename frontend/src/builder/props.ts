@@ -37,3 +37,40 @@ export function parseLinks(value: unknown, fallback: { label: string; href: stri
   }
   return fallback
 }
+
+/** `target`/`rel` for a link field stored as `key` + `${key}NewTab` + `${key}Nofollow`. */
+export function linkAttrs(props: Record<string, unknown>, key = "href"): { target?: string; rel?: string } {
+  const newTab = props[`${key}NewTab`] === true
+  const nofollow = props[`${key}Nofollow`] === true
+  const rel = [newTab ? "noopener noreferrer" : "", nofollow ? "nofollow" : ""].filter(Boolean).join(" ")
+  return { ...(newTab ? { target: "_blank" } : {}), ...(rel ? { rel } : {}) }
+}
+
+/** Repeater rows: arrays pass through; legacy `a|b|c` line strings map onto `keys` in order. */
+export function parseRows(value: unknown, keys: string[]): Record<string, string>[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => {
+      if (!item || typeof item !== "object") return []
+      const row: Record<string, string> = {}
+      for (const key of keys) {
+        const cell = (item as Record<string, unknown>)[key]
+        row[key] = typeof cell === "string" ? cell : ""
+      }
+      return [row]
+    })
+  }
+  if (typeof value !== "string") return []
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const cells = line.split("|")
+      return Object.fromEntries(keys.map((key, index) => [key, (cells[index] ?? "").trim()]))
+    })
+}
+
+/** Serialise repeater rows back to the legacy line format for widgets that read strings. */
+export function rowsToLines(rows: Record<string, string>[], keys: string[]): string {
+  return rows.map((row) => keys.map((key) => (row[key] ?? "").replaceAll("|", "/").replaceAll("\n", " ")).join("|")).join("\n")
+}

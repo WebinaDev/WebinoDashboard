@@ -43,7 +43,7 @@ export const WIDGETS: WidgetDef[] = [
     label: "تصویر",
     category: "basic",
     fields: [
-      { kind: "url", key: "src", label: "نشانی تصویر" },
+      { kind: "media", key: "src", label: "تصویر" },
       { kind: "text", key: "alt", label: "متن جایگزین" },
     ],
     create: () => node("image", { src: "", alt: "" }),
@@ -54,7 +54,7 @@ export const WIDGETS: WidgetDef[] = [
     category: "basic",
     fields: [
       { kind: "text", key: "label", label: "برچسب" },
-      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "link", key: "href", label: "پیوند" },
       { kind: "select", key: "tone", label: "رنگ", options: [
         { value: "pink", label: "صورتی" },
         { value: "navy", label: "سرمه‌ای" },
@@ -97,7 +97,7 @@ export const WIDGETS: WidgetDef[] = [
     type: "video",
     label: "ویدیو",
     category: "basic",
-    fields: [{ kind: "url", key: "src", label: "نشانی ویدیو" }],
+    fields: [{ kind: "media", key: "src", label: "ویدیو", accept: "video" }],
     create: () => node("video", { src: "" }),
   },
   {
@@ -111,7 +111,7 @@ export const WIDGETS: WidgetDef[] = [
     type: "menu",
     label: "منو",
     category: "basic",
-    fields: [{ kind: "textarea", key: "links", label: "پیوندها (برچسب|نشانی)" }],
+    fields: [{ kind: "repeater", key: "links", label: "پیوندها", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] }],
     create: () => node("menu", { links: "خانه|/\nفروشگاه|/shop\nحساب|/account" }),
   },
   {
@@ -144,7 +144,7 @@ export const WIDGETS: WidgetDef[] = [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "textarea", key: "text", label: "متن" },
       { kind: "text", key: "cta", label: "دکمه" },
-      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "link", key: "href", label: "پیوند" },
       { kind: "select", key: "trigger", label: "نمایش", options: [
         { value: "load", label: "ورود به صفحه" },
         { value: "exit", label: "خروج" },
@@ -222,7 +222,7 @@ export const WIDGETS: WidgetDef[] = [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "textarea", key: "text", label: "متن" },
       { kind: "text", key: "cta", label: "دکمه" },
-      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "link", key: "href", label: "پیوند" },
       { kind: "select", key: "tone", label: "زمینه", options: [
         { value: "pink", label: "صورتی" },
         { value: "navy", label: "سرمه‌ای" },
@@ -250,7 +250,7 @@ export const WIDGETS: WidgetDef[] = [
     category: "commerce",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
-      { kind: "text", key: "ends", label: "پایان (ISO)" },
+      { kind: "datetime", key: "ends", label: "زمان پایان" },
     ],
     create: () => node("countdown", { title: "تا پایان پیشنهاد", ends: "" }),
   },
@@ -383,7 +383,7 @@ export const WIDGETS: WidgetDef[] = [
     category: "chrome",
     fields: [
       { kind: "text", key: "mark", label: "نشان" },
-      { kind: "textarea", key: "links", label: "منو (برچسب|نشانی)" },
+      { kind: "repeater", key: "links", label: "منو", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] },
     ],
     create: () => node("store-header", { mark: "", links: "" }),
   },
@@ -418,7 +418,7 @@ export const WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "textarea", key: "text", label: "توضیح" },
-      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "link", key: "href", label: "پیوند" },
     ],
     create: () => node("package-block", { title: "پکیج ویژه", text: "", href: "/shop" }),
   },
@@ -460,7 +460,7 @@ export const WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "textarea", key: "text", label: "توضیح" },
-      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "link", key: "href", label: "پیوند" },
     ],
     create: () => node("amazing-header", { title: "پیشنهادهای شگفت‌انگیز", text: "تخفیف‌های محدود امروز", href: "/amazing-offers" }),
   },
@@ -564,7 +564,7 @@ export const WIDGETS: WidgetDef[] = [
         { value: "slider", label: "اسلایدر" },
         { value: "grid", label: "شبکه" },
       ] },
-      { kind: "url", key: "href", label: "پیوند «مشاهده همه» (اختیاری)" },
+      { kind: "link", key: "href", label: "پیوند «مشاهده همه» (اختیاری)" },
       { kind: "textarea", key: "tabs", label: "زبانه‌های دسته (برچسب|نامک دسته در هر خط؛ اختیاری)" },
     ],
     create: () => node("product-carousel", { title: "محصولات", sort: "newest", limit: 10, layout: "slider", onSale: false, inStock: false }),
@@ -574,7 +574,7 @@ export const WIDGETS: WidgetDef[] = [
     label: "شبکه بنر",
     category: "basic",
     fields: [
-      { kind: "textarea", key: "items", label: "بنرها (تصویر|پیوند|متن جایگزین در هر خط)" },
+      { kind: "repeater", key: "items", label: "بنرها", fields: [{ key: "image", label: "تصویر", kind: "media" }, { key: "href", label: "پیوند", kind: "url" }, { key: "alt", label: "متن جایگزین", kind: "text" }] },
       { kind: "number", key: "columns", label: "ستون‌ها", min: 1, max: 4 },
       { kind: "select", key: "ratio", label: "نسبت تصویر", options: [
         { value: "16/7", label: "۱۶:۷" },
@@ -600,7 +600,7 @@ export const WIDGETS: WidgetDef[] = [
     category: "basic",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
-      { kind: "textarea", key: "items", label: "پرسش|پاسخ در هر خط" },
+      { kind: "repeater", key: "items", label: "پرسش‌ها", fields: [{ key: "q", label: "پرسش", kind: "text" }, { key: "a", label: "پاسخ", kind: "textarea" }] },
       { kind: "switch", key: "firstOpen", label: "باز بودن مورد اول" },
       { kind: "switch", key: "faqSchema", label: "داده ساختاریافته FAQ (سئو)" },
     ],
@@ -611,10 +611,10 @@ export const WIDGETS: WidgetDef[] = [
     label: "باکس آیکن",
     category: "basic",
     fields: [
-      { kind: "select", key: "icon", label: "آیکن", options: ICON_OPTIONS },
+      { kind: "icon", key: "icon", label: "آیکن", options: ICON_OPTIONS },
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "textarea", key: "text", label: "متن" },
-      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "link", key: "href", label: "پیوند" },
       { kind: "select", key: "layout", label: "چیدمان", options: [
         { value: "top", label: "آیکن بالا" },
         { value: "side", label: "آیکن کنار" },
@@ -627,7 +627,7 @@ export const WIDGETS: WidgetDef[] = [
     label: "فهرست آیکن‌دار",
     category: "basic",
     fields: [
-      { kind: "textarea", key: "items", label: "آیکن|متن|پیوند در هر خط (آیکن: truck, shield, star, gift, phone, clock, card, badge, support, map)" },
+      { kind: "repeater", key: "items", label: "آیتم‌ها", fields: [{ key: "icon", label: "آیکن", kind: "icon", options: ICON_OPTIONS }, { key: "text", label: "متن", kind: "text" }, { key: "href", label: "پیوند", kind: "url" }] },
       { kind: "select", key: "direction", label: "جهت", options: [
         { value: "column", label: "عمودی" },
         { value: "row", label: "افقی" },
@@ -641,7 +641,7 @@ export const WIDGETS: WidgetDef[] = [
     category: "basic",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
-      { kind: "textarea", key: "items", label: "نام|متن|امتیاز ۱ تا ۵|تصویر در هر خط" },
+      { kind: "repeater", key: "items", label: "نظرها", fields: [{ key: "name", label: "نام", kind: "text" }, { key: "text", label: "متن", kind: "textarea" }, { key: "rating", label: "امتیاز ۱ تا ۵", kind: "text" }, { key: "image", label: "تصویر", kind: "media" }] },
     ],
     create: () => node("testimonials", { title: "نظر مشتریان", items: "" }),
   },
@@ -689,7 +689,7 @@ export const WIDGETS: WidgetDef[] = [
     category: "basic",
     fields: [
       { kind: "text", key: "text", label: "متن" },
-      { kind: "url", key: "href", label: "پیوند" },
+      { kind: "link", key: "href", label: "پیوند" },
       { kind: "color", key: "background", label: "رنگ زمینه" },
       { kind: "color", key: "color", label: "رنگ متن" },
       { kind: "switch", key: "dismissible", label: "قابل بستن" },
@@ -713,7 +713,7 @@ export const WIDGETS: WidgetDef[] = [
     type: "counter",
     label: "شمارنده",
     category: "basic",
-    fields: [{ kind: "textarea", key: "items", label: "عدد|برچسب|پسوند در هر خط" }],
+    fields: [{ kind: "repeater", key: "items", label: "شمارنده‌ها", fields: [{ key: "value", label: "عدد", kind: "text" }, { key: "label", label: "برچسب", kind: "text" }, { key: "suffix", label: "پسوند", kind: "text" }] }],
     create: () => node("counter", { items: "" }),
   },
   {
@@ -824,14 +824,14 @@ export const WIDGETS: WidgetDef[] = [
     type: "feed",
     label: "فید اینستاگرام",
     category: "basic",
-    fields: [{ kind: "text", key: "title", label: "عنوان" }, { kind: "text", key: "handle", label: "نام کاربری (@)" }, { kind: "url", key: "profileUrl", label: "پیوند پروفایل" }, { kind: "textarea", key: "items", label: "تصویر|پیوند پست|توضیح در هر خط" }, { kind: "number", key: "columns", label: "ستون‌ها", min: 2, max: 6 }],
+    fields: [{ kind: "text", key: "title", label: "عنوان" }, { kind: "text", key: "handle", label: "نام کاربری (@)" }, { kind: "url", key: "profileUrl", label: "پیوند پروفایل" }, { kind: "repeater", key: "items", label: "پست‌ها", fields: [{ key: "image", label: "تصویر", kind: "media" }, { key: "href", label: "پیوند پست", kind: "url" }, { key: "caption", label: "توضیح", kind: "text" }] }, { kind: "number", key: "columns", label: "ستون‌ها", min: 2, max: 6 }],
     create: () => node("feed", { title: "ما را در اینستاگرام دنبال کنید", items: "", columns: 4 }),
   },
   {
     type: "installment-info",
     label: "اطلاعات اقساط",
     category: "commerce",
-    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "توضیح" }, { kind: "url", key: "image", label: "تصویر (خالی = تنظیمات قالب)" }],
+    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "توضیح" }, { kind: "media", key: "image", label: "تصویر (خالی = تنظیمات قالب)" }],
     create: () => node("installment-info", { title: "خرید اقساطی" }),
   },
   {
@@ -964,7 +964,7 @@ export const WIDGETS: WidgetDef[] = [
     type: "nav-menu",
     label: "منوی ناوبری",
     category: "parts",
-    fields: [{ kind: "textarea", key: "links", label: "برچسب|نشانی در هر خط" }, { kind: "select", key: "direction", label: "جهت", options: [{ value: "row", label: "افقی" }, { value: "column", label: "عمودی" }] }],
+    fields: [{ kind: "repeater", key: "links", label: "پیوندها", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] }, { kind: "select", key: "direction", label: "جهت", options: [{ value: "row", label: "افقی" }, { value: "column", label: "عمودی" }] }],
     create: () => node("nav-menu", { links: "خانه|/\nفروشگاه|/shop\nمجله|/blog", direction: "row" }),
   },
   {
@@ -999,7 +999,7 @@ export const WIDGETS: WidgetDef[] = [
     type: "footer-links",
     label: "ستون پیوندها",
     category: "parts",
-    fields: [{ kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "links", label: "برچسب|نشانی در هر خط" }],
+    fields: [{ kind: "text", key: "title", label: "عنوان" }, { kind: "repeater", key: "links", label: "پیوندها", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] }],
     create: () => node("footer-links", { title: "دسترسی سریع", links: "" }),
   },
   {

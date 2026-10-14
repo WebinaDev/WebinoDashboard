@@ -31,7 +31,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } 
 
 import { useCatalog, useProductQuery } from "../storefront/use-catalog"
 import { StoreProductCard } from "../storefront/ui"
-import { propBool, propNum, propStr } from "../props"
+import { linkAttrs, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { useIsClassicSkin } from "./runtime"
 import { ClassicProductRow } from "@/themes/ecommerce-classic/components/ClassicHome"
@@ -63,7 +63,7 @@ const ICONS: Record<string, LucideIcon> = {
 }
 
 
-function WIcon({ name, size = 22 }: { name: string; size?: number }) {
+export function WIcon({ name, size = 22 }: { name: string; size?: number }) {
   const Icon = ICONS[name] ?? BadgeCheck
   return <Icon size={size} aria-hidden="true" />
 }
@@ -258,7 +258,7 @@ export function IconBoxWidget({ widget }: { widget: WidgetNode }) {
       </span>
     </div>
   )
-  return href ? <Link href={safeHref(href)}>{body}</Link> : body
+  return href ? <Link href={safeHref(href)} {...linkAttrs(widget.props, "href")}>{body}</Link> : body
 }
 
 export function IconListWidget({ widget }: { widget: WidgetNode }) {
@@ -452,7 +452,7 @@ export function AnnouncementWidget({ widget }: { widget: WidgetNode }) {
   if (!text || hidden) return null
   return (
     <div className="relative flex items-center justify-center gap-2 rounded-xl px-10 py-2.5 text-center text-sm font-semibold" style={{ background: bg || "var(--color-primary)", color: color || "var(--color-primary-foreground, #fff)" }}>
-      {href ? <Link href={safeHref(href)}>{text}</Link> : <span>{text}</span>}
+      {href ? <Link href={safeHref(href)} {...linkAttrs(widget.props, "href")}>{text}</Link> : <span>{text}</span>}
       {dismissible ? (
         <button
           type="button"

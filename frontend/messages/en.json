@@ -6746,7 +6746,13 @@
     "close": "Close",
     "saving": "Saving…",
     "unsaved": "Unsaved changes",
-    "all_saved": "Saved"
+    "all_saved": "Saved",
+    "media_library": "Library",
+    "repeater_add": "Add row",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "link_new_tab": "New tab",
+    "link_nofollow": "nofollow"
   },
   "theme_builder": {
     "title": "Theme builder",
