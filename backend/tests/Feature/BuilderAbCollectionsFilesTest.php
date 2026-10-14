@@ -112,4 +112,24 @@ class BuilderAbCollectionsFilesTest extends TestCase
         $this->assertSame(1, BuilderFormFile::query()->whereNotNull('submission_id')->count());
         $this->assertSame('', $this->getJson('/api/v1/builder/forms/job/submissions')->json('data.0.payload.cv'));
     }
+
+    public function test_unattached_uploads_are_purged_after_24h(): void
+    {
+        Storage::fake('local');
+        $this->shop();
+        $up = fn (string $name) => $this->post('/api/v1/public/builder/forms/upload', ['file' => UploadedFile::fake()->create($name, 10, 'application/pdf'), 'form_key' => 'job'], self::H + ['Accept' => 'application/json'])->assertCreated()->json('data.token');
+        $kept = $up('a.pdf');
+        $up('b.pdf');
+        $this->postJson('/api/v1/public/forms/submit', ['form_key' => 'job', 'fields' => ['cv' => $kept], '_t' => 5000], self::H)->assertOk();
+        $this->assertCount(2, Storage::disk('local')->allFiles());
+
+        $this->artisan('builder:purge-form-uploads')->assertSuccessful();
+        $this->assertSame(2, BuilderFormFile::query()->count());
+
+        $this->travel(25)->hours();
+        $this->artisan('builder:purge-form-uploads')->expectsOutputToContain('Removed 1')->assertSuccessful();
+        $this->assertSame(1, BuilderFormFile::query()->count());
+        $this->assertNotNull(BuilderFormFile::query()->first()->submission_id);
+        $this->assertCount(1, Storage::disk('local')->allFiles());
+    }
 }

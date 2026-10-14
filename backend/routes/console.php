@@ -136,3 +136,10 @@ Artisan::command('builder:scheduled', function () {
 })->purpose('Publish/unpublish builder pages whose schedule is due');
 
 Schedule::command('builder:scheduled')->everyMinute()->withoutOverlapping();
+
+Artisan::command('builder:purge-form-uploads {--hours=24}', function () {
+    $removed = \App\Http\Controllers\Api\V1\BuilderFormFilesController::purgeOrphans(max(1, (int) $this->option('hours')));
+    $this->info("Removed {$removed} unattached form uploads");
+})->purpose('Delete builder form uploads that were never attached to a submission');
+
+Schedule::command('builder:purge-form-uploads')->hourly()->withoutOverlapping();

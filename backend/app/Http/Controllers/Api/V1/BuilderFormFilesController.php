@@ -74,6 +74,22 @@ class BuilderFormFilesController extends Controller
         return [$fields, $files];
     }
 
+    /** Deletes uploads never attached to a submission (older than $hours); returns the number removed. */
+    public static function purgeOrphans(int $hours = 24): int
+    {
+        $count = 0;
+        BuilderFormFile::query()->whereNull('submission_id')->where('created_at', '<', now()->subHours($hours))
+            ->orderBy('id')->chunkById(200, function ($rows) use (&$count) {
+                foreach ($rows as $row) {
+                    Storage::disk('local')->delete($row->path);
+                    $row->delete();
+                    $count++;
+                }
+            });
+
+        return $count;
+    }
+
     public function submissions(Request $request, string $key): JsonResponse
     {
         BuilderAccess::authorize($request, 'edit');
