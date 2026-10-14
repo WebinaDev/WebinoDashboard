@@ -73,8 +73,11 @@ final class SitemapBuilder
             ->where('builder_collection_items.published', true)
             ->orderBy('builder_collection_items.id')
             ->limit(5000)
-            ->get(['builder_collections.slug as collection_slug', 'builder_collection_items.slug', 'builder_collection_items.updated_at'])
+            ->get(['builder_collections.slug as collection_slug', 'builder_collection_items.slug', 'builder_collection_items.updated_at', 'builder_collection_items.seo'])
             ->each(function ($item) use (&$urls, $base) {
+                if (! empty($item->seo['noindex'])) {
+                    return;
+                }
                 $urls[] = [
                     'loc' => $base.'/c/'.rawurlencode((string) $item->collection_slug).'/'.rawurlencode((string) $item->slug),
                     'lastmod' => optional($item->updated_at)?->toAtomString() ?? Carbon::now()->toAtomString(),

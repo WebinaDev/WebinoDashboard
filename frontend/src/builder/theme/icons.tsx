@@ -1,4 +1,5 @@
 import {
+  ListFilter,
   ShieldCheck as ShieldIcon,
   CreditCard,
   ShoppingCart,
@@ -80,6 +81,7 @@ export const THEME_KIND_ICONS: Record<ThemeKind, LucideIcon> = {
   cart: ShoppingCart,
   checkout: CreditCard,
   account: UserRound,
+  collection_item: Library,
 }
 
 export const SETTINGS_SECTION_ICONS = {
@@ -95,6 +97,7 @@ export const SETTINGS_SECTION_ICONS = {
   kit: Package,
   roles: ShieldIcon,
   design_system: Shapes,
+  queries: ListFilter,
   code: CodeXml,
 } as const
 

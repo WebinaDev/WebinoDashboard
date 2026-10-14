@@ -73,6 +73,8 @@ export type BuilderGlobals = {
   components: BuilderComponent[]
   /** Site-wide custom code (head/body) with optional path scope. */
   customCode: CustomCode[]
+  /** Saved Loop Grid queries (Query Builder), referenced by `queryId`. */
+  queries: GlobalQuery[]
 }
 
 export type DesignVariable = { id: string; name: string; kind: "color" | "size" | "font" | "other"; value: string }
@@ -80,6 +82,23 @@ export type GlobalClass = { id: string; name: string; style: ResponsiveStyle }
 export type StylePreset = { id: string; name: string; widget: string; style: ResponsiveStyle; props?: Record<string, unknown> }
 export type ComponentProp = { key: string; label: string; widget: string; prop: string }
 export type BuilderComponent = { id: string; name: string; sections: SectionNode[]; props: ComponentProp[]; variants?: { id: string; name: string; sections: SectionNode[] }[] }
+export type GlobalQuery = {
+  id: string
+  name: string
+  source: "products" | "posts" | "collection"
+  collection?: string
+  category?: string
+  brand?: string
+  search?: string
+  filters?: { key: string; value: string }[]
+  sort?: string
+  limit?: number
+  offset?: number
+  onSale?: boolean
+  inStock?: boolean
+  exclude?: string
+}
+
 export type CustomCode = { id: string; name: string; location: "head" | "body_end"; code: string; enabled: boolean; paths?: string }
 
 export type CustomFont = { family: string; url: string; weight?: string; style?: "normal" | "italic" }
@@ -205,6 +224,7 @@ export const DEFAULT_GLOBALS: BuilderGlobals = {
   presets: [],
   components: [],
   customCode: [],
+  queries: [],
 }
 
 export const COLOR_TOKENS: { value: string; label: string }[] = [
@@ -371,5 +391,6 @@ export function asGlobals(value: unknown): BuilderGlobals {
     presets: Array.isArray(incoming.presets) ? incoming.presets.filter((p) => p && safeToken(String(p.id ?? ""))) : [],
     components: Array.isArray(incoming.components) ? incoming.components.filter((c) => c && safeToken(String(c.id ?? "")) && Array.isArray(c.sections)) : [],
     customCode: Array.isArray(incoming.customCode) ? incoming.customCode.filter((c) => c && typeof c.code === "string") : [],
+    queries: Array.isArray(incoming.queries) ? incoming.queries.filter((q) => q && typeof q.id === "string" && typeof q.source === "string") : [],
   }
 }

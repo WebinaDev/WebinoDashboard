@@ -96,6 +96,7 @@ class BuilderGlobalsNormalizer
             'presets' => [],
             'components' => [],
             'customCode' => [],
+            'queries' => [],
         ];
     }
 
@@ -312,6 +313,39 @@ class BuilderGlobalsNormalizer
                 'code' => mb_substr($c['code'], 0, 20000),
                 'enabled' => ! empty($c['enabled']),
                 'paths' => implode("\n", array_slice($paths, 0, 30)),
+            ];
+        }
+
+        // Global queries (Query Builder): saved Loop Grid queries referenced by `queryId`.
+        $seen = [];
+        $slug = fn ($v) => mb_substr(preg_replace('/[^\p{L}\p{N}_\-,| ]/u', '', (string) $v), 0, 200);
+        foreach (array_slice((array) ($input['queries'] ?? []), 0, 50) as $q) {
+            if (! is_array($q) || ! ($qid = $id($q['id'] ?? null)) || isset($seen[$qid])) {
+                continue;
+            }
+            $seen[$qid] = true;
+            $source = in_array($q['source'] ?? '', ['products', 'posts', 'collection'], true) ? $q['source'] : 'products';
+            $filters = [];
+            foreach (array_slice((array) ($q['filters'] ?? []), 0, 8) as $f) {
+                if (is_array($f) && preg_match('/^[a-z][a-z0-9_]{0,39}$/', (string) ($f['key'] ?? '')) && is_scalar($f['value'] ?? null) && (string) $f['value'] !== '') {
+                    $filters[] = ['key' => (string) $f['key'], 'value' => mb_substr(strip_tags((string) $f['value']), 0, 200)];
+                }
+            }
+            $base['queries'][] = [
+                'id' => $qid,
+                'name' => $name($q['name'] ?? $qid) ?: $qid,
+                'source' => $source,
+                'collection' => $slug($q['collection'] ?? ''),
+                'category' => $slug($q['category'] ?? ''),
+                'brand' => $slug($q['brand'] ?? ''),
+                'search' => $name($q['search'] ?? '', 80),
+                'filters' => $filters,
+                'sort' => in_array($q['sort'] ?? '', ['newest', 'oldest', 'title', 'price', 'price_desc', 'popular', 'best_selling', 'sort'], true) ? $q['sort'] : 'newest',
+                'limit' => max(1, min(48, (int) ($q['limit'] ?? 8))),
+                'offset' => max(0, min(48, (int) ($q['offset'] ?? 0))),
+                'onSale' => ! empty($q['onSale']),
+                'inStock' => ! empty($q['inStock']),
+                'exclude' => $slug($q['exclude'] ?? ''),
             ];
         }
     }

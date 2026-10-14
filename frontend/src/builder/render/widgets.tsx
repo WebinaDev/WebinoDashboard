@@ -44,6 +44,7 @@ import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
 import { FormWidget } from "./form-widget"
 import { PopupWidget } from "./popup-widget"
 import { FlipBoxWidget, HotspotWidget, ImageBoxWidget, LinkedProductsWidget, LoopGridWidget, MenuCartWidget, NavDropdownWidget, PurchaseSummaryWidget, StateBoxWidget, TocWidget } from "./pro-widgets"
+import { LoopFilterWidget } from "./loop-filter"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
@@ -291,6 +292,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <BlogPostsWidget widget={widget} />
     case "loop-grid":
       return <LoopGridWidget widget={widget} editing={editing} />
+    case "loop-filter":
+      return <LoopFilterWidget widget={widget} editing={editing} />
     case "image-box":
       return <ImageBoxWidget widget={widget} />
     case "flip-box":

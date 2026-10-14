@@ -12,7 +12,7 @@ class ThemeRequestContext
         public readonly bool $notFound = false,
         /** Current product/post slug (singular pages). */
         public readonly ?string $slug = null,
-        /** Current product category slug (category archive or the product's category). */
+        /** Current product category slug (category archive or the product's category); collection slug on collection items. */
         public readonly ?string $category = null,
     ) {}
 
@@ -21,7 +21,7 @@ class ThemeRequestContext
     {
         return new self(
             self::normalizePath(isset($data['path']) ? (string) $data['path'] : '/'),
-            self::enum($data['singular'] ?? null, ['post', 'page', 'product']),
+            self::enum($data['singular'] ?? null, ['post', 'page', 'product', 'collection_item']),
             self::enum($data['archive'] ?? null, ['blog', 'category', 'tag', 'product']),
             filter_var($data['search'] ?? false, FILTER_VALIDATE_BOOLEAN),
             filter_var($data['not_found'] ?? false, FILTER_VALIDATE_BOOLEAN),

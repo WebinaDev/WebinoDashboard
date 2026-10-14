@@ -13,16 +13,18 @@ export type ThemeKind =
   | "cart"
   | "checkout"
   | "account"
+  | "collection_item"
 
 export type ThemeQuery = {
   path: string
-  singular?: "post" | "page" | "product"
+  singular?: "post" | "page" | "product" | "collection_item"
   archive?: "blog" | "category" | "tag" | "product"
   search?: boolean
   notFound?: boolean
   /** Product/post slug on singular pages. */
   slug?: string
-  /** Product category slug (archive ?category= or the product's own category, resolved server-side). */
+  /** Product category slug — or the collection slug when singular is collection_item.
+   *  Product category slug (archive ?category= or the product's own category, resolved server-side). */
   category?: string
 }
 
@@ -39,6 +41,10 @@ export function inferThemeQuery(pathname: string, search = ""): ThemeQuery {
   const isSearch = path === "/search" || params.has("s") || params.has("q")
   const category = params.get("category") || undefined
   if (path.startsWith("/product/")) return { path, singular: "product", search: isSearch, slug: decodeURIComponent(path.slice("/product/".length).split("/")[0] || "") || undefined }
+  if (path.startsWith("/c/")) {
+    const [collection, item] = path.slice(3).split("/")
+    if (collection && item) return { path, singular: "collection_item", search: isSearch, category: decodeURIComponent(collection), slug: decodeURIComponent(item) }
+  }
   if (path.startsWith("/pages/")) return { path, singular: "page", search: isSearch }
   if (path.startsWith("/blog/") && path !== "/blog") return { path, singular: "post", search: isSearch, slug: decodeURIComponent(path.slice("/blog/".length).split("/")[0] || "") || undefined }
   if (path.startsWith("/tag/")) return { path, archive: "tag", search: isSearch }

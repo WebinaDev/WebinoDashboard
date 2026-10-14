@@ -3,7 +3,7 @@
 import { ChevronDown, Plus, ShoppingBag, X } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
-import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react"
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react"
 
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { cartSnapshot, subscribeCart, type CartLine } from "../cart"
@@ -15,9 +15,10 @@ import { fetchCatalogPayload } from "../storefront/use-catalog"
 import type { WidgetNode } from "../types"
 import { buildNavTree, type NavItem } from "../nav-tree"
 import { WIcon } from "./extra-widgets"
-import { useBuilderRuntime } from "./runtime"
+import { useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { Img } from "./img"
 import { collectionQuery, collectionRows } from "../collections"
+import { applyFilterState, LOOP_FILTER_EVENT, mergeQueryProps, reduceFilterState, type LoopFilterDetail, type LoopFilterState } from "../loop-query"
 
 function useMoney() {
   const t = useTranslations("builder")
@@ -38,24 +39,39 @@ type LoopItem = { key: string; href: string; title: string; image?: string | nul
 
 /** Loop Grid / Carousel over products or posts with a query builder and pagination (none / load more / numbers). */
 export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editing: boolean }) {
-  const source = propStr(widget.props, "source", "products")
-  const perPage = Math.max(1, Math.min(24, propNum(widget.props, "perPage", 8)))
-  const columns = Math.max(1, Math.min(6, propNum(widget.props, "columns", 4)))
-  const layout = propStr(widget.props, "layout", "grid")
-  const pagination = propStr(widget.props, "pagination", "none")
-  const offset = pagination === "none" ? Math.max(0, Math.min(24, propNum(widget.props, "offset", 0))) : 0
-  const exclude = useMemo(() => new Set(propStr(widget.props, "exclude", "").split(/[,،\s]+/).filter(Boolean)), [widget.props])
+  const globals = useBuilderGlobals()
+  const group = propStr(widget.props, "filterGroup", "").trim()
+  const [filterState, setFilterState] = useState<LoopFilterState | null>(null)
+  useEffect(() => {
+    if (!group) return
+    const onFilter = (event: Event) => {
+      const detail = (event as CustomEvent<LoopFilterDetail>).detail
+      if (detail?.group === group) setFilterState((current) => reduceFilterState(current ?? { filters: {} }, detail.state))
+    }
+    window.addEventListener(LOOP_FILTER_EVENT, onFilter)
+    return () => window.removeEventListener(LOOP_FILTER_EVENT, onFilter)
+  }, [group])
+  const props = useMemo(() => applyFilterState(mergeQueryProps(widget.props, globals.queries), filterState), [filterState, globals.queries, widget.props])
+  const source = propStr(props, "source", "products")
+  const perPage = Math.max(1, Math.min(24, propNum(props, "perPage", 8)))
+  const columns = Math.max(1, Math.min(6, propNum(props, "columns", 4)))
+  const layout = propStr(props, "layout", "grid")
+  const pagination = propStr(props, "pagination", "none")
+  const offset = pagination === "none" ? Math.max(0, Math.min(24, propNum(props, "offset", 0))) : 0
+  const exclude = useMemo(() => new Set(propStr(props, "exclude", "").split(/[,،\s]+/).filter(Boolean)), [props])
   const runtime = useBuilderRuntime()
   const query = useMemo(() => {
-    const params = new URLSearchParams({ per_page: String(perPage + offset), sort: propStr(widget.props, "sort", "newest") })
-    const category = propStr(widget.props, "category", "") || (propBool(widget.props, "currentQuery") ? runtime.categorySlug ?? "" : "")
+    const params = new URLSearchParams({ per_page: String(perPage + offset), sort: propStr(props, "sort", "newest") })
+    const category = propStr(props, "category", "") || (propBool(props, "currentQuery") ? runtime.categorySlug ?? "" : "")
     if (category) params.set("category", category)
-    const brand = propStr(widget.props, "brand", "")
+    const brand = propStr(props, "brand", "")
     if (brand && source === "products") params.set("brand", brand)
-    if (propBool(widget.props, "onSale") && source === "products") params.set("on_sale", "1")
-    if (propBool(widget.props, "inStock") && source === "products") params.set("in_stock", "1")
+    if (propBool(props, "onSale") && source === "products") params.set("on_sale", "1")
+    if (propBool(props, "inStock") && source === "products") params.set("in_stock", "1")
+    const search = propStr(props, "search", "").trim()
+    if (search && source !== "collection") params.set(source === "posts" ? "search" : "q", search)
     return params
-  }, [offset, perPage, runtime.categorySlug, source, widget.props])
+  }, [offset, perPage, runtime.categorySlug, source, props])
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<LoopItem[] | null>(null)
   const [total, setTotal] = useState(0)
@@ -69,12 +85,12 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
     const params = new URLSearchParams(query)
     params.set("page", String(page))
     const base = process.env.NEXT_PUBLIC_API_URL ?? ""
-    const collection = propStr(widget.props, "collection", "").trim()
+    const collection = propStr(props, "collection", "").trim()
     const collectionSort = { newest: "newest", title: "title" }[params.get("sort") ?? ""] ?? "sort"
     const job: Promise<{ rows: LoopItem[]; total: number }> =
       source === "collection"
         ? collection
-          ? fetch(`${base}/api/v1/public/builder/collections/${encodeURIComponent(collection)}/items?${collectionQuery(widget.props, perPage + offset, page, collectionSort)}`, {
+          ? fetch(`${base}/api/v1/public/builder/collections/${encodeURIComponent(collection)}/items?${collectionQuery(props, perPage + offset, page, collectionSort)}`, {
               credentials: "include",
               headers: { "X-Tenant-Domain": window.location.host },
             })
@@ -98,17 +114,28 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
       if (cancel) return
       const visible = rows.slice(offset).filter((row) => !exclude.has(row.key))
       setTotal(count)
-      setItems((current) => (pagination === "load_more" && page > 1 && current ? [...current, ...visible] : visible))
+      setItems((current) => ((pagination === "load_more" || pagination === "infinite") && page > 1 && current ? [...current, ...visible] : visible))
     })
     return () => {
       cancel = true
     }
-  }, [exclude, offset, page, pagination, perPage, query, source, widget.props])
+  }, [exclude, offset, page, pagination, perPage, query, source, props])
+
+  const sentinel = useRef<HTMLDivElement | null>(null)
+  const hasMore = page < Math.max(1, Math.ceil(total / perPage))
+  useEffect(() => {
+    if (pagination !== "infinite" || !hasMore || editing || !sentinel.current || typeof IntersectionObserver === "undefined") return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setPage((n) => n + 1)
+    }, { rootMargin: "300px" })
+    observer.observe(sentinel.current)
+    return () => observer.disconnect()
+  }, [editing, hasMore, pagination, items])
 
   if (items === null) return editing ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : null
   if (!items.length) return editing ? <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-foreground/60">موردی با این کوئری پیدا نشد.</p> : null
   const pages = Math.max(1, Math.ceil(total / perPage))
-  const title = propStr(widget.props, "title", "")
+  const title = propStr(props, "title", "")
   const card = (item: LoopItem) =>
     item.product ? (
       <StoreProductCard key={item.key} product={item.product} />
@@ -141,6 +168,8 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
           {items.map(card)}
         </div>
       )}
+      {pagination === "infinite" && page < pages ? <div ref={sentinel} className="h-8" aria-hidden /> : null}
+      {pagination === "infinite" && page < pages && editing ? <p className="mt-2 text-center text-xs text-foreground/60">بارگذاری خودکار هنگام اسکرول</p> : null}
       {pagination === "load_more" && page < pages ? (
         <div className="mt-4 text-center"><button type="button" className="wb-btn wb-btn-outline" onClick={() => setPage(page + 1)}>نمایش بیشتر</button></div>
       ) : null}

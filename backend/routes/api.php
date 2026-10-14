@@ -951,6 +951,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/builder/collections/{collection}/items', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'storeItem'])->whereNumber('collection');
                 Route::put('/builder/collections/{collection}/items/{item}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'updateItem'])->whereNumber('collection')->whereNumber('item');
                 Route::delete('/builder/collections/{collection}/items/{item}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'destroyItem'])->whereNumber('collection')->whereNumber('item');
+                Route::post('/builder/collections/{collection}/items/bulk', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'bulk'])->whereNumber('collection');
+                Route::get('/builder/collections/{collection}/export', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'export'])->whereNumber('collection');
+                Route::post('/builder/collections/{collection}/import', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'import'])->whereNumber('collection')->middleware('throttle:10,1');
                 Route::get('/builder/kit', [\App\Http\Controllers\Api\V1\BuilderKitController::class, 'export']);
                 Route::post('/builder/kit', [\App\Http\Controllers\Api\V1\BuilderKitController::class, 'import'])->middleware('throttle:10,1');
                 Route::get('/builder/roles', [\App\Http\Controllers\Api\V1\BuilderRolesController::class, 'show']);

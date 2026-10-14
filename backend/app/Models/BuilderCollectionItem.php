@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class BuilderCollectionItem extends Model
 {
-    protected $fillable = ['tenant_id', 'collection_id', 'slug', 'title', 'data', 'published', 'sort'];
+    protected $fillable = ['tenant_id', 'collection_id', 'slug', 'title', 'data', 'published', 'sort', 'seo'];
 
     protected function casts(): array
     {
-        return ['data' => 'array', 'published' => 'boolean', 'sort' => 'integer'];
+        return ['data' => 'array', 'seo' => 'array', 'published' => 'boolean', 'sort' => 'integer'];
     }
 }

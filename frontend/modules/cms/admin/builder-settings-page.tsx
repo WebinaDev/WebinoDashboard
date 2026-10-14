@@ -13,11 +13,11 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 
 import { KitPanel, RolesPanel } from "./builder-kit-roles"
-import { CodeManagerPanel, DesignSystemPanel, VariablesPanel } from "./builder-design-system"
+import { CodeManagerPanel, DesignSystemPanel, QueriesPanel, VariablesPanel } from "./builder-design-system"
 
 type SectionId = keyof typeof SETTINGS_SECTION_ICONS
 
-const SECTIONS: SectionId[] = ["colors", "fonts", "typography", "buttons", "images", "forms", "layout", "lightbox", "variables", "design_system", "code", "kit", "roles"]
+const SECTIONS: SectionId[] = ["colors", "fonts", "typography", "buttons", "images", "forms", "layout", "lightbox", "variables", "design_system", "queries", "code", "kit", "roles"]
 const COLOR_KEYS = ["primary", "secondary", "text", "accent", "background", "surface", "border", "muted", "success", "danger"] as const
 const TYPE_KEYS = ["h1", "h2", "h3", "h4", "h5", "h6", "body", "small", "link"] as const
 const BUTTONS = ["primary", "secondary", "outline", "ghost"] as const
@@ -237,6 +237,7 @@ export default function BuilderSettingsPage(_props: { route: ResolvedAdminRoute 
           ) : null}
           {section === "variables" ? <VariablesPanel settings={settings} onChange={setSettings} /> : null}
           {section === "design_system" ? <DesignSystemPanel settings={settings} onChange={setSettings} /> : null}
+          {section === "queries" ? <QueriesPanel settings={settings} onChange={setSettings} /> : null}
           {section === "code" ? <CodeManagerPanel settings={settings} onChange={setSettings} /> : null}
           {section === "variables" ? (
             <label className="grid gap-1 text-xs">

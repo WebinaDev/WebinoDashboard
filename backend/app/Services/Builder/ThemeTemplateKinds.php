@@ -20,9 +20,10 @@ class ThemeTemplateKinds
         'cart' => 'سبد خرید',
         'checkout' => 'تسویه حساب',
         'account' => 'حساب کاربری',
+        'collection_item' => 'آیتم مجموعه (CMS)',
     ];
 
-    public const RULE_TYPES = 'entire_site,url,url_prefix,url_contains,singular,archive,search,not_found,product,product_category';
+    public const RULE_TYPES = 'entire_site,url,url_prefix,url_contains,singular,archive,search,not_found,product,product_category,collection';
 
     public static function is(string $kind): bool
     {

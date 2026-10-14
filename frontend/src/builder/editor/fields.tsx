@@ -230,7 +230,7 @@ export function DynamicEditor({ field, binding, onChange }: { field: FieldDef; b
       <select className="h-8 rounded-md border px-1" value={binding.tag} onChange={(event) => set({ tag: event.target.value })}>
         {DYNAMIC_TAGS.filter((item) => item.kinds.includes(kind)).map((item) => <option key={item.tag} value={item.tag}>{item.label}</option>)}
       </select>
-      {binding.tag === "custom.field" ? (
+      {DYNAMIC_TAGS.find((item) => item.tag === binding.tag)?.keyed ? (
         <input className="h-8 rounded-md border px-2" dir="ltr" placeholder={t("dynamic_key")} value={binding.key ?? ""} onChange={(event) => set({ key: event.target.value })} />
       ) : null}
       {kind === "text" ? (

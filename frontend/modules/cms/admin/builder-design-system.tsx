@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl"
 
 import { newToken } from "@/builder/components"
-import type { BuilderGlobals, CustomCode, DesignVariable } from "@/builder/globals"
+import type { BuilderGlobals, CustomCode, DesignVariable, GlobalQuery } from "@/builder/globals"
 import { Button } from "@/components/ui/button"
 
 type PanelProps = { settings: BuilderGlobals; onChange: (next: BuilderGlobals) => void }
@@ -128,6 +128,65 @@ export function CodeManagerPanel({ settings, onChange }: PanelProps) {
       >
         {t("add_code")}
       </Button>
+    </div>
+  )
+}
+
+/** Global queries: named Loop Grid queries reusable by id (Loop Grid › global query id); widget fields override nothing set here. */
+export function QueriesPanel({ settings, onChange }: PanelProps) {
+  const t = useTranslations("builder_globals")
+  const list = settings.queries ?? []
+  const patch = (index: number, next: Partial<GlobalQuery>) => onChange({ ...settings, queries: list.map((q, i) => (i === index ? { ...q, ...next } : q)) })
+  const input = "h-9 rounded-md border px-2"
+  return (
+    <div className="grid gap-4 text-xs">
+      <p className="text-muted-foreground">{t("queries_hint")}</p>
+      {list.map((query, index) => (
+        <div key={query.id} className="grid gap-2 rounded-xl border p-3">
+          <div className="grid grid-cols-[1fr_160px_auto] items-center gap-2">
+            <input aria-label={t("var_name")} className={input} value={query.name} onChange={(e) => patch(index, { name: e.target.value })} />
+            <select aria-label={t("query_source")} className={input} value={query.source} onChange={(e) => patch(index, { source: e.target.value as GlobalQuery["source"] })}>
+              <option value="products">{t("query_products")}</option>
+              <option value="posts">{t("query_posts")}</option>
+              <option value="collection">{t("query_collection")}</option>
+            </select>
+            <Button type="button" size="sm" variant="outline" onClick={() => onChange({ ...settings, queries: list.filter((_, i) => i !== index) })}>{t("remove")}</Button>
+          </div>
+          <div className="text-muted-foreground" dir="ltr">id: {query.id}</div>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+            {query.source === "collection" ? <input aria-label={t("query_collection_slug")} placeholder={t("query_collection_slug")} dir="ltr" className={input} value={query.collection ?? ""} onChange={(e) => patch(index, { collection: e.target.value })} /> : null}
+            <input aria-label={t("query_category")} placeholder={t("query_category")} dir="ltr" className={input} value={query.category ?? ""} onChange={(e) => patch(index, { category: e.target.value })} />
+            {query.source === "products" ? <input aria-label={t("query_brand")} placeholder={t("query_brand")} dir="ltr" className={input} value={query.brand ?? ""} onChange={(e) => patch(index, { brand: e.target.value })} /> : null}
+            <input aria-label={t("query_search")} placeholder={t("query_search")} className={input} value={query.search ?? ""} onChange={(e) => patch(index, { search: e.target.value })} />
+            <select aria-label={t("query_sort")} className={input} value={query.sort ?? "newest"} onChange={(e) => patch(index, { sort: e.target.value })}>
+              {["newest", "oldest", "title", "price", "price_desc", "popular", "best_selling"].map((v) => <option key={v} value={v}>{t(`query_sort_${v}`)}</option>)}
+            </select>
+            <label className="grid gap-1">{t("query_limit")}<input type="number" min={1} max={48} className={input} value={query.limit ?? 8} onChange={(e) => patch(index, { limit: Math.min(48, Math.max(1, Number(e.target.value) || 1)) })} /></label>
+            <label className="grid gap-1">{t("query_offset")}<input type="number" min={0} max={100} className={input} value={query.offset ?? 0} onChange={(e) => patch(index, { offset: Math.max(0, Number(e.target.value) || 0) })} /></label>
+            <input aria-label={t("query_exclude")} placeholder={t("query_exclude")} dir="ltr" className={input} value={query.exclude ?? ""} onChange={(e) => patch(index, { exclude: e.target.value })} />
+            {query.source === "products" ? (
+              <>
+                <label className="flex items-center gap-1"><input type="checkbox" checked={Boolean(query.onSale)} onChange={(e) => patch(index, { onSale: e.target.checked })} />{t("query_on_sale")}</label>
+                <label className="flex items-center gap-1"><input type="checkbox" checked={Boolean(query.inStock)} onChange={(e) => patch(index, { inStock: e.target.checked })} />{t("query_in_stock")}</label>
+              </>
+            ) : null}
+          </div>
+          {query.source === "collection" ? (
+            <div className="grid gap-1">
+              <div className="font-semibold">{t("query_filters")}</div>
+              {(query.filters ?? []).map((f, fi) => (
+                <div key={fi} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                  <input aria-label={t("var_name")} dir="ltr" className={input} value={f.key} onChange={(e) => patch(index, { filters: (query.filters ?? []).map((x, xi) => (xi === fi ? { ...x, key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") } : x)) })} />
+                  <input aria-label={t("var_value")} className={input} value={f.value} onChange={(e) => patch(index, { filters: (query.filters ?? []).map((x, xi) => (xi === fi ? { ...x, value: e.target.value } : x)) })} />
+                  <Button type="button" size="sm" variant="ghost" onClick={() => patch(index, { filters: (query.filters ?? []).filter((_, xi) => xi !== fi) })}>{t("remove")}</Button>
+                </div>
+              ))}
+              <Button type="button" size="sm" variant="outline" className="w-fit" disabled={(query.filters ?? []).length >= 8} onClick={() => patch(index, { filters: [...(query.filters ?? []), { key: "", value: "" }] })}>{t("query_add_filter")}</Button>
+            </div>
+          ) : null}
+        </div>
+      ))}
+      <Button type="button" size="sm" variant="outline" className="w-fit" disabled={list.length >= 50} onClick={() => onChange({ ...settings, queries: [...list, { id: newToken("query", list.map((q) => q.id)), name: t("query_new"), source: "products", sort: "newest", limit: 8 }] })}>{t("query_add")}</Button>
     </div>
   )
 }

@@ -32,5 +32,6 @@ test("resolveProps keeps unbound props and reports needs", () => {
   assert.deepEqual(resolveProps(props, data), { title: "کفش", text: "ثابت" })
   const plain = { text: "x" }
   assert.equal(resolveProps(plain, data), plain)
-  assert.deepEqual(dynamicNeeds(props), { product: true, user: false })
+  assert.deepEqual(dynamicNeeds(props), { product: true, user: false, post: false })
+  assert.deepEqual(dynamicNeeds({ a: { dynamic: { tag: "post.title" } } }), { product: false, user: false, post: true })
 })
