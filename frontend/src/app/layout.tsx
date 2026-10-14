@@ -7,6 +7,7 @@ import faMessages from "../../messages/fa.json"
 import { readRequestLocale } from "@/lib/request-locale"
 import { yekanBakh } from "@/lib/fonts/yekan-bakh"
 import { htmlDir } from "@/lib/locale"
+import { requestPageLang } from "@/builder/page-lang"
 import { getApiOrigin } from "@/lib/api-origin"
 import { AppProviders } from "@/providers/AppProviders"
 import { QueryProvider } from "@/providers/QueryProvider"
@@ -43,7 +44,9 @@ export default async function RootLayout({
 }>) {
   const locale = await readRequestLocale()
   const messages = messageCatalog[locale]
-  const dir = htmlDir(locale)
+  // A builder page with its own language (e.g. an English page on a Persian site) sets <html lang/dir>.
+  const pageLang = await requestPageLang()
+  const dir = pageLang?.dir ?? htmlDir(locale)
   const apiOrigin = getApiOrigin()
   // Pass now/timeZone explicitly so NextIntlClientProviderServer never calls
   // getNow/getTimeZone (those require next-intl/plugin + i18n/request.ts, which
@@ -53,7 +56,7 @@ export default async function RootLayout({
     process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE?.trim() || "Asia/Tehran"
 
   return (
-    <html lang={locale} dir={dir} className={yekanBakh.variable} suppressHydrationWarning>
+    <html lang={pageLang?.lang ?? locale} dir={dir} className={yekanBakh.variable} suppressHydrationWarning>
       <head>
         {apiOrigin ? (
           <>

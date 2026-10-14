@@ -7,6 +7,7 @@ import { safeClass } from "../ids"
 import { advancedClass, advancedId, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
 import { migrateDocument } from "../migrate"
 import { viewCss } from "../compile"
+import { dirForLang } from "../lang"
 import { Decor, motionAttrs, useCanvasMotion } from "./decor"
 import { useConditionsVisible } from "./use-conditions"
 import { useResolvedWidget } from "./use-dynamic"
@@ -46,7 +47,7 @@ export function DocumentView({ document: rawDocument, mode = "view", device = "d
   return (
     <BuilderGlobalsProvider value={activeGlobals}>
       <BuilderRuntimeProvider value={runtime ?? {}}>
-        <div ref={canvasRef} className={`wb-canvas ${themeClass ?? ""}`} dir={runtime?.lang && !["fa", "ar", "ku"].includes(runtime.lang) ? "ltr" : "rtl"} lang={runtime?.lang ?? undefined}>
+        <div ref={canvasRef} className={`wb-canvas ${themeClass ?? ""}`} dir={dirForLang(runtime?.lang)} lang={runtime?.lang ?? undefined}>
           {css ? <style>{css}</style> : null}
           <div className="wb-section-stack">
             {document.sections.map((section) => (

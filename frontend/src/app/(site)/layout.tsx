@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { apiServer } from "@/lib/api-server"
 import { globalsCss } from "@/builder/globals"
 import { loadPublishedGlobals, loadResolvedTemplate, StorefrontDocument } from "@/builder/public-document"
+import { requestPageLang } from "@/builder/page-lang"
 import { requestThemeContext } from "@/builder/theme/request"
 import { BuilderRuntimeProvider } from "@/builder/render/runtime"
 import { loadThemeComponents } from "@/kernel/theme-loader"
@@ -113,6 +114,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   const { SiteHeader, SiteFooter } = theme
   const themeContext = await requestThemeContext()
   const preferPublishedChrome = preferPublishedStorefrontChrome(themeSlug)
+  const pageLang = await requestPageLang()
   const [globals, header, footer] = await Promise.all([
     loadPublishedGlobals(),
     preferPublishedChrome ? loadResolvedTemplate("header", themeContext) : Promise.resolve(null),
@@ -122,13 +124,16 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   return (
     <SiteBrandingShell branding={branding} themeSlug={themeSlug}>
       {/* Theme slug reaches client storefront widgets rendered outside a builder document (wishlist, offers, vendor). */}
-      <BuilderRuntimeProvider value={{ themeSlug, siteName: tenantName, logoUrl: branding.logo_url }}>
-      <div className={globals ? "wb-site flex min-h-svh flex-1 flex-col" : "flex min-h-svh flex-1 flex-col"}>
+      <BuilderRuntimeProvider value={{ themeSlug, siteName: tenantName, logoUrl: branding.logo_url, lang: pageLang?.lang ?? null }}>
+      <div
+        className={globals ? "wb-site flex min-h-svh flex-1 flex-col" : "flex min-h-svh flex-1 flex-col"}
+        {...(pageLang ? { dir: pageLang.dir, lang: pageLang.lang } : {})}
+      >
         {globals ? <style>{globalsCss(globals)}</style> : null}
         {header ? (
           <StorefrontDocument
             document={header}
-            runtime={{ siteName: tenantName, logoUrl: branding.logo_url, themeSlug }}
+            runtime={{ siteName: tenantName, logoUrl: branding.logo_url, themeSlug, lang: pageLang?.lang ?? null }}
             context={themeContext}
           />
         ) : (
@@ -136,7 +141,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         )}
         <main className={cn("sf-main flex-1")}>{children}</main>
         {footer ? (
-          <StorefrontDocument document={footer} runtime={{ siteName: tenantName, themeSlug }} context={themeContext} />
+          <StorefrontDocument document={footer} runtime={{ siteName: tenantName, themeSlug, lang: pageLang?.lang ?? null }} context={themeContext} />
         ) : (
           <SiteFooter siteName={tenantName} />
         )}
