@@ -42,10 +42,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const locale = await readRequestLocale()
-  const messages = messageCatalog[locale]
-  // A builder page with its own language (e.g. an English page on a Persian site) sets <html lang/dir>.
+  // A builder page with its own language (e.g. an English page on a Persian site) sets <html lang/dir> and the UI catalogue.
   const pageLang = await requestPageLang()
+  const locale = pageLang?.uiLocale ?? (await readRequestLocale())
+  const messages = messageCatalog[locale]
   const dir = pageLang?.dir ?? htmlDir(locale)
   const apiOrigin = getApiOrigin()
   // Pass now/timeZone explicitly so NextIntlClientProviderServer never calls

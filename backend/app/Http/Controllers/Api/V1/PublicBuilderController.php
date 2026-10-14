@@ -43,7 +43,7 @@ class PublicBuilderController extends Controller
         abort_unless($page && is_array($page->builder_draft), 404);
 
         return response()->json([
-            'data' => ['slug' => $page->slug, 'title' => $page->title, 'document' => $page->builder_draft, 'preview' => true],
+            'data' => ['slug' => $page->slug, 'title' => $page->title, 'document' => $page->builder_draft, 'lang' => $page->lang, 'preview' => true],
         ])->header('Cache-Control', 'no-store')->header('X-Robots-Tag', 'noindex, nofollow');
     }
 

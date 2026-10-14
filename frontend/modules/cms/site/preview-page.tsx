@@ -12,7 +12,7 @@ export default async function PreviewPage({ route }: { route: ResolvedSiteRoute 
   const t = await getServerTranslations("site")
   const token = route.params?.token ?? ""
   const res = /^\d+\.[a-f0-9]{48}$/.test(token)
-    ? await apiServer<{ data?: { title?: string; document?: unknown } }>(`/api/v1/public/builder/preview/${token}`, { revalidate: 0 }).catch(() => null)
+    ? await apiServer<{ data?: { title?: string; document?: unknown; lang?: string | null } }>(`/api/v1/public/builder/preview/${token}`, { revalidate: 0 }).catch(() => null)
     : null
   const document = res?.data?.document
   if (!isDocument(document)) {
@@ -21,7 +21,7 @@ export default async function PreviewPage({ route }: { route: ResolvedSiteRoute 
   return (
     <>
       <div className="sticky top-0 z-40 bg-amber-100 px-4 py-2 text-center text-xs text-amber-900" role="status">{t("preview_banner")}</div>
-      <StorefrontDocument document={document} runtime={{ siteName: res?.data?.title ?? "" }} />
+      <StorefrontDocument document={document} runtime={{ siteName: res?.data?.title ?? "", lang: res?.data?.lang ?? null }} />
     </>
   )
 }

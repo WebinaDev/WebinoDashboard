@@ -16,3 +16,16 @@ export function pageSlugFromPath(path: string | null | undefined): string | null
     return null
   }
 }
+
+/** UI message catalogue for a page language: fa/en as-is; other RTL languages → fa, other LTR languages → en. */
+export function uiLocaleForLang(lang: string): "fa" | "en" {
+  const base = lang.toLowerCase().split("-")[0]
+  if (base === "fa" || base === "en") return base
+  return dirForLang(base) === "rtl" ? "fa" : "en"
+}
+
+/** Preview token from `/preview/<token>`, or null. */
+export function previewTokenFromPath(path: string | null | undefined): string | null {
+  const m = /^\/preview\/(\d+\.[a-f0-9]{48})\/?(?:[?#].*)?$/.exec(path ?? "")
+  return m ? m[1] : null
+}

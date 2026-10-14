@@ -3,16 +3,21 @@ import { cache } from "react"
 
 import { apiServer } from "@/lib/api-server"
 
-import { dirForLang, pageSlugFromPath } from "./lang"
+import { dirForLang, pageSlugFromPath, previewTokenFromPath, uiLocaleForLang } from "./lang"
 
 /**
  * Language of the builder page being rendered (from the middleware's x-webino-path), so the root <html> and the
  * storefront shell (header/footer/menus) follow an LTR page, not just its content. Null when not a page / no lang.
  */
-export const requestPageLang = cache(async (): Promise<{ lang: string; dir: "rtl" | "ltr" } | null> => {
-  const slug = pageSlugFromPath((await headers()).get("x-webino-path"))
-  if (!slug) return null
-  const res = await apiServer<{ data?: { lang?: string | null } }>(`/api/v1/public/pages/${encodeURIComponent(slug)}`, { revalidate: 60 }).catch(() => null)
+export type PageLang = { lang: string; dir: "rtl" | "ltr"; uiLocale: "fa" | "en" }
+
+export const requestPageLang = cache(async (): Promise<PageLang | null> => {
+  const path = (await headers()).get("x-webino-path")
+  const slug = pageSlugFromPath(path)
+  const token = slug ? null : previewTokenFromPath(path)
+  if (!slug && !token) return null
+  const url = slug ? `/api/v1/public/pages/${encodeURIComponent(slug)}` : `/api/v1/public/builder/preview/${token}`
+  const res = await apiServer<{ data?: { lang?: string | null } }>(url, { revalidate: slug ? 60 : 0 }).catch(() => null)
   const lang = res?.data?.lang
-  return typeof lang === "string" && /^[a-z]{2}(-[A-Za-z]{2})?$/.test(lang) ? { lang, dir: dirForLang(lang) } : null
+  return typeof lang === "string" && /^[a-z]{2}(-[A-Za-z]{2})?$/.test(lang) ? { lang, dir: dirForLang(lang), uiLocale: uiLocaleForLang(lang) } : null
 })
