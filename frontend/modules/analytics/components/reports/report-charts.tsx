@@ -78,7 +78,8 @@ function ReportTooltipBody({
 
 function useTooltip(config: ChartConfig, moneyKeys: string[], currency?: string, title?: (p: Record<string, unknown> | undefined, label: ReactNode) => ReactNode) {
   const fmt = useReportFormat()
-  return (props: { active?: boolean; payload?: unknown; label?: unknown }) => (
+  function ReportTooltip(props: { active?: boolean; payload?: unknown; label?: unknown }) {
+    return (
     <ReportTooltipBody
       active={props.active}
       payload={props.payload as TooltipPayloadItem[] | undefined}
@@ -89,7 +90,10 @@ function useTooltip(config: ChartConfig, moneyKeys: string[], currency?: string,
       currency={currency}
       title={title}
     />
-  )
+    )
+  }
+  ReportTooltip.displayName = "ReportTooltip"
+  return ReportTooltip
 }
 
 export function ChartCard({

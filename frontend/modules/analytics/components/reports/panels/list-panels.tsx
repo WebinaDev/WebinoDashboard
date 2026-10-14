@@ -23,7 +23,11 @@ import { ListCard, ListPanel } from "./list-panel"
 import type { ReportPanelProps } from "./panel-state"
 
 function useMoney() {
-  return (v: number, currency: string) => <MoneyDisplay amount={v} currency={currency} />
+  function renderMoney(v: number, currency: string) {
+    return <MoneyDisplay amount={v} currency={currency} />
+  }
+  renderMoney.displayName = "ReportMoney"
+  return renderMoney
 }
 
 export function ProductsPanel({ filters }: ReportPanelProps) {
