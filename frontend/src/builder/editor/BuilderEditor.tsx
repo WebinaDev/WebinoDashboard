@@ -57,7 +57,7 @@ import {
   updateSection,
   updateWidget,
 } from "../tree"
-import type { FieldDef, AdvancedProps, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
+import type { FieldDef, AdvancedProps, ShapeName, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
 import { migrateDocument } from "../migrate"
@@ -823,6 +823,13 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                   })))}
                 />
               ) : null}
+              {tab === "advanced" ? (
+                <AdvancedFields
+                  layout
+                  value={selection.section.advanced ?? {}}
+                  onChange={(patch) => commit(updateSection(doc, selection.id, (node) => ({ ...node, advanced: { ...(node.advanced ?? {}), ...patch } })))}
+                />
+              ) : null}
             </div>
           ) : null}
           {selection?.kind === "column" ? (
@@ -851,6 +858,13 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                     ...column,
                     style: { ...column.style, [device === "desktop" ? "base" : device]: { ...mergeStyle(column.style, device), ...patch } },
                   })))}
+                />
+              ) : null}
+              {tab === "advanced" ? (
+                <AdvancedFields
+                  layout
+                  value={selection.column.advanced ?? {}}
+                  onChange={(patch) => commit(updateColumn(doc, selection.id, (node) => ({ ...node, advanced: { ...(node.advanced ?? {}), ...patch } })))}
                 />
               ) : null}
             </div>
@@ -1108,14 +1122,26 @@ function StyleFields({ style, onChange, device, layout = false }: { style: Style
         <TextIn label={t("radius")} value={style.radius} placeholder="16px" onChange={(radius) => onChange({ radius })} />
         <SelectIn label={t("shadow")} value={style.boxShadow} options={SHADOWS} onChange={(boxShadow) => onChange({ boxShadow })} />
       </Group>
+      <Group title={t("style_hover")}>
+        <TokenColor label={t("hover_color")} value={style.hover?.color} onChange={(color) => onChange({ hover: { ...style.hover, color } })} />
+        <TokenColor label={t("hover_background")} value={style.hover?.background} onChange={(background) => onChange({ hover: { ...style.hover, background } })} />
+        <TokenColor label={t("hover_border")} value={style.hover?.borderColor} onChange={(borderColor) => onChange({ hover: { ...style.hover, borderColor } })} />
+        <SelectIn label={t("shadow")} value={style.hover?.boxShadow} options={SHADOWS} onChange={(boxShadow) => onChange({ hover: { ...style.hover, boxShadow } })} />
+        <TextIn label={t("hover_transform")} value={style.hover?.transform} placeholder="translateY(-4px)" onChange={(transform) => onChange({ hover: { ...style.hover, transform } })} />
+        <TextIn label={t("hover_transition")} value={style.hover?.transition} placeholder="300ms" onChange={(transition) => onChange({ hover: { ...style.hover, transition } })} />
+      </Group>
       <label className="flex items-center justify-between">{t("hidden")}<input type="checkbox" checked={style.hidden === true} onChange={(event) => onChange({ hidden: event.target.checked })} /></label>
     </div>
   )
 }
 
-function AdvancedFields({ value, onChange }: { value: AdvancedProps; onChange: (patch: AdvancedProps) => void }) {
+function AdvancedFields({ value, onChange, layout }: { value: AdvancedProps; onChange: (patch: AdvancedProps) => void; layout?: boolean }) {
   const t = useTranslations("builder")
   const hide = value.hideOn ?? {}
+  const sticky = value.sticky ?? {}
+  const motion = value.motion ?? {}
+  const bg = value.background ?? {}
+  const shapes = ["none", "wave", "curve", "tilt", "triangle", "zigzag"].map((v) => ({ value: v, label: v === "none" ? "—" : t(`shape_${v}`) }))
   return (
     <div className="grid gap-2 text-xs">
       <TextIn label={t("css_class")} value={value.cssClass} placeholder="my-class" onChange={(cssClass) => onChange({ cssClass })} />
@@ -1128,12 +1154,42 @@ function AdvancedFields({ value, onChange }: { value: AdvancedProps; onChange: (
           </label>
         ))}
       </Group>
-      <SelectIn
-        label={t("animation")}
-        value={value.animation ?? "none"}
-        options={[{ value: "none", label: "—" }, { value: "fade", label: t("anim_fade") }, { value: "slide-up", label: t("anim_slide_up") }, { value: "zoom", label: t("anim_zoom") }]}
-        onChange={(v) => onChange({ animation: v as AdvancedProps["animation"] })}
-      />
+      <Group title={t("motion_effects")}>
+        <SelectIn
+          label={t("animation")}
+          value={value.animation ?? "none"}
+          options={["none", "fade", "slide-up", "slide-down", "slide-start", "slide-end", "zoom", "flip", "bounce"].map((v) => ({ value: v, label: v === "none" ? "—" : t(`anim_${v.replace("-", "_")}`) }))}
+          onChange={(v) => onChange({ animation: v as AdvancedProps["animation"] })}
+        />
+        <TextIn label={t("anim_duration")} value={value.animationDuration ? String(value.animationDuration) : ""} placeholder="600" onChange={(v) => onChange({ animationDuration: Number(v) || undefined })} />
+        <TextIn label={t("anim_delay")} value={value.animationDelay ? String(value.animationDelay) : ""} placeholder="0" onChange={(v) => onChange({ animationDelay: Number(v) || undefined })} />
+        <SelectIn label={t("anim_easing")} value={value.animationEasing ?? "ease-out"} options={["ease", "ease-out", "ease-in-out", "linear", "spring"].map((v) => ({ value: v, label: v }))} onChange={(v) => onChange({ animationEasing: v as AdvancedProps["animationEasing"] })} />
+        <SelectIn label={t("hover_anim")} value={value.hoverAnim ?? "none"} options={["none", "grow", "shrink", "float", "pulse", "rotate"].map((v) => ({ value: v, label: v === "none" ? "—" : t(`hover_${v}`) }))} onChange={(v) => onChange({ hoverAnim: v as AdvancedProps["hoverAnim"] })} />
+        <TextIn label={t("parallax")} value={motion.parallax ? String(motion.parallax) : ""} placeholder="0-10" onChange={(v) => onChange({ motion: { ...motion, parallax: Math.max(0, Math.min(10, Number(v) || 0)) || undefined } })} />
+        <label className="flex items-center justify-between">{t("tilt")}<input type="checkbox" checked={motion.tilt === true} onChange={(event) => onChange({ motion: { ...motion, tilt: event.target.checked } })} /></label>
+      </Group>
+      <Group title={t("sticky")}>
+        <SelectIn label={t("sticky_position")} value={sticky.position ?? ""} options={[{ value: "", label: "—" }, { value: "top", label: t("sticky_top") }, { value: "bottom", label: t("sticky_bottom") }]} onChange={(v) => onChange({ sticky: { ...sticky, position: (v || undefined) as "top" | "bottom" | undefined } })} />
+        <TextIn label={t("sticky_offset")} value={sticky.offset} placeholder="0px" onChange={(offset) => onChange({ sticky: { ...sticky, offset } })} />
+        {(["desktop", "tablet", "mobile"] as const).map((d) => (
+          <label key={d} className="flex items-center justify-between">
+            {t(`device_${d}`)}
+            <input type="checkbox" checked={(sticky.devices ?? { desktop: true, tablet: true, mobile: true })[d] !== false} onChange={(event) => onChange({ sticky: { ...sticky, devices: { desktop: true, tablet: true, mobile: true, ...sticky.devices, [d]: event.target.checked } } })} />
+          </label>
+        ))}
+      </Group>
+      {layout ? (
+        <Group title={t("background_extras")}>
+          <TextIn label={t("bg_video")} value={bg.video} placeholder="https://.../video.mp4" onChange={(video) => onChange({ background: { ...bg, video } })} />
+          <TextIn label={t("bg_poster")} value={bg.poster} placeholder="https://.../poster.jpg" onChange={(poster) => onChange({ background: { ...bg, poster } })} />
+          <TokenColor label={t("bg_overlay")} value={bg.overlay} onChange={(overlay) => onChange({ background: { ...bg, overlay } })} />
+          <TextIn label={t("bg_overlay_opacity")} value={bg.overlayOpacity != null ? String(bg.overlayOpacity) : ""} placeholder="0.5" onChange={(v) => onChange({ background: { ...bg, overlayOpacity: v === "" ? undefined : Math.max(0, Math.min(1, Number(v) || 0)) } })} />
+          <SelectIn label={t("shape_top")} value={bg.shapeTop ?? "none"} options={shapes} onChange={(v) => onChange({ background: { ...bg, shapeTop: v as ShapeName } })} />
+          <SelectIn label={t("shape_bottom")} value={bg.shapeBottom ?? "none"} options={shapes} onChange={(v) => onChange({ background: { ...bg, shapeBottom: v as ShapeName } })} />
+          <TokenColor label={t("shape_color")} value={bg.shapeColor} onChange={(shapeColor) => onChange({ background: { ...bg, shapeColor } })} />
+          <TextIn label={t("shape_height")} value={bg.shapeHeight ? String(bg.shapeHeight) : ""} placeholder="60" onChange={(v) => onChange({ background: { ...bg, shapeHeight: Number(v) || undefined } })} />
+        </Group>
+      ) : null}
       <Group title={t("display_conditions")}>
         <ConditionsFields value={value.conditions ?? {}} onChange={(conditions) => onChange({ conditions })} />
       </Group>

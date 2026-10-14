@@ -1,9 +1,12 @@
 "use client"
 
+import { useRef } from "react"
+
 import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
 import { advancedClass, advancedId, documentCss, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
 import { migrateDocument } from "../migrate"
+import { Decor, motionAttrs, useCanvasMotion } from "./decor"
 import { useConditionsVisible } from "./use-conditions"
 import { useResolvedWidget } from "./use-dynamic"
 import type { ColumnNode, DeviceMode, EditorApi, BuilderDocument, RuntimeContext, SectionNode, WidgetNode } from "../types"
@@ -37,10 +40,12 @@ export function DocumentView({ document: rawDocument, mode = "view", device = "d
   const activeGlobals = globals ?? DEFAULT_GLOBALS
   const nodeCss = mode === "view" ? documentCss(document) : ""
   const css = [globalsCss(activeGlobals), nodeCss, importedCss(document)].filter(Boolean).join("\n")
+  const canvasRef = useRef<HTMLDivElement>(null)
+  useCanvasMotion(canvasRef, mode === "view")
   return (
     <BuilderGlobalsProvider value={activeGlobals}>
       <BuilderRuntimeProvider value={runtime ?? {}}>
-        <div className={`wb-canvas ${themeClass ?? ""}`} dir="rtl">
+        <div ref={canvasRef} className={`wb-canvas ${themeClass ?? ""}`} dir="rtl">
           {css ? <style>{css}</style> : null}
           <div className="wb-section-stack">
             {document.sections.map((section) => (
@@ -61,8 +66,9 @@ function SectionBlock({ section, device, editor }: { section: SectionNode; devic
   return (
     <section
       id={section.id}
-      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""} ${editor && section.hidden ? "opacity-40" : ""}`}
+      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${advancedClass(section.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""} ${editor && section.hidden ? "opacity-40" : ""}`}
       style={style}
+      {...motionAttrs(section.advanced)}
       onClick={(event) => {
         if (!editor) return
         event.stopPropagation()
@@ -74,6 +80,7 @@ function SectionBlock({ section, device, editor }: { section: SectionNode; devic
         editor.onContextMenu?.(section.id, event.clientX, event.clientY)
       } : undefined}
     >
+      <Decor advanced={section.advanced} />
       <div
         className={`wb-columns grid items-start ${section.legacy ? "" : "wb-flow"}`}
         style={
@@ -126,7 +133,8 @@ function ColumnBlock({
   if (column.hidden && !editor) return null
   return (
     <div
-      className={`${safeClass(column.id)} relative min-w-0 ${selected ? "outline outline-2 outline-dashed outline-[#0C2D63]" : ""} ${editor && column.hidden ? "opacity-40" : ""}`}
+      {...motionAttrs(column.advanced)}
+      className={`${safeClass(column.id)} ${advancedClass(column.advanced)} relative min-w-0 ${selected ? "outline outline-2 outline-dashed outline-[#0C2D63]" : ""} ${editor && column.hidden ? "opacity-40" : ""}`}
       style={{ ...style, gridColumn }}
       onClick={(event) => {
         if (!editor) return
@@ -139,6 +147,7 @@ function ColumnBlock({
         editor.onContextMenu?.(column.id, event.clientX, event.clientY)
       } : undefined}
     >
+      <Decor advanced={column.advanced} />
       {editor ? <DropSlot columnId={column.id} index={0} editor={editor} /> : null}
       <div className="wb-col-body flex flex-col" style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
         {column.widgets.map((widget, index) => (
@@ -172,6 +181,7 @@ function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: D
       id={advancedId(widget.advanced)}
       className={`${safeClass(widget.id)} ${advancedClass(widget.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
       style={style}
+      {...motionAttrs(widget.advanced)}
       draggable={Boolean(editor) && !widget.locked}
       onDragStart={(event) => {
         event.dataTransfer.setData(DND_NODE, widget.id)

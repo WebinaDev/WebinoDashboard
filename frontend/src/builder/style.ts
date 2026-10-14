@@ -19,14 +19,16 @@ export function mergeStyle(style: ResponsiveStyle | undefined, device: DeviceMod
 export function styleToCss(style: StyleProps): CSSProperties {
   const align = style.textAlign
   return {
+    // Logical properties: the editor is RTL, so "right" = inline-start and "left" = inline-end.
+    // RTL output is identical; LTR (English) pages mirror correctly.
     marginTop: safeValue(style.margin?.top),
-    marginRight: safeValue(style.margin?.right),
+    marginInlineStart: safeValue(style.margin?.right),
     marginBottom: safeValue(style.margin?.bottom),
-    marginLeft: safeValue(style.margin?.left),
+    marginInlineEnd: safeValue(style.margin?.left),
     paddingTop: safeValue(style.padding?.top),
-    paddingRight: safeValue(style.padding?.right),
+    paddingInlineStart: safeValue(style.padding?.right),
     paddingBottom: safeValue(style.padding?.bottom),
-    paddingLeft: safeValue(style.padding?.left),
+    paddingInlineEnd: safeValue(style.padding?.left),
     color: safeValue(style.color),
     fontSize: safeValue(style.fontSize),
     fontWeight: safeValue(style.fontWeight),
@@ -151,8 +153,10 @@ export function advancedClass(advanced: AdvancedProps | undefined): string {
     .map((c) => c.replace(/[^a-zA-Z0-9_-]/g, ""))
     .filter(Boolean)
     .slice(0, 8)
-  const anim = advanced.animation && advanced.animation !== "none" ? [`wb-anim-${advanced.animation}`] : []
-  return [...extra, ...anim].join(" ")
+  const anim = advanced.animation && advanced.animation !== "none" ? ["wb-anim", `wb-anim-${advanced.animation}`] : []
+  const hover = advanced.hoverAnim && advanced.hoverAnim !== "none" ? [`wb-hover-${advanced.hoverAnim}`] : []
+  const decor = advanced.background && (advanced.background.video || advanced.background.overlay || hasShape(advanced.background.shapeTop) || hasShape(advanced.background.shapeBottom)) ? ["wb-decor"] : []
+  return [...extra, ...anim, ...hover, ...decor].join(" ")
 }
 
 export function advancedId(advanced: AdvancedProps | undefined): string | undefined {
@@ -160,7 +164,53 @@ export function advancedId(advanced: AdvancedProps | undefined): string | undefi
   return id || undefined
 }
 
+function hasShape(shape: string | undefined): boolean {
+  return Boolean(shape && shape !== "none")
+}
+
+const EASING: Record<string, string> = { ease: "ease", "ease-out": "ease-out", "ease-in-out": "ease-in-out", linear: "linear", spring: "cubic-bezier(.34,1.56,.64,1)" }
+
+/** Hover state, animation timing and sticky rules for one node. */
+export function motionRules(id: string, style: ResponsiveStyle | undefined, advanced: AdvancedProps | undefined): string[] {
+  const rules: string[] = []
+  const cls = safeClass(id)
+  const hover = style?.base?.hover
+  if (hover) {
+    const body = cssDecl({
+      color: safeValue(hover.color),
+      background: safeValue(hover.background),
+      borderColor: safeValue(hover.borderColor),
+      boxShadow: safeValue(hover.boxShadow),
+      transform: safeValue(hover.transform),
+      opacity: safeValue(hover.opacity),
+    })
+    if (body) {
+      rules.push(`.${cls}{transition:${safeValue(hover.transition) ?? "all .25s ease"}}`)
+      rules.push(`.${cls}:hover{${body}}`)
+    }
+  }
+  if (advanced?.animation && advanced.animation !== "none") {
+    const timing = cssDecl({
+      animationDuration: advanced.animationDuration ? `${Math.max(100, Math.min(5000, advanced.animationDuration))}ms` : undefined,
+      animationDelay: advanced.animationDelay ? `${Math.max(0, Math.min(5000, advanced.animationDelay))}ms` : undefined,
+      animationTimingFunction: advanced.animationEasing ? EASING[advanced.animationEasing] : undefined,
+    })
+    if (timing) rules.push(`.${cls}.wb-anim{${timing}}`)
+  }
+  const sticky = advanced?.sticky
+  if (sticky?.position) {
+    const offset = safeValue(sticky.offset) ?? "0"
+    const body = `position:sticky;${sticky.position === "bottom" ? "bottom" : "top"}:${offset};z-index:30`
+    const devices = sticky.devices ?? { desktop: true, tablet: true, mobile: true }
+    if (devices.desktop) rules.push(`@media (min-width:1025px){.${cls}{${body}}}`)
+    if (devices.tablet) rules.push(`@media (min-width:768px) and (max-width:1024px){.${cls}{${body}}}`)
+    if (devices.mobile) rules.push(`@media (max-width:767px){.${cls}{${body}}}`)
+  }
+  return rules
+}
+
 function pushVisibility(rules: string[], id: string, advanced: AdvancedProps | undefined) {
+  rules.push(...motionRules(id, undefined, advanced).filter((rule) => !rule.includes(":hover")))
   const hide = advanced?.hideOn
   if (!hide) return
   const cls = safeClass(id)
@@ -169,9 +219,14 @@ function pushVisibility(rules: string[], id: string, advanced: AdvancedProps | u
   if (hide.mobile) rules.push(`@media (max-width:767px){.${cls}{display:none!important}}`)
 }
 
+function pushHover(rules: string[], id: string, style: ResponsiveStyle | undefined) {
+  rules.push(...motionRules(id, style, undefined))
+}
+
 function walkWidgets(rules: string[], widgets: WidgetNode[]) {
   for (const widget of widgets) {
     pushNode(rules, widget.id, widget.style)
+    pushHover(rules, widget.id, widget.style)
     pushVisibility(rules, widget.id, widget.advanced)
     if (widget.children) walkSections(rules, widget.children)
   }
@@ -180,12 +235,16 @@ function walkWidgets(rules: string[], widgets: WidgetNode[]) {
 function walkSections(rules: string[], sections: SectionNode[]) {
   for (const section of sections) {
     pushNode(rules, section.id, section.style)
+    pushHover(rules, section.id, section.style)
+    pushVisibility(rules, section.id, section.advanced)
     if (!section.legacy) {
       pushSpans(rules, section)
       pushLayout(rules, section.id, ".wb-columns", section.style)
     }
     for (const column of section.columns) {
       pushNode(rules, column.id, column.style)
+      pushHover(rules, column.id, column.style)
+      pushVisibility(rules, column.id, column.advanced)
       if (!section.legacy) pushLayout(rules, column.id, ".wb-col-body", column.style)
       walkWidgets(rules, column.widgets)
     }

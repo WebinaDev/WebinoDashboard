@@ -47,7 +47,13 @@ export type StyleProps = {
   columnGap?: string
   /** Order of this node inside its parent (e.g. reorder columns on mobile). */
   order?: string
+  /** Hover state (desktop/base only). */
+  hover?: HoverStyle
 }
+
+export type HoverStyle = { color?: string; background?: string; borderColor?: string; boxShadow?: string; transform?: string; opacity?: string; transition?: string }
+
+export type ShapeName = "none" | "wave" | "curve" | "tilt" | "triangle" | "zigzag"
 
 /** Elementor-style "Advanced" settings that are not per-device styles. */
 export type AdvancedProps = {
@@ -57,8 +63,19 @@ export type AdvancedProps = {
   cssId?: string
   /** Hide on specific devices (independent of the device being edited). */
   hideOn?: { desktop?: boolean; tablet?: boolean; mobile?: boolean }
-  /** Simple entrance animation. */
-  animation?: "none" | "fade" | "slide-up" | "zoom"
+  /** Entrance animation (runs when scrolled into view). */
+  animation?: "none" | "fade" | "slide-up" | "slide-down" | "slide-start" | "slide-end" | "zoom" | "flip" | "bounce"
+  animationDuration?: number
+  animationDelay?: number
+  animationEasing?: "ease" | "ease-out" | "ease-in-out" | "linear" | "spring"
+  /** Hover animation preset. */
+  hoverAnim?: "none" | "grow" | "shrink" | "float" | "pulse" | "rotate"
+  /** Sticky positioning per device. */
+  sticky?: { position?: "top" | "bottom"; offset?: string; devices?: { desktop?: boolean; tablet?: boolean; mobile?: boolean } }
+  /** Scroll / pointer motion effects. */
+  motion?: { parallax?: number; tilt?: boolean }
+  /** Section/column background extras. */
+  background?: { video?: string; poster?: string; overlay?: string; overlayOpacity?: number; shapeTop?: ShapeName; shapeBottom?: ShapeName; shapeColor?: string; shapeHeight?: number }
   /** Display conditions (login, cart, date range, weekdays, hours, URL parameter). */
   conditions?: DisplayConditions
 }
@@ -93,6 +110,7 @@ export type ColumnNode = {
   tabletSpan?: number
   mobileSpan?: number
   style?: ResponsiveStyle
+  advanced?: AdvancedProps
   widgets: WidgetNode[]
 }
 
@@ -106,6 +124,7 @@ export type SectionNode = {
   legacy?: boolean
   fullWidth?: boolean
   style?: ResponsiveStyle
+  advanced?: AdvancedProps
   columns: ColumnNode[]
 }
 
