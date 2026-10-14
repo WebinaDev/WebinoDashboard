@@ -3,6 +3,7 @@
 namespace App\Services\Seo;
 
 use App\Models\BlogPost;
+use App\Models\BuilderCollectionItem;
 use App\Models\CmsPage;
 use App\Models\Product;
 use App\Models\Tenant;
@@ -64,6 +65,21 @@ final class SitemapBuilder
                     ];
                 });
         }
+        // Published CMS collection items: /c/<collection>/<item>.
+        BuilderCollectionItem::query()
+            ->join('builder_collections', 'builder_collections.id', '=', 'builder_collection_items.collection_id')
+            ->where('builder_collection_items.tenant_id', $tenant->id)
+            ->where('builder_collections.tenant_id', $tenant->id)
+            ->where('builder_collection_items.published', true)
+            ->orderBy('builder_collection_items.id')
+            ->limit(5000)
+            ->get(['builder_collections.slug as collection_slug', 'builder_collection_items.slug', 'builder_collection_items.updated_at'])
+            ->each(function ($item) use (&$urls, $base) {
+                $urls[] = [
+                    'loc' => $base.'/c/'.rawurlencode((string) $item->collection_slug).'/'.rawurlencode((string) $item->slug),
+                    'lastmod' => optional($item->updated_at)?->toAtomString() ?? Carbon::now()->toAtomString(),
+                ];
+            });
 
         return $this->urlset($urls);
     }

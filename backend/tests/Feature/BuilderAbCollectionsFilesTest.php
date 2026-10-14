@@ -132,4 +132,17 @@ class BuilderAbCollectionsFilesTest extends TestCase
         $this->assertNotNull(BuilderFormFile::query()->first()->submission_id);
         $this->assertCount(1, Storage::disk('local')->allFiles());
     }
+
+    public function test_published_collection_items_are_in_the_sitemap(): void
+    {
+        [$tenant] = $this->shop();
+        $c = \App\Models\BuilderCollection::query()->create(['tenant_id' => $tenant->id, 'slug' => 'team', 'name' => 'Team', 'fields' => [['key' => 'bio', 'label' => 'Bio', 'type' => 'text']]]);
+        \App\Models\BuilderCollectionItem::query()->create(['tenant_id' => $tenant->id, 'collection_id' => $c->id, 'slug' => 'ali', 'title' => 'Ali', 'data' => [], 'published' => true]);
+        \App\Models\BuilderCollectionItem::query()->create(['tenant_id' => $tenant->id, 'collection_id' => $c->id, 'slug' => 'hidden', 'title' => 'H', 'data' => [], 'published' => false]);
+        app(\App\Services\Seo\SeoSettingsService::class)->save((int) $tenant->id, ['sitemap_enabled' => true, 'sitemap_include_pages' => true]);
+
+        $xml = app(\App\Services\Seo\SitemapBuilder::class)->pagesXml($tenant);
+        $this->assertStringContainsString('/c/team/ali</loc>', $xml);
+        $this->assertStringNotContainsString('/c/team/hidden', $xml);
+    }
 }
