@@ -1,5 +1,6 @@
 "use client"
 
+import { checkoutFieldOrder } from "@/themes/ecommerce-classic/components/ClassicCheckout"
 import { useEffect, useState, type ReactNode } from "react"
 import { useLocale, useTranslations } from "next-intl"
 
@@ -1097,6 +1098,34 @@ export function StorefrontAppearancePanel() {
                 checked={Boolean(commerce.checkout_require_postcode)}
                 onChange={(v) => setSection("commerce", { checkout_require_postcode: v })}
               />
+              <label className="grid gap-1 text-sm">
+                <span>{t("checkout_national_id")}</span>
+                <select
+                  className="border-input bg-background h-9 rounded-md border px-2"
+                  value={typeof commerce.checkout_national_id === "string" ? commerce.checkout_national_id : "hidden"}
+                  onChange={(e) => setSection("commerce", { checkout_national_id: e.target.value as "hidden" | "optional" | "required" })}
+                >
+                  <option value="hidden">{t("checkout_national_id_hidden")}</option>
+                  <option value="optional">{t("checkout_national_id_optional")}</option>
+                  <option value="required">{t("checkout_national_id_required")}</option>
+                </select>
+              </label>
+              <CheckoutFieldOrderEditor
+                label={t("checkout_field_order")}
+                value={typeof commerce.checkout_field_order === "string" ? commerce.checkout_field_order : undefined}
+                labels={{
+                  recipient: t("checkout_show_recipient"),
+                  national_id: t("checkout_national_id"),
+                  state: t("checkout_field_state"),
+                  city: t("checkout_field_city"),
+                  postcode: t("checkout_show_postcode"),
+                  phone: t("checkout_field_phone"),
+                  address: t("checkout_field_address"),
+                  coupon: t("checkout_field_coupon"),
+                  note: t("checkout_show_note"),
+                }}
+                onChange={(v) => setSection("commerce", { checkout_field_order: v })}
+              />
               <FieldSwitch
                 label={t("checkout_show_note")}
                 checked={Boolean(commerce.checkout_show_note ?? true)}
@@ -1451,6 +1480,33 @@ export function StorefrontAppearancePanel() {
       </Tabs>
 
       <SettingsSaveBar onSave={() => void save()} pending={pending} saved={saved} error={error} />
+    </div>
+  )
+}
+
+function CheckoutFieldOrderEditor({ label, value, labels, onChange }: { label: string; value?: string; labels: Record<string, string>; onChange: (value: string) => void }) {
+  const order = checkoutFieldOrder(value)
+  const move = (i: number, dir: -1 | 1) => {
+    const next = [...order]
+    const j = i + dir
+    if (j < 0 || j >= next.length) return
+    ;[next[i], next[j]] = [next[j], next[i]]
+    onChange(next.join(","))
+  }
+  return (
+    <div className="grid gap-1 text-sm">
+      <span>{label}</span>
+      <ol className="grid gap-1">
+        {order.map((key, i) => (
+          <li key={key} className="flex items-center justify-between rounded-md border px-2 py-1">
+            <span>{labels[key] ?? key}</span>
+            <span className="flex gap-1">
+              <button type="button" className="rounded px-2 hover:bg-muted disabled:opacity-30" disabled={i === 0} aria-label="up" onClick={() => move(i, -1)}>↑</button>
+              <button type="button" className="rounded px-2 hover:bg-muted disabled:opacity-30" disabled={i === order.length - 1} aria-label="down" onClick={() => move(i, 1)}>↓</button>
+            </span>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }

@@ -195,6 +195,8 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     checkout_show_postcode?: boolean
     checkout_require_postcode?: boolean
     checkout_show_note?: boolean
+    checkout_national_id?: "hidden" | "optional" | "required"
+    checkout_field_order?: string
     product_faq_tab?: boolean
     product_spec_tab?: boolean
     wishlist_enabled?: boolean

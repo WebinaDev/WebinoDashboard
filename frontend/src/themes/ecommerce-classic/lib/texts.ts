@@ -118,6 +118,8 @@ export const CLASSIC_TEXTS: ClassicTextEntry[] = [
   { group: "checkout", key: "select_placeholder", fa: "انتخاب کنید", labelFa: "گزینه پیش‌فرض انتخاب", labelEn: "Select placeholder" },
   { group: "checkout", key: "city_label", fa: "شهر", labelFa: "برچسب شهر", labelEn: "City label" },
   { group: "checkout", key: "postcode_label", fa: "کد پستی", labelFa: "برچسب کد پستی", labelEn: "Postcode label" },
+  { group: "checkout", key: "national_id_label", fa: "کد ملی", labelFa: "برچسب کد ملی", labelEn: "National ID label" },
+  { group: "checkout", key: "national_id_invalid", fa: "کد ملی معتبر نیست.", labelFa: "خطای کد ملی", labelEn: "Invalid national ID message" },
   { group: "checkout", key: "phone_label", fa: "موبایل", labelFa: "برچسب موبایل", labelEn: "Mobile label" },
   { group: "checkout", key: "address_label", fa: "آدرس کامل", labelFa: "برچسب آدرس", labelEn: "Address label" },
   { group: "checkout", key: "coupon_label", fa: "کد تخفیف", labelFa: "برچسب کد تخفیف", labelEn: "Coupon label" },

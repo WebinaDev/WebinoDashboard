@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, Fragment } from "react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
@@ -41,6 +41,26 @@ function labelForGateway(
   return id
 }
 
+const CHECKOUT_FIELDS = ["recipient", "national_id", "state", "city", "postcode", "phone", "address", "coupon", "note"] as const
+type CheckoutField = (typeof CHECKOUT_FIELDS)[number]
+
+/** Admin-defined order (comma list); unknown keys dropped, missing keys appended in default order. */
+export function checkoutFieldOrder(raw: string | undefined): CheckoutField[] {
+  const wanted = (raw ?? "").split(",").map((k) => k.trim()).filter((k): k is CheckoutField => (CHECKOUT_FIELDS as readonly string[]).includes(k))
+  const unique = [...new Set(wanted)]
+  return [...unique, ...CHECKOUT_FIELDS.filter((k) => !unique.includes(k))]
+}
+
+/** Iranian national code checksum. */
+export function isValidIranNationalId(value: string): boolean {
+  const code = toLatinDigits(value).replace(/\D/g, "")
+  if (!/^\d{10}$/.test(code) || /^(\d)\1{9}$/.test(code)) return false
+  const sum = code.slice(0, 9).split("").reduce((acc, d, i) => acc + Number(d) * (10 - i), 0)
+  const rem = sum % 11
+  const check = Number(code[9])
+  return rem < 2 ? check === rem : check === 11 - rem
+}
+
 export function ClassicCheckout() {
   const tx = useClassicText()
   const theme = useClassicThemeSettings()
@@ -54,6 +74,8 @@ export function ClassicCheckout() {
   const showNote = commerce.checkout_show_note !== false
   const stickySummary = commerce.checkout_sticky_summary !== false
   const requirePhone = commerce.checkout_require_phone !== false
+  const nationalMode = commerce.checkout_national_id === "optional" || commerce.checkout_national_id === "required" ? commerce.checkout_national_id : "hidden"
+  const fieldOrder = checkoutFieldOrder(commerce.checkout_field_order)
 
   const t = useTranslations("storefront")
   const tCheckout = useTranslations("checkout")
@@ -71,6 +93,7 @@ export function ClassicCheckout() {
   const [note, setNote] = useState("")
   const [coupon, setCoupon] = useState("")
   const [recipient, setRecipient] = useState("")
+  const [nationalId, setNationalId] = useState("")
   const [rates, setRates] = useState<Rate[]>([])
   const [rateId, setRateId] = useState<number | null>(null)
   const [orderId, setOrderId] = useState<number | null>(null)
@@ -179,6 +202,10 @@ export function ClassicCheckout() {
   }
 
   async function placeOrder() {
+    if (nationalMode !== "hidden" && (nationalMode === "required" || nationalId) && !isValidIranNationalId(nationalId)) {
+      setError(tx("checkout.national_id_invalid"))
+      return
+    }
     setBusy(true)
     setError("")
     try {
@@ -194,6 +221,7 @@ export function ClassicCheckout() {
           shipping_instance_id: rateId,
           shipping_state_code: stateCode || null,
           shipping_postcode: postcode || null,
+          customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
         },
       })
       if (showCoupon && coupon) storeCoupon(null)
@@ -254,69 +282,134 @@ export function ClassicCheckout() {
             >
               <h2 className="sfc-checkout__section-title">{tx("checkout.address_title")}</h2>
               <div className="sfc-checkout__fields">
-                {showRecipient ? (
-                  <label className="sfc-field sfc-field--full">
-                    <span>{tx("checkout.recipient_label")}</span>
-                    <input value={recipient} onChange={(e) => setRecipient(e.target.value)} autoComplete="name" />
-                  </label>
-                ) : null}
-                <label className="sfc-field">
-                  <span>{tx("checkout.state_label")}</span>
-                  <select value={stateCode} onChange={(e) => setStateCode(e.target.value)}>
-                    <option value="">{tx("checkout.select_placeholder")}</option>
-                    {states.map((item) => (
-                      <option key={item.code} value={item.code}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="sfc-field">
-                  <span>{tx("checkout.city_label")}</span>
-                  <input value={city} onChange={(e) => setCity(e.target.value)} />
-                </label>
-                {showPostcode ? (
-                  <label className="sfc-field">
-                    <span>{tx("checkout.postcode_label")}</span>
-                    <input
-                      dir="ltr"
-                      inputMode="numeric"
-                      required={requirePostcode}
-                      pattern={requirePostcode ? "\\d{10}" : undefined}
-                      value={postcode}
-                      onChange={(e) => setPostcode(toLatinDigits(e.target.value).replace(/\D/g, "").slice(0, 10))}
-                    />
-                  </label>
-                ) : null}
-                <label className="sfc-field">
-                  <span>{tx("checkout.phone_label")}</span>
-                  <input
-                    required={requirePhone}
-                    dir="ltr"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </label>
-                <label className="sfc-field sfc-field--full">
-                  <span>{tx("checkout.address_label")}</span>
-                  <textarea required value={address} onChange={(e) => setAddress(e.target.value)} rows={3} />
-                </label>
-                {showCoupon ? (
-                  <label className="sfc-field">
-                    <span>{tx("checkout.coupon_label")}</span>
-                    <input
-                      value={coupon}
-                      onChange={(e) => setCoupon(e.target.value)}
-                      placeholder={tx("cart.coupon_placeholder")}
-                    />
-                  </label>
-                ) : null}
-                {showNote ? (
-                  <label className="sfc-field">
-                    <span>{tx("checkout.note_label")}</span>
-                    <input value={note} onChange={(e) => setNote(e.target.value)} />
-                  </label>
-                ) : null}
+                {fieldOrder.map((field) => {
+                  switch (field) {
+                  case "recipient":
+                    return (
+                      <Fragment key="recipient">
+                        {showRecipient ? (
+                          <label className="sfc-field sfc-field--full">
+                            <span>{tx("checkout.recipient_label")}</span>
+                            <input value={recipient} onChange={(e) => setRecipient(e.target.value)} autoComplete="name" />
+                          </label>
+                        ) : null}
+                      </Fragment>
+                    )
+                  case "state":
+                    return (
+                      <Fragment key="state">
+                        <label className="sfc-field">
+                          <span>{tx("checkout.state_label")}</span>
+                          <select value={stateCode} onChange={(e) => setStateCode(e.target.value)}>
+                            <option value="">{tx("checkout.select_placeholder")}</option>
+                            {states.map((item) => (
+                              <option key={item.code} value={item.code}>
+                                {item.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </Fragment>
+                    )
+                  case "city":
+                    return (
+                      <Fragment key="city">
+                        <label className="sfc-field">
+                          <span>{tx("checkout.city_label")}</span>
+                          <input value={city} onChange={(e) => setCity(e.target.value)} />
+                        </label>
+                      </Fragment>
+                    )
+                  case "postcode":
+                    return (
+                      <Fragment key="postcode">
+                        {showPostcode ? (
+                          <label className="sfc-field">
+                            <span>{tx("checkout.postcode_label")}</span>
+                            <input
+                              dir="ltr"
+                              inputMode="numeric"
+                              required={requirePostcode}
+                              pattern={requirePostcode ? "\\d{10}" : undefined}
+                              value={postcode}
+                              onChange={(e) => setPostcode(toLatinDigits(e.target.value).replace(/\D/g, "").slice(0, 10))}
+                            />
+                          </label>
+                        ) : null}
+                      </Fragment>
+                    )
+                  case "phone":
+                    return (
+                      <Fragment key="phone">
+                        <label className="sfc-field">
+                          <span>{tx("checkout.phone_label")}</span>
+                          <input
+                            required={requirePhone}
+                            dir="ltr"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                          />
+                        </label>
+                      </Fragment>
+                    )
+                  case "address":
+                    return (
+                      <Fragment key="address">
+                        <label className="sfc-field sfc-field--full">
+                          <span>{tx("checkout.address_label")}</span>
+                          <textarea required value={address} onChange={(e) => setAddress(e.target.value)} rows={3} />
+                        </label>
+                      </Fragment>
+                    )
+                  case "coupon":
+                    return (
+                      <Fragment key="coupon">
+                        {showCoupon ? (
+                          <label className="sfc-field">
+                            <span>{tx("checkout.coupon_label")}</span>
+                            <input
+                              value={coupon}
+                              onChange={(e) => setCoupon(e.target.value)}
+                              placeholder={tx("cart.coupon_placeholder")}
+                            />
+                          </label>
+                        ) : null}
+                      </Fragment>
+                    )
+                  case "note":
+                    return (
+                      <Fragment key="note">
+                        {showNote ? (
+                          <label className="sfc-field">
+                            <span>{tx("checkout.note_label")}</span>
+                            <input value={note} onChange={(e) => setNote(e.target.value)} />
+                          </label>
+                        ) : null}
+                      </Fragment>
+                    )
+                  case "national_id":
+                    return (
+                      <Fragment key="national_id">
+                        {nationalMode !== "hidden" ? (
+                          <label className="sfc-field">
+                            <span>{tx("checkout.national_id_label")}</span>
+                            <input
+                              dir="ltr"
+                              inputMode="numeric"
+                              autoComplete="off"
+                              required={nationalMode === "required"}
+                              pattern="\\d{10}"
+                              value={nationalId}
+                              onChange={(e) => setNationalId(toLatinDigits(e.target.value).replace(/\D/g, "").slice(0, 10))}
+                            />
+                          </label>
+                        ) : null}
+                      </Fragment>
+                    )
+                    default:
+                      return null
+                  }
+                })}
               </div>
 
               {showShippingQuote ? (

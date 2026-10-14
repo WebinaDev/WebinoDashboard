@@ -1824,7 +1824,17 @@
       "home_blog_limit": "تعداد مقالات مجله",
       "home_taste_groups": "تعداد گروه‌های باکس سلیقه",
       "texts_hint": "هر متن فروشگاه را این‌جا تغییر دهید. خالی بگذارید تا متن پیش‌فرض نمایش داده شود؛ یک خط تیره «-» متن را پنهان می‌کند.",
-      "texts_group": "بخش"
+      "texts_group": "بخش",
+      "checkout_national_id": "کد ملی در تسویه",
+      "checkout_national_id_hidden": "نمایش داده نشود",
+      "checkout_national_id_optional": "اختیاری",
+      "checkout_national_id_required": "اجباری",
+      "checkout_field_order": "ترتیب فیلدهای تسویه",
+      "checkout_field_state": "استان",
+      "checkout_field_city": "شهر",
+      "checkout_field_phone": "تلفن",
+      "checkout_field_address": "نشانی",
+      "checkout_field_coupon": "کد تخفیف"
     },
     "product_notifications": {
       "loading": "در حال بارگذاری…",

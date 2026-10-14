@@ -195,6 +195,10 @@ final class StorefrontAppearanceService
                 'checkout_show_postcode' => true,
                 'checkout_require_postcode' => false,
                 'checkout_show_note' => true,
+                // hidden | optional | required — Iranian national code on checkout.
+                'checkout_national_id' => 'hidden',
+                // Comma-separated field keys; unknown keys ignored, missing keys appended in default order.
+                'checkout_field_order' => 'recipient,national_id,state,city,postcode,phone,address,coupon,note',
                 'product_faq_tab' => true,
                 'product_spec_tab' => true,
                 'wishlist_enabled' => true,

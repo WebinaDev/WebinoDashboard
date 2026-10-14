@@ -2344,7 +2344,17 @@
       "home_blog_limit": "Blog posts count",
       "home_taste_groups": "Taste box groups",
       "texts_hint": "Edit any storefront copy here. Leave empty to use the default; a single dash \"-\" hides the text.",
-      "texts_group": "Section"
+      "texts_group": "Section",
+      "checkout_national_id": "National ID at checkout",
+      "checkout_national_id_hidden": "Hidden",
+      "checkout_national_id_optional": "Optional",
+      "checkout_national_id_required": "Required",
+      "checkout_field_order": "Checkout field order",
+      "checkout_field_state": "Province",
+      "checkout_field_city": "City",
+      "checkout_field_phone": "Phone",
+      "checkout_field_address": "Address",
+      "checkout_field_coupon": "Coupon"
     },
     "product_notifications": {
       "loading": "Loading…",

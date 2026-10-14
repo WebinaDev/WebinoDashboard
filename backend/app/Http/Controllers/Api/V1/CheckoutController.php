@@ -39,7 +39,19 @@ class CheckoutController extends Controller
             'shipping_city_code' => ['nullable', 'integer'],
             'shipping_minor' => ['nullable', 'integer', 'min:0'],
             'torob_clid' => ['nullable', 'string', 'max:128'],
+            'customer_national_id' => ['nullable', 'string', 'max:20'],
         ]);
+        $nationalMode = (string) (app(\App\Services\Shop\StorefrontAppearanceService::class)
+            ->get((int) $request->user()->tenant_id)['commerce']['checkout_national_id'] ?? 'hidden');
+        $nationalId = \App\Support\IranNationalId::normalize($checkoutMeta['customer_national_id'] ?? null);
+        if ($nationalMode === 'hidden') {
+            $nationalId = '';
+        } elseif ($nationalId === '' && $nationalMode === 'required') {
+            throw \Illuminate\Validation\ValidationException::withMessages(['customer_national_id' => __('validation.required', ['attribute' => 'کد ملی'])]);
+        } elseif ($nationalId !== '' && ! \App\Support\IranNationalId::isValid($nationalId)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['customer_national_id' => 'کد ملی معتبر نیست.']);
+        }
+        $checkoutMeta['customer_national_id'] = $nationalId !== '' ? $nationalId : null;
         $torobClid = \App\Services\Marketplace\Adapters\TorobAdapter::sanitizeClid(
             (string) ($checkoutMeta['torob_clid'] ?? $request->cookie('torob_clid') ?? '')
         );
@@ -213,6 +225,12 @@ class CheckoutController extends Controller
 
             if (! empty($checkoutMeta['torob_clid'])) {
                 $shippingMeta['torob_clid'] = $checkoutMeta['torob_clid'];
+            }
+            if (! empty($checkoutMeta['customer_national_id'])) {
+                $shippingMeta['customer_national_id'] = $checkoutMeta['customer_national_id'];
+                if (! $user->national_id) {
+                    $user->forceFill(['national_id' => $checkoutMeta['customer_national_id']])->save();
+                }
             }
             if ($types->active()) {
                 $shippingMeta['wfcp_purchase_type'] = $purchaseType;

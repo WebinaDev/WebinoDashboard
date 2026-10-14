@@ -130,4 +130,29 @@ class CheckoutTaxTest extends TestCase
 
         $this->assertSame(100000, (int) $this->checkout(100000)['total_minor']);
     }
+
+    public function test_national_id_modes_and_checksum(): void
+    {
+        $tid = (int) $this->user->tenant_id;
+        $appearance = app(\App\Services\Shop\StorefrontAppearanceService::class);
+
+        // hidden (default): value is ignored.
+        $order = $this->checkout(1000, ['customer_national_id' => '0012345679']);
+        $this->assertArrayNotHasKey('customer_national_id', Order::query()->find($order['id'])->meta ?? []);
+
+        $appearance->save($tid, ['commerce' => ['checkout_national_id' => 'required']]);
+        $this->assertSame('required', $appearance->get($tid)['commerce']['checkout_national_id']);
+
+        $product = Product::query()->create(['tenant_id' => $tid, 'name' => 'Q', 'sku' => 'q-'.uniqid(), 'price_minor' => 1000, 'currency' => 'IRR', 'stock' => 5]);
+        $cart = Cart::query()->firstOrCreate(['tenant_id' => $tid, 'user_id' => $this->user->id]);
+        CartItem::query()->create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 1]);
+        $this->actingAs($this->user, 'sanctum')->postJson('/api/v1/checkout', ['shipping_address' => 'T'])
+            ->assertUnprocessable()->assertJsonValidationErrors('customer_national_id');
+        $this->actingAs($this->user, 'sanctum')->postJson('/api/v1/checkout', ['shipping_address' => 'T', 'customer_national_id' => '0012345678'])
+            ->assertUnprocessable()->assertJsonValidationErrors('customer_national_id');
+
+        $order = $this->checkout(1000, ['customer_national_id' => '۰۰۱۲۳۴۵۶۷۹']);
+        $this->assertSame('0012345679', Order::query()->find($order['id'])->meta['customer_national_id']);
+        $this->assertSame('0012345679', $this->user->fresh()->national_id);
+    }
 }
