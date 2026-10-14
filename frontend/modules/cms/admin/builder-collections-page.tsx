@@ -125,7 +125,7 @@ export default function BuilderCollectionsPage(_props: { route: ResolvedAdminRou
     void guard(async () => {
       const form = new FormData()
       form.append("file", file)
-      const res = await api<{ created: number; updated: number; skipped: number; truncated?: boolean }>(`/api/v1/builder/collections/${active.id}/items/import`, { method: "POST", body: form })
+      const res = await api<{ created: number; updated: number; skipped: number; truncated?: boolean }>(`/api/v1/builder/collections/${active.id}/import`, { method: "POST", body: form })
       toast.success(t("import_done", { created: res.created, updated: res.updated, skipped: res.skipped }))
       if (res.truncated) toast.warning(t("import_truncated"))
       setPage(1)
@@ -212,7 +212,7 @@ export default function BuilderCollectionsPage(_props: { route: ResolvedAdminRou
                 <span className="text-muted-foreground text-xs" dir="ltr">{active.slug}</span>
                 <Button type="button" size="sm" variant="outline" onClick={() => setDraft({ name: active.name, slug: active.slug, fields: active.fields, seo: active.seo ?? { schema_type: "Thing" } })}>{t("edit_fields")}</Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => setEditing({ ...EMPTY_ITEM, data: {}, seo: {} })}>{t("new_item")}</Button>
-                <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void guard(() => apiDownload(`/api/v1/builder/collections/${active.id}/items/export`, `${active.slug}.csv`))}>{t("export_csv")}</Button>
+                <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void guard(() => apiDownload(`/api/v1/builder/collections/${active.id}/export`, `${active.slug}.csv`))}>{t("export_csv")}</Button>
                 <label className="inline-flex h-8 cursor-pointer items-center rounded-md border px-3 text-xs">
                   {t("import_csv")}
                   <input type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) importCsv(file) }} />
