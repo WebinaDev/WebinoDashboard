@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { ClassicT } from "../lib/ClassicT"
 import { sanitizeBuilderHtml } from "@/builder/render/sanitize-html"
 import { formatDate, normalizeUiLocale } from "@/lib/locale"
 
@@ -79,7 +80,7 @@ export function ClassicBlogArchive({
               </h2>
               {post.excerpt ? <p className="line-clamp-3 text-sm leading-7 text-muted-foreground">{post.excerpt}</p> : null}
               <Link href={`/blog/${post.slug}`} className="inline-flex text-sm font-bold text-[var(--sf-pink)]">
-                ادامه مطلب
+                <ClassicT id="blog.read_more" />
               </Link>
             </div>
           </article>
@@ -135,7 +136,7 @@ export function ClassicBlogSingle({
           {related.length ? (
             <section className="mt-12">
               <div className="sf-section-head">
-                <h2>مطالب مرتبط</h2>
+                <h2><ClassicT id="blog.related" /></h2>
               </div>
               <div className="sf-blog-grid">
                 {related.map((item) => (
@@ -151,7 +152,7 @@ export function ClassicBlogSingle({
         <aside className="sf-blog-aside">
           {toc.length ? (
             <div className="sf-blog-toc sf-card p-4">
-              <h3 className="mb-2 text-sm font-bold">فهرست مطالب</h3>
+              <h3 className="mb-2 text-sm font-bold"><ClassicT id="blog.toc" /></h3>
               {toc.map((item) => (
                 <a key={item.href} href={item.href}>
                   {item.label}
@@ -161,7 +162,7 @@ export function ClassicBlogSingle({
           ) : null}
           <div className="sf-card mt-4 p-4">
             <div className="sf-section-head mb-3">
-              <h3 className="text-sm font-bold">پربازدیدترین</h3>
+              <h3 className="text-sm font-bold"><ClassicT id="blog.most_viewed" /></h3>
             </div>
             <ul className="grid gap-3">
               {mostViewed.map((product) => (

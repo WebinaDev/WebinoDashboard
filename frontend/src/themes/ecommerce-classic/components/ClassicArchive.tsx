@@ -1,6 +1,7 @@
 "use client"
 
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
+import { useClassicText } from "../lib/texts"
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -48,6 +49,7 @@ const SORTS = [
 ]
 
 export function ClassicSortTabs({ editing, total }: { editing: boolean; total?: number }) {
+  const tx = useClassicText()
   const router = useRouter()
   const params = useSearchParams()
   const digits = useDigits()
@@ -65,7 +67,7 @@ export function ClassicSortTabs({ editing, total }: { editing: boolean; total?: 
     <div className="sfc-sort">
       <span className="sfc-sort__label">
         <IconSort size={18} />
-        مرتب‌سازی:
+        {tx("archive.sort_label")}
       </span>
       <div className="sfc-sort__tabs" role="tablist">
         {SORTS.map((tab) => (
@@ -105,6 +107,7 @@ export function ClassicArchiveGrid({
   title?: string
   showSort?: boolean
 }) {
+  const tx = useClassicText()
   const archive = useClassicThemeSettings().archive ?? {}
   const columns = Math.min(6, Math.max(2, Number(archive.product_columns ?? 3)))
   return (
@@ -117,9 +120,9 @@ export function ClassicArchiveGrid({
       ) : null}
       {products.length === 0 ? (
         <div className="sfc-archive__empty">
-          <strong>محصولی با این مشخصات پیدا نشد</strong>
-          <span>فیلترها را تغییر دهید یا همه محصولات را ببینید.</span>
-          <Link href="/shop" className="sfc-btn">مشاهده همه محصولات</Link>
+          <strong>{tx("archive.empty_title")}</strong>
+          <span>{tx("archive.empty_text")}</span>
+          <Link href="/shop" className="sfc-btn">{tx("archive.view_all")}</Link>
         </div>
       ) : (
         <div className="sfc-archive__grid">
@@ -152,6 +155,7 @@ function FilterGroup({ title, count, children, defaultOpen = true }: { title: st
 }
 
 export function ClassicFilters({ editing }: { editing: boolean }) {
+  const tx = useClassicText()
   const router = useRouter()
   const params = useSearchParams()
   const catalog = useCatalog(48)
@@ -186,10 +190,10 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
   return (
     <aside className="sfc-filter sf-filters">
       <div className="sfc-filter__head">
-        <strong>فیلترها</strong>
+        <strong>{tx("archive.filters_title")}</strong>
         {any ? (
           <button type="button" onClick={() => !editing && router.replace("?", { scroll: false })}>
-            حذف فیلترها
+            {tx("archive.clear_filters")}
           </button>
         ) : null}
       </div>
@@ -214,12 +218,12 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
         ))}
       </FilterGroup>
       <label className="sfc-switch">
-        <span>فقط کالاهای موجود</span>
+        <span>{tx("archive.in_stock_only")}</span>
         <input type="checkbox" checked={inStock} onChange={() => setParam("in_stock", inStock ? "" : "1")} />
         <span className="sfc-switch__track" aria-hidden="true" />
       </label>
       <label className="sfc-switch">
-        <span>فقط کالاهای تخفیف‌دار</span>
+        <span>{tx("archive.on_sale_only")}</span>
         <input type="checkbox" checked={onSale} onChange={() => setParam("on_sale", onSale ? "" : "1")} />
         <span className="sfc-switch__track" aria-hidden="true" />
       </label>
