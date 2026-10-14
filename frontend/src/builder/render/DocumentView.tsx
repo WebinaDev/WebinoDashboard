@@ -2,7 +2,7 @@
 
 import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
-import { documentCss, mergeStyle, spanFor, styleToCss } from "../style"
+import { advancedClass, advancedId, documentCss, mergeStyle, spanFor, styleToCss } from "../style"
 import type { ColumnNode, DeviceMode, EditorApi, BuilderDocument, RuntimeContext, SectionNode, WidgetNode } from "../types"
 import { DND_NODE, DND_WIDGET } from "../types"
 import { BuilderGlobalsProvider, BuilderRuntimeProvider } from "./runtime"
@@ -111,10 +111,14 @@ function ColumnBlock({ column, device, editor }: { column: ColumnNode; device: D
 
 function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: DeviceMode; editor?: EditorApi }) {
   const selected = editor?.selectedId === widget.id
-  const style = editor ? styleToCss(mergeStyle(widget.style, device)) : undefined
+  const raw = editor ? styleToCss(mergeStyle(widget.style, device)) : undefined
+  // In the editor, hidden widgets stay visible but faded so they can still be selected.
+  const hiddenOnDevice = Boolean(editor && (raw?.display === "none" || widget.advanced?.hideOn?.[device]))
+  const style = raw && hiddenOnDevice ? { ...raw, display: undefined, opacity: 0.35 } : raw
   return (
     <div
-      className={`${safeClass(widget.id)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
+      id={advancedId(widget.advanced)}
+      className={`${safeClass(widget.id)} ${advancedClass(widget.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
       style={style}
       draggable={Boolean(editor)}
       onDragStart={(event) => {

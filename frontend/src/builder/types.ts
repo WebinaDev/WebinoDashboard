@@ -27,6 +27,23 @@ export type StyleProps = {
   maxWidth?: string
   gap?: string
   hidden?: boolean
+  letterSpacing?: string
+  textTransform?: "none" | "uppercase" | "lowercase" | "capitalize"
+  boxShadow?: string
+  opacity?: string
+  width?: string
+}
+
+/** Elementor-style "Advanced" settings that are not per-device styles. */
+export type AdvancedProps = {
+  /** Extra CSS classes (sanitised to [a-zA-Z0-9_- ]). */
+  cssClass?: string
+  /** HTML id for anchors (sanitised). */
+  cssId?: string
+  /** Hide on specific devices (independent of the device being edited). */
+  hideOn?: { desktop?: boolean; tablet?: boolean; mobile?: boolean }
+  /** Simple entrance animation. */
+  animation?: "none" | "fade" | "slide-up" | "zoom"
 }
 
 export type ResponsiveStyle = {
@@ -40,6 +57,7 @@ export type WidgetNode = {
   type: string
   props: Record<string, unknown>
   style?: ResponsiveStyle
+  advanced?: AdvancedProps
   /** Nested sections for the container widget. */
   children?: SectionNode[]
 }

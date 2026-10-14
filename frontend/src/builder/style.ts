@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react"
 
 import { safeClass } from "./ids"
-import type { BuilderDocument, DeviceMode, ResponsiveStyle, SectionNode, StyleProps, WidgetNode } from "./types"
+import type { AdvancedProps, BuilderDocument, DeviceMode, ResponsiveStyle, SectionNode, StyleProps, WidgetNode } from "./types"
 
 function safeValue(value: string | undefined): string | undefined {
   if (!value) return undefined
@@ -45,6 +45,11 @@ export function styleToCss(style: StyleProps): CSSProperties {
     minHeight: safeValue(style.minHeight),
     maxWidth: safeValue(style.maxWidth),
     gap: safeValue(style.gap),
+    letterSpacing: safeValue(style.letterSpacing),
+    textTransform: style.textTransform && style.textTransform !== "none" ? style.textTransform : undefined,
+    boxShadow: safeValue(style.boxShadow),
+    opacity: safeValue(style.opacity),
+    width: safeValue(style.width),
     display: style.hidden ? "none" : undefined,
   }
 }
@@ -72,9 +77,36 @@ function pushNode(rules: string[], id: string, style: ResponsiveStyle | undefine
   if (mobile) rules.push(`@media (max-width:767px){.${cls}{${mobile}}}`)
 }
 
+/** Extra classes/id from the Advanced tab, sanitised for attribute use. */
+export function advancedClass(advanced: AdvancedProps | undefined): string {
+  if (!advanced) return ""
+  const extra = (advanced.cssClass ?? "")
+    .split(/\s+/)
+    .map((c) => c.replace(/[^a-zA-Z0-9_-]/g, ""))
+    .filter(Boolean)
+    .slice(0, 8)
+  const anim = advanced.animation && advanced.animation !== "none" ? [`wb-anim-${advanced.animation}`] : []
+  return [...extra, ...anim].join(" ")
+}
+
+export function advancedId(advanced: AdvancedProps | undefined): string | undefined {
+  const id = (advanced?.cssId ?? "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64)
+  return id || undefined
+}
+
+function pushVisibility(rules: string[], id: string, advanced: AdvancedProps | undefined) {
+  const hide = advanced?.hideOn
+  if (!hide) return
+  const cls = safeClass(id)
+  if (hide.desktop) rules.push(`@media (min-width:1025px){.${cls}{display:none!important}}`)
+  if (hide.tablet) rules.push(`@media (min-width:768px) and (max-width:1024px){.${cls}{display:none!important}}`)
+  if (hide.mobile) rules.push(`@media (max-width:767px){.${cls}{display:none!important}}`)
+}
+
 function walkWidgets(rules: string[], widgets: WidgetNode[]) {
   for (const widget of widgets) {
     pushNode(rules, widget.id, widget.style)
+    pushVisibility(rules, widget.id, widget.advanced)
     if (widget.children) walkSections(rules, widget.children)
   }
 }

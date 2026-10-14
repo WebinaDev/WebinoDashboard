@@ -50,7 +50,7 @@ import {
   updateSection,
   updateWidget,
 } from "../tree"
-import type { BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
+import type { AdvancedProps, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
 import { widgetLabel } from "../render/widgets"
@@ -109,7 +109,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [device, setDevice] = useState<DeviceMode>("desktop")
   const [panel, setPanel] = useState<"widgets" | "navigator">("widgets")
-  const [tab, setTab] = useState<"content" | "style">("content")
+  const [tab, setTab] = useState<"content" | "style" | "advanced">("content")
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
   const [pageId, setPageId] = useState<number | null>(
@@ -487,6 +487,10 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
               <Paintbrush className="size-3.5" aria-hidden />
               {t("style")}
             </button>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "advanced" ? "bg-white text-[#E16BA6] shadow-sm" : ""}`} onClick={() => setTab("advanced")}>
+              <Settings2 className="size-3.5" aria-hidden />
+              {t("advanced")}
+            </button>
           </div>
           {!selection ? (
             <div className="grid place-items-center gap-2 py-8 text-center text-sm text-[#0C2D63]/60">
@@ -534,6 +538,11 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                   type={selection.widget.type}
                   props={selection.widget.props}
                   onChange={(key, value) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, props: { ...widget.props, [key]: value } })))}
+                />
+              ) : tab === "advanced" ? (
+                <AdvancedFields
+                  value={selection.widget.advanced ?? {}}
+                  onChange={(patch) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, advanced: { ...(widget.advanced ?? {}), ...patch } })))}
                 />
               ) : (
                 <StyleFields
@@ -629,17 +638,122 @@ function WidgetFields({ type, props, onChange }: { type: string; props: Record<s
   )
 }
 
+function Edges({ label, value, onChange }: { label: string; value?: BoxEdges; onChange: (edges: BoxEdges) => void }) {
+  const sides = ["top", "right", "bottom", "left"] as const
+  return (
+    <div className="grid gap-1">
+      <span className="flex items-center gap-1.5"><Settings2 className="size-3.5" aria-hidden />{label}</span>
+      <div className="grid grid-cols-4 gap-1" dir="ltr">
+        {sides.map((side) => (
+          <input
+            key={side}
+            className="h-8 min-w-0 rounded-md border px-1 text-center"
+            value={value?.[side] ?? ""}
+            placeholder={side[0].toUpperCase()}
+            aria-label={`${label} ${side}`}
+            onChange={(event) => onChange({ ...(value ?? {}), [side]: event.target.value })}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TextIn({ label, value, placeholder, onChange }: { label: string; value?: string; placeholder?: string; onChange: (v: string) => void }) {
+  return (
+    <label className="grid gap-1">
+      <span>{label}</span>
+      <input className="h-9 rounded-md border px-2" dir="ltr" value={value ?? ""} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  )
+}
+
+function SelectIn({ label, value, options, onChange }: { label: string; value?: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
+  return (
+    <label className="grid gap-1">
+      <span>{label}</span>
+      <select className="h-9 rounded-md border px-2" value={value ?? ""} onChange={(event) => onChange(event.target.value)}>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
+  )
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details open className="rounded-lg border border-[#e6eef6] p-2">
+      <summary className="cursor-pointer text-[11px] font-bold text-[#0C2D63]/70">{title}</summary>
+      <div className="mt-2 grid gap-2">{children}</div>
+    </details>
+  )
+}
+
+const SHADOWS = [
+  { value: "", label: "—" },
+  { value: "0 1px 3px rgba(12,45,99,.12)", label: "S" },
+  { value: "0 6px 18px rgba(12,45,99,.14)", label: "M" },
+  { value: "0 18px 40px rgba(12,45,99,.18)", label: "L" },
+]
+
 function StyleFields({ style, onChange, device }: { style: StyleProps; onChange: (patch: StyleProps) => void; device: DeviceMode }) {
   const t = useTranslations("builder")
   return (
     <div className="grid gap-2 text-xs">
-      <span className="flex items-center gap-1.5 text-[#0C2D63]/50"><Paintbrush className="size-3.5" aria-hidden />{device}</span>
-      <TokenColor label={t("color")} value={style.color} onChange={(color) => onChange({ color })} />
-      <TokenColor label={t("background")} value={style.background} onChange={(background) => onChange({ background })} />
-      <label className="grid gap-1"><span className="flex items-center gap-1.5"><Type className="size-3.5" aria-hidden />{t("font_size")}</span><input className="h-9 rounded-md border px-2" value={style.fontSize ?? ""} placeholder="1rem" onChange={(event) => onChange({ fontSize: event.target.value })} /></label>
-      <label className="grid gap-1"><span className="flex items-center gap-1.5"><Settings2 className="size-3.5" aria-hidden />{t("padding")}</span><input className="h-9 rounded-md border px-2" value={style.padding?.top ?? ""} placeholder="16px" onChange={(event) => onChange({ padding: { top: event.target.value, right: event.target.value, bottom: event.target.value, left: event.target.value } })} /></label>
-      <label className="grid gap-1"><span className="flex items-center gap-1.5"><Settings2 className="size-3.5" aria-hidden />{t("radius")}</span><input className="h-9 rounded-md border px-2" value={style.radius ?? ""} placeholder="16px" onChange={(event) => onChange({ radius: event.target.value })} /></label>
+      <span className="flex items-center gap-1.5 text-[#0C2D63]/50"><Paintbrush className="size-3.5" aria-hidden />{t(device)}</span>
+      <Group title={t("style_typography")}>
+        <TokenColor label={t("color")} value={style.color} onChange={(color) => onChange({ color })} />
+        <TextIn label={t("font_size")} value={style.fontSize} placeholder="1rem" onChange={(fontSize) => onChange({ fontSize })} />
+        <SelectIn label={t("font_weight")} value={style.fontWeight} options={[{ value: "", label: "—" }, ...["300", "400", "500", "600", "700", "800", "900"].map((w) => ({ value: w, label: w }))]} onChange={(fontWeight) => onChange({ fontWeight })} />
+        <TextIn label={t("line_height")} value={style.lineHeight} placeholder="1.7" onChange={(lineHeight) => onChange({ lineHeight })} />
+        <TextIn label={t("letter_spacing")} value={style.letterSpacing} placeholder="0px" onChange={(letterSpacing) => onChange({ letterSpacing })} />
+        <SelectIn label={t("text_align")} value={style.textAlign} options={[{ value: "", label: "—" }, { value: "start", label: t("align_start") }, { value: "center", label: t("align_center") }, { value: "end", label: t("align_end") }]} onChange={(v) => onChange({ textAlign: (v || undefined) as StyleProps["textAlign"] })} />
+        <SelectIn label={t("text_transform")} value={style.textTransform} options={[{ value: "", label: "—" }, { value: "uppercase", label: "ABC" }, { value: "lowercase", label: "abc" }, { value: "capitalize", label: "Abc" }]} onChange={(v) => onChange({ textTransform: (v || undefined) as StyleProps["textTransform"] })} />
+      </Group>
+      <Group title={t("style_background")}>
+        <TokenColor label={t("background")} value={style.background} onChange={(background) => onChange({ background })} />
+        <TextIn label={t("background_image")} value={style.backgroundImage} placeholder="https://…" onChange={(backgroundImage) => onChange({ backgroundImage })} />
+        <TextIn label={t("opacity")} value={style.opacity} placeholder="1" onChange={(opacity) => onChange({ opacity })} />
+      </Group>
+      <Group title={t("style_spacing")}>
+        <Edges label={t("padding")} value={style.padding} onChange={(padding) => onChange({ padding })} />
+        <Edges label={t("margin")} value={style.margin} onChange={(margin) => onChange({ margin })} />
+        <TextIn label={t("width")} value={style.width} placeholder="100%" onChange={(width) => onChange({ width })} />
+        <TextIn label={t("max_width")} value={style.maxWidth} placeholder="1200px" onChange={(maxWidth) => onChange({ maxWidth })} />
+        <TextIn label={t("min_height")} value={style.minHeight} placeholder="0" onChange={(minHeight) => onChange({ minHeight })} />
+      </Group>
+      <Group title={t("style_border")}>
+        <TextIn label={t("border_width")} value={style.borderWidth} placeholder="1px" onChange={(borderWidth) => onChange({ borderWidth })} />
+        <SelectIn label={t("border_style")} value={style.borderStyle} options={[{ value: "", label: "—" }, { value: "solid", label: "solid" }, { value: "dashed", label: "dashed" }, { value: "none", label: "none" }]} onChange={(v) => onChange({ borderStyle: (v || undefined) as StyleProps["borderStyle"] })} />
+        <TokenColor label={t("border_color")} value={style.borderColor} onChange={(borderColor) => onChange({ borderColor })} />
+        <TextIn label={t("radius")} value={style.radius} placeholder="16px" onChange={(radius) => onChange({ radius })} />
+        <SelectIn label={t("shadow")} value={style.boxShadow} options={SHADOWS} onChange={(boxShadow) => onChange({ boxShadow })} />
+      </Group>
       <label className="flex items-center justify-between">{t("hidden")}<input type="checkbox" checked={style.hidden === true} onChange={(event) => onChange({ hidden: event.target.checked })} /></label>
+    </div>
+  )
+}
+
+function AdvancedFields({ value, onChange }: { value: AdvancedProps; onChange: (patch: AdvancedProps) => void }) {
+  const t = useTranslations("builder")
+  const hide = value.hideOn ?? {}
+  return (
+    <div className="grid gap-2 text-xs">
+      <TextIn label={t("css_class")} value={value.cssClass} placeholder="my-class" onChange={(cssClass) => onChange({ cssClass })} />
+      <TextIn label={t("css_id")} value={value.cssId} placeholder="section-id" onChange={(cssId) => onChange({ cssId })} />
+      <Group title={t("responsive_visibility")}>
+        {(["desktop", "tablet", "mobile"] as const).map((d) => (
+          <label key={d} className="flex items-center justify-between">
+            {t(`hide_on_${d}`)}
+            <input type="checkbox" checked={hide[d] === true} onChange={(event) => onChange({ hideOn: { ...hide, [d]: event.target.checked } })} />
+          </label>
+        ))}
+      </Group>
+      <SelectIn
+        label={t("animation")}
+        value={value.animation ?? "none"}
+        options={[{ value: "none", label: "—" }, { value: "fade", label: t("anim_fade") }, { value: "slide-up", label: t("anim_slide_up") }, { value: "zoom", label: t("anim_zoom") }]}
+        onChange={(v) => onChange({ animation: v as AdvancedProps["animation"] })}
+      />
     </div>
   )
 }
