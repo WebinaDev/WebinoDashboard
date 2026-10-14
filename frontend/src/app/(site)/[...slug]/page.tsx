@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { JsonLd } from "@/components/seo/JsonLd"
 import { renderSitePage } from "@/kernel/render-pages"
 import { apiServer } from "@/lib/api-server"
+import { canonicalSiteSegments } from "@/kernel/route-resolver"
 import { loadCollectionItem } from "../../../../modules/cms/site/collection-item-page"
 import { loadLinkHubPage } from "../../../../modules/link-hub/site/page-page"
 
@@ -44,7 +45,7 @@ async function loadProductSeo(slug: string, type: "product" | "page" = "product"
 
 /** Per-route metadata: link hub and product pages; other routes keep the layout defaults. */
 export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
-  const segments = (await params).slug ?? []
+  const segments = canonicalSiteSegments((await params).slug ?? [])
   if (segments[0] === "product" && segments[1] && segments.length === 2) {
     const seo = await loadProductSeo(decodeURIComponent(segments[1]))
     const meta = seo?.meta
@@ -109,7 +110,7 @@ export async function generateMetadata({ params }: Pick<Props, "params">): Promi
 }
 
 export default async function SiteCatchAllPage({ params, searchParams }: Props) {
-  const segments = (await params).slug ?? []
+  const segments = canonicalSiteSegments((await params).slug ?? [])
   const sp = searchParams ? await searchParams : {}
   if (segments[0] === "product" && segments[1] && segments.length === 2) {
     const [seo, page] = await Promise.all([loadProductSeo(decodeURIComponent(segments[1])), renderSitePage(segments, sp)])

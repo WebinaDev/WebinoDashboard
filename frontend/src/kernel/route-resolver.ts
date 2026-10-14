@@ -165,6 +165,23 @@ export function resolveSiteRoute(
   return null
 }
 
+/** True when some module declares a site route for this path (ignores activation). */
+export function matchesSiteRoute(segments: string[]): boolean {
+  const path = segments.join("/")
+  return MODULE_MANIFESTS.some((mod) => mod.siteRoutes.some((route) => route.path === path || matchDynamicParams(route.path, path) !== null))
+}
+
+/**
+ * Builder pages are also served at the root (/<slug>, as in the sitemap and canonical): a single segment that no
+ * module route claims is treated as /pages/<slug>.
+ */
+export function canonicalSiteSegments(segments: string[]): string[] {
+  if (segments.length === 1 && segments[0] && !matchesSiteRoute(segments) && !["admin", "dashboard", "login", "setup"].includes(segments[0])) {
+    return ["pages", segments[0]]
+  }
+  return segments
+}
+
 function matchDynamic(pattern: string, actual: string): boolean {
   return matchDynamicParams(pattern, actual) !== null
 }
