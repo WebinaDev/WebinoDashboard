@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LinkHubBlock extends Model
 {
-    public const TYPES = ['link', 'contact', 'form', 'faq', 'event'];
+    public const TYPES = ['link', 'contact', 'form', 'faq', 'event', 'cta', 'section', 'image', 'gallery', 'map', 'hours'];
 
     protected $table = 'link_hub_blocks';
 

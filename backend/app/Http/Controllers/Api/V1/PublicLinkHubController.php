@@ -9,6 +9,8 @@ use App\Models\LinkHubFormSubmission;
 use App\Models\LinkHubProfile;
 use App\Services\LinkHub\LinkHubAliasService;
 use App\Services\LinkHub\LinkHubAnalytics;
+use App\Services\LinkHub\LinkHubBlockPresenter;
+use App\Services\LinkHub\LinkHubTheme;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -47,7 +49,13 @@ class PublicLinkHubController extends Controller
                 'id' => $b->id,
                 'type' => $b->type,
                 'payload' => $this->publicPayload($b),
-            ]);
+            ])
+            ->filter(fn (array $row) => $row['payload'] !== null)
+            ->values();
+
+        $theme = LinkHubTheme::normalize($profile->theme_json ?? []);
+        $title = $profile->title ?: ($tenant->store_display_name ?: $tenant->name);
+        $bio = trim((string) $profile->bio);
 
         $host = $this->requestHost($request);
         $isAlias = $tenant->isLinkHubHost($host);
@@ -58,10 +66,15 @@ class PublicLinkHubController extends Controller
                     'id' => $profile->id,
                     'kind' => $profile->kind,
                     'slug' => $profile->slug,
-                    'title' => $profile->title ?: ($tenant->store_display_name ?: $tenant->name),
+                    'title' => $title,
                     'avatar_url' => $profile->avatar_url,
                     'bio' => $profile->bio,
-                    'theme_json' => $profile->theme_json ?? [],
+                    'theme_json' => $theme,
+                ],
+                'seo' => [
+                    'title' => $title,
+                    'description' => $bio !== '' ? mb_substr(preg_replace('/\s+/u', ' ', $bio), 0, 160) : ($theme['headline'] ?? null),
+                    'image' => LinkHubTheme::safeImage($profile->avatar_url),
                 ],
                 'blocks' => $blocks,
                 'tenant' => [
@@ -189,23 +202,10 @@ class PublicLinkHubController extends Controller
             ->first();
     }
 
-    /** @return array<string, mixed> */
-    protected function publicPayload(LinkHubBlock $block): array
+    /** @return array<string, mixed>|null */
+    protected function publicPayload(LinkHubBlock $block): ?array
     {
-        $payload = is_array($block->payload) ? $block->payload : [];
-
-        return match ($block->type) {
-            'form' => [
-                'title' => $payload['title'] ?? 'فرم',
-                'submit_label' => $payload['submit_label'] ?? 'ارسال',
-                'fields' => is_array($payload['fields'] ?? null) ? $payload['fields'] : [
-                    ['name' => 'name', 'label' => 'نام', 'type' => 'text', 'required' => true],
-                    ['name' => 'phone', 'label' => 'موبایل', 'type' => 'tel', 'required' => true],
-                    ['name' => 'message', 'label' => 'پیام', 'type' => 'textarea', 'required' => false],
-                ],
-            ],
-            default => $payload,
-        };
+        return app(LinkHubBlockPresenter::class)->present($block);
     }
 
     protected function requestHost(Request $request): string

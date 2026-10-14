@@ -12,7 +12,9 @@ import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { BlockEditor } from "../lib/BlockEditor"
-import type { LinkHubBlock, LinkHubOverview, LinkHubProfile } from "../lib/types"
+import { LinkHubPreview } from "../lib/LinkHubPreview"
+import { ThemeEditor } from "../lib/ThemeEditor"
+import type { LinkHubBlock, LinkHubOverview, LinkHubProfile, LinkHubTheme } from "../lib/types"
 
 type Props = {
   route: ResolvedAdminRoute
@@ -25,6 +27,7 @@ export default function PageEditorClient({ route, mode, profileId }: Props) {
   const tCommon = useTranslations("common")
   const [profile, setProfile] = useState<LinkHubProfile | null>(null)
   const [blocks, setBlocks] = useState<LinkHubBlock[]>([])
+  const [theme, setTheme] = useState<LinkHubTheme>({})
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -38,6 +41,7 @@ export default function PageEditorClient({ route, mode, profileId }: Props) {
           const res = await api<LinkHubOverview>("/api/v1/link-hub/overview")
           if (cancelled) return
           setProfile(res.business)
+          setTheme((res.business.theme_json ?? {}) as LinkHubTheme)
           setBlocks(
             (res.business.blocks ?? []).map((b, i) => ({
               id: b.id,
@@ -51,6 +55,7 @@ export default function PageEditorClient({ route, mode, profileId }: Props) {
           const res = await api<LinkHubProfile>(`/api/v1/link-hub/profiles/${idFromRoute}`)
           if (cancelled) return
           setProfile(res)
+          setTheme((res.theme_json ?? {}) as LinkHubTheme)
           setBlocks(
             (res.blocks ?? []).map((b, i) => ({
               id: b.id,
@@ -83,6 +88,7 @@ export default function PageEditorClient({ route, mode, profileId }: Props) {
           avatar_url: profile.avatar_url,
           bio: profile.bio,
           is_published: profile.is_published,
+          theme_json: theme,
           slug: profile.kind === "member" ? profile.slug : undefined,
         },
       })
@@ -163,57 +169,24 @@ export default function PageEditorClient({ route, mode, profileId }: Props) {
               {t("published")}
             </label>
           </section>
-          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <section className="rounded-2xl border p-4">
-              <h2 className="mb-3 font-semibold">{t("blocks")}</h2>
-              <BlockEditor blocks={blocks} onChange={setBlocks} />
-            </section>
-            <section className="rounded-2xl border p-4">
+          <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-6">
+              <section className="rounded-2xl border p-4">
+                <h2 className="mb-3 font-semibold">ظاهر و معرفی</h2>
+                <ThemeEditor value={theme} onChange={setTheme} />
+              </section>
+              <section className="rounded-2xl border p-4">
+                <h2 className="mb-3 font-semibold">{t("blocks")}</h2>
+                <BlockEditor blocks={blocks} onChange={setBlocks} />
+              </section>
+            </div>
+            <section className="rounded-2xl border p-4 xl:sticky xl:top-4 xl:self-start">
               <h2 className="mb-3 font-semibold">{t("preview")}</h2>
-              <div className="mx-auto w-full max-w-[22rem] rounded-[1.75rem] border bg-slate-100 p-3 shadow-inner">
-                <div className="overflow-hidden rounded-[1.35rem] bg-white">
-                  <div className="flex flex-col items-center gap-2 px-4 py-5 text-center">
-                    {profile.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={profile.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover" />
-                    ) : (
-                      <div className="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold">
-                        {(profile.title || "?").slice(0, 1)}
-                      </div>
-                    )}
-                    <div className="font-bold">{profile.title || t("untitled")}</div>
-                    {profile.bio ? (
-                      <p className="text-muted-foreground line-clamp-3 text-xs leading-5">{profile.bio}</p>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2 px-3 pb-4">
-                    {blocks
-                      .filter((b) => b.is_visible)
-                      .map((b, i) => (
-                        <div
-                          key={b.id ?? i}
-                          className="rounded-xl border px-3 py-2.5 text-center text-sm font-medium"
-                        >
-                          {previewLabel(b)}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
+              <LinkHubPreview profile={profile} blocks={blocks} theme={theme} />
             </section>
           </div>
         </div>
       )}
     </PageShell>
   )
-}
-
-function previewLabel(block: LinkHubBlock): string {
-  const p = block.payload
-  if (block.type === "link") return String(p.label || "لینک")
-  if (block.type === "contact") return "تماس"
-  if (block.type === "form") return String(p.title || "فرم")
-  if (block.type === "faq") return String(p.title || "سوالات متداول")
-  if (block.type === "event") return String(p.title || "رویداد")
-  return block.type
 }

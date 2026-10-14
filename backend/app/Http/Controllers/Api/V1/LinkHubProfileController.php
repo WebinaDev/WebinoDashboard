@@ -7,6 +7,7 @@ use App\Models\LinkHubBlock;
 use App\Models\LinkHubProfile;
 use App\Services\LinkHub\LinkHubAliasService;
 use App\Services\LinkHub\LinkHubAnalytics;
+use App\Services\LinkHub\LinkHubTheme;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -93,7 +94,7 @@ class LinkHubProfileController extends Controller
             'avatar_url' => $data['avatar_url'] ?? null,
             'bio' => $data['bio'] ?? null,
             'is_published' => (bool) ($data['is_published'] ?? false),
-            'theme_json' => $data['theme_json'] ?? null,
+            'theme_json' => LinkHubTheme::normalize($data['theme_json'] ?? []),
             'sort' => (int) LinkHubProfile::query()->where('tenant_id', $tid)->max('sort') + 1,
         ]);
 
@@ -133,6 +134,9 @@ class LinkHubProfileController extends Controller
         }
         if ($profile->kind === LinkHubProfile::KIND_BUSINESS) {
             unset($data['slug']);
+        }
+        if (array_key_exists('theme_json', $data)) {
+            $data['theme_json'] = LinkHubTheme::normalize($data['theme_json'] ?? []);
         }
 
         $profile->update($data);
