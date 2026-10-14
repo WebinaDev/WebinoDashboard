@@ -164,5 +164,6 @@ export const cmsManifest: ModuleManifest = {
   siteRoutes: [
     { path: "search", submodule: "pages", page: "search", labelKey: "site.pages" },
     { path: "pages/:slug", submodule: "pages", labelKey: "site.pages" },
+    { path: "preview/:token", submodule: "pages", page: "preview", labelKey: "site.pages" },
   ],
 }

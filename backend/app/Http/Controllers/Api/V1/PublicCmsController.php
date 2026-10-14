@@ -17,6 +17,24 @@ class PublicCmsController extends Controller
         $page = CmsPage::query()->where('tenant_id', $tid)->where('slug', $slug)
             ->where('published', true)->firstOrFail();
 
-        return response()->json(['data' => $page]);
+        // Explicit public fields only (meta holds edit locks / preview token hashes).
+        return response()->json(['data' => [
+            'id' => $page->id,
+            'slug' => $page->slug,
+            'title' => $page->title,
+            'excerpt' => $page->excerpt,
+            'body' => $page->body,
+            'builder_published' => $page->builder_published,
+            'featured_media_id' => $page->featured_media_id,
+            'parent_id' => $page->parent_id,
+            'seo' => $page->seo,
+            'lang' => $page->lang,
+            'visibility' => $page->visibility,
+            'comment_status' => $page->comment_status,
+            'published' => (bool) $page->published,
+            'status' => $page->status,
+            'created_at' => $page->created_at,
+            'updated_at' => $page->updated_at,
+        ]]);
     }
 }

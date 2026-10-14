@@ -24,6 +24,8 @@ import {
   Lock,
   Upload,
   ZoomIn,
+  Accessibility,
+  FileCog,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -73,6 +75,10 @@ import { Navigator } from "./Navigator"
 import { ShortcutHelp } from "./ShortcutHelp"
 import { CLIPBOARD_KEY, duplicateSection, exportPayload, findNode, importPayload, isLocked, makeClip, parseClip, pasteClip, pasteStyle, patchNode, type Clip } from "../ops"
 import { RevisionsPanel, type RevisionTarget } from "./RevisionsPanel"
+import { A11yPanel } from "./A11yPanel"
+import { Finder, type FinderAction } from "./Finder"
+import { PageSettingsPanel } from "./PageSettingsPanel"
+import { ApiError } from "@/lib/api"
 import { widgetLabel } from "../render/widgets"
 
 type PagePayload = {
@@ -146,6 +152,10 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [widgetQuery, setWidgetQuery] = useState("")
   const [chromeId, setChromeId] = useState<number | null>(null)
   const [showRevisions, setShowRevisions] = useState(false)
+  const [showPageSettings, setShowPageSettings] = useState(false)
+  const [showA11y, setShowA11y] = useState(false)
+  const [showFinder, setShowFinder] = useState(false)
+  const [lockedBy, setLockedBy] = useState<string | null>(null)
   /** JSON of the last loaded/saved document; null until the first load completes. */
   const [savedJson, setSavedJson] = useState<string | null>(null)
   const docJson = useMemo(() => JSON.stringify(doc), [doc])
@@ -354,6 +364,30 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     toast.success(t("imported"))
   }
 
+  // Edit lock for builder pages: heartbeat while open, release on leave; 423 means someone else is editing.
+  const lockPageId = mode.kind === "page" ? pageId : null
+  const acquireLock = useCallback(async (takeover = false) => {
+    if (!lockPageId) return
+    try {
+      await api(`/api/v1/builder/pages/${lockPageId}/lock`, { method: "POST", json: takeover ? { takeover: true } : {} })
+      setLockedBy(null)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 423) {
+        const body = error.body as { data?: { locked_by?: { name?: string } } } | undefined
+        setLockedBy(body?.data?.locked_by?.name || "?")
+      }
+    }
+  }, [lockPageId])
+  useEffect(() => {
+    if (!lockPageId) return
+    void acquireLock()
+    const timer = window.setInterval(() => void acquireLock(), 45_000)
+    return () => {
+      window.clearInterval(timer)
+      void api(`/api/v1/builder/pages/${lockPageId}/lock`, { method: "DELETE" }).catch(() => undefined)
+    }
+  }, [acquireLock, lockPageId])
+
   // Central keyboard shortcuts (ignored while typing in inputs / inline text).
   useEffect(() => {
     function typing(target: EventTarget | null): boolean {
@@ -399,6 +433,9 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         setMenu(null)
       } else if (event.key === "?" || (event.shiftKey && event.key === "/")) {
         setShowHelp(true)
+      } else if (meta && key === "e") {
+        event.preventDefault()
+        setShowFinder(true)
       } else if (meta && key === "p") {
         event.preventDefault()
         setDevice((current) => (current === "desktop" ? "tablet" : current === "tablet" ? "mobile" : "desktop"))
@@ -470,6 +507,20 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     commit(insertWidget(next, column, index, widget))
     setSelectedId(widget.id)
   }
+
+  const finderActions: FinderAction[] = [
+    { id: "save", label: t("save"), run: () => void save(false) },
+    { id: "publish", label: t("publish"), run: () => void save(true) },
+    { id: "undo", label: t("undo"), run: undo },
+    { id: "redo", label: t("redo"), run: redo },
+    { id: "desktop", label: t("desktop"), run: () => setDevice("desktop") },
+    { id: "tablet", label: t("tablet"), run: () => setDevice("tablet") },
+    { id: "mobile", label: t("mobile"), run: () => setDevice("mobile") },
+    { id: "a11y", label: t("a11y_audit"), run: () => setShowA11y(true) },
+    { id: "shortcuts", label: t("shortcuts"), run: () => setShowHelp(true) },
+    { id: "export", label: t("export_json"), run: exportJson },
+    ...(mode.kind === "page" && pageId ? [{ id: "page-settings", label: t("page_settings"), run: () => setShowPageSettings(true) }] : []),
+  ]
 
   const revisionTarget: RevisionTarget | null =
     mode.kind === "chrome"
@@ -577,8 +628,13 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         toast.success(t("published"))
       } else if (!autosave) toast.success(t("saved"))
       setSavedJson(snapshot)
-    } catch {
-      if (!autosave) toast.error(t("save_failed"))
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 423) {
+        setLockedBy(error.message.replace(/^locked by /, "") || "?")
+        toast.error(t("locked_by_other"))
+      } else if (error instanceof ApiError && error.status === 403) {
+        toast.error(t("no_permission"))
+      } else if (!autosave) toast.error(t("save_failed"))
     } finally {
       setSaving(false)
     }
@@ -670,6 +726,11 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         />
         <IconButton label={t("save_page_template")} onClick={() => void saveToLibrary(null)}><LayoutTemplate className="size-4" /></IconButton>
         <IconButton label={t("shortcuts")} onClick={() => setShowHelp(true)}><Keyboard className="size-4" /></IconButton>
+        <IconButton label={t("finder")} onClick={() => setShowFinder(true)}><Search className="size-4" /></IconButton>
+        <IconButton label={t("a11y_audit")} onClick={() => setShowA11y(true)}><Accessibility className="size-4" /></IconButton>
+        {mode.kind === "page" && pageId ? (
+          <IconButton label={t("page_settings")} onClick={() => setShowPageSettings(true)}><FileCog className="size-4" /></IconButton>
+        ) : null}
         {revisionTarget ? (
           <IconButton label={t("revisions")} onClick={() => setShowRevisions(true)}><History className="size-4" /></IconButton>
         ) : null}
@@ -698,6 +759,33 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         />
       ) : null}
       {showHelp ? <ShortcutHelp onClose={() => setShowHelp(false)} /> : null}
+      {lockedBy ? (
+        <div className="flex items-center justify-center gap-3 bg-amber-100 px-4 py-2 text-xs text-amber-900" role="alert">
+          {t("locked_banner", { name: lockedBy })}
+          <Button type="button" size="sm" variant="outline" onClick={() => { if (window.confirm(t("takeover_confirm"))) void acquireLock(true) }}>{t("takeover")}</Button>
+        </div>
+      ) : null}
+      {showFinder ? (
+        <Finder
+          doc={doc}
+          actions={finderActions}
+          onAdd={insertFromPalette}
+          onSelect={(id) => setSelectedId(id)}
+          onClose={() => setShowFinder(false)}
+        />
+      ) : null}
+      {showA11y ? <A11yPanel doc={doc} onSelect={(id) => { setSelectedId(id); setShowA11y(false) }} onClose={() => setShowA11y(false)} /> : null}
+      {showPageSettings && mode.kind === "page" && pageId ? (
+        <PageSettingsPanel
+          pageId={pageId}
+          title={title}
+          onClose={() => setShowPageSettings(false)}
+          onDiscarded={(restored) => {
+            commit(restored)
+            setSavedJson(JSON.stringify(restored))
+          }}
+        />
+      ) : null}
       <div className="flex min-h-0 flex-1">
         <aside className="flex w-72 shrink-0 flex-col border-e border-[#e6eef6] bg-[#f7f9fc]">
           <div className="flex border-b border-[#e6eef6] text-xs font-semibold">

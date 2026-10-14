@@ -269,6 +269,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('public.module:cms')->group(function () {
             Route::get('/pages/{slug}', [PublicCmsController::class, 'page']);
             Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
+            Route::get('/builder/preview/{token}', [PublicBuilderController::class, 'preview'])->middleware('throttle:60,1');
             Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
             Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve']);
             Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow']);
@@ -925,6 +926,14 @@ Route::prefix('v1')->group(function () {
                 Route::post('/builder/library', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'store']);
                 Route::get('/builder/library/{item}', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'show'])->whereNumber('item');
                 Route::delete('/builder/library/{item}', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'destroy'])->whereNumber('item');
+                Route::get('/builder/pages/{page}/settings', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'show'])->whereNumber('page');
+                Route::put('/builder/pages/{page}/settings', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'update'])->whereNumber('page');
+                Route::put('/builder/pages/{page}/schedule', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'schedule'])->whereNumber('page');
+                Route::post('/builder/pages/{page}/unpublish', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'unpublish'])->whereNumber('page');
+                Route::post('/builder/pages/{page}/discard', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'discard'])->whereNumber('page');
+                Route::post('/builder/pages/{page}/preview-token', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'previewToken'])->whereNumber('page')->middleware('throttle:20,1');
+                Route::post('/builder/pages/{page}/lock', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'lock'])->whereNumber('page');
+                Route::delete('/builder/pages/{page}/lock', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'unlock'])->whereNumber('page');
                 Route::get('/builder/kit', [\App\Http\Controllers\Api\V1\BuilderKitController::class, 'export']);
                 Route::post('/builder/kit', [\App\Http\Controllers\Api\V1\BuilderKitController::class, 'import'])->middleware('throttle:10,1');
                 Route::get('/builder/roles', [\App\Http\Controllers\Api\V1\BuilderRolesController::class, 'show']);

@@ -129,3 +129,10 @@ Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOver
 Schedule::command('marketplace:torob-webhooks')->everyMinute()->withoutOverlapping();
 Schedule::command('marketplace:basalam-tick')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:digikala-tick')->hourly()->withoutOverlapping();
+
+Artisan::command('builder:scheduled', function () {
+    [$published, $unpublished] = app(\App\Services\Builder\BuilderPageLifecycle::class)->runDue();
+    $this->info("Builder pages published: {$published}, unpublished: {$unpublished}");
+})->purpose('Publish/unpublish builder pages whose schedule is due');
+
+Schedule::command('builder:scheduled')->everyMinute()->withoutOverlapping();

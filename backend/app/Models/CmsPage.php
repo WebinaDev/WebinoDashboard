@@ -24,6 +24,10 @@ class CmsPage extends Model
         'password',
         'seo',
         'meta',
+        'builder_publish_at',
+        'builder_unpublish_at',
+        'lang',
+        'translation_group',
     ];
 
     protected function casts(): array
@@ -34,6 +38,8 @@ class CmsPage extends Model
             'meta' => 'array',
             'builder_draft' => 'array',
             'builder_published' => 'array',
+            'builder_publish_at' => 'datetime',
+            'builder_unpublish_at' => 'datetime',
         ];
     }
 

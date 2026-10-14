@@ -137,7 +137,7 @@ final class SeoMetaBuilder
             'schema_type' => $seo['schema_type'] ?? 'WebPage',
         ];
 
-        return $this->build(
+        $meta = $this->build(
             $tenant,
             '/'.ltrim((string) $page->slug, '/'),
             (string) $page->title,
@@ -145,6 +145,24 @@ final class SeoMetaBuilder
             $seo,
             (string) $seo['schema_type']
         );
+        $raw = is_array($page->seo ?? null) ? $page->seo : [];
+        if (! empty($raw['canonical']) && is_string($raw['canonical']) && str_starts_with($raw['canonical'], 'https://')) {
+            $meta['canonical'] = $raw['canonical'];
+        }
+        $meta['lang'] = $page->lang;
+        $meta['breadcrumb'] = ($raw['breadcrumb'] ?? true) !== false;
+        // hreflang alternates: this page plus published translations in the same group.
+        $meta['alternates'] = [];
+        if ($page->translation_group) {
+            $base = rtrim((string) preg_replace('#/[^/]*$#', '', (string) $meta['canonical']), '/');
+            $siblings = CmsPage::query()->where('tenant_id', $page->tenant_id)->where('translation_group', $page->translation_group)
+                ->where('published', true)->whereNotNull('lang')->orderBy('id')->get(['slug', 'lang']);
+            foreach ($siblings as $sib) {
+                $meta['alternates'][] = ['lang' => $sib->lang, 'url' => $base.'/'.$sib->slug];
+            }
+        }
+
+        return $meta;
     }
 
     /**

@@ -36,6 +36,17 @@ class PublicBuilderController extends Controller
         ]);
     }
 
+    /** Draft preview via an expiring, unguessable token (no login needed). */
+    public function preview(Request $request, string $token): JsonResponse
+    {
+        $page = app(\App\Services\Builder\BuilderPageLifecycle::class)->findByPreviewToken($this->publicTenantId($request), $token);
+        abort_unless($page && is_array($page->builder_draft), 404);
+
+        return response()->json([
+            'data' => ['slug' => $page->slug, 'title' => $page->title, 'document' => $page->builder_draft, 'preview' => true],
+        ])->header('Cache-Control', 'no-store')->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     public function template(Request $request, string $kind): JsonResponse
     {
         return $this->resolved($request, $kind, new ThemeRequestContext);

@@ -84,6 +84,8 @@ class BuilderController extends Controller
     {
         \App\Services\Builder\BuilderAccess::authorize($request, 'edit');
         $row = $this->page($request, $page);
+        $other = app(\App\Services\Builder\BuilderPageLifecycle::class)->lockedByOther($row, $request->user());
+        abort_if($other !== null, 423, 'locked by '.($other['name'] ?? ''));
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
             'slug' => 'sometimes|string|max:120',
@@ -96,6 +98,7 @@ class BuilderController extends Controller
                 422,
                 'slug taken'
             );
+            app(\App\Services\Builder\BuilderPageLifecycle::class)->recordSlugChange($row, (string) $row->slug, $slug);
             $row->slug = $slug;
         }
         if (isset($data['title'])) {
