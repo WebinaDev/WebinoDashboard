@@ -6718,7 +6718,22 @@
     "animation": "انیمیشن ورود",
     "anim_fade": "محو",
     "anim_slide_up": "لغزش به بالا",
-    "anim_zoom": "بزرگ‌نمایی"
+    "anim_zoom": "بزرگ‌نمایی",
+    "legacy_section_note": "این بخش با چیدمان قدیمی (۱۲ ستونهٔ ثابت) ذخیره شده و دقیقاً مثل قبل نمایش داده می‌شود.",
+    "upgrade_section": "تبدیل به چیدمان واکنش‌گرا",
+    "style_layout": "چیدمان (Flex/Grid)",
+    "layout_display": "نوع چیدمان",
+    "layout_default": "پیش‌فرض (۱۲ ستونه)",
+    "layout_block": "بلوکی",
+    "layout_direction": "جهت",
+    "layout_wrap": "شکستن خط",
+    "layout_grid_columns": "ستون‌های گرید",
+    "layout_grid_rows": "ردیف‌های گرید",
+    "layout_justify": "چینش افقی",
+    "layout_align": "چینش عمودی",
+    "layout_row_gap": "فاصلهٔ ردیف‌ها",
+    "layout_column_gap": "فاصلهٔ ستون‌ها",
+    "order": "ترتیب"
   },
   "theme_builder": {
     "title": "پوسته‌ساز",

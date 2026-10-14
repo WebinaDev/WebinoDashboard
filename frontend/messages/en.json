@@ -6718,7 +6718,22 @@
     "animation": "Entrance animation",
     "anim_fade": "Fade",
     "anim_slide_up": "Slide up",
-    "anim_zoom": "Zoom"
+    "anim_zoom": "Zoom",
+    "legacy_section_note": "This section uses the old fixed 12-column layout and renders exactly as before.",
+    "upgrade_section": "Upgrade to responsive layout",
+    "style_layout": "Layout (Flex/Grid)",
+    "layout_display": "Layout type",
+    "layout_default": "Default (12 columns)",
+    "layout_block": "Block",
+    "layout_direction": "Direction",
+    "layout_wrap": "Wrap",
+    "layout_grid_columns": "Grid columns",
+    "layout_grid_rows": "Grid rows",
+    "layout_justify": "Justify",
+    "layout_align": "Align",
+    "layout_row_gap": "Row gap",
+    "layout_column_gap": "Column gap",
+    "order": "Order"
   },
   "theme_builder": {
     "title": "Theme builder",

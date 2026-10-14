@@ -53,6 +53,7 @@ import {
 import type { AdvancedProps, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
+import { migrateDocument } from "../migrate"
 import { widgetLabel } from "../render/widgets"
 
 type PagePayload = {
@@ -150,7 +151,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             : mode.chrome === "header"
               ? classicHeaderDocument()
               : classicFooterDocument()
-          setDoc(initial)
+          setDoc(migrateDocument(initial))
           setTitle(row.title || (mode.chrome === "header" ? t("header") : t("footer")))
         } else if (mode.kind === "theme") {
           if (mode.id === "new") {
@@ -159,7 +160,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           } else {
             const row = await api<TemplatePayload>(`/api/v1/theme-builder/templates/${mode.id}`)
             if (cancel) return
-            setDoc(isDocument(row.document) ? row.document : emptyDocument())
+            setDoc(isDocument(row.document) ? migrateDocument(row.document) : emptyDocument())
             setTitle(row.title || t("create"))
             if (row.id) setPageId(row.id)
           }
@@ -167,14 +168,14 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           const base = mode.kind === "product" ? "products" : mode.kind === "post" ? "posts" : "articles"
           const row = await api<PagePayload>(`/api/v1/builder/${base}/${mode.id}`)
           if (cancel) return
-          setDoc(isDocument(row.document) ? row.document : emptyDocument())
+          setDoc(isDocument(row.document) ? migrateDocument(row.document) : emptyDocument())
           setTitle(row.title)
           setSlug(row.slug)
           setPageId(row.id)
         } else if (mode.id !== "new") {
           const row = await api<PagePayload>(`/api/v1/builder/pages/${mode.id}`)
           if (cancel) return
-          setDoc(isDocument(row.document) ? row.document : emptyDocument())
+          setDoc(isDocument(row.document) ? migrateDocument(row.document) : emptyDocument())
           setTitle(row.title)
           setSlug(row.slug)
           setPageId(row.id)
@@ -502,8 +503,17 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             <div className="grid gap-2">
               <Button type="button" variant="outline" onClick={() => commit(addColumn(doc, selection.id))}>{t("add_column")}</Button>
               <Button type="button" variant="outline" onClick={() => { commit(removeNode(doc, selection.id)); setSelectedId(null) }}>{t("delete")}</Button>
+              {selection.section.legacy ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5">
+                  {t("legacy_section_note")}
+                  <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={() => commit(updateSection(doc, selection.id, (section) => ({ ...section, legacy: false })))}>
+                    {t("upgrade_section")}
+                  </Button>
+                </div>
+              ) : null}
               {tab === "style" ? (
                 <StyleFields
+                  layout={!selection.section.legacy}
                   device={device}
                   style={mergeStyle(selection.section.style, device)}
                   onChange={(patch) => commit(updateSection(doc, selection.id, (section) => ({
@@ -515,17 +525,34 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             </div>
           ) : null}
           {selection?.kind === "column" ? (
-            <label className="grid gap-1 text-xs">
-              <span className="flex items-center gap-1.5"><Settings2 className="size-3.5" aria-hidden />{t("span")}</span>
-              <input
-                type="number"
-                min={1}
-                max={12}
-                value={selection.column.span}
-                onChange={(event) => commit(updateColumn(doc, selection.id, (column) => ({ ...column, span: Number(event.target.value) })))}
-                className="h-9 rounded-md border px-2"
-              />
-            </label>
+            <div className="grid gap-3">
+              <label className="grid gap-1 text-xs">
+                <span className="flex items-center gap-1.5"><Settings2 className="size-3.5" aria-hidden />{t("span")} · {t(device)}</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={device === "desktop" ? selection.column.span : device === "tablet" ? selection.column.tabletSpan ?? selection.column.span : selection.column.mobileSpan ?? 12}
+                  onChange={(event) => {
+                    const value = Math.min(12, Math.max(1, Number(event.target.value) || 1))
+                    const key = device === "desktop" ? "span" : device === "tablet" ? "tabletSpan" : "mobileSpan"
+                    commit(updateColumn(doc, selection.id, (column) => ({ ...column, [key]: value })))
+                  }}
+                  className="h-9 rounded-md border px-2"
+                />
+              </label>
+              {tab === "style" ? (
+                <StyleFields
+                  layout
+                  device={device}
+                  style={mergeStyle(selection.column.style, device)}
+                  onChange={(patch) => commit(updateColumn(doc, selection.id, (column) => ({
+                    ...column,
+                    style: { ...column.style, [device === "desktop" ? "base" : device]: { ...mergeStyle(column.style, device), ...patch } },
+                  })))}
+                />
+              ) : null}
+            </div>
           ) : null}
           {selection?.kind === "widget" ? (
             <div className="grid gap-3">
@@ -695,11 +722,37 @@ const SHADOWS = [
   { value: "0 18px 40px rgba(12,45,99,.18)", label: "L" },
 ]
 
-function StyleFields({ style, onChange, device }: { style: StyleProps; onChange: (patch: StyleProps) => void; device: DeviceMode }) {
+function StyleFields({ style, onChange, device, layout = false }: { style: StyleProps; onChange: (patch: StyleProps) => void; device: DeviceMode; layout?: boolean }) {
   const t = useTranslations("builder")
+  const opt = (values: string[]) => [{ value: "", label: "—" }, ...values.map((v) => ({ value: v, label: v }))]
   return (
     <div className="grid gap-2 text-xs">
       <span className="flex items-center gap-1.5 text-[#0C2D63]/50"><Paintbrush className="size-3.5" aria-hidden />{t(device)}</span>
+      {layout ? (
+        <Group title={t("style_layout")}>
+          <SelectIn label={t("layout_display")} value={style.display} options={[{ value: "", label: t("layout_default") }, { value: "flex", label: "Flexbox" }, { value: "grid", label: "Grid" }, { value: "block", label: t("layout_block") }]} onChange={(v) => onChange({ display: (v || undefined) as StyleProps["display"] })} />
+          {style.display === "flex" ? (
+            <>
+              <SelectIn label={t("layout_direction")} value={style.flexDirection} options={opt(["row", "row-reverse", "column", "column-reverse"])} onChange={(v) => onChange({ flexDirection: (v || undefined) as StyleProps["flexDirection"] })} />
+              <SelectIn label={t("layout_wrap")} value={style.flexWrap} options={opt(["nowrap", "wrap", "wrap-reverse"])} onChange={(v) => onChange({ flexWrap: (v || undefined) as StyleProps["flexWrap"] })} />
+            </>
+          ) : null}
+          {style.display === "grid" ? (
+            <>
+              <TextIn label={t("layout_grid_columns")} value={style.gridColumns} placeholder="3 / 2fr 1fr" onChange={(gridColumns) => onChange({ gridColumns })} />
+              <TextIn label={t("layout_grid_rows")} value={style.gridRows} placeholder="auto" onChange={(gridRows) => onChange({ gridRows })} />
+            </>
+          ) : null}
+          {style.display === "flex" || style.display === "grid" ? (
+            <>
+              <SelectIn label={t("layout_justify")} value={style.justifyContent} options={opt(["start", "center", "end", "space-between", "space-around", "space-evenly", "stretch"])} onChange={(v) => onChange({ justifyContent: (v || undefined) as StyleProps["justifyContent"] })} />
+              <SelectIn label={t("layout_align")} value={style.alignItems} options={opt(["start", "center", "end", "stretch", "baseline"])} onChange={(v) => onChange({ alignItems: (v || undefined) as StyleProps["alignItems"] })} />
+            </>
+          ) : null}
+          <TextIn label={t("layout_row_gap")} value={style.rowGap} placeholder="16px" onChange={(rowGap) => onChange({ rowGap })} />
+          <TextIn label={t("layout_column_gap")} value={style.columnGap} placeholder="16px" onChange={(columnGap) => onChange({ columnGap })} />
+        </Group>
+      ) : null}
       <Group title={t("style_typography")}>
         <TokenColor label={t("color")} value={style.color} onChange={(color) => onChange({ color })} />
         <TextIn label={t("font_size")} value={style.fontSize} placeholder="1rem" onChange={(fontSize) => onChange({ fontSize })} />
@@ -720,6 +773,7 @@ function StyleFields({ style, onChange, device }: { style: StyleProps; onChange:
         <TextIn label={t("width")} value={style.width} placeholder="100%" onChange={(width) => onChange({ width })} />
         <TextIn label={t("max_width")} value={style.maxWidth} placeholder="1200px" onChange={(maxWidth) => onChange({ maxWidth })} />
         <TextIn label={t("min_height")} value={style.minHeight} placeholder="0" onChange={(minHeight) => onChange({ minHeight })} />
+        <TextIn label={t("order")} value={style.order} placeholder="0" onChange={(order) => onChange({ order })} />
       </Group>
       <Group title={t("style_border")}>
         <TextIn label={t("border_width")} value={style.borderWidth} placeholder="1px" onChange={(borderWidth) => onChange({ borderWidth })} />

@@ -2,7 +2,7 @@ import { uid } from "./ids"
 import type { BuilderDocument, ColumnNode, SectionNode, WidgetNode } from "./types"
 
 export function emptyDocument(): BuilderDocument {
-  return { version: 1, sections: [] }
+  return { version: 2, sections: [] }
 }
 
 export function isDocument(value: unknown): value is BuilderDocument {

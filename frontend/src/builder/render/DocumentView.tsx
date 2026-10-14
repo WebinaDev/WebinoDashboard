@@ -2,7 +2,8 @@
 
 import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
-import { advancedClass, advancedId, documentCss, mergeStyle, spanFor, styleToCss } from "../style"
+import { advancedClass, advancedId, documentCss, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
+import { migrateDocument } from "../migrate"
 import type { ColumnNode, DeviceMode, EditorApi, BuilderDocument, RuntimeContext, SectionNode, WidgetNode } from "../types"
 import { DND_NODE, DND_WIDGET } from "../types"
 import { BuilderGlobalsProvider, BuilderRuntimeProvider } from "./runtime"
@@ -28,7 +29,9 @@ function importedCss(document: BuilderDocument): string {
   return raw.replace(/<\/style/gi, "").replace(/<script/gi, "")
 }
 
-export function DocumentView({ document, mode = "view", device = "desktop", runtime, editor, themeClass, globals }: Props) {
+export function DocumentView({ document: rawDocument, mode = "view", device = "desktop", runtime, editor, themeClass, globals }: Props) {
+  // v1 documents render through the legacy path (unchanged output).
+  const document = migrateDocument(rawDocument)
   const activeGlobals = globals ?? DEFAULT_GLOBALS
   const nodeCss = mode === "view" ? documentCss(document) : ""
   const css = [globalsCss(activeGlobals), nodeCss, importedCss(document)].filter(Boolean).join("\n")
@@ -50,7 +53,8 @@ export function DocumentView({ document, mode = "view", device = "desktop", runt
 
 function SectionBlock({ section, device, editor }: { section: SectionNode; device: DeviceMode; editor?: EditorApi }) {
   const selected = editor?.selectedId === section.id
-  const style = editor ? styleToCss(mergeStyle(section.style, device)) : undefined
+  const sectionStyle = mergeStyle(section.style, device)
+  const style = editor ? styleToCss(sectionStyle) : undefined
   return (
     <section
       id={section.id}
@@ -63,27 +67,58 @@ function SectionBlock({ section, device, editor }: { section: SectionNode; devic
       }}
     >
       <div
-        className="wb-columns grid items-start"
-        style={{
-          gridTemplateColumns: device === "mobile" ? "minmax(0,1fr)" : "repeat(12, minmax(0,1fr))",
-        }}
+        className={`wb-columns grid items-start ${section.legacy ? "" : "wb-flow"}`}
+        style={
+          section.legacy
+            ? { gridTemplateColumns: device === "mobile" ? "minmax(0,1fr)" : "repeat(12, minmax(0,1fr))" }
+            : editor
+              ? { gridTemplateColumns: "repeat(12, minmax(0,1fr))", ...layoutToCss(sectionStyle) }
+              : undefined
+        }
       >
         {section.columns.map((column) => (
-          <ColumnBlock key={column.id} column={column} device={device} editor={editor} />
+          <ColumnBlock
+            key={column.id}
+            column={column}
+            device={device}
+            editor={editor}
+            legacy={Boolean(section.legacy)}
+            freeLayout={hasCustomLayout(sectionStyle)}
+          />
         ))}
       </div>
     </section>
   )
 }
 
-function ColumnBlock({ column, device, editor }: { column: ColumnNode; device: DeviceMode; editor?: EditorApi }) {
+function ColumnBlock({
+  column,
+  device,
+  editor,
+  legacy,
+  freeLayout,
+}: {
+  column: ColumnNode
+  device: DeviceMode
+  editor?: EditorApi
+  legacy: boolean
+  freeLayout: boolean
+}) {
   const span = spanFor(column.span, column.tabletSpan, column.mobileSpan, device)
   const selected = editor?.selectedId === column.id
-  const style = editor ? styleToCss(mergeStyle(column.style, device)) : undefined
+  const columnStyle = mergeStyle(column.style, device)
+  const style = editor ? styleToCss(columnStyle) : undefined
+  // Legacy: inline span (desktop span in view mode, single column in mobile preview).
+  // v2 view mode: spans come from documentCss media rules; v2 editor: spans for the previewed device.
+  const gridColumn = legacy
+    ? `span ${device === "mobile" ? 1 : span}`
+    : editor && !freeLayout
+      ? `span ${span}`
+      : undefined
   return (
     <div
       className={`${safeClass(column.id)} relative min-w-0 ${selected ? "outline outline-2 outline-dashed outline-[#0C2D63]" : ""}`}
-      style={{ ...style, gridColumn: `span ${device === "mobile" ? 1 : span}` }}
+      style={{ ...style, gridColumn }}
       onClick={(event) => {
         if (!editor) return
         event.stopPropagation()
@@ -91,7 +126,7 @@ function ColumnBlock({ column, device, editor }: { column: ColumnNode; device: D
       }}
     >
       {editor ? <DropSlot columnId={column.id} index={0} editor={editor} /> : null}
-      <div className="flex flex-col">
+      <div className="wb-col-body flex flex-col" style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
         {column.widgets.map((widget, index) => (
           <div key={widget.id}>
             <WidgetBlock widget={widget} device={device} editor={editor} />

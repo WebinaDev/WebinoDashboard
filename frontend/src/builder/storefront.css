@@ -89,3 +89,6 @@ body:has(.sf-classic) {
 @media (prefers-reduced-motion: reduce) {
   .wb-anim-fade, .wb-anim-slide-up, .wb-anim-zoom { animation: none; }
 }
+
+/* v2 builder sections: 12-column default with zero specificity so per-node layout rules win. */
+:where(.wb-columns.wb-flow) { grid-template-columns: repeat(12, minmax(0, 1fr)); }

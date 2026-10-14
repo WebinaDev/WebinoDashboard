@@ -1,4 +1,5 @@
-export const BUILDER_VERSION = 1 as const
+/** v2: sections may use flex/grid layout and per-breakpoint spans; v1 sections are kept as `legacy`. */
+export const BUILDER_VERSION = 2 as const
 
 export type DeviceMode = "desktop" | "tablet" | "mobile"
 
@@ -32,6 +33,19 @@ export type StyleProps = {
   boxShadow?: string
   opacity?: string
   width?: string
+  /* Layout of the node's children (section → its columns, column → its widgets). Per breakpoint. */
+  display?: "grid" | "flex" | "block"
+  flexDirection?: "row" | "row-reverse" | "column" | "column-reverse"
+  flexWrap?: "nowrap" | "wrap" | "wrap-reverse"
+  justifyContent?: "start" | "center" | "end" | "space-between" | "space-around" | "space-evenly" | "stretch"
+  alignItems?: "start" | "center" | "end" | "stretch" | "baseline"
+  /** Grid columns: a count ("3") or a template ("2fr 1fr"). */
+  gridColumns?: string
+  gridRows?: string
+  rowGap?: string
+  columnGap?: string
+  /** Order of this node inside its parent (e.g. reorder columns on mobile). */
+  order?: string
 }
 
 /** Elementor-style "Advanced" settings that are not per-device styles. */
@@ -73,13 +87,15 @@ export type ColumnNode = {
 
 export type SectionNode = {
   id: string
+  /** Set by the v1→v2 migration: keep the old fixed 12-column rendering exactly. */
+  legacy?: boolean
   fullWidth?: boolean
   style?: ResponsiveStyle
   columns: ColumnNode[]
 }
 
 export type BuilderDocument = {
-  version: typeof BUILDER_VERSION
+  version: 1 | typeof BUILDER_VERSION
   sections: SectionNode[]
   /** Extra CSS from an imported Elementor document. Node styles stay in `style`. */
   css?: string
