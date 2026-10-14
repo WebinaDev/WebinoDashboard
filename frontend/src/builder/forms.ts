@@ -1,8 +1,8 @@
 /** Pro form model: `label|name|type|options|required|step|showIf` per line (first three columns = legacy format). */
-export type FormFieldType = "text" | "email" | "tel" | "number" | "textarea" | "select" | "radio" | "checkbox" | "date"
+export type FormFieldType = "text" | "email" | "tel" | "number" | "textarea" | "select" | "radio" | "checkbox" | "date" | "file"
 export type FormField = { label: string; name: string; type: FormFieldType; options: string[]; required: boolean; step: number; showIf?: { name: string; value: string } }
 
-export const FORM_FIELD_TYPES: FormFieldType[] = ["text", "email", "tel", "number", "textarea", "select", "radio", "checkbox", "date"]
+export const FORM_FIELD_TYPES: FormFieldType[] = ["text", "email", "tel", "number", "textarea", "select", "radio", "checkbox", "date", "file"]
 
 const DEFAULT_FIELDS = "نام|name|text\nموبایل|phone|tel\nپیام|message|textarea"
 

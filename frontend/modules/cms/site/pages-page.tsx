@@ -2,6 +2,7 @@ import type { ResolvedSiteRoute } from "@/kernel/types"
 import { fetchPublicItem } from "@/kernel/public-content"
 import { getServerTranslations } from "@/lib/server-translations"
 import { StorefrontDocument } from "@/builder/public-document"
+import { AbSwitch } from "@/builder/render/ab-switch"
 import { ThemeSlot } from "@/builder/theme/ThemeSlot"
 import { isDocument } from "@/builder/tree"
 import { SiteContentDetail } from "@/themes/shared/content/SiteContentDetail"
@@ -14,6 +15,7 @@ type CmsPage = {
   title: string
   body?: string | null
   builder_published?: unknown
+  ab?: { id: number; split: number; variant?: { document?: unknown } } | null
 }
 
 export default async function Page({ route }: { route: ResolvedSiteRoute }) {
@@ -43,7 +45,12 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
   }
 
   if (isDocument(page.builder_published) && page.builder_published.sections.length) {
-    return <StorefrontDocument document={page.builder_published} runtime={{ siteName: page.title }} />
+    const original = <StorefrontDocument document={page.builder_published} runtime={{ siteName: page.title }} />
+    const variant = page.ab?.variant?.document
+    if (page.ab && isDocument(variant)) {
+      return <AbSwitch testId={page.ab.id} split={page.ab.split} a={original} b={<StorefrontDocument document={variant} runtime={{ siteName: page.title }} />} />
+    }
+    return original
   }
 
   return (

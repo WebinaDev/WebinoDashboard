@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarClock, Copy, Globe2, Search, X } from "lucide-react"
+import { CalendarClock, Copy, FlaskConical, Globe2, Search, X } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -39,7 +39,22 @@ type SeoFields = {
 
 const LANGS = ["fa", "en", "ar", "tr", "ku", "az"] as const
 const SCHEMA_TYPES = ["WebPage", "AboutPage", "ContactPage", "FAQPage", "CollectionPage", "Article"] as const
-type Tab = "seo" | "lang" | "publish"
+type Tab = "seo" | "lang" | "publish" | "ab"
+
+type AbResult = {
+  id: number
+  variant_page_id: number
+  split: number
+  status: "running" | "paused"
+  views_a: number
+  views_b: number
+  conversions_a: number
+  conversions_b: number
+  rate_a: number
+  rate_b: number
+  z: number
+  significant: boolean
+}
 
 function toIso(local: string | null | undefined): string | null {
   if (!local) return null
@@ -71,6 +86,35 @@ export function PageSettingsPanel({
   const [busy, setBusy] = useState(false)
   const [previewUrl, setPreviewUrl] = useState("")
   const [pages, setPages] = useState<{ id: number; title: string }[]>([])
+  const [ab, setAb] = useState<AbResult | null>(null)
+  const [abVariant, setAbVariant] = useState("")
+  const [abSplit, setAbSplit] = useState(50)
+
+  useEffect(() => {
+    api<AbResult | null>(`/api/v1/builder/pages/${pageId}/ab`)
+      .then((row) => {
+        if (!row || !row.id) return
+        setAb(row)
+        setAbVariant(String(row.variant_page_id))
+        setAbSplit(row.split)
+      })
+      .catch(() => undefined)
+  }, [pageId])
+
+  async function saveAb(status: "running" | "paused", reset = false) {
+    if (!abVariant) return
+    const row = await run(
+      () => api<AbResult>(`/api/v1/builder/pages/${pageId}/ab`, { method: "PUT", json: { variant_page_id: Number(abVariant), split: abSplit, status, reset } }),
+      t("saved"),
+    )
+    if (row) setAb(row)
+  }
+
+  async function stopAb() {
+    if (!window.confirm(t("ab_stop_confirm"))) return
+    const ok = await run(() => api(`/api/v1/builder/pages/${pageId}/ab`, { method: "DELETE" }), t("ab_stopped"))
+    if (ok !== null) setAb(null)
+  }
 
   useEffect(() => {
     api<{ pages?: { id: number; title: string }[] }>("/api/v1/builder")
@@ -165,7 +209,7 @@ export function PageSettingsPanel({
           <button type="button" aria-label={t("close")} onClick={onClose}><X className="size-4" /></button>
         </div>
         <div className="flex gap-1 border-b p-2 text-xs font-semibold">
-          {([["seo", Search], ["lang", Globe2], ["publish", CalendarClock]] as const).map(([id, Icon]) => (
+          {([["seo", Search], ["lang", Globe2], ["publish", CalendarClock], ["ab", FlaskConical]] as const).map(([id, Icon]) => (
             <button key={id} type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === id ? "bg-[#f7f9fc] text-[#E16BA6]" : ""}`} onClick={() => setTab(id)}>
               <Icon className="size-3.5" aria-hidden />
               {t(`tab_${id}`)}
@@ -256,6 +300,37 @@ export function PageSettingsPanel({
             {previewUrl ? <input readOnly dir="ltr" className="h-9 rounded-md border px-2 text-[11px]" value={previewUrl} onFocus={(e) => e.currentTarget.select()} aria-label={t("preview_link")} /> : null}
             <p className="text-[10px] text-[#0C2D63]/60">{t("preview_link_hint")}</p>
             {!canPublish ? <p className="text-[10px] text-red-600">{t("no_publish_permission")}</p> : null}
+          </div>
+        ) : null}
+        {data && tab === "ab" ? (
+          <div className="grid gap-3 overflow-auto p-3 text-xs">
+            <p className="text-[10px] text-[#0C2D63]/60">{t("ab_hint")}</p>
+            <label className="grid gap-1">{t("ab_variant")}
+              <select className="h-9 rounded-md border px-2" value={abVariant} onChange={(e) => setAbVariant(e.target.value)}>
+                <option value="">—</option>
+                {pages.filter((p) => p.id !== pageId).map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1">{t("ab_split", { pct: abSplit })}
+              <input type="range" min={5} max={95} step={5} value={abSplit} onChange={(e) => setAbSplit(Number(e.target.value))} />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" disabled={busy || !abVariant || !canPublish} onClick={() => void saveAb("running")}>{ab ? t("save") : t("ab_start")}</Button>
+              {ab ? <Button type="button" variant="outline" disabled={busy || !canPublish} onClick={() => void saveAb(ab.status === "running" ? "paused" : "running")}>{ab.status === "running" ? t("ab_pause") : t("ab_resume")}</Button> : null}
+              {ab ? <Button type="button" variant="outline" disabled={busy || !canPublish} onClick={() => void saveAb(ab.status, true)}>{t("ab_reset")}</Button> : null}
+              {ab ? <Button type="button" variant="outline" disabled={busy || !canPublish} onClick={() => void stopAb()}>{t("ab_stop")}</Button> : null}
+            </div>
+            {ab ? (
+              <table className="w-full text-center">
+                <thead><tr><th /><th>{t("ab_views")}</th><th>{t("ab_conversions")}</th><th>{t("ab_rate")}</th></tr></thead>
+                <tbody>
+                  <tr className="border-t"><td className="py-1 text-start">A</td><td>{ab.views_a}</td><td>{ab.conversions_a}</td><td>{ab.rate_a}٪</td></tr>
+                  <tr className="border-t"><td className="py-1 text-start">B</td><td>{ab.views_b}</td><td>{ab.conversions_b}</td><td>{ab.rate_b}٪</td></tr>
+                </tbody>
+              </table>
+            ) : null}
+            {ab ? <p className={ab.significant ? "font-semibold text-green-700" : "text-[#0C2D63]/60"}>{ab.significant ? t("ab_significant", { winner: ab.z > 0 ? "B" : "A" }) : t("ab_not_significant")}</p> : null}
+            <p className="text-[10px] text-[#0C2D63]/60">{t("ab_goal_hint")}</p>
           </div>
         ) : null}
       </aside>

@@ -8,7 +8,51 @@ import { isVisible, missingOnStep, parseFormFields, stepCount, visiblePayload, t
 import { propStr } from "../props"
 import type { WidgetNode } from "../types"
 
-function Field({ field, value, onChange }: { field: FormField; value: string; onChange: (value: string) => void }) {
+const FILE_ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
+const FILE_MAX = 5 * 1024 * 1024
+
+/** File field: uploads immediately to private storage and keeps only the opaque upload token as the value. */
+function FileField({ field, formKey, onChange }: { field: FormField; formKey: string; onChange: (value: string) => void }) {
+  const [state, setState] = useState<{ name: string; status: "idle" | "uploading" | "done" | "error"; message?: string }>({ name: "", status: "idle" })
+  return (
+    <div className="grid gap-1">
+      <input
+        type="file"
+        name={field.name}
+        accept={FILE_ACCEPT}
+        aria-label={field.label}
+        aria-required={field.required || undefined}
+        className="wb-field"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          onChange("")
+          if (!file) return setState({ name: "", status: "idle" })
+          if (file.size > FILE_MAX) return setState({ name: file.name, status: "error", message: "حداکثر حجم فایل ۵ مگابایت است" })
+          setState({ name: file.name, status: "uploading" })
+          const body = new FormData()
+          body.append("file", file)
+          body.append("form_key", formKey)
+          const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+          const host = window.location.host
+          void fetch(`${base}/api/v1/public/builder/forms/upload`, { method: "POST", body, headers: { Accept: "application/json", "X-Tenant-Domain": host } })
+            .then(async (res) => {
+              const json = (await res.json().catch(() => null)) as { data?: { token?: string }; message?: string } | null
+              if (!res.ok || !json?.data?.token) throw new Error(json?.message || "upload_failed")
+              onChange(json.data.token)
+              setState({ name: file.name, status: "done" })
+            })
+            .catch(() => setState({ name: file.name, status: "error", message: "بارگذاری فایل ناموفق بود (jpg، png، webp، pdf، doc)" }))
+        }}
+      />
+      <span className="text-xs" aria-live="polite">
+        {state.status === "uploading" ? "در حال بارگذاری…" : state.status === "done" ? `✓ ${state.name}` : state.status === "error" ? <span className="wb-form-error">{state.message}</span> : null}
+      </span>
+    </div>
+  )
+}
+
+function Field({ field, value, onChange, formKey = "contact" }: { field: FormField; value: string; onChange: (value: string) => void; formKey?: string }) {
+  if (field.type === "file") return <FileField field={field} formKey={formKey} onChange={onChange} />
   const common = { name: field.name, required: field.required, "aria-required": field.required || undefined }
   if (field.type === "textarea") return <textarea {...common} className="wb-field min-h-24" value={value} onChange={(event) => onChange(event.target.value)} />
   if (field.type === "select") {
@@ -101,6 +145,7 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
           .then(async (res) => {
             const json = (await res.json().catch(() => null)) as { message?: string; data?: { redirect?: string | null } } | null
             if (!res.ok) throw new Error(json?.message || "submit_failed")
+            window.dispatchEvent(new CustomEvent("wb:form-success", { detail: { formKey } }))
             const redirect = json?.data?.redirect
             if (redirect && typeof window !== "undefined") window.location.assign(redirect)
             else setDone(true)
@@ -118,7 +163,7 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
       {fields.filter((field) => field.step === step && isVisible(field, values)).map((field) => (
         <label key={field.name} className="grid gap-1">
           <span className="wb-label">{field.label}{field.required ? <span aria-hidden className="text-red-500"> *</span> : null}</span>
-          <Field field={field} value={values[field.name] ?? ""} onChange={(value) => set(field.name, value)} />
+          <Field field={field} formKey={formKey} value={values[field.name] ?? ""} onChange={(value) => set(field.name, value)} />
         </label>
       ))}
       {last && showEmail ? (

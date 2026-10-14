@@ -212,6 +212,7 @@ Route::prefix('v1')->group(function () {
         // Alias without "analytics" in the path (adblock bypass).
         Route::post('/metrics/collect', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
         Route::post('/forms/submit', [PublicBuilderFormController::class, 'submit'])->middleware('throttle:public-writes');
+        Route::post('/builder/forms/upload', [\App\Http\Controllers\Api\V1\BuilderFormFilesController::class, 'upload'])->middleware('throttle:public-writes');
         Route::post('/newsletter/subscribe', [PublicStorefrontController::class, 'subscribe'])->middleware('throttle:public-writes');
         Route::post('/orders/track', [PublicStorefrontController::class, 'trackOrder'])->middleware('throttle:10,1');
 
@@ -270,6 +271,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/pages/{slug}', [PublicCmsController::class, 'page']);
             Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
             Route::get('/builder/preview/{token}', [PublicBuilderController::class, 'preview'])->middleware('throttle:60,1');
+            Route::post('/builder/ab/{test}/event', [\App\Http\Controllers\Api\V1\BuilderAbController::class, 'event'])->whereNumber('test')->middleware('throttle:120,1');
+            Route::get('/builder/collections/{slug}/items', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'publicItems']);
+            Route::get('/builder/collections/{slug}/items/{item}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'publicItem']);
             Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
             Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve']);
             Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow']);
@@ -934,6 +938,19 @@ Route::prefix('v1')->group(function () {
                 Route::post('/builder/pages/{page}/preview-token', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'previewToken'])->whereNumber('page')->middleware('throttle:20,1');
                 Route::post('/builder/pages/{page}/lock', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'lock'])->whereNumber('page');
                 Route::delete('/builder/pages/{page}/lock', [\App\Http\Controllers\Api\V1\BuilderPageSettingsController::class, 'unlock'])->whereNumber('page');
+                Route::get('/builder/pages/{page}/ab', [\App\Http\Controllers\Api\V1\BuilderAbController::class, 'show'])->whereNumber('page');
+                Route::put('/builder/pages/{page}/ab', [\App\Http\Controllers\Api\V1\BuilderAbController::class, 'update'])->whereNumber('page');
+                Route::delete('/builder/pages/{page}/ab', [\App\Http\Controllers\Api\V1\BuilderAbController::class, 'destroy'])->whereNumber('page');
+                Route::get('/builder/forms/{key}/submissions', [\App\Http\Controllers\Api\V1\BuilderFormFilesController::class, 'submissions'])->where('key', '[\w.\-]{1,100}');
+                Route::get('/builder/forms/files/{file}', [\App\Http\Controllers\Api\V1\BuilderFormFilesController::class, 'download'])->whereNumber('file');
+                Route::get('/builder/collections', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'index']);
+                Route::post('/builder/collections', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'store']);
+                Route::put('/builder/collections/{collection}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'update'])->whereNumber('collection');
+                Route::delete('/builder/collections/{collection}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'destroy'])->whereNumber('collection');
+                Route::get('/builder/collections/{collection}/items', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'items'])->whereNumber('collection');
+                Route::post('/builder/collections/{collection}/items', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'storeItem'])->whereNumber('collection');
+                Route::put('/builder/collections/{collection}/items/{item}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'updateItem'])->whereNumber('collection')->whereNumber('item');
+                Route::delete('/builder/collections/{collection}/items/{item}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'destroyItem'])->whereNumber('collection')->whereNumber('item');
                 Route::get('/builder/kit', [\App\Http\Controllers\Api\V1\BuilderKitController::class, 'export']);
                 Route::post('/builder/kit', [\App\Http\Controllers\Api\V1\BuilderKitController::class, 'import'])->middleware('throttle:10,1');
                 Route::get('/builder/roles', [\App\Http\Controllers\Api\V1\BuilderRolesController::class, 'show']);

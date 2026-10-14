@@ -63,7 +63,8 @@ function SectionBlock({ section, device, editor }: { section: SectionNode; devic
   const selected = editor?.selectedId === section.id
   const sectionStyle = mergeStyle(section.style, device)
   const style = editor ? styleToCss(sectionStyle) : undefined
-  if (section.hidden && !editor) return null
+  const conditionsPass = useConditionsVisible(section.advanced?.conditions, Boolean(editor))
+  if ((section.hidden || !conditionsPass) && !editor) return null
   return (
     <section
       id={section.id}
@@ -131,7 +132,8 @@ function ColumnBlock({
     : editor && !freeLayout
       ? `span ${span}`
       : undefined
-  if (column.hidden && !editor) return null
+  const conditionsPass = useConditionsVisible(column.advanced?.conditions, Boolean(editor))
+  if ((column.hidden || !conditionsPass) && !editor) return null
   return (
     <div
       {...motionAttrs(column.advanced)}

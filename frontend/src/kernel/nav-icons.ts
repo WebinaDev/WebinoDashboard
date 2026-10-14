@@ -1,4 +1,5 @@
 import {
+  Database,
   BarChart3,
   BookOpen,
   Bot,
@@ -67,6 +68,7 @@ const PATH_ICONS: Record<string, LucideIcon> = {
   builder: LayoutTemplate,
   "theme-builder": Palette,
   "builder/settings": Settings,
+  "builder/collections": Database,
   "import/wordpress": FileText,
   cms: FileText,
   blog: BookOpen,

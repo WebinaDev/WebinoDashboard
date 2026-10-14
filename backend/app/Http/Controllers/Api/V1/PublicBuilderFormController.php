@@ -44,13 +44,19 @@ class PublicBuilderFormController extends Controller
 
         $ip = (string) ($request->ip() ?? '');
         $formKey = mb_substr((string) ($data['form_key'] ?? 'contact'), 0, 100);
-        BuilderFormSubmission::query()->create([
+        [$fields, $files] = BuilderFormFilesController::claim($tenantId, $formKey, $fields);
+        $submission = BuilderFormSubmission::query()->create([
             'tenant_id' => $tenantId,
             'form_key' => $formKey,
             'page_uri' => mb_substr((string) ($data['page_uri'] ?? ''), 0, 512) ?: null,
             'payload' => $fields,
             'ip_hash' => $ip !== '' ? hash('sha256', $ip) : null,
         ]);
+
+        foreach ($files as $file) {
+            $file->submission_id = $submission->id;
+            $file->save();
+        }
 
         $result = BuilderFormActions::run($tenantId, $formKey, $fields);
 

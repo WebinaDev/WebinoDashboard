@@ -4,7 +4,7 @@ import type { WidgetDef, WidgetNode } from "./types"
 import { FORM_FIELD_TYPES, type FormFieldType } from "./forms"
 import { ICON_OPTIONS } from "./render/icon-options"
 
-const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ" }
+const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)" }
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
@@ -795,7 +795,8 @@ export const WIDGETS: WidgetDef[] = [
     category: "commerce",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
-      { kind: "select", key: "source", label: "منبع", options: [{ value: "products", label: "محصولات" }, { value: "posts", label: "نوشته‌های وبلاگ" }] },
+      { kind: "select", key: "source", label: "منبع", options: [{ value: "products", label: "محصولات" }, { value: "posts", label: "نوشته‌های وبلاگ" }, { value: "collection", label: "مجموعه محتوایی (CMS)" }] },
+      { kind: "text", key: "collection", label: "نامک مجموعه (برای منبع مجموعه)" },
       { kind: "text", key: "category", label: "نامک دسته" },
       { kind: "switch", key: "currentQuery", label: "دسته صفحه جاری (در قالب آرشیو)" },
       { kind: "text", key: "brand", label: "نامک برند (محصولات)" },

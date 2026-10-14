@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { api, ApiError } from "@/lib/api"
+import { api, apiDownload, ApiError } from "@/lib/api"
 
 type Actions = { email_to?: string; sms_to?: string; sms_text?: string; webhook_url?: string; redirect_url?: string }
 const KEYS = ["email_to", "sms_to", "sms_text", "webhook_url", "redirect_url"] as const
@@ -66,6 +66,42 @@ export function FormActionsPanel({ formKey }: { formKey: string }) {
       >
         {t("form_actions_save")}
       </Button>
+      <SubmissionsInbox formKey={key} />
+    </div>
+  )
+}
+
+type Submission = { id: number; payload: Record<string, string>; created_at?: string; files: { id: number; name: string; size: number }[] }
+
+/** Latest submissions of this form, with private file attachments downloadable by staff. */
+function SubmissionsInbox({ formKey }: { formKey: string }) {
+  const t = useTranslations("builder")
+  const [rows, setRows] = useState<Submission[] | null>(null)
+  async function load() {
+    try {
+      setRows(await api<Submission[]>(`/api/v1/builder/forms/${encodeURIComponent(formKey)}/submissions`))
+    } catch {
+      toast.error(t("save_failed"))
+    }
+  }
+  if (rows === null) {
+    return <Button type="button" size="sm" variant="ghost" onClick={() => void load()}>{t("form_submissions")}</Button>
+  }
+  return (
+    <div className="grid max-h-72 gap-2 overflow-auto border-t pt-2">
+      <div className="font-semibold">{t("form_submissions")} ({rows.length})</div>
+      {rows.length === 0 ? <p className="text-[#0C2D63]/60">{t("form_no_submissions")}</p> : null}
+      {rows.map((row) => (
+        <div key={row.id} className="rounded-md bg-[#f7f9fc] p-2">
+          <div className="text-[10px] text-[#0C2D63]/50" dir="ltr">{row.created_at ? new Date(row.created_at).toLocaleString("fa-IR") : ""}</div>
+          {Object.entries(row.payload ?? {}).map(([k, v]) => <div key={k} className="truncate"><b>{k}:</b> {v}</div>)}
+          {row.files.map((file) => (
+            <button key={file.id} type="button" className="text-[#E16BA6] underline" onClick={() => void apiDownload(`/api/v1/builder/forms/files/${file.id}`, file.name).catch(() => toast.error(t("save_failed")))}>
+              📎 {file.name}
+            </button>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }

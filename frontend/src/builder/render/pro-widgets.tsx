@@ -35,6 +35,26 @@ function safeHref(href: string): string {
 
 type LoopItem = { key: string; href: string; title: string; image?: string | null; excerpt?: string; product?: ShopProduct }
 
+type CollectionPayload = {
+  collection?: { fields?: { key: string; type: string }[] }
+  items?: { slug: string; title: string; data?: Record<string, string> }[]
+  total?: number
+}
+
+/** Maps CMS collection items to loop cards: first image field, first text field, first URL field as link. */
+export function collectionRows(payload: CollectionPayload | null | undefined): { rows: LoopItem[]; total: number } {
+  const fields = payload?.collection?.fields ?? []
+  const imageKey = fields.find((f) => f.type === "image")?.key
+  const textKey = fields.find((f) => f.type === "textarea" || f.type === "text")?.key
+  const urlKey = fields.find((f) => f.type === "url")?.key
+  const rows = (payload?.items ?? []).map((item) => {
+    const data = item.data ?? {}
+    const href = urlKey ? safeHref(data[urlKey] ?? "") : ""
+    return { key: item.slug, href: href === "#" ? "" : href, title: item.title, image: imageKey ? data[imageKey] || null : null, excerpt: textKey ? data[textKey] : undefined }
+  })
+  return { rows, total: Number(payload?.total ?? rows.length) || 0 }
+}
+
 /** Loop Grid / Carousel over products or posts with a query builder and pagination (none / load more / numbers). */
 export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editing: boolean }) {
   const source = propStr(widget.props, "source", "products")
@@ -68,8 +88,20 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
     const params = new URLSearchParams(query)
     params.set("page", String(page))
     const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const collection = propStr(widget.props, "collection", "").trim()
+    const collectionSort = { newest: "newest", title: "title" }[params.get("sort") ?? ""] ?? "sort"
     const job: Promise<{ rows: LoopItem[]; total: number }> =
-      source === "posts"
+      source === "collection"
+        ? collection
+          ? fetch(`${base}/api/v1/public/builder/collections/${encodeURIComponent(collection)}/items?limit=${perPage + offset}&page=${page}&sort=${collectionSort}`, {
+              credentials: "include",
+              headers: { "X-Tenant-Domain": window.location.host },
+            })
+              .then((res) => (res.ok ? res.json() : null))
+              .then((json) => collectionRows(json?.data))
+              .catch(() => ({ rows: [], total: 0 }))
+          : Promise.resolve({ rows: [], total: 0 })
+        : source === "posts"
         ? fetch(`${base}/api/v1/public/blog?${params}`, { credentials: "include" })
             .then((res) => (res.ok ? res.json() : null))
             .then((json) => {
@@ -90,7 +122,7 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
     return () => {
       cancel = true
     }
-  }, [exclude, offset, page, pagination, query, source])
+  }, [exclude, offset, page, pagination, perPage, query, source, widget.props])
 
   if (items === null) return editing ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : null
   if (!items.length) return editing ? <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-foreground/60">موردی با این کوئری پیدا نشد.</p> : null
@@ -99,6 +131,14 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
   const card = (item: LoopItem) =>
     item.product ? (
       <StoreProductCard key={item.key} product={item.product} />
+    ) : !item.href ? (
+      <div key={item.key} className="block overflow-hidden rounded-2xl border border-border bg-card">
+        {item.image ? <span className="block aspect-video bg-muted"><Img src={item.image} alt="" className="h-full w-full object-cover" /></span> : null}
+        <span className="block p-4">
+          <strong className="line-clamp-2 text-sm font-extrabold text-foreground">{item.title}</strong>
+          {item.excerpt ? <span className="mt-1 line-clamp-3 block text-xs leading-6 text-foreground/70">{item.excerpt}</span> : null}
+        </span>
+      </div>
     ) : (
       <Link key={item.key} href={item.href} className="block overflow-hidden rounded-2xl border border-border bg-card">
         <span className="block aspect-video bg-muted">{item.image ? <Img src={item.image} alt="" loading="lazy" className="h-full w-full object-cover" /> : null}</span>

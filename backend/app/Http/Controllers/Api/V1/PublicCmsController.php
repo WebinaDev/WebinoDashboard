@@ -25,6 +25,7 @@ class PublicCmsController extends Controller
             'excerpt' => $page->excerpt,
             'body' => $page->body,
             'builder_published' => $page->builder_published,
+            'ab' => BuilderAbController::publicPayload($page),
             'featured_media_id' => $page->featured_media_id,
             'parent_id' => $page->parent_id,
             'seo' => $page->seo,

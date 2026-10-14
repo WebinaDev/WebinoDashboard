@@ -72,6 +72,17 @@ export const cmsManifest: ModuleManifest = {
       capability: "content.manage",
     },
     {
+      path: "builder/collections",
+      submodule: "pages",
+      page: "builder-collections",
+      labelKey: "nav.builder_collections",
+      section: "tools",
+      order: 56,
+      navGroup: "page_builder",
+      navOrder: 2,
+      capability: "content.manage",
+    },
+    {
       path: "builder/:pageId",
       submodule: "pages",
       page: "builder-editor",
