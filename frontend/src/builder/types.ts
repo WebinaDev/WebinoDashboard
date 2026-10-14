@@ -162,7 +162,7 @@ export type FieldDef =
   /** Array of objects; legacy `label|href` line strings are read through `parseRows`. */
   | { kind: "repeater"; key: string; label: string; fields: RepeaterSubField[] }
 
-export type RepeaterSubField = { key: string; label: string; kind: "text" | "url" | "media" | "icon" | "textarea"; options?: { value: string; label: string }[] }
+export type RepeaterSubField = { key: string; label: string; kind: "text" | "url" | "media" | "icon" | "textarea" | "select"; options?: { value: string; label: string }[] }
 
 export type WidgetCategory = "layout" | "basic" | "commerce" | "chrome" | "parts"
 

@@ -511,7 +511,7 @@ export const WIDGETS: WidgetDef[] = [
     type: "promo-trio",
     label: "سه بنر تیره",
     category: "commerce",
-    fields: [{ kind: "textarea", key: "items", label: "بنرها (عنوان|برچسب|پیوند|تصویر|رنگ: wine/olive/charcoal)" }],
+    fields: [{ kind: "repeater", key: "items", label: "بنرها", fields: [{ key: "title", label: "عنوان", kind: "text" }, { key: "badge", label: "برچسب", kind: "text" }, { key: "href", label: "پیوند", kind: "url" }, { key: "image", label: "تصویر", kind: "media" }, { key: "tone", label: "رنگ (wine / olive / charcoal)", kind: "text" }] }],
     create: () => node("promo-trio", { items: "" }),
   },
   {
@@ -591,7 +591,7 @@ export const WIDGETS: WidgetDef[] = [
     type: "tabs",
     label: "زبانه‌ها",
     category: "basic",
-    fields: [{ kind: "textarea", key: "items", label: "زبانه‌ها (عنوان|محتوا در هر خط؛ \\n = خط جدید)" }],
+    fields: [{ kind: "repeater", key: "items", label: "زبانه‌ها", fields: [{ key: "title", label: "عنوان", kind: "text" }, { key: "body", label: "محتوا", kind: "textarea" }] }],
     create: () => node("tabs", { items: "زبانه اول|محتوای زبانه اول\nزبانه دوم|محتوای زبانه دوم" }),
   },
   {
@@ -720,7 +720,7 @@ export const WIDGETS: WidgetDef[] = [
     type: "social-icons",
     label: "شبکه‌های اجتماعی",
     category: "basic",
-    fields: [{ kind: "textarea", key: "items", label: "شبکه|پیوند در هر خط (instagram, telegram, whatsapp, x, linkedin, youtube, aparat, eitaa, bale, rubika)" }],
+    fields: [{ kind: "repeater", key: "items", label: "شبکه‌ها", fields: [{ key: "network", label: "شبکه", kind: "select", options: ["instagram", "telegram", "whatsapp", "x", "linkedin", "youtube", "aparat", "eitaa", "bale", "rubika"].map((value) => ({ value, label: value })) }, { key: "href", label: "پیوند", kind: "url" }] }],
     create: () => node("social-icons", { items: "" }),
   },
   {

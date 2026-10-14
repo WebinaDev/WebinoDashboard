@@ -7,7 +7,7 @@ import { useState } from "react"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { DYNAMIC_TAGS, isDynamic, type DynamicBinding, type DynamicKind } from "../dynamic"
 import { COLOR_TOKENS } from "../globals"
-import { parseRows, rowsToLines } from "../props"
+import { parseRows, rowsToLines, toLocalInput } from "../props"
 import { WIcon } from "../render/extra-widgets"
 import type { FieldDef, RepeaterSubField } from "../types"
 
@@ -73,6 +73,14 @@ export function ColorInput({ value, onChange }: { value: string; onChange: (valu
 function SubField({ field, value, onChange }: { field: RepeaterSubField; value: string; onChange: (v: string) => void }) {
   if (field.kind === "media") return <MediaInput value={value} onChange={onChange} />
   if (field.kind === "icon") return <IconInput value={value} options={field.options ?? []} onChange={onChange} />
+  if (field.kind === "select") {
+    return (
+      <select className={input} value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="" />
+        {(field.options ?? []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    )
+  }
   if (field.kind === "textarea") return <textarea className="min-h-16 w-full rounded-md border px-2 py-1" value={value} onChange={(event) => onChange(event.target.value)} />
   return <input className={input} dir={field.kind === "url" ? "ltr" : undefined} value={value} onChange={(event) => onChange(event.target.value)} />
 }
@@ -157,7 +165,7 @@ export function ExtendedField({ field, props, onChange }: { field: FieldDef; pro
           type={field.kind === "datetime" ? "datetime-local" : field.kind}
           className={input}
           dir="ltr"
-          value={field.kind === "datetime" ? str.slice(0, 16) : str}
+          value={field.kind === "datetime" ? toLocalInput(str) : str}
           onChange={(event) => onChange(field.key, event.target.value)}
         />
       )

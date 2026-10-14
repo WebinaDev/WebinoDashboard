@@ -66,11 +66,21 @@ export function parseRows(value: unknown, keys: string[]): Record<string, string
     .filter(Boolean)
     .map((line) => {
       const cells = line.split("|")
-      return Object.fromEntries(keys.map((key, index) => [key, (cells[index] ?? "").trim()]))
+      return Object.fromEntries(keys.map((key, index) => [key, (cells[index] ?? "").trim().replace(/\\n/g, "\n")]))
     })
 }
 
 /** Serialise repeater rows back to the legacy line format for widgets that read strings. */
 export function rowsToLines(rows: Record<string, string>[], keys: string[]): string {
-  return rows.map((row) => keys.map((key) => (row[key] ?? "").replaceAll("|", "/").replaceAll("\n", " ")).join("|")).join("\n")
+  return rows.map((row) => keys.map((key) => (row[key] ?? "").replaceAll("|", "/").replaceAll("\n", "\\n")).join("|")).join("\n")
+}
+
+/** `datetime-local` value (local time, minutes) for a stored date string; ISO values with Z/offset are converted. */
+export function toLocalInput(value: string): string {
+  if (!value) return ""
+  if (!/(Z|[+-]\d\d:?\d\d)$/.test(value)) return value.slice(0, 16)
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value.slice(0, 16)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
