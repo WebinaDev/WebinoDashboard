@@ -106,4 +106,31 @@ class StorefrontDataIntegrityTest extends TestCase
         $this->assertSame('checkout-stub', $widgets[2]['props']['text']);
         $this->assertSame(0, BuilderWidgetAliases::migrate($out)[1]);
     }
+
+    public function test_story_slides_round_trip_and_validation(): void
+    {
+        $admin = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+
+        $this->postJson('/api/v1/shop/product-stories', [
+            'title' => 'Sale',
+            'media_url' => 'https://cdn.test/1.webp',
+            'slides' => [
+                ['media_url' => 'https://cdn.test/2.mp4', 'media_type' => 'video'],
+                ['media_url' => 'https://cdn.test/3.webp', 'duration' => 8],
+            ],
+            'is_active' => true,
+        ])->assertCreated()->assertJsonPath('data.slides.0.media_type', 'video');
+
+        $this->postJson('/api/v1/shop/product-stories', [
+            'title' => 'Bad',
+            'media_url' => 'https://cdn.test/1.webp',
+            'slides' => [['media_type' => 'gif']],
+        ])->assertUnprocessable();
+
+        $this->withHeader('Host', $this->tenant->domain)
+            ->getJson('/api/v1/public/product-stories')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.slides.1.duration', 8);
+    }
 }

@@ -25,7 +25,7 @@ class ProductStoryController extends Controller
             ->orderBy('sort_order')
             ->orderByDesc('id')
             ->limit(30)
-            ->get(['id', 'title', 'media_url', 'media_type', 'product_id', 'link_url']);
+            ->get(['id', 'title', 'media_url', 'media_type', 'slides', 'product_id', 'link_url']);
 
         return response()->json(['data' => ['items' => $items]]);
     }
@@ -84,6 +84,11 @@ class ProductStoryController extends Controller
             'title' => ['required', 'string', 'max:190'],
             'media_url' => ['required', 'string', 'max:500'],
             'media_type' => ['nullable', 'string', Rule::in(['image', 'video'])],
+            'slides' => ['nullable', 'array', 'max:10'],
+            'slides.*.media_url' => ['required', 'string', 'max:500'],
+            'slides.*.media_type' => ['nullable', 'string', Rule::in(['image', 'video'])],
+            'slides.*.duration' => ['nullable', 'integer', 'min:2', 'max:60'],
+            'slides.*.link_url' => ['nullable', 'string', 'max:500'],
             'product_id' => ['nullable', 'integer'],
             'link_url' => ['nullable', 'string', 'max:500'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],

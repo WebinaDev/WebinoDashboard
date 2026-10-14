@@ -12,6 +12,7 @@ class ProductStory extends Model
         'title',
         'media_url',
         'media_type',
+        'slides',
         'product_id',
         'link_url',
         'sort_order',
@@ -23,6 +24,7 @@ class ProductStory extends Model
     protected function casts(): array
     {
         return [
+            'slides' => 'array',
             'sort_order' => 'integer',
             'is_active' => 'boolean',
             'starts_at' => 'datetime',

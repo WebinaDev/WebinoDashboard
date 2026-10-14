@@ -48,6 +48,15 @@ type Story = {
   productSlug?: string
   productName?: string
   productPrice?: number
+  /** Extra frames after the cover (image or video), from the admin story editor. */
+  slides?: StorySlide[]
+}
+
+type StorySlide = { url: string; type: "image" | "video"; duration?: number }
+
+function storyFrames(story: Story): StorySlide[] {
+  const cover: StorySlide[] = story.image ? [{ url: story.image, type: story.mediaType === "video" ? "video" : "image" }] : []
+  return [...cover, ...(story.slides ?? [])]
 }
 
 const STORY_DURATION_MS = 5500
@@ -87,10 +96,19 @@ function ClassicStoryViewer({
   const story = stories[index]
   const [progress, setProgress] = useState(0)
   const [paused, setPaused] = useState(false)
+  const [frame, setFrame] = useState(0)
   const digits = useDigits()
+  const frames = story ? storyFrames(story) : []
+  const current = frames[frame] ?? null
 
   const go = useCallback(
     (dir: 1 | -1) => {
+      const frameCount = story ? storyFrames(story).length : 0
+      const nextFrame = frame + dir
+      if (nextFrame >= 0 && nextFrame < frameCount) {
+        setFrame(nextFrame)
+        return
+      }
       const next = index + dir
       if (next < 0 || next >= stories.length) {
         onClose()
@@ -98,11 +116,18 @@ function ClassicStoryViewer({
       }
       onIndex(next)
     },
-    [index, onClose, onIndex, stories.length],
+    [frame, index, onClose, onIndex, stories.length, story],
   )
 
   useEffect(() => {
+    setFrame(0)
+  }, [story?.id])
+
+  useEffect(() => {
     setProgress(0)
+  }, [frame, story?.id])
+
+  useEffect(() => {
     const seen = readSeen()
     if (story) {
       seen.add(story.id)
@@ -111,18 +136,19 @@ function ClassicStoryViewer({
   }, [story?.id])
 
   useEffect(() => {
-    if (!story || paused) return
+    if (!story || paused || current?.type === "video") return
     const started = performance.now()
+    const duration = current?.duration ? current.duration * 1000 : STORY_DURATION_MS
     let raf = 0
     const tick = (now: number) => {
-      const ratio = Math.min(1, (now - started) / STORY_DURATION_MS)
+      const ratio = Math.min(1, (now - started) / duration)
       setProgress(ratio)
       if (ratio >= 1) go(1)
       else raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [go, paused, story?.id])
+  }, [current?.duration, current?.type, frame, go, paused, story])
 
   useBodyScrollLock(Boolean(story))
 
@@ -148,11 +174,14 @@ function ClassicStoryViewer({
         onPointerLeave={() => setPaused(false)}
       >
         <div className="sfc-story-viewer__bars" aria-hidden="true">
-          {stories.map((s, i) => (
-            <span key={s.id} className={i === index ? "is-active" : i < index ? "is-done" : ""}>
-              <i style={i === index ? { transform: `scaleX(${progress})` } : undefined} />
-            </span>
-          ))}
+          {(frames.length > 1 ? frames.map((f, i) => `${story.id}-${i}`) : stories.map((s) => s.id)).map((key, i) => {
+            const active = frames.length > 1 ? frame : index
+            return (
+              <span key={key} className={i === active ? "is-active" : i < active ? "is-done" : ""}>
+                <i style={i === active ? { transform: `scaleX(${progress})` } : undefined} />
+              </span>
+            )
+          })}
         </div>
         <div className="sfc-story-viewer__top">
           <div className="sfc-story-viewer__profile">
@@ -166,10 +195,27 @@ function ClassicStoryViewer({
           </button>
         </div>
         <div className="sfc-story-viewer__media">
-          {story.mediaType === "video" && story.image ? (
-            <video src={story.image} autoPlay muted playsInline loop />
-          ) : story.image ? (
-            <img src={story.image} alt={story.title} />
+          {current?.type === "video" ? (
+            <video
+              key={current.url}
+              src={current.url}
+              autoPlay
+              muted
+              playsInline
+              ref={(el) => {
+                if (el) {
+                  if (paused) el.pause()
+                  else void el.play().catch(() => undefined)
+                }
+              }}
+              onTimeUpdate={(event) => {
+                const v = event.currentTarget
+                if (v.duration > 0) setProgress(Math.min(1, v.currentTime / v.duration))
+              }}
+              onEnded={() => go(1)}
+            />
+          ) : current ? (
+            <img src={current.url} alt={story.title} />
           ) : (
             <div className="sfc-story-viewer__ph">{story.title}</div>
           )}
@@ -228,11 +274,19 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
               media_type?: string
               link_url?: string | null
               product_id?: number | null
+              slides?: Array<{ media_url?: string; media_type?: string; duration?: number | null }> | null
             }) => ({
               id: String(item.id),
               title: item.title,
               image: item.media_url,
               mediaType: (item.media_type === "video" ? "video" : "image") as "image" | "video",
+              slides: (Array.isArray(item.slides) ? item.slides : [])
+                .filter((slide) => typeof slide?.media_url === "string" && slide.media_url)
+                .map((slide) => ({
+                  url: String(slide.media_url),
+                  type: (slide.media_type === "video" ? "video" : "image") as "image" | "video",
+                  duration: typeof slide.duration === "number" ? slide.duration : undefined,
+                })),
               href: item.link_url || (item.product_id ? `/product/${item.product_id}` : "/shop"),
               productSlug: item.product_id ? String(item.product_id) : undefined,
             }),

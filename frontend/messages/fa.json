@@ -1836,6 +1836,28 @@
       "from_name": "نام فرستنده",
       "sms_template_back_in_stock": "قالب پیامک موجود شدن",
       "sms_template_on_sale": "قالب پیامک حراج"
+    },
+    "shop_stories": {
+      "title": "استوری‌های فروشگاه",
+      "add": "استوری جدید",
+      "empty": "هنوز استوری‌ای ساخته نشده است.",
+      "frames": "{count} اسلاید",
+      "inactive": "غیرفعال",
+      "edit": "ویرایش",
+      "delete": "حذف",
+      "story_title": "عنوان",
+      "cover": "اسلاید اول (کاور)",
+      "slide": "اسلاید {n}",
+      "duration": "مدت نمایش (ثانیه، برای تصویر)",
+      "add_slide": "افزودن اسلاید",
+      "link": "لینک دکمه (اختیاری)",
+      "sort": "ترتیب",
+      "active": "فعال",
+      "save": "ذخیره",
+      "cancel": "انصراف",
+      "image": "تصویر",
+      "video": "ویدیو",
+      "upload": "بارگذاری فایل"
     }
   },
   "commerce_gateways": {

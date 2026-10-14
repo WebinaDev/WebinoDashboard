@@ -1,5 +1,6 @@
 "use client"
 
+import { ShopStoriesSettingsPanel } from "@/views/settings/panels/ShopStoriesSettingsPanel"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect } from "react"
 
@@ -65,6 +66,7 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/shop/products")) return <ShopProductsSettingsPanel />
   if (path.endsWith("/shop/downloads")) return <ShopDownloadsSettingsPanel />
   if (path.endsWith("/shop/reviews")) return <ShopReviewsSettingsPanel />
+  if (path.endsWith("/shop/stories")) return <ShopStoriesSettingsPanel />
   if (path.endsWith("/shop/maps")) return <ShopMapsSettingsPanel />
   if (path.endsWith("/shop/loyalty")) return <ShopLoyaltySettingsPanel />
   if (path.endsWith("/shop/storefront-appearance")) return <StorefrontAppearancePanel />

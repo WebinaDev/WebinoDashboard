@@ -2356,6 +2356,28 @@
       "from_name": "From name",
       "sms_template_back_in_stock": "Back-in-stock SMS template",
       "sms_template_on_sale": "On-sale SMS template"
+    },
+    "shop_stories": {
+      "title": "Store stories",
+      "add": "New story",
+      "empty": "No stories yet.",
+      "frames": "{count} slides",
+      "inactive": "Inactive",
+      "edit": "Edit",
+      "delete": "Delete",
+      "story_title": "Title",
+      "cover": "First slide (cover)",
+      "slide": "Slide {n}",
+      "duration": "Duration (seconds, images)",
+      "add_slide": "Add slide",
+      "link": "Button link (optional)",
+      "sort": "Order",
+      "active": "Active",
+      "save": "Save",
+      "cancel": "Cancel",
+      "image": "Image",
+      "video": "Video",
+      "upload": "Upload file"
     }
   },
   "commerce_gateways": {

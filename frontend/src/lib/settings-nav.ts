@@ -237,6 +237,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         route: "/dashboard/settings/shop/reviews",
       },
       {
+        id: "stories",
+        titleFa: "استوری‌ها",
+        titleEn: "Stories",
+        route: "/dashboard/settings/shop/stories",
+      },
+      {
         id: "maps",
         titleFa: "نقشه",
         titleEn: "Map",
