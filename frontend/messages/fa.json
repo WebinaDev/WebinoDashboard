@@ -6969,7 +6969,9 @@
     "questions_submit": "ارسال پرسش",
     "questions_sent": "پرسش شما ثبت شد و پس از پاسخ نمایش داده می‌شود.",
     "questions_login": "برای ثبت پرسش وارد حساب شوید",
-    "questions_error": "ارسال پرسش ناموفق بود."
+    "questions_error": "ارسال پرسش ناموفق بود.",
+    "national_id": "کد ملی",
+    "national_id_invalid": "کد ملی معتبر نیست."
   },
   "storefront_badges": {
     "title": "پرداخت اعتباری / اقساط",

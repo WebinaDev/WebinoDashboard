@@ -33,7 +33,8 @@ import { useCatalog } from "./use-catalog"
 import { useIsClassicSkin } from "../render/runtime"
 import { ClassicFilters } from "@/themes/ecommerce-classic/components/ClassicArchive"
 import { ClassicCart, ClassicCheckoutSteps } from "@/themes/ecommerce-classic/components/ClassicCart"
-import { ClassicCheckout } from "@/themes/ecommerce-classic/components/ClassicCheckout"
+import { ClassicCheckout, checkoutFieldOrder, isValidIranNationalId } from "@/themes/ecommerce-classic/components/ClassicCheckout"
+import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 import { ClassicFooter } from "@/themes/ecommerce-classic/components/ClassicFooter"
 import { CLASSIC_NAV, ClassicHeader } from "@/themes/ecommerce-classic/components/ClassicHeader"
 import { ClassicProduct } from "@/themes/ecommerce-classic/components/ClassicProduct"
@@ -588,6 +589,10 @@ function DefaultStorefrontCheckout() {
   const [postcode, setPostcode] = useState("")
   const [address, setAddress] = useState("")
   const [phone, setPhone] = useState("")
+  const [nationalId, setNationalId] = useState("")
+  const commerce = useClassicThemeSettings().commerce ?? {}
+  const nationalMode = commerce.checkout_national_id === "optional" || commerce.checkout_national_id === "required" ? commerce.checkout_national_id : "hidden"
+  const fieldOrder = checkoutFieldOrder(commerce.checkout_field_order)
   const [note, setNote] = useState("")
   const [coupon, setCoupon] = useState("")
   const [rates, setRates] = useState<Rate[]>([])
@@ -662,6 +667,10 @@ function DefaultStorefrontCheckout() {
   }
 
   async function placeOrder() {
+    if (nationalMode !== "hidden" && (nationalMode === "required" || nationalId) && !isValidIranNationalId(nationalId)) {
+      setError(t("national_id_invalid"))
+      return
+    }
     setBusy(true)
     setError("")
     try {
@@ -676,6 +685,7 @@ function DefaultStorefrontCheckout() {
           shipping_instance_id: rateId,
           shipping_state_code: stateCode || null,
           shipping_postcode: postcode || null,
+          customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
         },
       })
       setOrderId(order.id)
@@ -717,41 +727,84 @@ function DefaultStorefrontCheckout() {
         {flash === "success" ? <p className="text-sm text-primary md:col-span-2">{tCheckout("payment_ok")}</p> : null}
         {flash === "refund_pending" ? <p role="alert" className="text-sm text-destructive md:col-span-2">{tCheckout("payment_refund_pending")}</p> : null}
         {flash === "failed" ? <p className="text-sm text-destructive md:col-span-2">{tCheckout("payment_failed")}</p> : null}
-        <label className="grid gap-1 text-sm">
-          <span>{t("shipping_state")}</span>
-          <select className="sf-field" value={stateCode} onChange={(event) => setStateCode(event.target.value)}>
-            <option value="">{t("choose")}</option>
-            {states.map((item) => (
-              <option key={item.code} value={item.code}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span>{t("shipping_city")}</span>
-          <input className="sf-field" value={city} onChange={(event) => setCity(event.target.value)} />
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span>{t("shipping_postcode")}</span>
-          <input className="sf-field" dir="ltr" value={postcode} onChange={(event) => setPostcode(toLatinDigits(event.target.value).replace(/\D/g, ""))} />
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span>{tCheckout("customer_phone")}</span>
-          <input required className="sf-field" dir="ltr" value={phone} onChange={(event) => setPhone(event.target.value)} />
-        </label>
-        <label className="grid gap-1 text-sm md:col-span-2">
-          <span>{tCheckout("shipping_address")}</span>
-          <textarea required className="sf-field min-h-24 py-2" value={address} onChange={(event) => setAddress(event.target.value)} />
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span>{t("coupon")}</span>
-          <input className="sf-field" value={coupon} onChange={(event) => setCoupon(event.target.value)} />
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span>{tCheckout("customer_note")}</span>
-          <input className="sf-field" value={note} onChange={(event) => setNote(event.target.value)} />
-        </label>
+        {fieldOrder.map((field) => {
+          switch (field) {
+          case "state":
+            return (
+              <label key="state" className="grid gap-1 text-sm">
+                <span>{t("shipping_state")}</span>
+                <select className="sf-field" value={stateCode} onChange={(event) => setStateCode(event.target.value)}>
+                  <option value="">{t("choose")}</option>
+                  {states.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          case "city":
+            return (
+              <label key="city" className="grid gap-1 text-sm">
+                <span>{t("shipping_city")}</span>
+                <input className="sf-field" value={city} onChange={(event) => setCity(event.target.value)} />
+              </label>
+            )
+          case "postcode":
+            return (
+              <label key="postcode" className="grid gap-1 text-sm">
+                <span>{t("shipping_postcode")}</span>
+                <input className="sf-field" dir="ltr" value={postcode} onChange={(event) => setPostcode(toLatinDigits(event.target.value).replace(/\D/g, ""))} />
+              </label>
+            )
+          case "phone":
+            return (
+              <label key="phone" className="grid gap-1 text-sm">
+                <span>{tCheckout("customer_phone")}</span>
+                <input required className="sf-field" dir="ltr" value={phone} onChange={(event) => setPhone(event.target.value)} />
+              </label>
+            )
+          case "address":
+            return (
+              <label key="address" className="grid gap-1 text-sm md:col-span-2">
+                <span>{tCheckout("shipping_address")}</span>
+                <textarea required className="sf-field min-h-24 py-2" value={address} onChange={(event) => setAddress(event.target.value)} />
+              </label>
+            )
+          case "coupon":
+            return (
+              <label key="coupon" className="grid gap-1 text-sm">
+                <span>{t("coupon")}</span>
+                <input className="sf-field" value={coupon} onChange={(event) => setCoupon(event.target.value)} />
+              </label>
+            )
+          case "note":
+            return (
+              <label key="note" className="grid gap-1 text-sm">
+                <span>{tCheckout("customer_note")}</span>
+                <input className="sf-field" value={note} onChange={(event) => setNote(event.target.value)} />
+              </label>
+            )
+          case "national_id":
+            return nationalMode === "hidden" ? null : (
+              <label key="national_id" className="grid gap-1 text-sm">
+                <span>{t("national_id")}</span>
+                <input
+                  className="sf-field"
+                  dir="ltr"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  required={nationalMode === "required"}
+                  pattern="\\d{10}"
+                  value={nationalId}
+                  onChange={(event) => setNationalId(toLatinDigits(event.target.value).replace(/\D/g, "").slice(0, 10))}
+                />
+              </label>
+            )
+          default:
+            return null
+          }
+        })}
         <div className="md:col-span-2">
           <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" onClick={() => void quoteShipping()}>
             {t("shipping_quote")}

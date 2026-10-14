@@ -6969,7 +6969,9 @@
     "questions_submit": "Send question",
     "questions_sent": "Your question was received and will appear once answered.",
     "questions_login": "Sign in to ask a question",
-    "questions_error": "Could not send your question."
+    "questions_error": "Could not send your question.",
+    "national_id": "National ID",
+    "national_id_invalid": "National ID is not valid."
   },
   "storefront_badges": {
     "title": "Credit / installment",
