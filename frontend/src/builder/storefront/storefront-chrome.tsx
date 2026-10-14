@@ -310,3 +310,76 @@ export function StorefrontPageShell({
     </div>
   )
 }
+
+type PublicQuestion = { id: number; body: string; answer: string; author_name?: string | null; answered_at?: string | null }
+
+/** PDP questions & answers: answered questions are public, new ones go to admin moderation. */
+export function ProductQuestionsPanel({ slug }: { slug: string }) {
+  const t = useTranslations("storefront")
+  const locale = useLocale()
+  const [items, setItems] = useState<PublicQuestion[]>([])
+  const [productId, setProductId] = useState<number | null>(null)
+  const [body, setBody] = useState("")
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "login" | "error">("idle")
+
+  useEffect(() => {
+    void quietApi<{ data?: { product_id?: number; items?: PublicQuestion[] } }>(
+      `/api/v1/public/catalog/items/${encodeURIComponent(slug)}/questions`,
+    ).then((res) => {
+      if (!res.ok) return
+      setItems(Array.isArray(res.data?.data?.items) ? res.data.data.items : [])
+      setProductId(typeof res.data?.data?.product_id === "number" ? res.data.data.product_id : null)
+    })
+  }, [slug])
+
+  async function submit() {
+    if (productId == null || body.trim().length < 3) return
+    setState("sending")
+    const res = await quietApi("/api/v1/account/questions", { method: "POST", json: { product_id: productId, body: body.trim() } })
+    if (res.ok) {
+      setBody("")
+      setState("sent")
+    } else {
+      setState(res.status === 401 || res.status === 403 ? "login" : "error")
+    }
+  }
+
+  return (
+    <section className="mt-6" id="sfc-questions">
+      <div className="sf-section-head">
+        <h2>{t("questions_title")}</h2>
+      </div>
+      <div className="grid gap-3">
+        {items.length === 0 ? <p className="text-sm text-muted-foreground">{t("questions_empty")}</p> : null}
+        {items.map((q) => (
+          <article key={q.id} className="sf-review-card">
+            <p className="text-sm font-bold leading-7">{q.body}</p>
+            <p className="mt-2 border-s-2 border-primary/40 ps-3 text-sm leading-7">{q.answer}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {q.author_name || t("questions_customer")}
+              {q.answered_at ? ` · ${formatDate(q.answered_at, normalizeUiLocale(locale))}` : ""}
+            </p>
+          </article>
+        ))}
+      </div>
+      <div className="mt-4 grid gap-2">
+        <label className="text-sm font-bold" htmlFor={`sfc-q-${slug}`}>{t("questions_ask")}</label>
+        <textarea
+          id={`sfc-q-${slug}`}
+          className="min-h-20 rounded-xl border bg-background p-3 text-sm"
+          maxLength={2000}
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" className="sf-btn sf-btn--primary" disabled={state === "sending" || body.trim().length < 3 || productId == null} onClick={() => void submit()}>
+            {t("questions_submit")}
+          </button>
+          {state === "sent" ? <span className="text-xs text-primary">{t("questions_sent")}</span> : null}
+          {state === "login" ? <Link className="text-xs text-primary underline" href="/account">{t("questions_login")}</Link> : null}
+          {state === "error" ? <span className="text-xs text-destructive">{t("questions_error")}</span> : null}
+        </div>
+      </div>
+    </section>
+  )
+}

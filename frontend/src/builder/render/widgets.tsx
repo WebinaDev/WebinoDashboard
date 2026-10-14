@@ -26,7 +26,7 @@ import {
   MostViewedWidget,
   PackageBlockWidget,
   ProductGalleryWidget,
-  ProductReviewsWidget,
+  ProductReviewsWidget, ProductQuestionsWidget,
   TasteBoxWidget,
 } from "./classic-widgets"
 import {
@@ -239,6 +239,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <MegaMenuWidget widget={widget} />
     case "product-reviews":
       return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} />
+    case "product-questions":
+      return <ProductQuestionsWidget widget={widget} productSlug={runtime.productSlug} />
     case "account-dashboard":
       return <WidgetIntro widget={widget}><AccountDashboardWidget /></WidgetIntro>
     case "classic-not-found":

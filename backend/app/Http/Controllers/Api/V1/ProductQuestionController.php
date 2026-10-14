@@ -13,6 +13,35 @@ use Illuminate\Validation\Rule;
 
 class ProductQuestionController extends Controller
 {
+    use \App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
+
+    /** Public PDP list: only answered questions, newest first. */
+    public function publicIndex(Request $request, string $slug): JsonResponse
+    {
+        $tid = $this->publicTenantId($request);
+        $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->storefront()->firstOrFail();
+        $items = ProductQuestion::query()
+            ->where('tenant_id', $tid)
+            ->where('product_id', $product->id)
+            ->where('status', ProductQuestion::STATUS_ANSWERED)
+            ->whereNotNull('answer')
+            ->with('user:id,name')
+            ->orderByDesc('answered_at')
+            ->limit(50)
+            ->get()
+            ->map(fn (ProductQuestion $q) => [
+                'id' => $q->id,
+                'body' => $q->body,
+                'answer' => $q->answer,
+                'author_name' => $q->user?->name,
+                'answered_at' => optional($q->answered_at)?->toIso8601String(),
+                'created_at' => optional($q->created_at)?->toIso8601String(),
+            ])
+            ->values();
+
+        return response()->json(['data' => ['product_id' => $product->id, 'items' => $items]]);
+    }
+
     public function accountStore(Request $request): JsonResponse
     {
         $user = PortalAccess::authorize($request);

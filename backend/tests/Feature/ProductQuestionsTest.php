@@ -117,4 +117,21 @@ class ProductQuestionsTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
+
+    public function test_public_list_shows_only_answered_questions(): void
+    {
+        $product = $this->product();
+        $customer = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'customer']);
+        ProductQuestion::query()->create(['tenant_id' => $this->tenant->id, 'product_id' => $product->id, 'user_id' => $customer->id, 'body' => 'pending q', 'status' => 'pending']);
+        ProductQuestion::query()->create(['tenant_id' => $this->tenant->id, 'product_id' => $product->id, 'user_id' => $customer->id, 'body' => 'spam q', 'answer' => 'x', 'status' => 'spam']);
+        ProductQuestion::query()->create(['tenant_id' => $this->tenant->id, 'product_id' => $product->id, 'user_id' => $customer->id, 'body' => 'good q', 'answer' => 'yes', 'status' => 'answered', 'answered_at' => now()]);
+
+        $this->withHeader('Host', $this->tenant->domain ?? 'shop.test')
+            ->getJson('/api/v1/public/catalog/items/'.$product->slug.'/questions')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.body', 'good q')
+            ->assertJsonPath('data.items.0.answer', 'yes')
+            ->assertJsonPath('data.product_id', $product->id);
+    }
 }

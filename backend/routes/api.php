@@ -284,6 +284,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/catalog/categories/tree', [PublicStorefrontController::class, 'categoryTree']);
             Route::post('/coupons/preview', [PublicStorefrontController::class, 'previewCoupon'])->middleware('throttle:20,1');
             Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);
+            Route::get('/catalog/items/{slug}/questions', [ProductQuestionController::class, 'publicIndex']);
             Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore'])->middleware('throttle:public-writes');
             Route::post('/catalog/reviews/{review}/react', [ProductReviewController::class, 'react'])->whereNumber('review')->middleware('throttle:public-writes');
             Route::post('/catalog/reviews/{review}/report', [ProductReviewController::class, 'reportAbuse'])->whereNumber('review')->middleware('throttle:public-writes');

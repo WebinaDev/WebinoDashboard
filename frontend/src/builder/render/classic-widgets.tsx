@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
-import { StorefrontMegaMenuPanel, ProductReviewsPanel } from "../storefront/storefront-chrome"
+import { StorefrontMegaMenuPanel, ProductReviewsPanel, ProductQuestionsPanel } from "../storefront/storefront-chrome"
 import { StoreProductCard, StorefrontAccount } from "../storefront/ui"
 import { addShopItem } from "../storefront/actions"
 import { useCatalog } from "../storefront/use-catalog"
@@ -287,6 +287,16 @@ export function ProductReviewsWidget({ widget, productSlug }: { widget: WidgetNo
   return (
     <div className="mx-auto max-w-6xl px-4">
       <ProductReviewsPanel slug={slug} />
+    </div>
+  )
+}
+
+export function ProductQuestionsWidget({ widget, productSlug }: { widget: WidgetNode; productSlug?: string }) {
+  const slug = productSlug || propStr(widget.props, "slug", "")
+  if (!slug) return null
+  return (
+    <div className="mx-auto max-w-6xl px-4">
+      <ProductQuestionsPanel slug={slug} />
     </div>
   )
 }

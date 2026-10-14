@@ -82,6 +82,7 @@ export function classicProductDocument(): BuilderDocument {
   return doc([
     sec("sec_pdp", [col("col_pdp", 12, [w("w_pdp", "product-detail")])], true),
     sec("sec_reviews", [col("col_reviews", 12, [w("w_reviews", "product-reviews")])]),
+    sec("sec_questions", [col("col_questions", 12, [w("w_questions", "product-questions")])]),
     sec("sec_related", [col("col_related", 12, [w("w_related", "product-grid", { title: "محصولات مرتبط", limit: 10, source: "related", layout: "slider" })])]),
     sec("sec_recent", [col("col_recent", 12, [w("w_recent", "recently-viewed", { title: "بازدیدهای اخیر شما" })])]),
   ])
@@ -98,6 +99,7 @@ export function storeProductDocument(): BuilderDocument {
   return doc([
     sec("sec_pdp", [col("col_pdp", 12, [w("w_pdp", "product-detail")])]),
     sec("sec_reviews", [col("col_reviews", 12, [w("w_reviews", "product-reviews")])]),
+    sec("sec_questions", [col("col_questions", 12, [w("w_questions", "product-questions")])]),
     sec("sec_related", [col("col_related", 12, [w("w_related", "product-grid", { title: "پیشنهادهای همراه", limit: 4, source: "related" })])]),
     sec("sec_package", [col("col_package", 12, [w("w_package", "package-block", { title: "پکیج مکمل", text: "محصولات مرتبط با قیمت مناسب‌تر" })])]),
     sec("sec_most", [col("col_most", 12, [w("w_most", "most-viewed", { title: "پربازدیدترین‌ها", limit: 3 })])]),

@@ -1336,7 +1336,12 @@
       "moderation": "تأیید دیدگاه‌ها",
       "empty": "دیدگاه معلقی نیست.",
       "approve": "تأیید",
-      "reject": "رد"
+      "reject": "رد",
+      "questions_title": "پرسش‌های محصول",
+      "questions_empty": "پرسش در انتظاری وجود ندارد.",
+      "answer_placeholder": "پاسخ…",
+      "answer": "ثبت پاسخ",
+      "spam": "اسپم"
     },
     "shop_maps": {
       "title": "نقشه و آدرس",
@@ -6921,7 +6926,15 @@
     "vendor_store_missing": "فروشگاه پیدا نشد",
     "vendor_store_bio_empty": "این فروشنده هنوز معرفی کوتاهی ثبت نکرده است.",
     "vendor_store_empty": "محصولی از این فروشنده موجود نیست.",
-    "vendor_store_product_count": "{count} محصول"
+    "vendor_store_product_count": "{count} محصول",
+    "questions_title": "پرسش و پاسخ",
+    "questions_empty": "هنوز پرسشی پاسخ داده نشده است.",
+    "questions_customer": "مشتری",
+    "questions_ask": "پرسش خود را درباره این کالا بنویسید",
+    "questions_submit": "ارسال پرسش",
+    "questions_sent": "پرسش شما ثبت شد و پس از پاسخ نمایش داده می‌شود.",
+    "questions_login": "برای ثبت پرسش وارد حساب شوید",
+    "questions_error": "ارسال پرسش ناموفق بود."
   },
   "storefront_badges": {
     "title": "پرداخت اعتباری / اقساط",

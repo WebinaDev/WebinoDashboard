@@ -104,6 +104,20 @@ export function ShopReviewsSettingsPanel() {
     setPendingReviews((prev) => prev.filter((r) => r.id !== id))
   }
 
+  type PendingQuestion = { id: number; body: string; product?: { name: string } | null }
+  const [questions, setQuestions] = useState<PendingQuestion[]>([])
+  const [answers, setAnswers] = useState<Record<number, string>>({})
+  useEffect(() => {
+    api<{ data: PendingQuestion[] }>("/api/v1/product-questions?status=pending")
+      .then((res) => setQuestions(Array.isArray(res?.data) ? res.data : []))
+      .catch(() => setQuestions([]))
+  }, [saved])
+
+  async function moderateQuestion(id: number, json: { answer?: string; status?: string }) {
+    await api(`/api/v1/product-questions/${id}`, { method: "PATCH", json })
+    setQuestions((prev) => prev.filter((q) => q.id !== id))
+  }
+
   if (loading || !draft) return <p className="text-muted-foreground text-sm">{t("loading")}</p>
 
   return (
@@ -153,6 +167,36 @@ export function ShopReviewsSettingsPanel() {
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => void moderate(r.id, "spam")}>
                     {t("shop_reviews.reject")}
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("shop_reviews.questions_title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {questions.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{t("shop_reviews.questions_empty")}</p>
+          ) : (
+            questions.map((q) => (
+              <div key={q.id} className="grid gap-2 border-b pb-3">
+                <p className="text-sm font-medium">{q.product?.name ?? `#${q.id}`}</p>
+                <p className="text-muted-foreground text-xs">{q.body}</p>
+                <Input
+                  value={answers[q.id] ?? ""}
+                  placeholder={t("shop_reviews.answer_placeholder")}
+                  onChange={(event) => setAnswers((prev) => ({ ...prev, [q.id]: event.target.value }))}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={!(answers[q.id] ?? "").trim()} onClick={() => void moderateQuestion(q.id, { answer: answers[q.id] })}>
+                    {t("shop_reviews.answer")}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => void moderateQuestion(q.id, { status: "spam" })}>
+                    {t("shop_reviews.spam")}
                   </Button>
                 </div>
               </div>

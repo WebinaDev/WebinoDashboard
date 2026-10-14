@@ -364,6 +364,13 @@ export const WIDGETS: WidgetDef[] = [
     create: () => node("product-reviews", {}),
   },
   {
+    type: "product-questions",
+    label: "پرسش و پاسخ محصول",
+    category: "commerce",
+    fields: [{ kind: "text", key: "slug", label: "نامک (اختیاری)" }],
+    create: () => node("product-questions", {}),
+  },
+  {
     type: "breadcrumbs",
     label: "مسیر راهنما",
     category: "commerce",
