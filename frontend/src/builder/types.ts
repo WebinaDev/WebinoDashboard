@@ -1,3 +1,4 @@
+import type { DisplayConditions } from "./conditions"
 /** v2: sections may use flex/grid layout and per-breakpoint spans; v1 sections are kept as `legacy`. */
 export const BUILDER_VERSION = 2 as const
 
@@ -58,6 +59,8 @@ export type AdvancedProps = {
   hideOn?: { desktop?: boolean; tablet?: boolean; mobile?: boolean }
   /** Simple entrance animation. */
   animation?: "none" | "fade" | "slide-up" | "zoom"
+  /** Display conditions (login, cart, date range, weekdays, hours, URL parameter). */
+  conditions?: DisplayConditions
 }
 
 export type ResponsiveStyle = {

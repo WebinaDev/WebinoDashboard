@@ -4,6 +4,7 @@ import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
 import { advancedClass, advancedId, documentCss, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
 import { migrateDocument } from "../migrate"
+import { useConditionsVisible } from "./use-conditions"
 import { useResolvedWidget } from "./use-dynamic"
 import type { ColumnNode, DeviceMode, EditorApi, BuilderDocument, RuntimeContext, SectionNode, WidgetNode } from "../types"
 import { DND_NODE, DND_WIDGET } from "../types"
@@ -160,11 +161,12 @@ function ColumnBlock({
 function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: DeviceMode; editor?: EditorApi }) {
   const selected = editor?.selectedId === widget.id
   const resolved = useResolvedWidget(widget)
+  const conditionsPass = useConditionsVisible(widget.advanced?.conditions, Boolean(editor))
   const raw = editor ? styleToCss(mergeStyle(widget.style, device)) : undefined
   // In the editor, hidden widgets stay visible but faded so they can still be selected.
   const hiddenOnDevice = Boolean(editor && (raw?.display === "none" || widget.advanced?.hideOn?.[device] || widget.hidden))
   const style = raw && hiddenOnDevice ? { ...raw, display: undefined, opacity: 0.35 } : raw
-  if (widget.hidden && !editor) return null
+  if ((widget.hidden || !conditionsPass) && !editor) return null
   return (
     <div
       id={advancedId(widget.advanced)}

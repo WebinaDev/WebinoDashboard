@@ -64,6 +64,7 @@ import { migrateDocument } from "../migrate"
 import { DynamicEditor, DynamicToggle, EXTENDED_KINDS, ExtendedField } from "./fields"
 import { isDynamic } from "../dynamic"
 import { ContextMenu, type MenuItem } from "./ContextMenu"
+import { ConditionsFields } from "./ConditionsFields"
 import { FormActionsPanel } from "./FormActionsPanel"
 import { LibraryPanel } from "./LibraryPanel"
 import { propStr } from "../props"
@@ -1133,6 +1134,9 @@ function AdvancedFields({ value, onChange }: { value: AdvancedProps; onChange: (
         options={[{ value: "none", label: "—" }, { value: "fade", label: t("anim_fade") }, { value: "slide-up", label: t("anim_slide_up") }, { value: "zoom", label: t("anim_zoom") }]}
         onChange={(v) => onChange({ animation: v as AdvancedProps["animation"] })}
       />
+      <Group title={t("display_conditions")}>
+        <ConditionsFields value={value.conditions ?? {}} onChange={(conditions) => onChange({ conditions })} />
+      </Group>
     </div>
   )
 }
