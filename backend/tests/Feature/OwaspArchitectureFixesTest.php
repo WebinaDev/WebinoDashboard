@@ -285,7 +285,8 @@ class OwaspArchitectureFixesTest extends TestCase
         $this->assertSame(0, (int) $created['shipping_minor']);
         $this->assertSame(50000, (int) $created['total_minor']);
         $this->assertNull($created['amount_paid_minor']);
-        $this->assertSame(4, (int) $product->fresh()->stock);
+        // pending_payment holds stock (OrderStock::RESERVE_STATUSES).
+        $this->assertSame(3, (int) $product->fresh()->stock);
     }
 
     public function test_rewrite_rebinds_stock_and_refuses_illegal_status(): void

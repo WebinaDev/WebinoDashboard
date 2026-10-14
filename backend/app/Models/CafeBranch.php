@@ -18,6 +18,16 @@ class CafeBranch extends Model
         'sort_order',
     ];
 
+    protected static function booted(): void
+    {
+        // name_en is NOT NULL; branches created with only a Persian name (seeders, imports) fall back to it.
+        static::creating(function (self $branch) {
+            if (blank($branch->name_en)) {
+                $branch->name_en = (string) ($branch->name_fa ?: $branch->slug ?: '');
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

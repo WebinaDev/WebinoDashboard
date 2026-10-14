@@ -75,7 +75,8 @@ class DashboardLogicAuditTest extends TestCase
         $this->actingAs($this->customer, 'sanctum');
         $this->postJson('/api/v1/cart/items', ['product_id' => $paidProduct->id, 'quantity' => 1])->assertOk();
         $order = $this->postJson('/api/v1/checkout')->assertCreated()->json('data');
-        $this->assertSame(5, (int) $paidProduct->fresh()->stock);
+        // Checkout holds the unit; paying converts the hold without a second decrement.
+        $this->assertSame(4, (int) $paidProduct->fresh()->stock);
 
         $this->actingAs($this->admin, 'sanctum');
         $this->patchJson('/api/v1/orders/'.$order['id'], ['status' => 'paid'])->assertOk();

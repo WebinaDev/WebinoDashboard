@@ -131,13 +131,6 @@ class OrderWriter
                 ]);
             }
 
-            if ($itemsChanged && $wasReserved && in_array((string) $order->status, OrderStock::RESERVE_STATUSES, true)) {
-                $order->unsetRelation('items');
-                $order->load('items');
-                $stock->assertLinesAvailable($order->items);
-                $stock->reserve($order);
-            }
-
             return $order->fresh()->load(['items.product', 'user', 'creator', 'notes', 'returns']);
         });
     }
@@ -229,6 +222,13 @@ class OrderWriter
                     $stock->assertLinesAvailable($order->items);
                     $stock->reduce($order);
                 }
+            }
+            // Unpaid order that held stock: re-hold for the rewritten lines (restored above).
+            if ($itemsChanged && $wasReserved && ! $nowSale && in_array((string) $order->status, OrderStock::RESERVE_STATUSES, true)) {
+                $order->unsetRelation('items');
+                $order->load('items');
+                $stock->assertLinesAvailable($order->items);
+                $stock->reserve($order);
             }
 
             return $order->fresh()->load(['items.product', 'user', 'creator', 'notes', 'returns']);

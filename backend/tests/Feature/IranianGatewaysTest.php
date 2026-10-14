@@ -151,7 +151,8 @@ class IranianGatewaysTest extends TestCase
 
         $this->get('/api/v1/payments/callback/zarinpal/'.$order->id)->assertRedirect();
         $this->assertSame('awaiting_gateway', $order->fresh()->status);
-        $this->assertSame(3, $product->fresh()->stock);
+        // Starting payment holds the unit (OrderStock::ensureHoldForPayment); failure gives it back below.
+        $this->assertSame(2, $product->fresh()->stock);
 
         $this->get('/api/v1/payments/callback/zarinpal/'.$order->id.'?Authority=OTHER&Status=OK')->assertRedirect();
         $this->assertSame('awaiting_gateway', $order->fresh()->status);

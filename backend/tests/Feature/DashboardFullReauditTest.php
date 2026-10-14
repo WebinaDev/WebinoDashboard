@@ -214,15 +214,15 @@ class DashboardFullReauditTest extends TestCase
         $this->actingAs($this->customer, 'sanctum');
         $this->postJson('/api/v1/cart/items', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
         $first = $this->postJson('/api/v1/checkout')->assertCreated()->json('data.id');
-        $this->postJson('/api/v1/cart/items', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $second = $this->postJson('/api/v1/checkout')->assertCreated()->json('data.id');
+        // The first checkout holds the last unit, so the second one is refused up front.
+        $this->postJson('/api/v1/cart/items', ['product_id' => $product->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/checkout')->assertStatus(422);
 
         $this->actingAs($this->admin, 'sanctum');
         $this->patchJson('/api/v1/orders/'.$first, ['status' => 'paid'])->assertOk();
-        $this->patchJson('/api/v1/orders/'.$second, ['status' => 'paid'])->assertStatus(422);
 
         $this->assertSame('paid', Order::query()->find($first)->status);
-        $this->assertSame('pending_payment', Order::query()->find($second)->status);
+        $this->assertSame(1, Order::query()->where('tenant_id', $this->tenant->id)->count());
         $this->assertSame(0, (int) $product->fresh()->stock);
     }
 

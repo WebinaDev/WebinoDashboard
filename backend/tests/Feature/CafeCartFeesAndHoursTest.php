@@ -28,6 +28,7 @@ class CafeCartFeesAndHoursTest extends TestCase
             'commerce.checkout' => true,
             'commerce.orders' => true,
             'cafe.menu' => true,
+            'core.dashboard' => true,
         ]);
         $this->h = ['X-Tenant-Domain' => $this->tenant->domain];
     }
