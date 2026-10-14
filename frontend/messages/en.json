@@ -6733,7 +6733,20 @@
     "layout_align": "Align",
     "layout_row_gap": "Row gap",
     "layout_column_gap": "Column gap",
-    "order": "Order"
+    "order": "Order",
+    "revisions": "Revision history",
+    "revisions_empty": "No revisions saved yet.",
+    "revision_pick": "Pick a revision to preview.",
+    "revision_restore": "Restore to draft",
+    "revision_restored": "Revision restored to the draft.",
+    "revision_save": "Save",
+    "revision_autosave": "Autosave",
+    "revision_publish": "Publish",
+    "revision_restore_reason": "Restore",
+    "close": "Close",
+    "saving": "Saving…",
+    "unsaved": "Unsaved changes",
+    "all_saved": "Saved"
   },
   "theme_builder": {
     "title": "Theme builder",

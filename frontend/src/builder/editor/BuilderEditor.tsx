@@ -17,10 +17,11 @@ import {
   Type,
   Undo2,
   type LucideIcon,
+  History,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -54,6 +55,7 @@ import type { AdvancedProps, BoxEdges, BuilderDocument, DeviceMode, EditorApi, S
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
 import { migrateDocument } from "../migrate"
+import { RevisionsPanel, type RevisionTarget } from "./RevisionsPanel"
 import { widgetLabel } from "../render/widgets"
 
 type PagePayload = {
@@ -120,6 +122,13 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [saving, setSaving] = useState(false)
   const [globals, setGlobals] = useState<BuilderGlobals>(DEFAULT_GLOBALS)
   const [widgetQuery, setWidgetQuery] = useState("")
+  const [chromeId, setChromeId] = useState<number | null>(null)
+  const [showRevisions, setShowRevisions] = useState(false)
+  /** JSON of the last loaded/saved document; null until the first load completes. */
+  const [savedJson, setSavedJson] = useState<string | null>(null)
+  const docJson = useMemo(() => JSON.stringify(doc), [doc])
+  const dirty = !loading && savedJson !== null && docJson !== savedJson
+  if (!loading && savedJson === null) setSavedJson(docJson)
 
   const commit = useCallback((next: BuilderDocument) => {
     setPast((items) => [...items.slice(-49), doc])
@@ -153,6 +162,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
               : classicFooterDocument()
           setDoc(migrateDocument(initial))
           setTitle(row.title || (mode.chrome === "header" ? t("header") : t("footer")))
+          setChromeId(row.id ?? null)
         } else if (mode.kind === "theme") {
           if (mode.id === "new") {
             setTitle(t("create"))
@@ -271,18 +281,52 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     setSelectedId(widget.id)
   }
 
-  async function save(publish: boolean) {
+  const revisionTarget: RevisionTarget | null =
+    mode.kind === "chrome"
+      ? chromeId ? { type: "template", id: chromeId } : null
+      : mode.kind === "theme"
+        ? pageId ? { type: "template", id: pageId } : null
+        : mode.kind === "post"
+          ? { type: "post", id: Number(mode.id) }
+          : mode.kind === "page"
+            ? pageId ? { type: "page", id: pageId } : null
+            : null
+
+  // Unsaved-changes warning when leaving / reloading the tab.
+  useEffect(() => {
+    if (!dirty) return
+    function onBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault()
+      event.returnValue = ""
+    }
+    window.addEventListener("beforeunload", onBeforeUnload)
+    return () => window.removeEventListener("beforeunload", onBeforeUnload)
+  }, [dirty])
+
+  // Autosave: 30s after the last change, only for documents that already exist server-side.
+  const saveRef = useRef<(publish: boolean, autosave?: boolean) => Promise<void>>(async () => undefined)
+  const canAutosave = mode.kind !== "chrome" && (mode.kind !== "theme" || pageId !== null) && (mode.kind !== "page" || pageId !== null)
+  useEffect(() => {
+    if (!dirty || !canAutosave) return
+    const timer = window.setTimeout(() => void saveRef.current(false, true), 30_000)
+    return () => window.clearTimeout(timer)
+  }, [canAutosave, dirty, docJson])
+
+  async function save(publish: boolean, autosave = false) {
+    if (autosave && saving) return
+    const snapshot = docJson
     setSaving(true)
     try {
       if (mode.kind === "chrome") {
         await api(`/api/v1/builder/templates/${mode.chrome}`, {
           method: "PUT",
-          json: { title, document: doc },
+          json: { title, document: doc, ...(autosave ? { autosave: true } : {}) },
         })
         if (publish) {
           await api(`/api/v1/builder/templates/${mode.chrome}/publish`, { method: "POST" })
           toast.success(t("published"))
-        } else toast.success(t("saved"))
+        } else if (!autosave) toast.success(t("saved"))
+        setSavedJson(snapshot)
         return
       }
       if (mode.kind === "theme") {
@@ -298,25 +342,27 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         } else {
           await api(`/api/v1/theme-builder/templates/${id}`, {
             method: "PATCH",
-            json: { title, document: doc },
+            json: { title, document: doc, ...(autosave ? { autosave: true } : {}) },
           })
         }
         if (publish && id) {
           await api(`/api/v1/theme-builder/templates/${id}/publish`, { method: "POST" })
           toast.success(t("published"))
-        } else toast.success(t("saved"))
+        } else if (!autosave) toast.success(t("saved"))
+        setSavedJson(snapshot)
         return
       }
       if (mode.kind === "product" || mode.kind === "post" || mode.kind === "article") {
         const base = mode.kind === "product" ? "products" : mode.kind === "post" ? "posts" : "articles"
         await api(`/api/v1/builder/${base}/${mode.id}`, {
           method: "PATCH",
-          json: { title, document: doc },
+          json: { title, document: doc, ...(autosave ? { autosave: true } : {}) },
         })
         if (publish) {
           await api(`/api/v1/builder/${base}/${mode.id}/publish`, { method: "POST" })
           toast.success(t("published"))
-        } else toast.success(t("saved"))
+        } else if (!autosave) toast.success(t("saved"))
+        setSavedJson(snapshot)
         return
       }
       let id = pageId
@@ -332,19 +378,24 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       } else {
         await api(`/api/v1/builder/pages/${id}`, {
           method: "PATCH",
-          json: { title, slug, document: doc },
+          json: { title, slug, document: doc, ...(autosave ? { autosave: true } : {}) },
         })
       }
       if (publish) {
         await api(`/api/v1/builder/pages/${id}/publish`, { method: "POST" })
         toast.success(t("published"))
-      } else toast.success(t("saved"))
+      } else if (!autosave) toast.success(t("saved"))
+      setSavedJson(snapshot)
     } catch {
-      toast.error(t("save_failed"))
+      if (!autosave) toast.error(t("save_failed"))
     } finally {
       setSaving(false)
     }
   }
+
+  useEffect(() => {
+    saveRef.current = save
+  })
 
   const selection = findSelection(doc, selectedId)
   const preview = mode.kind === "page" ? previewHref(slug || "home") : "/"
@@ -383,10 +434,25 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           <Settings2 className="size-3.5" aria-hidden />
           {t("globals")}
         </Link>
+        {revisionTarget ? (
+          <IconButton label={t("revisions")} onClick={() => setShowRevisions(true)}><History className="size-4" /></IconButton>
+        ) : null}
+        <span className="text-[11px] text-white/60" aria-live="polite">{saving ? t("saving") : dirty ? t("unsaved") : t("all_saved")}</span>
         <a href={preview} target="_blank" rel="noreferrer" className="text-xs text-white/80">{t("preview")}</a>
         <Button type="button" size="sm" variant="outline" className="border-white/20 bg-transparent text-white" disabled={saving} onClick={() => void save(false)}>{t("save")}</Button>
         <Button type="button" size="sm" className="bg-[#E16BA6] text-white hover:bg-[#d45b98]" disabled={saving} onClick={() => void save(true)}>{t("publish")}</Button>
       </header>
+      {showRevisions && revisionTarget ? (
+        <RevisionsPanel
+          target={revisionTarget}
+          globals={globals}
+          onClose={() => setShowRevisions(false)}
+          onRestored={(restored) => {
+            commit(restored)
+            setSavedJson(JSON.stringify(restored))
+          }}
+        />
+      ) : null}
       <div className="flex min-h-0 flex-1">
         <aside className="flex w-72 shrink-0 flex-col border-e border-[#e6eef6] bg-[#f7f9fc]">
           <div className="flex border-b border-[#e6eef6] text-xs font-semibold">

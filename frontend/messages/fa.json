@@ -6733,7 +6733,20 @@
     "layout_align": "چینش عمودی",
     "layout_row_gap": "فاصلهٔ ردیف‌ها",
     "layout_column_gap": "فاصلهٔ ستون‌ها",
-    "order": "ترتیب"
+    "order": "ترتیب",
+    "revisions": "تاریخچه نسخه‌ها",
+    "revisions_empty": "هنوز نسخه‌ای ذخیره نشده است.",
+    "revision_pick": "یک نسخه را برای پیش‌نمایش انتخاب کنید.",
+    "revision_restore": "بازگردانی در پیش‌نویس",
+    "revision_restored": "نسخه در پیش‌نویس بازگردانی شد.",
+    "revision_save": "ذخیره",
+    "revision_autosave": "ذخیره خودکار",
+    "revision_publish": "انتشار",
+    "revision_restore_reason": "بازگردانی",
+    "close": "بستن",
+    "saving": "در حال ذخیره…",
+    "unsaved": "تغییرات ذخیره‌نشده",
+    "all_saved": "ذخیره شده"
   },
   "theme_builder": {
     "title": "پوسته‌ساز",
