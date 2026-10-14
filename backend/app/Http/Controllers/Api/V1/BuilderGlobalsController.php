@@ -31,7 +31,7 @@ class BuilderGlobalsController extends Controller
         $data = $request->validate(['settings' => 'required|array']);
         $settings = app(BuilderGlobalsNormalizer::class)->normalize($data['settings']);
         $json = json_encode($settings);
-        abort_if($json === false || strlen($json) > 200000, 422, 'settings too large');
+        abort_if($json === false || strlen($json) > 2000000, 422, 'settings too large');
         $row = BuilderGlobal::query()->updateOrCreate(
             ['tenant_id' => $request->user()->tenant_id],
             ['draft' => $settings],

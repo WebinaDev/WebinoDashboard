@@ -91,6 +91,11 @@ class BuilderGlobalsNormalizer
             'cssVariables' => '',
             'customFonts' => [],
             'breakpoints' => ['tablet' => 1024, 'mobile' => 767],
+            'variables' => [],
+            'classes' => [],
+            'presets' => [],
+            'components' => [],
+            'customCode' => [],
         ];
     }
 
@@ -211,8 +216,106 @@ class BuilderGlobalsNormalizer
         $mobile = max(320, min($tablet - 1, (int) ($bp['mobile'] ?? 767) ?: 767));
         $base['breakpoints'] = ['tablet' => $tablet, 'mobile' => $mobile];
 
+        $this->designSystem($input, $base);
+
         return $base;
     }
+
+    /** Design variables, global classes, presets, components and custom code (phase 6). */
+    private function designSystem(array $input, array &$base): void
+    {
+        $id = fn ($v) => is_string($v) && preg_match('/^[a-z0-9][a-z0-9-]{0,39}$/', $v) ? $v : null;
+        $name = fn ($v, int $max = 80) => mb_substr(trim(strip_tags((string) $v)), 0, $max);
+        $style = function ($v): array {
+            if (! is_array($v)) {
+                return [];
+            }
+            $json = json_encode($v);
+
+            return $json !== false && strlen($json) <= 20000 ? array_intersect_key($v, array_flip(['base', 'tablet', 'mobile'])) : [];
+        };
+
+        $seen = [];
+        foreach (array_slice((array) ($input['variables'] ?? []), 0, 200) as $v) {
+            if (! is_array($v) || ! ($vid = $id($v['id'] ?? null)) || isset($seen[$vid])) {
+                continue;
+            }
+            $value = trim((string) ($v['value'] ?? ''));
+            if ($value === '' || strlen($value) > 120 || preg_match('/[{}<>;]|url\(|expression|@import|javascript:/i', $value)) {
+                continue;
+            }
+            $seen[$vid] = true;
+            $base['variables'][] = ['id' => $vid, 'name' => $name($v['name'] ?? $vid) ?: $vid, 'kind' => in_array($v['kind'] ?? '', ['color', 'size', 'font', 'other'], true) ? $v['kind'] : 'other', 'value' => $value];
+        }
+
+        $seen = [];
+        foreach (array_slice((array) ($input['classes'] ?? []), 0, 300) as $c) {
+            if (! is_array($c) || ! ($cid = $id($c['id'] ?? null)) || isset($seen[$cid])) {
+                continue;
+            }
+            $seen[$cid] = true;
+            $base['classes'][] = ['id' => $cid, 'name' => $name($c['name'] ?? $cid) ?: $cid, 'style' => $style($c['style'] ?? null)];
+        }
+
+        $seen = [];
+        foreach (array_slice((array) ($input['presets'] ?? []), 0, 300) as $p) {
+            if (! is_array($p) || ! ($pid = $id($p['id'] ?? null)) || isset($seen[$pid]) || ! preg_match('/^[a-z0-9-]{1,40}$/', (string) ($p['widget'] ?? ''))) {
+                continue;
+            }
+            $seen[$pid] = true;
+            $props = [];
+            foreach ((array) ($p['props'] ?? []) as $k => $val) {
+                if (is_string($k) && strlen($k) <= 60 && (is_scalar($val) || $val === null)) {
+                    $props[$k] = is_string($val) ? mb_substr($val, 0, 5000) : $val;
+                }
+            }
+            $base['presets'][] = ['id' => $pid, 'name' => $name($p['name'] ?? $pid) ?: $pid, 'widget' => $p['widget'], 'style' => $style($p['style'] ?? null), 'props' => (object) $props];
+        }
+
+        $seen = [];
+        foreach (array_slice((array) ($input['components'] ?? []), 0, 100) as $c) {
+            if (! is_array($c) || ! ($cid = $id($c['id'] ?? null)) || isset($seen[$cid]) || ! is_array($c['sections'] ?? null)) {
+                continue;
+            }
+            $json = json_encode($c);
+            if ($json === false || strlen($json) > 300000) {
+                continue;
+            }
+            $seen[$cid] = true;
+            $props = [];
+            foreach (array_slice((array) ($c['props'] ?? []), 0, 40) as $prop) {
+                if (is_array($prop) && preg_match('/^[\w-]{1,60}$/', (string) ($prop['key'] ?? '')) && is_string($prop['widget'] ?? null) && is_string($prop['prop'] ?? null)) {
+                    $props[] = ['key' => $prop['key'], 'label' => $name($prop['label'] ?? $prop['key']) ?: $prop['key'], 'widget' => mb_substr($prop['widget'], 0, 80), 'prop' => mb_substr($prop['prop'], 0, 60)];
+                }
+            }
+            $variants = [];
+            foreach (array_slice((array) ($c['variants'] ?? []), 0, 12) as $variant) {
+                if (is_array($variant) && ($vid = $id($variant['id'] ?? null)) && is_array($variant['sections'] ?? null)) {
+                    $variants[] = ['id' => $vid, 'name' => $name($variant['name'] ?? $vid, 60) ?: $vid, 'sections' => array_values($variant['sections'])];
+                }
+            }
+            $base['components'][] = ['id' => $cid, 'name' => $name($c['name'] ?? $cid) ?: $cid, 'sections' => array_values($c['sections']), 'props' => $props, 'variants' => $variants];
+        }
+
+        $seen = [];
+        foreach (array_slice((array) ($input['customCode'] ?? []), 0, 30) as $c) {
+            if (! is_array($c) || ! ($cid = $id($c['id'] ?? null)) || isset($seen[$cid]) || ! is_string($c['code'] ?? null)) {
+                continue;
+            }
+            $seen[$cid] = true;
+            $lines = preg_split('/\r\n|\n|\r/', (string) ($c['paths'] ?? '')) ?: [];
+            $paths = array_values(array_filter(array_map(fn ($line) => preg_match('#^/[\w\-/.%]*\*?$#u', trim($line)) ? trim($line) : null, $lines)));
+            $base['customCode'][] = [
+                'id' => $cid,
+                'name' => $name($c['name'] ?? $cid) ?: $cid,
+                'location' => ($c['location'] ?? '') === 'head' ? 'head' : 'body_end',
+                'code' => mb_substr($c['code'], 0, 20000),
+                'enabled' => ! empty($c['enabled']),
+                'paths' => implode("\n", array_slice($paths, 0, 30)),
+            ];
+        }
+    }
+
 
     /** @return array{background: string, color: string, hoverBackground: string, hoverColor: string, border: string} */
     private function variant(string $bg, string $fg, string $hoverBg, string $hoverFg, string $border = 'transparent'): array

@@ -5,6 +5,8 @@ import { apiServer } from "@/lib/api-server"
 import { globalsCss } from "@/builder/globals"
 import { loadPublishedGlobals, loadResolvedTemplate, StorefrontDocument } from "@/builder/public-document"
 import { requestPageLang } from "@/builder/page-lang"
+import { CustomCodeSlot } from "@/builder/render/custom-code"
+import { headers } from "next/headers"
 import { requestThemeContext } from "@/builder/theme/request"
 import { BuilderRuntimeProvider } from "@/builder/render/runtime"
 import { loadThemeComponents } from "@/kernel/theme-loader"
@@ -115,6 +117,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   const themeContext = await requestThemeContext()
   const preferPublishedChrome = preferPublishedStorefrontChrome(themeSlug)
   const pageLang = await requestPageLang()
+  const requestPath = ((await headers()).get("x-webino-path") ?? "/").split("?")[0]
   const [globals, header, footer] = await Promise.all([
     loadPublishedGlobals(),
     preferPublishedChrome ? loadResolvedTemplate("header", themeContext) : Promise.resolve(null),
@@ -130,6 +133,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         {...(pageLang ? { dir: pageLang.dir, lang: pageLang.lang } : {})}
       >
         {globals ? <style>{globalsCss(globals)}</style> : null}
+        <CustomCodeSlot entries={globals?.customCode} location="head" path={requestPath} />
         {header ? (
           <StorefrontDocument
             document={header}
@@ -146,6 +150,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
           <SiteFooter siteName={tenantName} />
         )}
         <SiteJsonLd />
+        <CustomCodeSlot entries={globals?.customCode} location="body_end" path={requestPath} />
         <AnalyticsTrackerScript />
       </div>
       </BuilderRuntimeProvider>

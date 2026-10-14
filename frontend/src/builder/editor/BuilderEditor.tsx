@@ -67,7 +67,12 @@ import { migrateDocument } from "../migrate"
 import { DynamicEditor, DynamicToggle, EXTENDED_KINDS, ExtendedField } from "./fields"
 import { isDynamic } from "../dynamic"
 import { ContextMenu, type MenuItem } from "./ContextMenu"
-import { ConditionsFields } from "./ConditionsFields"
+import { AdvancedFields, StyleFields } from "./style-panel"
+import { DesignProvider } from "./design-context"
+import { ComponentInstanceFields, DesignSystemFields } from "./design-panel"
+import { COMPONENT_TYPE, detachInstance, instanceWidget, makeComponent, remapIds, updateComponentSections } from "../components"
+import { uid } from "../ids"
+import { createSection, findWidget } from "../tree"
 import { FormActionsPanel } from "./FormActionsPanel"
 import { LibraryPanel } from "./LibraryPanel"
 import { propStr } from "../props"
@@ -167,6 +172,32 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     setDoc(next)
     setFuture([])
   }, [doc])
+
+  // Design-system edits (classes, presets, components) go to the globals draft; published with the page.
+  const globalsTouched = useRef(false)
+  const globalsTimer = useRef<number | null>(null)
+  const updateGlobals = useCallback((next: BuilderGlobals) => {
+    setGlobals(next)
+    globalsTouched.current = true
+    if (globalsTimer.current) window.clearTimeout(globalsTimer.current)
+    globalsTimer.current = window.setTimeout(() => {
+      api("/api/v1/builder/globals", { method: "PUT", json: { settings: next } }).catch((error) => {
+        toast.error(error instanceof ApiError && error.status === 403 ? t("no_permission") : t("save_failed"))
+      })
+    }, 700)
+  }, [t])
+  const designApi = useMemo(() => ({ globals, updateGlobals }), [globals, updateGlobals])
+
+  async function publishGlobalsIfTouched() {
+    if (!globalsTouched.current) return
+    try {
+      await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
+      await api("/api/v1/builder/globals/publish", { method: "POST" })
+      globalsTouched.current = false
+    } catch {
+      toast.error(t("globals_publish_failed"))
+    }
+  }
 
   useEffect(() => {
     let cancel = false
@@ -509,6 +540,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   }
 
   const finderActions: FinderAction[] = [
+    ...globals.components.map((c) => ({ id: `component-${c.id}`, label: `${t("component")}: ${c.name}`, run: () => insertComponent(c.id) })),
     { id: "save", label: t("save"), run: () => void save(false) },
     { id: "publish", label: t("publish"), run: () => void save(true) },
     { id: "undo", label: t("undo"), run: undo },
@@ -566,6 +598,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         })
         if (publish) {
           await api(`/api/v1/builder/templates/${mode.chrome}/publish`, { method: "POST" })
+          await publishGlobalsIfTouched()
           toast.success(t("published"))
         } else if (!autosave) toast.success(t("saved"))
         setSavedJson(snapshot)
@@ -589,6 +622,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         }
         if (publish && id) {
           await api(`/api/v1/theme-builder/templates/${id}/publish`, { method: "POST" })
+          await publishGlobalsIfTouched()
           toast.success(t("published"))
         } else if (!autosave) toast.success(t("saved"))
         setSavedJson(snapshot)
@@ -602,6 +636,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         })
         if (publish) {
           await api(`/api/v1/builder/${base}/${mode.id}/publish`, { method: "POST" })
+          await publishGlobalsIfTouched()
           toast.success(t("published"))
         } else if (!autosave) toast.success(t("saved"))
         setSavedJson(snapshot)
@@ -625,7 +660,8 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       }
       if (publish) {
         await api(`/api/v1/builder/pages/${id}/publish`, { method: "POST" })
-        toast.success(t("published"))
+        await publishGlobalsIfTouched()
+          toast.success(t("published"))
       } else if (!autosave) toast.success(t("saved"))
       setSavedJson(snapshot)
     } catch (error) {
@@ -643,6 +679,55 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   useEffect(() => {
     saveRef.current = save
   })
+
+  function insertComponent(componentId: string) {
+    let columnId = defaultColumnId(doc, selectedId)
+    let next = doc
+    if (!columnId) {
+      next = addSection(doc)
+      columnId = next.sections[0]?.columns[0]?.id ?? null
+    }
+    if (!columnId) return
+    const widget = instanceWidget(uid("w"), componentId)
+    commit(insertWidget(next, columnId, 999, widget))
+    setSelectedId(widget.id)
+  }
+
+  function convertToComponent(id: string) {
+    const name = window.prompt(t("component_name_prompt"))?.trim()
+    if (!name) return
+    const taken = globals.components.map((c) => c.id)
+    const section = doc.sections.find((item) => item.id === id) ?? null
+    const widgetHit = section ? null : findWidget(doc, id)
+    if (!section && !widgetHit) return
+    const sections = section ? [section] : [{ ...createSection([12]), columns: [{ ...createSection([12]).columns[0], widgets: [widgetHit!.widget] }] }]
+    const component = makeComponent(name, sections, taken)
+    updateGlobals({ ...globals, components: [...globals.components, component] })
+    const instance = instanceWidget(uid("w"), component.id)
+    if (section) {
+      const wrapper = createSection([12])
+      commit(updateSection(doc, id, () => ({ ...wrapper, columns: [{ ...wrapper.columns[0], widgets: [instance] }] })))
+    } else {
+      commit(updateWidget(doc, id, () => instance))
+    }
+    setSelectedId(instance.id)
+    toast.success(t("component_created"))
+  }
+
+  function pushToComponent(id: string, asVariant: boolean) {
+    const hit = findWidget(doc, id)
+    const widget = hit?.widget
+    const source = typeof widget?.props.componentSource === "string" ? widget.props.componentSource : ""
+    if (!widget?.children || !source) return
+    const variantName = asVariant ? window.prompt(t("variant_name_prompt"))?.trim() : undefined
+    if (asVariant && !variantName) return
+    const map = (widget.props.componentMap ?? {}) as Record<string, string>
+    const sections = remapIds(widget.children, map)
+    const existingVariant = typeof widget.props.componentVariant === "string" ? globals.components.find((c) => c.id === source)?.variants?.find((v) => v.id === widget.props.componentVariant)?.name : undefined
+    updateGlobals({ ...globals, components: updateComponentSections(globals.components, source, sections, variantName ?? existingVariant) })
+    commit(updateWidget(doc, id, () => ({ ...instanceWidget(id, source), props: { component: source, variant: asVariant ? "" : String(widget.props.componentVariant ?? ""), overrides: {} } })))
+    toast.success(t("component_updated"))
+  }
 
   function nodeMenu(id: string): MenuItem[] {
     const hit = findNode(doc, id)
@@ -663,9 +748,30 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       { id: "lock", label: "locked" in meta && meta.locked ? t("unlock_node") : t("lock_node"), onSelect: () => commit(patchNode(doc, id, { locked: "locked" in meta && meta.locked ? undefined : true })) },
       { id: "navigator", label: t("navigator"), onSelect: () => { setPanel("navigator"); setSelectedId(id) } },
       { id: "save-template", label: t("save_as_template"), onSelect: () => void saveToLibrary(id) },
+      ...componentMenu(id),
       "sep",
       { id: "delete", label: t("delete"), shortcut: "Del", danger: true, disabled: locked, onSelect: () => deleteNode(id) },
     ]
+  }
+
+  function componentMenu(id: string): MenuItem[] {
+    const hit = findWidget(doc, id)
+    const widget = hit?.widget
+    const items: MenuItem[] = []
+    if (widget?.type === COMPONENT_TYPE) {
+      items.push({ id: "detach", label: t("component_detach"), onSelect: () => {
+        const detached = detachInstance(widget, globals)
+        if (detached) commit(updateWidget(doc, id, () => detached))
+      } })
+    } else if (widget?.type === "container" && typeof widget.props.componentSource === "string") {
+      items.push({ id: "push", label: t("component_push"), onSelect: () => pushToComponent(id, false) })
+      items.push({ id: "push-variant", label: t("component_push_variant"), onSelect: () => pushToComponent(id, true) })
+    }
+    const kind = findNode(doc, id)?.kind
+    if ((kind === "section" && doc.sections.some((section) => section.id === id)) || (kind === "widget" && widget?.type !== COMPONENT_TYPE)) {
+      items.push({ id: "to-component", label: t("component_convert"), onSelect: () => convertToComponent(id) })
+    }
+    return items
   }
 
   const selection = findSelection(doc, selectedId)
@@ -687,6 +793,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   }
 
   return (
+    <DesignProvider value={designApi}>
     <div className="flex h-svh max-h-full min-h-0 flex-col bg-[#101820] text-[#0C2D63]">
       <header className="flex h-14 items-center gap-2 border-b border-white/10 px-3 text-white">
         <Link href={backHref} className="rounded-md px-2 py-1 text-xs text-white/70 hover:bg-white/10">{t("back")}</Link>
@@ -809,6 +916,16 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                 <input value={widgetQuery} onChange={(event) => setWidgetQuery(event.target.value)} placeholder={t("widget_search")} aria-label={t("widget_search")} className="h-9 w-full bg-transparent text-xs outline-none" />
               </label>
               <Button type="button" variant="outline" className="mb-3 w-full" onClick={() => { commit(addSection(doc)) }}>{t("add_section")}</Button>
+              {globals.components.length ? (
+                <div className="mb-4">
+                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-[#0C2D63]/60"><Blocks className="size-3" aria-hidden />{t("components")}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {globals.components.filter((c) => !needle || c.name.includes(needle)).map((c) => (
+                      <button key={c.id} type="button" className="rounded-xl border border-[#e6eef6] bg-white px-2 py-3 text-xs hover:border-[#E16BA6]" onClick={() => insertComponent(c.id)}>{c.name}</button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {WIDGET_CATEGORIES.map((category) => {
                 const items = WIDGETS.filter((widget) => widget.category === category.id && (!needle || widget.label.includes(needle)))
                 if (!items.length) return null
@@ -903,6 +1020,14 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                 </div>
               ) : null}
               {tab === "style" ? (
+                <DesignSystemFields
+                  node={selection.section}
+                  device={device}
+                  onAdvanced={(patch) => commit(updateSection(doc, selection.id, (node) => ({ ...node, advanced: { ...(node.advanced ?? {}), ...patch } })))}
+                  onStyle={(style) => commit(updateSection(doc, selection.id, (node) => ({ ...node, style })))}
+                />
+              ) : null}
+              {tab === "style" ? (
                 <StyleFields
                   layout={!selection.section.legacy}
                   device={device}
@@ -940,6 +1065,14 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                 />
               </label>
               {tab === "style" ? (
+                <DesignSystemFields
+                  node={selection.column}
+                  device={device}
+                  onAdvanced={(patch) => commit(updateColumn(doc, selection.id, (node) => ({ ...node, advanced: { ...(node.advanced ?? {}), ...patch } })))}
+                  onStyle={(style) => commit(updateColumn(doc, selection.id, (node) => ({ ...node, style })))}
+                />
+              ) : null}
+              {tab === "style" ? (
                 <StyleFields
                   layout
                   device={device}
@@ -968,7 +1101,12 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
               {tab === "content" && selection.widget.type === "form" ? (
                 <FormActionsPanel formKey={propStr(selection.widget.props, "formKey", "") || propStr(selection.widget.props, "title", "contact") || "contact"} />
               ) : null}
-              {tab === "content" ? (
+              {tab === "content" && selection.widget.type === COMPONENT_TYPE ? (
+                <ComponentInstanceFields
+                  widget={selection.widget}
+                  onProps={(patch) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, props: { ...widget.props, ...patch } })))}
+                />
+              ) : tab === "content" ? (
                 <WidgetFields
                   type={selection.widget.type}
                   props={selection.widget.props}
@@ -980,6 +1118,14 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                   onChange={(patch) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, advanced: { ...(widget.advanced ?? {}), ...patch } })))}
                 />
               ) : (
+                <>
+                <DesignSystemFields
+                  node={selection.widget}
+                  widget={selection.widget}
+                  device={device}
+                  onAdvanced={(patch) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, advanced: { ...(widget.advanced ?? {}), ...patch } })))}
+                  onStyle={(style) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, style })))}
+                />
                 <StyleFields
                   device={device}
                   style={mergeStyle(selection.widget.style, device)}
@@ -988,6 +1134,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                     style: { ...widget.style, [device === "desktop" ? "base" : device]: { ...mergeStyle(widget.style, device), ...patch } },
                   })))}
                 />
+                </>
               )}
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => duplicateNode(selection.id)}>{t("duplicate")}</Button>
@@ -999,6 +1146,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         </aside>
       </div>
     </div>
+    </DesignProvider>
   )
 }
 
@@ -1092,212 +1240,5 @@ function WidgetFields({ type, props, onChange }: { type: string; props: Record<s
         )
       })}
     </div>
-  )
-}
-
-function Edges({ label, value, onChange }: { label: string; value?: BoxEdges; onChange: (edges: BoxEdges) => void }) {
-  const sides = ["top", "right", "bottom", "left"] as const
-  return (
-    <div className="grid gap-1">
-      <span className="flex items-center gap-1.5"><Settings2 className="size-3.5" aria-hidden />{label}</span>
-      <div className="grid grid-cols-4 gap-1" dir="ltr">
-        {sides.map((side) => (
-          <input
-            key={side}
-            className="h-8 min-w-0 rounded-md border px-1 text-center"
-            value={value?.[side] ?? ""}
-            placeholder={side[0].toUpperCase()}
-            aria-label={`${label} ${side}`}
-            onChange={(event) => onChange({ ...(value ?? {}), [side]: event.target.value })}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function TextIn({ label, value, placeholder, onChange }: { label: string; value?: string; placeholder?: string; onChange: (v: string) => void }) {
-  return (
-    <label className="grid gap-1">
-      <span>{label}</span>
-      <input className="h-9 rounded-md border px-2" dir="ltr" value={value ?? ""} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
-    </label>
-  )
-}
-
-function SelectIn({ label, value, options, onChange }: { label: string; value?: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
-  return (
-    <label className="grid gap-1">
-      <span>{label}</span>
-      <select className="h-9 rounded-md border px-2" value={value ?? ""} onChange={(event) => onChange(event.target.value)}>
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    </label>
-  )
-}
-
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <details open className="rounded-lg border border-[#e6eef6] p-2">
-      <summary className="cursor-pointer text-[11px] font-bold text-[#0C2D63]/70">{title}</summary>
-      <div className="mt-2 grid gap-2">{children}</div>
-    </details>
-  )
-}
-
-const SHADOWS = [
-  { value: "", label: "—" },
-  { value: "0 1px 3px rgba(12,45,99,.12)", label: "S" },
-  { value: "0 6px 18px rgba(12,45,99,.14)", label: "M" },
-  { value: "0 18px 40px rgba(12,45,99,.18)", label: "L" },
-]
-
-function StyleFields({ style, onChange, device, layout = false }: { style: StyleProps; onChange: (patch: StyleProps) => void; device: DeviceMode; layout?: boolean }) {
-  const t = useTranslations("builder")
-  const opt = (values: string[]) => [{ value: "", label: "—" }, ...values.map((v) => ({ value: v, label: v }))]
-  return (
-    <div className="grid gap-2 text-xs">
-      <span className="flex items-center gap-1.5 text-[#0C2D63]/50"><Paintbrush className="size-3.5" aria-hidden />{t(device)}</span>
-      {layout ? (
-        <Group title={t("style_layout")}>
-          <SelectIn label={t("layout_display")} value={style.display} options={[{ value: "", label: t("layout_default") }, { value: "flex", label: "Flexbox" }, { value: "grid", label: "Grid" }, { value: "block", label: t("layout_block") }]} onChange={(v) => onChange({ display: (v || undefined) as StyleProps["display"] })} />
-          {style.display === "flex" ? (
-            <>
-              <SelectIn label={t("layout_direction")} value={style.flexDirection} options={opt(["row", "row-reverse", "column", "column-reverse"])} onChange={(v) => onChange({ flexDirection: (v || undefined) as StyleProps["flexDirection"] })} />
-              <SelectIn label={t("layout_wrap")} value={style.flexWrap} options={opt(["nowrap", "wrap", "wrap-reverse"])} onChange={(v) => onChange({ flexWrap: (v || undefined) as StyleProps["flexWrap"] })} />
-            </>
-          ) : null}
-          {style.display === "grid" ? (
-            <>
-              <TextIn label={t("layout_grid_columns")} value={style.gridColumns} placeholder="3 / 2fr 1fr" onChange={(gridColumns) => onChange({ gridColumns })} />
-              <TextIn label={t("layout_grid_rows")} value={style.gridRows} placeholder="auto" onChange={(gridRows) => onChange({ gridRows })} />
-            </>
-          ) : null}
-          {style.display === "flex" || style.display === "grid" ? (
-            <>
-              <SelectIn label={t("layout_justify")} value={style.justifyContent} options={opt(["start", "center", "end", "space-between", "space-around", "space-evenly", "stretch"])} onChange={(v) => onChange({ justifyContent: (v || undefined) as StyleProps["justifyContent"] })} />
-              <SelectIn label={t("layout_align")} value={style.alignItems} options={opt(["start", "center", "end", "stretch", "baseline"])} onChange={(v) => onChange({ alignItems: (v || undefined) as StyleProps["alignItems"] })} />
-            </>
-          ) : null}
-          <TextIn label={t("layout_row_gap")} value={style.rowGap} placeholder="16px" onChange={(rowGap) => onChange({ rowGap })} />
-          <TextIn label={t("layout_column_gap")} value={style.columnGap} placeholder="16px" onChange={(columnGap) => onChange({ columnGap })} />
-        </Group>
-      ) : null}
-      <Group title={t("style_typography")}>
-        <TokenColor label={t("color")} value={style.color} onChange={(color) => onChange({ color })} />
-        <TextIn label={t("font_size")} value={style.fontSize} placeholder="1rem" onChange={(fontSize) => onChange({ fontSize })} />
-        <SelectIn label={t("font_weight")} value={style.fontWeight} options={[{ value: "", label: "—" }, ...["300", "400", "500", "600", "700", "800", "900"].map((w) => ({ value: w, label: w }))]} onChange={(fontWeight) => onChange({ fontWeight })} />
-        <TextIn label={t("line_height")} value={style.lineHeight} placeholder="1.7" onChange={(lineHeight) => onChange({ lineHeight })} />
-        <TextIn label={t("letter_spacing")} value={style.letterSpacing} placeholder="0px" onChange={(letterSpacing) => onChange({ letterSpacing })} />
-        <SelectIn label={t("text_align")} value={style.textAlign} options={[{ value: "", label: "—" }, { value: "start", label: t("align_start") }, { value: "center", label: t("align_center") }, { value: "end", label: t("align_end") }]} onChange={(v) => onChange({ textAlign: (v || undefined) as StyleProps["textAlign"] })} />
-        <SelectIn label={t("text_transform")} value={style.textTransform} options={[{ value: "", label: "—" }, { value: "uppercase", label: "ABC" }, { value: "lowercase", label: "abc" }, { value: "capitalize", label: "Abc" }]} onChange={(v) => onChange({ textTransform: (v || undefined) as StyleProps["textTransform"] })} />
-      </Group>
-      <Group title={t("style_background")}>
-        <TokenColor label={t("background")} value={style.background} onChange={(background) => onChange({ background })} />
-        <TextIn label={t("background_image")} value={style.backgroundImage} placeholder="https://…" onChange={(backgroundImage) => onChange({ backgroundImage })} />
-        <TextIn label={t("opacity")} value={style.opacity} placeholder="1" onChange={(opacity) => onChange({ opacity })} />
-      </Group>
-      <Group title={t("style_spacing")}>
-        <Edges label={t("padding")} value={style.padding} onChange={(padding) => onChange({ padding })} />
-        <Edges label={t("margin")} value={style.margin} onChange={(margin) => onChange({ margin })} />
-        <TextIn label={t("width")} value={style.width} placeholder="100%" onChange={(width) => onChange({ width })} />
-        <TextIn label={t("max_width")} value={style.maxWidth} placeholder="1200px" onChange={(maxWidth) => onChange({ maxWidth })} />
-        <TextIn label={t("min_height")} value={style.minHeight} placeholder="0" onChange={(minHeight) => onChange({ minHeight })} />
-        <TextIn label={t("order")} value={style.order} placeholder="0" onChange={(order) => onChange({ order })} />
-      </Group>
-      <Group title={t("style_border")}>
-        <TextIn label={t("border_width")} value={style.borderWidth} placeholder="1px" onChange={(borderWidth) => onChange({ borderWidth })} />
-        <SelectIn label={t("border_style")} value={style.borderStyle} options={[{ value: "", label: "—" }, { value: "solid", label: "solid" }, { value: "dashed", label: "dashed" }, { value: "none", label: "none" }]} onChange={(v) => onChange({ borderStyle: (v || undefined) as StyleProps["borderStyle"] })} />
-        <TokenColor label={t("border_color")} value={style.borderColor} onChange={(borderColor) => onChange({ borderColor })} />
-        <TextIn label={t("radius")} value={style.radius} placeholder="16px" onChange={(radius) => onChange({ radius })} />
-        <SelectIn label={t("shadow")} value={style.boxShadow} options={SHADOWS} onChange={(boxShadow) => onChange({ boxShadow })} />
-      </Group>
-      <Group title={t("style_hover")}>
-        <TokenColor label={t("hover_color")} value={style.hover?.color} onChange={(color) => onChange({ hover: { ...style.hover, color } })} />
-        <TokenColor label={t("hover_background")} value={style.hover?.background} onChange={(background) => onChange({ hover: { ...style.hover, background } })} />
-        <TokenColor label={t("hover_border")} value={style.hover?.borderColor} onChange={(borderColor) => onChange({ hover: { ...style.hover, borderColor } })} />
-        <SelectIn label={t("shadow")} value={style.hover?.boxShadow} options={SHADOWS} onChange={(boxShadow) => onChange({ hover: { ...style.hover, boxShadow } })} />
-        <TextIn label={t("hover_transform")} value={style.hover?.transform} placeholder="translateY(-4px)" onChange={(transform) => onChange({ hover: { ...style.hover, transform } })} />
-        <TextIn label={t("hover_transition")} value={style.hover?.transition} placeholder="300ms" onChange={(transition) => onChange({ hover: { ...style.hover, transition } })} />
-      </Group>
-      <label className="flex items-center justify-between">{t("hidden")}<input type="checkbox" checked={style.hidden === true} onChange={(event) => onChange({ hidden: event.target.checked })} /></label>
-    </div>
-  )
-}
-
-function AdvancedFields({ value, onChange, layout }: { value: AdvancedProps; onChange: (patch: AdvancedProps) => void; layout?: boolean }) {
-  const t = useTranslations("builder")
-  const hide = value.hideOn ?? {}
-  const sticky = value.sticky ?? {}
-  const motion = value.motion ?? {}
-  const bg = value.background ?? {}
-  const shapes = ["none", "wave", "curve", "tilt", "triangle", "zigzag"].map((v) => ({ value: v, label: v === "none" ? "—" : t(`shape_${v}`) }))
-  return (
-    <div className="grid gap-2 text-xs">
-      <TextIn label={t("css_class")} value={value.cssClass} placeholder="my-class" onChange={(cssClass) => onChange({ cssClass })} />
-      <TextIn label={t("css_id")} value={value.cssId} placeholder="section-id" onChange={(cssId) => onChange({ cssId })} />
-      <Group title={t("responsive_visibility")}>
-        {(["desktop", "tablet", "mobile"] as const).map((d) => (
-          <label key={d} className="flex items-center justify-between">
-            {t(`hide_on_${d}`)}
-            <input type="checkbox" checked={hide[d] === true} onChange={(event) => onChange({ hideOn: { ...hide, [d]: event.target.checked } })} />
-          </label>
-        ))}
-      </Group>
-      <Group title={t("motion_effects")}>
-        <SelectIn
-          label={t("animation")}
-          value={value.animation ?? "none"}
-          options={["none", "fade", "slide-up", "slide-down", "slide-start", "slide-end", "zoom", "flip", "bounce"].map((v) => ({ value: v, label: v === "none" ? "—" : t(`anim_${v.replace("-", "_")}`) }))}
-          onChange={(v) => onChange({ animation: v as AdvancedProps["animation"] })}
-        />
-        <TextIn label={t("anim_duration")} value={value.animationDuration ? String(value.animationDuration) : ""} placeholder="600" onChange={(v) => onChange({ animationDuration: Number(v) || undefined })} />
-        <TextIn label={t("anim_delay")} value={value.animationDelay ? String(value.animationDelay) : ""} placeholder="0" onChange={(v) => onChange({ animationDelay: Number(v) || undefined })} />
-        <SelectIn label={t("anim_easing")} value={value.animationEasing ?? "ease-out"} options={["ease", "ease-out", "ease-in-out", "linear", "spring"].map((v) => ({ value: v, label: v }))} onChange={(v) => onChange({ animationEasing: v as AdvancedProps["animationEasing"] })} />
-        <SelectIn label={t("hover_anim")} value={value.hoverAnim ?? "none"} options={["none", "grow", "shrink", "float", "pulse", "rotate"].map((v) => ({ value: v, label: v === "none" ? "—" : t(`hover_${v}`) }))} onChange={(v) => onChange({ hoverAnim: v as AdvancedProps["hoverAnim"] })} />
-        <TextIn label={t("parallax")} value={motion.parallax ? String(motion.parallax) : ""} placeholder="0-10" onChange={(v) => onChange({ motion: { ...motion, parallax: Math.max(0, Math.min(10, Number(v) || 0)) || undefined } })} />
-        <label className="flex items-center justify-between">{t("tilt")}<input type="checkbox" checked={motion.tilt === true} onChange={(event) => onChange({ motion: { ...motion, tilt: event.target.checked } })} /></label>
-      </Group>
-      <Group title={t("sticky")}>
-        <SelectIn label={t("sticky_position")} value={sticky.position ?? ""} options={[{ value: "", label: "—" }, { value: "top", label: t("sticky_top") }, { value: "bottom", label: t("sticky_bottom") }]} onChange={(v) => onChange({ sticky: { ...sticky, position: (v || undefined) as "top" | "bottom" | undefined } })} />
-        <TextIn label={t("sticky_offset")} value={sticky.offset} placeholder="0px" onChange={(offset) => onChange({ sticky: { ...sticky, offset } })} />
-        {(["desktop", "tablet", "mobile"] as const).map((d) => (
-          <label key={d} className="flex items-center justify-between">
-            {t(`device_${d}`)}
-            <input type="checkbox" checked={(sticky.devices ?? { desktop: true, tablet: true, mobile: true })[d] !== false} onChange={(event) => onChange({ sticky: { ...sticky, devices: { desktop: true, tablet: true, mobile: true, ...sticky.devices, [d]: event.target.checked } } })} />
-          </label>
-        ))}
-      </Group>
-      {layout ? (
-        <Group title={t("background_extras")}>
-          <TextIn label={t("bg_video")} value={bg.video} placeholder="https://.../video.mp4" onChange={(video) => onChange({ background: { ...bg, video } })} />
-          <TextIn label={t("bg_poster")} value={bg.poster} placeholder="https://.../poster.jpg" onChange={(poster) => onChange({ background: { ...bg, poster } })} />
-          <TokenColor label={t("bg_overlay")} value={bg.overlay} onChange={(overlay) => onChange({ background: { ...bg, overlay } })} />
-          <TextIn label={t("bg_overlay_opacity")} value={bg.overlayOpacity != null ? String(bg.overlayOpacity) : ""} placeholder="0.5" onChange={(v) => onChange({ background: { ...bg, overlayOpacity: v === "" ? undefined : Math.max(0, Math.min(1, Number(v) || 0)) } })} />
-          <SelectIn label={t("shape_top")} value={bg.shapeTop ?? "none"} options={shapes} onChange={(v) => onChange({ background: { ...bg, shapeTop: v as ShapeName } })} />
-          <SelectIn label={t("shape_bottom")} value={bg.shapeBottom ?? "none"} options={shapes} onChange={(v) => onChange({ background: { ...bg, shapeBottom: v as ShapeName } })} />
-          <TokenColor label={t("shape_color")} value={bg.shapeColor} onChange={(shapeColor) => onChange({ background: { ...bg, shapeColor } })} />
-          <TextIn label={t("shape_height")} value={bg.shapeHeight ? String(bg.shapeHeight) : ""} placeholder="60" onChange={(v) => onChange({ background: { ...bg, shapeHeight: Number(v) || undefined } })} />
-        </Group>
-      ) : null}
-      <Group title={t("display_conditions")}>
-        <ConditionsFields value={value.conditions ?? {}} onChange={(conditions) => onChange({ conditions })} />
-      </Group>
-    </div>
-  )
-}
-
-function TokenColor({ label, value, onChange }: { label: string; value?: string; onChange: (value: string) => void }) {
-  const token = COLOR_TOKENS.some((item) => item.value && item.value === value) ? value : ""
-  return (
-    <label className="grid gap-1">
-      <span className="flex items-center gap-1.5"><Palette className="size-3.5" aria-hidden />{label}</span>
-      <select className="h-9 rounded-md border px-2" value={token ?? ""} onChange={(event) => onChange(event.target.value || "#0C2D63")}>
-        {COLOR_TOKENS.map((item) => <option key={item.label} value={item.value}>{item.label}</option>)}
-      </select>
-      {token ? null : (
-        <input type="color" value={value && value.startsWith("#") ? value : "#0C2D63"} onChange={(event) => onChange(event.target.value)} />
-      )}
-    </label>
   )
 }

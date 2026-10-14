@@ -1,3 +1,6 @@
+import { safeToken, selectorRules } from "./style"
+import type { ResponsiveStyle, SectionNode } from "./types"
+
 export type TypeStyle = {
   fontSize: string
   fontWeight: string
@@ -60,7 +63,24 @@ export type BuilderGlobals = {
   customFonts: CustomFont[]
   /** Responsive breakpoints (tablet max width, mobile max width) in px. */
   breakpoints: { tablet: number; mobile: number }
+  /** Design variables (tokens) exposed as --wb-v-<id>. */
+  variables: DesignVariable[]
+  /** Reusable style classes (.wbc-<id>). */
+  classes: GlobalClass[]
+  /** Linked per-widget style/content presets (.wbp-<id>). */
+  presets: StylePreset[]
+  /** Reusable components (symbols) with exposed props and variants. */
+  components: BuilderComponent[]
+  /** Site-wide custom code (head/body) with optional path scope. */
+  customCode: CustomCode[]
 }
+
+export type DesignVariable = { id: string; name: string; kind: "color" | "size" | "font" | "other"; value: string }
+export type GlobalClass = { id: string; name: string; style: ResponsiveStyle }
+export type StylePreset = { id: string; name: string; widget: string; style: ResponsiveStyle; props?: Record<string, unknown> }
+export type ComponentProp = { key: string; label: string; widget: string; prop: string }
+export type BuilderComponent = { id: string; name: string; sections: SectionNode[]; props: ComponentProp[]; variants?: { id: string; name: string; sections: SectionNode[] }[] }
+export type CustomCode = { id: string; name: string; location: "head" | "body_end"; code: string; enabled: boolean; paths?: string }
 
 export type CustomFont = { family: string; url: string; weight?: string; style?: "normal" | "italic" }
 
@@ -180,6 +200,11 @@ export const DEFAULT_GLOBALS: BuilderGlobals = {
   cssVariables: "",
   customFonts: [],
   breakpoints: { tablet: 1024, mobile: 767 },
+  variables: [],
+  classes: [],
+  presets: [],
+  components: [],
+  customCode: [],
 }
 
 export const COLOR_TOKENS: { value: string; label: string }[] = [
@@ -193,6 +218,28 @@ export const COLOR_TOKENS: { value: string; label: string }[] = [
   { value: "var(--wb-color-border)", label: "حاشیه" },
   { value: "var(--wb-color-muted)", label: "کمرنگ" },
 ]
+
+/** Design variables as custom properties (values sanitised like other CSS values). */
+export function variablesCss(variables: DesignVariable[] | undefined): string {
+  return (variables ?? [])
+    .filter((v) => safeToken(v.id) && typeof v.value === "string" && v.value.trim() && !/[{}<>;]|url\(|expression|@import|javascript:/i.test(v.value))
+    .slice(0, 200)
+    .map((v) => `--wb-v-${v.id}:${v.value.trim().slice(0, 120)}`)
+    .join(";")
+}
+
+/** CSS for global classes and presets (same specificity as node rules, emitted before them so nodes win). */
+export function designSystemCss(globals: Pick<BuilderGlobals, "classes" | "presets">): string {
+  const rules: string[] = []
+  for (const c of globals.classes ?? []) if (safeToken(c.id)) rules.push(...selectorRules(`.wbc-${c.id}`, c.style))
+  for (const p of globals.presets ?? []) if (safeToken(p.id)) rules.push(...selectorRules(`.wbp-${p.id}`, p.style))
+  return rules.join("")
+}
+
+/** Variable picker options: `var(--wb-v-id)` per variable of a kind. */
+export function variableOptions(globals: Pick<BuilderGlobals, "variables">, kind: DesignVariable["kind"]): { value: string; label: string }[] {
+  return (globals.variables ?? []).filter((v) => v.kind === kind && safeToken(v.id)).map((v) => ({ value: `var(--wb-v-${v.id})`, label: v.name || v.id }))
+}
 
 function safeCustomVariables(raw: string): string {
   return raw
@@ -261,7 +308,8 @@ export function globalsCss(globals: BuilderGlobals): string {
     `--wb-layout-bg:${globals.layout.background}`,
     `--wb-lightbox-bg:${globals.lightbox.background}`,
     safeCustomVariables(globals.cssVariables),
-  ].join(";")
+    variablesCss(globals.variables),
+  ].filter(Boolean).join(";")
 
   const typeRule = (tag: string) =>
     `.wb-type-${tag}{font-family:var(--wb-font-heading);font-size:var(--wb-${tag}-size);font-weight:var(--wb-${tag}-weight);line-height:var(--wb-${tag}-leading);color:var(--wb-color-text)}`
@@ -292,6 +340,7 @@ export function globalsCss(globals: BuilderGlobals): string {
     `.wb-field:focus{outline:2px solid var(--wb-field-focus);border-color:var(--wb-field-focus)}`,
     `.wb-label{color:var(--wb-label-color);font-size:var(--wb-small-size);font-weight:600}`,
     `.wb-form-error{color:var(--wb-error-color);font-size:var(--wb-small-size)}`,
+    designSystemCss(globals),
   ].join("")
 }
 
@@ -317,5 +366,10 @@ export function asGlobals(value: unknown): BuilderGlobals {
     cssVariables: typeof incoming.cssVariables === "string" ? incoming.cssVariables : "",
     customFonts: Array.isArray(incoming.customFonts) ? incoming.customFonts.filter((f) => f && typeof f.family === "string" && typeof f.url === "string") : [],
     breakpoints: { ...DEFAULT_GLOBALS.breakpoints, ...(incoming.breakpoints ?? {}) },
+    variables: Array.isArray(incoming.variables) ? incoming.variables.filter((v) => v && safeToken(String(v.id ?? ""))) : [],
+    classes: Array.isArray(incoming.classes) ? incoming.classes.filter((c) => c && safeToken(String(c.id ?? ""))) : [],
+    presets: Array.isArray(incoming.presets) ? incoming.presets.filter((p) => p && safeToken(String(p.id ?? ""))) : [],
+    components: Array.isArray(incoming.components) ? incoming.components.filter((c) => c && safeToken(String(c.id ?? "")) && Array.isArray(c.sections)) : [],
+    customCode: Array.isArray(incoming.customCode) ? incoming.customCode.filter((c) => c && typeof c.code === "string") : [],
   }
 }

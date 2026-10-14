@@ -2,7 +2,7 @@ import { documentCss } from "./style"
 import type { BuilderDocument } from "./types"
 
 /** Bump when style.ts output changes so stale publish-time CSS is ignored. */
-export const CSS_VERSION = 2
+export const CSS_VERSION = 3
 
 export type Breakpoints = { tablet: number; mobile: number }
 export const DEFAULT_BREAKPOINTS: Breakpoints = { tablet: 1024, mobile: 767 }

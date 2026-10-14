@@ -49,6 +49,31 @@ export type StyleProps = {
   order?: string
   /** Hover state (desktop/base only). */
   hover?: HoverStyle
+  /* Position & effects (phase 6). Inset start/end are logical (start = right in RTL). */
+  position?: "static" | "relative" | "absolute" | "fixed" | "sticky"
+  insetTop?: string
+  insetBottom?: string
+  insetStart?: string
+  insetEnd?: string
+  zIndex?: string
+  transform?: string
+  filter?: string
+  backdropFilter?: string
+  mixBlendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "difference" | "luminosity"
+  clipPath?: string
+  aspectRatio?: string
+  objectFit?: "cover" | "contain" | "fill" | "none" | "scale-down"
+  objectPosition?: string
+  overflow?: "visible" | "hidden" | "auto" | "clip"
+  /** Gradient layered over the background colour/image, e.g. linear-gradient(135deg,#E16BA6,#0C2D63). */
+  gradient?: string
+  textShadow?: string
+  fontFamily?: string
+  /** Fluid font size: clamp(min, preferred vw, max). */
+  fluidFont?: { min?: string; max?: string }
+  /** Placement inside a parent grid: "2" = span 2, or a raw line value like "1 / 3". */
+  gridColumnSpan?: string
+  gridRowSpan?: string
 }
 
 export type HoverStyle = { color?: string; background?: string; borderColor?: string; boxShadow?: string; transform?: string; opacity?: string; transition?: string }
@@ -78,6 +103,14 @@ export type AdvancedProps = {
   background?: { video?: string; poster?: string; overlay?: string; overlayOpacity?: number; shapeTop?: ShapeName; shapeBottom?: ShapeName; shapeColor?: string; shapeHeight?: number }
   /** Display conditions (login, cart, date range, weekdays, hours, URL parameter). */
   conditions?: DisplayConditions
+  /** Global class ids (globals.classes) applied to this node. */
+  classes?: string[]
+  /** Linked style preset id (globals.presets) for this widget type. */
+  preset?: string
+  /** Element CSS; `selector` is replaced by this node's class. */
+  customCss?: string
+  /** Custom attributes (data-*, aria-*, role, title, rel, tabindex). */
+  attributes?: { name: string; value: string }[]
 }
 
 export type ResponsiveStyle = {

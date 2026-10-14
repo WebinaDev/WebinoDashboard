@@ -26,8 +26,7 @@ import {
   ShoppingBag,
   Square,
   Type,
-  type LucideIcon,
-} from "lucide-react"
+  type LucideIcon, Shapes, CodeXml } from "lucide-react"
 
 import type { ThemeKind } from "./context"
 
@@ -95,6 +94,8 @@ export const SETTINGS_SECTION_ICONS = {
   variables: Braces,
   kit: Package,
   roles: ShieldIcon,
+  design_system: Shapes,
+  code: CodeXml,
 } as const
 
 export function widgetIcon(type: string): LucideIcon {
