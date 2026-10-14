@@ -6810,7 +6810,15 @@
     "sc_device": "Cycle preview device",
     "sc_deselect": "Deselect",
     "sc_help": "This help",
-    "sc_note": "The clipboard is shared across pages and tabs in this browser."
+    "sc_note": "The clipboard is shared across pages and tabs in this browser.",
+    "form_actions": "Actions after submit",
+    "form_email_to": "Notify email (comma separated)",
+    "form_sms_to": "SMS to number",
+    "form_sms_text": "SMS text ({name} = field value)",
+    "form_webhook_url": "Webhook (https)",
+    "form_redirect_url": "Redirect after submit",
+    "form_actions_hint": "Stored on the server per form ID.",
+    "form_actions_save": "Save actions"
   },
   "theme_builder": {
     "title": "Theme builder",

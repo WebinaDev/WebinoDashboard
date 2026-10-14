@@ -1,9 +1,10 @@
 "use client"
 
 import { ArrowDown, ArrowUp, Database, Plus, Trash2 } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { DYNAMIC_TAGS, isDynamic, type DynamicBinding, type DynamicKind } from "../dynamic"
 import { COLOR_TOKENS } from "../globals"
@@ -129,6 +130,7 @@ export function RepeaterInput({ value, fields, onChange }: { value: unknown; fie
 /** Controls for the extended field kinds; returns null for kinds handled by the base renderer. */
 export function ExtendedField({ field, props, onChange }: { field: FieldDef; props: Record<string, unknown>; onChange: (key: string, value: unknown) => void }) {
   const t = useTranslations("builder")
+  const locale = useLocale()
   const value = props[field.key]
   const str = typeof value === "string" ? value : ""
   switch (field.kind) {
@@ -158,14 +160,23 @@ export function ExtendedField({ field, props, onChange }: { field: FieldDef; pro
       )
     }
     case "date":
-    case "time":
     case "datetime":
       return (
+        <LocaleDatePicker
+          locale={locale}
+          withTime={field.kind === "datetime"}
+          value={field.kind === "datetime" ? toLocalInput(str) || null : str.slice(0, 10) || null}
+          onChange={(next) => onChange(field.key, next ?? "")}
+          aria-label={field.label}
+        />
+      )
+    case "time":
+      return (
         <input
-          type={field.kind === "datetime" ? "datetime-local" : field.kind}
+          type="time"
           className={input}
           dir="ltr"
-          value={field.kind === "datetime" ? toLocalInput(str) : str}
+          value={str}
           onChange={(event) => onChange(field.key, event.target.value)}
         />
       )

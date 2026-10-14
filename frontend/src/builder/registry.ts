@@ -1,7 +1,10 @@
 import { uid } from "./ids"
 import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
+import { FORM_FIELD_TYPES, type FormFieldType } from "./forms"
 import { ICON_OPTIONS } from "./render/icon-options"
+
+const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ" }
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
@@ -121,7 +124,21 @@ export const WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "text", key: "submit", label: "دکمه" },
-      { kind: "textarea", key: "fields", label: "فیلدها (برچسب|name|text|email|tel|textarea)" },
+      { kind: "text", key: "formKey", label: "شناسه فرم (برای تنظیم اقدام‌ها)" },
+      {
+        kind: "repeater",
+        key: "fields",
+        label: "فیلدها",
+        fields: [
+          { key: "label", label: "برچسب", kind: "text" },
+          { key: "name", label: "نام فنی (name)", kind: "text" },
+          { key: "type", label: "نوع", kind: "select", options: FORM_FIELD_TYPES.map((value) => ({ value, label: FORM_TYPE_LABELS[value] })) },
+          { key: "options", label: "گزینه‌ها (با ، جدا)", kind: "text" },
+          { key: "required", label: "الزامی", kind: "select", options: [{ value: "", label: "بله" }, { value: "no", label: "خیر" }] },
+          { key: "step", label: "مرحله", kind: "text" },
+          { key: "showIf", label: "نمایش فقط اگر (name=مقدار)", kind: "text" },
+        ],
+      },
       { kind: "text", key: "success", label: "پیام موفقیت" },
       { kind: "switch", key: "showPhone", label: "فیلد تلفن" },
       { kind: "switch", key: "showEmail", label: "فیلد ایمیل" },

@@ -41,6 +41,7 @@ import {
 } from "../storefront/ui"
 import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
+import { FormWidget } from "./form-widget"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
@@ -494,111 +495,6 @@ function MenuWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
-function parseFormFields(raw: unknown): { label: string; name: string; type: string }[] {
-  const text = typeof raw === "string" ? raw : ""
-  const rows = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [label, name, type] = line.split("|").map((part) => part.trim())
-      return {
-        label: label || name || "فیلد",
-        name: name || label || "field",
-        type: type || "text",
-      }
-    })
-  if (rows.length) return rows
-  return [
-    { label: "نام", name: "name", type: "text" },
-    { label: "موبایل", name: "phone", type: "tel" },
-    { label: "پیام", name: "message", type: "textarea" },
-  ]
-}
-
-function FormWidget({ widget }: { widget: WidgetNode }) {
-  const [done, setDone] = useState(false)
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState("")
-  const fields = parseFormFields(widget.props.fields)
-  const showPhone = widget.props.showPhone !== false
-  const showEmail = widget.props.showEmail !== false
-  const success = propStr(widget.props, "success", "پیام شما ثبت شد. به‌زودی پاسخ می‌دهیم.")
-  if (done) return <p className="wb-type-body rounded-2xl bg-muted p-4 text-foreground">{success}</p>
-  return (
-    <form
-      className="grid gap-3 rounded-3xl border border-border bg-card p-4"
-      onSubmit={(event) => {
-        event.preventDefault()
-        if (pending) return
-        const data = new FormData(event.currentTarget)
-        const missing = fields.some((field) => !String(data.get(field.name) ?? "").trim())
-        if (missing) {
-          setError("همه فیلدها را کامل کنید.")
-          return
-        }
-        const payload: Record<string, string> = {}
-        data.forEach((value, key) => {
-          payload[key] = String(value ?? "")
-        })
-        setError("")
-        setPending(true)
-        const base = process.env.NEXT_PUBLIC_API_URL ?? ""
-        const host = typeof window !== "undefined" ? window.location.host : ""
-        void fetch(`${base}/api/v1/public/forms/submit`, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            ...(host ? { "X-Tenant-Domain": host } : {}),
-          },
-          body: JSON.stringify({
-            form_key: propStr(widget.props, "title", "contact") || "contact",
-            page_uri: typeof window !== "undefined" ? window.location.pathname : "",
-            fields: payload,
-          }),
-        })
-          .then(async (res) => {
-            if (!res.ok) {
-              const msg = (await res.json().catch(() => null)) as { message?: string } | null
-              throw new Error(msg?.message || "submit_failed")
-            }
-            setDone(true)
-          })
-          .catch(() => setError("ارسال ناموفق بود. دوباره تلاش کنید."))
-          .finally(() => setPending(false))
-      }}
-    >
-      <h3 className="wb-type-h3">{propStr(widget.props, "title", "فرم")}</h3>
-      {fields.map((field) => (
-        <label key={field.name} className="grid gap-1">
-          <span className="wb-label">{field.label}</span>
-          {field.type === "textarea" ? (
-            <textarea required name={field.name} className="wb-field min-h-24" />
-          ) : (
-            <input required name={field.name} type={field.type === "tel" ? "tel" : field.type === "email" ? "email" : "text"} className="wb-field" />
-          )}
-        </label>
-      ))}
-      {showEmail && !fields.some((f) => f.name === "email") ? (
-        <label className="grid gap-1">
-          <span className="wb-label">ایمیل</span>
-          <input name="email" type="email" className="wb-field" />
-        </label>
-      ) : null}
-      {showPhone && !fields.some((f) => f.name === "phone") ? (
-        <label className="grid gap-1">
-          <span className="wb-label">موبایل</span>
-          <input name="phone" type="tel" className="wb-field" />
-        </label>
-      ) : null}
-      {error ? <p className="wb-form-error">{error}</p> : null}
-      <button type="submit" className="wb-btn wb-btn-primary" disabled={pending}>
-        {pending ? "…" : propStr(widget.props, "submit", "ارسال")}
-      </button>
-    </form>
-  )
-}
 
 function PopupWidget({ widget }: { widget: WidgetNode }) {
   const [open, setOpen] = useState(false)

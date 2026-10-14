@@ -918,6 +918,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('/builder/revisions', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'index']);
                 Route::get('/builder/revisions/{revision}', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'show'])->whereNumber('revision');
                 Route::post('/builder/revisions/{revision}/restore', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'restore'])->whereNumber('revision');
+                Route::get('/builder/forms/{key}', [\App\Http\Controllers\Api\V1\BuilderFormSettingsController::class, 'show'])->where('key', '[\w.\-]{1,100}');
+                Route::put('/builder/forms/{key}', [\App\Http\Controllers\Api\V1\BuilderFormSettingsController::class, 'update'])->where('key', '[\w.\-]{1,100}');
                 Route::get('/builder/library', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'index']);
                 Route::post('/builder/library', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'store']);
                 Route::get('/builder/library/{item}', [\App\Http\Controllers\Api\V1\BuilderLibraryController::class, 'show'])->whereNumber('item');

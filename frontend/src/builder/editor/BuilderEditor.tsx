@@ -64,7 +64,9 @@ import { migrateDocument } from "../migrate"
 import { DynamicEditor, DynamicToggle, EXTENDED_KINDS, ExtendedField } from "./fields"
 import { isDynamic } from "../dynamic"
 import { ContextMenu, type MenuItem } from "./ContextMenu"
+import { FormActionsPanel } from "./FormActionsPanel"
 import { LibraryPanel } from "./LibraryPanel"
+import { propStr } from "../props"
 import { Navigator } from "./Navigator"
 import { ShortcutHelp } from "./ShortcutHelp"
 import { CLIPBOARD_KEY, duplicateSection, exportPayload, findNode, importPayload, isLocked, makeClip, parseClip, pasteClip, pasteStyle, patchNode, type Clip } from "../ops"
@@ -858,6 +860,9 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                 <WidgetGlyph type={selection.widget.type} />
                 {widgetDef(selection.widget.type)?.label ?? selection.widget.type}
               </div>
+              {tab === "content" && selection.widget.type === "form" ? (
+                <FormActionsPanel formKey={propStr(selection.widget.props, "formKey", "") || propStr(selection.widget.props, "title", "contact") || "contact"} />
+              ) : null}
               {tab === "content" ? (
                 <WidgetFields
                   type={selection.widget.type}

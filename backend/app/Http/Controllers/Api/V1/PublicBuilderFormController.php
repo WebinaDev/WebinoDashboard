@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\BuilderFormSubmission;
+use App\Services\Builder\BuilderFormActions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -23,7 +24,14 @@ class PublicBuilderFormController extends Controller
             'page_uri' => ['nullable', 'string', 'max:512'],
             'fields' => ['required', 'array', 'min:1', 'max:40'],
             'fields.*' => ['nullable', 'string', 'max:2000'],
+            '_hp' => ['nullable', 'string', 'max:200'],
+            '_t' => ['nullable', 'integer', 'min:0'],
         ]);
+
+        // Anti-spam: honeypot filled or submitted faster than a human could → pretend success, store nothing.
+        if (($data['_hp'] ?? '') !== '' || (isset($data['_t']) && (int) $data['_t'] < 1500)) {
+            return response()->json(['data' => ['ok' => true]]);
+        }
 
         $fields = [];
         foreach ($data['fields'] as $name => $value) {
@@ -35,14 +43,17 @@ class PublicBuilderFormController extends Controller
         }
 
         $ip = (string) ($request->ip() ?? '');
+        $formKey = mb_substr((string) ($data['form_key'] ?? 'contact'), 0, 100);
         BuilderFormSubmission::query()->create([
             'tenant_id' => $tenantId,
-            'form_key' => mb_substr((string) ($data['form_key'] ?? 'contact'), 0, 100),
+            'form_key' => $formKey,
             'page_uri' => mb_substr((string) ($data['page_uri'] ?? ''), 0, 512) ?: null,
             'payload' => $fields,
             'ip_hash' => $ip !== '' ? hash('sha256', $ip) : null,
         ]);
 
-        return response()->json(['data' => ['ok' => true]]);
+        $result = BuilderFormActions::run($tenantId, $formKey, $fields);
+
+        return response()->json(['data' => ['ok' => true, 'redirect' => $result['redirect']]]);
     }
 }
