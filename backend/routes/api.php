@@ -281,6 +281,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('public.module:catalog')->group(function () {
             Route::get('/catalog', [PublicCatalogController::class, 'index']);
             Route::get('/catalog/items/{slug}', [PublicCatalogController::class, 'show']);
+            Route::get('/catalog/items/{slug}/linked', [PublicCatalogController::class, 'linked']);
             Route::get('/catalog/categories/tree', [PublicStorefrontController::class, 'categoryTree']);
             Route::post('/coupons/preview', [PublicStorefrontController::class, 'previewCoupon'])->middleware('throttle:20,1');
             Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);

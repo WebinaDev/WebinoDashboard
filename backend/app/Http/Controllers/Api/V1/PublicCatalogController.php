@@ -214,6 +214,30 @@ class PublicCatalogController extends Controller
         ])->header('Cache-Control', 'no-cache, must-revalidate');
     }
 
+    /** Upsells / cross-sells / related products chosen in the product editor (storefront-visible only, max 12). */
+    public function linked(Request $request, string $slug): \Illuminate\Http\JsonResponse
+    {
+        $tid = $this->publicTenantId($request);
+        $type = (string) $request->query('type', 'upsell');
+        $column = ['upsell' => 'upsell_ids', 'cross_sell' => 'cross_sell_ids', 'related' => 'related_ids'][$type] ?? null;
+        abort_if($column === null, 422, 'Invalid type');
+
+        $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->storefront()->firstOrFail();
+        $ids = array_slice(array_values(array_filter(array_map('intval', (array) ($product->{$column} ?? [])))), 0, 12);
+        $pricing = PurchaseTypeService::forTenant($tid);
+        $rows = $ids === [] ? collect() : Product::query()
+            ->where('tenant_id', $tid)
+            ->whereIn('id', $ids)
+            ->storefront()
+            ->with(['category', 'brands' => fn ($q) => $q->select('brands.id', 'brands.name', 'brands.slug'), 'media' => fn ($q) => $q->orderBy('sort_order')])
+            ->get()
+            ->sortBy(fn (Product $p) => array_search($p->id, $ids, true))
+            ->values()
+            ->map(fn (Product $p) => $this->withPricing($this->serializeProduct($p, true), $p, $pricing));
+
+        return response()->json(['data' => ['items' => $rows->all()]]);
+    }
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>

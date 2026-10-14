@@ -49,7 +49,7 @@ type CatalogPayload = {
 /** Dedupe identical public catalog GETs across header/home/footer hooks. */
 const catalogInflight = new Map<string, Promise<CatalogPayload | null>>()
 
-function fetchCatalogPayload(query: string): Promise<CatalogPayload | null> {
+export function fetchCatalogPayload(query: string): Promise<CatalogPayload | null> {
   const existing = catalogInflight.get(query)
   if (existing) return existing
   const base = process.env.NEXT_PUBLIC_API_URL ?? ""

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 
+import { cartCount } from "../cart"
 import { evaluateConditions, hasConditions, needsSession, type DisplayConditions } from "../conditions"
 
 let sessionJob: Promise<{ loggedIn: boolean; cartCount: number }> | null = null
@@ -10,7 +11,8 @@ function loadSession() {
     const base = process.env.NEXT_PUBLIC_API_URL ?? ""
     sessionJob = fetch(`${base}/api/v1/cart`, { credentials: "include", headers: { Accept: "application/json" } })
       .then(async (res) => {
-        if (!res.ok) return { loggedIn: false, cartCount: 0 }
+        // Guests keep their cart in localStorage.
+        if (!res.ok) return { loggedIn: false, cartCount: cartCount() }
         const json = (await res.json().catch(() => null)) as { data?: { items?: unknown[] } } | null
         return { loggedIn: true, cartCount: Array.isArray(json?.data?.items) ? json.data.items.length : 0 }
       })

@@ -42,6 +42,7 @@ import {
 import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
 import { FormWidget } from "./form-widget"
+import { FlipBoxWidget, HotspotWidget, ImageBoxWidget, LinkedProductsWidget, LoopGridWidget, MenuCartWidget, NavDropdownWidget, PurchaseSummaryWidget, StateBoxWidget, TocWidget } from "./pro-widgets"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
@@ -286,6 +287,26 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <PricingWidget widget={widget} />
     case "blog-posts":
       return <BlogPostsWidget widget={widget} />
+    case "loop-grid":
+      return <LoopGridWidget widget={widget} editing={editing} />
+    case "image-box":
+      return <ImageBoxWidget widget={widget} />
+    case "flip-box":
+      return <FlipBoxWidget widget={widget} />
+    case "toc":
+      return <TocWidget widget={widget} editing={editing} />
+    case "hotspot":
+      return <HotspotWidget widget={widget} />
+    case "nav-dropdown":
+      return <NavDropdownWidget widget={widget} />
+    case "state-box":
+      return <StateBoxWidget widget={widget} />
+    case "menu-cart":
+      return <MenuCartWidget widget={widget} />
+    case "linked-products":
+      return <LinkedProductsWidget widget={widget} editing={editing} />
+    case "purchase-summary":
+      return <PurchaseSummaryWidget editing={editing} />
     case "search-box":
       return <SearchBoxWidget widget={widget} />
     case "category-list":
