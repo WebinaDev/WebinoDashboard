@@ -42,6 +42,7 @@ const empty = {
   seo_keyword: "",
   seo_title: "",
   seo_description: "",
+  return_notice: "",
 }
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
@@ -89,6 +90,7 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
       seo_keyword: seo.focus_keyword,
       seo_title: seo.title,
       seo_description: seo.description,
+      return_notice: typeof category.meta?.return_notice === "string" ? category.meta.return_notice : "",
     })
     setSlugTouched(true)
   }, [category])
@@ -109,7 +111,7 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
         icon_url: form.icon_url || null,
         thumbnail_id: form.thumbnail_id,
         sort_order: Number(form.sort_order) || 0,
-        meta,
+        meta: { ...meta, return_notice: form.return_notice.trim() || null },
       }
       if (isNew) return api<Category>("/api/v1/categories", { method: "POST", json: payload })
       return api<Category>(`/api/v1/categories/${categoryId}`, { method: "PATCH", json: payload })
@@ -182,6 +184,16 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
               <RichTextEditor
                 value={form.description}
                 onChange={(html) => setForm((f) => ({ ...f, description: html }))}
+              />
+            </div>
+            <div>
+              <Label>{t("category_return_notice")}</Label>
+              <textarea
+                className="border-input bg-background min-h-20 w-full rounded-md border p-3 text-sm"
+                maxLength={1000}
+                value={form.return_notice}
+                placeholder={t("category_return_notice_hint")}
+                onChange={(event) => setForm((f) => ({ ...f, return_notice: event.target.value }))}
               />
             </div>
             <MediaPickerField

@@ -133,4 +133,20 @@ class StorefrontDataIntegrityTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.items.0.slides.1.duration', 8);
     }
+
+    public function test_return_notice_inherits_from_parent_category(): void
+    {
+        $parent = Category::query()->create(['tenant_id' => $this->tenant->id, 'name' => 'آرایشی', 'slug' => 'beauty', 'meta' => ['return_notice' => 'پلمب باز نشود']]);
+        $child = Category::query()->create(['tenant_id' => $this->tenant->id, 'name' => 'رژ', 'slug' => 'lip', 'parent_id' => $parent->id]);
+        $own = Category::query()->create(['tenant_id' => $this->tenant->id, 'name' => 'کتاب', 'slug' => 'book', 'meta' => ['return_notice' => '۷ روز']]);
+        $plain = Category::query()->create(['tenant_id' => $this->tenant->id, 'name' => 'سایر', 'slug' => 'misc']);
+
+        $host = ['Host' => $this->tenant->domain];
+        $a = $this->product(['category_id' => $child->id]);
+        $b = $this->product(['category_id' => $own->id]);
+        $c = $this->product(['category_id' => $plain->id]);
+        $this->withHeaders($host)->getJson('/api/v1/public/catalog/items/'.$a->slug)->assertOk()->assertJsonPath('data.return_notice', 'پلمب باز نشود');
+        $this->withHeaders($host)->getJson('/api/v1/public/catalog/items/'.$b->slug)->assertOk()->assertJsonPath('data.return_notice', '۷ روز');
+        $this->withHeaders($host)->getJson('/api/v1/public/catalog/items/'.$c->slug)->assertOk()->assertJsonPath('data.return_notice', null);
+    }
 }

@@ -386,10 +386,10 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                 {expanded ? tx("product.desc_close") : tx("product.desc_open")}
               </button>
 
-              {tx("product.return_notice") ? (
+              {product.returnNotice || tx("product.return_notice") ? (
                 <div className="sfc-notice">
                   <IconInfo size={18} />
-                  <span>{tx("product.return_notice")}</span>
+                  <span>{product.returnNotice || tx("product.return_notice")}</span>
                 </div>
               ) : null}
 

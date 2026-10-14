@@ -2984,7 +2984,9 @@
     "external_url": "External product URL",
     "external_url_hint": "Shoppers are sent to this URL (e.g. affiliate).",
     "external_button": "Button text",
-    "external_button_ph": "Buy on site"
+    "external_button_ph": "Buy on site",
+    "category_return_notice": "Return policy text for this category",
+    "category_return_notice_hint": "Empty = inherit from parent category or the store-wide text"
   },
   "coffee_admin": {
     "title": "Coffee profile",

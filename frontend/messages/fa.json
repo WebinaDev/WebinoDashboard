@@ -2984,7 +2984,9 @@
     "external_url": "آدرس محصول خارجی",
     "external_url_hint": "خریدار به این لینک هدایت می‌شود (مثل affiliate).",
     "external_button": "متن دکمه",
-    "external_button_ph": "خرید از سایت"
+    "external_button_ph": "خرید از سایت",
+    "category_return_notice": "متن شرایط مرجوعی این دسته",
+    "category_return_notice_hint": "خالی = از دسته والد یا متن عمومی فروشگاه استفاده می‌شود"
   },
   "coffee_admin": {
     "title": "پروفایل قهوه",

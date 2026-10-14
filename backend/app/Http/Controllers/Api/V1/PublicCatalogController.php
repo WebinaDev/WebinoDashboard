@@ -198,6 +198,7 @@ class PublicCatalogController extends Controller
 
         $data = $this->withPricing($this->serializeProduct($product, true), $product, PurchaseTypeService::forTenant($tid));
         $data['likes_count'] = $likesCount;
+        $data['return_notice'] = $this->categoryReturnNotice($product->category);
         // Same price formatting as the catalogue list (item page used to fall back to defaults).
         $general = \App\Services\Shop\ShopSettings::getGeneral($tid);
         $data['currency_display'] = [
@@ -222,5 +223,23 @@ class PublicCatalogController extends Controller
         $data['pricing'] = $pricing->productPricing($product);
 
         return $data;
+    }
+
+    /** Per-category return text (category meta.return_notice), inherited from the nearest ancestor that sets one. */
+    private function categoryReturnNotice(?\App\Models\Category $category): ?string
+    {
+        $seen = [];
+        for ($depth = 0; $category !== null && $depth < 8 && ! isset($seen[$category->id]); $depth++) {
+            $seen[$category->id] = true;
+            $text = is_array($category->meta) ? trim((string) ($category->meta['return_notice'] ?? '')) : '';
+            if ($text !== '') {
+                return mb_substr($text, 0, 1000);
+            }
+            $category = $category->parent_id
+                ? \App\Models\Category::query()->where('tenant_id', $category->tenant_id)->find($category->parent_id)
+                : null;
+        }
+
+        return null;
     }
 }
