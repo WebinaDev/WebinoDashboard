@@ -71,7 +71,7 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
         <ThemeSlot
           kind="single_post"
           tokens={{ title: post.title, excerpt: post.excerpt, body: post.body ?? post.excerpt }}
-          runtime={{ siteName: post.title }}
+          runtime={{ siteName: post.title, postSlug: post.slug }}
         >
           <ClassicBlogSingle
             post={post}
@@ -88,7 +88,7 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
       <ThemeSlot
         kind="single_post"
         tokens={{ title: post.title, excerpt: post.excerpt, body: post.body ?? post.excerpt }}
-        runtime={{ siteName: post.title }}
+        runtime={{ siteName: post.title, postSlug: post.slug }}
       >
         <SiteContentDetail
           title={post.title}

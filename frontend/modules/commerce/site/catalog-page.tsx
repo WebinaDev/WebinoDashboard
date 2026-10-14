@@ -41,13 +41,13 @@ export default async function Page({
     )
   }
   if (route.path === "cart") {
-    return themedOrPublished("cart", classic ? classicCartDocument() : storeCartDocument())
+    return <ThemeSlot kind="cart">{await themedOrPublished("cart", classic ? classicCartDocument() : storeCartDocument())}</ThemeSlot>
   }
   if (route.path === "checkout") {
-    return themedOrPublished("checkout", classicCheckoutDocument())
+    return <ThemeSlot kind="checkout">{await themedOrPublished("checkout", classicCheckoutDocument())}</ThemeSlot>
   }
   if (route.path === "account") {
-    return themedOrPublished("account", classicAccountDocument())
+    return <ThemeSlot kind="account">{await themedOrPublished("account", classicAccountDocument())}</ThemeSlot>
   }
 
   const built = await StorefrontBody({

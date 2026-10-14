@@ -10,6 +10,9 @@ export type ThemeKind =
   | "loop_item"
   | "not_found"
   | "popup"
+  | "cart"
+  | "checkout"
+  | "account"
 
 export type ThemeQuery = {
   path: string
@@ -17,6 +20,10 @@ export type ThemeQuery = {
   archive?: "blog" | "category" | "tag" | "product"
   search?: boolean
   notFound?: boolean
+  /** Product/post slug on singular pages. */
+  slug?: string
+  /** Product category slug (archive ?category= or the product's own category, resolved server-side). */
+  category?: string
 }
 
 export function normalizeThemePath(path: string): string {
@@ -30,14 +37,15 @@ export function inferThemeQuery(pathname: string, search = ""): ThemeQuery {
   const path = normalizeThemePath(pathname)
   const params = new URLSearchParams(search)
   const isSearch = path === "/search" || params.has("s") || params.has("q")
-  if (path.startsWith("/product/")) return { path, singular: "product", search: isSearch }
+  const category = params.get("category") || undefined
+  if (path.startsWith("/product/")) return { path, singular: "product", search: isSearch, slug: decodeURIComponent(path.slice("/product/".length).split("/")[0] || "") || undefined }
   if (path.startsWith("/pages/")) return { path, singular: "page", search: isSearch }
-  if (path.startsWith("/blog/") && path !== "/blog") return { path, singular: "post", search: isSearch }
+  if (path.startsWith("/blog/") && path !== "/blog") return { path, singular: "post", search: isSearch, slug: decodeURIComponent(path.slice("/blog/".length).split("/")[0] || "") || undefined }
   if (path.startsWith("/tag/")) return { path, archive: "tag", search: isSearch }
   if (path === "/blog") return { path, archive: "blog", search: isSearch }
   if (path.includes("/category/")) return { path, archive: "category", search: isSearch }
   if (path === "/shop" || path.startsWith("/shop/") || path.startsWith("/product-category")) {
-    return { path, archive: "product", search: isSearch }
+    return { path, archive: "product", search: isSearch, category }
   }
   return { path, search: isSearch }
 }
@@ -50,5 +58,7 @@ export function themeQueryString(kind: string, query: ThemeQuery): string {
   if (query.archive) params.set("archive", query.archive)
   if (query.search) params.set("search", "1")
   if (query.notFound) params.set("not_found", "1")
+  if (query.slug) params.set("slug", query.slug)
+  if (query.category) params.set("category", query.category)
   return params.toString()
 }

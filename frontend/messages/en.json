@@ -6700,7 +6700,9 @@
       "product_archive": "Product archive",
       "loop_item": "Loop items",
       "not_found": "404 page"
-    }
+    },
+    "product": "Specific product (slug)",
+    "product_category": "Product category (slug)"
   },
   "builder_globals": {
     "title": "Global settings",

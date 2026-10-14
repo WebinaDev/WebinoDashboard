@@ -1,4 +1,7 @@
 import {
+  CreditCard,
+  ShoppingCart,
+  UserRound,
   Blocks,
   Braces,
   CircleHelp,
@@ -74,6 +77,9 @@ export const THEME_KIND_ICONS: Record<ThemeKind, LucideIcon> = {
   loop_item: GalleryHorizontalEnd,
   not_found: CircleHelp,
   popup: CircleHelp,
+  cart: ShoppingCart,
+  checkout: CreditCard,
+  account: UserRound,
 }
 
 export const SETTINGS_SECTION_ICONS = {

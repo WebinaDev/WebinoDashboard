@@ -17,9 +17,12 @@ class ThemeTemplateKinds
         'loop_item' => 'آیتم‌های لوپ',
         'not_found' => 'صفحه ۴۰۴',
         'popup' => 'پاپ‌آپ',
+        'cart' => 'سبد خرید',
+        'checkout' => 'تسویه حساب',
+        'account' => 'حساب کاربری',
     ];
 
-    public const RULE_TYPES = 'entire_site,url,url_prefix,url_contains,singular,archive,search,not_found';
+    public const RULE_TYPES = 'entire_site,url,url_prefix,url_contains,singular,archive,search,not_found,product,product_category';
 
     public static function is(string $kind): bool
     {

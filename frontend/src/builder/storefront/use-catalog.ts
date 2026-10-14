@@ -120,6 +120,8 @@ export function useCatalog(limit: number): CatalogState {
   const sort = params.get("sort") ?? ""
   const inStock = params.get("in_stock") === "1"
   const onSale = params.get("on_sale") === "1"
+  const minPrice = params.get("min_price") ?? ""
+  const maxPrice = params.get("max_price") ?? ""
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1)
 
   const [state, setState] = useState<CatalogState>(EMPTY_CATALOG)
@@ -136,6 +138,8 @@ export function useCatalog(limit: number): CatalogState {
     if (brand) query.set("brand", brand)
     if (inStock) query.set("in_stock", "1")
     if (onSale) query.set("on_sale", "1")
+    if (/^\d+$/.test(minPrice)) query.set("min_price", minPrice)
+    if (/^\d+$/.test(maxPrice)) query.set("max_price", maxPrice)
 
     void fetchCatalogPayload(query.toString()).then((payload) => {
       if (cancel || !payload) return
@@ -151,7 +155,7 @@ export function useCatalog(limit: number): CatalogState {
     return () => {
       cancel = true
     }
-  }, [brand, category, inStock, limit, onSale, page, q, sort])
+  }, [brand, category, inStock, limit, maxPrice, minPrice, onSale, page, q, sort])
 
   return state
 }

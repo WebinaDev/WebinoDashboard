@@ -148,7 +148,7 @@ export function AmazingOffersBlockWidget({ widget }: { widget: WidgetNode }) {
   const catalog = useCatalog(8)
   const offers = catalog.products.filter((p) => p.compare && p.compare > p.price).slice(0, 4)
   const classic = useIsClassicSkin()
-  if (classic) return <ClassicAmazingBand title={title} />
+  if (classic) return <ClassicAmazingBand title={title} limit={propNum(widget.props, "limit", 0)} />
   return (
     <section className="mx-auto max-w-6xl px-4 py-6">
       <div className="sf-amazing-banner">

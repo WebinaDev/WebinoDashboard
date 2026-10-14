@@ -202,7 +202,7 @@ function ClassicStoryViewer({
   )
 }
 
-export function ClassicStoryStrip({ title }: { title?: string }) {
+export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: number }) {
   const tx = useClassicText()
   const theme = useClassicThemeSettings()
   const catalog = useCatalog(16)
@@ -279,7 +279,8 @@ export function ClassicStoryStrip({ title }: { title?: string }) {
         productPrice: p.price,
       }))
     : []
-  const stories = storiesEnriched && storiesEnriched.length ? storiesEnriched : fallback
+  const allStories = storiesEnriched && storiesEnriched.length ? storiesEnriched : fallback
+  const stories = limit && limit > 0 ? allStories.slice(0, limit) : allStories
   if (!stories.length) return null
 
   return (
@@ -479,10 +480,10 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
 
 /* ------------------------------------------------------ icon category grid */
 
-export function ClassicIconCategories({ title, variant = "home" }: { title?: string; variant?: "home" | "archive" }) {
+export function ClassicIconCategories({ title, variant = "home", limit }: { title?: string; variant?: "home" | "archive"; limit?: number }) {
   const homeCfg = useClassicThemeSettings().home ?? {}
   const catalog = useCatalog(16)
-  const items = catalog.categories.slice(0, variant === "archive" ? 8 : Math.max(1, Number(homeCfg.icon_categories_limit) || 6))
+  const items = catalog.categories.slice(0, limit && limit > 0 ? limit : variant === "archive" ? 8 : Math.max(1, Number(homeCfg.icon_categories_limit) || 6))
   return (
     <section className={`sfc-catgrid sfc-catgrid--${variant}`}>
       {title ? <ClassicSectionHead title={title} href="/shop" /> : null}
@@ -618,7 +619,7 @@ export function ClassicBestSellers({ title, limit = 9 }: { title?: string; limit
 
 /* ---------------------------------------------------------------- brands */
 
-export function ClassicBrandGrid({ title }: { title?: string }) {
+export function ClassicBrandGrid({ title, limit }: { title?: string; limit?: number }) {
   const tx = useClassicText()
   const homeCfg = useClassicThemeSettings().home ?? {}
   const catalog = useCatalog(24)
@@ -634,7 +635,7 @@ export function ClassicBrandGrid({ title }: { title?: string }) {
     <section className="sfc-brands">
       <ClassicSectionHead title={title || tx("home.brands_title")} href="/shop" />
       <div className="sfc-brands__grid">
-        {brands.slice(0, Math.max(1, Number(homeCfg.brands_limit) || 12)).map((brand) => {
+        {brands.slice(0, limit && limit > 0 ? limit : Math.max(1, Number(homeCfg.brands_limit) || 12)).map((brand) => {
           const logo = catalog.products.find((p) => (p.brandSlug === brand.slug || p.brand === brand.name) && p.image)?.image
           return (
             <Link key={brand.slug} href={`/shop?brand=${encodeURIComponent(brand.slug)}`} className="sfc-brand">
@@ -703,7 +704,7 @@ export function ClassicBlogBlock({ title }: { title?: string }) {
 
 /* ------------------------------------------------------- recently viewed */
 
-export function ClassicRecentlyViewed({ title }: { title?: string }) {
+export function ClassicRecentlyViewed({ title, limit }: { title?: string; limit?: number }) {
   const tx = useClassicText()
   const catalog = useCatalog(48)
   const [slugs, setSlugs] = useState<string[]>([])
@@ -719,13 +720,14 @@ export function ClassicRecentlyViewed({ title }: { title?: string }) {
   const products = slugs
     .map((slug) => catalog.products.find((p) => p.slug === slug))
     .filter((p): p is ShopProduct => Boolean(p))
+    .slice(0, limit && limit > 0 ? limit : 24)
   if (!products.length) return null
   return <ClassicProductRow title={title || tx("home.recent_title")} products={products} href="/shop" more={tx("home.view_all")} />
 }
 
 /* ------------------------------------------------- amazing offers pink band */
 
-export function ClassicAmazingBand({ title }: { title?: string }) {
+export function ClassicAmazingBand({ title, limit }: { title?: string; limit?: number }) {
   const tx = useClassicText()
   const theme = useClassicThemeSettings()
   const catalog = useCatalog(24)
@@ -739,7 +741,7 @@ export function ClassicAmazingBand({ title }: { title?: string }) {
   }, [])
   const offers = catalog.products.filter((p) => p.compare && p.compare > p.price)
   // Only real discounts are shown as «شگفت‌انگیز»; no discounted products → section hides.
-  const list = offers.slice(0, Math.max(1, Number(theme.home?.amazing_limit) || 10))
+  const list = offers.slice(0, limit && limit > 0 ? limit : Math.max(1, Number(theme.home?.amazing_limit) || 10))
   if (!list.length) return null
   const end = new Date()
   end.setHours(23, 59, 59, 0)
@@ -776,11 +778,11 @@ export function ClassicAmazingBand({ title }: { title?: string }) {
 
 /* -------------------------------------------------------------- taste box */
 
-export function ClassicTasteBox({ title }: { title?: string }) {
+export function ClassicTasteBox({ title, limit }: { title?: string; limit?: number }) {
   const homeCfg = useClassicThemeSettings().home ?? {}
   const tx = useClassicText()
   const catalog = useCatalog(24)
-  const groups = catalog.categories.slice(0, Math.max(1, Number(homeCfg.taste_groups) || 3)).map((cat) => {
+  const groups = catalog.categories.slice(0, limit && limit > 0 ? limit : Math.max(1, Number(homeCfg.taste_groups) || 3)).map((cat) => {
     const kids = cat.children?.length ? cat.children : [{ slug: cat.slug, name: cat.name, tone: cat.tone }]
     const products = catalog.products
       .filter((p) => p.categorySlug === cat.slug || p.category === cat.name || kids.some((k) => k.slug === p.categorySlug))
@@ -842,7 +844,7 @@ export function ClassicTasteBox({ title }: { title?: string }) {
 
 /* ----------------------------------------------------- special banners */
 
-export function ClassicSpecialBanners({ title }: { title?: string }) {
+export function ClassicSpecialBanners({ title, limit }: { title?: string; limit?: number }) {
   const tx = useClassicText()
   const catalog = useCatalog(16)
   const digits = useDigits()
@@ -853,7 +855,7 @@ export function ClassicSpecialBanners({ title }: { title?: string }) {
     return () => window.clearInterval(timer)
   }, [])
   const offers = catalog.products.filter((p) => p.compare && p.compare > p.price)
-  const list = offers.slice(0, 8)
+  const list = offers.slice(0, limit && limit > 0 ? limit : 8)
   if (!list.length) return null
   const end = new Date()
   end.setHours(23, 59, 59, 0)

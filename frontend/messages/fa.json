@@ -6700,7 +6700,9 @@
       "product_archive": "آرشیو محصولات",
       "loop_item": "آیتم‌های لوپ",
       "not_found": "صفحه ۴۰۴"
-    }
+    },
+    "product": "محصول خاص (نامک)",
+    "product_category": "دستهٔ محصول (نامک)"
   },
   "builder_globals": {
     "title": "تنظیمات سراسری",

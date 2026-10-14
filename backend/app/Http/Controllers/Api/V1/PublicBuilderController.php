@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
 use App\Http\Controllers\Controller;
 use App\Models\CmsPage;
+use App\Models\Product;
 use App\Services\Builder\ThemeRequestContext;
 use App\Services\Builder\ThemeTemplateKinds;
 use App\Services\Builder\ThemeTemplateResolver;
@@ -49,7 +50,19 @@ class PublicBuilderController extends Controller
             'archive' => 'nullable|string|max:32',
             'search' => 'nullable|boolean',
             'not_found' => 'nullable|boolean',
+            'slug' => 'nullable|string|max:191',
+            'category' => 'nullable|string|max:191',
         ]);
+
+        // Product pages: derive the product's category so `product_category` rules can match.
+        if (($data['singular'] ?? null) === 'product' && ! empty($data['slug']) && empty($data['category'])) {
+            $product = Product::query()
+                ->where('tenant_id', $this->publicTenantId($request))
+                ->where('slug', $data['slug'])
+                ->with('category:id,slug')
+                ->first(['id', 'category_id']);
+            $data['category'] = $product?->category?->slug;
+        }
 
         return $this->resolved($request, $data['kind'], ThemeRequestContext::fromArray($data));
     }

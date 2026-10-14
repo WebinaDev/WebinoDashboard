@@ -73,6 +73,8 @@ export type RuntimeContext = {
   siteName?: string
   logoUrl?: string | null
   productSlug?: string
+  /** Blog post slug on single-post theme templates. */
+  postSlug?: string
   categorySlug?: string
   /** Active storefront theme slug — drives DocumentView skin class. */
   themeSlug?: string | null
@@ -98,7 +100,7 @@ export type FieldDef =
   | { kind: "select"; key: string; label: string; options: { value: string; label: string }[] }
   | { kind: "switch"; key: string; label: string }
 
-export type WidgetCategory = "layout" | "basic" | "commerce" | "chrome"
+export type WidgetCategory = "layout" | "basic" | "commerce" | "chrome" | "parts"
 
 export type WidgetDef = {
   type: string

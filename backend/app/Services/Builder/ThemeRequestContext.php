@@ -10,6 +10,10 @@ class ThemeRequestContext
         public readonly ?string $archive = null,
         public readonly bool $search = false,
         public readonly bool $notFound = false,
+        /** Current product/post slug (singular pages). */
+        public readonly ?string $slug = null,
+        /** Current product category slug (category archive or the product's category). */
+        public readonly ?string $category = null,
     ) {}
 
     /** @param  array<string, mixed>  $data */
@@ -21,6 +25,8 @@ class ThemeRequestContext
             self::enum($data['archive'] ?? null, ['blog', 'category', 'tag', 'product']),
             filter_var($data['search'] ?? false, FILTER_VALIDATE_BOOLEAN),
             filter_var($data['not_found'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            self::slug($data['slug'] ?? null),
+            self::slug($data['category'] ?? null),
         );
     }
 
@@ -42,6 +48,16 @@ class ThemeRequestContext
         }
 
         return $path;
+    }
+
+    private static function slug(mixed $value): ?string
+    {
+        $raw = mb_strtolower(trim((string) $value));
+        if ($raw === '' || mb_strlen($raw) > 191) {
+            return null;
+        }
+
+        return preg_match('/^[\p{L}\p{N}_\-]+$/u', $raw) ? $raw : null;
     }
 
     /** @param  list<string>  $allowed */

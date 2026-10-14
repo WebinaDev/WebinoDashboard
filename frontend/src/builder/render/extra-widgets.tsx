@@ -98,17 +98,47 @@ export function ProductQueryWidget({ widget }: { widget: WidgetNode }) {
   const layout = propStr(widget.props, "layout", "slider")
   const href = propStr(widget.props, "href", "")
   const sort = propStr(widget.props, "sort", "newest")
-  const category = propStr(widget.props, "category", "")
   const brand = propStr(widget.props, "brand", "")
   const onSale = propBool(widget.props, "onSale")
   const inStock = propBool(widget.props, "inStock")
-  const { products, loading } = useProductQuery({ sort, limit, category, brand, onSale, inStock })
+  const excludeSlug = propStr(widget.props, "excludeSlug", "")
+  // Optional category tabs: "label|category-slug" per line (3.8).
+  const tabs = splitRows(propStr(widget.props, "tabs", "")).filter(([label]) => label)
+  const [tabIndex, setTabIndex] = useState(0)
+  const activeTab = tabs.length ? tabs[Math.min(tabIndex, tabs.length - 1)] : null
+  const category = activeTab ? activeTab[1] ?? "" : propStr(widget.props, "category", "")
+  const query = useProductQuery({ sort, limit: excludeSlug ? limit + 1 : limit, category, brand, onSale, inStock })
+  const loading = query.loading
+  const products = excludeSlug ? query.products.filter((p) => p.slug !== excludeSlug).slice(0, limit) : query.products
   const moreHref = href || `/shop?${new URLSearchParams({ ...(sort ? { sort } : {}), ...(category ? { category } : {}), ...(brand ? { brand } : {}) }).toString()}`
-  if (!loading && !products.length) return null
-  if (classic && layout === "slider") return <ClassicProductRow title={title || "محصولات"} products={products} href={moreHref} />
+  const tabBar = tabs.length ? (
+    <div role="tablist" className="mb-3 flex gap-2 overflow-x-auto">
+      {tabs.map(([label], i) => (
+        <button
+          key={label + i}
+          type="button"
+          role="tab"
+          aria-selected={i === tabIndex}
+          onClick={() => setTabIndex(i)}
+          className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-bold ${i === tabIndex ? "bg-primary text-primary-foreground" : "border border-border bg-card text-foreground/75"}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  ) : null
+  if (!loading && !products.length && !tabs.length) return null
+  if (classic && layout === "slider")
+    return (
+      <div>
+        {tabBar}
+        <ClassicProductRow title={title || "محصولات"} products={products} href={moreHref} />
+      </div>
+    )
   return (
     <section className="wbx-products">
       <SectionTitle title={title} href={moreHref} />
+      {tabBar}
       <div className={layout === "slider" ? "flex snap-x gap-3 overflow-x-auto pb-2 [&>*]:w-48 [&>*]:shrink-0 [&>*]:snap-start" : "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5"}>
         {products.map((product) => (
           <StoreProductCard key={product.slug} product={product} />
@@ -763,5 +793,45 @@ export function WidgetIntro({ widget, children }: { widget: WidgetNode; children
       </div>
       {children}
     </div>
+  )
+}
+
+/* ------------------------------------------------- Instagram / social feed */
+
+/** 3.16 — Instagram has no public, key-less API, so the feed is curated: image|post link|caption per line. */
+export function FeedWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", "")).filter(([src]) => src)
+  const handle = propStr(widget.props, "handle", "").replace(/^@/, "")
+  const profile = propStr(widget.props, "profileUrl", "") || (handle ? `https://instagram.com/${handle}` : "")
+  const title = propStr(widget.props, "title", "")
+  const cols = Math.max(2, Math.min(6, propNum(widget.props, "columns", 4)))
+  if (!rows.length) return null
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        {title ? <h2 className="text-lg font-extrabold text-foreground">{title}</h2> : <span />}
+        {profile ? (
+          <a href={safeHref(profile)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary" dir="ltr">
+            {handle ? `@${handle}` : "Instagram"}
+          </a>
+        ) : null}
+      </div>
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+        {rows.map(([src, href, caption], i) => {
+          const img = <img src={src} alt={caption || ""} loading="lazy" className="h-full w-full object-cover transition-transform hover:scale-105" />
+          return (
+            <div key={i} className="aspect-square overflow-hidden rounded-xl bg-muted">
+              {href ? (
+                <a href={safeHref(href)} target="_blank" rel="noopener noreferrer" aria-label={caption || "post"}>
+                  {img}
+                </a>
+              ) : (
+                img
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }

@@ -88,6 +88,39 @@ class ThemeBuilderTest extends TestCase
             ->assertJsonFragment(['kind' => 'single_product', 'label' => 'محصول تکی']);
     }
 
+    public function test_product_and_category_conditions_and_cart_kind(): void
+    {
+        $tenant = $this->createTenant(['domain' => 'localhost', 'slug' => 'theme-cond']);
+        $this->enableSubmodule($tenant->id, 'cms', 'pages');
+        $admin = User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+        $cat = \App\Models\Category::query()->create(['tenant_id' => $tenant->id, 'name' => 'Skin', 'slug' => 'skin']);
+        \App\Models\Product::query()->create(['tenant_id' => $tenant->id, 'name' => 'Cream', 'slug' => 'cream', 'price_minor' => 1000, 'currency' => 'IRR', 'status' => 'publish', 'category_id' => $cat->id]);
+
+        $make = function (string $kind, string $id, array $conditions, bool $default = false) {
+            $row = $this->postJson('/api/v1/theme-builder/templates', [
+                'kind' => $kind,
+                'title' => $id,
+                'is_default' => $default,
+                'priority' => 5,
+                'conditions' => $conditions,
+                'document' => ['version' => 1, 'sections' => [['id' => $id, 'columns' => []]]],
+            ])->assertCreated()->json('data');
+            $this->postJson('/api/v1/theme-builder/templates/'.$row['id'].'/publish')->assertOk();
+        };
+        $make('single_product', 'sec_default_pdp', [], true);
+        $make('single_product', 'sec_skin_pdp', ['include' => [['type' => 'product_category', 'value' => 'skin']]]);
+        $make('cart', 'sec_cart', [], true);
+
+        $host = ['HTTP_HOST' => 'localhost'];
+        $this->getJson('/api/v1/public/builder/resolve?kind=single_product&path=/product/cream&singular=product&slug=cream', $host)
+            ->assertOk()->assertJsonPath('data.document.sections.0.id', 'sec_skin_pdp');
+        $this->getJson('/api/v1/public/builder/resolve?kind=single_product&path=/product/other&singular=product&slug=other', $host)
+            ->assertOk()->assertJsonPath('data.document.sections.0.id', 'sec_default_pdp');
+        $this->getJson('/api/v1/public/builder/resolve?kind=cart&path=/cart', $host)
+            ->assertOk()->assertJsonPath('data.document.sections.0.id', 'sec_cart');
+    }
+
     public function test_global_settings_publish_and_tokens(): void
     {
         $tenant = $this->createTenant(['domain' => 'localhost', 'slug' => 'builder-globals']);

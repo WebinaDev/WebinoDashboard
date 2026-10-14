@@ -67,8 +67,22 @@ import {
   TabsWidget,
   TestimonialsWidget,
   WidgetIntro,
+  FeedWidget,
   splitRows,
 } from "./extra-widgets"
+import {
+  ArchivePartWidget,
+  CartCouponWidget,
+  CartTotalsWidget,
+  FooterPartWidget,
+  FreeShippingBarWidget,
+  HeaderPartWidget,
+  InstallmentWidget,
+  PostPartWidget,
+  PriceFilterWidget,
+  ProductPartWidget,
+  RelatedProductsWidget,
+} from "./part-widgets"
 import {
   ClassicBestSellers,
   ClassicBrandGrid,
@@ -112,8 +126,10 @@ function AbstractArt({ tone, label }: { tone: string; label: string }) {
 
 export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: EditorApi }) {
   const runtime = useBuilderRuntime()
+  const locale = useLocale()
   const editing = Boolean(editor)
   const classic = runtime.themeSlug === "ecommerce-classic"
+  const runtimeLocale = locale
   switch (widget.type) {
     case "heading":
       return <HeadingWidget widget={widget} editor={editor} />
@@ -150,12 +166,13 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
         <ClassicIconCategories
           title={propStr(widget.props, "variant", "popular") === "strip" ? undefined : propStr(widget.props, "title", "دسته‌بندی‌های محبوب")}
           variant={propStr(widget.props, "variant", "popular") === "strip" ? "archive" : "home"}
+          limit={propNum(widget.props, "limit", 0)}
         />
       ) : (
         <CategoryWidget widget={widget} />
       )
     case "story-strip":
-      return <ClassicStoryStrip title={propStr(widget.props, "title", "")} />
+      return <ClassicStoryStrip title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} />
     case "category-tiles":
       return <ClassicCategoryTiles tilesText={propStr(widget.props, "tiles", "")} />
     case "promo-trio":
@@ -163,7 +180,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "best-sellers":
       return <ClassicBestSellers title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 9)} />
     case "recently-viewed":
-      return <ClassicRecentlyViewed title={propStr(widget.props, "title", "")} />
+      return <ClassicRecentlyViewed title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} />
     case "product-grid":
       return <ProductGridWidget widget={widget} editing={editing} />
     case "product-card":
@@ -181,7 +198,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "newsletter":
       return <NewsletterWidget widget={widget} />
     case "brand-row":
-      return classic ? <ClassicBrandGrid title={propStr(widget.props, "title", "")} /> : <BrandRow widget={widget} />
+      return classic ? <ClassicBrandGrid title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} /> : <BrandRow widget={widget} />
     case "blog-teasers":
       return <BlogWidget widget={widget} />
     case "filter-panel":
@@ -209,9 +226,9 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "most-viewed":
       return <MostViewedWidget widget={widget} />
     case "taste-box":
-      return classic ? <ClassicTasteBox title={propStr(widget.props, "title", "")} /> : <TasteBoxWidget widget={widget} />
+      return classic ? <ClassicTasteBox title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} /> : <TasteBoxWidget widget={widget} />
     case "special-banners":
-      return <ClassicSpecialBanners title={propStr(widget.props, "title", "")} />
+      return <ClassicSpecialBanners title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} />
     case "customer-guide":
       return <ClassicCustomerGuide title={propStr(widget.props, "title", "")} itemsText={propStr(widget.props, "items", "")} />
     case "package-block":
@@ -272,6 +289,51 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <CategoryListWidget widget={widget} />
     case "login-cta":
       return <LoginCtaWidget widget={widget} />
+    case "feed":
+      return <FeedWidget widget={widget} />
+    case "installment-info":
+      return <InstallmentWidget widget={widget} editing={editing} />
+    case "price-filter":
+      return <PriceFilterWidget widget={widget} />
+    case "product-title":
+    case "product-price":
+    case "product-rating":
+    case "product-stock":
+    case "product-attributes":
+    case "product-description":
+    case "product-faq":
+      return <ProductPartWidget widget={widget} editing={editing} />
+    case "related-products":
+      return <RelatedProductsWidget widget={widget} editing={editing} />
+    case "archive-title":
+    case "archive-description":
+    case "archive-sort":
+    case "archive-count":
+    case "archive-subcategories":
+      return <ArchivePartWidget widget={widget} editing={editing} />
+    case "cart-totals":
+      return <CartTotalsWidget widget={widget} />
+    case "cart-coupon":
+      return <CartCouponWidget widget={widget} />
+    case "free-shipping-bar":
+      return <FreeShippingBarWidget widget={widget} />
+    case "site-logo":
+    case "nav-menu":
+    case "cart-button":
+    case "account-button":
+    case "wishlist-button":
+    case "phone-link":
+      return <HeaderPartWidget widget={widget} />
+    case "footer-links":
+    case "contact-info":
+    case "trust-seals":
+    case "copyright":
+      return <FooterPartWidget widget={widget} />
+    case "post-title":
+    case "post-cover":
+    case "post-meta":
+    case "post-content":
+      return <PostPartWidget widget={widget} editing={editing} locale={runtimeLocale} />
     case "breadcrumbs":
       return <BreadcrumbsWidget widget={widget} />
     case "store-header":
@@ -658,7 +720,19 @@ function ProductCard({ product }: { product: ShopProduct }) {
   return <StoreProductCard product={product} />
 }
 
+/** «پرفروش» (source=featured) uses real best-selling order data via the product query widget. */
 function ProductGridWidget({ widget, editing }: { widget: WidgetNode; editing: boolean }) {
+  if (propStr(widget.props, "source", "all") === "featured") {
+    return (
+      <ProductQueryWidget
+        widget={{ ...widget, props: { ...widget.props, sort: "best_selling", layout: propStr(widget.props, "layout", "slider"), limit: propNum(widget.props, "limit", 8) } }}
+      />
+    )
+  }
+  return <ProductGridInner widget={widget} editing={editing} />
+}
+
+function ProductGridInner({ widget, editing }: { widget: WidgetNode; editing: boolean }) {
   const t = useTranslations("storefront")
   const limit = propNum(widget.props, "limit", 8)
   const source = propStr(widget.props, "source", "all")
@@ -672,7 +746,6 @@ function ProductGridWidget({ widget, editing }: { widget: WidgetNode; editing: b
   const brand = params.get("brand") ?? ""
   const products = useMemo(() => {
     let rows = [...catalog.products]
-    if (source === "featured") rows = rows.slice().reverse()
     if (source === "related" && runtime.productSlug) rows = rows.filter((item) => item.slug !== runtime.productSlug)
     if (category) rows = rows.filter((item) => item.categorySlug === category || item.category === category)
     if (brand) rows = rows.filter((item) => item.brandSlug === brand || item.brand === brand)
