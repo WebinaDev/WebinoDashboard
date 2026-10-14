@@ -32,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \App\Services\Builder\BuilderRevisions::register();
         RateLimiter::for('public-writes', function (Request $request) {
             $tenant = (string) ($request->attributes->get('public_tenant_id') ?: $request->getHost());
             $ip = (string) ($request->ip() ?: 'unknown');

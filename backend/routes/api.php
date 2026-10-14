@@ -915,6 +915,9 @@ Route::prefix('v1')->group(function () {
                 Route::get('/builder/templates/{kind}', [BuilderController::class, 'showTemplate']);
                 Route::put('/builder/templates/{kind}', [BuilderController::class, 'saveTemplate']);
                 Route::post('/builder/templates/{kind}/publish', [BuilderController::class, 'publishTemplate']);
+                Route::get('/builder/revisions', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'index']);
+                Route::get('/builder/revisions/{revision}', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'show'])->whereNumber('revision');
+                Route::post('/builder/revisions/{revision}/restore', [\App\Http\Controllers\Api\V1\BuilderRevisionController::class, 'restore'])->whereNumber('revision');
                 Route::get('/builder/globals', [BuilderGlobalsController::class, 'show']);
                 Route::put('/builder/globals', [BuilderGlobalsController::class, 'update']);
                 Route::post('/builder/globals/publish', [BuilderGlobalsController::class, 'publish']);
