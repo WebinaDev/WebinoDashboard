@@ -42,6 +42,7 @@ import {
 import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
 import { FormWidget } from "./form-widget"
+import { PopupWidget } from "./popup-widget"
 import { FlipBoxWidget, HotspotWidget, ImageBoxWidget, LinkedProductsWidget, LoopGridWidget, MenuCartWidget, NavDropdownWidget, PurchaseSummaryWidget, StateBoxWidget, TocWidget } from "./pro-widgets"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
@@ -156,7 +157,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "form":
       return <FormWidget widget={widget} />
     case "popup":
-      return <PopupWidget widget={widget} />
+      return <PopupWidget widget={widget} editing={editing} />
     case "hero-slider":
       return classic ? (
         <ClassicHero slidesText={propStr(widget.props, "slides", "")} />
@@ -517,43 +518,6 @@ function MenuWidget({ widget }: { widget: WidgetNode }) {
 }
 
 
-function PopupWidget({ widget }: { widget: WidgetNode }) {
-  const [open, setOpen] = useState(false)
-  const trigger = propStr(widget.props, "trigger", "delay")
-  const delayMs = Math.max(0, Number(widget.props.delayMs ?? 2000))
-  useEffect(() => {
-    if (trigger === "load") {
-      setOpen(true)
-      return
-    }
-    if (trigger === "delay") {
-      const timer = window.setTimeout(() => setOpen(true), delayMs)
-      return () => window.clearTimeout(timer)
-    }
-    const onLeave = (event: MouseEvent) => {
-      if (event.clientY <= 0) setOpen(true)
-    }
-    document.addEventListener("mouseout", onLeave)
-    return () => document.removeEventListener("mouseout", onLeave)
-  }, [trigger, delayMs])
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-5 shadow-xl">
-        <h3 className="wb-type-h3">{propStr(widget.props, "title", "پاپ‌آپ")}</h3>
-        <p className="wb-type-body mt-2 text-muted-foreground">{propStr(widget.props, "text", "")}</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href={propStr(widget.props, "href", "/")} {...linkAttrs(widget.props, "href")} className="wb-btn wb-btn-primary" onClick={() => setOpen(false)}>
-            {propStr(widget.props, "cta", "باشه")}
-          </Link>
-          <button type="button" className="wb-btn" onClick={() => setOpen(false)}>
-            بستن
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 const SLIDES = [
   {
