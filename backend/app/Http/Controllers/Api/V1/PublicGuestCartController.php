@@ -214,7 +214,9 @@ class PublicGuestCartController extends Controller
         }
 
         $pickupAt = null;
-        if ($fulfillment === 'pickup') {
+        // Pickup needs a slot; delivery may pick one (empty = as soon as possible). Either way only
+        // offered slots inside opening hours are accepted.
+        if ($fulfillment === 'pickup' || ($fulfillment === 'delivery' && ! empty($meta['pickup_time']))) {
             // Only offered slots are accepted: after prep time and inside opening hours.
             $slot = collect($ordering->pickupSlots($tid))->firstWhere('time', $meta['pickup_time']);
             if (! $slot) {
@@ -317,7 +319,7 @@ class PublicGuestCartController extends Controller
                     ];
                 }
                 if ($pickupAt) {
-                    $metaOrder['pickup_at'] = $pickupAt->toIso8601String();
+                    $metaOrder[$fulfillment === 'delivery' ? 'delivery_at' : 'pickup_at'] = $pickupAt->toIso8601String();
                 }
 
                 $address = $fulfillment === 'delivery'

@@ -53,6 +53,9 @@ export function useServerCart() {
 
   useEffect(() => {
     void reload()
+    // Never leave the cart on "loading": a hung request falls back to the guest (local) cart.
+    const timer = window.setTimeout(() => setAuth((a) => (a === "loading" ? "guest" : a)), 8000)
+    return () => window.clearTimeout(timer)
   }, [reload])
 
   useEffect(() => {

@@ -73,6 +73,30 @@ const LINK_HUB_RESERVED = new Set([
   "_next",
 ])
 
+/**
+ * `/contact` on the primary domain: when no builder page claims it, send visitors to the tenant's
+ * contact (link hub) alias, e.g. cafebluedez.ir/contact -> https://contact.cafebluedez.ir/.
+ */
+async function contactAliasRedirect(request: NextRequest): Promise<string | null> {
+  const apiBase = getServerApiBase()
+  if (!apiBase) return null
+  const host = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
+  if (!host) return null
+  const init = { headers: { Accept: "application/json", "X-Tenant-Domain": host }, cache: "no-store" as const }
+  try {
+    const page = await fetch(`${apiBase}/api/v1/public/pages/contact`, init)
+    if (page.ok) return null
+    const res = await fetch(`${apiBase}/api/v1/public/tenant`, init)
+    if (!res.ok) return null
+    const json = (await res.json()) as { data?: { alias_subdomain?: string; domain_aliases?: string[] } }
+    const sub = json.data?.alias_subdomain || "contact"
+    const target = `${sub}.${host.replace(/^www\./, "")}`
+    return (json.data?.domain_aliases ?? []).map((d) => d.toLowerCase()).includes(target) ? `https://${target}/` : null
+  } catch {
+    return null
+  }
+}
+
 async function resolveHostMode(request: NextRequest): Promise<"link-hub" | "primary"> {
   const apiBase = getServerApiBase()
   if (!apiBase) return "primary"
@@ -152,6 +176,9 @@ export async function middleware(request: NextRequest) {
         rewriteRes.headers.set("x-webino-host-mode", "link-hub")
         return rewriteRes
       }
+    } else if (pathname === "/contact") {
+      const target = await contactAliasRedirect(request)
+      if (target) return NextResponse.redirect(target, 308)
     }
   }
 

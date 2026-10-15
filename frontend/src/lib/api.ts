@@ -67,6 +67,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   const headers: HeadersInit = {
     Accept: "application/json",
     "X-Requested-With": "XMLHttpRequest",
+    ...(typeof document !== "undefined" && document.documentElement.lang ? { "X-Locale": document.documentElement.lang } : {}),
     ...(opts.json !== undefined ? { "Content-Type": "application/json" } : {}),
     ...(opts.headers ?? {}),
   }

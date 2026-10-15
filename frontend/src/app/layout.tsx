@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
-import { NextIntlClientProvider } from "next-intl"
+import { headers } from "next/headers"
+import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl"
 
 import enMessages from "../../messages/en.json"
 import faMessages from "../../messages/fa.json"
@@ -37,6 +38,13 @@ const messageCatalog = {
   en: enMessages,
 } as const
 
+/** Dashboard-only namespaces never read by storefront/theme code; left out of public pages' HTML. */
+const ADMIN_ONLY_NAMESPACES = ["cafe_admin", "reports", "orders_admin", "users_admin", "content_admin", "pos_admin"] as const
+
+function isAdminPath(path: string): boolean {
+  return /^\/(dashboard|admin|setup|login|account)(\/|$|\?)/.test(path)
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -45,7 +53,11 @@ export default async function RootLayout({
   // A builder page with its own language (e.g. an English page on a Persian site) sets <html lang/dir> and the UI catalogue.
   const pageLang = await requestPageLang()
   const locale = pageLang?.uiLocale ?? (await readRequestLocale())
-  const messages = messageCatalog[locale]
+  const path = (await headers()).get("x-webino-path") ?? ""
+  const fullMessages = messageCatalog[locale] as AbstractIntlMessages
+  const messages = isAdminPath(path)
+    ? fullMessages
+    : Object.fromEntries(Object.entries(fullMessages).filter(([k]) => !(ADMIN_ONLY_NAMESPACES as readonly string[]).includes(k)))
   const dir = pageLang?.dir ?? htmlDir(locale)
   const apiOrigin = getApiOrigin()
   // Pass now/timeZone explicitly so NextIntlClientProviderServer never calls

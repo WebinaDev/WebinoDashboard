@@ -1,4 +1,7 @@
+import { redirect } from "next/navigation"
+
 import CataloguePage from "@/kernel/pages/CataloguePage"
+import { getSiteTypeSlug } from "@/kernel/cafe-catalogue-data"
 import type { ResolvedSiteRoute } from "@/kernel/types"
 import { StorefrontBody, StorefrontDocument, activeThemeSlug, loadPublishedPage } from "@/builder/public-document"
 import { ThemeSlot } from "@/builder/theme/ThemeSlot"
@@ -31,6 +34,13 @@ export default async function Page({
   route: ResolvedSiteRoute
   searchParams?: Record<string, string | undefined>
 }) {
+  // Cafe sites have one cart: the server-side guest cart (commerce orders, stock, shop payment
+  // gateways) shown in the menu drawer. The shop cart/checkout pages only knew the signed-in
+  // `/api/v1/cart`, so guests saw an empty or stuck "loading" cart without their cafe items.
+  if (["cart", "checkout", "product/:slug"].includes(route.path) && (await getSiteTypeSlug().catch(() => null)) === "cafe") {
+    if (route.path === "product/:slug" && route.params?.slug) redirect(`/catalogue/${encodeURIComponent(route.params.slug)}`)
+    redirect("/menu?cart=open")
+  }
   const classic = (await activeThemeSlug().catch(() => null)) === "ecommerce-classic"
   if (route.path === "product/:slug") {
     const slug = route.params?.slug

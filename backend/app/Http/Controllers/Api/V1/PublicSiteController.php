@@ -24,6 +24,16 @@ class PublicSiteController extends Controller
         $tenant = $this->publicTenant($request);
         $branding = ThemeCatalog::normalizeBranding($tenant->branding);
         $branding['appearance'] = $appearance->publicPayload((int) $tenant->id);
+        // Brand files uploaded while the site lived on an alias (e.g. bluecafe.webinaagency.ir) are
+        // stored as absolute URLs. Serve them same-origin so the primary domain does not depend on
+        // (or preload from) another host.
+        $ownHosts = array_filter(array_map('strtolower', array_merge([(string) $tenant->domain], $tenant->normalizedDomainAliases())));
+        foreach (['logo_url', 'logo_dark_url', 'favicon_url'] as $key) {
+            $url = $branding[$key] ?? null;
+            if (is_string($url) && preg_match('#^https?://([^/:]+)(?::\d+)?(/.*)?$#i', $url, $m) && in_array(strtolower($m[1]), $ownHosts, true)) {
+                $branding[$key] = ($m[2] ?? '') !== '' ? $m[2] : '/';
+            }
+        }
         $otp = OtpSettings::forTenant((int) $tenant->id, $settings);
         $privacy = $settings->get((int) $tenant->id, 'settings', 'site.privacy', [
             'guest_checkout' => false,

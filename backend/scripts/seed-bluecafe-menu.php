@@ -49,9 +49,7 @@ $items = [
     ['slug' => 'bc-dragon-shot', 'cat' => 'hot-drinks', 'name' => 'دراگون شات', 'en' => 'Dragon shot', 'price' => 145000, 'desc' => 'شات مخصوص بلو کافه با نت ادویه‌ای و تلخی ملایم.', 'img' => 'espresso', 'tags' => ['new', 'featured']],
     ['slug' => 'bc-latte', 'cat' => 'hot-drinks', 'name' => 'لاته', 'en' => 'Latte', 'price' => 135000, 'desc' => 'لاته کلاسیک؛ طعم‌ها: فندقی، وانیل، شکلات.', 'img' => 'latte', 'mods' => 'latte-flavors', 'allergens' => ['dairy']],
     ['slug' => 'bc-cappuccino-classic', 'cat' => 'hot-drinks', 'name' => 'کاپوچینو کلاسیک', 'en' => 'Classic cappuccino', 'price' => 125000, 'desc' => 'نسبت کلاسیک اسپرسو، شیر و فوم مخملی.', 'img' => 'cappuccino', 'mods' => 'latte', 'allergens' => ['dairy'], 'tags' => ['featured']],
-    ['slug' => 'bc-cappuccino', 'cat' => 'hot-drinks', 'name' => 'کاپوچینو', 'en' => 'Cappuccino', 'price' => 120000, 'desc' => 'کاپوچینوی روزانه بلو کافه.', 'img' => 'cappuccino', 'mods' => 'latte', 'allergens' => ['dairy']],
     ['slug' => 'bc-hot-chocolate', 'cat' => 'hot-drinks', 'name' => 'هات چاکلت', 'en' => 'Hot chocolate', 'price' => 140000, 'desc' => 'شکلات داغ خامه‌ای با کاکائوی تلخ.', 'img' => 'mocha-frappe', 'allergens' => ['dairy']],
-    ['slug' => 'bc-masala', 'cat' => 'hot-drinks', 'name' => 'ماسالا', 'en' => 'Masala', 'price' => 125000, 'desc' => 'چای ماسالا گرم با ادویه‌های تازه.', 'img' => 'masala-chai', 'allergens' => ['dairy'], 'spice' => 1],
     ['slug' => 'bc-affogato-vanilla', 'cat' => 'hot-drinks', 'name' => 'آفوگاتو وانیل', 'en' => 'Vanilla affogato', 'price' => 160000, 'desc' => 'بستنی وانیل غرق در اسپرسوی داغ.', 'img' => 'affogato', 'allergens' => ['dairy']],
     ['slug' => 'bc-americano', 'cat' => 'hot-drinks', 'name' => 'آمریکانو', 'en' => 'Americano', 'price' => 95000, 'desc' => 'اسپرسو روی آب داغ؛ سبک و خوش‌عطر.', 'img' => 'americano', 'mods' => 'coffee'],
     ['slug' => 'bc-mocha-chocolate', 'cat' => 'hot-drinks', 'name' => 'موکا شکلات', 'en' => 'Chocolate mocha', 'price' => 155000, 'desc' => 'اسپرسو، شکلات و شیر بخارداده.', 'img' => 'caramel-macchiato', 'mods' => 'latte', 'allergens' => ['dairy']],
@@ -83,7 +81,7 @@ $items = [
     ['slug' => 'bc-pina-colada', 'cat' => 'mocktails-juices', 'name' => 'پیناکولاد', 'en' => 'Piña colada', 'price' => 195000, 'desc' => 'کرم نارگیل، آب آناناس، شیر نارگیل و یخ.', 'img' => 'iced-tea', 'tags' => ['featured']],
     ['slug' => 'bc-mojito-classic', 'cat' => 'mocktails-juices', 'name' => 'موهیتو کلاسیک', 'en' => 'Classic mojito', 'price' => 175000, 'desc' => 'برگ نعناع، شکر، لیمو، سودا و یخ.', 'img' => 'iced-tea', 'tags' => ['featured']],
     ['slug' => 'bc-mojito-fruit', 'cat' => 'mocktails-juices', 'name' => 'موهیتو میوه‌ای', 'en' => 'Fruit mojito', 'price' => 185000, 'desc' => 'هلو، آناناس و انبه با پایه موهیتو.', 'img' => 'iced-tea'],
-    ['slug' => 'bc-strawberry-lemonade', 'cat' => 'mocktails-juices', 'name' => 'لیموناد توت‌فرنگی', 'en' => 'Strawberry lemonade', 'price' => 165000, 'desc' => 'کرن‌بری، لیمو، سودا و یخ.', 'img' => 'iced-tea'],
+    ['slug' => 'bc-strawberry-lemonade', 'cat' => 'mocktails-juices', 'name' => 'لیموناد توت‌فرنگی', 'en' => 'Strawberry lemonade', 'price' => 165000, 'desc' => 'توت‌فرنگی تازه، لیمو، سودا و یخ.', 'img' => 'iced-tea'],
     ['slug' => 'bc-tropical-passage', 'cat' => 'mocktails-juices', 'name' => 'گذرگاه استوایی', 'en' => 'Tropical passage', 'price' => 185000, 'desc' => 'آب آناناس، پرتقال، لیمو و سیروپ انگور.', 'img' => 'iced-tea', 'tags' => ['new']],
     ['slug' => 'bc-strawberry-sunrise', 'cat' => 'mocktails-juices', 'name' => 'سانرایز توت‌فرنگی', 'en' => 'Strawberry sunrise', 'price' => 195000, 'desc' => 'توت‌فرنگی، بستنی وانیل، شیر، عسل و یخ.', 'img' => 'mocha-frappe', 'allergens' => ['dairy']],
     ['slug' => 'bc-orange-juice', 'cat' => 'mocktails-juices', 'name' => 'آب پرتقال', 'en' => 'Orange juice', 'price' => 120000, 'desc' => 'آب پرتقال تازه.', 'img' => 'iced-americano'],
@@ -195,8 +193,11 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
             // From Instagram @cafebluedez (Cafe blue|کافه آبی)
             'tagline_fa' => 'یک روز با آرامش برای شما',
             'tagline_en' => 'A calm day for you',
-            'about_fa' => "کافه آبی (@cafebluedez)\nیک روز با آرامش برای شما.\nساعت کاری: تمام هفته ۹ صبح تا ۱۱ شب.\nآدرس: بلوار شریعتی، کوچه ساسان، جنب پاساژ امین.",
-            'about_en' => "Cafe Blue (@cafebluedez)\nOpen every day 9:00–23:00.\nAddress: Shariati Blvd, Sasan Alley, next to Amin Passage.",
+            // Hours live only in the hours settings (shown on the about page); no copy to drift.
+            'about_fa' => "کافه آبی (@cafebluedez)\nیک روز با آرامش برای شما.\nآدرس: بلوار شریعتی، کوچه ساسان، جنب پاساژ امین.",
+            'about_en' => "Cafe Blue (@cafebluedez)\nA calm day for you.\nAddress: Shariati Blvd, Sasan Alley, next to Amin Passage.",
+            // No placeholder number; the owner sets the real one in the dashboard.
+            'phone' => null,
             'instagram' => '@cafebluedez',
             'address_fa' => 'بلوار شریعتی، کوچه ساسان، جنب پاساژ امین',
             'address_en' => 'Shariati Blvd, Sasan Alley, next to Amin Passage',
@@ -245,10 +246,15 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
                 'display_mode' => 'grid',
                 'sort_order' => $i++,
                 'status' => 'publish',
-                'meta' => ['demo' => DEMO_TAG],
+                'meta' => ['seed' => DEMO_TAG],
             ],
         )->id;
     }
+
+    // Older runs seeded near-duplicates (کاپوچینو vs کاپوچینو کلاسیک, ماسالا vs چای ماسالا). Hide them
+    // instead of deleting so past orders keep their product rows.
+    Product::query()->where('tenant_id', $tid)->whereIn('slug', ['bc-cappuccino', 'bc-masala'])
+        ->update(['is_hidden' => true, 'status' => 'draft']);
 
     $order = 0;
     foreach ($items as $item) {
@@ -282,7 +288,7 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
                 'status' => 'publish',
                 'type' => 'simple',
                 'catalog_visibility' => 'visible',
-                'meta' => ['demo' => DEMO_TAG],
+                'meta' => ['seed' => DEMO_TAG],
             ],
         );
 
@@ -317,9 +323,12 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
     $tenant->site_type_slug = 'cafe';
     $branding = ThemeCatalog::normalizeBranding($tenant->branding);
     $branding['accent'] = 'blue';
-    $branding['logo_url'] = $branding['logo_url'] ?: '/brand/bluecafe/logo.png';
-    $branding['logo_dark_url'] = $branding['logo_dark_url'] ?: '/brand/bluecafe/logo.png';
-    $branding['favicon_url'] = $branding['favicon_url'] ?: '/brand/bluecafe/favicon.png';
+    // Same-origin brand assets: an absolute URL on another host (bluecafe.webinaagency.ir) breaks
+    // when the cafe is served on its own domain and costs an extra TLS handshake.
+    $sameOrigin = fn (?string $u, string $fallback) => ($u === null || $u === '' || preg_match('#^https?://#i', $u)) ? $fallback : $u;
+    $branding['logo_url'] = $sameOrigin($branding['logo_url'] ?? null, '/brand/bluecafe/logo.png');
+    $branding['logo_dark_url'] = $sameOrigin($branding['logo_dark_url'] ?? null, '/brand/bluecafe/logo.png');
+    $branding['favicon_url'] = $sameOrigin($branding['favicon_url'] ?? null, '/brand/bluecafe/favicon.png');
     $branding['palette'] = array_merge($branding['palette'] ?? [], [
         'primary' => ACCENT,
         'secondary' => '#0d3d7a',
@@ -336,6 +345,22 @@ DB::transaction(function () use ($tid, $settings, $tenant, $categoryDefs, $items
     ]);
     $tenant->branding = ThemeCatalog::mergeIntoExisting($tenant->branding, $branding);
     $tenant->save();
+
+    // One palette: the storefront appearance colours (shop chrome, cart, checkout) follow the cafe
+    // palette instead of the pink/navy store defaults. save() also syncs them back to branding.palette.
+    app(\App\Services\Shop\StorefrontAppearanceService::class)->save($tid, [
+        'primary_color' => ACCENT,
+        'secondary_color' => '#0d3d7a',
+        'accent_color' => '#5ba8e8',
+        'text1_color' => '#0d2b4a',
+        'text2_color' => '#5a7390',
+        'text3_color' => '#8aa0b8',
+        'navy_color' => '#0d3d7a',
+        'surface_color' => '#ffffff',
+        'header_bg' => '#0d3d7a',
+        'footer_bg' => '#0d3d7a',
+        'border_color' => '#d7e6f7',
+    ]);
 
     echo "Seeded {$order} Blue Cafe items in ".count($categories)." categories. accent=".ACCENT."\n";
 });

@@ -54,6 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
+            \App\Http\Middleware\SetRequestLocale::class,
             \App\Http\Middleware\ApiResponseFormatter::class,
             \App\Http\Middleware\AuthenticateFromCookie::class,
             \App\Http\Middleware\EnsureUserIsActive::class,

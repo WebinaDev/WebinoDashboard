@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { AtSign, Clock, MapPin, Navigation, Phone, UtensilsCrossed } from "lucide-react"
 
+import { MapPinPicker } from "@/components/MapPinPickerLazy"
+
 import { digits, placeholderFor } from "../lib/helpers"
 import { useSkinScheme } from "../lib/useSkinScheme"
 import { cafeSkinLayout, resolveCafeSkin } from "../skin"
@@ -40,6 +42,11 @@ export function AboutView({ venue }: Props) {
   )
   const dayLabel = (day: string) =>
     (DAY_KEYS as readonly string[]).includes(day) ? t(`days.${day as (typeof DAY_KEYS)[number]}`) : day
+  const location = venue.ordering?.cafe_location ?? null
+  // Exact pin from settings (cafe_lat/cafe_lng) beats a text search link.
+  const mapHref = location
+    ? `https://neshan.org/maps/@${location.lat},${location.lng},17z`
+    : venue.venue.map_url || null
   const instagram = venue.venue.instagram
     ? venue.venue.instagram.startsWith("http")
       ? venue.venue.instagram
@@ -76,18 +83,22 @@ export function AboutView({ venue }: Props) {
                 {t("hours_heading")}
               </h2>
               <ul className="cafe-about-hours">
-                {days.map((day) => (
+                {days.map((day) => {
+                  // Zero-length range (00:00–00:00) is a closed day, same as the order gate.
+                  const closed = Boolean(day.closed) || Boolean(day.open && day.open === day.close)
+                  return (
                   <li key={day.day}>
                     <span>{dayLabel(day.day)}</span>
-                    <span data-closed={day.closed ? "true" : "false"}>
-                      {day.closed
+                    <span data-closed={closed ? "true" : "false"}>
+                      {closed
                         ? t("closed")
                         : day.open && day.close
                           ? t("hours_range", { open: digits(day.open, locale), close: digits(day.close, locale) })
                           : t("hours_not_set")}
                     </span>
                   </li>
-                ))}
+                  )
+                })}
               </ul>
             </section>
           ) : null}
@@ -113,8 +124,9 @@ export function AboutView({ venue }: Props) {
                   <span>{address}</span>
                 </p>
               ) : null}
-              {venue.venue.map_url ? (
-                <a href={venue.venue.map_url} target="_blank" rel="noreferrer" className="cafe-ghost-btn">
+              {location ? <MapPinPicker value={location} readOnly height={180} labels={{ failed: t("map_cta") }} /> : null}
+              {mapHref ? (
+                <a href={mapHref} target="_blank" rel="noreferrer" className="cafe-ghost-btn">
                   <Navigation className="size-4" />
                   {t("map_cta")}
                 </a>

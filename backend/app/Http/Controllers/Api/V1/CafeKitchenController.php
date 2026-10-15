@@ -80,7 +80,7 @@ class CafeKitchenController extends Controller
             'customer_name' => $order->customer_name,
             'shipping_address' => $order->shipping_address,
             'delivery' => $meta['delivery'] ?? null,
-            'pickup_at' => $meta['pickup_at'] ?? null,
+            'pickup_at' => $meta['pickup_at'] ?? $meta['delivery_at'] ?? null,
             'payment_method' => $meta['payment_method'] ?? null,
             'total_minor' => $order->total_minor,
             'currency' => $order->currency,

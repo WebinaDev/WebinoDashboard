@@ -56,6 +56,12 @@ export function isSubmoduleEnabled(
     )
   }
 
+  // Item pages (/catalogue/:slug) were added to the cafe manifest after tenants were provisioned, so
+  // older tenants have no `cafe.item` activation row and every item link 404'd. The menu implies them.
+  if (moduleSlug === "cafe" && submoduleSlug === "item") {
+    return enabled("cafe", "item") || enabled("cafe", "menu")
+  }
+
   if (moduleSlug === "commerce" && submoduleSlug === "accounting") {
     return (
       enabled("commerce", "accounting") ||

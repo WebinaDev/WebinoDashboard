@@ -217,8 +217,12 @@ final class LinkHubBlockPresenter
             $open = $this->time($row['open'] ?? null);
             $close = $this->time($row['close'] ?? null);
             $closed = (bool) ($row['closed'] ?? false);
-            // Missing or zero-length ranges are unknown, not "open all day".
-            $known = $row !== null && ($closed || ($open !== null && $close !== null && $open !== $close));
+            // A zero-length range (e.g. 00:00–00:00) is a closed day, same as the cafe order gate.
+            if ($row !== null && $open !== null && $close !== null && $open === $close) {
+                $closed = true;
+            }
+            // Missing ranges are unknown, not "open all day".
+            $known = $row !== null && ($closed || ($open !== null && $close !== null));
             $days[] = [
                 'day' => $day,
                 'open' => $known && ! $closed ? $open : null,

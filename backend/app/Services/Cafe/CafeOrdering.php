@@ -355,8 +355,11 @@ class CafeOrdering
             if ($open !== null && $close !== null) {
                 // Half-open interval [open, close): closed at exactly the close minute.
                 // close < open is an overnight range; the after-midnight part is
-                // handled by yesterday's entry below. open == close means 24 hours.
-                if ($open === $close || ($open === 0 && $close === 24 * 60)) {
+                // handled by yesterday's entry below. open == close (e.g. 00:00–00:00) is a
+                // closed day, matching the public hours display; 00:00–24:00 means 24 hours.
+                if ($open === $close) {
+                    $isOpen = false;
+                } elseif ($open === 0 && $close === 24 * 60) {
                     $isOpen = true;
                 } elseif ($close > $open) {
                     $isOpen = $mins >= $open && $mins < $close;

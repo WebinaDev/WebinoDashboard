@@ -492,7 +492,9 @@
       "err_pin": "Drop a pin on the map.",
       "err_pickup": "Choose a pickup time.",
       "no_pickup_slots": "No pickup times are left within opening hours.",
-      "pay_refund_pending": "Your payment was confirmed, but an item ran out before confirmation. The order was not placed and your money will be refunded."
+      "pay_refund_pending": "Your payment was confirmed, but an item ran out before confirmation. The order was not placed and your money will be refunded.",
+      "delivery_time": "Delivery time",
+      "delivery_asap": "As soon as possible"
     },
     "kitchen": {
       "new": "New",

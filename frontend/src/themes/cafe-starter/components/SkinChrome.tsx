@@ -40,7 +40,6 @@ async function venueSettings(): Promise<CafeVenuePayload | null> {
  */
 export async function CafeSkinHeader({ siteName, branding, skin }: SiteChromeProps & { skin: CafeMenuSkin }) {
   const t = await getServerTranslations("cafe_starter")
-  const tNav = await getServerTranslations("site.nav")
   const resolved = resolveSiteBranding(branding)
   const venue = await venueSettings()
   const menu = venue?.menu
@@ -76,9 +75,7 @@ export async function CafeSkinHeader({ siteName, branding, skin }: SiteChromePro
               <span>{t("reservations_cta")}</span>
             </Link>
           )}
-          <Link href="/login?next=/dashboard" className="cafe-chrome-admin">
-            {tNav("admin")}
-          </Link>
+          {/* No public "پنل مدیریت" link for guests; staff sign in at /login. */}
         </div>
       </div>
     </header>

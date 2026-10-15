@@ -179,7 +179,7 @@ class CafeSeedDemoCommand extends Command
                 'tagline_en' => 'Specialty coffee, fresh breakfast and a calm breath in the city',
                 'about_fa' => "{$brand} از سال ۱۳۹۸ با یک دستگاه اسپرسو و عشق به قهوه‌ی تازه شروع شد.\nدانه‌ها را هر هفته خودمان رست می‌کنیم، نان و کیک‌ها هر صبح در آشپزخانه‌ی کافه پخته می‌شوند و منو با فصل عوض می‌شود.\nبرای قرار کاری، کتاب‌خواندن یا یک برانچ آخر هفته، جای شما کنار پنجره محفوظ است.",
                 'about_en' => "We started in 2019 with one espresso machine and a love for fresh coffee.\nWe roast our beans every week, bake bread and cakes every morning, and change the menu with the seasons.",
-                'phone' => '021-88776655',
+                'phone' => null,
                 'instagram' => '@cafe.dam',
                 'address_fa' => 'تهران، خیابان ولیعصر، بالاتر از پارک ساعی، پلاک ۱۲۴۰',
                 'address_en' => '1240 Valiasr St, above Saei Park, Tehran',
@@ -365,7 +365,7 @@ class CafeSeedDemoCommand extends Command
     private function seedBranches(int $tid): void
     {
         $defs = [
-            ['valiasr', 'شعبه ولیعصر', 'Valiasr branch', 'تهران، ولیعصر، بالاتر از پارک ساعی', '021-88776655'],
+            ['valiasr', 'شعبه ولیعصر', 'Valiasr branch', 'تهران، ولیعصر، بالاتر از پارک ساعی', null],
             ['saadat-abad', 'شعبه سعادت‌آباد', 'Saadat Abad branch', 'تهران، سعادت‌آباد، میدان کاج', '021-22334455'],
         ];
         foreach ($defs as $i => [$slug, $fa, $en, $address, $phone]) {

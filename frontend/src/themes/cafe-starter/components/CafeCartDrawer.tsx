@@ -101,6 +101,8 @@ export function CafeCartDrawer({
   useEffect(() => {
     const qs = new URLSearchParams(window.location.search)
     const p = qs.get("payment")
+    // /cart and /checkout on cafe sites land here (?cart=open) so there is a single cart.
+    if (qs.get("cart") === "open") setOpen(true)
     if (qs.get("order") && (p === "success" || p === "failed" || p === "refund_pending")) {
       setReturnNotice(p)
       setOpen(true)
@@ -117,7 +119,7 @@ export function CafeCartDrawer({
   // Slots come from the server: after prep time and inside opening hours (holidays, overnight).
   const slotsQ = useQuery({
     queryKey: ["cafe-pickup-slots"],
-    enabled: open && fulfillment === "pickup",
+    enabled: open && (fulfillment === "pickup" || fulfillment === "delivery"),
     queryFn: () => api<{ time: string; at: string }[]>("/api/v1/public/cafe/pickup-slots"),
     refetchInterval: 60_000,
   })
@@ -160,7 +162,7 @@ export function CafeCartDrawer({
           postal_code: fulfillment === "delivery" ? toAscii(form.postal) || undefined : undefined,
           lat: fulfillment === "delivery" ? pin?.lat : undefined,
           lng: fulfillment === "delivery" ? pin?.lng : undefined,
-          pickup_time: fulfillment === "pickup" ? form.pickupTime : undefined,
+          pickup_time: fulfillment === "pickup" || fulfillment === "delivery" ? form.pickupTime || undefined : undefined,
         },
       }),
     onSuccess: async (order) => {
@@ -339,7 +341,7 @@ export function CafeCartDrawer({
             {fulfillmentOptions.length > 1 ? (
               <div className="cafe-seg" role="group" aria-label={t("fulfillment")}>
                 {fulfillmentOptions.map((key) => (
-                  <button key={key} type="button" data-on={fulfillment === key ? "true" : "false"} onClick={() => setFulfillment(key)}>
+                  <button key={key} type="button" data-on={fulfillment === key ? "true" : "false"} onClick={() => { setFulfillment(key); setForm((f) => ({ ...f, pickupTime: "" })) }}>
                     {tMenu(`fulfillment.${key}`)}
                   </button>
                 ))}
@@ -407,6 +409,13 @@ export function CafeCartDrawer({
                   labels={{ locate: t("my_location"), failed: t("map_failed"), hint: t("map_hint") }}
                 />
                 {fe("lat")}
+                <select className="cafe-field" value={form.pickupTime} onChange={set("pickupTime")} aria-label={t("delivery_time")}>
+                  <option value="">{t("delivery_asap")}</option>
+                  {slots.map((s) => (
+                    <option key={s} value={s}>{toLocaleDigits(s, lang)}</option>
+                  ))}
+                </select>
+                {fe("pickup_time")}
               </>
             ) : null}
 

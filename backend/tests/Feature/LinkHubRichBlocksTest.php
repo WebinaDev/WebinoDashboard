@@ -155,7 +155,8 @@ class LinkHubRichBlocksTest extends TestCase
         $this->assertSame('cafe', $hours['source']);
         $this->assertCount(7, $hours['days']);
         $this->assertSame('09:00', $byDay['saturday']['open']);
-        $this->assertFalse($byDay['tuesday']['known']);
+        $this->assertTrue($byDay['tuesday']['known']);
+        $this->assertTrue($byDay['tuesday']['closed']);
         $this->assertTrue($byDay['friday']['closed']);
         $this->assertFalse($byDay['monday']['known']);
     }
