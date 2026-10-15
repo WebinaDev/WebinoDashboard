@@ -79,17 +79,17 @@ class PublicCatalogController extends Controller
             });
         }
 
-        if ($request->boolean('on_sale') && ! empty($archive['filter_on_sale'])) {
+        if ($request->boolean('on_sale') && (! empty($archive['filter_on_sale']) || $request->boolean('builder'))) {
             $productsQuery->where(function ($builder) {
                 $builder->where('discount_percent', '>', 0)
                     ->orWhere(fn ($sale) => $sale->whereNotNull('sale_price_minor')->saleWindowOpen());
             });
         }
 
-        if ($request->filled('min_price') && ! empty($archive['filter_price'])) {
+        if ($request->filled('min_price') && (! empty($archive['filter_price']) || $request->boolean('builder'))) {
             $productsQuery->where('price_minor', '>=', (int) $request->query('min_price'));
         }
-        if ($request->filled('max_price') && ! empty($archive['filter_price'])) {
+        if ($request->filled('max_price') && (! empty($archive['filter_price']) || $request->boolean('builder'))) {
             $productsQuery->where('price_minor', '<=', (int) $request->query('max_price'));
         }
         if ($request->filled('category')) {
@@ -100,6 +100,39 @@ class PublicCatalogController extends Controller
         if ($request->filled('brand')) {
             $brand = trim((string) $request->query('brand'));
             $productsQuery->whereHas('brands', fn ($q) => $q->where('slug', $brand)->orWhere('id', $brand));
+        }
+
+        // Advanced archive filters (builder `archive-filters`): tag slugs and attribute terms ("attr_slug:term_slug").
+        if ($request->filled('tag')) {
+            $tags = array_slice(array_filter(array_map('trim', explode(',', (string) $request->query('tag')))), 0, 10);
+            if ($tags) {
+                $productsQuery->whereHas('tags', fn ($q) => $q->whereIn('product_tags.slug', $tags));
+            }
+        }
+        if ($request->filled('attr')) {
+            $pairs = array_slice(array_filter(array_map('trim', explode(',', (string) $request->query('attr')))), 0, 10);
+            foreach ($pairs as $pair) {
+                [$attrSlug, $termSlug] = array_pad(explode(':', $pair, 2), 2, '');
+                if ($attrSlug === '') {
+                    continue;
+                }
+                $termId = $termSlug === '' ? null : \App\Models\ProductAttributeTerm::query()
+                    ->where('tenant_id', $tid)
+                    ->where('slug', $termSlug)
+                    ->whereHas('attribute', fn ($a) => $a->where('slug', $attrSlug))
+                    ->value('id');
+                if ($termSlug !== '' && ! $termId) {
+                    $productsQuery->whereRaw('1 = 0');
+                    continue;
+                }
+                $productsQuery->whereHas('attributes', function ($q) use ($attrSlug, $termId) {
+                    $q->where('product_attributes.slug', $attrSlug);
+                    if ($termId) {
+                        $q->where(fn ($t) => $t->whereJsonContains('product_attribute_product.term_ids', (int) $termId)
+                            ->orWhereJsonContains('product_attribute_product.term_ids', (string) $termId));
+                    }
+                });
+            }
         }
 
         $sort = (string) $request->query('sort', $archive['default_sort'] ?? 'newest');

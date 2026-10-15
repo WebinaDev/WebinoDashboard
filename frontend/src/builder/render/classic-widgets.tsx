@@ -10,7 +10,7 @@ import { StorefrontMegaMenuPanel, ProductReviewsPanel, ProductQuestionsPanel } f
 import { StoreProductCard, StorefrontAccount } from "../storefront/ui"
 import { addShopItem } from "../storefront/actions"
 import { useCatalog } from "../storefront/use-catalog"
-import { linkAttrs, propNum, propStr } from "../props"
+import { linkAttrs, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime, useIsClassicSkin } from "./runtime"
 import { ClassicBreadcrumbBar } from "@/themes/ecommerce-classic/components/ClassicArchive"
@@ -282,12 +282,25 @@ export function AddToCartBoxWidget({ productSlug, editing = false }: { productSl
   )
 }
 
-export function ProductReviewsWidget({ widget, productSlug }: { widget: WidgetNode; productSlug?: string }) {
+export function ProductReviewsWidget({ widget, productSlug, editing = false }: { widget: WidgetNode; productSlug?: string; editing?: boolean }) {
   const slug = productSlug || propStr(widget.props, "slug", "")
-  if (!slug) return null
+  if (!slug) return editing ? <p className="mx-auto max-w-6xl rounded-xl border border-dashed p-4 text-sm text-foreground/60">دیدگاه‌ها در صفحه محصول نمایش داده می‌شوند (یا نامک محصول را وارد کنید).</p> : null
+  const p = widget.props
   return (
     <div className="mx-auto max-w-6xl px-4">
-      <ProductReviewsPanel slug={slug} />
+      <ProductReviewsPanel
+        slug={slug}
+        options={{
+          title: propStr(p, "title", ""),
+          intro: propStr(p, "intro", ""),
+          showAverage: propBool(p, "showAverage", true),
+          allowSubmit: propBool(p, "allowSubmit", false),
+          submitLabel: propStr(p, "submitLabel", "ثبت دیدگاه"),
+          emptyText: propStr(p, "emptyText", "ندارد"),
+          limit: propNum(p, "limit", 0),
+          editing,
+        }}
+      />
     </div>
   )
 }

@@ -146,13 +146,87 @@ export function StorefrontMegaMenuPanel({ columnsText }: { columnsText: string }
   )
 }
 
-export function ProductReviewsPanel({ slug }: { slug: string }) {
+export type ProductReviewsOptions = {
+  title?: string
+  intro?: string
+  showAverage?: boolean
+  allowSubmit?: boolean
+  submitLabel?: string
+  emptyText?: string
+  limit?: number
+  editing?: boolean
+}
+
+type ReviewRow = { id: number; rating: number; body?: string | null; author_name?: string | null; voice_url?: string | null; likes_count?: number; dislikes_count?: number; created_at?: string }
+
+const REVIEW_ERRORS: Record<number, string> = {
+  401: "برای ثبت دیدگاه ابتدا وارد حساب خود شوید.",
+  403: "فقط خریداران این محصول می‌توانند دیدگاه ثبت کنند.",
+  429: "درخواست‌ها زیاد است. کمی بعد دوباره تلاش کنید.",
+}
+
+/** Write-review form: star rating + text, posting to the public reviews API. */
+function ReviewForm({ slug, label, editing, onDone }: { slug: string; label: string; editing: boolean; onDone: (pending: boolean) => void }) {
+  const [rating, setRating] = useState(0)
+  const [hover, setHover] = useState(0)
+  const [body, setBody] = useState("")
+  const [author, setAuthor] = useState("")
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState("")
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (editing) return
+    if (rating < 1) return setError("امتیاز را انتخاب کنید.")
+    setSending(true)
+    setError("")
+    const res = await quietApi<{ data?: { status?: string } }>(`/api/v1/public/catalog/items/${encodeURIComponent(slug)}/reviews`, {
+      method: "POST",
+      json: { rating, body: body.trim() || null, author_name: author.trim() || null },
+    })
+    setSending(false)
+    if (res.ok) {
+      setRating(0)
+      setBody("")
+      onDone(res.data?.data?.status !== "approved")
+    } else setError(res.message === "reviews_disabled" ? "ثبت دیدگاه برای این فروشگاه غیرفعال است." : REVIEW_ERRORS[res.status] ?? (res.message || "ثبت دیدگاه ناموفق بود."))
+  }
+  return (
+    <form dir="rtl" onSubmit={submit} className="sf-review-card grid gap-3" aria-label="نوشتن دیدگاه">
+      <div role="radiogroup" aria-label="امتیاز" className="flex gap-1" onMouseLeave={() => setHover(0)}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={rating === n}
+            aria-label={`${n.toLocaleString("fa-IR")} ستاره`}
+            className={`text-2xl leading-none ${(hover || rating) >= n ? "text-primary" : "text-muted-foreground/40"}`}
+            onMouseEnter={() => setHover(n)}
+            onClick={() => setRating(n)}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <input className="h-10 rounded-xl border border-border bg-background px-3 text-sm" placeholder="نام شما (اختیاری)" maxLength={120} value={author} onChange={(e) => setAuthor(e.target.value)} />
+      <textarea className="min-h-24 rounded-xl border border-border bg-background p-3 text-sm" placeholder="تجربه خود از این محصول را بنویسید" maxLength={2000} value={body} onChange={(e) => setBody(e.target.value)} />
+      {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+      <button type="submit" disabled={sending} className="h-10 justify-self-start rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground disabled:opacity-60">
+        {sending ? "در حال ارسال…" : label}
+      </button>
+    </form>
+  )
+}
+
+export function ProductReviewsPanel({ slug, options = {} }: { slug: string; options?: ProductReviewsOptions }) {
   const t = useTranslations("storefront")
   const locale = useLocale()
-  const [items, setItems] = useState<
-    Array<{ id: number; rating: number; body?: string | null; author_name?: string | null; voice_url?: string | null; likes_count?: number; dislikes_count?: number; created_at?: string }>
-  >([])
+  const [items, setItems] = useState<ReviewRow[]>([])
   const [average, setAverage] = useState<number | null>(null)
+  const [reload, setReload] = useState(0)
+  const [notice, setNotice] = useState("")
+  const showAverage = options.showAverage ?? true
+  const limit = Math.max(0, options.limit ?? 0)
 
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_API_URL ?? ""
@@ -162,20 +236,24 @@ export function ProductReviewsPanel({ slug }: { slug: string }) {
         setItems(Array.isArray(json?.data?.items) ? json.data.items : [])
         setAverage(typeof json?.data?.average === "number" ? json.data.average : null)
       })
-  }, [slug])
+      .catch(() => undefined)
+  }, [slug, reload])
 
+  const visible = limit ? items.slice(0, limit) : items
   return (
     <section className="mt-6" id="sfc-reviews">
       <div className="sf-section-head">
-        <h2>{t("reviews_title")}</h2>
-        {average != null ? (
+        <h2>{options.title || t("reviews_title")}</h2>
+        {showAverage && average != null ? (
           <span className="text-sm font-bold text-primary">
             {formatNumber(average, normalizeUiLocale(locale))} / ۵
+            {items.length ? <span className="ms-1 text-xs font-normal text-muted-foreground">({formatNumber(items.length, normalizeUiLocale(locale))} دیدگاه)</span> : null}
           </span>
         ) : null}
       </div>
+      {options.intro ? <p className="mb-3 text-sm text-muted-foreground">{options.intro}</p> : null}
       <div className="grid gap-3">
-        {items.map((review) => (
+        {visible.map((review) => (
           <article key={review.id} className="sf-review-card">
             <div className="flex items-center justify-between gap-2">
               <strong className="text-sm">{review.author_name || t("account_login")}</strong>
@@ -183,7 +261,7 @@ export function ProductReviewsPanel({ slug }: { slug: string }) {
                 {review.created_at ? formatDate(review.created_at, normalizeUiLocale(locale)) : ""}
               </span>
             </div>
-            <p className="mt-1 text-xs text-primary">{"★".repeat(Math.max(0, Math.min(5, review.rating)))}</p>
+            <p className="mt-1 text-xs text-primary" aria-label={`${review.rating} از ۵`}>{"★".repeat(Math.max(0, Math.min(5, review.rating)))}</p>
             {review.body ? <p className="mt-2 text-sm leading-7">{review.body}</p> : null}
             {review.voice_url ? (
               <audio controls className="mt-2 w-full max-w-md" preload="none">
@@ -203,7 +281,19 @@ export function ProductReviewsPanel({ slug }: { slug: string }) {
             </div>
           </article>
         ))}
-        {!items.length ? <p className="text-sm text-muted-foreground">{t("empty_none")}</p> : null}
+        {!items.length ? <p className="text-sm text-muted-foreground">{options.emptyText || t("empty_none")}</p> : null}
+        {notice ? <p role="status" className="rounded-xl bg-primary/10 p-3 text-sm text-primary">{notice}</p> : null}
+        {options.allowSubmit ? (
+          <ReviewForm
+            slug={slug}
+            label={options.submitLabel || "ثبت دیدگاه"}
+            editing={Boolean(options.editing)}
+            onDone={(pending) => {
+              setNotice(pending ? "دیدگاه شما ثبت شد و پس از تأیید نمایش داده می‌شود." : "دیدگاه شما ثبت شد.")
+              setReload((n) => n + 1)
+            }}
+          />
+        ) : null}
       </div>
     </section>
   )

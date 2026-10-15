@@ -46,6 +46,8 @@ import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, 
 import { PopupWidget } from "./popup-widget"
 import { FlipBoxWidget, HotspotWidget, ImageBoxWidget, LinkedProductsWidget, LoopGridWidget, MenuCartWidget, NavDropdownWidget, PurchaseSummaryWidget, StateBoxWidget, TocWidget } from "./pro-widgets"
 import { LoopFilterWidget } from "./loop-filter"
+import { ArchiveFiltersWidget } from "./archive-filters"
+import { CafeTableBookingWidget } from "./cafe-booking-widget"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
@@ -244,7 +246,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "mega-menu":
       return <MegaMenuWidget widget={widget} />
     case "product-reviews":
-      return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} />
+      return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} editing={editing} />
     case "product-questions":
       return <ProductQuestionsWidget widget={widget} productSlug={runtime.productSlug} />
     case "account-dashboard":
@@ -295,6 +297,10 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <LoopGridWidget widget={widget} editing={editing} />
     case "loop-filter":
       return <LoopFilterWidget widget={widget} editing={editing} />
+    case "archive-filters":
+      return <ArchiveFiltersWidget widget={widget} editing={editing} />
+    case "cafe-table-booking":
+      return <CafeTableBookingWidget widget={widget} editing={editing} />
     case "image-box":
       return <ImageBoxWidget widget={widget} />
     case "flip-box":

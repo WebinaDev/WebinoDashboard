@@ -18,7 +18,7 @@ import { WIcon } from "./extra-widgets"
 import { useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { Img } from "./img"
 import { collectionQuery, collectionRows } from "../collections"
-import { applyFilterState, LOOP_FILTER_EVENT, mergeQueryProps, reduceFilterState, type LoopFilterDetail, type LoopFilterState } from "../loop-query"
+import { applyFilterState, archiveFilterParams, archiveFiltersFromSearch, catalogSort, LOOP_FILTER_EVENT, mergeQueryProps, reduceFilterState, type LoopFilterDetail, type LoopFilterState } from "../loop-query"
 
 function useMoney() {
   const t = useTranslations("builder")
@@ -43,6 +43,15 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
   const group = propStr(widget.props, "filterGroup", "").trim()
   const [filterState, setFilterState] = useState<LoopFilterState | null>(null)
   useEffect(() => {
+    if (!group || editing || propStr(widget.props, "source", "products") !== "products") return
+    // Shareable archive URLs: start from the filters already in the query string.
+    const initial = archiveFiltersFromSearch(window.location.search, group)
+    if (initial.category || initial.q || Object.keys(initial.archive).length) {
+      setFilterState((current) => reduceFilterState(current ?? { filters: {} }, { category: initial.category, q: initial.q, archive: initial.archive }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group, editing])
+  useEffect(() => {
     if (!group) return
     const onFilter = (event: Event) => {
       const detail = (event as CustomEvent<LoopFilterDetail>).detail
@@ -61,15 +70,20 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
   const exclude = useMemo(() => new Set(propStr(props, "exclude", "").split(/[,،\s]+/).filter(Boolean)), [props])
   const runtime = useBuilderRuntime()
   const query = useMemo(() => {
-    const params = new URLSearchParams({ per_page: String(perPage + offset), sort: propStr(props, "sort", "newest") })
+    const sort = propStr(props, "sort", "newest")
+    const params = new URLSearchParams({ per_page: String(perPage + offset), sort: source === "products" ? catalogSort(sort) : sort })
     const category = propStr(props, "category", "") || (propBool(props, "currentQuery") ? runtime.categorySlug ?? "" : "")
     if (category) params.set("category", category)
     const brand = propStr(props, "brand", "")
     if (brand && source === "products") params.set("brand", brand)
-    if (propBool(props, "onSale") && source === "products") params.set("on_sale", "1")
+    if (propBool(props, "onSale") && source === "products") {
+      params.set("on_sale", "1")
+      params.set("builder", "1")
+    }
     if (propBool(props, "inStock") && source === "products") params.set("in_stock", "1")
     const search = propStr(props, "search", "").trim()
     if (search && source !== "collection") params.set(source === "posts" ? "search" : "q", search)
+    if (source === "products") archiveFilterParams(params, props.archive as LoopFilterState["archive"])
     return params
   }, [offset, perPage, runtime.categorySlug, source, props])
   const [page, setPage] = useState(1)

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { applyFilterState, mergeQueryProps, parseFilterOptions, reduceFilterState } from "./loop-query.ts"
+import { applyFilterState, archiveFilterParams, archiveFiltersFromSearch, archiveFiltersToSearch, catalogSort, cleanArchiveFilters, mergeQueryProps, parseFilterOptions, reduceFilterState } from "./loop-query.ts"
 
 test("global query overrides loop props", () => {
   const props = { queryId: "team", perPage: 3, title: "T" }
@@ -25,4 +25,22 @@ test("filter state reduces and applies", () => {
 
 test("filter options parse", () => {
   assert.deepEqual(parseFilterOptions("a|الف\nb\n\n|x"), [{ value: "a", label: "الف" }, { value: "b", label: "b" }])
+})
+
+test("archive filters clean, sync to URL and map to catalog params", () => {
+  assert.deepEqual(cleanArchiveFilters({ minPrice: 900, maxPrice: 100, sort: "bogus", tag: "a b", inStock: true }), { minPrice: 100, maxPrice: 900, inStock: true })
+  const search = archiveFiltersToSearch("utm=x", { category: "قهوه", archive: { minPrice: 10, onSale: true, sort: "price_desc", attr: "color:red" } }, "shop")
+  const back = archiveFiltersFromSearch(search, "shop")
+  assert.equal(new URLSearchParams(search).get("utm"), "x")
+  assert.equal(back.category, "قهوه")
+  assert.deepEqual(back.archive, { minPrice: 10, onSale: true, sort: "price_desc", attr: "color:red" })
+  const params = archiveFilterParams(new URLSearchParams(), back.archive)
+  assert.equal(params.get("builder"), "1")
+  assert.equal(params.get("attr"), "color:red")
+  assert.equal(catalogSort("price"), "price_asc")
+  let state = reduceFilterState({ filters: {} }, { archive: { inStock: true } })
+  assert.deepEqual(state.archive, { inStock: true })
+  state = reduceFilterState(state, { archive: {} })
+  assert.equal(state.archive, undefined)
+  assert.deepEqual(applyFilterState({}, { filters: {}, archive: { tag: "x" } }).archive, { tag: "x" })
 })
