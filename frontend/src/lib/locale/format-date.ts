@@ -1,10 +1,10 @@
 import {
-  emptyMark,
   formatDate as formatSharedDate,
   isRtlLocale,
   toLatinDigits,
   toLocaleDigits,
 } from "@webina/ui"
+import { emptyMark } from "@/lib/locale"
 import type { Locale } from "../../../i18n"
 
 /** Display helper kept for older call sites. ISO Gregorian is the source of truth. */

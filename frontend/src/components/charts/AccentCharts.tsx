@@ -1,7 +1,6 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useLocale } from "next-intl"
 
 import type { MetricBarPoint } from "@webina/ui"
 
@@ -22,20 +21,22 @@ const GaugeInner = dynamic(
 export function AccentBarChart(props: {
   data: MetricBarPoint[]
   height?: number
+  /** Kept for call-site compat; @webina/ui v0.1.0 charts do not take locale. */
   locale?: string | null
 }) {
-  const locale = useLocale()
-  return <BarInner {...props} locale={props.locale ?? locale} />
+  const { locale: _locale, ...rest } = props
+  return <BarInner {...rest} />
 }
 
 export function AccentGaugeChart(props: {
   label: string
   percent?: number
   height?: number
+  /** Kept for call-site compat; @webina/ui v0.1.0 charts do not take locale. */
   locale?: string | null
 }) {
-  const locale = useLocale()
-  return <GaugeInner {...props} locale={props.locale ?? locale} />
+  const { locale: _locale, ...rest } = props
+  return <GaugeInner {...rest} />
 }
 
 export { useChartColors, type MetricBarPoint } from "@webina/ui"

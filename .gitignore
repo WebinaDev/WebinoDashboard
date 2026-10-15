@@ -9,6 +9,5 @@ frontend/.npmrc
 frontend/node_modules
 frontend/.next
 frontend/tsconfig.tsbuildinfo
-packages/webina-ui/node_modules
 backend/vendor
 backend/.phpunit.cache

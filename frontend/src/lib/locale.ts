@@ -21,7 +21,6 @@ import {
 } from "@webina/ui"
 
 export {
-  emptyMark,
   formatCurrency,
   formatNumber,
   getIntlLocale,
@@ -32,6 +31,11 @@ export {
   type FormatDateOptions,
   type UiLocale,
 } from "@webina/ui"
+
+/** Missing-value glyph. Always ASCII hyphen (Persian UI: no em dash). */
+export function emptyMark(_locale?: string | null): string {
+  return "-"
+}
 
 function gregorianDateObject(value: string | number | Date): DateObject | null {
   if (value instanceof Date) {
@@ -96,7 +100,7 @@ export function formatDate(
   }
   const parsed = gregorianDateObject(value)
   if (!parsed) {
-    return value == null || value === "" ? "—" : String(value)
+    return value == null || value === "" ? "-" : String(value)
   }
   const jalali = parsed.convert(persian).setLocale(persianFa)
   return toLocaleDigits(jalali.format(jalaliPattern(options)), "fa")

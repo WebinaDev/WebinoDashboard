@@ -88,8 +88,8 @@ if grep -q 'messages/fa.json' docker/next/Dockerfile 2>/dev/null; then
 fi
 ok "Dockerfile runner does not rely on loose messages/"
 
-[[ -f packages/webina-ui/dist/index.js ]] || fail "Run: cd packages/webina-ui && npm install && npm run build"
-ok "webina-ui dist present"
+[[ -f frontend/node_modules/@webina/ui/dist/index.js ]] || fail "Run: cd frontend && npm install (@webina/ui from git+https://github.com/WebinaDev/webina-ui.git#v0.1.0)"
+ok "@webina/ui dist present (public v0.1.0)"
 
 
 echo "==> Frontend parity guards (i18n / links / english / nav)"

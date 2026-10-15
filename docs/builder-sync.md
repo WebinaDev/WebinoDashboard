@@ -1,9 +1,17 @@
 # Builder sync with WebinoERP
 
-Shared builder core lives in `@webina/ui/builder` (`packages/webina-ui/src/builder`, built to `dist/builder`).
-Dashboard vendors `packages/webina-ui` in this repo (Docker builds from the repo root), so the
-`builder/` folder is synced from the sibling `Plugins/Webina/packages/webina-ui` used by ERP (f7a4642).
-When the shared package changes, copy `src/builder` and `dist/builder` (or rebuild) into both consumers.
+Shared builder core lives in `@webina/ui/builder` from the public package
+[`WebinaDev/webina-ui`](https://github.com/WebinaDev/webina-ui) tag **`v0.1.0`**.
+
+Dashboard depends on it via:
+
+```json
+"@webina/ui": "git+https://github.com/WebinaDev/webina-ui.git#v0.1.0"
+```
+
+There is no vendored `packages/webina-ui` in this repo. Docker builds install the
+same git tag during `npm ci` (git is installed in the deps stage). When the shared
+package changes, bump the tag in `frontend/package.json` (and ERP) together.
 
 Dashboard consumes:
 

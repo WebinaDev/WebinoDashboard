@@ -1,24 +1,22 @@
-# Build context: WebinoDashboard repo root (self-contained, includes packages/webina-ui)
+# Build context: WebinoDashboard repo root.
+# @webina/ui comes from the public GitHub tag (see frontend/package.json), not a vendored packages/ folder.
 # NODE_IMAGE can be overridden for IR Hub mirrors (e.g. hub.hamdocker.ir/library/node:22-alpine).
 # FROM-related ARGs MUST be declared before the first FROM (BuildKit global scope).
 ARG NODE_IMAGE=node:22-alpine
 
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /src
-COPY packages/webina-ui ./packages/webina-ui
+# git needed so npm can install git+https://github.com/WebinaDev/webina-ui.git#v0.1.0
+RUN apk add --no-cache git ca-certificates
 COPY frontend/package.json frontend/package-lock.json ./frontend/
-WORKDIR /src/packages/webina-ui
-RUN npm ci --no-audit --no-fund 2>/dev/null || npm install --no-audit --no-fund
 WORKDIR /src/frontend
 # Fall back to npm install when package.json and the lockfile drifted (ci is strict).
 RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /src
-COPY packages/webina-ui ./packages/webina-ui
 COPY frontend ./frontend
 COPY --from=deps /src/frontend/node_modules ./frontend/node_modules
-COPY --from=deps /src/packages/webina-ui/node_modules ./packages/webina-ui/node_modules
 WORKDIR /src/frontend
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG API_PROXY_TARGET=http://backend:8080
