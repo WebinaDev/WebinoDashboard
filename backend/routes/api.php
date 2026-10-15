@@ -213,6 +213,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/metrics/collect', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
         Route::post('/forms/submit', [PublicBuilderFormController::class, 'submit'])->middleware('throttle:public-writes');
         Route::post('/builder/forms/upload', [\App\Http\Controllers\Api\V1\BuilderFormFilesController::class, 'upload'])->middleware('throttle:public-writes');
+        // Shared builder form surface (`publicFormEndpoints` in @webina/ui/builder): POST {key} submits, POST {key}/upload stores a file.
+        Route::post('/builder/forms/{key}/upload', [\App\Http\Controllers\Api\V1\BuilderFormFilesController::class, 'upload'])->where('key', '[^/]{1,100}')->middleware('throttle:public-writes');
+        Route::post('/builder/forms/{key}', [PublicBuilderFormController::class, 'submit'])->where('key', '(?!upload$)[^/]{1,100}')->middleware('throttle:public-writes');
         Route::post('/newsletter/subscribe', [PublicStorefrontController::class, 'subscribe'])->middleware('throttle:public-writes');
         Route::post('/orders/track', [PublicStorefrontController::class, 'trackOrder'])->middleware('throttle:10,1');
 

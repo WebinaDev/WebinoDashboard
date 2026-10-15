@@ -4,7 +4,7 @@ export async function resolve(specifier, context, next) {
     return await next(specifier, context)
   } catch (error) {
     if (specifier.startsWith(".") && !/\.[cm]?[jt]sx?$/.test(specifier)) {
-      for (const ext of [".ts", ".tsx", "/index.ts"]) {
+      for (const ext of [".ts", ".tsx", "/index.ts", ".js"]) {
         try {
           return await next(specifier + ext, context)
         } catch {

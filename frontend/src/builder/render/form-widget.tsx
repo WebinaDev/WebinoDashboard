@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from "react"
 
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 
+import { checkFormUpload, FORM_UPLOAD_ACCEPT, publicFormEndpoints } from "@webina/ui/builder"
+
 import { isVisible, missingOnStep, parseFormFields, stepCount, visiblePayload, type FormField } from "../forms"
 import { parseRows, propStr } from "../props"
 import type { WidgetNode } from "../types"
 
-const FILE_ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
-const FILE_MAX = 5 * 1024 * 1024
+/** Shared upload rule (10 MB, docs/images/zip) and endpoint shape from `@webina/ui/builder`; Dashboard prefix. */
+const FILE_ACCEPT = FORM_UPLOAD_ACCEPT
+const FORM_API = publicFormEndpoints(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/api`, "/v1/public/builder/forms")
 
 /** File field: uploads immediately to private storage and keeps only the opaque upload token as the value. */
 function FileField({ field, formKey, onChange }: { field: FormField; formKey: string; onChange: (value: string, name: string) => void }) {
@@ -27,21 +30,22 @@ function FileField({ field, formKey, onChange }: { field: FormField; formKey: st
           const file = event.target.files?.[0]
           onChange("", "")
           if (!file) return setState({ name: "", status: "idle" })
-          if (file.size > FILE_MAX) return setState({ name: file.name, status: "error", message: "حداکثر حجم فایل ۵ مگابایت است" })
+          const problem = checkFormUpload(file)
+          if (problem === "size") return setState({ name: file.name, status: "error", message: "حداکثر حجم فایل ۱۰ مگابایت است" })
+          if (problem === "type") return setState({ name: file.name, status: "error", message: "نوع فایل مجاز نیست (jpg، png، webp، pdf، doc، zip)" })
           setState({ name: file.name, status: "uploading" })
           const body = new FormData()
           body.append("file", file)
           body.append("form_key", formKey)
-          const base = process.env.NEXT_PUBLIC_API_URL ?? ""
           const host = window.location.host
-          void fetch(`${base}/api/v1/public/builder/forms/upload`, { method: "POST", body, headers: { Accept: "application/json", "X-Tenant-Domain": host } })
+          void fetch(FORM_API.upload(formKey || "contact"), { method: "POST", body, headers: { Accept: "application/json", "X-Tenant-Domain": host } })
             .then(async (res) => {
               const json = (await res.json().catch(() => null)) as { data?: { token?: string }; message?: string } | null
               if (!res.ok || !json?.data?.token) throw new Error(json?.message || "upload_failed")
               onChange(json.data.token, file.name)
               setState({ name: file.name, status: "done" })
             })
-            .catch(() => setState({ name: file.name, status: "error", message: "بارگذاری فایل ناموفق بود (jpg، png، webp، pdf، doc)" }))
+            .catch(() => setState({ name: file.name, status: "error", message: "بارگذاری فایل ناموفق بود (jpg، png، webp، pdf، doc، zip)" }))
         }}
       />
       <span className="text-xs" aria-live="polite">
@@ -181,9 +185,8 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
           return
         }
         setPending(true)
-        const base = process.env.NEXT_PUBLIC_API_URL ?? ""
         const host = typeof window !== "undefined" ? window.location.host : ""
-        void fetch(`${base}/api/v1/public/forms/submit`, {
+        void fetch(FORM_API.submit(formKey || "contact"), {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json", ...(host ? { "X-Tenant-Domain": host } : {}) },

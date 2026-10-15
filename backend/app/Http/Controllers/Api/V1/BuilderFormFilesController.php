@@ -15,12 +15,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /** Builder form file uploads (public, private disk) and the admin submissions inbox. */
 class BuilderFormFilesController extends Controller
 {
-    public const MIMES = 'jpg,jpeg,png,webp,pdf,doc,docx';
+    /** Shared rule with WebinoERP (`FORM_UPLOAD_EXTENSIONS` / `FORM_UPLOAD_MAX_BYTES` in @webina/ui/builder). */
+    public const MIMES = 'jpg,jpeg,png,webp,pdf,doc,docx,zip';
 
-    public const MAX_KB = 5120;
+    public const MAX_KB = 10240;
 
-    public function upload(Request $request): JsonResponse
+    public function upload(Request $request, ?string $key = null): JsonResponse
     {
+        if ($key !== null && ! $request->filled('form_key')) {
+            $request->merge(['form_key' => $key]);
+        }
         $tenantId = (int) $request->attributes->get('public_tenant_id');
         $key = 'builder_form_upload:'.$tenantId.':'.$request->ip();
         if (RateLimiter::tooManyAttempts($key, 10)) {

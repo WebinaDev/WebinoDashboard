@@ -15,7 +15,12 @@
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json",
-    "./styles/themes.css": "./src/styles/themes.css"
+    "./styles/themes.css": "./src/styles/themes.css",
+    "./builder": {
+      "types": "./dist/builder/index.d.ts",
+      "import": "./dist/builder/index.js",
+      "default": "./dist/builder/index.js"
+    }
   },
   "files": [
     "dist",

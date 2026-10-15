@@ -10,8 +10,11 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class PublicBuilderFormController extends Controller
 {
-    public function submit(Request $request): \Illuminate\Http\JsonResponse
+    public function submit(Request $request, ?string $key = null): \Illuminate\Http\JsonResponse
     {
+        if ($key !== null && ! $request->filled('form_key')) {
+            $request->merge(['form_key' => $key]);
+        }
         $tenantId = (int) $request->attributes->get('public_tenant_id');
         $key = 'builder_form:'.$tenantId.':'.$request->ip();
         if (RateLimiter::tooManyAttempts($key, 12)) {
