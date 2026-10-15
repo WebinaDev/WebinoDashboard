@@ -16,6 +16,7 @@ import { DND_NODE, DND_WIDGET } from "../types"
 import { BuilderGlobalsProvider, BuilderRuntimeProvider, useBuilderGlobals } from "./runtime"
 import { applyPreset, COMPONENT_TYPE, componentsCss, resolveInstance } from "../components"
 import { WidgetBody } from "./widgets"
+import { LAYOUT_CONTAINER_TYPES, layoutContainerStyle } from "./gap-widgets"
 
 import "../storefront.css"
 import "@/themes/ecommerce-classic/classic-theme.css"
@@ -218,9 +219,15 @@ function WidgetBlock({ widget: own, device, editor, depth = 0 }: { widget: Widge
       ) : (
         <WidgetBody widget={resolved} editor={editor} />
       )}
-      {widget.type === "container" && widget.children
-        ? widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} depth={depth} />)
-        : null}
+      {LAYOUT_CONTAINER_TYPES.has(widget.type) && widget.children ? (
+        widget.type === "container" ? (
+          widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} depth={depth} />)
+        ) : (
+          <div className={`wb-layout wb-layout-${widget.type}`} style={layoutContainerStyle(widget)}>
+            {widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} depth={depth} />)}
+          </div>
+        )
+      ) : null}
     </div>
   )
 }

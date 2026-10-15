@@ -5,7 +5,7 @@ import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
 import { ICON_OPTIONS } from "./render/icon-options"
 import { COMMERCE_PLUGIN } from "./registry-commerce"
-import { CONTENT_WIDGETS, FORM_WIDGET } from "./registry-content"
+import { CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
@@ -682,6 +682,7 @@ const CORE_WIDGETS: WidgetDef[] = [
     create: () => node("post-content", {}),
   },
   ...CONTENT_WIDGETS,
+  ...GAP_WIDGETS,
 ]
 
 /** Registry: shared core first, then Dashboard plugins (Iranian commerce). */
@@ -706,6 +707,7 @@ export const WIDGET_CATEGORIES: { id: WidgetDef["category"]; label: string }[] =
   { id: "layout", label: "چیدمان" },
   { id: "basic", label: "پایه" },
   { id: "content", label: "محتوا و لندینگ" },
+  { id: "media", label: "رسانه" },
   { id: "commerce", label: "فروشگاه" },
   { id: "chrome", label: "قالب" },
   { id: "parts", label: "قطعات قالب" },
