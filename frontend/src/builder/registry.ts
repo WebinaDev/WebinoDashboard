@@ -3,8 +3,9 @@ import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
 import { FORM_FIELD_TYPES, type FormFieldType } from "./forms"
 import { ICON_OPTIONS } from "./render/icon-options"
+import { CONTENT_WIDGETS } from "./registry-content"
 
-const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)" }
+const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)", heading: "عنوان گروه" }
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
@@ -123,6 +124,7 @@ export const WIDGETS: WidgetDef[] = [
     category: "basic",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "intro", label: "متن بالای فرم" },
       { kind: "text", key: "submit", label: "دکمه" },
       { kind: "text", key: "formKey", label: "شناسه فرم (برای تنظیم اقدام‌ها)" },
       {
@@ -139,7 +141,13 @@ export const WIDGETS: WidgetDef[] = [
           { key: "showIf", label: "نمایش فقط اگر (name=مقدار)", kind: "text" },
         ],
       },
+      { kind: "select", key: "columns", label: "ستون فیلدها", options: [{ value: "1", label: "یک ستون" }, { value: "2", label: "دو ستون" }] },
       { kind: "text", key: "success", label: "پیام موفقیت" },
+      { kind: "textarea", key: "note", label: "متن زیر فرم" },
+      { kind: "text", key: "anchor", label: "شناسه لنگر (#)" },
+      { kind: "textarea", key: "stepTitles", label: "عنوان مراحل (هر خط یک مرحله)" },
+      { kind: "switch", key: "review", label: "مرحله بررسی نهایی (خلاصه قابل ویرایش)" },
+      { kind: "repeater", key: "confirms", label: "تأییدهای الزامی", fields: [{ key: "text", label: "متن", kind: "text" }] },
       { kind: "switch", key: "showPhone", label: "فیلد تلفن" },
       { kind: "switch", key: "showEmail", label: "فیلد ایمیل" },
     ],
@@ -149,6 +157,7 @@ export const WIDGETS: WidgetDef[] = [
         submit: "ارسال",
         fields: "نام|name|text\nایمیل|email|email\nپیام|message|textarea",
         success: "پیام شما ثبت شد.",
+        columns: "1",
         showPhone: true,
         showEmail: true,
       }),
@@ -1245,6 +1254,8 @@ export const WIDGETS: WidgetDef[] = [
   },
 ]
 
+WIDGETS.push(...CONTENT_WIDGETS)
+
 const byType = new Map(WIDGETS.map((widget) => [widget.type, widget]))
 
 export function widgetDef(type: string): WidgetDef | undefined {
@@ -1259,6 +1270,7 @@ export function createWidget(type: string): WidgetNode | null {
 export const WIDGET_CATEGORIES: { id: WidgetDef["category"]; label: string }[] = [
   { id: "layout", label: "چیدمان" },
   { id: "basic", label: "پایه" },
+  { id: "content", label: "محتوا و لندینگ" },
   { id: "commerce", label: "فروشگاه" },
   { id: "chrome", label: "قالب" },
   { id: "parts", label: "قطعات قالب" },

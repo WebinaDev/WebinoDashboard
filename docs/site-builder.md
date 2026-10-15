@@ -26,6 +26,8 @@ Site-wide tokens live at `/dashboard/builder/settings`, also linked from the vis
 
 ## Document
 
+Landing widgets in the **محتوا و لندینگ** palette (`section-heading`, `steps`, `icon-cards`, `badges`, `cta-banner`, `comparison-table`) match WebinoERP. Form widgets support group headings, a review step, required confirms, two columns, and prefill from `?prefill_` or `wb:form-prefill`.
+
 Pages are sections, then columns, then widgets. Container widgets can nest another section. Style fields support desktop, tablet, and mobile. Draft JSON lives on `cms_pages.builder_draft`; publish copies it to `builder_published`.
 
 ## WordPress

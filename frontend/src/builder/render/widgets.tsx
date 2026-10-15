@@ -42,6 +42,7 @@ import {
 import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
 import { FormWidget } from "./form-widget"
+import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
 import { PopupWidget } from "./popup-widget"
 import { FlipBoxWidget, HotspotWidget, ImageBoxWidget, LinkedProductsWidget, LoopGridWidget, MenuCartWidget, NavDropdownWidget, PurchaseSummaryWidget, StateBoxWidget, TocWidget } from "./pro-widgets"
 import { LoopFilterWidget } from "./loop-filter"
@@ -369,6 +370,18 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <StoreHeader widget={widget} siteName={runtime.siteName} logoUrl={runtime.logoUrl} />
     case "store-footer":
       return <StoreFooter widget={widget} siteName={runtime.siteName} />
+    case "section-heading":
+      return <SectionHeadingWidget widget={widget} />
+    case "steps":
+      return <StepsWidget widget={widget} />
+    case "icon-cards":
+      return <IconCardsWidget widget={widget} />
+    case "badges":
+      return <BadgesWidget widget={widget} />
+    case "cta-banner":
+      return <CtaBannerWidget widget={widget} />
+    case "comparison-table":
+      return <ComparisonTableWidget widget={widget} />
     case "container":
       return null
     default:

@@ -225,7 +225,7 @@ export type FieldDef =
 
 export type RepeaterSubField = { key: string; label: string; kind: "text" | "url" | "media" | "icon" | "textarea" | "select"; options?: { value: string; label: string }[] }
 
-export type WidgetCategory = "layout" | "basic" | "commerce" | "chrome" | "parts"
+export type WidgetCategory = "layout" | "basic" | "content" | "commerce" | "chrome" | "parts"
 
 export type WidgetDef = {
   type: string

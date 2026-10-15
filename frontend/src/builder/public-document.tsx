@@ -44,14 +44,16 @@ export function PublishedDocument({
   document,
   runtime,
   globals,
+  themeClass,
 }: {
   document: BuilderDocument
   runtime?: RuntimeContext
   globals?: BuilderGlobals | null
+  themeClass?: string
 }) {
   return (
     <Suspense fallback={null}>
-      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass={storefrontThemeClass(runtime?.themeSlug) || "sf-classic"} />
+      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass={themeClass ?? (storefrontThemeClass(runtime?.themeSlug) || "sf-classic")} />
     </Suspense>
   )
 }
@@ -60,10 +62,12 @@ export async function StorefrontDocument({
   document,
   runtime,
   context,
+  themeClass,
 }: {
   document: BuilderDocument
   runtime?: RuntimeContext
   context?: ThemeQuery
+  themeClass?: string
 }) {
   const globals = await loadPublishedGlobals()
   const query = context ?? (await requestThemeContext())
@@ -73,6 +77,7 @@ export async function StorefrontDocument({
     <PublishedDocument
       document={document}
       globals={globals}
+      themeClass={themeClass}
       runtime={{ ...runtime, themeSlug, loopDocument: loop ?? undefined }}
     />
   )
