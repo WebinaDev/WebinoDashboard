@@ -118,7 +118,7 @@ async function resolveHostMode(request: NextRequest): Promise<"link-hub" | "prim
   }
 }
 
-export async function middleware(request: NextRequest) {
+async function handle(request: NextRequest) {
   const { pathname } = request.nextUrl
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-webino-path", `${pathname}${request.nextUrl.search}`)
@@ -298,6 +298,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  return res
+}
+
+/** Wraps every middleware response with the harmless site marker cookie (not an auth cookie). */
+export async function middleware(request: NextRequest) {
+  const res = await handle(request)
+  if (res && !request.cookies.get("webina_site")) {
+    res.cookies.set("webina_site", "1", { path: "/", sameSite: "lax", maxAge: 31536000 })
+  }
   return res
 }
 

@@ -19,11 +19,13 @@ class PoweredByHeader
         /** @var Response $response */
         $response = $next($request);
 
+        // Drop PHP's own "X-Powered-By: PHP/x" so only one value is sent.
+        if (! headers_sent()) {
+            header_remove('X-Powered-By');
+        }
+
         if ($request->attributes->get('webina.hide_fingerprint') === true) {
             $response->headers->remove('X-Powered-By');
-            if (function_exists('header_remove') && ! headers_sent()) {
-                header_remove('X-Powered-By');
-            }
 
             return $response;
         }
