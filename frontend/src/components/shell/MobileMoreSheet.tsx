@@ -48,7 +48,7 @@ export function MobileMoreSheet({ open, onOpenChange, navSections }: Props) {
         dir={htmlDir(locale)}
         className="wd-mobile-more max-h-[85svh] overflow-y-auto rounded-t-2xl px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-4 md:hidden"
       >
-        <SheetHeader className="text-start">
+        <SheetHeader className="pe-10 ps-10 text-start">
           <SheetTitle>{t("title")}</SheetTitle>
           <SheetDescription>{t("description")}</SheetDescription>
         </SheetHeader>
