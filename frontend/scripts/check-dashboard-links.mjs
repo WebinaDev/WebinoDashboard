@@ -98,7 +98,10 @@ for (const file of [...sources, ...phpSources]) {
     for (const m of line.matchAll(LITERAL)) {
       const raw = m[2]
       if (m[1] !== "`" && raw.includes("${")) continue
-      const route = normalize(raw)
+      let route = normalize(raw)
+      // A literal ending in "/" that is concatenated ('/x/'.$id or "/x/" + id) is a prefix + dynamic segment.
+      const next = line.slice(m.index + m[0].length).trimStart()[0]
+      if (raw.endsWith("/") && (next === "." || next === "+")) route = route ? `${route}/${WILDCARD}` : WILDCARD
       if (route.endsWith(WILDCARD) && route.split("/").every((s) => s === WILDCARD)) continue
       if (/[^/]\u0000|\u0000[^/]/.test(route)) continue
       checked++
