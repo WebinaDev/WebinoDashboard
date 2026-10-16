@@ -1,0 +1,242 @@
+/* Formal desktop dashboard chrome (md+) - keep mobile rules separate.
+   Scoped to html[data-wd-dashboard]. Uses ERP Yekan via --font-yekan. */
+
+@media (min-width: 768px) {
+  html[data-wd-dashboard] {
+    --wd-brand: #0054ff;
+    --wd-brand-dark: #0041d4;
+    --wd-ink: #22242a;
+    --wd-desk-bg: #f5f6f8;
+    --wd-desk-card: #ffffff;
+    --wd-desk-line: #e5e7eb;
+    --wd-desk-hint: #6b7280;
+    --wd-desk-tint: color-mix(in srgb, #0054ff 9%, #ffffff);
+    --wd-desk-radius: 12px;
+    --wd-desk-shadow: 0 1px 2px rgba(34, 36, 42, 0.04), 0 2px 8px rgba(34, 36, 42, 0.04);
+    --wd-desk-font: var(--font-yekan), var(--wd-font-ui), "Yekan Bakh", Tahoma, sans-serif;
+  }
+
+  html[data-wd-dashboard].dark {
+    --wd-desk-bg: #12141a;
+    --wd-desk-card: #1a1d25;
+    --wd-desk-line: #2a2f3a;
+    --wd-desk-hint: #94a3b8;
+    --wd-desk-tint: color-mix(in srgb, #0054ff 22%, #1a1d25);
+  }
+
+  html[data-wd-dashboard] .wd-desktop-chrome,
+  html[data-wd-dashboard] .wd-desktop-chrome * {
+    font-family: var(--wd-desk-font);
+  }
+
+  /* Soft page canvas */
+  html[data-wd-dashboard] .wd-desktop-main {
+    background: var(--wd-desk-bg);
+    gap: 1.25rem;
+    padding: 1.25rem 1.5rem 1.75rem !important;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-main.wd-app-atmosphere::before {
+    opacity: 0.18;
+  }
+
+  /* Top bar - formal, white, search-forward */
+  html[data-wd-dashboard] .wd-desktop-topbar {
+    height: 3.5rem !important;
+    background: var(--wd-desk-card) !important;
+    border-bottom: 1px solid var(--wd-desk-line) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-search {
+    flex: 1;
+    max-width: 28rem;
+    min-width: 12rem;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-search input,
+  html[data-wd-dashboard] .wd-desktop-search [data-slot='input'] {
+    border-radius: 10px;
+    border-color: var(--wd-desk-line);
+    background: var(--wd-desk-bg);
+    box-shadow: none;
+    height: 2.375rem;
+    font-size: 0.8125rem;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-create {
+    border-radius: 10px !important;
+    background: var(--wd-brand) !important;
+    color: #fff !important;
+    font-weight: 600;
+    box-shadow: none !important;
+    height: 2.375rem;
+    padding-inline: 0.875rem;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-create:hover {
+    background: var(--wd-brand-dark) !important;
+  }
+
+  /* Sidebar formal */
+  html[data-wd-dashboard] [data-slot='sidebar'],
+  html[data-wd-dashboard] [data-sidebar='sidebar'] {
+    background: #f8f9fb !important;
+    border-color: var(--wd-desk-line) !important;
+    font-family: var(--wd-desk-font);
+  }
+
+  html[data-wd-dashboard].dark [data-slot='sidebar'],
+  html[data-wd-dashboard].dark [data-sidebar='sidebar'] {
+    background: #161922 !important;
+  }
+
+  html[data-wd-dashboard] [data-sidebar='menu-button'] {
+    border-radius: 10px;
+    font-weight: 500;
+    color: var(--wd-ink);
+  }
+
+  html[data-wd-dashboard] [data-sidebar='menu-button'][data-active='true'] {
+    background: var(--wd-desk-tint) !important;
+    color: var(--wd-brand) !important;
+    font-weight: 600;
+    box-shadow: inset -3px 0 0 0 var(--wd-brand);
+  }
+
+  html[data-wd-dashboard] [dir='ltr'] [data-sidebar='menu-button'][data-active='true'],
+  html[data-wd-dashboard]:not([dir='rtl']) [data-sidebar='menu-button'][data-active='true'] {
+    box-shadow: inset 3px 0 0 0 var(--wd-brand);
+  }
+
+  /* RTL: accent bar on the start (right) edge */
+  html[data-wd-dashboard] [dir='rtl'] [data-sidebar='menu-button'][data-active='true'] {
+    box-shadow: inset -3px 0 0 0 var(--wd-brand);
+  }
+
+  html[data-wd-dashboard] [data-sidebar='menu-button'] svg,
+  html[data-wd-dashboard] .wd-desktop-chrome svg.lucide {
+    stroke-width: 1.75;
+  }
+
+  /* Cards on desktop dashboard */
+  html[data-wd-dashboard] .wd-desktop-main [data-slot='card'] {
+    border-radius: var(--wd-desk-radius);
+    border-color: var(--wd-desk-line);
+    box-shadow: var(--wd-desk-shadow);
+    background: var(--wd-desk-card);
+  }
+
+  html[data-wd-dashboard] .wd-desktop-main [data-slot='card'][data-variant='stat'],
+  html[data-wd-dashboard] .wd-desktop-main .wd-card-stat,
+  html[data-wd-dashboard] .wd-desktop-main .wd-card-glass,
+  html[data-wd-dashboard] .wd-desktop-main .wd-card-hero {
+    background: var(--wd-desk-card);
+    box-shadow: var(--wd-desk-shadow);
+  }
+
+  /* Desktop home hero */
+  html[data-wd-dashboard] .wd-home-hero--desktop {
+    display: block;
+  }
+
+  html[data-wd-dashboard] .wd-desk-home-greeting h1 {
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--wd-ink);
+    margin: 0;
+  }
+
+  html[data-wd-dashboard] .wd-desk-home-greeting .sub {
+    color: var(--wd-desk-hint);
+    font-size: 0.8125rem;
+    margin-top: 0.35rem;
+  }
+
+  html[data-wd-dashboard] .wd-desk-quick {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.625rem;
+  }
+
+  @media (min-width: 1280px) {
+    html[data-wd-dashboard] .wd-desk-quick {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  html[data-wd-dashboard] .wd-desk-quick-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 0.5rem;
+    border: 1px solid var(--wd-desk-line);
+    border-radius: var(--wd-desk-radius);
+    background: var(--wd-desk-card);
+    text-decoration: none;
+    color: var(--wd-ink);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+    box-shadow: var(--wd-desk-shadow);
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+
+  html[data-wd-dashboard] .wd-desk-quick-item:hover {
+    border-color: color-mix(in srgb, var(--wd-brand) 35%, var(--wd-desk-line));
+    background: var(--wd-desk-tint);
+    color: var(--wd-brand);
+  }
+
+  html[data-wd-dashboard] .wd-desk-quick-ic {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: var(--wd-desk-tint);
+    color: var(--wd-brand);
+    display: grid;
+    place-items: center;
+  }
+
+  html[data-wd-dashboard] .wd-desk-quick-ic svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    stroke-width: 1.75;
+  }
+
+  html[data-wd-dashboard] .wd-desk-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 1024px) {
+    html[data-wd-dashboard] .wd-desk-kpi-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+
+  html[data-wd-dashboard] .wd-desk-kpi .label {
+    color: var(--wd-desk-hint);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  html[data-wd-dashboard] .wd-desk-kpi .value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-top: 0.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Page shell titles on desktop */
+  html[data-wd-dashboard] .wd-page-shell > header h1 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+}
