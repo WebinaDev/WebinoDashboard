@@ -337,7 +337,8 @@
     "section_link_hub": "Link hub",
     "builder_collections": "CMS collections",
     "sms_ads": "SMS campaigns",
-    "loyalty": "Loyalty"
+    "loyalty": "Loyalty",
+    "abandoned_carts": "Abandoned carts"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -1626,7 +1627,31 @@
       "disable_dangerous_debug": "Disable debug exposure",
       "disable_dangerous_debug_hint": "Remove debug tokens from headers outside local environments",
       "x_frame_options": "X-Frame-Options",
-      "referrer_policy": "Referrer-Policy"
+      "referrer_policy": "Referrer-Policy",
+      "geo": "Country blocking",
+      "geo_hint": "Uses the CDN country header (Cloudflare/Arvan). Without the header nobody is blocked; staff and webhooks are exempt.",
+      "geo_enabled": "Enabled",
+      "geo_mode": "Mode",
+      "geo_mode_block": "Block listed countries",
+      "geo_mode_allow": "Allow only listed countries",
+      "geo_countries": "Country codes (e.g. IR, DE)",
+      "geo_header": "Country header name",
+      "rate": "Rate limits",
+      "rate_checkout": "Checkouts per minute (per user)",
+      "rate_public": "Public form writes per minute (per IP)",
+      "forensics": "Security event log",
+      "forensics_log": "Record events (WAF, login lockout, geo block, rate limit)",
+      "forensics_retention": "Retention (days)",
+      "events": "Recent events",
+      "events_empty": "No events recorded.",
+      "event_types": {
+        "waf_hit": "WAF match",
+        "waf_block": "WAF block",
+        "geo_block": "Geo block",
+        "login_lockout": "Login lockout",
+        "login_failed": "Failed login",
+        "rate_limited": "Rate limited"
+      }
     },
     "ai": {
       "title": "AI content",
@@ -2016,7 +2041,21 @@
       "tapin_insurance": "Insurance",
       "tapin_auto_register": "Auto-register shipment",
       "tapin_auto_status": "Auto-register at status",
-      "tapin_show_credit": "Show wallet credit"
+      "tapin_show_credit": "Show wallet credit",
+      "city_rates": "Per-city rates (one per line: city=cost)",
+      "city_other": "Other cities",
+      "city_other_hide": "Hide this method",
+      "city_other_cost": "Flat cost",
+      "city_other_amount": "Other cities cost",
+      "city_free_min": "Free from cart total (0 = none)",
+      "packaging_title": "Professional packaging",
+      "packaging_hint": "Box costs are added to shipping based on product dimensions and weight (except pickup).",
+      "packaging_enabled": "Enable packaging calculation",
+      "packaging_boxes": "Boxes (one per line: name|length|width|height cm|max weight g|cost)",
+      "show_map": "Show map picker at checkout",
+      "require_city": "Require city at checkout",
+      "city": "City",
+      "city_pick": "Choose city"
     },
     "payments": {
       "title": "Payment gateways",
@@ -3967,6 +4006,53 @@
         "bottom_right": "Bottom right"
       },
       "showOnMobile": "Show on mobile"
+    },
+    "engine": {
+      "title": "Bot shop engine",
+      "hint": "The bot replies to messages: store, search, cart, checkout, payment, account and admin panel. Register the webhook URL in your bot platform.",
+      "admins": "Admin chat IDs",
+      "adminsHint": "Comma separated. These chats get the Admin menu, order alerts, card-to-card receipts and tickets.",
+      "faq": "FAQ",
+      "faqPh": "One per line: question | answer | keywords (optional)",
+      "dailyPoints": "Daily club points (0 = off)",
+      "templates": "Message templates",
+      "templatesHint": "Empty = default text. Variables: {name} {store} {order_number} {total}",
+      "tpl": {
+        "welcome": "Welcome",
+        "order_created": "Order created",
+        "paid": "Payment confirmed",
+        "cart_empty": "Empty cart",
+        "ask_contact": "Ask phone",
+        "ask_address": "Ask address",
+        "unknown": "Unknown input"
+      },
+      "channel": "Channel publishing",
+      "channelId": "Channel ID (bot must be channel admin)",
+      "channelTpl": "Product post template",
+      "autoNew": "Auto-post newly published products",
+      "syncEdits": "Update post when product price/name changes",
+      "autoDelay": "Auto-post delay (minutes)",
+      "save": "Save engine settings",
+      "saved": "Saved",
+      "posts": "Channel posts",
+      "postText": "Post text (or enter a product ID)",
+      "productId": "Product ID (optional)",
+      "schedule": "Schedule",
+      "publishNow": "Publish",
+      "delete": "Delete",
+      "auto": "auto",
+      "empty": "No posts.",
+      "status": {
+        "draft": "Draft",
+        "scheduled": "Scheduled",
+        "published": "Published",
+        "failed": "Failed",
+        "deleted": "Deleted"
+      },
+      "outbox": "Retry queue",
+      "outboxHint": "Messages that failed after 5 attempts.",
+      "outboxEmpty": "No failed messages.",
+      "retry": "Retry"
     }
   },
   "marketplace_admin": {
@@ -7574,5 +7660,31 @@
       "failed": "Failed",
       "cancelled": "Cancelled"
     }
+  },
+  "abandoned_carts": {
+    "title": "Abandoned cart recovery",
+    "description": "Multi-stage reminders for abandoned carts via Bale/Telegram bot and SMS.",
+    "settings": "Settings",
+    "enabled": "Automatic recovery enabled",
+    "channel_bot": "Send via bot",
+    "channel_sms": "Send SMS (via SMS panel)",
+    "min_subtotal": "Minimum cart total",
+    "vars": "Variables: {name} {store} {total} {cart_url} {coupon} {items}",
+    "stage": "Stage {n}",
+    "delay_hours": "Delay (hours since last activity)",
+    "coupon_type": "Coupon",
+    "coupon_none": "None",
+    "coupon_percent": "Percent",
+    "coupon_fixed": "Fixed amount",
+    "coupon_amount": "Discount amount",
+    "coupon_days": "Valid (days)",
+    "save": "Save",
+    "saved": "Saved",
+    "run_now": "Run now",
+    "ran": "{n} reminders sent",
+    "list": "Active carts",
+    "empty": "No abandoned carts.",
+    "guest": "Guest",
+    "row": "{items} items · {total} · stage {stage}"
   }
 }

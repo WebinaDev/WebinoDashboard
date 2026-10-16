@@ -15,6 +15,7 @@ import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
 import { BotSectionTabs } from "../components/BotSectionTabs"
+import { BotEngineSettings } from "./bot-engine-settings"
 
 type Settings = {
   provider: string
@@ -243,7 +244,9 @@ function BotSettingsCore({ provider }: { provider: "bale" | "telegram" }) {
             </CardContent>
           </Card>
         ) : null}
-<Card className="shadow-soft">
+<BotEngineSettings provider={provider} addons={addons} />
+
+        <Card className="shadow-soft">
           <CardHeader>
             <CardTitle className="text-base">{t("settings.testSend")}</CardTitle>
           </CardHeader>

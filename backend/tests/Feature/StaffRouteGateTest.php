@@ -35,6 +35,7 @@ class StaffRouteGateTest extends TestCase
         'api/v1/loyalty/balance',
         'api/v1/loyalty/redeem',
         'api/v1/shipping/quote',
+        'api/v1/shipping/regions',
         'api/v1/cart',
         'api/v1/cart/items',
         'api/v1/cart/purchase-type',

@@ -87,6 +87,7 @@ export function ClassicCheckout() {
   const [states, setStates] = useState<{ code: string; name: string }[]>([])
   const [stateCode, setStateCode] = useState("")
   const [city, setCity] = useState("")
+  const [regionCities, setRegionCities] = useState<string[]>([])
   const [postcode, setPostcode] = useState("")
   const [address, setAddress] = useState("")
   const [phone, setPhone] = useState("")
@@ -116,6 +117,18 @@ export function ClassicCheckout() {
     const stored = readStoredCoupon()
     if (stored) setCoupon(stored)
   }, [])
+
+  useEffect(() => {
+    if (!stateCode) {
+      setRegionCities([])
+      return
+    }
+    void quietApi<{ data?: { cities?: string[] } }>(
+      `/api/v1/shipping/regions?state_code=${encodeURIComponent(stateCode)}`,
+    ).then((res) => {
+      if (res.ok) setRegionCities(res.data.data?.cities ?? [])
+    })
+  }, [stateCode])
 
   useEffect(() => {
     void quietApi<{ states?: { code: string; name: string }[] }>("/api/v1/public/geo/states").then((res) => {
@@ -189,6 +202,7 @@ export function ClassicCheckout() {
         json: {
           state_code: stateCode || null,
           postcode: postcode || null,
+          city: city || null,
           cart_subtotal_minor: pricing?.subtotal_minor ?? subtotal,
         },
       })
@@ -221,6 +235,7 @@ export function ClassicCheckout() {
           shipping_instance_id: rateId,
           shipping_state_code: stateCode || null,
           shipping_postcode: postcode || null,
+          shipping_city: city || null,
           customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
         },
       })
@@ -316,7 +331,14 @@ export function ClassicCheckout() {
                       <Fragment key="city">
                         <label className="sfc-field">
                           <span>{tx("checkout.city_label")}</span>
-                          <input value={city} onChange={(e) => setCity(e.target.value)} />
+                          <input value={city} list="checkout-region-cities" onChange={(e) => setCity(e.target.value)} />
+                          {regionCities.length ? (
+                            <datalist id="checkout-region-cities">
+                              {regionCities.map((c) => (
+                                <option key={c} value={c} />
+                              ))}
+                            </datalist>
+                          ) : null}
                         </label>
                       </Fragment>
                     )

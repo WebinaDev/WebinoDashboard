@@ -31,10 +31,54 @@ type Zone = {
 }
 type ZonesPayload = {
   zones: Zone[]
-  global: { enable_shipping: boolean; default_method: string; free_shipping_min: number }
+  global: {
+    enable_shipping: boolean
+    default_method: string
+    free_shipping_min: number
+    packaging?: { enabled: boolean; boxes: PackBox[] }
+    show_map?: boolean
+    require_city?: boolean
+  }
   method_types: { id: string; title: string; description: string }[]
   states: { code: string; name: string }[]
 }
+
+type PackBox = {
+  name: string
+  length: number
+  width: number
+  height: number
+  max_weight_g: number
+  box_weight_g?: number
+  cost: number
+}
+
+const boxesToText = (boxes: PackBox[] = []) =>
+  boxes.map((b) => [b.name, b.length, b.width, b.height, b.max_weight_g, b.cost].join("|")).join("\n")
+
+const textToBoxes = (text: string): PackBox[] =>
+  text
+    .split("\n")
+    .map((l) => l.split("|").map((x) => x.trim()))
+    .filter((p) => p[0])
+    .map((p) => ({
+      name: p[0],
+      length: Number(p[1]) || 0,
+      width: Number(p[2]) || 0,
+      height: Number(p[3]) || 0,
+      max_weight_g: Number(p[4]) || 0,
+      cost: Number(p[5]) || 0,
+    }))
+
+type CityRate = { city: string; cost: number }
+const ratesToText = (rates: unknown) =>
+  (Array.isArray(rates) ? (rates as CityRate[]) : []).map((r) => `${r.city}=${r.cost}`).join("\n")
+const textToRates = (text: string): CityRate[] =>
+  text
+    .split("\n")
+    .map((l) => l.split("="))
+    .filter((p) => p[0]?.trim())
+    .map((p) => ({ city: p[0].trim(), cost: Number((p[1] ?? "").trim()) || 0 }))
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
@@ -200,6 +244,56 @@ export function ShippingZonesPanel() {
                 saveGlobal.mutate({
                   ...global,
                   free_shipping_min: Number(e.target.value) || 0,
+                })
+              }
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={Boolean(global.show_map)}
+              onCheckedChange={(v) => saveGlobal.mutate({ ...global, show_map: v })}
+            />
+            {t("shipping.show_map")}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={Boolean(global.require_city)}
+              onCheckedChange={(v) => saveGlobal.mutate({ ...global, require_city: v })}
+            />
+            {t("shipping.require_city")}
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("shipping.packaging_title")}</CardTitle>
+          <CardDescription>{t("shipping.packaging_hint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={Boolean(global.packaging?.enabled)}
+              onCheckedChange={(v) =>
+                saveGlobal.mutate({
+                  ...global,
+                  packaging: { enabled: v, boxes: global.packaging?.boxes ?? [] },
+                })
+              }
+            />
+            {t("shipping.packaging_enabled")}
+          </label>
+          <div className="grid gap-1">
+            <Label className="text-xs">{t("shipping.packaging_boxes")}</Label>
+            <textarea
+              dir="ltr"
+              className="border-input bg-background min-h-24 w-full rounded-md border p-2 font-mono text-xs"
+              defaultValue={boxesToText(global.packaging?.boxes)}
+              placeholder="S|20|15|10|2000|15000"
+              onBlur={(e) =>
+                saveGlobal.mutate({
+                  ...global,
+                  packaging: { enabled: Boolean(global.packaging?.enabled), boxes: textToBoxes(e.target.value) },
                 })
               }
             />
@@ -429,6 +523,12 @@ export function ShippingZonesPanel() {
                                 fallback: t("shipping.method_fallback"),
                                 service: t("shipping.method_service"),
                                 delete: t("shipping.delete_method"),
+                                cityRates: t("shipping.city_rates"),
+                                cityOther: t("shipping.city_other"),
+                                cityOtherHide: t("shipping.city_other_hide"),
+                                cityOtherCost: t("shipping.city_other_cost"),
+                                cityOtherAmount: t("shipping.city_other_amount"),
+                                cityFreeMin: t("shipping.city_free_min"),
                               }}
                             />
                           ))
@@ -505,6 +605,46 @@ function MethodEditor({
               }
             />
           </div>
+        ) : null}
+        {method.method_id === "flat_city" ? (
+          <>
+            <div className="grid gap-1 sm:col-span-2">
+              <Label className="text-xs">{labels.cityRates}</Label>
+              <textarea
+                className="border-input bg-background min-h-24 w-full rounded-md border p-2 text-sm"
+                defaultValue={ratesToText(settings.city_rates)}
+                placeholder={"تهران=45000\nشهریار=70000"}
+                onBlur={(e) => onChange({ settings: { ...settings, city_rates: textToRates(e.target.value) } })}
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs">{labels.cityOther}</Label>
+              <select
+                className={selectClass}
+                defaultValue={String(settings.other_cities ?? "hide")}
+                onChange={(e) => onChange({ settings: { ...settings, other_cities: e.target.value } })}
+              >
+                <option value="hide">{labels.cityOtherHide}</option>
+                <option value="cost">{labels.cityOtherCost}</option>
+              </select>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs">{labels.cityOtherAmount}</Label>
+              <Input
+                type="number"
+                defaultValue={Number(settings.other_cost ?? 0)}
+                onBlur={(e) => onChange({ settings: { ...settings, other_cost: Number(e.target.value) || 0 } })}
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs">{labels.cityFreeMin}</Label>
+              <Input
+                type="number"
+                defaultValue={Number(settings.free_min ?? 0)}
+                onBlur={(e) => onChange({ settings: { ...settings, free_min: Number(e.target.value) || 0 } })}
+              />
+            </div>
+          </>
         ) : null}
         {method.method_id === "tapin" ? (
           <>

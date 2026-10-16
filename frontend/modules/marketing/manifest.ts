@@ -51,6 +51,17 @@ export const marketingManifest: ModuleManifest = {
       capability: "marketing.*",
     },
     {
+      path: "marketing/abandoned-carts",
+      submodule: "notifications",
+      page: "abandoned-carts",
+      labelKey: "nav.abandoned_carts",
+      section: "marketing",
+      order: 41,
+      navGroup: "marketing",
+      navOrder: 2,
+      capability: "marketing.*",
+    },
+    {
       path: "marketing/sale-prices",
       submodule: "sale-prices",
       page: "sale-prices",

@@ -14,6 +14,7 @@ import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
 import { preferPublishedStorefrontChrome } from "@/themes/shared/storefront-skin"
 import { AnalyticsTrackerScript } from "@/components/AnalyticsTrackerScript"
+import { BotSiteWidget } from "@/components/BotSiteWidget"
 import { JsonLd } from "@/components/seo/JsonLd"
 import { cn } from "@/lib/utils"
 
@@ -151,6 +152,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         )}
         <SiteJsonLd />
         <CustomCodeSlot entries={globals?.customCode} location="body_end" path={requestPath} />
+        <BotSiteWidget />
         <AnalyticsTrackerScript />
       </div>
       </BuilderRuntimeProvider>

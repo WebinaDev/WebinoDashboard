@@ -372,8 +372,27 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                         disabled={!item.inStock}
                         onClick={() => setVariantId(item.id)}
                         className={variantId === item.id ? "is-active" : ""}
+                        title={item.name}
+                        aria-label={item.name}
                       >
-                        {item.name}
+                        {item.swatch ? (
+                          <span
+                            aria-hidden
+                            style={{
+                              display: "inline-block",
+                              width: 18,
+                              height: 18,
+                              borderRadius: "50%",
+                              border: "1px solid rgba(0,0,0,.15)",
+                              verticalAlign: "middle",
+                              marginInlineEnd: item.swatch.showLabel ? 6 : 0,
+                              background: item.swatch.image
+                                ? `center / cover no-repeat url(${JSON.stringify(item.swatch.image)})`
+                                : (item.swatch.color ?? undefined),
+                            }}
+                          />
+                        ) : null}
+                        {!item.swatch || item.swatch.showLabel ? item.name : null}
                       </button>
                     ))}
                   </div>

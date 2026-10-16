@@ -6,6 +6,8 @@ export type ShopVariant = {
   image?: string | null
   stock: number | null
   inStock: boolean
+  /** Colour/image swatch from the variant's attribute term (variation swatches). */
+  swatch?: { color: string | null; image: string | null; label: string; showLabel: boolean }
 }
 
 export type ShopInstallment = {
@@ -378,6 +380,16 @@ function mapVariant(raw: ApiRecord): ShopVariant | null {
     image: str(raw.image_url) || null,
     stock,
     inStock,
+    ...(raw.swatch && typeof raw.swatch === "object"
+      ? {
+          swatch: {
+            color: str((raw.swatch as ApiRecord).color) || null,
+            image: str((raw.swatch as ApiRecord).image) || null,
+            label: str((raw.swatch as ApiRecord).label),
+            showLabel: (raw.swatch as ApiRecord).show_label !== false,
+          },
+        }
+      : {}),
   }
 }
 

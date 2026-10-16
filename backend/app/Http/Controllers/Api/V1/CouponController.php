@@ -53,6 +53,25 @@ class CouponController extends Controller
         ]);
     }
 
+    public function offerTemplates(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $owned = Coupon::query()->where('tenant_id', $tid)->where('status', '!=', 'trash')->get(['id', 'restrictions'])
+            ->mapWithKeys(fn ($c) => [($c->restrictions['offer_template'] ?? '') => $c->id])->filter();
+        $rows = array_map(fn ($t) => $t + ['coupon_id' => $owned[$t['id']] ?? null], \App\Services\Coupons\OfferTemplates::all());
+
+        return response()->json(['data' => $rows]);
+    }
+
+    public function fromTemplate(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate(['template_id' => ['required', 'string', 'max:64']]);
+        $coupon = \App\Services\Coupons\OfferTemplates::createFor((int) $request->user()->tenant_id, $data['template_id']);
+        abort_if(! $coupon, 404);
+
+        return response()->json(['data' => $coupon], 201);
+    }
+
     public function show(Request $request, Coupon $coupon): \Illuminate\Http\JsonResponse
     {
         abort_if($coupon->tenant_id !== $request->user()->tenant_id, 403);

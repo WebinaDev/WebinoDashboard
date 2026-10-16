@@ -231,6 +231,7 @@ class PublicCatalogController extends Controller
 
         $data = $this->withPricing($this->serializeProduct($product, true), $product, PurchaseTypeService::forTenant($tid));
         $data['likes_count'] = $likesCount;
+        $data['variants'] = $this->withSwatches($tid, $data['variants'] ?? []);
         $data['return_notice'] = $this->categoryReturnNotice($product->category);
         // Same price formatting as the catalogue list (item page used to fall back to defaults).
         $general = \App\Services\Shop\ShopSettings::getGeneral($tid);
@@ -298,5 +299,51 @@ class PublicCatalogController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Attach swatch info (term colour / image + attribute show_swatch_label) to each variant
+     * (WP variation-swatches storefront render).
+     *
+     * @param  iterable<mixed>  $variants
+     * @return list<mixed>
+     */
+    protected function withSwatches(int $tid, iterable $variants): array
+    {
+        $list = [];
+        foreach ($variants as $v) {
+            $list[] = $v instanceof \Illuminate\Contracts\Support\Arrayable ? $v->toArray() : (array) $v;
+        }
+        $termIds = [];
+        foreach ($list as $v) {
+            foreach ((array) ($v['attribute_values'] ?? []) as $av) {
+                if (! empty($av['term_id'])) {
+                    $termIds[] = (int) $av['term_id'];
+                }
+            }
+        }
+        if ($termIds === []) {
+            return $list;
+        }
+        $terms = \App\Models\ProductAttributeTerm::query()->where('tenant_id', $tid)->whereIn('id', array_unique($termIds))->get()->keyBy('id');
+        $attrs = \App\Models\ProductAttribute::query()->where('tenant_id', $tid)->whereIn('id', $terms->pluck('product_attribute_id')->unique())->get()->keyBy('id');
+        foreach ($list as $i => $v) {
+            foreach ((array) ($v['attribute_values'] ?? []) as $av) {
+                $term = $terms->get((int) ($av['term_id'] ?? 0));
+                if (! $term || (! $term->color && ! $term->image_url)) {
+                    continue;
+                }
+                $attr = $attrs->get($term->product_attribute_id);
+                $list[$i]['swatch'] = [
+                    'color' => $term->color ?: null,
+                    'image' => $term->image_url ?: null,
+                    'label' => (string) $term->name,
+                    'show_label' => $attr ? (bool) $attr->show_swatch_label : true,
+                ];
+                break;
+            }
+        }
+
+        return $list;
     }
 }

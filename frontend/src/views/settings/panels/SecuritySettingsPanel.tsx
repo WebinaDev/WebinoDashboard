@@ -1,6 +1,9 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
+
+import { api } from "@/lib/api"
 
 import { SettingsSaveBar, useDraftSettings } from "@/views/settings/use-tenant-settings"
 import { Button } from "@/components/ui/button"
@@ -23,6 +26,9 @@ type SecurityPayload = {
   waf?: Record<string, unknown>
   headers?: Record<string, unknown>
   notify?: Record<string, unknown>
+  geo?: Record<string, unknown>
+  rate?: Record<string, unknown>
+  forensics?: Record<string, unknown>
 }
 
 function SettingSwitch({
@@ -66,6 +72,9 @@ export function SecuritySettingsPanel() {
   const waf = (draft.waf ?? {}) as Record<string, unknown>
   const headers = (draft.headers ?? {}) as Record<string, unknown>
   const notify = (draft.notify ?? {}) as Record<string, unknown>
+  const geo = (draft.geo ?? {}) as Record<string, unknown>
+  const rate = (draft.rate ?? {}) as Record<string, unknown>
+  const forensics = (draft.forensics ?? {}) as Record<string, unknown>
   const current = draft
 
   function patch(
@@ -199,6 +208,79 @@ export function SecuritySettingsPanel() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">{t("security.geo")}</CardTitle>
+          <CardDescription>{t("security.geo_hint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid max-w-md gap-3">
+          <SettingSwitch
+            id="geo-on"
+            label={t("security.geo_enabled")}
+            checked={Boolean(geo.enabled)}
+            onCheckedChange={(v) => patch("geo", "enabled", v)}
+          />
+          <div className="grid gap-1">
+            <Label>{t("security.geo_mode")}</Label>
+            <select
+              className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+              value={String(geo.mode ?? "block")}
+              onChange={(e) => patch("geo", "mode", e.target.value)}
+            >
+              <option value="block">{t("security.geo_mode_block")}</option>
+              <option value="allow">{t("security.geo_mode_allow")}</option>
+            </select>
+          </div>
+          <div className="grid gap-1">
+            <Label>{t("security.geo_countries")}</Label>
+            <Input
+              dir="ltr"
+              value={Array.isArray(geo.countries) ? (geo.countries as string[]).join(", ") : String(geo.countries ?? "")}
+              onChange={(e) => patch("geo", "countries", e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label>{t("security.geo_header")}</Label>
+            <Input dir="ltr" className="font-mono" value={String(geo.header ?? "CF-IPCountry")} onChange={(e) => patch("geo", "header", e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("security.rate")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid max-w-md gap-3">
+          <div className="grid gap-1">
+            <Label>{t("security.rate_checkout")}</Label>
+            <Input type="number" min={1} value={Number(rate.checkout_per_min ?? 10)} onChange={(e) => patch("rate", "checkout_per_min", Number(e.target.value) || 1)} />
+          </div>
+          <div className="grid gap-1">
+            <Label>{t("security.rate_public")}</Label>
+            <Input type="number" min={1} value={Number(rate.public_writes_per_min ?? 30)} onChange={(e) => patch("rate", "public_writes_per_min", Number(e.target.value) || 1)} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("security.forensics")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <SettingSwitch
+            id="forensics-log"
+            label={t("security.forensics_log")}
+            checked={forensics.log_events !== false}
+            onCheckedChange={(v) => patch("forensics", "log_events", v)}
+          />
+          <div className="grid max-w-md gap-1">
+            <Label>{t("security.forensics_retention")}</Label>
+            <Input type="number" min={1} max={365} value={Number(forensics.retention_days ?? 30)} onChange={(e) => patch("forensics", "retention_days", Number(e.target.value) || 30)} />
+          </div>
+          <SecurityEventsList />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">{t("security.headers")}</CardTitle>
         </CardHeader>
         <CardContent className="grid max-w-md gap-3">
@@ -258,6 +340,36 @@ export function SecuritySettingsPanel() {
           {t("security.complete_wizard")}
         </Button>
       </div>
+    </div>
+  )
+}
+
+type SecurityEventRow = { id: number; type: string; ip: string | null; country: string | null; path: string | null; created_at: string }
+
+function SecurityEventsList() {
+  const t = useTranslations("settings_hub")
+  const q = useQuery({
+    queryKey: ["security-events"],
+    queryFn: () => api<{ data: SecurityEventRow[] }>("/api/v1/security/events?per_page=20"),
+  })
+  const rows = q.data?.data ?? []
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-medium">{t("security.events")}</p>
+      {rows.length ? (
+        <ul className="divide-y text-xs">
+          {rows.map((r) => (
+            <li key={r.id} className="flex flex-wrap justify-between gap-2 py-1">
+              <span>{t(`security.event_types.${r.type}` as never)}</span>
+              <span dir="ltr" className="text-muted-foreground font-mono">
+                {r.ip ?? "—"} {r.country ?? ""} {r.path ?? ""} · {new Date(r.created_at).toLocaleString("fa-IR")}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-muted-foreground text-xs">{t("security.events_empty")}</p>
+      )}
     </div>
   )
 }

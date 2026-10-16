@@ -878,6 +878,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('/marketing/coupons/generate-code', [CouponController::class, 'generateCode']);
                 Route::post('/marketing/coupons/preview', [CouponController::class, 'preview']);
                 Route::post('/marketing/coupons/bulk', [CouponController::class, 'bulk']);
+                Route::get('/marketing/coupons/offer-templates', [CouponController::class, 'offerTemplates']);
+                Route::post('/marketing/coupons/from-template', [CouponController::class, 'fromTemplate']);
                 Route::get('/marketing/coupons/{coupon}', [CouponController::class, 'show'])->whereNumber('coupon');
                 Route::put('/marketing/coupons/{coupon}', [CouponController::class, 'update'])->whereNumber('coupon');
                 Route::patch('/marketing/coupons/{coupon}', [CouponController::class, 'update'])->whereNumber('coupon');
