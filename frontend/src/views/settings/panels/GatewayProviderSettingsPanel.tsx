@@ -52,6 +52,24 @@ const PROVIDER_FIELDS: Record<string, FieldDef[]> = {
     { key: "redact_logs", type: "switch", label: "redact_logs" },
     { key: "callback_url", type: "readonly", label: "callback_url" },
   ],
+  zibal: [
+    { key: "merchant_id", type: "password", label: "merchant_id" },
+    { key: "cash_enabled", type: "switch", label: "cash_enabled" },
+    { key: "installment_enabled", type: "switch", label: "installment_enabled" },
+    { key: "fee_percent", type: "number", label: "fee_percent" },
+    { key: "title", type: "text", label: "title" },
+    { key: "payment_description", type: "text", label: "payment_description" },
+    {
+      key: "fee_payer",
+      type: "select",
+      label: "fee_payer",
+      options: [
+        { value: "merchant", label: "merchant" },
+        { value: "customer", label: "customer" },
+      ],
+    },
+    { key: "callback_url", type: "readonly", label: "callback_url" },
+  ],
   digipay: [
     { key: "has_pdp", type: "switch", label: "has_pdp" },
     { key: "dark_pdp", type: "switch", label: "dark_pdp" },

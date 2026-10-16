@@ -461,6 +461,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         route: "/dashboard/settings/shop/zarinpal",
       },
       {
+        id: "zibal",
+        titleFa: "زیبال",
+        titleEn: "Zibal",
+        route: "/dashboard/settings/shop/zibal",
+      },
+      {
         id: "digipay",
         titleFa: "دیجی‌پی",
         titleEn: "Digipay",

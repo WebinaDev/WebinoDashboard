@@ -88,6 +88,7 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/shop/gateways")) return <CommerceGatewaysPanel />
   if (path.endsWith("/shop/payments")) return <PaymentHubPanel />
   if (path.endsWith("/shop/zarinpal")) return <GatewayProviderSettingsPanel provider="zarinpal" />
+  if (path.endsWith("/shop/zibal")) return <GatewayProviderSettingsPanel provider="zibal" />
   if (path.endsWith("/shop/digipay")) return <GatewayProviderSettingsPanel provider="digipay" />
   if (path.endsWith("/shop/snapppay")) return <GatewayProviderSettingsPanel provider="snapppay" />
   if (path.endsWith("/shop/torobpay")) return <GatewayProviderSettingsPanel provider="torobpay" />
