@@ -330,7 +330,8 @@ class BotController extends Controller
         $secret = trim((string) ($request->header('X-Bot-Secret') ?? ''));
         $payload = $request->all();
 
-        $message = $payload['message'] ?? $payload['edited_message'] ?? null;
+        $callback = is_array($payload['callback_query'] ?? null) ? $payload['callback_query'] : null;
+        $message = $payload['message'] ?? $payload['edited_message'] ?? ($callback['message'] ?? null);
         $chatId = data_get($message, 'chat.id') ?? data_get($payload, 'chat.id');
         if ($secret === '' || ! $chatId) {
             return response()->json(['ok' => false, 'message' => 'Unknown bot'], 404);
@@ -346,30 +347,23 @@ class BotController extends Controller
             return response()->json(['ok' => false, 'message' => 'Unknown bot'], 404);
         }
 
-        BotSession::query()->updateOrCreate(
-            [
-                'tenant_id' => $setting->tenant_id,
-                'provider' => $provider,
-                'chat_id' => (string) $chatId,
-            ],
-            [
-                'last_seen_at' => now(),
-                'meta' => [
-                    'from' => data_get($message, 'from'),
-                    'text' => data_get($message, 'text'),
-                ],
-            ]
-        );
-
+        $inbound = $callback ? 'callback:'.(string) ($callback['data'] ?? '') : (string) data_get($message, 'text', data_get($message, 'caption', ''));
         BotClientFactory::log(
             $setting->tenant_id,
             $provider,
             (string) $chatId,
-            'text',
-            (string) data_get($message, 'text', ''),
+            $callback ? 'callback' : (isset($message['contact']) ? 'contact' : (isset($message['photo']) ? 'photo' : 'text')),
+            mb_substr($inbound, 0, 2000),
             'received',
             'in'
         );
+
+        try {
+            app(\App\Services\Bots\Engine\BotEngine::class)->handle($setting, $payload);
+        } catch (\Throwable $e) {
+            // Always 200 so the platform does not redeliver the same update forever.
+            report($e);
+        }
 
         return response()->json(['ok' => true]);
     }

@@ -100,7 +100,7 @@ final class LoyaltyService
         return $this->grant($referrer, $points, $reason);
     }
 
-    private function grant(User $user, int $points, string $reason): int
+    public function grant(User $user, int $points, string $reason): int
     {
         DB::transaction(function () use ($user, $points, $reason) {
             LoyaltyLedger::query()->create([

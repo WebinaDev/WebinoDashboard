@@ -74,6 +74,7 @@ class SupportTicketController extends Controller
         [$body, $attachments] = $this->validatedReplyPayload($request);
         $this->insertReply($row, (int) $request->user()->id, $body, true, $attachments);
         $row->update(['status' => 'answered']);
+        \App\Services\Bots\Engine\BotNotifier::ticketReply($row, $body);
         UserNotification::query()->create([
             'tenant_id' => $row->tenant_id,
             'user_id' => $row->user_id,

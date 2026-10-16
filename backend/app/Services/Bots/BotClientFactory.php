@@ -9,15 +9,36 @@ use Illuminate\Support\Facades\Http;
 interface BotClient
 {
     public function sendMessage(string $chatId, string $type, string $text, ?string $media = null): array;
+
+    /**
+     * Raw Bot API call (sendMessage with reply_markup, answerCallbackQuery, editMessageText, deleteMessage…).
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{ok: bool, body: mixed, status: int}
+     */
+    public function call(string $method, array $payload): array;
 }
 
-class BaleBotClient implements BotClient
+abstract class HttpBotClient implements BotClient
 {
     public function __construct(protected string $token) {}
 
+    abstract protected function baseUrl(): string;
+
+    public function call(string $method, array $payload): array
+    {
+        try {
+            $res = Http::timeout(20)->asJson()->post($this->baseUrl().$this->token.'/'.$method, $payload);
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'body' => ['description' => $e->getMessage()], 'status' => 0];
+        }
+        $body = $res->json();
+
+        return ['ok' => $res->successful() && (($body['ok'] ?? true) !== false), 'body' => $body, 'status' => $res->status()];
+    }
+
     public function sendMessage(string $chatId, string $type, string $text, ?string $media = null): array
     {
-        $base = 'https://tapi.bale.ai/bot'.$this->token;
         $payload = match ($type) {
             'photo' => ['chat_id' => $chatId, 'photo' => $media, 'caption' => $text],
             'video' => ['chat_id' => $chatId, 'video' => $media, 'caption' => $text],
@@ -32,36 +53,24 @@ class BaleBotClient implements BotClient
             'document' => 'sendDocument',
             default => 'sendMessage',
         };
-        $res = Http::timeout(20)->asJson()->post($base.'/'.$method, $payload);
 
-        return ['ok' => $res->successful(), 'body' => $res->json(), 'status' => $res->status()];
+        return $this->call($method, $payload);
     }
 }
 
-class TelegramBotClient implements BotClient
+class BaleBotClient extends HttpBotClient
 {
-    public function __construct(protected string $token) {}
-
-    public function sendMessage(string $chatId, string $type, string $text, ?string $media = null): array
+    protected function baseUrl(): string
     {
-        $base = 'https://api.telegram.org/bot'.$this->token;
-        $payload = match ($type) {
-            'photo' => ['chat_id' => $chatId, 'photo' => $media, 'caption' => $text],
-            'video' => ['chat_id' => $chatId, 'video' => $media, 'caption' => $text],
-            'voice' => ['chat_id' => $chatId, 'voice' => $media],
-            'document' => ['chat_id' => $chatId, 'document' => $media, 'caption' => $text],
-            default => ['chat_id' => $chatId, 'text' => $text],
-        };
-        $method = match ($type) {
-            'photo' => 'sendPhoto',
-            'video' => 'sendVideo',
-            'voice' => 'sendVoice',
-            'document' => 'sendDocument',
-            default => 'sendMessage',
-        };
-        $res = Http::timeout(20)->asJson()->post($base.'/'.$method, $payload);
+        return 'https://tapi.bale.ai/bot';
+    }
+}
 
-        return ['ok' => $res->successful(), 'body' => $res->json(), 'status' => $res->status()];
+class TelegramBotClient extends HttpBotClient
+{
+    protected function baseUrl(): string
+    {
+        return 'https://api.telegram.org/bot';
     }
 }
 

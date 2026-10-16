@@ -124,6 +124,7 @@ Schedule::command('pricing:bulk-price-schedule')->hourly()->withoutOverlapping()
 Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();
 Schedule::command('ai:tick')->everyMinute()->withoutOverlapping();
 Schedule::command('sms:dispatch-scheduled')->everyMinute()->withoutOverlapping();
+Schedule::command('bots:retry-outbound')->everyMinute()->withoutOverlapping();
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:torob-webhooks')->everyMinute()->withoutOverlapping();
@@ -143,3 +144,8 @@ Artisan::command('builder:purge-form-uploads {--hours=24}', function () {
 })->purpose('Delete builder form uploads that were never attached to a submission');
 
 Schedule::command('builder:purge-form-uploads')->hourly()->withoutOverlapping();
+
+Artisan::command('bots:retry-outbound', function () {
+    $sent = \App\Services\Bots\Engine\BotMessenger::retryDue();
+    $this->info("Retried bot messages: {$sent} sent.");
+})->purpose('Retry failed Bale/Telegram outbound messages with backoff');

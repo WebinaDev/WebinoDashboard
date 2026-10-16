@@ -55,5 +55,10 @@ class OrderStatusObserver
 
         app(OrderLifecycle::class)->sync($order->fresh() ?? $order, $from);
         $this->notifier->notify($order->fresh() ?? $order, $from, (string) $order->status);
+        try {
+            \App\Services\Bots\Engine\BotNotifier::orderStatus($order->fresh() ?? $order, $from, (string) $order->status);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }
