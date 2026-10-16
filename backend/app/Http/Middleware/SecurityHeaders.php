@@ -41,6 +41,7 @@ class SecurityHeaders
 
         $privacy = $settings['privacy'] ?? [];
         if (! empty($privacy['hide_app_fingerprint'])) {
+            $request->attributes->set('webina.hide_fingerprint', true);
             $response->headers->remove('X-Powered-By');
             $response->headers->remove('Server');
             $response->headers->set('X-Content-Type-Options', $response->headers->get('X-Content-Type-Options') ?: 'nosniff');

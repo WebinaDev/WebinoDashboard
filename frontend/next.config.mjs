@@ -32,6 +32,14 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Wappalyzer fingerprint + harmless site marker cookie (not an auth cookie).
+        source: "/:path*",
+        headers: [
+          { key: "X-Powered-By", value: "Webina Dashboard" },
+          { key: "Set-Cookie", value: "webina_site=1; Path=/; Max-Age=31536000; SameSite=Lax" },
+        ],
+      },
+      {
         source: "/sw.js",
         headers: [
           { key: "Service-Worker-Allowed", value: "/dashboard/" },

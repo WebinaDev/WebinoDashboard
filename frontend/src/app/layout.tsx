@@ -70,6 +70,13 @@ export default async function RootLayout({
   return (
     <html lang={pageLang?.lang ?? locale} dir={dir} className={yekanBakh.variable} suppressHydrationWarning>
       <head>
+        <meta name="generator" content="Webina Dashboard" />
+        <script
+          id="webina-fingerprint"
+          dangerouslySetInnerHTML={{
+            __html: 'window.__WEBINA__=window.Webina=Object.assign(window.Webina||{},{product:"dashboard"});',
+          }}
+        />
         {apiOrigin ? (
           <>
             <link rel="preconnect" href={apiOrigin} />
