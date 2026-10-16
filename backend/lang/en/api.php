@@ -3,6 +3,7 @@
 return [
     'unauthorized' => 'Unauthorized',
     'invalid_credentials' => 'Invalid credentials.',
+    'too_many_requests' => 'Too many requests. Please try again shortly.',
     'forbidden' => 'Forbidden',
     'forbidden_ip' => 'Forbidden from this IP address.',
     'module_disabled' => 'Module disabled for tenant.',

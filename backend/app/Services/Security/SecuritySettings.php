@@ -48,6 +48,23 @@ final class SecuritySettings
                 'email' => true,
                 'site' => true,
             ],
+            // Country block/allow list from edge header (Cloudflare/Arvan). Admin + webhooks are exempt.
+            'geo' => [
+                'enabled' => false,
+                'mode' => 'block',
+                'countries' => [],
+                'header' => 'CF-IPCountry',
+            ],
+            // Per-tenant rate classes (requests / minute / IP).
+            'rate' => [
+                'checkout_per_min' => 10,
+                'public_writes_per_min' => 30,
+                'auth_per_min' => 5,
+            ],
+            'forensics' => [
+                'log_events' => true,
+                'retention_days' => 30,
+            ],
         ];
     }
 
@@ -140,6 +157,24 @@ final class SecuritySettings
             'notify' => [
                 'email' => ! empty($input['notify']['email']),
                 'site' => ! empty($input['notify']['site']),
+            ],
+            'geo' => [
+                'enabled' => ! empty($input['geo']['enabled']),
+                'mode' => ($input['geo']['mode'] ?? 'block') === 'allow' ? 'allow' : 'block',
+                'countries' => array_values(array_unique(array_filter(array_map(
+                    fn ($c) => strtoupper(trim((string) $c)),
+                    is_array($input['geo']['countries'] ?? null) ? $input['geo']['countries'] : preg_split('/[\s,]+/', (string) ($input['geo']['countries'] ?? ''))
+                ), fn ($c) => (bool) preg_match('/^[A-Z]{2}$/', $c)))),
+                'header' => preg_match('/^[A-Za-z0-9-]{2,40}$/', (string) ($input['geo']['header'] ?? '')) ? (string) $input['geo']['header'] : 'CF-IPCountry',
+            ],
+            'rate' => [
+                'checkout_per_min' => max(1, min(600, (int) ($input['rate']['checkout_per_min'] ?? 10))),
+                'public_writes_per_min' => max(1, min(600, (int) ($input['rate']['public_writes_per_min'] ?? 30))),
+                'auth_per_min' => max(1, min(60, (int) ($input['rate']['auth_per_min'] ?? 5))),
+            ],
+            'forensics' => [
+                'log_events' => ! empty($input['forensics']['log_events']),
+                'retention_days' => max(1, min(365, (int) ($input['forensics']['retention_days'] ?? 30))),
             ],
         ];
     }

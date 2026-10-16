@@ -373,7 +373,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::middleware('module:checkout')->group(function () {
-            Route::post('/checkout', [CheckoutController::class, 'store']);
+            Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout');
             Route::get('/payments/checkout-options', [PaymentIntentController::class, 'options']);
             Route::post('/payments/intent', [PaymentIntentController::class, 'store']);
         });
@@ -506,6 +506,8 @@ Route::prefix('v1')->group(function () {
 
             Route::post('/settings/site/notifications/test-email', [TenantSettingsController::class, 'testNotificationEmail'])
                 ->middleware('can:settings.manage');
+            Route::get('/security/events', [\App\Http\Controllers\Api\V1\SecurityEventsController::class, 'index'])->middleware('can:settings.manage');
+            Route::get('/security/events/summary', [\App\Http\Controllers\Api\V1\SecurityEventsController::class, 'summary'])->middleware('can:settings.manage');
             Route::get('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'show']);
             Route::put('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'update'])
                 ->middleware('can:settings.manage');

@@ -47,12 +47,14 @@ final class LoginAttemptService
         $lockMinutes = max(1, (int) ($settings['login']['lockout_minutes'] ?? 15));
         $key = $this->attemptKey($tenantId, $email, $ip);
         $attempts = (int) Cache::get($key, 0) + 1;
+        SecurityEventLogger::record($tenantId, 'login_failed', null, ['email' => $email, 'attempt' => $attempts]);
         Cache::put($key, $attempts, now()->addMinutes($lockMinutes));
 
         if ($attempts >= $max) {
             $until = time() + ($lockMinutes * 60);
             Cache::put($this->lockKey($tenantId, $email, $ip), $until, now()->addMinutes($lockMinutes));
             Cache::forget($key);
+            SecurityEventLogger::record($tenantId, 'login_lockout', null, ['email' => $email, 'minutes' => $lockMinutes]);
             Log::warning('security.login_lockout', [
                 'tenant_id' => $tenantId,
                 'email' => $email,

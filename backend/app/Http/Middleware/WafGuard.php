@@ -39,6 +39,10 @@ class WafGuard
             return $next($request);
         }
 
+        if ($blocked = $this->geoBlock($request, $tenantId, $settings)) {
+            return $blocked;
+        }
+
         $haystack = $this->haystack($request);
         foreach (self::PATTERNS as $pattern) {
             if (! preg_match($pattern, $haystack)) {
@@ -51,6 +55,7 @@ class WafGuard
                 'pattern' => $pattern,
                 'enforce' => ! empty($settings['waf']['enforce']),
             ]);
+            \App\Services\Security\SecurityEventLogger::record($tenantId, ! empty($settings['waf']['enforce']) ? 'waf_block' : 'waf_hit', $request, ['pattern' => $pattern]);
             if (! empty($settings['waf']['enforce'])) {
                 return response()->json([
                     'message' => __('api.forbidden'),
@@ -61,6 +66,37 @@ class WafGuard
         }
 
         return $next($request);
+    }
+
+    /** Geo block/allow by edge country header. Skips staff sessions, webhooks and payment callbacks. */
+    private function geoBlock(Request $request, int $tenantId, array $settings): ?Response
+    {
+        $geo = $settings['geo'] ?? [];
+        if (empty($geo['enabled']) || empty($geo['countries'])) {
+            return null;
+        }
+        $path = ltrim($request->path(), '/');
+        foreach (['api/v1/public/bots/', 'api/v1/payments/callback', 'api/v1/health', 'up'] as $exempt) {
+            if (str_starts_with($path, $exempt)) {
+                return null;
+            }
+        }
+        $user = $request->user();
+        if ($user && ($user->role ?? 'customer') !== 'customer') {
+            return null;
+        }
+        $country = \App\Services\Security\SecurityEventLogger::country($request, (string) ($geo['header'] ?? ''));
+        if ($country === null) {
+            return null; // No trusted header → never block blindly.
+        }
+        $listed = in_array($country, (array) $geo['countries'], true);
+        $deny = ($geo['mode'] ?? 'block') === 'allow' ? ! $listed : $listed;
+        if (! $deny) {
+            return null;
+        }
+        \App\Services\Security\SecurityEventLogger::record($tenantId, 'geo_block', $request, ['country' => $country]);
+
+        return response()->json(['message' => __('api.forbidden'), 'errors' => ['code' => 'GEO_BLOCKED']], 403);
     }
 
     private function haystack(Request $request): string

@@ -33,14 +33,39 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \App\Services\Builder\BuilderRevisions::register();
-        RateLimiter::for('public-writes', function (Request $request) {
+        // Rate classes (WP shield rate-limit parity) — per-tenant tunable via site.security.rate.
+        $rateFor = function (Request $request, string $key, int $default): int {
+            $tid = (int) ($request->attributes->get('public_tenant_id') ?: ($request->user()?->tenant_id ?? 0));
+            if ($tid <= 0) {
+                return $default;
+            }
+            try {
+                return (int) (\App\Services\Security\SecuritySettings::get($tid)['rate'][$key] ?? $default);
+            } catch (\Throwable) {
+                return $default;
+            }
+        };
+        $limited = function (string $class) {
+            return function (Request $request, array $headers) use ($class) {
+                $tid = (int) ($request->attributes->get('public_tenant_id') ?: ($request->user()?->tenant_id ?? 0));
+                \App\Services\Security\SecurityEventLogger::record($tid ?: null, 'rate_limited', $request, ['class' => $class]);
+
+                return response()->json(['message' => __('api.too_many_requests')], 429, $headers);
+            };
+        };
+        RateLimiter::for('public-writes', function (Request $request) use ($rateFor, $limited) {
             $tenant = (string) ($request->attributes->get('public_tenant_id') ?: $request->getHost());
             $ip = (string) ($request->ip() ?: 'unknown');
 
             return [
-                Limit::perMinute(30)->by($ip.'|'.$tenant),
-                Limit::perMinute(120)->by('tenant:'.$tenant),
+                Limit::perMinute($rateFor($request, 'public_writes_per_min', 30))->by($ip.'|'.$tenant)->response($limited('public-writes')),
+                Limit::perMinute(120)->by('tenant:'.$tenant)->response($limited('public-writes-tenant')),
             ];
+        });
+        RateLimiter::for('checkout', function (Request $request) use ($rateFor, $limited) {
+            $who = (string) ($request->user()?->id ?: $request->ip());
+
+            return Limit::perMinute($rateFor($request, 'checkout_per_min', 10))->by('checkout:'.$who)->response($limited('checkout'));
         });
 
         Product::observe(MarketplaceProductObserver::class);

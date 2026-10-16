@@ -126,6 +126,7 @@ Schedule::command('ai:tick')->everyMinute()->withoutOverlapping();
 Schedule::command('sms:dispatch-scheduled')->everyMinute()->withoutOverlapping();
 Schedule::command('bots:retry-outbound')->everyMinute()->withoutOverlapping();
 Schedule::command('bots:channel-tick')->everyMinute()->withoutOverlapping();
+Schedule::command('security:prune-events')->daily()->withoutOverlapping();
 Schedule::command('cart:abandoned-recover')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOverlapping();
@@ -161,3 +162,7 @@ Artisan::command('cart:abandoned-recover', function () {
     $n = app(\App\Services\Marketing\AbandonedCartService::class)->run();
     $this->info("Abandoned-cart reminders sent: {$n}.");
 })->purpose('Multi-stage abandoned cart recovery via bot + SMS');
+
+Artisan::command('security:prune-events', function () {
+    $this->info('Pruned security events: '.\App\Services\Security\SecurityEventLogger::prune());
+})->purpose('Delete security events past each tenant retention window');
