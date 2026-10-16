@@ -53,6 +53,8 @@ import { MobileBottomNav } from "@/components/shell/MobileBottomNav"
 import { MobileMoreSheet } from "@/components/shell/MobileMoreSheet"
 import "@/components/shell/mobile-chrome.css"
 import "@/components/shell/desktop-chrome.css"
+import "@/components/shell/responsive-table.css"
+import { ResponsiveTables } from "@/components/shell/ResponsiveTables"
 
 type TenantBranding = {
   logo_url?: string | null
@@ -374,6 +376,7 @@ export default function DashboardLayoutPage({
         <footer className="mt-auto hidden border-t md:block px-4 py-3 text-muted-foreground text-xs">
           <p className="text-center md:text-start">{tenantLabel}</p>
         </footer>
+        <ResponsiveTables />
         <MobileBottomNav moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} />
         <MobileMoreSheet open={moreOpen} onOpenChange={setMoreOpen} navSections={navSections} />
       </SidebarInset>
