@@ -30,6 +30,9 @@ export interface SmsAccount {
   default_from: string
   status: string
   price_per_unit?: number
+  price_list?: number
+  notif_price_per_unit?: number
+  notif_price_list?: number
 }
 
 export interface SmsPackage {
@@ -500,3 +503,96 @@ export function processSmsSecretaries() {
     body: JSON.stringify({}),
   })
 }
+
+export type SmsAdCampaign = {
+  id: string
+  name: string
+  segment: string
+  channel: string
+  message: string
+  product_id?: number
+  category_id?: number
+  content_type?: string
+  coupon_code?: string
+  scheduled_at: number
+  status: string
+  recipient_count?: number
+  sent?: number
+  failed?: number
+  cost?: number
+  utm_campaign?: string
+  created_at?: number
+  error?: string | null
+}
+
+export function fetchSmsAds() {
+  return apiFetch<{ ok: boolean; items: SmsAdCampaign[] }>('modirpayamak/ads')
+}
+
+export function fetchSmsAd(id: string) {
+  return apiFetch<{ ok: boolean; campaign: SmsAdCampaign }>(`modirpayamak/ads/${encodeURIComponent(id)}`)
+}
+
+export function createSmsAd(body: Record<string, unknown>) {
+  return apiFetch<{ ok: boolean; campaign: SmsAdCampaign }>('modirpayamak/ads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export function cancelSmsAd(id: string) {
+  return apiFetch<{ ok: boolean }>('modirpayamak/ads/' + encodeURIComponent(id) + '/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+}
+
+export function previewSmsAdSegment(segment: string) {
+  return apiFetch<{ ok: boolean; count: number; sample: Array<{ phone: string; name?: string }> }>(
+    'modirpayamak/ads/preview-segment',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ segment }),
+    },
+  )
+}
+
+export function quoteSmsAd(body: Record<string, unknown>) {
+  return apiFetch<{
+    ok: boolean
+    recipient_count: number
+    sample?: Array<{ phone: string; name?: string }>
+    customer_cost: number
+    cost_before_discount?: number
+    discount_percent?: number
+    price_per_unit?: number
+    price_list?: number
+    volume_tiers?: Array<{ min: number; discount_percent: number }>
+    channel?: string
+    balance?: number
+  }>('modirpayamak/ads/quote', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export function fetchSmsAdStats(id: string) {
+  return apiFetch<{
+    ok: boolean
+    campaign: SmsAdCampaign
+    sent: number
+    failed: number
+    delivered: number
+    cost: number
+    revenue: number
+    orders: number
+    roas: number | null
+    conversion_pct: number
+    order_samples: Array<{ id: number; number: string; total: number; date: string }>
+  }>(`modirpayamak/ads/${encodeURIComponent(id)}/stats`)
+}
+

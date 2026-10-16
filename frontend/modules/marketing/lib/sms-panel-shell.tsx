@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 
 const LINKS = [
   ["", "home"],
+  ["ads/new", "ads"],
   ["send", "send"],
   ["reports", "reports"],
   ["inbox", "inbox"],

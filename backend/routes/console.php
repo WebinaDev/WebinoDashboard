@@ -58,8 +58,8 @@ Artisan::command('ai:tick', function () {
 
 Artisan::command('sms:dispatch-scheduled', function () {
     $sent = app(\App\Services\Sms\SmsLocalFeatures::class)->dispatchDue();
-    $this->info("Dispatched {$sent} scheduled SMS.");
-})->purpose('Send locally held scheduled SMS whose time has come');
+    $this->info("Dispatched {$sent} scheduled SMS / ad campaign batches.");
+})->purpose('Send locally held scheduled SMS and due SMS ad campaigns');
 
 Artisan::command('pricing:bulk-price-schedule', function () {
     $hour = (int) now()->format('G');

@@ -14,7 +14,10 @@
     "bot-broadcast",
     "bot-campaigns",
     "sms",
-    "newsletter"
+    "newsletter",
+    "sale-prices",
+    "notifications",
+    "sms-ads"
   ],
   "admin_nav": {
     "section": "marketing",

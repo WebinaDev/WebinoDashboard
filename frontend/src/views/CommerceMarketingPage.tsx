@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Bot, CalendarClock, MessageSquareText, Percent, TicketPercent, type LucideIcon } from "lucide-react"
+import { Bell, Bot, CalendarClock, HeartHandshake, Megaphone, MessageSquareText, Percent, TicketPercent, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
@@ -9,7 +9,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { dashboardPath } from "@/kernel/paths"
 
 type HubCard = {
-  id: "coupons" | "sale_prices" | "sms" | "bot_broadcast" | "bot_campaigns" | "notifications"
+  id: "coupons" | "sale_prices" | "sms_ads" | "sms" | "bot_broadcast" | "bot_campaigns" | "loyalty" | "notifications"
   href: string
   icon: LucideIcon
 }
@@ -17,9 +17,11 @@ type HubCard = {
 const CARDS: HubCard[] = [
   { id: "coupons", href: dashboardPath("marketing/coupons"), icon: TicketPercent },
   { id: "sale_prices", href: dashboardPath("marketing/sale-prices"), icon: Percent },
+  { id: "sms_ads", href: dashboardPath("marketing/sms/ads/new"), icon: Megaphone },
   { id: "sms", href: dashboardPath("marketing/sms"), icon: MessageSquareText },
   { id: "bot_broadcast", href: dashboardPath("marketing/bot-broadcast"), icon: Bot },
   { id: "bot_campaigns", href: dashboardPath("marketing/bot-campaigns"), icon: CalendarClock },
+  { id: "loyalty", href: dashboardPath("settings/shop/loyalty"), icon: HeartHandshake },
   { id: "notifications", href: dashboardPath("settings/site/notifications"), icon: Bell },
 ]
 

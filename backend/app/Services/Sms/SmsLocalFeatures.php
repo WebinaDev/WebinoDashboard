@@ -34,6 +34,10 @@ class SmsLocalFeatures
     {
         $write = ! ($request->isMethod('get') || $request->isMethod('head'));
 
+        if ($path === 'ads' || str_starts_with($path, 'ads/')) {
+            return app(SmsAdsService::class)->handle($tenant, $request, $path);
+        }
+
         if ($path === 'drafts' || str_starts_with($path, 'drafts/')) {
             return $this->drafts($tenant, $request, $path, $write);
         }
@@ -417,6 +421,7 @@ class SmsLocalFeatures
     public function dispatchDue(int $limit = 100): int
     {
         $count = 0;
+        $count += app(SmsAdsService::class)->dispatchDue(max(5, (int) floor($limit / 5)));
         $due = SmsScheduledSend::query()
             ->where('status', SmsScheduledSend::STATUS_PENDING)
             ->where('send_at', '<=', now())

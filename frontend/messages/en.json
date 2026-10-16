@@ -68,7 +68,8 @@
     "locale_label": "Language",
     "accent_label": "Accent color",
     "theme_system": "System",
-    "not_found_title": "Page not found"
+    "not_found_title": "Page not found",
+    "none": "None"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -334,7 +335,9 @@
     "kitchen": "Kitchen board",
     "inbox": "Feedback",
     "section_link_hub": "Link hub",
-    "builder_collections": "CMS collections"
+    "builder_collections": "CMS collections",
+    "sms_ads": "SMS campaigns",
+    "loyalty": "Loyalty"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -3343,7 +3346,8 @@
       "wallet": "Wallet",
       "lines": "Lines",
       "newsletter": "Newsletter",
-      "topup": "Top-up"
+      "topup": "Top-up",
+      "ads": "Ads"
     },
     "pages": {
       "dashboard": "Dashboard",
@@ -5830,8 +5834,8 @@
         "description": "Create and manage coupons and restrictions"
       },
       "sale_prices": {
-        "title": "Sale prices",
-        "description": "Apply bulk discounts to products"
+        "title": "Strikethrough prices",
+        "description": "Apply bulk sale discounts on products"
       },
       "sms": {
         "title": "SMS panel",
@@ -5848,6 +5852,14 @@
       "notifications": {
         "title": "Notification settings",
         "description": "Event channels, templates and SMTP"
+      },
+      "sms_ads": {
+        "title": "SMS campaigns",
+        "description": "Targeted SMS and notification ads"
+      },
+      "loyalty": {
+        "title": "Loyalty club",
+        "description": "Points, welcome bonus, and referrals"
       }
     },
     "loyalty": {
@@ -7464,5 +7476,103 @@
     "next": "Next",
     "gallery_hint": "One image URL per line",
     "no_refs": "No items in the target collection"
+  },
+  "smsAds": {
+    "heroTitle": "Grow sales with every SMS",
+    "heroDesc": "Send targeted SMS so more customers discover your store.",
+    "createCta": "Create SMS ad",
+    "bannerVolume": "1,000+ SMS / month",
+    "bannerVolumeDesc": "Shops reserve campaigns ahead so they stay in touch with customers.",
+    "bannerSegments": "Targeted audiences",
+    "bannerSegmentsDesc": "Pick the right segment; we run your SMS ad precisely.",
+    "bannerCopy": "Full control of copy",
+    "bannerCopyDesc": "Use templates or write your own message.",
+    "campaignsTitle": "Recent ads",
+    "noCampaigns": "No ads yet.",
+    "wizardTitle": "Create SMS & notification ad",
+    "detailTitle": "SMS ad analytics",
+    "stepTarget": "Audience",
+    "stepSettings": "Settings",
+    "stepPay": "Payment",
+    "whoQuestion": "Who should receive this ad?",
+    "seg": {
+      "system_suggest": {
+        "title": "System suggestion",
+        "desc": "Best groups such as abandoned carts and buyers of top categories."
+      },
+      "retarget": {
+        "title": "Customer retargeting",
+        "desc": "Bring past buyers back with a timely reminder."
+      },
+      "acquire": {
+        "title": "Acquire new customers",
+        "desc": "Newsletter subscribers who have not purchased yet."
+      },
+      "city_customers": {
+        "title": "City customers",
+        "desc": "Customers whose billing city matches your store city."
+      },
+      "all_city": {
+        "title": "Everyone in the city",
+        "desc": "All contacts in that city, including non-buyers."
+      },
+      "vip_buyers": {
+        "title": "Loyal customers",
+        "desc": "Buyers with at least 3 successful orders."
+      },
+      "followers": {
+        "title": "Followers / newsletter",
+        "desc": "Newsletter subscribers and phonebook contacts."
+      }
+    },
+    "segmentCount": "{count} recipients",
+    "nameLabel": "Name your ad",
+    "nameHint": "Visible only to you.",
+    "channelLabel": "How should it be sent?",
+    "channelSms": "SMS",
+    "channelNotif": "Notification",
+    "dateLabel": "Schedule the ad",
+    "dateHint": "You can reserve starting tomorrow.",
+    "contentLabel": "What should we promote?",
+    "content": {
+      "product": "Product",
+      "category": "Category"
+    },
+    "productId": "Product ID",
+    "categoryId": "Category ID",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Ad copy… you can use {link} and {coupon}.",
+    "messageHint": "Product/category link with UTM is appended automatically.",
+    "couponOptional": "Coupon code (optional)",
+    "recipients": "Recipients",
+    "unitPrice": "Unit price",
+    "volumeDiscount": "Volume discount",
+    "total": "Total",
+    "refreshQuote": "Refresh quote",
+    "prev": "Previous",
+    "next": "Next",
+    "confirmPay": "Confirm & schedule",
+    "created": "Ad scheduled",
+    "notFound": "Ad not found",
+    "backHome": "Back to SMS panel",
+    "cancelCampaign": "Cancel campaign",
+    "attributedOrders": "Attributed orders",
+    "noOrders": "No orders attributed to this campaign yet.",
+    "kpi": {
+      "sent": "Sent",
+      "failed": "Failed",
+      "cost": "Cost",
+      "orders": "Orders",
+      "revenue": "Revenue",
+      "roas": "ROAS",
+      "conversion": "Conversion"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "sending": "Sending",
+      "sent": "Sent",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
   }
 }
