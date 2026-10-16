@@ -7686,5 +7686,21 @@
     "empty": "No abandoned carts.",
     "guest": "Guest",
     "row": "{items} items · {total} · stage {stage}"
+  },
+  "shell": {
+    "mobileNav": {
+      "aria": "Main navigation",
+      "home": "Home",
+      "orders": "Orders",
+      "products": "Products",
+      "users": "Users",
+      "more": "More"
+    },
+    "mobileMore": {
+      "title": "All sections",
+      "description": "Quick access to every dashboard section",
+      "settings": "Language and appearance",
+      "open": "Sections menu"
+    }
   }
 }

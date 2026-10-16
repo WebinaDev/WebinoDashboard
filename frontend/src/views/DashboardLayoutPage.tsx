@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { ChevronLeft, ChevronRight, ExternalLink, Maximize, Minimize, MoreVertical } from "lucide-react"
+import { ChevronLeft, ChevronRight, ExternalLink, LayoutGrid, Maximize, Minimize, MoreVertical } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
@@ -49,6 +49,10 @@ import { PwaSplashOverlay } from "@/components/pwa/PwaSplashOverlay"
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister"
 import { mergePwaSettings, resolvePwaBootstrap, type PwaStoredSettings } from "@/lib/pwa-settings"
 import { useThemeSettings } from "@/providers/AppProviders"
+import { MobileBottomNav } from "@/components/shell/MobileBottomNav"
+import { MobileMoreSheet } from "@/components/shell/MobileMoreSheet"
+import "@/components/shell/mobile-chrome.css"
+import "@/components/shell/desktop-chrome.css"
 
 type TenantBranding = {
   logo_url?: string | null
@@ -101,6 +105,18 @@ export default function DashboardLayoutPage({
   })
 
   useLocaleSync()
+
+  const tShell = useTranslations("shell.mobileMore")
+  const [moreOpen, setMoreOpen] = useState(false)
+  useEffect(() => {
+    document.documentElement.dataset.wdDashboard = "1"
+    return () => {
+      delete document.documentElement.dataset.wdDashboard
+    }
+  }, [])
+  useEffect(() => {
+    setMoreOpen(false)
+  }, [pathname])
 
   const [fullscreen, setFullscreen] = useState(false)
   useEffect(() => {
@@ -229,10 +245,20 @@ export default function DashboardLayoutPage({
         tenantLogoSrc={logoUrl}
         tenantPlanLabel={tSidebar("plan_tenant")}
       />
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/70 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 sm:h-16">
+      <SidebarInset dir={htmlDir(locale)} className="wd-mobile-chrome wd-desktop-chrome min-w-0">
+        <header className="wd-mobile-topbar wd-desktop-topbar sticky top-0 z-30 flex h-[52px] shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/70 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 sm:h-16">
           <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4">
-            <SidebarTrigger className="-ms-1" data-testid="sidebar-trigger" />
+            <SidebarTrigger className="-ms-1 hidden md:inline-flex" data-testid="sidebar-trigger" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="-ms-1 inline-flex md:hidden"
+              aria-label={tShell("open")}
+              onClick={() => setMoreOpen(true)}
+            >
+              <LayoutGrid className="size-5" strokeWidth={1.75} absoluteStrokeWidth />
+            </Button>
             <Separator
               orientation="vertical"
               className="me-2 hidden data-[orientation=vertical]:h-4 sm:block"
@@ -342,12 +368,14 @@ export default function DashboardLayoutPage({
             </div>
           </div>
         </header>
-        <div className="@container/main wd-app-atmosphere flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+        <div className="@container/main wd-app-atmosphere wd-mobile-main wd-desktop-main flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
           <LicenseGate>{children}</LicenseGate>
         </div>
-        <footer className="mt-auto border-t px-4 py-3 text-muted-foreground text-xs">
+        <footer className="mt-auto hidden border-t md:block px-4 py-3 text-muted-foreground text-xs">
           <p className="text-center md:text-start">{tenantLabel}</p>
         </footer>
+        <MobileBottomNav moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} />
+        <MobileMoreSheet open={moreOpen} onOpenChange={setMoreOpen} navSections={navSections} />
       </SidebarInset>
       </SidebarProvider>
     </div>
