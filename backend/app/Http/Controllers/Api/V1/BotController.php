@@ -71,6 +71,14 @@ class BotController extends Controller
             $patch['meta'] = $data['meta'];
         }
         $row->update($patch);
+        if (isset($patch['token'])) {
+            // Cache bot username for the site widget / deep links (best-effort).
+            $me = BotClientFactory::make($provider, (string) $patch['token'])->call('getMe', []);
+            $username = (string) data_get($me, 'body.result.username', '');
+            if ($username !== '') {
+                $row->update(['meta' => array_merge($row->meta ?? [], ['bot_username' => $username])]);
+            }
+        }
 
         return $this->settings($request, $provider);
     }
@@ -366,6 +374,145 @@ class BotController extends Controller
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    // ---------- Channel publisher ----------
+
+    public function channelPosts(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $rows = \App\Models\BotChannelPost::query()->where('tenant_id', $request->user()->tenant_id)->where('provider', $provider)
+            ->where('status', '!=', 'deleted')->orderByDesc('id')->paginate(min(100, max(1, (int) $request->query('per_page', 20))));
+
+        return response()->json(['data' => $rows->items(), 'meta' => ['total' => $rows->total(), 'current_page' => $rows->currentPage(), 'last_page' => $rows->lastPage()]]);
+    }
+
+    public function channelPostStore(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $tid = $request->user()->tenant_id;
+        $data = $request->validate([
+            'product_id' => ['nullable', 'integer'],
+            'text' => ['nullable', 'string', 'max:4000'],
+            'media_url' => ['nullable', 'url', 'max:1024'],
+            'button_text' => ['nullable', 'string', 'max:64'],
+            'button_url' => ['nullable', 'url', 'max:1024'],
+            'scheduled_at' => ['nullable', 'date'],
+            'publish_now' => ['nullable', 'boolean'],
+        ]);
+        $setting = BotSetting::query()->where('tenant_id', $tid)->where('provider', $provider)->firstOrFail();
+        if (\App\Services\Bots\Engine\ChannelPublisher::channelId($setting) === '') {
+            return response()->json(['message' => 'شناسهٔ کانال در تنظیمات ربات ثبت نشده است.'], 422);
+        }
+        if (! empty($data['product_id'])) {
+            $product = \App\Models\Product::query()->where('tenant_id', $tid)->findOrFail((int) $data['product_id']);
+            $post = \App\Services\Bots\Engine\ChannelPublisher::draftFromProduct($setting, $product, 'manual', isset($data['scheduled_at']) ? \Illuminate\Support\Carbon::parse($data['scheduled_at']) : null);
+            $post->update(array_filter(['text' => $data['text'] ?? null, 'media_url' => $data['media_url'] ?? null, 'button_text' => $data['button_text'] ?? null, 'button_url' => $data['button_url'] ?? null]));
+        } else {
+            if (blank($data['text'] ?? null) && blank($data['media_url'] ?? null)) {
+                return response()->json(['message' => 'متن یا تصویر پست الزامی است.', 'errors' => ['text' => ['متن یا تصویر پست الزامی است.']]], 422);
+            }
+            $post = \App\Models\BotChannelPost::query()->create([
+                'tenant_id' => $tid, 'provider' => $provider, 'channel_id' => \App\Services\Bots\Engine\ChannelPublisher::channelId($setting),
+                'text' => $data['text'] ?? null, 'media_url' => $data['media_url'] ?? null,
+                'button_text' => $data['button_text'] ?? null, 'button_url' => $data['button_url'] ?? null,
+                'status' => 'scheduled', 'scheduled_at' => isset($data['scheduled_at']) ? \Illuminate\Support\Carbon::parse($data['scheduled_at']) : now(),
+            ]);
+        }
+        if (! empty($data['publish_now']) || ($post->scheduled_at && $post->scheduled_at->lte(now()) && empty($data['scheduled_at']))) {
+            \App\Services\Bots\Engine\ChannelPublisher::publish($post);
+        }
+
+        return response()->json(['data' => $post->fresh()], 201);
+    }
+
+    public function channelPostUpdate(Request $request, string $provider, int $post): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $row = \App\Models\BotChannelPost::query()->where('tenant_id', $request->user()->tenant_id)->where('provider', $provider)->findOrFail($post);
+        $data = $request->validate([
+            'text' => ['nullable', 'string', 'max:4000'],
+            'button_text' => ['nullable', 'string', 'max:64'],
+            'button_url' => ['nullable', 'url', 'max:1024'],
+            'scheduled_at' => ['nullable', 'date'],
+        ]);
+        $row->fill(array_intersect_key($data, array_flip(['text', 'button_text', 'button_url'])));
+        if (isset($data['scheduled_at']) && $row->status !== 'published') {
+            $row->scheduled_at = \Illuminate\Support\Carbon::parse($data['scheduled_at']);
+            $row->status = 'scheduled';
+        }
+        $row->save();
+        $synced = $row->status === 'published' ? \App\Services\Bots\Engine\ChannelPublisher::edit($row) : null;
+
+        return response()->json(['data' => $row->fresh(), 'synced' => $synced]);
+    }
+
+    public function channelPostPublish(Request $request, string $provider, int $post): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $row = \App\Models\BotChannelPost::query()->where('tenant_id', $request->user()->tenant_id)->where('provider', $provider)->findOrFail($post);
+        $ok = $row->status === 'published' ? true : \App\Services\Bots\Engine\ChannelPublisher::publish($row);
+
+        return response()->json(['data' => $row->fresh()], $ok ? 200 : 422);
+    }
+
+    public function channelPostDestroy(Request $request, string $provider, int $post): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $row = \App\Models\BotChannelPost::query()->where('tenant_id', $request->user()->tenant_id)->where('provider', $provider)->findOrFail($post);
+        $ok = \App\Services\Bots\Engine\ChannelPublisher::remove($row);
+
+        return response()->json(['data' => $row->fresh()], $ok ? 200 : 422);
+    }
+
+    // ---------- Retry queue ----------
+
+    public function outbox(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $q = \App\Models\BotOutboundMessage::query()->where('tenant_id', $request->user()->tenant_id)->where('provider', $provider);
+        if (in_array($status = (string) $request->query('status', ''), ['pending', 'sent', 'dead'], true)) {
+            $q->where('status', $status);
+        }
+        $rows = $q->orderByDesc('id')->paginate(50, ['id', 'chat_id', 'method', 'status', 'attempts', 'last_error', 'next_attempt_at', 'created_at']);
+
+        return response()->json(['data' => $rows->items(), 'meta' => ['total' => $rows->total()]]);
+    }
+
+    public function outboxRetry(Request $request, string $provider, int $message): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $row = \App\Models\BotOutboundMessage::query()->where('tenant_id', $request->user()->tenant_id)->where('provider', $provider)->findOrFail($message);
+        $row->update(['status' => 'pending', 'attempts' => 0, 'next_attempt_at' => now()]);
+        \App\Services\Bots\Engine\BotMessenger::retryDue(10);
+
+        return response()->json(['data' => $row->fresh()]);
+    }
+
+    // ---------- Site widget (public) ----------
+
+    public function widget(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = (int) $request->attributes->get('public_tenant_id');
+        $out = [];
+        foreach (BotSetting::query()->where('tenant_id', $tid)->where('enabled', true)->get() as $s) {
+            $meta = $s->meta ?? [];
+            if (empty($meta['addons']['site_widget'])) {
+                continue;
+            }
+            $username = ltrim((string) (($meta['widget']['username'] ?? '') ?: ($meta['bot_username'] ?? '')), '@');
+            if ($username === '') {
+                continue;
+            }
+            $out[] = [
+                'provider' => $s->provider,
+                'url' => ($s->provider === 'bale' ? 'https://ble.ir/' : 'https://t.me/').$username,
+                'greeting' => (string) ($meta['widget']['greeting'] ?? ''),
+                'position' => in_array($meta['widget']['position'] ?? '', ['bottom-left', 'bottom-right'], true) ? $meta['widget']['position'] : 'bottom-left',
+            ];
+        }
+
+        return response()->json(['data' => $out]);
     }
 
     protected function assertProvider(string $provider): void

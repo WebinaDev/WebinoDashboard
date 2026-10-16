@@ -198,6 +198,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/tenant', [PublicSiteController::class, 'tenant']);
         Route::get('/home', [PublicSiteController::class, 'home']);
         Route::get('/geo/states', [GeoController::class, 'states']);
+        Route::get('/bots/widget', [BotController::class, 'widget']);
         Route::get('/geo/cities', [GeoController::class, 'cities']);
         Route::get('/orders/{order}/pay', [PublicOrderPaymentController::class, 'show'])->whereNumber('order');
         Route::post('/orders/{order}/pay/intent', [PublicOrderPaymentController::class, 'intent'])->whereNumber('order')->middleware('throttle:public-writes');
@@ -890,6 +891,13 @@ Route::prefix('v1')->group(function () {
                     Route::get('/campaigns', fn (\Illuminate\Http\Request $r) => app(BotController::class)->campaigns($r, $provider));
                     Route::post('/campaigns', fn (\Illuminate\Http\Request $r) => app(BotController::class)->campaignsStore($r, $provider));
                     Route::post('/users/import', fn (\Illuminate\Http\Request $r) => app(BotController::class)->importUsers($r, $provider));
+                    Route::get('/channel-posts', fn (\Illuminate\Http\Request $r) => app(BotController::class)->channelPosts($r, $provider));
+                    Route::post('/channel-posts', fn (\Illuminate\Http\Request $r) => app(BotController::class)->channelPostStore($r, $provider));
+                    Route::put('/channel-posts/{post}', fn (\Illuminate\Http\Request $r, int $post) => app(BotController::class)->channelPostUpdate($r, $provider, $post))->whereNumber('post');
+                    Route::post('/channel-posts/{post}/publish', fn (\Illuminate\Http\Request $r, int $post) => app(BotController::class)->channelPostPublish($r, $provider, $post))->whereNumber('post');
+                    Route::delete('/channel-posts/{post}', fn (\Illuminate\Http\Request $r, int $post) => app(BotController::class)->channelPostDestroy($r, $provider, $post))->whereNumber('post');
+                    Route::get('/outbox', fn (\Illuminate\Http\Request $r) => app(BotController::class)->outbox($r, $provider));
+                    Route::post('/outbox/{message}/retry', fn (\Illuminate\Http\Request $r, int $message) => app(BotController::class)->outboxRetry($r, $provider, $message))->whereNumber('message');
                 });
             }
 

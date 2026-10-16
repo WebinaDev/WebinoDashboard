@@ -125,6 +125,7 @@ Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();
 Schedule::command('ai:tick')->everyMinute()->withoutOverlapping();
 Schedule::command('sms:dispatch-scheduled')->everyMinute()->withoutOverlapping();
 Schedule::command('bots:retry-outbound')->everyMinute()->withoutOverlapping();
+Schedule::command('bots:channel-tick')->everyMinute()->withoutOverlapping();
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:torob-webhooks')->everyMinute()->withoutOverlapping();
@@ -149,3 +150,8 @@ Artisan::command('bots:retry-outbound', function () {
     $sent = \App\Services\Bots\Engine\BotMessenger::retryDue();
     $this->info("Retried bot messages: {$sent} sent.");
 })->purpose('Retry failed Bale/Telegram outbound messages with backoff');
+
+Artisan::command('bots:channel-tick', function () {
+    $n = \App\Services\Bots\Engine\ChannelPublisher::publishDue();
+    $this->info("Published {$n} scheduled channel posts.");
+})->purpose('Publish due scheduled Bale/Telegram channel posts');

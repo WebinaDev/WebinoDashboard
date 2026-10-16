@@ -48,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
         Order::observe(MarketplaceOrderObserver::class);
         Order::observe(OrderStatusObserver::class);
         Product::observe(ProductStockObserver::class);
+        Product::observe(\App\Observers\ProductChannelObserver::class);
         Product::observe(ProductPriceHistoryObserver::class);
         Product::observe(CachePurgeObserver::class);
         BlogPost::observe(CachePurgeObserver::class);

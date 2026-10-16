@@ -130,7 +130,8 @@ class ShippingZonesController extends Controller
             $data['state_code'] ?? null,
             $data['postcode'] ?? null,
             $subtotal,
-            $data['city'] ?? null
+            $data['city'] ?? null,
+            $this->cartLines($request)
         );
 
         foreach ($rates as $i => $rate) {
@@ -167,5 +168,18 @@ class ShippingZonesController extends Controller
             'show_map' => (bool) ($cfg['global']['show_map'] ?? false),
             'require_city' => (bool) ($cfg['global']['require_city'] ?? false),
         ]]);
+    }
+
+    /** Current user's cart lines (for packaging); null when there is no cart. */
+    protected function cartLines(Request $request): ?\Illuminate\Support\Collection
+    {
+        $user = $request->user();
+        $cart = \App\Models\Cart::query()->where('tenant_id', $user->tenant_id)->where('user_id', $user->id)->first();
+        if (! $cart) {
+            return null;
+        }
+        $lines = \App\Models\CartItem::query()->where('cart_id', $cart->id)->with('product')->get();
+
+        return $lines->isEmpty() ? null : $lines;
     }
 }

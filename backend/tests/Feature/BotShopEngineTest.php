@@ -167,4 +167,35 @@ class BotShopEngineTest extends TestCase
         $this->msg(['text' => 'اسپرسو']);
         Http::assertSent(fn (HttpRequest $r) => str_contains(json_encode($r->data()['reply_markup'] ?? [], JSON_UNESCAPED_UNICODE), 'p:'.$this->product->id));
     }
+
+    public function test_channel_publisher_auto_post_edit_delete_and_api(): void
+    {
+        $meta = $this->setting->meta;
+        $meta['addons']['channel_publish'] = true;
+        $meta['channel'] = ['channel_id' => '@shopchan', 'auto_new_products' => true, 'sync_edits' => true];
+        $this->setting->update(['meta' => $meta]);
+
+        $p = Product::query()->create([
+            'tenant_id' => $this->setting->tenant_id, 'name' => 'لاته', 'slug' => 'latte', 'price_minor' => 90000,
+            'currency' => 'IRT', 'status' => 'publish', 'is_available' => true,
+        ]);
+        $post = \App\Models\BotChannelPost::query()->where('product_id', $p->id)->firstOrFail();
+        $this->assertSame('auto', $post->source);
+        $this->assertSame(1, \App\Services\Bots\Engine\ChannelPublisher::publishDue());
+        $this->assertSame('published', $post->fresh()->status);
+
+        $p->update(['price_minor' => 95000]);
+        $this->assertStringContainsString('95,000', (string) $post->fresh()->text);
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'editMessageText'));
+
+        $admin = User::query()->where('tenant_id', $this->setting->tenant_id)->where('role', 'admin')->first();
+        $this->actingAs($admin, 'sanctum');
+        $this->deleteJson('/api/v1/bots/bale/channel-posts/'.$post->id)->assertOk();
+        $this->assertSame('deleted', $post->fresh()->status);
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'deleteMessage'));
+
+        $this->postJson('/api/v1/bots/bale/channel-posts', ['text' => 'تخفیف ویژه', 'scheduled_at' => now()->addHour()->toIso8601String()])
+            ->assertCreated()->assertJsonPath('data.status', 'scheduled');
+        $this->getJson('/api/v1/bots/bale/channel-posts')->assertOk()->assertJsonPath('meta.total', 1);
+    }
 }
