@@ -163,7 +163,7 @@ final class ShopFlow extends BotFlow
     private function clearRecovery(Cart $cart): void
     {
         $meta = is_array($cart->meta) ? $cart->meta : [];
-        unset($meta['recovery_sent_at'], $meta['recovery_channel']);
+        unset($meta['recovery_stage'], $meta['recovery_activity'], $meta['recovery_last_at']);
         $cart->meta = $meta;
         $cart->save();
     }

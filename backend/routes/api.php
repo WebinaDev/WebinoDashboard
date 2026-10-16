@@ -864,6 +864,10 @@ Route::prefix('v1')->group(function () {
 
             Route::middleware(['module:marketing', 'can:marketing.*'])->group(function () {
                 Route::get('/marketing/campaigns', [MarketingController::class, 'campaigns']);
+                Route::get('/marketing/abandoned-carts', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'index']);
+                Route::get('/marketing/abandoned-carts/settings', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'settings']);
+                Route::put('/marketing/abandoned-carts/settings', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'update']);
+                Route::post('/marketing/abandoned-carts/run', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'runNow'])->middleware('throttle:6,1');
             });
 
             Route::middleware(['module:coupons', 'can:marketing.*'])->group(function () {
