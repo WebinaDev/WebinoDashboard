@@ -101,6 +101,9 @@ class ShippingZonesService
             'enable_shipping' => (bool) ($global['enable_shipping'] ?? true),
             'default_method' => (string) ($global['default_method'] ?? 'flat_rate'),
             'free_shipping_min' => max(0, (int) ($global['free_shipping_min'] ?? 0)),
+            'packaging' => self::sanitizePackaging($global['packaging'] ?? ($cfg['global']['packaging'] ?? [])),
+            'show_map' => (bool) ($global['show_map'] ?? ($cfg['global']['show_map'] ?? false)),
+            'require_city' => (bool) ($global['require_city'] ?? ($cfg['global']['require_city'] ?? false)),
         ]);
         $this->putConfig($tenantId, $cfg);
 
@@ -196,6 +199,7 @@ class ShippingZonesService
                 'free_shipping' => 'ارسال رایگان',
                 'local_pickup' => 'تحویل حضوری',
                 'tapin' => 'تاپین',
+                'flat_city' => 'ارسال شهری',
             ];
             $method = [
                 'instance_id' => $instanceId,
@@ -306,7 +310,7 @@ class ShippingZonesService
      *
      * @return list<array{instance_id: int, method_id: string, title: string, cost_minor: int, zone_id: int, service: string}>
      */
-    public function quote(int $tenantId, ?string $stateCode, ?string $postcode, int $cartSubtotalMinor): array
+    public function quote(int $tenantId, ?string $stateCode, ?string $postcode, int $cartSubtotalMinor, ?string $city = null, ?iterable $lines = null): array
     {
         $cfg = $this->getConfig($tenantId);
         $global = $cfg['global'] ?? [];
@@ -314,6 +318,7 @@ class ShippingZonesService
             return [];
         }
 
+        $pack = $lines !== null ? BoxPacker::pack($lines, (array) ($global['packaging'] ?? [])) : null;
         $matched = [];
         foreach ($cfg['zones'] ?? [] as $zone) {
             if (! $this->zoneMatches($zone, $stateCode, $postcode)) {
@@ -323,9 +328,14 @@ class ShippingZonesService
                 if (empty($method['enabled'])) {
                     continue;
                 }
-                $cost = $this->methodCost($method, $cartSubtotalMinor, (int) ($global['free_shipping_min'] ?? 0));
+                $cost = $this->methodCost($method, $cartSubtotalMinor, (int) ($global['free_shipping_min'] ?? 0), $city);
                 if ($cost === null) {
                     continue;
+                }
+                $packagingMinor = 0;
+                if ($pack !== null && ($method['method_id'] ?? '') !== 'local_pickup') {
+                    $packagingMinor = (int) $pack['cost_minor'];
+                    $cost += $packagingMinor;
                 }
                 $matched[] = [
                     'instance_id' => (int) $method['instance_id'],
@@ -334,6 +344,8 @@ class ShippingZonesService
                     'cost_minor' => $cost,
                     'zone_id' => (int) $zone['id'],
                     'service' => (string) (($method['settings']['service'] ?? null) ?: 'pishtaz'),
+                    'packaging_minor' => $packagingMinor,
+                    'packaging' => $pack['boxes'] ?? [],
                 ];
             }
         }
@@ -349,6 +361,7 @@ class ShippingZonesService
             ['id' => 'free_shipping', 'title' => 'ارسال رایگان', 'description' => 'با حداقل مبلغ سبد'],
             ['id' => 'local_pickup', 'title' => 'تحویل حضوری', 'description' => 'بدون هزینه ارسال'],
             ['id' => 'tapin', 'title' => 'تاپین', 'description' => 'نرخ از تاپین یا تعرفه محلی'],
+            ['id' => 'flat_city', 'title' => 'نرخ ثابت شهری', 'description' => 'هزینهٔ جدا برای هر شهر (پیک شهری)'],
         ];
     }
 
@@ -394,7 +407,7 @@ class ShippingZonesService
     /**
      * @param  array<string, mixed>  $method
      */
-    protected function methodCost(array $method, int $cartSubtotal, int $globalFreeMin): ?int
+    protected function methodCost(array $method, int $cartSubtotal, int $globalFreeMin, ?string $city = null): ?int
     {
         $settings = is_array($method['settings'] ?? null) ? $method['settings'] : [];
         $id = (string) ($method['method_id'] ?? '');
@@ -407,6 +420,7 @@ class ShippingZonesService
             ) ? 0 : null,
             'flat_rate' => max(0, (int) ($settings['cost'] ?? 0)),
             'tapin' => max(0, (int) ($settings['fallback_cost'] ?? $settings['cost'] ?? 0)),
+            'flat_city' => $this->cityCost($settings, $city, $cartSubtotal),
             default => max(0, (int) ($settings['cost'] ?? 0)),
         };
     }
@@ -419,7 +433,87 @@ class ShippingZonesService
             'free_shipping' => ['min_amount' => 0],
             'local_pickup' => [],
             'tapin' => ['fallback_cost' => 0, 'service' => 'pishtaz'],
+            'flat_city' => ['city_rates' => [], 'other_cities' => 'hide', 'other_cost' => 0, 'free_min' => 0],
             default => [],
         };
+    }
+
+    /**
+     * Per-city flat rate (WP flat-city). settings: city_rates [{city, cost}], other_cities hide|cost, other_cost, free_min.
+     * Returns null (method hidden) when the city is unknown and other_cities = hide.
+     */
+    protected function cityCost(array $settings, ?string $city, int $cartSubtotal): ?int
+    {
+        $norm = fn ($v) => trim(str_replace(['ي', 'ك', '‌'], ['ی', 'ک', ' '], mb_strtolower((string) $v)));
+        $free = (int) ($settings['free_min'] ?? 0);
+        $match = null;
+        if ($city !== null && trim($city) !== '') {
+            foreach ((array) ($settings['city_rates'] ?? []) as $row) {
+                if (is_array($row) && $norm($row['city'] ?? '') !== '' && $norm($row['city'] ?? '') === $norm($city)) {
+                    $match = max(0, (int) ($row['cost'] ?? 0));
+                    break;
+                }
+            }
+        }
+        if ($match === null) {
+            if (($settings['other_cities'] ?? 'hide') !== 'cost') {
+                return null;
+            }
+            $match = max(0, (int) ($settings['other_cost'] ?? 0));
+        }
+
+        return $free > 0 && $cartSubtotal >= $free ? 0 : $match;
+    }
+
+    /**
+     * Cities configured on flat_city methods of zones matching the province (region select at checkout).
+     *
+     * @return list<string>
+     */
+    public function citiesFor(int $tenantId, ?string $stateCode): array
+    {
+        $cfg = $this->getConfig($tenantId);
+        $out = [];
+        foreach ($cfg['zones'] ?? [] as $zone) {
+            if (! $this->zoneMatches($zone, $stateCode, null)) {
+                continue;
+            }
+            foreach ($zone['methods'] ?? [] as $m) {
+                if (empty($m['enabled']) || ($m['method_id'] ?? '') !== 'flat_city') {
+                    continue;
+                }
+                foreach ((array) ($m['settings']['city_rates'] ?? []) as $row) {
+                    $c = trim((string) ($row['city'] ?? ''));
+                    if ($c !== '') {
+                        $out[$c] = true;
+                    }
+                }
+            }
+        }
+
+        return array_keys($out);
+    }
+
+    /** @return array{enabled: bool, boxes: list<array<string, mixed>>} */
+    public static function sanitizePackaging(mixed $in): array
+    {
+        $in = is_array($in) ? $in : [];
+        $boxes = [];
+        foreach (array_slice((array) ($in['boxes'] ?? []), 0, 30) as $b) {
+            if (! is_array($b)) {
+                continue;
+            }
+            $boxes[] = [
+                'name' => mb_substr(trim((string) ($b['name'] ?? 'جعبه')), 0, 64) ?: 'جعبه',
+                'length' => max(0, (float) ($b['length'] ?? 0)),
+                'width' => max(0, (float) ($b['width'] ?? 0)),
+                'height' => max(0, (float) ($b['height'] ?? 0)),
+                'max_weight_g' => max(0, (int) ($b['max_weight_g'] ?? 0)),
+                'box_weight_g' => max(0, (int) ($b['box_weight_g'] ?? 0)),
+                'cost' => max(0, (int) ($b['cost'] ?? 0)),
+            ];
+        }
+
+        return ['enabled' => (bool) ($in['enabled'] ?? false), 'boxes' => $boxes];
     }
 }

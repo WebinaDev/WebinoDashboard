@@ -27,6 +27,11 @@ class ShippingZonesController extends Controller
             'enable_shipping' => ['sometimes', 'boolean'],
             'default_method' => ['sometimes', 'string', 'max:64'],
             'free_shipping_min' => ['sometimes', 'integer', 'min:0'],
+            'packaging' => ['sometimes', 'array'],
+            'packaging.enabled' => ['sometimes', 'boolean'],
+            'packaging.boxes' => ['sometimes', 'array', 'max:30'],
+            'show_map' => ['sometimes', 'boolean'],
+            'require_city' => ['sometimes', 'boolean'],
         ]);
 
         return response()->json([
@@ -112,6 +117,7 @@ class ShippingZonesController extends Controller
         $data = $request->validate([
             'state_code' => ['nullable', 'string', 'max:32'],
             'postcode' => ['nullable', 'string', 'max:20'],
+            'city' => ['nullable', 'string', 'max:80'],
             'province_code' => ['nullable', 'integer'],
             'city_code' => ['nullable', 'integer'],
             'weight_g' => ['nullable', 'integer', 'min:1'],
@@ -123,7 +129,8 @@ class ShippingZonesController extends Controller
             $tid,
             $data['state_code'] ?? null,
             $data['postcode'] ?? null,
-            $subtotal
+            $subtotal,
+            $data['city'] ?? null
         );
 
         foreach ($rates as $i => $rate) {
@@ -145,5 +152,20 @@ class ShippingZonesController extends Controller
         }
 
         return response()->json(['rates' => $rates]);
+    }
+
+    /** Region select at checkout: provinces + cities that have per-city rates. */
+    public function regions(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+        $state = (string) $request->query('state_code', '');
+        $cfg = $this->zones->getConfig($tid);
+
+        return response()->json(['data' => [
+            'states' => ShippingZonesService::IR_STATES,
+            'cities' => $state !== '' ? $this->zones->citiesFor($tid, $state) : [],
+            'show_map' => (bool) ($cfg['global']['show_map'] ?? false),
+            'require_city' => (bool) ($cfg['global']['require_city'] ?? false),
+        ]]);
     }
 }

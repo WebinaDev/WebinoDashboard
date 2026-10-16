@@ -35,6 +35,7 @@ class CheckoutController extends Controller
             'shipping_instance_id' => ['nullable', 'integer', 'min:1'],
             'shipping_state_code' => ['nullable', 'string', 'max:32'],
             'shipping_postcode' => ['nullable', 'string', 'max:20'],
+            'shipping_city' => ['nullable', 'string', 'max:80'],
             'shipping_province_code' => ['nullable', 'integer'],
             'shipping_city_code' => ['nullable', 'integer'],
             'shipping_minor' => ['nullable', 'integer', 'min:0'],
@@ -142,6 +143,7 @@ class CheckoutController extends Controller
                 $stateCode = $stateCode ?: ($addr['state_code'] ?? $addr['state'] ?? null);
                 $postcode = $postcode ?: ($addr['postcode'] ?? null);
             }
+            $city = $checkoutMeta['shipping_city'] ?? (is_array($checkoutMeta['shipping_address'] ?? null) ? ($checkoutMeta['shipping_address']['city'] ?? null) : null);
 
             $shippingMinor = 0;
             $shippingMeta = [];
@@ -149,7 +151,9 @@ class CheckoutController extends Controller
                 (int) $user->tenant_id,
                 is_string($stateCode) ? $stateCode : null,
                 is_string($postcode) ? $postcode : null,
-                max(0, $subtotal - $discount)
+                max(0, $subtotal - $discount),
+                is_string($city) ? $city : null,
+                $lines
             );
             $picked = null;
             $requestedInstance = ! empty($checkoutMeta['shipping_instance_id']);
@@ -194,6 +198,13 @@ class CheckoutController extends Controller
                     'shipping_zone_id' => $picked['zone_id'],
                     'shipping_service' => $picked['service'],
                 ];
+                if (! empty($picked['packaging'])) {
+                    $shippingMeta['packaging'] = $picked['packaging'];
+                    $shippingMeta['packaging_minor'] = (int) ($picked['packaging_minor'] ?? 0);
+                }
+                if (is_string($city) && $city !== '') {
+                    $shippingMeta['shipping_city'] = $city;
+                }
             } elseif (isset($checkoutMeta['shipping_minor'])) {
                 $shippingMinor = (int) $checkoutMeta['shipping_minor'];
             }

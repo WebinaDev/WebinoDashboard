@@ -358,6 +358,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/loyalty/balance', [ShopExtrasController::class, 'loyaltyBalance']);
         Route::post('/loyalty/redeem', [ShopExtrasController::class, 'redeemLoyalty']);
         Route::post('/shipping/quote', [ShippingZonesController::class, 'quote']);
+        Route::get('/shipping/regions', [ShippingZonesController::class, 'regions']);
 
         Route::middleware('module:cart')->group(function () {
             Route::get('/cart', [CartController::class, 'show']);
