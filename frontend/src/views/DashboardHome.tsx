@@ -9,6 +9,7 @@ import { useEffect } from "react"
 import { HomeActionBar } from "@/components/home/HomeActionBar"
 import { HomeCommentsQueue } from "@/components/home/HomeCommentsQueue"
 import { HomeFulfillmentTodos } from "@/components/home/HomeFulfillmentTodos"
+import { HomeQuickLinks } from "@/components/home/HomeQuickLinks"
 import { HomeKpiStrip } from "@/components/home/HomeKpiStrip"
 import { HomeMiniCardsStrip } from "@/components/home/HomeMiniCardsStrip"
 import { HomeOrderWorkflow } from "@/components/home/HomeOrderWorkflow"
@@ -167,7 +168,7 @@ export default function DashboardHome({
 
   return (
     <div className="space-y-5">
-      <header className="wd-home-hero relative z-0 space-y-1.5">
+      <header className="wd-home-hero wd-desk-home-greeting relative z-0 space-y-1.5">
         <p className="relative text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {formatDate(new Date().toISOString(), lng, { dateStyle: "full" })}
         </p>
@@ -175,7 +176,7 @@ export default function DashboardHome({
           {t("welcome")}
         </h1>
         {user?.tenant?.name ? (
-          <p className="relative max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          <p className="sub relative max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {user.tenant.name}
           </p>
         ) : null}
@@ -199,6 +200,8 @@ export default function DashboardHome({
         </div>
       ) : (
         <div className="space-y-4 sm:space-y-6">
+          <HomeQuickLinks />
+
           <HomeActionBar
             alerts={data?.alerts}
             tasks={data?.tasks && !("error" in data.tasks) ? data.tasks : undefined}

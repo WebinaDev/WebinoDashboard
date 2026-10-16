@@ -7701,6 +7701,9 @@
       "description": "Quick access to every dashboard section",
       "settings": "Language and appearance",
       "open": "Sections menu"
+    },
+    "home": {
+      "quick": "Quick access"
     }
   }
 }
