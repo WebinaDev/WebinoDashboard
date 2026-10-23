@@ -8,7 +8,7 @@ use Illuminate\Validation\Validator;
 class StoreMediaRequest extends FormRequest
 {
     public const ALLOWED_MIMES = [
-        'jpeg', 'jpg', 'png', 'webp', 'gif', 'pdf',
+        'jpeg', 'jpg', 'png', 'webp', 'gif', 'pdf', 'svg',
     ];
 
     public const ALLOWED_MIME_TYPES = [
@@ -17,6 +17,11 @@ class StoreMediaRequest extends FormRequest
         'image/webp',
         'image/gif',
         'application/pdf',
+        'image/svg+xml',
+        'image/svg',
+        'text/xml',
+        'application/xml',
+        'text/plain',
     ];
 
     public function authorize(): bool
@@ -53,9 +58,14 @@ class StoreMediaRequest extends FormRequest
             }
             $ext = strtolower((string) $file->getClientOriginalExtension());
             $mime = strtolower((string) ($file->getMimeType() ?: ''));
-            // SVG is never accepted (scriptable); block by extension/mime even if validation drifts.
-            if ($ext === 'svg' || str_contains($mime, 'svg')) {
-                $validator->errors()->add('file', 'SVG uploads are not allowed.');
+            // SVG is accepted only when it is a well-formed SVG; MediaController stores the sanitized copy.
+            $isSvg = $ext === 'svg' || str_contains($mime, 'svg');
+            if ($isSvg && (new \App\Services\Media\SvgSanitizer())->sanitize((string) @file_get_contents($file->getRealPath())) === null) {
+                $validator->errors()->add('file', 'Invalid SVG file.');
+            }
+            // XML/plain-text mimetypes are only allowed for .svg files.
+            if (! $isSvg && in_array($mime, ['text/xml', 'application/xml', 'text/plain'], true)) {
+                $validator->errors()->add('file', 'Unsupported file type.');
             }
         });
     }

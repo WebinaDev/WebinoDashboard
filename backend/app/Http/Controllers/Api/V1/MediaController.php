@@ -75,8 +75,18 @@ class MediaController extends Controller
         }
 
         $dir = 'media/'.$tid.($folderSlug ? '/'.trim($folderSlug, '/') : '');
-        $storedPath = $file->store($dir, 'public');
         $name = $file->getClientOriginalName();
+        $mime = $file->getMimeType();
+        if (strtolower((string) $file->getClientOriginalExtension()) === 'svg' || str_contains((string) $mime, 'svg')) {
+            $clean = app(\App\Services\Media\SvgSanitizer::class)->sanitize((string) file_get_contents($file->getRealPath()));
+            abort_if($clean === null, 422, 'Invalid SVG file.');
+            $storedPath = $dir.'/'.Str::random(40).'.svg';
+            \Illuminate\Support\Facades\Storage::disk('public')->put($storedPath, $clean);
+            $mime = 'image/svg+xml';
+            $size = strlen($clean);
+        } else {
+            $storedPath = $file->store($dir, 'public');
+        }
 
         $row = MediaAsset::query()->create([
             'tenant_id' => $tid,
@@ -84,8 +94,8 @@ class MediaController extends Controller
             'folder_term_id' => $folderId,
             'path' => $storedPath,
             'disk' => 'public',
-            'mime' => $file->getMimeType(),
-            'size' => $file->getSize() ?: 0,
+            'mime' => $mime,
+            'size' => $size ?? ($file->getSize() ?: 0),
             'alt' => $data['alt'] ?? null,
             'original_name' => $name,
             'title' => $data['title'] ?? pathinfo($name, PATHINFO_FILENAME),
