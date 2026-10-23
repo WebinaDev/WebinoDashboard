@@ -106,7 +106,7 @@ export type CustomFont = { family: string; url: string; weight?: string; style?:
 const JSD = "https://cdn.jsdelivr.net/gh/rastikerdar"
 /** Persian font presets (open licence, served from jsDelivr; Yekan Bakh is self-hosted). */
 export const FONT_PRESETS: { id: string; label: string; stack: string; faces: CustomFont[] }[] = [
-  { id: "yekan", label: "یکان بخ", stack: "Yekan Bakh, Vazirmatn, Tahoma, sans-serif", faces: [] },
+  { id: "yekan", label: "یکان بخ", stack: "Yekan Bakh, Tahoma, sans-serif", faces: [] },
   { id: "vazirmatn", label: "وزیرمتن", stack: "Vazirmatn, Tahoma, sans-serif", faces: [{ family: "Vazirmatn", url: `${JSD}/vazirmatn@v33.003/fonts/webfonts/Vazirmatn%5Bwght%5D.woff2`, weight: "100 900" }] },
   { id: "shabnam", label: "شبنم", stack: "Shabnam, Tahoma, sans-serif", faces: [{ family: "Shabnam", url: `${JSD}/shabnam-font@v5.0.1/dist/Shabnam.woff2`, weight: "400" }, { family: "Shabnam", url: `${JSD}/shabnam-font@v5.0.1/dist/Shabnam-Bold.woff2`, weight: "700" }] },
   { id: "sahel", label: "ساحل", stack: "Sahel, Tahoma, sans-serif", faces: [{ family: "Sahel", url: `${JSD}/sahel-font@v3.4.0/dist/Sahel.woff2`, weight: "400" }, { family: "Sahel", url: `${JSD}/sahel-font@v3.4.0/dist/Sahel-Bold.woff2`, weight: "700" }] },
@@ -170,9 +170,9 @@ export const DEFAULT_GLOBALS: BuilderGlobals = {
     { id: "ink", name: "مرکب", value: "#101820" },
   ],
   fonts: {
-    body: "Yekan Bakh, Vazirmatn, Tahoma, sans-serif",
-    heading: "Yekan Bakh, Vazirmatn, Tahoma, sans-serif",
-    accent: "Yekan Bakh, Vazirmatn, Tahoma, sans-serif",
+    body: "Yekan Bakh, Tahoma, sans-serif",
+    heading: "Yekan Bakh, Tahoma, sans-serif",
+    accent: "Yekan Bakh, Tahoma, sans-serif",
   },
   typography: {
     h1: type("2.25rem", "800", "1.2"),

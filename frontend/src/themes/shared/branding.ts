@@ -43,7 +43,7 @@ export function brandFontStack(font: string | null | undefined): string | null {
     case "yekan-bakh":
       return 'var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif'
     case "vazirmatn":
-      return 'var(--font-yekan), "Vazirmatn", "Yekan Bakh", Tahoma, sans-serif'
+      return 'var(--font-yekan), "Yekan Bakh", "Vazirmatn", Tahoma, sans-serif'
     case "iran-sans":
       return 'var(--font-yekan), "IRANSans", "Yekan Bakh", Tahoma, sans-serif'
     case "system":

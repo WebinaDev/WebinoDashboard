@@ -7,6 +7,8 @@
 @import "../themes/storefront-skins.css";
 @import "../themes/ecommerce-classic/parity.css";
 
+/* next/font registers a hashed family (e.g. "yekanBakh"); pin --font-yekan to the literal self-hosted face. html:root beats the next/font class. */
+html:root { --font-yekan: "Yekan Bakh"; }
 /* Self-hosted Yekan Bakh under its literal family name, so builder/tenant font stacks ("Yekan Bakh, ...") resolve without next/font hashing or any CDN. */
 @font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Thin.woff2") format("woff2"); font-weight: 100; font-style: normal; font-display: swap; }
 @font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Light.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
