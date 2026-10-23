@@ -42,8 +42,10 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
-        git unzip libzip-dev libpq-dev libxml2-dev libsqlite3-dev curl; \
-    docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql opcache pcntl; \
+        git unzip libzip-dev libpq-dev libxml2-dev libsqlite3-dev curl \
+        libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype6-dev; \
+    docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype; \
+    docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql opcache pcntl gd; \
     chmod +x /tmp/install-redis.sh; \
     REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh; \
     rm -f /tmp/install-redis.sh; \

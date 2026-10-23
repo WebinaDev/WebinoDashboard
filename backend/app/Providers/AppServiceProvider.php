@@ -27,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(\App\Services\Media\WebpConverter::class, fn () => new \App\Services\Media\WebpConverter(
+            (int) config('media.webp_quality', 80),
+            (int) config('media.webp_max_width', 2000),
+        ));
         $this->app->bind(RemoteAssetFetcher::class, SafeRemoteFetcher::class);
     }
 

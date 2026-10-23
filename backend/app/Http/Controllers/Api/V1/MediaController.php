@@ -102,6 +102,11 @@ class MediaController extends Controller
             'slug' => Str::slug(pathinfo($name, PATHINFO_FILENAME)) ?: 'file-'.Str::random(6),
         ]);
 
+        // Serve WebP by default (CDN-like); the original upload is kept in original_path.
+        if (config('media.webp_on_upload', true)) {
+            app(\App\Services\Media\WebpConverter::class)->applyToAsset($row);
+        }
+
         $this->syncTerms($row, $tid, $this->parseIdList($data['category_ids'] ?? null), $this->parseIdList($data['tag_ids'] ?? null));
 
         return response()->json(['data' => $this->serialize($row->fresh(['folderTerm', 'terms']))], 201);
@@ -162,8 +167,10 @@ class MediaController extends Controller
         $row = MediaAsset::query()->where('tenant_id', $tid)->findOrFail($id);
 
         $disk = $row->disk === 'local' ? 'public' : $row->disk;
-        if ($row->path && Storage::disk($disk)->exists($row->path)) {
-            Storage::disk($disk)->delete($row->path);
+        foreach (array_filter([$row->path, $row->original_path]) as $p) {
+            if (Storage::disk($disk)->exists($p)) {
+                Storage::disk($disk)->delete($p);
+            }
         }
 
         $row->delete();
@@ -210,6 +217,8 @@ class MediaController extends Controller
         return [
             'id' => $a->id,
             'url' => $a->url,
+            'original_url' => $a->original_url,
+            'original_mime' => $a->original_mime,
             'path' => $a->path,
             'mime' => $a->mime,
             'size' => $a->size,

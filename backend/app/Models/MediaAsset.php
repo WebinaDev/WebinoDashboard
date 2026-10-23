@@ -23,9 +23,11 @@ class MediaAsset extends Model
         'slug',
         'caption',
         'description',
+        'original_path',
+        'original_mime',
     ];
 
-    protected $appends = ['url'];
+    protected $appends = ['url', 'original_url'];
 
     public function tenant(): BelongsTo
     {
@@ -51,5 +53,17 @@ class MediaAsset extends Model
         $disk = $this->disk === 'local' ? 'public' : $this->disk;
 
         return Storage::disk($disk)->url($this->path);
+    }
+
+    public function getOriginalUrlAttribute(): ?string
+    {
+        $path = $this->original_path ?: $this->path;
+        if (! $path) {
+            return null;
+        }
+
+        $disk = $this->disk === 'local' ? 'public' : $this->disk;
+
+        return Storage::disk($disk)->url($path);
     }
 }

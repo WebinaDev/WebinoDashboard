@@ -13,7 +13,9 @@ RUN apt-get update \
         $PHPIZE_DEPS \
         git unzip libzip-dev libpq-dev libxml2-dev libsqlite3-dev \
         libbrotli-dev curl \
-    && docker-php-ext-install dom xml zip pdo_sqlite opcache pcntl \
+        libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype6-dev \
+    && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
+    && docker-php-ext-install dom xml zip pdo_sqlite opcache pcntl gd \
     && chmod +x /tmp/install-redis.sh \
     && REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh \
     && rm -f /tmp/install-redis.sh \
