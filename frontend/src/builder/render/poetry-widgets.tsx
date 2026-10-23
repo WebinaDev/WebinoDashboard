@@ -53,6 +53,8 @@ export function sectionBg(p: Record<string, unknown>): CSSProperties {
   if (img && /^(https?:\/\/|\/)/.test(img)) v["--wpz-bg-img"] = `url("${img}")`
   if (ov && CSS_SAFE.test(ov)) v["--wpz-ov"] = ov
   v["--wpz-ov-op"] = String(op / 100)
+  v["--wpz-mpy"] = `${Math.max(0, Math.min(160, propNum(p, "mobilePaddingY", 44)))}px`
+  v["--wpz-mgap"] = `${Math.max(0, Math.min(160, propNum(p, "mobileGap", 28)))}px`
   return v as CSSProperties
 }
 

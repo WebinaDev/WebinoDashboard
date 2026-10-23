@@ -147,8 +147,18 @@ export const POETRY_WIDGETS: WidgetDef[] = [
 
 /** every widget here gets `mobileFullWidth` (edge-to-edge on phones, default on). */
 export const MOBILE_FULL_WIDTH_FIELD: FieldDef = { kind: "switch", key: "mobileFullWidth", label: "تمام‌عرض در موبایل" }
+export const MOBILE_PADDING_Y_FIELD: FieldDef = { kind: "number", key: "mobilePaddingY", label: "فاصله بالا/پایین در موبایل (px)", min: 0, max: 160 }
+export const MOBILE_GAP_FIELD: FieldDef = { kind: "number", key: "mobileGap", label: "فاصله تا بخش بعد در موبایل (px)", min: 0, max: 160 }
 for (const d of POETRY_WIDGETS) if (!d.fields.some((f) => "key" in f && f.key === "mobileFullWidth")) {
   d.fields.push(MOBILE_FULL_WIDTH_FIELD)
+  if (d.category !== "chrome") d.fields.push(MOBILE_PADDING_Y_FIELD, MOBILE_GAP_FIELD)
   const make = d.create
-  d.create = () => { const n = make(); if (n.props.mobileFullWidth === undefined) n.props.mobileFullWidth = true; return n }
+  const chrome = d.category === "chrome"
+  d.create = () => {
+    const n = make()
+    if (n.props.mobileFullWidth === undefined) n.props.mobileFullWidth = true
+    if (!chrome && n.props.mobilePaddingY === undefined) n.props.mobilePaddingY = 44
+    if (!chrome && n.props.mobileGap === undefined) n.props.mobileGap = 28
+    return n
+  }
 }

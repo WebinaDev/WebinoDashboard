@@ -55,6 +55,8 @@ export const akxMfw = (p: P) => (propBool(p, "mobileFullWidth", true) ? "akx-mfw
 
 export function akxVars(p: P, extra: Record<string, string> = {}): CSSProperties {
   const v: Record<string, string> = {}
+  v["--akx-mpy"] = `${Math.max(0, Math.min(160, propNum(p, "mobilePaddingY", 44)))}px`
+  v["--akx-mgap"] = `${Math.max(0, Math.min(160, propNum(p, "mobileGap", 28)))}px`
   const map: Record<string, string> = { accent: "--akx-c", ink: "--akx-ink", cream: "--akx-cream", gold: "--akx-gold", card: "--akx-card", sectionBg: "--akx-sec" }
   for (const [k, cssVar] of Object.entries(map)) {
     const val = propStr(p, k)

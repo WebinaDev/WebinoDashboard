@@ -291,3 +291,8 @@
   .akx-navwrap.akx-mfw { padding: 0; }
   .akx-navwrap.akx-mfw .akx-nav { border-radius: 0; max-width: none; padding: 8px 16px; box-shadow: 0 4px 16px rgba(90,15,23,.08); }
 }
+
+/* mobilePaddingY / mobileGap (section widgets) */
+@media (max-width: 760px) {
+  section.akx { padding-block: var(--akx-mpy, 44px); margin-block-end: var(--akx-mgap, 28px); }
+}
