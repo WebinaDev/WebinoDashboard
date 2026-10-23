@@ -162,3 +162,23 @@ for (const d of POETRY_WIDGETS) if (!d.fields.some((f) => "key" in f && f.key ==
     return n
   }
 }
+
+/**
+ * `desktopWidth` (section widgets except footer): full (default) | half (50%) | wide (60%) | narrow (40%).
+ * On desktop (>=992px) adjacent non-full widgets/sections share one row (24px gap, equal height),
+ * e.g. half+half or wide+narrow. Phones/tablets always stack full width (mobileFullWidth etc. unchanged).
+ */
+export const DESKTOP_WIDTH_FIELD: FieldDef = {
+  kind: "select", key: "desktopWidth", label: "عرض در دسکتاپ (بخش‌های غیرتمام‌عرضِ پشت‌سرهم کنار هم می‌نشینند)",
+  options: [
+    { value: "full", label: "تمام‌عرض" },
+    { value: "half", label: "نصف (۵۰٪)" },
+    { value: "wide", label: "پهن (۶۰٪) — کنار «باریک»" },
+    { value: "narrow", label: "باریک (۴۰٪) — کنار «پهن»" },
+  ],
+}
+for (const d of POETRY_WIDGETS) if (d.type !== "poetry-footer" && !d.fields.some((f) => "key" in f && f.key === "desktopWidth")) {
+  d.fields.push(DESKTOP_WIDTH_FIELD)
+  const make = d.create
+  d.create = () => { const n = make(); if (n.props.desktopWidth === undefined) n.props.desktopWidth = "full"; return n }
+}
