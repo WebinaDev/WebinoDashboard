@@ -1,10 +1,11 @@
 /* alikhabari.ir page components — values taken from the approved mockups (/alikhabari/mockup/*.html). */
 @font-face { font-family: "AkxLalezar"; src: url("/fonts/lalezar/Lalezar-Regular.woff") format("woff"); font-display: swap; }
+@font-face { font-family: "AkxVazirmatn"; src: url("/fonts/vazirmatn/Vazirmatn-wght.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 
 .akx {
   --akx-c: #B4101E; --akx-cd: color-mix(in srgb, var(--akx-c) 60%, #000); --akx-ink: #2a0a0d; --akx-cream: #FBF3EC; --akx-gold: #C9A24A; --akx-card: #fff;
-  --akx-title: "AkxLalezar", "Lalezar", inherit;
-  direction: rtl; color: var(--akx-ink); font-family: inherit; box-sizing: border-box;
+  --akx-title: "AkxLalezar", "Lalezar", "AkxVazirmatn", sans-serif;
+  direction: rtl; color: var(--akx-ink); font-family: "AkxVazirmatn", Vazirmatn, Tahoma, sans-serif; box-sizing: border-box;
 }
 .akx *, .akx *::before, .akx *::after { box-sizing: border-box; }
 .akx button { font: inherit; cursor: pointer; }
