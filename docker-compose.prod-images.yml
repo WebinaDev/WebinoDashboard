@@ -1,0 +1,18 @@
+# Prebuilt-image overlay: run GHCR images built by GitHub Actions instead of building on the server.
+# Use on top of the current base file, e.g.:
+#   docker compose -f docker-compose.aapanel.yml -f docker-compose.prod-images.yml pull
+#   docker compose -f docker-compose.aapanel.yml -f docker-compose.prod-images.yml up -d --no-build
+# IMAGE_TAG defaults to latest; pin a commit with IMAGE_TAG=<git sha>. See docs/deploy-prebuilt-images.md
+services:
+  backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/webinadev}/webino-dashboard-backend:${IMAGE_TAG:-latest}
+    pull_policy: always
+  worker:
+    image: ${IMAGE_REGISTRY:-ghcr.io/webinadev}/webino-dashboard-backend:${IMAGE_TAG:-latest}
+    pull_policy: always
+  scheduler:
+    image: ${IMAGE_REGISTRY:-ghcr.io/webinadev}/webino-dashboard-backend:${IMAGE_TAG:-latest}
+    pull_policy: always
+  frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/webinadev}/webino-dashboard-frontend:${IMAGE_TAG:-latest}
+    pull_policy: always
