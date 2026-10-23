@@ -42,7 +42,7 @@
 .akx-navwrap { padding: 18px 16px 0; position: relative; z-index: 5; }
 .akx-nav { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 22px; padding: 8px 10px 8px 18px; border-radius: 999px; background: var(--akx-nav, rgba(255,255,255,.92)); box-shadow: 0 10px 30px rgba(90,15,23,.08); backdrop-filter: blur(8px); }
 .akx-brand { display: flex; align-items: center; gap: 8px; flex: none; }
-.akx-brand img { width: 44px; height: 44px; object-fit: contain; }
+.akx-brand img { height: var(--akx-logo-h, 64px); width: auto; max-width: 260px; object-fit: contain; display: block; }
 .akx-brand b { font-family: var(--akx-title); font-weight: 800; font-size: 24px; color: var(--akx-c); }
 .akx-links { display: flex; gap: 20px; flex: 1; overflow-x: auto; scrollbar-width: none; }
 .akx-links a { font-size: 14px; white-space: nowrap; padding: 6px 0; border-bottom: 2px solid transparent; }
@@ -253,11 +253,12 @@
 .akx-slot-logo .akx-slot-mono { color: var(--akx-c); }
 
 /* mobile nav drawer + filter sheet */
-.akx-burger, .akx-filter-btn, .akx-sheet-head, .akx-sheet-done { display: none; }
-.akx-drawer { position: fixed; top: 0; bottom: 0; right: 0; z-index: 1001; width: min(82vw, 320px); background: var(--akx-nav, #4a0710); color: #fff; padding: 18px; display: flex; flex-direction: column; gap: 14px; transform: translateX(100%); transition: transform .25s ease; visibility: hidden; overflow-y: auto; box-shadow: -10px 0 30px rgba(0,0,0,.3); }
+.akx-filter-btn, .akx-sheet-head, .akx-sheet-done { display: none; }
+.akx-nav .akx-burger { display: none; }
+.akx-drawer { position: fixed; top: 0; bottom: 0; right: 0; z-index: 1001; width: min(82vw, 320px); background: var(--akx-drawer, #4a0710); color: var(--akx-drawer-tx, #fff); padding: 18px; isolation: isolate; display: flex; flex-direction: column; gap: 14px; transform: translateX(100%); transition: transform .25s ease; visibility: hidden; overflow-y: auto; box-shadow: -10px 0 30px rgba(0,0,0,.3); }
 .akx-drawer.is-open { transform: none; visibility: visible; }
 .akx-drawer-head { display: flex; align-items: center; justify-content: space-between; }
-.akx-drawer-head button, .akx-burger { background: none; border: 0; color: inherit; padding: 6px; display: grid; place-items: center; cursor: pointer; }
+.akx-drawer-head button, .akx-nav .akx-burger { background: none; border: 0; color: inherit; padding: 6px; display: grid; place-items: center; cursor: pointer; }
 .akx-drawer nav { display: grid; }
 .akx-drawer nav a { display: flex; justify-content: space-between; align-items: center; padding: 13px 4px; border-bottom: 1px solid rgba(255,255,255,.12); font-size: 15px; }
 .akx-drawer nav a.is-on { color: var(--akx-gold, #e6c27a); font-weight: 700; }
@@ -266,7 +267,7 @@
 @media (max-width: 760px) {
   .akx-nav { flex-wrap: nowrap; }
   .akx-nav .akx-links, .akx-nav > .akx-search { display: none; }
-  .akx-burger { display: grid; margin-inline-start: auto; }
+  .akx-nav .akx-burger { display: grid; margin-inline-start: auto; }
   .akx-filter-btn { display: inline-flex; align-items: center; gap: 6px; justify-self: start; border: 1px solid #ecd9cf; background: var(--akx-card, #fff); color: var(--akx-ink); border-radius: 999px; padding: 8px 16px; font-size: 13px; margin-bottom: 10px; }
   .akx-side { display: none; }
   .akx-side.is-open { display: grid; position: fixed; inset: auto 0 0 0; top: auto; z-index: 1001; max-height: 80vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 16px 18px 20px; box-shadow: 0 -12px 30px rgba(0,0,0,.25); animation: akx-up .22s ease; }
@@ -276,3 +277,17 @@
   .akx-pager button, .akx-pager span { min-width: 34px; height: 34px; }
 }
 @keyframes akx-up { from { transform: translateY(100%); } }
+
+/* header logo size + logo-only; portal drawer root; mobileFullWidth */
+.akx-drawer-root { position: static; }
+.akx-drawer .akx-search { width: 100%; }
+.akx-drawer-head b { font-family: var(--akx-title); font-size: 18px; color: inherit; }
+.akx-logo-only .akx-nav { padding-block: 6px; }
+@media (min-width: 761px) { .akx-nav .akx-burger { display: none !important; } }
+@media (max-width: 760px) {
+  .akx-brand img { height: var(--akx-logo-hm, 48px); max-width: 60vw; }
+  .akx-mfw { width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); border-radius: 0 !important; }
+  .akx-mfw:not(.akx-navwrap) { padding-inline: 16px; }
+  .akx-navwrap.akx-mfw { padding: 0; }
+  .akx-navwrap.akx-mfw .akx-nav { border-radius: 0; max-width: none; padding: 8px 16px; box-shadow: 0 4px 16px rgba(90,15,23,.08); }
+}

@@ -54,9 +54,12 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "repeater", key: "links", label: "پیوندها", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] },
       { kind: "switch", key: "showSearch", label: "نمایش جستجو" },
       { kind: "text", key: "searchPlaceholder", label: "متن راهنمای جستجو" }, { kind: "link", key: "searchHref", label: "صفحه نتایج جستجو" },
+      { kind: "switch", key: "logoOnly", label: "فقط لوگو (بدون نام کنار آن)" },
+      { kind: "number", key: "logoHeight", label: "ارتفاع لوگو دسکتاپ (px)" }, { kind: "number", key: "logoHeightMobile", label: "ارتفاع لوگو موبایل (px)" },
+      { kind: "color", key: "drawerBg", label: "زمینه منوی کشویی موبایل" }, { kind: "color", key: "drawerText", label: "رنگ متن منوی کشویی" },
       { kind: "color", key: "navBg", label: "رنگ کپسول" }, { kind: "color", key: "searchBg", label: "رنگ جعبه جستجو" }, ...colors,
     ],
-    create: () => node("poetry-nav", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, showSearch: true, searchPlaceholder: "جستجوی شعر، مصرع یا مناسبت…", searchHref: "/poems", navBg: "rgba(255,255,255,.92)", searchBg: "#f5ebe6", ...C }),
+    create: () => node("poetry-nav", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, showSearch: true, searchPlaceholder: "جستجوی شعر، مصرع یا مناسبت…", searchHref: "/poems", navBg: "rgba(255,255,255,.92)", searchBg: "#f5ebe6", logoOnly: false, logoHeight: 64, logoHeightMobile: 48, drawerBg: "#4a0710", drawerText: "#ffffff", mobileFullWidth: true, ...C }),
   },
   {
     type: "poetry-page-hero", label: "سربرگ صفحه (مسیر + عنوان دورنگ)", category: "content",
@@ -179,3 +182,11 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
     create: () => node("poetry-site-footer", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, socials: AKX_SOCIALS_DEFAULT, copyright: "", bg: "#1a0507", text: "#d8c3bd", ...C }),
   },
 ]
+
+/** every widget here gets `mobileFullWidth` (edge-to-edge on phones, default on). */
+export const MOBILE_FULL_WIDTH_FIELD: FieldDef = { kind: "switch", key: "mobileFullWidth", label: "تمام‌عرض در موبایل" }
+for (const d of POETRY_PAGE_WIDGETS) if (!d.fields.some((f) => "key" in f && f.key === "mobileFullWidth")) {
+  d.fields.push(MOBILE_FULL_WIDTH_FIELD)
+  const make = d.create
+  d.create = () => { const n = make(); if (n.props.mobileFullWidth === undefined) n.props.mobileFullWidth = true; return n }
+}

@@ -9,6 +9,7 @@
 import Link from "next/link"
 import { Check, ChevronLeft, ChevronRight, Copy, Menu, Music2, Printer, Share2, SlidersHorizontal, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import type { CSSProperties, ReactNode } from "react"
 
 import { addToCart } from "../cart"
@@ -49,6 +50,9 @@ export function toman(raw: string | number): string {
 }
 
 /** Colour fields → CSS variables. */
+/** mobileFullWidth (default on): edge-to-edge on phones. */
+export const akxMfw = (p: P) => (propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "")
+
 export function akxVars(p: P, extra: Record<string, string> = {}): CSSProperties {
   const v: Record<string, string> = {}
   const map: Record<string, string> = { accent: "--akx-c", ink: "--akx-ink", cream: "--akx-cream", gold: "--akx-gold", card: "--akx-card", sectionBg: "--akx-sec" }
@@ -191,6 +195,8 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   const rt = useBuilderRuntime()
   const path = usePathname()
   const [menu, setMenu] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
   useEffect(() => { setMenu(false) }, [path])
   useEffect(() => {
     if (!menu) return
@@ -202,17 +208,21 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   }, [menu])
   const links = parseRows(p.links, ["label", "href"]).filter((l) => l.label)
   const logo = propStr(p, "logo") || rt.logoUrl || ""
+  const logoOnly = propBool(p, "logoOnly", false)
+  const px = (k: string, d: number) => `${Math.max(24, Math.min(160, propNum(p, k, d)))}px`
+  const navVars = { ...akxVars(p, { navBg: "--akx-nav", searchBg: "--akx-sbg" }), ["--akx-logo-h" as string]: px("logoHeight", 64), ["--akx-logo-hm" as string]: px("logoHeightMobile", 48) } as CSSProperties
+  const drawerVars = akxVars(p, { drawerBg: "--akx-drawer", drawerText: "--akx-drawer-tx" })
   const active = (href: string) => {
     if (!path || !href) return false
     if (href === "/") return path === "/"
     return path === href || path.startsWith(`${href}/`) || (href === "/poems" && path.startsWith("/poem"))
   }
   return (
-    <header className="akx akx-navwrap" dir="rtl" style={akxVars(p, { navBg: "--akx-nav", searchBg: "--akx-sbg" })}>
+    <header className={`akx akx-navwrap ${akxMfw(p)} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
       <div className="akx-nav">
         <Link href="/" className="akx-brand">
-          {logo ? <img src={logo} alt="" /> : null}
-          <b>{propStr(p, "brand", rt.siteName ?? "")}</b>
+          {logo ? <img src={logo} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
+          {logoOnly && logo ? null : <b>{propStr(p, "brand", rt.siteName ?? "")}</b>}
         </Link>
         <nav className="akx-links" aria-label="منوی اصلی">
           {links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")} className={active(l.href) ? "is-on" : ""}>{l.label}</Link>)}
@@ -220,7 +230,8 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
         {propBool(p, "showSearch", true) ? <SearchBox placeholder={propStr(p, "searchPlaceholder")} action={propStr(p, "searchHref", "/poems")} /> : null}
         <button type="button" className="akx-burger" aria-label="باز کردن منو" aria-expanded={menu} onClick={() => setMenu(true)}><Menu size={22} aria-hidden /></button>
       </div>
-      {menu ? <div className="akx-drawer-scrim" onClick={() => setMenu(false)} aria-hidden /> : null}
+      {mounted ? createPortal(<div className="akx akx-drawer-root" dir="rtl" style={drawerVars}>
+        {menu ? <div className="akx-drawer-scrim" onClick={() => setMenu(false)} aria-hidden /> : null}
       <div className={`akx-drawer ${menu ? "is-open" : ""}`} role="dialog" aria-modal={menu} aria-label="منو" aria-hidden={!menu}>
         <div className="akx-drawer-head">
           <b>{propStr(p, "brand", rt.siteName ?? "")}</b>
@@ -231,6 +242,7 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
           {links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")} className={active(l.href) ? "is-on" : ""} onClick={() => setMenu(false)} tabIndex={menu ? 0 : -1}>{l.label}<ChevronLeft size={16} aria-hidden /></Link>)}
         </nav>
       </div>
+      </div>, document.body) : null}
     </header>
   )
 }
@@ -253,7 +265,7 @@ export function PoetryPageHeroWidget({ widget }: { widget: WidgetNode }) {
   const showImg = mode === "photo" && img
   const style = { ...akxVars(p, { bg: "--akx-hero" }), minHeight: propNum(p, "height", 210) } as CSSProperties
   return (
-    <section className="akx akx-ph" dir="rtl" style={style}>
+    <section className={`akx akx-ph ${akxMfw(p)}`} dir="rtl" style={style}>
       {showImg ? <div className="akx-ph-img" style={{ backgroundImage: `url("${img.replace(/"/g, "")}")` }} aria-hidden /> : <PhotoSlot mode={mode === "photo" ? "arabesque" : mode} logo={propStr(p, "logo")} className="akx-ph-slot" />}
       <div className="akx-ph-body">
         {crumbs.length ? (
@@ -326,7 +338,7 @@ export function PoemArchiveWidget({ widget }: { widget: WidgetNode }) {
   }
   const chips: [string, string][] = [["all", propStr(p, "chipAll", "همه")], ["new", propStr(p, "chipNew", "تازه‌ترین")], ["popular", propStr(p, "chipPopular", "پربازدیدترین")], ["media", propStr(p, "chipMedia", "دارای صوت")], ["unread", propStr(p, "chipUnread", "خوانده‌نشده")]]
   return (
-    <section className="akx akx-arch" dir="rtl" style={akxVars(p)}>
+    <section className={`akx akx-arch ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
       {propBool(p, "showSidebar", true) ? (
         <FilterSide label={propStr(p, "filterLabel", "فیلتر")}>
           {facet("figure", "figureTitle", "شخصیت")}
@@ -374,9 +386,9 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
   const [note, setNote] = useState("")
   useEffect(() => { if (poem) setFav(localStorage.getItem(`akx-fav:${poem.slug}`) === "1") }, [poem])
   const flash = (t: string) => { setNote(t); window.setTimeout(() => setNote(""), 1800) }
-  if (!slug) return <section className="akx akx-sg-empty" dir="rtl" style={akxVars(p)}>شعری انتخاب نشده است.</section>
-  if (loading && !poem) return <section className="akx akx-sg" dir="rtl" style={akxVars(p)}><div className="akx-paper akx-skel" style={{ minHeight: 480 }} /></section>
-  if (!poem) return <section className="akx akx-sg-empty" dir="rtl" style={akxVars(p)}>این شعر یافت نشد.</section>
+  if (!slug) return <section className={`akx akx-sg-empty ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>شعری انتخاب نشده است.</section>
+  if (loading && !poem) return <section className={`akx akx-sg ${akxMfw(p)} ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}><div className="akx-paper akx-skel" style={{ minHeight: 480 }} /></section>
+  if (!poem) return <section className={`akx akx-sg-empty ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>این شعر یافت نشد.</section>
   const sep = propStr(p, "separator", "✦ ✦ ✦")
   const sub = [poem.style_label || poem.styles[0]?.name, poem.figures[0]?.name].filter(Boolean).join(" · ")
   const audio = poem.media.find((m) => m.kind === "audio")
@@ -395,7 +407,7 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
     ["وزن", poem.meter?.name || propStr(p, "meterFallback", "")], ["تاریخ سرایش", poem.composed_label ?? ""], ["بازدید", fa(poem.view_count)],
   ]
   return (
-    <section className={`akx akx-sg ${propBool(p, "showSidebar", true) ? "" : "akx-sg-solo"}`} dir="rtl" style={akxVars(p, { refrainBg: "--akx-ref" })}>
+    <section className={`akx akx-sg ${akxMfw(p)} ${propBool(p, "showSidebar", true) ? "" : "akx-sg-solo"}`} dir="rtl" style={akxVars(p, { refrainBg: "--akx-ref" })}>
       <article className="akx-paper" style={{ fontSize: `${18 + size * 2}px` }}>
         {propStr(p, "heading") ? <div className="akx-bism">{propStr(p, "heading")}</div> : null}
         {propBool(p, "showSubtitle", true) && sub ? <div className="akx-sub">{sub}</div> : null}
@@ -469,13 +481,13 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
   const cm = propStr(p, "coverMode", "arabesque")
   const pick = (it: MediaItem) => { setSel(items.indexOf(it)); setPlaying(true); if (typeof window !== "undefined") document.getElementById(`akx-feat-${widget.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }) }
   if (!items.length) return (
-    <section className="akx akx-media-empty" dir="rtl" style={akxVars(p)}>
+    <section className={`akx akx-media-empty ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
       <div className="akx-empty-card"><span className="akx-empty-ic"><Music2 size={22} aria-hidden /></span><b>{propStr(p, "emptyTitle", "هنوز اجرایی ثبت نشده است")}</b><p>{propStr(p, "emptyText", "به‌زودی صوت و تصویر اجراها در این بخش قرار می‌گیرد.")}</p><Link href="/poems" className="akx-b1">مشاهده اشعار</Link></div>
     </section>
   )
   const top = items.slice(0, propNum(p, "topCount", 4))
   return (
-    <section className="akx akx-media" dir="rtl" style={akxVars(p)}>
+    <section className={`akx akx-media ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
       <div className="akx-bigp">
         {top.length ? (
           <div className="akx-box akx-toplist">
@@ -616,7 +628,7 @@ export function PoetryShopWidget({ widget }: { widget: WidgetNode }) {
   const sorts: [string, string][] = [["newest", propStr(p, "sortNew", "جدیدترین")], ["best", propStr(p, "sortBest", "پرفروش‌ترین")], ["cheap", propStr(p, "sortCheap", "ارزان‌ترین")]]
   const loading = live && catalog === null && !manual.length
   return (
-    <section className="akx akx-shop" dir="rtl" style={{ ...akxVars(p), ["--akx-cols" as string]: String(Math.min(5, Math.max(2, propNum(p, "columns", 4)))) } as CSSProperties}>
+    <section className={`akx akx-shop ${akxMfw(p)}`} dir="rtl" style={{ ...akxVars(p), ["--akx-cols" as string]: String(Math.min(5, Math.max(2, propNum(p, "columns", 4)))) } as CSSProperties}>
       {propBool(p, "showSidebar", true) ? (
         <FilterSide label={propStr(p, "filterLabel", "فیلتر")}>
           {categories.length ? (
@@ -676,9 +688,9 @@ export function PoetryProductWidget({ widget }: { widget: WidgetNode }) {
   const optionLabel = [opts[opt], colors[col]].filter(Boolean).join(" / ")
   const related = shopItems.filter((x) => x.slug !== it.slug && (!it.categorySlug || x.categorySlug === it.categorySlug)).slice(0, 4)
   const mode = propStr(p, "imageMode", "arabesque")
-  if (catalog === null && slug) return <section className="akx akx-pdwrap" dir="rtl" style={akxVars(p)}><div className="akx-pd akx-skel" style={{ minHeight: 480 }} /></section>
+  if (catalog === null && slug) return <section className={`akx akx-pdwrap ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}><div className="akx-pd akx-skel" style={{ minHeight: 480 }} /></section>
   return (
-    <section className="akx akx-pdwrap" dir="rtl" style={akxVars(p)}>
+    <section className={`akx akx-pdwrap ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
       <div className="akx-pd">
         <div className="akx-gal">
           <div className="akx-gal-main"><PhotoSlot mode={it.images[img] ? "photo" : mode} src={it.images[img]} logo={propStr(p, "logo")} alt={it.title} />{it.demo && propStr(p, "demoLabel") ? <span className="akx-demo">{propStr(p, "demoLabel")}</span> : null}</div>
@@ -718,7 +730,7 @@ export function PoetProfileWidget({ widget }: { widget: WidgetNode }) {
   const paras = propStr(p, "story").split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean)
   const tl = parseRows(p.timeline, ["value", "label"]).filter((r) => r.value || r.label)
   return (
-    <section className="akx akx-about" dir="rtl" style={akxVars(p)}>
+    <section className={`akx akx-about ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
       <div className="akx-abt">
         <div>
           <PhotoSlot mode={propStr(p, "photoMode", "logo")} src={propStr(p, "image")} logo={propStr(p, "logo")} alt={propStr(p, "name")} fallback="logo" className="akx-port" />
@@ -746,7 +758,7 @@ export function PoetrySiteFooterWidget({ widget }: { widget: WidgetNode }) {
   const socials = socialsOf(p.socials)
   const logo = propStr(p, "logo")
   return (
-    <footer className="akx akx-foot" dir="rtl" style={akxVars(p, { bg: "--akx-fbg", text: "--akx-ftx" })}>
+    <footer className={`akx akx-foot ${akxMfw(p)}`} dir="rtl" style={akxVars(p, { bg: "--akx-fbg", text: "--akx-ftx" })}>
       <div className="akx-foot-in">
         <Link href="/" className="akx-foot-brand">{logo ? <img src={logo} alt="" /> : null}<b>{propStr(p, "brand", rt.siteName ?? "")}</b></Link>
         <nav aria-label="پیوندهای پاورقی">{links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")}>{l.label}</Link>)}</nav>

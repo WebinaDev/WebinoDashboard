@@ -39,7 +39,8 @@ function shell(p: Record<string, unknown>, extra: string, defTone = "light") {
   const t = propStr(p, "tone", defTone)
   const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : "wpz-light"
   const bg = propStr(p, "bgImage") ? "wpz-has-bg" : ""
-  return `wpz ${tone} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${bg} ${extra}`
+  const mfw = propBool(p, "mobileFullWidth", true) ? "wpz-mfw" : ""
+  return `wpz ${tone} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${bg} ${mfw} ${extra}`
 }
 
 const CSS_SAFE = /^[#a-z0-9(),.\s%-]+$/i

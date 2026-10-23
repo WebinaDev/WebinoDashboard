@@ -144,3 +144,11 @@ export const POETRY_WIDGETS: WidgetDef[] = [
     create: () => node("poetry-footer", { brand: "", text: "", links: "خانه|/\nاشعار|/poems\nفروشگاه|/shop\nتماس|/contact", socials: "", copyright: "", pattern: true }),
   },
 ]
+
+/** every widget here gets `mobileFullWidth` (edge-to-edge on phones, default on). */
+export const MOBILE_FULL_WIDTH_FIELD: FieldDef = { kind: "switch", key: "mobileFullWidth", label: "تمام‌عرض در موبایل" }
+for (const d of POETRY_WIDGETS) if (!d.fields.some((f) => "key" in f && f.key === "mobileFullWidth")) {
+  d.fields.push(MOBILE_FULL_WIDTH_FIELD)
+  const make = d.create
+  d.create = () => { const n = make(); if (n.props.mobileFullWidth === undefined) n.props.mobileFullWidth = true; return n }
+}
