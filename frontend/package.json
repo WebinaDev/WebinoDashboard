@@ -19,7 +19,8 @@
     "check:i18n": "node scripts/check-i18n-duplicates.mjs",
     "check:links": "node scripts/check-dashboard-links.mjs",
     "check:guards": "npm run check:i18n && npm run check:links && npm run check:english && npm run test:nav && npm run test:auth-cookie && npm run test:api-origin",
-    "check:english": "node scripts/check-english-jsx.mjs"
+    "check:english": "node scripts/check-english-jsx.mjs",
+    "test:license-renewal": "node --experimental-strip-types --test src/lib/license-renewal.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",

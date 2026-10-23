@@ -207,6 +207,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/tenant', [PublicSiteController::class, 'tenant'])->middleware('public.cache');
         Route::get('/home', [PublicSiteController::class, 'home']);
         Route::get('/site-status', [PublicSiteController::class, 'siteStatus'])->middleware('public.cache');
+        Route::get('/license-renewal', [\App\Http\Controllers\Api\V1\LicenseRenewalController::class, 'show'])->middleware('throttle:60,1');
         Route::get('/geo/states', [GeoController::class, 'states']);
         Route::get('/bots/widget', [BotController::class, 'widget']);
         Route::get('/geo/cities', [GeoController::class, 'cities']);

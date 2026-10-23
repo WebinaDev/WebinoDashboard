@@ -36,3 +36,9 @@ UI: Dashboard → Settings → Site general → «وضعیت سایت».
 Next middleware rewrites storefront routes to `/site-status/coming-soon` (200; staff bypass via `staff` flag in `/api/v1/auth/gate` — non-customer role or settings/system.manage; customers and guests see the page) or
 `/site-status/suspended` (503, `X-Robots-Tag: noindex`, everyone). `/dashboard`, `/login`, `/setup` are never blocked.
 The coming-soon form posts to `/api/v1/public/newsletter/subscribe` with `source=coming_soon`.
+
+## License renewal (ERP self-service)
+Contract: WebinoERP `license-renewal/API.md`.
+- Proxy: `GET /api/v1/public/license-renewal?return_url=` (public, no-store, 60/min) → ERP `GET {WEBINO_BASE_URL}/api/v1/public/license-renewal?domain=<tenant domain>&return_url=`. The domain is always the tenant's own; ERP status/body (404/422/429 + Retry-After) are passed through.
+- Suspended page (`RenewalPanel`): status, Jalali expiry, plan, ERP periods/prices (toman), «تمدید و پرداخت» → signed `renew_url` (falls back to the pushed site-status `renew_url`). `return_url` = site origin `/`. On `?payment_id=&status=settled` it polls every 3s (≤30s) until status is not expired/suspended and the local site-status is active, then reloads without the gateway params.
+- Admin shell: `LicenseExpiryBanner` shows ERP `banner.message`/`level` when `banner.show` with a «تمدید لایسنس» link.

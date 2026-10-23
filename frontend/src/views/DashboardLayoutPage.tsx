@@ -45,6 +45,7 @@ import { htmlDir, isRtlLocale, sidebarSide } from "@/lib/locale"
 import { brandFontStack } from "@/themes/shared/branding"
 import { DashboardPwaHead } from "@/components/pwa/DashboardPwaHead"
 import { PwaInstallBanner } from "@/components/pwa/PwaInstallBanner"
+import { LicenseExpiryBanner } from "@/components/site-status/LicenseExpiryBanner"
 import { PwaSplashOverlay } from "@/components/pwa/PwaSplashOverlay"
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister"
 import { mergePwaSettings, resolvePwaBootstrap, type PwaStoredSettings } from "@/lib/pwa-settings"
@@ -371,6 +372,7 @@ export default function DashboardLayoutPage({
           </div>
         </header>
         <div className="@container/main wd-app-atmosphere wd-mobile-main wd-desktop-main flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+          <LicenseExpiryBanner />
           <LicenseGate>{children}</LicenseGate>
         </div>
         <footer className="mt-auto hidden border-t md:block px-4 py-3 text-muted-foreground text-xs">

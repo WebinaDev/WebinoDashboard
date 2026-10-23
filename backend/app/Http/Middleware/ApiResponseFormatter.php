@@ -57,6 +57,13 @@ class ApiResponseFormatter
         foreach ($response->headers->getCookies() as $cookie) {
             $json->headers->setCookie($cookie);
         }
+        // Keep throttling hints and explicit no-store (never widen caching here).
+        if ($response->headers->has('Retry-After')) {
+            $json->headers->set('Retry-After', $response->headers->get('Retry-After'));
+        }
+        if (str_contains((string) $response->headers->get('Cache-Control'), 'no-store')) {
+            $json->headers->set('Cache-Control', 'no-store');
+        }
 
         return $json;
     }
