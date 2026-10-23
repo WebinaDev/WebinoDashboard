@@ -1,48 +1,37 @@
 # Deploying prebuilt images (no builds on the server)
 
-The production server has 8 GB RAM; building Next.js there can OOM the box. GitHub Actions
-(`.github/workflows/images.yml`) now builds the production images on every push to `main`
-and pushes them to GHCR. The old build-on-server path is unchanged and still works.
+`.github/workflows/images.yml` builds on every push to `main` and pushes to GHCR:
 
-## Images
-
-| Image | Dockerfile | Tags |
+| Image | Dockerfile | Used by |
 |---|---|---|
-| `ghcr.io/webinadev/webino-dashboard-backend` | `docker/php/Dockerfile.platform` | `latest`, full sha, short sha |
-| `ghcr.io/webinadev/webino-dashboard-frontend` | `docker/next/Dockerfile` | `latest`, full sha, short sha |
+| `ghcr.io/webinadev/webino-dashboard-backend` | `docker/php/Dockerfile.platform` | backend, worker, scheduler |
+| `ghcr.io/webinadev/webino-dashboard-frontend` | `docker/next/Dockerfile` | frontend |
 
-Layer cache: `type=gha` (per image scope). Auth: `GITHUB_TOKEN` with `packages: write`.
-Base images come from Docker Hub in CI (no Iran mirror needed there).
+Tags: full sha, short sha, `latest` (main). Cache `type=gha`.
 
-## Build-time env (Next.js)
+## Tenant sites (the production use)
 
-`NEXT_PUBLIC_*` values are inlined at `next build`. The current Dockerfiles do **not** pass any
-per-tenant/per-site value at build time (API calls use relative `/api` via the server-side proxy
-`API_PROXY_TARGET/INTERNAL_API_URL=http://backend:8080`, which are read at runtime), so one image
-serves every site and the CI image is byte-for-byte equivalent to what the server builds today.
-Setting a `NEXT_PUBLIC_*` in compose `environment:` has no effect on client code (true before too).
-If a per-site public value is ever needed, prefer runtime injection (server component / `/api/config`
-read from env) over a per-site build matrix (N images, N× CI time).
+Tenant stacks are created by WebinoERP (`TenantSiteStack`) and use local tags `webino-backend:<tag>`
+/ `webino-next:<tag>`. On the ERP server run WebinoERP's
+`WEBINO_DASHBOARD_IMAGE_TAG=<this repo's SHA> scripts/pull-webino-dashboard-images.sh`, which pulls these
+images and retags them. Then recreate + migrate each site from the ERP panel. See WebinoERP/docs/deploy-prebuilt-images.md.
 
-## One-time server setup
-
-1. Create a GitHub token that can read packages (classic PAT with `read:packages`, or fine-grained
-   with Packages: read on WebinaDev). Then on the server:
-   ```
-   echo "<TOKEN>" | docker login ghcr.io -u <github-username> --password-stdin
-   ```
-   (Or make the GHCR packages public and skip login.)
-2. Check the server can reach `ghcr.io` (`docker pull ghcr.io/webinadev/webino-dashboard-frontend:latest`).
-   If ghcr.io is blocked/slow from the server's network, a mirror/proxy is needed.
-
-## Deploy
+## Standalone Dashboard stack
 
 ```
-scripts/deploy-pull.sh                         # latest, base docker-compose.aapanel.yml
-IMAGE_TAG=<git sha> scripts/deploy-pull.sh     # pin / roll back
-COMPOSE_BASE=docker-compose.prod.yml scripts/deploy-pull.sh
+IMAGE_TAG=<SHA> scripts/deploy-pull.sh                                   # docker-compose.aapanel.yml
+IMAGE_TAG=<SHA> COMPOSE_FILES=docker-compose.yml:docker-compose.prod.yml scripts/deploy-pull.sh
 ```
-It runs `docker compose -f <base> -f docker-compose.prod-images.yml pull` then `up -d --no-build`.
-Wait for the Actions run of the commit to be green before deploying it.
-Migrations still run as before (container entrypoint / `php artisan migrate --force`).
+Rules: full 40-char sha required (`ALLOW_LATEST=1` to bypass); optional CI-green check with
+`GITHUB_TOKEN`; `COMPOSE_PROJECT` optional; `docker-compose.prod-images.yml` appended last
+(overrides backend/worker/scheduler/frontend; db/redis/web are upstream images);
+`pull`, `up -d --no-build` (no `--remove-orphans`), then `php artisan migrate --force` like `scripts/update.sh`.
 
+## Build-time env
+
+No per-tenant `NEXT_PUBLIC_*` is passed at build time (relative `/api`, runtime proxy env), so one
+frontend image serves every tenant. If per-site public values are ever needed, inject at runtime.
+
+## Server setup
+
+`echo "<token with read:packages>" | docker login ghcr.io -u <user> --password-stdin`, and verify ghcr.io is reachable.
