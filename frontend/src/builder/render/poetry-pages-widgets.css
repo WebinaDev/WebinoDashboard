@@ -1,11 +1,9 @@
 /* alikhabari.ir page components — values taken from the approved mockups (/alikhabari/mockup/*.html). */
-@font-face { font-family: "AkxLalezar"; src: url("/fonts/lalezar/Lalezar-Regular.woff") format("woff"); font-display: swap; }
-@font-face { font-family: "AkxVazirmatn"; src: url("/fonts/vazirmatn/Vazirmatn-wght.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 
 .akx {
   --akx-c: #B4101E; --akx-cd: color-mix(in srgb, var(--akx-c) 60%, #000); --akx-ink: #2a0a0d; --akx-cream: #FBF3EC; --akx-gold: #C9A24A; --akx-card: #fff;
-  --akx-title: "AkxLalezar", "Lalezar", "AkxVazirmatn", sans-serif;
-  direction: rtl; color: var(--akx-ink); font-family: "AkxVazirmatn", Vazirmatn, Tahoma, sans-serif; box-sizing: border-box;
+  --akx-title: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
+  direction: rtl; color: var(--akx-ink); font-family: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif; box-sizing: border-box;
 }
 .akx *, .akx *::before, .akx *::after { box-sizing: border-box; }
 .akx button { font: inherit; cursor: pointer; }
@@ -40,7 +38,7 @@
 .akx-nav { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 22px; padding: 8px 10px 8px 18px; border-radius: 999px; background: var(--akx-nav, rgba(255,255,255,.92)); box-shadow: 0 10px 30px rgba(90,15,23,.08); backdrop-filter: blur(8px); }
 .akx-brand { display: flex; align-items: center; gap: 8px; flex: none; }
 .akx-brand img { width: 44px; height: 44px; object-fit: contain; }
-.akx-brand b { font-family: var(--akx-title); font-weight: 400; font-size: 24px; color: var(--akx-c); }
+.akx-brand b { font-family: var(--akx-title); font-weight: 800; font-size: 24px; color: var(--akx-c); }
 .akx-links { display: flex; gap: 20px; flex: 1; overflow-x: auto; scrollbar-width: none; }
 .akx-links a { font-size: 14px; white-space: nowrap; padding: 6px 0; border-bottom: 2px solid transparent; }
 .akx-links a.is-on, .akx-links a:hover { color: var(--akx-c); border-bottom-color: var(--akx-c); font-weight: 700; }
@@ -53,7 +51,7 @@
 .akx-ph-body { position: relative; z-index: 1; padding: 26px 0; }
 .akx-crumbs { font-size: 12px; color: #8a7570; margin-bottom: 8px; }
 .akx-crumbs a:hover { color: var(--akx-c); }
-.akx-ph h1 { font-family: var(--akx-title); font-weight: 400; font-size: clamp(30px, 4.5vw, 44px); line-height: 1.3; color: var(--akx-ink); margin: 0 0 12px; }
+.akx-ph h1 { font-family: var(--akx-title); font-weight: 800; font-size: clamp(30px, 4.5vw, 44px); line-height: 1.3; color: var(--akx-ink); margin: 0 0 12px; }
 .akx-ph h1 span { color: var(--akx-c); }
 .akx-ph .akx-search { width: 420px; height: 44px; background: #fff; box-shadow: 0 6px 18px rgba(90,15,23,.08); }
 
@@ -198,23 +196,23 @@
 .akx-port { height: 460px !important; border-radius: 180px 180px 24px 24px; border: 8px solid #fff; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
 .akx-port.akx-slot-logo, .akx-slot-logo { background: radial-gradient(circle at 50% 40%, var(--akx-cream), #f0dfd2 70%); color: color-mix(in srgb, var(--akx-c) 22%, transparent); }
 .akx-info { background: var(--akx-cream); border-radius: 20px; padding: 18px; margin-top: 16px; text-align: center; }
-.akx-info h3 { font-family: var(--akx-title); font-weight: 400; color: var(--akx-c); font-size: 24px; margin: 0 0 6px; }
+.akx-info h3 { font-family: var(--akx-title); font-weight: 800; color: var(--akx-c); font-size: 24px; margin: 0 0 6px; }
 .akx-info p { margin: 2px 0; font-size: 13px; color: #6a5450; }
 .akx-chips { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
 .akx-story { background: var(--akx-cream); border-radius: 24px; padding: 30px 34px; font-size: 14.5px; line-height: 2.3; }
-.akx-story h2 { font-family: var(--akx-title); font-weight: 400; color: var(--akx-c); font-size: 32px; margin: 0 0 10px; line-height: 1.5; }
+.akx-story h2 { font-family: var(--akx-title); font-weight: 800; color: var(--akx-c); font-size: 32px; margin: 0 0 10px; line-height: 1.5; }
 .akx-story p { margin: 0 0 12px; }
 .akx-story blockquote { margin: 14px 0; background: #fbe9ea; border-inline-start: 4px solid var(--akx-c); border-radius: 12px; padding: 12px 16px; color: var(--akx-c); font-weight: 700; white-space: pre-line; }
 .akx-tl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 26px; }
 .akx-tl > div { background: rgba(255,255,255,.06); border: 1px solid color-mix(in srgb, var(--akx-gold) 45%, transparent); border-radius: 18px; padding: 18px; text-align: center; display: grid; gap: 4px; color: #f1dcd8; font-size: 13px; }
-.akx-tl b { font-family: var(--akx-title); font-weight: 400; color: var(--akx-gold); font-size: 24px; }
+.akx-tl b { font-family: var(--akx-title); font-weight: 800; color: var(--akx-gold); font-size: 24px; }
 
 /* 9) footer */
 .akx-foot { background: var(--akx-fbg, #1a0507); color: var(--akx-ftx, #d8c3bd); padding: 26px max(16px, calc((100% - 1180px) / 2)) 18px; }
 .akx-foot-in { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 .akx-foot-brand { display: flex; align-items: center; gap: 8px; }
 .akx-foot-brand img { width: 40px; height: 40px; object-fit: contain; }
-.akx-foot-brand b { font-family: var(--akx-title); font-weight: 400; font-size: 22px; color: #fff; }
+.akx-foot-brand b { font-family: var(--akx-title); font-weight: 800; font-size: 22px; color: #fff; }
 .akx-foot nav { display: flex; gap: 18px; flex-wrap: wrap; flex: 1; font-size: 13px; }
 .akx-foot nav a:hover { color: #fff; }
 .akx-foot-soc { display: flex; gap: 8px; }
