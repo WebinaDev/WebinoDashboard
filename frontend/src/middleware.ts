@@ -99,7 +99,24 @@ async function contactAliasRedirect(request: NextRequest): Promise<string | null
   }
 }
 
-async function resolveHostMode(request: NextRequest): Promise<"link-hub" | "primary"> {
+/** Per-process TTL memo for public lookups that run on every page request (site-status, host-mode, SEO redirect). */
+const MW_TTL_MS = 20_000
+const mwMemo = new Map<string, { at: number; value: Promise<unknown> }>()
+function memo<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const now = Date.now()
+  const hit = mwMemo.get(key)
+  if (hit && now - hit.at < MW_TTL_MS) return hit.value as Promise<T>
+  if (mwMemo.size > 2000) mwMemo.clear()
+  const value = load()
+  mwMemo.set(key, { at: now, value })
+  return value
+}
+
+function resolveHostMode(request: NextRequest): Promise<"link-hub" | "primary"> {
+  return memo(`hm:${request.headers.get("host") || ""}`, () => resolveHostModeRaw(request))
+}
+
+async function resolveHostModeRaw(request: NextRequest): Promise<"link-hub" | "primary"> {
   const apiBase = getServerApiBase()
   if (!apiBase) return "primary"
   try {
@@ -121,7 +138,11 @@ async function resolveHostMode(request: NextRequest): Promise<"link-hub" | "prim
 }
 
 /** Site lifecycle status (coming_soon / suspended) from the public API; null = active/unknown. */
-async function fetchSiteStatus(request: NextRequest): Promise<"coming_soon" | "suspended" | null> {
+function fetchSiteStatus(request: NextRequest): Promise<"coming_soon" | "suspended" | null> {
+  return memo(`ss:${(request.headers.get("host") || "").toLowerCase()}`, () => fetchSiteStatusRaw(request))
+}
+
+async function fetchSiteStatusRaw(request: NextRequest): Promise<"coming_soon" | "suspended" | null> {
   const apiBase = getServerApiBase()
   if (!apiBase) return null
   const host = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
@@ -143,6 +164,8 @@ async function handle(request: NextRequest) {
   const { pathname } = request.nextUrl
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-webino-path", `${pathname}${request.nextUrl.search}`)
+  // Warm the memoized site-status lookup in parallel with the SEO redirect lookup below.
+  if (!pathname.startsWith("/dashboard") && !pathname.startsWith("/site-status")) void fetchSiteStatus(request)
 
   const cookie =
     request.cookies.get("NEXT_LOCALE")?.value ??
@@ -233,14 +256,15 @@ async function handle(request: NextRequest) {
     try {
       const apiBase = getServerApiBase()
       if (apiBase) {
-        const lookup = await fetch(
-          `${apiBase}/api/v1/public/seo/redirect?path=${encodeURIComponent(pathname)}`,
-          { headers: { Accept: "application/json" }, cache: "no-store" },
-        )
-        if (lookup.ok) {
-          const json = (await lookup.json()) as {
-            data?: { to_path?: string; status_code?: number } | null
-          }
+        const host = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
+        const json = await memo(`rd:${host}:${pathname}`, async () => {
+          const lookup = await fetch(
+            `${apiBase}/api/v1/public/seo/redirect?path=${encodeURIComponent(pathname)}`,
+            { headers: { Accept: "application/json" }, cache: "no-store" },
+          )
+          return lookup.ok ? ((await lookup.json()) as { data?: { to_path?: string; status_code?: number } | null }) : null
+        })
+        if (json) {
           const to = json.data?.to_path
           const code = Number(json.data?.status_code ?? 301)
           if (to && to !== pathname) {

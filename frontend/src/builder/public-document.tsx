@@ -6,13 +6,36 @@ import { DocumentView } from "./render/DocumentView"
 import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
 import { isDocument } from "./tree"
-import type { BuilderDocument, RuntimeContext } from "./types"
+import type { BuilderDocument, RuntimeContext, SectionNode } from "./types"
 import { storefrontThemeClass } from "@/themes/shared/storefront-skin"
 
+const PUBLIC_DOC_REVALIDATE = 10
+
+/** Drop hidden nodes and editor-only metadata so they are not serialized into the RSC payload of public pages. */
+function pruneForView(doc: BuilderDocument): BuilderDocument {
+  const strip = <T extends { hidden?: boolean; label?: string; locked?: boolean }>(n: T): T => {
+    const { label: _l, locked: _k, ...rest } = n
+    void _l; void _k
+    return rest as T
+  }
+  const sections = (list: SectionNode[]): SectionNode[] =>
+    list.filter((s) => !s.hidden).map((s) => ({
+      ...strip(s),
+      columns: s.columns.filter((c) => !c.hidden).map((c) => ({
+        ...strip(c),
+        widgets: c.widgets.filter((w) => !w.hidden).map((w) => ({ ...strip(w), ...(w.children ? { children: sections(w.children) } : {}) })),
+      })),
+    }))
+  const { source: _src, ...rest } = doc
+  void _src
+  return { ...rest, sections: sections(doc.sections ?? []) }
+}
+
 async function readDocument(path: string): Promise<BuilderDocument | null> {
-  const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: 0 })
+  // Short data-cache window (was 0 = uncached on every request). Publishes show within ~10s.
+  const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_REVALIDATE, tags: ["builder"] })
   const document = res?.data?.document
-  return isDocument(document) ? document : null
+  return isDocument(document) ? pruneForView(document) : null
 }
 
 export function loadPublishedPage(slug: string): Promise<BuilderDocument | null> {
@@ -24,7 +47,7 @@ export function loadPublishedTemplate(kind: "header" | "footer"): Promise<Builde
 }
 
 export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | null> => {
-  const res = await apiServer<{ data?: { settings?: unknown } }>("/api/v1/public/builder/globals", { revalidate: 0 })
+  const res = await apiServer<{ data?: { settings?: unknown } }>("/api/v1/public/builder/globals", { revalidate: PUBLIC_DOC_REVALIDATE, tags: ["builder"] })
   return res?.data?.settings ? asGlobals(res.data.settings) : null
 })
 
@@ -69,10 +92,12 @@ export async function StorefrontDocument({
   context?: ThemeQuery
   themeClass?: string
 }) {
-  const globals = await loadPublishedGlobals()
-  const query = context ?? (await requestThemeContext())
-  const loop = runtime?.loopDocument ?? (await loadResolvedTemplate("loop_item", query))
-  const themeSlug = runtime?.themeSlug ?? (await activeThemeSlug())
+  // Parallel instead of four sequential round-trips.
+  const [globals, query] = await Promise.all([loadPublishedGlobals(), context ?? requestThemeContext()])
+  const [loop, themeSlug] = await Promise.all([
+    runtime?.loopDocument ?? loadResolvedTemplate("loop_item", query),
+    runtime?.themeSlug ?? activeThemeSlug(),
+  ])
   return (
     <PublishedDocument
       document={document}

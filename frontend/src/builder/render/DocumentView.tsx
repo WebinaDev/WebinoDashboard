@@ -17,6 +17,8 @@ import { BuilderGlobalsProvider, BuilderRuntimeProvider, useBuilderGlobals } fro
 import { applyPreset, COMPONENT_TYPE, componentsCss, resolveInstance } from "../components"
 import { WidgetBody } from "./widgets"
 import { LAYOUT_CONTAINER_TYPES, layoutContainerStyle } from "./gap-widgets"
+import { dwClass, dwRowClass, sectionDesktopWidth, widgetDesktopWidth } from "./desktop-width"
+import "./desktop-width.css"
 
 import "../storefront.css"
 import "@/themes/ecommerce-classic/classic-theme.css"
@@ -53,9 +55,9 @@ export function DocumentView({ document: rawDocument, mode = "view", device = "d
       <BuilderRuntimeProvider value={runtime ?? {}}>
         <div ref={canvasRef} className={`wb-canvas ${themeClass ?? ""}`} dir={dirForLang(runtime?.lang)} lang={runtime?.lang ?? undefined}>
           {css ? <style>{css}</style> : null}
-          <div className="wb-section-stack">
+          <div className={`wb-section-stack ${document.sections.some((x) => sectionDesktopWidth(x) !== "full") ? dwRowClass(Boolean(editor), device) : ""}`}>
             {document.sections.map((section) => (
-              <SectionBlock key={section.id} section={section} device={device} editor={editor} />
+              <SectionBlock key={section.id} section={section} device={device} editor={editor} dwClassName={dwClass(sectionDesktopWidth(section))} />
             ))}
           </div>
         </div>
@@ -64,7 +66,7 @@ export function DocumentView({ document: rawDocument, mode = "view", device = "d
   )
 }
 
-function SectionBlock({ section, device, editor, depth = 0 }: { section: SectionNode; device: DeviceMode; editor?: EditorApi; depth?: number }) {
+function SectionBlock({ section, device, editor, depth = 0, dwClassName = "" }: { section: SectionNode; device: DeviceMode; editor?: EditorApi; depth?: number; dwClassName?: string }) {
   const selected = editor?.selectedId === section.id
   const sectionStyle = mergeStyle(section.style, device)
   const style = editor ? styleToCss(sectionStyle) : undefined
@@ -73,7 +75,7 @@ function SectionBlock({ section, device, editor, depth = 0 }: { section: Section
   return (
     <section
       id={section.id}
-      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${advancedClass(section.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""} ${editor && section.hidden ? "opacity-40" : ""}`}
+      className={`${dwClassName} ${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${advancedClass(section.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""} ${editor && section.hidden ? "opacity-40" : ""}`}
       style={style}
       {...advancedAttrs(section.advanced)}
       {...motionAttrs(section.advanced)}
@@ -162,9 +164,9 @@ function ColumnBlock({
     >
       <Decor advanced={column.advanced} />
       {editor ? <DropSlot columnId={column.id} index={0} editor={editor} /> : null}
-      <div className="wb-col-body flex flex-col" style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
+      <div className={`wb-col-body flex flex-col ${column.widgets.some((w) => widgetDesktopWidth(w) !== "full") ? dwRowClass(Boolean(editor), device) : ""}`} style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
         {column.widgets.map((widget, index) => (
-          <div key={widget.id}>
+          <div key={widget.id} className={dwClass(widgetDesktopWidth(widget))}>
             <WidgetBlock widget={widget} device={device} editor={editor} depth={depth} />
             {editor ? <DropSlot columnId={column.id} index={index + 1} editor={editor} /> : null}
           </div>

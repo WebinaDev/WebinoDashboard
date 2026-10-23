@@ -14,7 +14,10 @@ async function serverFetch(path: string, init?: FetchOptions): Promise<unknown |
   }
 
   const jar = await cookies()
-  const cookieHeader = jar
+  // Cached public reads must not carry per-visitor cookies: they are part of the Next data-cache key,
+  // so forwarding laravel_session/XSRF/NEXT_LOCALE made every visitor a cache miss (full API round-trip per request).
+  const sharedPublic = init?.revalidate !== false && init?.revalidate !== 0 && path.startsWith("/api/v1/public/")
+  const cookieHeader = sharedPublic ? "" : jar
     .getAll()
     .map((c) => `${c.name}=${c.value}`)
     .join("; ")
