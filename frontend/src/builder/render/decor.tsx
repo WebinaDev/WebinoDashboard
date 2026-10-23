@@ -48,6 +48,15 @@ export function useCanvasMotion(root: RefObject<HTMLElement | null>, enabled: bo
     const animated = Array.from(el.querySelectorAll<HTMLElement>(".wb-anim"))
     let io: IntersectionObserver | null = null
     if (animated.length && !reduce && typeof IntersectionObserver !== "undefined") {
+      // Content already on screen at load stays as server-rendered: hiding it and
+      // fading it back in after hydration delays LCP by about a second on mobile.
+      const vh = window.innerHeight
+      for (const node of animated) {
+        if (node.getBoundingClientRect().top < vh) {
+          node.classList.add("wb-in")
+          node.style.animationName = "none"
+        }
+      }
       el.classList.add("wb-motion")
       io = new IntersectionObserver((entries) => {
         for (const entry of entries) {
@@ -56,7 +65,7 @@ export function useCanvasMotion(root: RefObject<HTMLElement | null>, enabled: bo
           io?.unobserve(entry.target)
         }
       }, { rootMargin: "0px 0px -10% 0px" })
-      animated.forEach((node) => io?.observe(node))
+      animated.forEach((node) => { if (!node.classList.contains("wb-in")) io?.observe(node) })
     }
     const parallax = reduce ? [] : Array.from(el.querySelectorAll<HTMLElement>("[data-wb-parallax]"))
     let frame = 0

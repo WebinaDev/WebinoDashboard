@@ -270,7 +270,7 @@ export function PageSettingsPanel({
             <div className="grid gap-1">
               <div className="font-semibold">{t("translations")}</div>
               {data.translations.length ? data.translations.map((tr) => (
-                <a key={tr.id} className="text-[#E16BA6] underline" href={`/dashboard/builder/${tr.id}`}>{tr.title} ({tr.lang ?? "—"})</a>
+                <a key={tr.id} className="text-[#E16BA6] underline" href={`/dashboard/builder/${tr.id}`} target="_blank" rel="noopener noreferrer">{tr.title} ({tr.lang ?? "—"})</a>
               )) : <span className="text-[#0C2D63]/60">{t("no_translations")}</span>}
             </div>
             <p className="text-[10px] text-[#0C2D63]/60">{t("hreflang_hint")}</p>

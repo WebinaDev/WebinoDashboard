@@ -8,9 +8,9 @@ function safeHref(href: string): string {
   return "#"
 }
 
-type CollectionPayload = {
+export type CollectionPayload = {
   collection?: { fields?: { key: string; type: string }[] }
-  items?: { slug: string; title: string; data?: Record<string, string> }[]
+  items?: { slug: string; title: string; data?: Record<string, string | undefined> }[]
   total?: number
 }
 
