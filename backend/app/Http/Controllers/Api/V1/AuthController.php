@@ -174,8 +174,23 @@ class AuthController extends Controller
                 'password_must_change' => $authenticated
                     ? (bool) $user->password_must_change
                     : false,
+                // Staff (dashboard users) bypass the "coming soon" page; customers/guests do not.
+                'staff' => $authenticated && self::isStaff($user),
             ],
         ]);
+    }
+
+    /** Non-customer role, or any dashboard/admin permission. */
+    public static function isStaff($user): bool
+    {
+        if (! in_array((string) $user->role, ['customer', 'user', 'link', 'seller', ''], true)) {
+            return true;
+        }
+        try {
+            return \Illuminate\Support\Facades\Gate::forUser($user)->any(['settings.manage', 'system.manage']);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function check(Request $request): \Illuminate\Http\JsonResponse

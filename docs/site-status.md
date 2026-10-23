@@ -33,6 +33,6 @@ UI: Dashboard → Settings → Site general → «وضعیت سایت».
 
 ## Public
 `GET /api/v1/public/site-status` (no-store) and `site_status` in `/api/v1/public/tenant`.
-Next middleware rewrites storefront routes to `/site-status/coming-soon` (200; logged-in users bypass) or
+Next middleware rewrites storefront routes to `/site-status/coming-soon` (200; staff bypass via `staff` flag in `/api/v1/auth/gate` — non-customer role or settings/system.manage; customers and guests see the page) or
 `/site-status/suspended` (503, `X-Robots-Tag: noindex`, everyone). `/dashboard`, `/login`, `/setup` are never blocked.
 The coming-soon form posts to `/api/v1/public/newsletter/subscribe` with `source=coming_soon`.

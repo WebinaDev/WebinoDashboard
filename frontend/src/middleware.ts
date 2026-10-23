@@ -22,6 +22,8 @@ type GateData = {
   authenticated?: boolean
   setup_completed?: boolean | null
   password_must_change?: boolean
+  /** Dashboard user (non-customer role or admin permission). */
+  staff?: boolean
 }
 
 function sessionToken(request: NextRequest): string | null {
@@ -271,8 +273,8 @@ async function handle(request: NextRequest) {
     !pathname.startsWith("/site-status")
   ) {
     const siteStatus = await fetchSiteStatus(request)
-    // Logged-in staff keep seeing the real site while it is "coming soon"; suspension blocks everyone.
-    const bypass = siteStatus === "coming_soon" && sessionToken(request) && (await fetchGate(request))?.authenticated
+    // Staff (dashboard users only, not customers) keep seeing the real site while it is "coming soon"; suspension blocks everyone.
+    const bypass = siteStatus === "coming_soon" && sessionToken(request) && (await fetchGate(request))?.staff === true
     if (siteStatus && !bypass) {
       const url = request.nextUrl.clone()
       url.pathname = `/site-status/${siteStatus === "suspended" ? "suspended" : "coming-soon"}`

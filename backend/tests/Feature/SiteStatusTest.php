@@ -76,4 +76,13 @@ class SiteStatusTest extends TestCase
     {
         $this->putJson('/api/v1/site-status', ['status' => 'coming_soon'])->assertStatus(401);
     }
+
+    public function test_gate_reports_staff_only_for_dashboard_users(): void
+    {
+        $this->getJson('/api/v1/auth/gate')->assertJsonPath('data.staff', false);
+        $customer = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'customer', 'is_active' => true]);
+        $this->withToken($customer->createToken('t')->plainTextToken)->getJson('/api/v1/auth/gate')->assertJsonPath('data.authenticated', true)->assertJsonPath('data.staff', false);
+        $admin = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin', 'is_active' => true]);
+        $this->withToken($admin->createToken('t')->plainTextToken)->getJson('/api/v1/auth/gate')->assertJsonPath('data.staff', true);
+    }
 }
