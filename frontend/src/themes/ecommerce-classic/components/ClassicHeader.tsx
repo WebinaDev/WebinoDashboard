@@ -47,6 +47,7 @@ import {
 
 import { ClassicAmount, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
+import { optImg } from "@/lib/image-url"
 
 export const CLASSIC_NAV = [
   { label: "خانه", href: "/" },
@@ -179,7 +180,7 @@ function DeepMegaPanel({
               onClick={onClose}
             >
               <span className="sfc-mega__parent-label">
-                {cat.image ? <img loading="lazy" decoding="async" src={cat.image} alt="" width={24} height={24} /> : null}
+                {cat.image ? <img loading="lazy" decoding="async" {...optImg(cat.image)} alt="" width={24} height={24} /> : null}
                 <span>{cat.name}</span>
               </span>
               <IconChevronLeft size={14} />
@@ -249,7 +250,7 @@ function MiniCartPanel({
         {lines.map((line) => (
           <li key={line.key} className="sfc-mini-cart__item">
             <span className="sfc-mini-cart__img">
-              {line.image ? <img loading="lazy" decoding="async" src={line.image} alt="" /> : <span>{line.name.slice(0, 1)}</span>}
+              {line.image ? <img loading="lazy" decoding="async" {...optImg(line.image)} alt="" /> : <span>{line.name.slice(0, 1)}</span>}
             </span>
             <div className="sfc-mini-cart__detail">
               {line.href ? (
@@ -644,7 +645,7 @@ function LiveSearch({
               rel={bannerLink?.startsWith("http") ? "noreferrer" : undefined}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img loading="lazy" decoding="async" src={bannerImage} alt="" />
+              <img loading="lazy" decoding="async" {...optImg(bannerImage)} alt="" />
             </a>
           ) : null}
         </div>
@@ -870,7 +871,7 @@ export function ClassicHeader({
                 <IconMenu size={22} />
               </button>
               <Link href="/" className="sfc-header__logo" aria-label={siteName}>
-                {logoUrl ? <img loading="eager" fetchPriority="high" decoding="async" src={logoUrl} alt={siteName} /> : <span className="sfc-header__mark">{siteName.slice(0, 1)}</span>}
+                {logoUrl ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logoUrl)} alt={siteName} /> : <span className="sfc-header__mark">{siteName.slice(0, 1)}</span>}
                 {!logoUrl ? <span className="sfc-header__name">{siteName}</span> : null}
               </Link>
               <LiveSearch

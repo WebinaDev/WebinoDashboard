@@ -19,6 +19,7 @@ import { fetchCatalogPayload, mapCatalogJson } from "../storefront/use-catalog"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
 import "./poetry-pages-widgets.css"
+import { optImg } from "@/lib/image-url"
 
 type P = Record<string, unknown>
 type Term = { id: number; kind: string; slug: string; name: string; count?: number }
@@ -212,7 +213,7 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   const logo = propStr(p, "logo") || rt.logoUrl || ""
   const logoOnly = propBool(p, "logoOnly", false)
   const px = (k: string, d: number) => `${Math.max(24, Math.min(160, propNum(p, k, d)))}px`
-  const navVars = { ...akxVars(p, { navBg: "--akx-nav", searchBg: "--akx-sbg" }), ["--akx-logo-h" as string]: px("logoHeight", 64), ["--akx-logo-hm" as string]: px("logoHeightMobile", 48) } as CSSProperties
+  const navVars = { ...akxVars({ ...p, ...(propStr(p, "capsuleBg") ? { navBg: propStr(p, "capsuleBg") } : {}) }, { navBg: "--akx-nav", searchBg: "--akx-sbg" }), ["--akx-logo-h" as string]: px("logoHeight", 64), ["--akx-logo-hm" as string]: px("logoHeightMobile", 48) } as CSSProperties
   const drawerVars = akxVars(p, { drawerBg: "--akx-drawer", drawerText: "--akx-drawer-tx" })
   const active = (href: string) => {
     if (!path || !href) return false
@@ -221,9 +222,9 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   }
   return (
     <header className={`akx akx-navwrap ${akxMfw(p)} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
-      <div className="akx-nav">
+      <div className={`akx-nav ${propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
         <Link href="/" className="akx-brand">
-          {logo ? <img loading="eager" fetchPriority="high" decoding="async" src={logo} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
+          {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo)} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
           {logoOnly && logo ? null : <b>{propStr(p, "brand", rt.siteName ?? "")}</b>}
         </Link>
         <nav className="akx-links" aria-label="منوی اصلی">
@@ -703,7 +704,7 @@ export function PoetryProductWidget({ widget }: { widget: WidgetNode }) {
       <div className="akx-pd">
         <div className="akx-gal">
           <div className="akx-gal-main"><PhotoSlot mode={it.images[img] ? "photo" : mode} src={it.images[img]} logo={propStr(p, "logo")} alt={it.title} />{it.demo && propStr(p, "demoLabel") ? <span className="akx-demo">{propStr(p, "demoLabel")}</span> : null}</div>
-          {it.images.length > 1 ? <div className="akx-thumbs">{it.images.slice(0, 5).map((s, i) => <button type="button" key={i} className={i === img ? "is-on" : ""} onClick={() => setImg(i)} aria-label={`تصویر ${fa(i + 1)}`}><img loading="lazy" decoding="async" src={s} alt="" /></button>)}</div> : null}
+          {it.images.length > 1 ? <div className="akx-thumbs">{it.images.slice(0, 5).map((s, i) => <button type="button" key={i} className={i === img ? "is-on" : ""} onClick={() => setImg(i)} aria-label={`تصویر ${fa(i + 1)}`}><img loading="lazy" decoding="async" {...optImg(s)} alt="" /></button>)}</div> : null}
         </div>
         <div className="akx-pd-info">
           {it.category ? <span className="akx-tag">{it.category}</span> : null}
@@ -769,7 +770,7 @@ export function PoetrySiteFooterWidget({ widget }: { widget: WidgetNode }) {
   return (
     <footer className={`akx akx-foot ${akxMfw(p)}`} dir="rtl" style={akxVars(p, { bg: "--akx-fbg", text: "--akx-ftx" })}>
       <div className="akx-foot-in">
-        <Link href="/" className="akx-foot-brand">{logo ? <img loading="lazy" decoding="async" src={logo} alt="" /> : null}<b>{propStr(p, "brand", rt.siteName ?? "")}</b></Link>
+        <Link href="/" className="akx-foot-brand">{logo ? <img loading="lazy" decoding="async" {...optImg(logo)} alt="" /> : null}<b>{propStr(p, "brand", rt.siteName ?? "")}</b></Link>
         <nav aria-label="پیوندهای پاورقی">{links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")}>{l.label}</Link>)}</nav>
         <div className="akx-foot-soc">{socials.map((s, i) => <a key={i} href={safeLink(s.href)} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_LABELS[s.network] ?? s.network}>{s.label || SOCIAL_SHORT[s.network] || s.network}</a>)}</div>
       </div>

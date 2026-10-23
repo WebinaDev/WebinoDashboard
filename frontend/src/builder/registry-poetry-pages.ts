@@ -57,9 +57,9 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "switch", key: "logoOnly", label: "فقط لوگو (بدون نام کنار آن)" },
       { kind: "number", key: "logoHeight", label: "ارتفاع لوگو دسکتاپ (px)" }, { kind: "number", key: "logoHeightMobile", label: "ارتفاع لوگو موبایل (px)" },
       { kind: "color", key: "drawerBg", label: "زمینه منوی کشویی موبایل" }, { kind: "color", key: "drawerText", label: "رنگ متن منوی کشویی" },
-      { kind: "color", key: "navBg", label: "رنگ کپسول" }, { kind: "color", key: "searchBg", label: "رنگ جعبه جستجو" }, ...colors,
+      { kind: "color", key: "capsuleBg", label: "رنگ کپسول هدر (شفاف مجاز؛ خالی = رنگ قبلی)" }, { kind: "switch", key: "capsuleShadow", label: "سایه کپسول" }, { kind: "switch", key: "capsuleBorder", label: "حاشیه کپسول" }, { kind: "color", key: "searchBg", label: "رنگ جعبه جستجو" }, ...colors,
     ],
-    create: () => node("poetry-nav", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, showSearch: true, searchPlaceholder: "جستجوی شعر، مصرع یا مناسبت…", searchHref: "/poems", navBg: "rgba(255,255,255,.92)", searchBg: "#f5ebe6", logoOnly: false, logoHeight: 64, logoHeightMobile: 48, drawerBg: "#4a0710", drawerText: "#ffffff", mobileFullWidth: true, ...C }),
+    create: () => node("poetry-nav", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, showSearch: true, searchPlaceholder: "جستجوی شعر، مصرع یا مناسبت…", searchHref: "/poems", navBg: "rgba(255,255,255,.92)", capsuleBg: "", capsuleShadow: true, capsuleBorder: false, searchBg: "#f5ebe6", logoOnly: false, logoHeight: 64, logoHeightMobile: 48, drawerBg: "#4a0710", drawerText: "#ffffff", mobileFullWidth: true, ...C }),
   },
   {
     type: "poetry-page-hero", label: "سربرگ صفحه (مسیر + عنوان دورنگ)", category: "content",

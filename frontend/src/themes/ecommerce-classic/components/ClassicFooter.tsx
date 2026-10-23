@@ -21,6 +21,7 @@ import {
 import { WebinaCredit } from "@/components/brand/WebinaCredit"
 import { ClassicAmount } from "./parts"
 import { useClassicText } from "../lib/texts"
+import { optImg } from "@/lib/image-url"
 
 const FALLBACK_GUIDE = {
   title: "راهنمای مشتریان",
@@ -80,7 +81,7 @@ function serviceIcon(icon: string): ReactNode {
   if (/^https?:\/\//i.test(icon) || icon.startsWith("/")) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img loading="lazy" decoding="async" src={icon} alt="" width={26} height={26} />
+      <img loading="lazy" decoding="async" {...optImg(icon)} alt="" width={26} height={26} />
     )
   }
   return <IconBadge size={26} />
@@ -316,7 +317,7 @@ export function ClassicFooter({
                     >
                       {s.icon ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img loading="lazy" decoding="async" src={s.icon} alt="" width={20} height={20} />
+                        <img loading="lazy" decoding="async" {...optImg(s.icon)} alt="" width={20} height={20} />
                       ) : (
                         <i aria-hidden="true">{s.label.slice(0, 1)}</i>
                       )}
@@ -369,7 +370,7 @@ export function ClassicFooter({
           <div className="sfc-footer__about">
             {footerLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img loading="lazy" decoding="async" src={footerLogo} alt={siteName} className="sfc-footer__about-logo" />
+              <img loading="lazy" decoding="async" {...optImg(footerLogo)} alt={siteName} className="sfc-footer__about-logo" />
             ) : null}
             {aboutText ? <p>{aboutText}</p> : null}
           </div>
@@ -400,7 +401,7 @@ export function ClassicFooter({
                 <>
                   {image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img loading="lazy" decoding="async" src={image} alt="" />
+                    <img loading="lazy" decoding="async" {...optImg(image)} alt="" />
                   ) : null}
                   <span>{title}</span>
                 </>

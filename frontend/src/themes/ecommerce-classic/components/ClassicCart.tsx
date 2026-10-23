@@ -12,6 +12,7 @@ import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 import { IconArrowRight, IconBag, IconCard, IconCheck, IconChevronLeft, IconMinus, IconPin, IconPlus, IconTruck, IconUser } from "./icons"
 import { ClassicAmount, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
+import { optImg } from "@/lib/image-url"
 
 const STEPS: { label: string; icon: ReactNode }[] = [
   { label: "سبد خرید", icon: <IconBag size={18} /> },
@@ -231,7 +232,7 @@ export function ClassicCart() {
               {auth !== "auth" ? <p className="sfc-cart__guest">{tx("cart.guest_note")}</p> : null}
               {lines.map((line) => (
                 <div key={line.key} className="sfc-cart-line">
-                  <span className="sfc-cart-line__img">{line.image ? <img loading="lazy" decoding="async" src={line.image} alt="" /> : null}</span>
+                  <span className="sfc-cart-line__img">{line.image ? <img loading="lazy" decoding="async" {...optImg(line.image)} alt="" /> : null}</span>
                   <div className="sfc-cart-line__body">
                     {line.href ? (
                       <Link href={line.href} className="sfc-cart-line__name">

@@ -14,6 +14,7 @@ import { StorefrontCompareTable } from "@/builder/storefront/storefront-extras"
 import { ClassicBreadcrumbBar } from "./ClassicArchive"
 import { IconBag, IconHeart, IconPin, IconSearch, IconUser } from "./icons"
 import { ClassicAmount, ClassicLoader } from "./parts"
+import { optImg } from "@/lib/image-url"
 
 export function ClassicPageShell({
   title,
@@ -51,7 +52,7 @@ export function ClassicNotFound() {
   const bg = String(general.bg_404 || "")
   return (
     <div className="sfc-404 sfc-container" style={bg ? { background: bg, borderRadius: 18 } : undefined}>
-      {logo ? <img loading="lazy" decoding="async" src={logo} alt="" className="sfc-404__logo" /> : null}
+      {logo ? <img loading="lazy" decoding="async" {...optImg(logo)} alt="" className="sfc-404__logo" /> : null}
       <h1>{tx("pages.nf_title")}</h1>
       <p>{tx("pages.nf_text")}</p>
       <div className="sfc-cart__links" style={{ justifyContent: "center" }}>

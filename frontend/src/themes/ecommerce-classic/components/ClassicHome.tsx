@@ -22,6 +22,7 @@ import {
 import { ClassicProductCard } from "./ClassicProductCard"
 import { ClassicAmount, ClassicSectionHead, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
+import { optImg } from "@/lib/image-url"
 
 function imageForCategory(catalog: CatalogState, slug: string, name: string): string | null {
   const hit = catalog.products.find((p) => (p.categorySlug === slug || p.category === name) && p.image)
@@ -186,7 +187,7 @@ function ClassicStoryViewer({
         <div className="sfc-story-viewer__top">
           <div className="sfc-story-viewer__profile">
             <span className="sfc-story-viewer__avatar">
-              {story.image ? <img loading="lazy" decoding="async" src={story.image} alt="" /> : <span>{story.title.slice(0, 1)}</span>}
+              {story.image ? <img loading="lazy" decoding="async" {...optImg(story.image)} alt="" /> : <span>{story.title.slice(0, 1)}</span>}
             </span>
             <strong>{story.title}</strong>
           </div>
@@ -215,7 +216,7 @@ function ClassicStoryViewer({
               onEnded={() => go(1)}
             />
           ) : current ? (
-            <img loading="lazy" decoding="async" src={current.url} alt={story.title} />
+            <img loading="lazy" decoding="async" {...optImg(current.url)} alt={story.title} />
           ) : (
             <div className="sfc-story-viewer__ph">{story.title}</div>
           )}
@@ -412,7 +413,7 @@ export function ClassicHero({ slidesText, height }: { slidesText?: string; heigh
             aria-hidden={i !== index}
             tabIndex={i === index ? 0 : -1}
           >
-            {s.image ? <img loading={i === 0 ? "eager" : "lazy"} {...(i === 0 ? { fetchPriority: "high" as const } : {})} decoding="async" src={s.image} alt={s.title} className="sfc-hero__img" /> : <span className="sfc-hero__fallback" aria-hidden="true" />}
+            {s.image ? <img loading={i === 0 ? "eager" : "lazy"} {...(i === 0 ? { fetchPriority: "high" as const } : {})} decoding="async" {...optImg(s.image)} alt={s.title} className="sfc-hero__img" /> : <span className="sfc-hero__fallback" aria-hidden="true" />}
             <span className={`sfc-hero__copy ${s.image ? "sfc-hero__copy--over" : ""}`}>
               <span className="sfc-hero__corner sfc-hero__corner--top" aria-hidden="true" />
               {s.kicker ? <span className="sfc-hero__kicker">{s.kicker}</span> : null}

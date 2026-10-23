@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
 import "./poetry-module-widgets.css"
+import { optImg } from "@/lib/image-url"
 
 type Term = { id: number; kind: string; slug: string; name: string; description?: string | null; image?: string | null }
 type Card = { id: number; slug: string; title: string; excerpt?: string | null; occasion?: Term | null; figures: Term[]; styles: Term[]; style_label?: string | null; pen_name?: string | null; composed_label?: string | null; view_count: number; has_media?: boolean }
@@ -181,7 +182,7 @@ export function PoetryFigureWidget({ widget }: { widget: WidgetNode }) {
   return (
     <section className="wbx-pm wbx-pm-figure" dir="rtl">
       <header className="wbx-pm-figure-head">
-        {data.figure.image ? <img loading="lazy" decoding="async" src={data.figure.image} alt={data.figure.name} /> : null}
+        {data.figure.image ? <img loading="lazy" decoding="async" {...optImg(data.figure.image)} alt={data.figure.name} /> : null}
         <div>
           <h1>{data.figure.name}</h1>
           {data.figure.description ? <p>{data.figure.description}</p> : null}

@@ -19,6 +19,7 @@ import { ClassicTrustStrip } from "./ClassicProduct"
 import { IconBadge, IconCard, IconCheck, IconShield, IconTruck } from "./icons"
 import { ClassicAmount, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
+import { optImg } from "@/lib/image-url"
 
 type Gateway = {
   id: "zarinpal" | "digipay" | "snapppay" | "torobpay" | "bale_pay" | "basalam_pay"
@@ -546,7 +547,7 @@ export function ClassicCheckout() {
                   <div key={line.id} className="sfc-checkout-item">
                     <span className="sfc-checkout-item__img">
                       {line.product.cover_image_url || line.product.image_url ? (
-                        <img loading="lazy" decoding="async" src={line.product.cover_image_url || line.product.image_url || ""} alt="" />
+                        <img loading="lazy" decoding="async" {...optImg(line.product.cover_image_url || line.product.image_url || "")} alt="" />
                       ) : null}
                     </span>
                     <div className="sfc-checkout-item__body">

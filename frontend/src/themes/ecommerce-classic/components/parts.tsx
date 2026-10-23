@@ -9,13 +9,14 @@ import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import { IconChevronLeft } from "./icons"
+import { optImg } from "@/lib/image-url"
 
 /** Loading state: the admin's loading icon (Theme Settings → General) when set, else a CSS spinner. */
 export function ClassicLoader({ label }: { label?: string }) {
   const icon = useClassicThemeSettings().general?.loading_icon_url
   return (
     <span className="sfc-loader" role="status" aria-live="polite">
-      {icon ? <img loading="lazy" decoding="async" src={icon} alt="" className="sfc-loader__img" /> : <span className="sfc-loader__spin" aria-hidden="true" />}
+      {icon ? <img loading="lazy" decoding="async" {...optImg(icon)} alt="" className="sfc-loader__img" /> : <span className="sfc-loader__spin" aria-hidden="true" />}
       {label ? <span className="sfc-loader__label">{label}</span> : null}
     </span>
   )

@@ -37,6 +37,7 @@ import {
 import { promoStatsForProduct } from "@/themes/ecommerce-classic/lib/classic-chrome"
 import { ClassicAmount, ClassicRating, rememberViewedProduct, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
+import { optImg } from "@/lib/image-url"
 
 const TRUST_DEFAULTS = [
   { title: "ارسال سریع", text: "امکان تحویل اکسپرس", icon: "truck" },
@@ -52,7 +53,7 @@ function trustIcon(icon: string): ReactNode {
   if (key === "shield") return <IconShield size={22} />
   if (/^https?:\/\//i.test(icon) || icon.startsWith("/")) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img loading="lazy" decoding="async" src={icon} alt="" width={22} height={22} />
+    return <img loading="lazy" decoding="async" {...optImg(icon)} alt="" width={22} height={22} />
   }
   return <IconBadge size={22} />
 }
@@ -308,10 +309,10 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                       onClick={() => setLightbox(true)}
                       aria-label="بزرگ‌نمایی تصویر"
                     >
-                      <img loading="lazy" decoding="async" src={activeImage} alt={product.name} />
+                      <img loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
                     </button>
                   ) : (
-                    <img loading="lazy" decoding="async" src={activeImage} alt={product.name} />
+                    <img loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
                   )
                 ) : (
                   <span className={`sfc-pdp__ph bg-gradient-to-br ${toneClass(product.tone)}`}>{product.brand}</span>
@@ -328,7 +329,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                       className={index === image ? "is-active" : ""}
                       aria-label={`تصویر ${digits(index + 1)}`}
                     >
-                      <img loading="lazy" decoding="async" src={src} alt="" />
+                      <img loading="lazy" decoding="async" {...optImg(src)} alt="" />
                     </button>
                   ))}
                 </div>
@@ -604,7 +605,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
             <IconClose size={22} />
           </button>
           <div className="sfc-lightbox__stage" onClick={(event) => event.stopPropagation()}>
-            <img loading="lazy" decoding="async" src={activeImage} alt={product.name} />
+            <img loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
             {gallery.length > 1 ? (
               <div className="sfc-lightbox__thumbs">
                 {gallery.map((src, index) => (
@@ -615,7 +616,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                     onClick={() => setImage(index)}
                     aria-label={`تصویر ${digits(index + 1)}`}
                   >
-                    <img loading="lazy" decoding="async" src={src} alt="" />
+                    <img loading="lazy" decoding="async" {...optImg(src)} alt="" />
                   </button>
                 ))}
               </div>

@@ -7,6 +7,7 @@ import type { CSSProperties } from "react"
 import { LoginForm } from "@/components/login-04/login-form"
 import type { ClassicThemeSettings } from "@/kernel/theme-types"
 import { classicText } from "@/themes/ecommerce-classic/lib/texts"
+import { optImg } from "@/lib/image-url"
 
 /**
  * Classic-skin sign-in / sign-up page (1.6): store logo + colours, editable title/text
@@ -45,7 +46,7 @@ export function ClassicLogin({
         <Link href="/" className="flex items-center gap-2 font-bold" style={{ color: navy }}>
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img loading="lazy" decoding="async" src={logo} alt={siteName} className="h-9 w-auto" />
+            <img loading="lazy" decoding="async" {...optImg(logo)} alt={siteName} className="h-9 w-auto" />
           ) : (
             <span>{siteName}</span>
           )}
@@ -61,7 +62,7 @@ export function ClassicLogin({
         >
           {sideImage ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img loading="lazy" decoding="async" src={sideImage} alt="" aria-hidden className="hidden h-full min-h-80 w-full object-cover md:block" />
+            <img loading="lazy" decoding="async" {...optImg(sideImage)} alt="" aria-hidden className="hidden h-full min-h-80 w-full object-cover md:block" />
           ) : null}
           <div className="flex flex-col gap-4 p-6 md:p-8">
             <div className="text-center">

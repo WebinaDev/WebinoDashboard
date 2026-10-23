@@ -23,6 +23,9 @@ ARG API_PROXY_TARGET=http://backend:8080
 ENV API_PROXY_TARGET=${API_PROXY_TARGET}
 ARG INTERNAL_API_URL=http://backend:8080
 ENV INTERNAL_API_URL=${INTERNAL_API_URL}
+# Optional imgproxy base (e.g. /img); empty = built-in Next/sharp optimizer. Inlined at build time.
+ARG NEXT_PUBLIC_IMG_PROXY_BASE=
+ENV NEXT_PUBLIC_IMG_PROXY_BASE=${NEXT_PUBLIC_IMG_PROXY_BASE}
 RUN npm run build
 
 FROM ${NODE_IMAGE} AS runner
