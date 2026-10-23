@@ -37,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \App\Services\Builder\BuilderRevisions::register();
+        \App\Support\PublicCache\PublicResponseCache::register();
         // Rate classes (WP shield rate-limit parity) — per-tenant tunable via site.security.rate.
         $rateFor = function (Request $request, string $key, int $default): int {
             $tid = (int) ($request->attributes->get('public_tenant_id') ?: ($request->user()?->tenant_id ?? 0));

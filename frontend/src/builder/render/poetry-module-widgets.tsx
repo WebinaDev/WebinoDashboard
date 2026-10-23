@@ -3,6 +3,7 @@
 /* Poetry module renderers. Poems come from داشبورد ← بازاریابی ← اشعار (Poetry module public API).
  * Couplet layout: each beyt is two hemistichs side by side on wide screens, stacked on mobile. */
 
+import { poemHref } from "./poem-href"
 import { Check, Copy, Download, Printer } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -67,7 +68,6 @@ export function poemPlainText(p: Pick<Poem, "title" | "sequence" | "pen_name">):
   return parts.join("\n").trim()
 }
 
-const link = (base: string, key: string, slug: string) => `${base || "/"}${base.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(slug)}`
 
 function PoemCards({ items, detailHref }: { items: Card[]; detailHref: string }) {
   if (!items.length) return <p className="wbx-pm-empty">شعری یافت نشد.</p>
@@ -75,7 +75,7 @@ function PoemCards({ items, detailHref }: { items: Card[]; detailHref: string })
     <ul className="wbx-pm-cards">
       {items.map((c) => (
         <li key={c.id}>
-          <a href={link(detailHref, "poem", c.slug)} className="wbx-pm-card">
+          <a href={poemHref(detailHref, c)} className="wbx-pm-card">
             <strong>{c.title}</strong>
             {c.excerpt ? <span className="wbx-pm-excerpt">{c.excerpt}</span> : null}
             <span className="wbx-pm-tags">

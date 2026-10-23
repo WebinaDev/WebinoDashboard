@@ -54,6 +54,8 @@ class PublicBuilderController extends Controller
 
     public function resolve(Request $request): JsonResponse
     {
+        // Old/edge callers send only ?path=/ — answer 404 (cached) instead of a validation 422.
+        abort_unless(is_string($request->query('kind')) && $request->query('kind') !== '', 404);
         $data = $request->validate([
             'kind' => 'required|string|max:32',
             'path' => 'nullable|string|max:500',

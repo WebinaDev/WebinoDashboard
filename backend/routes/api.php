@@ -204,9 +204,9 @@ Route::prefix('v1')->group(function () {
     Route::prefix('public')->middleware('public.tenant')->group(function () {
         require __DIR__.'/marketplace_public.php';
 
-        Route::get('/tenant', [PublicSiteController::class, 'tenant']);
+        Route::get('/tenant', [PublicSiteController::class, 'tenant'])->middleware('public.cache');
         Route::get('/home', [PublicSiteController::class, 'home']);
-        Route::get('/site-status', [PublicSiteController::class, 'siteStatus']);
+        Route::get('/site-status', [PublicSiteController::class, 'siteStatus'])->middleware('public.cache');
         Route::get('/geo/states', [GeoController::class, 'states']);
         Route::get('/bots/widget', [BotController::class, 'widget']);
         Route::get('/geo/cities', [GeoController::class, 'cities']);
@@ -291,14 +291,14 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:cms')->group(function () {
             Route::get('/pages/{slug}', [PublicCmsController::class, 'page']);
-            Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
+            Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page'])->middleware('public.cache');
             Route::get('/builder/preview/{token}', [PublicBuilderController::class, 'preview'])->middleware('throttle:60,1');
             Route::post('/builder/ab/{test}/event', [\App\Http\Controllers\Api\V1\BuilderAbController::class, 'event'])->whereNumber('test')->middleware('throttle:120,1');
             Route::get('/builder/collections/{slug}/items', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'publicItems']);
             Route::get('/builder/collections/{slug}/items/{item}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'publicItem']);
-            Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
-            Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve']);
-            Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow']);
+            Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template'])->middleware('public.cache');
+            Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve'])->middleware('public.cache');
+            Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow'])->middleware('public.cache');
         });
 
         Route::middleware('public.module:consultations')->group(function () {

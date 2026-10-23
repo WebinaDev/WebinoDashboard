@@ -24,6 +24,14 @@ const PHOTO_MODE: FieldDef = { kind: "select", key: "photoMode", label: "حال�
 const LOGO: FieldDef = { kind: "media", key: "logo", label: "لوگو برای حالت بدون عکس (خالی = لوگوی سایت)", accept: "image" }
 const ICONS = [{ value: "flame", label: "شعله" }, { value: "moon", label: "ماه" }, { value: "star", label: "ستاره" }, { value: "book", label: "کتاب" }, { value: "music", label: "صوت" }, { value: "video", label: "ویدیو" }]
 
+const CAROUSEL_FIELDS: FieldDef[] = [
+  { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "carousel", label: "اسلایدر (کاروسل)" }, { value: "grid", label: "شبکه (چند ردیف)" }] },
+  { kind: "number", key: "slidesDesktop", label: "تعداد اسلاید در دسکتاپ", min: 1, max: 8 },
+  { kind: "slider", key: "slidesMobile", label: "تعداد اسلاید در موبایل", min: 1, max: 3, step: 0.1 },
+  { kind: "switch", key: "autoplay", label: "پخش خودکار" },
+  { kind: "number", key: "autoplayInterval", label: "فاصله پخش خودکار (ثانیه)", min: 2, max: 30 },
+]
+
 export const POETRY_WIDGET_TYPES = [
   "poetry-hero", "poem-list", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
 ] as const
@@ -58,7 +66,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "moreLabel", label: "متن «همه اشعار»" }, { kind: "link", key: "moreHref", label: "پیوند همه اشعار" },
       tone, pattern, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("poem-list", { title: "آخرین اشعار", count: 6, sort: "", detailHref: "/poem", items: "", readLabel: "خواندن شعر", downloadLabel: "دانلود صوت", moreLabel: "همه اشعار", moreHref: "/poems", tone: "light" }),
+    create: () => node("poem-list", { title: "آخرین اشعار", count: 6, sort: "", detailHref: "/poem?poem={slug}", items: "", readLabel: "خواندن شعر", downloadLabel: "دانلود صوت", moreLabel: "همه اشعار", moreHref: "/poems", tone: "light" }),
   },
   {
     type: "book-banner", label: "بنر کتاب + «خبرم کن»", category: "content",
@@ -71,18 +79,18 @@ export const POETRY_WIDGETS: WidgetDef[] = [
     create: () => node("book-banner", { title: "کتاب تازه به‌زودی", text: "", eyebrow: "به‌زودی", buttonLabel: "خبرم کن", photoMode: "photo", logo: "", tone: "dark", frame: "rounded", pattern: true }),
   },
   {
-    type: "occasion-cards", label: "کارت‌های مناسبت (اسکرول افقی)", category: "content",
+    type: "occasion-cards", label: "کارت‌های مناسبت (اسلایدر)", category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان بخش" },
       { kind: "repeater", key: "items", label: "مناسبت‌ها", fields: [
         { key: "title", label: "عنوان", kind: "text" }, { key: "image", label: "تصویر زمینه", kind: "media" },
         { key: "icon", label: "آیکن", kind: "select", options: ICONS }, { key: "href", label: "پیوند", kind: "url" }, { key: "subtitle", label: "زیرعنوان", kind: "text" },
       ] },
-      { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "scroll", label: "اسکرول افقی" }, { value: "grid", label: "شبکه (چند ردیف)" }] },
+      ...CAROUSEL_FIELDS,
       { kind: "select", key: "cardRatio", label: "نسبت کارت", options: RATIO_OPTS },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("occasion-cards", { title: "مناسبت‌ها", items: "محرم||flame|/poems?occasion=muharram\nفاطمیه||moon|/poems?occasion=fatemiyeh\nماه رمضان||star|/poems?occasion=ramadan\nمدح و مناجات||book|/poems?occasion=madh", layout: "scroll", cardRatio: "4/5", tone: "light", frame: "rounded" }),
+    create: () => node("occasion-cards", { title: "مناسبت‌ها", items: "محرم||flame|/poems?occasion=muharram\nفاطمیه||moon|/poems?occasion=fatemiyeh\nماه رمضان||star|/poems?occasion=ramadan\nمدح و مناجات||book|/poems?occasion=madh", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, cardRatio: "4/5", tone: "light", frame: "rounded" }),
   },
   {
     type: "media-cards", label: "کارت‌های صوت و تصویر", category: "content",
@@ -111,9 +119,10 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "select", key: "imageRatio", label: "نسبت تصویر محصول", options: RATIO_OPTS },
       { kind: "text", key: "moreLabel", label: "متن «مشاهده همه»" }, { kind: "link", key: "moreHref", label: "پیوند مشاهده همه" },
       { kind: "text", key: "buttonLabel", label: "متن دکمه" }, { kind: "text", key: "priceLabel", label: "متن جایگزین قیمت (درگاه خاموش)" },
+      ...CAROUSEL_FIELDS,
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("shop-showcase", { title: "فروشگاه قاب‌های مذهبی", items: "", source: "catalog", count: 6, category: "", imageRatio: "4/5", moreLabel: "مشاهده همه", moreHref: "/shop", buttonLabel: "مشاهده محصول", priceLabel: "قیمت (از مشتری)", tone: "light", frame: "arch" }),
+    create: () => node("shop-showcase", { title: "فروشگاه قاب‌های مذهبی", items: "", source: "catalog", count: 6, category: "", imageRatio: "4/5", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, moreLabel: "مشاهده همه", moreHref: "/shop", buttonLabel: "مشاهده محصول", priceLabel: "قیمت (از مشتری)", tone: "light", frame: "arch" }),
   },
   {
     type: "poet-about", label: "درباره شاعر", category: "content",

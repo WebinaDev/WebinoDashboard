@@ -9,6 +9,7 @@ import { ArrowLeft, BookOpen, Flame, Moon, MoreVertical, Music, Pause, Play, Quo
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import type { CSSProperties } from "react"
+import type React from "react"
 
 import { parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
@@ -16,6 +17,9 @@ import { PhotoSlot, apiV1, isDemoProduct, useCatalog } from "./poetry-pages-widg
 import { useBuilderRuntime } from "./runtime"
 import "./poetry-widgets.css"
 import { optImg } from "@/lib/image-url"
+import { sectionIsDark } from "./contrast"
+import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
+import { WpzCarousel, clampSpv, type CarouselOpts } from "./wpz-carousel"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
 export const faNum = (v: string | number) => String(v).replace(/\d/g, (d) => FA[Number(d)])
@@ -42,7 +46,9 @@ function shell(p: Record<string, unknown>, extra: string, defTone = "light") {
   const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : "wpz-light"
   const bg = propStr(p, "bgImage") ? "wpz-has-bg" : ""
   const mfw = propBool(p, "mobileFullWidth", true) ? "wpz-mfw" : ""
-  return `wpz ${tone} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${bg} ${mfw} ${extra}`
+  // Dark tone, image+dark overlay, or a dark bg colour → light text tokens cascade from the section.
+  const dark = sectionIsDark({ tone: t, bgImage: propStr(p, "bgImage"), bgOverlay: propStr(p, "bgOverlay"), bgOverlayOpacity: propNum(p, "bgOverlayOpacity", 70), bgColor: propStr(p, "bgColor") || propStr(p, "sectionBg") })
+  return `wpz ${tone} ${dark ? "wpz-on-dark" : ""} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${bg} ${mfw} ${extra}`
 }
 
 const CSS_SAFE = /^[#a-z0-9(),.\s%-]+$/i
@@ -64,6 +70,20 @@ const ICONS: Record<string, typeof Flame> = { flame: Flame, moon: Moon, star: St
 const Ico = ({ name, className }: { name: string; className?: string }) => {
   const I = ICONS[name] ?? Star
   return <I className={className} aria-hidden />
+}
+
+/** layout: carousel (default) | grid; legacy "scroll" = carousel. */
+export function carouselOpts(p: Record<string, unknown>, defDesktop: number): { carousel: boolean; opts: CarouselOpts } {
+  const layout = propStr(p, "layout", "carousel")
+  return {
+    carousel: layout !== "grid",
+    opts: {
+      desktop: clampSpv(propNum(p, "slidesDesktop", defDesktop), defDesktop),
+      mobile: clampSpv(propNum(p, "slidesMobile", 1.3), 1.3),
+      autoplay: propBool(p, "autoplay", false),
+      interval: Math.max(2, Math.min(30, propNum(p, "autoplayInterval", 5))),
+    },
+  }
 }
 
 /** 1) hero: side image, eyebrow, big title, two CTAs, vertical couplet. */
@@ -101,10 +121,8 @@ function useLatestPoems(count: number, sort: string, detailHref: string): LiveRo
   const qs = new URLSearchParams({ per_page: String(count), ...(sort === "popular" ? { sort } : {}) })
   const pre = (useBuilderRuntime() as { prefetch?: Record<string, unknown> }).prefetch
   const seedRaw = count && pre ? pre[`/v1/public/poetry/poems?${qs}`] : undefined
-  const toRows = (data: { slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null }[]): LiveRow[] => {
-    const base = detailHref.split("?")[0] || "/poem"
-    return data.map((c) => ({ title: c.title, tag: c.occasion?.name ?? "", audio: "", duration: "", href: `${base}?poem=${encodeURIComponent(c.slug)}`, image: c.image || c.cover || "" }))
-  }
+  const toRows = (data: { id?: number | string; slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null }[]): LiveRow[] =>
+    data.map((c) => ({ title: c.title, tag: c.occasion?.name ?? "", audio: "", duration: "", href: poemHref(detailHref, c), image: c.image || c.cover || "" }))
   const seed = Array.isArray(seedRaw) ? toRows(seedRaw) : null
   const [rows, setRows] = useState<LiveRow[]>(() => seed ?? [])
   useEffect(() => {
@@ -114,8 +132,7 @@ function useLatestPoems(count: number, sort: string, detailHref: string): LiveRo
       .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: { slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null }[] }>)
       .then((j) => {
         if (off) return
-        const base = detailHref.split("?")[0] || "/poem"
-        setRows((j.data ?? []).map((c) => ({ title: c.title, tag: c.occasion?.name ?? "", audio: "", duration: "", href: `${base}?poem=${encodeURIComponent(c.slug)}`, image: c.image || c.cover || "" })))
+        setRows(toRows(j.data ?? []))
       })
       .catch(() => !off && setRows([]))
     return () => { off = true }
@@ -128,7 +145,7 @@ export function PoemListWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const manual = parseRows(p.items, ["title", "tag", "audio", "duration", "href", "image"]).filter((r) => r.title)
   // Live by default: latest published poems from the poetry module; manual rows win only when set.
-  const live = useLatestPoems(manual.length ? 0 : Math.min(24, Math.max(1, propNum(p, "count", 6))), propStr(p, "sort"), propStr(p, "detailHref", "/poem"))
+  const live = useLatestPoems(manual.length ? 0 : Math.min(24, Math.max(1, propNum(p, "count", 6))), propStr(p, "sort"), propStr(p, "detailHref", DEFAULT_POEM_HREF))
   const rows = manual.length ? manual : live
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [playing, setPlaying] = useState<number | null>(null)
@@ -150,7 +167,7 @@ export function PoemListWidget({ widget }: { widget: WidgetNode }) {
               {r.image ? <img src={r.image} alt="" className="wpz-poem-thumb" loading="lazy" /> : null}
               <span className="wpz-num">{faNum(String(i + 1).padStart(2, "0"))}</span>
               <div className="wpz-poem-main">
-                <Link href={safeHref(r.href)} className="wpz-poem-title">{r.title}</Link>
+                <Link href={safeHref(r.href, "/poems")} className="wpz-poem-title wpz-stretch">{r.title}</Link>
                 {r.tag ? <span className="wpz-tag">{r.tag}</span> : null}
               </div>
               {r.audio ? (
@@ -165,7 +182,7 @@ export function PoemListWidget({ widget }: { widget: WidgetNode }) {
                 </button>
                 {menu === i ? (
                   <div className="wpz-menu" role="menu">
-                    <Link role="menuitem" href={safeHref(r.href)}>{propStr(p, "readLabel", "خواندن شعر")}</Link>
+                    <Link role="menuitem" href={safeHref(r.href, "/poems")}>{propStr(p, "readLabel", "خواندن شعر")}</Link>
                     {r.audio ? <a role="menuitem" href={safeHref(r.audio)} download>{propStr(p, "downloadLabel", "دانلود صوت")}</a> : null}
                   </div>
                 ) : null}
@@ -219,12 +236,12 @@ export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
 export function OccasionCardsWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const rows = parseRows(p.items, ["title", "image", "icon", "href", "subtitle"]).filter((r) => r.title)
-  const layout = propStr(p, "layout", "scroll") === "grid" ? "wpz-occ-grid" : "wpz-hscroll"
+  const { carousel, opts } = carouselOpts(p, 4)
   const ratio = RATIOS[propStr(p, "cardRatio", "4/5")] ?? "4 / 5"
   return (
     <section className={shell(p, "wpz-section", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
-      <div className={layout} role="list" style={{ ["--wpz-card-ratio" as string]: ratio } as CSSProperties}>
+      <OccasionTrack carousel={carousel} opts={opts} label={propStr(p, "title")} ratio={ratio}>
         {rows.map((r, i) => {
           const img = r.image.replace(/["\\()]/g, "")
           return (
@@ -237,9 +254,15 @@ export function OccasionCardsWidget({ widget }: { widget: WidgetNode }) {
           )
         })}
         {!rows.length ? <p className="wpz-empty">مناسبت‌ها را وارد کنید (عنوان|تصویر|آیکن|پیوند).</p> : null}
-      </div>
+      </OccasionTrack>
     </section>
   )
+}
+
+function OccasionTrack({ carousel, opts, label, ratio, children }: { carousel: boolean; opts: CarouselOpts; label: string; ratio: string; children: React.ReactNode }) {
+  const style = { ["--wpz-card-ratio" as string]: ratio } as CSSProperties
+  if (!carousel) return <div className="wpz-occ-grid" role="list" style={style}>{children}</div>
+  return <div style={style}><WpzCarousel opts={opts} label={label} className="wpz-occ-carousel">{children}</WpzCarousel></div>
 }
 
 const RATIOS: Record<string, string> = { "4/5": "4 / 5", "3/4": "3 / 4", "2/3": "2 / 3", "1/1": "1 / 1", "16/10": "16 / 10" }
@@ -296,6 +319,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
   const loading = live && items === null
   const ratio = RATIOS[propStr(p, "imageRatio", "4/5")] ?? "4 / 5"
   const editor = inDashboard()
+  const { carousel, opts } = carouselOpts(p, 4)
   if (!rows.length && !loading && !editor) return null
   return (
     <section className={shell(p, "wpz-section", "light")} style={{ ...sectionBg(p), ["--wpz-pr-ratio" as string]: ratio } as CSSProperties} dir="rtl">
@@ -303,12 +327,12 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
         {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
         {propStr(p, "moreLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "moreHref"), "/shop")}>{propStr(p, "moreLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
       </div>
-      <div className="wpz-grid wpz-shop-grid">
+      <ShopTrack carousel={carousel} opts={opts} label={propStr(p, "title")}>
         {loading ? Array.from({ length: Math.min(count, 6) }, (_, i) => <div key={i} className="wpz-product wpz-skel" aria-hidden />) : null}
         {rows.map((r, i) => (
           <article key={i} className="wpz-product">
             <Link href={safeHref(r.href, "/shop")} className={`wpz-product-media ${frameClass(p, "rounded")}`}>
-              {r.image ? <img src={r.image} alt={r.title} className="wpz-product-img" loading="lazy" /> : <span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span>}
+              {r.image ? <img {...optImg(r.image, "(max-width: 760px) 80vw, 300px")} alt={r.title} className="wpz-product-img" loading="lazy" decoding="async" /> : <span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span>}
             </Link>
             <h3 className="wpz-product-title">{r.title}</h3>
             <p className="wpz-price">{formatToman(r.price) || propStr(p, "priceLabel")}</p>
@@ -323,9 +347,14 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
             <small className="wpz-empty">محصولی در فروشگاه نیست؛ پس از افزودن محصول، این‌جا خودکار نمایش داده می‌شود.</small>
           </article>
         ) : null}
-      </div>
+      </ShopTrack>
     </section>
   )
+}
+
+function ShopTrack({ carousel, opts, label, children }: { carousel: boolean; opts: CarouselOpts; label: string; children: React.ReactNode }) {
+  if (!carousel) return <div className="wpz-grid wpz-shop-grid">{children}</div>
+  return <WpzCarousel opts={opts} label={label} className="wpz-shop-carousel">{children}</WpzCarousel>
 }
 
 /** 7) about the poet. */

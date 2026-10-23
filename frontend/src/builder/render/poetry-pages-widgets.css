@@ -302,3 +302,8 @@
 .akx-navwrap .akx-brand { min-height: 0; max-height: none; }
 .akx-nav.akx-nav-flat, .akx-navwrap.akx-mfw .akx-nav.akx-nav-flat { box-shadow: none; backdrop-filter: none; }
 .akx-nav.akx-nav-bordered { border: 1px solid color-mix(in srgb, var(--akx-c, #7a1020) 18%, transparent); }
+
+/* whole poem card clickable */
+.akx-pc { position: relative; }
+.akx-stretch::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.akx-pc :is(button, a:not(.akx-stretch), audio) { position: relative; z-index: 2; }

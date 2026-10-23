@@ -30,6 +30,7 @@ const nextConfig = {
       { protocol: "https", hostname: "**", pathname: "/storage/**" },
       { protocol: "https", hostname: "**", pathname: "/uploads/**" },
       { protocol: "http", hostname: "**", pathname: "/storage/**" },
+      { protocol: "http", hostname: "**", pathname: "/uploads/**" },
     ],
   },
   async redirects() {

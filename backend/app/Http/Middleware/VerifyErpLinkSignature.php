@@ -18,7 +18,7 @@ class VerifyErpLinkSignature
 
     public function handle(Request $request, Closure $next): Response
     {
-        $expected = (string) env('TENANT_PROVISION_TOKEN', '');
+        $expected = (string) config('webino_runtime.tenant_provision_token', '');
         $token = (string) $request->header('X-Provision-Token', '');
         if ($expected === '' || $token === '' || ! hash_equals($expected, $token)) {
             return response()->json(['message' => __('api.invalid_provision_token')], 403);

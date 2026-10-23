@@ -29,7 +29,7 @@ class WebinoLicenseClient
 
     public function productSlug(): string
     {
-        $p = (string) config('services.webino.product', env('TENANT_PRODUCT', 'webinodashboard'));
+        $p = (string) config('services.webino.product', config('webino_runtime.tenant_product', 'webinodashboard'));
 
         return $p !== '' ? strtolower($p) : 'webinodashboard';
     }

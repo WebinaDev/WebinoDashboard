@@ -6,6 +6,7 @@
  * Poetry public API; the shop reads the storefront catalog and falls back to a manual (demo) list,
  * and works with the payment gateway off (checkoutMode = inquiry | none). */
 
+import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import Link from "next/link"
 import { Check, ChevronLeft, ChevronRight, Copy, Menu, Music2, Printer, Share2, SlidersHorizontal, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -291,11 +292,11 @@ function yearOf(c: Card): string {
 function PoemCardItem({ c, href, newLabel }: { c: Card; href: string; newLabel: string }) {
   const meta = [c.style_label || c.styles[0]?.name, yearOf(c)].filter(Boolean).join(" · ")
   const tag = c.figures[0]?.name || c.occasion?.name
-  const link = `${safeLink(href, "/poem")}?poem=${encodeURIComponent(c.slug)}`
+  const link = poemHref(href, c)
   return (
     <article className="akx-pc">
       {meta ? <div className="akx-k">{meta}</div> : null}
-      <h3><Link href={link}>{c.title}</Link></h3>
+      <h3><Link href={link} className="akx-stretch">{c.title}</Link></h3>
       {c.excerpt ? <p className="akx-v">{c.excerpt}</p> : null}
       <div className="akx-pc-foot">
         <div>{tag ? <span className="akx-tag">{tag}</span> : null}{c.flags?.is_new && newLabel ? <span className="akx-tag2">{newLabel}</span> : null}</div>
@@ -452,7 +453,7 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
             <div className="akx-box">
               <h4>{propStr(p, "relatedTitle", "اشعار مرتبط")}</h4>
               {poem.related.map((r) => (
-                <Link key={r.id} className="akx-rel" href={`${safeLink(propStr(p, "detailHref", "/poem"), "/poem")}?poem=${encodeURIComponent(r.slug)}`}>
+                <Link key={r.id} className="akx-rel" href={poemHref(propStr(p, "detailHref", DEFAULT_POEM_HREF), r)}>
                   <b>{r.title}</b><small>{[r.style_label || r.styles[0]?.name, r.figures[0]?.name].filter(Boolean).join(" · ")}</small>
                 </Link>
               ))}

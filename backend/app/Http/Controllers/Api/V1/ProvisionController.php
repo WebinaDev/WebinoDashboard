@@ -61,7 +61,7 @@ class ProvisionController extends Controller
             'domain' => $seed['domain'] ?? $tenant->domain,
             'domain_aliases' => $domainAliases ?? $tenant->domain_aliases,
             'alias_subdomain' => $aliasSubdomain ?? $tenant->alias_subdomain ?? 'contact',
-            'product' => $seed['product'] ?? env('TENANT_PRODUCT', 'webinodashboard'),
+            'product' => $seed['product'] ?? config('webino_runtime.tenant_product', 'webinodashboard'),
             'business_category_slug' => $seed['business_category_slug'] ?? null,
             'business_type_slug' => $seed['business_type_slug'] ?? null,
             'site_type_slug' => $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? null,
@@ -75,7 +75,7 @@ class ProvisionController extends Controller
             'crm_account_id' => $seed['crm_account_id'] ?? null,
             'setup_completed' => false,
         ]);
-        $provisionToken = (string) ($seed['provision_token'] ?? env('TENANT_PROVISION_TOKEN', '') ?: '');
+        $provisionToken = (string) ($seed['provision_token'] ?? config('webino_runtime.tenant_provision_token', '') ?: '');
         if ($provisionToken !== '') {
             $tenant->provision_token = $provisionToken;
         }
@@ -305,7 +305,7 @@ class ProvisionController extends Controller
     protected function assertProvisionAuth(Request $request): void
     {
         $token = (string) $request->header('X-Provision-Token', '');
-        $expected = (string) env('TENANT_PROVISION_TOKEN', '');
+        $expected = (string) config('webino_runtime.tenant_provision_token', '');
         if ($expected === '' || ! hash_equals($expected, $token)) {
             throw new \Illuminate\Http\Exceptions\HttpResponseException(
                 response()->json(['message' => __('api.invalid_provision_token')], 403)
@@ -338,7 +338,7 @@ class ProvisionController extends Controller
     protected function syncEntitlements(Tenant $tenant, WebinoLicenseClient $client, ModuleGitInstaller $installer, ?TenantActivationService $activations = null): void
     {
         try {
-            $crm = $client->check($tenant->domain ?: 'localhost', config('services.webino.product', env('TENANT_PRODUCT', 'webinodashboard')));
+            $crm = $client->check($tenant->domain ?: 'localhost', config('services.webino.product', config('webino_runtime.tenant_product', 'webinodashboard')));
         } catch (\Throwable) {
             return;
         }

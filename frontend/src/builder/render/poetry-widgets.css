@@ -59,7 +59,7 @@
 .wpz-dur { font-size: .8rem; opacity: .85; }
 .wpz-menu-wrap { position: relative; }
 .wpz-icon-btn { padding: 6px; border-radius: 999px; }
-.wpz-menu { position: absolute; inset-inline-end: 0; top: 110%; z-index: 20; min-width: 150px; background: #fff; color: var(--wpz-ink); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.15); display: grid; padding: 6px; }
+.wpz-menu { position: absolute; inset-inline-end: 0; top: 110%; z-index: 20; min-width: 150px; background: #fff; color: #2b1a14; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.15); display: grid; padding: 6px; }
 .wpz-menu a { padding: 8px 10px; border-radius: 8px; }
 .wpz-menu a:hover { background: var(--wpz-cream); }
 /* book */
@@ -137,3 +137,45 @@ html:has(.wpz-mfw), html:has(.akx-mfw) { overflow-x: clip; }
 @media (max-width: 760px) {
   .wpz:not(.wpz-footer) { padding-block: var(--wpz-mpy, 44px); margin-block-end: var(--wpz-mgap, 28px); }
 }
+
+/* ── carousel (shop-showcase / occasion-cards, layout=carousel) ── */
+.wpz-carousel { position: relative; --wpz-cgap: 16px; }
+.wpz-carousel-track { display: flex; gap: var(--wpz-cgap); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-block: 4px 10px; }
+.wpz-carousel-track::-webkit-scrollbar { display: none; }
+.wpz-carousel-track > * { flex: 0 0 calc((100% - (var(--wpz-spv, 4) - 1) * var(--wpz-cgap)) / var(--wpz-spv, 4)); max-width: none; min-width: 0; scroll-snap-align: start; }
+.wpz-carousel .wpz-occasion { flex-basis: calc((100% - (var(--wpz-spv, 4) - 1) * var(--wpz-cgap)) / var(--wpz-spv, 4)); }
+.wpz-carousel-btn { position: absolute; top: 50%; translate: 0 -50%; z-index: 3; width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; background: #fff; color: var(--wpz-crimson); border: 0; box-shadow: 0 6px 18px rgba(0,0,0,.18); cursor: pointer; }
+.wpz-carousel-prev { inset-inline-start: -12px; }
+.wpz-carousel-next { inset-inline-end: -12px; }
+.wpz-carousel-btn:focus-visible { outline: 2px solid var(--wpz-gold); outline-offset: 2px; }
+@media (max-width: 760px) {
+  .wpz-carousel { --wpz-cgap: 12px; }
+  .wpz-carousel-track > *, .wpz-carousel .wpz-occasion { flex-basis: calc((100% - (var(--wpz-spv-m, 1.3) - 1) * var(--wpz-cgap)) / var(--wpz-spv-m, 1.3)); }
+  .wpz-carousel-btn { display: none; }
+}
+@media (hover: none) { .wpz-carousel-btn { display: none; } }
+
+/* ── contrast: dark sections (tone=dark, image+dark overlay, dark bg colour) force light text tokens ── */
+.wpz-on-dark {
+  --wpz-ink: #f7efe1; --wpz-muted: #e6d6c3; --wpz-fg: #f7efe1; --wpz-link: var(--wpz-gold);
+  color: var(--wpz-fg);
+}
+.wpz-on-dark :is(h1, h2, h3, h4, p, li, span, small, figcaption, blockquote, .wpz-h2, .wpz-text, .wpz-hero-sub, .wpz-poem-title, .wpz-media-title, .wpz-media-meta, .wpz-product-title, .wpz-empty, .wpz-dur) { color: inherit; }
+.wpz-on-dark :is(.wpz-hero-title) { color: var(--wpz-fg); }
+.wpz-on-dark :is(.wpz-eyebrow, .wpz-couplet, .wpz-more, .wpz-price, .wpz-num) { color: var(--wpz-gold); }
+.wpz-on-dark a:not(.wpz-btn):not(.wpz-occasion):not(.wpz-product-media) { color: inherit; }
+.wpz-on-dark .wpz-btn-primary { background: var(--wpz-gold); color: var(--wpz-crimson-deep); }
+.wpz-on-dark :is(.wpz-poem, .wpz-product) { background: color-mix(in srgb, #000 28%, transparent); box-shadow: none; }
+.wpz-on-dark .wpz-notify input { color: var(--wpz-fg); }
+.wpz-on-dark .wpz-notify input::placeholder { color: color-mix(in srgb, var(--wpz-fg) 65%, transparent); }
+/* white popovers / chips keep dark text inside dark sections */
+.wpz-on-dark :is(.wpz-menu, .wpz-menu a) { color: #2b1a14; }
+.wpz-on-dark .wpz-occasion-arrow { color: var(--wpz-crimson); }
+@media (max-width: 760px) {
+  .wpz-on-dark, .wpz-on-dark :is(.wpz-h2, .wpz-text, .wpz-hero-title, .wpz-hero-sub, .wpz-product-title, .wpz-media-title) { color: var(--wpz-fg); }
+}
+
+/* whole poem card clickable (stretched title link); controls stay above it */
+.wpz-poem { position: relative; }
+.wpz-stretch::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.wpz-poem :is(.wpz-play, .wpz-menu-wrap, .wpz-icon-btn) { position: relative; z-index: 2; }

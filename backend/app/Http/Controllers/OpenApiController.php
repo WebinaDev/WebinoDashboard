@@ -12,7 +12,7 @@ class OpenApiController extends Controller
     public function show(Request $request): JsonResponse
     {
         // Production: deny by default unless OPENAPI_PUBLIC=true or staff is authenticated.
-        $public = filter_var(env('OPENAPI_PUBLIC', ! app()->environment('production')), FILTER_VALIDATE_BOOLEAN);
+        $public = filter_var(config('webino_runtime.openapi_public') ?? ! app()->environment('production'), FILTER_VALIDATE_BOOLEAN);
         if (! $public) {
             $user = $request->user('sanctum') ?? $request->user();
             if (! $user) {

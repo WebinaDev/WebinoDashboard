@@ -33,6 +33,7 @@ if [ ! -f .env ]; then
   fi
 fi
 
+[ -e public/storage ] || php artisan storage:link >/dev/null 2>&1 || ln -sfn /var/www/html/storage/app/public public/storage || true
 mkdir -p database storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
 touch database/database.sqlite 2>/dev/null || true
 chown -R www-data:www-data storage bootstrap/cache database 2>/dev/null || true
@@ -56,17 +57,32 @@ if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
   fi
 fi
 
-if [ "${RUN_OPTIMIZE:-0}" = "1" ]; then
-  php artisan config:cache
-  php artisan route:cache
-  php artisan view:cache
+# bootstrap/app.php reads these with env() before config loads; once config is cached the
+# .env file is no longer parsed, so export them from the mounted .env into the process env.
+for key in TRUSTED_PROXIES AUTH_COOKIE_NAME; do
+  if [ -z "$(printenv "$key" 2>/dev/null)" ] && [ -f .env ]; then
+    val="$(grep -E "^${key}=" .env | tail -n 1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
+    if [ -n "$val" ]; then export "$key=$val"; fi
+  fi
+done
+
+# Cache config/routes/views/events (on by default; RUN_OPTIMIZE=0 to skip). Never fatal.
+if [ "${RUN_OPTIMIZE:-1}" = "1" ]; then
+  # Not optimize:clear: that would also flush the shared Redis app cache on every start.
+  php artisan config:clear >/dev/null 2>&1 || true
+  if ! php artisan optimize; then
+    echo "[webino] artisan optimize failed; continuing uncached" >&2
+    php artisan config:clear >/dev/null 2>&1 || true
+    php artisan route:clear >/dev/null 2>&1 || true
+  fi
+  chown -R www-data:www-data bootstrap/cache storage/framework 2>/dev/null || true
 fi
 
-# Platform image is php:cli (no frankenphp). Rewrite legacy octane CMD to serve.
+# Legacy CMDs (artisan serve / octane:start) -> php-fpm + nginx on :8080 (multi-worker).
 case " $* " in
-  *" octane:start "*|*" octane:start")
-    echo "[webino] Skipping Octane/FrankenPHP; starting artisan serve on :8080"
-    exec php artisan serve --host=0.0.0.0 --port=8080
+  *" artisan serve "*|*" octane:start "*|*" octane:start")
+    echo "[webino] Starting php-fpm + nginx on :8080"
+    exec /usr/local/bin/webino-web
     ;;
 esac
 

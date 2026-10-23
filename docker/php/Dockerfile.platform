@@ -11,7 +11,7 @@
 #
 # All FROM-related ARGs MUST be declared before the first FROM (BuildKit global scope).
 # COPY --from=${VAR} is unsupported; use a named stage instead.
-ARG PHP_IMAGE=php:8.3-cli-bookworm
+ARG PHP_IMAGE=php:8.3-fpm-bookworm
 ARG COMPOSER_IMAGE=composer:2
 
 FROM ${COMPOSER_IMAGE} AS composer_src
@@ -42,7 +42,7 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
-        git unzip libzip-dev libpq-dev libxml2-dev libsqlite3-dev curl \
+        git unzip libzip-dev libpq-dev libxml2-dev libsqlite3-dev curl nginx-light wget \
         libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype6-dev; \
     docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype; \
     docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql opcache pcntl gd; \
@@ -99,9 +99,11 @@ RUN composer dump-autoload --optimize --no-dev --no-scripts \
     && chown -R www-data:www-data storage bootstrap/cache database
 
 COPY docker/php/entrypoint-platform.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker/php/webino-web.sh /usr/local/bin/webino-web
+COPY docker/php/nginx-backend.conf /etc/nginx/webino-backend.conf
+RUN chmod +x /entrypoint.sh /usr/local/bin/webino-web
 
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
-# FrankenPHP/Octane skipped on platform images (IR Hub + libwatcher). Serve is the runtime.
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
+# php-fpm (PHP_FPM_MAX_CHILDREN, default 24) behind nginx on :8080; replaces single-threaded artisan serve.
+CMD ["webino-web"]

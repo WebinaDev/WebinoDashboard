@@ -13,7 +13,7 @@ class ThrottleApiToken
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        $limit = (int) env('API_RATE_LIMIT_PER_MINUTE', 120);
+        $limit = (int) config('webino_runtime.api_rate_limit_per_minute', 120);
         $limit = max(1, $limit);
 
         $token = $user?->currentAccessToken();

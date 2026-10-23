@@ -23,7 +23,7 @@ export const POETRY_MODULE_WIDGETS: WidgetDef[] = [
       { kind: "link", key: "detailHref", label: "صفحه متن شعر" },
       { kind: "number", key: "perPage", label: "تعداد در صفحه" },
     ],
-    create: () => ({ id: uid("w"), type: "poetry-figure", props: { slug: "", detailHref: "/poem", perPage: 12 } }),
+    create: () => ({ id: uid("w"), type: "poetry-figure", props: { slug: "", detailHref: "/poem?poem={slug}", perPage: 12 } }),
   },
   {
     type: "poem-search", label: "جستجو و فیلتر اشعار", category: "content",
@@ -33,6 +33,6 @@ export const POETRY_MODULE_WIDGETS: WidgetDef[] = [
       { kind: "switch", key: "showFilters", label: "فیلتر مناسبت/شخصیت/سبک" },
       { kind: "number", key: "perPage", label: "تعداد در صفحه" },
     ],
-    create: () => ({ id: uid("w"), type: "poem-search", props: { title: "جستجوی اشعار", detailHref: "/poem", showFilters: true, perPage: 12 } }),
+    create: () => ({ id: uid("w"), type: "poem-search", props: { title: "جستجوی اشعار", detailHref: "/poem?poem={slug}", showFilters: true, perPage: 12 } }),
   },
 ]

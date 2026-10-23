@@ -86,7 +86,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "chipMedia", label: "تراشه: دارای صوت" }, { kind: "text", key: "chipUnread", label: "تراشه: خوانده‌نشده" },
       { kind: "text", key: "newLabel", label: "نشان «جدید»" }, { kind: "text", key: "emptyText", label: "متن نبود نتیجه" }, { kind: "text", key: "filterLabel", label: "متن دکمه فیلتر (موبایل)" }, SEC, ...colors,
     ],
-    create: () => node("poem-archive", { filterLabel: "فیلتر", detailHref: "/poem", perPage: 12, showSidebar: true, showCounts: true, figureTitle: "شخصیت", styleTitle: "سبک", occasionTitle: "مناسبت", mediaTitle: "رسانه", hasMediaLabel: "دارای صوت/ویدیو", chipAll: "همه", chipNew: "تازه‌ترین", chipPopular: "پربازدیدترین", chipMedia: "دارای صوت", chipUnread: "خوانده‌نشده", newLabel: "جدید", emptyText: "شعری یافت نشد.", sectionBg: DARK, ...C }),
+    create: () => node("poem-archive", { filterLabel: "فیلتر", detailHref: "/poem?poem={slug}", perPage: 12, showSidebar: true, showCounts: true, figureTitle: "شخصیت", styleTitle: "سبک", occasionTitle: "مناسبت", mediaTitle: "رسانه", hasMediaLabel: "دارای صوت/ویدیو", chipAll: "همه", chipNew: "تازه‌ترین", chipPopular: "پربازدیدترین", chipMedia: "دارای صوت", chipUnread: "خوانده‌نشده", newLabel: "جدید", emptyText: "شعری یافت نشد.", sectionBg: DARK, ...C }),
   },
   {
     type: "poem-single", label: "متن شعر (کاغذی + مشخصات + مرتبط)", category: "content",
@@ -100,7 +100,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "link", key: "detailHref", label: "صفحه شعر (پیوند مرتبط‌ها)" },
       { kind: "color", key: "refrainBg", label: "زمینه برگردان" }, SEC, ...colors,
     ],
-    create: () => node("poem-single", { slug: "", heading: "بسم رب الحسین", showSubtitle: true, separator: "✦ ✦ ✦", signPrefix: "✍", signNote: "التماس دعا", showTools: true, showSidebar: true, playerNote: "صوت/ویدیو در صورت وجود نمایش داده می‌شود", specsTitle: "مشخصات شعر", meterFallback: "—", relatedTitle: "اشعار مرتبط", detailHref: "/poem", refrainBg: "#fbe9ea", sectionBg: DARK, ...C }),
+    create: () => node("poem-single", { slug: "", heading: "بسم رب الحسین", showSubtitle: true, separator: "✦ ✦ ✦", signPrefix: "✍", signNote: "التماس دعا", showTools: true, showSidebar: true, playerNote: "صوت/ویدیو در صورت وجود نمایش داده می‌شود", specsTitle: "مشخصات شعر", meterFallback: "—", relatedTitle: "اشعار مرتبط", detailHref: "/poem?poem={slug}", refrainBg: "#fbe9ea", sectionBg: DARK, ...C }),
   },
   {
     type: "media-archive", label: "صوت و ویدیو (ویژه + پرشنونده + شبکه)", category: "content",

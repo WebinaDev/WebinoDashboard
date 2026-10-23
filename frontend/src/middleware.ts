@@ -374,7 +374,23 @@ async function handle(request: NextRequest) {
 }
 
 /** Wraps every middleware response with the harmless site marker cookie (not an auth cookie). */
+/**
+ * Next's optimizer fetches relative `/_next/image?url=/storage/..` from itself, where storage/uploads
+ * are not served (400 "isn't a valid image"). Point it at the backend origin instead; host-independent,
+ * so it works for every tenant. Requires the http/https `/storage|/uploads` remotePatterns in next.config.
+ */
+function rewriteImageOptimizerSource(request: NextRequest): NextResponse | null {
+  const src = request.nextUrl.searchParams.get("url") || ""
+  if (!/^\/(storage|uploads)\//.test(src)) return null
+  const base = getServerApiBase().replace(/\/+$/, "").replace(/\/api(\/v1)?$/, "")
+  if (!/^https?:\/\//.test(base)) return null
+  const next = request.nextUrl.clone()
+  next.searchParams.set("url", `${base}${src}`)
+  return NextResponse.rewrite(next)
+}
+
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === "/_next/image") return rewriteImageOptimizerSource(request) ?? NextResponse.next()
   const res = await handle(request)
   if (res && !request.cookies.get("webina_site")) {
     res.cookies.set("webina_site", "1", { path: "/", sameSite: "lax", maxAge: 31536000 })
@@ -383,5 +399,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)", "/_next/image"],
 }
