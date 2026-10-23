@@ -6619,7 +6619,8 @@
     "profile_since": "Member since",
     "profile_recent_orders": "Recent orders",
     "profile_recent_tickets": "Recent tickets",
-    "profile_empty": "Nothing yet"
+    "profile_empty": "Nothing yet",
+    "profile_open_erp_hub": "Open in ERP Customer Hub"
   },
   "staff_admin": {
     "title": "Staff",

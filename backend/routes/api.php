@@ -194,6 +194,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/provision/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'platformShow']);
     Route::put('/provision/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'platformUpdate']);
     Route::post('/provision/panel-login', [ProvisionController::class, 'panelLogin']);
+    Route::middleware([\App\Http\Middleware\VerifyErpLinkSignature::class, 'throttle:120,1'])->prefix('erp-link')->group(function () {
+        Route::post('/customer', [\App\Http\Controllers\Api\V1\Erp\ErpLinkController::class, 'customer']);
+        Route::post('/usage', [\App\Http\Controllers\Api\V1\Erp\ErpLinkController::class, 'usage']);
+        Route::post('/suspension', [\App\Http\Controllers\Api\V1\Erp\ErpLinkController::class, 'suspension']);
+    });
     Route::post('/integrations/erp/announcements', [ErpAnnouncementController::class, 'ingest']);
 
     Route::prefix('public')->middleware('public.tenant')->group(function () {

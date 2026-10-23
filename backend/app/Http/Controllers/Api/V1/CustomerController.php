@@ -84,6 +84,22 @@ class CustomerController extends Controller
                 ->get(['id', 'number', 'status', 'total_minor', 'currency', 'created_at']),
             'recent_tickets' => (clone $tickets)->latest('id')->limit(5)
                 ->get(['id', 'subject', 'status', 'created_at']),
+            'erp' => $this->erpLink($request, $tid),
         ]]);
+    }
+
+    /** Reverse link to the ERP Customer 360 Hub of the site owner (site admins only). */
+    private function erpLink(Request $request, int $tid): ?array
+    {
+        if (($request->user()->role ?? null) !== 'admin') {
+            return null;
+        }
+        $tenant = \App\Models\Tenant::query()->find($tid);
+        $base = rtrim((string) config('services.webino.base_url', ''), '/');
+        if (! $tenant?->crm_account_id || $base === '' || str_contains($base, 'localhost')) {
+            return null;
+        }
+
+        return ['account_id' => (int) $tenant->crm_account_id, 'hub_url' => $base.'/crm/customers/'.$tenant->crm_account_id];
     }
 }

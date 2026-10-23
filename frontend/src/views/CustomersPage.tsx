@@ -108,6 +108,29 @@ export default function CustomersPage() {
 
 
   const rows = data?.items ?? []
+
+  // Deep link from the ERP Customer 360 Hub: /dashboard/customers?q=<email>&open=<id>
+  const [deepOpen, setDeepOpen] = useState<number | null>(null)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const sp = new URLSearchParams(window.location.search)
+    const q = sp.get("q")
+    const open = Number(sp.get("open") || 0)
+    if (q) {
+      setSearch(q)
+      setAppliedSearch(q)
+    }
+    if (open > 0) setDeepOpen(open)
+  }, [])
+  useEffect(() => {
+    if (!deepOpen) return
+    const hit = rows.find((r) => r.id === deepOpen)
+    if (hit) {
+      openEdit(hit)
+      setDeepOpen(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepOpen, rows])
   const meta = data?.meta
 
   const save = useMutation({

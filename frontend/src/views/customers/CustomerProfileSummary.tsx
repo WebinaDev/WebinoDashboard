@@ -23,6 +23,7 @@ type Profile = {
   }
   recent_orders: Array<{ id: number; number: string; status: string; total_minor: number; created_at: string }>
   recent_tickets: Array<{ id: number; subject: string; status: string; created_at: string }>
+  erp?: { account_id: number; hub_url: string } | null
 }
 
 const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleDateString("fa-IR") : "—")
@@ -60,6 +61,11 @@ export function CustomerProfileSummary({ customerId }: { customerId: number }) {
     <div className="space-y-3 rounded-md border p-3 md:col-span-2">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">{t("profile_title")}</h3>
+        {p.erp?.hub_url ? (
+          <a href={p.erp.hub_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs underline" data-testid="erp-hub-link">
+            {t("profile_open_erp_hub")}
+          </a>
+        ) : null}
         <Badge variant={kyc === "verified" ? "default" : kyc === "rejected" ? "destructive" : "secondary"}>
           {t("kyc_label")}: {t(`kyc_${kyc}` as never)}
         </Badge>

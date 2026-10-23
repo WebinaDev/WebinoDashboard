@@ -9,6 +9,7 @@ return [
     'module_disabled' => 'Module disabled for tenant.',
     'tenant_not_found' => 'Tenant not found',
     'logged_out' => 'Logged out',
+    'site_suspended' => 'This site is temporarily suspended.',
     'invalid_provision_token' => 'Invalid provision token.',
     'cart_empty' => 'Cart empty',
     'cafe_closed' => 'The venue is not taking orders right now.',

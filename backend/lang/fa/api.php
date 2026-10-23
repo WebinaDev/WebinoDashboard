@@ -9,6 +9,7 @@ return [
     'module_disabled' => 'ماژول برای این مستأجر غیرفعال است.',
     'tenant_not_found' => 'مستأجر یافت نشد',
     'logged_out' => 'خروج انجام شد',
+    'site_suspended' => 'این سایت موقتاً تعلیق شده است.',
     'invalid_provision_token' => 'توکن پروویژن نامعتبر است.',
     'cart_empty' => 'سبد خرید خالی است',
     'cafe_closed' => 'مجموعه در این ساعت سفارش نمی‌گیرد.',

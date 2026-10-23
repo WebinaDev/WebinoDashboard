@@ -6619,7 +6619,8 @@
     "profile_since": "عضویت از",
     "profile_recent_orders": "سفارش‌های اخیر",
     "profile_recent_tickets": "تیکت‌های اخیر",
-    "profile_empty": "موردی نیست"
+    "profile_empty": "موردی نیست",
+    "profile_open_erp_hub": "مشاهده در هاب مشتری ERP"
   },
   "staff_admin": {
     "title": "کارکنان",

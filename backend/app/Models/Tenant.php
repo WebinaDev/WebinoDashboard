@@ -34,6 +34,8 @@ class Tenant extends Model
         'home_blocks',
         'provision_token',
         'crm_account_id',
+        'suspended_at',
+        'suspension_reason',
     ];
 
     protected function casts(): array
@@ -42,6 +44,7 @@ class Tenant extends Model
             'setup_completed' => 'boolean',
             'license_unreachable' => 'boolean',
             'license_checked_at' => 'datetime',
+            'suspended_at' => 'datetime',
             'nav_preset' => 'array',
             'branding' => 'array',
             'home_blocks' => 'array',
@@ -107,11 +110,21 @@ class Tenant extends Model
     /** Entitled to use the product (active or demo). Matches LicenseController payload. */
     public function isLicenseEntitled(): bool
     {
+        if ($this->isSuspended()) {
+            return false;
+        }
+
         return in_array($this->normalizedLicenseStatus(), ['active', 'demo'], true);
     }
 
     public function isLicenseDemo(): bool
     {
         return $this->normalizedLicenseStatus() === 'demo';
+    }
+
+    /** Suspended by ERP (Customer 360 Hub → suspend). Reversible via /erp-link/suspension. */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
     }
 }
