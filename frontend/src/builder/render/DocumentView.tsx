@@ -17,7 +17,7 @@ import { BuilderGlobalsProvider, BuilderRuntimeProvider, useBuilderGlobals } fro
 import { applyPreset, COMPONENT_TYPE, componentsCss, resolveInstance } from "../components"
 import { WidgetBody } from "./widgets"
 import { LAYOUT_CONTAINER_TYPES, layoutContainerStyle } from "./gap-widgets"
-import { dwClass, dwRowClass, sectionDesktopWidth, widgetDesktopWidth } from "./desktop-width"
+import { dwAttr, dwClass, dwRowClass, sectionDesktopWidth, widgetDesktopWidth } from "./desktop-width"
 import "./desktop-width.css"
 
 import "../storefront.css"
@@ -164,9 +164,9 @@ function ColumnBlock({
     >
       <Decor advanced={column.advanced} />
       {editor ? <DropSlot columnId={column.id} index={0} editor={editor} /> : null}
-      <div className={`wb-col-body flex flex-col ${column.widgets.some((w) => widgetDesktopWidth(w) !== "full") ? dwRowClass(Boolean(editor), device) : ""}`} style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
+      <div data-dw-row={column.widgets.some((w) => widgetDesktopWidth(w) !== "full") ? "" : undefined} className={`wb-col-body flex flex-col ${column.widgets.some((w) => widgetDesktopWidth(w) !== "full") ? dwRowClass(Boolean(editor), device) : ""}`} style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
         {column.widgets.map((widget, index) => (
-          <div key={widget.id} className={dwClass(widgetDesktopWidth(widget))}>
+          <div key={widget.id} className={dwClass(widgetDesktopWidth(widget))} {...dwAttr(widgetDesktopWidth(widget))}>
             <WidgetBlock widget={widget} device={device} editor={editor} depth={depth} />
             {editor ? <DropSlot columnId={column.id} index={index + 1} editor={editor} /> : null}
           </div>

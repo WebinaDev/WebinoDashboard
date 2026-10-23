@@ -21,5 +21,7 @@ export function sectionDesktopWidth(s: SectionNode): DesktopWidth {
 
 /** class for one item in a `.wb-dw-row` */
 export const dwClass = (w: DesktopWidth) => (w === "full" ? "" : `wb-dw-item wb-dw-${w}`)
+/** data attribute for an item / row wrapper (debuggable in the shipped HTML) */
+export const dwAttr = (w: DesktopWidth) => ({ "data-dw": w })
 /** row class; in the editor the desktop preview forces the layout regardless of viewport width */
 export const dwRowClass = (editor: boolean, device: string) => `wb-dw-row ${editor && device === "desktop" ? "wb-dw-force" : ""} ${editor ? "wb-dw-edit" : ""}`

@@ -55,6 +55,13 @@ export function toman(raw: string | number): string {
 /** mobileFullWidth (default on): edge-to-edge on phones. */
 export const akxMfw = (p: P) => (propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "")
 
+/** transparent / fully see-through colours (transparent, #rgba with 00 alpha, rgba(...,0)) */
+export function isClearColor(v: string): boolean {
+  const c = v.trim().toLowerCase().replace(/\s+/g, "")
+  if (!c) return false
+  return c === "transparent" || /^#([0-9a-f]{3}0|[0-9a-f]{6}00)$/.test(c) || /^(rgba|hsla)\(.*,0?\.?0*\)$/.test(c) || /\/0?\.?0*%?\)$/.test(c)
+}
+
 export function akxVars(p: P, extra: Record<string, string> = {}): CSSProperties {
   const v: Record<string, string> = {}
   v["--akx-mpy"] = `${Math.max(0, Math.min(160, propNum(p, "mobilePaddingY", 44)))}px`
@@ -214,7 +221,9 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   const logo = propStr(p, "logo") || rt.logoUrl || ""
   const logoOnly = propBool(p, "logoOnly", false)
   const px = (k: string, d: number) => `${Math.max(24, Math.min(160, propNum(p, k, d)))}px`
-  const navVars = { ...akxVars({ ...p, ...(propStr(p, "capsuleBg") ? { navBg: propStr(p, "capsuleBg") } : {}) }, { navBg: "--akx-nav", searchBg: "--akx-sbg" }), ["--akx-logo-h" as string]: px("logoHeight", 64), ["--akx-logo-hm" as string]: px("logoHeightMobile", 48) } as CSSProperties
+  const capsuleBg = propStr(p, "capsuleBg").trim()
+  const capsuleClear = isClearColor(capsuleBg)
+  const navVars = { ...akxVars({ ...p, navBg: capsuleBg || propStr(p, "navBg") }, { navBg: "--akx-nav", searchBg: "--akx-sbg" }), ...(capsuleBg && /^[#a-z0-9(),.\s%-]+$/i.test(capsuleBg) ? { ["--akx-nav" as string]: capsuleBg } : {}), ["--akx-logo-h" as string]: px("logoHeight", 64), ["--akx-logo-hm" as string]: px("logoHeightMobile", 48) } as CSSProperties
   const drawerVars = akxVars(p, { drawerBg: "--akx-drawer", drawerText: "--akx-drawer-tx" })
   const active = (href: string) => {
     if (!path || !href) return false
@@ -223,7 +232,7 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   }
   return (
     <header className={`akx akx-navwrap ${akxMfw(p)} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
-      <div className={`akx-nav ${propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
+      <div data-capsule={capsuleClear ? "clear" : undefined} className={`akx-nav ${capsuleClear ? "akx-nav-clear" : ""} ${propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
         <Link href="/" className="akx-brand">
           {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo, undefined, true)} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
           {logoOnly && logo ? null : <b>{propStr(p, "brand", rt.siteName ?? "")}</b>}

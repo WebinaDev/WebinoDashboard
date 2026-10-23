@@ -1,9 +1,11 @@
+/* NB: the row is also a Tailwind `flex flex-col` column body; flex-direction:row must win or halves stack vertically. */
 /* desktopWidth (full | half 50 | wide 60 | narrow 40): adjacent non-full poetry sections share a row on >=992px */
 @media (min-width: 992px) {
-.wb-dw-row:not(.wb-dw-edit) { display: flex; flex-wrap: wrap; column-gap: 24px; align-items: stretch; }
-.wb-dw-row:not(.wb-dw-edit) > * { flex: 0 0 100%; max-width: 100%; min-width: 0; }
+.wb-dw-row:not(.wb-dw-edit) { display: flex; flex-direction: row; flex-wrap: wrap; gap: 24px; align-items: stretch; }
+.wb-dw-row:not(.wb-dw-edit) > *, .wb-dw-row:not(.wb-dw-edit) > .wb-dw-full { flex: 0 0 100%; max-width: 100%; min-width: 0; }
 .wb-dw-row:not(.wb-dw-edit) > .wb-dw-half { flex-basis: calc(50% - 12px); }
 .wb-dw-row:not(.wb-dw-edit) > .wb-dw-wide { flex-basis: calc(60% - 12px); }
+.wb-dw-row:not(.wb-dw-edit) > .wb-dw-wide + .wb-dw-narrow, .wb-dw-row:not(.wb-dw-edit) > .wb-dw-narrow + .wb-dw-wide { flex-basis: calc(40% - 12px); }
 .wb-dw-row:not(.wb-dw-edit) > .wb-dw-narrow { flex-basis: calc(40% - 12px); }
 /* equal height: stretch the wrapper chain down to the widget's own <section> */
 .wb-dw-row:not(.wb-dw-edit) > .wb-dw-item { display: flex; flex-direction: column; }
@@ -24,10 +26,11 @@
 .wb-dw-row:not(.wb-dw-edit) > .wb-dw-item .wpz-quote blockquote { font-size: clamp(1.1rem, 1.8vw, 1.5rem); }
 }
 /* editor desktop preview */
-.wb-dw-row.wb-dw-force { display: flex; flex-wrap: wrap; column-gap: 24px; align-items: stretch; }
-.wb-dw-row.wb-dw-force > * { flex: 0 0 100%; max-width: 100%; min-width: 0; }
+.wb-dw-row.wb-dw-force { display: flex; flex-direction: row; flex-wrap: wrap; gap: 24px; align-items: stretch; }
+.wb-dw-row.wb-dw-force > *, .wb-dw-row.wb-dw-force > .wb-dw-full { flex: 0 0 100%; max-width: 100%; min-width: 0; }
 .wb-dw-row.wb-dw-force > .wb-dw-half { flex-basis: calc(50% - 12px); }
 .wb-dw-row.wb-dw-force > .wb-dw-wide { flex-basis: calc(60% - 12px); }
+.wb-dw-row.wb-dw-force > .wb-dw-wide + .wb-dw-narrow, .wb-dw-row.wb-dw-force > .wb-dw-narrow + .wb-dw-wide { flex-basis: calc(40% - 12px); }
 .wb-dw-row.wb-dw-force > .wb-dw-narrow { flex-basis: calc(40% - 12px); }
 /* equal height: stretch the wrapper chain down to the widget's own <section> */
 .wb-dw-row.wb-dw-force > .wb-dw-item { display: flex; flex-direction: column; }

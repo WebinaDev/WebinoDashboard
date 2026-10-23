@@ -307,3 +307,7 @@
 .akx-pc { position: relative; }
 .akx-stretch::after { content: ""; position: absolute; inset: 0; z-index: 1; }
 .akx-pc :is(button, a:not(.akx-stretch), audio) { position: relative; z-index: 2; }
+
+/* transparent capsule: no frosted glass; shadow only if capsuleShadow stays on */
+.akx-nav.akx-nav-clear, .akx-navwrap.akx-mfw .akx-nav.akx-nav-clear { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.akx-nav.akx-nav-clear.akx-nav-flat, .akx-navwrap.akx-mfw .akx-nav.akx-nav-clear.akx-nav-flat { box-shadow: none; }
