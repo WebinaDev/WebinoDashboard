@@ -35,7 +35,7 @@ export const analyticsManifest: ModuleManifest = {
   slug: "analytics",
   nameFa: "تحلیل",
   nameEn: "Analytics",
-  siteTypes: ["ecommerce", "magazine", "cafe", "corporate"],
+  siteTypes: ["ecommerce", "magazine", "cafe", "corporate", "blog"],
   submodules: ["overview", "reports"],
   adminNav: { section: "reports", order: 70 },
   adminRoutes: [

@@ -29,6 +29,7 @@ export const SITE_TYPES: {
   { slug: "cafe", name_fa: "کافه و رستوران", name_en: "Cafe & Restaurant", default_theme_slug: "cafe-starter" },
   { slug: "coffee", name_fa: "قهوه", name_en: "Coffee", default_theme_slug: "ecommerce-starter" },
   { slug: "resume", name_fa: "رزومه", name_en: "Resume", default_theme_slug: "resume-default" },
+  { slug: "blog", name_fa: "وبلاگ", name_en: "Blog", default_theme_slug: "magazine-default" },
   { slug: "corporate", name_fa: "شرکتی", name_en: "Corporate", default_theme_slug: "corporate-default" },
 ]
 

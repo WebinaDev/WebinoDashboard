@@ -4,7 +4,7 @@ export const themeManifest: SiteThemeManifest = {
   slug: "magazine-default",
   nameFa: "magazine-default",
   nameEn: "magazine-default",
-  siteTypes: ["magazine"],
+  siteTypes: ["magazine", "blog"],
   isDemo: false,
   preview: "/themes/magazine-default/preview.svg",
   sortOrder: 1,

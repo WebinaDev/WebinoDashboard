@@ -4,7 +4,7 @@ export const blogManifest: ModuleManifest = {
   slug: "blog",
   nameFa: "مجله",
   nameEn: "Magazine",
-  siteTypes: ["ecommerce", "magazine", "cafe", "corporate", "coffee"],
+  siteTypes: ["ecommerce", "magazine", "cafe", "corporate", "coffee", "blog"],
   submodules: ["posts", "categories"],
   adminNav: { section: "content", order: 11 },
   adminRoutes: [

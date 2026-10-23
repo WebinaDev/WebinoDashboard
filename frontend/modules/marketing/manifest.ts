@@ -4,7 +4,7 @@ export const marketingManifest: ModuleManifest = {
   slug: "marketing",
   nameFa: "بازاریابی",
   nameEn: "Marketing",
-  siteTypes: ["ecommerce", "magazine", "cafe", "corporate"],
+  siteTypes: ["ecommerce", "magazine", "cafe", "corporate", "blog"],
   submodules: ["coupons", "bot-broadcast", "bot-campaigns", "sms", "newsletter", "sale-prices", "notifications"],
   adminNav: { section: "marketing", order: 40 },
   adminRoutes: [

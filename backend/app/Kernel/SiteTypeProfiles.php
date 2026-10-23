@@ -4,7 +4,7 @@ namespace App\Kernel;
 
 final class SiteTypeProfiles
 {
-    public const TYPES = ['ecommerce', 'magazine', 'cafe', 'coffee', 'resume', 'corporate'];
+    public const TYPES = ['ecommerce', 'magazine', 'cafe', 'coffee', 'resume', 'blog', 'corporate'];
 
     /** @return array<string, array{name_fa: string, name_en: string, theme: string, modules: array<string, list<string>>}> */
     public static function all(): array
@@ -84,6 +84,19 @@ final class SiteTypeProfiles
                 'modules' => array_merge(self::coreModules(), [
                     'resume' => ['profile', 'experience', 'education', 'skills', 'projects', 'contact'],
                     'cms' => ['pages', 'menus', 'seo'],
+                    'link-hub' => ['home', 'page', 'profiles', 'inbox', 'settings'],
+                ]),
+            ],
+            'blog' => [
+                'name_fa' => 'وبلاگ',
+                'name_en' => 'Blog',
+                'theme' => 'magazine-default',
+                'modules' => array_merge(self::coreModules(), [
+                    'blog' => ['posts', 'categories'],
+                    'cms' => ['pages', 'menus', 'seo'],
+                    'users' => ['subscribers', 'rbac'],
+                    'marketing' => ['newsletter'],
+                    'analytics' => ['overview', 'reports'],
                     'link-hub' => ['home', 'page', 'profiles', 'inbox', 'settings'],
                 ]),
             ],

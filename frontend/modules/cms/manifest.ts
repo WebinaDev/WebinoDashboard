@@ -4,7 +4,7 @@ export const cmsManifest: ModuleManifest = {
   slug: "cms",
   nameFa: "محتوا",
   nameEn: "CMS",
-  siteTypes: ["ecommerce", "magazine", "cafe", "resume", "corporate"],
+  siteTypes: ["ecommerce", "magazine", "cafe", "resume", "corporate", "blog"],
   submodules: ["pages", "menus", "seo"],
   adminNav: { section: "content", order: 12 },
   adminRoutes: [

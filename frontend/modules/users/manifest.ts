@@ -4,7 +4,7 @@ export const usersManifest: ModuleManifest = {
   slug: "users",
   nameFa: "کاربران",
   nameEn: "Users",
-  siteTypes: ["ecommerce", "magazine", "corporate", "cafe"],
+  siteTypes: ["ecommerce", "magazine", "corporate", "cafe", "blog"],
   submodules: ["customers", "staff", "rbac", "subscribers", "tickets"],
   adminNav: { section: "users", order: 50 },
   adminRoutes: [

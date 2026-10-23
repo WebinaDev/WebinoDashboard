@@ -4,7 +4,7 @@ export const linkHubManifest: ModuleManifest = {
   slug: "link-hub",
   nameFa: "لینک کوتاه",
   nameEn: "Link Hub",
-  siteTypes: ["ecommerce", "cafe", "coffee", "resume", "corporate"],
+  siteTypes: ["ecommerce", "cafe", "coffee", "resume", "corporate", "blog"],
   submodules: ["home", "page", "profiles", "inbox", "settings"],
   adminNav: { section: "link_hub", order: 45 },
   adminRoutes: [
