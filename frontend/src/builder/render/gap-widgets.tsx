@@ -102,9 +102,9 @@ export function BeforeAfterWidget({ widget }: { widget: WidgetNode }) {
   return (
     <div className="relative select-none overflow-hidden rounded-2xl" dir="ltr">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={after} alt={propStr(p, "afterLabel", "بعد")} className="block w-full" />
+      <img loading="lazy" decoding="async" src={after} alt={propStr(p, "afterLabel", "بعد")} className="block w-full" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={before} alt={propStr(p, "beforeLabel", "قبل")} className="absolute inset-0 h-full w-full object-cover" style={{ clipPath: clip }} />
+      <img loading="lazy" decoding="async" src={before} alt={propStr(p, "beforeLabel", "قبل")} className="absolute inset-0 h-full w-full object-cover" style={{ clipPath: clip }} />
       <span className="absolute start-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{propStr(p, "beforeLabel", "قبل")}</span>
       <span className="absolute end-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{propStr(p, "afterLabel", "بعد")}</span>
       <input
@@ -264,7 +264,7 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-bold">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {logo ? <img src={logo} alt={name} className="h-9 w-auto" /> : null}
+          {logo ? <img loading="eager" fetchPriority="high" decoding="async" src={logo} alt={name} className="h-9 w-auto" /> : null}
           {!logo || propStr(p, "siteName") ? <span>{name}</span> : null}
         </Link>
         <nav className="ms-auto hidden gap-4 text-sm md:flex">
@@ -294,7 +294,7 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-4">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {logo ? <img src={logo} alt={siteName ?? ""} className="mb-3 h-10 w-auto" /> : <div className="mb-3 font-bold">{siteName}</div>}
+          {logo ? <img loading="lazy" decoding="async" src={logo} alt={siteName ?? ""} className="mb-3 h-10 w-auto" /> : <div className="mb-3 font-bold">{siteName}</div>}
           {propStr(p, "blurb") ? <p className="text-sm opacity-80">{propStr(p, "blurb")}</p> : null}
         </div>
         {[...grouped.entries()].map(([title, links]) => (

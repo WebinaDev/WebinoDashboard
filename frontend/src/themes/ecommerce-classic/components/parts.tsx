@@ -15,7 +15,7 @@ export function ClassicLoader({ label }: { label?: string }) {
   const icon = useClassicThemeSettings().general?.loading_icon_url
   return (
     <span className="sfc-loader" role="status" aria-live="polite">
-      {icon ? <img src={icon} alt="" className="sfc-loader__img" /> : <span className="sfc-loader__spin" aria-hidden="true" />}
+      {icon ? <img loading="lazy" decoding="async" src={icon} alt="" className="sfc-loader__img" /> : <span className="sfc-loader__spin" aria-hidden="true" />}
       {label ? <span className="sfc-loader__label">{label}</span> : null}
     </span>
   )

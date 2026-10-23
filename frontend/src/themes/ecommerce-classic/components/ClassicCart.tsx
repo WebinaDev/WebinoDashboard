@@ -231,7 +231,7 @@ export function ClassicCart() {
               {auth !== "auth" ? <p className="sfc-cart__guest">{tx("cart.guest_note")}</p> : null}
               {lines.map((line) => (
                 <div key={line.key} className="sfc-cart-line">
-                  <span className="sfc-cart-line__img">{line.image ? <img src={line.image} alt="" /> : null}</span>
+                  <span className="sfc-cart-line__img">{line.image ? <img loading="lazy" decoding="async" src={line.image} alt="" /> : null}</span>
                   <div className="sfc-cart-line__body">
                     {line.href ? (
                       <Link href={line.href} className="sfc-cart-line__name">

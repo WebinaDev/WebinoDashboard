@@ -127,3 +127,12 @@ body:has(.sf-classic) {
 
 /* v2 builder sections: 12-column default with zero specificity so per-node layout rules win. */
 :where(.wb-columns.wb-flow) { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+/* mobileFullWidth (all tenants/themes): the wrapping section/column/container goes edge-to-edge with no
+   inter-section margin on phones, so mfw widgets span the content box via width:100% (no 100vw -> no
+   scrollbar shift, no thin light strips between e.g. hero and book banner). */
+@media (max-width: 760px) {
+  html .wb-section-stack > section:has(.wpz-mfw, .akx-mfw) { margin-block: 0; padding-inline: 0; width: 100%; max-width: none; }
+  html section:has(.wpz-mfw, .akx-mfw) > .wb-columns { padding-inline: 0; column-gap: 0; max-width: none; }
+  html section:has(.wpz-mfw, .akx-mfw) > .wb-columns > div, html section:has(.wpz-mfw, .akx-mfw) .wb-col-body { padding-inline: 0; }
+}

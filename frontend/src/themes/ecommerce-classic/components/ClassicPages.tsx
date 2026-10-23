@@ -51,7 +51,7 @@ export function ClassicNotFound() {
   const bg = String(general.bg_404 || "")
   return (
     <div className="sfc-404 sfc-container" style={bg ? { background: bg, borderRadius: 18 } : undefined}>
-      {logo ? <img src={logo} alt="" className="sfc-404__logo" /> : null}
+      {logo ? <img loading="lazy" decoding="async" src={logo} alt="" className="sfc-404__logo" /> : null}
       <h1>{tx("pages.nf_title")}</h1>
       <p>{tx("pages.nf_text")}</p>
       <div className="sfc-cart__links" style={{ justifyContent: "center" }}>

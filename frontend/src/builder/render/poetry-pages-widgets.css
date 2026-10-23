@@ -286,7 +286,7 @@
 @media (min-width: 761px) { .akx-nav .akx-burger { display: none !important; } }
 @media (max-width: 760px) {
   .akx-brand img { height: var(--akx-logo-hm, 48px); max-width: 60vw; }
-  .akx-mfw { width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); border-radius: 0 !important; }
+  .akx-mfw { width: 100%; max-width: none; margin-inline: 0; border-radius: 0 !important; }
   .akx-mfw:not(.akx-navwrap) { padding-inline: 16px; }
   .akx-navwrap.akx-mfw { padding: 0; }
   .akx-navwrap.akx-mfw .akx-nav { border-radius: 0; max-width: none; padding: 8px 16px; box-shadow: 0 4px 16px rgba(90,15,23,.08); }

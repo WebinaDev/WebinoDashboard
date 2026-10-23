@@ -69,4 +69,9 @@ return [
         'preferred_gateway' => env('DIGIPAY_PREFERRED_GATEWAY', 0),
     ],
 
+    'frontend_revalidate' => [
+        'url' => env('FRONTEND_REVALIDATE_URL'),
+        'secret' => env('REVALIDATE_SECRET'),
+    ],
+
 ];

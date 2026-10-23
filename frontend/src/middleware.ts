@@ -182,7 +182,7 @@ async function handle(request: NextRequest) {
 
   if (isPublicAsset) {
     const res = NextResponse.next({ request: { headers: requestHeaders } })
-    if (!request.cookies.get("NEXT_LOCALE")) {
+    if (!request.cookies.get("NEXT_LOCALE") && locale !== "fa") { // default locale needs no cookie (keeps anonymous responses cacheable)
       res.cookies.set("NEXT_LOCALE", locale, {
         path: "/",
         maxAge: 60 * 60 * 24 * 365,
@@ -210,7 +210,7 @@ async function handle(request: NextRequest) {
         const rewriteRes = NextResponse.rewrite(rewriteUrl, {
           request: { headers: requestHeaders },
         })
-        if (!request.cookies.get("NEXT_LOCALE")) {
+        if (!request.cookies.get("NEXT_LOCALE") && locale !== "fa") { // default locale needs no cookie (keeps anonymous responses cacheable)
           rewriteRes.cookies.set("NEXT_LOCALE", locale, {
             path: "/",
             maxAge: 60 * 60 * 24 * 365,
@@ -227,7 +227,7 @@ async function handle(request: NextRequest) {
   }
 
   const res = NextResponse.next({ request: { headers: requestHeaders } })
-  if (!request.cookies.get("NEXT_LOCALE")) {
+  if (!request.cookies.get("NEXT_LOCALE") && locale !== "fa") { // default locale needs no cookie (keeps anonymous responses cacheable)
     res.cookies.set("NEXT_LOCALE", locale, {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,

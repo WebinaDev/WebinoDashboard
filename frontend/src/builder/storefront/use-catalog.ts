@@ -46,16 +46,7 @@ type CatalogPayload = {
   total: number
 }
 
-/** Dedupe identical public catalog GETs across header/home/footer hooks. */
-const catalogInflight = new Map<string, Promise<CatalogPayload | null>>()
-
-export function fetchCatalogPayload(query: string): Promise<CatalogPayload | null> {
-  const existing = catalogInflight.get(query)
-  if (existing) return existing
-  const base = process.env.NEXT_PUBLIC_API_URL ?? ""
-  const promise = fetch(`${base}/api/v1/public/catalog?${query}`, { credentials: "include" })
-    .then((res) => (res.ok ? res.json() : null))
-    .then((json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; pagination?: { total?: number } } } | null) => {
+export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; pagination?: { total?: number } } } | null): CatalogPayload | null {
       if (!json?.data) return null
       const items = Array.isArray(json.data.items) ? json.data.items : []
       const categories = Array.isArray(json.data.categories) ? json.data.categories : []
@@ -77,7 +68,18 @@ export function fetchCatalogPayload(query: string): Promise<CatalogPayload | nul
         brands: mappedBrands,
         total: Number(json.data.pagination?.total ?? products.length) || 0,
       }
-    })
+    }
+
+/** Dedupe identical public catalog GETs across header/home/footer hooks. */
+const catalogInflight = new Map<string, Promise<CatalogPayload | null>>()
+
+export function fetchCatalogPayload(query: string): Promise<CatalogPayload | null> {
+  const existing = catalogInflight.get(query)
+  if (existing) return existing
+  const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+  const promise = fetch(`${base}/api/v1/public/catalog?${query}`, { credentials: "include" })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((json) => mapCatalogJson(json))
     .catch(() => null)
     .finally(() => {
       // Keep briefly so Strict Mode remount can reuse; then allow refresh.

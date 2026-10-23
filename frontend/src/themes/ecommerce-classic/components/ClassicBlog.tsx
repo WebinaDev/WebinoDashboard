@@ -121,7 +121,7 @@ export function ClassicBlogSingle({
         <article className="sf-blog-article">
           {post.cover_url ? (
             <div className="mb-6 overflow-hidden rounded-[1.75rem]">
-              <img src={post.cover_url} alt="" className="aspect-[21/9] w-full object-cover" />
+              <img loading="lazy" decoding="async" src={post.cover_url} alt="" className="aspect-[21/9] w-full object-cover" />
             </div>
           ) : null}
           <h1 className="text-3xl font-extrabold leading-tight md:text-4xl">{post.title}</h1>

@@ -71,6 +71,9 @@ export default async function RootLayout({
     <html lang={pageLang?.lang ?? locale} dir={dir} className={yekanBakh.variable} suppressHydrationWarning>
       <head>
         <meta name="generator" content="Webina Dashboard" />
+        {/* Only the two weights used above the fold; the rest load on demand via @font-face (display: swap). */}
+        <link rel="preload" href="/fonts/yekan-bakh/woff2/YekanBakh-Regular.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/yekan-bakh/woff2/YekanBakh-Bold.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <script
           id="webina-fingerprint"
           dangerouslySetInnerHTML={{

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
 import { apiServer } from "@/lib/api-server"
+import { hoistDataUrls } from "@/lib/inline-media"
 import { globalsCss } from "@/builder/globals"
 import { loadPublishedGlobals, loadResolvedTemplate, StorefrontDocument } from "@/builder/public-document"
 import { requestPageLang } from "@/builder/page-lang"
@@ -95,7 +96,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
     if (res?.data) {
       tenantName = res.data.store_display_name ?? res.data.name ?? tenantName
       themeSlug = res.data.active_theme_slug ?? themeSlug
-      branding = resolveSiteBranding(res.data.branding)
+      branding = resolveSiteBranding(hoistDataUrls(res.data.branding))
       hostMode = res.data.host_mode || "primary"
     }
   } catch {

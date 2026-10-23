@@ -1,12 +1,14 @@
 import { cache, Suspense, type ReactNode } from "react"
 
 import { apiServer } from "@/lib/api-server"
+import { hoistDataUrls } from "@/lib/inline-media"
 import { asGlobals, type BuilderGlobals } from "./globals"
 import { DocumentView } from "./render/DocumentView"
 import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
 import { isDocument } from "./tree"
 import type { BuilderDocument, RuntimeContext, SectionNode } from "./types"
+import { prefetchForDocuments } from "./server-prefetch"
 import { storefrontThemeClass } from "@/themes/shared/storefront-skin"
 
 const PUBLIC_DOC_REVALIDATE = 10
@@ -35,7 +37,7 @@ async function readDocument(path: string): Promise<BuilderDocument | null> {
   // Short data-cache window (was 0 = uncached on every request). Publishes show within ~10s.
   const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_REVALIDATE, tags: ["builder"] })
   const document = res?.data?.document
-  return isDocument(document) ? pruneForView(document) : null
+  return isDocument(document) ? hoistDataUrls(pruneForView(document)) : null
 }
 
 export function loadPublishedPage(slug: string): Promise<BuilderDocument | null> {
@@ -48,7 +50,7 @@ export function loadPublishedTemplate(kind: "header" | "footer"): Promise<Builde
 
 export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | null> => {
   const res = await apiServer<{ data?: { settings?: unknown } }>("/api/v1/public/builder/globals", { revalidate: PUBLIC_DOC_REVALIDATE, tags: ["builder"] })
-  return res?.data?.settings ? asGlobals(res.data.settings) : null
+  return res?.data?.settings ? asGlobals(hoistDataUrls(res.data.settings)) : null
 })
 
 export const loadResolvedTemplate = cache(async (kind: string, query: ThemeQuery): Promise<BuilderDocument | null> => {
@@ -94,16 +96,17 @@ export async function StorefrontDocument({
 }) {
   // Parallel instead of four sequential round-trips.
   const [globals, query] = await Promise.all([loadPublishedGlobals(), context ?? requestThemeContext()])
-  const [loop, themeSlug] = await Promise.all([
+  const [loop, themeSlug, prefetch] = await Promise.all([
     runtime?.loopDocument ?? loadResolvedTemplate("loop_item", query),
     runtime?.themeSlug ?? activeThemeSlug(),
+    prefetchForDocuments([document]),
   ])
   return (
     <PublishedDocument
       document={document}
       globals={globals}
       themeClass={themeClass}
-      runtime={{ ...runtime, themeSlug, loopDocument: loop ?? undefined }}
+      runtime={{ ...runtime, themeSlug, loopDocument: loop ?? undefined, ...(prefetch ? { prefetch: { ...runtime?.prefetch, ...prefetch } } : {}) }}
     />
   )
 }

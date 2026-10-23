@@ -78,6 +78,7 @@ class AppServiceProvider extends ServiceProvider
         Product::observe(CachePurgeObserver::class);
         BlogPost::observe(CachePurgeObserver::class);
         CmsPage::observe(CachePurgeObserver::class);
+        \App\Models\BuilderGlobal::observe(CachePurgeObserver::class);
 
         Scramble::ignoreDefaultRoutes();
 

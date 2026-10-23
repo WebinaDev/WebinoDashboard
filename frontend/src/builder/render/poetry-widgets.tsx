@@ -13,6 +13,7 @@ import type { CSSProperties } from "react"
 import { parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { PhotoSlot, apiV1, isDemoProduct, useCatalog } from "./poetry-pages-widgets"
+import { useBuilderRuntime } from "./runtime"
 import "./poetry-widgets.css"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
@@ -81,7 +82,7 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
         </div>
       </div>
       <div className="wpz-hero-media">
-        {img && propStr(p, "photoMode", "photo") === "photo" ? <img src={img} alt={propStr(p, "imageAlt")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "photo")} logo={propStr(p, "logo")} alt={propStr(p, "imageAlt")} /></div>}
+        {img && propStr(p, "photoMode", "photo") === "photo" ? <img loading="eager" fetchPriority="high" decoding="async" src={img} alt={propStr(p, "imageAlt")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "photo")} logo={propStr(p, "logo")} alt={propStr(p, "imageAlt")} /></div>}
         {couplet.length ? (
           <div className="wpz-couplet" aria-label="بیت">
             {couplet.map((line, i) => <span key={i}>{line}</span>)}
@@ -96,11 +97,18 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
 type LiveRow = { title: string; tag: string; audio: string; duration: string; href: string; image?: string }
 
 function useLatestPoems(count: number, sort: string, detailHref: string): LiveRow[] {
-  const [rows, setRows] = useState<LiveRow[]>([])
+  const qs = new URLSearchParams({ per_page: String(count), ...(sort === "popular" ? { sort } : {}) })
+  const pre = (useBuilderRuntime() as { prefetch?: Record<string, unknown> }).prefetch
+  const seedRaw = count && pre ? pre[`/v1/public/poetry/poems?${qs}`] : undefined
+  const toRows = (data: { slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null }[]): LiveRow[] => {
+    const base = detailHref.split("?")[0] || "/poem"
+    return data.map((c) => ({ title: c.title, tag: c.occasion?.name ?? "", audio: "", duration: "", href: `${base}?poem=${encodeURIComponent(c.slug)}`, image: c.image || c.cover || "" }))
+  }
+  const seed = Array.isArray(seedRaw) ? toRows(seedRaw) : null
+  const [rows, setRows] = useState<LiveRow[]>(() => seed ?? [])
   useEffect(() => {
-    if (!count) return
+    if (!count || seed) return
     let off = false
-    const qs = new URLSearchParams({ per_page: String(count), ...(sort === "popular" ? { sort } : {}) })
     fetch(apiV1(`public/poetry/poems?${qs}`), { headers: { Accept: "application/json" }, credentials: "include" })
       .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: { slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null }[] }>)
       .then((j) => {
@@ -110,8 +118,9 @@ function useLatestPoems(count: number, sort: string, detailHref: string): LiveRo
       })
       .catch(() => !off && setRows([]))
     return () => { off = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count, sort, detailHref])
-  return rows
+  return seed ?? rows
 }
 
 export function PoemListWidget({ widget }: { widget: WidgetNode }) {
@@ -190,7 +199,7 @@ export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
   }
   return (
     <section className={shell(p, "wpz-book", "dark")} style={sectionBg(p)} dir="rtl">
-      {propStr(p, "photoMode", "photo") !== "photo" ? <div className={`akx wpz-book-img ${frameClass(p, "rounded")}`}><PhotoSlot mode={propStr(p, "photoMode")} logo={propStr(p, "logo")} alt={propStr(p, "title")} /></div> : propStr(p, "image") ? <img src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-book-img ${frameClass(p, "rounded")}`} /> : null}
+      {propStr(p, "photoMode", "photo") !== "photo" ? <div className={`akx wpz-book-img ${frameClass(p, "rounded")}`}><PhotoSlot mode={propStr(p, "photoMode")} logo={propStr(p, "logo")} alt={propStr(p, "title")} /></div> : propStr(p, "image") ? <img loading="lazy" decoding="async" src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-book-img ${frameClass(p, "rounded")}`} /> : null}
       <div className="wpz-book-body">
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
         <h2 className="wpz-h2">{propStr(p, "title")}</h2>
@@ -252,7 +261,7 @@ export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
               <div className={`wpz-media-cover ${frameClass(p, "rounded")}`}>
                 {open === i && src ? (isVideo ? <video src={src} controls autoPlay playsInline /> : <audio src={src} controls autoPlay />) : (
                   <>
-                    {r.cover ? <img src={r.cover} alt={r.title} /> : null}
+                    {r.cover ? <img loading="lazy" decoding="async" src={r.cover} alt={r.title} /> : null}
                     <button type="button" className="wpz-media-play" aria-label={`پخش ${r.title}`} onClick={() => setOpen(i)} disabled={!src}>
                       <Play className="h-6 w-6" />
                     </button>
@@ -323,7 +332,7 @@ export function PoetAboutWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   return (
     <section className={shell(p, "wpz-about", "light")} style={sectionBg(p)} dir="rtl">
-      {propStr(p, "photoMode", "logo") === "photo" && propStr(p, "image") ? <img src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "logo")} logo={propStr(p, "logo")} alt={propStr(p, "title")} fallback="logo" /></div>}
+      {propStr(p, "photoMode", "logo") === "photo" && propStr(p, "image") ? <img loading="lazy" decoding="async" src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "logo")} logo={propStr(p, "logo")} alt={propStr(p, "title")} fallback="logo" /></div>}
       <div>
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
         <h2 className="wpz-h2">{propStr(p, "title")}</h2>
@@ -352,7 +361,7 @@ const SOCIAL_LABELS: Record<string, string> = { instagram: "اینستاگرام
 const SOCIAL_IMG: Record<string, string> = { eitaa: "/brand/connect/eitaa.png", bale: "/brand/connect/bale.png", instagram: "/brand/connect/instagram.svg", telegram: "/brand/connect/telegram.svg", rubika: "/brand/connect/rubika.png" }
 
 export function SocialGlyph({ network }: { network: string }) {
-  if (SOCIAL_IMG[network]) return <img src={SOCIAL_IMG[network]} alt="" className="h-5 w-5 rounded-full" />
+  if (SOCIAL_IMG[network]) return <img loading="lazy" decoding="async" src={SOCIAL_IMG[network]} alt="" className="h-5 w-5 rounded-full" />
   return <span aria-hidden>{(SOCIAL_LABELS[network] ?? network).slice(0, 1)}</span>
 }
 
@@ -376,7 +385,7 @@ export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
   return (
     <footer className={shell({ ...p, tone: "dark" }, "wpz-footer", "dark")} style={sectionBg(p)} dir="rtl">
       <div className="wpz-footer-brand">
-        {propStr(p, "logo") ? <img src={propStr(p, "logo")} alt={propStr(p, "brand")} className="wpz-logo" /> : null}
+        {propStr(p, "logo") ? <img loading="eager" fetchPriority="high" decoding="async" src={propStr(p, "logo")} alt={propStr(p, "brand")} className="wpz-logo" /> : null}
         {propStr(p, "brand") ? <strong>{propStr(p, "brand")}</strong> : null}
         {propStr(p, "text") ? <p>{propStr(p, "text")}</p> : null}
       </div>

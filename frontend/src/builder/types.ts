@@ -191,6 +191,8 @@ export type RuntimeContext = {
   loopDocument?: BuilderDocument
   /** CMS collection item on /c/<collection>/<item> (collection_item templates) — `item.*` dynamic tags. */
   collectionItem?: import("./dynamic").DynamicItem | null
+  /** Server-fetched widget data (see server-prefetch.ts), keyed like the client hooks. */
+  prefetch?: Record<string, unknown>
 }
 
 export type EditorApi = {

@@ -5,6 +5,7 @@ namespace App\Services\Performance;
 use App\Services\Modules\ModuleSettingsService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 final class PerformanceSettingsService
 {
@@ -25,7 +26,7 @@ final class PerformanceSettingsService
             'purge_on_content_save' => true,
             'isr_revalidate_seconds' => 60,
             'cdn_cache_hint' => true,
-            'preload_fonts' => false,
+            'preload_fonts' => true,
             'defer_analytics' => true,
             'image_quality' => 82,
             'notes' => '',
@@ -87,6 +88,9 @@ final class PerformanceSettingsService
         } catch (\Throwable) {
             // Host may disallow artisan in request lifecycle.
         }
+        if ($this->revalidateFrontend()) {
+            $cleared[] = 'frontend-isr';
+        }
         Cache::put('performance:last_purge:'.$tenantId, [
             'at' => now()->toIso8601String(),
             'reason' => mb_substr($reason, 0, 120),
@@ -105,6 +109,25 @@ final class PerformanceSettingsService
         };
         if ($should) {
             $this->purge($tenantId, $kind.'_save');
+        }
+    }
+
+    /**
+     * Purge the Next.js data cache (tags builder/tenant/seo/poetry/catalog) via the frontend's
+     * secret-protected /webino-revalidate route. No-op unless FRONTEND_REVALIDATE_URL + REVALIDATE_SECRET are set.
+     */
+    public function revalidateFrontend(array $tags = ['builder', 'tenant', 'seo', 'poetry', 'catalog']): bool
+    {
+        $url = (string) config('services.frontend_revalidate.url', '');
+        $secret = (string) config('services.frontend_revalidate.secret', '');
+        if ($url === '' || $secret === '') {
+            return false;
+        }
+        try {
+            return Http::timeout(3)->withHeaders(['x-revalidate-secret' => $secret])
+                ->post($url, ['tags' => array_values($tags)])->successful();
+        } catch (\Throwable) {
+            return false;
         }
     }
 }

@@ -181,7 +181,7 @@ export function PoetryFigureWidget({ widget }: { widget: WidgetNode }) {
   return (
     <section className="wbx-pm wbx-pm-figure" dir="rtl">
       <header className="wbx-pm-figure-head">
-        {data.figure.image ? <img src={data.figure.image} alt={data.figure.name} /> : null}
+        {data.figure.image ? <img loading="lazy" decoding="async" src={data.figure.image} alt={data.figure.name} /> : null}
         <div>
           <h1>{data.figure.name}</h1>
           {data.figure.description ? <p>{data.figure.description}</p> : null}
