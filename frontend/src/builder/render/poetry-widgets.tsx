@@ -5,13 +5,14 @@
  * `frame` (arch|rounded|square) and `pattern` (bool) where relevant. Repeaters use the shared
  * `a|b|c` per-line format so they edit with the same RepeaterInput as other widgets. */
 
-import { ArrowLeft, BookOpen, Flame, Moon, MoreVertical, Music, Pause, Play, Quote, Star, Video } from "lucide-react"
+import { ArrowLeft, BookOpen, Flame, Moon, MoreVertical, Music, Pause, Play, Quote, ShoppingBag, Star, Video } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 
 import { parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
-import { PhotoSlot, apiV1 } from "./poetry-pages-widgets"
+import { PhotoSlot, apiV1, isDemoProduct, useCatalog } from "./poetry-pages-widgets"
 import "./poetry-widgets.css"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
@@ -35,8 +36,23 @@ function frameClass(p: Record<string, unknown>, def = "arch") {
 }
 
 function shell(p: Record<string, unknown>, extra: string, defTone = "light") {
-  const tone = propStr(p, "tone", defTone) === "dark" ? "wpz-dark" : "wpz-light"
-  return `wpz ${tone} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${extra}`
+  const t = propStr(p, "tone", defTone)
+  const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : "wpz-light"
+  const bg = propStr(p, "bgImage") ? "wpz-has-bg" : ""
+  return `wpz ${tone} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${bg} ${extra}`
+}
+
+const CSS_SAFE = /^[#a-z0-9(),.\s%-]+$/i
+/** Shared section background: image (cover) + colour/gradient overlay with opacity (0–100). */
+export function sectionBg(p: Record<string, unknown>): CSSProperties {
+  const img = propStr(p, "bgImage").replace(/["\\()]/g, "")
+  const ov = propStr(p, "bgOverlay")
+  const op = Math.max(0, Math.min(100, propNum(p, "bgOverlayOpacity", 70)))
+  const v: Record<string, string> = {}
+  if (img && /^(https?:\/\/|\/)/.test(img)) v["--wpz-bg-img"] = `url("${img}")`
+  if (ov && CSS_SAFE.test(ov)) v["--wpz-ov"] = ov
+  v["--wpz-ov-op"] = String(op / 100)
+  return v as CSSProperties
 }
 
 const ICONS: Record<string, typeof Flame> = { flame: Flame, moon: Moon, star: Star, book: BookOpen, music: Music, video: Video }
@@ -51,7 +67,7 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
   const img = propStr(p, "image")
   const couplet = propStr(p, "couplet").split("\n").map((s) => s.trim()).filter(Boolean)
   return (
-    <section className={shell(p, "wpz-hero", "light")} dir="rtl">
+    <section className={shell(p, "wpz-hero", "light")} style={sectionBg(p)} dir="rtl">
       <div className="wpz-hero-text">
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
         <h1 className="wpz-hero-title">{propStr(p, "title")}</h1>
@@ -74,7 +90,7 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
 }
 
 /** 2) latest poems: number, title, occasion tag, play with duration, item menu. */
-type LiveRow = { title: string; tag: string; audio: string; duration: string; href: string }
+type LiveRow = { title: string; tag: string; audio: string; duration: string; href: string; image?: string }
 
 function useLatestPoems(count: number, sort: string, detailHref: string): LiveRow[] {
   const [rows, setRows] = useState<LiveRow[]>([])
@@ -83,11 +99,11 @@ function useLatestPoems(count: number, sort: string, detailHref: string): LiveRo
     let off = false
     const qs = new URLSearchParams({ per_page: String(count), ...(sort === "popular" ? { sort } : {}) })
     fetch(apiV1(`public/poetry/poems?${qs}`), { headers: { Accept: "application/json" }, credentials: "include" })
-      .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: { slug: string; title: string; occasion?: { name?: string } | null }[] }>)
+      .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: { slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null }[] }>)
       .then((j) => {
         if (off) return
         const base = detailHref.split("?")[0] || "/poem"
-        setRows((j.data ?? []).map((c) => ({ title: c.title, tag: c.occasion?.name ?? "", audio: "", duration: "", href: `${base}?poem=${encodeURIComponent(c.slug)}` })))
+        setRows((j.data ?? []).map((c) => ({ title: c.title, tag: c.occasion?.name ?? "", audio: "", duration: "", href: `${base}?poem=${encodeURIComponent(c.slug)}`, image: c.image || c.cover || "" })))
       })
       .catch(() => !off && setRows([]))
     return () => { off = true }
@@ -97,7 +113,7 @@ function useLatestPoems(count: number, sort: string, detailHref: string): LiveRo
 
 export function PoemListWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const manual = parseRows(p.items, ["title", "tag", "audio", "duration", "href"]).filter((r) => r.title)
+  const manual = parseRows(p.items, ["title", "tag", "audio", "duration", "href", "image"]).filter((r) => r.title)
   // Live by default: latest published poems from the poetry module; manual rows win only when set.
   const live = useLatestPoems(manual.length ? 0 : Math.min(24, Math.max(1, propNum(p, "count", 6))), propStr(p, "sort"), propStr(p, "detailHref", "/poem"))
   const rows = manual.length ? manual : live
@@ -112,12 +128,13 @@ export function PoemListWidget({ widget }: { widget: WidgetNode }) {
     void a.play().then(() => setPlaying(i)).catch(() => setPlaying(null))
   }
   return (
-    <section className={shell(p, "wpz-section", "light")} dir="rtl">
+    <section className={shell(p, "wpz-section", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
       {!rows.length ? <p className="wpz-empty">هنوز شعری منتشر نشده است.</p> : (
         <ol className="wpz-poems">
           {rows.map((r, i) => (
             <li key={i} className="wpz-poem">
+              {r.image ? <img src={r.image} alt="" className="wpz-poem-thumb" loading="lazy" /> : null}
               <span className="wpz-num">{faNum(String(i + 1).padStart(2, "0"))}</span>
               <div className="wpz-poem-main">
                 <Link href={safeHref(r.href)} className="wpz-poem-title">{r.title}</Link>
@@ -169,7 +186,7 @@ export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
     }).then((r) => setState(r.ok ? "done" : "error")).catch(() => setState("error"))
   }
   return (
-    <section className={shell(p, "wpz-book", "dark")} dir="rtl">
+    <section className={shell(p, "wpz-book", "dark")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "photoMode", "photo") !== "photo" ? <div className={`akx wpz-book-img ${frameClass(p, "rounded")}`}><PhotoSlot mode={propStr(p, "photoMode")} logo={propStr(p, "logo")} alt={propStr(p, "title")} /></div> : propStr(p, "image") ? <img src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-book-img ${frameClass(p, "rounded")}`} /> : null}
       <div className="wpz-book-body">
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
@@ -185,26 +202,35 @@ export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
-/** 4) horizontally scrollable occasion cards. */
+/** 4) occasion cards: photo background + dark crimson gradient, link per card; scroll-snap row on mobile. */
 export function OccasionCardsWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const rows = parseRows(p.items, ["title", "image", "icon", "href"]).filter((r) => r.title)
+  const rows = parseRows(p.items, ["title", "image", "icon", "href", "subtitle"]).filter((r) => r.title)
+  const layout = propStr(p, "layout", "scroll") === "grid" ? "wpz-occ-grid" : "wpz-hscroll"
+  const ratio = RATIOS[propStr(p, "cardRatio", "4/5")] ?? "4 / 5"
   return (
-    <section className={shell(p, "wpz-section", "light")} dir="rtl">
+    <section className={shell(p, "wpz-section", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
-      <div className="wpz-hscroll" role="list">
-        {rows.map((r, i) => (
-          <Link key={i} role="listitem" href={safeHref(r.href)} className={`wpz-occasion ${frameClass(p)}`} style={r.image ? { backgroundImage: `url("${r.image.replace(/"/g, "")}")` } : undefined}>
-            <span className="wpz-occasion-icon"><Ico name={r.icon} className="h-5 w-5" /></span>
-            <span className="wpz-occasion-title">{r.title}</span>
-            <ArrowLeft className="wpz-occasion-arrow h-4 w-4" aria-hidden />
-          </Link>
-        ))}
+      <div className={layout} role="list" style={{ ["--wpz-card-ratio" as string]: ratio } as CSSProperties}>
+        {rows.map((r, i) => {
+          const img = r.image.replace(/["\\()]/g, "")
+          return (
+            <Link key={i} role="listitem" href={safeHref(r.href, "/poems")} className={`wpz-occasion ${img ? "has-img" : ""} ${frameClass(p, "rounded")}`} style={img ? { backgroundImage: `url("${img}")` } : undefined}>
+              <span className="wpz-occasion-icon"><Ico name={r.icon} className="h-5 w-5" /></span>
+              <span className="wpz-occasion-title">{r.title}</span>
+              {r.subtitle ? <span className="wpz-occasion-sub">{r.subtitle}</span> : null}
+              <span className="wpz-occasion-arrow"><ArrowLeft className="h-4 w-4" aria-hidden /></span>
+            </Link>
+          )
+        })}
         {!rows.length ? <p className="wpz-empty">مناسبت‌ها را وارد کنید (عنوان|تصویر|آیکن|پیوند).</p> : null}
       </div>
     </section>
   )
 }
+
+const RATIOS: Record<string, string> = { "4/5": "4 / 5", "3/4": "3 / 4", "2/3": "2 / 3", "1/1": "1 / 1", "16/10": "16 / 10" }
+const inDashboard = () => typeof window !== "undefined" && /^\/dashboard(\/|$)/.test(window.location.pathname)
 
 /** 5) audio/video media cards. */
 export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
@@ -212,7 +238,7 @@ export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
   const rows = parseRows(p.items, ["title", "cover", "reciter", "duration", "src", "kind"]).filter((r) => r.title)
   const [open, setOpen] = useState<number | null>(null)
   return (
-    <section className={shell(p, "wpz-section", "light")} dir="rtl">
+    <section className={shell(p, "wpz-section", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
       <div className="wpz-grid">
         {rows.map((r, i) => {
@@ -240,22 +266,50 @@ export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
-/** 6) shop showcase product cards (price in toman). */
+/** 6) shop showcase: real products from the store catalog (count/category), manual rows as override. */
+type ShowRow = { title: string; image: string; price: string; href: string; demo?: boolean }
 export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const rows = parseRows(p.items, ["title", "image", "price", "href"]).filter((r) => r.title)
+  const manual = parseRows(p.items, ["title", "image", "price", "href"]).filter((r) => r.title)
+  const live = propStr(p, "source", "catalog") !== "manual" && !manual.length
+  const count = Math.min(24, Math.max(1, propNum(p, "count", 6)))
+  const category = propStr(p, "category").trim()
+  const { items } = useCatalog(live, `per_page=${Math.max(count, 24)}&sort=newest${category ? `&category=${encodeURIComponent(category)}` : ""}`)
+  const fromCatalog: ShowRow[] = (items ?? [])
+    .filter((x) => !category || x.categorySlug === category || x.category === category)
+    .slice(0, count)
+    .map((x) => ({ title: x.name.replace(/\s*(\(نمونه\)|\[demo\]|«نمونه»)\s*/gi, " ").trim(), image: x.image || x.images[0] || "", price: x.price ? String(x.price) : "", href: `/product/${encodeURIComponent(x.slug)}`, demo: isDemoProduct(x.slug, x.name) }))
+  const rows: ShowRow[] = manual.length ? (manual as unknown as ShowRow[]) : fromCatalog
+  const loading = live && items === null
+  const ratio = RATIOS[propStr(p, "imageRatio", "4/5")] ?? "4 / 5"
+  const editor = inDashboard()
+  if (!rows.length && !loading && !editor) return null
   return (
-    <section className={shell(p, "wpz-section", "light")} dir="rtl">
-      {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
-      <div className="wpz-grid">
+    <section className={shell(p, "wpz-section", "light")} style={{ ...sectionBg(p), ["--wpz-pr-ratio" as string]: ratio } as CSSProperties} dir="rtl">
+      <div className="wpz-head">
+        {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
+        {propStr(p, "moreLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "moreHref"), "/shop")}>{propStr(p, "moreLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
+      </div>
+      <div className="wpz-grid wpz-shop-grid">
+        {loading ? Array.from({ length: Math.min(count, 6) }, (_, i) => <div key={i} className="wpz-product wpz-skel" aria-hidden />) : null}
         {rows.map((r, i) => (
           <article key={i} className="wpz-product">
-            {r.image ? <img src={r.image} alt={r.title} className={`wpz-product-img ${frameClass(p)}`} /> : <div className={`wpz-product-img wpz-img-empty ${frameClass(p)}`} />}
+            <Link href={safeHref(r.href, "/shop")} className={`wpz-product-media ${frameClass(p, "rounded")}`}>
+              {r.image ? <img src={r.image} alt={r.title} className="wpz-product-img" loading="lazy" /> : <span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span>}
+            </Link>
             <h3 className="wpz-product-title">{r.title}</h3>
             <p className="wpz-price">{formatToman(r.price) || propStr(p, "priceLabel")}</p>
-            <Link className="wpz-btn wpz-btn-primary" href={safeHref(r.href, "/shop")}>{propStr(p, "buttonLabel", "خرید")}</Link>
+            <Link className="wpz-btn wpz-btn-primary" href={safeHref(r.href, "/shop")}>{propStr(p, "buttonLabel", "مشاهده محصول")}</Link>
           </article>
         ))}
+        {!rows.length && !loading && editor ? (
+          <article className="wpz-product wpz-placeholder">
+            <span className="wpz-product-media wpz-frame-rounded"><span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span></span>
+            <h3 className="wpz-product-title">قاب نمونه</h3>
+            <p className="wpz-price">{propStr(p, "priceLabel", "قیمت (از مشتری)")}</p>
+            <small className="wpz-empty">محصولی در فروشگاه نیست؛ پس از افزودن محصول، این‌جا خودکار نمایش داده می‌شود.</small>
+          </article>
+        ) : null}
       </div>
     </section>
   )
@@ -265,7 +319,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
 export function PoetAboutWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   return (
-    <section className={shell(p, "wpz-about", "light")} dir="rtl">
+    <section className={shell(p, "wpz-about", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "photoMode", "logo") === "photo" && propStr(p, "image") ? <img src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "logo")} logo={propStr(p, "logo")} alt={propStr(p, "title")} fallback="logo" /></div>}
       <div>
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
@@ -282,7 +336,7 @@ export function PoetAboutWidget({ widget }: { widget: WidgetNode }) {
 export function QuoteBlockWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   return (
-    <figure className={shell(p, "wpz-quote", "dark")} dir="rtl">
+    <figure className={shell(p, "wpz-quote", "dark")} style={sectionBg(p)} dir="rtl">
       <Quote className="wpz-quote-mark" aria-hidden />
       <blockquote>{propStr(p, "text").split("\n").map((l, i) => <span key={i}>{l}</span>)}</blockquote>
       {propStr(p, "author") ? <figcaption>— {propStr(p, "author")}</figcaption> : null}
@@ -317,7 +371,7 @@ export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
   const links = parseRows(p.links, ["label", "href"]).filter((r) => r.label)
   const socials = parseRows(p.socials, ["network", "href"]).filter((r) => r.href)
   return (
-    <footer className={shell({ ...p, tone: "dark" }, "wpz-footer", "dark")} dir="rtl">
+    <footer className={shell({ ...p, tone: "dark" }, "wpz-footer", "dark")} style={sectionBg(p)} dir="rtl">
       <div className="wpz-footer-brand">
         {propStr(p, "logo") ? <img src={propStr(p, "logo")} alt={propStr(p, "brand")} className="wpz-logo" /> : null}
         {propStr(p, "brand") ? <strong>{propStr(p, "brand")}</strong> : null}

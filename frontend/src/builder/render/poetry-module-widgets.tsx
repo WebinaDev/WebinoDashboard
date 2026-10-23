@@ -3,6 +3,7 @@
 /* Poetry module renderers. Poems come from داشبورد ← بازاریابی ← اشعار (Poetry module public API).
  * Couplet layout: each beyt is two hemistichs side by side on wide screens, stacked on mobile. */
 
+import { Check, Copy, Download, Printer } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import type { WidgetNode } from "../types"
@@ -131,9 +132,9 @@ export function PoemDetailWidget({ widget }: { widget: WidgetNode }) {
       </header>
       {bool(p, "showTools") ? (
         <div className="wbx-pm-tools" role="toolbar">
-          <button type="button" onClick={copy}>{copied ? "کپی شد ✓" : "کپی متن"}</button>
-          <button type="button" onClick={() => window.print()}>چاپ</button>
-          <a href={api(`poems/${encodeURIComponent(poem.slug)}/text`)} download>دانلود متن</a>
+          <button type="button" onClick={copy}>{copied ? <><Check size={15} aria-hidden /> کپی شد</> : <><Copy size={15} aria-hidden /> کپی متن</>}</button>
+          <button type="button" onClick={() => window.print()}><Printer size={15} aria-hidden /> چاپ</button>
+          <a href={api(`poems/${encodeURIComponent(poem.slug)}/text`)} download><Download size={15} aria-hidden /> دانلود متن</a>
         </div>
       ) : null}
       <div className="wbx-pm-body">

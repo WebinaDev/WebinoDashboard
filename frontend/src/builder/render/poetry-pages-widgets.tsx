@@ -7,6 +7,7 @@
  * and works with the payment gateway off (checkoutMode = inquiry | none). */
 
 import Link from "next/link"
+import { Check, ChevronLeft, ChevronRight, Copy, Menu, Music2, Printer, Share2, SlidersHorizontal, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import type { CSSProperties, ReactNode } from "react"
 
@@ -154,11 +155,33 @@ function Pager({ page, last, onPage }: { page: number; last: number; onPage: (n:
     else if (pages[pages.length - 1] !== "…") pages.push("…")
   }
   return (
-    <nav className="akx-pager" aria-label="صفحه‌بندی">
-      <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="قبلی">›</button>
+    <nav className="akx-pager" dir="rtl" aria-label="صفحه‌بندی">
+      <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="صفحه قبلی"><ChevronRight size={16} aria-hidden /></button>
       {pages.map((n, i) => n === "…" ? <span key={`e${i}`}>…</span> : <button type="button" key={n} className={n === page ? "is-on" : ""} aria-current={n === page ? "page" : undefined} onClick={() => onPage(n)}>{fa(n)}</button>)}
-      <button type="button" disabled={page >= last} onClick={() => onPage(page + 1)} aria-label="بعدی">‹</button>
+      <button type="button" disabled={page >= last} onClick={() => onPage(page + 1)} aria-label="صفحه بعدی"><ChevronLeft size={16} aria-hidden /></button>
     </nav>
+  )
+}
+
+/** Desktop: a normal sticky sidebar. Mobile (≤760px): hidden behind a «فیلتر» button that opens a bottom sheet. */
+function FilterSide({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    if (!open) return
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    window.addEventListener("keydown", k)
+    return () => window.removeEventListener("keydown", k)
+  }, [open])
+  return (
+    <>
+      <button type="button" className="akx-filter-btn" aria-expanded={open} onClick={() => setOpen(true)}><SlidersHorizontal size={16} aria-hidden />{label}</button>
+      {open ? <div className="akx-sheet-scrim" onClick={() => setOpen(false)} aria-hidden /> : null}
+      <aside className={`akx-side ${open ? "is-open" : ""}`} aria-label={label}>
+        <div className="akx-sheet-head"><b>{label}</b><button type="button" onClick={() => setOpen(false)} aria-label="بستن"><X size={18} aria-hidden /></button></div>
+        {children}
+        <button type="button" className="akx-sheet-done" onClick={() => setOpen(false)}>نمایش نتایج</button>
+      </aside>
+    </>
   )
 }
 
@@ -167,6 +190,16 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const rt = useBuilderRuntime()
   const path = usePathname()
+  const [menu, setMenu] = useState(false)
+  useEffect(() => { setMenu(false) }, [path])
+  useEffect(() => {
+    if (!menu) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false) }
+    window.addEventListener("keydown", k)
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", k) }
+  }, [menu])
   const links = parseRows(p.links, ["label", "href"]).filter((l) => l.label)
   const logo = propStr(p, "logo") || rt.logoUrl || ""
   const active = (href: string) => {
@@ -185,6 +218,18 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
           {links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")} className={active(l.href) ? "is-on" : ""}>{l.label}</Link>)}
         </nav>
         {propBool(p, "showSearch", true) ? <SearchBox placeholder={propStr(p, "searchPlaceholder")} action={propStr(p, "searchHref", "/poems")} /> : null}
+        <button type="button" className="akx-burger" aria-label="باز کردن منو" aria-expanded={menu} onClick={() => setMenu(true)}><Menu size={22} aria-hidden /></button>
+      </div>
+      {menu ? <div className="akx-drawer-scrim" onClick={() => setMenu(false)} aria-hidden /> : null}
+      <div className={`akx-drawer ${menu ? "is-open" : ""}`} role="dialog" aria-modal={menu} aria-label="منو" aria-hidden={!menu}>
+        <div className="akx-drawer-head">
+          <b>{propStr(p, "brand", rt.siteName ?? "")}</b>
+          <button type="button" onClick={() => setMenu(false)} aria-label="بستن منو" tabIndex={menu ? 0 : -1}><X size={22} aria-hidden /></button>
+        </div>
+        {propBool(p, "showSearch", true) ? <SearchBox placeholder={propStr(p, "searchPlaceholder")} action={propStr(p, "searchHref", "/poems")} /> : null}
+        <nav aria-label="منوی موبایل">
+          {links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")} className={active(l.href) ? "is-on" : ""} onClick={() => setMenu(false)} tabIndex={menu ? 0 : -1}>{l.label}<ChevronLeft size={16} aria-hidden /></Link>)}
+        </nav>
       </div>
     </header>
   )
@@ -283,7 +328,7 @@ export function PoemArchiveWidget({ widget }: { widget: WidgetNode }) {
   return (
     <section className="akx akx-arch" dir="rtl" style={akxVars(p)}>
       {propBool(p, "showSidebar", true) ? (
-        <aside className="akx-side">
+        <FilterSide label={propStr(p, "filterLabel", "فیلتر")}>
           {facet("figure", "figureTitle", "شخصیت")}
           {facet("style", "styleTitle", "سبک")}
           {facet("occasion", "occasionTitle", "مناسبت")}
@@ -291,7 +336,7 @@ export function PoemArchiveWidget({ widget }: { widget: WidgetNode }) {
             <h4>{propStr(p, "mediaTitle", "رسانه")}</h4>
             <button type="button" className={`akx-ck ${f.media ? "is-on" : ""}`} aria-pressed={f.media} onClick={() => set({ media: !f.media })}><span>{propStr(p, "hasMediaLabel", "دارای صوت/ویدیو")}</span></button>
           </div>
-        </aside>
+        </FilterSide>
       ) : null}
       <div className="akx-main">
         <div className="akx-pills" role="tablist">
@@ -368,9 +413,9 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
         <div className="akx-sign">{propStr(p, "signPrefix", "✍")} <b>{poem.pen_name || ""}</b>{propStr(p, "signNote") ? ` · ${propStr(p, "signNote")}` : ""}{poem.composed_label ? ` · ${poem.composed_label}` : ""}</div>
         {tools ? (
           <div className="akx-tools">
-            <button type="button" onClick={copy}>📋 کپی متن</button>
-            <button type="button" onClick={() => window.print()}>🖨 چاپ</button>
-            <button type="button" onClick={share}>🔗 اشتراک‌گذاری</button>
+            <button type="button" onClick={copy}><Copy size={16} aria-hidden />کپی متن</button>
+            <button type="button" onClick={() => window.print()}><Printer size={16} aria-hidden />چاپ</button>
+            <button type="button" onClick={share}><Share2 size={16} aria-hidden />اشتراک‌گذاری</button>
             <button type="button" onClick={toggleFav} aria-pressed={fav}>{fav ? "♥" : "♡"} علاقه‌مندی</button>
             <button type="button" onClick={() => setSize((s) => (s + 1) % 4)}>A+ اندازه متن</button>
             {note ? <span className="akx-note" role="status">{note}</span> : null}
@@ -423,7 +468,11 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
   const cur = items[sel]
   const cm = propStr(p, "coverMode", "arabesque")
   const pick = (it: MediaItem) => { setSel(items.indexOf(it)); setPlaying(true); if (typeof window !== "undefined") document.getElementById(`akx-feat-${widget.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }) }
-  if (!items.length) return <section className="akx akx-empty" dir="rtl" style={akxVars(p)}>هنوز اجرایی ثبت نشده است.</section>
+  if (!items.length) return (
+    <section className="akx akx-media-empty" dir="rtl" style={akxVars(p)}>
+      <div className="akx-empty-card"><span className="akx-empty-ic"><Music2 size={22} aria-hidden /></span><b>{propStr(p, "emptyTitle", "هنوز اجرایی ثبت نشده است")}</b><p>{propStr(p, "emptyText", "به‌زودی صوت و تصویر اجراها در این بخش قرار می‌گیرد.")}</p><Link href="/poems" className="akx-b1">مشاهده اشعار</Link></div>
+    </section>
+  )
   const top = items.slice(0, propNum(p, "topCount", 4))
   return (
     <section className="akx akx-media" dir="rtl" style={akxVars(p)}>
@@ -489,7 +538,7 @@ function manualItems(p: P): Item[] {
   })
 }
 
-function useCatalog(enabled: boolean, query: string): { items: ShopProduct[] | null; cats: { slug: string; name: string }[] } {
+export function useCatalog(enabled: boolean, query: string): { items: ShopProduct[] | null; cats: { slug: string; name: string }[] } {
   const [s, setS] = useState<{ items: ShopProduct[] | null; cats: { slug: string; name: string }[] }>({ items: null, cats: [] })
   useEffect(() => {
     if (!enabled) { setS({ items: [], cats: [] }); return }
@@ -511,7 +560,7 @@ function BuyButton({ p, it, qty = 1, big = false, option = "" }: { p: P; it: Ite
   const [done, setDone] = useState(false)
   if (mode === "none") return null
   if (mode === "cart" && it.live && it.price > 0 && it.inStock) {
-    return <button type="button" className={`akx-b1 ${big ? "akx-b1-big" : ""}`} onClick={() => { addToCart({ slug: it.slug, name: option ? `${it.title} (${option})` : it.title, price: it.price, tone: "", image: it.image || null, productId: it.productId }, qty); setDone(true); window.setTimeout(() => setDone(false), 1600) }}>{done ? "✓ افزوده شد" : propStr(p, "cartLabel", "افزودن به سبد")}</button>
+    return <button type="button" className={`akx-b1 ${big ? "akx-b1-big" : ""}`} onClick={() => { addToCart({ slug: it.slug, name: option ? `${it.title} (${option})` : it.title, price: it.price, tone: "", image: it.image || null, productId: it.productId }, qty); setDone(true); window.setTimeout(() => setDone(false), 1600) }}>{done ? <><Check size={16} aria-hidden /> افزوده شد</> : propStr(p, "cartLabel", "افزودن به سبد")}</button>
   }
   const base = safeLink(propStr(p, "inquiryHref"), "")
   const label = propStr(p, "inquiryLabel", "استعلام و سفارش")
@@ -519,10 +568,11 @@ function BuyButton({ p, it, qty = 1, big = false, option = "" }: { p: P; it: Ite
   return <a className={`akx-b1 ${big ? "akx-b1-big" : ""}`} href={base} target={isExternal(base) ? "_blank" : undefined} rel="noopener noreferrer">{label}</a>
 }
 
+const RATIO: Record<string, string> = { "4/5": "4 / 5", "3/4": "3 / 4", "2/3": "2 / 3", "1/1": "1 / 1", "16/10": "16 / 10" }
 function ProductCard({ p, it }: { p: P; it: Item }) {
   const body = (
     <>
-      <div className="akx-pr-img"><PhotoSlot mode={it.image ? "photo" : propStr(p, "imageMode", "arabesque")} src={it.image} logo={propStr(p, "logo")} alt={it.title} /></div>
+      <div className="akx-pr-img" style={{ ["--akx-pr-ratio" as string]: RATIO[propStr(p, "imageRatio", "4/5")] ?? "4 / 5" } as CSSProperties}><PhotoSlot mode={it.image ? "photo" : propStr(p, "imageMode", "arabesque")} src={it.image} logo={propStr(p, "logo")} alt={it.title} /></div>
       <b className="akx-pr-name">{it.title}</b>
       <div className="akx-price"><PriceLine p={p} it={it} /></div>
     </>
@@ -568,7 +618,7 @@ export function PoetryShopWidget({ widget }: { widget: WidgetNode }) {
   return (
     <section className="akx akx-shop" dir="rtl" style={{ ...akxVars(p), ["--akx-cols" as string]: String(Math.min(5, Math.max(2, propNum(p, "columns", 4)))) } as CSSProperties}>
       {propBool(p, "showSidebar", true) ? (
-        <aside className="akx-side">
+        <FilterSide label={propStr(p, "filterLabel", "فیلتر")}>
           {categories.length ? (
             <div className="akx-facet">
               <h4>{propStr(p, "categoryTitle", "دسته‌بندی")}</h4>
@@ -587,7 +637,7 @@ export function PoetryShopWidget({ widget }: { widget: WidgetNode }) {
             <label className="akx-ck"><span>{propStr(p, "inStockLabel", "فقط موجود")}</span><input type="checkbox" checked={stock} onChange={(e) => go(() => setStock(e.target.checked))} /></label>
             <label className="akx-ck"><span>{propStr(p, "saleLabel", "تخفیف‌دار")}</span><input type="checkbox" checked={sale} onChange={(e) => go(() => setSale(e.target.checked))} /></label>
           </div>
-        </aside>
+        </FilterSide>
       ) : null}
       <div className="akx-main">
         <div className="akx-pills">{sorts.filter(([, l]) => l).map(([k, l]) => <button type="button" key={k} className={sort === k ? "is-on" : ""} onClick={() => go(() => setSort(k))}>{l}</button>)}</div>
