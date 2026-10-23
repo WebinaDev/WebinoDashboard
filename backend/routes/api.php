@@ -191,6 +191,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/provision/modules/install', [ProvisionController::class, 'installModule']);
     Route::match(['get', 'post'], '/provision/modules/{slug}/status', [ProvisionController::class, 'moduleStatus']);
     Route::post('/provision/license-sync', [ProvisionController::class, 'licenseSync']);
+    Route::get('/provision/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'platformShow']);
+    Route::put('/provision/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'platformUpdate']);
     Route::post('/provision/panel-login', [ProvisionController::class, 'panelLogin']);
     Route::post('/integrations/erp/announcements', [ErpAnnouncementController::class, 'ingest']);
 
@@ -199,6 +201,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/tenant', [PublicSiteController::class, 'tenant']);
         Route::get('/home', [PublicSiteController::class, 'home']);
+        Route::get('/site-status', [PublicSiteController::class, 'siteStatus']);
         Route::get('/geo/states', [GeoController::class, 'states']);
         Route::get('/bots/widget', [BotController::class, 'widget']);
         Route::get('/geo/cities', [GeoController::class, 'cities']);
@@ -518,6 +521,8 @@ Route::prefix('v1')->group(function () {
                 ->middleware('can:settings.manage');
             Route::get('/security/events', [\App\Http\Controllers\Api\V1\SecurityEventsController::class, 'index'])->middleware('can:settings.manage');
             Route::get('/security/events/summary', [\App\Http\Controllers\Api\V1\SecurityEventsController::class, 'summary'])->middleware('can:settings.manage');
+            Route::get('/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'adminShow'])->middleware('can:settings.manage');
+            Route::put('/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'adminUpdate'])->middleware('can:settings.manage');
             Route::get('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'show']);
             Route::put('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'update'])
                 ->middleware('can:settings.manage');

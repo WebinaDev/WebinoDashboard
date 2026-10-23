@@ -65,6 +65,7 @@ class PublicSiteController extends Controller
                 'guest_checkout' => $guestCheckout,
                 'account_creation' => ($privacy['account_creation'] ?? true) !== false,
                 'nav_preset' => $tenant->nav_preset,
+                'site_status' => app(\App\Services\Site\SiteStatusService::class)->get((int) $tenant->id),
                 'otp_auth' => [
                     'login_enabled' => (bool) ($otp['otp_login_enabled'] ?? false),
                     'register_enabled' => (bool) ($otp['otp_register_enabled'] ?? false),
@@ -72,6 +73,17 @@ class PublicSiteController extends Controller
                 ],
             ],
         ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
+    }
+
+    /** Public site lifecycle status (coming_soon / suspended pages). Not cached by CDN. */
+    public function siteStatus(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tenant = $this->publicTenant($request);
+        $s = app(\App\Services\Site\SiteStatusService::class)->get((int) $tenant->id);
+        unset($s['updated_by']);
+        $s['name'] = $tenant->store_display_name ?: $tenant->name;
+
+        return response()->json(['data' => $s])->header('Cache-Control', 'no-store');
     }
 
     public function home(Request $request): \Illuminate\Http\JsonResponse

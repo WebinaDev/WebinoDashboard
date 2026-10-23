@@ -118,6 +118,25 @@ async function resolveHostMode(request: NextRequest): Promise<"link-hub" | "prim
   }
 }
 
+/** Site lifecycle status (coming_soon / suspended) from the public API; null = active/unknown. */
+async function fetchSiteStatus(request: NextRequest): Promise<"coming_soon" | "suspended" | null> {
+  const apiBase = getServerApiBase()
+  if (!apiBase) return null
+  const host = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
+  try {
+    const res = await fetch(`${apiBase}/api/v1/public/site-status`, {
+      headers: { Accept: "application/json", ...(host ? { "X-Tenant-Domain": host } : {}) },
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as { data?: { status?: string } }
+    const st = json.data?.status
+    return st === "coming_soon" || st === "suspended" ? st : null
+  } catch {
+    return null
+  }
+}
+
 async function handle(request: NextRequest) {
   const { pathname } = request.nextUrl
   const requestHeaders = new Headers(request.headers)
@@ -242,6 +261,33 @@ async function handle(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = legacyAdminToDashboardPath(pathname)
     return NextResponse.redirect(url)
+  }
+
+  if (
+    !isDashboard &&
+    !isLogin &&
+    !isSetup &&
+    !isChangePassword &&
+    !pathname.startsWith("/site-status")
+  ) {
+    const siteStatus = await fetchSiteStatus(request)
+    // Logged-in staff keep seeing the real site while it is "coming soon"; suspension blocks everyone.
+    const bypass = siteStatus === "coming_soon" && sessionToken(request) && (await fetchGate(request))?.authenticated
+    if (siteStatus && !bypass) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/site-status/${siteStatus === "suspended" ? "suspended" : "coming-soon"}`
+      url.search = ""
+      const rw = NextResponse.rewrite(url, {
+        request: { headers: requestHeaders },
+        status: siteStatus === "suspended" ? 503 : 200,
+      })
+      rw.headers.set("Cache-Control", "no-store")
+      if (siteStatus === "suspended") {
+        rw.headers.set("X-Robots-Tag", "noindex, nofollow")
+        rw.headers.set("Retry-After", "86400")
+      }
+      return rw
+    }
   }
 
   if (isDashboard || isSetup || isChangePassword) {

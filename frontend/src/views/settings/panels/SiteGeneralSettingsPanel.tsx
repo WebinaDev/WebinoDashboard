@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { SiteStatusCard } from "@/components/site-status/SiteStatusCard"
 import { SettingsSaveBar, useDraftSettings } from "@/views/settings/use-tenant-settings"
 
 type Payload = {
@@ -26,6 +27,7 @@ export function SiteGeneralSettingsPanel() {
 
   return (
     <div className="space-y-4">
+      <SiteStatusCard />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("title")}</CardTitle>

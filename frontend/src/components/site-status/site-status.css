@@ -1,0 +1,31 @@
+.ws{position:relative;min-height:100vh;overflow:hidden;direction:rtl;font-family:"Yekan Bakh",sans-serif;color:#22242a}
+.ws *{box-sizing:border-box;font-family:inherit}
+.ws-soon{background:#f4f7ff}
+.ws-susp{background:linear-gradient(160deg,#eef3fb,#f7f9fc 60%,#f2f6ff)}
+.ws .grid{position:absolute;inset:0;background-image:linear-gradient(#0054ff10 1px,transparent 1px),linear-gradient(90deg,#0054ff10 1px,transparent 1px);background-size:44px 44px}
+.ws .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;animation:wsf 14s ease-in-out infinite alternate}
+.ws-susp .blob{opacity:.35}
+@keyframes wsf{to{transform:translate(60px,-40px) scale(1.15)}}
+.ws .wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}
+.ws .card{background:#ffffffcc;backdrop-filter:blur(18px);border:1px solid #fff;border-radius:28px;padding:48px 44px;max-width:620px;width:100%;box-shadow:0 30px 80px #0054ff22}
+.ws .mark{width:64px;height:64px;margin:0 auto 18px;display:block}
+.ws .badge{display:inline-flex;align-items:center;gap:8px;background:#0054ff14;color:#0054ff;border-radius:99px;padding:6px 14px;font-size:13px;font-weight:700;margin-bottom:14px}
+.ws .dot{width:8px;height:8px;border-radius:50%;background:#0054ff;box-shadow:0 0 0 5px #0054ff30}
+.ws .site{font-size:15px;color:#5b6b8c;margin-bottom:8px}
+.ws h1{font-size:44px;font-weight:900;line-height:1.3;margin:0}
+.ws h1 span{color:#0054ff}
+.ws p.m{font-size:17px;line-height:2;color:#41506e;margin:14px 0 26px}
+.ws .cd{display:flex;gap:14px;justify-content:center;margin:30px 0 26px}
+.ws .cd div{width:92px;padding:14px 0;border-radius:18px;background:#fff;box-shadow:0 8px 24px #0054ff18}
+.ws .cd b{display:block;font-size:32px;font-weight:900;color:#0054ff}.ws .cd small{font-size:13px;opacity:.6}
+.ws form{display:flex;gap:10px;background:#fff;padding:7px;border-radius:16px;box-shadow:0 8px 24px #0054ff14}
+.ws input{flex:1;border:0;font-size:15px;padding:0 14px;outline:0;background:none;min-width:0}
+.ws button{border:0;font-weight:700;color:#fff;background:linear-gradient(135deg,#0054ff,#3d7dff);padding:13px 26px;border-radius:12px;cursor:pointer}
+.ws .msg{margin-top:12px;font-size:14px;color:#0054ff}
+.ws .ic{width:96px;height:96px;margin:0 auto 22px;border-radius:50%;background:#e8efff;display:grid;place-items:center;animation:wspl 3s ease-in-out infinite}
+@keyframes wspl{50%{box-shadow:0 0 0 18px rgba(0,84,255,.06)}}
+.ws .own{margin-top:8px;border-top:1px dashed #d3ddf0;padding-top:20px;font-size:14px;color:#5b6b8c;line-height:2}
+.ws .own a{display:inline-block;margin:12px 4px 0;background:#22242a;color:#fff;text-decoration:none;border-radius:12px;padding:11px 22px;font-weight:700}
+.ws .own a.alt{background:#0054ff}
+.ws .foot{margin-top:26px;font-size:13px;color:#7a88a6}.ws .foot b{color:#0054ff}
+@media(max-width:600px){.ws .card{padding:34px 22px}.ws h1{font-size:32px}.ws .cd div{width:68px}.ws .cd b{font-size:24px}}
