@@ -14,6 +14,7 @@
     "test:builder": "node --experimental-strip-types --import ./scripts/ts-resolve.mjs --test src/builder/*.test.ts",
     "test:nav": "node src/kernel/build-admin-nav.smoke.mjs",
     "test:auth-cookie": "node --experimental-strip-types --test src/lib/auth-cookie.test.ts",
+    "test:poem-seo": "node --experimental-strip-types --test src/lib/poem-seo.test.ts",
     "test:api-origin": "node --experimental-strip-types --test src/lib/server-api-base.test.ts",
     "check:i18n": "node scripts/check-i18n-duplicates.mjs",
     "check:links": "node scripts/check-dashboard-links.mjs",

@@ -31,8 +31,9 @@ final class SeoMetaBuilder
         if ($title === '') {
             $title = $path === '/' || $path === '' ? ((string) $cfg['home_title'] ?: $site) : $site;
         }
-        if ($description === '' && ($path === '/' || $path === '')) {
-            $description = (string) $cfg['home_description'];
+        // Every page needs a meta description: entity SEO → entity fallback (e.g. page excerpt) → site description.
+        if ($description === '') {
+            $description = trim((string) $cfg['home_description']);
         }
 
         $fullTitle = str_replace(

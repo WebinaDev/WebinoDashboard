@@ -71,6 +71,19 @@ class NativeSeoAndBnplBadgeTest extends TestCase
             ->assertSee('Sitemap:', false);
     }
 
+    public function test_builder_page_meta_description_falls_back_seo_then_excerpt_then_site(): void
+    {
+        $this->postJson('/api/v1/seo/settings', ['home_description' => 'توضیح سایت'])->assertOk();
+        \App\Models\CmsPage::query()->create(['tenant_id' => $this->tenant->id, 'slug' => 'a', 'title' => 'A', 'published' => true, 'seo' => ['seo_description' => 'توضیح سئو'], 'excerpt' => 'خلاصه']);
+        \App\Models\CmsPage::query()->create(['tenant_id' => $this->tenant->id, 'slug' => 'b', 'title' => 'B', 'published' => true, 'excerpt' => '<p>خلاصه</p>']);
+        \App\Models\CmsPage::query()->create(['tenant_id' => $this->tenant->id, 'slug' => 'c', 'title' => 'C', 'published' => true]);
+        foreach (['a' => 'توضیح سئو', 'b' => 'خلاصه', 'c' => 'توضیح سایت'] as $slug => $want) {
+            $this->withHeader('Host', 'shop.test')
+                ->getJson("/api/v1/public/seo/meta?type=page&slug={$slug}&path=/{$slug}")
+                ->assertOk()->assertJsonPath('data.meta.description', $want);
+        }
+    }
+
     public function test_installment_badges_only_for_enabled_gateways(): void
     {
         $gateways = app(PaymentGatewaySettingsService::class);

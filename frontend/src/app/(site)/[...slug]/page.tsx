@@ -6,6 +6,7 @@ import { apiServer } from "@/lib/api-server"
 import { canonicalSiteSegments } from "@/kernel/route-resolver"
 import { loadCollectionItem } from "../../../../modules/cms/site/collection-item-page"
 import { loadLinkHubPage } from "../../../../modules/link-hub/site/page-page"
+import { poemCanonicalPath, poemDescription, poemJsonLd, poemTitle, type PoemSeoSource } from "@/lib/poem-seo"
 
 export const revalidate = 60
 
@@ -43,8 +44,22 @@ async function loadProductSeo(slug: string, type: "product" | "page" = "product"
   }
 }
 
+/** Single poem shown by a builder page's poem-single widget via `?poem=<slug>`. */
+async function loadPoem(slug: string): Promise<PoemSeoSource | null> {
+  if (!slug) return null
+  const res = await apiServer<{ data?: PoemSeoSource }>(`/api/v1/public/poetry/poems/${encodeURIComponent(slug)}`, { revalidate: 60, tags: ["poetry"] })
+  return res?.data?.slug ? res.data : null
+}
+
+function poemParam(sp: Record<string, string | string[] | undefined>): string {
+  const v = sp.poem
+  return (Array.isArray(v) ? v[0] : v)?.trim() ?? ""
+}
+
+const originOf = (canonical?: string) => (canonical ? canonical.replace(/^(https?:\/\/[^/]+).*$/, "$1") : "")
+
 /** Per-route metadata: link hub and product pages; other routes keep the layout defaults. */
-export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const segments = canonicalSiteSegments((await params).slug ?? [])
   if (segments[0] === "product" && segments[1] && segments.length === 2) {
     const seo = await loadProductSeo(decodeURIComponent(segments[1]))
@@ -86,7 +101,25 @@ export async function generateMetadata({ params }: Pick<Props, "params">): Promi
     }
   }
   if (segments[0] === "pages" && segments[1] && segments.length === 2) {
-    const meta = (await loadProductSeo(decodeURIComponent(segments[1]), "page"))?.meta
+    const pageSlug = decodeURIComponent(segments[1])
+    const sp = searchParams ? await searchParams : {}
+    const [seo, poem] = await Promise.all([loadProductSeo(pageSlug, "page"), loadPoem(poemParam(sp))])
+    const meta = seo?.meta
+    if (poem) {
+      const site = meta?.og?.site_name || ""
+      const title = poemTitle(poem, site)
+      const description = poemDescription(poem) || meta?.description || undefined
+      const path = poemCanonicalPath(pageSlug, poem.slug)
+      const url = `${originOf(meta?.canonical)}${path}`
+      return {
+        title: { absolute: title },
+        description,
+        robots: meta?.robots || undefined,
+        alternates: { canonical: url },
+        openGraph: { type: "article", title, description, url, siteName: site || undefined, images: meta?.og?.image ? [meta.og.image] : undefined },
+        twitter: { card: "summary", title, description },
+      }
+    }
     if (!meta) return {}
     const languages = Object.fromEntries((meta.alternates ?? []).map((alt) => [alt.lang, alt.url]))
     return {
@@ -125,9 +158,17 @@ export default async function SiteCatchAllPage({ params, searchParams }: Props) 
   }
   if (segments[0] === "pages" && segments[1] && segments.length === 2) {
     const slug = decodeURIComponent(segments[1])
-    const [seo, page] = await Promise.all([loadProductSeo(slug, "page"), renderSitePage(segments, sp)])
+    const [seo, page, poem] = await Promise.all([loadProductSeo(slug, "page"), renderSitePage(segments, sp), loadPoem(poemParam(sp))])
     const meta = seo?.meta
-    const origin = meta?.canonical ? meta.canonical.replace(/^(https?:\/\/[^/]+).*$/, "$1") : ""
+    const origin = originOf(meta?.canonical)
+    if (poem) {
+      return (
+        <>
+          <JsonLd data={poemJsonLd(poem, `${origin}${poemCanonicalPath(slug, poem.slug)}`, meta?.og?.site_name)} />
+          {page}
+        </>
+      )
+    }
     const crumbs = meta && meta.breadcrumb !== false && origin
       ? {
           "@context": "https://schema.org",
