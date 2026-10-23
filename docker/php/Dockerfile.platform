@@ -105,5 +105,5 @@ RUN chmod +x /entrypoint.sh /usr/local/bin/webino-web
 
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
-# php-fpm (PHP_FPM_MAX_CHILDREN, default 24) behind nginx on :8080; replaces single-threaded artisan serve.
+# php-fpm (pool sized from PHP_FPM_* env at start, max_children default 8) behind nginx on :8080; replaces single-threaded artisan serve.
 CMD ["webino-web"]
