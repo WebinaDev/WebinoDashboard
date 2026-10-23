@@ -7,11 +7,11 @@
 
 import { ArrowLeft, BookOpen, Flame, Moon, MoreVertical, Music, Pause, Play, Quote, Star, Video } from "lucide-react"
 import Link from "next/link"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
-import { parseRows, propBool, propStr } from "../props"
+import { parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
-import { PhotoSlot } from "./poetry-pages-widgets"
+import { PhotoSlot, apiV1 } from "./poetry-pages-widgets"
 import "./poetry-widgets.css"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
@@ -74,9 +74,33 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
 }
 
 /** 2) latest poems: number, title, occasion tag, play with duration, item menu. */
+type LiveRow = { title: string; tag: string; audio: string; duration: string; href: string }
+
+function useLatestPoems(count: number, sort: string, detailHref: string): LiveRow[] {
+  const [rows, setRows] = useState<LiveRow[]>([])
+  useEffect(() => {
+    if (!count) return
+    let off = false
+    const qs = new URLSearchParams({ per_page: String(count), ...(sort === "popular" ? { sort } : {}) })
+    fetch(apiV1(`public/poetry/poems?${qs}`), { headers: { Accept: "application/json" }, credentials: "include" })
+      .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: { slug: string; title: string; occasion?: { name?: string } | null }[] }>)
+      .then((j) => {
+        if (off) return
+        const base = detailHref.split("?")[0] || "/poem"
+        setRows((j.data ?? []).map((c) => ({ title: c.title, tag: c.occasion?.name ?? "", audio: "", duration: "", href: `${base}?poem=${encodeURIComponent(c.slug)}` })))
+      })
+      .catch(() => !off && setRows([]))
+    return () => { off = true }
+  }, [count, sort, detailHref])
+  return rows
+}
+
 export function PoemListWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const rows = parseRows(p.items, ["title", "tag", "audio", "duration", "href"]).filter((r) => r.title)
+  const manual = parseRows(p.items, ["title", "tag", "audio", "duration", "href"]).filter((r) => r.title)
+  // Live by default: latest published poems from the poetry module; manual rows win only when set.
+  const live = useLatestPoems(manual.length ? 0 : Math.min(24, Math.max(1, propNum(p, "count", 6))), propStr(p, "sort"), propStr(p, "detailHref", "/poem"))
+  const rows = manual.length ? manual : live
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [playing, setPlaying] = useState<number | null>(null)
   const [menu, setMenu] = useState<number | null>(null)
@@ -90,7 +114,7 @@ export function PoemListWidget({ widget }: { widget: WidgetNode }) {
   return (
     <section className={shell(p, "wpz-section", "light")} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
-      {!rows.length ? <p className="wpz-empty">اشعار را وارد کنید (عنوان|مناسبت|فایل صوتی|مدت|پیوند).</p> : (
+      {!rows.length ? <p className="wpz-empty">هنوز شعری منتشر نشده است.</p> : (
         <ol className="wpz-poems">
           {rows.map((r, i) => (
             <li key={i} className="wpz-poem">

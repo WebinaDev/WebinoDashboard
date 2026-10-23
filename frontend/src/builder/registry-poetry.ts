@@ -34,13 +34,16 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "textarea", key: "couplet", label: "بیت عمودی (هر مصراع یک خط)" },
       tone, frame, pattern,
     ],
-    create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/blog", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", photoMode: "photo", logo: "", tone: "light", frame: "arch", pattern: true }),
+    create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/poems", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", photoMode: "photo", logo: "", tone: "light", frame: "arch", pattern: true }),
   },
   {
     type: "poem-list", label: "فهرست آخرین اشعار (با پخش صوت)", category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان بخش" },
-      { kind: "repeater", key: "items", label: "اشعار", fields: [
+      { kind: "number", key: "count", label: "تعداد اشعار (خودکار)", min: 1, max: 24 },
+      { kind: "select", key: "sort", label: "ترتیب (خودکار)", options: [{ value: "", label: "تازه‌ترین" }, { value: "popular", label: "پربازدیدترین" }] },
+      { kind: "link", key: "detailHref", label: "صفحه شعر" },
+      { kind: "repeater", key: "items", label: "اشعار دستی (خالی = خودکار از ماژول شعر)", fields: [
         { key: "title", label: "عنوان", kind: "text" }, { key: "tag", label: "مناسبت", kind: "text" },
         { key: "audio", label: "فایل صوتی", kind: "media" }, { key: "duration", label: "مدت (۰۴:۳۲)", kind: "text" }, { key: "href", label: "پیوند", kind: "url" },
       ] },
@@ -48,7 +51,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "moreLabel", label: "متن «همه اشعار»" }, { kind: "link", key: "moreHref", label: "پیوند همه اشعار" },
       tone, pattern,
     ],
-    create: () => node("poem-list", { title: "آخرین اشعار", items: "", readLabel: "خواندن شعر", downloadLabel: "دانلود صوت", moreLabel: "همه اشعار", moreHref: "/blog", tone: "light" }),
+    create: () => node("poem-list", { title: "آخرین اشعار", count: 6, sort: "", detailHref: "/poem", items: "", readLabel: "خواندن شعر", downloadLabel: "دانلود صوت", moreLabel: "همه اشعار", moreHref: "/poems", tone: "light" }),
   },
   {
     type: "book-banner", label: "بنر کتاب + «خبرم کن»", category: "content",
@@ -70,7 +73,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       ] },
       tone, frame, pattern,
     ],
-    create: () => node("occasion-cards", { title: "مناسبت‌ها", items: "محرم||flame|/blog?occasion=muharram\nفاطمیه||moon|/blog?occasion=fatemiyeh\nماه رمضان||star|/blog?occasion=ramadan\nمدح و مناجات||book|/blog?occasion=madh", tone: "light", frame: "arch" }),
+    create: () => node("occasion-cards", { title: "مناسبت‌ها", items: "محرم||flame|/poems?occasion=muharram\nفاطمیه||moon|/poems?occasion=fatemiyeh\nماه رمضان||star|/poems?occasion=ramadan\nمدح و مناجات||book|/poems?occasion=madh", tone: "light", frame: "arch" }),
   },
   {
     type: "media-cards", label: "کارت‌های صوت و تصویر", category: "content",
@@ -124,6 +127,6 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       ] },
       { kind: "text", key: "copyright", label: "کپی‌رایت" }, pattern,
     ],
-    create: () => node("poetry-footer", { brand: "", text: "", links: "خانه|/\nاشعار|/blog\nفروشگاه|/shop\nتماس|/contact", socials: "", copyright: "", pattern: true }),
+    create: () => node("poetry-footer", { brand: "", text: "", links: "خانه|/\nاشعار|/poems\nفروشگاه|/shop\nتماس|/contact", socials: "", copyright: "", pattern: true }),
   },
 ]

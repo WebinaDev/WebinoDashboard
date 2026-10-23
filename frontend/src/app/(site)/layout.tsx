@@ -12,7 +12,6 @@ import { BuilderRuntimeProvider } from "@/builder/render/runtime"
 import { loadThemeComponents } from "@/kernel/theme-loader"
 import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
-import { preferPublishedStorefrontChrome } from "@/themes/shared/storefront-skin"
 import { AnalyticsTrackerScript } from "@/components/AnalyticsTrackerScript"
 import { BotSiteWidget } from "@/components/BotSiteWidget"
 import { JsonLd } from "@/components/seo/JsonLd"
@@ -116,13 +115,13 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   const theme = await loadThemeComponents(themeSlug)
   const { SiteHeader, SiteFooter } = theme
   const themeContext = await requestThemeContext()
-  const preferPublishedChrome = preferPublishedStorefrontChrome(themeSlug)
   const pageLang = await requestPageLang()
   const requestPath = ((await headers()).get("x-webino-path") ?? "/").split("?")[0]
   const [globals, header, footer] = await Promise.all([
     loadPublishedGlobals(),
-    preferPublishedChrome ? loadResolvedTemplate("header", themeContext) : Promise.resolve(null),
-    preferPublishedChrome ? loadResolvedTemplate("footer", themeContext) : Promise.resolve(null),
+    // A published header/footer template replaces the theme chrome on every theme (resolver 404s when none exists).
+    loadResolvedTemplate("header", themeContext),
+    loadResolvedTemplate("footer", themeContext),
   ])
 
   return (
