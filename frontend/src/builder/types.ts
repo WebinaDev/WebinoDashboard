@@ -156,10 +156,17 @@ export type SectionNode = {
   /** Set by the v1→v2 migration: keep the old fixed 12-column rendering exactly. */
   legacy?: boolean
   fullWidth?: boolean
+  /** Break out of the boxed theme wrapper to the full viewport width (desktopWidth=full only). Default false. */
+  fullBleed?: boolean
+  /** Subtle repeating eslimi pattern over the section colour/gradient. Default off. */
+  pattern?: SectionPattern
   style?: ResponsiveStyle
   advanced?: AdvancedProps
   columns: ColumnNode[]
 }
+
+/** opacity 0–100 (%, default 12), color (default #c9a45c), scale = tile px 24–400 (default 96). */
+export type SectionPattern = { enabled?: boolean; opacity?: number; color?: string; scale?: number }
 
 export type BuilderDocument = {
   version: 1 | typeof BUILDER_VERSION

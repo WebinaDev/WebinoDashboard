@@ -1,0 +1,13 @@
+/* fullBleed: break out of any boxed theme wrapper to the viewport width (symmetric margins → RTL-safe). */
+.wb-full-bleed { width: 100vw !important; max-width: 100vw !important; margin-inline: calc(50% - 50vw) !important; box-sizing: border-box; }
+html:has(.wb-full-bleed) body { overflow-x: clip; }
+
+/* eslimi pattern over the section's own colour/gradient; content stays above (isolation). */
+.wb-has-pattern { position: relative; isolation: isolate; }
+.wb-has-pattern > .wb-pattern {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: inherit;
+  background-color: var(--wb-pat-color, #c9a45c); opacity: var(--wb-pat-op, .12);
+  -webkit-mask-image: url("/builder/patterns/eslimi.svg"); mask-image: url("/builder/patterns/eslimi.svg");
+  -webkit-mask-size: var(--wb-pat-size, 96px); mask-size: var(--wb-pat-size, 96px);
+  -webkit-mask-repeat: repeat; mask-repeat: repeat; -webkit-mask-position: center top; mask-position: center top;
+}

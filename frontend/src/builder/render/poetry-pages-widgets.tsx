@@ -134,7 +134,8 @@ export function PhotoSlot({ mode, src, logo, alt = "", className = "", fallback 
   return (
     <div className={`akx-slot akx-slot-${m} ${className}`} data-mode={m}>
       {m === "photo" ? <img src={src} alt={alt} loading="lazy" /> : <Arabesque />}
-      {m === "logo" && logoSrc ? <img loading="lazy" decoding="async" className="akx-slot-logoimg" src={logoSrc} alt={alt || rt.siteName || ""} /> : null}
+      {/* logo: eager + sized + optimizer-bypassed (logo rule). A lazy unsized <img> stayed 0×0 until scrolled/fetched, so the slot showed only the arabesque pattern. */}
+      {m === "logo" && logoSrc ? <img loading="eager" fetchPriority="low" decoding="async" width={240} height={240} className="akx-slot-logoimg" {...optImg(logoSrc, undefined, true)} alt={alt || rt.siteName || ""} /> : null}
       {m === "logo" && !logoSrc ? <span className="akx-slot-mono">{(alt || rt.siteName || "✦").slice(0, 1)}</span> : null}
       {m === "arabesque" ? <span className="akx-slot-star" aria-hidden>✦</span> : null}
       {children}

@@ -16,6 +16,8 @@ import type { WidgetNode } from "../types"
 import { PhotoSlot, apiV1, isDemoProduct, useCatalog } from "./poetry-pages-widgets"
 import { useBuilderRuntime } from "./runtime"
 import "./poetry-widgets.css"
+import "./poetry-layouts.css"
+import { aboutClass, heroIsOverlay, shopNarrowStyle, shopTrackClass } from "./poetry-layouts"
 import { optImg } from "@/lib/image-url"
 import { sectionIsDark } from "./contrast"
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
@@ -43,12 +45,13 @@ function frameClass(p: Record<string, unknown>, def = "arch") {
 
 function shell(p: Record<string, unknown>, extra: string, defTone = "light") {
   const t = propStr(p, "tone", defTone)
-  const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : "wpz-light"
+  const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : t === "blush" ? "wpz-light wpz-blush" : "wpz-light"
   const bg = propStr(p, "bgImage") ? "wpz-has-bg" : ""
   const mfw = propBool(p, "mobileFullWidth", true) ? "wpz-mfw" : ""
   // Dark tone, image+dark overlay, or a dark bg colour → light text tokens cascade from the section.
   const dark = sectionIsDark({ tone: t, bgImage: propStr(p, "bgImage"), bgOverlay: propStr(p, "bgOverlay"), bgOverlayOpacity: propNum(p, "bgOverlayOpacity", 70), bgColor: propStr(p, "bgColor") || propStr(p, "sectionBg") })
-  return `wpz ${tone} ${dark ? "wpz-on-dark" : ""} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${bg} ${mfw} ${extra}`
+  const bleed = propBool(p, "fullBleed", false) && propStr(p, "desktopWidth", "full") === "full" ? "wpz-bleed" : ""
+  return `wpz ${tone} ${bleed} ${dark ? "wpz-on-dark" : ""} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${bg} ${mfw} ${extra}`
 }
 
 const CSS_SAFE = /^[#a-z0-9(),.\s%-]+$/i
@@ -91,6 +94,7 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const img = propStr(p, "image")
   const couplet = propStr(p, "couplet").split("\n").map((s) => s.trim()).filter(Boolean)
+  if (heroIsOverlay(p)) return <PoetryHeroOverlay p={p} img={img} couplet={couplet} />
   return (
     <section className={shell(p, "wpz-hero", "light")} style={sectionBg(p)} dir="rtl">
       <div className="wpz-hero-text">
@@ -109,6 +113,37 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
             {couplet.map((line, i) => <span key={i}>{line}</span>)}
           </div>
         ) : null}
+      </div>
+    </section>
+  )
+}
+
+/** hero heroLayout=overlay: full-width light stage, image behind the text, decorative left/right slots (eager, optimizer-bypassed). */
+function PoetryHeroOverlay({ p, img, couplet }: { p: Record<string, unknown>; img: string; couplet: string[] }) {
+  const left = propStr(p, "decorLeft")
+  const right = propStr(p, "decorRight")
+  const leftFrame = propStr(p, "decorLeftFrame", "rose-arch")
+  const rightFrame = propStr(p, "decorRightFrame", "none")
+  const veil = Math.max(0, Math.min(100, propNum(p, "heroVeil", 55)))
+  const decor = (src: string, side: "left" | "right", frame: string) => (
+    <div className={`wpz-hero-decor wpz-hero-decor-${side} wpz-decor-${frame === "rose-arch" ? "rose-arch" : frame === "arch" ? "arch" : "none"}`} aria-hidden>
+      <img loading="eager" decoding="async" {...optImg(src, "(max-width: 760px) 34vw, 360px", true)} alt="" />
+    </div>
+  )
+  return (
+    <section className={shell(p, "wpz-hero wpz-hero-overlay", "light")} style={{ ...sectionBg(p), ["--wpz-veil" as string]: String(veil / 100) } as CSSProperties} dir="rtl">
+      {img ? <img className="wpz-hero-bgimg" loading="eager" fetchPriority="high" decoding="async" {...optImg(img, "100vw", true)} alt={propStr(p, "imageAlt")} /> : null}
+      {right ? decor(right, "right", rightFrame) : null}
+      {left ? decor(left, "left", leftFrame) : null}
+      <div className="wpz-hero-text">
+        {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
+        <h1 className="wpz-hero-title">{propStr(p, "title")}</h1>
+        {propStr(p, "text") ? <p className="wpz-hero-sub">{propStr(p, "text")}</p> : null}
+        {couplet.length ? <div className="wpz-hero-beyt" aria-label="بیت">{couplet.map((line, i) => <span key={i}>{line}</span>)}</div> : null}
+        <div className="wpz-actions">
+          {propStr(p, "primaryLabel") ? <Link className="wpz-btn wpz-btn-primary" href={safeHref(propStr(p, "primaryHref"))}>{propStr(p, "primaryLabel")}</Link> : null}
+          {propStr(p, "secondaryLabel") ? <Link className="wpz-btn wpz-btn-ghost" href={safeHref(propStr(p, "secondaryHref"))}>{propStr(p, "secondaryLabel")}</Link> : null}
+        </div>
       </div>
     </section>
   )
@@ -329,7 +364,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
   const { carousel, opts } = carouselOpts(p, 4)
   if (!rows.length && !loading && !editor) return null
   return (
-    <section className={shell(p, "wpz-section", "light")} style={{ ...sectionBg(p), ["--wpz-pr-ratio" as string]: ratio } as CSSProperties} dir="rtl">
+    <section className={shell(p, `wpz-section ${shopTrackClass(p)}`, "light")} style={{ ...sectionBg(p), ["--wpz-pr-ratio" as string]: ratio, ...shopNarrowStyle(p) } as CSSProperties} dir="rtl">
       <div className="wpz-head">
         {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
         {propStr(p, "moreLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "moreHref"), "/shop")}>{propStr(p, "moreLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
@@ -368,7 +403,7 @@ function ShopTrack({ carousel, opts, label, children }: { carousel: boolean; opt
 export function PoetAboutWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   return (
-    <section className={shell(p, "wpz-about", "light")} style={sectionBg(p)} dir="rtl">
+    <section className={shell(p, aboutClass(p), "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "photoMode", "logo") === "photo" && propStr(p, "image") ? <img loading="lazy" decoding="async" {...optImg(propStr(p, "image"))} alt={propStr(p, "title")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "logo")} logo={propStr(p, "logo")} alt={propStr(p, "title")} fallback="logo" /></div>}
       <div>
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}

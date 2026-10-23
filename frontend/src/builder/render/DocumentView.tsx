@@ -19,6 +19,8 @@ import { WidgetBody } from "./widgets"
 import { LAYOUT_CONTAINER_TYPES, layoutContainerStyle } from "./gap-widgets"
 import { dwAttr, dwClass, dwRowClass, packVisible, sectionDesktopWidth, widgetDesktopWidth } from "./desktop-width"
 import "./desktop-width.css"
+import { patternOn, patternVars, sectionExtraClass } from "./section-extras"
+import "./section-extras.css"
 
 import "../storefront.css"
 import "@/themes/ecommerce-classic/classic-theme.css"
@@ -72,10 +74,12 @@ function SectionBlock({ section, device, editor, depth = 0, dwClassName = "" }: 
   const style = editor ? styleToCss(sectionStyle) : undefined
   const conditionsPass = useConditionsVisible(section.advanced?.conditions, Boolean(editor))
   if ((section.hidden || !conditionsPass) && !editor) return null
+  // fullBleed is a viewport breakout: skipped in the editor canvas (the canvas is not the viewport).
+  const extra = sectionExtraClass({ fullBleed: editor ? false : section.fullBleed, pattern: section.pattern }, depth === 0 ? sectionDesktopWidth(section) : "nested")
   return (
     <section
       id={section.id}
-      className={`${dwClassName} ${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${advancedClass(section.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""} ${editor && section.hidden ? "opacity-40" : ""}`}
+      className={`${dwClassName} ${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${extra} ${advancedClass(section.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""} ${editor && section.hidden ? "opacity-40" : ""}`}
       style={style}
       {...advancedAttrs(section.advanced)}
       {...motionAttrs(section.advanced)}
@@ -90,6 +94,7 @@ function SectionBlock({ section, device, editor, depth = 0, dwClassName = "" }: 
         editor.onContextMenu?.(section.id, event.clientX, event.clientY)
       } : undefined}
     >
+      {patternOn(section.pattern) ? <div className="wb-pattern" style={patternVars(section.pattern)} aria-hidden /> : null}
       <Decor advanced={section.advanced} />
       <div
         className={`wb-columns grid items-start ${section.legacy ? "" : "wb-flow"}`}

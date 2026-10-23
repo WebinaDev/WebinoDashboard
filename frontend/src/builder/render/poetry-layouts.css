@@ -1,0 +1,56 @@
+/* Poetry widget layout options (heroLayout, aboutLayout/card, slidesNarrow/compactCards/imageFit, fullBleed, tone=blush). */
+
+/* tone=blush: light pink stage */
+.wpz-light.wpz-blush { --wpz-cream: #fbeff0; background: #fbeff0; }
+
+/* widget fullBleed (desktopWidth=full): breakout to viewport width, symmetric → RTL-safe */
+html:has(.wpz-bleed) body { overflow-x: clip; }
+.wpz.wpz-bleed { width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); border-radius: 0; box-sizing: border-box; }
+.wpz.wpz-bleed.wpz-has-bg::before { border-radius: 0; }
+
+/* hero overlay: image behind text, decorative slots at both sides */
+.wpz-hero.wpz-hero-overlay { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; min-height: clamp(360px, 46vw, 620px); overflow: hidden; text-align: center; padding-inline: clamp(16px, 22vw, 340px); }
+.wpz-hero-overlay .wpz-hero-bgimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.wpz-hero-overlay::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: var(--wpz-cream); opacity: var(--wpz-veil, .55); }
+.wpz-hero-overlay .wpz-hero-text { position: relative; z-index: 1; display: grid; justify-items: center; gap: 12px; max-width: 640px; }
+.wpz-hero-overlay .wpz-actions { justify-content: center; }
+.wpz-hero-beyt { display: grid; gap: 2px; font-weight: 700; line-height: 2; color: var(--wpz-crimson); }
+.wpz-hero-decor { position: absolute; bottom: 0; z-index: 0; width: clamp(120px, 20vw, 320px); pointer-events: none; }
+.wpz-hero-decor img { display: block; width: 100%; height: auto; object-fit: contain; }
+/* physical sides on purpose: design asks left = mihrab, right = shrine, regardless of dir */
+.wpz-hero-decor-left { left: clamp(8px, 3vw, 48px); }
+.wpz-hero-decor-right { right: clamp(8px, 3vw, 48px); }
+.wpz-decor-arch img, .wpz-decor-rose-arch img { border-radius: 999px 999px 12px 12px; aspect-ratio: 3 / 4; object-fit: cover; }
+.wpz-decor-rose-arch { padding: 8px; border-radius: 999px 999px 18px 18px; background:
+  radial-gradient(circle at 50% 0, #e79aab 0 7px, transparent 8px) 0 0 / 22px 22px,
+  linear-gradient(#f6c9d3, #e7a0b0); box-shadow: 0 0 0 3px #fff6f7, 0 10px 30px rgba(180,16,30,.18); bottom: 16px; }
+@media (max-width: 760px) {
+  .wpz-hero.wpz-hero-overlay { padding-inline: 16px; padding-bottom: clamp(120px, 34vw, 180px); min-height: 0; }
+  .wpz-hero-decor { width: 30vw; }
+}
+
+/* poet-about horizontal: image left / text right (RTL: 2nd column is left), kept as a row in half-width rows */
+@media (min-width: 481px) {
+  .wpz-about.wpz-about-h { grid-template-columns: minmax(0, 1fr) minmax(120px, 36%) !important; gap: clamp(14px, 2.4vw, 28px) !important; align-items: center; }
+  .wpz-about.wpz-about-h > .wpz-img { order: 2; max-width: none !important; margin-inline: 0 !important; }
+}
+.wpz-about.wpz-card-light { background: #fffaf6; color: var(--wpz-ink); border: 1px solid color-mix(in srgb, var(--wpz-gold) 35%, transparent); box-shadow: 0 10px 28px rgba(74,7,16,.10); }
+.wpz-about.wpz-card-light.wpz-has-bg::before { opacity: .12; }
+
+/* logo slot: reserve a box so the logo is visible before decode */
+.akx-slot-logoimg { height: auto; aspect-ratio: 1 / 1; }
+
+/* shop: slides-per-view by the widget's own width (container query), not the viewport */
+.wpz-cq { container: wpzcq / inline-size; }
+@media (min-width: 761px) {
+  @container wpzcq (max-width: 720px) {
+    .wpz-shop-carousel .wpz-carousel-track > * { flex-basis: calc((100% - (var(--wpz-spv-n, 3) - 1) * var(--wpz-cgap)) / var(--wpz-spv-n, 3)); }
+    .wpz-shop-carousel { --wpz-cgap: 10px; }
+    .wpz-shop-grid { grid-template-columns: repeat(var(--wpz-spv-n, 3), minmax(0, 1fr)) !important; gap: 10px; }
+  }
+}
+.wpz-compact .wpz-product { gap: 6px; padding: 6px; }
+.wpz-compact .wpz-product-title { font-size: .85rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 3.2em; }
+.wpz-compact .wpz-price { font-size: .8rem; margin: 0; }
+.wpz-compact .wpz-product .wpz-btn { padding: 6px 10px; font-size: .78rem; width: 100%; justify-content: center; }
+.wpz-fit-contain .wpz-product-img { object-fit: contain; background: #fff; }

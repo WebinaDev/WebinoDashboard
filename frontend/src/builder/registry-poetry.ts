@@ -6,7 +6,7 @@ function node(type: string, props: Record<string, unknown>): WidgetNode {
   return { id: uid("w"), type, props }
 }
 
-const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }] }
+const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }, { value: "blush", label: "صورتی روشن" }] }
 /** Shared section background: image + colour/gradient overlay (e.g. dark crimson) with opacity 0–100. */
 export const SECTION_BG_FIELDS: FieldDef[] = [
   { kind: "media", key: "bgImage", label: "تصویر پس‌زمینه بخش", accept: "image" },
@@ -36,6 +36,8 @@ export const POETRY_WIDGET_TYPES = [
   "poetry-hero", "poem-list", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
 ] as const
 
+const DECOR_FRAMES = [{ value: "rose-arch", label: "محراب گل‌سرخی" }, { value: "arch", label: "محرابی ساده" }, { value: "none", label: "بدون قاب" }]
+
 export const POETRY_WIDGETS: WidgetDef[] = [
   {
     type: "poetry-hero", label: "هیرو شعر (تصویر کناری + بیت عمودی)", category: "content",
@@ -47,6 +49,12 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "secondaryLabel", label: "دکمه دوم" }, { kind: "link", key: "secondaryHref", label: "پیوند دکمه دوم" },
       { kind: "media", key: "image", label: "تصویر", accept: "image" }, { kind: "text", key: "imageAlt", label: "متن جایگزین تصویر" }, PHOTO_MODE, LOGO,
       { kind: "textarea", key: "couplet", label: "بیت عمودی (هر مصراع یک خط)" },
+      { kind: "select", key: "heroLayout", label: "چیدمان هیرو", options: [{ value: "split", label: "تصویر کنار متن (پیش‌فرض)" }, { value: "overlay", label: "تصویر پشت متن + تزئین دو طرف" }] },
+      { kind: "media", key: "decorLeft", label: "تصویر تزئینی چپ (مثلاً محراب گل‌دار)", accept: "image" },
+      { kind: "select", key: "decorLeftFrame", label: "قاب تصویر چپ", options: DECOR_FRAMES },
+      { kind: "media", key: "decorRight", label: "تصویر تزئینی راست (مثلاً حرم)", accept: "image" },
+      { kind: "select", key: "decorRightFrame", label: "قاب تصویر راست", options: DECOR_FRAMES },
+      { kind: "number", key: "heroVeil", label: "روشنی پرده روی تصویر پس‌زمینه (۰ تا ۱۰۰)", min: 0, max: 100 },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/poems", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", photoMode: "photo", logo: "", tone: "light", frame: "arch", pattern: true }),
@@ -120,6 +128,9 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "moreLabel", label: "متن «مشاهده همه»" }, { kind: "link", key: "moreHref", label: "پیوند مشاهده همه" },
       { kind: "text", key: "buttonLabel", label: "متن دکمه" }, { kind: "text", key: "priceLabel", label: "متن جایگزین قیمت (درگاه خاموش)" },
       ...CAROUSEL_FIELDS,
+      { kind: "number", key: "slidesNarrow", label: "تعداد کارت وقتی ستون باریک است (نصف‌عرض؛ ۰ = خاموش)", min: 0, max: 4 },
+      { kind: "switch", key: "compactCards", label: "کارت فشرده (عنوان دوخطی، دکمه کوچک)" },
+      { kind: "select", key: "imageFit", label: "نمایش تصویر محصول", options: [{ value: "cover", label: "پرکردن قاب (پیش‌فرض)" }, { value: "contain", label: "کامل (بدون برش)" }] },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("shop-showcase", { title: "فروشگاه قاب‌های مذهبی", items: "", source: "catalog", count: 6, category: "", imageRatio: "4/5", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, moreLabel: "مشاهده همه", moreHref: "/shop", buttonLabel: "مشاهده محصول", priceLabel: "قیمت (از مشتری)", tone: "light", frame: "arch" }),
@@ -130,6 +141,8 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       PHOTO_MODE, { kind: "media", key: "image", label: "تصویر (فقط در حالت عکس)", accept: "image" }, LOGO,
       { kind: "text", key: "eyebrow", label: "برچسب" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "متن" },
       SOCIALS, { kind: "text", key: "linkLabel", label: "متن «بیشتر بخوانید»" }, { kind: "link", key: "linkHref", label: "پیوند" },
+      { kind: "select", key: "aboutLayout", label: "چیدمان", options: [{ value: "auto", label: "خودکار (پیش‌فرض)" }, { value: "horizontal", label: "افقی: تصویر چپ، متن راست" }] },
+      { kind: "select", key: "card", label: "کارت", options: [{ value: "none", label: "بدون کارت" }, { value: "light", label: "کارت روشن" }] },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("poet-about", { eyebrow: "درباره شاعر", title: "", text: "", linkLabel: "بیشتر بخوانید", linkHref: "/about", photoMode: "logo", logo: "", tone: "light", frame: "arch" }),
@@ -186,8 +199,10 @@ export const DESKTOP_WIDTH_FIELD: FieldDef = {
     { value: "narrow", label: "باریک (۴۰٪) — کنار «پهن»" },
   ],
 }
+/** `fullBleed` (default off): with desktopWidth=full, the widget breaks out of the boxed wrapper to the viewport edges. */
+export const FULL_BLEED_FIELD: FieldDef = { kind: "switch", key: "fullBleed", label: "تمام‌عرض تا لبه صفحه (فقط با عرض «تمام‌عرض»)" }
 for (const d of POETRY_WIDGETS) if (d.type !== "poetry-footer" && !d.fields.some((f) => "key" in f && f.key === "desktopWidth")) {
-  d.fields.push(DESKTOP_WIDTH_FIELD)
+  d.fields.push(DESKTOP_WIDTH_FIELD, FULL_BLEED_FIELD)
   const make = d.create
   d.create = () => { const n = make(); if (n.props.desktopWidth === undefined) n.props.desktopWidth = "full"; return n }
 }
