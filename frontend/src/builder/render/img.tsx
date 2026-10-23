@@ -10,7 +10,7 @@ type Props = ImgHTMLAttributes<HTMLImageElement> & { priority?: boolean }
 
 /** Shared builder image: lazy + async decoding by default (globals.images.lazy), eager when `priority`. */
 export function Img({ priority, loading, decoding, alt, src, srcSet, sizes, ...rest }: Props) {
-  const opt = typeof src === "string" && !srcSet ? optImg(src, sizes) : { src, srcSet, sizes }
+  const opt = typeof src === "string" && !srcSet ? optImg(src, sizes, priority) : { src, srcSet, sizes }
   const globals = useBuilderGlobals()
   const lazy = globals.images?.lazy !== false
   const mode = priority ? "eager" : loading ?? (lazy ? "lazy" : "eager")

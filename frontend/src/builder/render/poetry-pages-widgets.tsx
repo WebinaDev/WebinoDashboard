@@ -225,7 +225,7 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
     <header className={`akx akx-navwrap ${akxMfw(p)} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
       <div className={`akx-nav ${propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
         <Link href="/" className="akx-brand">
-          {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo)} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
+          {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo, undefined, true)} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
           {logoOnly && logo ? null : <b>{propStr(p, "brand", rt.siteName ?? "")}</b>}
         </Link>
         <nav className="akx-links" aria-label="منوی اصلی">
@@ -771,7 +771,7 @@ export function PoetrySiteFooterWidget({ widget }: { widget: WidgetNode }) {
   return (
     <footer className={`akx akx-foot ${akxMfw(p)}`} dir="rtl" style={akxVars(p, { bg: "--akx-fbg", text: "--akx-ftx" })}>
       <div className="akx-foot-in">
-        <Link href="/" className="akx-foot-brand">{logo ? <img loading="lazy" decoding="async" {...optImg(logo)} alt="" /> : null}<b>{propStr(p, "brand", rt.siteName ?? "")}</b></Link>
+        <Link href="/" className="akx-foot-brand">{logo ? <img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt="" /> : null}<b>{propStr(p, "brand", rt.siteName ?? "")}</b></Link>
         <nav aria-label="پیوندهای پاورقی">{links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")}>{l.label}</Link>)}</nav>
         <div className="akx-foot-soc">{socials.map((s, i) => <a key={i} href={safeLink(s.href)} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_LABELS[s.network] ?? s.network}>{s.label || SOCIAL_SHORT[s.network] || s.network}</a>)}</div>
       </div>

@@ -103,7 +103,7 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
         </div>
       </div>
       <div className="wpz-hero-media">
-        {img && propStr(p, "photoMode", "photo") === "photo" ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(img)} alt={propStr(p, "imageAlt")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "photo")} logo={propStr(p, "logo")} alt={propStr(p, "imageAlt")} /></div>}
+        {img && propStr(p, "photoMode", "photo") === "photo" ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(img, undefined, true)} alt={propStr(p, "imageAlt")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "photo")} logo={propStr(p, "logo")} alt={propStr(p, "imageAlt")} /></div>}
         {couplet.length ? (
           <div className="wpz-couplet" aria-label="بیت">
             {couplet.map((line, i) => <span key={i}>{line}</span>)}
@@ -415,7 +415,7 @@ export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
   return (
     <footer className={shell({ ...p, tone: "dark" }, "wpz-footer", "dark")} style={sectionBg(p)} dir="rtl">
       <div className="wpz-footer-brand">
-        {propStr(p, "logo") ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(propStr(p, "logo"))} alt={propStr(p, "brand")} className="wpz-logo" /> : null}
+        {propStr(p, "logo") ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(propStr(p, "logo"), undefined, true)} alt={propStr(p, "brand")} className="wpz-logo" /> : null}
         {propStr(p, "brand") ? <strong>{propStr(p, "brand")}</strong> : null}
         {propStr(p, "text") ? <p>{propStr(p, "text")}</p> : null}
       </div>

@@ -46,7 +46,7 @@ export function ClassicLogin({
         <Link href="/" className="flex items-center gap-2 font-bold" style={{ color: navy }}>
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img loading="lazy" decoding="async" {...optImg(logo)} alt={siteName} className="h-9 w-auto" />
+            <img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt={siteName} className="h-9 w-auto" />
           ) : (
             <span>{siteName}</span>
           )}

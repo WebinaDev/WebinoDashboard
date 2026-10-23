@@ -370,7 +370,7 @@ export function ClassicFooter({
           <div className="sfc-footer__about">
             {footerLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img loading="lazy" decoding="async" {...optImg(footerLogo)} alt={siteName} className="sfc-footer__about-logo" />
+              <img loading="lazy" decoding="async" {...optImg(footerLogo, undefined, true)} alt={siteName} className="sfc-footer__about-logo" />
             ) : null}
             {aboutText ? <p>{aboutText}</p> : null}
           </div>

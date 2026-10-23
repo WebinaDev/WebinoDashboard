@@ -871,7 +871,7 @@ export function ClassicHeader({
                 <IconMenu size={22} />
               </button>
               <Link href="/" className="sfc-header__logo" aria-label={siteName}>
-                {logoUrl ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logoUrl)} alt={siteName} /> : <span className="sfc-header__mark">{siteName.slice(0, 1)}</span>}
+                {logoUrl ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logoUrl, undefined, true)} alt={siteName} /> : <span className="sfc-header__mark">{siteName.slice(0, 1)}</span>}
                 {!logoUrl ? <span className="sfc-header__name">{siteName}</span> : null}
               </Link>
               <LiveSearch

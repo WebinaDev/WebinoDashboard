@@ -21,7 +21,7 @@ const nextConfig = {
   },
   images: {
     // Central optimizer fallback for src/lib/image-url.ts (used when NEXT_PUBLIC_IMG_PROXY_BASE is unset).
-    formats: ["image/avif", "image/webp"],
+    formats: ["image/webp"], // AVIF encode of large logos took ~35s on first hit
     deviceSizes: [400, 800, 1200, 1600],
     imageSizes: [64, 128, 256],
     minimumCacheTTL: 31536000,

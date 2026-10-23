@@ -265,7 +265,7 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-bold">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo)} alt={name} className="h-9 w-auto" /> : null}
+          {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo, undefined, true)} alt={name} className="h-9 w-auto" /> : null}
           {!logo || propStr(p, "siteName") ? <span>{name}</span> : null}
         </Link>
         <nav className="ms-auto hidden gap-4 text-sm md:flex">
@@ -295,7 +295,7 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-4">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {logo ? <img loading="lazy" decoding="async" {...optImg(logo)} alt={siteName ?? ""} className="mb-3 h-10 w-auto" /> : <div className="mb-3 font-bold">{siteName}</div>}
+          {logo ? <img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt={siteName ?? ""} className="mb-3 h-10 w-auto" /> : <div className="mb-3 font-bold">{siteName}</div>}
           {propStr(p, "blurb") ? <p className="text-sm opacity-80">{propStr(p, "blurb")}</p> : null}
         </div>
         {[...grouped.entries()].map(([title, links]) => (

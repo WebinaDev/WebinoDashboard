@@ -401,7 +401,7 @@ export function HeaderPartWidget({ widget }: { widget: WidgetNode }) {
       const height = propNum(widget.props, "height", 40)
       return (
         <Link href="/" className="inline-flex items-center gap-2" aria-label={runtime.siteName || "home"}>
-          {runtime.logoUrl ? <Img src={runtime.logoUrl} alt={runtime.siteName || ""} style={{ height, width: "auto" }} /> : <strong className="text-lg font-black">{runtime.siteName}</strong>}
+          {runtime.logoUrl ? <Img priority src={runtime.logoUrl} alt={runtime.siteName || ""} style={{ height, width: "auto" }} /> : <strong className="text-lg font-black">{runtime.siteName}</strong>}
         </Link>
       )
     }
