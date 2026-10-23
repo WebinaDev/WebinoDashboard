@@ -11,6 +11,7 @@ import { useRef, useState } from "react"
 
 import { parseRows, propBool, propStr } from "../props"
 import type { WidgetNode } from "../types"
+import { PhotoSlot } from "./poetry-pages-widgets"
 import "./poetry-widgets.css"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
@@ -61,7 +62,7 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
         </div>
       </div>
       <div className="wpz-hero-media">
-        {img ? <img src={img} alt={propStr(p, "imageAlt")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`wpz-img wpz-img-empty ${frameClass(p)}`} />}
+        {img && propStr(p, "photoMode", "photo") === "photo" ? <img src={img} alt={propStr(p, "imageAlt")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "photo")} logo={propStr(p, "logo")} alt={propStr(p, "imageAlt")} /></div>}
         {couplet.length ? (
           <div className="wpz-couplet" aria-label="بیت">
             {couplet.map((line, i) => <span key={i}>{line}</span>)}
@@ -145,7 +146,7 @@ export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
   }
   return (
     <section className={shell(p, "wpz-book", "dark")} dir="rtl">
-      {propStr(p, "image") ? <img src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-book-img ${frameClass(p, "rounded")}`} /> : null}
+      {propStr(p, "photoMode", "photo") !== "photo" ? <div className={`akx wpz-book-img ${frameClass(p, "rounded")}`}><PhotoSlot mode={propStr(p, "photoMode")} logo={propStr(p, "logo")} alt={propStr(p, "title")} /></div> : propStr(p, "image") ? <img src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-book-img ${frameClass(p, "rounded")}`} /> : null}
       <div className="wpz-book-body">
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
         <h2 className="wpz-h2">{propStr(p, "title")}</h2>
@@ -227,7 +228,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
           <article key={i} className="wpz-product">
             {r.image ? <img src={r.image} alt={r.title} className={`wpz-product-img ${frameClass(p)}`} /> : <div className={`wpz-product-img wpz-img-empty ${frameClass(p)}`} />}
             <h3 className="wpz-product-title">{r.title}</h3>
-            <p className="wpz-price">{formatToman(r.price)}</p>
+            <p className="wpz-price">{formatToman(r.price) || propStr(p, "priceLabel")}</p>
             <Link className="wpz-btn wpz-btn-primary" href={safeHref(r.href, "/shop")}>{propStr(p, "buttonLabel", "خرید")}</Link>
           </article>
         ))}
@@ -241,7 +242,7 @@ export function PoetAboutWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   return (
     <section className={shell(p, "wpz-about", "light")} dir="rtl">
-      {propStr(p, "image") ? <img src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-img ${frameClass(p)}`} /> : null}
+      {propStr(p, "photoMode", "logo") === "photo" && propStr(p, "image") ? <img src={propStr(p, "image")} alt={propStr(p, "title")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "logo")} logo={propStr(p, "logo")} alt={propStr(p, "title")} fallback="logo" /></div>}
       <div>
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
         <h2 className="wpz-h2">{propStr(p, "title")}</h2>

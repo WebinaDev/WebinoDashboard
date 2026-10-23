@@ -119,6 +119,18 @@ const ShopShowcaseWidget = dynamic(() => import("./poetry-widgets").then((m) => 
 const PoetAboutWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetAboutWidget))
 const QuoteBlockWidget = dynamic(() => import("./poetry-widgets").then((m) => m.QuoteBlockWidget))
 const PoetryFooterWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryFooterWidget))
+const PoemDetailWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemDetailWidget))
+const PoetryFigureWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoetryFigureWidget))
+const PoemSearchWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemSearchWidget))
+const PoetryNavWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetryNavWidget))
+const PoetryPageHeroWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetryPageHeroWidget))
+const PoemArchiveWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoemArchiveWidget))
+const PoemSingleWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoemSingleWidget))
+const MediaArchiveWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.MediaArchiveWidget))
+const PoetryShopWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetryShopWidget))
+const PoetryProductWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetryProductWidget))
+const PoetProfileWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetProfileWidget))
+const PoetrySiteFooterWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetrySiteFooterWidget))
 
 const NAV = [
   { label: "خانه", href: "/" },
@@ -329,6 +341,30 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <QuoteBlockWidget widget={widget} />
     case "poetry-footer":
       return <PoetryFooterWidget widget={widget} />
+    case "poem-detail":
+      return <PoemDetailWidget widget={widget} />
+    case "poetry-figure":
+      return <PoetryFigureWidget widget={widget} />
+    case "poem-search":
+      return <PoemSearchWidget widget={widget} />
+    case "poetry-nav":
+      return <PoetryNavWidget widget={widget} />
+    case "poetry-page-hero":
+      return <PoetryPageHeroWidget widget={widget} />
+    case "poem-archive":
+      return <PoemArchiveWidget widget={widget} />
+    case "poem-single":
+      return <PoemSingleWidget widget={widget} />
+    case "media-archive":
+      return <MediaArchiveWidget widget={widget} />
+    case "poetry-shop":
+      return <PoetryShopWidget widget={widget} />
+    case "poetry-product":
+      return <PoetryProductWidget widget={widget} />
+    case "poet-profile":
+      return <PoetProfileWidget widget={widget} />
+    case "poetry-site-footer":
+      return <PoetrySiteFooterWidget widget={widget} />
     case "cafe-table-booking":
       return <CafeTableBookingWidget widget={widget} editing={editing} />
     case "image-box":

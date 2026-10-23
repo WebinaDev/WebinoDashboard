@@ -7,6 +7,8 @@ import { ICON_OPTIONS } from "./render/icon-options"
 import { COMMERCE_PLUGIN } from "./registry-commerce"
 import { CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
 import { POETRY_WIDGETS } from "./registry-poetry"
+import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
+import { POETRY_PAGE_WIDGETS } from "./registry-poetry-pages"
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
@@ -685,6 +687,8 @@ const CORE_WIDGETS: WidgetDef[] = [
   ...CONTENT_WIDGETS,
   ...GAP_WIDGETS,
   ...POETRY_WIDGETS,
+  ...POETRY_MODULE_WIDGETS,
+  ...POETRY_PAGE_WIDGETS,
 ]
 
 /** Registry: shared core first, then Dashboard plugins (Iranian commerce). */

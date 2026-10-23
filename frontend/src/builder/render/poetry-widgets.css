@@ -1,6 +1,6 @@
 /* Poetry / Muharram theme tokens. Override per site via theme CSS vars. */
 .wpz {
-  --wpz-crimson: #7a0f1c; --wpz-crimson-deep: #4a0710; --wpz-cream: #f7efe1; --wpz-gold: #c9a45c;
+  --wpz-crimson: #B4101E; --wpz-crimson-deep: #4a0710; --wpz-cream: #f7efe1; --wpz-gold: #c9a45c;
   --wpz-ink: #2b1a14; --wpz-muted: #7d6a5c; --wpz-radius: 18px;
   --wpz-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23c9a45c' stroke-opacity='.22' stroke-width='1'%3E%3Cpath d='M32 4l8 20 20 8-20 8-8 20-8-20-20-8 20-8z'/%3E%3Ccircle cx='32' cy='32' r='6'/%3E%3C/g%3E%3C/svg%3E");
   font-family: inherit; direction: rtl; padding: clamp(24px, 4vw, 56px); border-radius: var(--wpz-radius);

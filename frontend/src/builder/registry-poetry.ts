@@ -13,6 +13,8 @@ const SOCIALS: FieldDef = { kind: "repeater", key: "socials", label: "شبکه�
   { key: "network", label: "شبکه", kind: "select", options: [{ value: "eitaa", label: "ایتا" }, { value: "telegram", label: "تلگرام" }, { value: "instagram", label: "اینستاگرام" }, { value: "bale", label: "بله" }, { value: "youtube", label: "یوتیوب" }, { value: "aparat", label: "آپارات" }] },
   { key: "href", label: "نشانی", kind: "url" },
 ] }
+const PHOTO_MODE: FieldDef = { kind: "select", key: "photoMode", label: "حالت تصویر", options: [{ value: "photo", label: "عکس" }, { value: "logo", label: "لوگو (بدون عکس)" }, { value: "arabesque", label: "نقش اسلیمی (بدون عکس)" }] }
+const LOGO: FieldDef = { kind: "media", key: "logo", label: "لوگو برای حالت بدون عکس (خالی = لوگوی سایت)", accept: "image" }
 const ICONS = [{ value: "flame", label: "شعله" }, { value: "moon", label: "ماه" }, { value: "star", label: "ستاره" }, { value: "book", label: "کتاب" }, { value: "music", label: "صوت" }, { value: "video", label: "ویدیو" }]
 
 export const POETRY_WIDGET_TYPES = [
@@ -28,11 +30,11 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "textarea", key: "text", label: "متن" },
       { kind: "text", key: "primaryLabel", label: "دکمه اصلی" }, { kind: "link", key: "primaryHref", label: "پیوند دکمه اصلی" },
       { kind: "text", key: "secondaryLabel", label: "دکمه دوم" }, { kind: "link", key: "secondaryHref", label: "پیوند دکمه دوم" },
-      { kind: "media", key: "image", label: "تصویر", accept: "image" }, { kind: "text", key: "imageAlt", label: "متن جایگزین تصویر" },
+      { kind: "media", key: "image", label: "تصویر", accept: "image" }, { kind: "text", key: "imageAlt", label: "متن جایگزین تصویر" }, PHOTO_MODE, LOGO,
       { kind: "textarea", key: "couplet", label: "بیت عمودی (هر مصراع یک خط)" },
       tone, frame, pattern,
     ],
-    create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/blog", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", tone: "light", frame: "arch", pattern: true }),
+    create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/blog", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", photoMode: "photo", logo: "", tone: "light", frame: "arch", pattern: true }),
   },
   {
     type: "poem-list", label: "فهرست آخرین اشعار (با پخش صوت)", category: "content",
@@ -51,12 +53,12 @@ export const POETRY_WIDGETS: WidgetDef[] = [
   {
     type: "book-banner", label: "بنر کتاب + «خبرم کن»", category: "content",
     fields: [
-      { kind: "media", key: "image", label: "جلد کتاب", accept: "image" },
+      { kind: "media", key: "image", label: "جلد کتاب", accept: "image" }, PHOTO_MODE, LOGO,
       { kind: "text", key: "eyebrow", label: "برچسب" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "متن" },
       { kind: "text", key: "placeholder", label: "متن راهنمای ورودی" }, { kind: "text", key: "buttonLabel", label: "متن دکمه" }, { kind: "text", key: "success", label: "پیام موفقیت" },
       tone, frame, pattern,
     ],
-    create: () => node("book-banner", { title: "کتاب تازه به‌زودی", text: "", eyebrow: "به‌زودی", buttonLabel: "خبرم کن", tone: "dark", frame: "rounded", pattern: true }),
+    create: () => node("book-banner", { title: "کتاب تازه به‌زودی", text: "", eyebrow: "به‌زودی", buttonLabel: "خبرم کن", photoMode: "photo", logo: "", tone: "dark", frame: "rounded", pattern: true }),
   },
   {
     type: "occasion-cards", label: "کارت‌های مناسبت (اسکرول افقی)", category: "content",
@@ -91,20 +93,20 @@ export const POETRY_WIDGETS: WidgetDef[] = [
         { key: "title", label: "نام", kind: "text" }, { key: "image", label: "تصویر", kind: "media" },
         { key: "price", label: "قیمت (تومان)", kind: "text" }, { key: "href", label: "پیوند", kind: "url" },
       ] },
-      { kind: "text", key: "buttonLabel", label: "متن دکمه" },
+      { kind: "text", key: "buttonLabel", label: "متن دکمه" }, { kind: "text", key: "priceLabel", label: "متن جایگزین قیمت (درگاه خاموش)" },
       tone, frame, pattern,
     ],
-    create: () => node("shop-showcase", { title: "فروشگاه قاب‌های مذهبی", items: "", buttonLabel: "خرید", tone: "light", frame: "arch" }),
+    create: () => node("shop-showcase", { title: "فروشگاه قاب‌های مذهبی", items: "", buttonLabel: "خرید", priceLabel: "قیمت (از مشتری)", tone: "light", frame: "arch" }),
   },
   {
     type: "poet-about", label: "درباره شاعر", category: "content",
     fields: [
-      { kind: "media", key: "image", label: "تصویر", accept: "image" },
+      PHOTO_MODE, { kind: "media", key: "image", label: "تصویر (فقط در حالت عکس)", accept: "image" }, LOGO,
       { kind: "text", key: "eyebrow", label: "برچسب" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "متن" },
       SOCIALS, { kind: "text", key: "linkLabel", label: "متن «بیشتر بخوانید»" }, { kind: "link", key: "linkHref", label: "پیوند" },
       tone, frame, pattern,
     ],
-    create: () => node("poet-about", { eyebrow: "درباره شاعر", title: "", text: "", linkLabel: "بیشتر بخوانید", linkHref: "/about", tone: "light", frame: "arch" }),
+    create: () => node("poet-about", { eyebrow: "درباره شاعر", title: "", text: "", linkLabel: "بیشتر بخوانید", linkHref: "/about", photoMode: "logo", logo: "", tone: "light", frame: "arch" }),
   },
   {
     type: "quote-block", label: "نقل‌قول (گیومه بزرگ)", category: "content",

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\OpenApiController;
+use App\Http\Controllers\Api\V1\Poetry\PoetryAdminController;
+use App\Http\Controllers\Api\V1\Poetry\PublicPoetryController;
 use App\Http\Controllers\Api\V1\AcademyCourseController;
 use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AccountingController;
@@ -220,6 +222,14 @@ Route::prefix('v1')->group(function () {
         Route::post('/newsletter/subscribe', [PublicStorefrontController::class, 'subscribe'])->middleware('throttle:public-writes');
         Route::post('/orders/track', [PublicStorefrontController::class, 'trackOrder'])->middleware('throttle:10,1');
 
+        Route::prefix('poetry')->middleware(\App\Http\Middleware\PoetryTenantScope::class)->group(function () {
+            Route::get('/terms', [PublicPoetryController::class, 'terms']);
+            Route::get('/poems', [PublicPoetryController::class, 'index']);
+            Route::get('/popular', [PublicPoetryController::class, 'popular']);
+            Route::get('/poems/{slug}', [PublicPoetryController::class, 'show']);
+            Route::get('/poems/{slug}/text', [PublicPoetryController::class, 'text']);
+            Route::get('/figures/{slug}', [PublicPoetryController::class, 'figure']);
+        });
         Route::middleware('public.module:blog')->group(function () {
             Route::get('/blog', [PublicBlogController::class, 'index']);
             Route::get('/blog/category/{slug}', [PublicBlogController::class, 'category']);
@@ -1013,6 +1023,18 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::delete('/import/wordpress/tokens/{token}', [WordpressImportController::class, 'destroyToken'])->whereNumber('token');
             });
 
+            Route::prefix('poetry')->middleware(['can:content.manage,content.*', \App\Http\Middleware\PoetryTenantScope::class])->group(function () {
+                Route::get('/poems', [PoetryAdminController::class, 'index']);
+                Route::post('/poems', [PoetryAdminController::class, 'store']);
+                Route::get('/poems/{poem}', [PoetryAdminController::class, 'show'])->whereNumber('poem');
+                Route::put('/poems/{poem}', [PoetryAdminController::class, 'update'])->whereNumber('poem');
+                Route::delete('/poems/{poem}', [PoetryAdminController::class, 'destroy'])->whereNumber('poem');
+                Route::post('/import/parse', [PoetryAdminController::class, 'parse']);
+                Route::get('/terms', [PoetryAdminController::class, 'terms']);
+                Route::post('/terms', [PoetryAdminController::class, 'storeTerm']);
+                Route::put('/terms/{term}', [PoetryAdminController::class, 'updateTerm'])->whereNumber('term');
+                Route::delete('/terms/{term}', [PoetryAdminController::class, 'destroyTerm'])->whereNumber('term');
+            });
             Route::middleware(['module:blog', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/blog/posts', [BlogPostController::class, 'index']);
                 Route::post('/blog/posts', [BlogPostController::class, 'store']);
