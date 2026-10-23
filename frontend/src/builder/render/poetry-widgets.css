@@ -1,0 +1,100 @@
+/* Poetry / Muharram theme tokens. Override per site via theme CSS vars. */
+.wpz {
+  --wpz-crimson: #7a0f1c; --wpz-crimson-deep: #4a0710; --wpz-cream: #f7efe1; --wpz-gold: #c9a45c;
+  --wpz-ink: #2b1a14; --wpz-muted: #7d6a5c; --wpz-radius: 18px;
+  --wpz-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23c9a45c' stroke-opacity='.22' stroke-width='1'%3E%3Cpath d='M32 4l8 20 20 8-20 8-8 20-8-20-20-8 20-8z'/%3E%3Ccircle cx='32' cy='32' r='6'/%3E%3C/g%3E%3C/svg%3E");
+  font-family: inherit; direction: rtl; padding: clamp(24px, 4vw, 56px); border-radius: var(--wpz-radius);
+}
+.wpz-light { background: var(--wpz-cream); color: var(--wpz-ink); }
+.wpz-dark { background: var(--wpz-crimson-deep); color: var(--wpz-cream); }
+.wpz-pattern { background-image: var(--wpz-pattern); background-size: 64px 64px; }
+.wpz-eyebrow { display: inline-block; padding: 4px 12px; border-radius: 999px; background: color-mix(in srgb, var(--wpz-gold) 25%, transparent); color: var(--wpz-crimson); font-size: .85rem; font-weight: 700; }
+.wpz-dark .wpz-eyebrow { color: var(--wpz-gold); }
+.wpz-h2 { font-size: clamp(1.4rem, 2.6vw, 2rem); font-weight: 800; margin: 8px 0 20px; color: inherit; }
+.wpz-text { line-height: 2; opacity: .9; margin: 0 0 12px; }
+.wpz-empty { opacity: .7; font-size: .9rem; }
+.wpz-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; border-radius: 999px; font-weight: 700; transition: transform .15s, background .15s; }
+.wpz-btn:hover { transform: translateY(-1px); }
+.wpz-btn-primary { background: var(--wpz-crimson); color: var(--wpz-cream); }
+.wpz-dark .wpz-btn-primary { background: var(--wpz-gold); color: var(--wpz-crimson-deep); }
+.wpz-btn-ghost { border: 1.5px solid currentColor; }
+.wpz-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.wpz-more { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; font-weight: 700; color: var(--wpz-crimson); }
+.wpz-dark .wpz-more { color: var(--wpz-gold); }
+/* frames */
+.wpz-img { width: 100%; object-fit: cover; aspect-ratio: 4 / 5; display: block; }
+.wpz-img-empty { background: color-mix(in srgb, var(--wpz-crimson) 15%, var(--wpz-cream)); }
+.wpz-frame-arch { border-radius: 999px 999px var(--wpz-radius) var(--wpz-radius); }
+.wpz-frame-rounded { border-radius: var(--wpz-radius); }
+.wpz-frame-square { border-radius: 0; }
+/* hero */
+.wpz-hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: clamp(20px, 4vw, 56px); align-items: center; }
+.wpz-hero-title { font-size: clamp(2rem, 5vw, 3.6rem); font-weight: 900; line-height: 1.3; color: var(--wpz-crimson); margin: 12px 0; }
+.wpz-dark .wpz-hero-title { color: var(--wpz-cream); }
+.wpz-hero-sub { font-size: 1.1rem; line-height: 2; opacity: .85; }
+.wpz-hero-media { position: relative; display: flex; gap: 16px; align-items: stretch; }
+.wpz-hero-media .wpz-img { flex: 1; outline: 2px solid var(--wpz-gold); outline-offset: 6px; }
+.wpz-couplet { writing-mode: vertical-rl; display: flex; gap: 10px; font-size: 1.15rem; font-weight: 700; color: var(--wpz-crimson); }
+.wpz-dark .wpz-couplet { color: var(--wpz-gold); }
+/* poems */
+.wpz-poems { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.wpz-poem { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 14px; background: color-mix(in srgb, #fff 55%, transparent); border: 1px solid color-mix(in srgb, var(--wpz-gold) 35%, transparent); }
+.wpz-dark .wpz-poem { background: color-mix(in srgb, #000 20%, transparent); }
+.wpz-num { font-weight: 900; font-size: 1.2rem; color: var(--wpz-gold); min-width: 2.2em; }
+.wpz-poem-main { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wpz-poem-title { font-weight: 700; }
+.wpz-tag { font-size: .75rem; padding: 2px 10px; border-radius: 999px; background: var(--wpz-crimson); color: var(--wpz-cream); }
+.wpz-play { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--wpz-crimson); color: var(--wpz-cream); }
+.wpz-dur { font-size: .8rem; opacity: .85; }
+.wpz-menu-wrap { position: relative; }
+.wpz-icon-btn { padding: 6px; border-radius: 999px; }
+.wpz-menu { position: absolute; inset-inline-end: 0; top: 110%; z-index: 20; min-width: 150px; background: #fff; color: var(--wpz-ink); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.15); display: grid; padding: 6px; }
+.wpz-menu a { padding: 8px 10px; border-radius: 8px; }
+.wpz-menu a:hover { background: var(--wpz-cream); }
+/* book */
+.wpz-book { display: grid; grid-template-columns: minmax(140px, 260px) 1fr; gap: 32px; align-items: center; }
+.wpz-book-img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; box-shadow: 0 20px 40px rgba(0,0,0,.35); }
+.wpz-notify { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.wpz-notify input { flex: 1; min-width: 200px; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--wpz-gold); background: transparent; color: inherit; }
+.wpz-note { min-height: 1.4em; font-size: .85rem; margin-top: 6px; }
+/* occasions */
+.wpz-hscroll { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
+.wpz-occasion { position: relative; flex: 0 0 clamp(160px, 22vw, 220px); aspect-ratio: 3 / 4; scroll-snap-align: start; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; padding: 16px; color: var(--wpz-cream); background: var(--wpz-crimson) center / cover no-repeat; }
+.wpz-occasion::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(40,4,10,.85), transparent 60%); }
+.wpz-occasion > * { position: relative; }
+.wpz-occasion-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 999px; background: color-mix(in srgb, var(--wpz-gold) 40%, transparent); }
+.wpz-occasion-title { font-weight: 800; }
+.wpz-occasion-arrow { position: absolute; top: 16px; inset-inline-start: 16px; }
+/* grid cards */
+.wpz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+.wpz-media-cover { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: var(--wpz-crimson); }
+.wpz-media-cover img, .wpz-media-cover video { width: 100%; height: 100%; object-fit: cover; }
+.wpz-media-cover audio { position: absolute; inset: auto 8px 8px; width: calc(100% - 16px); }
+.wpz-media-play { position: absolute; inset: 0; margin: auto; width: 56px; height: 56px; border-radius: 999px; display: grid; place-items: center; background: var(--wpz-cream); color: var(--wpz-crimson); }
+.wpz-media-title { display: flex; align-items: center; gap: 6px; font-weight: 700; margin: 10px 0 4px; }
+.wpz-media-meta { display: flex; justify-content: space-between; font-size: .85rem; opacity: .75; }
+.wpz-product { display: flex; flex-direction: column; gap: 8px; text-align: center; align-items: center; }
+.wpz-product-img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+.wpz-product-title { font-weight: 700; }
+.wpz-price { color: var(--wpz-crimson); font-weight: 800; }
+.wpz-dark .wpz-price { color: var(--wpz-gold); }
+/* about */
+.wpz-about { display: grid; grid-template-columns: minmax(180px, 320px) 1fr; gap: 32px; align-items: center; }
+/* quote */
+.wpz-quote { position: relative; text-align: center; margin: 0; }
+.wpz-quote-mark { width: 72px; height: 72px; color: var(--wpz-gold); opacity: .6; margin: 0 auto 8px; }
+.wpz-quote blockquote { display: grid; gap: 8px; font-size: clamp(1.2rem, 2.6vw, 1.8rem); font-weight: 700; line-height: 2; margin: 0; }
+.wpz-quote figcaption { margin-top: 12px; opacity: .8; }
+/* footer */
+.wpz-footer { display: grid; grid-template-columns: 1.5fr 2fr auto; gap: 24px; align-items: start; border-radius: 0; background-color: var(--wpz-crimson-deep); }
+.wpz-footer-brand { display: grid; gap: 8px; }
+.wpz-logo { max-height: 56px; width: auto; }
+.wpz-footer-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px 16px; }
+.wpz-footer-links a:hover { color: var(--wpz-gold); }
+.wpz-socials { display: flex; gap: 8px; }
+.wpz-social { width: 38px; height: 38px; border-radius: 999px; display: grid; place-items: center; border: 1px solid var(--wpz-gold); color: var(--wpz-gold); font-weight: 800; }
+.wpz-copy { grid-column: 1 / -1; border-top: 1px solid color-mix(in srgb, var(--wpz-gold) 30%, transparent); padding-top: 12px; font-size: .85rem; opacity: .75; }
+@media (max-width: 768px) {
+  .wpz-hero, .wpz-book, .wpz-about, .wpz-footer { grid-template-columns: 1fr; }
+  .wpz-hero-media { order: -1; }
+}

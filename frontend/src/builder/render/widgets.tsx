@@ -2,6 +2,7 @@
 
 import DOMPurify from "dompurify"
 import { Heart, ShieldCheck, Sparkles, Star, Truck } from "lucide-react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -108,6 +109,16 @@ import {
 
 import { ClassicTrustStrip } from "@/themes/ecommerce-classic/components/ClassicProduct"
 import { Img } from "./img"
+
+const PoetryHeroWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryHeroWidget))
+const PoemListWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoemListWidget))
+const BookBannerWidget = dynamic(() => import("./poetry-widgets").then((m) => m.BookBannerWidget))
+const OccasionCardsWidget = dynamic(() => import("./poetry-widgets").then((m) => m.OccasionCardsWidget))
+const MediaCardsWidget = dynamic(() => import("./poetry-widgets").then((m) => m.MediaCardsWidget))
+const ShopShowcaseWidget = dynamic(() => import("./poetry-widgets").then((m) => m.ShopShowcaseWidget))
+const PoetAboutWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetAboutWidget))
+const QuoteBlockWidget = dynamic(() => import("./poetry-widgets").then((m) => m.QuoteBlockWidget))
+const PoetryFooterWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryFooterWidget))
 
 const NAV = [
   { label: "خانه", href: "/" },
@@ -300,6 +311,24 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <LoopFilterWidget widget={widget} editing={editing} />
     case "archive-filters":
       return <ArchiveFiltersWidget widget={widget} editing={editing} />
+    case "poetry-hero":
+      return <PoetryHeroWidget widget={widget} />
+    case "poem-list":
+      return <PoemListWidget widget={widget} />
+    case "book-banner":
+      return <BookBannerWidget widget={widget} />
+    case "occasion-cards":
+      return <OccasionCardsWidget widget={widget} />
+    case "media-cards":
+      return <MediaCardsWidget widget={widget} />
+    case "shop-showcase":
+      return <ShopShowcaseWidget widget={widget} />
+    case "poet-about":
+      return <PoetAboutWidget widget={widget} />
+    case "quote-block":
+      return <QuoteBlockWidget widget={widget} />
+    case "poetry-footer":
+      return <PoetryFooterWidget widget={widget} />
     case "cafe-table-booking":
       return <CafeTableBookingWidget widget={widget} editing={editing} />
     case "image-box":
