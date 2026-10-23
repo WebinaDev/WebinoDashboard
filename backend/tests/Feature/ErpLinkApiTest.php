@@ -86,7 +86,18 @@ class ErpLinkApiTest extends TestCase
         $this->signed('suspension', ['suspended' => true, 'reason' => 'debt'])->assertOk()->assertJsonPath('data.suspended', true);
         $this->assertTrue($this->tenant->fresh()->isSuspended());
         $this->assertFalse($this->tenant->fresh()->isLicenseEntitled());
+        $status = app(\App\Services\Site\SiteStatusService::class);
+        $this->assertSame('suspended', $status->get((int) $this->tenant->id)['status']);
         $this->signed('suspension', ['suspended' => false])->assertOk()->assertJsonPath('data.suspended', false);
         $this->assertTrue($this->tenant->fresh()->isLicenseEntitled());
+        $this->assertSame('active', $status->get((int) $this->tenant->id)['status']);
+    }
+
+    public function test_unsuspend_keeps_a_suspension_set_by_someone_else(): void
+    {
+        $status = app(\App\Services\Site\SiteStatusService::class);
+        $status->put((int) $this->tenant->id, ['status' => 'suspended', 'reason' => 'license'], 'platform');
+        $this->signed('suspension', ['suspended' => false])->assertOk();
+        $this->assertSame('suspended', $status->get((int) $this->tenant->id)['status']);
     }
 }

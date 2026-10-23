@@ -164,6 +164,15 @@ class ErpLinkController extends Controller
             'suspended_at' => $data['suspended'] ? ($t->suspended_at ?? now()) : null,
             'suspension_reason' => $data['suspended'] ? ($data['reason'] ?? null) : null,
         ])->save();
+        // Drive the shared site-status lifecycle so visitors get the standard "suspended" page.
+        $status = app(\App\Services\Site\SiteStatusService::class);
+        $current = $status->get((int) $t->id);
+        if ($data['suspended']) {
+            $status->put((int) $t->id, ['status' => 'suspended', 'reason' => $data['reason'] ?? $current['reason']], 'erp-link');
+        } elseif ($current['status'] === 'suspended' && ($current['updated_by'] ?? null) === 'erp-link') {
+            // Only undo our own suspension; a license/admin suspension stays in place.
+            $status->put((int) $t->id, ['status' => 'active', 'reason' => null], 'erp-link');
+        }
         Log::info('erp_link.suspension', ['tenant' => $t->id, 'suspended' => $data['suspended']]);
 
         return response()->json(['data' => ['suspended' => $t->suspended_at !== null, 'suspended_at' => $t->suspended_at]]);

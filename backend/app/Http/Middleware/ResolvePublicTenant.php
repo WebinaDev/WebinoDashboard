@@ -18,10 +18,6 @@ class ResolvePublicTenant
             return response()->json(['message' => __('api.tenant_not_found')], 404);
         }
 
-        if ($tenant->isSuspended()) {
-            return response()->json(['message' => __('api.site_suspended'), 'code' => 'site_suspended'], 503);
-        }
-
         $request->attributes->set('public_tenant', $tenant);
         $request->attributes->set('public_tenant_id', $tenant->id);
 
