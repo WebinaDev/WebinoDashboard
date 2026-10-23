@@ -36,12 +36,14 @@ import {
   MessageSquareHeart,
   Wallet,
   Sparkles,
+  Feather,
   type LucideIcon,
 } from "lucide-react"
 
 /** Explicit path → icon map (prefer longer / more specific keys). */
 const PATH_ICONS: Record<string, LucideIcon> = {
   "": LayoutDashboard,
+  poetry: Feather,
   dashboard: LayoutDashboard,
   products: Package,
   "products/tags": Tags,
