@@ -23,6 +23,7 @@ import { ScrollTable } from "@/components/ScrollTable"
 import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { ApiError, api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { CustomerProfileSummary } from "@/views/customers/CustomerProfileSummary"
 
 type Customer = {
   id: number
@@ -30,6 +31,9 @@ type Customer = {
   email: string
   wallet_balance_minor?: number
   bank_sheba?: string | null
+  phone?: string | null
+  national_id?: string | null
+  kyc_status?: string | null
   is_active?: boolean
 }
 
@@ -55,7 +59,7 @@ async function listCustomers(path: string): Promise<{ items: Customer[]; meta?: 
   return { items: Array.isArray(data) ? data : [], meta: meta as PageMeta | undefined }
 }
 
-const emptyForm = { name: "", email: "", password: "", bank_sheba: "", is_active: true }
+const emptyForm = { name: "", email: "", password: "", bank_sheba: "", phone: "", national_id: "", kyc_status: "none", is_active: true }
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
@@ -115,6 +119,9 @@ export default function CustomersPage() {
             name: form.name,
             email: form.email,
             bank_sheba: form.bank_sheba || null,
+            phone: form.phone || null,
+            national_id: form.national_id || null,
+            kyc_status: form.kyc_status || "none",
             is_active: form.is_active,
             ...(form.password ? { password: form.password } : {}),
           },
@@ -127,6 +134,8 @@ export default function CustomersPage() {
           email: form.email,
           password: form.password || undefined,
           bank_sheba: form.bank_sheba || null,
+          phone: form.phone || null,
+          national_id: form.national_id || null,
           is_active: form.is_active,
         },
       })
@@ -136,6 +145,7 @@ export default function CustomersPage() {
       setEditing(null)
       setForm(emptyForm)
       await queryClient.invalidateQueries({ queryKey: ["admin-customers"] })
+      await queryClient.invalidateQueries({ queryKey: ["admin-customer-profile"] })
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
@@ -166,6 +176,9 @@ export default function CustomersPage() {
       email: c.email,
       password: "",
       bank_sheba: c.bank_sheba ?? "",
+      phone: c.phone ?? "",
+      national_id: c.national_id ?? "",
+      kyc_status: c.kyc_status || "none",
       is_active: c.is_active !== false,
     })
     setShowForm(true)
@@ -238,6 +251,7 @@ export default function CustomersPage() {
 
       {showForm ? (
         <div className="grid gap-3 rounded-lg border border-border bg-card/40 p-4 md:grid-cols-2">
+          {editing ? <CustomerProfileSummary customerId={editing.id} /> : null}
           <div>
             <Label>{t("col_name")}</Label>
             <Input className="mt-1" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
@@ -269,6 +283,24 @@ export default function CustomersPage() {
               onChange={(e) => setForm((f) => ({ ...f, bank_sheba: e.target.value }))}
             />
           </div>
+          <div>
+            <Label>{t("phone")}</Label>
+            <Input className="mt-1" dir="ltr" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+          </div>
+          <div>
+            <Label>{t("national_id")}</Label>
+            <Input className="mt-1" dir="ltr" value={form.national_id} onChange={(e) => setForm((f) => ({ ...f, national_id: e.target.value }))} />
+          </div>
+          {editing ? (
+            <div>
+              <Label>{t("kyc_label")}</Label>
+              <select className={`${selectClass} mt-1`} value={form.kyc_status} onChange={(e) => setForm((f) => ({ ...f, kyc_status: e.target.value }))}>
+                {["none", "pending", "verified", "rejected"].map((k) => (
+                  <option key={k} value={k}>{t(`kyc_${k}` as never)}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={form.is_active} onCheckedChange={(v) => setForm((f) => ({ ...f, is_active: v === true }))} />
             {t("status_active")}

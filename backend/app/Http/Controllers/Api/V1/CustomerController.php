@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\CustomerNote;
+use App\Models\Order;
+use App\Models\SupportTicket;
+use App\Models\User;
 use App\Services\Users\UserAdminService;
 use Illuminate\Http\Request;
 
@@ -29,8 +33,57 @@ class CustomerController extends Controller
 
     public function update(Request $request, int $customer): \Illuminate\Http\JsonResponse
     {
+        $kyc = $request->validate([
+            'kyc_status' => 'sometimes|nullable|string|in:none,pending,verified,rejected',
+        ]);
         $user = $this->users->update($request, $customer, ['customer']);
+        if (array_key_exists('kyc_status', $kyc)) {
+            // Staff-only: the portal deliberately cannot change KYC (see AccountPortalController::profileUpdate).
+            $user->forceFill([
+                'kyc_status' => $kyc['kyc_status'],
+                'kyc_verified_at' => $kyc['kyc_status'] === 'verified' ? ($user->kyc_verified_at ?? now()) : null,
+            ])->save();
+            $user = $user->fresh();
+        }
 
         return response()->json(['data' => $user]);
+    }
+
+    /** Customer profile overview for staff: identity, KYC, bank, KPIs and recent activity. */
+    public function profile(Request $request, int $customer): \Illuminate\Http\JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+        $user = User::query()->where('tenant_id', $tid)->where('role', 'customer')->findOrFail($customer);
+
+        $orders = Order::query()->where('tenant_id', $tid)->where('user_id', $user->id);
+        $paidStatuses = ['paid', 'processing', 'shipped', 'completed'];
+        $paid = (clone $orders)->whereIn('status', $paidStatuses);
+        $paidCount = (clone $paid)->count();
+        $spent = (int) (clone $paid)->sum('total_minor');
+        $tickets = SupportTicket::query()->where('tenant_id', $tid)->where('user_id', $user->id);
+
+        return response()->json(['data' => [
+            'customer' => $user->only([
+                'id', 'name', 'first_name', 'last_name', 'email', 'phone', 'landline', 'national_id', 'birth_date', 'job',
+                'kyc_status', 'kyc_verified_at', 'bank_name', 'bank_sheba', 'bank_account', 'bank_card',
+                'is_active', 'wallet_balance_minor', 'loyalty_points', 'addresses', 'created_at',
+            ]),
+            'stats' => [
+                'orders_count' => (clone $orders)->count(),
+                'paid_orders_count' => $paidCount,
+                'total_spent_minor' => $spent,
+                'avg_order_minor' => $paidCount > 0 ? intdiv($spent, $paidCount) : 0,
+                'last_order_at' => optional((clone $orders)->max('created_at'), fn ($v) => (string) $v),
+                'open_tickets' => (clone $tickets)->whereNotIn('status', ['closed', 'resolved'])->count(),
+                'tickets_count' => (clone $tickets)->count(),
+                'notes_count' => CustomerNote::query()->where('tenant_id', $tid)->where('customer_user_id', $user->id)->count(),
+                'wallet_balance_minor' => (int) ($user->wallet_balance_minor ?? 0),
+                'loyalty_points' => (int) ($user->loyalty_points ?? 0),
+            ],
+            'recent_orders' => (clone $orders)->latest('id')->limit(5)
+                ->get(['id', 'number', 'status', 'total_minor', 'currency', 'created_at']),
+            'recent_tickets' => (clone $tickets)->latest('id')->limit(5)
+                ->get(['id', 'subject', 'status', 'created_at']),
+        ]]);
     }
 }

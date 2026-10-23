@@ -1137,6 +1137,7 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::get('/customers', [CustomerController::class, 'index']);
                 Route::post('/customers', [CustomerController::class, 'store']);
                 Route::patch('/customers/{customer}', [CustomerController::class, 'update'])->whereNumber('customer');
+                Route::get('/customers/{customer}/profile', [CustomerController::class, 'profile'])->whereNumber('customer');
                 Route::get('/customers/{customer}/notes', [CustomerNoteController::class, 'index'])->whereNumber('customer');
                 Route::post('/customers/{customer}/notes', [CustomerNoteController::class, 'store'])->whereNumber('customer');
                 Route::delete('/customers/{customer}/notes/{note}', [CustomerNoteController::class, 'destroy'])->whereNumber('customer')->whereNumber('note');
