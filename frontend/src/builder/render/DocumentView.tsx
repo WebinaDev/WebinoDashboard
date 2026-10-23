@@ -17,7 +17,7 @@ import { BuilderGlobalsProvider, BuilderRuntimeProvider, useBuilderGlobals } fro
 import { applyPreset, COMPONENT_TYPE, componentsCss, resolveInstance } from "../components"
 import { WidgetBody } from "./widgets"
 import { LAYOUT_CONTAINER_TYPES, layoutContainerStyle } from "./gap-widgets"
-import { dwAttr, dwClass, dwRowClass, sectionDesktopWidth, widgetDesktopWidth } from "./desktop-width"
+import { dwAttr, dwClass, dwRowClass, packVisible, sectionDesktopWidth, widgetDesktopWidth } from "./desktop-width"
 import "./desktop-width.css"
 
 import "../storefront.css"
@@ -56,8 +56,8 @@ export function DocumentView({ document: rawDocument, mode = "view", device = "d
         <div ref={canvasRef} className={`wb-canvas ${themeClass ?? ""}`} dir={dirForLang(runtime?.lang)} lang={runtime?.lang ?? undefined}>
           {css ? <style>{css}</style> : null}
           <div className={`wb-section-stack ${document.sections.some((x) => sectionDesktopWidth(x) !== "full") ? dwRowClass(Boolean(editor), device) : ""}`}>
-            {document.sections.map((section) => (
-              <SectionBlock key={section.id} section={section} device={device} editor={editor} dwClassName={dwClass(sectionDesktopWidth(section))} />
+            {document.sections.map((section, si, all) => (
+              <SectionBlock key={section.id} section={section} device={device} editor={editor} dwClassName={dwClass(packVisible(all, sectionDesktopWidth, (x) => Boolean(x.hidden) && !editor)[si])} />
             ))}
           </div>
         </div>
@@ -165,12 +165,15 @@ function ColumnBlock({
       <Decor advanced={column.advanced} />
       {editor ? <DropSlot columnId={column.id} index={0} editor={editor} /> : null}
       <div data-dw-row={column.widgets.some((w) => widgetDesktopWidth(w) !== "full") ? "" : undefined} className={`wb-col-body flex flex-col ${column.widgets.some((w) => widgetDesktopWidth(w) !== "full") ? dwRowClass(Boolean(editor), device) : ""}`} style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
-        {column.widgets.map((widget, index) => (
-          <div key={widget.id} className={dwClass(widgetDesktopWidth(widget))} {...dwAttr(widgetDesktopWidth(widget))}>
+        {column.widgets.map((widget, index, all) => {
+          const dw = packVisible(all, widgetDesktopWidth, (x) => Boolean(x.hidden) && !editor)[index]
+          return (
+          <div key={widget.id} className={dwClass(dw)} {...dwAttr(dw)}>
             <WidgetBlock widget={widget} device={device} editor={editor} depth={depth} />
             {editor ? <DropSlot columnId={column.id} index={index + 1} editor={editor} /> : null}
           </div>
-        ))}
+          )
+        })}
       </div>
       {editor && column.widgets.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#0C2D63]/20 px-3 py-8 text-center text-xs text-[#0C2D63]/50">

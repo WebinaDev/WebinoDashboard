@@ -25,3 +25,37 @@ export const dwClass = (w: DesktopWidth) => (w === "full" ? "" : `wb-dw-item wb-
 export const dwAttr = (w: DesktopWidth) => ({ "data-dw": w })
 /** row class; in the editor the desktop preview forces the layout regardless of viewport width */
 export const dwRowClass = (editor: boolean, device: string) => `wb-dw-row ${editor && device === "desktop" ? "wb-dw-force" : ""} ${editor ? "wb-dw-edit" : ""}`
+
+const DW_PCT: Record<DesktopWidth, number> = { full: 100, half: 50, wide: 60, narrow: 40 }
+
+/**
+ * Pack consecutive non-full items into rows whose widths sum to <= 100%.
+ * An item left alone in its row (no partner fits) renders full width, so a stray
+ * `half` never leaves an empty gap beside it and a pair never gets split by wrap.
+ */
+export function packDesktopWidths(ws: DesktopWidth[]): DesktopWidth[] {
+  const out = [...ws]
+  let start = 0
+  const flush = (end: number) => {
+    if (end - start === 1) out[start] = "full"
+    start = end
+  }
+  let sum = 0
+  for (let i = 0; i < ws.length; i++) {
+    const w = ws[i]
+    if (w === "full") { flush(i); start = i + 1; sum = 0; continue }
+    if (sum + DW_PCT[w] > 100) { flush(i); sum = 0 }
+    sum += DW_PCT[w]
+  }
+  flush(ws.length)
+  return out
+}
+
+/** packDesktopWidths over a list where hidden entries are skipped (they keep "full" and don't break a pair). */
+export function packVisible<T>(items: T[], width: (x: T) => DesktopWidth, hidden: (x: T) => boolean): DesktopWidth[] {
+  const idx = items.map((x, i) => (hidden(x) ? -1 : i)).filter((i) => i >= 0)
+  const packed = packDesktopWidths(idx.map((i) => width(items[i])))
+  const out: DesktopWidth[] = items.map(() => "full")
+  idx.forEach((i, k) => { out[i] = packed[k] })
+  return out
+}

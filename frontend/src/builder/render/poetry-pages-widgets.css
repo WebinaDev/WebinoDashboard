@@ -311,3 +311,6 @@
 /* transparent capsule: no frosted glass; shadow only if capsuleShadow stays on */
 .akx-nav.akx-nav-clear, .akx-navwrap.akx-mfw .akx-nav.akx-nav-clear { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
 .akx-nav.akx-nav-clear.akx-nav-flat, .akx-navwrap.akx-mfw .akx-nav.akx-nav-clear.akx-nav-flat { box-shadow: none; }
+/* transparent capsule or capsuleShadow off: no shadow, ring, border, outline or frosted backdrop from any default rule (incl. .akx-mfw full-width variant) */
+.akx-navwrap .akx-nav.akx-nav-clear, .akx-navwrap .akx-nav.akx-nav-flat, .akx-navwrap.akx-mfw .akx-nav.akx-nav-clear, .akx-navwrap.akx-mfw .akx-nav.akx-nav-flat { box-shadow: none !important; outline: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.akx-navwrap .akx-nav.akx-nav-clear:not(.akx-nav-bordered), .akx-navwrap.akx-mfw .akx-nav.akx-nav-clear:not(.akx-nav-bordered) { border: 0; background: transparent; }

@@ -232,7 +232,7 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   }
   return (
     <header className={`akx akx-navwrap ${akxMfw(p)} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
-      <div data-capsule={capsuleClear ? "clear" : undefined} className={`akx-nav ${capsuleClear ? "akx-nav-clear" : ""} ${propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
+      <div data-capsule={capsuleClear ? "clear" : undefined} className={`akx-nav ${capsuleClear ? "akx-nav-clear" : ""} ${!capsuleClear && propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
         <Link href="/" className="akx-brand">
           {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo, undefined, true)} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
           {logoOnly && logo ? null : <b>{propStr(p, "brand", rt.siteName ?? "")}</b>}

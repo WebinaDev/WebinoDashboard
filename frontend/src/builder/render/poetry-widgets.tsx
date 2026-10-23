@@ -271,8 +271,9 @@ const inDashboard = () => typeof window !== "undefined" && /^\/dashboard(\/|$)/.
 /** 5) audio/video media cards. */
 export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const rows = parseRows(p.items, ["title", "cover", "reciter", "duration", "src", "kind"]).filter((r) => r.title)
+  const rows = mediaRows(p.items)
   const [open, setOpen] = useState<number | null>(null)
+  if (!rows.length && !inDashboard()) return null
   return (
     <section className={shell(p, "wpz-section", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
@@ -285,21 +286,27 @@ export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
               <div className={`wpz-media-cover ${frameClass(p, "rounded")}`}>
                 {open === i && src ? (isVideo ? <video src={src} controls autoPlay playsInline /> : <audio src={src} controls autoPlay />) : (
                   <>
-                    {r.cover ? <img loading="lazy" decoding="async" {...optImg(r.cover)} alt={r.title} /> : null}
-                    <button type="button" className="wpz-media-play" aria-label={`پخش ${r.title}`} onClick={() => setOpen(i)} disabled={!src}>
+                    {r.cover ? <img loading="lazy" decoding="async" {...optImg(r.cover)} alt={r.title || propStr(p, "title")} /> : null}
+                    <button type="button" className="wpz-media-play" aria-label={`پخش ${r.title || "رسانه"}`} onClick={() => setOpen(i)} disabled={!src}>
                       <Play className="h-6 w-6" />
                     </button>
                   </>
                 )}
               </div>
-              <h3 className="wpz-media-title">{isVideo ? <Video className="h-4 w-4" aria-hidden /> : <Music className="h-4 w-4" aria-hidden />} {r.title}</h3>
+              {r.title ? <h3 className="wpz-media-title">{isVideo ? <Video className="h-4 w-4" aria-hidden /> : <Music className="h-4 w-4" aria-hidden />} {r.title}</h3> : null}
               <p className="wpz-media-meta">{r.reciter ? <span>{r.reciter}</span> : null}{r.duration ? <span>{faNum(r.duration)}</span> : null}</p>
             </article>
           )
         })}
+        {!rows.length ? <p className="wpz-empty">رسانه‌ها را وارد کنید (عنوان، کاور، فایل صوت/ویدیو).</p> : null}
       </div>
     </section>
   )
+}
+
+/** media rows: a row counts when it has a title, a cover or a file (cover-only rows used to be dropped → empty section). */
+export function mediaRows(items: unknown) {
+  return parseRows(items, ["title", "cover", "reciter", "duration", "src", "kind"]).filter((r) => r.title.trim() || r.cover.trim() || r.src.trim())
 }
 
 /** 6) shop showcase: real products from the store catalog (count/category), manual rows as override. */

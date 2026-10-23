@@ -151,9 +151,11 @@ html:has(.wpz-mfw), html:has(.akx-mfw) { overflow-x: clip; }
 @media (max-width: 760px) {
   .wpz-carousel { --wpz-cgap: 12px; }
   .wpz-carousel-track > *, .wpz-carousel .wpz-occasion { flex-basis: calc((100% - (var(--wpz-spv-m, 1.3) - 1) * var(--wpz-cgap)) / var(--wpz-spv-m, 1.3)); }
-  .wpz-carousel-btn { display: none; }
+  .wpz-carousel-btn { width: 32px; height: 32px; }
+  .wpz-carousel-prev { inset-inline-start: 2px; }
+  .wpz-carousel-next { inset-inline-end: 2px; }
 }
-@media (hover: none) { .wpz-carousel-btn { display: none; } }
+/* arrows are on by default on every carousel, touch screens included (swipe still works) */
 
 /* ── contrast: dark sections (tone=dark, image+dark overlay, dark bg colour) force light text tokens ── */
 .wpz-on-dark {
