@@ -314,3 +314,13 @@
 /* transparent capsule or capsuleShadow off: no shadow, ring, border, outline or frosted backdrop from any default rule (incl. .akx-mfw full-width variant) */
 .akx-navwrap .akx-nav.akx-nav-clear, .akx-navwrap .akx-nav.akx-nav-flat, .akx-navwrap.akx-mfw .akx-nav.akx-nav-clear, .akx-navwrap.akx-mfw .akx-nav.akx-nav-flat { box-shadow: none !important; outline: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
 .akx-navwrap .akx-nav.akx-nav-clear:not(.akx-nav-bordered), .akx-navwrap.akx-mfw .akx-nav.akx-nav-clear:not(.akx-nav-bordered) { border: 0; background: transparent; }
+
+/* poetry-nav searchWide + mobile bottom tab bar */
+.akx-nav.akx-search-wide .akx-search { flex: 1 1 380px; width: auto; max-width: 520px; margin-inline: auto; }
+.akx-tabbar { display: none; }
+@media (max-width: 760px) {
+  .akx-tabbar { display: flex; position: fixed; bottom: 0; inset-inline: 0; z-index: 60; justify-content: space-around; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.92); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: 0 -6px 20px rgba(17,16,20,.08); }
+  .akx-tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--akx-ink, #111014); text-decoration: none; padding: 4px 0; }
+  .akx-tabbar a.is-on { color: var(--akx-cr, #76192c); font-weight: 700; }
+  body:has(.akx-tabbar) { padding-bottom: 64px; }
+}

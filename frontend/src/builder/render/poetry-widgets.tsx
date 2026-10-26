@@ -17,11 +17,12 @@ import { PhotoSlot, apiV1, isDemoProduct, useCatalog } from "./poetry-pages-widg
 import { useBuilderRuntime } from "./runtime"
 import "./poetry-widgets.css"
 import "./poetry-layouts.css"
-import { aboutClass, heroIsOverlay, shopNarrowStyle, shopTrackClass } from "./poetry-layouts"
+import { aboutClass, heroIsFull, heroIsOverlay, shopNarrowStyle, shopTrackClass } from "./poetry-layouts"
 import { optImg } from "@/lib/image-url"
 import { sectionIsDark } from "./contrast"
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import { WpzCarousel, clampSpv, type CarouselOpts } from "./wpz-carousel"
+import { HeroSlider, heroSlides } from "./poetry-hero-slider"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
 export const faNum = (v: string | number) => String(v).replace(/\d/g, (d) => FA[Number(d)])
@@ -45,7 +46,7 @@ function frameClass(p: Record<string, unknown>, def = "arch") {
 
 function shell(p: Record<string, unknown>, extra: string, defTone = "light") {
   const t = propStr(p, "tone", defTone)
-  const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : t === "blush" ? "wpz-light wpz-blush" : "wpz-light"
+  const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : t === "blush" ? "wpz-light wpz-blush" : t === "glass" ? "wpz-light wpz-glass" : "wpz-light"
   const bg = propStr(p, "bgImage") ? "wpz-has-bg" : ""
   const mfw = propBool(p, "mobileFullWidth", true) ? "wpz-mfw" : ""
   // Dark tone, image+dark overlay, or a dark bg colour → light text tokens cascade from the section.
@@ -79,7 +80,7 @@ const Ico = ({ name, className }: { name: string; className?: string }) => {
 export function carouselOpts(p: Record<string, unknown>, defDesktop: number): { carousel: boolean; opts: CarouselOpts } {
   const layout = propStr(p, "layout", "carousel")
   return {
-    carousel: layout !== "grid",
+    carousel: layout !== "grid" && layout !== "grid3",
     opts: {
       desktop: clampSpv(propNum(p, "slidesDesktop", defDesktop), defDesktop),
       mobile: clampSpv(propNum(p, "slidesMobile", 1.3), 1.3),
@@ -94,9 +95,13 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const img = propStr(p, "image")
   const couplet = propStr(p, "couplet").split("\n").map((s) => s.trim()).filter(Boolean)
+  const slides = heroSlides(p)
+  if (slides.length || heroIsFull(p)) return <section className={shell(p, "wpz-hero-full", "light")} style={sectionBg(p)} dir="rtl"><HeroSlider p={p} slides={slides.length ? slides : [{ image: img, title: propStr(p, "title"), text: propStr(p, "text"), primaryLabel: propStr(p, "primaryLabel"), primaryHref: propStr(p, "primaryHref"), secondaryLabel: propStr(p, "secondaryLabel"), secondaryHref: propStr(p, "secondaryHref") }]} eyebrow={propStr(p, "eyebrow")} /></section>
+  const mode = propStr(p, "photoMode", "photo")
+  const noMedia = mode === "none" || (mode === "photo" && !img)
   if (heroIsOverlay(p)) return <PoetryHeroOverlay p={p} img={img} couplet={couplet} />
   return (
-    <section className={shell(p, "wpz-hero", "light")} style={sectionBg(p)} dir="rtl">
+    <section className={shell(p, noMedia ? "wpz-hero wpz-hero-nomedia" : "wpz-hero", "light")} style={sectionBg(p)} dir="rtl">
       <div className="wpz-hero-text">
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
         <h1 className="wpz-hero-title">{propStr(p, "title")}</h1>
@@ -106,14 +111,14 @@ export function PoetryHeroWidget({ widget }: { widget: WidgetNode }) {
           {propStr(p, "secondaryLabel") ? <Link className="wpz-btn wpz-btn-ghost" href={safeHref(propStr(p, "secondaryHref"))}>{propStr(p, "secondaryLabel")}</Link> : null}
         </div>
       </div>
-      <div className="wpz-hero-media">
+      {noMedia ? null : <div className="wpz-hero-media">
         {img && propStr(p, "photoMode", "photo") === "photo" ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(img, undefined, true)} alt={propStr(p, "imageAlt")} className={`wpz-img ${frameClass(p)}`} /> : <div className={`akx wpz-img ${frameClass(p)}`}><PhotoSlot mode={propStr(p, "photoMode", "photo")} logo={propStr(p, "logo")} alt={propStr(p, "imageAlt")} /></div>}
         {couplet.length ? (
           <div className="wpz-couplet" aria-label="بیت">
             {couplet.map((line, i) => <span key={i}>{line}</span>)}
           </div>
         ) : null}
-      </div>
+      </div>}
     </section>
   )
 }
@@ -257,11 +262,11 @@ export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
         <h2 className="wpz-h2">{propStr(p, "title")}</h2>
         <p className="wpz-text">{propStr(p, "text")}</p>
-        <form className="wpz-notify" onSubmit={submit} noValidate>
+        {propBool(p, "showNotifyInput", true) ? <><form className="wpz-notify" onSubmit={submit} noValidate>
           <input dir="ltr" value={value} onChange={(e) => setValue(e.target.value)} placeholder={propStr(p, "placeholder", "ایمیل یا شماره موبایل")} aria-label={propStr(p, "placeholder", "ایمیل یا شماره موبایل")} />
           <button type="submit" className="wpz-btn wpz-btn-primary" disabled={state === "sending"}>{propStr(p, "buttonLabel", "خبرم کن")}</button>
         </form>
-        <p className="wpz-note" aria-live="polite">{state === "done" ? propStr(p, "success", "ثبت شد؛ به محض انتشار خبرتان می‌کنیم.") : state === "error" ? "ثبت انجام نشد؛ دوباره تلاش کنید." : ""}</p>
+        <p className="wpz-note" aria-live="polite">{state === "done" ? propStr(p, "success", "ثبت شد؛ به محض انتشار خبرتان می‌کنیم.") : state === "error" ? "ثبت انجام نشد؛ دوباره تلاش کنید." : ""}</p></> : propStr(p, "buttonLabel") ? <div className="wpz-actions"><span className="wpz-btn wpz-btn-primary">{propStr(p, "buttonLabel")}</span></div> : null}
       </div>
     </section>
   )
@@ -276,7 +281,7 @@ export function OccasionCardsWidget({ widget }: { widget: WidgetNode }) {
   return (
     <section className={shell(p, "wpz-section", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
-      <OccasionTrack carousel={carousel} opts={opts} label={propStr(p, "title")} ratio={ratio}>
+      <OccasionTrack carousel={carousel} opts={opts} label={propStr(p, "title")} ratio={ratio} height={Math.max(0, Math.min(600, propNum(p, "cardHeight", 0)))}>
         {rows.map((r, i) => {
           const img = r.image.replace(/["\\()]/g, "")
           return (
@@ -294,8 +299,8 @@ export function OccasionCardsWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
-function OccasionTrack({ carousel, opts, label, ratio, children }: { carousel: boolean; opts: CarouselOpts; label: string; ratio: string; children: React.ReactNode }) {
-  const style = { ["--wpz-card-ratio" as string]: ratio } as CSSProperties
+function OccasionTrack({ carousel, opts, label, ratio, height = 0, children }: { carousel: boolean; opts: CarouselOpts; label: string; ratio: string; height?: number; children: React.ReactNode }) {
+  const style = { ["--wpz-card-ratio" as string]: ratio, ...(height ? { ["--wpz-card-h" as string]: `${height}px` } : {}) } as CSSProperties
   if (!carousel) return <div className="wpz-occ-grid" role="list" style={style}>{children}</div>
   return <div style={style}><WpzCarousel opts={opts} label={label} className="wpz-occ-carousel">{children}</WpzCarousel></div>
 }
@@ -310,9 +315,9 @@ export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
   const [open, setOpen] = useState<number | null>(null)
   if (!rows.length && !inDashboard()) return null
   return (
-    <section className={shell(p, "wpz-section", "light")} style={sectionBg(p)} dir="rtl">
+    <section className={shell(p, "wpz-section wpz-media-sec", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
-      <div className="wpz-grid">
+      <div className={`wpz-grid ${propStr(p, "mediaLayout", "auto") === "grid3" ? "wpz-grid3" : ""}`}>
         {rows.map((r, i) => {
           const isVideo = r.kind === "video" || /\.(mp4|webm)(\?|$)/i.test(r.src)
           const src = safeHref(r.src, "")
@@ -362,6 +367,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
   const ratio = RATIOS[propStr(p, "imageRatio", "4/5")] ?? "4 / 5"
   const editor = inDashboard()
   const { carousel, opts } = carouselOpts(p, 4)
+  const grid3 = propStr(p, "layout", "carousel") === "grid3"
   if (!rows.length && !loading && !editor) return null
   return (
     <section className={shell(p, `wpz-section ${shopTrackClass(p)}`, "light")} style={{ ...sectionBg(p), ["--wpz-pr-ratio" as string]: ratio, ...shopNarrowStyle(p) } as CSSProperties} dir="rtl">
@@ -369,7 +375,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
         {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
         {propStr(p, "moreLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "moreHref"), "/shop")}>{propStr(p, "moreLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
       </div>
-      <ShopTrack carousel={carousel} opts={opts} label={propStr(p, "title")}>
+      <ShopTrack grid3={grid3} carousel={carousel} opts={opts} label={propStr(p, "title")}>
         {loading ? Array.from({ length: Math.min(count, 6) }, (_, i) => <div key={i} className="wpz-product wpz-skel" aria-hidden />) : null}
         {rows.map((r, i) => (
           <article key={i} className="wpz-product">
@@ -394,8 +400,8 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
-function ShopTrack({ carousel, opts, label, children }: { carousel: boolean; opts: CarouselOpts; label: string; children: React.ReactNode }) {
-  if (!carousel) return <div className="wpz-grid wpz-shop-grid">{children}</div>
+function ShopTrack({ grid3, carousel, opts, label, children }: { grid3?: boolean; carousel: boolean; opts: CarouselOpts; label: string; children: React.ReactNode }) {
+  if (!carousel) return <div className={`wpz-grid wpz-shop-grid ${grid3 ? "wpz-grid3" : ""}`}>{children}</div>
   return <WpzCarousel opts={opts} label={label} className="wpz-shop-carousel">{children}</WpzCarousel>
 }
 
@@ -412,6 +418,9 @@ export function PoetAboutWidget({ widget }: { widget: WidgetNode }) {
         <SocialRow value={p.socials} />
         {propStr(p, "linkLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "linkHref"), "/about")}>{propStr(p, "linkLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
       </div>
+      {propStr(p, "aboutLayout") === "compact" && propStr(p, "sideQuote").trim() ? (
+        <figure className="wpz-about-quote"><Quote className="wpz-quote-mark" aria-hidden /><blockquote>{propStr(p, "sideQuote").split("\n").filter(Boolean).map((l, i) => <span key={i}>{l}</span>)}</blockquote>{propStr(p, "sideQuoteAuthor") ? <figcaption>{propStr(p, "sideQuoteAuthor")}</figcaption> : null}</figure>
+      ) : null}
     </section>
   )
 }

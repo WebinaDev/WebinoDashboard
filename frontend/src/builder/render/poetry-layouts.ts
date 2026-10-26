@@ -5,12 +5,16 @@ import { propBool, propNum, propStr } from "../props"
 type P = Record<string, unknown>
 
 /** poetry-hero heroLayout: "split" (default, image beside text) | "overlay" (image behind text + decor slots). */
+/** heroLayout "fullwidth": full-bleed image, text on the right, no frame. */
+export const heroIsFull = (p: P) => propStr(p, "heroLayout", "split") === "fullwidth"
 export const heroIsOverlay = (p: P) => propStr(p, "heroLayout", "split") === "overlay"
 
 /** poet-about aboutLayout: "auto" (default) | "horizontal" (image left / text right, stays a row at half width); card: "none" | "light". */
 export function aboutClass(p: P): string {
   const c = ["wpz-about"]
-  if (propStr(p, "aboutLayout", "auto") === "horizontal") c.push("wpz-about-h")
+  const l = propStr(p, "aboutLayout", "auto")
+  if (l === "horizontal") c.push("wpz-about-h")
+  if (l === "compact") c.push("wpz-about-compact")
   if (propStr(p, "card", "none") === "light") c.push("wpz-card-light")
   return c.join(" ")
 }

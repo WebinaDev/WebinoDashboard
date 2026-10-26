@@ -6,7 +6,7 @@ function node(type: string, props: Record<string, unknown>): WidgetNode {
   return { id: uid("w"), type, props }
 }
 
-const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }, { value: "blush", label: "صورتی روشن" }] }
+const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }, { value: "blush", label: "صورتی روشن" }, { value: "glass", label: "شیشه‌ای (سفید نیمه‌شفاف با محو پس‌زمینه)" }] }
 /** Shared section background: image + colour/gradient overlay (e.g. dark crimson) with opacity 0–100. */
 export const SECTION_BG_FIELDS: FieldDef[] = [
   { kind: "media", key: "bgImage", label: "تصویر پس‌زمینه بخش", accept: "image" },
@@ -25,7 +25,7 @@ const LOGO: FieldDef = { kind: "media", key: "logo", label: "لوگو برای �
 const ICONS = [{ value: "flame", label: "شعله" }, { value: "moon", label: "ماه" }, { value: "star", label: "ستاره" }, { value: "book", label: "کتاب" }, { value: "music", label: "صوت" }, { value: "video", label: "ویدیو" }]
 
 const CAROUSEL_FIELDS: FieldDef[] = [
-  { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "carousel", label: "اسلایدر (کاروسل)" }, { value: "grid", label: "شبکه (چند ردیف)" }] },
+  { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "carousel", label: "اسلایدر (کاروسل)" }, { value: "grid", label: "شبکه (چند ردیف)" }, { value: "grid3", label: "ساده سه‌ستونی" }] },
   { kind: "number", key: "slidesDesktop", label: "تعداد اسلاید در دسکتاپ", min: 1, max: 8 },
   { kind: "slider", key: "slidesMobile", label: "تعداد اسلاید در موبایل", min: 1, max: 3, step: 0.1 },
   { kind: "switch", key: "autoplay", label: "پخش خودکار" },
@@ -47,9 +47,19 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "textarea", key: "text", label: "متن" },
       { kind: "text", key: "primaryLabel", label: "دکمه اصلی" }, { kind: "link", key: "primaryHref", label: "پیوند دکمه اصلی" },
       { kind: "text", key: "secondaryLabel", label: "دکمه دوم" }, { kind: "link", key: "secondaryHref", label: "پیوند دکمه دوم" },
-      { kind: "media", key: "image", label: "تصویر", accept: "image" }, { kind: "text", key: "imageAlt", label: "متن جایگزین تصویر" }, PHOTO_MODE, LOGO,
+      { kind: "media", key: "image", label: "تصویر", accept: "image" }, { kind: "text", key: "imageAlt", label: "متن جایگزین تصویر" }, { ...PHOTO_MODE, options: [...(PHOTO_MODE as { options: { value: string; label: string }[] }).options, { value: "none", label: "بدون تصویر و بیت" }] } as FieldDef, LOGO,
       { kind: "textarea", key: "couplet", label: "بیت عمودی (هر مصراع یک خط)" },
-      { kind: "select", key: "heroLayout", label: "چیدمان هیرو", options: [{ value: "split", label: "تصویر کنار متن (پیش‌فرض)" }, { value: "overlay", label: "تصویر پشت متن + تزئین دو طرف" }] },
+      { kind: "select", key: "heroLayout", label: "چیدمان هیرو", options: [{ value: "split", label: "تصویر کنار متن (پیش‌فرض)" }, { value: "overlay", label: "تصویر پشت متن + تزئین دو طرف" }, { value: "fullwidth", label: "تمام‌عرض: عکس کامل، متن سمت راست، بدون قاب" }] },
+      { kind: "repeater", key: "slides", label: "اسلایدها (خالی = همان تصویر تکی)", fields: [
+        { key: "image", label: "تصویر", kind: "media" }, { key: "title", label: "عنوان", kind: "text" }, { key: "text", label: "متن", kind: "text" },
+        { key: "primaryLabel", label: "دکمه اصلی", kind: "text" }, { key: "primaryHref", label: "پیوند دکمه اصلی", kind: "url" },
+        { key: "secondaryLabel", label: "دکمه دوم", kind: "text" }, { key: "secondaryHref", label: "پیوند دکمه دوم", kind: "url" },
+      ] },
+      { kind: "switch", key: "sliderAutoplay", label: "پخش خودکار اسلایدها" },
+      { kind: "number", key: "sliderInterval", label: "فاصله پخش خودکار اسلایدها (ثانیه)", min: 2, max: 30 },
+      { kind: "switch", key: "sliderDots", label: "نقطه‌های اسلایدر" },
+      { kind: "switch", key: "sliderArrows", label: "فلش‌های اسلایدر" },
+      { kind: "number", key: "sliderHeight", label: "ارتفاع اسلایدر در دسکتاپ (px)", min: 280, max: 900 },
       { kind: "media", key: "decorLeft", label: "تصویر تزئینی چپ (مثلاً محراب گل‌دار)", accept: "image" },
       { kind: "select", key: "decorLeftFrame", label: "قاب تصویر چپ", options: DECOR_FRAMES },
       { kind: "media", key: "decorRight", label: "تصویر تزئینی راست (مثلاً حرم)", accept: "image" },
@@ -81,7 +91,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "media", key: "image", label: "جلد کتاب", accept: "image" }, PHOTO_MODE, LOGO,
       { kind: "text", key: "eyebrow", label: "برچسب" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "متن" },
-      { kind: "text", key: "placeholder", label: "متن راهنمای ورودی" }, { kind: "text", key: "buttonLabel", label: "متن دکمه" }, { kind: "text", key: "success", label: "پیام موفقیت" },
+      { kind: "switch", key: "showNotifyInput", label: "نمایش فیلد شماره یا ایمیل" }, { kind: "text", key: "placeholder", label: "متن راهنمای ورودی" }, { kind: "text", key: "buttonLabel", label: "متن دکمه" }, { kind: "text", key: "success", label: "پیام موفقیت" },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("book-banner", { title: "کتاب تازه به‌زودی", text: "", eyebrow: "به‌زودی", buttonLabel: "خبرم کن", photoMode: "photo", logo: "", tone: "dark", frame: "rounded", pattern: true }),
@@ -96,6 +106,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       ] },
       ...CAROUSEL_FIELDS,
       { kind: "select", key: "cardRatio", label: "نسبت کارت", options: RATIO_OPTS },
+      { kind: "number", key: "cardHeight", label: "ارتفاع کارت (px، ۰ یعنی از روی نسبت)", min: 0, max: 600 },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("occasion-cards", { title: "مناسبت‌ها", items: "محرم||flame|/poems?occasion=muharram\nفاطمیه||moon|/poems?occasion=fatemiyeh\nماه رمضان||star|/poems?occasion=ramadan\nمدح و مناجات||book|/poems?occasion=madh", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, cardRatio: "4/5", tone: "light", frame: "rounded" }),
@@ -109,6 +120,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
         { key: "duration", label: "مدت", kind: "text" }, { key: "src", label: "فایل", kind: "media" },
         { key: "kind", label: "نوع", kind: "select", options: [{ value: "audio", label: "صوت" }, { value: "video", label: "ویدیو" }] },
       ] },
+      { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "خودکار (پیش‌فرض)" }, { value: "grid3", label: "ساده سه‌ستونی" }] },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("media-cards", { title: "صوت و تصویر", items: "", tone: "light", frame: "rounded" }),
@@ -141,7 +153,8 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       PHOTO_MODE, { kind: "media", key: "image", label: "تصویر (فقط در حالت عکس)", accept: "image" }, LOGO,
       { kind: "text", key: "eyebrow", label: "برچسب" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "متن" },
       SOCIALS, { kind: "text", key: "linkLabel", label: "متن «بیشتر بخوانید»" }, { kind: "link", key: "linkHref", label: "پیوند" },
-      { kind: "select", key: "aboutLayout", label: "چیدمان", options: [{ value: "auto", label: "خودکار (پیش‌فرض)" }, { value: "horizontal", label: "افقی: تصویر چپ، متن راست" }] },
+      { kind: "select", key: "aboutLayout", label: "چیدمان", options: [{ value: "auto", label: "خودکار (پیش‌فرض)" }, { value: "horizontal", label: "افقی: تصویر چپ، متن راست" }, { value: "compact", label: "باریک با نقل‌قول کنار" }] },
+      { kind: "textarea", key: "sideQuote", label: "نقل‌قول کنار (چیدمان باریک، هر مصراع یک خط)" }, { kind: "text", key: "sideQuoteAuthor", label: "گوینده نقل‌قول کنار" },
       { kind: "select", key: "card", label: "کارت", options: [{ value: "none", label: "بدون کارت" }, { value: "light", label: "کارت روشن" }] },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],

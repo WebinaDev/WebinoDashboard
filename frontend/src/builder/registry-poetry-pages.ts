@@ -52,7 +52,9 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
     fields: [
       logo, { kind: "text", key: "brand", label: "نام" },
       { kind: "repeater", key: "links", label: "پیوندها", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] },
-      { kind: "switch", key: "showSearch", label: "نمایش جستجو" },
+      { kind: "switch", key: "showSearch", label: "نمایش جستجو" }, { kind: "switch", key: "searchWide", label: "جستجوی پهن وسط هدر" },
+      { kind: "switch", key: "bottomBar", label: "نوار تب پایین در موبایل" },
+      { kind: "repeater", key: "bottomItems", label: "تب‌های نوار پایین (خالی = پیوندهای منو)", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }, { key: "icon", label: "آیکن", kind: "select", options: [{ value: "home", label: "خانه" }, { value: "book", label: "کتاب" }, { value: "music", label: "صوت" }, { value: "shop", label: "فروشگاه" }, { value: "user", label: "شاعر" }, { value: "search", label: "جستجو" }] }] },
       { kind: "text", key: "searchPlaceholder", label: "متن راهنمای جستجو" }, { kind: "link", key: "searchHref", label: "صفحه نتایج جستجو" },
       { kind: "switch", key: "logoOnly", label: "فقط لوگو (بدون نام کنار آن)" },
       { kind: "number", key: "logoHeight", label: "ارتفاع لوگو دسکتاپ (px)" }, { kind: "number", key: "logoHeightMobile", label: "ارتفاع لوگو موبایل (px)" },

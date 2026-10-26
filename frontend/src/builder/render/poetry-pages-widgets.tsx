@@ -8,7 +8,7 @@
 
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import Link from "next/link"
-import { Check, ChevronLeft, ChevronRight, Copy, Menu, Music2, Printer, Share2, SlidersHorizontal, X } from "lucide-react"
+import { BookOpen, Check, ChevronLeft, ChevronRight, Copy, Home, Menu, Music, Music2, Printer, Search, Share2, ShoppingBag, SlidersHorizontal, User, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import type { CSSProperties, ReactNode } from "react"
@@ -233,7 +233,7 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   }
   return (
     <header className={`akx akx-navwrap ${akxMfw(p)} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
-      <div data-capsule={capsuleClear ? "clear" : undefined} className={`akx-nav ${capsuleClear ? "akx-nav-clear" : ""} ${!capsuleClear && propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
+      <div data-capsule={capsuleClear ? "clear" : undefined} className={`akx-nav ${propBool(p, "searchWide", false) ? "akx-search-wide" : ""} ${capsuleClear ? "akx-nav-clear" : ""} ${!capsuleClear && propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
         <Link href="/" className="akx-brand">
           {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo, undefined, true)} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
           {logoOnly && logo ? null : <b>{propStr(p, "brand", rt.siteName ?? "")}</b>}
@@ -257,7 +257,19 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
         </nav>
       </div>
       </div>, document.body) : null}
+      {propBool(p, "bottomBar", false) ? <NavTabBar items={parseRows(p.bottomItems, ["label", "href", "icon"]).filter((l) => l.label)} fallback={links} active={active} /> : null}
     </header>
+  )
+}
+
+const TAB_ICONS: Record<string, typeof Home> = { home: Home, book: BookOpen, music: Music, shop: ShoppingBag, user: User, search: Search }
+function NavTabBar({ items, fallback, active }: { items: Record<string, string>[]; fallback: Record<string, string>[]; active: (h: string) => boolean }) {
+  const list: Record<string, string>[] = (items.length ? items : fallback.slice(0, 5).map((l, i) => ({ ...l, icon: ["home", "book", "music", "shop", "user"][i] ?? "home" }))).slice(0, 6)
+  if (!list.length) return null
+  return (
+    <nav className="akx-tabbar" aria-label="نوار پایین">
+      {list.map((l, i) => { const I = TAB_ICONS[l.icon] ?? Home; return <Link key={i} href={safeLink(l.href, "/")} className={active(l.href) ? "is-on" : ""} aria-current={active(l.href) ? "page" : undefined}><I size={20} aria-hidden />{l.label}</Link> })}
+    </nav>
   )
 }
 
