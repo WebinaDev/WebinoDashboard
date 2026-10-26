@@ -2,6 +2,7 @@
 
 /* Renderers for the @webina/ui v0.2 gap widgets (schemas live in the shared package; renderers stay per platform). */
 
+import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import Link from "next/link"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 
@@ -271,6 +272,7 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
         <nav className="ms-auto hidden gap-4 text-sm md:flex">
           {links.map((l, i) => <a key={i} href={safeHref(l.href)}>{l.label}</a>)}
         </nav>
+        <NavExtras p={p} />
         {propStr(p, "ctaLabel") ? <a href={safeHref(propStr(p, "ctaHref"))} className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">{propStr(p, "ctaLabel")}</a> : null}
       </div>
     </header>
@@ -291,7 +293,7 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
   }
   const socials = parseRows(p.socials, ["network", "href"]).filter((s) => s.href)
   return (
-    <footer className={tone === "dark" ? "bg-foreground text-background" : "bg-card"}>
+    <footer className={`${tone === "dark" ? "bg-foreground text-background" : "bg-card"} ${footerExtraClass(p)}`} style={footerExtraStyle(p)}>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-4">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -305,7 +307,8 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
           </div>
         ))}
       </div>
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 border-t border-current/10 px-4 py-4 text-xs opacity-80">
+      <FooterExtras p={p} />
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 border-t border-current/10 px-4 py-4 text-xs opacity-80" style={{ background: "var(--wbx-copy-bg, transparent)" }}>
         <span>{propStr(p, "copyright")}</span>
         <span className="flex gap-3">{socials.map((s, i) => <a key={i} href={safeHref(s.href)} target="_blank" rel="noreferrer">{s.network}</a>)}</span>
       </div>

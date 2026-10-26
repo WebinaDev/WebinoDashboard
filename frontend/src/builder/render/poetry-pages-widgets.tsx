@@ -20,6 +20,7 @@ import { fetchCatalogPayload, mapCatalogJson } from "../storefront/use-catalog"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
 import "./poetry-pages-widgets.css"
+import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import { optImg } from "@/lib/image-url"
 
 type P = Record<string, unknown>
@@ -242,6 +243,7 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
           {links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")} className={active(l.href) ? "is-on" : ""}>{l.label}</Link>)}
         </nav>
         {propBool(p, "showSearch", true) ? <SearchBox placeholder={propStr(p, "searchPlaceholder")} action={propStr(p, "searchHref", "/poems")} /> : null}
+        <NavExtras p={p} />
         <button type="button" className="akx-burger" aria-label="باز کردن منو" aria-expanded={menu} onClick={() => setMenu(true)}><Menu size={22} aria-hidden /></button>
       </div>
       {mounted ? createPortal(<div className="akx akx-drawer-root" dir="rtl" style={drawerVars}>
@@ -791,12 +793,13 @@ export function PoetrySiteFooterWidget({ widget }: { widget: WidgetNode }) {
   const socials = socialsOf(p.socials)
   const logo = propStr(p, "logo")
   return (
-    <footer className={`akx akx-foot ${akxMfw(p)}`} dir="rtl" style={akxVars(p, { bg: "--akx-fbg", text: "--akx-ftx" })}>
+    <footer className={`akx akx-foot ${akxMfw(p)} ${footerExtraClass(p)}`} dir="rtl" style={{ ...akxVars(p, { bg: "--akx-fbg", text: "--akx-ftx" }), ...footerExtraStyle(p) }}>
       <div className="akx-foot-in">
         <Link href="/" className="akx-foot-brand">{logo ? <img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt="" /> : null}<b>{propStr(p, "brand", rt.siteName ?? "")}</b></Link>
         <nav aria-label="پیوندهای پاورقی">{links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")}>{l.label}</Link>)}</nav>
         <div className="akx-foot-soc">{socials.map((s, i) => <a key={i} href={safeLink(s.href)} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_LABELS[s.network] ?? s.network}>{s.label || SOCIAL_SHORT[s.network] || s.network}</a>)}</div>
       </div>
+      <FooterExtras p={p} />
       {propStr(p, "copyright") ? <p className="akx-copy">{propStr(p, "copyright")}</p> : null}
     </footer>
   )

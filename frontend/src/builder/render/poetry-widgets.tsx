@@ -23,6 +23,7 @@ import { sectionIsDark } from "./contrast"
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import { WpzCarousel, clampSpv, type CarouselOpts } from "./wpz-carousel"
 import { HeroSlider, heroSlides } from "./poetry-hero-slider"
+import { FooterExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
 export const faNum = (v: string | number) => String(v).replace(/\d/g, (d) => FA[Number(d)])
@@ -464,7 +465,7 @@ export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
   const links = parseRows(p.links, ["label", "href"]).filter((r) => r.label)
   const socials = parseRows(p.socials, ["network", "href"]).filter((r) => r.href)
   return (
-    <footer className={shell({ ...p, tone: "dark" }, "wpz-footer", "dark")} style={sectionBg(p)} dir="rtl">
+    <footer className={`${shell({ ...p, tone: "dark" }, "wpz-footer", "dark")} ${footerExtraClass(p)}`} style={{ ...sectionBg(p), ...footerExtraStyle(p) }} dir="rtl">
       <div className="wpz-footer-brand">
         {propStr(p, "logo") ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(propStr(p, "logo"), undefined, true)} alt={propStr(p, "brand")} className="wpz-logo" /> : null}
         {propStr(p, "brand") ? <strong>{propStr(p, "brand")}</strong> : null}
@@ -480,6 +481,7 @@ export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
           </a>
         ))}
       </div>
+      <FooterExtras p={p} />
       {propStr(p, "copyright") ? <p className="wpz-copy">{propStr(p, "copyright")}</p> : null}
     </footer>
   )
