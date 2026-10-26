@@ -79,6 +79,15 @@ THEMES = {
    "font_fa": "\"Yekan Bakh\", Vazirmatn, sans-serif", "font_en": "Fraunces, Inter, serif", "font_mono": "\"JetBrains Mono\", ui-monospace, monospace",
    "radius": "18px", "shadow": "0 10px 30px -15px rgba(20,63,60,.35)", "motion": "helix", "default_mode": "light"},
   "layout": [W("resume.page_journal", variant="default")]},
+ "tide": {
+  "key": "tide", "name_fa": "موج و نور (Tide)", "name_en": "Tide", "audience": "health", "full_page": True,
+  "description_fa": "صفحه کامل سینمایی با حس شیرجه: از سطح آفتابی آب تا عمق، نور موج‌دار، پرتره در عدسی، سوابق به شکل خط شنا، حوزه‌های تمرکز به شکل سلول و کتابخانه با جلد بازتابی", "description_en": "Full-page cinematic dive: from a sunlit water surface to the deep, caustic light, lens portrait, swim-lane career, cell focus cards and a reflective book library",
+  "tokens": {
+   "light": {"--bg": "#f6f4ee", "--surface": "#ffffff", "--text": "#10262d", "--muted": "#5d7479", "--border": "#d5e2df", "--accent": "#2a7f86", "--accent-fg": "#ffffff", "--accent-2": "#c2a36b"},
+   "dark":  {"--bg": "#f6f4ee", "--surface": "#ffffff", "--text": "#10262d", "--muted": "#5d7479", "--border": "#d5e2df", "--accent": "#2a7f86", "--accent-fg": "#ffffff", "--accent-2": "#c2a36b"},
+   "font_fa": "\"Yekan Bakh\", Vazirmatn, sans-serif", "font_en": "Fraunces, Inter, serif", "font_mono": "\"JetBrains Mono\", ui-monospace, monospace",
+   "radius": "22px", "shadow": "0 30px 60px -30px rgba(12,44,55,.45)", "motion": "tide", "default_mode": "light"},
+  "layout": [W("resume.page_tide", variant="default")]},
 }
 for p in ["backend/resources/resume/themes.json", "frontend/modules/resume/lib/themes.json"]:
     json.dump(THEMES, open(f"{ROOT}/{p}", "w"), ensure_ascii=False, indent=1)

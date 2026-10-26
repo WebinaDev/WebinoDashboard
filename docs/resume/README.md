@@ -76,6 +76,7 @@ builder emits hreflang alternates and per-page SEO. Widgets take `lang` = `auto`
 - `webina-os` — وبینا OS / Webina OS: Full-page desktop OS: terminal, career git log, skills package.json, project launcher and ⌘K search (full page)
 - `vitality` — سرزندگی (Vitality) / Vitality: Full-page light, chic health theme: arch portrait, ECG line, pulse timeline, molecule focus cards from `about.highlights` (full page)
 - `clinical-journal` — ژورنال بالینی / Clinical Journal: Full-page scientific-paper layout: abstract, numbered sections, petri-dish portrait, animated DNA helix (full page)
+- `tide` — موج و نور (Tide) / Tide: Full-page cinematic dive from a sunlit surface to the deep: caustic light, lens portrait, swim-lane experience, cell focus cards from `about.highlights`, reflective book covers, depth gauge; reduced-motion safe (full page)
 
 Tokens use the ERP shell names `--bg --surface --text --muted --border --accent --accent-fg` (+ `--accent-2`) with a light and dark pair;
 `settings.mode=system` follows `prefers-color-scheme` / `.dark`. Accent: `settings.accent`/`accent_dark` → (full-page themes) the site accent from builder globals → theme default.

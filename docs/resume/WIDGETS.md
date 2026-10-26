@@ -40,6 +40,7 @@ Registry: `frontend/src/builder/registry-resume.ts`; renderers: `render/resume-w
 | `resume.page_os` | default | `fa_href`, `en_href` — full-page «Webina OS» theme (⌘K palette) |
 | `resume.page_vitality` | default | `fa_href`, `en_href` — full-page «Vitality» theme |
 | `resume.page_journal` | default | `fa_href`, `en_href` — full-page «Clinical Journal» theme |
+| `resume.page_tide` | default | `fa_href`, `en_href` — full-page «Tide» theme (surface to deep scroll, lens portrait, swim lanes, cells, book library) |
 | `resume.download_pdf` | button | `template`, `label` — phase 2 (renders disabled) |
 
 Theme layout presets (`themes.json → layout`) are lists of `{type, props}` using only these widgets; apply-layout wraps each in a
