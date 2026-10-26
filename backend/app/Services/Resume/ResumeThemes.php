@@ -16,6 +16,20 @@ class ResumeThemes
 {
     public const PAGE_SLUGS = ['fa' => 'home', 'en' => 'en'];
 
+    /** Page slug per language: the site default language owns "home" (/), the other one lives at /fa or /en. */
+    public static function slugs(?string $defaultLocale): array
+    {
+        return $defaultLocale === 'en' ? ['en' => 'home', 'fa' => 'fa'] : self::PAGE_SLUGS;
+    }
+
+    /** @return array{fa_href: string, en_href: string} */
+    public static function hrefs(?string $defaultLocale): array
+    {
+        $s = self::slugs($defaultLocale);
+
+        return ['fa_href' => $s['fa'] === 'home' ? '/' : '/'.$s['fa'], 'en_href' => $s['en'] === 'home' ? '/' : '/'.$s['en']];
+    }
+
     private static ?array $catalog = null;
 
     public static function catalog(): array
@@ -24,7 +38,7 @@ class ResumeThemes
     }
 
     /** Builder document for a theme preset in one language. */
-    public static function document(string $key, string $lang): array
+    public static function document(string $key, string $lang, ?string $defaultLocale = null): array
     {
         $theme = self::catalog()[$key] ?? abort(404);
         $sections = [];
@@ -39,7 +53,7 @@ class ResumeThemes
                     'widgets' => [[
                         'id' => 'w_rz'.$i.'_'.Str::lower(Str::random(6)),
                         'type' => $w['type'],
-                        'props' => $w['props'] + ['lang' => $lang, 'full_width' => true, 'show_placeholder' => false],
+                        'props' => $w['props'] + self::hrefs($defaultLocale) + ['lang' => $lang, 'full_width' => true, 'show_placeholder' => false],
                     ]],
                 ]],
             ];
@@ -48,7 +62,7 @@ class ResumeThemes
         array_unshift($sections, [
             'id' => 's_rzlang_'.Str::lower(Str::random(6)), 'label' => 'resume.lang_switch', 'fullWidth' => true,
             'columns' => [['id' => 'c_rzlang_'.Str::lower(Str::random(6)), 'span' => 12, 'widgets' => [[
-                'id' => 'w_rzlang_'.Str::lower(Str::random(6)), 'type' => 'resume.lang_switch', 'props' => ['variant' => 'pill', 'lang' => $lang],
+                'id' => 'w_rzlang_'.Str::lower(Str::random(6)), 'type' => 'resume.lang_switch', 'props' => ['variant' => 'pill', 'lang' => $lang] + self::hrefs($defaultLocale),
             ]]]],
         ]);
         }
@@ -59,13 +73,15 @@ class ResumeThemes
     /** @param  list<string>  $langs */
     public static function applyLayout(int $tenantId, string $key, array $langs): array
     {
-        $group = CmsPage::query()->where('tenant_id', $tenantId)->whereIn('slug', array_values(self::PAGE_SLUGS))->value('translation_group')
+        $default = \App\Models\Tenant::query()->whereKey($tenantId)->value('default_locale');
+        $slugs = self::slugs($default);
+        $group = CmsPage::query()->where('tenant_id', $tenantId)->whereIn('slug', array_values($slugs))->value('translation_group')
             ?: 'resume-'.Str::lower(Str::random(10));
         $out = [];
         foreach ($langs as $lang) {
-            $slug = self::PAGE_SLUGS[$lang];
+            $slug = $slugs[$lang];
             $page = CmsPage::query()->where('tenant_id', $tenantId)->where('slug', $slug)->first();
-            $doc = self::document($key, $lang);
+            $doc = self::document($key, $lang, $default);
             if ($page) {
                 foreach (['builder_draft', 'builder_published'] as $col) {
                     if (is_array($page->{$col}) && $page->{$col}) {
