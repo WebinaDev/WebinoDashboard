@@ -49,7 +49,7 @@
   },
   {
    "type": "email",
-   "value": "arsalanarghavan2014@gmail.com",
+   "value": "info@arsalanarghavan.ir",
    "label": "ایمیل",
    "visibility": "public",
    "order": 1,
@@ -395,43 +395,6 @@
    "is_placeholder": false,
    "role_en": "Founder and developer",
    "title_en": "Webina Dashboard"
-  },
-  {
-   "title": "MeowVPN",
-   "role": "توسعه‌دهنده",
-   "url": null,
-   "repo_url": "https://github.com/arsalanarghavan/MeowVPN",
-   "tags": [
-    "GitHub"
-   ],
-   "order": 2,
-   "is_placeholder": false,
-   "role_en": "Developer",
-   "title_en": "MeowVPN"
-  },
-  {
-   "title": "MeowVPN WordPress",
-   "role": "توسعه‌دهنده",
-   "url": null,
-   "repo_url": "https://github.com/arsalanarghavan/MeowVPNWordpress",
-   "tags": [
-    "WordPress"
-   ],
-   "order": 3,
-   "is_placeholder": false,
-   "role_en": "Developer",
-   "title_en": "MeowVPN WordPress"
-  },
-  {
-   "title": "نمونه کار",
-   "role": "نمونه",
-   "url": null,
-   "repo_url": null,
-   "tags": [],
-   "order": 4,
-   "is_placeholder": true,
-   "role_en": "Sample",
-   "title_en": "Sample project"
   }
  ],
  "stats": [
