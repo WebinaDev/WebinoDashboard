@@ -14,6 +14,8 @@ import { cartCount, subscribeCart } from "../cart"
 import { parseRows, propBool, propNum, propStr } from "../props"
 import { useServerCart } from "../storefront/actions"
 import { quietApi } from "../storefront/session"
+import { hideOnClass } from "@webina/ui/builder"
+import "@webina/ui/styles/hide-on.css"
 import "./chrome-extras.css"
 
 type P = Record<string, unknown>
@@ -23,7 +25,7 @@ const fa = (n: number) => String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"
 
 /* ───────── nav: cart badge + login / account ───────── */
 /** Per-breakpoint visibility for header cart/account: "" (always), "mobile" (≤767px), "tablet" (≤1024px). */
-const hideCls = (v: string) => (v === "mobile" ? "wbx-hide-m" : v === "tablet" ? "wbx-hide-t" : "")
+const hideCls = hideOnClass
 export function navExtrasOn(p: P) { return propBool(p, "showCart", false) || propBool(p, "showAccount", false) }
 
 export function NavExtras({ p }: { p: P }) {

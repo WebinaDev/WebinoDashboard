@@ -1,0 +1,18 @@
+name: builder-widgets
+on:
+  push: { paths: ["frontend/src/builder/**", "frontend/package.json"] }
+  pull_request: { paths: ["frontend/src/builder/**", "frontend/package.json"] }
+jobs:
+  no-duplicate-widgets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install @webina/ui + typescript only
+        working-directory: frontend
+        run: |
+          UI=$(node -p "require('./package.json').dependencies['@webina/ui']")
+          mkdir -p /tmp/ci && cd /tmp/ci && npm init -y >/dev/null && npm i --no-audit --no-fund "$UI" typescript@5
+      - name: Fail on widgets defined both locally and in @webina/ui
+        run: node /tmp/ci/node_modules/@webina/ui/scripts/check-duplicates.mjs frontend/src/builder
