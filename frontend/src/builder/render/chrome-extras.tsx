@@ -22,6 +22,8 @@ const href = (v: string, fb = "#") => (/^(https?:|mailto:|tel:|\/|#)/i.test((v |
 const fa = (n: number) => String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
 
 /* ───────── nav: cart badge + login / account ───────── */
+/** Per-breakpoint visibility for header cart/account: "" (always), "mobile" (≤767px), "tablet" (≤1024px). */
+const hideCls = (v: string) => (v === "mobile" ? "wbx-hide-m" : v === "tablet" ? "wbx-hide-t" : "")
 export function navExtrasOn(p: P) { return propBool(p, "showCart", false) || propBool(p, "showAccount", false) }
 
 export function NavExtras({ p }: { p: P }) {
@@ -43,19 +45,19 @@ function NavExtrasInner({ p }: { p: P }) {
   return (
     <div className="wbx-nav-extras">
       {propBool(p, "showCart", false) ? (
-        <Link href={href(propStr(p, "cartHref", "/cart"), "/cart")} className="wbx-cart" aria-label={`سبد خرید، ${fa(count)} کالا`}>
+        <Link href={href(propStr(p, "cartHref", "/cart"), "/cart")} className={`wbx-cart ${hideCls(propStr(p, "cartHideOn"))}`} aria-label={`سبد خرید، ${fa(count)} کالا`}>
           <ShoppingBag size={20} aria-hidden />
           {count > 0 ? <span className="wbx-badge">{fa(count > 99 ? 99 : count)}</span> : null}
         </Link>
       ) : null}
       {propBool(p, "showAccount", false) ? (auth === "auth" ? (
-        <details className="wbx-account">
+        <details className={`wbx-account ${hideCls(propStr(p, "accountHideOn"))}`}>
           <summary aria-label="حساب کاربری"><User size={20} aria-hidden /></summary>
           <div className="wbx-account-menu" role="menu">{menu.map((l, i) => <Link key={i} role="menuitem" href={href(l.href, "/account")}>{l.label}</Link>)}
             {propBool(p, "showLogout", true) ? <button type="button" role="menuitem" className="wbx-logout" onClick={() => void logout()}>{propStr(p, "logoutLabel", "خروج")}</button> : null}</div>
         </details>
       ) : (
-        <Link href={href(propStr(p, "loginHref", "/login"), "/login")} className="wbx-login">{propStr(p, "loginLabel", "ورود")}</Link>
+        <Link href={href(propStr(p, "loginHref", "/login"), "/login")} className={`wbx-login ${hideCls(propStr(p, "accountHideOn"))}`}>{propStr(p, "loginLabel", "ورود")}</Link>
       )) : null}
     </div>
   )
@@ -98,9 +100,11 @@ export function FooterExtraColumns({ p }: { p: P }) {
   const occ = parseRows(p.footerOccasions, ["label", "href"]).filter((l) => l.label)
   const phone = propStr(p, "footerPhone"), email = propStr(p, "footerEmail"), addr = propStr(p, "footerAddress")
   const news = propBool(p, "footerNewsletter", false)
-  if (!occ.length && !phone && !email && !addr && !news) return null
+  const about = propStr(p, "footerAbout").trim()
+  if (!about && !occ.length && !phone && !email && !addr && !news) return null
   return (
     <div className="wbx-foot-cols" dir="rtl">
+      {about ? <div className="wbx-about"><b className="wbx-col-title">{propStr(p, "footerAboutTitle", "درباره ما")}</b>{about.split(/\n\s*\n|\n/).map((t, i) => <p key={i}>{t}</p>)}{propStr(p, "footerAboutLinkLabel") ? <Link href={href(propStr(p, "footerAboutLinkHref", "/about"), "/about")} className="wbx-about-more">{propStr(p, "footerAboutLinkLabel")}</Link> : null}</div> : null}
       {occ.length ? <div><b className="wbx-col-title">{propStr(p, "footerOccasionsTitle", "مناسبت‌ها")}</b><ul>{occ.map((l, i) => <li key={i}><Link href={href(l.href, "/")}>{l.label}</Link></li>)}</ul></div> : null}
       {phone || email || addr ? <div><b className="wbx-col-title">{propStr(p, "footerContactTitle", "تماس")}</b><ul>
         {phone ? <li><a href={`tel:${phone.replace(/[^\d+]/g, "")}`} dir="ltr">{phone}</a></li> : null}

@@ -10,7 +10,9 @@ const LINKS = [{ key: "label", label: "برچسب", kind: "text" }, { key: "href
 export const NAV_EXTRA_FIELDS: FieldDef[] = [
   { kind: "switch", key: "showCart", label: "نمایش آیکن سبد خرید با تعداد" },
   { kind: "link", key: "cartHref", label: "پیوند سبد خرید" },
+  { kind: "select", key: "cartHideOn", label: "نمایش سبد خرید در دستگاه‌ها", options: [{ value: "", label: "همه دستگاه‌ها" }, { value: "mobile", label: "پنهان در موبایل" }, { value: "tablet", label: "پنهان در تبلت و موبایل" }] },
   { kind: "switch", key: "showAccount", label: "نمایش دکمه ورود یا منوی حساب" },
+  { kind: "select", key: "accountHideOn", label: "نمایش ورود و حساب در دستگاه‌ها", options: [{ value: "", label: "همه دستگاه‌ها" }, { value: "mobile", label: "پنهان در موبایل" }, { value: "tablet", label: "پنهان در تبلت و موبایل" }] },
   { kind: "text", key: "loginLabel", label: "متن دکمه ورود" },
   { kind: "link", key: "loginHref", label: "پیوند صفحه ورود" },
   { kind: "repeater", key: "accountLinks", label: "منوی حساب کاربری پس از ورود", fields: [...LINKS] } as FieldDef,
@@ -19,6 +21,10 @@ export const NAV_EXTRA_FIELDS: FieldDef[] = [
 ]
 
 export const FOOTER_EXTRA_FIELDS: FieldDef[] = [
+  { kind: "text", key: "footerAboutTitle", label: "عنوان ستون درباره" },
+  { kind: "textarea", key: "footerAbout", label: "متن ستون درباره" },
+  { kind: "text", key: "footerAboutLinkLabel", label: "متن پیوند ستون درباره" },
+  { kind: "link", key: "footerAboutLinkHref", label: "پیوند ستون درباره" },
   { kind: "text", key: "footerOccasionsTitle", label: "عنوان ستون مناسبت‌ها" },
   { kind: "repeater", key: "footerOccasions", label: "ستون مناسبت‌ها", fields: [...LINKS] } as FieldDef,
   { kind: "text", key: "footerContactTitle", label: "عنوان ستون تماس" },
