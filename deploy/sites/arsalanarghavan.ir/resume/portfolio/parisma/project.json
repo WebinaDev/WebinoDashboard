@@ -1,0 +1,76 @@
+{
+  "slug": "parisma",
+  "url": "https://parisma.ir",
+  "title": {
+    "fa": "پریسما گالری",
+    "en": "Parisma Gallery"
+  },
+  "subtitle": {
+    "fa": "فروشگاه آرایشی و بهداشتی با تجربه استوری‌محور",
+    "en": "A beauty and personal care shop with a story-driven experience"
+  },
+  "role": {
+    "fa": "طراحی، توسعه و راه‌اندازی",
+    "en": "Design, development and launch"
+  },
+  "year": null,
+  "industry": {
+    "fa": "آرایشی و بهداشتی",
+    "en": "Beauty and personal care"
+  },
+  "services": [
+    {
+      "fa": "فروشگاه اینترنتی",
+      "en": "Online shop"
+    },
+    {
+      "fa": "استوری ویدیویی",
+      "en": "Video stories"
+    },
+    {
+      "fa": "مدیریت موجودی",
+      "en": "Inventory management"
+    },
+    {
+      "fa": "سئو محتوایی",
+      "en": "Content SEO"
+    },
+    {
+      "fa": "طراحی موبایل‌محور",
+      "en": "Mobile-first design"
+    }
+  ],
+  "tech": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+  ],
+  "summary": {
+    "fa": "فروشگاه اینترنتی محصولات آرایشی، مراقبت پوست و مو با استوری‌های ویدیویی محصول، موجودی لحظه‌ای و مجله آموزشی زیبایی.",
+    "en": "An online shop for makeup, skin and hair care with product video stories, live stock and a beauty magazine."
+  },
+  "description": {
+    "fa": "پریسما گالری در دزفول فروشگاهی آرایشی و بهداشتی است که مخاطبش را از اینستاگرام می‌شناسد. مشتری عادت دارد محصول را در ویدیو ببیند، نظر بقیه را بخواند و بعد بخرد، اما این تجربه فقط در شبکه اجتماعی وجود داشت.\n\nتجربه آشنای اینستاگرام را به داخل سایت آوردیم: استوری‌های ویدیویی محصولات مثل جدیدهای شیگلم، اسپری میست و ابزارهای حالت‌دهی مو، بالای صفحه اصلی قرار گرفت. کارت محصول موجودی واقعی را نشان می‌دهد تا فروش بیش از موجودی رخ ندهد.\n\nدسته‌بندی‌های محبوب از ابزار آرایش تا مراقبت پوست صورت و بدن، مسیر خرید را کوتاه می‌کنند و «مجله پریسما» با راهنماهایی مثل انتخاب ضدآفتاب و شوینده روغنی، تصمیم خریدار را کامل می‌کند.\n\nمخاطب شبکه اجتماعی حالا بدون شکستن تجربه وارد سایت می‌شود و محتوای تخصصی، ورودی ارگانیک و اعتماد خریدار را بالا می‌برد.",
+    "en": "Parisma Gallery is a beauty and personal care shop in Dezful that knows its audience from Instagram. Customers are used to seeing a product on video and reading others' opinions before buying, but that experience only existed on social media.\n\nWe brought the familiar Instagram experience into the site: video stories for products such as new makeup releases, face mists and hair styling tools sit at the top of the home page. Product cards show real stock so nothing is oversold.\n\nPopular categories, from makeup tools to face and body care, shorten the path to purchase, and the Parisma magazine, with guides such as choosing a sunscreen or an oil cleanser, completes the buyer's decision.\n\nSocial media visitors now arrive on the site without breaking the experience, and specialist content builds organic traffic and buyer trust."
+  },
+  "highlights": [
+    {
+      "fa": "استوری ویدیویی محصول",
+      "en": "Product video stories"
+    },
+    {
+      "fa": "موجودی لحظه‌ای",
+      "en": "Live stock"
+    },
+    {
+      "fa": "مجله آموزشی زیبایی",
+      "en": "Beauty magazine"
+    }
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/desktop.webp",
+    "images/mobile.webp",
+    "images/home-long.webp"
+  ]
+}

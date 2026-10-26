@@ -35,7 +35,8 @@
 .rzx-vit .arch .bg::before{content:'';position:absolute;inset:-40%;background:conic-gradient(from 0deg,#fff0,#fff5,#fff0 30%);animation:rzx_vit_spin 16s linear infinite}
 @keyframes rzx_vit_spin{to{transform:rotate(1turn)}}
 .rzx-vit .arch img{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:92%;border-radius:0 0 28px 28px}
-.rzx-vit .ring{position:absolute;inset:-22px;border-radius:999px 999px 40px 40px;border:1px dashed var(--rose2);animation:rzx_vit_spin 60s linear infinite;opacity:.6}
+.rzx-vit .ring{position:absolute;inset:-22px;border-radius:999px 999px 40px 40px;border:1px dashed var(--rose2);animation:rzx_vit_breathe 6s ease-in-out infinite alternate;opacity:.6}
+@keyframes rzx_vit_breathe{to{transform:scale(1.03);opacity:.35}}
 .rzx-vit .badge{position:absolute;background:#fffd;backdrop-filter:blur(8px);border-radius:18px;padding:12px 16px;box-shadow:0 18px 40px -18px color-mix(in srgb,var(--acc) 33%,transparent);font-size:13px;animation:rzx_vit_float 5s ease-in-out infinite alternate}
 .rzx-vit .badge b{display:block;font-family:Fraunces;font-size:24px;color:var(--rose);line-height:1}
 @keyframes rzx_vit_float{to{transform:translateY(-12px)}}
@@ -122,3 +123,4 @@
 .rzx-vit .lsw a.on{background:currentColor}
 .rzx-vit .lsw a.on span{color:var(--bg,#fff);mix-blend-mode:normal}
 .rzx-vit .ph-cut{display:grid;place-items:center;font-size:120px;opacity:.4}
+@media(max-width:820px){.rzx-vit .eyebrow{font-size:11px;letter-spacing:.12em;justify-content:center;flex-wrap:wrap}}

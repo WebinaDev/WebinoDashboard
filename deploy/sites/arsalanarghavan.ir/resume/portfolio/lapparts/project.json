@@ -1,0 +1,72 @@
+{
+  "slug": "lapparts",
+  "url": "https://lapparts.ir",
+  "title": {
+    "fa": "هایتک سنتر (لپ‌پارتس)",
+    "en": "Hitech Center (Lapparts)"
+  },
+  "subtitle": {
+    "fa": "فروشگاه اینترنتی قطعات و لوازم جانبی لپ‌تاپ",
+    "en": "An online store for laptop parts and accessories"
+  },
+  "role": {
+    "fa": "طراحی، توسعه و راه‌اندازی",
+    "en": "Design, development and launch"
+  },
+  "year": null,
+  "industry": {
+    "fa": "قطعات و لوازم دیجیتال",
+    "en": "Computer parts and electronics"
+  },
+  "services": [
+    {
+      "fa": "فروشگاه اینترنتی",
+      "en": "Online shop"
+    },
+    {
+      "fa": "پیگیری سفارش",
+      "en": "Order tracking"
+    },
+    {
+      "fa": "طراحی UI ریسپانسیو",
+      "en": "Responsive UI design"
+    },
+    {
+      "fa": "وبلاگ",
+      "en": "Blog"
+    }
+  ],
+  "tech": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+  ],
+  "summary": {
+    "fa": "فروشگاه قطعات لپ‌تاپ مثل رم، شارژر، هارد و صفحه نمایش، با فروش ویژه زمان‌دار، پیگیری سفارش و پرداخت امن.",
+    "en": "A laptop parts store for RAM, chargers, drives and screens, with timed sales, order tracking and secure payment."
+  },
+  "description": {
+    "fa": "خریدار قطعه لپ‌تاپ معمولا دنبال یک مدل دقیق است و نگران اصالت کالا و زمان رسیدن آن. هایتک سنتر می‌خواست همین نگرانی‌ها را از همان صفحه اول جواب بدهد.\n\nمنوی اصلی مستقیم به دسته‌های پرتقاضا مثل رم، شارژر، هارد و صفحه نمایش لپ‌تاپ می‌رود. زیر سربرگ، چهار وعده فروشگاه کنار هم آمده‌اند: پشتیبانی هفت روز هفته، ارسال سریع پستی، گارانتی اصالت و پرداخت امن با درگاه شاپرک.\n\nبخش فروش ویژه با شمارنده، قیمت قبلی و فعلی هر محصول را کنار هم نشان می‌دهد و صفحه «پیگیری سفارش» به خریدار اجازه می‌دهد وضعیت سفارشش را بدون تماس ببیند.",
+    "en": "Someone buying a laptop part is usually after an exact model and worries about authenticity and delivery time. Hitech Center wanted to answer those worries from the very first screen.\n\nThe main menu goes straight to high-demand categories such as laptop RAM, chargers, drives and screens. Under the header, four store promises sit side by side: seven-day support, fast postal delivery, an authenticity guarantee and secure payment through the national gateway.\n\nA flash sale section with a countdown shows each product's old and new price together, and an order tracking page lets buyers check their order without calling."
+  },
+  "highlights": [
+    {
+      "fa": "دسترسی مستقیم به دسته‌های قطعات",
+      "en": "Direct access to parts categories"
+    },
+    {
+      "fa": "پیگیری سفارش آنلاین",
+      "en": "Online order tracking"
+    },
+    {
+      "fa": "فروش ویژه با قیمت قبلی و فعلی",
+      "en": "Flash sales showing old and new prices"
+    }
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/desktop.webp",
+    "images/mobile.webp",
+    "images/home-long.webp"
+  ]
+}

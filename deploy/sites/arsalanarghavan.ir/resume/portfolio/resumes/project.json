@@ -1,0 +1,84 @@
+{
+  "slug": "resumes",
+  "url": "https://arsalanarghavan.ir",
+  "title": {
+    "fa": "سایت‌های رزومه شخصی",
+    "en": "Personal resume sites"
+  },
+  "subtitle": {
+    "fa": "ماژول رزومه و لینک‌هاب روی سایت‌ساز وبینا",
+    "en": "The resume and link hub modules on the Webina site builder"
+  },
+  "role": {
+    "fa": "طراحی محصول، طراحی قالب‌ها و توسعه",
+    "en": "Product design, theme design and development"
+  },
+  "year": null,
+  "industry": {
+    "fa": "برند شخصی",
+    "en": "Personal branding"
+  },
+  "services": [
+    {
+      "fa": "ماژول رزومه",
+      "en": "Resume module"
+    },
+    {
+      "fa": "لینک‌هاب",
+      "en": "Link hub"
+    },
+    {
+      "fa": "طراحی قالب",
+      "en": "Theme design"
+    },
+    {
+      "fa": "سایت دوزبانه",
+      "en": "Bilingual sites"
+    }
+  ],
+  "tech": [
+    "Webina site builder",
+    "Laravel",
+    "React",
+    "TypeScript"
+  ],
+  "summary": {
+    "fa": "رزومه آنلاین با قالب‌های روایی، لینک‌هاب اختصاصی و نسخه فارسی و انگلیسی، روی همان پلتفرم سایت‌های فروشگاهی.",
+    "en": "Online resumes with story-driven themes, a dedicated link hub and Persian and English versions, on the same platform as the shop sites."
+  },
+  "description": {
+    "fa": "یک رزومه کاغذی یا فایل PDF داستان کار یک نفر را کامل نمی‌گوید. ماژول رزومه سایت‌ساز وبینا برای همین ساخته شد: سابقه، پروژه‌ها و مهارت‌ها در قالب یک سایت شخصی روایت می‌شوند و صاحب سایت همه چیز را از پنل خودش به‌روز می‌کند.\n\narsalanarghavan.ir اولین نمونه این ماژول است. صفحه اصلی با معرفی «توسعه‌دهنده وب و بنیان‌گذار وبینا» از سال ۱۳۹۲ شروع می‌شود و با اسکرول، بخش‌های داستان، پروژه‌ها و مهارت‌ها یکی یکی باز می‌شوند. نسخه فارسی و انگلیسی با یک کلیک عوض می‌شود.\n\nکنار هر رزومه یک لینک‌هاب روی زیردامنه contact قرار می‌گیرد تا همه راه‌های ارتباطی در یک صفحه سبک جمع شوند. سایت hassandoust.ir هم با همین ماژول، با انگلیسی به‌عنوان زبان پیش‌فرض و نسخه فارسی روی /fa، در حال آماده‌سازی است.\n\nبرای ماژول رزومه چند قالب با حال و هوای متفاوت طراحی شده، از قالب تیره و کدمحور تا قالب مجله‌ای و شیشه‌ای، تا هر نفر سبک خودش را انتخاب کند.",
+    "en": "A paper resume or a PDF does not tell the full story of someone's work. That is why the Webina site builder has a resume module: experience, projects and skills are told as a personal website, and the owner keeps everything up to date from their own panel.\n\narsalanarghavan.ir is the first site on this module. The home page opens with \"web developer and founder of Webina\" since 2013, and as you scroll the story, projects and skills sections unfold one by one. Persian and English switch with a single click.\n\nEach resume comes with a link hub on a contact subdomain that gathers every way to get in touch on one light page. hassandoust.ir is being prepared on the same module, with English as the default language and a Persian version at /fa.\n\nSeveral themes with different moods were designed for the module, from a dark, code-inspired look to editorial and glass styles, so each person can pick their own."
+  },
+  "highlights": [
+    {
+      "fa": "روایت اسکرولی داستان، پروژه‌ها و مهارت‌ها",
+      "en": "Scroll-driven story, projects and skills"
+    },
+    {
+      "fa": "فارسی و انگلیسی",
+      "en": "Persian and English"
+    },
+    {
+      "fa": "لینک‌هاب روی زیردامنه contact",
+      "en": "Link hub on a contact subdomain"
+    },
+    {
+      "fa": "چند قالب قابل انتخاب",
+      "en": "Multiple selectable themes"
+    }
+  ],
+  "sites": [
+    "https://arsalanarghavan.ir",
+    "https://hassandoust.ir"
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/arsalanarghavan-desktop.webp",
+    "images/arsalanarghavan-mobile.webp",
+    "images/arsalanarghavan-long.webp",
+    "images/theme-dark.webp",
+    "images/theme-editorial.webp",
+    "images/theme-glass-mobile.webp"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "slug": "modernoshop",
+  "url": "https://modernoshop.ir",
+  "title": {
+    "fa": "مدرنوشاپ",
+    "en": "Modernoshop"
+  },
+  "subtitle": {
+    "fa": "فروشگاه اینترنتی ابزارآلات صنعتی",
+    "en": "An online store for industrial tools"
+  },
+  "role": {
+    "fa": "طراحی، توسعه و راه‌اندازی",
+    "en": "Design, development and launch"
+  },
+  "year": null,
+  "industry": {
+    "fa": "ابزارآلات صنعتی",
+    "en": "Industrial tools"
+  },
+  "services": [
+    {
+      "fa": "فروشگاه اینترنتی",
+      "en": "Online shop"
+    },
+    {
+      "fa": "فروش ویژه زمان‌دار",
+      "en": "Timed flash sales"
+    },
+    {
+      "fa": "طراحی UI ریسپانسیو",
+      "en": "Responsive UI design"
+    },
+    {
+      "fa": "وبلاگ",
+      "en": "Blog"
+    }
+  ],
+  "tech": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+  ],
+  "summary": {
+    "fa": "فروشگاه اینترنتی ابزارآلات صنعتی با بخش تخفیف‌های روزانه زمان‌دار و دسترسی سریع به مشاوره تلفنی.",
+    "en": "An online store for industrial tools with timed daily deals and quick access to phone advice."
+  },
+  "description": {
+    "fa": "خرید ابزار صنعتی برای خیلی‌ها با مقایسه مدل، سایز و برند همراه است و خریدار اغلب قبل از خرید سوال دارد. مدرنوشاپ می‌خواست این خرید را آنلاین کند بدون اینکه ارتباط مستقیم با فروشنده از بین برود.\n\nدر صفحه اصلی، بخش «تخفیفات ویژه امروز» با شمارنده زمان باقی‌مانده، محصولاتی مثل انبر قفلی و متر لیزری را با قیمت مشخص جلوی چشم خریدار می‌گذارد. جست‌وجو، حساب کاربری و سبد خرید همیشه در دسترس هستند.\n\nشماره «نیاز به راهنمایی دارید؟» بالای همه صفحات قرار گرفته تا هر جا خریدار مردد شد، با یک تماس سوالش را بپرسد. وبلاگ، درباره ما و تماس با ما هم اعتماد به فروشگاه را کامل می‌کنند.",
+    "en": "Buying industrial tools usually means comparing models, sizes and brands, and buyers often have questions first. Modernoshop wanted to bring that purchase online without losing the direct line to the seller.\n\nOn the home page, a \"today's special deals\" section with a countdown puts products such as locking pliers and laser distance meters in front of the buyer with clear prices. Search, account and cart are always within reach.\n\nA \"need advice?\" phone number sits at the top of every page so a hesitant buyer can ask with one call. The blog, about and contact pages round out trust in the store."
+  },
+  "highlights": [
+    {
+      "fa": "تخفیف‌های روزانه با شمارنده",
+      "en": "Daily deals with a countdown"
+    },
+    {
+      "fa": "مشاوره تلفنی در همه صفحات",
+      "en": "Phone advice on every page"
+    },
+    {
+      "fa": "جست‌وجو و سبد خرید همیشه در دسترس",
+      "en": "Search and cart always within reach"
+    }
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/desktop.webp",
+    "images/mobile.webp",
+    "images/home-long.webp"
+  ]
+}

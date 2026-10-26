@@ -382,19 +382,279 @@
  ],
  "projects": [
   {
-   "title": "Webina Dashboard",
-   "role": "بنیان‌گذار و توسعه‌دهنده",
+   "title": "وبینا",
+   "title_fa": "وبینا",
+   "title_en": "Webina",
+   "role": "بنیان‌گذار، معمار نرم‌افزار و توسعه‌دهنده اصلی",
+   "role_fa": "بنیان‌گذار، معمار نرم‌افزار و توسعه‌دهنده اصلی",
+   "role_en": "Founder, software architect and lead developer",
+   "summary_fa": "وبینا آژانسی است که مسیر کامل ساخت و رشد کسب‌وکار را زیر یک سقف اجرا می‌کند و سایت‌ساز وبینا موتوری است که همه سایت‌های مشتری‌ها روی آن ساخته می‌شوند.",
+   "summary_en": "Webina is an agency that runs the whole path of building and growing a business under one roof, and the Webina site builder is the engine every client site is built on.",
    "url": "https://webina.dev",
    "repo_url": null,
-   "cover_media_id": null,
+   "cover_path": "portfolio/webina/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/webina/images/desktop.webp",
+    "portfolio/webina/images/mobile.webp",
+    "portfolio/webina/images/home-long.webp"
+   ],
    "tags": [
     "Laravel",
-    "Next.js"
+    "PHP",
+    "React",
+    "TypeScript",
+    "Docker",
+    "Caddy",
+    "MySQL",
+    "REST APIs"
    ],
-   "order": 1,
+   "featured": true,
    "is_placeholder": false,
-   "role_en": "Founder and developer",
-   "title_en": "Webina Dashboard"
+   "order": 1
+  },
+  {
+   "title": "سایت‌ساز وبینا",
+   "title_fa": "سایت‌ساز وبینا",
+   "title_en": "Webina Site Builder",
+   "role": "بنیان‌گذار، معمار نرم‌افزار و توسعه‌دهنده اصلی",
+   "role_fa": "بنیان‌گذار، معمار نرم‌افزار و توسعه‌دهنده اصلی",
+   "role_en": "Founder, software architect and lead developer",
+   "summary_fa": "سایت‌ساز وبینا موتوری است که همه سایت‌های مشتری‌ها، از فروشگاه و کافه تا رزومه و لینک‌هاب، روی آن ساخته می‌شوند: صفحه‌ساز بصری، ماژول‌های فروش و مدیریت، دوزبانه و سریع.",
+   "summary_en": "The Webina site builder is the engine every client site runs on, from shops and cafes to resumes and link hubs: a visual page builder, commerce and management modules, bilingual and fast.",
+   "url": "https://webina.dev",
+   "repo_url": null,
+   "cover_path": "portfolio/webina/images/site-builder.webp",
+   "gallery_paths": [
+    "portfolio/webina/images/site-builder-settings.webp",
+    "portfolio/webina/images/site-builder-mobile.webp"
+   ],
+   "tags": [
+    "Laravel",
+    "PHP",
+    "React",
+    "TypeScript",
+    "Docker",
+    "Caddy",
+    "MySQL",
+    "REST APIs"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 2
+  },
+  {
+   "title": "کافه آبی",
+   "title_fa": "کافه آبی",
+   "title_en": "Cafe Blue",
+   "role": "طراحی، توسعه و راه‌اندازی",
+   "role_fa": "طراحی، توسعه و راه‌اندازی",
+   "role_en": "Design, development and launch",
+   "summary_fa": "منوی دیجیتال موبایل‌محور با ۵۰ آیتم در ۵ دسته، پیشنهاد سرآشپز، وضعیت باز و بسته و زمان آماده‌سازی سفارش.",
+   "summary_en": "A mobile-first digital menu with 50 items in 5 categories, chef's picks, live open or closed status and order preparation time.",
+   "url": "https://cafebluedez.ir",
+   "repo_url": null,
+   "cover_path": "portfolio/cafe-blue/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/cafe-blue/images/desktop.webp",
+    "portfolio/cafe-blue/images/mobile.webp",
+    "portfolio/cafe-blue/images/menu-long.webp",
+    "portfolio/cafe-blue/images/contact-mobile.webp"
+   ],
+   "tags": [
+    "Webina site builder",
+    "Laravel",
+    "React",
+    "QR"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 3
+  },
+  {
+   "title": "سایت‌های رزومه شخصی",
+   "title_fa": "سایت‌های رزومه شخصی",
+   "title_en": "Personal resume sites",
+   "role": "طراحی محصول، طراحی قالب‌ها و توسعه",
+   "role_fa": "طراحی محصول، طراحی قالب‌ها و توسعه",
+   "role_en": "Product design, theme design and development",
+   "summary_fa": "رزومه آنلاین با قالب‌های روایی، لینک‌هاب اختصاصی و نسخه فارسی و انگلیسی، روی همان پلتفرم سایت‌های فروشگاهی.",
+   "summary_en": "Online resumes with story-driven themes, a dedicated link hub and Persian and English versions, on the same platform as the shop sites.",
+   "url": "https://arsalanarghavan.ir",
+   "repo_url": null,
+   "cover_path": "portfolio/resumes/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/resumes/images/arsalanarghavan-desktop.webp",
+    "portfolio/resumes/images/arsalanarghavan-mobile.webp",
+    "portfolio/resumes/images/arsalanarghavan-long.webp",
+    "portfolio/resumes/images/theme-dark.webp",
+    "portfolio/resumes/images/theme-editorial.webp",
+    "portfolio/resumes/images/theme-glass-mobile.webp"
+   ],
+   "tags": [
+    "Webina site builder",
+    "Laravel",
+    "React",
+    "TypeScript"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 4
+  },
+  {
+   "title": "پریسما گالری",
+   "title_fa": "پریسما گالری",
+   "title_en": "Parisma Gallery",
+   "role": "طراحی، توسعه و راه‌اندازی",
+   "role_fa": "طراحی، توسعه و راه‌اندازی",
+   "role_en": "Design, development and launch",
+   "summary_fa": "فروشگاه اینترنتی محصولات آرایشی، مراقبت پوست و مو با استوری‌های ویدیویی محصول، موجودی لحظه‌ای و مجله آموزشی زیبایی.",
+   "summary_en": "An online shop for makeup, skin and hair care with product video stories, live stock and a beauty magazine.",
+   "url": "https://parisma.ir",
+   "repo_url": null,
+   "cover_path": "portfolio/parisma/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/parisma/images/desktop.webp",
+    "portfolio/parisma/images/mobile.webp",
+    "portfolio/parisma/images/home-long.webp"
+   ],
+   "tags": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 5
+  },
+  {
+   "title": "کافئین",
+   "title_fa": "کافئین",
+   "title_en": "Coffee-in",
+   "role": "طراحی، توسعه و راه‌اندازی",
+   "role_fa": "طراحی، توسعه و راه‌اندازی",
+   "role_en": "Design, development and launch",
+   "summary_fa": "فروشگاه تخصصی قهوه با ساخت ترکیب شخصی، انتخاب رست و آسیاب، و بلاگ آموزشی برای مصرف‌کننده خانگی و کافه‌دارها.",
+   "summary_en": "A specialist coffee shop with custom blends, roast and grind options, and an educational blog for home drinkers and cafe owners.",
+   "url": "https://coffee-in.ir",
+   "repo_url": null,
+   "cover_path": "portfolio/coffee-in/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/coffee-in/images/desktop.webp",
+    "portfolio/coffee-in/images/mobile.webp",
+    "portfolio/coffee-in/images/home-long.webp"
+   ],
+   "tags": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 6
+  },
+  {
+   "title": "موبوگالری",
+   "title_fa": "موبوگالری",
+   "title_en": "Mobogallery",
+   "role": "طراحی، توسعه و راه‌اندازی",
+   "role_fa": "طراحی، توسعه و راه‌اندازی",
+   "role_en": "Design, development and launch",
+   "summary_fa": "فروشگاه اینترنتی لوازم جانبی موبایل و تجهیزات دیجیتال با استوری محصول، موجودی دقیق کالا و راهنماهای خرید فنی.",
+   "summary_en": "An online shop for mobile accessories and gadgets with product stories, accurate stock and technical buying guides.",
+   "url": "https://mobogallery.shop",
+   "repo_url": null,
+   "cover_path": "portfolio/mobogallery/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/mobogallery/images/desktop.webp",
+    "portfolio/mobogallery/images/mobile.webp",
+    "portfolio/mobogallery/images/home-long.webp"
+   ],
+   "tags": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 7
+  },
+  {
+   "title": "مدرنوشاپ",
+   "title_fa": "مدرنوشاپ",
+   "title_en": "Modernoshop",
+   "role": "طراحی، توسعه و راه‌اندازی",
+   "role_fa": "طراحی، توسعه و راه‌اندازی",
+   "role_en": "Design, development and launch",
+   "summary_fa": "فروشگاه اینترنتی ابزارآلات صنعتی با بخش تخفیف‌های روزانه زمان‌دار و دسترسی سریع به مشاوره تلفنی.",
+   "summary_en": "An online store for industrial tools with timed daily deals and quick access to phone advice.",
+   "url": "https://modernoshop.ir",
+   "repo_url": null,
+   "cover_path": "portfolio/modernoshop/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/modernoshop/images/desktop.webp",
+    "portfolio/modernoshop/images/mobile.webp",
+    "portfolio/modernoshop/images/home-long.webp"
+   ],
+   "tags": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 8
+  },
+  {
+   "title": "لاپلاس سنتر",
+   "title_fa": "لاپلاس سنتر",
+   "title_en": "Laplas Center",
+   "role": "طراحی، توسعه و راه‌اندازی",
+   "role_fa": "طراحی، توسعه و راه‌اندازی",
+   "role_en": "Design, development and launch",
+   "summary_fa": "فروشگاه اینترنتی لوازم خانه و آشپزخانه، لوازم شخصی برقی و لوازم خانگی خرد با تخفیف‌های روزانه و مجله آموزشی.",
+   "summary_en": "An online store for kitchen and home goods, personal care electronics and small appliances, with daily deals and a magazine.",
+   "url": "https://laplas-center.ir",
+   "repo_url": null,
+   "cover_path": "portfolio/laplas-center/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/laplas-center/images/desktop.webp",
+    "portfolio/laplas-center/images/mobile.webp",
+    "portfolio/laplas-center/images/home-long.webp"
+   ],
+   "tags": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 9
+  },
+  {
+   "title": "هایتک سنتر (لپ‌پارتس)",
+   "title_fa": "هایتک سنتر (لپ‌پارتس)",
+   "title_en": "Hitech Center (Lapparts)",
+   "role": "طراحی، توسعه و راه‌اندازی",
+   "role_fa": "طراحی، توسعه و راه‌اندازی",
+   "role_en": "Design, development and launch",
+   "summary_fa": "فروشگاه قطعات لپ‌تاپ مثل رم، شارژر، هارد و صفحه نمایش، با فروش ویژه زمان‌دار، پیگیری سفارش و پرداخت امن.",
+   "summary_en": "A laptop parts store for RAM, chargers, drives and screens, with timed sales, order tracking and secure payment.",
+   "url": "https://lapparts.ir",
+   "repo_url": null,
+   "cover_path": "portfolio/lapparts/images/cover.webp",
+   "gallery_paths": [
+    "portfolio/lapparts/images/desktop.webp",
+    "portfolio/lapparts/images/mobile.webp",
+    "portfolio/lapparts/images/home-long.webp"
+   ],
+   "tags": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+   ],
+   "featured": true,
+   "is_placeholder": false,
+   "order": 10
   }
  ],
  "stats": [

@@ -1,0 +1,82 @@
+{
+  "slug": "cafe-blue",
+  "url": "https://cafebluedez.ir",
+  "title": {
+    "fa": "کافه آبی",
+    "en": "Cafe Blue"
+  },
+  "subtitle": {
+    "fa": "منوی دیجیتال و سفارش آنلاین کافه",
+    "en": "Digital menu and online ordering for a cafe"
+  },
+  "role": {
+    "fa": "طراحی، توسعه و راه‌اندازی",
+    "en": "Design, development and launch"
+  },
+  "year": null,
+  "industry": {
+    "fa": "کافه و مهمان‌نوازی",
+    "en": "Cafe and hospitality"
+  },
+  "services": [
+    {
+      "fa": "منوی دیجیتال",
+      "en": "Digital menu"
+    },
+    {
+      "fa": "QR منو",
+      "en": "QR menu"
+    },
+    {
+      "fa": "سفارش آنلاین",
+      "en": "Online ordering"
+    },
+    {
+      "fa": "پنل مدیریت محتوا",
+      "en": "Content management panel"
+    },
+    {
+      "fa": "طراحی موبایل‌محور",
+      "en": "Mobile-first design"
+    }
+  ],
+  "tech": [
+    "Webina site builder",
+    "Laravel",
+    "React",
+    "QR"
+  ],
+  "summary": {
+    "fa": "منوی دیجیتال موبایل‌محور با ۵۰ آیتم در ۵ دسته، پیشنهاد سرآشپز، وضعیت باز و بسته و زمان آماده‌سازی سفارش.",
+    "en": "A mobile-first digital menu with 50 items in 5 categories, chef's picks, live open or closed status and order preparation time."
+  },
+  "description": {
+    "fa": "کافه آبی منوی کاغذی داشت که با هر تغییر قیمت یا اضافه شدن نوشیدنی جدید باید دوباره چاپ می‌شد. در ساعات شلوغ مشتری برای دیدن منو و پرسیدن قیمت منتظر می‌ماند و اطلاعاتی مثل ساعت کاری، آدرس و زمان آماده‌سازی جایی یکجا نبود.\n\nیک منوی دیجیتال سریع و موبایل‌محور ساختیم که با اسکن QR روی میز یا از اینستاگرام باز می‌شود. بالای صفحه وضعیت لحظه‌ای کافه و زمان تقریبی آماده‌سازی سفارش نمایش داده می‌شود و دکمه‌های «مشاهده منو» و «رزرو میز» همان ابتدا در دسترس‌اند.\n\n۵۰ آیتم در ۵ دسته، از نوشیدنی گرم و سرد تا چای و دمنوش، ماکتل و شیک، با توضیح کوتاه و قیمت چیده شده‌اند. بخش «پیشنهاد سرآشپز» نوشیدنی‌های امضادار مثل دراگون شات را جلو می‌آورد و مدیر کافه قیمت‌ها را بدون چاپ دوباره از پنل تغییر می‌دهد.\n\nحالا تغییر قیمت در چند ثانیه اعمال می‌شود و مشتری پیش از رسیدن به صندوق تصمیمش را گرفته است.",
+    "en": "Cafe Blue had a paper menu that had to be reprinted with every price change or new drink. At busy hours customers waited to see the menu and ask about prices, and details such as opening hours, address and preparation time were not in one place.\n\nWe built a fast, mobile-first digital menu that opens from a QR code on the table or from Instagram. The top of the page shows the cafe's live status and estimated preparation time, with \"View menu\" and \"Book a table\" right at hand.\n\nFifty items across five categories, from hot and cold drinks to tea and infusions, mocktails and shakes, are laid out with short descriptions and prices. A chef's picks section brings signature drinks such as the Dragon Shot forward, and the manager updates prices from the panel without reprinting anything.\n\nPrice changes now go live in seconds, and guests have made up their minds before they reach the counter."
+  },
+  "highlights": [
+    {
+      "fa": "۵۰ آیتم در ۵ دسته",
+      "en": "50 items in 5 categories"
+    },
+    {
+      "fa": "وضعیت باز و بسته و زمان آماده‌سازی",
+      "en": "Live open or closed status and preparation time"
+    },
+    {
+      "fa": "رزرو میز",
+      "en": "Table booking"
+    },
+    {
+      "fa": "بروزرسانی قیمت از پنل",
+      "en": "Price updates from the panel"
+    }
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/desktop.webp",
+    "images/mobile.webp",
+    "images/menu-long.webp",
+    "images/contact-mobile.webp"
+  ]
+}

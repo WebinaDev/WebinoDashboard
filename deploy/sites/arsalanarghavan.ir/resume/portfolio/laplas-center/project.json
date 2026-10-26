@@ -1,0 +1,68 @@
+{
+  "slug": "laplas-center",
+  "url": "https://laplas-center.ir",
+  "title": {
+    "fa": "لاپلاس سنتر",
+    "en": "Laplas Center"
+  },
+  "subtitle": {
+    "fa": "فروشگاه اینترنتی لوازم خانگی و لوازم شخصی برقی",
+    "en": "An online store for home appliances and personal care electronics"
+  },
+  "role": {
+    "fa": "طراحی، توسعه و راه‌اندازی",
+    "en": "Design, development and launch"
+  },
+  "year": null,
+  "industry": {
+    "fa": "لوازم خانگی",
+    "en": "Home appliances"
+  },
+  "services": [
+    {
+      "fa": "فروشگاه اینترنتی",
+      "en": "Online shop"
+    },
+    {
+      "fa": "طراحی UI ریسپانسیو",
+      "en": "Responsive UI design"
+    },
+    {
+      "fa": "مجله آموزشی",
+      "en": "Educational magazine"
+    }
+  ],
+  "tech": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+  ],
+  "summary": {
+    "fa": "فروشگاه اینترنتی لوازم خانه و آشپزخانه، لوازم شخصی برقی و لوازم خانگی خرد با تخفیف‌های روزانه و مجله آموزشی.",
+    "en": "An online store for kitchen and home goods, personal care electronics and small appliances, with daily deals and a magazine."
+  },
+  "description": {
+    "fa": "لاپلاس سنتر صدها محصول در دسته‌های مختلف دارد و چالش اصلی این بود که خریدار در این تنوع گم نشود.\n\nصفحه اصلی با سه دسته اصلی شروع می‌شود: لوازم خانه و آشپزخانه، لوازم شخصی برقی و لوازم خانگی خرد، هر کدام با تعداد محصولاتش. پشت سر آن، بخش «تخفیف‌های امروز» محصولاتی مثل ماشین اصلاح و برس حرارتی را با قیمت و بازه قیمت مدل‌ها نشان می‌دهد و کالاهای ناموجود با برچسب «بزودی موجود می‌شود» مشخص می‌شوند.\n\nمجله آموزشی، صفحه تماس و شماره تماس در سربرگ، مسیر سوال پرسیدن و تصمیم گرفتن را کوتاه می‌کنند.",
+    "en": "Laplas Center carries hundreds of products across many categories, and the main challenge was keeping shoppers from getting lost in that range.\n\nThe home page opens with three main categories, kitchen and home, personal care electronics and small appliances, each with its product count. Below that, a \"today's deals\" section shows items such as hair clippers and hot brushes with prices and price ranges across variants, and out-of-stock items are clearly labelled \"coming soon\".\n\nAn educational magazine, a contact page and a phone number in the header shorten the path from question to decision."
+  },
+  "highlights": [
+    {
+      "fa": "دسته‌بندی اصلی با تعداد محصول",
+      "en": "Main categories with product counts"
+    },
+    {
+      "fa": "تخفیف‌های روزانه",
+      "en": "Daily deals"
+    },
+    {
+      "fa": "برچسب کالای بزودی موجود",
+      "en": "Coming-soon labels for out-of-stock items"
+    }
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/desktop.webp",
+    "images/mobile.webp",
+    "images/home-long.webp"
+  ]
+}

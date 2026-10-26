@@ -1,0 +1,88 @@
+{
+  "slug": "webina",
+  "url": "https://webina.dev",
+  "title": {
+    "fa": "وبینا و سایت‌ساز وبینا",
+    "en": "Webina and the Webina site builder"
+  },
+  "subtitle": {
+    "fa": "آژانس توسعه کسب‌وکار و پلتفرم ماژولار ساخت و مدیریت سایت",
+    "en": "A business development agency and a modular platform for building and running websites"
+  },
+  "role": {
+    "fa": "بنیان‌گذار، معمار نرم‌افزار و توسعه‌دهنده اصلی",
+    "en": "Founder, software architect and lead developer"
+  },
+  "year": null,
+  "industry": {
+    "fa": "آژانس دیجیتال و نرم‌افزار",
+    "en": "Digital agency and software"
+  },
+  "services": [
+    {
+      "fa": "استراتژی محصول",
+      "en": "Product strategy"
+    },
+    {
+      "fa": "طراحی رابط کاربری",
+      "en": "UI design"
+    },
+    {
+      "fa": "توسعه فول‌استک",
+      "en": "Full-stack development"
+    },
+    {
+      "fa": "صفحه‌ساز",
+      "en": "Page builder"
+    },
+    {
+      "fa": "زیرساخت و دیپلوی",
+      "en": "Infrastructure and deployment"
+    }
+  ],
+  "tech": [
+    "Laravel",
+    "PHP",
+    "React",
+    "TypeScript",
+    "Docker",
+    "Caddy",
+    "MySQL",
+    "REST APIs"
+  ],
+  "summary": {
+    "fa": "وبینا آژانسی است که مسیر کامل ساخت و رشد کسب‌وکار را زیر یک سقف اجرا می‌کند و سایت‌ساز وبینا موتوری است که همه سایت‌های مشتری‌ها روی آن ساخته می‌شوند.",
+    "en": "Webina is an agency that runs the whole path of building and growing a business under one roof, and the Webina site builder is the engine every client site is built on."
+  },
+  "description": {
+    "fa": "وبینا با یک ایده ساده شروع شد: به جای خدمات پراکنده، کسب‌وکارها یک تیم یکپارچه داشته باشند که از استراتژی و طراحی تا توسعه، اتوماسیون و افزایش فروش همراهشان باشد. سایت webina.dev همین روایت را تعریف می‌کند؛ خدمات، راهکارها، نمونه‌کارها، محصولات و آکادمی، همه در یک تجربه دوزبانه کنار هم آمده‌اند.\n\nپشت این سایت یک پلتفرم کامل قرار دارد. سایت‌ساز وبینا یک داشبورد ماژولار است که هر سایت را با نوع کسب‌وکارش راه‌اندازی می‌کند و ماژول‌هایی مثل فروشگاه، منوی دیجیتال، لینک‌هاب و رزومه را روی آن فعال می‌کند. خود webina.dev هم کاملا با صفحه‌ساز همین پلتفرم ساخته شده و هیچ صفحه‌ای در کد ثابت نشده است.\n\nصفحه‌ساز طوری طراحی شده که روی دسکتاپ، تبلت و موبایل راحت کار کند؛ ویجت‌ها کشیده و رها می‌شوند و تنظیمات هر بخش در یک پنل جدا در دسترس است. در کنار آن، مدیریت چند دامنه برای هر سایت، ریدایرکت‌ها و صدور خودکار گواهی SSL هم داخل همین پنل انجام می‌شود.\n\nنتیجه یک زیرساخت مشترک است که سایت‌های فروشگاهی، کافه‌ها و رزومه‌های شخصی را با یک کد پایه نگه می‌دارد؛ هر بهبود در پلتفرم، به همه سایت‌ها می‌رسد.",
+    "en": "Webina started from a simple idea: instead of scattered services, a business should have one integrated team that stays with it from strategy and design to development, automation and sales growth. webina.dev tells that story, bringing services, solutions, case studies, products and an academy together in one bilingual experience.\n\nBehind the site sits a full platform. The Webina site builder is a modular dashboard that launches each site according to its business type and switches on modules such as a shop, a digital menu, a link hub and a resume. webina.dev itself is built entirely with the platform's page builder, with no page hard-coded.\n\nThe page builder is designed to work comfortably on desktop, tablet and mobile: widgets are dragged into place and each section's settings live in their own panel. The same panel also handles multiple domains per site, redirects and automatic SSL certificates.\n\nThe result is a shared foundation that runs shops, cafes and personal resume sites from one codebase, so every improvement to the platform reaches every site."
+  },
+  "highlights": [
+    {
+      "fa": "سایت دوزبانه فارسی و انگلیسی",
+      "en": "Bilingual Persian and English site"
+    },
+    {
+      "fa": "همه صفحات با صفحه‌ساز خود پلتفرم ساخته شده‌اند",
+      "en": "Every page built with the platform's own page builder"
+    },
+    {
+      "fa": "ماژول‌های فروشگاه، منو، لینک‌هاب و رزومه",
+      "en": "Shop, menu, link hub and resume modules"
+    },
+    {
+      "fa": "مدیریت چند دامنه و SSL خودکار",
+      "en": "Multi-domain management with automatic SSL"
+    }
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/desktop.webp",
+    "images/mobile.webp",
+    "images/home-long.webp",
+    "images/site-builder.webp",
+    "images/site-builder-settings.webp",
+    "images/site-builder-mobile.webp"
+  ]
+}

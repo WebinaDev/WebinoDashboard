@@ -1,0 +1,76 @@
+{
+  "slug": "mobogallery",
+  "url": "https://mobogallery.shop",
+  "title": {
+    "fa": "موبوگالری",
+    "en": "Mobogallery"
+  },
+  "subtitle": {
+    "fa": "فروشگاه لوازم جانبی موبایل و کالای دیجیتال",
+    "en": "A mobile accessories and gadgets shop"
+  },
+  "role": {
+    "fa": "طراحی، توسعه و راه‌اندازی",
+    "en": "Design, development and launch"
+  },
+  "year": null,
+  "industry": {
+    "fa": "کالای دیجیتال",
+    "en": "Consumer electronics"
+  },
+  "services": [
+    {
+      "fa": "فروشگاه اینترنتی",
+      "en": "Online shop"
+    },
+    {
+      "fa": "استوری محصول",
+      "en": "Product stories"
+    },
+    {
+      "fa": "مدیریت موجودی",
+      "en": "Inventory management"
+    },
+    {
+      "fa": "سئو محتوایی",
+      "en": "Content SEO"
+    },
+    {
+      "fa": "طراحی UI ریسپانسیو",
+      "en": "Responsive UI design"
+    }
+  ],
+  "tech": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+  ],
+  "summary": {
+    "fa": "فروشگاه اینترنتی لوازم جانبی موبایل و تجهیزات دیجیتال با استوری محصول، موجودی دقیق کالا و راهنماهای خرید فنی.",
+    "en": "An online shop for mobile accessories and gadgets with product stories, accurate stock and technical buying guides."
+  },
+  "description": {
+    "fa": "موبوگالری یک فروشگاه حضوری لوازم جانبی موبایل در دزفول است که می‌خواست فروشش را آنلاین کند. در این صنف تنوع کالا بالاست، قیمت‌ها زود تغییر می‌کند و خریدار بین شارژرها و کابل‌های مختلف سردرگم است.\n\nفروشگاهی طراحی کردیم که هم ویترین سریع باشد و هم مشاور خرید. استوری‌های محصول با برچسب‌هایی مثل «اورجینال»، «درجه ۱» و «SGS» کیفیت کالا را در چند ثانیه منتقل می‌کنند و کارت‌های محصول تعداد دقیق موجودی را نشان می‌دهند.\n\nراهنماهای خرید فنی مثل انتخاب شارژر مناسب سامسونگ و شیائومی یا کابل USB-C، سوالات تکراری را پاسخ می‌دهند و دسته‌بندی‌هایی از قاب گوشی تا ساعت هوشمند، پیدا کردن کالا را ساده می‌کنند.\n\nفروشگاه حضوری حالا یک کانال آنلاین هماهنگ با موجودی دارد و مشتری با اطمینان بیشتری کالای فنی را انتخاب می‌کند.",
+    "en": "Mobogallery is a walk-in mobile accessories store in Dezful that wanted to sell online. The category has a huge range, prices change quickly, and buyers get lost between chargers and cables.\n\nWe designed a shop that works as both a quick showcase and a buying advisor. Product stories tagged \"original\", \"grade 1\" and \"SGS\" convey quality in seconds, and product cards show exact stock counts.\n\nTechnical buying guides, such as choosing the right Samsung or Xiaomi charger or a USB-C cable, answer recurring questions, and categories from phone cases to smartwatches make products easy to find.\n\nThe physical store now has an online channel in step with its stock, and customers choose technical products with more confidence."
+  },
+  "highlights": [
+    {
+      "fa": "استوری محصول با برچسب کیفیت",
+      "en": "Product stories with quality tags"
+    },
+    {
+      "fa": "نمایش تعداد موجودی",
+      "en": "Exact stock counts"
+    },
+    {
+      "fa": "راهنماهای خرید فنی",
+      "en": "Technical buying guides"
+    }
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/desktop.webp",
+    "images/mobile.webp",
+    "images/home-long.webp"
+  ]
+}

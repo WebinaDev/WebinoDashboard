@@ -1,0 +1,76 @@
+{
+  "slug": "coffee-in",
+  "url": "https://coffee-in.ir",
+  "title": {
+    "fa": "کافئین",
+    "en": "Coffee-in"
+  },
+  "subtitle": {
+    "fa": "فروشگاه اینترنتی مرکز پخش قهوه و رستری",
+    "en": "Online shop for a coffee roastery and distributor"
+  },
+  "role": {
+    "fa": "طراحی، توسعه و راه‌اندازی",
+    "en": "Design, development and launch"
+  },
+  "year": null,
+  "industry": {
+    "fa": "قهوه و رستری",
+    "en": "Coffee and roasting"
+  },
+  "services": [
+    {
+      "fa": "فروشگاه اینترنتی",
+      "en": "Online shop"
+    },
+    {
+      "fa": "ترکیب‌ساز محصول",
+      "en": "Product blend builder"
+    },
+    {
+      "fa": "سئو محتوایی",
+      "en": "Content SEO"
+    },
+    {
+      "fa": "طراحی UI ریسپانسیو",
+      "en": "Responsive UI design"
+    },
+    {
+      "fa": "درگاه پرداخت",
+      "en": "Payment gateway"
+    }
+  ],
+  "tech": [
+    "WordPress",
+    "WooCommerce",
+    "PHP"
+  ],
+  "summary": {
+    "fa": "فروشگاه تخصصی قهوه با ساخت ترکیب شخصی، انتخاب رست و آسیاب، و بلاگ آموزشی برای مصرف‌کننده خانگی و کافه‌دارها.",
+    "en": "A specialist coffee shop with custom blends, roast and grind options, and an educational blog for home drinkers and cafe owners."
+  },
+  "description": {
+    "fa": "کافئین یک رستری و مرکز پخش قهوه است که دو گروه مشتری کاملا متفاوت دارد: مصرف‌کننده خانگی که دنبال یک بسته قهوه خوش‌طعم است، و کافه‌دارهایی که خرید عمده، ثبات طعم و مشاوره می‌خواهند. فروش قبلی بیشتر تلفنی و پیام‌رسانی بود.\n\nفروشگاهی ساختیم که منطق رستری را به زبان مشتری ترجمه می‌کند. هر محصول با درصد روبوستا و عربیکا، شدت کافئین و قیمت بر اساس وزن معرفی می‌شود، از قهوه ترکیبی و عربیکا تا سینگل اوریجین و کپسول.\n\nابزار «ترکیب شخصی قهوه» به مشتری اجازه می‌دهد از ۲ تا ۴ دانه انتخاب کند، درجه رست و آسیاب را مشخص کند و ترکیب خودش را سفارش دهد. کنار فروشگاه، مجله آموزشی با راهنماهای عصاره‌گیری، آسیاب و نگهداری قهوه راه افتاد.\n\nسفارش‌ها از پیام‌رسان به سبد خرید منتقل شد و سوالات تکراری مشتری با محتوای آموزشی پاسخ داده می‌شود.",
+    "en": "Coffee-in is a roastery and coffee distributor with two very different customers: home drinkers looking for a tasty bag of coffee, and cafe owners who need bulk orders, consistent flavour and advice. Sales used to happen mostly by phone and messaging apps.\n\nWe built a shop that translates roastery logic into the customer's language. Every product shows its robusta and arabica ratio, caffeine strength and price by weight, from blends and arabica to single origin and capsules.\n\nThe custom blend tool lets customers pick two to four beans, set the roast and grind, and order their own mix. Alongside the shop, an educational magazine covers extraction, grind size and coffee storage.\n\nOrders moved from messaging apps into a real cart, and recurring customer questions are now answered by the educational content."
+  },
+  "highlights": [
+    {
+      "fa": "ترکیب شخصی قهوه",
+      "en": "Custom coffee blends"
+    },
+    {
+      "fa": "معرفی محصول با درصد روبوستا و عربیکا",
+      "en": "Products described by robusta and arabica ratio"
+    },
+    {
+      "fa": "مجله آموزشی قهوه",
+      "en": "Coffee education magazine"
+    }
+  ],
+  "cover": "images/cover.webp",
+  "gallery": [
+    "images/desktop.webp",
+    "images/mobile.webp",
+    "images/home-long.webp"
+  ]
+}
