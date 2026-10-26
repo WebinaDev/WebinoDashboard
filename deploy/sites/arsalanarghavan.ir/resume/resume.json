@@ -250,39 +250,9 @@
    "field_en": "Computer Software Engineering"
   }
  ],
- "honors": [
-  {
-   "title": "نمونه",
-   "issuer": "نمونه",
-   "date": null,
-   "order": 1,
-   "is_placeholder": true,
-   "note_en": "Sample (not in LinkedIn PDF)"
-  }
- ],
- "publications": [
-  {
-   "kind": "article",
-   "title": "نمونه",
-   "publisher": "نمونه",
-   "date": null,
-   "url": null,
-   "order": 1,
-   "is_placeholder": true,
-   "note_en": "Sample (not in LinkedIn PDF)"
-  }
- ],
- "certifications": [
-  {
-   "name": "نمونه",
-   "issuer": "نمونه",
-   "issue_date": null,
-   "credential_url": null,
-   "order": 1,
-   "is_placeholder": true,
-   "note_en": "Sample (not in LinkedIn PDF)"
-  }
- ],
+ "honors": [],
+ "publications": [],
+ "certifications": [],
  "skills": [
   {
    "name": "REST APIs",
