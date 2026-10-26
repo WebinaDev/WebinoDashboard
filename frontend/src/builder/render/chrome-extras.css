@@ -42,3 +42,6 @@ html:has(.wbx-bleed), body:has(.wbx-bleed) { overflow-x: clip; }
 .wb-section-stack > section:has(.wbx-foot) { margin-block: 0 !important; }
 /* Full-page resume themes (rzx-*) own their chrome: no theme margin strips above/below them. */
 .wb-section-stack > section:has(> .wb-columns [class^="rzx-"], > .wb-columns [class*=" rzx-"]) { margin-block: 0 !important; padding-block: 0 !important; }
+/* Full-bleed sections at the very start/end of the page body touch the header/footer (no theme margin strip). */
+.sf-main .wb-section-stack > section.wb-full-bleed:last-child { margin-bottom: 0 !important; }
+.sf-main .wb-section-stack > section.wb-full-bleed:first-child { margin-top: 0 !important; }
