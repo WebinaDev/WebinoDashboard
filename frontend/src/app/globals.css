@@ -94,3 +94,7 @@ html:root { --font-yekan: "Yekan Bakh"; }
     overflow: hidden !important;
   }
 }
+
+/* CLS: while the streamed page body has not been revealed yet (main holds only Suspense <template> markers),
+   reserve a full viewport so the already-painted footer does not jump down when content lands. */
+main.sf-main:not(:has(> :not(template))) { min-height: 100svh; }
