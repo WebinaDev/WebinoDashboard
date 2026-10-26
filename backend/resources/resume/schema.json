@@ -116,6 +116,9 @@
       "stackoverflow",
       "bale",
       "eitaa",
+      "orcid",
+      "researchgate",
+      "scholar",
       "other"
      ],
      "required": true
@@ -488,6 +491,9 @@
       "tools",
       "design",
       "soft",
+      "health",
+      "research",
+      "writing",
       "other"
      ]
     },
@@ -778,7 +784,9 @@
       "atelier-editorial",
       "aurora-glass",
       "story",
-      "webina-os"
+      "webina-os",
+      "vitality",
+      "clinical-journal"
      ]
     },
     {

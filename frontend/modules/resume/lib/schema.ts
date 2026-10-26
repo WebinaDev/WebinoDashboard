@@ -44,7 +44,7 @@ export const OPTION_LABELS: Record<string, { fa: string; en: string }> = {
   native: { fa: "زبان مادری", en: "Native or bilingual" }, full: { fa: "تسلط کامل حرفه‌ای", en: "Full professional" }, professional: { fa: "سطح کاری حرفه‌ای", en: "Professional working" },
   limited: { fa: "سطح کاری محدود", en: "Limited working" }, elementary: { fa: "مقدماتی", en: "Elementary" },
   backend: { fa: "بک‌اند", en: "Backend" }, frontend: { fa: "فرانت‌اند", en: "Frontend" }, cms: { fa: "سیستم مدیریت محتوا", en: "CMS" }, devops: { fa: "دواپس", en: "DevOps" },
-  tools: { fa: "ابزارها", en: "Tools" }, design: { fa: "طراحی", en: "Design" }, soft: { fa: "مهارت نرم", en: "Soft skills" }, other: { fa: "سایر", en: "Other" },
+  tools: { fa: "ابزارها", en: "Tools" }, design: { fa: "طراحی", en: "Design" }, soft: { fa: "مهارت نرم", en: "Soft skills" }, health: { fa: "سلامت و تغذیه", en: "Health & nutrition" }, research: { fa: "پژوهش", en: "Research" }, writing: { fa: "نویسندگی", en: "Writing" }, other: { fa: "سایر", en: "Other" },
   system: { fa: "هماهنگ با سیستم", en: "System" }, light: { fa: "روشن", en: "Light" }, dark: { fa: "تیره", en: "Dark" },
   auto: { fa: "خودکار (فا جلالی، en میلادی)", en: "Auto" }, jalali: { fa: "جلالی", en: "Jalali" }, gregorian: { fa: "میلادی", en: "Gregorian" },
   fa: { fa: "فارسی", en: "Persian" }, en: { fa: "انگلیسی", en: "English" },
@@ -52,8 +52,8 @@ export const OPTION_LABELS: Record<string, { fa: string; en: string }> = {
   phone: { fa: "تلفن", en: "Phone" }, email: { fa: "ایمیل", en: "Email" }, website: { fa: "وب‌سایت", en: "Website" }, linkedin: { fa: "لینکدین", en: "LinkedIn" },
   github: { fa: "گیت‌هاب", en: "GitHub" }, telegram: { fa: "تلگرام", en: "Telegram" }, whatsapp: { fa: "واتساپ", en: "WhatsApp" }, instagram: { fa: "اینستاگرام", en: "Instagram" },
   x: { fa: "ایکس", en: "X" }, youtube: { fa: "یوتیوب", en: "YouTube" }, dribbble: { fa: "دریبل", en: "Dribbble" }, behance: { fa: "بیهنس", en: "Behance" },
-  gitlab: { fa: "گیت‌لب", en: "GitLab" }, stackoverflow: { fa: "استک‌اورفلو", en: "Stack Overflow" }, bale: { fa: "بله", en: "Bale" }, eitaa: { fa: "ایتا", en: "Eitaa" },
-  "story": { fa: "داستان (Story)", en: "Story" }, "webina-os": { fa: "وبینا OS", en: "Webina OS" }, "code-noir": { fa: "کد نوآر", en: "Code Noir" }, "atelier-editorial": { fa: "آتلیه ادیتوریال", en: "Atelier Editorial" }, "aurora-glass": { fa: "شفق شیشه‌ای", en: "Aurora Glass" },
+  gitlab: { fa: "گیت‌لب", en: "GitLab" }, stackoverflow: { fa: "استک‌اورفلو", en: "Stack Overflow" }, bale: { fa: "بله", en: "Bale" }, eitaa: { fa: "ایتا", en: "Eitaa" }, orcid: { fa: "ارکید", en: "ORCID" }, researchgate: { fa: "ریسرچ‌گیت", en: "ResearchGate" }, scholar: { fa: "گوگل اسکالر", en: "Google Scholar" },
+  "story": { fa: "داستان (Story)", en: "Story" }, "webina-os": { fa: "وبینا OS", en: "Webina OS" }, "code-noir": { fa: "کد نوآر", en: "Code Noir" }, "atelier-editorial": { fa: "آتلیه ادیتوریال", en: "Atelier Editorial" }, "aurora-glass": { fa: "شفق شیشه‌ای", en: "Aurora Glass" }, "vitality": { fa: "سرزندگی (Vitality)", en: "Vitality" }, "clinical-journal": { fa: "ژورنال بالینی", en: "Clinical Journal" },
 }
 export const optLabel = (v: string, lang: "fa" | "en" = "fa") => OPTION_LABELS[v]?.[lang] ?? v
 

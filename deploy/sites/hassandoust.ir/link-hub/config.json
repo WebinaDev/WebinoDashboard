@@ -1,0 +1,126 @@
+{
+ "profile": {
+  "title": "سارا حسن‌دوست",
+  "bio": "",
+  "theme_json": {
+   "layout": "card",
+   "mode": "light",
+   "accent": "#c2577a",
+   "background": "#fbf4f1",
+   "font": "yekan-bakh",
+   "headline": "متخصص تغذیه ورزشی و فیزیولوژی ورزشی، هم‌بنیان‌گذار نیتروهلث",
+   "footer_note": "contact.hassandoust.ir",
+   "locales": [
+    "fa",
+    "en"
+   ],
+   "default_locale": "en",
+   "i18n": {
+    "en": {
+     "title": "Sara Hassandoust",
+     "headline": "Sports Nutritionist & Sports Physiologist, Co-Founder of NitroHealth"
+    }
+   },
+   "tags": [
+    "تغذیه ورزشی",
+    "فیزیولوژی",
+    "شنا"
+   ],
+   "tags_en": [
+    "Sports Nutrition",
+    "Physiology",
+    "Swimming"
+   ]
+  }
+ },
+ "avatar": "cutout.png",
+ "blocks": [
+  {
+   "type": "cta",
+   "payload": {
+    "label": "وب‌سایت رزومه",
+    "sublabel": "hassandoust.ir",
+    "url": "https://hassandoust.ir/fa",
+    "icon": "web",
+    "variant": "primary",
+    "i18n": {
+     "en": {
+      "label": "Resume website",
+      "url": "https://hassandoust.ir"
+     }
+    }
+   }
+  },
+  {
+   "type": "link",
+   "payload": {
+    "label": "ایمیل",
+    "sublabel": "hassandoust.ir@gmail.com",
+    "url": "mailto:hassandoust.ir@gmail.com",
+    "icon": "mail",
+    "i18n": {
+     "en": {
+      "label": "Email"
+     }
+    }
+   }
+  },
+  {
+   "type": "link",
+   "payload": {
+    "label": "لینکدین",
+    "sublabel": "linkedin.com/in/sara-hassandoust",
+    "url": "https://www.linkedin.com/in/sara-hassandoust/",
+    "icon": "linkedin",
+    "i18n": {
+     "en": {
+      "label": "LinkedIn"
+     }
+    }
+   }
+  },
+  {
+   "type": "link",
+   "payload": {
+    "label": "ارکید",
+    "sublabel": "orcid.org/0009-0008-0290-0041",
+    "url": "https://orcid.org/0009-0008-0290-0041",
+    "icon": "web",
+    "i18n": {
+     "en": {
+      "label": "ORCID"
+     }
+    }
+   }
+  },
+  {
+   "type": "link",
+   "payload": {
+    "label": "نیتروهلث",
+    "sublabel": "nitrohealth.ir",
+    "url": "https://nitrohealth.ir",
+    "icon": "web",
+    "i18n": {
+     "en": {
+      "label": "NitroHealth"
+     }
+    }
+   }
+  },
+  {
+   "type": "cta",
+   "payload": {
+    "label": "ذخیره مخاطب",
+    "sublabel": "vCard",
+    "action": "vcard",
+    "icon": "vcard",
+    "variant": "primary",
+    "i18n": {
+     "en": {
+      "label": "Save contact"
+     }
+    }
+   }
+  }
+ ]
+}

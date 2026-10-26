@@ -16,8 +16,8 @@ final class LinkHubTheme
 
     public const CARD_STYLES = ['soft', 'outline', 'glass', 'solid'];
 
-    /** classic = original stacked page; spotlight = premium animated portrait layout. */
-    public const LAYOUTS = ['classic', 'spotlight'];
+    /** classic = original stacked page; spotlight = premium animated portrait layout; card = centered card with arch portrait and pulse line. */
+    public const LAYOUTS = ['classic', 'spotlight', 'card'];
 
     public const LOCALES = ['fa', 'en'];
 
@@ -87,15 +87,18 @@ final class LinkHubTheme
         if ($highlights !== []) {
             $out['highlights'] = $highlights;
         }
-        $tags = [];
-        foreach (array_slice(is_array($raw['tags'] ?? null) ? $raw['tags'] : [], 0, 16) as $tag) {
-            $tag = self::text($tag, 32);
-            if ($tag !== null) {
-                $tags[] = $tag;
+        // tags = base (fa) list; tags_en = optional English list for bilingual pages.
+        foreach (['tags', 'tags_en'] as $key) {
+            $tags = [];
+            foreach (array_slice(is_array($raw[$key] ?? null) ? $raw[$key] : [], 0, 16) as $tag) {
+                $tag = self::text($tag, 32);
+                if ($tag !== null) {
+                    $tags[] = $tag;
+                }
             }
-        }
-        if ($tags !== []) {
-            $out['tags'] = $tags;
+            if ($tags !== []) {
+                $out[$key] = $tags;
+            }
         }
 
         return $out;

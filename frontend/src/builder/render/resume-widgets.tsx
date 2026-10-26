@@ -65,7 +65,7 @@ const CONTACT_HREF: Record<string, (v: string) => string> = {
   x: (v) => (v.startsWith("http") ? v : `https://x.com/${v.replace(/^@/, "")}`),
 }
 export const contactHref = (type: string, v: string) => (CONTACT_HREF[type]?.(v) ?? (/^https?:\/\//.test(v) ? v : `https://${v}`))
-export const GLYPH: Record<string, string> = { phone: "☎", email: "@", website: "◎", linkedin: "in", github: "</>", telegram: "✈", whatsapp: "◔", instagram: "◉", x: "𝕏", youtube: "▶", dribbble: "◍", behance: "Bē", gitlab: "◆", stackoverflow: "≡", bale: "ب", eitaa: "ا", other: "•" }
+export const GLYPH: Record<string, string> = { phone: "☎", email: "@", website: "◎", linkedin: "in", github: "</>", telegram: "✈", whatsapp: "◔", instagram: "◉", x: "𝕏", youtube: "▶", dribbble: "◍", behance: "Bē", gitlab: "◆", stackoverflow: "≡", bale: "ب", eitaa: "ا", orcid: "iD", researchgate: "RG", scholar: "🎓", other: "•" }
 
 function filterRows(rows: Row[] | undefined, p: Record<string, unknown>, dateKey?: string): Row[] {
   let out = (rows ?? []).filter((r) => b(p, "show_placeholder", false) || !r.is_placeholder)

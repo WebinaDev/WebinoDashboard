@@ -71,11 +71,12 @@ export function ThemeEditor({ value, onChange }: { value: LinkHubTheme; onChange
         <Label>چیدمان صفحه</Label>
         <Segmented
           label="چیدمان صفحه"
-          value={value.layout === "spotlight" ? "spotlight" : "classic"}
+          value={value.layout === "spotlight" || value.layout === "card" ? value.layout : "classic"}
           onChange={(v) => set({ layout: v })}
           options={[
             ["classic", "کلاسیک"],
             ["spotlight", "اسپات‌لایت (پرتره و انیمیشن)"],
+            ["card", "کارت (قاب قوسی و خط ضربان)"],
           ]}
         />
       </div>

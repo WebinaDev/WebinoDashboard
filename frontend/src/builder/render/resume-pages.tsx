@@ -18,9 +18,9 @@ import "./resume-os.css"
 
 type Row = Record<string, unknown> & { id: number; is_placeholder?: boolean }
 type Lang = "fa" | "en"
-const THEME_ACCENT: Record<string, string> = { story: "#e8502a", "webina-os": "#e8502a" }
+const THEME_ACCENT: Record<string, string> = { story: "#e8502a", "webina-os": "#e8502a", vitality: "#c2577a", "clinical-journal": "#e1846b" }
 
-function useBase(widget: WidgetNode, theme: string) {
+export function useBase(widget: WidgetNode, theme: string) {
   const data = useResumeData()
   const runtime = useBuilderRuntime()
   const globals = useBuilderGlobals()
@@ -33,7 +33,7 @@ function useBase(widget: WidgetNode, theme: string) {
   return { data, lang, accent, showPh, p }
 }
 
-function helpers(d: ResumePayload, lang: Lang, showPh: boolean) {
+export function helpers(d: ResumePayload, lang: Lang, showPh: boolean) {
   const EN = lang === "en"
   const L = (fa: string, en: string) => (EN ? en : fa)
   const N = (x: string | number) => (EN ? String(x) : faDigits(x))
@@ -56,7 +56,7 @@ function helpers(d: ResumePayload, lang: Lang, showPh: boolean) {
   return { EN, L, N, T, keep, media, DT, exps, skillName, id, cutout, name, first: first ?? "", last: rest.join(" "), contacts, projects, since, sinceLabel, years, primary }
 }
 
-const short = (v: unknown) => String(v ?? "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")
+export const short = (v: unknown) => String(v ?? "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")
 function LangSw({ lang, p }: { lang: Lang; p: Record<string, unknown> }) {
   return (
     <div className="lsw" role="navigation" aria-label={lang === "fa" ? "زبان" : "Language"}>

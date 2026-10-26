@@ -58,6 +58,10 @@ export const RESUME_WIDGET_SPECS: Spec[] = [
     fields: [{ kind: "link", key: "fa_href", label: "نشانی نسخه فارسی" }, { kind: "link", key: "en_href", label: "نشانی نسخه انگلیسی" }], defaults: { fa_href: "/", en_href: "/en" } },
   { type: "resume.page_os", label: "رزومه: صفحه کامل «Webina OS» (تم)", variants: [["default", "پیش‌فرض"]],
     fields: [{ kind: "link", key: "fa_href", label: "نشانی نسخه فارسی" }, { kind: "link", key: "en_href", label: "نشانی نسخه انگلیسی" }], defaults: { fa_href: "/", en_href: "/en" } },
+  { type: "resume.page_vitality", label: "رزومه: صفحه کامل «Vitality» (تم)", variants: [["default", "پیش‌فرض"]],
+    fields: [{ kind: "link", key: "fa_href", label: "نشانی نسخه فارسی" }, { kind: "link", key: "en_href", label: "نشانی نسخه انگلیسی" }], defaults: { fa_href: "/", en_href: "/en" } },
+  { type: "resume.page_journal", label: "رزومه: صفحه کامل «Clinical Journal» (تم)", variants: [["default", "پیش‌فرض"]],
+    fields: [{ kind: "link", key: "fa_href", label: "نشانی نسخه فارسی" }, { kind: "link", key: "en_href", label: "نشانی نسخه انگلیسی" }], defaults: { fa_href: "/", en_href: "/en" } },
   { type: "resume.download_pdf", label: "رزومه: دانلود PDF (فاز بعد)", variants: [["button", "دکمه"]],
     fields: [{ kind: "text", key: "template", label: "قالب" }, { kind: "text", key: "label", label: "متن دکمه" }], defaults: { template: "", label: "" } },
 ]

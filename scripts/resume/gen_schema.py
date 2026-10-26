@@ -6,8 +6,8 @@ Run from repo root: python3 scripts/resume/gen_schema.py
 """
 import json, os, sys
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
-SKILL_CATS = ["backend","frontend","cms","devops","tools","design","soft","other"]
-CONTACT_TYPES = ["phone","email","website","linkedin","github","telegram","whatsapp","instagram","x","youtube","dribbble","behance","gitlab","stackoverflow","bale","eitaa","other"]
+SKILL_CATS = ["backend","frontend","cms","devops","tools","design","soft","health","research","writing","other"]
+CONTACT_TYPES = ["phone","email","website","linkedin","github","telegram","whatsapp","instagram","x","youtube","dribbble","behance","gitlab","stackoverflow","bale","eitaa","orcid","researchgate","scholar","other"]
 def F(key, type, i18n=False, **kw):
     d = {"key": key, "type": type, "i18n": i18n}; d.update(kw); return d
 S = [
@@ -53,7 +53,7 @@ S = [
  dict(slug="stats", table="resume_stats", model="ResumeStat", label_fa="آمار", label_en="Stats", icon="bar-chart-3", title="label", fields=[
    F("label","text",True,required=True,max=120), F("value","text",required=True,max=40), F("icon","text",max=60)]),
  dict(slug="settings", table="resume_settings", model="ResumeSetting", single=True, label_fa="تم و نمایش", label_en="Theme & display", icon="palette", fields=[
-   F("theme_key","select",options=["code-noir","atelier-editorial","aurora-glass","story","webina-os"]), F("accent","color"), F("accent_dark","color"),
+   F("theme_key","select",options=["code-noir","atelier-editorial","aurora-glass","story","webina-os","vitality","clinical-journal"]), F("accent","color"), F("accent_dark","color"),
    F("mode","select",options=["system","light","dark"]), F("date_calendar","select",options=["auto","jalali","gregorian"]),
    F("languages","list"), F("default_lang","select",options=["fa","en"]), F("section_order","list"), F("seo","json"),
    F("private_token","text",max=64), F("pdf_template","text",max=60)]),

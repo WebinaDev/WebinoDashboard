@@ -61,6 +61,24 @@ THEMES = {
    "font_fa": "\"Yekan Bakh\", Vazirmatn, sans-serif", "font_en": "Inter, \"Yekan Bakh\", sans-serif", "font_mono": "\"JetBrains Mono\", ui-monospace, monospace",
    "radius": "14px", "shadow": "0 30px 80px rgba(0,0,0,.5)", "motion": "os", "default_mode": "dark"},
   "layout": [W("resume.page_os", variant="default")]},
+ "vitality": {
+  "key": "vitality", "name_fa": "سرزندگی (Vitality)", "name_en": "Vitality", "audience": "health", "full_page": True,
+  "description_fa": "صفحه کامل روشن و شیک برای حوزه سلامت: پرتره در قاب قوسی، خط ضربان قلب، تایم‌لاین نبض‌دار و کارت‌های مولکولی", "description_en": "Full-page light, chic health theme: arch portrait, ECG line, pulse timeline and molecule focus cards",
+  "tokens": {
+   "light": {"--bg": "#fbf4f1", "--surface": "#ffffff", "--text": "#3a2330", "--muted": "#8a6f7a", "--border": "#ead6d2", "--accent": "#c2577a", "--accent-fg": "#ffffff", "--accent-2": "#7d9c8a"},
+   "dark":  {"--bg": "#fbf4f1", "--surface": "#ffffff", "--text": "#3a2330", "--muted": "#8a6f7a", "--border": "#ead6d2", "--accent": "#c2577a", "--accent-fg": "#ffffff", "--accent-2": "#7d9c8a"},
+   "font_fa": "\"Yekan Bakh\", Vazirmatn, sans-serif", "font_en": "Fraunces, Inter, serif", "font_mono": "\"JetBrains Mono\", ui-monospace, monospace",
+   "radius": "26px", "shadow": "0 30px 60px -30px rgba(194,87,122,.35)", "motion": "pulse", "default_mode": "light"},
+  "layout": [W("resume.page_vitality", variant="default")]},
+ "clinical-journal": {
+  "key": "clinical-journal", "name_fa": "ژورنال بالینی", "name_en": "Clinical Journal", "audience": "academic", "full_page": True,
+  "description_fa": "صفحه کامل به سبک مقاله علمی: چکیده، بخش‌های شماره‌دار، پرتره در پتری‌دیش و مارپیچ DNA متحرک", "description_en": "Full-page scientific-paper layout: abstract, numbered sections, petri-dish portrait and animated DNA helix",
+  "tokens": {
+   "light": {"--bg": "#f5f1ea", "--surface": "#fffdf9", "--text": "#1d2a29", "--muted": "#6b7774", "--border": "#ddd6cb", "--accent": "#e1846b", "--accent-fg": "#ffffff", "--accent-2": "#143f3c"},
+   "dark":  {"--bg": "#f5f1ea", "--surface": "#fffdf9", "--text": "#1d2a29", "--muted": "#6b7774", "--border": "#ddd6cb", "--accent": "#e1846b", "--accent-fg": "#ffffff", "--accent-2": "#143f3c"},
+   "font_fa": "\"Yekan Bakh\", Vazirmatn, sans-serif", "font_en": "Fraunces, Inter, serif", "font_mono": "\"JetBrains Mono\", ui-monospace, monospace",
+   "radius": "18px", "shadow": "0 10px 30px -15px rgba(20,63,60,.35)", "motion": "helix", "default_mode": "light"},
+  "layout": [W("resume.page_journal", variant="default")]},
 }
 for p in ["backend/resources/resume/themes.json", "frontend/modules/resume/lib/themes.json"]:
     json.dump(THEMES, open(f"{ROOT}/{p}", "w"), ensure_ascii=False, indent=1)

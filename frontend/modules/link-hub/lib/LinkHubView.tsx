@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 
 import "../site/link-hub-public.css"
+import { LinkHubCard } from "./LinkHubCard"
 import { LinkHubSpotlight } from "./LinkHubSpotlight"
 import { DAY_LABELS, faDigits, heroGradient, normalizeTheme, nowIn, osmDirections, toMinutes } from "./view-utils"
 
@@ -571,6 +572,9 @@ export function LinkHubView({ page, handlers = {}, footer }: { page: PublicPage;
   const theme = useMemo(() => normalizeTheme(page.profile.theme_json), [page.profile.theme_json])
   if ((page.profile.theme_json as { layout?: string } | null)?.layout === "spotlight") {
     return <LinkHubSpotlight page={page} handlers={handlers} footer={footer} />
+  }
+  if ((page.profile.theme_json as { layout?: string } | null)?.layout === "card") {
+    return <LinkHubCard page={page} handlers={handlers} footer={footer} />
   }
   const ctas = page.blocks.filter((b) => b.type === "cta")
   const primaryCtas = ctas.filter((b) => b.payload.variant !== "chip")

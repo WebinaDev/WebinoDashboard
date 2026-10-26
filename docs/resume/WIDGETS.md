@@ -38,6 +38,8 @@ Registry: `frontend/src/builder/registry-resume.ts`; renderers: `render/resume-w
 | `resume.lang_switch` | pill, text | `fa_href` ("/"), `en_href` ("/en") |
 | `resume.page_story` | default | `fa_href`, `en_href` — full-page «Story» theme |
 | `resume.page_os` | default | `fa_href`, `en_href` — full-page «Webina OS» theme (⌘K palette) |
+| `resume.page_vitality` | default | `fa_href`, `en_href` — full-page «Vitality» theme |
+| `resume.page_journal` | default | `fa_href`, `en_href` — full-page «Clinical Journal» theme |
 | `resume.download_pdf` | button | `template`, `label` — phase 2 (renders disabled) |
 
 Theme layout presets (`themes.json → layout`) are lists of `{type, props}` using only these widgets; apply-layout wraps each in a

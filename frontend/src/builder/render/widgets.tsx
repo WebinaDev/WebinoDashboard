@@ -138,6 +138,8 @@ const PoetAboutWidget = dynamic(() => import("./poetry-widgets").then((m) => m.P
 const QuoteBlockWidget = dynamic(() => import("./poetry-widgets").then((m) => m.QuoteBlockWidget))
 const PoetryFooterWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryFooterWidget))
 const ResumeStoryPage = dynamic(() => import("./resume-pages").then((m) => m.ResumeStoryPage))
+const ResumeVitalityPage = dynamic(() => import("./resume-pages-2").then((m) => m.ResumeVitalityPage))
+const ResumeJournalPage = dynamic(() => import("./resume-pages-2").then((m) => m.ResumeJournalPage))
 const ResumeOsPage = dynamic(() => import("./resume-pages").then((m) => m.ResumeOsPage))
 const ResumeWidget = dynamic(() => import("./resume-widgets").then((m) => m.ResumeWidget))
 const PoemDetailWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemDetailWidget))
@@ -370,6 +372,10 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <ResumeStoryPage widget={widget} />
     case "resume.page_os":
       return <ResumeOsPage widget={widget} />
+    case "resume.page_vitality":
+      return <ResumeVitalityPage widget={widget} />
+    case "resume.page_journal":
+      return <ResumeJournalPage widget={widget} />
     case "poem-detail":
       return <PoemDetailWidget widget={widget} />
     case "poetry-figure":
