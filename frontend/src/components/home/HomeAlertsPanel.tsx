@@ -35,7 +35,7 @@ function AlertIcon({ level }: { level: DashboardOverviewAlert["level"] }) {
     return <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden />
   }
   if (level === "warning") {
-    return <AlertTriangle className="size-4 shrink-0 text-amber-600" aria-hidden />
+    return <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
   }
   return <Info className="size-4 shrink-0 text-muted-foreground" aria-hidden />
 }

@@ -213,7 +213,7 @@ export default function DashboardLayoutPage({
   const builderEditor = /\/builder\/.+/.test(pathname)
   if (builderEditor) {
     return (
-      <div className="flex h-svh flex-col overflow-hidden bg-[#e8eef5]">
+      <div className="flex h-svh flex-col overflow-hidden bg-[#e8eef5] dark:bg-[#12141a]">
         <ImpersonationBar />
         <div className="min-h-0 flex-1 overflow-hidden">
           <LicenseGate>{children}</LicenseGate>

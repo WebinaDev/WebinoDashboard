@@ -3,14 +3,11 @@
 
 @media (min-width: 768px) {
   html[data-wd-dashboard] {
-    --wd-brand: #0054ff;
-    --wd-brand-dark: #0041d4;
-    --wd-ink: #22242a;
     --wd-desk-bg: #f5f6f8;
     --wd-desk-card: #ffffff;
     --wd-desk-line: #e5e7eb;
     --wd-desk-hint: #6b7280;
-    --wd-desk-tint: color-mix(in srgb, #0054ff 9%, #ffffff);
+    --wd-desk-tint: color-mix(in srgb, var(--wd-brand) 9%, #ffffff);
     --wd-desk-radius: 12px;
     --wd-desk-shadow: 0 1px 2px rgba(34, 36, 42, 0.04), 0 2px 8px rgba(34, 36, 42, 0.04);
     --wd-desk-font: var(--font-yekan), var(--wd-font-ui), "Yekan Bakh", Tahoma, sans-serif;
@@ -21,7 +18,7 @@
     --wd-desk-card: #1a1d25;
     --wd-desk-line: #2a2f3a;
     --wd-desk-hint: #94a3b8;
-    --wd-desk-tint: color-mix(in srgb, #0054ff 22%, #1a1d25);
+    --wd-desk-tint: color-mix(in srgb, var(--wd-brand) 22%, #1a1d25);
   }
 
   html[data-wd-dashboard] .wd-desktop-chrome,
@@ -68,7 +65,7 @@
   html[data-wd-dashboard] .wd-desktop-create {
     border-radius: 10px !important;
     background: var(--wd-brand) !important;
-    color: #fff !important;
+    color: var(--color-primary-foreground, #fff) !important;
     font-weight: 600;
     box-shadow: none !important;
     height: 2.375rem;

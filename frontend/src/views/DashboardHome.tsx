@@ -22,6 +22,8 @@ import { TopCategoriesTable, TopCustomersTable } from "@/components/home/HomeTop
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useDashboardNav } from "@/hooks/useDashboardNav"
+import { isModuleEnabled } from "@/kernel/route-resolver"
 import { api } from "@/lib/api"
 import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
 import {
@@ -113,6 +115,12 @@ export default function DashboardHome({
     enabled: !isPortalOnly,
     initialData: initialOverview,
   })
+
+  // Home task widgets are module-gated (generic, not per site):
+  // personal to-do list = cafe/restaurant module; order fulfilment tasks = commerce (sales) module.
+  const { activations, isLoading: activationsLoading } = useDashboardNav()
+  const cafeEnabled = !activationsLoading && isModuleEnabled(activations, "cafe")
+  const commerceEnabled = !activationsLoading && isModuleEnabled(activations, "commerce")
 
   const smsUnavailable = overview.data?.panels?.sms?.unavailable === true
   const smsPanelQ = useQuery({
@@ -219,7 +227,7 @@ export default function DashboardHome({
             shopActive={shopActive}
           />
 
-          <HomeTodoList locale={lng} />
+          {cafeEnabled ? <HomeTodoList locale={lng} /> : null}
 
           {(hasSection("account") || hasSection("partner")) &&
           ((data?.account && !("error" in data.account)) ||
@@ -274,7 +282,7 @@ export default function DashboardHome({
             />
           ) : null}
 
-          {hasSection("fulfillment") && fulfillment ? (
+          {commerceEnabled && hasSection("fulfillment") && fulfillment ? (
             <section className="space-y-2">
               <h2 className="text-sm font-semibold tracking-tight">
                 {t("sections.fulfillment")}

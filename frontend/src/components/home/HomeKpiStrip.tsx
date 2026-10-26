@@ -56,7 +56,7 @@ function Delta({ current, previous }: { current: number; previous?: number }) {
   const Icon = up ? TrendingUp : TrendingDown
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[10px] ${up ? "text-emerald-600" : "text-red-600"}`}
+      className={`inline-flex items-center gap-0.5 text-[10px] ${up ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}
     >
       <Icon className="size-3" />
       {localizeDigits(Math.abs(delta).toFixed(1), locale)}%

@@ -6,6 +6,12 @@ function activationKey(module: string, sub: string) {
   return `${module}.${sub}`
 }
 
+/** True when any submodule of `moduleSlug` is enabled for the tenant (generic module gate). */
+export function isModuleEnabled(activations: TenantActivation[], moduleSlug: string): boolean {
+  if (moduleSlug === "core") return true
+  return activations.some((a) => a.module_slug === moduleSlug && a.enabled)
+}
+
 export function isSubmoduleEnabled(
   activations: TenantActivation[],
   moduleSlug: string,
