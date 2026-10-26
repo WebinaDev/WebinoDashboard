@@ -53,7 +53,7 @@ S = [
  dict(slug="stats", table="resume_stats", model="ResumeStat", label_fa="آمار", label_en="Stats", icon="bar-chart-3", title="label", fields=[
    F("label","text",True,required=True,max=120), F("value","text",required=True,max=40), F("icon","text",max=60)]),
  dict(slug="settings", table="resume_settings", model="ResumeSetting", single=True, label_fa="تم و نمایش", label_en="Theme & display", icon="palette", fields=[
-   F("theme_key","select",options=["code-noir","atelier-editorial","aurora-glass","story","webina-os","vitality","clinical-journal"]), F("accent","color"), F("accent_dark","color"),
+   F("theme_key","select",options=["code-noir","atelier-editorial","aurora-glass","story","webina-os","vitality","clinical-journal","tide"]), F("accent","color"), F("accent_dark","color"),
    F("mode","select",options=["system","light","dark"]), F("date_calendar","select",options=["auto","jalali","gregorian"]),
    F("languages","list"), F("default_lang","select",options=["fa","en"]), F("section_order","list"), F("seo","json"),
    F("private_token","text",max=64), F("pdf_template","text",max=60)]),

@@ -53,7 +53,7 @@ export const OPTION_LABELS: Record<string, { fa: string; en: string }> = {
   github: { fa: "گیت‌هاب", en: "GitHub" }, telegram: { fa: "تلگرام", en: "Telegram" }, whatsapp: { fa: "واتساپ", en: "WhatsApp" }, instagram: { fa: "اینستاگرام", en: "Instagram" },
   x: { fa: "ایکس", en: "X" }, youtube: { fa: "یوتیوب", en: "YouTube" }, dribbble: { fa: "دریبل", en: "Dribbble" }, behance: { fa: "بیهنس", en: "Behance" },
   gitlab: { fa: "گیت‌لب", en: "GitLab" }, stackoverflow: { fa: "استک‌اورفلو", en: "Stack Overflow" }, bale: { fa: "بله", en: "Bale" }, eitaa: { fa: "ایتا", en: "Eitaa" }, orcid: { fa: "ارکید", en: "ORCID" }, researchgate: { fa: "ریسرچ‌گیت", en: "ResearchGate" }, scholar: { fa: "گوگل اسکالر", en: "Google Scholar" },
-  "story": { fa: "داستان (Story)", en: "Story" }, "webina-os": { fa: "وبینا OS", en: "Webina OS" }, "code-noir": { fa: "کد نوآر", en: "Code Noir" }, "atelier-editorial": { fa: "آتلیه ادیتوریال", en: "Atelier Editorial" }, "aurora-glass": { fa: "شفق شیشه‌ای", en: "Aurora Glass" }, "vitality": { fa: "سرزندگی (Vitality)", en: "Vitality" }, "clinical-journal": { fa: "ژورنال بالینی", en: "Clinical Journal" },
+  "story": { fa: "داستان (Story)", en: "Story" }, "webina-os": { fa: "وبینا OS", en: "Webina OS" }, "code-noir": { fa: "کد نوآر", en: "Code Noir" }, "atelier-editorial": { fa: "آتلیه ادیتوریال", en: "Atelier Editorial" }, "aurora-glass": { fa: "شفق شیشه‌ای", en: "Aurora Glass" }, "vitality": { fa: "سرزندگی (Vitality)", en: "Vitality" }, "clinical-journal": { fa: "ژورنال بالینی", en: "Clinical Journal" }, "tide": { fa: "موج و نور (Tide)", en: "Tide" },
 }
 export const optLabel = (v: string, lang: "fa" | "en" = "fa") => OPTION_LABELS[v]?.[lang] ?? v
 
