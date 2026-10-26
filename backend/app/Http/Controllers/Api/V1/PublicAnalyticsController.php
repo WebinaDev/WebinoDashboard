@@ -20,8 +20,8 @@ class PublicAnalyticsController extends Controller
 
         $bypass = ! empty($settings['bypass_adblocker']);
         $endpoint = $bypass
-            ? url('/api/v1/public/metrics/collect')
-            : url('/api/v1/public/analytics/hit');
+            ? '/api/v1/public/metrics/collect'
+            : '/api/v1/public/analytics/hit';
 
         return response()->json([
             'data' => [
