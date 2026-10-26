@@ -38,3 +38,5 @@ html:has(.wbx-bleed), body:has(.wbx-bleed) { overflow-x: clip; }
 .wbx-about-more { display: inline-block; margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--akx-gold, currentColor); }
 @media (max-width: 1024px) { .wbx-hide-t { display: none !important; } }
 @media (max-width: 767px) { .wbx-hide-m { display: none !important; } }
+/* Footer sections sit flush: theme section spacing (e.g. .sf-classic margin-block) must not leave light strips around the footer. */
+.wb-section-stack > section:has(.wbx-foot) { margin-block: 0 !important; }
