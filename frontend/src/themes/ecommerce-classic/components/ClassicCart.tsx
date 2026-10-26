@@ -1,4 +1,5 @@
 "use client"
+import { OptImg } from "@/components/perf/OptImg"
 
 import Link from "next/link"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
@@ -232,7 +233,7 @@ export function ClassicCart() {
               {auth !== "auth" ? <p className="sfc-cart__guest">{tx("cart.guest_note")}</p> : null}
               {lines.map((line) => (
                 <div key={line.key} className="sfc-cart-line">
-                  <span className="sfc-cart-line__img">{line.image ? <img loading="lazy" decoding="async" {...optImg(line.image)} alt="" /> : null}</span>
+                  <span className="sfc-cart-line__img">{line.image ? <OptImg loading="lazy" decoding="async" {...optImg(line.image)} alt="" /> : null}</span>
                   <div className="sfc-cart-line__body">
                     {line.href ? (
                       <Link href={line.href} className="sfc-cart-line__name">

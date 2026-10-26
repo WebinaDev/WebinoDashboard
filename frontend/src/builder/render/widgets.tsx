@@ -15,100 +15,118 @@ import {
   type ShopProduct,
 } from "../catalog"
 import { useCatalog } from "../storefront/use-catalog"
-import {
-  AccountDashboardWidget,
-  AddToCartBoxWidget,
-  AmazingHeaderWidget,
-  AmazingOffersBlockWidget,
-  BlogSliderWidget,
-  BlogTocWidget,
-  BreadcrumbsWidget,
-  MegaMenuWidget,
-  MostViewedWidget,
-  PackageBlockWidget,
-  ProductGalleryWidget,
-  ProductReviewsWidget, ProductQuestionsWidget,
-  TasteBoxWidget,
-} from "./classic-widgets"
-import {
-  StoreFilters,
-  StoreProductCard,
-  StorefrontAccount,
-  StorefrontCart,
-  StorefrontCheckout,
-  StorefrontFooter,
-  StorefrontHeader,
-  StorefrontProduct,
-} from "../storefront/ui"
 import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
-import { FormWidget } from "./form-widget"
-import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
-import { PopupWidget } from "./popup-widget"
-import { FlipBoxWidget, HotspotWidget, ImageBoxWidget, LinkedProductsWidget, LoopGridWidget, MenuCartWidget, NavDropdownWidget, PurchaseSummaryWidget, StateBoxWidget, TocWidget } from "./pro-widgets"
-import { LoopFilterWidget } from "./loop-filter"
-import { ArchiveFiltersWidget } from "./archive-filters"
-import { CafeTableBookingWidget } from "./cafe-booking-widget"
-import { AudioBlockWidget, BeforeAfterWidget, LoginFormWidget, LottieWidget, OffCanvasWidget, RegisterFormWidget, SiteFooterWidget, SiteHeaderWidget, TeamGridWidget, VideoEmbedWidget } from "./gap-widgets"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
-import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
-import { ClassicNotFound, ClassicOrderTrack, ClassicComparePage, ClassicWishlist } from "@/themes/ecommerce-classic/components/ClassicPages"
-import {
-  AccordionWidget,
-  AnnouncementWidget,
-  BannerGridWidget,
-  BlogPostsWidget,
-  BrandSliderWidget,
-  CategoryListWidget,
-  CounterWidget,
-  IconBoxWidget,
-  IconListWidget,
-  ImageCarouselWidget,
-  ImageGalleryWidget,
-  LoginCtaWidget,
-  MapWidget,
-  PricingWidget,
-  ProductQueryWidget,
-  SearchBoxWidget,
-  ShareButtonsWidget,
-  SocialIconsWidget,
-  TabsWidget,
-  TestimonialsWidget,
-  WidgetIntro,
-  FeedWidget,
-  splitRows,
-} from "./extra-widgets"
-import {
-  ArchivePartWidget,
-  CartCouponWidget,
-  CartTotalsWidget,
-  FooterPartWidget,
-  FreeShippingBarWidget,
-  HeaderPartWidget,
-  InstallmentWidget,
-  PostPartWidget,
-  PriceFilterWidget,
-  ProductPartWidget,
-  RelatedProductsWidget,
-} from "./part-widgets"
-import {
-  ClassicBestSellers,
-  ClassicBrandGrid,
-  ClassicCategoryTiles,
-  ClassicCustomerGuide,
-  ClassicHero,
-  ClassicIconCategories,
-  ClassicProductRow,
-  ClassicPromoTrio,
-  ClassicRecentlyViewed,
-  ClassicSpecialBanners,
-  ClassicStoryStrip,
-  ClassicTasteBox,
-} from "@/themes/ecommerce-classic/components/ClassicHome"
+import { splitRows } from "./split-rows"
 
-import { ClassicTrustStrip } from "@/themes/ecommerce-classic/components/ClassicProduct"
 import { Img } from "./img"
+
+const AccountDashboardWidget = dynamic(() => import("./classic-widgets").then((m) => m.AccountDashboardWidget))
+const AddToCartBoxWidget = dynamic(() => import("./classic-widgets").then((m) => m.AddToCartBoxWidget))
+const AmazingHeaderWidget = dynamic(() => import("./classic-widgets").then((m) => m.AmazingHeaderWidget))
+const AmazingOffersBlockWidget = dynamic(() => import("./classic-widgets").then((m) => m.AmazingOffersBlockWidget))
+const BlogSliderWidget = dynamic(() => import("./classic-widgets").then((m) => m.BlogSliderWidget))
+const BlogTocWidget = dynamic(() => import("./classic-widgets").then((m) => m.BlogTocWidget))
+const BreadcrumbsWidget = dynamic(() => import("./classic-widgets").then((m) => m.BreadcrumbsWidget))
+const MegaMenuWidget = dynamic(() => import("./classic-widgets").then((m) => m.MegaMenuWidget))
+const MostViewedWidget = dynamic(() => import("./classic-widgets").then((m) => m.MostViewedWidget))
+const PackageBlockWidget = dynamic(() => import("./classic-widgets").then((m) => m.PackageBlockWidget))
+const ProductGalleryWidget = dynamic(() => import("./classic-widgets").then((m) => m.ProductGalleryWidget))
+const ProductReviewsWidget = dynamic(() => import("./classic-widgets").then((m) => m.ProductReviewsWidget))
+const ProductQuestionsWidget = dynamic(() => import("./classic-widgets").then((m) => m.ProductQuestionsWidget))
+const TasteBoxWidget = dynamic(() => import("./classic-widgets").then((m) => m.TasteBoxWidget))
+const StoreFilters = dynamic(() => import("../storefront/ui").then((m) => m.StoreFilters))
+const StoreProductCard = dynamic(() => import("../storefront/ui").then((m) => m.StoreProductCard))
+const StorefrontAccount = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontAccount))
+const StorefrontCart = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontCart))
+const StorefrontCheckout = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontCheckout))
+const StorefrontFooter = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontFooter))
+const StorefrontHeader = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontHeader))
+const StorefrontProduct = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontProduct))
+const BadgesWidget = dynamic(() => import("./content-widgets").then((m) => m.BadgesWidget))
+const ComparisonTableWidget = dynamic(() => import("./content-widgets").then((m) => m.ComparisonTableWidget))
+const CtaBannerWidget = dynamic(() => import("./content-widgets").then((m) => m.CtaBannerWidget))
+const IconCardsWidget = dynamic(() => import("./content-widgets").then((m) => m.IconCardsWidget))
+const SectionHeadingWidget = dynamic(() => import("./content-widgets").then((m) => m.SectionHeadingWidget))
+const StepsWidget = dynamic(() => import("./content-widgets").then((m) => m.StepsWidget))
+const FormWidget = dynamic(() => import("./form-widget").then((m) => m.FormWidget))
+const PopupWidget = dynamic(() => import("./popup-widget").then((m) => m.PopupWidget))
+const FlipBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.FlipBoxWidget))
+const HotspotWidget = dynamic(() => import("./pro-widgets").then((m) => m.HotspotWidget))
+const ImageBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.ImageBoxWidget))
+const LinkedProductsWidget = dynamic(() => import("./pro-widgets").then((m) => m.LinkedProductsWidget))
+const LoopGridWidget = dynamic(() => import("./pro-widgets").then((m) => m.LoopGridWidget))
+const MenuCartWidget = dynamic(() => import("./pro-widgets").then((m) => m.MenuCartWidget))
+const NavDropdownWidget = dynamic(() => import("./pro-widgets").then((m) => m.NavDropdownWidget))
+const PurchaseSummaryWidget = dynamic(() => import("./pro-widgets").then((m) => m.PurchaseSummaryWidget))
+const StateBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.StateBoxWidget))
+const TocWidget = dynamic(() => import("./pro-widgets").then((m) => m.TocWidget))
+const LoopFilterWidget = dynamic(() => import("./loop-filter").then((m) => m.LoopFilterWidget))
+const ArchiveFiltersWidget = dynamic(() => import("./archive-filters").then((m) => m.ArchiveFiltersWidget))
+const CafeTableBookingWidget = dynamic(() => import("./cafe-booking-widget").then((m) => m.CafeTableBookingWidget))
+const AudioBlockWidget = dynamic(() => import("./gap-widgets").then((m) => m.AudioBlockWidget))
+const BeforeAfterWidget = dynamic(() => import("./gap-widgets").then((m) => m.BeforeAfterWidget))
+const LoginFormWidget = dynamic(() => import("./gap-widgets").then((m) => m.LoginFormWidget))
+const LottieWidget = dynamic(() => import("./gap-widgets").then((m) => m.LottieWidget))
+const OffCanvasWidget = dynamic(() => import("./gap-widgets").then((m) => m.OffCanvasWidget))
+const RegisterFormWidget = dynamic(() => import("./gap-widgets").then((m) => m.RegisterFormWidget))
+const SiteFooterWidget = dynamic(() => import("./gap-widgets").then((m) => m.SiteFooterWidget))
+const SiteHeaderWidget = dynamic(() => import("./gap-widgets").then((m) => m.SiteHeaderWidget))
+const TeamGridWidget = dynamic(() => import("./gap-widgets").then((m) => m.TeamGridWidget))
+const VideoEmbedWidget = dynamic(() => import("./gap-widgets").then((m) => m.VideoEmbedWidget))
+const ClassicArchiveGrid = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicArchive").then((m) => m.ClassicArchiveGrid))
+const ClassicNotFound = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicNotFound))
+const ClassicOrderTrack = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicOrderTrack))
+const ClassicComparePage = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicComparePage))
+const ClassicWishlist = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicWishlist))
+const AccordionWidget = dynamic(() => import("./extra-widgets").then((m) => m.AccordionWidget))
+const AnnouncementWidget = dynamic(() => import("./extra-widgets").then((m) => m.AnnouncementWidget))
+const BannerGridWidget = dynamic(() => import("./extra-widgets").then((m) => m.BannerGridWidget))
+const BlogPostsWidget = dynamic(() => import("./extra-widgets").then((m) => m.BlogPostsWidget))
+const BrandSliderWidget = dynamic(() => import("./extra-widgets").then((m) => m.BrandSliderWidget))
+const CategoryListWidget = dynamic(() => import("./extra-widgets").then((m) => m.CategoryListWidget))
+const CounterWidget = dynamic(() => import("./extra-widgets").then((m) => m.CounterWidget))
+const IconBoxWidget = dynamic(() => import("./extra-widgets").then((m) => m.IconBoxWidget))
+const IconListWidget = dynamic(() => import("./extra-widgets").then((m) => m.IconListWidget))
+const ImageCarouselWidget = dynamic(() => import("./extra-widgets").then((m) => m.ImageCarouselWidget))
+const ImageGalleryWidget = dynamic(() => import("./extra-widgets").then((m) => m.ImageGalleryWidget))
+const LoginCtaWidget = dynamic(() => import("./extra-widgets").then((m) => m.LoginCtaWidget))
+const MapWidget = dynamic(() => import("./extra-widgets").then((m) => m.MapWidget))
+const PricingWidget = dynamic(() => import("./extra-widgets").then((m) => m.PricingWidget))
+const ProductQueryWidget = dynamic(() => import("./extra-widgets").then((m) => m.ProductQueryWidget))
+const SearchBoxWidget = dynamic(() => import("./extra-widgets").then((m) => m.SearchBoxWidget))
+const ShareButtonsWidget = dynamic(() => import("./extra-widgets").then((m) => m.ShareButtonsWidget))
+const SocialIconsWidget = dynamic(() => import("./extra-widgets").then((m) => m.SocialIconsWidget))
+const TabsWidget = dynamic(() => import("./extra-widgets").then((m) => m.TabsWidget))
+const TestimonialsWidget = dynamic(() => import("./extra-widgets").then((m) => m.TestimonialsWidget))
+const WidgetIntro = dynamic(() => import("./extra-widgets").then((m) => m.WidgetIntro))
+const FeedWidget = dynamic(() => import("./extra-widgets").then((m) => m.FeedWidget))
+const ArchivePartWidget = dynamic(() => import("./part-widgets").then((m) => m.ArchivePartWidget))
+const CartCouponWidget = dynamic(() => import("./part-widgets").then((m) => m.CartCouponWidget))
+const CartTotalsWidget = dynamic(() => import("./part-widgets").then((m) => m.CartTotalsWidget))
+const FooterPartWidget = dynamic(() => import("./part-widgets").then((m) => m.FooterPartWidget))
+const FreeShippingBarWidget = dynamic(() => import("./part-widgets").then((m) => m.FreeShippingBarWidget))
+const HeaderPartWidget = dynamic(() => import("./part-widgets").then((m) => m.HeaderPartWidget))
+const InstallmentWidget = dynamic(() => import("./part-widgets").then((m) => m.InstallmentWidget))
+const PostPartWidget = dynamic(() => import("./part-widgets").then((m) => m.PostPartWidget))
+const PriceFilterWidget = dynamic(() => import("./part-widgets").then((m) => m.PriceFilterWidget))
+const ProductPartWidget = dynamic(() => import("./part-widgets").then((m) => m.ProductPartWidget))
+const RelatedProductsWidget = dynamic(() => import("./part-widgets").then((m) => m.RelatedProductsWidget))
+const ClassicBestSellers = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicBestSellers))
+const ClassicBrandGrid = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicBrandGrid))
+const ClassicCategoryTiles = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicCategoryTiles))
+const ClassicCustomerGuide = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicCustomerGuide))
+const ClassicHero = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicHero))
+const ClassicIconCategories = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicIconCategories))
+const ClassicProductRow = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicProductRow))
+const ClassicPromoTrio = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicPromoTrio))
+const ClassicRecentlyViewed = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicRecentlyViewed))
+const ClassicSpecialBanners = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicSpecialBanners))
+const ClassicStoryStrip = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicStoryStrip))
+const ClassicTasteBox = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicTasteBox))
+const ClassicTrustStrip = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicProduct").then((m) => m.ClassicTrustStrip))
 
 const PoetryHeroWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryHeroWidget))
 const PoemListWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoemListWidget))

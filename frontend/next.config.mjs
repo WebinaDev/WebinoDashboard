@@ -29,6 +29,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "**", pathname: "/storage/**" },
       { protocol: "https", hostname: "**", pathname: "/uploads/**" },
+      // Imported WordPress media (e.g. parisma.ir/wp-content/uploads/...) — was served raw (≈1MB PNGs).
+      { protocol: "https", hostname: "**", pathname: "/wp-content/uploads/**" },
       { protocol: "http", hostname: "**", pathname: "/storage/**" },
       { protocol: "http", hostname: "**", pathname: "/uploads/**" },
     ],

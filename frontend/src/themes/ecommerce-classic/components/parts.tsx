@@ -1,4 +1,5 @@
 "use client"
+import { OptImg } from "@/components/perf/OptImg"
 
 import Link from "next/link"
 import { useLocale } from "next-intl"
@@ -16,7 +17,7 @@ export function ClassicLoader({ label }: { label?: string }) {
   const icon = useClassicThemeSettings().general?.loading_icon_url
   return (
     <span className="sfc-loader" role="status" aria-live="polite">
-      {icon ? <img loading="lazy" decoding="async" {...optImg(icon)} alt="" className="sfc-loader__img" /> : <span className="sfc-loader__spin" aria-hidden="true" />}
+      {icon ? <OptImg loading="lazy" decoding="async" {...optImg(icon)} alt="" className="sfc-loader__img" /> : <span className="sfc-loader__spin" aria-hidden="true" />}
       {label ? <span className="sfc-loader__label">{label}</span> : null}
     </span>
   )

@@ -1,4 +1,5 @@
 "use client"
+import { AfterLoadHtml } from "@/components/perf/AfterLoadHtml"
 
 import Link from "next/link"
 import { useEffect, useMemo, useState, type ReactNode, type CSSProperties } from "react"
@@ -285,16 +286,13 @@ export function ClassicFooter({
               {trustText ? <p className="sfc-footer__trust-text">{trustText}</p> : null}
               <div className="sfc-footer__namad" aria-label="نمادهای اعتماد">
                 {cfg.enamad_html ? (
-                  <div className="sfc-footer__namad-item" dangerouslySetInnerHTML={{ __html: cfg.enamad_html }} />
+                  <AfterLoadHtml className="sfc-footer__namad-item" html={String(cfg.enamad_html)} />
                 ) : null}
                 {cfg.samandehi_html ? (
-                  <div className="sfc-footer__namad-item" dangerouslySetInnerHTML={{ __html: cfg.samandehi_html }} />
+                  <AfterLoadHtml className="sfc-footer__namad-item" html={String(cfg.samandehi_html)} />
                 ) : null}
                 {cfg.ecommerce_badge_html ? (
-                  <div
-                    className="sfc-footer__namad-item"
-                    dangerouslySetInnerHTML={{ __html: cfg.ecommerce_badge_html }}
-                  />
+                  <AfterLoadHtml className="sfc-footer__namad-item" html={String(cfg.ecommerce_badge_html)} />
                 ) : null}
                 
               </div>

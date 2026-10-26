@@ -1,3 +1,4 @@
+import { OptImg } from "@/components/perf/OptImg"
 import Link from "next/link"
 
 import { ClassicT } from "../lib/ClassicT"
@@ -64,7 +65,7 @@ export function ClassicBlogArchive({
             <Link href={`/blog/${post.slug}`} className="block overflow-hidden rounded-[1.25rem]">
               <div className="aspect-[16/10] bg-muted">
                 {post.cover_url ? (
-                  <img src={post.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <OptImg src={post.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" />
                 ) : (
                   <div className="grid h-full place-items-center bg-gradient-to-br from-[var(--sf-pink-soft)] to-[var(--sf-navy-soft)] text-sm font-bold text-[var(--sf-navy)]">
                     {title}
@@ -122,7 +123,7 @@ export function ClassicBlogSingle({
         <article className="sf-blog-article">
           {post.cover_url ? (
             <div className="mb-6 overflow-hidden rounded-[1.75rem]">
-              <img loading="lazy" decoding="async" {...optImg(post.cover_url)} alt="" className="aspect-[21/9] w-full object-cover" />
+              <OptImg loading="lazy" decoding="async" {...optImg(post.cover_url)} alt="" className="aspect-[21/9] w-full object-cover" />
             </div>
           ) : null}
           <h1 className="text-3xl font-extrabold leading-tight md:text-4xl">{post.title}</h1>
@@ -171,7 +172,7 @@ export function ClassicBlogSingle({
                   <Link href={`/product/${product.slug}`} className="flex items-center gap-3">
                     <div className="size-12 overflow-hidden rounded-xl bg-muted">
                       {(product.cover_image_url || product.image_url) ? (
-                        <img
+                        <OptImg
                           src={product.cover_image_url || product.image_url || ""}
                           alt=""
                           className="h-full w-full object-cover"

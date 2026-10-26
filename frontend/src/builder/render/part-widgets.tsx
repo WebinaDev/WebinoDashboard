@@ -1,5 +1,7 @@
 "use client"
 
+import { AfterLoadHtml } from "@/components/perf/AfterLoadHtml"
+
 /* Theme-part widgets: granular pieces of the header, footer, product page, archive,
  * cart and single post so theme templates (Theme Builder → header/footer/single_product/
  * product_archive/cart/single_post) can be composed freely. Every piece reads real data
@@ -495,7 +497,7 @@ export function FooterPartWidget({ widget }: { widget: WidgetNode }) {
       const html = String(footer.enamad_html ?? "")
       if (!html) return null
       // Admin-entered eNamad snippet (same source the classic footer renders).
-      return <div className="sfc-trust-seals" dangerouslySetInnerHTML={{ __html: html }} />
+      return <AfterLoadHtml className="sfc-trust-seals" html={html} />
     }
     case "copyright":
       // Fixed wording + Webina credit (platform policy — not editable).

@@ -1,4 +1,5 @@
 "use client"
+import { OptImg } from "@/components/perf/OptImg"
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -79,7 +80,7 @@ export function ClassicProductCard({
             <span className="sfc-card__label sfc-card__label--installment">
               {installmentImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={installmentImage} alt="" className="sfc-card__installment-img" loading="lazy" />
+                <OptImg src={installmentImage} alt="" className="sfc-card__installment-img" loading="lazy" />
               ) : null}
               {commerce.card_installment_text || "اقساطی"}
             </span>
@@ -87,7 +88,7 @@ export function ClassicProductCard({
         </div>
         <Link href={href} className="sfc-card__image" tabIndex={-1} aria-hidden="true">
           {product.image ? (
-            <img src={product.image} alt="" loading="lazy" decoding="async" />
+            <OptImg src={product.image} alt="" loading="lazy" decoding="async" />
           ) : (
             <span className={`sfc-card__ph bg-gradient-to-br ${toneClass(product.tone)}`}>{product.brand}</span>
           )}

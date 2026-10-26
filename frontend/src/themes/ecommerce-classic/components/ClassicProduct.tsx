@@ -1,4 +1,5 @@
 "use client"
+import { OptImg } from "@/components/perf/OptImg"
 
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
@@ -53,7 +54,7 @@ function trustIcon(icon: string): ReactNode {
   if (key === "shield") return <IconShield size={22} />
   if (/^https?:\/\//i.test(icon) || icon.startsWith("/")) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img loading="lazy" decoding="async" {...optImg(icon)} alt="" width={22} height={22} />
+    return <OptImg loading="lazy" decoding="async" {...optImg(icon)} alt="" width={22} height={22} />
   }
   return <IconBadge size={22} />
 }
@@ -309,10 +310,10 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                       onClick={() => setLightbox(true)}
                       aria-label="بزرگ‌نمایی تصویر"
                     >
-                      <img loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
+                      <OptImg loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
                     </button>
                   ) : (
-                    <img loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
+                    <OptImg loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
                   )
                 ) : (
                   <span className={`sfc-pdp__ph bg-gradient-to-br ${toneClass(product.tone)}`}>{product.brand}</span>
@@ -329,7 +330,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                       className={index === image ? "is-active" : ""}
                       aria-label={`تصویر ${digits(index + 1)}`}
                     >
-                      <img loading="lazy" decoding="async" {...optImg(src)} alt="" />
+                      <OptImg loading="lazy" decoding="async" {...optImg(src)} alt="" />
                     </button>
                   ))}
                 </div>
@@ -565,7 +566,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
         <div className="sfc-container sfc-pdp__installment-box">
           {commerce.installment_image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={commerce.installment_image} alt="" className="sfc-pdp__installment-img" loading="lazy" />
+            <OptImg src={commerce.installment_image} alt="" className="sfc-pdp__installment-img" loading="lazy" />
           ) : null}
           {commerce.installment_title ? <strong>{commerce.installment_title}</strong> : null}
           {commerce.installment_text ? <p>{commerce.installment_text}</p> : null}
@@ -605,7 +606,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
             <IconClose size={22} />
           </button>
           <div className="sfc-lightbox__stage" onClick={(event) => event.stopPropagation()}>
-            <img loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
+            <OptImg loading="lazy" decoding="async" {...optImg(activeImage)} alt={product.name} />
             {gallery.length > 1 ? (
               <div className="sfc-lightbox__thumbs">
                 {gallery.map((src, index) => (
@@ -616,7 +617,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                     onClick={() => setImage(index)}
                     aria-label={`تصویر ${digits(index + 1)}`}
                   >
-                    <img loading="lazy" decoding="async" {...optImg(src)} alt="" />
+                    <OptImg loading="lazy" decoding="async" {...optImg(src)} alt="" />
                   </button>
                 ))}
               </div>

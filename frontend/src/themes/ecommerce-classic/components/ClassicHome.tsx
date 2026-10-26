@@ -1,4 +1,5 @@
 "use client"
+import { OptImg } from "@/components/perf/OptImg"
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -187,7 +188,7 @@ function ClassicStoryViewer({
         <div className="sfc-story-viewer__top">
           <div className="sfc-story-viewer__profile">
             <span className="sfc-story-viewer__avatar">
-              {story.image ? <img loading="lazy" decoding="async" {...optImg(story.image)} alt="" /> : <span>{story.title.slice(0, 1)}</span>}
+              {story.image ? <OptImg loading="lazy" decoding="async" {...optImg(story.image)} alt="" /> : <span>{story.title.slice(0, 1)}</span>}
             </span>
             <strong>{story.title}</strong>
           </div>
@@ -216,7 +217,7 @@ function ClassicStoryViewer({
               onEnded={() => go(1)}
             />
           ) : current ? (
-            <img loading="lazy" decoding="async" {...optImg(current.url)} alt={story.title} />
+            <OptImg loading="lazy" decoding="async" {...optImg(current.url)} alt={story.title} />
           ) : (
             <div className="sfc-story-viewer__ph">{story.title}</div>
           )}
@@ -351,7 +352,7 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
             >
               <span className="sfc-story__ring">
                 <span className="sfc-story__img">
-                  {story.image ? <img src={story.image} alt="" loading="lazy" /> : <span>{story.title.slice(0, 1)}</span>}
+                  {story.image ? <OptImg src={story.image} alt="" loading="lazy" /> : <span>{story.title.slice(0, 1)}</span>}
                 </span>
                 {story.badge ? <span className="sfc-story__badge">{story.badge}</span> : null}
               </span>
@@ -413,7 +414,7 @@ export function ClassicHero({ slidesText, height }: { slidesText?: string; heigh
             aria-hidden={i !== index}
             tabIndex={i === index ? 0 : -1}
           >
-            {s.image ? <img loading={i === 0 ? "eager" : "lazy"} {...(i === 0 ? { fetchPriority: "high" as const } : {})} decoding="async" {...optImg(s.image, undefined, i === 0)} alt={s.title} className="sfc-hero__img" /> : <span className="sfc-hero__fallback" aria-hidden="true" />}
+            {s.image ? <OptImg loading={i === 0 ? "eager" : "lazy"} {...(i === 0 ? { fetchPriority: "high" as const } : {})} decoding="async" {...optImg(s.image, undefined, i === 0)} alt={s.title} className="sfc-hero__img" /> : <span className="sfc-hero__fallback" aria-hidden="true" />}
             <span className={`sfc-hero__copy ${s.image ? "sfc-hero__copy--over" : ""}`}>
               <span className="sfc-hero__corner sfc-hero__corner--top" aria-hidden="true" />
               {s.kicker ? <span className="sfc-hero__kicker">{s.kicker}</span> : null}
@@ -481,7 +482,7 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
     <section className="sfc-tiles">
       {tiles.map((tile) => (
         <Link key={tile.name + tile.href} href={tile.href} className="sfc-tile">
-          <span className="sfc-tile__img">{tile.image ? <img src={tile.image} alt="" loading="lazy" /> : null}</span>
+          <span className="sfc-tile__img">{tile.image ? <OptImg src={tile.image} alt="" loading="lazy" /> : null}</span>
           <strong className="sfc-tile__title">{tile.name}</strong>
           <span className="sfc-tile__notch" aria-hidden="true">
             <IconChevronDown size={12} />
@@ -492,7 +493,7 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
         <Link href={`/product/${offer.slug}`} className="sfc-offer">
           <div className="sfc-offer__body">
             <div className="sfc-offer__image">
-              {offer.image ? <img src={offer.image} alt="" loading="lazy" /> : <span className={`bg-gradient-to-br ${toneClass(offer.tone)}`} />}
+              {offer.image ? <OptImg src={offer.image} alt="" loading="lazy" /> : <span className={`bg-gradient-to-br ${toneClass(offer.tone)}`} />}
             </div>
             <div className="sfc-offer__detail">
               <span className="sfc-offer__badge">
@@ -548,7 +549,7 @@ export function ClassicIconCategories({ title, variant = "home", limit }: { titl
           return (
             <Link key={cat.slug} href={`/shop?category=${cat.slug}`} className="sfc-catgrid__item">
               <span className="sfc-catgrid__icon">
-                {img ? <img src={img} alt="" loading="lazy" /> : <span className={`bg-gradient-to-br ${toneClass(cat.tone)}`}>{cat.name.slice(0, 1)}</span>}
+                {img ? <OptImg src={img} alt="" loading="lazy" /> : <span className={`bg-gradient-to-br ${toneClass(cat.tone)}`}>{cat.name.slice(0, 1)}</span>}
               </span>
               <span className="sfc-catgrid__name">{cat.name}</span>
             </Link>
@@ -627,7 +628,7 @@ export function ClassicPromoTrio({ itemsText }: { itemsText?: string }) {
     <section className="sfc-promos">
       {items.slice(0, Math.max(1, Number(homeCfg.promo_limit) || 3)).map((item) => (
         <Link key={item.title + item.href} href={item.href} className={`sfc-promo sfc-promo--${item.tone}`}>
-          {item.image ? <img src={item.image} alt="" className="sfc-promo__img" loading="lazy" /> : null}
+          {item.image ? <OptImg src={item.image} alt="" className="sfc-promo__img" loading="lazy" /> : null}
           <span className="sfc-promo__corner sfc-promo__corner--a" aria-hidden="true" />
           <span className="sfc-promo__corner sfc-promo__corner--b" aria-hidden="true" />
           <span className="sfc-promo__copy">
@@ -659,7 +660,7 @@ export function ClassicBestSellers({ title, limit = 9 }: { title?: string; limit
               <span className="sfc-best__sep" aria-hidden="true" />
               <span className="sfc-best__title">{p.name}</span>
             </span>
-            <span className="sfc-best__img">{p.image ? <img src={p.image} alt="" loading="lazy" /> : null}</span>
+            <span className="sfc-best__img">{p.image ? <OptImg src={p.image} alt="" loading="lazy" /> : null}</span>
             {i < 3 ? (
               <span className="sfc-best__fire" aria-hidden="true">
                 <IconFire size={14} />
@@ -694,7 +695,7 @@ export function ClassicBrandGrid({ title, limit }: { title?: string; limit?: num
           const logo = catalog.products.find((p) => (p.brandSlug === brand.slug || p.brand === brand.name) && p.image)?.image
           return (
             <Link key={brand.slug} href={`/shop?brand=${encodeURIComponent(brand.slug)}`} className="sfc-brand">
-              <span className="sfc-brand__logo">{logo ? <img src={logo} alt="" loading="lazy" /> : <span>{brand.name}</span>}</span>
+              <span className="sfc-brand__logo">{logo ? <OptImg src={logo} alt="" loading="lazy" /> : <span>{brand.name}</span>}</span>
               <span className="sfc-brand__name">{brand.name}</span>
               <span className="sfc-brand__count">{digits(counts.get(brand.slug) ?? counts.get(brand.name) ?? 0)} {tx("home.items_suffix")}</span>
             </Link>
@@ -732,7 +733,7 @@ export function ClassicBlogBlock({ title }: { title?: string }) {
       <ClassicSectionHead title={title || tx("home.blog_title")} href="/blog" more={tx("home.blog_view_all")} />
       <div className="sfc-blog__grid">
         <Link href={`/blog/${lead.slug}`} className="sfc-blog__lead">
-          {lead.cover_url ? <img src={lead.cover_url} alt="" loading="lazy" /> : <span className="sfc-blog__ph" />}
+          {lead.cover_url ? <OptImg src={lead.cover_url} alt="" loading="lazy" /> : <span className="sfc-blog__ph" />}
           <span className="sfc-blog__over">
             <strong>{lead.title}</strong>
             {lead.excerpt ? <span>{lead.excerpt}</span> : null}
@@ -741,7 +742,7 @@ export function ClassicBlogBlock({ title }: { title?: string }) {
         <div className="sfc-blog__list">
           {rest.slice(0, 4).map((post) => (
             <Link key={post.slug} href={`/blog/${post.slug}`} className="sfc-blog__item">
-              <span className="sfc-blog__thumb">{post.cover_url ? <img src={post.cover_url} alt="" loading="lazy" /> : null}</span>
+              <span className="sfc-blog__thumb">{post.cover_url ? <OptImg src={post.cover_url} alt="" loading="lazy" /> : null}</span>
               <span className="sfc-blog__body">
                 <strong>{post.title}</strong>
                 {post.excerpt ? <span>{post.excerpt}</span> : null}
@@ -867,7 +868,7 @@ export function ClassicTasteBox({ title, limit }: { title?: string; limit?: numb
                 <Link key={k.slug} href={`/shop?category=${k.slug}`} className="sfc-taste__cat">
                   <span className="sfc-taste__cat-img">
                     {imageForCategory(catalog, k.slug, k.name) ? (
-                      <img src={imageForCategory(catalog, k.slug, k.name)!} alt="" loading="lazy" />
+                      <OptImg src={imageForCategory(catalog, k.slug, k.name)!} alt="" loading="lazy" />
                     ) : (
                       <span className={`bg-gradient-to-br ${toneClass(k.tone)}`}>{k.name.slice(0, 1)}</span>
                     )}
@@ -882,7 +883,7 @@ export function ClassicTasteBox({ title, limit }: { title?: string; limit?: numb
             <div className="sfc-taste__products">
               {products.map((p) => (
                 <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-taste__product">
-                  {p.image ? <img src={p.image} alt="" loading="lazy" /> : <span>{p.name.slice(0, 1)}</span>}
+                  {p.image ? <OptImg src={p.image} alt="" loading="lazy" /> : <span>{p.name.slice(0, 1)}</span>}
                 </Link>
               ))}
               <Link href={`/shop?category=${cat.slug}`} className="sfc-taste__showmore">
@@ -942,7 +943,7 @@ export function ClassicSpecialBanners({ title, limit }: { title?: string; limit?
               return (
                 <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-special__item">
                   <span className="sfc-special__img">
-                    {p.image ? <img src={p.image} alt="" loading="lazy" /> : null}
+                    {p.image ? <OptImg src={p.image} alt="" loading="lazy" /> : null}
                     {off > 0 ? <em>{digits(off)}٪</em> : null}
                   </span>
                   <span className="sfc-special__name">{p.name}</span>
@@ -967,7 +968,7 @@ export function ClassicSpecialBanners({ title, limit }: { title?: string; limit?
                   ))}
                 </div>
                 <span className="sfc-special__vert-img">
-                  {p.image ? <img src={p.image} alt="" loading="lazy" /> : <span className={`bg-gradient-to-br ${toneClass(p.tone)}`} />}
+                  {p.image ? <OptImg src={p.image} alt="" loading="lazy" /> : <span className={`bg-gradient-to-br ${toneClass(p.tone)}`} />}
                 </span>
                 <strong>{p.name}</strong>
                 <div className="sfc-special__vert-price">

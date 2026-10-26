@@ -78,6 +78,16 @@ if [ "${RUN_OPTIMIZE:-1}" = "1" ]; then
   chown -R www-data:www-data bootstrap/cache storage/framework 2>/dev/null || true
 fi
 
+# Rollback switch: WEBINO_HTTP_SERVER=serve runs the old single-process `artisan serve` on :8080.
+if [ "${WEBINO_HTTP_SERVER:-fpm}" = "serve" ]; then
+  case " $* " in
+    *" webino-web "*|" webino-web "|*" artisan serve "*|*" octane:start "*|*" octane:start")
+      echo "[webino] WEBINO_HTTP_SERVER=serve -> php artisan serve on :8080 (rollback mode)"
+      exec php artisan serve --host=0.0.0.0 --port=8080
+      ;;
+  esac
+fi
+
 # Legacy CMDs (artisan serve / octane:start) -> php-fpm + nginx on :8080 (multi-worker).
 case " $* " in
   *" artisan serve "*|*" octane:start "*|*" octane:start")

@@ -1,4 +1,5 @@
 "use client"
+import { OptImg } from "@/components/perf/OptImg"
 
 import Link from "next/link"
 import { useEffect, useState, type ReactNode } from "react"
@@ -52,7 +53,7 @@ export function ClassicNotFound() {
   const bg = String(general.bg_404 || "")
   return (
     <div className="sfc-404 sfc-container" style={bg ? { background: bg, borderRadius: 18 } : undefined}>
-      {logo ? <img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt="" className="sfc-404__logo" /> : null}
+      {logo ? <OptImg loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt="" className="sfc-404__logo" /> : null}
       <h1>{tx("pages.nf_title")}</h1>
       <p>{tx("pages.nf_text")}</p>
       <div className="sfc-cart__links" style={{ justifyContent: "center" }}>
@@ -302,7 +303,7 @@ export function ClassicWishlist() {
           {items.map((item) => (
             <li key={item.id} className="sfc-box sfc-wishlist__item">
               <Link href={`/product/${item.slug}`} className="sfc-wishlist__img">
-                {item.image_url ? <img src={item.image_url} alt="" loading="lazy" /> : <span>{item.name.slice(0, 1)}</span>}
+                {item.image_url ? <OptImg src={item.image_url} alt="" loading="lazy" /> : <span>{item.name.slice(0, 1)}</span>}
               </Link>
               <Link href={`/product/${item.slug}`} className="sfc-wishlist__name">
                 {item.name}

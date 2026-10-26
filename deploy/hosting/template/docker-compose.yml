@@ -56,6 +56,10 @@ services:
       QUEUE_CONNECTION: redis
       RUN_MIGRATIONS: "1"
       RUN_OPTIMIZE: "1"
+      # fpm (default) | serve = rollback to artisan serve
+      WEBINO_HTTP_SERVER: ${WEBINO_HTTP_SERVER:-fpm}
+      LOG_CHANNEL: ${LOG_CHANNEL:-daily}
+      LOG_DAILY_DAYS: ${LOG_DAILY_DAYS:-14}
     volumes:
       - ./data/storage:/var/www/html/storage
       - ./backend.env:/var/www/html/.env:ro
@@ -64,7 +68,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+    command: webino-web
     networks:
       internal:
       edge:
