@@ -260,6 +260,41 @@
       ],
       "order": 1,
       "is_placeholder": false
+    },
+    {
+      "kind": "book",
+      "title_fa": "آناتومی و فیزیولوژی انسانی",
+      "title_en": "Human Anatomy and Physiology",
+      "publisher_fa": "جهاد دانشگاهی، شعبه دانشگاه علامه طباطبایی",
+      "publisher_en": "ACECR (Jahad Daneshgahi), Allameh Tabataba'i University branch",
+      "date": {
+        "g": "2026",
+        "j": "1405"
+      },
+      "co_authors_fa": [
+        "دکتر اشوانی کومار جنگرا",
+        "دکتر سوشما ماراتا",
+        "هیمانشو کومار"
+      ],
+      "co_authors_en": [
+        "Dr. Ashwani Kumar Jangra",
+        "Dr. Sushma Marata",
+        "Himanshu Kumar"
+      ],
+      "description_fa": "ترجمه فارسی با همکاری دکتر سجاد ارشدی، ۳۱۳ صفحه، چاپ اول ۱۴۰۵",
+      "description_en": "Persian translation, co-translated with Dr. Sajjad Arshadi · 313 pages · 1st edition (1405 SH)",
+      "url": "https://www.isba.ir/Default/BookDetail/21621/",
+      "cover_path": "book2-cover.webp",
+      "links": [
+        {
+          "label_fa": "مشاهده و خرید از جهاد دانشگاهی",
+          "label_en": "View & buy (ACECR)",
+          "url": "https://www.isba.ir/Default/BookDetail/21621/",
+          "kind": "buy"
+        }
+      ],
+      "order": 2,
+      "is_placeholder": false
     }
   ],
   "certifications": [

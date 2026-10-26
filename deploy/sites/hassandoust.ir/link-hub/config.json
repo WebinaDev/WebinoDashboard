@@ -69,6 +69,21 @@
   {
    "type": "link",
    "payload": {
+    "label": "کتاب «آناتومی و فیزیولوژی انسانی»",
+    "sublabel": "ترجمه · جهاد دانشگاهی",
+    "url": "https://www.isba.ir/Default/BookDetail/21621/",
+    "icon": "book",
+    "i18n": {
+     "en": {
+      "label": "Book: Human Anatomy and Physiology",
+      "sublabel": "Persian translation · ACECR"
+     }
+    }
+   }
+  },
+  {
+   "type": "link",
+   "payload": {
     "label": "ایمیل",
     "sublabel": "hassandoust.ir@gmail.com",
     "url": "mailto:hassandoust.ir@gmail.com",
