@@ -1,0 +1,56 @@
+{
+  "name": "@webina/ui",
+  "version": "0.5.0",
+  "description": "Shared Webina UI primitives — accent palette, charts, API envelope helpers, locale formatting",
+  "license": "UNLICENSED",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./styles/themes.css": "./src/styles/themes.css",
+    "./builder": {
+      "types": "./dist/builder/index.d.ts",
+      "import": "./dist/builder/index.js",
+      "default": "./dist/builder/index.js"
+    },
+    "./styles/hide-on.css": "./src/styles/hide-on.css",
+    "./builder/widget-aliases.json": "./src/builder/data/widget-aliases.json"
+  },
+  "files": [
+    "dist",
+    "src/styles",
+    "scripts",
+    "src/builder/data"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "diff:widgets": "node scripts/widget-diff.mjs",
+    "check:duplicates": "node scripts/check-duplicates.mjs"
+  },
+  "peerDependencies": {
+    "next-themes": "^0.4.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "recharts": "^2.12.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "registry": "https://git.webina.ir/api/packages/webina/npm/"
+  },
+  "bin": {
+    "webina-ui-check-duplicates": "scripts/check-duplicates.mjs"
+  }
+}

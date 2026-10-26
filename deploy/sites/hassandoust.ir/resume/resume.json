@@ -318,8 +318,8 @@
       "issuer_en": "Fitness Academy Europe (FAE)",
       "issuer": "آکادمی فیتنس اروپا (FAE)",
       "issue_date": {
-        "g": "2025-05",
-        "j": "1404-03"
+        "g": "2025-05-30",
+        "j": "1404-03-09"
       },
       "media_paths": [
         "certs/cert-supplements.webp"
@@ -331,8 +331,8 @@
       "issuer_en": "Fitness Academy Europe (FAE)",
       "issuer": "آکادمی فیتنس اروپا (FAE)",
       "issue_date": {
-        "g": "2026-07",
-        "j": "1405-04"
+        "g": "2026-07-02",
+        "j": "1405-04-11"
       },
       "credential_id": "FAE060366",
       "media_paths": [
@@ -347,8 +347,8 @@
       "issuer_en": "Iranian Strength & Conditioning Association (NSCA-IRN)",
       "issuer": "انجمن بدنسازی و تمرینات قدرتی ایران (NSCA-IRN)",
       "issue_date": {
-        "g": "2024-03",
-        "j": "1402-12"
+        "g": "2024-03-15",
+        "j": "1402-12-25"
       },
       "credential_id": "1402-1209",
       "media_paths": [
@@ -363,8 +363,8 @@
       "issuer_en": "Sport Sciences and Health Research Institute",
       "issuer": "پژوهشکده علوم ورزشی و تندرستی",
       "issue_date": {
-        "g": "2026-05",
-        "j": "1405-02"
+        "g": "2026-05-16",
+        "j": "1405-02-26"
       },
       "credential_id": "225/89567",
       "is_placeholder": false,

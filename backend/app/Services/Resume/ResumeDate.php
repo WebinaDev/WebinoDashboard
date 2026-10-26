@@ -10,6 +10,14 @@ class ResumeDate
         if (! is_array($d) || (empty($d['g']) && empty($d['j']))) {
             return null;
         }
+        // Both calendars given: keep them exactly as entered (converting a month-precision Jalali date
+        // from its 1st day would otherwise shift the Gregorian month, e.g. Tir 1405 -> Jun instead of Jul).
+        if (! empty($d['g']) && ! empty($d['j'])) {
+            $cnt = max(count(explode('-', (string) $d['g'])), count(explode('-', (string) $d['j'])));
+            $precision = $d['precision'] ?? ($cnt >= 3 ? 'day' : ($cnt === 2 ? 'month' : 'year'));
+
+            return ['g' => (string) $d['g'], 'j' => (string) $d['j'], 'precision' => $precision];
+        }
         $src = ! empty($d['j']) ? 'j' : 'g';
         $parts = array_map('intval', explode('-', (string) $d[$src]));
         $precision = $d['precision'] ?? (count($parts) >= 3 ? 'day' : (count($parts) === 2 ? 'month' : 'year'));
