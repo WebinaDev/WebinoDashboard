@@ -33,7 +33,7 @@ S = [
  dict(slug="publications", table="resume_publications", model="ResumePublication", label_fa="نشرها (مقاله، کتاب...)", label_en="Publications", icon="book-open", title="title", fields=[
    F("kind","select",options=["article","book","paper","chapter","blog","talk"],required=True), F("title","text",True,required=True,max=300),
    F("publisher","text",True,max=200), F("date","date"), F("url","url"), F("isbn","text",max=40), F("doi","text",max=120),
-   F("co_authors","list",True), F("description","textarea",True), F("cover_media_id","media")]),
+   F("co_authors","list",True), F("description","textarea",True), F("cover_media_id","media"), F("links","json")]),
  dict(slug="certifications", table="resume_certifications", model="ResumeCertification", label_fa="گواهینامه‌ها", label_en="Certifications", icon="badge-check", title="name", fields=[
    F("name","text",True,required=True,max=200), F("issuer","text",True,max=200), F("issue_date","date"), F("expire_date","date"),
    F("credential_id","text",max=120), F("credential_url","url"), F("media_ids","media_list")]),

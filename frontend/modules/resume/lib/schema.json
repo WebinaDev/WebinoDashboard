@@ -410,6 +410,11 @@
      "key": "cover_media_id",
      "type": "media",
      "i18n": false
+    },
+    {
+     "key": "links",
+     "type": "json",
+     "i18n": false
     }
    ]
   },

@@ -145,6 +145,7 @@ return new class extends Migration
             $t->text('description_fa')->nullable();
             $t->text('description_en')->nullable();
             $t->unsignedBigInteger('cover_media_id')->nullable();
+            $t->json('links')->nullable();
             $t->timestamps();
             $t->index(['tenant_id', 'order']);
         });

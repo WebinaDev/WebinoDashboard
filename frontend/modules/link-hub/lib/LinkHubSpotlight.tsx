@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react"
-import { ArrowUpLeft, ArrowUpRight, Check, Copy, Globe, Languages, Mail, MessageCircle, Phone, Sparkles, UserPlus } from "lucide-react"
+import { ArrowUpLeft, ArrowUpRight, BookOpen, Check, Copy, Globe, Languages, Mail, MessageCircle, Phone, Sparkles, UserPlus } from "lucide-react"
 
 import "../site/link-hub-spotlight.css"
 import { BlockView, type Handlers, type PublicBlock, type PublicPage } from "./LinkHubView"
@@ -32,6 +32,7 @@ export function networkOf(url: string, hint = ""): string {
   if (url.startsWith("tel:")) return "phone"
   if (url.startsWith("mailto:")) return "mail"
   if (url === "#vcard") return "vcard"
+  if (/(^|\s)book(\s|$)/.test(hint.toLowerCase())) return "book"
   return "web"
 }
 
@@ -47,6 +48,7 @@ export function Glyph({ kind, size = 22 }: { kind: string; size?: number }) {
   if (kind === "phone") return <Phone {...props} />
   if (kind === "mail") return <Mail {...props} />
   if (kind === "vcard") return <UserPlus {...props} />
+  if (kind === "book") return <BookOpen {...props} />
   if (kind === "message") return <MessageCircle {...props} />
   return <Globe {...props} />
 }

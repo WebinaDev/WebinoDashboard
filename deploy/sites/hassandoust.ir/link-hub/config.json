@@ -1,6 +1,6 @@
 {
  "profile": {
-  "title": "سارا حسن‌دوست",
+  "title": "سارا حسن دوست",
   "bio": "",
   "theme_json": {
    "layout": "card",
@@ -33,7 +33,7 @@
    ]
   }
  },
- "avatar": "cutout.png",
+ "avatar": "cutout.webp",
  "blocks": [
   {
    "type": "cta",
@@ -47,6 +47,21 @@
      "en": {
       "label": "Resume website",
       "url": "https://hassandoust.ir"
+     }
+    }
+   }
+  },
+  {
+   "type": "link",
+   "payload": {
+    "label": "کتاب «تغذیه برای ورزش، تمرین و عملکرد»",
+    "sublabel": "ترجمه · انتشارات حتمی",
+    "url": "https://hatmipg.com/product/nutrition-for-exercise-training-and-performance/",
+    "icon": "book",
+    "i18n": {
+     "en": {
+      "label": "Book: Nutrition for Sport, Exercise and Performance",
+      "sublabel": "Persian translation · Hatmi"
      }
     }
    }

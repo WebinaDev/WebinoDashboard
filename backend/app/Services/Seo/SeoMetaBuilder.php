@@ -151,6 +151,10 @@ final class SeoMetaBuilder
             $meta['canonical'] = $raw['canonical'];
         }
         $meta['lang'] = $page->lang;
+        // Resume theme pages: title/description/site name follow the page language (identity name + headline).
+        if (str_starts_with((string) $page->translation_group, 'resume-') && empty($seo['seo_title'])) {
+            $meta = $this->resumeLocalized($tenant, $meta, (string) ($page->lang ?: 'fa'));
+        }
         $meta['breadcrumb'] = ($raw['breadcrumb'] ?? true) !== false;
         // hreflang alternates: this page plus published translations in the same group.
         $meta['alternates'] = [];
@@ -159,7 +163,58 @@ final class SeoMetaBuilder
             $siblings = CmsPage::query()->where('tenant_id', $page->tenant_id)->where('translation_group', $page->translation_group)
                 ->where('published', true)->whereNotNull('lang')->orderBy('id')->get(['slug', 'lang']);
             foreach ($siblings as $sib) {
-                $meta['alternates'][] = ['lang' => $sib->lang, 'url' => $base.'/'.$sib->slug];
+                $meta['alternates'][] = ['lang' => $sib->lang, 'url' => $sib->slug === 'home' ? $base.'/' : $base.'/'.$sib->slug];
+            }
+        }
+
+        return $meta;
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     * @return array<string, mixed>
+     */
+    private function resumeLocalized(Tenant $tenant, array $meta, string $lang): array
+    {
+        $prev = \App\Services\Resume\ResumeScope::current();
+        \App\Services\Resume\ResumeScope::set((int) $tenant->id);
+        try {
+            $id = \App\Models\Resume\ResumeIdentity::query()->first();
+        } catch (\Throwable) {
+            $id = null;
+        } finally {
+            \App\Services\Resume\ResumeScope::set($prev);
+        }
+        if (! $id) {
+            return $meta;
+        }
+        $other = $lang === 'en' ? 'fa' : 'en';
+        $name = trim((string) ($id->{'full_name_'.$lang} ?: $id->{'full_name_'.$other}));
+        if ($name === '') {
+            return $meta;
+        }
+        $headline = trim((string) ($id->{'headline_'.$lang} ?? ''));
+        $meta['title'] = $name;
+        $meta['site_name'] = $name;
+        if ($headline !== '') {
+            $meta['description'] = mb_substr($headline, 0, 160);
+        }
+        foreach (['og', 'twitter'] as $k) {
+            if (isset($meta[$k]) && is_array($meta[$k])) {
+                $meta[$k]['title'] = $name;
+                if ($headline !== '') {
+                    $meta[$k]['description'] = $meta['description'];
+                }
+                if ($k === 'og') {
+                    $meta[$k]['site_name'] = $name;
+                    $meta[$k]['locale'] = $lang === 'en' ? 'en_US' : 'fa_IR';
+                }
+            }
+        }
+        if (($meta['canonical'] ?? '') !== '' && str_ends_with((string) $meta['canonical'], '/home')) {
+            $meta['canonical'] = substr((string) $meta['canonical'], 0, -4);
+            if (isset($meta['og']['url'])) {
+                $meta['og']['url'] = $meta['canonical'];
             }
         }
 

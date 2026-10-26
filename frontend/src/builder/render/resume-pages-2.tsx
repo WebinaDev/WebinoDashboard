@@ -131,11 +131,26 @@ export function ResumeVitalityPage({ widget }: { widget: WidgetNode }) {
       {pubs.length || certs.length || honors.length ? (
         <section id="cred" className="blush"><div className="sh rv"><span>{num()}</span><h2>{L("مدارک و ", "Credentials & ")}<em>{L("آثار", "publications")}</em></h2></div>
           <div className="creds">
-            <div>{pubs.map((b) => (
-              <div className="book rv" key={b.id} style={{ marginBottom: 20 }}><small>{optLabel(String(b.kind ?? "book"), lang)}</small><h3>{T(b, "title")}</h3>
-                <p>{[T(b, "publisher"), T(b, "description")].filter(Boolean).join(" · ")}</p>{b.url ? <p><a href={String(b.url)} target="_blank" rel="noopener noreferrer">{short(b.url)} ↗</a></p> : null}<div className="cv" /></div>))}</div>
+            <div>{pubs.map((b) => {
+              const cover = h.media(b.cover_media_id)
+              const links = (Array.isArray(b.links) ? (b.links as Record<string, unknown>[]) : []).filter((l) => typeof l?.url === "string" && l.url)
+              const authors = trList(b, "co_authors", lang)
+              const meta = [T(b, "publisher"), b.date ? h.DT(b.date) : "", b.isbn ? `ISBN ${N(String(b.isbn))}` : ""].filter(Boolean)
+              return (
+              <div className={`book rv${cover ? " has-cover" : ""}`} key={b.id} style={{ marginBottom: 20 }}>
+                {cover ? <a className="bcover" href={links[0] ? String(links[0].url) : cover} target="_blank" rel="noopener noreferrer"><img src={cover} alt={T(b, "title")} loading="lazy" /></a> : null}
+                <div className="bbody"><small>{optLabel(String(b.kind ?? "book"), lang)}</small><h3>{T(b, "title")}</h3>
+                {authors.length ? <p className="bauth">{L("نویسندگان: ", "By ")}{authors.join(L("، ", ", "))}</p> : null}
+                <p>{[T(b, "description"), ...meta].filter(Boolean).join(" · ")}</p>
+                {links.length ? <div className="blinks">{links.map((l, j) => <a key={j} className={j === 0 ? "pri" : ""} href={String(l.url)} target="_blank" rel="noopener noreferrer">{String((lang === "en" ? l.label_en : l.label_fa) || l.label_en || l.label_fa || short(l.url))} ↗</a>)}</div>
+                  : b.url ? <p><a href={String(b.url)} target="_blank" rel="noopener noreferrer">{short(b.url)} ↗</a></p> : null}
+                <div className="cv" /></div></div>)
+            })}</div>
             <div className="rv">{[...certs, ...honors].map((c, i) => (
-              <div className="cert" key={`${c.id}-${i}`}><i>{N(String(i + 1).padStart(2, "0"))}</i><div><b>{T(c, "name") || T(c, "title")}</b>{T(c, "issuer") ? <div style={{ fontSize: 13, color: "var(--mut)" }}>{T(c, "issuer")}</div> : null}</div></div>))}</div>
+              <div className="cert" key={`${c.id}-${i}`}>{(() => {
+                const img = (Array.isArray(c.media_ids) ? (c.media_ids as number[]) : []).map(h.media).find(Boolean)
+                return img ? <a className="thumb" href={img} target="_blank" rel="noopener noreferrer"><img src={img} alt="" loading="lazy" /></a> : <i>{N(String(i + 1).padStart(2, "0"))}</i>
+              })()}<div><b>{T(c, "name") || T(c, "title")}</b>{T(c, "issuer") || c.issue_date ? <div style={{ fontSize: 13, color: "var(--mut)" }}>{[T(c, "issuer"), c.issue_date ? h.DT(c.issue_date) : ""].filter(Boolean).join(" · ")}</div> : null}{c.credential_id ? <div style={{ fontSize: 12, color: "var(--mut)", direction: "ltr", textAlign: "start" }}>ID {String(c.credential_id)}</div> : null}</div></div>))}</div>
           </div>
         </section>
       ) : null}

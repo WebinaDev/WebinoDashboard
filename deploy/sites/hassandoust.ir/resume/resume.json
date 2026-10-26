@@ -1,368 +1,464 @@
 {
- "_meta": {
-  "schema": "webina.resume/v1",
-  "sources": [
-   "LinkedIn profile PDF (attachment)",
-   "ORCID public API 0009-0008-0290-0041 (record, biography, educations, employments, keywords)"
+  "_meta": {
+    "schema": "webina.resume/v1",
+    "sources": [
+      "LinkedIn profile PDF (attachment)",
+      "ORCID public API 0009-0008-0290-0041 (record, biography, educations, employments, keywords)"
+    ],
+    "locales": [
+      "en",
+      "fa"
+    ],
+    "default_locale": "en",
+    "still_missing": "hi-res photo, phone, certification issuers/dates, book publisher/year/ISBN, BPH research citation and conference names, honors, projects",
+    "import": "php artisan resume:import hassandoust.ir deploy/sites/hassandoust.ir/resume/resume.json --replace --theme=vitality --locale=en"
+  },
+  "profile": {
+    "full_name_en": "Sara Hassandoust",
+    "full_name_fa": "سارا حسن دوست",
+    "headline_en": "Sports Nutritionist & Sports Physiologist, Co-Founder of NitroHealth",
+    "headline_fa": "متخصص تغذیه ورزشی و فیزیولوژی ورزشی، هم‌بنیان‌گذار نیتروهلث",
+    "location": "تهران، ایران",
+    "location_en": "Tehran, Iran",
+    "career_start_year": 2022,
+    "open_to_work": false,
+    "is_placeholder": false,
+    "avatar_path": "avatar.webp",
+    "cutout_path": "cutout.webp"
+  },
+  "about": {
+    "is_placeholder": false,
+    "translated_from": "en",
+    "body_en": "I am a passionate and dedicated Sports Nutritionist with a strong background in sports physiology and nutrition. My love for swimming and science has driven my pursuit of knowledge in the field, and I am committed to helping athletes optimize their performance through proper nutrition. I believe in a holistic approach that considers an individual's unique needs, training goals, and performance demands. My research experience includes investigating the effects of aerobic training and saw palmetto supplementation on treating benign prostatic hyperplasia (BPH), and I have presented my research findings at conferences. I translated the book \"Nutrition for Sport, Exercise and Performance\" into Persian, making valuable information accessible to the Persian-speaking audience.",
+    "body_fa": "متخصص تغذیه ورزشی هستم با پیشینه‌ای محکم در فیزیولوژی ورزشی و تغذیه. عشقم به شنا و علم مرا به این رشته کشاند و متعهدم به ورزشکاران کمک کنم با تغذیه درست، بهترین عملکردشان را داشته باشند. به رویکردی جامع باور دارم که نیازهای منحصربه‌فرد هر فرد، اهداف تمرینی و خواسته‌های عملکردی‌اش را در نظر می‌گیرد. در پژوهش‌هایم اثر تمرین هوازی و مکمل نخل اره‌ای (سا پالمتو) را بر درمان بزرگی خوش‌خیم پروستات (BPH) بررسی کرده‌ام و یافته‌هایم را در همایش‌ها ارائه داده‌ام. کتاب «تغذیه برای ورزش، تمرین و عملکرد» را به فارسی ترجمه کرده‌ام تا این دانش ارزشمند در دسترس فارسی‌زبانان باشد.",
+    "highlights_en": [
+      "Cancer",
+      "Metabolism",
+      "Swimming",
+      "Effects of exercise on metabolic health",
+      "Aerobic training & saw palmetto in BPH"
+    ],
+    "highlights_fa": [
+      "سرطان",
+      "متابولیسم",
+      "شنا",
+      "اثر ورزش بر سلامت متابولیک",
+      "تمرین هوازی و نخل اره‌ای در BPH"
+    ]
+  },
+  "contacts": [
+    {
+      "type": "email",
+      "value": "hassandoust.ir@gmail.com",
+      "label": "ایمیل",
+      "label_en": "Email",
+      "visibility": "public",
+      "order": 0,
+      "is_placeholder": false,
+      "is_primary": true
+    },
+    {
+      "type": "website",
+      "value": "https://hassandoust.ir",
+      "label": "وب‌سایت",
+      "label_en": "Website",
+      "visibility": "public",
+      "order": 1,
+      "is_placeholder": false,
+      "is_primary": false
+    },
+    {
+      "type": "linkedin",
+      "value": "https://www.linkedin.com/in/sara-hassandoust/",
+      "label": "لینکدین",
+      "label_en": "LinkedIn",
+      "visibility": "public",
+      "order": 2,
+      "is_placeholder": false
+    },
+    {
+      "type": "orcid",
+      "value": "https://orcid.org/0009-0008-0290-0041",
+      "label": "ارکید",
+      "label_en": "ORCID",
+      "visibility": "public",
+      "order": 3,
+      "is_placeholder": false
+    },
+    {
+      "type": "website",
+      "value": "https://nitrohealth.ir",
+      "label": "نیتروهلث",
+      "label_en": "NitroHealth",
+      "visibility": "public",
+      "order": 4,
+      "is_placeholder": false
+    }
   ],
-  "locales": [
-   "en",
-   "fa"
+  "experiences": [
+    {
+      "title_en": "Co-Founder, Nutritionist & Writer",
+      "title_fa": "هم‌بنیان‌گذار، متخصص تغذیه و نویسنده",
+      "company": "NitroHealth.ir",
+      "employment_type": "self_employed",
+      "location": "تهران",
+      "location_en": "Tehran, Iran",
+      "start": {
+        "g": "2022",
+        "j": "1401"
+      },
+      "end": null,
+      "is_current": true,
+      "order": 1,
+      "is_placeholder": false,
+      "achievements": [],
+      "skills": [
+        "Entrepreneurship",
+        "Sports Nutrition",
+        "Writing"
+      ],
+      "description_en": "At NitroHealth.ir, a platform in sports nutrition and performance optimization, I serve as a co-founder, nutritionist, and writer. I have been instrumental in establishing and growing the platform, dedicated to providing evidence-based nutrition guidance to athletes and fitness enthusiasts, translating scientific knowledge into practical applications.",
+      "description_fa": "در نیتروهلث، سکویی در حوزه تغذیه ورزشی و بهینه‌سازی عملکرد، هم‌بنیان‌گذار، متخصص تغذیه و نویسنده هستم. در راه‌اندازی و رشد این سکو نقش کلیدی داشته‌ام؛ سکویی که راهنمایی تغذیه‌ای مبتنی بر شواهد را به ورزشکاران و علاقه‌مندان تناسب اندام ارائه می‌دهد و دانش علمی را به کاربرد عملی تبدیل می‌کند."
+    },
+    {
+      "title_en": "Sports Nutritionist",
+      "title_fa": "متخصص تغذیه ورزشی",
+      "company": "NitroHealth",
+      "employment_type": "full_time",
+      "location": "تهران",
+      "location_en": "Tehran, Iran",
+      "start": {
+        "g": "2022-08",
+        "j": "1401-05"
+      },
+      "end": null,
+      "is_current": true,
+      "order": 2,
+      "is_placeholder": false,
+      "achievements": [],
+      "skills": [
+        "Personalized Nutrition Plans",
+        "Nutritional Assessment"
+      ],
+      "description_en": "Optimizing athletic performance through personalized nutrition plans. As a key member of the NitroHealth team, I help athletes reach their highest potential by providing evidence-based nutrition guidance tailored to their specific needs.",
+      "description_fa": "بهینه‌سازی عملکرد ورزشی با برنامه‌های تغذیه شخصی‌سازی‌شده. به‌عنوان عضو کلیدی تیم نیتروهلث، با راهنمایی تغذیه‌ای مبتنی بر شواهد و متناسب با نیاز هر ورزشکار، به او کمک می‌کنم به بالاترین توانش برسد."
+    },
+    {
+      "title_en": "Sports Writer",
+      "title_fa": "نویسنده ورزشی",
+      "company": "NitroHealth",
+      "employment_type": "full_time",
+      "location": "تهران",
+      "location_en": "Tehran, Iran",
+      "start": {
+        "g": "2022",
+        "j": "1401"
+      },
+      "end": null,
+      "is_current": true,
+      "order": 3,
+      "is_placeholder": false,
+      "achievements": [],
+      "skills": [
+        "Sports Writing",
+        "Copywriting"
+      ],
+      "description_en": "Writer specializing in sports, nutrition, and healthy lifestyle content. I create engaging and informative articles, blog posts, and other written materials that promote optimal health, athletic performance, and overall well-being.",
+      "description_fa": "نویسنده محتوای ورزش، تغذیه و سبک زندگی سالم. مقاله‌ها، نوشته‌های وبلاگ و محتوای آموزنده و جذابی می‌نویسم که سلامت، عملکرد ورزشی و تندرستی را ترویج می‌کند."
+    }
   ],
-  "default_locale": "en",
-  "still_missing": "hi-res photo, phone, certification issuers/dates, book publisher/year/ISBN, BPH research citation and conference names, honors, projects",
-  "import": "php artisan resume:import hassandoust.ir deploy/sites/hassandoust.ir/resume/resume.json --replace --theme=vitality --locale=en"
- },
- "profile": {
-  "full_name_en": "Sara Hassandoust",
-  "full_name_fa": "سارا حسن‌دوست",
-  "headline_en": "Sports Nutritionist & Sports Physiologist, Co-Founder of NitroHealth",
-  "headline_fa": "متخصص تغذیه ورزشی و فیزیولوژی ورزشی، هم‌بنیان‌گذار نیتروهلث",
-  "location": "تهران، ایران",
-  "location_en": "Tehran, Iran",
-  "career_start_year": 2022,
-  "open_to_work": false,
-  "is_placeholder": false,
-  "avatar_path": "avatar.jpg",
-  "cutout_path": "cutout.png"
- },
- "about": {
-  "is_placeholder": false,
-  "translated_from": "en",
-  "body_en": "I am a passionate and dedicated Sports Nutritionist with a strong background in sports physiology and nutrition. My love for swimming and science has driven my pursuit of knowledge in the field, and I am committed to helping athletes optimize their performance through proper nutrition. I believe in a holistic approach that considers an individual's unique needs, training goals, and performance demands. My research experience includes investigating the effects of aerobic training and saw palmetto supplementation on treating benign prostatic hyperplasia (BPH), and I have presented my research findings at conferences. I translated the book \"Nutrition for Sport, Exercise and Performance\" into Persian, making valuable information accessible to the Persian-speaking audience.",
-  "body_fa": "متخصص تغذیه ورزشی هستم با پیشینه‌ای محکم در فیزیولوژی ورزشی و تغذیه. عشقم به شنا و علم مرا به این رشته کشاند و متعهدم به ورزشکاران کمک کنم با تغذیه درست، بهترین عملکردشان را داشته باشند. به رویکردی جامع باور دارم که نیازهای منحصربه‌فرد هر فرد، اهداف تمرینی و خواسته‌های عملکردی‌اش را در نظر می‌گیرد. در پژوهش‌هایم اثر تمرین هوازی و مکمل نخل اره‌ای (سا پالمتو) را بر درمان بزرگی خوش‌خیم پروستات (BPH) بررسی کرده‌ام و یافته‌هایم را در همایش‌ها ارائه داده‌ام. کتاب «تغذیه برای ورزش، تمرین و عملکرد» را به فارسی ترجمه کرده‌ام تا این دانش ارزشمند در دسترس فارسی‌زبانان باشد.",
-  "highlights_en": [
-   "Cancer",
-   "Metabolism",
-   "Swimming",
-   "Effects of exercise on metabolic health",
-   "Aerobic training & saw palmetto in BPH"
+  "educations": [
+    {
+      "school_en": "Islamic Azad University, Islamshahr Branch",
+      "school": "دانشگاه آزاد اسلامی واحد اسلامشهر",
+      "degree_en": "Master of Science",
+      "degree": "کارشناسی ارشد",
+      "field_en": "Sports Physiology and Nutrition (Nutrition and Exercise Physiology)",
+      "field": "فیزیولوژی ورزشی و تغذیه",
+      "start": {
+        "g": "2021-09",
+        "j": "1400-07"
+      },
+      "end": {
+        "g": "2023-09",
+        "j": "1402-06"
+      },
+      "order": 1,
+      "is_placeholder": false,
+      "description_en": "Department of Physical Education and Sports Sciences",
+      "description_fa": "دانشکده تربیت بدنی و علوم ورزشی"
+    },
+    {
+      "school_en": "Islamic Azad University, Islamshahr Branch",
+      "school": "دانشگاه آزاد اسلامی واحد اسلامشهر",
+      "degree_en": "Bachelor's degree",
+      "degree": "کارشناسی",
+      "field_en": "Physical Education (Health and Physical Education/Fitness)",
+      "field": "تربیت بدنی",
+      "start": {
+        "g": "2017-09",
+        "j": "1396-06"
+      },
+      "end": {
+        "g": "2021-09",
+        "j": "1400-06"
+      },
+      "order": 2,
+      "is_placeholder": false,
+      "description_en": "Department of Physical Education and Sports Sciences",
+      "description_fa": "دانشکده تربیت بدنی و علوم ورزشی"
+    }
   ],
-  "highlights_fa": [
-   "سرطان",
-   "متابولیسم",
-   "شنا",
-   "اثر ورزش بر سلامت متابولیک",
-   "تمرین هوازی و نخل اره‌ای در BPH"
-  ]
- },
- "contacts": [
-  {
-   "type": "email",
-   "value": "hassandoust.ir@gmail.com",
-   "label": "ایمیل",
-   "label_en": "Email",
-   "visibility": "public",
-   "order": 0,
-   "is_placeholder": false,
-   "is_primary": true
-  },
-  {
-   "type": "website",
-   "value": "https://hassandoust.ir",
-   "label": "وب‌سایت",
-   "label_en": "Website",
-   "visibility": "public",
-   "order": 1,
-   "is_placeholder": false,
-   "is_primary": false
-  },
-  {
-   "type": "linkedin",
-   "value": "https://www.linkedin.com/in/sara-hassandoust/",
-   "label": "لینکدین",
-   "label_en": "LinkedIn",
-   "visibility": "public",
-   "order": 2,
-   "is_placeholder": false
-  },
-  {
-   "type": "orcid",
-   "value": "https://orcid.org/0009-0008-0290-0041",
-   "label": "ارکید",
-   "label_en": "ORCID",
-   "visibility": "public",
-   "order": 3,
-   "is_placeholder": false
-  },
-  {
-   "type": "website",
-   "value": "https://nitrohealth.ir",
-   "label": "نیتروهلث",
-   "label_en": "NitroHealth",
-   "visibility": "public",
-   "order": 4,
-   "is_placeholder": false
-  }
- ],
- "experiences": [
-  {
-   "title_en": "Co-Founder, Nutritionist & Writer",
-   "title_fa": "هم‌بنیان‌گذار، متخصص تغذیه و نویسنده",
-   "company": "NitroHealth.ir",
-   "employment_type": "self_employed",
-   "location": "تهران",
-   "location_en": "Tehran, Iran",
-   "start": {
-    "g": "2022",
-    "j": "1401"
-   },
-   "end": null,
-   "is_current": true,
-   "order": 1,
-   "is_placeholder": false,
-   "achievements": [],
-   "skills": [
-    "Entrepreneurship",
-    "Sports Nutrition",
-    "Writing"
-   ],
-   "description_en": "At NitroHealth.ir, a platform in sports nutrition and performance optimization, I serve as a co-founder, nutritionist, and writer. I have been instrumental in establishing and growing the platform, dedicated to providing evidence-based nutrition guidance to athletes and fitness enthusiasts, translating scientific knowledge into practical applications.",
-   "description_fa": "در نیتروهلث، سکویی در حوزه تغذیه ورزشی و بهینه‌سازی عملکرد، هم‌بنیان‌گذار، متخصص تغذیه و نویسنده هستم. در راه‌اندازی و رشد این سکو نقش کلیدی داشته‌ام؛ سکویی که راهنمایی تغذیه‌ای مبتنی بر شواهد را به ورزشکاران و علاقه‌مندان تناسب اندام ارائه می‌دهد و دانش علمی را به کاربرد عملی تبدیل می‌کند."
-  },
-  {
-   "title_en": "Sports Nutritionist",
-   "title_fa": "متخصص تغذیه ورزشی",
-   "company": "NitroHealth",
-   "employment_type": "full_time",
-   "location": "تهران",
-   "location_en": "Tehran, Iran",
-   "start": {
-    "g": "2022-08",
-    "j": "1401-05"
-   },
-   "end": null,
-   "is_current": true,
-   "order": 2,
-   "is_placeholder": false,
-   "achievements": [],
-   "skills": [
-    "Personalized Nutrition Plans",
-    "Nutritional Assessment"
-   ],
-   "description_en": "Optimizing athletic performance through personalized nutrition plans. As a key member of the NitroHealth team, I help athletes reach their highest potential by providing evidence-based nutrition guidance tailored to their specific needs.",
-   "description_fa": "بهینه‌سازی عملکرد ورزشی با برنامه‌های تغذیه شخصی‌سازی‌شده. به‌عنوان عضو کلیدی تیم نیتروهلث، با راهنمایی تغذیه‌ای مبتنی بر شواهد و متناسب با نیاز هر ورزشکار، به او کمک می‌کنم به بالاترین توانش برسد."
-  },
-  {
-   "title_en": "Sports Writer",
-   "title_fa": "نویسنده ورزشی",
-   "company": "NitroHealth",
-   "employment_type": "full_time",
-   "location": "تهران",
-   "location_en": "Tehran, Iran",
-   "start": {
-    "g": "2022",
-    "j": "1401"
-   },
-   "end": null,
-   "is_current": true,
-   "order": 3,
-   "is_placeholder": false,
-   "achievements": [],
-   "skills": [
-    "Sports Writing",
-    "Copywriting"
-   ],
-   "description_en": "Writer specializing in sports, nutrition, and healthy lifestyle content. I create engaging and informative articles, blog posts, and other written materials that promote optimal health, athletic performance, and overall well-being.",
-   "description_fa": "نویسنده محتوای ورزش، تغذیه و سبک زندگی سالم. مقاله‌ها، نوشته‌های وبلاگ و محتوای آموزنده و جذابی می‌نویسم که سلامت، عملکرد ورزشی و تندرستی را ترویج می‌کند."
-  }
- ],
- "educations": [
-  {
-   "school_en": "Islamic Azad University, Islamshahr Branch",
-   "school": "دانشگاه آزاد اسلامی واحد اسلامشهر",
-   "degree_en": "Master of Science",
-   "degree": "کارشناسی ارشد",
-   "field_en": "Sports Physiology and Nutrition (Nutrition and Exercise Physiology)",
-   "field": "فیزیولوژی ورزشی و تغذیه",
-   "start": {
-    "g": "2021-09",
-    "j": "1400-07"
-   },
-   "end": {
-    "g": "2023-09",
-    "j": "1402-06"
-   },
-   "order": 1,
-   "is_placeholder": false,
-   "description_en": "Department of Physical Education and Sports Sciences",
-   "description_fa": "دانشکده تربیت بدنی و علوم ورزشی"
-  },
-  {
-   "school_en": "Islamic Azad University, Islamshahr Branch",
-   "school": "دانشگاه آزاد اسلامی واحد اسلامشهر",
-   "degree_en": "Bachelor's degree",
-   "degree": "کارشناسی",
-   "field_en": "Physical Education (Health and Physical Education/Fitness)",
-   "field": "تربیت بدنی",
-   "start": {
-    "g": "2017-09",
-    "j": "1396-06"
-   },
-   "end": {
-    "g": "2021-09",
-    "j": "1400-06"
-   },
-   "order": 2,
-   "is_placeholder": false,
-   "description_en": "Department of Physical Education and Sports Sciences",
-   "description_fa": "دانشکده تربیت بدنی و علوم ورزشی"
-  }
- ],
- "publications": [
-  {
-   "kind": "book",
-   "title_en": "Nutrition for Sport, Exercise and Performance: A practical guide for students, sports enthusiasts and professionals",
-   "title_fa": "تغذیه برای ورزش، تمرین و عملکرد: راهنمای کاربردی برای دانشجویان، علاقه‌مندان ورزش و متخصصان",
-   "description_en": "Persian translation",
-   "description_fa": "ترجمه فارسی",
-   "order": 1,
-   "is_placeholder": false
-  }
- ],
- "certifications": [
-  {
-   "name_en": "Certified Fitness Nutrition Coach (CFNC)",
-   "name": "مربی تغذیه تناسب اندام (CFNC)",
-   "order": 1,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Expert Nutrition Consulting",
-   "name": "مشاوره تخصصی تغذیه",
-   "order": 2,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Complete Guide to Supplements",
-   "name": "راهنمای جامع مکمل‌ها",
-   "order": 3,
-   "is_placeholder": false
-  }
- ],
- "skills": [
-  {
-   "name_en": "Sports Nutrition",
-   "name_fa": "تغذیه ورزشی",
-   "category": "health",
-   "order": 1,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Sports Physiology",
-   "name_fa": "فیزیولوژی ورزشی",
-   "category": "research",
-   "order": 2,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Personalized Nutrition Plans",
-   "name_fa": "برنامه تغذیه شخصی",
-   "category": "health",
-   "order": 3,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Nutritional Assessment",
-   "name_fa": "ارزیابی تغذیه‌ای",
-   "category": "health",
-   "order": 4,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Exercise Prescription",
-   "name_fa": "نسخه‌نویسی تمرین",
-   "category": "research",
-   "order": 5,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Sports Writing",
-   "name_fa": "نویسندگی ورزشی",
-   "category": "writing",
-   "order": 6,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Copywriting",
-   "name_fa": "کپی‌رایتینگ",
-   "category": "writing",
-   "order": 7,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Press Coverage",
-   "name_fa": "پوشش رسانه‌ای",
-   "category": "writing",
-   "order": 8,
-   "is_placeholder": false
-  },
-  {
-   "name_en": "Translation (EN to FA)",
-   "name_fa": "ترجمه انگلیسی به فارسی",
-   "category": "writing",
-   "order": 9,
-   "is_placeholder": false
-  }
- ],
- "languages": [
-  {
-   "name": "فارسی",
-   "name_en": "Persian",
-   "proficiency": "native",
-   "order": 1,
-   "is_placeholder": false
-  },
-  {
-   "name": "انگلیسی",
-   "name_en": "English",
-   "proficiency": "professional",
-   "order": 2,
-   "is_placeholder": false
-  },
-  {
-   "name": "هلندی",
-   "name_en": "Dutch",
-   "proficiency": "elementary",
-   "order": 3,
-   "is_placeholder": false
-  }
- ],
- "stats": [
-  {
-   "label_en": "Years at NitroHealth",
-   "label_fa": "سال در نیتروهلث",
-   "value": "4+",
-   "is_placeholder": false
-  },
-  {
-   "label_en": "Degrees in sport science",
-   "label_fa": "مدرک علوم ورزشی",
-   "value": "2",
-   "is_placeholder": false
-  },
-  {
-   "label_en": "Certifications",
-   "label_fa": "گواهی‌نامه",
-   "value": "3",
-   "is_placeholder": false
-  },
-  {
-   "label_en": "Languages",
-   "label_fa": "زبان",
-   "value": "3",
-   "is_placeholder": false
-  }
- ],
- "theme": {
-  "key": "vitality",
-  "accent": "#c2577a",
-  "mode": "light",
-  "default_lang": "en",
+  "publications": [
+    {
+      "kind": "book",
+      "title_fa": "تغذیه برای ورزش، تمرین و عملکرد: راهنمای عملی برای دانشجویان، علاقه‌مندان به ورزش و حرفه‌ای‌ها",
+      "title_en": "Nutrition for Sport, Exercise and Performance: A practical guide for students, sports enthusiasts and professionals",
+      "publisher_fa": "انتشارات حتمی",
+      "publisher_en": "Hatmi Publications",
+      "date": {
+        "g": "2024",
+        "j": "1403"
+      },
+      "isbn": "978-600-355-945-5",
+      "co_authors_fa": [
+        "رجینا بلسکی",
+        "آدرین فورسیث",
+        "اوانجلین مانتزیوریس"
+      ],
+      "co_authors_en": [
+        "Regina Belski",
+        "Adrienne Forsyth",
+        "Evangeline Mantzioris"
+      ],
+      "description_fa": "ترجمه فارسی، ۳۱۶ صفحه، چاپ اول ۱۴۰۳",
+      "description_en": "Persian translation · 316 pages · 1st edition (1403 SH)",
+      "url": "https://hatmipg.com/product/nutrition-for-exercise-training-and-performance/",
+      "cover_path": "book-cover.webp",
+      "media_paths": [
+        "book-back.webp"
+      ],
+      "links": [
+        {
+          "label_fa": "خرید از انتشارات حتمی",
+          "label_en": "Buy from Hatmi",
+          "url": "https://hatmipg.com/product/nutrition-for-exercise-training-and-performance/",
+          "kind": "buy"
+        },
+        {
+          "label_fa": "خرید از دیجی‌کالا",
+          "label_en": "Buy on Digikala",
+          "url": "https://www.digikala.com/product/dkp-17247730/",
+          "kind": "buy"
+        },
+        {
+          "label_fa": "نسخه الکترونیک در فیدیبو",
+          "label_en": "Read on Fidibo",
+          "url": "https://fidibo.com/book/194189",
+          "kind": "read"
+        }
+      ],
+      "order": 1,
+      "is_placeholder": false
+    }
+  ],
+  "certifications": [
+    {
+      "name_en": "Certified Fitness Nutrition Coach (CFNC)",
+      "name": "مربی تغذیه تناسب اندام (CFNC)",
+      "order": 1,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Expert Nutrition Consulting",
+      "name": "مشاوره تخصصی تغذیه",
+      "order": 2,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Complete Guide to Supplements (LLP, 10 h)",
+      "name": "راهنمای جامع مکمل‌ها (۱۰ ساعت)",
+      "order": 3,
+      "is_placeholder": false,
+      "issuer_en": "Fitness Academy Europe (FAE)",
+      "issuer": "آکادمی فیتنس اروپا (FAE)",
+      "issue_date": {
+        "g": "2025-05",
+        "j": "1404-03"
+      },
+      "media_paths": [
+        "certs/cert-supplements.webp"
+      ]
+    },
+    {
+      "name_en": "Essentials of Corrective Exercise Training (10 CPD hours)",
+      "name": "اصول تمرینات اصلاحی (۱۰ ساعت CPD)",
+      "issuer_en": "Fitness Academy Europe (FAE)",
+      "issuer": "آکادمی فیتنس اروپا (FAE)",
+      "issue_date": {
+        "g": "2026-07",
+        "j": "1405-04"
+      },
+      "credential_id": "FAE060366",
+      "media_paths": [
+        "certs/cert-corrective-exercise.webp"
+      ],
+      "is_placeholder": false,
+      "order": 4
+    },
+    {
+      "name_en": "Sports Nutrition Workshop",
+      "name": "کارگاه دانش‌افزایی تغذیه ورزشی",
+      "issuer_en": "Iranian Strength & Conditioning Association (NSCA-IRN)",
+      "issuer": "انجمن بدنسازی و تمرینات قدرتی ایران (NSCA-IRN)",
+      "issue_date": {
+        "g": "2024-03",
+        "j": "1402-12"
+      },
+      "credential_id": "1402-1209",
+      "media_paths": [
+        "certs/cert-sports-nutrition-workshop.webp"
+      ],
+      "is_placeholder": false,
+      "order": 5
+    },
+    {
+      "name_en": "Workshop: Designing Sports Nutrition Programs (2 h, online)",
+      "name": "کارگاه طراحی برنامه تغذیه ورزشی (۲ ساعت، آنلاین)",
+      "issuer_en": "Sport Sciences and Health Research Institute",
+      "issuer": "پژوهشکده علوم ورزشی و تندرستی",
+      "issue_date": {
+        "g": "2026-05",
+        "j": "1405-02"
+      },
+      "credential_id": "225/89567",
+      "is_placeholder": false,
+      "order": 6
+    }
+  ],
+  "skills": [
+    {
+      "name_en": "Sports Nutrition",
+      "name_fa": "تغذیه ورزشی",
+      "category": "health",
+      "order": 1,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Sports Physiology",
+      "name_fa": "فیزیولوژی ورزشی",
+      "category": "research",
+      "order": 2,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Personalized Nutrition Plans",
+      "name_fa": "برنامه تغذیه شخصی",
+      "category": "health",
+      "order": 3,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Nutritional Assessment",
+      "name_fa": "ارزیابی تغذیه‌ای",
+      "category": "health",
+      "order": 4,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Exercise Prescription",
+      "name_fa": "نسخه‌نویسی تمرین",
+      "category": "research",
+      "order": 5,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Sports Writing",
+      "name_fa": "نویسندگی ورزشی",
+      "category": "writing",
+      "order": 6,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Copywriting",
+      "name_fa": "کپی‌رایتینگ",
+      "category": "writing",
+      "order": 7,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Press Coverage",
+      "name_fa": "پوشش رسانه‌ای",
+      "category": "writing",
+      "order": 8,
+      "is_placeholder": false
+    },
+    {
+      "name_en": "Translation (EN to FA)",
+      "name_fa": "ترجمه انگلیسی به فارسی",
+      "category": "writing",
+      "order": 9,
+      "is_placeholder": false
+    }
+  ],
   "languages": [
-   "en",
-   "fa"
+    {
+      "name": "فارسی",
+      "name_en": "Persian",
+      "proficiency": "native",
+      "order": 1,
+      "is_placeholder": false
+    },
+    {
+      "name": "انگلیسی",
+      "name_en": "English",
+      "proficiency": "professional",
+      "order": 2,
+      "is_placeholder": false
+    },
+    {
+      "name": "هلندی",
+      "name_en": "Dutch",
+      "proficiency": "elementary",
+      "order": 3,
+      "is_placeholder": false
+    }
   ],
-  "date_calendar": "auto"
- }
+  "stats": [
+    {
+      "label_en": "Years at NitroHealth",
+      "label_fa": "سال در نیتروهلث",
+      "value": "4+",
+      "is_placeholder": false
+    },
+    {
+      "label_en": "Degrees in sport science",
+      "label_fa": "مدرک علوم ورزشی",
+      "value": "2",
+      "is_placeholder": false
+    },
+    {
+      "label_en": "Certifications",
+      "label_fa": "گواهی‌نامه",
+      "value": "3",
+      "is_placeholder": false
+    },
+    {
+      "label_en": "Languages",
+      "label_fa": "زبان",
+      "value": "3",
+      "is_placeholder": false
+    }
+  ],
+  "theme": {
+    "key": "vitality",
+    "accent": "#c2577a",
+    "mode": "light",
+    "default_lang": "en",
+    "languages": [
+      "en",
+      "fa"
+    ],
+    "date_calendar": "auto"
+  }
 }

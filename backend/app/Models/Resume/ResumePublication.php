@@ -9,5 +9,5 @@ class ResumePublication extends ResumeEntity
 
     protected $table = 'resume_publications';
 
-    protected $casts = ['date' => 'array', 'co_authors_fa' => 'array', 'co_authors_en' => 'array', 'cover_media_id' => 'integer', 'is_placeholder' => 'boolean', 'order' => 'integer'];
+    protected $casts = ['date' => 'array', 'co_authors_fa' => 'array', 'co_authors_en' => 'array', 'cover_media_id' => 'integer', 'links' => 'array', 'is_placeholder' => 'boolean', 'order' => 'integer'];
 }
