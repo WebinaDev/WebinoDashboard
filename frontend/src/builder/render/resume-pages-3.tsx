@@ -183,7 +183,7 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
       <a className="skip" href="#about">{L("رفتن به محتوا", "Skip to content")}</a>
       <nav className="top"><a className="brand" href="#top">{h.first}<i>.</i></a>
         <ul>{nav.map(([id, l]) => <li key={id}><a href={`#${id}`}>{l}</a></li>)}</ul><LangLink lang={lang} p={p} /></nav>
-      <div className="gauge" aria-hidden><span>{L("عمق", "Depth")}</span><b>{fmt(0, lang)}</b><i /></div>
+      <div className="gauge" aria-hidden><span>{L("پیشرفت", "Progress")}</span><b>{fmt(0, lang)}</b><i /></div>
 
       <div className="stage" id="top">
         <header className="pin">
@@ -195,8 +195,8 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
             <h1 aria-label={h.name}><span className="l1" aria-hidden><Rise text={h.first} lang={lang} /></span>{h.last ? <em aria-hidden><Rise text={h.last} lang={lang} base={h.first.length} /></em> : null}</h1>
             <p className="lede">{T(h.id, "headline")}</p>
             <div className="cta">
-              {h.primary ? <a className="btn" href="#contact"><span>{L("گفت‌وگو کنیم", "Get in touch")}</span><i aria-hidden>{h.EN ? "→" : "←"}</i></a> : null}
-              <a className="btn ghost" href="#about">{L("شیرجه به داستان", "Dive into the story")}</a>
+              {h.primary ? <a className="btn" href="#contact"><span>{L("تماس", "Contact")}</span><i aria-hidden>{h.EN ? "→" : "←"}</i></a> : null}
+              <a className="btn ghost" href="#about">{L("مشاهده‌ی سوابق", "View profile")}</a>
             </div>
           </div>
           <figure className="portrait">
@@ -207,14 +207,14 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
             {edus[0] ? <figcaption className="chip c2"><b>{T(edus[0], "degree")}</b>{T(edus[0], "field").replace(/\s*\(.*\)/, "")}</figcaption> : null}
           </figure>
           <div className="surface" aria-hidden><Wave cls="w1" /><Wave cls="w2" /></div>
-          <span className="cue" aria-hidden><i />{L("اسکرول کنید", "Scroll to dive")}</span>
+          <span className="cue" aria-hidden><i />{L("ادامه", "Scroll down")}</span>
         </header>
       </div>
 
       {skills.length ? <div className="current" aria-label={L("مهارت‌ها", "Skills")}>{skillRow(false)}{skillRow(true)}</div> : null}
 
       {body ? (
-        <section className="z z1" id="about">{head(L("سطح", "Surface"), L("درباره‌ی ", "About "), h.first)}
+        <section className="z z1" id="about">{head(L("معرفی", "Profile"), L("درباره‌ی ", "About "), h.first)}
           {highlights.length ? (
             <p className="man" data-s>{highlights.map((x, i) => { const w = x.split(" "); return <span className="ln" key={i} style={{ "--k": i } as CSSProperties}>{w.slice(0, -1).join(" ")}{w.length > 1 ? " " : ""}<em>{w[w.length - 1]}</em><i className="sep" aria-hidden>{i < highlights.length - 1 ? "◦" : ""}</i>{" "}</span> })}</p>
           ) : null}
@@ -227,13 +227,13 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
       ) : null}
 
       {exps.length || edus.length ? (
-        <section className="z z2" id="lanes">{head(L("مسیرها", "Lanes"), L("مسیر ", "Career "), L("حرفه‌ای", "lanes"))}
+        <section className="z z2" id="lanes">{head(L("سوابق", "Experience"), L("سوابق ", "Professional "), L("حرفه‌ای", "experience"))}
           <ol className="lanes">{exps.map((x, i) => (
             <li className={`lane${i % 3 === 1 ? " hot" : ""}`} key={x.id} data-s style={{ "--k": i, "--dir": i % 2 ? -1 : 1 } as CSSProperties}>
               <span className="yr" aria-hidden>{yearOf(x)}</span>
               <span className="no">{N(String(i + 1).padStart(2, "0"))}</span>
               <div className="lb"><h3>{T(x, "title")}</h3>
-                <div className="m"><span className="co">{T(x, "company")}</span><span>{range(x)}</span>{x.is_current ? <span className="now">{L("در جریان", "Current")}</span> : null}</div>
+                <div className="m"><span className="co">{T(x, "company")}</span><span>{range(x)}</span>{x.is_current ? <span className="now">{L("فعلی", "Current")}</span> : null}</div>
                 {T(x, "description") ? <p>{T(x, "description")}</p> : null}
                 {(Array.isArray(x.skill_ids) ? (x.skill_ids as number[]) : []).map(h.skillName).filter(Boolean).length ? <div className="tags">{(x.skill_ids as number[]).map(h.skillName).filter(Boolean).map((s) => <em key={s}>{s}</em>)}</div> : null}</div>
               <span className="rope" aria-hidden /><span className="swimmer" aria-hidden />
@@ -244,7 +244,7 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
       ) : null}
 
       {highlights.length || skills.length ? (
-        <section className="z z3" id="focus">{head(L("زیر عدسی", "Under the lens"), L("حوزه‌های ", "Fields of "), L("تمرکز", "focus"))}
+        <section className="z z3" id="focus">{head(L("تخصص", "Expertise"), L("حوزه‌های ", "Areas of "), L("تخصص", "expertise"))}
           {highlights.length ? <div className="cells">{highlights.map((x, i) => (
             <div className="cell" data-s key={x} style={{ "--k": i, "--ox": `${((i * 37) % 60) - 30}px`, "--oy": `${((i * 53) % 80) + 40}px` } as CSSProperties}>
               <span className="orb" aria-hidden><i /><i /><i /></span><Cell i={i} still={still} /><b>{x}</b><small>{N(String(i + 1).padStart(2, "0"))}</small></div>))}</div> : null}
@@ -253,7 +253,7 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
       ) : null}
 
       {pubs.length ? (
-        <section className="z z4" id="library"><Wave cls="edge" />{head(L("کتابخانه", "Library"), L("کتاب‌ها و ", "Books & "), L("ترجمه‌ها", "translations"))}
+        <section className="z z4" id="library"><Wave cls="edge" />{head(L("انتشارات", "Publications"), L("کتاب‌ها و ", "Books & "), L("ترجمه‌ها", "translations"))}
           <div className="books">{pubs.map((b, i) => {
             const cover = h.media(b.cover_media_id)
             const links = (Array.isArray(b.links) ? (b.links as Record<string, unknown>[]) : []).filter((l) => typeof l?.url === "string" && l.url)
@@ -276,7 +276,7 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
       ) : null}
 
       {certs.length || honors.length ? (
-        <section className="z z5" id="cred">{head(L("گواهی‌ها", "Records"), L("مدارک و ", "Credentials & "), L("افتخارات", "honors"))}
+        <section className="z z5" id="cred">{head(L("مدارک", "Credentials"), L("گواهی‌نامه‌ها و ", "Certifications & "), L("افتخارات", "honors"))}
           <div className="certs">{[...certs, ...honors].map((c, i) => {
             const img = (Array.isArray(c.media_ids) ? (c.media_ids as number[]) : []).map(h.media).find(Boolean)
             const sub = [T(c, "issuer"), c.issue_date ? h.DT(c.issue_date) : c.date ? h.DT(c.date) : ""].filter(Boolean).join(" · ")
@@ -293,9 +293,9 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
       <section className="z z6 contact" id="contact">
         <div className="glow" aria-hidden>{Array.from({ length: 22 }).map((_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}</div>
         <div className="jelly" aria-hidden><svg viewBox="0 0 120 160"><path d="M10 60 C10 20 110 20 110 60 C110 70 100 72 90 68 C80 74 70 70 60 74 C50 70 40 74 30 68 C20 72 10 70 10 60Z" /><path className="t" d="M30 70 C26 100 36 120 30 150 M50 72 C46 104 56 124 50 156 M70 72 C74 104 64 124 70 156 M90 70 C94 100 84 120 90 150" /></svg></div>
-        <h2 data-s>{L("از عمق به ", "From the deep, ")}<em>{L("گفت‌وگو", "let's talk")}</em>.</h2>
+        <h2 data-s>{L("راه‌های ", "Contact ")}<em>{L("ارتباط", "information")}</em></h2>
         <div className="cl" data-s>{h.contacts.map((c, i) => { const href = contactHref(String(c.type), String(c.value)); return <a key={c.id} style={{ "--k": i } as CSSProperties} href={href} target={/^(tel|mailto):/.test(href) ? undefined : "_blank"} rel="noopener noreferrer me"><ContactIcon type={String(c.type)} /><span><small>{T(c, "label") || optLabel(String(c.type), lang)}</small><span dir="ltr">{short(c.value)}</span></span><i className="ar" aria-hidden>↗</i></a> })}</div>
-        <footer><span>© {N(new Date().getFullYear())} {h.name}</span><a href="#top">{L("بازگشت به سطح", "Back to the surface")} ↑</a></footer>
+        <footer><span>© {N(new Date().getFullYear())} {h.name}</span><a href="#top">{L("بازگشت به بالا", "Back to top")} ↑</a></footer>
       </section>
     </div>
   )
