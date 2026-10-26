@@ -7163,7 +7163,12 @@
     "transform": "تبدیل (transform)",
     "update_preset": "به‌روزرسانی پیش‌تنظیم از این ویجت",
     "variant_name_prompt": "نام حالت (variant):",
-    "z_index": "لایه (z-index)"
+    "z_index": "لایه (z-index)",
+    "device_preview": "پیش‌نمایش دستگاه",
+    "more": "بیشتر",
+    "edit_selected": "تنظیمات المان",
+    "add_widget": "افزودن ویجت",
+    "no_results": "ویجتی پیدا نشد"
   },
   "theme_builder": {
     "title": "پوسته‌ساز",

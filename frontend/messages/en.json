@@ -7163,7 +7163,12 @@
     "transform": "Transform",
     "update_preset": "Update preset from this widget",
     "variant_name_prompt": "Variant name:",
-    "z_index": "Z-index"
+    "z_index": "Z-index",
+    "device_preview": "Device preview",
+    "more": "More",
+    "edit_selected": "Element settings",
+    "add_widget": "Add widget",
+    "no_results": "No widgets found"
   },
   "theme_builder": {
     "title": "Theme builder",

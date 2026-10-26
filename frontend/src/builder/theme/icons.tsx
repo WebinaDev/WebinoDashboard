@@ -1,3 +1,4 @@
+import { catalogEntry, catalogIcon, WIDGET_CATALOG } from "../widget-catalog"
 import {
   ListFilter,
   ShieldCheck as ShieldIcon,
@@ -102,6 +103,8 @@ export const SETTINGS_SECTION_ICONS = {
 } as const
 
 export function widgetIcon(type: string): LucideIcon {
+  const entry = catalogEntry(type)
+  if (entry.category !== "other" || WIDGET_CATALOG[type]) return catalogIcon(entry.icon)
   return WIDGET_ICONS[type] ?? Blocks
 }
 

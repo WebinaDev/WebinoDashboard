@@ -27,6 +27,16 @@ import {
   ZoomIn,
   Accessibility,
   FileCog,
+  ArrowRight,
+  ChevronDown,
+  Columns3,
+  Eye,
+  MoreVertical,
+  Plus,
+  Rows3,
+  Send,
+  SlidersHorizontal,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -36,7 +46,8 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { asGlobals, COLOR_TOKENS, DEFAULT_GLOBALS, type BuilderGlobals } from "../globals"
-import { createWidget, WIDGET_CATEGORIES, WIDGETS, widgetDef } from "../registry"
+import { createWidget, WIDGETS, widgetDef } from "../registry"
+import { catalogEntry, catalogIcon, WIDGET_CATALOG_CATEGORIES } from "../widget-catalog"
 import { compileDocument } from "../compile"
 import { documentCss, mergeStyle } from "../style"
 import { WidgetGlyph } from "../theme/icons"
@@ -156,6 +167,20 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [saving, setSaving] = useState(false)
   const [globals, setGlobals] = useState<BuilderGlobals>(DEFAULT_GLOBALS)
   const [widgetQuery, setWidgetQuery] = useState("")
+  const [showMore, setShowMore] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const toggleCategory = useCallback((id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+  useEffect(() => {
+    if (selectedId && typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) setDrawerOpen(true)
+  }, [selectedId])
   const [chromeId, setChromeId] = useState<number | null>(null)
   const [showRevisions, setShowRevisions] = useState(false)
   const [showPageSettings, setShowPageSettings] = useState(false)
@@ -788,6 +813,12 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             ? `/dashboard/magazine/posts/${mode.id}`
             : "/dashboard/builder"
   const needle = widgetQuery.trim()
+  const inspecting = selection !== null
+  const selectionLabel = !selection ? "" : selection.kind === "widget" ? widgetDef(selection.widget.type)?.label ?? selection.widget.type : selection.kind === "section" ? t("section") : t("column")
+  const groupedWidgets = WIDGET_CATALOG_CATEGORIES.map((category) => ({
+    category,
+    items: WIDGETS.filter((widget) => catalogEntry(widget.type).category === category.id && (!needle || widget.label.includes(needle) || widget.type.includes(needle.toLowerCase()))),
+  })).filter((group) => group.items.length > 0)
 
   if (loading) {
     return <div className="grid h-svh max-h-full min-h-0 place-items-center text-sm text-[#0C2D63]">{t("loading")}</div>
@@ -795,32 +826,58 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
 
   return (
     <DesignProvider value={designApi}>
-    <div className="flex h-svh max-h-full min-h-0 flex-col bg-[#101820] text-[#0C2D63]">
-      <header className="flex h-14 items-center gap-2 border-b border-white/10 px-3 text-white">
-        <Link href={backHref} className="rounded-md px-2 py-1 text-xs text-white/70 hover:bg-white/10">{t("back")}</Link>
-        <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-8 w-44 rounded-md bg-white/10 px-2 text-sm outline-none" aria-label={t("title")} />
-        {mode.kind === "page" ? (
-          <input value={slug} onChange={(event) => setSlug(event.target.value)} className="h-8 w-32 rounded-md bg-white/10 px-2 text-xs outline-none" aria-label={t("slug")} />
-        ) : null}
-        <div className="mx-auto flex items-center gap-1 rounded-full bg-white/5 p-1">
+    <div className="flex h-svh max-h-full min-h-0 flex-col bg-background text-foreground">
+      <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 text-foreground sm:gap-2 sm:px-3">
+        <Link href={backHref} aria-label={t("back")} title={t("back")} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted"><ArrowRight className="size-4" aria-hidden /></Link>
+        <input value={title} onChange={(event) => setTitle(event.target.value)} className="hidden h-9 w-40 min-w-0 rounded-lg border border-border bg-background px-2 text-sm outline-none focus:border-primary md:block" aria-label={t("title")} />
+        <span className="hidden text-[11px] text-muted-foreground lg:inline" aria-live="polite">{saving ? t("saving") : dirty ? t("unsaved") : t("all_saved")}</span>
+        <div className="mx-auto flex items-center gap-0.5 rounded-xl bg-muted p-1" role="group" aria-label={t("device_preview")}>
           <IconButton label={t("desktop")} active={device === "desktop"} onClick={() => setDevice("desktop")}><Monitor className="size-4" /></IconButton>
           <IconButton label={t("tablet")} active={device === "tablet"} onClick={() => setDevice("tablet")}><Tablet className="size-4" /></IconButton>
           <IconButton label={t("mobile")} active={device === "mobile"} onClick={() => setDevice("mobile")}><Smartphone className="size-4" /></IconButton>
         </div>
-        <IconButton label={t("undo")} onClick={undo}><Undo2 className="size-4" /></IconButton>
-        <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
-        <Link href="/dashboard/builder/settings" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10">
-          <Settings2 className="size-3.5" aria-hidden />
-          {t("globals")}
-        </Link>
-        <label className="flex items-center gap-1 text-[11px] text-white/70" title={t("zoom")}>
-          <ZoomIn className="size-3.5" aria-hidden />
-          <select aria-label={t("zoom")} className="rounded bg-transparent text-white" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
-            {[50, 75, 90, 100, 125].map((value) => <option key={value} value={value} className="text-black">{value}٪</option>)}
-          </select>
-        </label>
-        <IconButton label={t("export_json")} onClick={exportJson}><Download className="size-4" /></IconButton>
-        <IconButton label={t("import_json")} onClick={() => importRef.current?.click()}><Upload className="size-4" /></IconButton>
+        <div className="flex items-center gap-0.5">
+          <IconButton label={t("undo")} onClick={undo}><Undo2 className="size-4" /></IconButton>
+          <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
+        </div>
+        <a href={preview} target="_blank" rel="noreferrer" aria-label={t("preview")} title={t("preview")} className="hidden size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted sm:grid"><Eye className="size-4" aria-hidden /></a>
+        <div className="relative">
+          <IconButton label={t("more")} active={showMore} onClick={() => setShowMore((v) => !v)}><MoreVertical className="size-4" /></IconButton>
+          {showMore ? (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} aria-hidden />
+              <div role="menu" className="absolute end-0 top-11 z-50 grid w-64 gap-0.5 rounded-xl border border-border bg-popover p-1.5 text-sm text-popover-foreground shadow-xl" onClick={() => setShowMore(false)}>
+                <div className="grid gap-1.5 p-1.5 md:hidden" onClick={(event) => event.stopPropagation()}>
+                  <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-9 rounded-lg border border-border bg-background px-2 text-sm outline-none" aria-label={t("title")} placeholder={t("title")} />
+                </div>
+                {mode.kind === "page" ? (
+                  <div className="grid gap-1 p-1.5" onClick={(event) => event.stopPropagation()}>
+                    <span className="text-[11px] text-muted-foreground">{t("slug")}</span>
+                    <input value={slug} onChange={(event) => setSlug(event.target.value)} dir="ltr" className="h-9 rounded-lg border border-border bg-background px-2 text-xs outline-none" aria-label={t("slug")} />
+                  </div>
+                ) : null}
+                <a href={preview} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted sm:hidden"><Eye className="size-4" aria-hidden />{t("preview")}</a>
+                <MoreItem icon={Search} label={t("finder")} onClick={() => setShowFinder(true)} />
+                {mode.kind === "page" && pageId ? <MoreItem icon={FileCog} label={t("page_settings")} onClick={() => setShowPageSettings(true)} /> : null}
+                {revisionTarget ? <MoreItem icon={History} label={t("revisions")} onClick={() => setShowRevisions(true)} /> : null}
+                <Link href="/dashboard/builder/settings" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
+                <MoreItem icon={LayoutTemplate} label={t("save_page_template")} onClick={() => void saveToLibrary(null)} />
+                <MoreItem icon={Accessibility} label={t("a11y_audit")} onClick={() => setShowA11y(true)} />
+                <div className="my-1 h-px bg-border" />
+                <label className="flex items-center gap-2 rounded-lg px-2 py-1.5" onClick={(event) => event.stopPropagation()}>
+                  <ZoomIn className="size-4" aria-hidden />
+                  <span className="flex-1">{t("zoom")}</span>
+                  <select aria-label={t("zoom")} className="rounded-md border border-border bg-background px-1 py-0.5 text-xs" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
+                    {[50, 75, 90, 100, 125].map((value) => <option key={value} value={value}>{value}٪</option>)}
+                  </select>
+                </label>
+                <MoreItem icon={Download} label={t("export_json")} onClick={exportJson} />
+                <MoreItem icon={Upload} label={t("import_json")} onClick={() => importRef.current?.click()} />
+                <MoreItem icon={Keyboard} label={t("shortcuts")} onClick={() => setShowHelp(true)} />
+              </div>
+            </>
+          ) : null}
+        </div>
         <input
           ref={importRef}
           type="file"
@@ -832,20 +889,11 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             if (file) void importJson(file)
           }}
         />
-        <IconButton label={t("save_page_template")} onClick={() => void saveToLibrary(null)}><LayoutTemplate className="size-4" /></IconButton>
-        <IconButton label={t("shortcuts")} onClick={() => setShowHelp(true)}><Keyboard className="size-4" /></IconButton>
-        <IconButton label={t("finder")} onClick={() => setShowFinder(true)}><Search className="size-4" /></IconButton>
-        <IconButton label={t("a11y_audit")} onClick={() => setShowA11y(true)}><Accessibility className="size-4" /></IconButton>
-        {mode.kind === "page" && pageId ? (
-          <IconButton label={t("page_settings")} onClick={() => setShowPageSettings(true)}><FileCog className="size-4" /></IconButton>
-        ) : null}
-        {revisionTarget ? (
-          <IconButton label={t("revisions")} onClick={() => setShowRevisions(true)}><History className="size-4" /></IconButton>
-        ) : null}
-        <span className="text-[11px] text-white/60" aria-live="polite">{saving ? t("saving") : dirty ? t("unsaved") : t("all_saved")}</span>
-        <a href={preview} target="_blank" rel="noreferrer" className="text-xs text-white/80">{t("preview")}</a>
-        <Button type="button" size="sm" variant="outline" className="border-white/20 bg-transparent text-white" disabled={saving} onClick={() => void save(false)}>{t("save")}</Button>
-        <Button type="button" size="sm" className="bg-[#E16BA6] text-white hover:bg-[#d45b98]" disabled={saving} onClick={() => void save(true)}>{t("publish")}</Button>
+        <Button type="button" size="sm" variant="outline" className="hidden sm:inline-flex" disabled={saving} onClick={() => void save(false)}>{t("save")}</Button>
+        <Button type="button" size="sm" disabled={saving} onClick={() => void save(true)} aria-label={t("publish")}>
+          <Send className="size-4 sm:hidden" aria-hidden />
+          <span className="hidden sm:inline">{t("publish")}</span>
+        </Button>
       </header>
       {showRevisions && revisionTarget ? (
         <RevisionsPanel
@@ -894,115 +942,49 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           }}
         />
       ) : null}
-      <div className="flex min-h-0 flex-1">
-        <aside className="flex w-72 shrink-0 flex-col border-e border-[#e6eef6] bg-[#f7f9fc]">
-          <div className="flex border-b border-[#e6eef6] text-xs font-semibold">
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "widgets" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("widgets")}>
-              <Blocks className="size-3.5" aria-hidden />
-              {t("widgets")}
-            </button>
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "navigator" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("navigator")}>
-              <ListTree className="size-3.5" aria-hidden />
-              {t("navigator")}
-            </button>
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "library" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("library")}>
-              <LayoutTemplate className="size-3.5" aria-hidden />
-              {t("library")}
-            </button>
-          </div>
-          {panel === "widgets" ? (
-            <div className="min-h-0 flex-1 overflow-auto p-3">
-              <label className="mb-3 flex items-center gap-2 rounded-xl border border-[#e6eef6] bg-white px-2">
-                <Search className="size-3.5 text-[#0C2D63]/40" aria-hidden />
-                <input value={widgetQuery} onChange={(event) => setWidgetQuery(event.target.value)} placeholder={t("widget_search")} aria-label={t("widget_search")} className="h-9 w-full bg-transparent text-xs outline-none" />
-              </label>
-              <Button type="button" variant="outline" className="mb-3 w-full" onClick={() => { commit(addSection(doc)) }}>{t("add_section")}</Button>
-              {globals.components.length ? (
-                <div className="mb-4">
-                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-[#0C2D63]/60"><Blocks className="size-3" aria-hidden />{t("components")}</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {globals.components.filter((c) => !needle || c.name.includes(needle)).map((c) => (
-                      <button key={c.id} type="button" className="rounded-xl border border-[#e6eef6] bg-white px-2 py-3 text-xs hover:border-[#E16BA6]" onClick={() => insertComponent(c.id)}>{c.name}</button>
-                    ))}
-                  </div>
+      <div className="relative flex min-h-0 flex-1">
+        {drawerOpen ? <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setDrawerOpen(false)} aria-hidden /> : null}
+        <aside
+          aria-label={inspecting ? t("settings") : t("widgets")}
+          className={`z-40 flex flex-col border-border bg-background text-foreground shadow-2xl transition-transform duration-300 lg:static lg:w-80 lg:shrink-0 lg:translate-x-0 lg:translate-y-0 lg:border-e lg:shadow-none max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:h-[72svh] max-md:rounded-t-2xl max-md:border-t md:max-lg:fixed md:max-lg:inset-y-0 md:max-lg:start-0 md:max-lg:top-14 md:max-lg:w-96 md:max-lg:border-e ${drawerOpen ? "" : "max-md:translate-y-full md:max-lg:hidden"}`}
+        >
+          <div className="flex justify-center pt-2 md:hidden" aria-hidden><span className="h-1 w-10 rounded-full bg-border" /></div>
+          {inspecting && selection ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="flex items-center gap-2 border-b border-border px-2 py-2">
+                <button type="button" onClick={() => setSelectedId(null)} className="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-primary hover:bg-primary/10">
+                  <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
+                  {t("widgets")}
+                </button>
+                <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-bold">
+                  <span className="truncate">{selectionLabel}</span>
+                  {selection.kind === "widget" ? <WidgetGlyph type={selection.widget.type} className="size-4 shrink-0 text-primary" /> : selection.kind === "section" ? <Rows3 className="size-4 shrink-0 text-primary" aria-hidden /> : <Columns3 className="size-4 shrink-0 text-primary" aria-hidden />}
                 </div>
-              ) : null}
-              {WIDGET_CATEGORIES.map((category) => {
-                const items = WIDGETS.filter((widget) => widget.category === category.id && (!needle || widget.label.includes(needle)))
-                if (!items.length) return null
-                return (
-                  <div key={category.id} className="mb-4">
-                    <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-[#0C2D63]/60">
-                      <Blocks className="size-3" aria-hidden />
-                      {category.label}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {items.map((widget) => (
-                        <button
-                          key={widget.type}
-                          type="button"
-                          draggable
-                          onDragStart={(event) => {
-                            event.dataTransfer.setData(DND_WIDGET, widget.type)
-                            event.dataTransfer.effectAllowed = "copy"
-                          }}
-                          onClick={() => insertFromPalette(widget.type)}
-                          className="flex flex-col items-center gap-1.5 rounded-xl border border-[#e6eef6] bg-white px-2 py-3 text-xs font-semibold hover:border-[#E16BA6]"
-                        >
-                          <WidgetGlyph type={widget.type} />
-                          <span>{widget.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            panel === "navigator" ? (
-              <Navigator doc={doc} selectedId={selectedId} onSelect={setSelectedId} commit={commit} onContextMenu={(id, x, y) => { setSelectedId(id); setMenu({ id, x, y }) }} />
-            ) : (
-              <LibraryPanel refreshKey={libraryKey} onInsert={insertLibrary} />
-            )
-          )}
-        </aside>
-        <main className="min-w-0 flex-1 overflow-auto bg-[#d7e0ea] p-6" onClick={() => setSelectedId(null)}>
-          <div className="mx-auto min-h-full overflow-hidden rounded-2xl bg-[#f5f8fb] shadow-xl" style={{ width: DEVICE_WIDTH[device], zoom: zoom / 100 }}>
-            {doc.sections.length === 0 ? (
-              <div className="grid min-h-80 place-items-center gap-2 text-sm">
-                <Blocks className="size-5 text-[#0C2D63]/30" aria-hidden />
-                {t("empty")}
+                <button type="button" aria-label={t("close")} onClick={() => setDrawerOpen(false)} className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden"><X className="size-4" aria-hidden /></button>
               </div>
-            ) : (
-              <Suspense fallback={null}>
-                <DocumentView document={doc} mode="edit" device={device} editor={editor} globals={globals} runtime={{ siteName: title || "ویبینو" }} />
-              </Suspense>
-            )}
-          </div>
-        </main>
-        <aside className="w-80 shrink-0 overflow-auto border-s border-[#e6eef6] bg-white p-3">
-          <div className="mb-3 flex gap-1 rounded-xl bg-[#f7f9fc] p-1 text-xs font-semibold">
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "content" ? "bg-white text-[#E16BA6] shadow-sm" : ""}`} onClick={() => setTab("content")}>
+              <div className="min-h-0 flex-1 overflow-auto overscroll-contain p-3">
+          <div className="mb-3 flex gap-1 rounded-xl bg-muted p-1 text-xs font-semibold">
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "content" ? "bg-background text-primary shadow-sm" : ""}`} onClick={() => setTab("content")}>
               <Type className="size-3.5" aria-hidden />
               {t("content")}
             </button>
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "style" ? "bg-white text-[#E16BA6] shadow-sm" : ""}`} onClick={() => setTab("style")}>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "style" ? "bg-background text-primary shadow-sm" : ""}`} onClick={() => setTab("style")}>
               <Paintbrush className="size-3.5" aria-hidden />
               {t("style")}
             </button>
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "advanced" ? "bg-white text-[#E16BA6] shadow-sm" : ""}`} onClick={() => setTab("advanced")}>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "advanced" ? "bg-background text-primary shadow-sm" : ""}`} onClick={() => setTab("advanced")}>
               <Settings2 className="size-3.5" aria-hidden />
               {t("advanced")}
             </button>
           </div>
           {!selection ? (
-            <div className="grid place-items-center gap-2 py-8 text-center text-sm text-[#0C2D63]/60">
+            <div className="grid place-items-center gap-2 py-8 text-center text-sm text-muted-foreground">
               <MousePointerClick className="size-5" aria-hidden />
               {t("no_selection")}
             </div>
           ) : null}
           {selection && isLocked(doc, selection.id) ? (
-            <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-[#e6eef6] bg-[#f7f9fc] p-2 text-[11px]">
+            <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-border bg-muted p-2 text-[11px]">
               <Lock className="size-3.5" aria-hidden />
               {t("node_locked")}
             </div>
@@ -1101,10 +1083,6 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           ) : null}
           {selection?.kind === "widget" ? (
             <div className="grid gap-3">
-              <div className="flex items-center gap-2 text-sm font-bold">
-                <WidgetGlyph type={selection.widget.type} />
-                {widgetDef(selection.widget.type)?.label ?? selection.widget.type}
-              </div>
               {tab === "content" && selection.widget.type === "form" ? (
                 <FormActionsPanel formKey={propStr(selection.widget.props, "formKey", "") || propStr(selection.widget.props, "title", "contact") || "contact"} />
               ) : null}
@@ -1149,17 +1127,133 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
               </div>
             </div>
           ) : null}
-          <p className="mt-6 text-[10px] text-[#0C2D63]/40">{documentCss(doc).length ? t("style_ready") : ""}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+          <div className="flex items-center border-b border-border text-xs font-semibold">
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-3 ${panel === "widgets" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`} onClick={() => setPanel("widgets")}>
+              <Blocks className="size-4" aria-hidden />
+              {t("widgets")}
+            </button>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-3 ${panel === "navigator" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`} onClick={() => setPanel("navigator")}>
+              <ListTree className="size-4" aria-hidden />
+              {t("navigator")}
+            </button>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-3 ${panel === "library" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`} onClick={() => setPanel("library")}>
+              <LayoutTemplate className="size-4" aria-hidden />
+              {t("library")}
+            </button>
+            <button type="button" aria-label={t("close")} onClick={() => setDrawerOpen(false)} className="grid size-9 place-items-center text-muted-foreground lg:hidden"><X className="size-4" aria-hidden /></button>
+          </div>
+          {panel === "widgets" ? (
+            <div className="min-h-0 flex-1 overflow-auto overscroll-contain p-3">
+              <label className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-border bg-background px-2 shadow-sm">
+                <Search className="size-4 text-muted-foreground" aria-hidden />
+                <input value={widgetQuery} onChange={(event) => setWidgetQuery(event.target.value)} placeholder={t("widget_search")} aria-label={t("widget_search")} className="h-10 w-full bg-transparent text-sm outline-none" />
+              </label>
+              <Button type="button" variant="outline" className="mb-3 w-full" onClick={() => { commit(addSection(doc)) }}>{t("add_section")}</Button>
+              {globals.components.length ? (
+                <div className="mb-4">
+                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground"><Blocks className="size-3" aria-hidden />{t("components")}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {globals.components.filter((c) => !needle || c.name.includes(needle)).map((c) => (
+                      <button key={c.id} type="button" className="rounded-xl border border-border bg-card px-2 py-3 text-xs hover:border-primary" onClick={() => insertComponent(c.id)}>{c.name}</button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {groupedWidgets.map(({ category, items }) => {
+                const open = needle.length > 0 || !collapsed.has(category.id)
+                const CatIcon = catalogIcon(category.icon)
+                return (
+                  <section key={category.id} className="mb-2 rounded-xl border border-border bg-card">
+                    <button type="button" aria-expanded={open} onClick={() => toggleCategory(category.id)} className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold text-foreground">
+                      <CatIcon className="size-4 text-primary" aria-hidden />
+                      <span className="flex-1 text-start">{category.label}</span>
+                      <span className="rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground">{items.length.toLocaleString("fa-IR")}</span>
+                      <ChevronDown className={`size-4 text-muted-foreground transition-transform ${open ? "" : "rotate-90"}`} aria-hidden />
+                    </button>
+                    {open ? (
+                      <div className="grid grid-cols-3 gap-1.5 px-2 pb-2">
+                        {items.map((widget) => (
+                          <button
+                            key={widget.type}
+                            type="button"
+                            draggable
+                            title={widget.label}
+                            onDragStart={(event) => {
+                              event.dataTransfer.setData(DND_WIDGET, widget.type)
+                              event.dataTransfer.effectAllowed = "copy"
+                            }}
+                            onClick={() => insertFromPalette(widget.type)}
+                            className="flex min-h-[76px] touch-manipulation flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent bg-muted/50 px-1 py-2 text-center text-[11px] font-medium leading-4 text-foreground transition hover:border-primary hover:bg-primary/5 active:scale-95"
+                          >
+                            <WidgetGlyph type={widget.type} className="size-5 text-primary" />
+                            <span className="line-clamp-2">{shortLabel(widget.label)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </section>
+                )
+              })}
+              {groupedWidgets.length === 0 ? <p className="py-6 text-center text-xs text-muted-foreground">{t("no_results")}</p> : null}
+            </div>
+          ) : (
+            panel === "navigator" ? (
+              <Navigator doc={doc} selectedId={selectedId} onSelect={setSelectedId} commit={commit} onContextMenu={(id, x, y) => { setSelectedId(id); setMenu({ id, x, y }) }} />
+            ) : (
+              <LibraryPanel refreshKey={libraryKey} onInsert={insertLibrary} />
+            )
+          )}
+            </>
+          )}
         </aside>
+        <main className="min-w-0 flex-1 overflow-auto bg-muted/60 p-2 pb-20 sm:p-4 lg:p-6 lg:pb-6" onClick={() => setSelectedId(null)}>
+          <div className="mx-auto min-h-full max-w-full overflow-hidden rounded-2xl bg-background shadow-xl ring-1 ring-border transition-[width] duration-300" style={{ width: DEVICE_WIDTH[device], zoom: zoom / 100 }}>
+            {doc.sections.length === 0 ? (
+              <div className="grid min-h-80 place-items-center gap-2 text-sm">
+                <Blocks className="size-5 text-[#0C2D63]/30" aria-hidden />
+                {t("empty")}
+              </div>
+            ) : (
+              <Suspense fallback={null}>
+                <DocumentView document={doc} mode="edit" device={device} editor={editor} globals={globals} runtime={{ siteName: title || "ویبینو" }} />
+              </Suspense>
+            )}
+          </div>
+        </main>
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className={`fixed bottom-4 start-1/2 z-20 inline-flex h-12 -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-lg rtl:translate-x-1/2 lg:hidden ${drawerOpen ? "hidden" : ""}`}
+        >
+          {selection ? <SlidersHorizontal className="size-4" aria-hidden /> : <Plus className="size-4" aria-hidden />}
+          {selection ? t("edit_selected") : t("add_widget")}
+        </button>
       </div>
     </div>
     </DesignProvider>
   )
 }
 
+function shortLabel(label: string): string {
+  return label.replace(/\s*\(.*\)\s*$/, "")
+}
+
+function MoreItem({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
+  return (
+    <button type="button" role="menuitem" onClick={onClick} className="flex items-center gap-2 rounded-lg px-2 py-2 text-start hover:bg-muted">
+      <Icon className="size-4 text-muted-foreground" aria-hidden />
+      {label}
+    </button>
+  )
+}
+
 function IconButton({ children, label, onClick, active }: { children: React.ReactNode; label: string; onClick: () => void; active?: boolean }) {
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className={`grid size-8 place-items-center rounded-full ${active ? "bg-white text-[#0C2D63]" : "text-white hover:bg-white/10"}`}>
+    <button type="button" aria-label={label} title={label} aria-pressed={active} onClick={onClick} className={`grid size-9 place-items-center rounded-lg ${active ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
       {children}
     </button>
   )
