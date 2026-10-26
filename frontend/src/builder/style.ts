@@ -98,6 +98,9 @@ export function styleToCss(style: StyleProps): CSSProperties {
     WebkitBackdropFilter: safeLong(style.backdropFilter),
     mixBlendMode: style.mixBlendMode && style.mixBlendMode !== "normal" ? style.mixBlendMode : undefined,
     clipPath: safeLong(style.clipPath),
+    // Inner card gap/radius for composite widgets (poetry grids, cards) inherit the common Style values.
+    ...(safeValue(style.gap) ? { ["--wb-gap" as string]: safeValue(style.gap) } : {}),
+    ...(safeValue(style.radius) ? { ["--wb-radius" as string]: safeValue(style.radius) } : {}),
     aspectRatio: /^\d+(\.\d+)?\s*(\/\s*\d+(\.\d+)?)?$/.test(style.aspectRatio ?? "") ? style.aspectRatio : undefined,
     objectFit: style.objectFit,
     objectPosition: safeValue(style.objectPosition),

@@ -514,9 +514,11 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
     </section>
   )
   const top = items.slice(0, propNum(p, "topCount", 4))
+  const grid3 = propStr(p, "mediaLayout", "auto") === "grid3"
+  const playInline = (it: MediaItem) => { if (it.src && typeof window !== "undefined") window.open(it.src, "_blank", "noopener") }
   return (
     <section className={`akx akx-media ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
-      <div className="akx-bigp">
+      {grid3 ? null : <div className="akx-bigp">
         {top.length ? (
           <div className="akx-box akx-toplist">
             <h4>{propStr(p, "topTitle", "پرشنونده‌ترین‌ها")}</h4>
@@ -538,13 +540,13 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
             </button>
           ) : null}
         </div>
-      </div>
+      </div>}
       <div className="akx-pills">
         {filters.map((c) => <button type="button" key={c} className={chip === c ? "is-on" : ""} onClick={() => { setChip(c); setPage(1) }}>{c}</button>)}
       </div>
-      <div className="akx-grid4">
+      <div className={grid3 ? "akx-grid3 akx-media-grid3" : "akx-grid4"}>
         {pageItems.map((it, i) => (
-          <button type="button" key={i} className="akx-mc" onClick={() => pick(it)}>
+          <button type="button" key={i} className="akx-mc" onClick={() => (grid3 ? playInline(it) : pick(it))}>
             <div className="akx-mc-img">
               <PhotoSlot mode={it.cover ? "photo" : cm} src={it.cover} logo={propStr(p, "logo")} alt={it.title} />
               <span className="akx-badge">{kindLabel(it.kind)}</span>

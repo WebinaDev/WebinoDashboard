@@ -60,6 +60,8 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "switch", key: "sliderDots", label: "نقطه‌های اسلایدر" },
       { kind: "switch", key: "sliderArrows", label: "فلش‌های اسلایدر" },
       { kind: "number", key: "sliderHeight", label: "ارتفاع اسلایدر در دسکتاپ (px)", min: 280, max: 900 },
+      { kind: "number", key: "sliderHeightMobile", label: "ارتفاع اسلایدر در موبایل (px، ۰ یعنی خودکار)", min: 0, max: 900 },
+      { kind: "number", key: "heroHeightMobile", label: "ارتفاع هیرو در موبایل (px، ۰ یعنی خودکار)", min: 0, max: 900 },
       { kind: "media", key: "decorLeft", label: "تصویر تزئینی چپ (مثلاً محراب گل‌دار)", accept: "image" },
       { kind: "select", key: "decorLeftFrame", label: "قاب تصویر چپ", options: DECOR_FRAMES },
       { kind: "media", key: "decorRight", label: "تصویر تزئینی راست (مثلاً حرم)", accept: "image" },

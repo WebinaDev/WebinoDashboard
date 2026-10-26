@@ -79,9 +79,18 @@ html:has(.wpz-bleed) body { overflow-x: clip; }
 @media (max-width: 768px) { .wpz-hero { overflow: hidden; } .wpz-hero-media, .wpz-hero-media .wpz-img { max-width: 100%; width: 100%; } .wpz-couplet { max-width: 100%; } }
 
 /* simple 3 columns (media-cards mediaLayout=grid3, shop-showcase layout=grid3) */
-.wpz-grid.wpz-grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 760px) { .wpz-grid.wpz-grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 420px) { .wpz-grid.wpz-grid3:not(.wpz-shop-grid) { grid-template-columns: minmax(0, 1fr); } }
+/* grid3: a real 3 column grid everywhere (also inside desktop width rows), 1 column on phones. */
+.wpz .wpz-grid.wpz-grid3, .wb-dw-row .wb-dw-item .wpz .wpz-grid.wpz-grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.wpz-grid.wpz-grid3 > * { grid-column: auto !important; grid-row: auto !important; min-width: 0; }
+@media (max-width: 760px) { .wpz .wpz-grid.wpz-grid3.wpz-shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } .wpz .wpz-grid.wpz-grid3:not(.wpz-shop-grid), .wb-dw-row .wb-dw-item .wpz .wpz-grid.wpz-grid3:not(.wpz-shop-grid) { grid-template-columns: minmax(0, 1fr) !important; } }
+/* common Style gap/radius cascade into cards */
+.wpz { --wpz-radius: var(--wb-radius, 18px); }
+.wpz :is(.wpz-grid, .wpz-occ-grid, .wpz-poems) { gap: var(--wb-gap, 20px); }
+/* poetry-hero mobile heights */
+@media (max-width: 760px) {
+  .wpz-hs[style*="--wpz-hs-hm"] .wpz-hs-slide { min-height: var(--wpz-hs-hm); }
+  .wpz-hero[style*="--wpz-hero-hm"], .wpz-hero-full[style*="--wpz-hero-hm"] { min-height: var(--wpz-hero-hm); }
+}
 
 /* poet-about compact: narrow text + side quote */
 .wpz-about.wpz-about-compact { grid-template-columns: minmax(120px, 200px) minmax(0, 1fr) minmax(0, .9fr); gap: 20px; }

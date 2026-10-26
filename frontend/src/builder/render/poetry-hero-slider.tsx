@@ -48,8 +48,9 @@ export function HeroSlider({ p, slides, eyebrow }: { p: P; slides: HeroSlide[]; 
     return () => window.clearInterval(t)
   }, [auto, hold, idx, interval, go])
   const h = Math.max(280, Math.min(900, propNum(p, "sliderHeight", 520)))
+  const hm = propNum(p, "sliderHeightMobile", 0)
   return (
-    <div className="wpz-hs" style={{ ["--wpz-hs-h" as string]: `${h}px` } as CSSProperties} role="region" aria-roledescription="carousel" aria-label={propStr(p, "title") || "اسلایدر"}
+    <div className="wpz-hs" style={{ ["--wpz-hs-h" as string]: `${h}px`, ...(hm > 0 ? { ["--wpz-hs-hm" as string]: `${Math.max(160, Math.min(900, hm))}px` } : {}) } as CSSProperties} role="region" aria-roledescription="carousel" aria-label={propStr(p, "title") || "اسلایدر"}
       onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocus={() => setHold(true)} onBlur={() => setHold(false)}>
       <div className="wpz-hs-track" ref={track}>
         {slides.map((s, i) => (

@@ -107,6 +107,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
   {
     type: "media-archive", label: "صوت و ویدیو (ویژه + پرشنونده + شبکه)", category: "content",
     fields: [
+      { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "ویژه و پرشنونده و شبکه (پیش‌فرض)" }, { value: "grid3", label: "شبکه ساده سه‌ستونی" }] },
       { kind: "repeater", key: "items", label: "اجراها", fields: [
         { key: "title", label: "عنوان", kind: "text" }, { key: "cover", label: "کاور", kind: "media" },
         { key: "kind", label: "نوع", kind: "select", options: [{ value: "audio", label: "صوت" }, { value: "video", label: "ویدیو" }] },

@@ -63,6 +63,8 @@ export function sectionBg(p: Record<string, unknown>): CSSProperties {
   const ov = propStr(p, "bgOverlay")
   const op = Math.max(0, Math.min(100, propNum(p, "bgOverlayOpacity", 70)))
   const v: Record<string, string> = {}
+  const hm = propNum(p, "heroHeightMobile", 0)
+  if (hm > 0) v["--wpz-hero-hm"] = `${Math.max(160, Math.min(900, hm))}px`
   if (img && /^(https?:\/\/|\/)/.test(img)) v["--wpz-bg-img"] = `url("${img}")`
   if (ov && CSS_SAFE.test(ov)) v["--wpz-ov"] = ov
   v["--wpz-ov-op"] = String(op / 100)

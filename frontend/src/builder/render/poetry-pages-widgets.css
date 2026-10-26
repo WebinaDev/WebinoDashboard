@@ -324,3 +324,8 @@
   .akx-tabbar a.is-on { color: var(--akx-cr, #76192c); font-weight: 700; }
   body:has(.akx-tabbar) { padding-bottom: 64px; }
 }
+
+/* media-archive mediaLayout=grid3: real 3 columns, 1 on phones; common Style gap cascades */
+.akx .akx-grid3.akx-media-grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: var(--wb-gap, 16px); }
+@media (max-width: 760px) { .akx .akx-grid3.akx-media-grid3 { grid-template-columns: minmax(0, 1fr) !important; } }
+.akx :is(.akx-grid3, .akx-grid4, .akx-grid-shop) { gap: var(--wb-gap, 16px); }
