@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 
 import "../site/link-hub-public.css"
+import { LinkHubSpotlight } from "./LinkHubSpotlight"
 import { DAY_LABELS, faDigits, heroGradient, normalizeTheme, nowIn, osmDirections, toMinutes } from "./view-utils"
 
 const MapPinPicker = dynamic(() => import("@/components/MapPinPicker").then((m) => m.MapPinPicker), {
@@ -43,7 +44,7 @@ export type PublicPage = {
   blocks: PublicBlock[]
 }
 
-type Handlers = {
+export type Handlers = {
   onSubmit?: (blockId: number, form: HTMLFormElement) => void
   onClickTrack?: (blockId: number, target?: string) => void
   sending?: number | null
@@ -459,7 +460,7 @@ function CtaCard({ block, h }: { block: PublicBlock; h: Handlers }) {
   )
 }
 
-function BlockView({ block, h }: { block: PublicBlock; h: Handlers }) {
+export function BlockView({ block, h }: { block: PublicBlock; h: Handlers }) {
   const p = block.payload
   const track = (t?: string) => h.onClickTrack?.(block.id, t)
 
@@ -568,6 +569,9 @@ function Headline({ text, accent }: { text: string; accent?: string }) {
 
 export function LinkHubView({ page, handlers = {}, footer }: { page: PublicPage; handlers?: Handlers; footer?: ReactNode }) {
   const theme = useMemo(() => normalizeTheme(page.profile.theme_json), [page.profile.theme_json])
+  if ((page.profile.theme_json as { layout?: string } | null)?.layout === "spotlight") {
+    return <LinkHubSpotlight page={page} handlers={handlers} footer={footer} />
+  }
   const ctas = page.blocks.filter((b) => b.type === "cta")
   const primaryCtas = ctas.filter((b) => b.payload.variant !== "chip")
   const chips = ctas.filter((b) => b.payload.variant === "chip")

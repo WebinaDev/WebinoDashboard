@@ -23,6 +23,14 @@ export type LinkHubTheme = {
   headline?: string
   headline_accent?: string
   footer_note?: string
+  /** classic (default) or the premium animated spotlight composition. */
+  layout?: "classic" | "spotlight"
+  /** Bilingual pages: ["fa","en"] plus default; English text lives in i18n.en. */
+  locales?: Array<"fa" | "en">
+  default_locale?: "fa" | "en"
+  i18n?: { en?: Partial<Record<"title" | "bio" | "kicker" | "headline" | "headline_accent" | "footer_note", string>> }
+  highlights?: Array<{ value: string; label?: string; value_en?: string; label_en?: string }>
+  tags?: string[]
 }
 
 export const DAY_KEYS = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"] as const

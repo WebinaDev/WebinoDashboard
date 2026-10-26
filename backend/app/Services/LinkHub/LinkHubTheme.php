@@ -16,6 +16,14 @@ final class LinkHubTheme
 
     public const CARD_STYLES = ['soft', 'outline', 'glass', 'solid'];
 
+    /** classic = original stacked page; spotlight = premium animated portrait layout. */
+    public const LAYOUTS = ['classic', 'spotlight'];
+
+    public const LOCALES = ['fa', 'en'];
+
+    /** Theme text fields that can carry an English translation under i18n.en. */
+    public const TEXT_FIELDS = ['kicker' => 120, 'headline' => 160, 'headline_accent' => 80, 'footer_note' => 240];
+
     /** @return array<string, mixed> */
     public static function normalize(mixed $raw): array
     {
@@ -43,7 +51,61 @@ final class LinkHubTheme
             }
         }
 
+        $out['layout'] = self::pick($raw['layout'] ?? null, self::LAYOUTS, 'classic');
+
+        // Bilingual pages: fa/en with a site-chosen default. Single-locale pages omit both keys.
+        $locales = array_values(array_intersect(self::LOCALES, is_array($raw['locales'] ?? null) ? $raw['locales'] : []));
+        if (count($locales) > 1) {
+            $out['locales'] = $locales;
+            $out['default_locale'] = self::pick($raw['default_locale'] ?? null, $locales, $locales[0]);
+            $en = is_array($raw['i18n']['en'] ?? null) ? $raw['i18n']['en'] : [];
+            $tr = [];
+            foreach (self::TEXT_FIELDS + ['title' => 120, 'bio' => 500] as $key => $max) {
+                $value = self::text($en[$key] ?? null, $max);
+                if ($value !== null) {
+                    $tr[$key] = $value;
+                }
+            }
+            if ($tr !== []) {
+                $out['i18n'] = ['en' => $tr];
+            }
+        }
+
+        // Headline stats ("12+ years") and skill tags, shown by the spotlight layout.
+        $highlights = [];
+        foreach (array_slice(is_array($raw['highlights'] ?? null) ? $raw['highlights'] : [], 0, 4) as $row) {
+            if (! is_array($row) || self::text($row['value'] ?? null, 24) === null) {
+                continue;
+            }
+            $highlights[] = array_filter([
+                'value' => self::text($row['value'] ?? null, 24),
+                'label' => self::text($row['label'] ?? null, 60),
+                'value_en' => self::text($row['value_en'] ?? null, 24),
+                'label_en' => self::text($row['label_en'] ?? null, 60),
+            ], fn ($v) => $v !== null);
+        }
+        if ($highlights !== []) {
+            $out['highlights'] = $highlights;
+        }
+        $tags = [];
+        foreach (array_slice(is_array($raw['tags'] ?? null) ? $raw['tags'] : [], 0, 16) as $tag) {
+            $tag = self::text($tag, 32);
+            if ($tag !== null) {
+                $tags[] = $tag;
+            }
+        }
+        if ($tags !== []) {
+            $out['tags'] = $tags;
+        }
+
         return $out;
+    }
+
+    public static function text(mixed $value, int $max): ?string
+    {
+        $value = is_string($value) || is_numeric($value) ? trim(strip_tags((string) $value)) : '';
+
+        return $value === '' ? null : mb_substr($value, 0, $max);
     }
 
     public static function color(mixed $value): ?string

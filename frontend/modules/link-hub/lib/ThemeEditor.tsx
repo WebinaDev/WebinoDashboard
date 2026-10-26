@@ -68,6 +68,31 @@ export function ThemeEditor({ value, onChange }: { value: LinkHubTheme; onChange
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-1">
+        <Label>چیدمان صفحه</Label>
+        <Segmented
+          label="چیدمان صفحه"
+          value={value.layout === "spotlight" ? "spotlight" : "classic"}
+          onChange={(v) => set({ layout: v })}
+          options={[
+            ["classic", "کلاسیک"],
+            ["spotlight", "اسپات‌لایت (پرتره و انیمیشن)"],
+          ]}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label>زبان‌ها</Label>
+        <Segmented
+          label="زبان‌ها"
+          value={(value.locales?.length ?? 0) > 1 ? (value.default_locale === "en" ? "en" : "fa") : "single"}
+          onChange={(v) => set(v === "single" ? { locales: undefined, default_locale: undefined } : { locales: ["fa", "en"], default_locale: v })}
+          options={[
+            ["single", "فقط فارسی"],
+            ["fa", "دوزبانه، پیش‌فرض فارسی"],
+            ["en", "دوزبانه، پیش‌فرض انگلیسی"],
+          ]}
+        />
+      </div>
+      <div className="space-y-1">
         <Label>برچسب بالای عنوان</Label>
         <Input value={value.kicker ?? ""} placeholder="مثلاً آژانس توسعه کسب‌وکار" onChange={(e) => set({ kicker: e.target.value })} />
       </div>

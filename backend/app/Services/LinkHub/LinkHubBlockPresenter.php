@@ -21,7 +21,7 @@ final class LinkHubBlockPresenter
     {
         $p = is_array($block->payload) ? $block->payload : [];
 
-        return match ($block->type) {
+        $out = match ($block->type) {
             'form' => [
                 'title' => $p['title'] ?? 'فرم',
                 'description' => $this->text($p['description'] ?? null, 500),
@@ -44,6 +44,22 @@ final class LinkHubBlockPresenter
             'hours' => $this->hours((int) $block->tenant_id, $p),
             default => $p,
         };
+
+        // Bilingual pages: flat string overrides for English (label, title, subtitle, sublabel, ...).
+        if ($out !== null && is_array($p['i18n']['en'] ?? null)) {
+            $en = [];
+            foreach ($p['i18n']['en'] as $key => $value) {
+                $text = is_string($key) && preg_match('/^[a-z_]{1,32}$/', $key) ? $this->text($value, 500) : null;
+                if ($text !== null) {
+                    $en[$key] = $text;
+                }
+            }
+            if ($en !== []) {
+                $out['i18n'] = ['en' => $en];
+            }
+        }
+
+        return $out;
     }
 
     /** @return array<string, mixed> */
@@ -66,6 +82,7 @@ final class LinkHubBlockPresenter
             }
             $socials[] = array_filter([
                 'label' => $this->text($row['label'] ?? null, 80),
+                'label_en' => $this->text($row['label_en'] ?? null, 80),
                 'url' => $url,
                 'value' => $this->text($row['value'] ?? null, 120),
                 'network' => $this->text($row['network'] ?? null, 32),
@@ -80,6 +97,7 @@ final class LinkHubBlockPresenter
             }
             $phones[] = array_filter([
                 'label' => $this->text($row['label'] ?? null, 80),
+                'label_en' => $this->text($row['label_en'] ?? null, 80),
                 'value' => $value,
                 'whatsapp' => ! empty($row['whatsapp']) ? true : null,
             ], fn ($v) => $v !== null);
@@ -97,7 +115,9 @@ final class LinkHubBlockPresenter
     /** @return array<string, mixed>|null */
     private function cta(array $p): ?array
     {
-        $url = LinkHubTheme::safeUrl($p['url'] ?? null);
+        // action=vcard: the page builds a "save contact" .vcf from its own contact blocks.
+        $action = in_array($p['action'] ?? null, ['vcard'], true) ? $p['action'] : null;
+        $url = $action === 'vcard' ? '#vcard' : LinkHubTheme::safeUrl($p['url'] ?? null);
         $label = $this->text($p['label'] ?? null, 80);
         if ($url === null || $label === null) {
             return null;
@@ -110,6 +130,7 @@ final class LinkHubBlockPresenter
             'url' => $url,
             'icon' => $this->text($p['icon'] ?? null, 32) ?? 'link',
             'variant' => $variant,
+            'action' => $action,
         ];
     }
 
