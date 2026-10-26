@@ -133,7 +133,14 @@
 .rzx-vit .book .bcover img{display:block;width:100%;height:auto}
 .rzx-vit .book .bauth{font-size:14px;color:var(--mut)}
 .rzx-vit .book .blinks{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-.rzx-vit .book .blinks a{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);font-size:14px;text-decoration:none;color:inherit;background:#fff;transition:background .25s,color .25s,transform .25s}
-.rzx-vit .book .blinks a:hover{transform:translateY(-2px)}
+.rzx-vit .book .blinks a{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:999px;border:1px solid #ffffff59;font-size:14px;font-weight:500;text-decoration:none;color:#fff;background:#ffffff14;transition:background .25s,color .25s,transform .25s}
+.rzx-vit .book .blinks a:hover{transform:translateY(-2px);background:#fff;color:var(--ink);border-color:#fff}
 .rzx-vit .book .blinks a.pri{background:var(--acc);border-color:var(--acc);color:#fff}
 @media (max-width:640px){.rzx-vit .book.has-cover{grid-template-columns:1fr}.rzx-vit .book .bcover{max-width:200px}}
+
+.rzx-vit .book.has-cover p{opacity:1;color:#f7e7e3d9}
+.rzx-vit .book .bauth{color:#f7e7e3bf}
+.rzx-vit .book .bcover{box-shadow:0 30px 60px -20px #000a,0 0 0 1px #ffffff1f}
+.rzx-vit .book .bbody{min-width:0}
+.rzx-vit .book .bbody h3{overflow-wrap:anywhere}
+@media (max-width:640px){.rzx-vit .book{padding:28px 22px}.rzx-vit .book .cv{display:none}.rzx-vit .book.has-cover{gap:20px}.rzx-vit .book .bcover{margin-inline:auto;width:min(200px,62%)}.rzx-vit .book .blinks a{flex:1 1 100%;justify-content:center}}

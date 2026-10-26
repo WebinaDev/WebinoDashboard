@@ -369,6 +369,43 @@
       "credential_id": "225/89567",
       "is_placeholder": false,
       "order": 6
+    },
+    {
+      "name_fa": "گواهینامه داوری فوتبال (کلاس داوری درجه ۳)",
+      "name_en": "Football Referee Certificate (Class 3 referee course)",
+      "issuer_fa": "فدراسیون فوتبال جمهوری اسلامی ایران",
+      "issuer_en": "Football Federation Islamic Republic of Iran",
+      "issue_date": {
+        "g": "2019-02",
+        "j": "1397-11"
+      },
+      "media_paths": [
+        "certs/cert-referee-cert.webp"
+      ],
+      "is_placeholder": false,
+      "order": 7
+    },
+    {
+      "name_fa": "کارت داوری فوتبال درجه ۳",
+      "name_en": "Football Referee Card, Grade 3",
+      "issuer_fa": "فدراسیون فوتبال جمهوری اسلامی ایران، هیئت فوتبال استان تهران",
+      "issuer_en": "Football Federation I.R. Iran, Tehran Province Football Board",
+      "media_paths": [
+        "certs/cert-referee-card.webp"
+      ],
+      "is_placeholder": false,
+      "order": 8
+    },
+    {
+      "name_fa": "حکم قهرمانی: رتبه اول مسابقات گرامیداشت شهید محمدحسین فهمیده و هفته بسیج دانش‌آموزی",
+      "name_en": "Championship award: 1st place, Shahid Mohammad-Hossein Fahmideh & Student Basij Week tournament",
+      "issuer_fa": "هیئت فوتبال شمیرانات",
+      "issuer_en": "Shemiranat Football Association",
+      "media_paths": [
+        "certs/cert-champion.webp"
+      ],
+      "is_placeholder": false,
+      "order": 9
     }
   ],
   "skills": [
@@ -495,5 +532,6 @@
       "fa"
     ],
     "date_calendar": "auto"
-  }
+  },
+  "honors": []
 }

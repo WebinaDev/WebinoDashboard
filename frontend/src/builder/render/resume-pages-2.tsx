@@ -135,7 +135,7 @@ export function ResumeVitalityPage({ widget }: { widget: WidgetNode }) {
               const cover = h.media(b.cover_media_id)
               const links = (Array.isArray(b.links) ? (b.links as Record<string, unknown>[]) : []).filter((l) => typeof l?.url === "string" && l.url)
               const authors = trList(b, "co_authors", lang)
-              const meta = [T(b, "publisher"), b.date ? h.DT(b.date) : "", b.isbn ? `ISBN ${N(String(b.isbn))}` : ""].filter(Boolean)
+              const meta = [T(b, "publisher"), b.date ? h.DT(b.date) : "", b.isbn ? `ISBN ${String(b.isbn)}` : ""].filter(Boolean)
               return (
               <div className={`book rv${cover ? " has-cover" : ""}`} key={b.id} style={{ marginBottom: 20 }}>
                 {cover ? <a className="bcover" href={links[0] ? String(links[0].url) : cover} target="_blank" rel="noopener noreferrer"><img src={cover} alt={T(b, "title")} loading="lazy" /></a> : null}
@@ -144,7 +144,7 @@ export function ResumeVitalityPage({ widget }: { widget: WidgetNode }) {
                 <p>{[T(b, "description"), ...meta].filter(Boolean).join(" · ")}</p>
                 {links.length ? <div className="blinks">{links.map((l, j) => <a key={j} className={j === 0 ? "pri" : ""} href={String(l.url)} target="_blank" rel="noopener noreferrer">{String((lang === "en" ? l.label_en : l.label_fa) || l.label_en || l.label_fa || short(l.url))} ↗</a>)}</div>
                   : b.url ? <p><a href={String(b.url)} target="_blank" rel="noopener noreferrer">{short(b.url)} ↗</a></p> : null}
-                <div className="cv" /></div></div>)
+                {cover ? null : <div className="cv" aria-hidden />}</div></div>)
             })}</div>
             <div className="rv">{[...certs, ...honors].map((c, i) => (
               <div className="cert" key={`${c.id}-${i}`}>{(() => {
