@@ -124,6 +124,8 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   "nav.group_magazine": Newspaper,
   "nav.group_bots": Bot,
   "nav.group_link_hub": Link2,
+  "nav.group_resume": Briefcase,
+  group_resume: Briefcase,
   group_link_hub: Link2,
   group_shop: ShoppingBag,
   group_magazine: Newspaper,

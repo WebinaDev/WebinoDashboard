@@ -1,0 +1,863 @@
+{
+ "version": 1,
+ "sections": [
+  {
+   "slug": "identity",
+   "table": "resume_identity",
+   "model": "ResumeIdentity",
+   "single": true,
+   "label_fa": "هویت",
+   "label_en": "Identity",
+   "icon": "user",
+   "fields": [
+    {
+     "key": "full_name",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 160
+    },
+    {
+     "key": "headline",
+     "type": "text",
+     "i18n": true,
+     "max": 255
+    },
+    {
+     "key": "location",
+     "type": "text",
+     "i18n": true,
+     "max": 160
+    },
+    {
+     "key": "avatar_media_id",
+     "type": "media",
+     "i18n": false
+    },
+    {
+     "key": "cover_media_id",
+     "type": "media",
+     "i18n": false
+    },
+    {
+     "key": "career_start_year",
+     "type": "int",
+     "i18n": false,
+     "min": 1950,
+     "max": 2100
+    },
+    {
+     "key": "open_to_work",
+     "type": "bool",
+     "i18n": false
+    },
+    {
+     "key": "birth_date",
+     "type": "date",
+     "i18n": false,
+     "private": true
+    },
+    {
+     "key": "nationality",
+     "type": "text",
+     "i18n": true,
+     "max": 80
+    }
+   ]
+  },
+  {
+   "slug": "about",
+   "table": "resume_about",
+   "model": "ResumeAbout",
+   "single": true,
+   "label_fa": "درباره",
+   "label_en": "About",
+   "icon": "file-text",
+   "fields": [
+    {
+     "key": "body",
+     "type": "richtext",
+     "i18n": true
+    },
+    {
+     "key": "highlights",
+     "type": "list",
+     "i18n": true
+    }
+   ]
+  },
+  {
+   "slug": "contacts",
+   "table": "resume_contacts",
+   "model": "ResumeContact",
+   "label_fa": "راه‌های ارتباطی",
+   "label_en": "Contact & links",
+   "icon": "at-sign",
+   "title": "value",
+   "fields": [
+    {
+     "key": "type",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "phone",
+      "email",
+      "website",
+      "linkedin",
+      "github",
+      "telegram",
+      "whatsapp",
+      "instagram",
+      "x",
+      "youtube",
+      "dribbble",
+      "behance",
+      "gitlab",
+      "stackoverflow",
+      "bale",
+      "eitaa",
+      "other"
+     ],
+     "required": true
+    },
+    {
+     "key": "value",
+     "type": "text",
+     "i18n": false,
+     "required": true,
+     "max": 500
+    },
+    {
+     "key": "label",
+     "type": "text",
+     "i18n": true,
+     "max": 120
+    },
+    {
+     "key": "icon",
+     "type": "text",
+     "i18n": false,
+     "max": 60
+    },
+    {
+     "key": "is_primary",
+     "type": "bool",
+     "i18n": false
+    }
+   ]
+  },
+  {
+   "slug": "experiences",
+   "table": "resume_experiences",
+   "model": "ResumeExperience",
+   "label_fa": "سوابق کاری",
+   "label_en": "Work experience",
+   "icon": "briefcase",
+   "title": "title",
+   "fields": [
+    {
+     "key": "title",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 200
+    },
+    {
+     "key": "company",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    },
+    {
+     "key": "company_logo_media_id",
+     "type": "media",
+     "i18n": false
+    },
+    {
+     "key": "company_url",
+     "type": "url",
+     "i18n": false
+    },
+    {
+     "key": "employment_type",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "full_time",
+      "part_time",
+      "freelance",
+      "self_employed",
+      "internship",
+      "contract"
+     ]
+    },
+    {
+     "key": "location",
+     "type": "text",
+     "i18n": true,
+     "max": 160
+    },
+    {
+     "key": "location_type",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "onsite",
+      "remote",
+      "hybrid"
+     ]
+    },
+    {
+     "key": "period",
+     "type": "range",
+     "i18n": false
+    },
+    {
+     "key": "description",
+     "type": "richtext",
+     "i18n": true
+    },
+    {
+     "key": "achievements",
+     "type": "list",
+     "i18n": true
+    },
+    {
+     "key": "skill_ids",
+     "type": "skills",
+     "i18n": false
+    },
+    {
+     "key": "media_ids",
+     "type": "media_list",
+     "i18n": false
+    }
+   ]
+  },
+  {
+   "slug": "educations",
+   "table": "resume_educations",
+   "model": "ResumeEducation",
+   "label_fa": "تحصیلات و تجربیات آکادمیک",
+   "label_en": "Education & academic",
+   "icon": "graduation-cap",
+   "title": "school",
+   "fields": [
+    {
+     "key": "school",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 200
+    },
+    {
+     "key": "degree",
+     "type": "text",
+     "i18n": true,
+     "max": 160
+    },
+    {
+     "key": "field",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    },
+    {
+     "key": "grade",
+     "type": "text",
+     "i18n": false,
+     "max": 60
+    },
+    {
+     "key": "period",
+     "type": "range",
+     "i18n": false
+    },
+    {
+     "key": "activities",
+     "type": "textarea",
+     "i18n": true
+    },
+    {
+     "key": "description",
+     "type": "richtext",
+     "i18n": true
+    },
+    {
+     "key": "media_ids",
+     "type": "media_list",
+     "i18n": false
+    }
+   ]
+  },
+  {
+   "slug": "honors",
+   "table": "resume_honors",
+   "model": "ResumeHonor",
+   "label_fa": "افتخارات",
+   "label_en": "Honors & awards",
+   "icon": "award",
+   "title": "title",
+   "fields": [
+    {
+     "key": "title",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 200
+    },
+    {
+     "key": "issuer",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    },
+    {
+     "key": "date",
+     "type": "date",
+     "i18n": false
+    },
+    {
+     "key": "description",
+     "type": "textarea",
+     "i18n": true
+    },
+    {
+     "key": "associated_experience_id",
+     "type": "ref",
+     "i18n": false,
+     "ref": "experiences"
+    },
+    {
+     "key": "media_ids",
+     "type": "media_list",
+     "i18n": false
+    }
+   ]
+  },
+  {
+   "slug": "publications",
+   "table": "resume_publications",
+   "model": "ResumePublication",
+   "label_fa": "نشرها (مقاله، کتاب...)",
+   "label_en": "Publications",
+   "icon": "book-open",
+   "title": "title",
+   "fields": [
+    {
+     "key": "kind",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "article",
+      "book",
+      "paper",
+      "chapter",
+      "blog",
+      "talk"
+     ],
+     "required": true
+    },
+    {
+     "key": "title",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 300
+    },
+    {
+     "key": "publisher",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    },
+    {
+     "key": "date",
+     "type": "date",
+     "i18n": false
+    },
+    {
+     "key": "url",
+     "type": "url",
+     "i18n": false
+    },
+    {
+     "key": "isbn",
+     "type": "text",
+     "i18n": false,
+     "max": 40
+    },
+    {
+     "key": "doi",
+     "type": "text",
+     "i18n": false,
+     "max": 120
+    },
+    {
+     "key": "co_authors",
+     "type": "list",
+     "i18n": true
+    },
+    {
+     "key": "description",
+     "type": "textarea",
+     "i18n": true
+    },
+    {
+     "key": "cover_media_id",
+     "type": "media",
+     "i18n": false
+    }
+   ]
+  },
+  {
+   "slug": "certifications",
+   "table": "resume_certifications",
+   "model": "ResumeCertification",
+   "label_fa": "گواهینامه‌ها",
+   "label_en": "Certifications",
+   "icon": "badge-check",
+   "title": "name",
+   "fields": [
+    {
+     "key": "name",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 200
+    },
+    {
+     "key": "issuer",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    },
+    {
+     "key": "issue_date",
+     "type": "date",
+     "i18n": false
+    },
+    {
+     "key": "expire_date",
+     "type": "date",
+     "i18n": false
+    },
+    {
+     "key": "credential_id",
+     "type": "text",
+     "i18n": false,
+     "max": 120
+    },
+    {
+     "key": "credential_url",
+     "type": "url",
+     "i18n": false
+    },
+    {
+     "key": "media_ids",
+     "type": "media_list",
+     "i18n": false
+    }
+   ]
+  },
+  {
+   "slug": "skills",
+   "table": "resume_skills",
+   "model": "ResumeSkill",
+   "label_fa": "مهارت‌ها",
+   "label_en": "Skills",
+   "icon": "sparkles",
+   "title": "name",
+   "fields": [
+    {
+     "key": "name",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 120
+    },
+    {
+     "key": "category",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "backend",
+      "frontend",
+      "cms",
+      "devops",
+      "tools",
+      "design",
+      "soft",
+      "other"
+     ]
+    },
+    {
+     "key": "level",
+     "type": "int",
+     "i18n": false,
+     "min": 1,
+     "max": 5
+    },
+    {
+     "key": "years",
+     "type": "int",
+     "i18n": false,
+     "min": 0,
+     "max": 60
+    },
+    {
+     "key": "endorsements_count",
+     "type": "int",
+     "i18n": false,
+     "min": 0,
+     "max": 100000
+    }
+   ]
+  },
+  {
+   "slug": "languages",
+   "table": "resume_languages",
+   "model": "ResumeLanguage",
+   "label_fa": "زبان‌ها",
+   "label_en": "Languages",
+   "icon": "languages",
+   "title": "name",
+   "fields": [
+    {
+     "key": "name",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 80
+    },
+    {
+     "key": "proficiency",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "native",
+      "full",
+      "professional",
+      "limited",
+      "elementary"
+     ],
+     "required": true
+    }
+   ]
+  },
+  {
+   "slug": "projects",
+   "table": "resume_projects",
+   "model": "ResumeProject",
+   "label_fa": "نمونه‌کارها",
+   "label_en": "Portfolio",
+   "icon": "layout-grid",
+   "title": "title",
+   "fields": [
+    {
+     "key": "title",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 200
+    },
+    {
+     "key": "role",
+     "type": "text",
+     "i18n": true,
+     "max": 160
+    },
+    {
+     "key": "summary",
+     "type": "textarea",
+     "i18n": true
+    },
+    {
+     "key": "url",
+     "type": "url",
+     "i18n": false
+    },
+    {
+     "key": "repo_url",
+     "type": "url",
+     "i18n": false
+    },
+    {
+     "key": "cover_media_id",
+     "type": "media",
+     "i18n": false
+    },
+    {
+     "key": "gallery_media_ids",
+     "type": "media_list",
+     "i18n": false
+    },
+    {
+     "key": "tags",
+     "type": "list",
+     "i18n": false
+    },
+    {
+     "key": "period",
+     "type": "range",
+     "i18n": false
+    },
+    {
+     "key": "featured",
+     "type": "bool",
+     "i18n": false
+    },
+    {
+     "key": "skill_ids",
+     "type": "skills",
+     "i18n": false
+    }
+   ]
+  },
+  {
+   "slug": "volunteering",
+   "table": "resume_volunteering",
+   "model": "ResumeVolunteering",
+   "label_fa": "فعالیت‌های داوطلبانه",
+   "label_en": "Volunteering",
+   "icon": "heart-handshake",
+   "title": "role",
+   "fields": [
+    {
+     "key": "role",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 160
+    },
+    {
+     "key": "organization",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    },
+    {
+     "key": "cause",
+     "type": "text",
+     "i18n": true,
+     "max": 120
+    },
+    {
+     "key": "period",
+     "type": "range",
+     "i18n": false
+    },
+    {
+     "key": "description",
+     "type": "textarea",
+     "i18n": true
+    }
+   ]
+  },
+  {
+   "slug": "courses",
+   "table": "resume_courses",
+   "model": "ResumeCourse",
+   "label_fa": "دوره‌ها",
+   "label_en": "Courses",
+   "icon": "library",
+   "title": "name",
+   "fields": [
+    {
+     "key": "name",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 200
+    },
+    {
+     "key": "institution",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    },
+    {
+     "key": "date",
+     "type": "date",
+     "i18n": false
+    },
+    {
+     "key": "url",
+     "type": "url",
+     "i18n": false
+    }
+   ]
+  },
+  {
+   "slug": "testimonials",
+   "table": "resume_testimonials",
+   "model": "ResumeTestimonial",
+   "label_fa": "توصیه‌نامه‌ها",
+   "label_en": "Recommendations",
+   "icon": "quote",
+   "title": "author",
+   "fields": [
+    {
+     "key": "author",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 160
+    },
+    {
+     "key": "author_title",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    },
+    {
+     "key": "avatar_media_id",
+     "type": "media",
+     "i18n": false
+    },
+    {
+     "key": "body",
+     "type": "textarea",
+     "i18n": true,
+     "required": true
+    },
+    {
+     "key": "relation",
+     "type": "text",
+     "i18n": true,
+     "max": 200
+    }
+   ]
+  },
+  {
+   "slug": "stats",
+   "table": "resume_stats",
+   "model": "ResumeStat",
+   "label_fa": "آمار",
+   "label_en": "Stats",
+   "icon": "bar-chart-3",
+   "title": "label",
+   "fields": [
+    {
+     "key": "label",
+     "type": "text",
+     "i18n": true,
+     "required": true,
+     "max": 120
+    },
+    {
+     "key": "value",
+     "type": "text",
+     "i18n": false,
+     "required": true,
+     "max": 40
+    },
+    {
+     "key": "icon",
+     "type": "text",
+     "i18n": false,
+     "max": 60
+    }
+   ]
+  },
+  {
+   "slug": "settings",
+   "table": "resume_settings",
+   "model": "ResumeSetting",
+   "single": true,
+   "label_fa": "تم و نمایش",
+   "label_en": "Theme & display",
+   "icon": "palette",
+   "fields": [
+    {
+     "key": "theme_key",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "code-noir",
+      "atelier-editorial",
+      "aurora-glass",
+      "story",
+      "webina-os"
+     ]
+    },
+    {
+     "key": "accent",
+     "type": "color",
+     "i18n": false
+    },
+    {
+     "key": "accent_dark",
+     "type": "color",
+     "i18n": false
+    },
+    {
+     "key": "mode",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "system",
+      "light",
+      "dark"
+     ]
+    },
+    {
+     "key": "date_calendar",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "auto",
+      "jalali",
+      "gregorian"
+     ]
+    },
+    {
+     "key": "languages",
+     "type": "list",
+     "i18n": false
+    },
+    {
+     "key": "default_lang",
+     "type": "select",
+     "i18n": false,
+     "options": [
+      "fa",
+      "en"
+     ]
+    },
+    {
+     "key": "section_order",
+     "type": "list",
+     "i18n": false
+    },
+    {
+     "key": "seo",
+     "type": "json",
+     "i18n": false
+    },
+    {
+     "key": "private_token",
+     "type": "text",
+     "i18n": false,
+     "max": 64
+    },
+    {
+     "key": "pdf_template",
+     "type": "text",
+     "i18n": false,
+     "max": 60
+    }
+   ]
+  }
+ ],
+ "date_precision": [
+  "year",
+  "month",
+  "day"
+ ],
+ "visibility": [
+  "public",
+  "hidden",
+  "private_link"
+ ]
+}

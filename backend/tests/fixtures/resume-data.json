@@ -1,0 +1,449 @@
+{
+ "_meta": {
+  "note": "sanitized test fixture (resume-mockups data.json shape)"
+ },
+ "profile": {
+  "full_name_fa": "نمونه نام",
+  "full_name_en": "Sample Name",
+  "headline_fa": "توسعه‌دهنده وب و بنیان‌گذار وبینا",
+  "headline_en": "Web Developer, Founder of Webina",
+  "location": "تهران، ایران",
+  "avatar_media_id": "src/avatar.jpg",
+  "cover_media_id": null,
+  "career_start_year": 2013,
+  "open_to_work": false,
+  "is_placeholder": false,
+  "location_en": "Tehran Province, Iran"
+ },
+ "about": {
+  "body_fa": "کارم را در سال ۱۳۹۲ (2013) با توسعه وردپرس شروع کردم و امروز توسعه‌دهنده بک‌اند لاراول هستم. علاقه‌ام ساختن سیستم‌های بک‌اند تمیز، بهینه و کاربرپسند است. از حل مسائل پیچیده و ساختن راه‌حل‌های نو لذت می‌برم و همیشه با تازه‌ترین فناوری‌ها جلو می‌روم. بیرون از کار، یادگرفتن، سفر و وقت گذراندن با خانواده و دوستان را دوست دارم.",
+  "is_placeholder": false,
+  "translated_from": "en",
+  "body_en": "I began my career in 2013 as a WordPress developer and over the years, I've grown as a developer and am now a skilled back-end Laravel developer. My passion lies in creating clean, efficient, and user-friendly back-end systems that provide seamless experiences for users. I enjoy tackling complex problems and creating innovative solutions by staying up-to-date with the latest technologies and industry trends. Outside of work, I love to learn new things, travel, and spend time with my family and friends."
+ },
+ "contacts": [
+  {
+   "type": "phone",
+   "value": "+980000000000",
+   "label": "موبایل",
+   "visibility": "public",
+   "order": 0,
+   "is_placeholder": false,
+   "label_en": "Mobile"
+  },
+  {
+   "type": "email",
+   "value": "me@example.test",
+   "label": "ایمیل",
+   "visibility": "public",
+   "order": 1,
+   "is_placeholder": false,
+   "label_en": "Email"
+  },
+  {
+   "type": "phone",
+   "value": "+980000000000",
+   "label": "تلفن (برتینا، تأیید نشده)",
+   "visibility": "hidden",
+   "order": 2,
+   "is_placeholder": false,
+   "label_en": "Phone (Bertina, unverified)"
+  },
+  {
+   "type": "website",
+   "value": "https://example.test/website",
+   "label": "وب‌سایت",
+   "visibility": "public",
+   "order": 3,
+   "is_placeholder": false,
+   "label_en": "Website"
+  },
+  {
+   "type": "linkedin",
+   "value": "https://example.test/linkedin",
+   "label": "لینکدین",
+   "visibility": "public",
+   "order": 4,
+   "is_placeholder": false,
+   "label_en": "LinkedIn"
+  },
+  {
+   "type": "github",
+   "value": "https://example.test/github",
+   "label": "گیت‌هاب",
+   "visibility": "public",
+   "order": 5,
+   "is_placeholder": false,
+   "label_en": "GitHub"
+  },
+  {
+   "type": "company",
+   "value": "https://example.test/company",
+   "label": "وبینا",
+   "visibility": "public",
+   "order": 6,
+   "is_placeholder": false,
+   "label_en": "Webina"
+  },
+  {
+   "type": "email",
+   "value": "me@example.test",
+   "label": "ایمیل وبینا",
+   "visibility": "public",
+   "order": 7,
+   "is_placeholder": false,
+   "label_en": "Webina email"
+  },
+  {
+   "type": "telegram",
+   "value": "https://example.test/telegram",
+   "label": "تلگرام",
+   "visibility": "hidden",
+   "order": 8,
+   "is_placeholder": true,
+   "label_en": "Telegram"
+  },
+  {
+   "type": "instagram",
+   "value": "https://example.test/instagram",
+   "label": "اینستاگرام",
+   "visibility": "hidden",
+   "order": 9,
+   "is_placeholder": true,
+   "label_en": "Instagram"
+  }
+ ],
+ "experiences": [
+  {
+   "title_fa": "توسعه‌دهنده وب",
+   "company": "Puzzling Studio",
+   "employment_type": "full_time",
+   "location": "تهران",
+   "start": {
+    "g": "2025-06",
+    "j": "1404-03"
+   },
+   "end": null,
+   "is_current": true,
+   "description_fa": "توسعه و سفارشی‌سازی قالب و افزونه وردپرس با PHP، HTML، CSS و JavaScript و پست‌تایپ‌های سفارشی؛ اپلیکیشن با React، Vue.js و Node.js؛ تبدیل طراحی Figma و Adobe XD به رابط دقیق؛ سئو، دسترس‌پذیری WCAG و Google Analytics؛ فروشگاه ووکامرس امن با درگاه پرداخت؛ پشتیبانی و امنیت سایت؛ کار تیمی Agile با Jira، Trello و Git.",
+   "skills": [
+    "WordPress",
+    "PHP",
+    "React",
+    "Vue.js",
+    "Node.js",
+    "WooCommerce",
+    "SEO"
+   ],
+   "order": 1,
+   "is_placeholder": false,
+   "achievements": [],
+   "title_en": "Web Developer",
+   "company_en": "Puzzling Studio",
+   "location_en": "Tehran, Iran",
+   "description_en": "Build and customize WordPress themes and plugins (PHP, HTML, CSS, JavaScript, custom post types); develop applications with React, Vue.js and Node.js; translate Figma and Adobe XD designs into pixel-perfect interfaces; SEO, WCAG accessibility and Google Analytics; secure WooCommerce stores with payment gateways; ongoing support and security; Agile teamwork with Jira, Trello and Git."
+  },
+  {
+   "title_fa": "بنیان‌گذار",
+   "company": "WebinaDev (وبینا)",
+   "employment_type": "self_employed",
+   "location": "استان تهران",
+   "start": {
+    "g": "2020-03",
+    "j": "1398-12"
+   },
+   "end": null,
+   "is_current": true,
+   "description_fa": "ساخت اپلیکیشن‌های وب سفارشی و باکیفیت با لاراول برای کسب‌وکارهای هر اندازه، از فروشگاه اینترنتی تا سیستم مدیریت محتوا، با شناخت دقیق نیاز هر مشتری و راه‌حل متناسب.",
+   "skills": [
+    "Laravel",
+    "Next.js",
+    "E-commerce",
+    "CMS"
+   ],
+   "order": 2,
+   "is_placeholder": false,
+   "title_en": "Founder",
+   "company_en": "WebinaDev",
+   "location_en": "Tehran Province, Iran",
+   "description_en": "Custom, high-quality Laravel web applications for businesses of all sizes, from e-commerce websites to content management systems, tailored to each client's needs."
+  },
+  {
+   "title_fa": "توسعه‌دهنده وب",
+   "company": "فریلنس",
+   "employment_type": "freelance",
+   "location": null,
+   "start": {
+    "g": "2014-01",
+    "j": "1392-10"
+   },
+   "end": {
+    "g": "2025-07",
+    "j": "1404-04"
+   },
+   "is_current": false,
+   "description_fa": "شروع با وردپرس و ساخت سایت‌های زیبا و کاربردی برای مشتریان، سپس مهاجرت به لاراول و توسعه پروژه‌های پیچیده با قابلیت‌های سفارشی، از سایت ساده تا اپلیکیشن وب پیشرفته.",
+   "skills": [
+    "WordPress",
+    "Laravel",
+    "PHP"
+   ],
+   "order": 3,
+   "is_placeholder": false,
+   "title_en": "Web Developer",
+   "company_en": "Freelance",
+   "location_en": null,
+   "description_en": "Started with WordPress, creating beautiful and functional websites for clients, then moved to Laravel to build complex web projects with robust, customized functionality."
+  }
+ ],
+ "educations": [
+  {
+   "school": "آموزشکده فنی و حرفه‌ای شمسی‌پور",
+   "school_en": "Shamsipour Technical and Vocational College",
+   "degree": "کارشناسی",
+   "field": "فناوری اطلاعات (IT)",
+   "start": {
+    "g": "2021",
+    "j": "1400"
+   },
+   "end": {
+    "g": "2023",
+    "j": "1402"
+   },
+   "order": 1,
+   "is_placeholder": false,
+   "degree_en": "Bachelor's degree",
+   "field_en": "IT"
+  },
+  {
+   "school": "دانشگاه فنی و حرفه‌ای",
+   "school_en": "Technical and Vocational University",
+   "degree": "کاردانی",
+   "field": "مهندسی نرم‌افزار کامپیوتر",
+   "start": {
+    "g": "2019",
+    "j": "1398"
+   },
+   "end": {
+    "g": "2021",
+    "j": "1400"
+   },
+   "order": 2,
+   "is_placeholder": false,
+   "degree_en": "Associate's degree",
+   "field_en": "Computer Software Engineering"
+  }
+ ],
+ "honors": [
+  {
+   "title": "نمونه",
+   "issuer": "نمونه",
+   "date": null,
+   "order": 1,
+   "is_placeholder": true,
+   "note_en": "Sample (not in LinkedIn PDF)"
+  }
+ ],
+ "publications": [
+  {
+   "kind": "article",
+   "title": "نمونه",
+   "publisher": "نمونه",
+   "date": null,
+   "url": null,
+   "order": 1,
+   "is_placeholder": true,
+   "note_en": "Sample (not in LinkedIn PDF)"
+  }
+ ],
+ "certifications": [
+  {
+   "name": "نمونه",
+   "issuer": "نمونه",
+   "issue_date": null,
+   "credential_url": null,
+   "order": 1,
+   "is_placeholder": true,
+   "note_en": "Sample (not in LinkedIn PDF)"
+  }
+ ],
+ "skills": [
+  {
+   "name": "REST APIs",
+   "category": "backend",
+   "level": null,
+   "top": true,
+   "order": 1,
+   "is_placeholder": false
+  },
+  {
+   "name": "HTML5",
+   "category": "frontend",
+   "level": null,
+   "top": true,
+   "order": 2,
+   "is_placeholder": false
+  },
+  {
+   "name": "Laravel",
+   "category": "backend",
+   "level": null,
+   "order": 3,
+   "is_placeholder": false
+  },
+  {
+   "name": "PHP",
+   "category": "backend",
+   "level": null,
+   "order": 4,
+   "is_placeholder": false
+  },
+  {
+   "name": "WordPress",
+   "category": "cms",
+   "level": null,
+   "order": 5,
+   "is_placeholder": false
+  },
+  {
+   "name": "WooCommerce",
+   "category": "cms",
+   "level": null,
+   "order": 6,
+   "is_placeholder": false
+  },
+  {
+   "name": "React",
+   "category": "frontend",
+   "level": null,
+   "order": 7,
+   "is_placeholder": false
+  },
+  {
+   "name": "Vue.js",
+   "category": "frontend",
+   "level": null,
+   "order": 8,
+   "is_placeholder": false
+  },
+  {
+   "name": "Node.js",
+   "category": "backend",
+   "level": null,
+   "order": 9,
+   "is_placeholder": false
+  },
+  {
+   "name": "SEO",
+   "category": "other",
+   "level": null,
+   "order": 10,
+   "is_placeholder": false
+  },
+  {
+   "name": "Git",
+   "category": "tools",
+   "level": null,
+   "order": 11,
+   "is_placeholder": false
+  }
+ ],
+ "languages": [
+  {
+   "name": "فارسی",
+   "proficiency": "native",
+   "order": 1,
+   "is_placeholder": false,
+   "name_en": "Persian"
+  },
+  {
+   "name": "انگلیسی",
+   "proficiency": "professional",
+   "order": 2,
+   "is_placeholder": false,
+   "name_en": "English"
+  }
+ ],
+ "projects": [
+  {
+   "title": "Webina Dashboard",
+   "role": "بنیان‌گذار و توسعه‌دهنده",
+   "url": "https://webina.dev",
+   "repo_url": null,
+   "cover_media_id": null,
+   "tags": [
+    "Laravel",
+    "Next.js"
+   ],
+   "order": 1,
+   "is_placeholder": false,
+   "role_en": "Founder and developer",
+   "title_en": "Webina Dashboard"
+  },
+  {
+   "title": "MeowVPN",
+   "role": "توسعه‌دهنده",
+   "url": null,
+   "repo_url": "https://github.com/arsalanarghavan/MeowVPN",
+   "tags": [
+    "GitHub"
+   ],
+   "order": 2,
+   "is_placeholder": false,
+   "role_en": "Developer",
+   "title_en": "MeowVPN"
+  },
+  {
+   "title": "MeowVPN WordPress",
+   "role": "توسعه‌دهنده",
+   "url": null,
+   "repo_url": "https://github.com/arsalanarghavan/MeowVPNWordpress",
+   "tags": [
+    "WordPress"
+   ],
+   "order": 3,
+   "is_placeholder": false,
+   "role_en": "Developer",
+   "title_en": "MeowVPN WordPress"
+  },
+  {
+   "title": "نمونه کار",
+   "role": "نمونه",
+   "url": null,
+   "repo_url": null,
+   "tags": [],
+   "order": 4,
+   "is_placeholder": true,
+   "role_en": "Sample",
+   "title_en": "Sample project"
+  }
+ ],
+ "stats": [
+  {
+   "label": "سال تجربه",
+   "value": "۱۲+",
+   "is_placeholder": false,
+   "label_en": "Years of experience",
+   "value_en": "12+"
+  },
+  {
+   "label": "دنبال‌کننده لینکدین",
+   "value": "۱٬۷۷۹",
+   "is_placeholder": false,
+   "label_en": "LinkedIn followers",
+   "value_en": "1,779"
+  },
+  {
+   "label": "سال تأسیس وبینا",
+   "value": "۱۳۹۸",
+   "is_placeholder": false,
+   "label_en": "Webina founded",
+   "value_en": "2020"
+  }
+ ],
+ "theme": {
+  "key": "code-noir",
+  "accent": "#e8502a",
+  "mode": "system"
+ }
+}

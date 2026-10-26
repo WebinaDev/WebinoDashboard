@@ -206,6 +206,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/tenant', [PublicSiteController::class, 'tenant'])->middleware('public.cache');
         Route::get('/home', [PublicSiteController::class, 'home']);
+        Route::get('/site-language', [\App\Http\Controllers\Api\V1\SiteLanguageController::class, 'publicShow']);
         Route::get('/site-status', [PublicSiteController::class, 'siteStatus'])->middleware('public.cache');
         Route::get('/license-renewal', [\App\Http\Controllers\Api\V1\LicenseRenewalController::class, 'show'])->middleware('throttle:60,1');
         Route::get('/geo/states', [GeoController::class, 'states']);
@@ -252,6 +253,7 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:profile')->group(function () {
             Route::get('/resume', [PublicResumeController::class, 'show']);
+            Route::get('/resume/full', [\App\Http\Controllers\Api\V1\Resume\PublicResumeFullController::class, 'show'])->middleware(\App\Http\Middleware\ResumeTenantScope::class);
         });
 
         // Host-mode must work even before the module is activated (alias DNS check).
@@ -443,6 +445,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/modules/marketplace/purchase', [ModuleMarketplaceController::class, 'purchase']);
                 Route::match(['get', 'post'], '/modules/marketplace/payment-callback', [ModuleMarketplaceController::class, 'paymentCallback']);
             Route::patch('/modules/{slug}', [ModuleController::class, 'update'])
+                ->middleware('can:settings.manage,system.manage');
+            Route::get('/settings/site-language', [\App\Http\Controllers\Api\V1\SiteLanguageController::class, 'show']);
+            Route::put('/settings/site-language', [\App\Http\Controllers\Api\V1\SiteLanguageController::class, 'update'])
                 ->middleware('can:settings.manage,system.manage');
 
             Route::post('/license/sync', [LicenseController::class, 'sync']);
@@ -1089,6 +1094,23 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
             Route::middleware(['module:profile', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/resume/profile', [ResumeProfileController::class, 'show']);
                 Route::put('/resume/profile', [ResumeProfileController::class, 'update']);
+            });
+
+            // Resume module v2 — one entity per section (docs/resume/README.md).
+            Route::prefix('resume')->middleware(['module:resume', 'can:content.manage,content.*', \App\Http\Middleware\ResumeTenantScope::class])->group(function () {
+                $c = \App\Http\Controllers\Api\V1\Resume\ResumeAdminController::class;
+                $sec = '[a-z0-9_]+';
+                Route::get('/schema', [$c, 'schema']);
+                Route::get('/overview', [$c, 'overview']);
+                Route::get('/themes', [$c, 'themes']);
+                Route::post('/theme/apply', [$c, 'applyTheme']);
+                Route::post('/import', [$c, 'import'])->middleware('throttle:10,1');
+                Route::get('/{section}', [$c, 'index'])->where('section', $sec);
+                Route::put('/{section}', [$c, 'updateSingle'])->where('section', $sec);
+                Route::post('/{section}', [$c, 'store'])->where('section', $sec);
+                Route::post('/{section}/reorder', [$c, 'reorder'])->where('section', $sec);
+                Route::put('/{section}/{id}', [$c, 'update'])->where('section', $sec)->whereNumber('id');
+                Route::delete('/{section}/{id}', [$c, 'destroy'])->where('section', $sec)->whereNumber('id');
             });
 
             Route::middleware(['module:link-hub', 'can:content.manage,content.*'])->group(function () {

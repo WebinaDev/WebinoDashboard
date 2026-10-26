@@ -137,6 +137,9 @@ const ShopShowcaseWidget = dynamic(() => import("./poetry-widgets").then((m) => 
 const PoetAboutWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetAboutWidget))
 const QuoteBlockWidget = dynamic(() => import("./poetry-widgets").then((m) => m.QuoteBlockWidget))
 const PoetryFooterWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryFooterWidget))
+const ResumeStoryPage = dynamic(() => import("./resume-pages").then((m) => m.ResumeStoryPage))
+const ResumeOsPage = dynamic(() => import("./resume-pages").then((m) => m.ResumeOsPage))
+const ResumeWidget = dynamic(() => import("./resume-widgets").then((m) => m.ResumeWidget))
 const PoemDetailWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemDetailWidget))
 const PoetryFigureWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoetryFigureWidget))
 const PoemSearchWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemSearchWidget))
@@ -359,6 +362,14 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <QuoteBlockWidget widget={widget} />
     case "poetry-footer":
       return <PoetryFooterWidget widget={widget} />
+    case "resume.hero": case "resume.about": case "resume.contacts": case "resume.experience": case "resume.education": case "resume.honors":
+    case "resume.publications": case "resume.certifications": case "resume.skills": case "resume.languages": case "resume.portfolio": case "resume.stats":
+    case "resume.testimonials": case "resume.volunteering": case "resume.courses": case "resume.contact_cta": case "resume.lang_switch": case "resume.download_pdf":
+      return <ResumeWidget widget={widget} />
+    case "resume.page_story":
+      return <ResumeStoryPage widget={widget} />
+    case "resume.page_os":
+      return <ResumeOsPage widget={widget} />
     case "poem-detail":
       return <PoemDetailWidget widget={widget} />
     case "poetry-figure":

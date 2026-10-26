@@ -1,0 +1,4 @@
+{
+ "theme": {"key": "story", "accent": "#e8502a", "accent_dark": "#e8502a", "mode": "dark", "default_lang": "fa", "languages": ["fa", "en"], "date_calendar": "auto"},
+ "profile": {"avatar_path": "avatar.jpg", "cutout_path": "cutout.png"}
+}

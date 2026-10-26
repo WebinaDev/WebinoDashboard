@@ -9,6 +9,7 @@ import { COMMERCE_PLUGIN } from "./registry-commerce"
 import { CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
 import { POETRY_WIDGETS } from "./registry-poetry"
 import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
+import { RESUME_WIDGETS } from "./registry-resume"
 import { POETRY_PAGE_WIDGETS } from "./registry-poetry-pages"
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
@@ -689,6 +690,7 @@ const CORE_WIDGETS: WidgetDef[] = [
   ...GAP_WIDGETS,
   ...POETRY_WIDGETS,
   ...POETRY_MODULE_WIDGETS,
+  ...RESUME_WIDGETS,
   ...POETRY_PAGE_WIDGETS,
 ]
 
