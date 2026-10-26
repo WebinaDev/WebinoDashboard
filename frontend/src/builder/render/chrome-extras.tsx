@@ -13,6 +13,7 @@ import { useAfterLoad } from "@/components/perf/AfterLoadHtml"
 import { cartCount, subscribeCart } from "../cart"
 import { parseRows, propBool, propNum, propStr } from "../props"
 import { useServerCart } from "../storefront/actions"
+import { quietApi } from "../storefront/session"
 import "./chrome-extras.css"
 
 type P = Record<string, unknown>
@@ -34,6 +35,10 @@ function NavExtrasInner({ p }: { p: P }) {
   const server = (cart?.items ?? []).reduce((s, l) => s + l.quantity, 0)
   const count = auth === "auth" ? server : local
   const links = parseRows(p.accountLinks, ["label", "href"]).filter((l) => l.label)
+  const logout = async () => {
+    await quietApi("/api/v1/auth/logout", { method: "POST" })
+    window.location.href = "/"
+  }
   const menu = links.length ? links : [{ label: "حساب کاربری", href: "/account" }]
   return (
     <div className="wbx-nav-extras">
@@ -46,7 +51,8 @@ function NavExtrasInner({ p }: { p: P }) {
       {propBool(p, "showAccount", false) ? (auth === "auth" ? (
         <details className="wbx-account">
           <summary aria-label="حساب کاربری"><User size={20} aria-hidden /></summary>
-          <div className="wbx-account-menu" role="menu">{menu.map((l, i) => <Link key={i} role="menuitem" href={href(l.href, "/account")}>{l.label}</Link>)}</div>
+          <div className="wbx-account-menu" role="menu">{menu.map((l, i) => <Link key={i} role="menuitem" href={href(l.href, "/account")}>{l.label}</Link>)}
+            {propBool(p, "showLogout", true) ? <button type="button" role="menuitem" className="wbx-logout" onClick={() => void logout()}>{propStr(p, "logoutLabel", "خروج")}</button> : null}</div>
         </details>
       ) : (
         <Link href={href(propStr(p, "loginHref", "/login"), "/login")} className="wbx-login">{propStr(p, "loginLabel", "ورود")}</Link>

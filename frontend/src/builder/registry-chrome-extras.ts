@@ -14,6 +14,8 @@ export const NAV_EXTRA_FIELDS: FieldDef[] = [
   { kind: "text", key: "loginLabel", label: "متن دکمه ورود" },
   { kind: "link", key: "loginHref", label: "پیوند صفحه ورود" },
   { kind: "repeater", key: "accountLinks", label: "منوی حساب کاربری پس از ورود", fields: [...LINKS] } as FieldDef,
+  { kind: "switch", key: "showLogout", label: "نمایش گزینه خروج در منوی حساب" },
+  { kind: "text", key: "logoutLabel", label: "متن گزینه خروج" },
 ]
 
 export const FOOTER_EXTRA_FIELDS: FieldDef[] = [
