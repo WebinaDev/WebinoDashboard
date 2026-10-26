@@ -77,7 +77,7 @@ export default async function RootLayout({
         <script
           id="webina-fingerprint"
           dangerouslySetInnerHTML={{
-            __html: 'window.__WEBINA__=window.Webina=Object.assign(window.Webina||{},{product:"dashboard"});',
+            __html: 'window.__WEBINA__=Object.assign(window.__WEBINA__||window.Webina||{},{product:"dashboard"});window.Webina=window.__WEBINA__',
           }}
         />
         {apiOrigin ? (

@@ -393,7 +393,7 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname === "/_next/image") return rewriteImageOptimizerSource(request) ?? NextResponse.next()
   const res = await handle(request)
   if (res && !request.cookies.get("webina_site")) {
-    res.cookies.set("webina_site", "1", { path: "/", sameSite: "lax", maxAge: 31536000 })
+    res.cookies.set("webina_site", "dashboard", { path: "/", sameSite: "lax", maxAge: 31536000 })
   }
   return res
 }
