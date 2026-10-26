@@ -40,3 +40,5 @@ html:has(.wbx-bleed), body:has(.wbx-bleed) { overflow-x: clip; }
 @media (max-width: 767px) { .wbx-hide-m { display: none !important; } }
 /* Footer sections sit flush: theme section spacing (e.g. .sf-classic margin-block) must not leave light strips around the footer. */
 .wb-section-stack > section:has(.wbx-foot) { margin-block: 0 !important; }
+/* Full-page resume themes (rzx-*) own their chrome: no theme margin strips above/below them. */
+.wb-section-stack > section:has(> .wb-columns [class^="rzx-"], > .wb-columns [class*=" rzx-"]) { margin-block: 0 !important; padding-block: 0 !important; }
