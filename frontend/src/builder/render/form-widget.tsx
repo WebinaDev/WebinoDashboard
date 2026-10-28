@@ -6,7 +6,7 @@ import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 
 import { checkFormUpload, FORM_UPLOAD_ACCEPT, publicFormEndpoints } from "@webina/ui/builder"
 
-import { isVisible, missingOnStep, parseFormFields, stepCount, visiblePayload, type FormField } from "../forms"
+import { isVisible, missingOnStep, withComputed, parseFormFields, stepCount, visiblePayload, type FormField } from "../forms"
 import { parseRows, propStr } from "../props"
 import type { WidgetNode } from "../types"
 
@@ -88,6 +88,28 @@ function Field({ field, value, onChange }: { field: FormField; value: string; on
       </div>
     )
   }
+  if (field.type === "calc") return <output {...common} htmlFor={undefined} className="wb-field block bg-muted font-bold tabular-nums" aria-live="polite">{value ? Number(value).toLocaleString("fa-IR") : "—"}</output>
+  if (field.type === "acceptance")
+    return (
+      <span className="flex items-center gap-2 text-sm">
+        <input {...common} type="checkbox" checked={value === "1"} onChange={(event) => onChange(event.target.checked ? "1" : "")} />
+        <span>می‌پذیرم</span>
+      </span>
+    )
+  if (field.type === "rating") {
+    const current = Number(value) || 0
+    return (
+      <div className="flex gap-1" role="radiogroup" aria-label={field.label} dir="ltr">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} type="button" role="radio" aria-checked={current === n} aria-label={`${n.toLocaleString("fa-IR")} ستاره`} className={`text-2xl leading-none ${n <= current ? "text-amber-400" : "text-muted-foreground/40"}`} onClick={() => onChange(current === n ? "" : String(n))}>
+            ★
+          </button>
+        ))}
+      </div>
+    )
+  }
+  if (field.type === "time" || field.type === "url" || field.type === "password")
+    return <input {...common} type={field.type} dir="ltr" autoComplete={field.type === "password" ? "new-password" : undefined} className="wb-field" value={value} onChange={(event) => onChange(event.target.value)} />
   if (field.type === "date") return <LocaleDatePicker locale="fa" value={value || null} onChange={(next) => onChange(next ?? "")} aria-label={field.label} />
   const type = field.type === "tel" || field.type === "email" || field.type === "number" ? field.type : "text"
   return <input {...common} type={type} dir={type === "tel" || type === "email" ? "ltr" : undefined} className="wb-field" value={value} onChange={(event) => onChange(event.target.value)} />
@@ -152,8 +174,9 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
   // Built-in email/phone inputs sit on the last field step (before the optional review step).
   const reviewing = review && step === steps
   const wide = (field: FormField) => field.type === "textarea" || field.type === "radio" || field.type === "checkbox" || field.type === "heading" || field.type === "file"
-  const shown = (field: FormField) => isVisible(field, values)
-  const display = (field: FormField) => (field.type === "file" ? fileNames[field.name] || "" : values[field.name] ?? "")
+  const computed = withComputed(fields, values)
+  const shown = (field: FormField) => field.type !== "hidden" && isVisible(field, computed)
+  const display = (field: FormField) => (field.type === "file" ? fileNames[field.name] || "" : field.type === "password" ? "••••" : field.type === "acceptance" ? (values[field.name] === "1" ? "پذیرفته شد" : "") : computed[field.name] ?? "")
   return (
     <form
       id={anchor || undefined}
@@ -253,7 +276,7 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
                 {field.type === "file" ? (
                   <FileField field={field} formKey={formKey} onChange={(token, name) => { set(field.name, token); setFileNames((current) => ({ ...current, [field.name]: name })) }} />
                 ) : (
-                  <Field field={field} value={values[field.name] ?? ""} onChange={(value) => set(field.name, value)} />
+                  <Field field={field} value={computed[field.name] ?? ""} onChange={(value) => set(field.name, value)} />
                 )}
               </label>
             ),
