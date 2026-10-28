@@ -11,6 +11,8 @@ class ProductStockAlert extends Model
 
     public const TYPE_ON_SALE = 'on_sale';
 
+    public const TYPE_PRICE_DROP = 'price_drop';
+
     protected $fillable = [
         'tenant_id',
         'product_id',

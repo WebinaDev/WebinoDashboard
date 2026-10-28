@@ -46,4 +46,19 @@ return [
         'customer' => 'دیدگاه شما برای {product_name} در انتظار تأیید است.',
         'admin' => 'دیدگاه جدید {customer_name} برای {product_name} در انتظار تأیید است.',
     ],
+    'product_back_in_stock' => [
+        'title' => 'موجود شد: {product_name}',
+        'customer' => '{product_name} موجود شد. {product_url}',
+        'admin' => '{product_name} موجود شد. {product_url}',
+    ],
+    'product_on_sale' => [
+        'title' => 'حراج: {product_name}',
+        'customer' => '{product_name} در حراج است. {product_url}',
+        'admin' => '{product_name} در حراج است. {product_url}',
+    ],
+    'product_price_drop' => [
+        'title' => 'کاهش قیمت: {product_name}',
+        'customer' => 'قیمت {product_name} به {price} کاهش یافت. {product_url}',
+        'admin' => 'قیمت {product_name} به {price} کاهش یافت. {product_url}',
+    ],
 ];

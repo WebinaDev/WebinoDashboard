@@ -46,4 +46,19 @@ return [
         'customer' => 'Your review for {product_name} is awaiting approval.',
         'admin' => 'New review for {product_name} by {customer_name} is awaiting approval.',
     ],
+    'product_back_in_stock' => [
+        'title' => 'Back in stock: {product_name}',
+        'customer' => '{product_name} is back in stock. {product_url}',
+        'admin' => '{product_name} is back in stock. {product_url}',
+    ],
+    'product_on_sale' => [
+        'title' => 'On sale: {product_name}',
+        'customer' => '{product_name} is on sale. {product_url}',
+        'admin' => '{product_name} is on sale. {product_url}',
+    ],
+    'product_price_drop' => [
+        'title' => 'Price drop: {product_name}',
+        'customer' => '{product_name} dropped to {price}. {product_url}',
+        'admin' => '{product_name} dropped to {price}. {product_url}',
+    ],
 ];

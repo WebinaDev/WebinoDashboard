@@ -41,7 +41,7 @@ class ProductEngagementController extends Controller
     {
         $tid = $this->publicTenantId($request);
         $data = $request->validate([
-            'alert_type' => ['required', 'string', Rule::in([ProductStockAlert::TYPE_BACK_IN_STOCK, ProductStockAlert::TYPE_ON_SALE])],
+            'alert_type' => ['required', 'string', Rule::in([ProductStockAlert::TYPE_BACK_IN_STOCK, ProductStockAlert::TYPE_ON_SALE, ProductStockAlert::TYPE_PRICE_DROP])],
             'channel' => ['required', 'string', Rule::in(['email', 'sms'])],
             'destination' => ['required', 'string', 'max:190'],
         ]);

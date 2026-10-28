@@ -23,7 +23,13 @@ final class NotificationSettings
         'stock_out',
         'review_pending',
         'order_refund_required',
+        'product_back_in_stock',
+        'product_on_sale',
+        'product_price_drop',
     ];
+
+    /** Shopper-subscribed product alerts (stock/sale/price-drop): the subscriber opted in, so customer delivery defaults on. */
+    public const PRODUCT_ALERT_EVENTS = ['product_back_in_stock', 'product_on_sale', 'product_price_drop'];
 
     private const CUSTOMER_EVENTS = ['order_refund_required', 'order_status', 'return_requested', 'return_approved', 'return_rejected', 'user_welcome'];
 
@@ -72,6 +78,9 @@ final class NotificationSettings
 
     private static function defaultAudience(string $channel, string $event, string $audience): bool
     {
+        if (in_array($event, self::PRODUCT_ALERT_EVENTS, true)) {
+            return $audience === 'customer';
+        }
         if ($channel === 'site') {
             return in_array($event, $audience === 'customer' ? self::CUSTOMER_EVENTS : self::ADMIN_EVENTS, true);
         }
