@@ -3,6 +3,7 @@
 namespace App\Services\Seo;
 
 use App\Models\SeoRedirect;
+use App\Models\WordpressRedirect;
 use Illuminate\Support\Collection;
 
 final class SeoRedirectService
@@ -25,15 +26,52 @@ final class SeoRedirectService
         return $path;
     }
 
-    public function find(int $tenantId, string $fromPath): ?SeoRedirect
+    /**
+     * Manual SEO redirects win; otherwise fall back to WordPress-import permalinks/redirects
+     * (old WP URLs → native paths) so a migrated store keeps its 301s.
+     */
+    public function find(int $tenantId, string $fromPath): SeoRedirect|WordpressRedirect|null
     {
         $from = $this->normalizePath($fromPath);
 
-        return SeoRedirect::query()
+        $manual = SeoRedirect::query()
             ->where('tenant_id', $tenantId)
             ->where('enabled', true)
             ->where('from_path', $from)
             ->first();
+        if ($manual !== null || $from === '/') {
+            return $manual;
+        }
+
+        return $this->findImported($tenantId, $from);
+    }
+
+    private function findImported(int $tenantId, string $from): ?WordpressRedirect
+    {
+        $decoded = rawurldecode($from);
+        $encoded = implode('/', array_map(fn ($seg) => rawurlencode($seg), explode('/', $decoded)));
+        $variants = array_values(array_unique([$from, $from.'/', $decoded, $decoded.'/', $encoded, $encoded.'/']));
+
+        $row = WordpressRedirect::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('from_path', $variants)
+            ->orderByDesc('id')
+            ->first();
+        if ($row === null) {
+            return null;
+        }
+        $to = $this->normalizePath((string) $row->to_path);
+        // Root permalink stores (product_permalink_base = ''): /{slug} is itself canonical, never bounce it to /product/{slug}.
+        if (str_starts_with($to, '/product/')) {
+            $to = SeoSettingsService::productPathFor(app(SeoSettingsService::class)->get($tenantId), substr($to, strlen('/product/')));
+        }
+        if (rawurldecode($to) === $decoded || $to === '') {
+            return null;
+        }
+        $row->to_path = $to;
+        $row->status_code = in_array((int) $row->status_code, [301, 302, 307, 308], true) ? (int) $row->status_code : 301;
+
+        return $row;
     }
 
     /** @return Collection<int, SeoRedirect> */

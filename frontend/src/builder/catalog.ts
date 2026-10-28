@@ -47,6 +47,8 @@ export type ShopProduct = {
   rating?: number
   /** Simple-product stock count when managed; null = unmanaged. */
   stock?: number | null
+  /** ISO end of a timed sale («شگفت‌انگیز» countdown); null = open-ended. */
+  saleEndsAt?: string | null
   /** Category-specific return policy text (inherited from parent categories); null = use the global text. */
   returnNotice?: string | null
 }
@@ -348,6 +350,7 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     priceUpdatedAt: str(raw.price_updated_at) || null,
     rating: num(raw.average_rating) || num(raw.rating_average) || num(raw.rating) || undefined,
     stock: raw.stock == null ? null : num(raw.stock),
+    saleEndsAt: str(raw.sale_ends_at) || null,
     returnNotice: str(raw.return_notice) || null,
   }
 }

@@ -98,7 +98,7 @@ final class SeoMetaBuilder
 
         return $this->build(
             $tenant,
-            '/product/'.$product->slug,
+            $this->settings->productPath((int) $tenant->id, (string) $product->slug),
             (string) $product->name,
             mb_substr(strip_tags((string) ($product->short_description ?? $product->description ?? '')), 0, 160),
             $seo,
@@ -309,7 +309,7 @@ final class SeoMetaBuilder
             if ($category) {
                 $crumbs[] = ['name' => $category->name, 'url' => $root.'/shop?category='.rawurlencode((string) $category->slug)];
             }
-            $crumbs[] = ['name' => $product->name, 'url' => $meta['canonical'] ?? ($root.'/product/'.rawurlencode((string) $product->slug))];
+            $crumbs[] = ['name' => $product->name, 'url' => $meta['canonical'] ?? ($root.$this->settings->productPath((int) $tenant->id, rawurlencode((string) $product->slug)))];
             $graphs[] = [
                 '@type' => 'BreadcrumbList',
                 'itemListElement' => array_map(fn ($c, $i) => [

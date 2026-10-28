@@ -79,7 +79,8 @@ class PublicCatalogController extends Controller
             });
         }
 
-        if ($request->boolean('on_sale') && (! empty($archive['filter_on_sale']) || $request->boolean('builder'))) {
+        // `offers=1` = the «شگفت‌انگیزها» page: always limited to live discounts, regardless of archive filter toggles.
+        if (($request->boolean('on_sale') && (! empty($archive['filter_on_sale']) || $request->boolean('builder'))) || $request->boolean('offers')) {
             $productsQuery->where(function ($builder) {
                 $builder->where('discount_percent', '>', 0)
                     ->orWhere(fn ($sale) => $sale->whereNotNull('sale_price_minor')->saleWindowOpen());
@@ -153,6 +154,8 @@ class PublicCatalogController extends Controller
                     ->whereNotIn('orders.status', ['cancelled', 'canceled', 'failed', 'payment_failed', 'refunded', 'pending_payment', 'awaiting_gateway'])
             )->orderByDesc('id'),
             'menu' => $productsQuery->orderBy('sort_order')->orderBy('name'),
+            // Soonest-ending sale first (timed offers lead), then biggest discount.
+            'ending_soon' => $productsQuery->orderByRaw('sale_ends_at IS NULL')->orderBy('sale_ends_at')->orderByDesc('discount_percent')->orderByDesc('id'),
             default => $productsQuery->orderByDesc('id'),
         };
 

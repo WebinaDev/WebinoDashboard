@@ -15,6 +15,7 @@ import {
 
 import { cartCount, cartSnapshot, setQty, subscribeCart, type CartLine } from "@/builder/cart"
 import { type ShopCategory, type ShopProduct } from "@/builder/catalog"
+import { categoryHref } from "@/kernel/store-slug-href"
 import { setServerQty, useServerCart } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
 import { useCatalog } from "@/builder/storefront/use-catalog"
@@ -130,7 +131,7 @@ function MegaChildList({
       {flat.map((row) => (
         <li key={row.key} className={row.level === 2 ? "sfc-mega__l2" : "sfc-mega__l3"}>
           <Link
-            href={`/shop?category=${row.slug}`}
+            href={categoryHref(row.slug)}
             className={row.level === 2 ? "sfc-mega__l2-link" : "sfc-mega__l3-link"}
             onClick={onNavigate}
           >
@@ -171,7 +172,7 @@ function DeepMegaPanel({
         {categories.map((cat, index) => (
           <li key={cat.slug} role="none">
             <Link
-              href={`/shop?category=${cat.slug}`}
+              href={categoryHref(cat.slug)}
               role="tab"
               aria-selected={index === activeCat}
               className={index === activeCat ? "is-active" : ""}
@@ -189,7 +190,7 @@ function DeepMegaPanel({
         ))}
       </ul>
       <div className="sfc-mega__childs">
-        <Link href={`/shop?category=${active?.slug ?? ""}`} className="sfc-mega__all" onClick={onClose}>
+        <Link href={active?.slug ? categoryHref(active.slug) : "/shop"} className="sfc-mega__all" onClick={onClose}>
           {tx("header.mega_all_prefix")} {active?.name}
           <IconChevronLeft size={14} />
         </Link>
@@ -1085,7 +1086,7 @@ export function ClassicHeader({
                 return (
                   <div key={cat.slug} className="sfc-drawer__cat">
                     <div className="sfc-drawer__cat-row">
-                      <Link href={`/shop?category=${cat.slug}`} onClick={() => setDrawer(false)}>
+                      <Link href={categoryHref(cat.slug)} onClick={() => setDrawer(false)}>
                         {cat.name}
                       </Link>
                       {kids.length ? (
@@ -1102,7 +1103,7 @@ export function ClassicHeader({
                     {open ? (
                       <div className="sfc-drawer__sub">
                         {kids.map((child) => (
-                          <Link key={child.slug} href={`/shop?category=${child.slug}`} onClick={() => setDrawer(false)}>
+                          <Link key={child.slug} href={categoryHref(child.slug)} onClick={() => setDrawer(false)}>
                             {child.name}
                           </Link>
                         ))}

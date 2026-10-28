@@ -31,6 +31,8 @@ trait SerializesCatalogProduct
             'is_new' => $product->is_new,
             'is_featured' => $product->is_featured,
             'discount_percent' => $product->discount_percent,
+            'sale_ends_at' => $product->isOnSale() ? optional($product->sale_ends_at)?->toIso8601String() : null,
+            'stock' => $product->manage_stock && $product->stock !== null ? (int) $product->stock : null,
             'price_updated_at' => optional($product->price_updated_at)?->toIso8601String(),
             'faqs' => is_array($product->faqs) ? $product->faqs : [],
             'calories' => $product->calories,

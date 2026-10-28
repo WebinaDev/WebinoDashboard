@@ -1668,7 +1668,11 @@
       "redirects_title": "ریدایرکت‌ها",
       "add_redirect": "افزودن",
       "delete": "حذف",
-      "no_redirects": "ریدایرکتی ثبت نشده است."
+      "no_redirects": "ریدایرکتی ثبت نشده است.",
+      "product_permalink_base": "ساختار نشانی محصول",
+      "product_permalink_product": "‎/product/نام-محصول (پیش‌فرض)",
+      "product_permalink_root": "‎/نام-محصول (مثل ووکامرس با پایه خالی)",
+      "product_permalink_hint": "برای فروشگاه‌های مهاجرت‌کرده از وردپرس که محصول در ریشه سایت است، «ریشه» را انتخاب کنید تا canonical و نقشه سایت همان آدرس قبلی بماند."
     },
     "performance": {
       "loading": "در حال بارگذاری…",
@@ -7529,7 +7533,12 @@
     "questions_login": "برای ثبت پرسش وارد حساب شوید",
     "questions_error": "ارسال پرسش ناموفق بود.",
     "national_id": "کد ملی",
-    "national_id_invalid": "کد ملی معتبر نیست."
+    "national_id_invalid": "کد ملی معتبر نیست.",
+    "offers_ends_in": "پایان تا",
+    "offers_ended": "به پایان رسید",
+    "offers_left": "تنها {count} عدد باقی مانده",
+    "offers_load_more": "نمایش بیشتر",
+    "offers_count": "{count} پیشنهاد فعال"
   },
   "storefront_badges": {
     "title": "پرداخت اعتباری / اقساط",

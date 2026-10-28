@@ -94,6 +94,7 @@ final class SitemapBuilder
             return $this->emptyUrlset();
         }
         $base = $this->base($tenant);
+        $cfg = $this->settings->get((int) $tenant->id);
         $urls = [];
         Product::query()
             ->where('tenant_id', $tenant->id)
@@ -104,9 +105,9 @@ final class SitemapBuilder
             ->orderBy('id')
             ->limit(20000)
             ->get(['slug', 'updated_at'])
-            ->each(function ($p) use (&$urls, $base) {
+            ->each(function ($p) use (&$urls, $base, $cfg) {
                 $urls[] = [
-                    'loc' => $base.'/product/'.$p->slug,
+                    'loc' => $base.SeoSettingsService::productPathFor($cfg, (string) $p->slug),
                     'lastmod' => optional($p->updated_at)?->toAtomString() ?? Carbon::now()->toAtomString(),
                 ];
             });
@@ -190,13 +191,13 @@ final class SitemapBuilder
             ->orderBy('id')
             ->limit(5000)
             ->get(['slug', 'name', 'meta', 'updated_at'])
-            ->each(function ($p) use (&$body, $base) {
+            ->each(function ($p) use (&$body, $base, $cfg) {
                 $meta = is_array($p->meta) ? $p->meta : [];
                 $video = (string) ($meta['video_url'] ?? $meta['seo_video_url'] ?? '');
                 if ($video === '') {
                     return;
                 }
-                $loc = e($base.'/product/'.$p->slug);
+                $loc = e($base.SeoSettingsService::productPathFor($cfg, (string) $p->slug));
                 $body .= "  <url>\n    <loc>{$loc}</loc>\n"
                     ."    <video:video>\n"
                     .'      <video:thumbnail_loc>'.e((string) ($meta['seo_og_image'] ?? $meta['image_url'] ?? $loc))."</video:thumbnail_loc>\n"

@@ -2190,7 +2190,11 @@
       "redirects_title": "Redirects",
       "add_redirect": "Add",
       "delete": "Delete",
-      "no_redirects": "No redirects yet."
+      "no_redirects": "No redirects yet.",
+      "product_permalink_base": "Product URL structure",
+      "product_permalink_product": "/product/slug (default)",
+      "product_permalink_root": "/slug (WooCommerce root base)",
+      "product_permalink_hint": "For stores migrated from WordPress with root product URLs, choose root so canonicals and sitemaps keep the old addresses."
     },
     "performance": {
       "loading": "Loading…",
@@ -7529,7 +7533,12 @@
     "questions_login": "Sign in to ask a question",
     "questions_error": "Could not send your question.",
     "national_id": "National ID",
-    "national_id_invalid": "National ID is not valid."
+    "national_id_invalid": "National ID is not valid.",
+    "offers_ends_in": "Ends in",
+    "offers_ended": "Ended",
+    "offers_left": "Only {count} left",
+    "offers_load_more": "Load more",
+    "offers_count": "{count} active offers"
   },
   "storefront_badges": {
     "title": "Credit / installment",

@@ -40,7 +40,23 @@ final class SeoSettingsService
             'schema_website_enabled' => true,
             'canonical_force_https' => true,
             'redirect_trailing_slash' => false,
+            // WooCommerce permalink parity: '' = root (/{slug}, parisma.ir), default 'product' (/product/{slug}).
+            'product_permalink_base' => 'product',
         ];
+    }
+
+    /** Canonical site path for a product, honouring `product_permalink_base` (root for migrated WP stores). */
+    public function productPath(int $tenantId, string $slug): string
+    {
+        return self::productPathFor($this->get($tenantId), $slug);
+    }
+
+    /** @param  array<string, mixed>  $cfg */
+    public static function productPathFor(array $cfg, string $slug): string
+    {
+        $base = trim((string) ($cfg['product_permalink_base'] ?? 'product'), "/ \t");
+
+        return ($base === '' ? '' : '/'.$base).'/'.$slug;
     }
 
     /** @return array<string, mixed> */
@@ -72,6 +88,7 @@ final class SeoSettingsService
                 $current[$key] = $value;
             }
         }
+        $current['product_permalink_base'] = strtolower(trim((string) preg_replace('/[^A-Za-z0-9\-_]/', '', (string) ($current['product_permalink_base'] ?? 'product'))));
         $this->settings->put($tenantId, self::MODULE, self::KEY, $current);
 
         return $this->get($tenantId);

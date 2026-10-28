@@ -120,6 +120,18 @@ export function SeoSettingsPanel() {
               )}
             </div>
           ))}
+          <div className="grid gap-1">
+            <Label>{t("product_permalink_base")}</Label>
+            <select
+              className="h-9 rounded-md border bg-background px-3 text-sm"
+              value={String(draft.product_permalink_base ?? "product") === "" ? "" : "product"}
+              onChange={(e) => setDraft({ ...draft, product_permalink_base: e.target.value })}
+            >
+              <option value="product">{t("product_permalink_product")}</option>
+              <option value="">{t("product_permalink_root")}</option>
+            </select>
+            <p className="text-xs text-muted-foreground">{t("product_permalink_hint")}</p>
+          </div>
           <MediaPickerField
             label={t("og_image")}
             imageUrl={String(draft.og_image ?? "")}
