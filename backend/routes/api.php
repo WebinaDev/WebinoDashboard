@@ -316,6 +316,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/catalog/categories/tree', [PublicStorefrontController::class, 'categoryTree']);
             Route::get('/catalog/resolve-slug', [\App\Http\Controllers\Api\V1\PublicSlugResolverController::class, 'resolve']);
             Route::post('/coupons/preview', [PublicStorefrontController::class, 'previewCoupon'])->middleware('throttle:20,1');
+            Route::post('/coupons/available', [PublicStorefrontController::class, 'availableCoupons'])->middleware('throttle:30,1');
             Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);
             Route::get('/catalog/items/{slug}/questions', [ProductQuestionController::class, 'publicIndex']);
             Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore'])->middleware('throttle:public-writes');

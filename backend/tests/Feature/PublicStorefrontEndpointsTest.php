@@ -134,4 +134,20 @@ class PublicStorefrontEndpointsTest extends TestCase
         $items = $this->pub()->getJson('/api/v1/public/catalog?sort=best_selling')->assertOk()->json('data.items');
         $this->assertSame('a', $items[0]['slug']);
     }
+
+    public function test_available_coupons_lists_only_opted_in_public_coupons(): void
+    {
+        $base = ['tenant_id' => $this->tenant->id, 'type' => 'percent', 'amount' => 10, 'status' => 'publish'];
+        Coupon::query()->create($base + ['code' => 'SHOWME', 'restrictions' => ['show_in_cart' => true]]);
+        Coupon::query()->create($base + ['code' => 'BIGSPEND', 'min_spend_minor' => 9000000, 'restrictions' => ['show_in_cart' => true]]);
+        Coupon::query()->create($base + ['code' => 'SECRET']);
+        Coupon::query()->create($base + ['code' => 'PRIV', 'visibility' => 'private', 'restrictions' => ['show_in_cart' => true]]);
+
+        $res = $this->pub()->postJson('/api/v1/public/coupons/available', ['subtotal_minor' => 1000000])->assertOk();
+        $codes = collect($res->json('data'))->pluck('code')->all();
+        $this->assertSame(['SHOWME', 'BIGSPEND'], $codes);
+        $this->assertTrue($res->json('data.0.eligible'));
+        $this->assertSame(100000, $res->json('data.0.discount_minor'));
+        $this->assertFalse($res->json('data.1.eligible'));
+    }
 }

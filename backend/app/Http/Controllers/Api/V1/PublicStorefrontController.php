@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Services\Coupons\CouponService;
@@ -181,6 +182,63 @@ class PublicStorefrontController extends Controller
                 'free_shipping' => (bool) $result['free_shipping'],
             ],
         ]);
+    }
+
+    /**
+     * Cart "coupons you can use" chooser (parisma webino-coupon-chooser parity).
+     * Only coupons the merchant opted in (restrictions.show_in_cart) or auto-apply ones are listed —
+     * never private / password coupons.
+     */
+    public function availableCoupons(Request $request, CouponService $coupons): JsonResponse
+    {
+        $tid = $this->publicTenantId($request);
+        $data = $request->validate([
+            'subtotal_minor' => ['required', 'integer', 'min:0'],
+            'lines' => ['nullable', 'array', 'max:100'],
+            'lines.*.product_id' => ['nullable', 'integer'],
+            'lines.*.unit_price_minor' => ['required_with:lines', 'integer', 'min:0'],
+            'lines.*.quantity' => ['required_with:lines', 'integer', 'min:1'],
+        ]);
+        $lines = array_values($data['lines'] ?? []);
+        $userId = $request->user()?->id;
+
+        $rows = Coupon::query()->where('tenant_id', $tid)->where('status', 'publish')
+            ->where(fn ($q) => $q->whereNull('visibility')->orWhere('visibility', 'public'))
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->orderBy('id')->limit(200)->get()
+            ->filter(fn (Coupon $c) => $c->auto_apply || (bool) (($c->restrictions ?? [])['show_in_cart'] ?? false))
+            ->take(20);
+
+        $out = [];
+        foreach ($rows as $c) {
+            $eligible = true;
+            $discount = 0;
+            $free = false;
+            $reason = null;
+            try {
+                $r = $coupons->evaluate($c, (int) $data['subtotal_minor'], $lines, $userId, 'site');
+                $discount = (int) $r['discount_minor'];
+                $free = (bool) $r['free_shipping'];
+            } catch (ValidationException $e) {
+                $eligible = false;
+                $reason = collect($e->errors())->flatten()->first();
+            }
+            $out[] = [
+                'code' => $c->code,
+                'description' => (string) ($c->description ?? ''),
+                'type' => $c->type,
+                'amount' => (int) $c->amount,
+                'min_spend_minor' => $c->min_spend_minor ? (int) $c->min_spend_minor : null,
+                'expires_at' => $c->expires_at?->toIso8601String(),
+                'eligible' => $eligible,
+                'discount_minor' => $discount,
+                'free_shipping' => $free,
+                'reason' => $reason,
+            ];
+        }
+        usort($out, fn ($a, $b) => [$b['eligible'], $b['discount_minor']] <=> [$a['eligible'], $a['discount_minor']]);
+
+        return response()->json(['data' => $out]);
     }
 
     public function categoryTree(Request $request): JsonResponse

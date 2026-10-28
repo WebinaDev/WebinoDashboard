@@ -38,3 +38,27 @@ export async function previewCoupon(
   const data = (res.data as { data?: CouponPreview }).data ?? res.data
   return { ok: true, data }
 }
+
+export type AvailableCoupon = {
+  code: string
+  description: string
+  type: string
+  amount: number
+  min_spend_minor: number | null
+  expires_at: string | null
+  eligible: boolean
+  discount_minor: number
+  free_shipping: boolean
+  reason: string | null
+}
+
+/** Merchant-opted-in coupons for the cart chooser, evaluated against the current subtotal. */
+export async function fetchAvailableCoupons(subtotalMinor: number): Promise<AvailableCoupon[]> {
+  const res = await quietApi<{ data?: AvailableCoupon[] }>("/api/v1/public/coupons/available", {
+    method: "POST",
+    json: { subtotal_minor: Math.max(0, Math.round(subtotalMinor)) },
+  })
+  if (!res.ok) return []
+  const body = res.data as { data?: AvailableCoupon[] } | AvailableCoupon[]
+  return Array.isArray(body) ? body : (body.data ?? [])
+}

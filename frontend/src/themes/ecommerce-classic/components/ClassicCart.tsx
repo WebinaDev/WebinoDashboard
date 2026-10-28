@@ -12,6 +12,7 @@ import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import { IconArrowRight, IconBag, IconCard, IconCheck, IconChevronLeft, IconMinus, IconPin, IconPlus, IconTruck, IconUser } from "./icons"
 import { ClassicAmount, useDigits } from "./parts"
+import { ClassicCouponChooser } from "./ClassicCouponChooser"
 import { useClassicText } from "../lib/texts"
 import { optImg } from "@/lib/image-url"
 
@@ -175,8 +176,9 @@ export function ClassicCart() {
   const discount = applied ? Math.min(applied.discount, total) : 0
   const payable = Math.max(0, total - discount)
 
-  async function applyCoupon() {
-    const code = coupon.trim()
+  async function applyCoupon(override?: string) {
+    const code = (override ?? coupon).trim()
+    if (override) setCoupon(override)
     if (!code) {
       setCouponNote(tx("cart.coupon_empty"))
       return
@@ -208,6 +210,20 @@ export function ClassicCart() {
         </h1>
         <span className="sfc-cart__later">سبد خرید بعدی ({digits(0)})</span>
       </div>
+      {showCoupon && lines.length ? (
+        <ClassicCouponChooser
+          subtotal={total}
+          appliedCode={applied?.code ?? null}
+          busy={couponBusy}
+          onApply={(code) => void applyCoupon(code)}
+          onRemove={() => {
+            setApplied(null)
+            storeCoupon(null)
+            setCoupon("")
+            setCouponNote("")
+          }}
+        />
+      ) : null}
       <div className="sfc-cart__grid">
         <div className="sfc-cart__main">
           {auth === "loading" ? (

@@ -196,6 +196,7 @@ class CouponController extends Controller
             'restrictions.emails.*' => ['string', 'max:191'],
             'restrictions.channels' => ['nullable', 'array'],
             'restrictions.channels.*' => ['string', 'in:site,bale,telegram'],
+            'restrictions.show_in_cart' => ['nullable', 'boolean'],
             'restrictions.offer' => ['nullable', 'array'],
             'restrictions.offer.buy' => ['nullable', 'integer', 'min:1', 'max:100'],
             'restrictions.offer.get' => ['nullable', 'integer', 'min:1', 'max:100'],

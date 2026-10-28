@@ -3895,6 +3895,7 @@
       "reward_value": "Reward value",
       "code": "Code",
       "auto_apply": "Auto-apply (no code needed)",
+      "show_in_cart": "Show in the cart “coupons you can use” list",
       "description": "Description",
       "status": "Status"
     },

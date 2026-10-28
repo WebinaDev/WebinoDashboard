@@ -28,6 +28,7 @@ type Draft = {
   rewardType: RewardType
   rewardValue: string
   autoApply: boolean
+  showInCart?: boolean
 }
 
 const TEMPLATES: { id: "first_order" | "free_shipping_over" | "buy_n_items"; icon: typeof Gift; draft: Draft }[] = [
@@ -92,6 +93,7 @@ export function CouponBuilder({ onCreated }: { onCreated?: (coupon: CreatedCoupo
       condition_type: draft.conditionType,
       condition_value: draft.conditionType !== "none" && draft.conditionValue ? Number(draft.conditionValue) : null,
       auto_apply: draft.autoApply,
+      restrictions: { show_in_cart: Boolean(draft.showInCart) },
     }
   }
 
@@ -268,6 +270,10 @@ export function CouponBuilder({ onCreated }: { onCreated?: (coupon: CreatedCoupo
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox checked={draft.autoApply} onCheckedChange={(v) => patch({ autoApply: v === true })} />
                 {t("fields.auto_apply")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={Boolean(draft.showInCart)} onCheckedChange={(v) => patch({ showInCart: v === true })} />
+                {t("fields.show_in_cart")}
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
