@@ -81,6 +81,25 @@ const LINK_HUB_RESERVED = new Set([
  * `/contact` on the primary domain: when no builder page claims it, send visitors to the tenant's
  * contact (link hub) alias, e.g. cafebluedez.ir/contact -> https://contact.cafebluedez.ir/.
  */
+/** Absolute redirect target: Next middleware throws `TypeError: Invalid URL` on a relative Location. Keeps query/hash; external absolute targets pass through. */
+function absoluteRedirectUrl(target: string, request: NextRequest): URL {
+  const fwdHost = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "").split(",")[0].trim()
+  const fwdProto = (request.headers.get("x-forwarded-proto") || "").split(",")[0].trim()
+  let base: URL
+  try {
+    base = new URL(request.url)
+    if (fwdHost) base.host = fwdHost
+    if (fwdProto === "http" || fwdProto === "https") base.protocol = `${fwdProto}:`
+  } catch {
+    base = new URL(`https://${fwdHost || "localhost"}/`)
+  }
+  try {
+    return new URL(target, base)
+  } catch {
+    return new URL("/", base)
+  }
+}
+
 async function contactAliasRedirect(request: NextRequest): Promise<string | null> {
   const apiBase = getServerApiBase()
   if (!apiBase) return null
@@ -225,7 +244,7 @@ async function handle(request: NextRequest) {
       }
     } else if (pathname === "/contact") {
       const target = await contactAliasRedirect(request)
-      if (target) return NextResponse.redirect(target, 308)
+      if (target) return NextResponse.redirect(absoluteRedirectUrl(target, request), 308)
     }
   }
 
@@ -253,7 +272,7 @@ async function handle(request: NextRequest) {
   if (!pathname.startsWith("/dashboard") && !pathname.startsWith("/api") && !pathname.includes(".")) {
     const siteHost = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
     const to = siteRedirectFor(siteHost, pathname)
-    if (to) return new NextResponse(null, { status: 301, headers: { Location: to } })
+    if (to) return NextResponse.redirect(absoluteRedirectUrl(to, request), 301)
   }
 
   // Native SEO redirects (no Rank Math)
@@ -280,8 +299,8 @@ async function handle(request: NextRequest) {
           const to = json.data?.to_path
           const code = Number(json.data?.status_code ?? 301)
           if (to && normalizeRedirectPath(to) !== lookupPath) {
-            const url = request.nextUrl.clone()
-            url.pathname = to
+            const url = absoluteRedirectUrl(to, request)
+            if (!/^[a-z][a-z0-9+.-]*:/i.test(to) && !to.includes("?") && request.nextUrl.search) url.search = request.nextUrl.search
             return NextResponse.redirect(
               url,
               [301, 302, 307, 308].includes(code) ? (code as 301 | 302 | 307 | 308) : 301,
@@ -297,7 +316,7 @@ async function handle(request: NextRequest) {
   // WordPress-style trailing slash (/shop/, /about/) → one 301 to the slashless canonical (Next's own 308 is disabled).
   // Location comes from the raw URL: a cloned nextUrl re-adds the slash (skipTrailingSlashRedirect) → self-redirect loop.
   if (pathname.length > 1 && pathname.endsWith("/") && !pathname.startsWith("/wp-json")) {
-    return new NextResponse(null, { status: 301, headers: { Location: trailingSlashTarget(request.url) } })
+    return NextResponse.redirect(absoluteRedirectUrl(trailingSlashTarget(request.url), request), 301)
   }
 
   // Legacy /admin → /dashboard (bookmarks & old links)
