@@ -2,7 +2,8 @@
 
 import { History, RotateCcw, X } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
+import { diffDocuments } from "@webina/ui/builder"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -16,17 +17,22 @@ import type { BuilderDocument } from "../types"
 
 export type RevisionTarget = { type: "page" | "template" | "post"; id: number }
 
+const fa = (n: number) => String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
+
 type Row = { id: number; reason: string; size: number; user_name?: string | null; created_at?: string; updated_at?: string }
 
 /** Server-side revision history: list, preview (read-only render) and restore into the draft. */
 export function RevisionsPanel({
   target,
   globals,
+  current,
   onClose,
   onRestored,
 }: {
   target: RevisionTarget
   globals: BuilderGlobals
+  /** Current draft; when set, the preview shows what restoring would change. */
+  current?: BuilderDocument
   onClose: () => void
   onRestored: (doc: BuilderDocument) => void
 }) {
@@ -35,6 +41,7 @@ export function RevisionsPanel({
   const [rows, setRows] = useState<Row[] | null>(null)
   const [preview, setPreview] = useState<{ id: number; doc: BuilderDocument } | null>(null)
   const [busy, setBusy] = useState(false)
+  const diff = useMemo(() => (preview && current ? diffDocuments(preview.doc, current) : null), [preview, current])
 
   useEffect(() => {
     let cancel = false
@@ -101,11 +108,20 @@ export function RevisionsPanel({
       </aside>
       <div className="min-w-0 flex-1 overflow-auto bg-[#d7e0ea] p-6" onClick={onClose}>
         {preview ? (
+          <>
+          {diff ? (
+            <p className="mx-auto mb-3 max-w-6xl rounded-xl bg-white/90 px-3 py-2 text-xs text-[#0C2D63]" dir="rtl" onClick={(event) => event.stopPropagation()}>
+              {diff.added + diff.removed + diff.changed === 0
+                ? "این نسخه با پیش‌نویس فعلی یکسان است."
+                : `بازگردانی این نسخه: ${fa(diff.added)} بخش برمی‌گردد، ${fa(diff.removed)} بخش حذف می‌شود، ${fa(diff.changed)} بخش تغییر می‌کند.`}
+            </p>
+          ) : null}
           <div className="pointer-events-none mx-auto max-w-6xl overflow-hidden rounded-2xl bg-[#f5f8fb] shadow-xl" onClick={(event) => event.stopPropagation()}>
             <Suspense fallback={null}>
               <DocumentView document={preview.doc} mode="edit" globals={globals} />
             </Suspense>
           </div>
+          </>
         ) : (
           <p className="grid h-full place-items-center text-sm text-white">{t("revision_pick")}</p>
         )}

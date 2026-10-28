@@ -1,5 +1,6 @@
 "use client"
 
+import { abVerdict } from "@webina/ui/builder"
 import { CalendarClock, Copy, FlaskConical, Globe2, Search, X } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
@@ -330,10 +331,23 @@ export function PageSettingsPanel({
               </table>
             ) : null}
             {ab ? <p className={ab.significant ? "font-semibold text-green-700" : "text-[#0C2D63]/60"}>{ab.significant ? t("ab_significant", { winner: ab.z > 0 ? "B" : "A" }) : t("ab_not_significant")}</p> : null}
+            {ab ? <AbLift ab={ab} /> : null}
             <p className="text-[10px] text-[#0C2D63]/60">{t("ab_goal_hint")}</p>
           </div>
         ) : null}
       </aside>
     </div>
+  )
+}
+
+/** Phase 10: conversion rates and lift of B over A (same z-test as the backend, via @webina/ui). */
+function AbLift({ ab }: { ab: { views_a: number; views_b: number; conversions_a: number; conversions_b: number } }) {
+  const v = abVerdict({ viewsA: ab.views_a, conversionsA: ab.conversions_a, viewsB: ab.views_b, conversionsB: ab.conversions_b })
+  const pct = (n: number) => `${(n * 100).toLocaleString("fa-IR", { maximumFractionDigits: 1 })}٪`
+  return (
+    <p className="text-xs text-[#0C2D63]/70" dir="rtl">
+      نرخ تبدیل A: {pct(v.rateA)} · B: {pct(v.rateB)}{v.rateA > 0 ? ` · تغییر: ${v.lift >= 0 ? "+" : ""}${pct(v.lift)}` : ""}
+      {v.winner ? ` · برنده: نسخهٔ ${v.winner}` : " · هنوز برنده‌ای مشخص نیست"}
+    </p>
   )
 }

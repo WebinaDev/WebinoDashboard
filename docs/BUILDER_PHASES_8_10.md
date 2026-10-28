@@ -26,3 +26,20 @@ Remaining Elementor/Wix-parity gaps, grouped (verify each against code before st
 
 Rules: Persian/RTL/Jalali UI, settings get backward-compatible defaults, shared widget code goes to `@webina/ui`,
 implement in Dashboard and ERP together.
+
+## Status — 2026-10-28 (Asia/Tehran)
+
+Shared logic lives in `@webina/ui` v0.6.0 (`kit-presets`, `doc-diff`, `ab-winner`, `lazy-media`) and is used by both Dashboard and ERP.
+
+- **Phase 8, done:** the editor menu has a «کیت‌های آماده» item (`editor/KitPresetsPanel.tsx`). It offers 6 presets and changes only colours, palette, button radius and button variants, using `updateGlobals`.
+  - Global colours, palette, classes and per-element custom CSS were already in place.
+- **Phase 9, done:** the Lottie widget loads only near the viewport, pauses off-screen, and doesn't autoplay under `prefers-reduced-motion`.
+  - Entrance animations and popup triggers (exit intent, inactivity, frequency) were already in place.
+- **Phase 10, done:**
+  - The revision preview shows a diff summary against the current draft ("بخش برمی‌گردد / حذف / تغییر").
+  - Page settings show A/B conversion rates, lift and the winner. This uses the same z-test as `BuilderAbController`.
+- **Left:**
+  - Theme-builder display conditions (show a template by category or product type).
+  - A/B/n with more than two variants (needs backend schema).
+  - Automatically promoting the A/B winner.
+  - A Lottie JSON upload helper.
