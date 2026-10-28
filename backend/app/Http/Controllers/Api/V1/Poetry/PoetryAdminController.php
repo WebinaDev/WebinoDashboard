@@ -18,7 +18,7 @@ class PoetryAdminController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $q = PoetryPoem::query()->with(['terms', 'occasion', 'meter'])->orderByDesc('id');
+        $q = PoetryPoem::query()->with(['terms', 'occasion', 'meter'])->withExists(['mediaItems as media_items_exists'])->orderByDesc('id');
         if ($s = trim((string) $request->query('q', ''))) {
             $q->where('title', 'like', '%'.$s.'%');
         }

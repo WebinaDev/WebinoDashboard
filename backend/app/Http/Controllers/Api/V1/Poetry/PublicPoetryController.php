@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\Poetry\PoetryMedia;
 use App\Models\Poetry\PoetryPoem;
 use App\Models\Poetry\PoetryTerm;
 use App\Services\Poetry\PoetryPresenter;
@@ -64,6 +65,24 @@ class PublicPoetryController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    /** Standalone audio/video (poem optional). Only published items with a file or a link. */
+    public function media(Request $request): JsonResponse
+    {
+        $q = PoetryMedia::query()->published()->playable()->with(['asset', 'occasion', 'poem' => fn ($w) => $w->published()]);
+        if (in_array($request->query('kind'), PoetryMedia::KINDS, true)) {
+            $q->where('kind', $request->query('kind'));
+        }
+        if ($occ = $request->query('occasion')) {
+            $q->whereHas('occasion', fn ($w) => $w->where('slug', $occ));
+        }
+        $request->query('sort') === 'popular' ? $q->orderByDesc('play_count') : $q->orderBy('sort')->orderByDesc('id');
+        $items = $q->limit(min(60, max(1, (int) $request->query('limit', 24))))->get();
+        $public = ['id', 'title', 'kind', 'url', 'external_url', 'embed_url', 'cover', 'reciter', 'duration', 'occasion', 'poem'];
+
+        return response()->json(['data' => $items->map(fn ($m) => array_intersect_key(PoetryPresenter::media($m), array_flip($public)))
+            ->filter(fn ($r) => $r['url'] || $r['external_url'])->values()->all()]);
+    }
+
     public function text(string $slug)
     {
         $poem = $this->find($slug);
@@ -89,7 +108,8 @@ class PublicPoetryController extends Controller
 
     private function filtered(Request $request)
     {
-        $q = PoetryPoem::query()->published()->with(['terms', 'occasion', 'meter']);
+        $q = PoetryPoem::query()->published()->with(['terms', 'occasion', 'meter'])
+            ->withExists(['mediaItems as media_items_exists' => fn ($m) => $m->published()->playable()]);
         $text = trim((string) $request->query('q', ''));
         if ($text !== '') {
             $needle = '%'.str_replace(['%', '_'], ['\%', '\_'], PoetryText::normalize(mb_substr($text, 0, 120))).'%';
@@ -104,7 +124,8 @@ class PublicPoetryController extends Controller
         if ($request->boolean('has_media')) {
             $txt = fn (string $c) => DB::connection()->getDriverName() === 'mysql' ? "CAST($c AS CHAR)" : "CAST($c AS TEXT)";
             $q->where(fn ($w) => $w->whereRaw($txt('media_ids')." NOT IN ('[]','null')")
-                ->orWhereRaw($txt('external_links')." NOT IN ('[]','null')"));
+                ->orWhereRaw($txt('external_links')." NOT IN ('[]','null')")
+                ->orWhereHas('mediaItems', fn ($m) => $m->published()->playable()));
         }
         if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten'], true)) {
             $q->where('flags->'.$flag, true);

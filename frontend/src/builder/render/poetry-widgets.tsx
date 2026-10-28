@@ -13,7 +13,8 @@ import type React from "react"
 
 import { parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
-import { PhotoSlot, apiV1, isDemoProduct, useCatalog } from "./poetry-pages-widgets"
+import { PhotoSlot, apiV1, isDemoProduct, useCatalog, usePoetryMedia } from "./poetry-pages-widgets"
+import { fromRow, playable } from "../poetry-media"
 import { useBuilderRuntime } from "./runtime"
 import "./poetry-widgets.css"
 import "./poetry-layouts.css"
@@ -311,26 +312,30 @@ function OccasionTrack({ carousel, opts, label, ratio, height = 0, children }: {
 const RATIOS: Record<string, string> = { "4/5": "4 / 5", "3/4": "3 / 4", "2/3": "2 / 3", "1/1": "1 / 1", "16/10": "16 / 10" }
 const inDashboard = () => typeof window !== "undefined" && /^\/dashboard(\/|$)/.test(window.location.pathname)
 
-/** 5) audio/video media cards. */
+/** 5) audio/video media cards: standalone poetry media (default) or manual rows; only items with a file/link. */
 export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const rows = mediaRows(p.items)
+  const limit = Math.min(24, Math.max(1, propNum(p, "count", 8)))
+  const { items, loading } = usePoetryMedia(p, limit)
+  const rows = items.slice(0, limit)
   const [open, setOpen] = useState<number | null>(null)
-  if (!rows.length && !inDashboard()) return null
+  const editor = inDashboard()
+  if (!rows.length && (loading || !editor)) return null
   return (
     <section className={shell(p, "wpz-section wpz-media-sec", "light")} style={sectionBg(p)} dir="rtl">
       {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
       <div className={`wpz-grid ${propStr(p, "mediaLayout", "auto") === "grid3" ? "wpz-grid3" : ""}`}>
         {rows.map((r, i) => {
-          const isVideo = r.kind === "video" || /\.(mp4|webm)(\?|$)/i.test(r.src)
-          const src = safeHref(r.src, "")
+          const isVideo = r.kind === "video"
+          const play = () => (r.src || r.embed ? setOpen(i) : window.open(r.link, "_blank", "noopener"))
           return (
             <article key={i} className="wpz-media">
               <div className={`wpz-media-cover ${frameClass(p, "rounded")}`}>
-                {open === i && src ? (isVideo ? <video src={src} controls autoPlay playsInline /> : <audio src={src} controls autoPlay />) : (
+                {open === i && r.src ? (isVideo ? <video src={r.src} controls autoPlay playsInline /> : <audio src={r.src} controls autoPlay />)
+                  : open === i && r.embed ? <iframe src={r.embed} title={r.title} allowFullScreen style={{ width: "100%", height: "100%", border: 0 }} /> : (
                   <>
                     {r.cover ? <img loading="lazy" decoding="async" {...optImg(r.cover)} alt={r.title || propStr(p, "title")} /> : null}
-                    <button type="button" className="wpz-media-play" aria-label={`پخش ${r.title || "رسانه"}`} onClick={() => setOpen(i)} disabled={!src}>
+                    <button type="button" className="wpz-media-play" aria-label={`پخش ${r.title || "رسانه"}`} onClick={play}>
                       <Play className="h-6 w-6" />
                     </button>
                   </>
@@ -341,15 +346,15 @@ export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
             </article>
           )
         })}
-        {!rows.length ? <p className="wpz-empty">رسانه‌ها را وارد کنید (عنوان، کاور، فایل صوت/ویدیو).</p> : null}
+        {!rows.length ? <p className="wpz-empty">هنوز صوت/ویدیویی با فایل یا پیوند ثبت نشده است (اشعار ← صوت و ویدیو). این بخش در سایت پنهان می‌ماند.</p> : null}
       </div>
     </section>
   )
 }
 
-/** media rows: a row counts when it has a title, a cover or a file (cover-only rows used to be dropped → empty section). */
+/** Legacy helper: manual rows that can actually play (file or link). Title/cover-only rows no longer render. */
 export function mediaRows(items: unknown) {
-  return parseRows(items, ["title", "cover", "reciter", "duration", "src", "kind"]).filter((r) => r.title.trim() || r.cover.trim() || r.src.trim())
+  return playable(parseRows(items, ["title", "cover", "reciter", "duration", "src", "kind"]).map(fromRow))
 }
 
 /** 6) shop showcase: real products from the store catalog (count/category), manual rows as override. */

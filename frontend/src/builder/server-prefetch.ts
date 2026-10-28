@@ -1,4 +1,5 @@
 import { apiServer } from "@/lib/api-server"
+import { mediaPath, usesLiveMedia } from "./poetry-media"
 import { parseRows, propBool, propNum, propStr } from "./props"
 import type { BuilderDocument, SectionNode, WidgetNode } from "./types"
 
@@ -46,6 +47,12 @@ function planKeys(w: WidgetNode, keys: Set<string>) {
       keys.add(`catalog::per_page=${Math.max(count, 24)}&sort=newest${category ? `&category=${encodeURIComponent(category)}` : ""}`)
       return
     }
+    case "media-archive":
+      if (usesLiveMedia(p.source)) poetry(mediaPath(60))
+      return
+    case "media-cards":
+      if (usesLiveMedia(p.source)) poetry(mediaPath(Math.min(24, Math.max(1, propNum(p, "count", 8)))))
+      return
     case "poetry-shop":
       if (propStr(p, "source", "catalog") === "manual") return
       keys.add("catalog::per_page=60&sort=newest")

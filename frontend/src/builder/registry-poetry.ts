@@ -117,7 +117,8 @@ export const POETRY_WIDGETS: WidgetDef[] = [
     type: "media-cards", label: "کارت‌های صوت و تصویر", category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان بخش" },
-      { kind: "repeater", key: "items", label: "رسانه‌ها", fields: [
+      { kind: "select", key: "source", label: "منبع", options: [{ value: "live", label: "صوت و ویدیوی ثبت‌شده در اشعار (پیش‌فرض)" }, { value: "manual", label: "ردیف‌های دستی زیر" }] }, { kind: "number", key: "count", label: "تعداد (خودکار)", min: 1, max: 24 },
+      { kind: "repeater", key: "items", label: "رسانه‌ها (فقط در منبع دستی؛ ردیف بدون فایل/پیوند نمایش داده نمی‌شود)", fields: [
         { key: "title", label: "عنوان", kind: "text" }, { key: "cover", label: "کاور", kind: "media" }, { key: "reciter", label: "مداح/قاری", kind: "text" },
         { key: "duration", label: "مدت", kind: "text" }, { key: "src", label: "فایل", kind: "media" },
         { key: "kind", label: "نوع", kind: "select", options: [{ value: "audio", label: "صوت" }, { value: "video", label: "ویدیو" }] },
@@ -125,7 +126,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "خودکار (پیش‌فرض)" }, { value: "grid3", label: "ساده سه‌ستونی" }] },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("media-cards", { title: "صوت و تصویر", items: "", tone: "light", frame: "rounded" }),
+    create: () => node("media-cards", { title: "صوت و تصویر", source: "live", count: 8, items: "", tone: "light", frame: "rounded" }),
   },
   {
     type: "shop-showcase", label: "ویترین فروشگاه (قیمت تومان)", category: "content",

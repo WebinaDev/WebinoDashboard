@@ -28,6 +28,12 @@ class PoetryPoem extends Model
         return $this->hasMany(PoetryStanza::class, 'poem_id')->orderBy('position');
     }
 
+    /** Standalone media items linked to this poem (poetry_media.poem_id). */
+    public function mediaItems()
+    {
+        return $this->hasMany(PoetryMedia::class, 'poem_id')->orderBy('sort')->orderBy('id');
+    }
+
     public function terms()
     {
         return $this->belongsToMany(PoetryTerm::class, 'poetry_poem_term', 'poem_id', 'term_id');

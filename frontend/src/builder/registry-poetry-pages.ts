@@ -108,7 +108,8 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
     type: "media-archive", label: "صوت و ویدیو (ویژه + پرشنونده + شبکه)", category: "content",
     fields: [
       { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "ویژه و پرشنونده و شبکه (پیش‌فرض)" }, { value: "grid3", label: "شبکه ساده سه‌ستونی" }] },
-      { kind: "repeater", key: "items", label: "اجراها", fields: [
+      { kind: "select", key: "source", label: "منبع", options: [{ value: "live", label: "صوت و ویدیوی ثبت‌شده در اشعار (پیش‌فرض)" }, { value: "manual", label: "ردیف‌های دستی زیر" }] },
+      { kind: "repeater", key: "items", label: "اجراها (فقط در منبع دستی)", fields: [
         { key: "title", label: "عنوان", kind: "text" }, { key: "cover", label: "کاور", kind: "media" },
         { key: "kind", label: "نوع", kind: "select", options: [{ value: "audio", label: "صوت" }, { value: "video", label: "ویدیو" }] },
         { key: "src", label: "فایل/پیوند", kind: "media" }, { key: "duration", label: "مدت", kind: "text" }, { key: "tag", label: "مناسبت", kind: "text" },
@@ -116,11 +117,11 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       ] },
       { kind: "number", key: "featured", label: "شماره اجرای ویژه", min: 1, max: 50 }, { kind: "text", key: "topTitle", label: "عنوان فهرست" },
       { kind: "number", key: "topCount", label: "تعداد فهرست", min: 0, max: 10 },
-      { kind: "text", key: "filters", label: "تراشه‌ها (با , جدا)" }, { kind: "number", key: "perPage", label: "تعداد در صفحه", min: 4, max: 48 }, { kind: "text", key: "emptyTitle", label: "عنوان حالت خالی" }, { kind: "text", key: "emptyText", label: "متن حالت خالی" },
+      { kind: "text", key: "filters", label: "تراشه‌ها (با , جدا)" }, { kind: "number", key: "perPage", label: "تعداد در صفحه", min: 4, max: 48 },
       { kind: "text", key: "audioLabel", label: "برچسب صوت" }, { kind: "text", key: "videoLabel", label: "برچسب ویدیو" },
       photoMode("coverMode", "حالت کاور در نبود تصویر"), logo, SEC, ...colors,
     ],
-    create: () => node("media-archive", { emptyTitle: "هنوز اجرایی ثبت نشده است", emptyText: "به‌زودی صوت و تصویر اجراها در این بخش قرار می‌گیرد.", logo: "", items: "", featured: 1, topTitle: "پرشنونده‌ترین‌ها", topCount: 4, filters: "همه,صوت,ویدیو,محرم,فاطمیه,اربعین", perPage: 8, audioLabel: "صوت", videoLabel: "ویدیو", coverMode: "arabesque", sectionBg: DARK, ...C }),
+    create: () => node("media-archive", { source: "live", logo: "", items: "", featured: 1, topTitle: "پرشنونده‌ترین‌ها", topCount: 4, filters: "همه,صوت,ویدیو,محرم,فاطمیه,اربعین", perPage: 8, audioLabel: "صوت", videoLabel: "ویدیو", coverMode: "arabesque", sectionBg: DARK, ...C }),
   },
   {
     type: "poetry-shop", label: "فروشگاه قاب‌ها (فیلتر + مرتب‌سازی)", category: "commerce",

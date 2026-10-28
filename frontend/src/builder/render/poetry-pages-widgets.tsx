@@ -8,7 +8,7 @@
 
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import Link from "next/link"
-import { BookOpen, Check, ChevronLeft, ChevronRight, Copy, Home, Menu, Music, Music2, Printer, Search, Share2, ShoppingBag, SlidersHorizontal, User, X } from "lucide-react"
+import { BookOpen, Check, ChevronLeft, ChevronRight, Copy, Home, Menu, Music, Printer, Search, Share2, ShoppingBag, SlidersHorizontal, User, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import type { CSSProperties, ReactNode } from "react"
@@ -16,6 +16,7 @@ import type { CSSProperties, ReactNode } from "react"
 import { addToCart } from "../cart"
 import type { ShopProduct } from "../catalog"
 import { parseRows, propBool, propNum, propStr } from "../props"
+import { fromLive, fromRow, mediaPath, playable, usesLiveMedia, aparatEmbed, type LiveMedia, type MediaEntry } from "../poetry-media"
 import { fetchCatalogPayload, mapCatalogJson } from "../storefront/use-catalog"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
@@ -91,7 +92,7 @@ function usePathname(): string {
   return p
 }
 
-function useJson<T>(path: string | null): { data: T | null; meta: Record<string, number> | null; loading: boolean } {
+export function usePoetryJson<T>(path: string | null): { data: T | null; meta: Record<string, number> | null; loading: boolean } {
   const pre = (useBuilderRuntime() as { prefetch?: Record<string, unknown> }).prefetch
   const key = path ? `/v1/public/poetry/${path}` : null
   const seeded = key && pre && key in pre ? { data: pre[key] as T, meta: (pre[`${key}::meta`] as Record<string, number>) ?? null } : null
@@ -280,7 +281,7 @@ export function PoetryPageHeroWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const [poemQ] = useQuery("poem")
   const fromPoem = propBool(p, "fromPoem", false)
-  const { data: poem } = useJson<Poem>(fromPoem && poemQ ? `poems/${encodeURIComponent(poemQ)}` : null)
+  const { data: poem } = usePoetryJson<Poem>(fromPoem && poemQ ? `poems/${encodeURIComponent(poemQ)}` : null)
   const crumbs = parseRows(p.crumbs, ["label", "href"]).filter((c) => c.label)
   let title = propStr(p, "title"); let hi = propStr(p, "highlight")
   if (fromPoem && poem?.title) {
@@ -338,7 +339,7 @@ export function PoemArchiveWidget({ widget }: { widget: WidgetNode }) {
   const [figParam] = useQuery("figure")
   const [f, setF] = useState<{ figure: string; style: string; occasion: string; media: boolean; chip: string; page: number }>({ figure: "", style: "", occasion: "", media: false, chip: "all", page: 1 })
   useEffect(() => { if (occParam || figParam) setF((s) => ({ ...s, occasion: occParam || s.occasion, figure: figParam || s.figure })) }, [occParam, figParam])
-  const { data: terms } = useJson<Term[]>(propBool(p, "showSidebar", true) ? "terms" : null)
+  const { data: terms } = usePoetryJson<Term[]>(propBool(p, "showSidebar", true) ? "terms" : null)
   const qs = new URLSearchParams({ per_page: String(perPage), page: String(f.page) })
   if (qParam) qs.set("q", qParam)
   for (const k of ["figure", "style", "occasion"] as const) if (f[k]) qs.set(k, f[k])
@@ -346,7 +347,7 @@ export function PoemArchiveWidget({ widget }: { widget: WidgetNode }) {
   if (f.chip === "popular") qs.set("sort", "popular")
   if (f.chip === "new") qs.set("flag", "is_new")
   if (f.chip === "unread") qs.set("flag", "not_performed")
-  const { data, meta, loading } = useJson<Card[]>(`poems?${qs.toString()}`)
+  const { data, meta, loading } = usePoetryJson<Card[]>(`poems?${qs.toString()}`)
   const last = meta?.last_page ?? 1
   const set = (patch: Partial<typeof f>) => setF((s) => ({ ...s, page: 1, ...patch }))
   const showCounts = propBool(p, "showCounts", true)
@@ -408,7 +409,7 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const [qSlug] = useQuery("poem")
   const slug = propStr(p, "slug") || qSlug
-  const { data: poem, loading } = useJson<Poem>(slug ? `poems/${encodeURIComponent(slug)}` : null)
+  const { data: poem, loading } = usePoetryJson<Poem>(slug ? `poems/${encodeURIComponent(slug)}` : null)
   const [size, setSize] = useState(0)
   const [fav, setFav] = useState(false)
   const [note, setNote] = useState("")
@@ -421,6 +422,10 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
   const sub = [poem.style_label || poem.styles[0]?.name, poem.figures[0]?.name].filter(Boolean).join(" · ")
   const audio = poem.media.find((m) => m.kind === "audio")
   const video = poem.media.find((m) => m.kind === "video")
+  // No file and no link → no player box at all (no placeholder play button / note).
+  const links = poem.external_links.filter((l) => safeLink(l.url, "") !== "")
+  const embed = links.map((l) => aparatEmbed(l.url)).find(Boolean) ?? ""
+  const hasMedia = !!(audio?.url || video?.url || links.length)
   const tools = propBool(p, "showTools", true)
   const blocks = poem.sequence.filter((b) => b.type !== "title")
   const copy = async () => { try { await navigator.clipboard.writeText(plain(poem)); flash("متن کپی شد") } catch { flash("کپی ممکن نشد") } }
@@ -464,11 +469,13 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
       </article>
       {propBool(p, "showSidebar", true) ? (
         <aside className="akx-sgside">
-          <div className="akx-box akx-player" id="media">
-            {video ? <video src={video.url} controls preload="none" /> : audio ? <audio src={audio.url} controls preload="none" /> : <div className="akx-player-ph"><Play size={44} light /></div>}
-            {poem.external_links.map((l, i) => <a key={i} href={safeLink(l.url)} target="_blank" rel="noopener noreferrer">{l.label || "مشاهده اجرا"}</a>)}
-            {propStr(p, "playerNote") ? <small>{propStr(p, "playerNote")}</small> : null}
-          </div>
+          {hasMedia ? (
+            <div className="akx-box akx-player" id="media">
+              {video ? <video src={video.url} controls preload="none" /> : audio ? <audio src={audio.url} controls preload="none" /> : embed ? <iframe src={embed} title={poem.title} allowFullScreen loading="lazy" style={{ width: "100%", aspectRatio: "16 / 9", border: 0 }} /> : null}
+              {links.map((l, i) => <a key={i} href={l.url} target="_blank" rel="noopener noreferrer">{l.label || "مشاهده اجرا"}</a>)}
+              {propStr(p, "playerNote") ? <small>{propStr(p, "playerNote")}</small> : null}
+            </div>
+          ) : null}
           <div className="akx-box">
             <h4>{propStr(p, "specsTitle", "مشخصات شعر")}</h4>
             {specs.filter(([, v]) => v).map(([k, v]) => <div key={k} className="akx-kv"><span>{k}</span><b>{v}</b></div>)}
@@ -490,17 +497,26 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
 }
 
 /* ───────────── 5) media archive ───────────── */
-type MediaItem = { title: string; cover: string; kind: string; src: string; duration: string; tag: string; poem: string; reciter: string }
+type MediaItem = MediaEntry
+const inDashboardPath = () => typeof window !== "undefined" && /^\/dashboard(\/|$)/.test(window.location.pathname)
+/** Standalone poetry media (default) or legacy manual rows; only items with a file or link are listed. */
+export function usePoetryMedia(p: P, limit: number): { items: MediaEntry[]; loading: boolean } {
+  const live = usesLiveMedia(p.source)
+  const { data, loading } = usePoetryJson<LiveMedia[]>(live ? mediaPath(limit) : null)
+  if (!live) return { items: playable(parseRows(p.items, ["title", "cover", "kind", "src", "duration", "tag", "poem", "reciter"]).map(fromRow)), loading: false }
+  return { items: playable((Array.isArray(data) ? data : []).map(fromLive)), loading }
+}
 export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const items = parseRows(p.items, ["title", "cover", "kind", "src", "duration", "tag", "poem", "reciter"]).filter((r) => r.title) as MediaItem[]
+  const { items, loading } = usePoetryMedia(p, 60)
   const filters = propStr(p, "filters", "همه").split(/[,،]/).map((s) => s.trim()).filter(Boolean)
   const audioL = propStr(p, "audioLabel", "صوت"); const videoL = propStr(p, "videoLabel", "ویدیو")
   const kindLabel = (k: string) => (k === "video" ? videoL : audioL)
   const [chip, setChip] = useState(filters[0] ?? "")
   const [page, setPage] = useState(1)
-  const [sel, setSel] = useState(Math.max(0, Math.min(items.length - 1, propNum(p, "featured", 1) - 1)))
+  const [selRaw, setSel] = useState(Math.max(0, propNum(p, "featured", 1) - 1))
   const [playing, setPlaying] = useState(false)
+  const sel = Math.min(selRaw, Math.max(0, items.length - 1))
   const shown = items.filter((it) => !chip || chip === filters[0] || chip === kindLabel(it.kind) || it.tag === chip)
   const per = propNum(p, "perPage", 8)
   const last = Math.max(1, Math.ceil(shown.length / per))
@@ -508,14 +524,15 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
   const cur = items[sel]
   const cm = propStr(p, "coverMode", "arabesque")
   const pick = (it: MediaItem) => { setSel(items.indexOf(it)); setPlaying(true); if (typeof window !== "undefined") document.getElementById(`akx-feat-${widget.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }) }
-  if (!items.length) return (
-    <section className={`akx akx-media-empty ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
-      <div className="akx-empty-card"><span className="akx-empty-ic"><Music2 size={22} aria-hidden /></span><b>{propStr(p, "emptyTitle", "هنوز اجرایی ثبت نشده است")}</b><p>{propStr(p, "emptyText", "به‌زودی صوت و تصویر اجراها در این بخش قرار می‌گیرد.")}</p><Link href="/poems" className="akx-b1">مشاهده اشعار</Link></div>
-    </section>
-  )
+  if (!items.length) {
+    // Public site: nothing to play → hide the whole section. Builder: a hint for the editor only.
+    if (loading || !inDashboardPath()) return null
+    return <section className={`akx akx-media-empty ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}><p className="akx-empty">هنوز صوت/ویدیویی ثبت نشده است؛ از «اشعار ← صوت و ویدیو» اضافه کنید. این بخش در سایت تا آن زمان نمایش داده نمی‌شود.</p></section>
+  }
   const top = items.slice(0, propNum(p, "topCount", 4))
   const grid3 = propStr(p, "mediaLayout", "auto") === "grid3"
-  const playInline = (it: MediaItem) => { if (it.src && typeof window !== "undefined") window.open(it.src, "_blank", "noopener") }
+  const openLink = (it: MediaItem) => { const u = it.src || it.link; if (u && typeof window !== "undefined") window.open(u, "_blank", "noopener") }
+  const playInline = openLink
   return (
     <section className={`akx akx-media ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
       {grid3 ? null : <div className="akx-bigp">
@@ -532,8 +549,8 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
         <div className="akx-feat" id={`akx-feat-${widget.id}`}>
           {cur && playing && cur.src ? (cur.kind === "video" ? <video src={cur.src} poster={cur.cover || undefined} controls autoPlay /> : (
             <div className="akx-feat-audio"><PhotoSlot mode={cur.cover ? "photo" : cm} src={cur.cover} logo={propStr(p, "logo")} /><audio src={cur.src} controls autoPlay /></div>
-          )) : cur ? (
-            <button type="button" className="akx-feat-cover" onClick={() => setPlaying(true)} aria-label={`پخش ${cur.title}`}>
+          )) : cur && playing && cur.embed ? <iframe src={cur.embed} title={cur.title} allowFullScreen style={{ width: "100%", aspectRatio: "16 / 9", border: 0 }} /> : cur ? (
+            <button type="button" className="akx-feat-cover" onClick={() => (cur.src || cur.embed ? setPlaying(true) : openLink(cur))} aria-label={`پخش ${cur.title}`}>
               <PhotoSlot mode={cur.cover ? "photo" : cm} src={cur.cover} logo={propStr(p, "logo")} alt={cur.title} />
               <span className="akx-bigplay"><Play size={70} /></span>
               <span className="akx-feat-cap"><b>{cur.title}</b>{[cur.poem, cur.reciter].filter(Boolean).join(" · ")}</span>

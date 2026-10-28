@@ -239,6 +239,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/poems/{slug}', [PublicPoetryController::class, 'show']);
             Route::get('/poems/{slug}/text', [PublicPoetryController::class, 'text']);
             Route::get('/figures/{slug}', [PublicPoetryController::class, 'figure']);
+            Route::get('/media', [PublicPoetryController::class, 'media']);
         });
         Route::middleware('public.module:blog')->group(function () {
             Route::get('/blog', [PublicBlogController::class, 'index']);
@@ -1046,6 +1047,10 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::put('/poems/{poem}', [PoetryAdminController::class, 'update'])->whereNumber('poem');
                 Route::delete('/poems/{poem}', [PoetryAdminController::class, 'destroy'])->whereNumber('poem');
                 Route::post('/import/parse', [PoetryAdminController::class, 'parse']);
+                Route::get('/media', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'index']);
+                Route::post('/media', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'store']);
+                Route::put('/media/{media}', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'update'])->whereNumber('media');
+                Route::delete('/media/{media}', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'destroy'])->whereNumber('media');
                 Route::get('/terms', [PoetryAdminController::class, 'terms']);
                 Route::post('/terms', [PoetryAdminController::class, 'storeTerm']);
                 Route::put('/terms/{term}', [PoetryAdminController::class, 'updateTerm'])->whereNumber('term');
