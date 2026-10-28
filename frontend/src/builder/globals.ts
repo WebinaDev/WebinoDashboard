@@ -75,6 +75,8 @@ export type BuilderGlobals = {
   customCode: CustomCode[]
   /** Saved Loop Grid queries (Query Builder), referenced by `queryId`. */
   queries: GlobalQuery[]
+  /** Site primary follows the dashboard accent (live in the editor, stored hex on the storefront). */
+  dashboardTheme: { followAccent: boolean; accentColor: string }
 }
 
 export type DesignVariable = { id: string; name: string; kind: "color" | "size" | "font" | "other"; value: string }
@@ -225,6 +227,28 @@ export const DEFAULT_GLOBALS: BuilderGlobals = {
   components: [],
   customCode: [],
   queries: [],
+  dashboardTheme: { followAccent: false, accentColor: "#0F8A8F" },
+}
+
+/** Solid hex for each dashboard accent preset (gradient accents use their first stop); stored for the storefront. */
+export const DASHBOARD_ACCENT_HEX: Record<string, string> = {
+  colorful: "#0F8A8F",
+  default: "#171717",
+  red: "#DC2626",
+  rose: "#C21E4F",
+  orange: "#EA6A0C",
+  green: "#0F7A4A",
+  blue: "#2563EB",
+  yellow: "#D9A514",
+  violet: "#7C3AED",
+  cafe: "#6F4A2A",
+  cosmetics: "#C43A7A",
+  mobile: "#E36A1C",
+  electronics: "#D4B21C",
+}
+
+export function dashboardAccentHex(accent: string | undefined | null): string {
+  return DASHBOARD_ACCENT_HEX[accent ?? ""] ?? DASHBOARD_ACCENT_HEX.colorful
 }
 
 export const COLOR_TOKENS: { value: string; label: string }[] = [
@@ -282,7 +306,10 @@ export function globalsCss(globals: BuilderGlobals): string {
   const button = (name: string, style: ButtonVariant) =>
     `--wb-btn-${name}-bg:${style.background};--wb-btn-${name}-fg:${style.color};--wb-btn-${name}-hover-bg:${style.hoverBackground};--wb-btn-${name}-hover-fg:${style.hoverColor};--wb-btn-${name}-border:${style.border};`
   const vars = [
-    `--wb-color-primary:${c.primary}`,
+    // Follow dashboard accent: the editor stage's live --wb-dashboard-accent wins; the storefront uses the stored hex.
+    globals.dashboardTheme?.followAccent && /^#[0-9a-f]{3,8}$/i.test(globals.dashboardTheme.accentColor)
+      ? `--wb-dashboard-accent-site:${globals.dashboardTheme.accentColor};--wb-color-primary:var(--wb-dashboard-accent,var(--wb-dashboard-accent-site))`
+      : `--wb-color-primary:${c.primary}`,
     `--wb-color-secondary:${c.secondary}`,
     `--wb-color-text:${c.text}`,
     `--wb-color-accent:${c.accent}`,
@@ -393,6 +420,7 @@ export function asGlobals(value: unknown): BuilderGlobals {
     presets: Array.isArray(incoming.presets) ? incoming.presets.filter((p) => p && safeToken(String(p.id ?? ""))) : [],
     components: Array.isArray(incoming.components) ? incoming.components.filter((c) => c && safeToken(String(c.id ?? "")) && Array.isArray(c.sections)) : [],
     customCode: Array.isArray(incoming.customCode) ? incoming.customCode.filter((c) => c && typeof c.code === "string") : [],
+    dashboardTheme: { ...DEFAULT_GLOBALS.dashboardTheme, ...(incoming.dashboardTheme ?? {}) },
     queries: Array.isArray(incoming.queries) ? incoming.queries.filter((q) => q && typeof q.id === "string" && typeof q.source === "string") : [],
   }
 }

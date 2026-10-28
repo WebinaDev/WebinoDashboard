@@ -97,6 +97,7 @@ class BuilderGlobalsNormalizer
             'components' => [],
             'customCode' => [],
             'queries' => [],
+            'dashboardTheme' => ['followAccent' => false, 'accentColor' => '#0F8A8F'],
         ];
     }
 
@@ -188,6 +189,10 @@ class BuilderGlobalsNormalizer
         $lightbox = is_array($input['lightbox'] ?? null) ? $input['lightbox'] : [];
         $base['lightbox']['enabled'] = $this->bool($lightbox['enabled'] ?? null, (bool) $base['lightbox']['enabled']);
         $base['lightbox']['background'] = $this->color($lightbox['background'] ?? null, $base['lightbox']['background'], true);
+
+        $dash = is_array($input['dashboardTheme'] ?? null) ? $input['dashboardTheme'] : [];
+        $base['dashboardTheme']['followAccent'] = $this->bool($dash['followAccent'] ?? null, false);
+        $base['dashboardTheme']['accentColor'] = $this->color($dash['accentColor'] ?? null, $base['dashboardTheme']['accentColor']);
 
         $base['cssVariables'] = $this->variables($input['cssVariables'] ?? '');
 

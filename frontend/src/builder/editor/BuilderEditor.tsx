@@ -46,7 +46,9 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
-import { asGlobals, COLOR_TOKENS, DEFAULT_GLOBALS, type BuilderGlobals } from "../globals"
+import { useDashboardTheme } from "@webina/ui"
+
+import { asGlobals, COLOR_TOKENS, dashboardAccentHex, DEFAULT_GLOBALS, type BuilderGlobals } from "../globals"
 import { createWidget, WIDGETS, widgetDef } from "../registry"
 import { catalogEntry, catalogIcon, WIDGET_CATALOG_CATEGORIES } from "../widget-catalog"
 import { compileDocument } from "../compile"
@@ -216,6 +218,15 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     }, 700)
   }, [t])
   const designApi = useMemo(() => ({ globals, updateGlobals }), [globals, updateGlobals])
+
+  // Site follows the dashboard accent: keep the stored hex in step so the storefront matches after publish.
+  const dashboardTheme = useDashboardTheme()
+  useEffect(() => {
+    const follow = globals.dashboardTheme
+    if (!follow?.followAccent) return
+    const hex = dashboardAccentHex(dashboardTheme.accent)
+    if (follow.accentColor.toLowerCase() !== hex.toLowerCase()) updateGlobals({ ...globals, dashboardTheme: { ...follow, accentColor: hex } })
+  }, [dashboardTheme.accent, globals, updateGlobals])
 
   async function publishGlobalsIfTouched() {
     if (!globalsTouched.current) return

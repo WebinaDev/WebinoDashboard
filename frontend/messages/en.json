@@ -7291,6 +7291,8 @@
     "collection": "Collection (CMS)"
   },
   "builder_globals": {
+    "follow_dashboard_accent": "Site primary follows the dashboard accent",
+    "follow_dashboard_accent_hint": "Changing the dashboard accent updates the editor live and the site after publishing.",
     "title": "Global settings",
     "subtitle": "Site-wide color, type, buttons, images, forms, and spacing. After publish, the storefront and builder widgets use these tokens.",
     "theme_builder": "Theme builder",

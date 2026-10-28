@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { asGlobals, DEFAULT_GLOBALS, FONT_PRESETS, type BuilderGlobals } from "@/builder/globals"
+import { asGlobals, dashboardAccentHex, DEFAULT_GLOBALS, FONT_PRESETS, type BuilderGlobals } from "@/builder/globals"
 import { SETTINGS_SECTION_ICONS } from "@/builder/theme/icons"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
@@ -83,6 +83,14 @@ export default function BuilderSettingsPage(_props: { route: ResolvedAdminRoute 
         <section className="rounded-2xl border p-4">
           {section === "colors" ? (
             <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1 rounded-lg border p-3 text-xs sm:col-span-2">
+                <Toggle
+                  label={t("follow_dashboard_accent")}
+                  checked={settings.dashboardTheme.followAccent}
+                  onChange={(followAccent) => setSettings({ ...settings, dashboardTheme: { followAccent, accentColor: dashboardAccentHex(typeof window === "undefined" ? null : localStorage.getItem("theme_accent")) } })}
+                />
+                <p className="text-muted-foreground">{t("follow_dashboard_accent_hint")}</p>
+              </div>
               {COLOR_KEYS.map((key) => (
                 <label key={key} className="grid gap-1 text-xs">
                   {t(key)}
