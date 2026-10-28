@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Media\ImageSizes;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -80,7 +81,10 @@ class Product extends Model
 
     public function getImageCardUrlAttribute(): ?string
     {
-        return \App\Services\Media\ImageSizes::cardUrlFor($this->cover_image_url ?: $this->image_url);
+        $cover = $this->cover_image_url ?: $this->image_url;
+
+        // Images ≤ 800px get no -800w sibling: the cover itself is the card image.
+        return ImageSizes::cardUrlFor($cover) ?? ($cover ?: null);
     }
 
     protected function casts(): array

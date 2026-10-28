@@ -361,18 +361,27 @@ final class WordpressImportImporter
         }
 
         $gallery = [];
-        $cover = $row?->image_url;
-        foreach ($this->imagePayloads($payload) as $index => $image) {
+        $imageErrors = [];
+        $sourceImages = $this->imagePayloads($payload);
+        foreach ($sourceImages as $index => $image) {
             try {
                 $url = $ctx->storeImage($image, $externalId.'-img-'.$index);
                 if ($url) {
                     $gallery[] = $url;
-                    $cover ??= $url;
                 }
             } catch (\Throwable $e) {
-                $warnings[] = $e->getMessage();
+                $imageErrors[] = 'Image '.($index + 1).': '.$e->getMessage();
             }
         }
+        // The first downloaded image is the featured/card image; when every download failed keep
+        // whatever cover/gallery the product already had instead of wiping it.
+        $keepMedia = $gallery === [] && $row !== null && ($row->image_url || $row->media()->exists());
+        $cover = $gallery[0] ?? $row?->image_url;
+        if ($keepMedia) {
+            $gallery = is_array($row->gallery) ? $row->gallery : [];
+        }
+        $warnings = array_merge($warnings, $imageErrors);
+        $retryImages = $imageErrors !== [] && $ctx->downloadMedia();
         $meta = is_array($row?->meta) ? $row->meta : [];
         $meta['wordpress'] = [
             'external_id' => $externalId,
@@ -421,7 +430,7 @@ final class WordpressImportImporter
             'width' => isset($payload['width']) ? (float) $payload['width'] : null,
             'height' => isset($payload['height']) ? (float) $payload['height'] : null,
             'image_url' => $cover,
-            'cover_image_url' => $cover,
+            'cover_image_url' => $cover ?: $row?->cover_image_url,
             'gallery' => $gallery,
             'discount_percent' => ($price > 0 && $sale > 0) ? (int) round((1 - ($sale / $price)) * 100) : 0,
             'reference_source' => 'wordpress',
@@ -435,14 +444,23 @@ final class WordpressImportImporter
         $this->syncTaxonomy($ctx, $row, $payload);
         $this->syncAttributes($ctx, $row, $payload);
         $this->syncVariations($ctx, $row, $variations, $warnings);
-        $this->syncProductMedia($row, $gallery);
+        if (! $keepMedia) {
+            $this->syncProductMedia($row, $gallery);
+        }
         $records = app(WordpressImportRecords::class);
         $records->syncBrands($ctx, $row, $payload);
         $records->syncDownloads($ctx, $row, $payload);
         $this->syncRelations($ctx, $row, $payload);
         $records->rememberPermalink($ctx, 'products', $externalId, $payload, '/product/'.$row->slug);
+        $message = $warnings === [] ? null : implode(' ', array_unique($warnings));
+        if ($retryImages) {
+            // Product is saved, but an image failed: mark the item failed so --retry-failed re-runs it.
+            $outcome = $ctx->outcome($link !== null, Product::class, (int) $row->id, 'Product saved; image download failed. '.$message);
 
-        return $ctx->outcome($link !== null, Product::class, (int) $row->id, $warnings === [] ? null : implode(' ', array_unique($warnings)));
+            return new ImportOutcome($outcome->action, $outcome->localType, $outcome->localId, $outcome->message, true);
+        }
+
+        return $ctx->outcome($link !== null, Product::class, (int) $row->id, $message);
     }
 
     /** @param  array<string, mixed>  $payload */
@@ -1257,6 +1275,15 @@ final class WordpressImportImporter
             if (is_string($image)) {
                 $images[] = ['url' => $image];
             } elseif (is_array($image)) {
+                // REST / Store API shape: {id, src, name, alt}.
+                if (empty($image['url']) && empty($image['data_base64'])) {
+                    foreach (['src', 'source_url', 'image_url', 'full'] as $key) {
+                        if (! empty($image[$key]) && is_string($image[$key])) {
+                            $image['url'] = $image[$key];
+                            break;
+                        }
+                    }
+                }
                 $images[] = $image;
             }
         }

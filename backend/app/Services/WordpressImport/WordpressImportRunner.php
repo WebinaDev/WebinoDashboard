@@ -304,7 +304,7 @@ final class WordpressImportRunner
                     is_array($item->payload) ? $item->payload : []
                 );
             });
-            $item->status = 'done';
+            $item->status = $outcome->retry ? 'failed' : 'done';
             $item->action = $outcome->action;
             $item->message = $outcome->message;
             $item->save();

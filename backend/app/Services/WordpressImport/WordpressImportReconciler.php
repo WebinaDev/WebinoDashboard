@@ -148,6 +148,10 @@ final class WordpressImportReconciler
         $linked = WordpressImportLink::query()->where('tenant_id', $job->tenant_id)->where('resource', 'products')
             ->pluck('local_id', 'external_id');
         $existing = Product::query()->where('tenant_id', $job->tenant_id)->whereIn('id', $linked->values())->pluck('status', 'id');
+        // Imported products whose featured image or gallery never arrived (download failed or skipped).
+        $imageless = Product::query()->where('tenant_id', $job->tenant_id)->whereIn('id', $linked->values())
+            ->where(fn ($q) => $q->whereNull('image_url')->orWhere('image_url', '')->orWhereDoesntHave('media'))
+            ->pluck('id')->flip();
         $missing = [];
         foreach ($rows as $row) {
             $id = (string) ($row['external_id'] ?? '');
@@ -158,6 +162,14 @@ final class WordpressImportReconciler
             $publishedAtSource = strtolower((string) ($row['status'] ?? 'publish')) === 'publish';
             $trashed = $local !== null && ($existing[$local] ?? null) === 'trash';
             if ($local !== null && isset($existing[$local]) && ! ($trashed && $publishedAtSource)) {
+                if (isset($imageless[$local]) && $this->hasImages($row)) {
+                    $missing[] = [
+                        'external_id' => $id,
+                        'name' => mb_substr(trim(html_entity_decode((string) ($row['name'] ?? $row['title'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')), 0, 120),
+                        'reason' => 'imported without images (featured/card image missing locally)',
+                    ];
+                }
+
                 continue;
             }
             $missing[] = [
@@ -168,6 +180,18 @@ final class WordpressImportReconciler
         }
 
         return ['source' => count($rows), 'imported' => count($rows) - count($missing), 'missing' => $missing];
+    }
+
+    /** @param  array<string, mixed>  $row */
+    private function hasImages(array $row): bool
+    {
+        foreach (is_array($row['images'] ?? null) ? $row['images'] : [] as $image) {
+            if (is_string($image) ? trim($image) !== '' : (is_array($image) && (! empty($image['url']) || ! empty($image['src']) || ! empty($image['data_base64'])))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @param  array<string, mixed>  $row */

@@ -21,7 +21,7 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
             throw new RuntimeException('Remote media download requires the curl extension.');
         }
 
-        $current = $url;
+        $current = ImportUrlGuard::normalize($url);
         for ($hop = 0; $hop < 3; $hop++) {
             $parts = ImportUrlGuard::parseHttp($current);
             if (! ImportUrlGuard::hostAllowed($parts['host'], $allowedHosts)) {

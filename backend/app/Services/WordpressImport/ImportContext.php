@@ -5,6 +5,7 @@ namespace App\Services\WordpressImport;
 use App\Models\MediaAsset;
 use App\Models\WordpressImportJob;
 use App\Models\WordpressImportLink;
+use App\Services\Media\ImageSizes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -209,8 +210,11 @@ final class ImportContext
         $size = @getimagesizefromstring($bytes);
         $w = is_array($size) ? (int) $size[0] : 0;
         $h = is_array($size) ? (int) $size[1] : 0;
+        // WebP by default (job option `webp`, default true): every non-GIF raster is re-encoded.
+        $webp = (bool) ($this->job->options['webp'] ?? true);
         $needs = ! in_array($mime, self::WEB_IMAGES, true)
             || max($w, $h) > self::MAX_DIMENSION
+            || ($webp && $mime !== 'image/webp')
             || (strlen($bytes) > 2_097_152 && $mime !== 'image/webp');
         if (! $needs) {
             return null;
@@ -266,6 +270,18 @@ final class ImportContext
         return $ok && $out !== '' ? [$out, 'image/webp'] : null;
     }
 
+    private function assetFileExists(MediaAsset $asset): bool
+    {
+        if (! $asset->path) {
+            return true;
+        }
+        try {
+            return Storage::disk($asset->disk ?: 'public')->exists($asset->path);
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
     public function storeImage(array $image, ?string $fallbackExternalId = null): ?string
     {
         $externalId = trim((string) ($image['external_id'] ?? $fallbackExternalId ?? ''));
@@ -273,7 +289,7 @@ final class ImportContext
             $existing = $this->find('media', $externalId);
             if ($existing && $existing->local_type === MediaAsset::class) {
                 $asset = MediaAsset::query()->where('tenant_id', $this->tenantId())->find($existing->local_id);
-                if ($asset) {
+                if ($asset && $this->assetFileExists($asset)) {
                     return $asset->url;
                 }
             }
@@ -298,6 +314,7 @@ final class ImportContext
             }
             $filename = $this->cleanFilename((string) ($image['filename'] ?? 'image'));
         } elseif (! empty($image['url']) && is_string($image['url'])) {
+            $image['url'] = ImportUrlGuard::normalize($image['url']);
             if (! ImportUrlGuard::hostAllowed(
                 ImportUrlGuard::parseHttp($image['url'])['host'],
                 $this->hosts()
@@ -344,7 +361,7 @@ final class ImportContext
         $name = ($externalId !== '' ? $externalId.'-' : '').$filename;
         $path = 'media/'.$this->tenantId().'/wordpress/'.$name;
         Storage::disk('public')->put($path, $bytes);
-        app(\App\Services\Media\ImageSizes::class)->generate('public', $path, true);
+        app(ImageSizes::class)->generate('public', $path, true);
 
         $asset = new MediaAsset([
             'tenant_id' => $this->tenantId(),
@@ -405,6 +422,7 @@ final class ImportContext
             $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes) ?: '';
             $filename = $this->cleanFilename((string) ($file['filename'] ?? 'file'));
         } elseif (! empty($file['url']) && is_string($file['url'])) {
+            $file['url'] = ImportUrlGuard::normalize($file['url']);
             if (! ImportUrlGuard::hostAllowed(ImportUrlGuard::parseHttp($file['url'])['host'], $this->hosts())) {
                 throw new InvalidArgumentException('Media host is not on the allowlist.');
             }

@@ -24,6 +24,32 @@ final class ImportUrlGuard
     /**
      * @return array{scheme: string, host: string, port: int, path: string}
      */
+    /**
+     * Percent-encode a media URL the way browsers do: spaces, Persian letters, ZWNJ and other
+     * non-ASCII bytes in the path/query are encoded (already-encoded sequences are kept).
+     */
+    public static function normalize(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '' || preg_match('/[\x00-\x1f\x7f]/', $url)) {
+            return $url;
+        }
+        $encode = static fn (string $part): string => (string) preg_replace_callback(
+            '/[^A-Za-z0-9\-._~!$&\'()*+,;=:@\/?%]/u',
+            static fn (array $m): string => rawurlencode($m[0]),
+            preg_replace('/%(?![0-9A-Fa-f]{2})/', '%25', $part) ?? $part
+        );
+        $hashAt = strpos($url, '#');
+        if ($hashAt !== false) {
+            $url = substr($url, 0, $hashAt);
+        }
+        if (! preg_match('#^(https?://[^/?\s]+)(.*)$#i', $url, $m)) {
+            return $url;
+        }
+
+        return $m[1].$encode($m[2]);
+    }
+
     public static function parseHttp(string $url): array
     {
         $url = trim($url);
