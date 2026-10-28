@@ -114,20 +114,10 @@ final class PerformanceSettingsService
 
     /**
      * Purge the Next.js data cache (tags builder/tenant/seo/poetry/catalog) via the frontend's
-     * secret-protected /webino-revalidate route. No-op unless FRONTEND_REVALIDATE_URL + REVALIDATE_SECRET are set.
+     * secret-protected /webino-revalidate route. On by default (see FrontendRevalidator).
      */
-    public function revalidateFrontend(array $tags = ['builder', 'tenant', 'seo', 'poetry', 'catalog']): bool
+    public function revalidateFrontend(array $tags = \App\Support\PublicCache\FrontendRevalidator::TAGS): bool
     {
-        $url = (string) config('services.frontend_revalidate.url', '');
-        $secret = (string) config('services.frontend_revalidate.secret', '');
-        if ($url === '' || $secret === '') {
-            return false;
-        }
-        try {
-            return Http::timeout(3)->withHeaders(['x-revalidate-secret' => $secret])
-                ->post($url, ['tags' => array_values($tags)])->successful();
-        } catch (\Throwable) {
-            return false;
-        }
+        return \App\Support\PublicCache\FrontendRevalidator::send(array_values($tags));
     }
 }

@@ -70,8 +70,9 @@ return [
     ],
 
     'frontend_revalidate' => [
-        'url' => env('FRONTEND_REVALIDATE_URL'),
+        'url' => env('FRONTEND_REVALIDATE_URL', 'http://frontend:3000/webino-revalidate'),
         'secret' => env('REVALIDATE_SECRET'),
+        'page_cache' => env('WEBINO_PAGE_CACHE', 'on'),
     ],
 
 ];

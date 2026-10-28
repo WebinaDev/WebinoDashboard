@@ -27,6 +27,7 @@ final class PublicResponseCache
     {
         if ($tenantId > 0) {
             Cache::forever("pubcache:v:{$tenantId}", (string) microtime(true));
+            FrontendRevalidator::schedule();
         }
     }
 

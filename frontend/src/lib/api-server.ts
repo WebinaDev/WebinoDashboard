@@ -15,7 +15,14 @@ export class ApiTransientError extends Error {
   }
 }
 
-async function serverFetch(path: string, init?: FetchOptions, strict = false): Promise<unknown | null> {
+/** Page/data cache is on by default; WEBINO_PAGE_CACHE=off disables caching of public reads. */
+const PAGE_CACHE_OFF = (process.env.WEBINO_PAGE_CACHE ?? "").toLowerCase() === "off"
+/** Per-visitor data is never cached, whatever the caller asked for. */
+const NEVER_CACHE = /\/(cart|checkout|account|my-account|register|login|auth|orders|me|wishlist)(\/|\?|$)/
+
+async function serverFetch(path: string, rawInit?: FetchOptions, strict = false): Promise<unknown | null> {
+  const init: FetchOptions | undefined =
+    PAGE_CACHE_OFF || NEVER_CACHE.test(path) ? { ...rawInit, revalidate: false } : rawInit
   const apiBase = getServerApiBase()
   if (!apiBase) {
     return null
