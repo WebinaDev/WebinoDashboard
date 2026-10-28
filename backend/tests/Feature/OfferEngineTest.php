@@ -2,10 +2,70 @@
 
 namespace Tests\Feature;
 
+use App\Models\Coupon;
+use App\Models\Product;
+use App\Models\Tenant;
+use App\Models\User;
+use App\Services\Coupons\CouponService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Tests\TestCase;
 
-class OfferEngineTest extends CouponOffersTest
+class OfferEngineTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected Tenant $tenant;
+
+    protected User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->tenant = $this->createTenant();
+        $this->enableSubmodules($this->tenant->id, [
+            'marketing.coupons' => true,
+            'commerce.checkout' => true,
+            'commerce.cart' => true,
+            'commerce.catalog' => true,
+        ]);
+        /** @var User $user */
+        $user = User::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'role' => 'admin',
+            'email' => 'buyer@example.com',
+        ]);
+        $this->user = $user;
+    }
+
+    protected function service(): CouponService
+    {
+        return app(CouponService::class);
+    }
+
+    protected function product(array $overrides = []): Product
+    {
+        return Product::query()->create(array_merge([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'P',
+            'slug' => 'p-'.uniqid(),
+            'price_minor' => 10000,
+            'currency' => 'IRR',
+            'status' => 'publish',
+        ], $overrides));
+    }
+
+    protected function coupon(array $overrides = []): Coupon
+    {
+        return Coupon::query()->create(array_merge([
+            'tenant_id' => $this->tenant->id,
+            'code' => 'C'.strtoupper(uniqid()),
+            'type' => 'percent',
+            'amount' => 10,
+            'status' => 'publish',
+        ], $overrides));
+    }
+
     private function line($p, int $qty, int $price): array
     {
         return ['product_id' => $p->id, 'quantity' => $qty, 'unit_price_minor' => $price];
