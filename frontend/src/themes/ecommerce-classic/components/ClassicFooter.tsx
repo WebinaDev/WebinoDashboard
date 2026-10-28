@@ -20,6 +20,8 @@ import {
   IconTruck,
 } from "./icons"
 import { WebinaCredit } from "@/components/brand/WebinaCredit"
+import { NavItemLink } from "./ClassicNavMenu"
+import { filterNavItems, type NavMenuItem, useNavMenuItems, usePublicNavMenus } from "@/lib/nav-menus"
 import { ClassicAmount } from "./parts"
 import { useClassicText } from "../lib/texts"
 import { optImg } from "@/lib/image-url"
@@ -56,6 +58,15 @@ const SOCIAL_DEFS = [
   { key: "social_soroush", label: "سروش", icon: "" },
 ] as const
 
+
+/** «منوها» footer columns: explicit builder slugs first, else locations footer_1..4; null → theme footer_links. */
+function useMenuColumns(slugs?: string[]): { title: string; items: NavMenuItem[] }[] | null {
+  const all = usePublicNavMenus()
+  if (!all) return null
+  const keys = slugs?.length ? slugs : ["footer_1", "footer_2", "footer_3", "footer_4"].map((l) => all.locations[l]).filter((s): s is string => !!s)
+  const cols = keys.map((k) => all.menus[k]).filter(Boolean).map((m) => ({ title: m.name, items: filterNavItems(m.items ?? [], false).filter((i) => i.visibility !== "logged_in") }))
+  return cols.length ? cols : null
+}
 
 function parseLinkColumns(
   raw: unknown,
@@ -166,12 +177,15 @@ export function ClassicFooter({
   email,
   about,
   address,
+  menus,
 }: {
   siteName: string
   phone?: string
   email?: string
   about?: string
   address?: string
+  /** Menu slugs chosen in the builder footer widget (one column each). */
+  menus?: string[]
 }) {
   const tx = useClassicText()
   const theme = useClassicThemeSettings()
@@ -181,6 +195,8 @@ export function ClassicFooter({
   const recent = useRecentlyViewedProducts()
 
   const linkColumns = parseLinkColumns(cfg.footer_links)
+  const menuColumns = useMenuColumns(menus)
+  const bottomMenu = useNavMenuItems({ location: "footer_bottom" })
   const brandsTitle = String(cfg.brands_title || "برندهای مطرح")
   const brandLinks = Array.isArray(cfg.brand_links)
     ? cfg.brand_links.map((l) => ({
@@ -244,7 +260,18 @@ export function ClassicFooter({
         ) : null}
 
         <div className="sfc-footer__board" style={footerCols ? ({ "--sfc-footer-cols": String(footerCols) } as CSSProperties) : undefined} data-cols={footerCols || undefined}>
-          {linkColumns.map((col, idx) => (
+          {menuColumns
+            ? menuColumns.map((col, idx) => (
+                <nav key={`menu-${col.title}-${idx}`} className="sfc-footer__col" aria-label={col.title}>
+                  <h3 className="sfc-footer__title">{col.title}</h3>
+                  <div className="sfc-footer__link-grid">
+                    {col.items.map((it) => (
+                      <NavItemLink key={it.id} item={it} />
+                    ))}
+                  </div>
+                </nav>
+              ))
+            : linkColumns.map((col, idx) => (
             <nav key={`${col.title}-${idx}`} className="sfc-footer__col" aria-label={col.title}>
               <h3 className="sfc-footer__title">{col.title || FALLBACK_GUIDE.title}</h3>
               <div className="sfc-footer__link-grid">
@@ -425,6 +452,13 @@ export function ClassicFooter({
             </span>
             {copyrightYears ? <span className="sfc-footer__copy-years">{copyrightYears}</span> : null}
           </div>
+          {bottomMenu?.length ? (
+            <nav className="sfc-footer__bottom-menu" aria-label="منوی پایین فوتر">
+              {filterNavItems(bottomMenu, false).map((it) => (
+                <NavItemLink key={it.id} item={it} />
+              ))}
+            </nav>
+          ) : null}
           <WebinaCredit />
         </div>
       </div>

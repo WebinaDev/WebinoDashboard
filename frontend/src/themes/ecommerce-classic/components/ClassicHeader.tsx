@@ -15,6 +15,8 @@ import {
 
 import { cartCount, cartSnapshot, setQty, subscribeCart, type CartLine } from "@/builder/cart"
 import { type ShopCategory, type ShopProduct } from "@/builder/catalog"
+import { filterNavItems, useNavMenuItems } from "@/lib/nav-menus"
+import { NavDrawerList, NavHeaderItem, NavItemLink, NavMegaPanel } from "./ClassicNavMenu"
 import { categoryHref } from "@/kernel/store-slug-href"
 import { setServerQty, useServerCart } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
@@ -734,10 +736,13 @@ export function ClassicHeader({
   siteName,
   logoUrl,
   links,
+  menu,
 }: {
   siteName: string
   logoUrl?: string | null
   links: { label: string; href: string }[]
+  /** «منوها» slug picked in the builder header widget; otherwise the `header_main` location is used. */
+  menu?: string
 }) {
   const tx = useClassicText()
   const digits = useDigits()
@@ -771,6 +776,16 @@ export function ClassicHeader({
   const cartRef = useRef<HTMLDivElement>(null)
   const accountRef = useRef<HTMLDivElement>(null)
   const nav = links.length ? links : CLASSIC_NAV
+  // «منوها»: assigned menus override the theme defaults; null → current behavior.
+  const loggedIn = auth === "auth"
+  const mainMenuRaw = useNavMenuItems(menu ? { slug: menu } : { location: "header_main" })
+  const topMenuRaw = useNavMenuItems({ location: "top_bar" })
+  const mobileMenuRaw = useNavMenuItems({ location: "mobile" })
+  const megaMenuRaw = useNavMenuItems({ location: "mega_menu" })
+  const mainMenu = mainMenuRaw ? filterNavItems(mainMenuRaw, loggedIn) : null
+  const topMenu = topMenuRaw ? filterNavItems(topMenuRaw, loggedIn) : null
+  const mobileMenu = mobileMenuRaw ? filterNavItems(mobileMenuRaw, loggedIn) : mainMenu
+  const megaMenu = megaMenuRaw ? filterNavItems(megaMenuRaw, loggedIn) : null
   const categories = catalog.categories
   const pricing = cart?.pricing
 
@@ -856,9 +871,18 @@ export function ClassicHeader({
 
   return (
     <>
-      {topBarText ? (
+      {topBarText || topMenu?.length ? (
         <div className="sfc-topbar" role="note">
-          <div className="sfc-container sfc-topbar__inner">{topBarText}</div>
+          <div className="sfc-container sfc-topbar__inner">
+            {topBarText ? <span>{topBarText}</span> : null}
+            {topMenu?.length ? (
+              <nav className="sfc-topbar__menu" aria-label="منوی نوار بالا">
+                {topMenu.map((it) => (
+                  <NavItemLink key={it.id} item={it} />
+                ))}
+              </nav>
+            ) : null}
+          </div>
         </div>
       ) : null}
       <header
@@ -972,7 +996,9 @@ export function ClassicHeader({
                     <IconMenu size={20} />
                     <span>{headerCfg.mega_menu_title || "دسته‌بندی محصولات"}</span>
                   </button>
-                  {mega ? (
+                  {mega && megaMenu?.length ? (
+                    <NavMegaPanel items={megaMenu} onClose={() => setMega(false)} />
+                  ) : mega ? (
                     <DeepMegaPanel
                       categories={categories}
                       activeCat={activeCat}
@@ -984,7 +1010,7 @@ export function ClassicHeader({
               ) : null}
               {megaEnabled ? <span className="sfc-header__sep" aria-hidden="true" /> : null}
               <nav className="sfc-header__links" aria-label="منوی اصلی">
-                {nav.map((link) => (
+                {mainMenu ? mainMenu.map((it) => <NavHeaderItem key={it.id} item={it} icon={navIcon(it.url ?? "", it.label)} />) : nav.map((link) => (
                   <Link key={link.href + link.label} href={link.href}>
                     <span className="sfc-header__link-icon">{navIcon(link.href, link.label)}</span>
                     <span>{link.label}</span>
@@ -1071,12 +1097,16 @@ export function ClassicHeader({
               </button>
             </div>
             <nav className="sfc-drawer__links">
-              {nav.map((link) => (
-                <Link key={link.href + link.label} href={link.href} onClick={() => setDrawer(false)}>
-                  {navIcon(link.href, link.label)}
-                  {link.label}
-                </Link>
-              ))}
+              {mobileMenu ? (
+                <NavDrawerList items={mobileMenu} onNavigate={() => setDrawer(false)} />
+              ) : (
+                nav.map((link) => (
+                  <Link key={link.href + link.label} href={link.href} onClick={() => setDrawer(false)}>
+                    {navIcon(link.href, link.label)}
+                    {link.label}
+                  </Link>
+                ))
+              )}
             </nav>
             <p className="sfc-drawer__label">{tx("header.drawer_categories")}</p>
             <nav className="sfc-drawer__links sfc-drawer__cats">

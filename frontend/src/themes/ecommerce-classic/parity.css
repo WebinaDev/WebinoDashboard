@@ -6745,3 +6745,12 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
 .sfc-package__total{display:flex;flex-direction:column;align-items:flex-end;font-weight:800}
 .sfc-package__total del{font-weight:400;font-size:11px;color:#9ca3af}
 .sfc-package__cart{display:inline-flex;gap:4px;align-items:center;margin-top:8px;font-size:12px;color:var(--sfc-primary,#ef4056)}
+
+/* «منوها» — menu item icon/badge, top-bar & footer-bottom menus */
+.sfc-navmenu__icon { display: inline-flex; width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+.sfc-navmenu__badge { display: inline-block; margin-inline-start: 4px; padding: 0 6px; border-radius: 999px; color: #fff; font-size: 10px; line-height: 16px; font-weight: 700; }
+.sfc-topbar__inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sfc-topbar__menu, .sfc-footer__bottom-menu { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; }
+.sfc-topbar__menu a, .sfc-footer__bottom-menu a { display: inline-flex; align-items: center; gap: 4px; color: inherit; opacity: .9; }
+.sfc-topbar__menu a:hover, .sfc-footer__bottom-menu a:hover { opacity: 1; text-decoration: underline; }
+.sfc-header__links > a, .sfc-navmenu__drop > a { display: inline-flex; align-items: center; gap: 6px; }

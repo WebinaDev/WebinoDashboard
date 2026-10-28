@@ -14,6 +14,7 @@ import { StoreProductCard } from "../storefront/ui"
 import { fetchCatalogPayload } from "../storefront/use-catalog"
 import type { WidgetNode } from "../types"
 import { buildNavTree, type NavItem } from "../nav-tree"
+import { useMenuTree } from "@/lib/nav-menus"
 import { WIcon } from "./extra-widgets"
 import { useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { Img } from "./img"
@@ -377,7 +378,8 @@ function NavBranch({ item, depth, vertical }: { item: NavItem; depth: number; ve
 }
 
 export function NavDropdownWidget({ widget }: { widget: WidgetNode }) {
-  const tree = buildNavTree(parseRows(widget.props.items, ["label", "href", "level"]) as { label: string; href: string; level: string }[])
+  const menuTree = useMenuTree(propStr(widget.props, "menu", ""))
+  const tree = menuTree ?? buildNavTree(parseRows(widget.props.items, ["label", "href", "level"]) as { label: string; href: string; level: string }[])
   const vertical = propStr(widget.props, "direction", "row") === "column"
   if (!tree.length) return null
   return (

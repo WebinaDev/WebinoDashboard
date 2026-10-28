@@ -118,6 +118,7 @@
     "errors_otp_invalid": "Invalid code"
   },
   "nav": {
+    "nav_menus": "Menus",
     "popups": "Popups",
     "platform": "Platform",
     "projects": "Shortcuts",

@@ -231,6 +231,8 @@ export type FieldDef =
   | { kind: "date" | "time" | "datetime"; key: string; label: string }
   /** Array of objects; legacy `label|href` line strings are read through `parseRows`. */
   | { kind: "repeater"; key: string; label: string; fields: RepeaterSubField[] }
+  /** «منوها» picker: stores a nav-menu slug; inspector edits the menu's items inline (same data as admin Menus). */
+  | { kind: "nav-menu"; key: string; label: string }
 
 export type RepeaterSubField = { key: string; label: string; kind: "text" | "url" | "media" | "icon" | "textarea" | "select"; options?: { value: string; label: string }[] }
 

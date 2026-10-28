@@ -2,6 +2,8 @@
 
 /* Renderers for the @webina/ui v0.2 gap widgets (schemas live in the shared package; renderers stay per platform). */
 
+import { filterNavItems, navItemsToTree, useMenuTree, usePublicNavMenus } from "@/lib/nav-menus"
+import { footerMenuSlugs } from "../registry-nav-menus"
 import { observeVisibility, prefersReducedMotion } from "@webina/ui/builder"
 import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import Link from "next/link"
@@ -274,7 +276,8 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
   const tone = propStr(p, "tone", "light")
   const logo = safeMedia(propStr(p, "logo")) || logoUrl || ""
   const name = propStr(p, "siteName") || siteName || ""
-  const links = parseLinks(p.links, [])
+  const menuTree = useMenuTree(propStr(p, "menu", ""))
+  const links = menuTree ?? parseLinks(p.links, [])
   const toneCls = tone === "dark" ? "bg-foreground text-background" : tone === "transparent" ? "bg-transparent" : "bg-card"
   return (
     <header className={`${toneCls} ${propBool(p, "sticky", true) ? "sticky top-0 z-40" : ""} border-b border-border`}>
@@ -305,6 +308,15 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
     for (const row of p.columns as { title?: string; links?: string }[]) grouped.set(row.title ?? "", parseLinks(row.links ?? "", []))
   } else {
     for (const c of columns) grouped.set(c.title, [...(grouped.get(c.title) ?? []), { label: c.label, href: c.href }])
+  }
+  const menus = usePublicNavMenus()
+  const menuSlugs = footerMenuSlugs(p)
+  if (menus && menuSlugs.length) {
+    grouped.clear()
+    for (const slug of menuSlugs) {
+      const m = menus.menus[slug]
+      if (m) grouped.set(m.name, navItemsToTree(filterNavItems(m.items ?? [], null)))
+    }
   }
   const socials = parseRows(p.socials, ["network", "href"]).filter((s) => s.href)
   return (

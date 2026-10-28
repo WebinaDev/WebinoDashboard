@@ -212,6 +212,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/geo/states', [GeoController::class, 'states']);
         Route::get('/bots/widget', [BotController::class, 'widget']);
         Route::get('/marketing/popups', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'publicIndex'])->middleware('throttle:120,1');
+        Route::get('/nav-menus', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'publicIndex'])->middleware('throttle:240,1');
         Route::post('/marketing/popups/{popup}/event', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'event'])->whereNumber('popup')->middleware('throttle:60,1');
         Route::get('/geo/cities', [GeoController::class, 'cities']);
         Route::get('/orders/{order}/pay', [PublicOrderPaymentController::class, 'show'])->whereNumber('order');
@@ -959,6 +960,13 @@ Route::prefix('v1')->group(function () {
 
             Route::middleware(['module:cms', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/cms/pages', [CmsController::class, 'pages']);
+                Route::get('/nav-menus', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'index']);
+                Route::post('/nav-menus', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'store']);
+                Route::get('/nav-menus/sources', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'sources']);
+                Route::get('/nav-menus/from-categories', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'fromCategories']);
+                Route::get('/nav-menus/{menu}', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'show'])->whereNumber('menu');
+                Route::put('/nav-menus/{menu}', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'update'])->whereNumber('menu');
+                Route::delete('/nav-menus/{menu}', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'destroy'])->whereNumber('menu');
                 Route::post('/cms/pages', [CmsController::class, 'store']);
                 Route::get('/cms/pages/{page}', [CmsController::class, 'show'])->whereNumber('page');
                 Route::patch('/cms/pages/{page}', [CmsController::class, 'update'])->whereNumber('page');

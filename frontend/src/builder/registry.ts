@@ -1,4 +1,5 @@
 import { applyChromeExtras } from "./registry-chrome-extras"
+import { applyNavMenuFields } from "./registry-nav-menus"
 import { createWidgetRegistry } from "@webina/ui/builder"
 
 import { uid } from "./ids"
@@ -701,6 +702,7 @@ const registry = createWidgetRegistry<WidgetDef>(CORE_WIDGETS, (type, plugin) =>
 registry.register(COMMERCE_PLUGIN)
 
 applyChromeExtras(registry.list())
+applyNavMenuFields(registry.list())
 export const WIDGETS: WidgetDef[] = registry.list()
 
 export function widgetDef(type: string): WidgetDef | undefined {

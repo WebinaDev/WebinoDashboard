@@ -1,5 +1,6 @@
 "use client"
 
+import { NavMenuField } from "./NavMenuField"
 import { ArrowDown, ArrowUp, Database, Plus, Trash2 } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
@@ -182,12 +183,14 @@ export function ExtendedField({ field, props, onChange }: { field: FieldDef; pro
       )
     case "repeater":
       return <RepeaterInput value={value} fields={field.fields} onChange={(v) => onChange(field.key, v)} />
+    case "nav-menu":
+      return <NavMenuField value={str} onChange={(slug) => onChange(field.key, slug)} />
     default:
       return null
   }
 }
 
-export const EXTENDED_KINDS = new Set<FieldDef["kind"]>(["media", "icon", "color", "link", "slider", "date", "time", "datetime", "repeater"])
+export const EXTENDED_KINDS = new Set<FieldDef["kind"]>(["media", "icon", "color", "link", "slider", "date", "time", "datetime", "repeater", "nav-menu"])
 
 /** Field kinds that can be bound to a Dynamic Tag, and which tag kinds they accept. */
 export function dynamicKindFor(field: FieldDef): DynamicKind | null {

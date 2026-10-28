@@ -118,6 +118,7 @@
     "errors_otp_invalid": "کد نامعتبر است"
   },
   "nav": {
+    "nav_menus": "منوها",
     "popups": "پاپ‌آپ‌ها",
     "platform": "بستر",
     "projects": "میانبرها",

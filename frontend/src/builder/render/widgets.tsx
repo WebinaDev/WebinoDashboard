@@ -1,5 +1,6 @@
 "use client"
 
+import { useMenuTree } from "@/lib/nav-menus"
 import DOMPurify from "dompurify"
 import { Heart, ShieldCheck, Sparkles, Star, Truck } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -679,7 +680,8 @@ function HtmlWidget({ widget }: { widget: WidgetNode }) {
 }
 
 function MenuWidget({ widget }: { widget: WidgetNode }) {
-  const links = parseLinks(widget.props.links, NAV)
+  const menuTree = useMenuTree(propStr(widget.props, "menu", ""))
+  const links = menuTree ?? parseLinks(widget.props.links, NAV)
   return (
     <nav className="flex flex-wrap gap-2">
       {links.map((link) => (

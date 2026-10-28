@@ -1,5 +1,6 @@
 "use client"
 
+import { footerMenuSlugs } from "../registry-nav-menus"
 import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 
@@ -1108,7 +1109,7 @@ export function StorefrontHeader({
   if (!classic) return <DefaultStorefrontHeader widget={widget} siteName={siteName} logoUrl={logoUrl} />
   const links = parseLinks(widget.props.links, CLASSIC_NAV)
   const name = siteName || propStr(widget.props, "mark", "ویبینو")
-  return <ClassicHeader siteName={name} logoUrl={logoUrl} links={links} />
+  return <ClassicHeader siteName={name} logoUrl={logoUrl} links={links} menu={propStr(widget.props, "menu", "") || undefined} />
 }
 
 export function StorefrontFooter({ widget, siteName }: { widget: WidgetNode; siteName?: string }) {
@@ -1121,6 +1122,7 @@ export function StorefrontFooter({ widget, siteName }: { widget: WidgetNode; sit
       email={propStr(widget.props, "email", "")}
       about={propStr(widget.props, "about", "")}
       address={propStr(widget.props, "address", "")}
+      menus={footerMenuSlugs(widget.props)}
     />
   )
 }

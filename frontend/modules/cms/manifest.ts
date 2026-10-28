@@ -9,6 +9,17 @@ export const cmsManifest: ModuleManifest = {
   adminNav: { section: "content", order: 12 },
   adminRoutes: [
     {
+      path: "menus",
+      submodule: "menus",
+      page: "menus",
+      labelKey: "nav.nav_menus",
+      section: "content",
+      order: 17,
+      navGroup: "theme_builder",
+      navOrder: 1,
+      capability: "content.manage",
+    },
+    {
       path: "theme-builder",
       submodule: "pages",
       page: "theme-builder",
