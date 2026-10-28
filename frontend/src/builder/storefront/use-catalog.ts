@@ -127,7 +127,7 @@ export function useFeaturedProducts(limit: number): ShopProduct[] {
 
 export function useCatalog(limit: number): CatalogState {
   const params = useArchiveParams()
-  const q = params.get("q") ?? ""
+  const q = params.get("q") ?? params.get("s") ?? ""
   const category = params.get("category") ?? ""
   const brand = params.get("brand") ?? ""
   const tag = params.get("tag") ?? ""

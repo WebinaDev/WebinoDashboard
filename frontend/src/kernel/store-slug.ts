@@ -21,6 +21,11 @@ const WC_NATIVE: Record<string, string> = {
   "فروشگاه": "shop",
   "علاقه-مندی": "wishlist",
   "مقایسه": "compare",
+  shop: "shop",
+  cart: "cart",
+  checkout: "checkout",
+  compare: "compare",
+  wishlist: "wishlist",
 }
 
 const ROUTE_FOR: Record<StoreSlugHit["type"], string> = {
@@ -56,6 +61,9 @@ export const resolveStoreSlug = cache(async (slug: string, scope = "any"): Promi
 export async function resolveStoreSegments(raw: string[], segments: string[]): Promise<{ segments: string[]; hit: StoreSlugHit | null }> {
   const parts = raw.map(safeDecode).filter(Boolean)
   // Imported WooCommerce pages ([woocommerce_my_account] etc.) → native pages (mobile OTP account, cart…).
+  // /pages/shop-2, /pages/my-account: imported WC page shells → native routes.
+  const wcPage = parts[0] === "pages" && parts.length === 2 ? WC_NATIVE[parts[1].replace(/-\d+$/, "")] : undefined
+  if (wcPage) return { segments: [wcPage], hit: null }
   const native = parts[0] ? WC_NATIVE[parts[0]] : undefined
   if (native && (parts.length === 1 || parts[0] === "my-account")) return { segments: [native], hit: null }
   if (parts.length === 2 && PREFIX_SCOPE[parts[0]]) {

@@ -14,6 +14,8 @@ const nextConfig = {
   output: "standalone",
   compress: true,
   poweredByHeader: false,
+  // Built-in trailing-slash 308 ran before middleware: /product/x/ → 308 /product/x → 301 /x. Middleware now 301s in one hop.
+  skipTrailingSlashRedirect: true,
   reactStrictMode: true,
   transpilePackages: ["@webina/ui"],
   experimental: {

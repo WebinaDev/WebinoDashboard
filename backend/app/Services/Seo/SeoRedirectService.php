@@ -43,12 +43,46 @@ final class SeoRedirectService
             return $manual;
         }
 
-        return $this->findImported($tenantId, $from);
+        return $this->findImported($tenantId, $from) ?? $this->productRootRedirect($tenantId, $from);
+    }
+
+    /** WooCommerce system pages that the storefront renders natively (imported page copies are empty shells). */
+    public const NATIVE_STORE_PAGES = [
+        'shop' => '/shop', 'cart' => '/cart', 'checkout' => '/checkout', 'my-account' => '/my-account',
+        'compare' => '/compare', 'wishlist' => '/wishlist', 'amazing-offers' => '/amazing-offers', 'search' => '/search',
+    ];
+
+    /** Native path for an imported WC page target like /pages/shop-2, /shop-2 or /pages/my-account; null otherwise. */
+    public static function nativeStorePath(string $path): ?string
+    {
+        if (preg_match('#^/(?:pages/)?([a-z-]+?)(?:-\d+)?$#', $path, $m) !== 1) {
+            return null;
+        }
+
+        return self::NATIVE_STORE_PAGES[$m[1]] ?? null;
+    }
+
+    /** Root permalink stores: /product/{slug} → /{slug} (301). */
+    private function productRootRedirect(int $tenantId, string $from): ?SeoRedirect
+    {
+        if (preg_match('#^/product/([^/]+)$#', $from, $m) !== 1) {
+            return null;
+        }
+        $to = SeoSettingsService::productPathFor(app(SeoSettingsService::class)->get($tenantId), $m[1]);
+        if ($to === $from) {
+            return null;
+        }
+
+        return new SeoRedirect(['tenant_id' => $tenantId, 'from_path' => $from, 'to_path' => $to, 'status_code' => 301, 'enabled' => true]);
     }
 
     private function findImported(int $tenantId, string $from): ?WordpressRedirect
     {
         $decoded = rawurldecode($from);
+        // Native storefront routes (/shop, /cart, /my-account…) must never bounce to imported empty WC page shells.
+        if (isset(self::NATIVE_STORE_PAGES[ltrim($decoded, '/')])) {
+            return null;
+        }
         $encoded = implode('/', array_map(fn ($seg) => rawurlencode($seg), explode('/', $decoded)));
         $variants = array_values(array_unique([$from, $from.'/', $decoded, $decoded.'/', $encoded, $encoded.'/']));
 
@@ -65,6 +99,7 @@ final class SeoRedirectService
         if (str_starts_with($to, '/product/')) {
             $to = SeoSettingsService::productPathFor(app(SeoSettingsService::class)->get($tenantId), substr($to, strlen('/product/')));
         }
+        $to = self::nativeStorePath(rawurldecode($to)) ?? $to;
         if (rawurldecode($to) === $decoded || $to === '') {
             return null;
         }
@@ -110,17 +145,23 @@ final class SeoRedirectService
             $row = SeoRedirect::query()->where('tenant_id', $tenantId)->findOrFail($id);
             $row->fill($payload)->save();
 
+            \App\Support\PublicCache\PublicResponseCache::bump($tenantId);
+
             return $row->fresh();
         }
 
-        return SeoRedirect::query()->updateOrCreate(
+        $row = SeoRedirect::query()->updateOrCreate(
             ['tenant_id' => $tenantId, 'from_path' => $from],
             $payload
         );
+        \App\Support\PublicCache\PublicResponseCache::bump($tenantId);
+
+        return $row;
     }
 
     public function delete(int $tenantId, int $id): void
     {
         SeoRedirect::query()->where('tenant_id', $tenantId)->where('id', $id)->delete();
+        \App\Support\PublicCache\PublicResponseCache::bump($tenantId);
     }
 }

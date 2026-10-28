@@ -283,6 +283,13 @@ async function handle(request: NextRequest) {
     }
   }
 
+  // WordPress-style trailing slash (/shop/, /about/) → one 301 to the slashless canonical (Next's own 308 is disabled).
+  if (pathname.length > 1 && pathname.endsWith("/") && !pathname.startsWith("/wp-json")) {
+    const url = request.nextUrl.clone()
+    url.pathname = pathname.replace(/\/+$/, "") || "/"
+    return NextResponse.redirect(url, 301)
+  }
+
   // Legacy /admin → /dashboard (bookmarks & old links)
   if (isLegacyAdminPathname(pathname)) {
     const url = request.nextUrl.clone()

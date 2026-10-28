@@ -146,6 +146,14 @@ final class WordpressImportMapper
         }
     }
 
+    /** WooCommerce system shortcodes ([woocommerce_my_account], [woocommerce_cart]…) render natively; never leak them as text. */
+    public static function stripWooShortcodes(string $html): string
+    {
+        $html = preg_replace('/<!--\s*wp:shortcode\s*-->\s*(?:<p>)?\s*\[\/?woocommerce_[a-z_]*[^\]]*\]\s*(?:<\/p>)?\s*<!--\s*\/wp:shortcode\s*-->/i', '', $html) ?? $html;
+
+        return preg_replace('/\[\/?woocommerce_[a-z_]*[^\]]*\]/i', '', $html) ?? $html;
+    }
+
     public function sanitizeHtml(string $html): string
     {
         $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html) ?? $html;
@@ -153,7 +161,7 @@ final class WordpressImportMapper
         $html = preg_replace('/\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
         $html = preg_replace('/javascript\s*:/i', '', $html) ?? $html;
 
-        return $html;
+        return self::stripWooShortcodes($html);
     }
 
     /** @return array<string, mixed> */
