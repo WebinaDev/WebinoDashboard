@@ -138,4 +138,24 @@ class BulkSaleScheduleTest extends TestCase
         Carbon::setTestNow('2026-10-02 00:00:00');
         $this->assertSame(7000, $product->effectivePriceMinor());
     }
+
+    public function test_apply_with_future_starts_at_schedules_sale(): void
+    {
+        Carbon::setTestNow('2026-09-28 10:00:00');
+        $product = $this->makeProduct();
+
+        $this->postJson('/api/v1/shop/products/bulk-sale', [
+            'action' => 'apply',
+            'percent' => 20,
+            'days' => 3,
+            'starts_at' => '2026-10-05',
+            'product_ids' => [$product->id],
+        ])->assertOk()->assertJsonPath('data.ok', 1);
+
+        $product->refresh();
+        $this->assertSame('2026-10-05', $product->sale_starts_at->format('Y-m-d'));
+        $this->assertTrue($product->sale_ends_at->greaterThan($product->sale_starts_at));
+        $this->assertFalse($product->isOnSale());
+        $this->assertSame(10000, $product->effectivePriceMinor());
+    }
 }

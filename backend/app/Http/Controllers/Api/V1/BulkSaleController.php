@@ -22,6 +22,8 @@ class BulkSaleController extends Controller
             'percent' => ['sometimes', 'numeric', 'gt:0', 'lt:100'],
             'days' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'until' => ['sometimes', 'nullable', 'date'],
+            // Scheduled sale: future start (sale window opens automatically; storefront uses saleWindowOpen()).
+            'starts_at' => ['sometimes', 'nullable', 'date'],
             'product_ids' => ['sometimes', 'array'],
             'product_ids.*' => ['integer'],
             'filters' => ['sometimes', 'array'],
@@ -62,7 +64,11 @@ class BulkSaleController extends Controller
             ]);
         }
 
-        $startsAt = now();
+        $startsRaw = trim((string) ($data['starts_at'] ?? ''));
+        $startsAt = $startsRaw !== '' ? Carbon::parse($startsRaw) : now();
+        if ($startsAt->lessThan(now())) {
+            $startsAt = now();
+        }
         $until = trim((string) ($data['until'] ?? ''));
         if ($until !== '') {
             $endsAt = Carbon::parse($until);

@@ -100,6 +100,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
   const [percent, setPercent] = useState("10")
   const [duration, setDuration] = useState<DurationMode>("7")
   const [endDate, setEndDate] = useState("")
+  const [startDate, setStartDate] = useState("")
   const [preview, setPreview] = useState<PreviewPayload | null>(null)
 
   const categoriesQ = useQuery({
@@ -172,6 +173,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
     const body: Record<string, unknown> = { action }
     if (action !== "remove") {
       body.percent = Number(percent)
+      if (startDate) body.starts_at = startDate
       if (duration === "custom") {
         body.until = endDate
       } else {
@@ -450,6 +452,11 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
                   {t("custom_end")}
                 </Button>
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sale-start-date">{t("start_date")}</Label>
+              <LocaleDatePicker locale={locale} value={startDate} onChange={(value) => setStartDate(value ?? "")} aria-label={t("start_date")} />
+              <p className="text-xs text-muted-foreground">{t("start_date_hint")}</p>
             </div>
             {duration === "custom" ? (
               <div className="space-y-1">

@@ -6003,6 +6003,8 @@
     "preset_days": "{count} days",
     "custom_end": "Custom end date",
     "end_date": "End date",
+    "start_date": "Start date (optional)",
+    "start_date_hint": "Empty = now. A future date schedules the sale to start automatically.",
     "category": "Category",
     "brand": "Brand",
     "all": "All",
