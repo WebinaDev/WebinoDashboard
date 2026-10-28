@@ -62,6 +62,17 @@ export const marketingManifest: ModuleManifest = {
       capability: "marketing.*",
     },
     {
+      path: "marketing/popups",
+      submodule: "notifications",
+      page: "popups",
+      labelKey: "nav.popups",
+      section: "marketing",
+      order: 41,
+      navGroup: "marketing",
+      navOrder: 3,
+      capability: "marketing.*",
+    },
+    {
       path: "marketing/sale-prices",
       submodule: "sale-prices",
       page: "sale-prices",

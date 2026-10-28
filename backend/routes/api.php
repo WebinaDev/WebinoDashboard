@@ -211,6 +211,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/license-renewal', [\App\Http\Controllers\Api\V1\LicenseRenewalController::class, 'show'])->middleware('throttle:60,1');
         Route::get('/geo/states', [GeoController::class, 'states']);
         Route::get('/bots/widget', [BotController::class, 'widget']);
+        Route::get('/marketing/popups', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'publicIndex'])->middleware('throttle:120,1');
+        Route::post('/marketing/popups/{popup}/event', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'event'])->whereNumber('popup')->middleware('throttle:60,1');
         Route::get('/geo/cities', [GeoController::class, 'cities']);
         Route::get('/orders/{order}/pay', [PublicOrderPaymentController::class, 'show'])->whereNumber('order');
         Route::post('/orders/{order}/pay/intent', [PublicOrderPaymentController::class, 'intent'])->whereNumber('order')->middleware('throttle:public-writes');
@@ -902,6 +904,11 @@ Route::prefix('v1')->group(function () {
 
             Route::middleware(['module:marketing', 'can:marketing.*'])->group(function () {
                 Route::get('/marketing/campaigns', [MarketingController::class, 'campaigns']);
+                Route::get('/marketing/popups', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'index']);
+                Route::post('/marketing/popups', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'store']);
+                Route::get('/marketing/popups/{popup}', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'show'])->whereNumber('popup');
+                Route::put('/marketing/popups/{popup}', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'update'])->whereNumber('popup');
+                Route::delete('/marketing/popups/{popup}', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'destroy'])->whereNumber('popup');
                 Route::get('/marketing/abandoned-carts', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'index']);
                 Route::get('/marketing/abandoned-carts/settings', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'settings']);
                 Route::put('/marketing/abandoned-carts/settings', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'update']);

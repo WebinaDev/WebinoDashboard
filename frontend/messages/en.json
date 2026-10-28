@@ -118,6 +118,7 @@
     "errors_otp_invalid": "Invalid code"
   },
   "nav": {
+    "popups": "Popups",
     "platform": "Platform",
     "projects": "Shortcuts",
     "dashboard": "Dashboard",
@@ -5944,6 +5945,8 @@
     "subtitle": "Discounts, SMS, bots and notifications at a glance",
     "open": "Open",
     "cards": {
+      "popups": { "title": "Popups", "description": "Promo popups with triggers, page/device targeting and frequency rules" },
+      "abandoned_carts": { "title": "Abandoned carts", "description": "Automatic SMS/bot reminders with staged coupons" },
       "coupons": {
         "title": "Coupons",
         "description": "Create and manage coupons and restrictions"
