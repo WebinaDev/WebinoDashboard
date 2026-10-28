@@ -168,7 +168,7 @@ class CouponController extends Controller
 
         $data = $request->validate([
             'code' => [$req, 'string', 'max:64', Rule::unique('coupons', 'code')->where('tenant_id', $tid)->ignore($request->route('coupon'))],
-            'type' => [$partial ? 'sometimes' : 'required', 'string', 'in:percent,fixed_cart,fixed_product'],
+            'type' => [$partial ? 'sometimes' : 'required', 'string', 'in:percent,fixed_cart,fixed_product,bogo,bundle,tiered'],
             'amount' => [$partial ? 'sometimes' : 'required', 'integer', 'min:0'],
             'free_shipping' => ['nullable', 'boolean'],
             'individual_use' => ['nullable', 'boolean'],
@@ -196,6 +196,14 @@ class CouponController extends Controller
             'restrictions.emails.*' => ['string', 'max:191'],
             'restrictions.channels' => ['nullable', 'array'],
             'restrictions.channels.*' => ['string', 'in:site,bale,telegram'],
+            'restrictions.offer' => ['nullable', 'array'],
+            'restrictions.offer.buy' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'restrictions.offer.get' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'restrictions.offer.get_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'restrictions.offer.bundle_price_minor' => ['nullable', 'integer', 'min:0'],
+            'restrictions.offer.tiers' => ['nullable', 'array', 'max:10'],
+            'restrictions.offer.tiers.*.min_qty' => ['required', 'integer', 'min:1'],
+            'restrictions.offer.tiers.*.percent' => ['required', 'integer', 'min:1', 'max:100'],
             'condition_type' => ['nullable', 'string', Rule::in(Coupon::CONDITION_TYPES)],
             'condition_value' => ['nullable', 'integer', 'min:0', 'required_if:condition_type,order_nth,min_amount,min_items'],
             'auto_apply' => ['nullable', 'boolean'],

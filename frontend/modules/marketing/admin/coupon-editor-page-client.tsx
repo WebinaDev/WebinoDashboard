@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
 import { CouponGeneralPanel } from "@/components/coupons/CouponGeneralPanel"
+import { OFFER_TYPES, type CouponOffer } from "@/components/coupons/CouponOfferFields"
 import { CouponOfferPanel } from "@/components/coupons/CouponOfferPanel"
 import { CouponPublishPanel } from "@/components/coupons/CouponPublishPanel"
 import { CouponRestrictionsPanel } from "@/components/coupons/CouponRestrictionsPanel"
@@ -48,6 +49,7 @@ type Coupon = {
     user_ids?: number[]
     channels?: string[]
     emails?: string[]
+    offer?: CouponOffer
   }
 }
 
@@ -86,6 +88,7 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
   const [categoryIds, setCategoryIds] = useState<number[]>([])
   const [brandIds, setBrandIds] = useState<number[]>([])
   const [emails, setEmails] = useState("")
+  const [offer, setOffer] = useState<CouponOffer>({})
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -124,6 +127,7 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
     setShippingPercent(c.shipping_percent != null ? String(c.shipping_percent) : "")
     setCategoryIds((c.restrictions?.category_ids ?? []).map(Number).filter((n) => n > 0))
     setBrandIds((c.restrictions?.brand_ids ?? []).map(Number).filter((n) => n > 0))
+    setOffer(c.restrictions?.offer ?? {})
     setEmails((c.restrictions?.emails ?? []).join("\n"))
   }, [q.data])
 
@@ -160,6 +164,7 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
           .split(/[\n,;]+/)
           .map((s) => s.trim())
           .filter(Boolean),
+        ...(OFFER_TYPES.includes(type as (typeof OFFER_TYPES)[number]) ? { offer } : {}),
       },
     }
   }
@@ -214,6 +219,8 @@ export default function CouponEditorPageClient({ route }: { route: ResolvedAdmin
                 description={description}
                 setDescription={setDescription}
                 onGenerate={() => generate.mutate()}
+                offer={offer}
+                setOffer={setOffer}
               />
             </CardContent>
           </Card>

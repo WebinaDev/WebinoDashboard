@@ -3863,6 +3863,7 @@
       "password": "Password protected"
     },
     "amountHintPercent": "Discount percent (e.g. 10 means 10%).",
+    "offer": {"buy": "Buy qty", "get": "Get qty", "get_percent": "Get discount %", "bogo_hint": "In each (buy + get) group the cheapest items are discounted.", "bundle_price": "Fixed bundle price (optional)", "bundle_hint": "All products in the product restriction must be in the cart. Without a fixed price, Amount is the % off each set.", "tiers": "Tiers (qty:percent)", "tiers_hint": "One tier per line, e.g. 2:5 and 4:10. The highest reached tier applies."},
     "amountHintMinor": "Fixed amounts are stored as integer minor currency units (not WC decimals)."
   },
   "coupon_builder": {
@@ -6458,7 +6459,10 @@
     "coupon_type": {
       "percent": "Percentage",
       "fixed_cart": "Fixed cart amount",
-      "fixed_product": "Fixed product amount"
+      "fixed_product": "Fixed product amount",
+      "bogo": "Buy X get Y",
+      "bundle": "Bundle",
+      "tiered": "Tiered (quantity)"
     },
     "job_status": {
       "pending": "Pending",

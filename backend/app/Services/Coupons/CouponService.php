@@ -187,6 +187,7 @@ class CouponService
         $discount = match ($coupon->type) {
             'percent' => (int) floor($eligible * ((int) $coupon->amount) / 100),
             'fixed_cart', 'fixed_product' => min((int) $coupon->amount, $eligible),
+            'bogo', 'bundle', 'tiered' => $this->offerDiscount($coupon, $lines),
             default => 0,
         };
         if ($coupon->max_discount_minor !== null) {
@@ -406,6 +407,93 @@ class CouponService
         }
 
         return $eligible;
+    }
+
+    /**
+     * Offer-engine discounts (WP -offer-engine.php parity). Params live in restrictions.offer:
+     *  - bogo:   {buy:int, get:int, get_percent:int=100} — per (buy+get) eligible units, the cheapest `get` are discounted.
+     *  - bundle: all restrictions.product_ids must be in cart; per complete set, coupon.amount % off
+     *            (or {bundle_price_minor} fixed set price).
+     *  - tiered: {tiers:[{min_qty, percent}]} — highest tier reached by eligible quantity, % off eligible lines.
+     *
+     * @param  list<array<string, mixed>>  $lines
+     */
+    public function offerDiscount(Coupon $coupon, array $lines): int
+    {
+        $r = $coupon->restrictions ?? [];
+        $cfg = is_array($r['offer'] ?? null) ? $r['offer'] : [];
+        $productIds = $this->ids($r['product_ids'] ?? []);
+        $categoryIds = $this->ids($r['category_ids'] ?? []);
+        $brandIds = $this->ids($r['brand_ids'] ?? []);
+        $products = Product::query()->where('tenant_id', $coupon->tenant_id)
+            ->whereIn('id', array_map(fn ($l) => (int) ($l['product_id'] ?? 0), $lines))
+            ->with(['categories', 'brands'])->get()->keyBy('id');
+        $eligible = array_values(array_filter($lines, fn ($l) => $this->lineEligible(
+            $products->get((int) ($l['product_id'] ?? 0)), $productIds, $categoryIds, $brandIds, (bool) $coupon->exclude_sale
+        ) && (int) ($l['quantity'] ?? 0) > 0));
+
+        $fail = fn () => throw ValidationException::withMessages(['coupon_code' => 'Offer conditions not met']);
+
+        if ($coupon->type === 'bogo') {
+            $buy = max(1, (int) ($cfg['buy'] ?? 1));
+            $get = max(1, (int) ($cfg['get'] ?? 1));
+            $pct = min(100, max(1, (int) ($cfg['get_percent'] ?? 100)));
+            $units = [];
+            foreach ($eligible as $l) {
+                for ($i = 0; $i < (int) $l['quantity']; $i++) {
+                    $units[] = (int) $l['unit_price_minor'];
+                }
+            }
+            $groups = intdiv(count($units), $buy + $get);
+            if ($groups < 1) {
+                $fail();
+            }
+            sort($units);
+            $free = array_slice($units, 0, $groups * $get);
+
+            return (int) floor(array_sum($free) * $pct / 100);
+        }
+
+        if ($coupon->type === 'bundle') {
+            if ($productIds === []) {
+                $fail();
+            }
+            $byProduct = [];
+            foreach ($eligible as $l) {
+                $pid = (int) $l['product_id'];
+                $byProduct[$pid]['qty'] = ($byProduct[$pid]['qty'] ?? 0) + (int) $l['quantity'];
+                $byProduct[$pid]['price'] = min($byProduct[$pid]['price'] ?? PHP_INT_MAX, (int) $l['unit_price_minor']);
+            }
+            $sets = PHP_INT_MAX;
+            $setPrice = 0;
+            foreach ($productIds as $pid) {
+                if (empty($byProduct[$pid])) {
+                    $fail();
+                }
+                $sets = min($sets, $byProduct[$pid]['qty']);
+                $setPrice += $byProduct[$pid]['price'];
+            }
+            $perSet = isset($cfg['bundle_price_minor'])
+                ? max(0, $setPrice - (int) $cfg['bundle_price_minor'])
+                : (int) floor($setPrice * min(100, (int) $coupon->amount) / 100);
+
+            return $perSet * $sets;
+        }
+
+        // tiered
+        $qty = array_sum(array_map(fn ($l) => (int) $l['quantity'], $eligible));
+        $sub = array_sum(array_map(fn ($l) => (int) $l['unit_price_minor'] * (int) $l['quantity'], $eligible));
+        $best = 0;
+        foreach ((array) ($cfg['tiers'] ?? []) as $tier) {
+            if ($qty >= (int) ($tier['min_qty'] ?? PHP_INT_MAX)) {
+                $best = max($best, min(100, (int) ($tier['percent'] ?? 0)));
+            }
+        }
+        if ($best === 0) {
+            $fail();
+        }
+
+        return (int) floor($sub * $best / 100);
     }
 
     /**
