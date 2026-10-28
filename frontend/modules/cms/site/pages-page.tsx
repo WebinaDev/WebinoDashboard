@@ -73,11 +73,9 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
   }
 
   const page = await fetchPublicItem<CmsPage>(`/api/v1/public/pages/${encodeURIComponent(slug)}`)
+  // No contact page yet: every theme (shop, poet/magazine, blog…) gets the native contact template, never a soft 404.
   if (!page && CONTACT_SLUGS.has(decodeURIComponent(slug).toLowerCase())) {
-    const theme = await activeThemeSlug()
-    if (theme === "ecommerce-classic" || theme === "ecommerce-default") {
-      return <ClassicContactPage title="تماس با ما" fallback={{ phones: [], emails: [] }} />
-    }
+    return <ClassicContactPage title="تماس با ما" fallback={{ phones: [], emails: [] }} />
   }
   if (!page) {
     return (

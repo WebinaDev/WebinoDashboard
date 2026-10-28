@@ -10,5 +10,7 @@ return [
     'sentry_dsn' => env('SENTRY_LARAVEL_DSN'),
     'elasticsearch_hosts' => env('ELASTICSEARCH_HOSTS'),
     'internal_api_secret' => (string) env('WEBINO_INTERNAL_API_SECRET', ''),
+    // Rewrite converted JPG/PNG references to their WebP in public JSON (serve-time safety net).
+    'serve_webp' => filter_var(env('MEDIA_SERVE_WEBP', true), FILTER_VALIDATE_BOOLEAN),
     'public_api_cache' => filter_var(env('PUBLIC_API_CACHE', true), FILTER_VALIDATE_BOOLEAN),
 ];

@@ -20,7 +20,7 @@ class CachePublicResponse
         $tid = (int) $request->attributes->get('public_tenant_id');
         if (! config('webino_runtime.public_api_cache', true) || ! in_array($request->getMethod(), ['GET', 'HEAD'], true) || $tid <= 0
             || $request->bearerToken() || $request->cookie(config('auth.cookie_name', 'webino_auth_token'))) {
-            $response = $this->finish($next($request));
+            $response = $this->finish($next($request), $tid);
             $response->headers->set('X-Public-Cache', 'BYPASS');
 
             return $response;
@@ -42,7 +42,7 @@ class CachePublicResponse
             return response($hit['b'], (int) $hit['s'], ['Content-Type' => 'application/json', 'X-Public-Cache' => 'HIT'] + ($hit['h'] ?? []));
         }
 
-        $response = $this->finish($next($request));
+        $response = $this->finish($next($request), $tid);
         $status = $response->getStatusCode();
         if (in_array($status, [200, 404, 422], true) && ! $response->headers->has('Set-Cookie')
             && str_contains((string) $response->headers->get('Content-Type'), 'json')) {
@@ -59,11 +59,11 @@ class CachePublicResponse
         return $response;
     }
 
-    private function finish(Response $response): Response
+    private function finish(Response $response, int $tid = 0): Response
     {
         if (str_contains((string) $response->headers->get('Content-Type'), 'json')) {
             $body = (string) $response->getContent();
-            $hoisted = PublicResponseCache::hoistDataUrls($body);
+            $hoisted = \App\Services\Media\WebpLinkRewriter::rewrite($tid, PublicResponseCache::hoistDataUrls($body));
             if ($hoisted !== $body) {
                 $response->setContent($hoisted);
             }

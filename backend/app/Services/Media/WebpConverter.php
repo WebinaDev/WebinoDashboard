@@ -136,6 +136,7 @@ class WebpConverter
             'mime' => 'image/webp',
             'size' => $res['size'],
         ])->save();
+        WebpLinkRewriter::forget((int) $asset->tenant_id);
 
         return true;
     }

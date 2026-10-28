@@ -74,7 +74,14 @@ html:has(.wpz-bleed) body { overflow-x: clip; }
 .wpz-hs-dots button { width: 8px; height: 8px; border-radius: 999px; border: 0; padding: 0; background: rgba(255,255,255,.55); cursor: pointer; transition: width .2s; }
 .wpz-hs-dots button.is-on { width: 22px; background: #fff; }
 @media (prefers-reduced-motion: reduce) { .wpz-hs-track { scroll-behavior: auto; } .wpz-hs-dots button { transition: none; } }
-@media (max-width: 760px) { .wpz-hs-slide { min-height: min(var(--wpz-hs-h, 520px), 78vw); } .wpz-hs-arrow { width: 34px; height: 34px; } }
+@media (max-width: 760px) {
+  .wpz-hs-slide { min-height: min(var(--wpz-hs-h, 520px), 78vw); }
+  .wpz-hs-body { max-width: 100%; padding: 20px 20px 56px; }
+  /* mobile: arrows leave the text column — small, pinned to the bottom corners beside the dots */
+  .wpz-hs-arrow { top: auto; bottom: 8px; transform: none; width: 32px; height: 32px; }
+  .wpz-hs-prev { right: 10px; left: auto; } .wpz-hs-next { left: 10px; right: auto; }
+  .wpz-hs-dots { bottom: 20px; }
+}
 /* mobile: split hero image never overflows to the left */
 @media (max-width: 768px) { .wpz-hero { overflow: hidden; } .wpz-hero-media, .wpz-hero-media .wpz-img { max-width: 100%; width: 100%; } .wpz-couplet { max-width: 100%; } }
 
