@@ -7,7 +7,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, type ReactNode } from "react"
 
-import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
+import { InstallmentBadges } from "../../../../modules/commerce/components/payments/InstallmentBadges"
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { mapApiProduct, toneClass, type ShopProduct } from "@/builder/catalog"

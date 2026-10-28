@@ -3,7 +3,7 @@
 import { footerMenuSlugs } from "../registry-nav-menus"
 import { filterNavItems, navItemsToLinks, useFooterMenuColumns, useNavMenuItems } from "@/lib/nav-menus"
 import { NavHeaderItem, NavItemLink } from "@/themes/ecommerce-classic/components/ClassicNavMenu"
-import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
+import { InstallmentBadges } from "../../../modules/commerce/components/payments/InstallmentBadges"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 
 import { Moon, Search, ShoppingBag, Sun, UserRound } from "lucide-react"

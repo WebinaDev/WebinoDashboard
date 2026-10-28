@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { useOrderDocumentsSettings } from "@/components/orders/OrderPrintActions"
+import { useOrderDocumentsSettings } from "../orders/OrderPrintActions"
 import { Button } from "@/components/ui/button"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { printProductLabels } from "@/lib/order-print"

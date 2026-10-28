@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { ORDER_STATUS_PIPELINE, orderStatusEnumKey, type OrderStatus } from "../../../modules/commerce/lib/order-statuses"
+import { ORDER_STATUS_PIPELINE, orderStatusEnumKey, type OrderStatus } from "../../lib/order-statuses"
 import { useEnumLabel } from "@/lib/enum-labels"
 
 export function OrderStatusStepper({

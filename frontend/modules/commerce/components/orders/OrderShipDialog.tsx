@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ORDER_SHIP_BRANCHES, orderStatusEnumKey } from "../../../modules/commerce/lib/order-statuses"
+import { ORDER_SHIP_BRANCHES, orderStatusEnumKey } from "../../lib/order-statuses"
 import { useEnumLabel } from "@/lib/enum-labels"
 
 export type ShipPayload = {
