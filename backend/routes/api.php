@@ -810,6 +810,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/payment-gateways', [OrderController::class, 'paymentGateways']);
                 Route::post('/pos/orders', [OrderController::class, 'store']);
                 Route::get('/pos/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
+                Route::post('/pos/orders/{order}/pay-link-sms', [\App\Http\Controllers\Api\V1\PosPayLinkSmsController::class, 'send'])->whereNumber('order');
             });
 
             Route::middleware(['module:c2c', 'can:settings.manage,commerce.*'])->group(function () {

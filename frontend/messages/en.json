@@ -1501,6 +1501,9 @@
   "pos_admin": {
     "title": "Point of sale",
     "pay_link_title": "Payment link",
+    "pay_link_send_sms": "Send link by SMS",
+    "pay_link_sms_sent": "SMS sent",
+    "pay_link_sms_need_phone": "Enter the customer mobile to send SMS",
     "pay_link": "Pay link",
     "my_orders": "My orders",
     "back_pos": "Back to POS",

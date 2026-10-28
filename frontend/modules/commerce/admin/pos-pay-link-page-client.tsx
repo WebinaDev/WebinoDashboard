@@ -51,6 +51,17 @@ const selectClass =
 
 export default function PosPayLinkPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("pos_admin")
+  const [orderId, setOrderId] = useState<number | null>(null)
+  const [smsSent, setSmsSent] = useState(false)
+  const smsMut = useMutation({
+    mutationFn: (phone: string) =>
+      api<{ ok: boolean }>(`/api/v1/pos/orders/${orderId}/pay-link-sms`, { method: "POST", json: { phone } }),
+    onSuccess: () => {
+      setSmsSent(true)
+      setError(null)
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
   const locale = normalizeUiLocale(useLocale())
   const tPricing = useTranslations("pricing_settings.types")
   const [productQ, setProductQ] = useState("")
@@ -211,6 +222,7 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
       }),
     onSuccess: (row) => {
       setPaymentUrl(row.payment_url || null)
+      setOrderId(row.id ?? null)
       setError(null)
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
@@ -238,6 +250,15 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
             <a className="break-all text-sm underline" href={paymentUrl} target="_blank" rel="noreferrer" dir="ltr">
               {paymentUrl}
             </a>
+            {orderId ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button size="sm" disabled={!customerPhone || smsMut.isPending} onClick={() => smsMut.mutate(customerPhone)}>
+                  {t("pay_link_send_sms")}
+                </Button>
+                {smsSent ? <span className="text-sm text-emerald-600">{t("pay_link_sms_sent")}</span> : null}
+                {!customerPhone ? <span className="text-muted-foreground text-xs">{t("pay_link_sms_need_phone")}</span> : null}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

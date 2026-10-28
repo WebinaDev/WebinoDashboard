@@ -177,4 +177,34 @@ class OrdersWalletPosApiTest extends TestCase
         $this->assertContains('awaiting_gateway', $flat);
         $this->assertContains('processing', $flat);
     }
+
+    public function test_pos_pay_link_sms_sends_public_link_to_customer(): void
+    {
+        $user = $this->shopUser();
+        $this->actingAs($user, 'sanctum');
+        $product = Product::query()->create([
+            'tenant_id' => $user->tenant_id, 'name' => 'Link Item', 'slug' => 'link-item',
+            'price_minor' => 5000, 'currency' => 'IRR', 'status' => 'publish',
+        ]);
+        $id = $this->postJson('/api/v1/pos/orders', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'is_pos' => true,
+            'is_pay_link' => true,
+            'customer_phone' => '09120000000',
+        ])->assertCreated()->json('data.id');
+
+        $sent = [];
+        $this->mock(\App\Services\Sms\ModirPayamakClient::class, function ($m) use (&$sent) {
+            $m->shouldReceive('post')->once()->andReturnUsing(function ($t, $path, $body) use (&$sent) {
+                $sent = $body;
+
+                return ['ok' => true, 'data' => []];
+            });
+        });
+
+        $this->postJson("/api/v1/pos/orders/{$id}/pay-link-sms", ['phone' => '09121111111'])
+            ->assertOk()->assertJsonPath('data.ok', true);
+        $this->assertSame(['09121111111'], $sent['recipients']);
+        $this->assertStringContainsString('/pay/'.$id.'?token=', $sent['message']);
+    }
 }

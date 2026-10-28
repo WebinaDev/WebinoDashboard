@@ -979,6 +979,9 @@
   "pos_admin": {
     "title": "صندوق فروش",
     "pay_link_title": "لینک پرداخت",
+    "pay_link_send_sms": "ارسال پیامک لینک به مشتری",
+    "pay_link_sms_sent": "پیامک ارسال شد",
+    "pay_link_sms_need_phone": "برای ارسال پیامک، موبایل مشتری را وارد کنید",
     "pay_link": "لینک پرداخت",
     "my_orders": "سفارش‌های من",
     "back_pos": "بازگشت به صندوق",
