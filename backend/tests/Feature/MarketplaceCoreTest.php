@@ -352,6 +352,28 @@ class MarketplaceCoreTest extends TestCase
         $this->postJson('/api/v1/public/wp-json/torob_api/v3/products', ['page' => 1], $headers)->assertStatus(400);
     }
 
+    public function test_torob_legacy_wcpe_extractor_feed(): void
+    {
+        $this->shopUser();
+        $this->settings()->save($this->tenant->id, 'torob', ['enabled' => true]);
+        $product = $this->product();
+        $jwt = $this->torobJwt('localhost');
+        $headers = ['HTTP_HOST' => 'localhost', 'HTTP_X_TOROB_TOKEN' => $jwt, 'HTTP_X_TOROB_TOKEN_VERSION' => '1'];
+
+        $this->getJson('/api/v1/public/wp-json/wcpe/v1/products', ['HTTP_HOST' => 'localhost'])->assertStatus(401);
+
+        $res = $this->getJson('/api/v1/public/wp-json/wcpe/v1/products?page=1&limit=10', $headers)->assertOk();
+        $this->assertSame(1, (int) $res->json('count'));
+        $this->assertSame(1, (int) $res->json('current_page'));
+        $this->assertNotEmpty($res->json('api_version'));
+        $this->assertCount(1, $res->json('products'));
+
+        $this->postJson('/api/v1/public/wp-json/wcpe/v1/products', ['products' => (string) $product->id], $headers)
+            ->assertOk()->assertJsonCount(1, 'products');
+        $this->getJson('/api/v1/public/marketplace/torob/products?slugs='.$product->slug, $headers)
+            ->assertOk()->assertJsonCount(1, 'products');
+    }
+
     public function test_torob_order_status_orders_and_set_token(): void
     {
         $this->shopUser();
