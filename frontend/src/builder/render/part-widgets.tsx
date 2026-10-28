@@ -26,7 +26,7 @@ import { useCatalog } from "../storefront/use-catalog"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
 import { ProductQueryWidget, splitRows } from "./extra-widgets"
-import { sanitizeBuilderHtml } from "./sanitize-html"
+import { sanitizeBuilderHtml, stripWpShortcodes } from "./sanitize-html"
 import { Img } from "./img"
 
 function Placeholder({ label }: { label: string }) {
@@ -197,6 +197,7 @@ export function ArchivePartWidget({ widget, editing }: { widget: WidgetNode; edi
     case "archive-description": {
       const lines = splitRows(propStr(widget.props, "items", ""))
       const custom = lines.find(([s]) => s === slug)?.[1] ?? (slug ? "" : propStr(widget.props, "shopText", ""))
+      if (!custom && current?.description) return <ArchiveTermDescription html={current.description} />
       return custom ? <p className="text-sm leading-7 text-foreground/75">{custom}</p> : editing ? <Placeholder label="توضیح دسته — نامک|متن در هر خط" /> : null
     }
     case "archive-sort":
@@ -579,3 +580,19 @@ export function PostPartWidget({ widget, editing, locale }: { widget: WidgetNode
   }
 }
 
+
+/** parisma archive-content__wrapper: category description collapsed to a few lines with a toggle. */
+function ArchiveTermDescription({ html }: { html: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <section className="rounded-2xl border border-border bg-card p-4">
+      <div
+        className={`prose prose-sm max-w-none text-foreground/80 ${open ? "" : "max-h-28 overflow-hidden [mask-image:linear-gradient(to_bottom,#000_60%,transparent)]"}`}
+        dangerouslySetInnerHTML={{ __html: sanitizeBuilderHtml(stripWpShortcodes(html)) }}
+      />
+      <button type="button" className="mt-2 text-xs font-bold text-primary" onClick={() => setOpen((v) => !v)}>
+        {open ? "بستن" : "مشاهده بیشتر"}
+      </button>
+    </section>
+  )
+}

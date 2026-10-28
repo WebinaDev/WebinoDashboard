@@ -42,6 +42,7 @@ const EMPTY_CATALOG: CatalogState = {
 function apiSort(sort: string): string {
   if (sort === "price") return "price_asc"
   if (sort === "price_desc") return "price_desc"
+  if (sort === "updated") return "updated"
   if (sort === "featured" || sort === "popular") return "popular"
   if (sort === "best" || sort === "best_selling" || sort === "sales") return "best_selling"
   return "newest"

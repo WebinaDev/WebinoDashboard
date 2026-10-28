@@ -43,8 +43,9 @@ export function ClassicBreadcrumbBar({ items, aside }: { items: { label: string;
 
 const SORTS = [
   { id: "new", label: "جدیدترین" },
-  { id: "featured", label: "پربازدیدترین" },
+  { id: "updated", label: "بروزترین‌ها" },
   { id: "best", label: "پرفروش‌ترین" },
+  { id: "featured", label: "پربازدیدترین" },
   { id: "price", label: "ارزان‌ترین" },
   { id: "price_desc", label: "گران‌ترین" },
 ]

@@ -67,6 +67,8 @@ export type ShopCategory = {
   id?: number
   parentId?: number | null
   image?: string | null
+  /** Term description (HTML from WP import) — shown under the archive grid with a «show more» toggle. */
+  description?: string | null
   children?: ShopCategory[]
 }
 
@@ -441,6 +443,7 @@ export function mapApiCategory(raw: ApiRecord, index: number): ShopCategory | nu
         .filter((item): item is ShopCategory => item !== null)
     : undefined
   return {
+    description: str(raw.description) || null,
     slug,
     name,
     tone: SAMPLE_CATEGORIES[index % SAMPLE_CATEGORIES.length].tone,

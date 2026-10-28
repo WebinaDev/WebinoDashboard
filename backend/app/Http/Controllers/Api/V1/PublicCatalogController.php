@@ -153,6 +153,7 @@ class PublicCatalogController extends Controller
             'price_asc' => $productsQuery->orderBy('price_minor'),
             'price_desc' => $productsQuery->orderByDesc('price_minor'),
             'popular' => $productsQuery->orderByDesc('views_count'),
+            'updated' => $productsQuery->orderByDesc('updated_at')->orderByDesc('id'),
             'best_selling' => $productsQuery->orderByDesc(
                 OrderItem::query()
                     ->selectRaw('COALESCE(SUM(order_items.quantity), 0)')
