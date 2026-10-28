@@ -89,7 +89,10 @@ function absoluteRedirectUrl(target: string, request: NextRequest): URL {
   let base: URL
   try {
     base = new URL(request.url)
-    if (fwdHost) base.host = fwdHost
+    if (fwdHost) {
+      base.host = fwdHost
+      if (!/:\d+$/.test(fwdHost)) base.port = "" // forwarded host without a port: drop the internal listener port
+    }
     if (fwdProto === "http" || fwdProto === "https") base.protocol = `${fwdProto}:`
   } catch {
     base = new URL(`https://${fwdHost || "localhost"}/`)
