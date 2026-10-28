@@ -7,7 +7,15 @@ import { getServerApiBase } from "@/lib/server-api-base"
 
 type FetchOptions = RequestInit & { revalidate?: number | false; tags?: string[] }
 
-async function serverFetch(path: string, init?: FetchOptions): Promise<unknown | null> {
+/** Non-404 HTTP failure from the API (5xx, 429, ...). Thrown only by apiServerStrict. */
+export class ApiTransientError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = "ApiTransientError"
+  }
+}
+
+async function serverFetch(path: string, init?: FetchOptions, strict = false): Promise<unknown | null> {
   const apiBase = getServerApiBase()
   if (!apiBase) {
     return null
@@ -53,6 +61,7 @@ async function serverFetch(path: string, init?: FetchOptions): Promise<unknown |
   })
 
   if (!res.ok) {
+    if (strict && res.status !== 404) throw new ApiTransientError(`HTTP ${res.status} from ${path}`, res.status)
     return null
   }
 
@@ -71,6 +80,17 @@ export async function apiServer<T>(path: string, opts?: FetchOptions): Promise<T
   } catch {
     return null
   }
+}
+
+/**
+ * Like apiServer, but only a real HTTP 404 (or no API configured) yields null. Network errors and
+ * 5xx rethrow, so a valid route never renders (and ISR/edge never caches) a 404 while the backend
+ * restarts: Next keeps serving the last good page instead. Parity with ERP 2624dbe.
+ */
+export async function apiServerStrict<T>(path: string, opts?: FetchOptions): Promise<T | null> {
+  // During `next build` the backend is usually unreachable: keep the lenient behaviour there.
+  if (process.env.NEXT_PHASE === "phase-production-build") return apiServer<T>(path, opts)
+  return (await serverFetch(path, opts, true)) as T | null
 }
 
 /** Unwrapped API `data` payload (authenticated dashboard home). */

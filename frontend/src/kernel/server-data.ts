@@ -1,6 +1,8 @@
 import { cache } from "react"
 
-import { apiServerData } from "@/lib/api-server"
+import { unwrapApiData } from "@webina/ui"
+
+import { apiServerData, apiServerStrict } from "@/lib/api-server"
 
 import type { TenantActivation } from "./types"
 
@@ -10,9 +12,9 @@ export const getTenantActivations = cache(async (): Promise<TenantActivation[]> 
 })
 
 export const getPublicActivations = cache(async (): Promise<TenantActivation[]> => {
-  const data = await apiServerData<{ activations: TenantActivation[] }>(
-    "/api/v1/public/kernel/activations",
-  )
+  // Strict: a backend hiccup must not resolve module routes as missing (cached 404); see apiServerStrict.
+  const raw = await apiServerStrict<unknown>("/api/v1/public/kernel/activations")
+  const data = raw == null ? null : unwrapApiData<{ activations?: TenantActivation[] }>(raw)
   return data?.activations ?? []
 })
 

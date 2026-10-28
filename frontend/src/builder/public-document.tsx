@@ -1,6 +1,6 @@
 import { cache, Suspense, type ReactNode } from "react"
 
-import { apiServer } from "@/lib/api-server"
+import { apiServer, apiServerStrict } from "@/lib/api-server"
 import { hoistDataUrls } from "@/lib/inline-media"
 import { asGlobals, type BuilderGlobals } from "./globals"
 import { DocumentView } from "./render/DocumentView"
@@ -35,7 +35,7 @@ function pruneForView(doc: BuilderDocument): BuilderDocument {
 
 async function readDocument(path: string): Promise<BuilderDocument | null> {
   // Short data-cache window (was 0 = uncached on every request). Publishes show within ~10s.
-  const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_REVALIDATE, tags: ["builder"] })
+  const res = await apiServerStrict<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_REVALIDATE, tags: ["builder"] })
   const document = res?.data?.document
   return isDocument(document) ? hoistDataUrls(pruneForView(document)) : null
 }
