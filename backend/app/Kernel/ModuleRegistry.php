@@ -81,12 +81,39 @@ final class ModuleRegistry
         }
     }
 
+    /**
+     * Per-request entry point (KernelServiceProvider). The catalog/site-type sync is ~400
+     * upserts and used to run on every HTTP request (~0.4s TTFB on every tenant API call).
+     * Only sync when the module manifests or site-type profiles changed; re-check daily.
+     */
+    public function bootIfChanged(): void
+    {
+        $fingerprint = $this->catalogFingerprint();
+        if (Cache::get(self::FINGERPRINT_KEY) === $fingerprint) {
+            return;
+        }
+
+        Cache::lock(self::FINGERPRINT_KEY.':lock', 30)->get(function () use ($fingerprint) {
+            if (Cache::get(self::FINGERPRINT_KEY) !== $fingerprint) {
+                $this->boot();
+            }
+        });
+    }
+
+    public const FINGERPRINT_KEY = 'kernel:catalog_fp';
+
+    public function catalogFingerprint(): string
+    {
+        return sha1(serialize([$this->discovery->discover(), SiteTypeProfiles::all()]));
+    }
+
     public function boot(): void
     {
         $this->syncCatalog();
         $this->syncSiteTypes();
         Cache::forget('kernel:site_types');
         Cache::forget('kernel:registry');
+        Cache::put(self::FINGERPRINT_KEY, $this->catalogFingerprint(), now()->addDay());
     }
 
     /** @return array<string, mixed> */

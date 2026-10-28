@@ -26,7 +26,7 @@ class KernelServiceProvider extends ServiceProvider
         }
 
         try {
-            $this->app->make(ModuleRegistry::class)->boot();
+            $this->app->make(ModuleRegistry::class)->bootIfChanged();
         } catch (\Throwable) {
             // DB may not be migrated yet during first install
         }
