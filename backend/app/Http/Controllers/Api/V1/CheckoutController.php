@@ -41,6 +41,8 @@ class CheckoutController extends Controller
             'shipping_minor' => ['nullable', 'integer', 'min:0'],
             'torob_clid' => ['nullable', 'string', 'max:128'],
             'customer_national_id' => ['nullable', 'string', 'max:20'],
+            'shipping_district' => ['nullable', 'string', 'max:80'],
+            'professional_packaging' => ['nullable', 'boolean'],
         ]);
         $nationalMode = (string) (app(\App\Services\Shop\StorefrontAppearanceService::class)
             ->get((int) $request->user()->tenant_id)['commerce']['checkout_national_id'] ?? 'hidden');
@@ -232,6 +234,20 @@ class CheckoutController extends Controller
                 if ($shippingMinor !== $shippingBefore) {
                     $shippingMeta['coupon_shipping_discount_minor'] = $shippingBefore - $shippingMinor;
                 }
+            }
+
+            // WP parity: professional packaging fee (optional or mandatory), never coupon-discounted.
+            $proPack = $this->shipping->professionalPackagingFee(
+                (int) $user->tenant_id,
+                (bool) ($checkoutMeta['professional_packaging'] ?? false)
+            );
+            if ($proPack > 0) {
+                $shippingMinor += $proPack;
+                $shippingMeta['professional_packaging_minor'] = $proPack;
+            }
+            $district = trim((string) ($checkoutMeta['shipping_district'] ?? ''));
+            if ($district !== '') {
+                $shippingMeta['shipping_district'] = $district;
             }
 
             if (! empty($checkoutMeta['torob_clid'])) {

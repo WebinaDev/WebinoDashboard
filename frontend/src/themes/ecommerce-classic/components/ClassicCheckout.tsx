@@ -111,7 +111,13 @@ export function ClassicCheckout() {
   const pricing = cart?.pricing
   const subtotal = pricing?.subtotal_minor ?? lines.reduce((sum, line) => sum + line.product.price_minor * line.quantity, 0)
   const count = lines.reduce((sum, line) => sum + line.quantity, 0)
-  const shipCost = rates.find((r) => r.instance_id === rateId)?.cost_minor ?? 0
+  const [districts, setDistricts] = useState<Record<string, string[]>>({})
+  const [district, setDistrict] = useState("")
+  const [proPack, setProPack] = useState<{ enabled: boolean; mandatory: boolean; amount_minor: number; label: string } | null>(null)
+  const [proPackOn, setProPackOn] = useState(false)
+  const cityDistricts = districts[city.trim()] ?? []
+  const proPackFee = proPack?.enabled && proPack.amount_minor > 0 && (proPack.mandatory || proPackOn) ? proPack.amount_minor : 0
+  const shipCost = (rates.find((r) => r.instance_id === rateId)?.cost_minor ?? 0) + proPackFee
   const total = subtotal + shipCost
 
   useEffect(() => {
@@ -125,10 +131,13 @@ export function ClassicCheckout() {
       setRegionCities([])
       return
     }
-    void quietApi<{ data?: { cities?: string[] } }>(
+    void quietApi<{ data?: { cities?: string[]; districts?: Record<string, string[]>; professional_packaging?: { enabled: boolean; mandatory: boolean; amount_minor: number; label: string } } }>(
       `/api/v1/shipping/regions?state_code=${encodeURIComponent(stateCode)}`,
     ).then((res) => {
-      if (res.ok) setRegionCities(res.data.data?.cities ?? [])
+      if (!res.ok) return
+      setRegionCities(res.data.data?.cities ?? [])
+      setDistricts(res.data.data?.districts ?? {})
+      setProPack(res.data.data?.professional_packaging ?? null)
     })
   }, [stateCode])
 
@@ -238,6 +247,8 @@ export function ClassicCheckout() {
           shipping_state_code: stateCode || null,
           shipping_postcode: postcode || null,
           shipping_city: city || null,
+          shipping_district: district || null,
+          professional_packaging: proPackFee > 0,
           customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
         },
       })
@@ -342,6 +353,23 @@ export function ClassicCheckout() {
                             </datalist>
                           ) : null}
                         </label>
+                        {cityDistricts.length ? (
+                          <label className="sfc-field">
+                            <span>محله</span>
+                            <select value={district} onChange={(e) => setDistrict(e.target.value)}>
+                              <option value="">—</option>
+                              {cityDistricts.map((d) => (
+                                <option key={d} value={d}>{d}</option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : null}
+                        {proPack?.enabled && proPack.amount_minor > 0 ? (
+                          <label className="sfc-field sfc-field--check">
+                            <input type="checkbox" checked={proPack.mandatory || proPackOn} disabled={proPack.mandatory} onChange={(e) => setProPackOn(e.target.checked)} />
+                            <span>{proPack.label || "بسته‌بندی حرفه‌ای"} (+<ClassicAmount value={proPack.amount_minor} />){proPack.mandatory ? " — اجباری" : ""}</span>
+                          </label>
+                        ) : null}
                       </Fragment>
                     )
                   case "postcode":

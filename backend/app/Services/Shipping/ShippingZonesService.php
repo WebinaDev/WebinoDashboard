@@ -104,6 +104,8 @@ class ShippingZonesService
             'packaging' => self::sanitizePackaging($global['packaging'] ?? ($cfg['global']['packaging'] ?? [])),
             'show_map' => (bool) ($global['show_map'] ?? ($cfg['global']['show_map'] ?? false)),
             'require_city' => (bool) ($global['require_city'] ?? ($cfg['global']['require_city'] ?? false)),
+            'professional_packaging' => self::sanitizeProfessionalPackaging($global['professional_packaging'] ?? ($cfg['global']['professional_packaging'] ?? [])),
+            'districts' => self::sanitizeDistricts($global['districts'] ?? ($cfg['global']['districts'] ?? [])),
         ]);
         $this->putConfig($tenantId, $cfg);
 
@@ -492,6 +494,56 @@ class ShippingZonesService
         }
 
         return array_keys($out);
+    }
+
+    /**
+     * WP parity (shipping-module professional packaging): {enabled, mandatory, amount_minor, label}.
+     *
+     * @return array{enabled: bool, mandatory: bool, amount_minor: int, label: string}
+     */
+    public static function sanitizeProfessionalPackaging(mixed $in): array
+    {
+        $in = is_array($in) ? $in : [];
+
+        return [
+            'enabled' => (bool) ($in['enabled'] ?? false),
+            'mandatory' => (bool) ($in['mandatory'] ?? false),
+            'amount_minor' => max(0, (int) ($in['amount_minor'] ?? 0)),
+            'label' => mb_substr(trim((string) ($in['label'] ?? 'بسته‌بندی حرفه‌ای')), 0, 80),
+        ];
+    }
+
+    /** Fee to add at checkout: mandatory always applies, otherwise only when the customer opted in. */
+    public function professionalPackagingFee(int $tenantId, bool $optedIn): int
+    {
+        $p = self::sanitizeProfessionalPackaging($this->getConfig($tenantId)['global']['professional_packaging'] ?? []);
+        if (! $p['enabled'] || $p['amount_minor'] <= 0) {
+            return 0;
+        }
+
+        return ($p['mandatory'] || $optedIn) ? $p['amount_minor'] : 0;
+    }
+
+    /**
+     * WP parity (checkout district/محله): map of city name => list of district names.
+     *
+     * @return array<string, list<string>>
+     */
+    public static function sanitizeDistricts(mixed $in): array
+    {
+        $out = [];
+        foreach (is_array($in) ? $in : [] as $city => $list) {
+            $city = mb_substr(trim((string) $city), 0, 80);
+            if ($city === '' || ! is_array($list)) {
+                continue;
+            }
+            $names = array_values(array_unique(array_filter(array_map(static fn ($d) => mb_substr(trim((string) $d), 0, 80), $list), static fn ($d) => $d !== '')));
+            if ($names !== []) {
+                $out[$city] = array_slice($names, 0, 300);
+            }
+        }
+
+        return $out;
     }
 
     /** @return array{enabled: bool, boxes: list<array<string, mixed>>} */

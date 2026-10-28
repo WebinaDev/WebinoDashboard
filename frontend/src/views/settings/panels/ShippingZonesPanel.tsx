@@ -38,6 +38,8 @@ type ZonesPayload = {
     packaging?: { enabled: boolean; boxes: PackBox[] }
     show_map?: boolean
     require_city?: boolean
+    professional_packaging?: { enabled: boolean; mandatory: boolean; amount_minor: number; label: string }
+    districts?: Record<string, string[]>
   }
   method_types: { id: string; title: string; description: string }[]
   states: { code: string; name: string }[]
@@ -262,6 +264,57 @@ export function ShippingZonesPanel() {
             />
             {t("shipping.require_city")}
           </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">بسته‌بندی حرفه‌ای و محله‌ها</CardTitle>
+          <CardDescription>هزینهٔ بسته‌بندی حرفه‌ای (اختیاری یا اجباری) و فهرست محله‌های هر شهر برای فرم تسویه.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(() => {
+            const pp = global.professional_packaging ?? { enabled: false, mandatory: false, amount_minor: 0, label: "بسته‌بندی حرفه‌ای" }
+            const savePP = (patch: Partial<typeof pp>) => saveGlobal.mutate({ ...global, professional_packaging: { ...pp, ...patch } })
+            return (
+              <>
+                <label className="flex items-center gap-2 text-sm">
+                  <Switch checked={pp.enabled} onCheckedChange={(v) => savePP({ enabled: v })} />
+                  فعال
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Switch checked={pp.mandatory} onCheckedChange={(v) => savePP({ mandatory: v })} />
+                  اجباری (مشتری نمی‌تواند حذفش کند)
+                </label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label>عنوان</Label>
+                    <Input defaultValue={pp.label} onBlur={(e) => savePP({ label: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>مبلغ (واحد پول فروشگاه)</Label>
+                    <Input type="number" min={0} defaultValue={pp.amount_minor} onBlur={(e) => savePP({ amount_minor: Math.max(0, Number(e.target.value) || 0) })} />
+                  </div>
+                </div>
+              </>
+            )
+          })()}
+          <div className="space-y-1">
+            <Label>محله‌ها (هر خط: شهر: محله۱، محله۲)</Label>
+            <textarea
+              className="min-h-28 w-full rounded-md border bg-background p-2 text-sm"
+              defaultValue={Object.entries(global.districts ?? {}).map(([c, l]) => `${c}: ${l.join("، ")}`).join("\n")}
+              onBlur={(e) => {
+                const map: Record<string, string[]> = {}
+                for (const line of e.target.value.split("\n")) {
+                  const [c, rest] = line.split(/[:：]/)
+                  if (!c?.trim() || !rest) continue
+                  map[c.trim()] = rest.split(/[،,]/).map((x) => x.trim()).filter(Boolean)
+                }
+                saveGlobal.mutate({ ...global, districts: map })
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
 

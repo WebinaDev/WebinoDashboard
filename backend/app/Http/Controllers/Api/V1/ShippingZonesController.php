@@ -32,6 +32,8 @@ class ShippingZonesController extends Controller
             'packaging.boxes' => ['sometimes', 'array', 'max:30'],
             'show_map' => ['sometimes', 'boolean'],
             'require_city' => ['sometimes', 'boolean'],
+            'professional_packaging' => ['sometimes', 'array'],
+            'districts' => ['sometimes', 'array', 'max:500'],
         ]);
 
         return response()->json([
@@ -167,6 +169,8 @@ class ShippingZonesController extends Controller
             'cities' => $state !== '' ? $this->zones->citiesFor($tid, $state) : [],
             'show_map' => (bool) ($cfg['global']['show_map'] ?? false),
             'require_city' => (bool) ($cfg['global']['require_city'] ?? false),
+            'districts' => ShippingZonesService::sanitizeDistricts($cfg['global']['districts'] ?? []),
+            'professional_packaging' => ShippingZonesService::sanitizeProfessionalPackaging($cfg['global']['professional_packaging'] ?? []),
         ]]);
     }
 
