@@ -53,7 +53,7 @@
     "@tiptap/pm": "^3.31.3",
     "@tiptap/react": "^3.31.3",
     "@tiptap/starter-kit": "^3.31.3",
-    "@webina/ui": "github:WebinaDev/webina-ui#v0.5.1",
+    "@webina/ui": "github:WebinaDev/webina-ui#v0.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
