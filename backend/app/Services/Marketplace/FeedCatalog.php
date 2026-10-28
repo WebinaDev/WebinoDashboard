@@ -179,6 +179,63 @@ class FeedCatalog
     }
 
     /**
+     * Cursor page ordered by product id desc (variants by sort order). Cursor = "<productId>" or "<productId>_<variantId>"
+     * of the last entry returned; next_cursor is null on the final page.
+     *
+     * @return array{entries: list<array{0: Product, 1: ProductVariant|null}>, total: int, next_cursor: ?string}
+     */
+    public function cursorPage(?string $cursor, int $perPage, bool $expand): array
+    {
+        $products = $this->baseQuery()->orderByDesc('id')->pluck('id');
+        $variantsByProduct = $expand
+            ? ProductVariant::query()->whereIn('product_id', $products)->orderBy('sort_order')->get(['id', 'product_id'])->groupBy('product_id')
+            : collect();
+        $keys = [];
+        foreach ($products as $pid) {
+            $vs = $variantsByProduct->get($pid);
+            if ($expand && $vs && $vs->isNotEmpty()) {
+                foreach ($vs as $v) {
+                    $keys[] = $pid.'_'.$v->id;
+                }
+            } else {
+                $keys[] = (string) $pid;
+            }
+        }
+        $start = 0;
+        if ($cursor !== null && $cursor !== '') {
+            $pos = array_search($cursor, $keys, true);
+            if ($pos !== false) {
+                $start = $pos + 1;
+            } else {
+                // Cursor row vanished: resume at the first product with a lower id.
+                $cid = (int) explode('_', $cursor)[0];
+                $start = count($keys);
+                foreach ($keys as $i => $k) {
+                    if ((int) explode('_', $k)[0] < $cid) {
+                        $start = $i;
+                        break;
+                    }
+                }
+            }
+        }
+        $slice = array_slice($keys, $start, $perPage);
+        $pids = array_unique(array_map(fn ($k) => (int) explode('_', $k)[0], $slice));
+        $vids = array_filter(array_map(fn ($k) => (int) (explode('_', $k)[1] ?? 0), $slice));
+        $loadedProducts = Product::query()->with(['category', 'categories', 'brands', 'attributes', 'media'])->whereIn('id', $pids)->get()->keyBy('id');
+        $loadedVariants = $vids ? ProductVariant::query()->whereIn('id', $vids)->get()->keyBy('id') : collect();
+        $entries = [];
+        foreach ($slice as $k) {
+            [$pid, $vid] = array_pad(array_map('intval', explode('_', $k)), 2, 0);
+            if ($p = $loadedProducts->get($pid)) {
+                $entries[] = [$p, $vid ? $loadedVariants->get($vid) : null];
+            }
+        }
+        $more = $start + $perPage < count($keys);
+
+        return ['entries' => $entries, 'total' => count($keys), 'next_cursor' => ($more && $slice) ? (string) end($slice) : null];
+    }
+
+    /**
      * Entries for specific products (expanding variants when requested).
      *
      * @param  Collection<int, Product>  $products

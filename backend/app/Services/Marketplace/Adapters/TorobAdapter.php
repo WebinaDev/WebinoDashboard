@@ -164,7 +164,9 @@ class TorobAdapter extends FeedAdapter
             return ['ok' => false, 'status' => 401, 'code' => 'token_expired', 'message' => 'Token has expired', 'current_server_time' => $now];
         }
         $aud = $payload['aud'] ?? null;
-        if (! is_string($aud) || $aud !== $this->catalog()->siteDomain()) {
+        $domain = $this->catalog()->siteDomain();
+        // aud = the Host Torob called; the store answers on both apex and www (WP plugin accepted either).
+        if (! is_string($aud) || ! in_array(strtolower($aud), [$domain, 'www.'.$domain], true)) {
             return ['ok' => false, 'status' => 401, 'code' => 'token_invalid_aud', 'message' => 'Invalid audience'];
         }
 

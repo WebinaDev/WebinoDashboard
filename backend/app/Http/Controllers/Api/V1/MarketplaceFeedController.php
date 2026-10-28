@@ -277,6 +277,31 @@ class MarketplaceFeedController extends Controller
         }
         $hasPage = array_key_exists('page', $body);
         $hasSort = array_key_exists('sort', $body);
+        // Cursor pagination (Torob API v3 option 4): {"sort":"product_id_desc"} then {"cursor":"..","sort":"product_id_desc"}.
+        if (array_key_exists('cursor', $body) || ($hasSort && ! $hasPage && ($body['sort'] ?? null) === 'product_id_desc')) {
+            foreach (['page', 'limit', 'size'] as $forbidden) {
+                if (array_key_exists($forbidden, $body)) {
+                    return $this->raw(['error' => $forbidden.' must not be sent with cursor pagination'], 400);
+                }
+            }
+            if (($body['sort'] ?? null) !== 'product_id_desc') {
+                return $this->raw(['error' => 'cursor pagination requires sort=product_id_desc'], 400);
+            }
+            $cursor = $body['cursor'] ?? null;
+            if ($cursor !== null && (! is_string($cursor) || ! preg_match('/^\d+(_\d+)?$/', $cursor))) {
+                return $this->raw(['error' => 'invalid cursor'], 400);
+            }
+            $result = $catalog->cursorPage($cursor, 100, $expand);
+            $rows = array_map(fn ($e) => $adapter->productPayloadV3($e[0], $e[1], $expand), $result['entries']);
+
+            return $this->raw([
+                'api_version' => 'torob_api_v3',
+                'total' => $result['total'],
+                'max_pages' => max(1, (int) ceil($result['total'] / 100)),
+                'next_cursor' => $result['next_cursor'],
+                'products' => array_values($rows),
+            ]);
+        }
         if ($hasPage || $hasSort) {
             if (! $hasPage || ! $hasSort) {
                 return $this->raw(['error' => $hasPage ? 'sort parameter is not provided' : 'page parameter is not provided'], 400);
@@ -286,10 +311,10 @@ class MarketplaceFeedController extends Controller
             if ($page < 1) {
                 return $this->raw(['error' => 'page must be >= 1'], 400);
             }
-            if (! in_array($sort, ['date_added_desc', 'date_updated_desc'], true)) {
-                return $this->raw(['error' => 'sort must be date_added_desc or date_updated_desc'], 400);
+            if (! in_array($sort, ['date_added_desc', 'date_updated_desc', 'product_id_desc'], true)) {
+                return $this->raw(['error' => 'sort must be date_added_desc, date_updated_desc or product_id_desc'], 400);
             }
-            $result = $catalog->page($page, 100, $expand, $sort);
+            $result = $catalog->page($page, 100, $expand, $sort === 'product_id_desc' ? 'id_desc' : $sort);
             $rows = array_map(fn ($e) => $adapter->productPayloadV3($e[0], $e[1], $expand), $result['entries']);
 
             return $this->raw($wrap($rows, $page, $result['total'], $result['max_pages']));

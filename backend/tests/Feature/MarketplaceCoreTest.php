@@ -352,6 +352,30 @@ class MarketplaceCoreTest extends TestCase
         $this->postJson('/api/v1/public/wp-json/torob_api/v3/products', ['page' => 1], $headers)->assertStatus(400);
     }
 
+    public function test_torob_v3_cursor_pagination_and_www_audience(): void
+    {
+        $this->shopUser();
+        $this->settings()->save($this->tenant->id, 'torob', ['enabled' => true]);
+        $product = $this->product();
+        $url = '/api/v1/public/wp-json/torob_api/v3/products';
+        $headers = ['HTTP_HOST' => 'localhost', 'HTTP_X_TOROB_TOKEN' => $this->torobJwt('www.localhost'), 'HTTP_X_TOROB_TOKEN_VERSION' => '1'];
+
+        $first = $this->postJson($url, ['sort' => 'product_id_desc'], $headers)->assertOk();
+        $first->assertJsonPath('api_version', 'torob_api_v3')->assertJsonPath('total', 1)->assertJsonPath('next_cursor', null);
+        $this->assertSame((string) $product->id, (string) $first->json('products.0.page_unique'));
+        $this->assertIsInt($first->json('products.0.current_price'));
+        $this->assertIsBool($first->json('products.0.availability'));
+        $this->assertIsArray($first->json('products.0.image_links'));
+        $this->assertArrayHasKey('date_added', $first->json('products.0'));
+
+        $this->postJson($url, ['cursor' => (string) $product->id, 'sort' => 'product_id_desc'], $headers)
+            ->assertOk()->assertJsonCount(0, 'products')->assertJsonPath('next_cursor', null);
+        $this->postJson($url, ['cursor' => '1', 'sort' => 'product_id_desc', 'page' => 1], $headers)->assertStatus(400);
+        $this->postJson($url, ['cursor' => '1', 'sort' => 'date_added_desc'], $headers)->assertStatus(400);
+        $this->postJson($url, ['page' => 1, 'sort' => 'product_id_desc'], $headers)->assertOk()->assertJsonPath('total', 1);
+        $this->postJson($url, [], $headers)->assertStatus(400);
+    }
+
     public function test_torob_legacy_wcpe_extractor_feed(): void
     {
         $this->shopUser();
