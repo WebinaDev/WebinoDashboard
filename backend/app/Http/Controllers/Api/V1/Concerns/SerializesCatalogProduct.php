@@ -21,6 +21,7 @@ trait SerializesCatalogProduct
             'description' => $product->description,
             'image_url' => $product->image_url,
             'cover_image_url' => $product->cover_image_url,
+            'image_card_url' => $product->image_card_url,
             'video_url' => $product->video_url,
             'price_minor' => $regular,
             'sale_price_minor' => $product->isOnSale() ? $discounted : null,

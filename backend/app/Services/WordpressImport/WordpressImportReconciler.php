@@ -147,7 +147,7 @@ final class WordpressImportReconciler
         $rows = $source ?? $items->map(fn ($i) => (array) $i->payload + ['external_id' => $i->external_id])->values()->all();
         $linked = WordpressImportLink::query()->where('tenant_id', $job->tenant_id)->where('resource', 'products')
             ->pluck('local_id', 'external_id');
-        $existing = Product::query()->where('tenant_id', $job->tenant_id)->whereIn('id', $linked->values())->pluck('id')->flip();
+        $existing = Product::query()->where('tenant_id', $job->tenant_id)->whereIn('id', $linked->values())->pluck('status', 'id');
         $missing = [];
         foreach ($rows as $row) {
             $id = (string) ($row['external_id'] ?? '');
@@ -155,13 +155,15 @@ final class WordpressImportReconciler
                 continue;
             }
             $local = $linked[$id] ?? null;
-            if ($local !== null && isset($existing[$local])) {
+            $publishedAtSource = strtolower((string) ($row['status'] ?? 'publish')) === 'publish';
+            $trashed = $local !== null && ($existing[$local] ?? null) === 'trash';
+            if ($local !== null && isset($existing[$local]) && ! ($trashed && $publishedAtSource)) {
                 continue;
             }
             $missing[] = [
                 'external_id' => $id,
-                'name' => mb_substr(trim((string) ($row['name'] ?? $row['title'] ?? '')), 0, 120),
-                'reason' => $this->reason($row, $items[$id] ?? null, $local !== null),
+                'name' => mb_substr(trim(html_entity_decode((string) ($row['name'] ?? $row['title'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')), 0, 120),
+                'reason' => $trashed ? 'imported product is in trash locally but published at source' : $this->reason($row, $items[$id] ?? null, $local !== null),
             ];
         }
 

@@ -14,7 +14,7 @@ import { formatDate, formatNumber, normalizeUiLocale, toLatinDigits, toLocaleDig
 import { useThemeSettings } from "@/providers/AppProviders"
 
 import { cartCount, cartSnapshot, clearCart, setQty, subscribeCart } from "../cart"
-import { toneClass, mapApiProduct, type ShopProduct } from "../catalog"
+import { toneClass, mapApiProduct, productCardSrcSet, type ShopProduct } from "../catalog"
 import { parseLinks, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { addShopItem, setServerQty, syncGuestCart, useServerCart } from "./actions"
@@ -74,7 +74,7 @@ function DefaultStoreProductCard({ product }: { product: ShopProduct }) {
     <article className="sf-card sf-product-card flex flex-col p-3 transition hover:-translate-y-0.5">
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted">
         {product.image ? (
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+          <img src={product.image} {...productCardSrcSet(product)} alt={product.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
         ) : (
           <div className={`grid h-full w-full place-items-center bg-gradient-to-br ${toneClass(product.tone)}`}>
             <span className="text-xs font-bold text-foreground/70">{product.brand}</span>

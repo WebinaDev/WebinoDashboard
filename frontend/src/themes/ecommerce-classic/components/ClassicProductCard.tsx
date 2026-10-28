@@ -7,7 +7,7 @@ import { useState } from "react"
 
 import { addShopItem } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
-import { toneClass, type ShopProduct } from "@/builder/catalog"
+import { productCardSrcSet, toneClass, type ShopProduct } from "@/builder/catalog"
 
 import { IconHeart } from "./icons"
 import { promoStatsForProduct } from "@/themes/ecommerce-classic/lib/classic-chrome"
@@ -88,7 +88,7 @@ export function ClassicProductCard({
         </div>
         <Link href={href} className="sfc-card__image" tabIndex={-1} aria-hidden="true">
           {product.image ? (
-            <OptImg src={product.image} alt="" loading="lazy" decoding="async" />
+            <OptImg src={product.image} {...productCardSrcSet(product)} alt="" loading="lazy" decoding="async" />
           ) : (
             <span className={`sfc-card__ph bg-gradient-to-br ${toneClass(product.tone)}`}>{product.brand}</span>
           )}

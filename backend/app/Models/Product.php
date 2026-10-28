@@ -75,6 +75,14 @@ class Product extends Model
         'cross_sell_ids',
     ];
 
+    /** ~800px WebP card size of the cover image (srcset for listings); null when not generated. */
+    protected $appends = ['image_card_url'];
+
+    public function getImageCardUrlAttribute(): ?string
+    {
+        return \App\Services\Media\ImageSizes::cardUrlFor($this->cover_image_url ?: $this->image_url);
+    }
+
     protected function casts(): array
     {
         return [

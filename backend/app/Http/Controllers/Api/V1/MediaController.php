@@ -106,6 +106,9 @@ class MediaController extends Controller
         if (config('media.webp_on_upload', true)) {
             app(\App\Services\Media\WebpConverter::class)->applyToAsset($row);
         }
+        if ($row->path && str_starts_with((string) $row->mime, 'image/')) {
+            app(\App\Services\Media\ImageSizes::class)->generate((string) ($row->disk ?: 'public'), $row->path);
+        }
 
         $this->syncTerms($row, $tid, $this->parseIdList($data['category_ids'] ?? null), $this->parseIdList($data['tag_ids'] ?? null));
 
@@ -167,7 +170,7 @@ class MediaController extends Controller
         $row = MediaAsset::query()->where('tenant_id', $tid)->findOrFail($id);
 
         $disk = $row->disk === 'local' ? 'public' : $row->disk;
-        foreach (array_filter([$row->path, $row->original_path]) as $p) {
+        foreach (array_filter([$row->path, $row->original_path, $row->path ? \App\Services\Media\ImageSizes::cardPathFor($row->path) : null]) as $p) {
             if (Storage::disk($disk)->exists($p)) {
                 Storage::disk($disk)->delete($p);
             }

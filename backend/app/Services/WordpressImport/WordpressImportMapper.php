@@ -66,10 +66,55 @@ final class WordpressImportMapper
         return in_array(strtolower(trim($raw)), ['publish', 'published'], true);
     }
 
+    /**
+     * Decode HTML entities WordPress stores in plain-text fields (e.g. «Big N&#8217; Bright»,
+     * «Lock &#038; Go», double-encoded «&amp;#8217;»). Applied to names/titles/slugs/terms only.
+     */
+    public function plain(string $value): string
+    {
+        for ($i = 0; $i < 3 && str_contains($value, '&'); $i++) {
+            $decoded = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($decoded === $value) {
+                break;
+            }
+            $value = $decoded;
+        }
+
+        return str_replace("\u{00A0}", ' ', $value);
+    }
+
+    /** Keys holding plain text (never HTML) that get entity-decoded on import. */
+    public const PLAIN_KEYS = ['name', 'title', 'label', 'slug', 'option', 'options', 'alt', 'caption_text', 'attribute_name', 'term_name', 'brand', 'brands', 'categories', 'tags', 'attributes', 'images', 'variations', 'terms'];
+
+    /**
+     * @param  array<mixed>  $payload
+     * @return array<mixed>
+     */
+    public function decodePlainFields(array $payload, int $depth = 0): array
+    {
+        if ($depth > 6) {
+            return $payload;
+        }
+        foreach ($payload as $key => $value) {
+            $plainKey = is_string($key) && in_array($key, self::PLAIN_KEYS, true);
+            if (is_string($value) && $plainKey) {
+                $payload[$key] = $this->plain($value);
+            } elseif (is_array($value) && ($plainKey || is_int($key))) {
+                if (array_is_list($value) && in_array($key, ['options', 'option'], true)) {
+                    $payload[$key] = array_map(fn ($v) => is_string($v) ? $this->plain($v) : $v, $value);
+                } else {
+                    $payload[$key] = $this->decodePlainFields($value, $depth + 1);
+                }
+            }
+        }
+
+        return $payload;
+    }
+
     public function slug(?string $slug, string $fallback, int $max = 180): string
     {
         $raw = trim((string) (($slug !== null && trim($slug) !== '') ? $slug : $fallback));
-        $raw = rawurldecode($raw);
+        $raw = $this->plain(rawurldecode($raw));
         $raw = preg_replace('/\s+/u', '-', $raw) ?? '';
         $raw = preg_replace('/[^\p{L}\p{N}\-_]+/u', '', (string) $raw) ?? '';
         $raw = trim((string) $raw, '-_');

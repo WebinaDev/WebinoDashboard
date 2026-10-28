@@ -344,6 +344,7 @@ final class ImportContext
         $name = ($externalId !== '' ? $externalId.'-' : '').$filename;
         $path = 'media/'.$this->tenantId().'/wordpress/'.$name;
         Storage::disk('public')->put($path, $bytes);
+        app(\App\Services\Media\ImageSizes::class)->generate('public', $path, true);
 
         $asset = new MediaAsset([
             'tenant_id' => $this->tenantId(),

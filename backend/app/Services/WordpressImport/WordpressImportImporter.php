@@ -34,6 +34,8 @@ final class WordpressImportImporter
         if ($externalId === '') {
             throw new InvalidArgumentException('external_id is required.');
         }
+        // WordPress stores names/titles/terms HTML-encoded (&#8217;, &#038;); decode before mapping.
+        $payload = $ctx->mapper->decodePlainFields($payload);
 
         return match ($resource) {
             'media' => $this->media($ctx, $externalId, $payload),
@@ -322,6 +324,7 @@ final class WordpressImportImporter
             $name
         ), $row?->id);
         $sourceStatus = $ctx->mapper->productStatus((string) ($payload['status'] ?? 'publish'));
+        $wasTrashed = $row !== null && $row->status === 'trash';
         $visible = $ctx->publishContent() && $sourceStatus === 'publish' && (($payload['catalog_visibility'] ?? 'visible') !== 'hidden');
         $price = $ctx->minor($payload, 'regular_price') ?: $ctx->minor($payload, 'price');
         $sale = $ctx->minor($payload, 'sale_price');
@@ -378,6 +381,13 @@ final class WordpressImportImporter
             'tax_class' => $payload['tax_class'] ?? null,
             'grouped_external_ids' => $payload['grouped_external_ids'] ?? [],
         ];
+        if ($wasTrashed) {
+            // Published at the source: a re-import/reconcile restores a locally trashed product.
+            unset($meta['pre_trash_status']);
+            if ($sourceStatus === 'publish') {
+                $warnings[] = 'Restored from trash (published at source).';
+            }
+        }
         $productSeo = app(WordpressImportRecords::class)->seo($payload);
         if ($productSeo) {
             $meta['seo'] = $productSeo;

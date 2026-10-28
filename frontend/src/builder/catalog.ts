@@ -34,6 +34,8 @@ export type ShopProduct = {
   brand: string
   brandSlug: string
   image?: string | null
+  /** ~800px WebP card size of `image` (listings srcset); null when not generated. */
+  imageCard?: string | null
   images: string[]
   description: string
   live: boolean
@@ -339,6 +341,7 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     brand: str(firstBrand?.name) || str(raw.brand_name),
     brandSlug: str(firstBrand?.slug),
     image: images[0] || null,
+    imageCard: images[0] && images[0] === cover ? str(raw.image_card_url) || null : null,
     images,
     description: plainText(str(raw.description)),
     live: true,
@@ -439,5 +442,14 @@ export function mapApiCategory(raw: ApiRecord, index: number): ShopCategory | nu
     parentId,
     image: image || null,
     children: nested?.length ? nested : undefined,
+  }
+}
+
+/** srcset/sizes for product cards: ~800px card + full-size hero, so listings download the small one. */
+export function productCardSrcSet(product: Pick<ShopProduct, "image" | "imageCard">): { srcSet?: string; sizes?: string } {
+  if (!product.image || !product.imageCard || product.imageCard === product.image) return {}
+  return {
+    srcSet: `${product.imageCard} 800w, ${product.image} 1600w`,
+    sizes: "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px",
   }
 }
