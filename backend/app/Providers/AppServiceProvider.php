@@ -84,6 +84,9 @@ class AppServiceProvider extends ServiceProvider
         BlogPost::observe(CachePurgeObserver::class);
         CmsPage::observe(CachePurgeObserver::class);
         \App\Models\BuilderGlobal::observe(CachePurgeObserver::class);
+        foreach ([Product::class, ProductVariant::class, \App\Models\Category::class, \App\Models\Brand::class, \App\Models\ProductAttribute::class, \App\Models\ProductAttributeTerm::class] as $facetModel) {
+            $facetModel::observe(\App\Observers\CatalogFacetsObserver::class);
+        }
 
         Scramble::ignoreDefaultRoutes();
 

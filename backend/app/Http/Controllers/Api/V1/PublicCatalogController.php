@@ -172,7 +172,7 @@ class PublicCatalogController extends Controller
 
         $facets = null;
         if ($request->boolean('facets')) {
-            $facets = \Illuminate\Support\Facades\Cache::remember("catalog-facets:v2:{$tid}", 300, function () use ($tid) {
+            $facets = \Illuminate\Support\Facades\Cache::remember(\App\Observers\CatalogFacetsObserver::key($tid), 300, function () use ($tid) {
                 $base = Product::query()->where('tenant_id', $tid)->storefront();
                 $price = (clone $base)->selectRaw('MIN(price_minor) as min, MAX(price_minor) as max')->first();
                 $rows = \Illuminate\Support\Facades\DB::table('product_attribute_product as pap')
