@@ -4,6 +4,8 @@
  * exists — that left the auth gate unloaded, so anonymous RSC renders treated
  * a failed activations fetch as "every module disabled" and called notFound().
  */
+import { trailingSlashTarget } from "@/lib/trailing-slash"
+import { siteRedirectFor } from "@/lib/site-redirects"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
@@ -247,6 +249,13 @@ async function handle(request: NextRequest) {
     })
   }
 
+  // Code-level public 301s (SITE_REDIRECTS; default alikhabari /about → /about-poet — alikhabari is served by this frontend).
+  if (!pathname.startsWith("/dashboard") && !pathname.startsWith("/api") && !pathname.includes(".")) {
+    const siteHost = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
+    const to = siteRedirectFor(siteHost, pathname)
+    if (to) return new NextResponse(null, { status: 301, headers: { Location: to } })
+  }
+
   // Native SEO redirects (no Rank Math)
   if (
     !pathname.startsWith("/dashboard") &&
@@ -284,10 +293,9 @@ async function handle(request: NextRequest) {
   }
 
   // WordPress-style trailing slash (/shop/, /about/) → one 301 to the slashless canonical (Next's own 308 is disabled).
+  // Location comes from the raw URL: a cloned nextUrl re-adds the slash (skipTrailingSlashRedirect) → self-redirect loop.
   if (pathname.length > 1 && pathname.endsWith("/") && !pathname.startsWith("/wp-json")) {
-    const url = request.nextUrl.clone()
-    url.pathname = pathname.replace(/\/+$/, "") || "/"
-    return NextResponse.redirect(url, 301)
+    return new NextResponse(null, { status: 301, headers: { Location: trailingSlashTarget(request.url) } })
   }
 
   // Legacy /admin → /dashboard (bookmarks & old links)

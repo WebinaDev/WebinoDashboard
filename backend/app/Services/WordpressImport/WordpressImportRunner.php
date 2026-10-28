@@ -366,7 +366,8 @@ final class WordpressImportRunner
         }
         $job->items()
             ->where('status', 'pending')
-            ->whereNotIn('resource', $selected)
+            // Selections may use plugin aliases (e.g. woo_products); compare canonical names too.
+            ->whereNotIn('resource', array_values(array_unique([...$selected, ...WordpressImportResources::canonicalList($selected)])))
             ->update([
                 'status' => 'skipped',
                 'action' => 'skipped',

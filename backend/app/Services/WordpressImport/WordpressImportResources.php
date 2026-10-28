@@ -91,6 +91,26 @@ final class WordpressImportResources
         return $resource;
     }
 
+    /**
+     * Canonical names for a selection list; unknown entries are kept as-is.
+     *
+     * @param  array<int, mixed>  $resources
+     * @return list<string>
+     */
+    public static function canonicalList(array $resources): array
+    {
+        $out = [];
+        foreach ($resources as $r) {
+            try {
+                $out[] = self::canonical((string) $r);
+            } catch (InvalidArgumentException) {
+                $out[] = (string) $r;
+            }
+        }
+
+        return $out;
+    }
+
     /** @return list<string> */
     public static function advertised(): array
     {

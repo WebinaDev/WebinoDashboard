@@ -150,7 +150,13 @@ final class WordpressImportReconciler
         $existing = Product::query()->where('tenant_id', $job->tenant_id)->whereIn('id', $linked->values())->pluck('status', 'id');
         // Imported products whose featured image or gallery never arrived (download failed or skipped).
         $imageless = Product::query()->where('tenant_id', $job->tenant_id)->whereIn('id', $linked->values())
-            ->where(fn ($q) => $q->whereNull('image_url')->orWhere('image_url', '')->orWhereDoesntHave('media'))
+            // Only when there is no cover at all: image_url and cover_image_url empty, no media rows and no gallery.
+            // (A product with a cover but no ProductMedia rows is fine; flagging it caused false positives.)
+            ->where(fn ($q) => $q->whereNull('image_url')->orWhere('image_url', ''))
+            ->where(fn ($q) => $q->whereNull('cover_image_url')->orWhere('cover_image_url', ''))
+            ->whereDoesntHave('media')
+            ->get(['id', 'gallery'])
+            ->filter(fn (Product $p) => array_filter((array) ($p->gallery ?? [])) === [])
             ->pluck('id')->flip();
         $missing = [];
         foreach ($rows as $row) {
@@ -253,6 +259,20 @@ final class WordpressImportReconciler
             return 0;
         }
         $this->runner->enqueue($job, ['products' => $rows]);
+        // Make sure the next `run` picks them up: a job whose resource selection excludes products,
+        // or one left paused/failed/stale-running, would otherwise leave them pending forever.
+        $job->refresh();
+        $options = is_array($job->options) ? $job->options : [];
+        $selected = $options['resources'] ?? null;
+        if (is_array($selected) && $selected !== [] && ! in_array('products', WordpressImportResources::canonicalList($selected), true)) {
+            $options['resources'] = array_values(array_unique([...$selected, 'products']));
+            $job->options = $options;
+        }
+        if (! in_array($job->status, ['ready', 'running'], true) || $this->runner->isStale($job)) {
+            $job->status = 'ready';
+            $job->finished_at = null;
+        }
+        $job->save();
 
         return count($rows);
     }

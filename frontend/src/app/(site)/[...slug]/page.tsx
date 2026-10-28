@@ -176,7 +176,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         twitter: { card: "summary", title, description },
       }
     }
-    if (!meta) return {}
+    // Unknown page (soft 404 body): give it a real title and keep it out of the index instead of the bare site name.
+    if (!meta) return { title: "صفحه پیدا نشد", robots: { index: false, follow: true } }
     const languages = Object.fromEntries((meta.alternates ?? []).map((alt) => [alt.lang, alt.url]))
     return {
       title: meta.title || undefined,
