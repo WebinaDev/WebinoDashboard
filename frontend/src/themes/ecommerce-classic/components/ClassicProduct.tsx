@@ -13,7 +13,7 @@ import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { mapApiProduct, toneClass, type ShopProduct } from "@/builder/catalog"
 import { addShopItem } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
-import { StockAlertForm } from "@/builder/storefront/storefront-chrome"
+import { ProductReviewsPanel, StockAlertForm } from "@/builder/storefront/storefront-chrome"
 import { ProductPriceHistory } from "@/builder/storefront/storefront-extras"
 import { useCatalog } from "@/builder/storefront/use-catalog"
 
@@ -87,6 +87,44 @@ export function ClassicTrustStrip({ items }: { items?: { title?: string; text?: 
   )
 }
 
+/** parisma-style share sheet: Telegram, Eitaa, Bale + copy link. */
+function ShareSheet({ name, onClose }: { name: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const url = typeof window !== "undefined" ? window.location.href : ""
+  const u = encodeURIComponent(url)
+  const text = encodeURIComponent(name)
+  const links = [
+    { label: "تلگرام", href: `https://t.me/share/url?url=${u}&text=${text}` },
+    { label: "ایتا", href: `https://eitaa.com/share/url?url=${u}&text=${text}` },
+    { label: "بله", href: `https://ble.ir/share/url?url=${u}&text=${text}` },
+  ]
+  return (
+    <div className="sfc-share" role="dialog" aria-label="اشتراک گذاری">
+      <div className="sfc-share__head">
+        <strong>اشتراک گذاری</strong>
+        <button type="button" aria-label="بستن" onClick={onClose}>
+          <IconClose size={16} />
+        </button>
+      </div>
+      <p className="sfc-share__hint">این کالا را با دوستان خود به اشتراک بگذارید!</p>
+      <div className="sfc-share__links">
+        {links.map((l) => (
+          <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer">
+            {l.label}
+          </a>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="sfc-share__copy"
+        onClick={() => void navigator.clipboard?.writeText(url).then(() => setCopied(true))}
+      >
+        {copied ? "کپی شد" : "کپی لینک"}
+      </button>
+    </div>
+  )
+}
+
 function Stepper({ qty, max, onChange }: { qty: number; max: number; onChange: (qty: number) => void }) {
   const digits = useDigits()
   return (
@@ -136,6 +174,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   const [liked, setLiked] = useState(false)
   const [note, setNote] = useState("")
   const [expanded, setExpanded] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   useEffect(() => {
     if (!slug) {
@@ -235,6 +274,15 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
           { label: product.name },
         ]}
       />
+      <div className="sfc-container sfc-pdp__headlink">
+        <span className="sfc-pdp__headlink-code">
+          {product.sku ? <>کد کالا: <bdi>{product.sku}</bdi></> : null}
+        </span>
+        <nav aria-label="پیوندهای محصول">
+          {showFaqTab ? <a href="#sfc-tabs" onClick={() => setTab("faq")}>پرسش</a> : null}
+          <a href="#sfc-reviews">دیدگاه</a>
+        </nav>
+      </div>
       <div className="sfc-container sfc-pdp__grid">
         <div className="sfc-pdp__main">
           <header className="sfc-pdp__head">
@@ -248,7 +296,9 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               {product.isNew ? <span className="sfc-tag sfc-tag--pink">{tx("product.new_badge")}</span> : null}
             </div>
             <h1 className="sfc-pdp__title">{product.name}</h1>
-            <p className="sfc-pdp__sub">{product.brand}</p>
+            <p className="sfc-pdp__sub" dir={product.englishName ? "ltr" : undefined}>
+              {product.englishName || product.brand}
+            </p>
           </header>
 
           <div className="sfc-pdp__body">
@@ -274,15 +324,13 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                 <button
                   type="button"
                   aria-label="اشتراک‌گذاری"
-                  onClick={() => {
-                    const url = typeof window !== "undefined" ? window.location.href : ""
-                    if (navigator.share) void navigator.share({ title: product.name, url }).catch(() => undefined)
-                    else void navigator.clipboard?.writeText(url)
-                  }}
+                  aria-expanded={shareOpen}
+                  onClick={() => setShareOpen((v) => !v)}
                 >
                   <IconShare size={20} />
                 </button>
               ) : null}
+              {showShare && shareOpen ? <ShareSheet name={product.name} onClose={() => setShareOpen(false)} /> : null}
               <a href="#sfc-stock-alert" aria-label="اطلاع از موجودی">
                 <IconBell size={20} />
               </a>
@@ -423,12 +471,12 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
           </div>
 
           <div className="sfc-pdp__report">
-            <span>
+            <Link href={`/pages/contact?subject=${encodeURIComponent(`قیمت بهتر: ${product.name}`)}`}>
               <IconInfo size={16} /> قیمت بهتری سراغ دارید؟ اعلام کنید
-            </span>
-            <span>
+            </Link>
+            <Link href={`/pages/contact?subject=${encodeURIComponent(`گزارش مشخصات: ${product.name}`)}`}>
               <IconInfo size={16} /> گزارش مشخصات کالا یا موارد قانونی
-            </span>
+            </Link>
           </div>
 
           <ClassicTrustStrip />
@@ -488,6 +536,22 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               )}
             </div>
           </div>
+          {/* parisma product-reviews__wrapper: score sidebar + list + submit, under the tabs. */}
+          <section id="sfc-reviews" className="sfc-pdp__reviews">
+            <ProductReviewsPanel
+              slug={product.slug}
+              options={{
+                title: "امتیاز و دیدگاه کاربران",
+                intro: "",
+                showAverage: showRating,
+                allowSubmit: !editing,
+                submitLabel: "ثبت دیدگاه",
+                emptyText: "هنوز دیدگاهی ثبت نشده است.",
+                limit: 0,
+                editing,
+              }}
+            />
+          </section>
           <div id="sfc-price-chart">
             <ProductPriceHistory slug={product.slug} />
           </div>

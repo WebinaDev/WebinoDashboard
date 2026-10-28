@@ -292,6 +292,9 @@ class PublicCatalogController extends Controller
 
         $data = $this->withPricing($this->serializeProduct($product, true), $product, PurchaseTypeService::forTenant($tid));
         $data['likes_count'] = $likesCount;
+        // Classic PDP head bar (product code) and English model line, like parisma.ir.
+        $data['sku'] = $product->sku ?: null;
+        $data['english_name'] = $product->english_name ?: null;
         $data['variants'] = $this->withSwatches($tid, $data['variants'] ?? []);
         $data['return_notice'] = $this->categoryReturnNotice($product->category);
         // Same price formatting as the catalogue list (item page used to fall back to defaults).
