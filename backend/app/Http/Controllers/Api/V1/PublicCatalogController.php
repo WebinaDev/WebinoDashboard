@@ -105,12 +105,12 @@ class PublicCatalogController extends Controller
         }
         if ($request->filled('category')) {
             $cat = trim((string) $request->query('category'));
-            $productsQuery->whereHas('category', fn ($q) => $q->where('slug', $cat)->orWhere('id', $cat));
+            $productsQuery->whereHas('category', fn ($q) => self::whereSlugOrId($q, $cat));
         }
 
         if ($request->filled('brand')) {
             $brand = trim((string) $request->query('brand'));
-            $productsQuery->whereHas('brands', fn ($q) => $q->where('slug', $brand)->orWhere('id', $brand));
+            $productsQuery->whereHas('brands', fn ($q) => self::whereSlugOrId($q, $brand));
         }
 
         // Advanced archive filters (builder `archive-filters`): tag slugs and attribute terms ("attr_slug:term_slug").
@@ -410,5 +410,27 @@ class PublicCatalogController extends Controller
         }
 
         return $list;
+    }
+
+    /**
+     * Match a term by slug, or by id only when the key is all digits. Postgres rejects
+     * comparing a non-numeric string against an integer column (500 on ?category=skin-care).
+     */
+    private static function whereSlugOrId($q, string $key)
+    {
+        $key = trim(rawurldecode($key));
+        $q->where(function ($w) use ($key, $q) {
+            $t = $q->getModel()->getTable();
+            $w->where($t.'.slug', $key);
+            $encoded = strtolower(rawurlencode($key));
+            if ($encoded !== $key) {
+                $w->orWhere($t.'.slug', $encoded);
+            }
+            if (ctype_digit($key) && strlen($key) < 19) {
+                $w->orWhere($t.'.id', (int) $key);
+            }
+        });
+
+        return $q;
     }
 }
