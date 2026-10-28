@@ -3,6 +3,8 @@
 import { Palette, Paintbrush, Settings2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 
+import { INTERACTION_ACTIONS, INTERACTION_TRIGGERS, type Interaction, type InteractionAction, type InteractionTrigger } from "../interactions"
+
 import { COLOR_TOKENS, variableOptions } from "../globals"
 import { useDesign } from "./design-context"
 import type { AdvancedProps, BoxEdges, DeviceMode, ShapeName, StyleProps } from "../types"
@@ -254,6 +256,26 @@ export function AdvancedFields({ value, onChange, layout }: { value: AdvancedPro
         ))}
         <button type="button" className="h-8 rounded-md border px-2" onClick={() => onChange({ attributes: [...(value.attributes ?? []), { name: "", value: "" }] })}>{t("add_attribute")}</button>
         <p className="text-[10px] text-foreground/50">{t("attributes_hint")}</p>
+      </Group>
+      <Group title={t("interactions")}>
+        {(value.interactions ?? []).map((ix, index) => {
+          const set = (patch: Partial<Interaction>) => { const interactions = (value.interactions ?? []).slice(); interactions[index] = { ...ix, ...patch }; onChange({ interactions }) }
+          return (
+            <div key={index} className="grid grid-cols-2 gap-1 rounded-md border p-1">
+              <select className="h-8 rounded-md border px-1" aria-label={t("ix_trigger")} value={ix.trigger} onChange={(event) => set({ trigger: event.target.value as InteractionTrigger })}>
+                {INTERACTION_TRIGGERS.map((k) => <option key={k} value={k}>{t(`ix_trigger_${k}`)}</option>)}
+              </select>
+              <select className="h-8 rounded-md border px-1" aria-label={t("ix_action")} value={ix.action} onChange={(event) => set({ action: event.target.value as InteractionAction })}>
+                {INTERACTION_ACTIONS.map((k) => <option key={k} value={k}>{t(`ix_action_${k}`)}</option>)}
+              </select>
+              <input className="h-8 min-w-0 rounded-md border px-1" dir="ltr" aria-label={t("ix_target")} placeholder={t("ix_target")} value={ix.target ?? ""} onChange={(event) => set({ target: event.target.value })} />
+              <input className="h-8 min-w-0 rounded-md border px-1" dir="ltr" aria-label={t("ix_class")} placeholder={t("ix_class")} value={ix.className ?? ""} onChange={(event) => set({ className: event.target.value })} />
+              <button type="button" className="col-span-2 h-7 rounded-md border text-xs" onClick={() => onChange({ interactions: (value.interactions ?? []).filter((_, i) => i !== index) })}>{t("remove")}</button>
+            </div>
+          )
+        })}
+        <button type="button" className="h-8 rounded-md border px-2" onClick={() => onChange({ interactions: [...(value.interactions ?? []), { trigger: "click", action: "toggle" }] })}>{t("add_interaction")}</button>
+        <p className="text-[10px] text-foreground/50">{t("interactions_hint")}</p>
       </Group>
       <Group title={t("display_conditions")}>
         <ConditionsFields value={value.conditions ?? {}} onChange={(conditions) => onChange({ conditions })} />

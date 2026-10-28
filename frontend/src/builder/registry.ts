@@ -166,6 +166,8 @@ const CORE_WIDGETS: WidgetDef[] = [
         { value: "bar-top", label: "نوار بالا" },
         { value: "bar-bottom", label: "نوار پایین" },
         { value: "fullscreen", label: "تمام‌صفحه" },
+        { value: "offcanvas-start", label: "کشوی کناری (راست)" },
+        { value: "offcanvas-end", label: "کشوی کناری (چپ)" },
       ]},
       { kind: "switch", key: "closeButton", label: "دکمه بستن" },
       { kind: "switch", key: "overlayClose", label: "بستن با کلیک بیرون" },

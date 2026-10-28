@@ -1,5 +1,6 @@
 "use client"
 
+import { bindInteractions, interactionAttrs } from "../interactions"
 import { useEffect, type RefObject } from "react"
 
 import type { AdvancedProps, ShapeName } from "../types"
@@ -37,6 +38,15 @@ export function Decor({ advanced }: { advanced: AdvancedProps | undefined }) {
       {shape(bg.shapeBottom, "bottom")}
     </>
   )
+}
+
+/** Live-site interactions (#55): bind [data-wb-ix] handlers once per canvas. */
+export function useCanvasInteractions(root: RefObject<HTMLElement | null>, enabled: boolean) {
+  useEffect(() => {
+    const el = root.current
+    if (!enabled || !el) return
+    return bindInteractions(el)
+  }, [enabled, root])
 }
 
 /** Live-site motion: entrance animations on scroll, parallax and 3D tilt. One observer per canvas. */
@@ -119,5 +129,6 @@ export function motionAttrs(advanced: AdvancedProps | undefined): Record<string,
   const speed = advanced?.motion?.parallax
   if (speed) out["data-wb-parallax"] = String(Math.max(-10, Math.min(10, speed)))
   if (advanced?.motion?.tilt) out["data-wb-tilt"] = ""
+  Object.assign(out, interactionAttrs(advanced?.interactions))
   return out
 }

@@ -8,7 +8,7 @@ import { advancedAttrs, advancedClass, advancedId, hasCustomLayout, layoutToCss,
 import { migrateDocument } from "../migrate"
 import { viewCss } from "../compile"
 import { dirForLang } from "../lang"
-import { Decor, motionAttrs, useCanvasMotion } from "./decor"
+import { Decor, motionAttrs, useCanvasInteractions, useCanvasMotion } from "./decor"
 import { useConditionsVisible } from "./use-conditions"
 import { useResolvedWidget } from "./use-dynamic"
 import type { ColumnNode, DeviceMode, EditorApi, BuilderDocument, RuntimeContext, SectionNode, WidgetNode } from "../types"
@@ -52,6 +52,7 @@ export function DocumentView({ document: rawDocument, mode = "view", device = "d
   const css = [globalsCss(activeGlobals), symbolCss, nodeCss, importedCss(document)].filter(Boolean).join("\n")
   const canvasRef = useRef<HTMLDivElement>(null)
   useCanvasMotion(canvasRef, mode === "view")
+  useCanvasInteractions(canvasRef, mode === "view")
   return (
     <BuilderGlobalsProvider value={activeGlobals}>
       <BuilderRuntimeProvider value={runtime ?? {}}>

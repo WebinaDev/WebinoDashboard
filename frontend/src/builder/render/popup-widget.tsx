@@ -187,6 +187,8 @@ export function PopupWidget({ widget, editing }: { widget: WidgetNode; editing: 
     "bar-top": "w-full rounded-none",
     "bar-bottom": "w-full rounded-none",
     fullscreen: "h-full w-full rounded-none grid place-content-center",
+    "offcanvas-start": "h-full w-[min(22rem,85vw)] overflow-y-auto rounded-none",
+    "offcanvas-end": "h-full w-[min(22rem,85vw)] overflow-y-auto rounded-none",
   }[layout] ?? "w-full max-w-md rounded-3xl"
   const position = {
     modal: "grid place-items-center p-4",
@@ -194,8 +196,10 @@ export function PopupWidget({ widget, editing }: { widget: WidgetNode; editing: 
     "bar-top": "flex items-start",
     "bar-bottom": "flex items-end",
     fullscreen: "flex",
+    "offcanvas-start": "flex justify-start",
+    "offcanvas-end": "flex justify-end",
   }[layout] ?? "grid place-items-center p-4"
-  const backdrop = layout === "modal" || layout === "fullscreen"
+  const backdrop = layout === "modal" || layout === "fullscreen" || layout.startsWith("offcanvas")
   const image = propStr(widget.props, "image", "")
   return (
     <div className={`fixed inset-0 z-50 ${position} ${backdrop ? "bg-black/40" : "pointer-events-none"}`} onClick={backdrop && overlayClose ? close : undefined}>

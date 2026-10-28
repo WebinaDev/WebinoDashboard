@@ -111,6 +111,8 @@ export type AdvancedProps = {
   customCss?: string
   /** Custom attributes (data-*, aria-*, role, title, rel, tabindex). */
   attributes?: { name: string; value: string }[]
+  /** Interactions: trigger (click/hover/in view) → action (show/hide/toggle/class/scroll/open popup). */
+  interactions?: import("./interactions").Interaction[]
 }
 
 export type ResponsiveStyle = {
