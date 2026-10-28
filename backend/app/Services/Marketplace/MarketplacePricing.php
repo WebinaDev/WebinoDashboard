@@ -2,6 +2,7 @@
 
 namespace App\Services\Marketplace;
 
+use App\Support\Currency;
 use App\Models\PricingSetting;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -130,14 +131,14 @@ class MarketplacePricing
     {
         $rial = $this->unit($platform) === 'rial' ? $amount : $amount * 10;
 
-        return (int) round($this->storeCurrency === 'IRT' ? $rial / 10 : $rial);
+        return (int) round(Currency::fromRial($rial, $this->storeCurrency));
     }
 
     public function toRial(float $amount, ?string $currency = null): float
     {
         $cur = strtoupper($currency ?: $this->storeCurrency);
 
-        return $cur === 'IRT' ? $amount * 10 : $amount;
+        return Currency::toRial($amount, $cur);
     }
 
     /** Store-currency selling price used when no markup applies. */
@@ -175,7 +176,7 @@ class MarketplacePricing
 
         $cfg = $this->platformSettings($platform);
         $purchase = (float) (($variant?->purchase_price_minor) ?: $product->purchase_price_minor ?: 0);
-        if (! empty($cfg['enabled']) && $purchase > 0) {
+        if (! empty($cfg['enabled']) && $purchase > 0 && $this->calculator()->moduleOn()) {
             return $this->calculator()->channel($purchase, $platform, $variant ?? $product);
         }
 

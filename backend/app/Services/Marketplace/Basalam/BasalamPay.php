@@ -2,6 +2,7 @@
 
 namespace App\Services\Marketplace\Basalam;
 
+use App\Support\Currency;
 use App\Models\Order;
 use App\Models\PaymentIntent;
 use App\Models\Tenant;
@@ -37,7 +38,7 @@ class BasalamPay
     {
         $minor = (int) $order->total_minor;
         $currency = strtoupper((string) ($order->currency ?: Tenant::query()->whereKey($order->tenant_id)->value('default_currency') ?: 'IRT'));
-        $rial = $currency === 'IRR' ? $minor : $minor * 10;
+        $rial = Currency::toRialInt($minor, $currency);
 
         return max(self::MIN_AMOUNT_RIAL, $rial);
     }

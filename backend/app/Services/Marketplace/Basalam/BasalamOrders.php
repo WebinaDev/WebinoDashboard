@@ -2,6 +2,7 @@
 
 namespace App\Services\Marketplace\Basalam;
 
+use App\Support\Currency;
 use App\Models\MarketplaceOrderMap;
 use App\Models\Order;
 use App\Models\OrderNote;
@@ -114,7 +115,7 @@ class BasalamOrders
     {
         $pricing = MarketplacePricing::forTenant($this->tid());
 
-        return (int) round($pricing->storeCurrency() === 'IRT' ? $rial / 10 : $rial);
+        return (int) round(Currency::fromRial($rial, $pricing->storeCurrency()));
     }
 
     /**

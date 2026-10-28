@@ -71,3 +71,13 @@ export function currencyLabel(
   if (!row) return code
   return locale === "en" ? row.labelEn : row.labelFa
 }
+
+/** Canonical Iranian currency → rial factors (same table as backend App\Support\Currency). */
+export const RIAL_FACTORS: Record<string, number> = { IRR: 1, IRT: 10, TOMAN: 10, IRHR: 1000, IRHT: 10000 }
+
+export function rialFactor(code: string | null | undefined): number {
+  return RIAL_FACTORS[(code ?? "IRT").trim().toUpperCase() || "IRT"] ?? 1
+}
+
+export const toRial = (amount: number, code: string | null | undefined) => amount * rialFactor(code)
+export const fromRial = (rial: number, code: string | null | undefined) => rial / rialFactor(code)

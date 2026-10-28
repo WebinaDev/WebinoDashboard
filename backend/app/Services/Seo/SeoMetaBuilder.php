@@ -2,6 +2,7 @@
 
 namespace App\Services\Seo;
 
+use App\Support\Currency;
 use App\Models\BlogPost;
 use App\Models\CmsPage;
 use App\Models\Product;
@@ -271,8 +272,9 @@ final class SeoMetaBuilder
                 'image' => $meta['og']['image'] ?? null,
                 'offers' => [
                     '@type' => 'Offer',
-                    'priceCurrency' => strtoupper((string) ($product->currency ?: $tenant->default_currency ?: 'IRT')),
-                    'price' => round(((int) ($product->sale_price_minor ?: $product->price_minor)) / 10, 2),
+                    // schema.org needs ISO 4217: always emit IRR in rial.
+                    'priceCurrency' => 'IRR',
+                    'price' => Currency::toRialInt((int) ($product->sale_price_minor ?: $product->price_minor), (string) ($product->currency ?: $tenant->default_currency ?: 'IRT')),
                     'availability' => ((int) ($product->stock ?? 0) > 0 || ! $product->manage_stock)
                         ? 'https://schema.org/InStock'
                         : 'https://schema.org/OutOfStock',

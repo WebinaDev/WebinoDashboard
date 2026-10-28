@@ -187,6 +187,12 @@ class PricingCalculator
         ], is_array($stored) ? $stored : []);
     }
 
+    /** WFCP 0.9.62: the price module is optional; when off only the stored base price is used. */
+    public function moduleOn(): bool
+    {
+        return self::bool($this->section('general')['enabled'] ?? true);
+    }
+
     public function fxPrice(float $basePrice): float
     {
         $general = $this->section('general');
@@ -241,7 +247,7 @@ class PricingCalculator
     /** @return list<array{months: int, interest: float, monthly: float, total: float}> */
     public function installmentTable(float $purchase, Product|ProductVariant|null $context = null): array
     {
-        if (! self::bool($this->section('installment')['enabled'] ?? false)) {
+        if (! $this->moduleOn() || ! self::bool($this->section('installment')['enabled'] ?? false)) {
             return [];
         }
         $rows = [];
@@ -281,7 +287,7 @@ class PricingCalculator
     {
         return match ($type) {
             'cash', 'retail' => true,
-            'credit', 'installment', 'wholesale' => self::bool($this->section($type)['enabled'] ?? false),
+            'credit', 'installment', 'wholesale' => $this->moduleOn() && self::bool($this->section($type)['enabled'] ?? false),
             default => false,
         };
     }
@@ -338,7 +344,7 @@ class PricingCalculator
 
         $purchase = (float) (($variant?->purchase_price_minor) ?: $product->purchase_price_minor ?: 0);
         $type = $this->normalizePurchaseType($type);
-        if ($purchase <= 0 || $type === 'cash') {
+        if (! $this->moduleOn() || $purchase <= 0 || $type === 'cash') {
             return $store;
         }
 

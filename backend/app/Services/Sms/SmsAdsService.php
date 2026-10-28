@@ -2,6 +2,7 @@
 
 namespace App\Services\Sms;
 
+use App\Support\Currency;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
@@ -268,11 +269,11 @@ class SmsAdsService
                 ->whereIn('status', ['paid', 'processing', 'shipped', 'completed'])
                 ->orderByDesc('id')
                 ->limit(100)
-                ->get(['id', 'number', 'total_minor', 'created_at']);
+                ->get(['id', 'number', 'total_minor', 'currency', 'created_at']);
             foreach ($orders as $o) {
                 $ordersN++;
-                // total_minor is rial; SMS costs from ModirPayamak are toman.
-                $totalToman = (int) round(((int) ($o->total_minor ?? 0)) / 10);
+                // SMS costs from ModirPayamak are toman; convert from the order currency.
+                $totalToman = (int) round(Currency::toToman((int) ($o->total_minor ?? 0), (string) ($o->currency ?: 'IRT')));
                 $revenue += $totalToman;
                 if (count($samples) < 10) {
                     $samples[] = [

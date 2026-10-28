@@ -52,7 +52,7 @@ Artisan::command('pricing:exchange-auto-update', function () {
     $hour = (int) now()->format('G');
     PricingSetting::query()->each(function (PricingSetting $row) use ($hour) {
         $g = (new PricingCalculator($row->payload ?? []))->section('general');
-        if (PricingCalculator::bool($g['api_enabled'] ?? false) && PricingCalculator::bool($g['auto_update_enabled'] ?? false)
+        if (PricingCalculator::bool($g['enabled'] ?? true) && PricingCalculator::bool($g['api_enabled'] ?? false) && PricingCalculator::bool($g['auto_update_enabled'] ?? false)
             && (int) ($g['auto_update_hour'] ?? 0) === $hour) {
             ExchangeRateService::update($row->tenant_id);
         }

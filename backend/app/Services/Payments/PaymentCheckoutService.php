@@ -2,6 +2,7 @@
 
 namespace App\Services\Payments;
 
+use App\Support\Currency;
 use App\Models\Order;
 use App\Models\PaymentIntent;
 use App\Models\Tenant;
@@ -135,7 +136,7 @@ class PaymentCheckoutService
         $currency = $this->storeCurrencyCode($order);
         $payload = [
             'merchant_id' => $merchantId,
-            'amount' => $currency === 'IRT' ? (int) max(1, round($amountRial / 10)) : $amountRial,
+            'amount' => (int) max(1, round(Currency::fromRial($amountRial, $currency))),
             'currency' => $currency,
             'callback_url' => $callbackUrl,
             'description' => str_replace(
@@ -184,7 +185,7 @@ class PaymentCheckoutService
     {
         $merchant = (string) ($settings['merchant_id'] ?? '');
         $currency = $this->storeCurrencyCode($order);
-        $amount = $currency === 'IRT' ? (int) max(1, round($amountRial / 10)) : $amountRial;
+        $amount = (int) max(1, round(Currency::fromRial($amountRial, $currency)));
         $response = Http::timeout(30)->acceptJson()->asJson()->post('https://gateway.zibal.ir/v1/request', [
             'merchant' => $merchant,
             'amount' => $amount,
@@ -369,11 +370,7 @@ class PaymentCheckoutService
         $currency = $this->storeCurrencyCode($order);
         // Store amounts are in minor units of the store currency.
         // IRT (toman): convert to rial ×10 for Digipay/BNPL; Zarinpal uses currency field.
-        if ($currency === 'IRT') {
-            return max(1, $minor * 10);
-        }
-
-        return max(1, $minor);
+        return max(1, Currency::toRialInt($minor, $currency));
     }
 
     protected function storeCurrencyCode(Order $order): string
@@ -398,7 +395,7 @@ class PaymentCheckoutService
             $qty = max(1, (int) ($line->quantity ?? 1));
             $unit = (int) ($line->unit_price_minor ?? 0);
             $currency = $this->storeCurrencyCode($order);
-            $unitRial = $currency === 'IRT' ? $unit * 10 : $unit;
+            $unitRial = Currency::toRialInt($unit, $currency);
             $items[] = [
                 'count' => $qty,
                 'amount' => max(1, $unitRial),
