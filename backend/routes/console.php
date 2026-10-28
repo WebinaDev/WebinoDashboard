@@ -145,7 +145,7 @@ Schedule::command('cart:abandoned-recover')->everyFifteenMinutes()->withoutOverl
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('marketplace:pull-orders')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:torob-webhooks')->everyMinute()->withoutOverlapping();
-Schedule::command('marketplace:basalam-tick')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('marketplace:basalam-tick')->everyMinute()->withoutOverlapping();
 Schedule::command('marketplace:digikala-tick')->hourly()->withoutOverlapping();
 
 Artisan::command('builder:scheduled', function () {

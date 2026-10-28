@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { formatDisplayDateTime } from "@/lib/format-date"
 import { toLocaleDigits } from "@/lib/locale"
 import { marketplaceLabel } from "@/lib/marketplace"
 import { BasalamCategoriesTab, BasalamProductsTab } from "@/views/settings/panels/marketplace/BasalamProductsTab"
@@ -95,6 +96,7 @@ function basalamTabs(t: (k: string) => string): PlatformTab[] {
     { key: "finance", label: t("basalam.tabs.finance") },
     { key: "jobs", label: t("tabs.jobs") },
     { key: "logs", label: t("tabs.logs") },
+    { key: "tickets", label: t("basalam.tabs.tickets") },
   ]
 }
 
@@ -154,6 +156,7 @@ export function BasalamPanel({ tab }: { tab?: string }) {
         </div>
       ) : null}
       {active === "logs" ? <LogsTable platform="basalam" /> : null}
+      {active === "tickets" ? <BasalamTicketsTab /> : null}
     </div>
   )
 }
@@ -973,6 +976,40 @@ function BasalamSettingsCard() {
   useEffect(() => {
     if (q.data?.settings) setDraft({ ...q.data.settings })
   }, [q.data])
+  // Plugin parity: suggest defaults from published products (only fills empty/zero fields).
+  const fillFromCatalog = useMutation({
+    mutationFn: async () => {
+      const res = await api<unknown>("/api/v1/products?status=publish&per_page=20&page=1")
+      const r = (res ?? {}) as Record<string, unknown>
+      const items = asList(r.data ?? r.items ?? res)
+      let wSum = 0, wN = 0, sSum = 0, sN = 0
+      for (const p of items) {
+        const w = Number(p.weight)
+        if (Number.isFinite(w) && w > 0) { wSum += w; wN += 1 }
+        const st = p.stock ?? p.stock_quantity
+        if (typeof st === "number" && st >= 0) { sSum += st; sN += 1 }
+      }
+      const empty = (v: unknown) => !v || Number(v) === 0
+      setDraft((d) => {
+        const next = { ...d }
+        if (wN > 0 && empty(next.default_weight)) next.default_weight = Math.round(wSum / wN)
+        if (wN > 0 && empty(next.default_package_weight)) next.default_package_weight = Math.max(50, Math.round(wSum / wN / 10))
+        if (sN > 0 && empty(next.default_stock_quantity)) next.default_stock_quantity = Math.max(1, Math.round(sSum / sN))
+        if (empty(next.default_preparation)) next.default_preparation = 3
+        return next
+      })
+    },
+    onSuccess: () => toast.success(t("defaults_filled")),
+    onError,
+  })
+  const reconcile = useMutation({
+    mutationFn: () => api("/api/v1/marketplace/basalam/reconcile", { method: "POST" }),
+    onSuccess: () => {
+      toast.success(t("reconcile_queued"))
+      void qc.invalidateQueries({ queryKey: ["marketplace-jobs"] })
+    },
+    onError,
+  })
   const save = useMutation({
     mutationFn: (settings: Record<string, unknown>) =>
       api<{ settings: Record<string, unknown>; warnings: string[] }>("/api/v1/marketplace/basalam/settings", { method: "POST", json: { settings } }),
@@ -1036,6 +1073,14 @@ function BasalamSettingsCard() {
         <section className="space-y-2">
           <h4 className="text-sm font-medium">{t("default_values")}</h4>
           <p className="text-muted-foreground text-xs">{t("default_values_hint")}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" type="button" variant="secondary" disabled={fillFromCatalog.isPending} onClick={() => fillFromCatalog.mutate()}>
+              {t("fill_from_catalog")}
+            </Button>
+            <Button size="sm" type="button" variant="outline" disabled={reconcile.isPending} onClick={() => reconcile.mutate()}>
+              {t("reconcile_now")}
+            </Button>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {ENGINE_NUMBERS.map((k) => (
               <div key={k} className="grid gap-1">
@@ -1281,6 +1326,61 @@ function BasalamGatewayCard() {
 
 type Wrapped = { success: boolean; status_code: number; message: string; data: unknown }
 
+/** Basalam accounting amounts are rials; the plugin shows toman (÷10). */
+function rialToToman(v: unknown): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && v !== "" ? Number(v) : NaN
+  return Number.isFinite(n) ? Math.trunc(n / 10) : null
+}
+
+/** Basalam returns unix seconds; accept ISO strings too. */
+function unixOrIso(v: unknown): string | number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v < 1e12 ? v * 1000 : v
+  if (typeof v === "string" && v !== "") return /^\d+$/.test(v) ? Number(v) * (v.length <= 10 ? 1000 : 1) : v
+  return null
+}
+
+function BasalamSettlementList({ env, empty, locale }: { env: Wrapped | undefined; empty: string; locale: string }) {
+  const t = useTranslations("marketplace_admin.basalam")
+  if (!env) return <p className="text-muted-foreground text-sm">…</p>
+  if (!env.success) return <p className="text-destructive text-sm">{env.message || t("finance_error")}</p>
+  const paged = (env.data ?? {}) as Record<string, unknown>
+  const items = asList(paged.data ?? env.data)
+  if (!items.length) return <p className="text-muted-foreground text-sm">{empty}</p>
+  return (
+    <ul className="space-y-3">
+      {items.map((it, i) => {
+        const st = (it.status ?? {}) as Record<string, unknown>
+        const method = (it.method ?? {}) as Record<string, unknown>
+        const label = String(it.status_label || st.description || st.title || "—")
+        const toman = rialToToman(it.amount)
+        return (
+          <li key={String(it.id ?? i)} className="bg-muted/40 rounded-lg border p-3 text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-medium">#{toLocaleDigits(String(it.id ?? "—"), locale)}</span>
+              <span className="font-semibold">
+                {toman === null ? "—" : fmtNum(toman, locale)} {t("toman")}
+              </span>
+            </div>
+            <div className="text-muted-foreground mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+              <span>{label}</span>
+              {method.description ? <span>{String(method.description)}</span> : null}
+              <span>
+                {t("settlement_created")}: {formatDisplayDateTime(unixOrIso(it.created_at), locale)}
+              </span>
+              {it.payable_at ? (
+                <span>
+                  {t("settlement_payable")}: {formatDisplayDateTime(unixOrIso(it.payable_at), locale)}
+                </span>
+              ) : null}
+            </div>
+            {it.status_description ? <p className="text-muted-foreground mt-2 text-xs leading-relaxed">{String(it.status_description)}</p> : null}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 function BasalamFinanceTab() {
   const t = useTranslations("marketplace_admin.basalam")
   const locale = useLocale()
@@ -1311,98 +1411,107 @@ function BasalamFinanceTab() {
     onError,
   })
   if (!connected) return <p className="text-muted-foreground text-sm">{t("connect_first")}</p>
-  const bal = (q.data?.balance?.data ?? {}) as Record<string, unknown>
-  const balData = (bal.data ?? bal) as Record<string, unknown>
-  const balanceValue = Number(balData.balance ?? balData.amount ?? balData.total ?? 0)
-  const withdrawable = balData.withdrawable ?? balData.withdrawable_balance ?? balData.available
-  const banks = asList(banksQ.data?.banks?.data)
-  const active = asList(q.data?.settlements?.data)
-  const history = asList(q.data?.history?.data)
-
-  const renderRows = (rows: Record<string, unknown>[]) =>
-    rows.length ? (
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>#</TableHead>
-              <TableHead>{t("amount")}</TableHead>
-              <TableHead>{t("status")}</TableHead>
-              <TableHead>{t("date")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r, i) => (
-              <TableRow key={String(r.id ?? i)}>
-                <TableCell dir="ltr">{String(r.id ?? "—")}</TableCell>
-                <TableCell>{fmtNum(Number(r.amount ?? 0), locale)}</TableCell>
-                <TableCell>{String((r.status as Record<string, unknown> | undefined)?.title ?? r.status_title ?? r.status ?? "—")}</TableCell>
-                <TableCell className="text-xs">{fmtDate(String(r.created_at ?? r.date ?? ""), locale)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    ) : (
-      <p className="text-muted-foreground text-sm">{t("no_items")}</p>
-    )
+  const balEnv = q.data?.balance
+  const bal = (balEnv?.success && balEnv.data && typeof balEnv.data === "object" ? balEnv.data : {}) as Record<string, unknown>
+  const settled = (bal.settled ?? {}) as Record<string, unknown>
+  const future = rialToToman(bal.future_balance)
+  const banks = asList((banksQ.data?.banks?.data as Record<string, unknown> | undefined)?.data ?? banksQ.data?.banks?.data)
+  const historyData = (q.data?.history?.data ?? {}) as Record<string, unknown>
+  const lastPage = Number(historyData.last_page ?? 0)
+  const toman = (v: unknown) => {
+    const n = rialToToman(v)
+    return n === null ? "—" : fmtNum(n, locale)
+  }
+  const amountCard = (title: string, value: unknown, desc?: string) => (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">{title}</CardTitle>
+        {desc ? <CardDescription>{desc}</CardDescription> : null}
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-semibold tracking-tight">
+          {toman(value)} <span className="text-muted-foreground text-sm font-normal">{t("toman")}</span>
+        </p>
+      </CardContent>
+    </Card>
+  )
 
   return (
     <div className="space-y-4">
+      {q.isError ? <p className="text-destructive text-sm">{t("finance_error")}</p> : null}
+      {balEnv && !balEnv.success ? <p className="text-destructive text-sm">{balEnv.message || t("finance_error")}</p> : null}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {amountCard(t("booth_balance"), bal.balance, bal.calculated_at ? t("balance_as_of", { time: formatDisplayDateTime(unixOrIso(bal.calculated_at), locale) }) : t("balance"))}
+        {amountCard(t("settled_bank_ytd"), settled.cash)}
+        {amountCard(t("settled_wallet_ytd"), settled.credit)}
+        {future !== null && future !== 0 ? <div className="sm:col-span-2 lg:col-span-3">{amountCard(t("future_balance"), bal.future_balance)}</div> : null}
+      </div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t("finance_title")}</CardTitle>
-          <CardDescription>{t("finance_hint")}</CardDescription>
+          <CardTitle className="text-base">{t("request_settlement")}</CardTitle>
+          <CardDescription>{t("create_settlement_hint")}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {q.data?.balance && !q.data.balance.success ? <p className="text-destructive text-sm">{q.data.balance.message}</p> : null}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Stat label={t("balance")} value={`${fmtNum(balanceValue, locale)} ${t("rial")}`} />
-            {withdrawable !== undefined ? <Stat label={t("withdrawable")} value={`${fmtNum(Number(withdrawable), locale)} ${t("rial")}`} /> : null}
-          </div>
-          <div className="grid gap-2 md:grid-cols-[10rem_10rem_1fr_auto]">
-            <Input type="number" dir="ltr" min={1} placeholder={t("amount_rial")} value={amount} onChange={(e) => setAmount(e.target.value)} />
-            <select className={selectClass} value={method} onChange={(e) => setMethod(e.target.value)}>
-              <option value="1">{t("settle_method.1")}</option>
-              <option value="2">{t("settle_method.2")}</option>
-            </select>
-            <select className={selectClass} value={bank} onChange={(e) => setBank(e.target.value)}>
-              <option value="">{t("default_bank")}</option>
-              {banks.map((b) => (
-                <option key={String(b.id)} value={String(b.id)}>
-                  {String(b.bank_name ?? (b.bank as Record<string, unknown> | undefined)?.title ?? b.title ?? "")} {String(b.iban ?? b.sheba ?? b.card_number ?? "")}
-                </option>
-              ))}
-            </select>
-            <Button disabled={!amount || settle.isPending} onClick={() => settle.mutate()}>
-              {t("request_settlement")}
-            </Button>
-          </div>
+        <CardContent className="grid gap-3 md:grid-cols-4">
+          <Input type="number" dir="ltr" min={1} placeholder={t("amount_rial")} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <select className={selectClass} value={method} onChange={(e) => setMethod(e.target.value)}>
+            <option value="1">{t("settle_method.1")}</option>
+            <option value="2">{t("settle_method.2")}</option>
+          </select>
+          <select className={selectClass} value={bank} onChange={(e) => setBank(e.target.value)}>
+            <option value="">{t("select_bank")}</option>
+            {banks.map((b) => (
+              <option key={String(b.id)} value={String(b.id)}>
+                {String(b.card_number || b.sheba || b.iban || t("bank_account"))}
+              </option>
+            ))}
+          </select>
+          <Button disabled={!amount || settle.isPending} onClick={() => settle.mutate()}>
+            {t("submit_settlement")}
+          </Button>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("active_settlements")}</CardTitle>
-        </CardHeader>
-        <CardContent>{renderRows(active)}</CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("settlement_history")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {renderRows(history)}
-          <div className="flex justify-end gap-2">
-            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-              {t("prev")}
-            </Button>
-            <Button size="sm" variant="outline" disabled={history.length < 10} onClick={() => setPage(page + 1)}>
-              {t("next")}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{t("active_settlements")}</CardTitle>
+            <CardDescription>{t("active_settlements_hint")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BasalamSettlementList env={q.data?.settlements} empty={t("no_active_settlements")} locale={locale} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{t("settlement_history")}</CardTitle>
+            <CardDescription>{t("settlement_history_hint")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <BasalamSettlementList env={q.data?.history} empty={t("no_settlement_history")} locale={locale} />
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                {t("prev")}
+              </Button>
+              <Button size="sm" variant="outline" disabled={lastPage ? page >= lastPage : asList(historyData.data).length < 10} onClick={() => setPage(page + 1)}>
+                {t("next")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
+  )
+}
+
+/** Plugin parity: Hamsalam tickets were removed; support goes through Webino. */
+function BasalamTicketsTab() {
+  const t = useTranslations("marketplace_admin.basalam")
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{t("tickets_disabled_title")}</CardTitle>
+        <CardDescription>{t("tickets_disabled_hint")}</CardDescription>
+      </CardHeader>
+    </Card>
   )
 }
 

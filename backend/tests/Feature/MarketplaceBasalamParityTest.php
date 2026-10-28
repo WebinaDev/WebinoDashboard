@@ -9,13 +9,19 @@ use App\Services\Marketplace\Basalam\BasalamAuth;
 use App\Services\Marketplace\Basalam\BasalamOrders;
 use App\Services\Marketplace\MarketplaceOrderImporter;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Concerns\BasalamTestHelpers;
+use Tests\TestCase;
 
 /**
  * v0.9.65 parity: single-flight refresh, no status regression, variation fallback.
  */
-class MarketplaceBasalamParityTest extends MarketplaceBasalamTest
+class MarketplaceBasalamParityTest extends TestCase
 {
+    use BasalamTestHelpers;
+    use RefreshDatabase;
+
     public function test_refresh_is_single_flight_and_network_errors_keep_token(): void
     {
         $this->shopUser();
