@@ -17,18 +17,18 @@ export function KitPresetsPanel({ globals, onApply, onClose }: { globals: Builde
   }
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="کیت‌های آماده" dir="rtl" onClick={onClose}>
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-4 text-[#0C2D63] shadow-xl" onClick={(event) => event.stopPropagation()}>
+      <div className="w-full max-w-2xl rounded-2xl bg-card p-4 text-foreground shadow-xl" onClick={(event) => event.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between text-sm font-bold">
           <span className="flex items-center gap-1.5"><Palette className="size-4" aria-hidden />کیت‌های آماده</span>
           <button type="button" aria-label="بستن" onClick={onClose}><X className="size-4" /></button>
         </div>
-        <p className="mb-3 text-xs text-[#0C2D63]/70">رنگ‌ها و دکمه‌های کل سایت با یک کلیک عوض می‌شوند. فونت‌ها و کلاس‌ها دست نمی‌خورند و از «نسخه‌ها» قابل برگشت است.</p>
+        <p className="mb-3 text-xs text-foreground/70">رنگ‌ها و دکمه‌های کل سایت با یک کلیک عوض می‌شوند. فونت‌ها و کلاس‌ها دست نمی‌خورند و از «نسخه‌ها» قابل برگشت است.</p>
         <div className="grid gap-3 sm:grid-cols-3">
           {KIT_PRESETS.map((preset) => {
             const c = preset.colors
             const on = current === c.primary.toLowerCase()
             return (
-              <button key={preset.id} type="button" onClick={() => pick(preset)} className={`rounded-xl border p-3 text-start transition hover:shadow ${on ? "border-[#E16BA6] ring-2 ring-[#E16BA6]/30" : "border-[#e6eef6]"}`} style={{ background: c.background, color: c.text }}>
+              <button key={preset.id} type="button" onClick={() => pick(preset)} className={`rounded-xl border p-3 text-start transition hover:shadow ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`} style={{ background: c.background, color: c.text }}>
                 <span className="mb-2 flex gap-1" aria-hidden>
                   {[c.primary, c.secondary, c.accent, c.surface].map((v, i) => <span key={i} className="size-5 rounded-full border border-black/10" style={{ background: v }} />)}
                 </span>

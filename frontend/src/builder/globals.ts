@@ -237,6 +237,8 @@ export const COLOR_TOKENS: { value: string; label: string }[] = [
   { value: "var(--wb-color-surface)", label: "سطح" },
   { value: "var(--wb-color-border)", label: "حاشیه" },
   { value: "var(--wb-color-muted)", label: "کمرنگ" },
+  // Same value as DASHBOARD_ACCENT_TOKEN in @webina/ui: live dashboard accent in the editor, site primary on the storefront.
+  { value: "var(--wb-dashboard-accent, var(--wb-color-primary))", label: "رنگ تأکید داشبورد" },
 ]
 
 /** Design variables as custom properties (values sanitised like other CSS values). */

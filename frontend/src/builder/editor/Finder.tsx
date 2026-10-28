@@ -60,7 +60,7 @@ export function Finder({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-24" role="dialog" aria-modal="true" aria-label={t("finder")} onClick={onClose}>
-      <div className="w-[520px] max-w-[92vw] overflow-hidden rounded-2xl bg-white text-[#0C2D63] shadow-xl" onClick={(event) => event.stopPropagation()}>
+      <div className="w-[520px] max-w-[92vw] overflow-hidden rounded-2xl bg-card text-foreground shadow-xl" onClick={(event) => event.stopPropagation()}>
         <label className="flex items-center gap-2 border-b px-3">
           <Search className="size-4" aria-hidden />
           <input
@@ -92,13 +92,13 @@ export function Finder({
         <ul className="max-h-80 overflow-auto p-1 text-sm" role="listbox">
           {items.map((item, index) => (
             <li key={item.key} role="option" aria-selected={index === active}>
-              <button type="button" className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-start ${index === active ? "bg-[#f7f9fc] text-[#E16BA6]" : ""}`} onMouseEnter={() => setActive(index)} onClick={() => choose(item)}>
+              <button type="button" className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-start ${index === active ? "bg-muted text-primary" : ""}`} onMouseEnter={() => setActive(index)} onClick={() => choose(item)}>
                 <span className="truncate">{item.label}</span>
-                <span className="text-[10px] text-[#0C2D63]/50">{t(`finder_${item.group}`)}</span>
+                <span className="text-[10px] text-foreground/50">{t(`finder_${item.group}`)}</span>
               </button>
             </li>
           ))}
-          {items.length === 0 ? <li className="px-3 py-4 text-xs text-[#0C2D63]/60">{t("finder_empty")}</li> : null}
+          {items.length === 0 ? <li className="px-3 py-4 text-xs text-foreground/60">{t("finder_empty")}</li> : null}
         </ul>
       </div>
     </div>

@@ -204,14 +204,14 @@ export function PageSettingsPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40" role="dialog" aria-modal="true" aria-label={t("page_settings")}>
-      <aside className="flex w-[420px] max-w-full flex-col bg-white text-[#0C2D63]">
+      <aside className="flex w-[420px] max-w-full flex-col bg-card text-foreground">
         <div className="flex items-center justify-between border-b p-3 text-sm font-bold">
           <span>{t("page_settings")}</span>
           <button type="button" aria-label={t("close")} onClick={onClose}><X className="size-4" /></button>
         </div>
         <div className="flex gap-1 border-b p-2 text-xs font-semibold">
           {([["seo", Search], ["lang", Globe2], ["publish", CalendarClock], ["ab", FlaskConical]] as const).map(([id, Icon]) => (
-            <button key={id} type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === id ? "bg-[#f7f9fc] text-[#E16BA6]" : ""}`} onClick={() => setTab(id)}>
+            <button key={id} type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === id ? "bg-muted text-primary" : ""}`} onClick={() => setTab(id)}>
               <Icon className="size-3.5" aria-hidden />
               {t(`tab_${id}`)}
             </button>
@@ -220,15 +220,15 @@ export function PageSettingsPanel({
         {!data ? <p className="p-4 text-xs">{t("loading")}</p> : null}
         {data && tab === "seo" ? (
           <div className="grid gap-2 overflow-auto p-3 text-xs">
-            <div className="rounded-xl border p-3" aria-label={t("seo_snippet")}>
+            <div className="rounded-xl border bg-white p-3" aria-label={t("seo_snippet")}>
               <div className="truncate text-[13px] text-[#1a0dab]">{snippetTitle}</div>
               <div className="truncate text-[11px] text-[#006621]" dir="ltr">{`…/pages/${data.slug}`}</div>
               <div className="line-clamp-2 text-[11px] text-[#545454]">{snippetDesc}</div>
             </div>
-            <label className="grid gap-1">{t("seo_title")} <span className="text-[10px] text-[#0C2D63]/50">{(seo.seo_title ?? "").length}/60</span>
+            <label className="grid gap-1">{t("seo_title")} <span className="text-[10px] text-foreground/50">{(seo.seo_title ?? "").length}/60</span>
               <input className="h-9 rounded-md border px-2" maxLength={120} value={seo.seo_title ?? ""} onChange={(e) => setSeo({ ...seo, seo_title: e.target.value })} />
             </label>
-            <label className="grid gap-1">{t("seo_description")} <span className={`text-[10px] ${descLen > 160 ? "text-red-600" : "text-[#0C2D63]/50"}`}>{descLen}/160</span>
+            <label className="grid gap-1">{t("seo_description")} <span className={`text-[10px] ${descLen > 160 ? "text-red-600" : "text-foreground/50"}`}>{descLen}/160</span>
               <textarea className="min-h-20 rounded-md border px-2 py-1" maxLength={320} value={seo.seo_description ?? ""} onChange={(e) => setSeo({ ...seo, seo_description: e.target.value })} />
             </label>
             <label className="grid gap-1">{t("seo_keyword")}
@@ -250,7 +250,7 @@ export function PageSettingsPanel({
             </label>
             <label className="flex items-center justify-between">{t("seo_noindex")}<input type="checkbox" checked={seo.noindex === true} onChange={(e) => setSeo({ ...seo, noindex: e.target.checked })} /></label>
             <label className="flex items-center justify-between">{t("seo_breadcrumb")}<input type="checkbox" checked={seo.breadcrumb !== false} onChange={(e) => setSeo({ ...seo, breadcrumb: e.target.checked })} /></label>
-            <p className="text-[10px] text-[#0C2D63]/60">{t("seo_slug_hint")}</p>
+            <p className="text-[10px] text-foreground/60">{t("seo_slug_hint")}</p>
             <Button type="button" disabled={busy} onClick={() => void saveMeta()}>{t("save")}</Button>
           </div>
         ) : null}
@@ -271,10 +271,10 @@ export function PageSettingsPanel({
             <div className="grid gap-1">
               <div className="font-semibold">{t("translations")}</div>
               {data.translations.length ? data.translations.map((tr) => (
-                <a key={tr.id} className="text-[#E16BA6] underline" href={`/dashboard/builder/${tr.id}`} target="_blank" rel="noopener noreferrer">{tr.title} ({tr.lang ?? "—"})</a>
-              )) : <span className="text-[#0C2D63]/60">{t("no_translations")}</span>}
+                <a key={tr.id} className="text-primary underline" href={`/dashboard/builder/${tr.id}`} target="_blank" rel="noopener noreferrer">{tr.title} ({tr.lang ?? "—"})</a>
+              )) : <span className="text-foreground/60">{t("no_translations")}</span>}
             </div>
-            <p className="text-[10px] text-[#0C2D63]/60">{t("hreflang_hint")}</p>
+            <p className="text-[10px] text-foreground/60">{t("hreflang_hint")}</p>
             <Button type="button" disabled={busy} onClick={() => void saveMeta()}>{t("save")}</Button>
           </div>
         ) : null}
@@ -287,7 +287,7 @@ export function PageSettingsPanel({
             <label className="grid gap-1">{t("unpublish_at")}
               <LocaleDatePicker locale={locale} withTime value={unpublishAt || null} onChange={(v) => setUnpublishAt(v ?? "")} aria-label={t("unpublish_at")} />
             </label>
-            <p className="text-[10px] text-[#0C2D63]/60">{t("schedule_hint")}</p>
+            <p className="text-[10px] text-foreground/60">{t("schedule_hint")}</p>
             <div className="flex flex-wrap gap-2">
               <Button type="button" disabled={busy || !canPublish} onClick={() => void saveSchedule()}>{t("save_schedule")}</Button>
               <Button type="button" variant="outline" disabled={busy || !canPublish} onClick={() => { setPublishAt(""); setUnpublishAt("") }}>{t("clear_schedule")}</Button>
@@ -299,13 +299,13 @@ export function PageSettingsPanel({
               <Button type="button" variant="outline" disabled={busy} onClick={() => void previewLink()}><Copy className="size-3.5" aria-hidden />{t("preview_link")}</Button>
             </div>
             {previewUrl ? <input readOnly dir="ltr" className="h-9 rounded-md border px-2 text-[11px]" value={previewUrl} onFocus={(e) => e.currentTarget.select()} aria-label={t("preview_link")} /> : null}
-            <p className="text-[10px] text-[#0C2D63]/60">{t("preview_link_hint")}</p>
+            <p className="text-[10px] text-foreground/60">{t("preview_link_hint")}</p>
             {!canPublish ? <p className="text-[10px] text-red-600">{t("no_publish_permission")}</p> : null}
           </div>
         ) : null}
         {data && tab === "ab" ? (
           <div className="grid gap-3 overflow-auto p-3 text-xs">
-            <p className="text-[10px] text-[#0C2D63]/60">{t("ab_hint")}</p>
+            <p className="text-[10px] text-foreground/60">{t("ab_hint")}</p>
             <label className="grid gap-1">{t("ab_variant")}
               <select className="h-9 rounded-md border px-2" value={abVariant} onChange={(e) => setAbVariant(e.target.value)}>
                 <option value="">—</option>
@@ -330,9 +330,9 @@ export function PageSettingsPanel({
                 </tbody>
               </table>
             ) : null}
-            {ab ? <p className={ab.significant ? "font-semibold text-green-700" : "text-[#0C2D63]/60"}>{ab.significant ? t("ab_significant", { winner: ab.z > 0 ? "B" : "A" }) : t("ab_not_significant")}</p> : null}
+            {ab ? <p className={ab.significant ? "font-semibold text-green-700" : "text-foreground/60"}>{ab.significant ? t("ab_significant", { winner: ab.z > 0 ? "B" : "A" }) : t("ab_not_significant")}</p> : null}
             {ab ? <AbLift ab={ab} /> : null}
-            <p className="text-[10px] text-[#0C2D63]/60">{t("ab_goal_hint")}</p>
+            <p className="text-[10px] text-foreground/60">{t("ab_goal_hint")}</p>
           </div>
         ) : null}
       </aside>
@@ -345,7 +345,7 @@ function AbLift({ ab }: { ab: { views_a: number; views_b: number; conversions_a:
   const v = abVerdict({ viewsA: ab.views_a, conversionsA: ab.conversions_a, viewsB: ab.views_b, conversionsB: ab.conversions_b })
   const pct = (n: number) => `${(n * 100).toLocaleString("fa-IR", { maximumFractionDigits: 1 })}٪`
   return (
-    <p className="text-xs text-[#0C2D63]/70" dir="rtl">
+    <p className="text-xs text-foreground/70" dir="rtl">
       نرخ تبدیل A: {pct(v.rateA)} · B: {pct(v.rateB)}{v.rateA > 0 ? ` · تغییر: ${v.lift >= 0 ? "+" : ""}${pct(v.lift)}` : ""}
       {v.winner ? ` · برنده: نسخهٔ ${v.winner}` : " · هنوز برنده‌ای مشخص نیست"}
     </p>

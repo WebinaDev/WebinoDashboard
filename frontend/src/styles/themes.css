@@ -1220,3 +1220,46 @@ body[data-scroll-locked] {
   --color-sidebar-primary-foreground: oklch(20.5% 0 0);
   --color-sidebar-ring: oklch(87.1% 0 0);
 }
+
+/* Builder: dashboard tokens for editor chrome + isolation boundary for storefront content (v0.7.0). */
+/* Editor stage exposes the live dashboard accent to widgets that opt in via DASHBOARD_ACCENT_TOKEN. */
+.wb-editor-stage {
+  --wb-dashboard-accent: var(--color-primary);
+  --wb-dashboard-accent-foreground: var(--color-primary-foreground);
+}
+/* Storefront content never inherits the dashboard's dark mode or accent: reset shadcn tokens to the neutral light base. */
+.wb-theme-boundary {
+  color-scheme: light;
+  --color-background: oklch(98.8% 0.008 90);
+  --color-foreground: oklch(22% 0.03 220);
+  --color-card: oklch(99.6% 0.004 90);
+  --color-card-foreground: oklch(22% 0.03 220);
+  --color-popover: oklch(99.6% 0.004 90);
+  --color-popover-foreground: oklch(22% 0.03 220);
+  --color-primary: oklch(52% 0.14 195);
+  --color-primary-foreground: oklch(99% 0.01 195);
+  --color-secondary: oklch(94% 0.03 75);
+  --color-secondary-foreground: oklch(35% 0.08 45);
+  --color-muted: oklch(96.2% 0.01 90);
+  --color-muted-foreground: oklch(48% 0.03 220);
+  --color-accent: oklch(94% 0.045 35);
+  --color-accent-foreground: oklch(42% 0.14 30);
+  --color-destructive: oklch(57% 0.2 27);
+  --color-destructive-foreground: oklch(98.5% 0 0);
+  --color-border: oklch(88% 0.025 195);
+  --color-input: oklch(88% 0.025 195);
+  --color-ring: oklch(52% 0.14 195);
+  --color-sidebar: oklch(97.8% 0.01 90);
+  --color-sidebar-foreground: oklch(22% 0.03 220);
+  --color-sidebar-primary: oklch(52% 0.14 195);
+  --color-sidebar-primary-foreground: oklch(99% 0.01 195);
+  --color-sidebar-border: oklch(88% 0.025 195);
+  --color-sidebar-accent: oklch(94% 0.04 35);
+  --color-sidebar-accent-foreground: oklch(35% 0.1 30);
+  --color-sidebar-ring: oklch(52% 0.14 195);
+  --color-chart-1: oklch(55% 0.14 195);
+  --color-chart-2: oklch(62% 0.16 30);
+  --color-chart-3: oklch(72% 0.15 85);
+  --color-chart-4: oklch(62% 0.14 230);
+  --color-chart-5: oklch(68% 0.15 140);
+}

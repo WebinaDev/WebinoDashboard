@@ -59,8 +59,8 @@ export function SelectIn({ label, value, options, onChange }: { label: string; v
 
 export function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <details open className="rounded-lg border border-[#e6eef6] p-2">
-      <summary className="cursor-pointer text-[11px] font-bold text-[#0C2D63]/70">{title}</summary>
+    <details open className="rounded-lg border border-border p-2">
+      <summary className="cursor-pointer text-[11px] font-bold text-foreground/70">{title}</summary>
       <div className="mt-2 grid gap-2">{children}</div>
     </details>
   )
@@ -78,7 +78,7 @@ export function StyleFields({ style, onChange, device, layout = false }: { style
   const opt = (values: string[]) => [{ value: "", label: "—" }, ...values.map((v) => ({ value: v, label: v }))]
   return (
     <div className="grid gap-2 text-xs">
-      <span className="flex items-center gap-1.5 text-[#0C2D63]/50"><Paintbrush className="size-3.5" aria-hidden />{t(device)}</span>
+      <span className="flex items-center gap-1.5 text-foreground/50"><Paintbrush className="size-3.5" aria-hidden />{t(device)}</span>
       {layout ? (
         <Group title={t("style_layout")}>
           <SelectIn label={t("layout_display")} value={style.display} options={[{ value: "", label: t("layout_default") }, { value: "flex", label: "Flexbox" }, { value: "grid", label: "Grid" }, { value: "block", label: t("layout_block") }]} onChange={(v) => onChange({ display: (v || undefined) as StyleProps["display"] })} />
@@ -242,7 +242,7 @@ export function AdvancedFields({ value, onChange, layout }: { value: AdvancedPro
           value={value.customCss ?? ""}
           onChange={(event) => onChange({ customCss: event.target.value.slice(0, 5000) })}
         />
-        <p className="text-[10px] text-[#0C2D63]/50">{t("custom_css_hint")}</p>
+        <p className="text-[10px] text-foreground/50">{t("custom_css_hint")}</p>
       </Group>
       <Group title={t("custom_attributes")}>
         {(value.attributes ?? []).map((attr, index) => (
@@ -253,7 +253,7 @@ export function AdvancedFields({ value, onChange, layout }: { value: AdvancedPro
           </div>
         ))}
         <button type="button" className="h-8 rounded-md border px-2" onClick={() => onChange({ attributes: [...(value.attributes ?? []), { name: "", value: "" }] })}>{t("add_attribute")}</button>
-        <p className="text-[10px] text-[#0C2D63]/50">{t("attributes_hint")}</p>
+        <p className="text-[10px] text-foreground/50">{t("attributes_hint")}</p>
       </Group>
       <Group title={t("display_conditions")}>
         <ConditionsFields value={value.conditions ?? {}} onChange={(conditions) => onChange({ conditions })} />

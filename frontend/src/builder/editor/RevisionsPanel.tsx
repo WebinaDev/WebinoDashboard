@@ -81,19 +81,19 @@ export function RevisionsPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex bg-black/40" role="dialog" aria-modal="true" aria-label={t("revisions")}>
-      <aside className="flex w-80 shrink-0 flex-col bg-white text-[#0C2D63]">
+      <aside className="flex w-80 shrink-0 flex-col bg-card text-foreground">
         <div className="flex items-center justify-between border-b p-3 text-sm font-bold">
           <span className="flex items-center gap-1.5"><History className="size-4" aria-hidden />{t("revisions")}</span>
           <button type="button" aria-label={t("close")} onClick={onClose}><X className="size-4" /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-auto p-2 text-xs">
-          {rows === null ? <p className="p-3 text-[#0C2D63]/60">{t("loading")}</p> : null}
-          {rows?.length === 0 ? <p className="p-3 text-[#0C2D63]/60">{t("revisions_empty")}</p> : null}
+          {rows === null ? <p className="p-3 text-foreground/60">{t("loading")}</p> : null}
+          {rows?.length === 0 ? <p className="p-3 text-foreground/60">{t("revisions_empty")}</p> : null}
           {rows?.map((row) => (
-            <div key={row.id} className={`mb-1 rounded-lg border p-2 ${preview?.id === row.id ? "border-[#E16BA6]" : "border-[#e6eef6]"}`}>
+            <div key={row.id} className={`mb-1 rounded-lg border p-2 ${preview?.id === row.id ? "border-primary" : "border-border"}`}>
               <button type="button" className="w-full text-start" onClick={() => void open(row.id)}>
                 <span className="font-bold">{t(row.reason === "restore" ? "revision_restore_reason" : (`revision_${row.reason}` as "revision_save"))}</span>
-                <span className="block text-[#0C2D63]/60">
+                <span className="block text-foreground/60">
                   {row.updated_at || row.created_at ? formatDate((row.updated_at || row.created_at) as string, locale, { dateStyle: "medium", timeStyle: "short" }) : ""}
                   {row.user_name ? ` · ${row.user_name}` : ""}
                 </span>
@@ -106,17 +106,17 @@ export function RevisionsPanel({
           ))}
         </div>
       </aside>
-      <div className="min-w-0 flex-1 overflow-auto bg-[#d7e0ea] p-6" onClick={onClose}>
+      <div className="min-w-0 flex-1 overflow-auto bg-border p-6" onClick={onClose}>
         {preview ? (
           <>
           {diff ? (
-            <p className="mx-auto mb-3 max-w-6xl rounded-xl bg-white/90 px-3 py-2 text-xs text-[#0C2D63]" dir="rtl" onClick={(event) => event.stopPropagation()}>
+            <p className="mx-auto mb-3 max-w-6xl rounded-xl bg-card/90 px-3 py-2 text-xs text-foreground" dir="rtl" onClick={(event) => event.stopPropagation()}>
               {diff.added + diff.removed + diff.changed === 0
                 ? "این نسخه با پیش‌نویس فعلی یکسان است."
                 : `بازگردانی این نسخه: ${fa(diff.added)} بخش برمی‌گردد، ${fa(diff.removed)} بخش حذف می‌شود، ${fa(diff.changed)} بخش تغییر می‌کند.`}
             </p>
           ) : null}
-          <div className="pointer-events-none mx-auto max-w-6xl overflow-hidden rounded-2xl bg-[#f5f8fb] shadow-xl" onClick={(event) => event.stopPropagation()}>
+          <div className="pointer-events-none mx-auto max-w-6xl overflow-hidden rounded-2xl bg-muted shadow-xl" onClick={(event) => event.stopPropagation()}>
             <Suspense fallback={null}>
               <DocumentView document={preview.doc} mode="edit" globals={globals} />
             </Suspense>

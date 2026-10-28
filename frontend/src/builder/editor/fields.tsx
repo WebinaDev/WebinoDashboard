@@ -44,7 +44,7 @@ export function IconInput({ value, options, onChange }: { value: string; options
           title={option.label}
           aria-label={option.label}
           onClick={() => onChange(option.value)}
-          className={`grid h-8 place-items-center rounded-md border ${value === option.value ? "border-[#E16BA6] bg-[#E16BA6]/10 text-[#E16BA6]" : "text-[#0C2D63]/70"}`}
+          className={`grid h-8 place-items-center rounded-md border ${value === option.value ? "border-primary bg-primary/10 text-primary" : "text-foreground/70"}`}
         >
           <WIcon name={option.value} />
         </button>
@@ -102,8 +102,8 @@ export function RepeaterInput({ value, fields, onChange }: { value: unknown; fie
   return (
     <div className="grid gap-2">
       {rows.map((row, index) => (
-        <div key={index} className="grid gap-1 rounded-lg border border-[#e6eef6] bg-white p-2">
-          <div className="flex items-center justify-between text-[11px] text-[#0C2D63]/60">
+        <div key={index} className="grid gap-1 rounded-lg border border-border bg-card p-2">
+          <div className="flex items-center justify-between text-[11px] text-foreground/60">
             <span>#{index + 1}</span>
             <span className="flex gap-1">
               <button type="button" aria-label={t("move_up")} onClick={() => move(index, -1)}><ArrowUp className="size-3.5" /></button>
@@ -154,7 +154,7 @@ export function ExtendedField({ field, props, onChange }: { field: FieldDef; pro
       const num = typeof value === "number" ? value : field.min
       return (
         <div className="flex items-center gap-2">
-          <input type="range" className="min-w-0 flex-1 accent-[#E16BA6]" min={field.min} max={field.max} step={field.step ?? 1} value={num} onChange={(event) => onChange(field.key, Number(event.target.value))} />
+          <input type="range" className="min-w-0 flex-1 accent-primary" min={field.min} max={field.max} step={field.step ?? 1} value={num} onChange={(event) => onChange(field.key, Number(event.target.value))} />
           <span className="w-12 text-end text-[11px] tabular-nums" dir="ltr">{num}{field.unit ?? ""}</span>
         </div>
       )
@@ -209,7 +209,7 @@ export function DynamicToggle({ field, value, onChange }: { field: FieldDef; val
       title={bound ? t("dynamic_unbind") : t("dynamic_bind")}
       aria-label={bound ? t("dynamic_unbind") : t("dynamic_bind")}
       aria-pressed={bound}
-      className={`ms-auto grid size-5 place-items-center rounded ${bound ? "bg-[#E16BA6] text-white" : "text-[#0C2D63]/50 hover:bg-[#0C2D63]/10"}`}
+      className={`ms-auto grid size-5 place-items-center rounded ${bound ? "bg-primary text-primary-foreground" : "text-foreground/50 hover:bg-foreground/10"}`}
       onClick={(event) => {
         event.preventDefault()
         if (bound) onChange(field.key, value.dynamic.fallback ?? "")
@@ -226,7 +226,7 @@ export function DynamicEditor({ field, binding, onChange }: { field: FieldDef; b
   const kind = dynamicKindFor(field) ?? "text"
   const set = (patch: Partial<DynamicBinding>) => onChange({ ...binding, ...patch })
   return (
-    <div className="grid gap-1 rounded-md border border-[#E16BA6]/40 bg-[#E16BA6]/5 p-2 text-[11px]">
+    <div className="grid gap-1 rounded-md border border-primary/40 bg-primary/5 p-2 text-[11px]">
       <select className="h-8 rounded-md border px-1" value={binding.tag} onChange={(event) => set({ tag: event.target.value })}>
         {DYNAMIC_TAGS.filter((item) => item.kinds.includes(kind)).map((item) => <option key={item.tag} value={item.tag}>{item.label}</option>)}
       </select>

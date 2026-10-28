@@ -30,7 +30,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
     <div
       ref={ref}
       role="menu"
-      className="fixed z-[60] w-56 rounded-xl border border-[#e6eef6] bg-white p-1 text-xs text-[#0C2D63] shadow-xl"
+      className="fixed z-[60] w-56 rounded-xl border border-border bg-card p-1 text-xs text-foreground shadow-xl"
       style={{ left, top }}
       onKeyDown={(event) => {
         if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
@@ -42,21 +42,21 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
     >
       {items.map((item, index) =>
         item === "sep" ? (
-          <div key={`sep-${index}`} className="my-1 h-px bg-[#e6eef6]" role="separator" />
+          <div key={`sep-${index}`} className="my-1 h-px bg-border" role="separator" />
         ) : (
           <button
             key={item.id}
             type="button"
             role="menuitem"
             disabled={item.disabled}
-            className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-start hover:bg-[#f7f9fc] focus:bg-[#f7f9fc] focus:outline-none disabled:opacity-40 ${item.danger ? "text-red-600" : ""}`}
+            className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-start hover:bg-muted focus:bg-muted focus:outline-none disabled:opacity-40 ${item.danger ? "text-red-600" : ""}`}
             onClick={() => {
               item.onSelect()
               onClose()
             }}
           >
             <span>{item.label}</span>
-            {item.shortcut ? <kbd className="text-[10px] text-[#0C2D63]/50" dir="ltr">{item.shortcut}</kbd> : null}
+            {item.shortcut ? <kbd className="text-[10px] text-foreground/50" dir="ltr">{item.shortcut}</kbd> : null}
           </button>
         ),
       )}

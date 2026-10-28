@@ -78,7 +78,7 @@ function Row({
   const selected = props.selectedId === id
   return (
     <div
-      className={`group flex items-center gap-1 rounded-md py-0.5 pe-1 text-xs ${selected ? "bg-white text-[#E16BA6]" : "hover:bg-white/70"} ${over ? "ring-1 ring-[#E16BA6]" : ""} ${node.hidden ? "opacity-50" : ""}`}
+      className={`group flex items-center gap-1 rounded-md py-0.5 pe-1 text-xs ${selected ? "bg-card text-primary" : "hover:bg-card/70"} ${over ? "ring-1 ring-primary" : ""} ${node.hidden ? "opacity-50" : ""}`}
       style={{ paddingInlineStart: depth * 12 + 4 }}
       draggable={Boolean(drag) && !node.locked && !editing}
       onDragStart={drag ? (event) => {

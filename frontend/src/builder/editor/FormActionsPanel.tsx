@@ -33,8 +33,8 @@ export function FormActionsPanel({ formKey }: { formKey: string }) {
 
   if (!values) return null
   return (
-    <div className="grid gap-2 rounded-lg border border-[#e6eef6] p-2 text-xs">
-      <div className="font-bold">{t("form_actions")} <span className="font-normal text-[#0C2D63]/50" dir="ltr">({key})</span></div>
+    <div className="grid gap-2 rounded-lg border border-border p-2 text-xs">
+      <div className="font-bold">{t("form_actions")} <span className="font-normal text-foreground/50" dir="ltr">({key})</span></div>
       {KEYS.map((name) => (
         <label key={name} className="grid gap-1">
           {t(`form_${name}`)}
@@ -46,7 +46,7 @@ export function FormActionsPanel({ formKey }: { formKey: string }) {
           />
         </label>
       ))}
-      <p className="text-[11px] leading-5 text-[#0C2D63]/60">{t("form_actions_hint")}</p>
+      <p className="text-[11px] leading-5 text-foreground/60">{t("form_actions_hint")}</p>
       <Button
         type="button"
         size="sm"
@@ -90,13 +90,13 @@ function SubmissionsInbox({ formKey }: { formKey: string }) {
   return (
     <div className="grid max-h-72 gap-2 overflow-auto border-t pt-2">
       <div className="font-semibold">{t("form_submissions")} ({rows.length})</div>
-      {rows.length === 0 ? <p className="text-[#0C2D63]/60">{t("form_no_submissions")}</p> : null}
+      {rows.length === 0 ? <p className="text-foreground/60">{t("form_no_submissions")}</p> : null}
       {rows.map((row) => (
-        <div key={row.id} className="rounded-md bg-[#f7f9fc] p-2">
-          <div className="text-[10px] text-[#0C2D63]/50" dir="ltr">{row.created_at ? new Date(row.created_at).toLocaleString("fa-IR") : ""}</div>
+        <div key={row.id} className="rounded-md bg-muted p-2">
+          <div className="text-[10px] text-foreground/50" dir="ltr">{row.created_at ? new Date(row.created_at).toLocaleString("fa-IR") : ""}</div>
           {Object.entries(row.payload ?? {}).map(([k, v]) => <div key={k} className="truncate"><b>{k}:</b> {v}</div>)}
           {row.files.map((file) => (
-            <button key={file.id} type="button" className="text-[#E16BA6] underline" onClick={() => void apiDownload(`/api/v1/builder/forms/files/${file.id}`, file.name).catch(() => toast.error(t("save_failed")))}>
+            <button key={file.id} type="button" className="text-primary underline" onClick={() => void apiDownload(`/api/v1/builder/forms/files/${file.id}`, file.name).catch(() => toast.error(t("save_failed")))}>
               📎 {file.name}
             </button>
           ))}

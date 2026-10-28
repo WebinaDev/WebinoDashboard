@@ -43,7 +43,7 @@ export function ConditionsFields({ value, onChange }: { value: DisplayConditions
           {WEEK.map(({ day, key }) => {
             const on = value.days?.includes(day) ?? false
             return (
-              <button key={day} type="button" aria-pressed={on} className={`rounded-md border px-1.5 py-0.5 ${on ? "border-[#E16BA6] bg-[#E16BA6]/10 text-[#E16BA6]" : ""}`} onClick={() => set({ days: on ? value.days?.filter((d) => d !== day) : [...(value.days ?? []), day] })}>
+              <button key={day} type="button" aria-pressed={on} className={`rounded-md border px-1.5 py-0.5 ${on ? "border-primary bg-primary/10 text-primary" : ""}`} onClick={() => set({ days: on ? value.days?.filter((d) => d !== day) : [...(value.days ?? []), day] })}>
                 {t(key as "weekday_0")}
               </button>
             )

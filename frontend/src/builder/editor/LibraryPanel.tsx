@@ -40,20 +40,20 @@ export function LibraryPanel({ onInsert, refreshKey }: { onInsert: (doc: Builder
 
   return (
     <div className="min-h-0 flex-1 overflow-auto p-3 text-xs">
-      <p className="mb-2 text-[11px] leading-5 text-[#0C2D63]/60">{t("library_hint")}</p>
+      <p className="mb-2 text-[11px] leading-5 text-foreground/60">{t("library_hint")}</p>
       {items === null ? <p>{t("loading")}</p> : null}
-      {items?.length === 0 ? <p className="text-[#0C2D63]/60">{t("library_empty")}</p> : null}
+      {items?.length === 0 ? <p className="text-foreground/60">{t("library_empty")}</p> : null}
       {(["section", "page", "widget"] as const).map((kind) => {
         const rows = items?.filter((item) => item.kind === kind) ?? []
         if (!rows.length) return null
         return (
           <div key={kind} className="mb-3">
-            <div className="mb-1 font-bold text-[#0C2D63]/60">{t(`library_kind_${kind}`)}</div>
+            <div className="mb-1 font-bold text-foreground/60">{t(`library_kind_${kind}`)}</div>
             {rows.map((item) => (
-              <div key={item.id} className="mb-1 flex items-center gap-1 rounded-lg border border-[#e6eef6] bg-white p-1.5">
-                <LayoutTemplate className="size-3.5 shrink-0 text-[#0C2D63]/50" aria-hidden />
+              <div key={item.id} className="mb-1 flex items-center gap-1 rounded-lg border border-border bg-card p-1.5">
+                <LayoutTemplate className="size-3.5 shrink-0 text-foreground/50" aria-hidden />
                 <span className="min-w-0 flex-1 truncate">{item.title}</span>
-                <button type="button" aria-label={t("library_insert")} title={t("library_insert")} onClick={() => void insert(item)} className="grid size-6 place-items-center rounded hover:bg-[#f7f9fc]"><Plus className="size-3.5" /></button>
+                <button type="button" aria-label={t("library_insert")} title={t("library_insert")} onClick={() => void insert(item)} className="grid size-6 place-items-center rounded hover:bg-muted"><Plus className="size-3.5" /></button>
                 <button type="button" aria-label={t("delete")} title={t("delete")} onClick={() => void remove(item)} className="grid size-6 place-items-center rounded text-red-500 hover:bg-red-50"><Trash2 className="size-3.5" /></button>
               </div>
             ))}

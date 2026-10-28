@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
+import { broadcastDashboardTheme, onRemoteDashboardTheme } from "@webina/ui"
 
 import {
   ACCENT_PRESETS,
@@ -81,6 +82,7 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     (m: ThemeMode) => {
       setTheme(m)
       localStorage.setItem("theme_mode", m)
+      broadcastDashboardTheme({ mode: m })
       if (!skipPersist.current) {
         persistPreferences({ theme: m })
       }
@@ -93,6 +95,7 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     userAccentOverride.current = true
     setAccentState(next)
     localStorage.setItem("theme_accent", next)
+    broadcastDashboardTheme({ accent: next })
     if (!skipPersist.current) {
       persistPreferences({ accent: next })
     }
@@ -126,6 +129,21 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     skipPersist.current = false
     setHydrated(true)
   }, [])
+
+  // Another tab changed accent / mode: apply here without a reload (no server write — that tab already saved it).
+  useEffect(
+    () =>
+      onRemoteDashboardTheme((patch) => {
+        if (patch.accent) {
+          userAccentOverride.current = true
+          setAccentState(normalizeAccent(patch.accent))
+        }
+        if (patch.mode) {
+          setTheme(patch.mode)
+        }
+      }),
+    [setTheme],
+  )
 
   useEffect(() => {
     if (!hydrated) {

@@ -54,7 +54,7 @@ export function DesignSystemFields({
           {applied.map((id) => {
             const cls = globals.classes.find((c) => c.id === id)
             return (
-              <span key={id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${editing === id ? "border-[#E16BA6] text-[#E16BA6]" : ""}`}>
+              <span key={id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${editing === id ? "border-primary text-primary" : ""}`}>
                 <button type="button" onClick={() => setEditing(editing === id ? null : id)} title={t("edit_class")}>{cls?.name ?? id}</button>
                 <button type="button" aria-label={t("remove")} onClick={() => onAdvanced({ classes: applied.filter((c) => c !== id) })}>×</button>
               </span>
@@ -86,8 +86,8 @@ export function DesignSystemFields({
           {t("class_from_style")}
         </button>
         {editingClass ? (
-          <div className="grid gap-2 rounded-lg border border-[#E16BA6]/50 p-2">
-            <div className="flex items-center justify-between font-semibold text-[#E16BA6]">
+          <div className="grid gap-2 rounded-lg border border-primary/50 p-2">
+            <div className="flex items-center justify-between font-semibold text-primary">
               <span>{t("editing_class", { name: editingClass.name })}</span>
               <button type="button" onClick={() => setEditing(null)}>{t("close")}</button>
             </div>
@@ -135,7 +135,7 @@ export function DesignSystemFields({
               </button>
             ) : null}
           </div>
-          {preset ? <p className="text-[10px] text-[#0C2D63]/50">{t("preset_hint")}</p> : null}
+          {preset ? <p className="text-[10px] text-foreground/50">{t("preset_hint")}</p> : null}
         </Group>
       ) : null}
     </div>
@@ -202,7 +202,7 @@ export function ComponentInstanceFields({ widget, onProps }: { widget: WidgetNod
           ))}
         </Group>
       ) : null}
-      <p className="text-[10px] text-[#0C2D63]/50">{t("component_hint")}</p>
+      <p className="text-[10px] text-foreground/50">{t("component_hint")}</p>
     </div>
   )
 }

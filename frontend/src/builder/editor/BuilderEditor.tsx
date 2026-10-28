@@ -824,7 +824,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   })).filter((group) => group.items.length > 0)
 
   if (loading) {
-    return <div className="grid h-svh max-h-full min-h-0 place-items-center text-sm text-[#0C2D63]">{t("loading")}</div>
+    return <div className="grid h-svh max-h-full min-h-0 place-items-center text-sm text-foreground">{t("loading")}</div>
   }
 
   return (
@@ -1216,11 +1216,11 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             </>
           )}
         </aside>
-        <main className="min-w-0 flex-1 overflow-auto bg-muted/60 p-2 pb-20 sm:p-4 lg:p-6 lg:pb-6" onClick={() => setSelectedId(null)}>
-          <div className="mx-auto min-h-full max-w-full overflow-hidden rounded-2xl bg-background shadow-xl ring-1 ring-border transition-[width] duration-300" style={{ width: DEVICE_WIDTH[device], zoom: zoom / 100 }}>
+        <main className="wb-editor-stage min-w-0 flex-1 overflow-auto bg-muted/60 p-2 pb-20 sm:p-4 lg:p-6 lg:pb-6" onClick={() => setSelectedId(null)}>
+          <div className="wb-theme-boundary mx-auto min-h-full max-w-full overflow-hidden rounded-2xl bg-background text-foreground shadow-xl ring-1 ring-border transition-[width] duration-300" style={{ width: DEVICE_WIDTH[device], zoom: zoom / 100 }}>
             {doc.sections.length === 0 ? (
               <div className="grid min-h-80 place-items-center gap-2 text-sm">
-                <Blocks className="size-5 text-[#0C2D63]/30" aria-hidden />
+                <Blocks className="size-5 text-foreground/30" aria-hidden />
                 {t("empty")}
               </div>
             ) : (
@@ -1267,7 +1267,7 @@ function IconButton({ children, label, onClick, active }: { children: React.Reac
 
 function FieldMark({ name }: { name: string }) {
   const Icon = FIELD_ICONS[name] ?? Settings2
-  return <Icon className="size-3.5 shrink-0 text-[#0C2D63]/45" aria-hidden />
+  return <Icon className="size-3.5 shrink-0 text-foreground/45" aria-hidden />
 }
 
 function WidgetFields({ type, props, onChange }: { type: string; props: Record<string, unknown>; onChange: (key: string, value: unknown) => void }) {

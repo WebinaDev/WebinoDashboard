@@ -13,7 +13,7 @@ export function A11yPanel({ doc, onSelect, onClose }: { doc: BuilderDocument; on
   const issues = useMemo(() => auditDocument(doc), [doc])
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40" role="dialog" aria-modal="true" aria-label={t("a11y_audit")}>
-      <aside className="flex w-96 max-w-full flex-col bg-white text-[#0C2D63]">
+      <aside className="flex w-96 max-w-full flex-col bg-card text-foreground">
         <div className="flex items-center justify-between border-b p-3 text-sm font-bold">
           <span>{t("a11y_audit")}</span>
           <button type="button" aria-label={t("close")} onClick={onClose}><X className="size-4" /></button>
@@ -25,13 +25,13 @@ export function A11yPanel({ doc, onSelect, onClose }: { doc: BuilderDocument; on
               key={`${issue.id}-${issue.code}-${index}`}
               type="button"
               disabled={!issue.id}
-              className="flex items-start gap-2 rounded-lg border p-2 text-start hover:bg-[#f7f9fc] disabled:cursor-default"
+              className="flex items-start gap-2 rounded-lg border p-2 text-start hover:bg-muted disabled:cursor-default"
               onClick={() => issue.id && onSelect(issue.id)}
             >
               {issue.severity === "error" ? <CircleX className="mt-0.5 size-4 shrink-0 text-red-600" aria-hidden /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />}
               <span>
                 {t(`a11y_${issue.code}`)}
-                {issue.detail ? <span className="ms-1 text-[#0C2D63]/60" dir="ltr">({issue.detail})</span> : null}
+                {issue.detail ? <span className="ms-1 text-foreground/60" dir="ltr">({issue.detail})</span> : null}
               </span>
             </button>
           ))}

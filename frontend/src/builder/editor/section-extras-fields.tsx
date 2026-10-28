@@ -15,7 +15,7 @@ export function SectionExtrasFields({ section, onChange }: { section: SectionNod
         <span>تمام‌عرض واقعی (بیرون از کادر قالب، تا لبه صفحه)</span>
         <input type="checkbox" checked={section.fullBleed === true} onChange={(e) => onChange({ fullBleed: e.target.checked })} />
       </label>
-      <small className="text-[10px] leading-4 text-[#0C2D63]/60">فقط وقتی «عرض در دسکتاپ» تمام‌عرض است اعمال می‌شود؛ در ویرایشگر داخل بوم نمایش داده می‌شود.</small>
+      <small className="text-[10px] leading-4 text-foreground/60">فقط وقتی «عرض در دسکتاپ» تمام‌عرض است اعمال می‌شود؛ در ویرایشگر داخل بوم نمایش داده می‌شود.</small>
       <label className="flex items-center justify-between gap-2 text-xs">
         <span>نقش اسلیمی روی پس‌زمینه</span>
         <input type="checkbox" checked={pat.enabled === true} onChange={(e) => setPat({ enabled: e.target.checked })} />
