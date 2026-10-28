@@ -5,7 +5,7 @@
  * a failed activations fetch as "every module disabled" and called notFound().
  */
 import { trailingSlashTarget } from "@/lib/trailing-slash"
-import { siteRedirectFor } from "@/lib/site-redirects"
+import { normalizeRedirectPath, siteRedirectFor } from "@/lib/site-redirects"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
@@ -267,9 +267,11 @@ async function handle(request: NextRequest) {
       const apiBase = getServerApiBase()
       if (apiBase) {
         const host = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
-        const json = await memo(`rd:${host}:${pathname}`, async () => {
+        // Send the decoded path (Persian slugs): the backend matches decoded + encoded spellings.
+        const lookupPath = normalizeRedirectPath(pathname)
+        const json = await memo(`rd:${host}:${lookupPath}`, async () => {
           const lookup = await fetch(
-            `${apiBase}/api/v1/public/seo/redirect?path=${encodeURIComponent(pathname)}`,
+            `${apiBase}/api/v1/public/seo/redirect?path=${encodeURIComponent(lookupPath)}`,
             { headers: { Accept: "application/json", ...internalApiHeaders(), ...(host ? { "X-Tenant-Domain": host } : {}) }, cache: "no-store" },
           )
           return lookup.ok ? ((await lookup.json()) as { data?: { to_path?: string; status_code?: number } | null }) : null
@@ -277,7 +279,7 @@ async function handle(request: NextRequest) {
         if (json) {
           const to = json.data?.to_path
           const code = Number(json.data?.status_code ?? 301)
-          if (to && to !== pathname) {
+          if (to && normalizeRedirectPath(to) !== lookupPath) {
             const url = request.nextUrl.clone()
             url.pathname = to
             return NextResponse.redirect(

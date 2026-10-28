@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto"
 import { revalidatePath, revalidateTag } from "next/cache"
+import { purgeEdge } from "@/lib/edge-purge"
 
 /**
  * On-demand cache purge, called by the backend after a builder page/global/theme save (all tenants).
@@ -25,10 +26,12 @@ function authorized(req: Request): boolean {
 
 export async function POST(req: Request) {
   if (!authorized(req)) return Response.json({ ok: false }, { status: 401 })
-  const body = (await req.json().catch(() => ({}))) as { tags?: unknown; paths?: unknown }
+  const body = (await req.json().catch(() => ({}))) as { tags?: unknown; paths?: unknown; host?: unknown }
   const tags = Array.isArray(body.tags) ? body.tags.filter((t): t is string => typeof t === "string" && ALLOWED_TAGS.has(t)) : ["builder"]
   const paths = Array.isArray(body.paths) ? body.paths.filter((p): p is string => typeof p === "string" && p.startsWith("/")).slice(0, 50) : []
   for (const t of tags.length ? tags : ["builder"]) revalidateTag(t)
   for (const p of paths) revalidatePath(p)
-  return Response.json({ ok: true, tags, paths }, { headers: { "Cache-Control": "no-store" } })
+  // Edge nginx keeps its own page cache; purge it too (no-op unless EDGE_PURGE_URL is set).
+  const edge = await purgeEdge(paths, typeof body.host === "string" ? body.host : undefined)
+  return Response.json({ ok: true, tags, paths, edge }, { headers: { "Cache-Control": "no-store" } })
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 
+import { loadCatalogSeed } from "@/builder/storefront/catalog-seed"
+import { CatalogSeedProvider } from "@/builder/storefront/use-catalog"
 import { JsonLd } from "@/components/seo/JsonLd"
 import { renderSitePage } from "@/kernel/render-pages"
 import { apiServer } from "@/lib/api-server"
@@ -59,6 +61,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "order-tracking": "پیگیری سفارش",
   wishlist: "علاقه‌مندی‌ها",
   blog: "مجله",
+  search: "جستجو",
 }
 
 async function loadSeo(query: string): Promise<ProductSeoPayload["data"] | null> {
@@ -112,6 +115,16 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   if (taxonomy && segments[1] && segments.length === 2) {
     const slug = decodeURIComponent(segments[1])
     return metaToMetadata((await taxonomySeo(taxonomy, slug, `/${raw.join("/")}`))?.meta)
+  }
+  if (isSearchPath(segments)) {
+    const sp = searchParams ? await searchParams : {}
+    const qv = sp.q ?? sp.s
+    const q = (Array.isArray(qv) ? qv[0] : qv)?.trim().slice(0, 80) ?? ""
+    const label = q ? `جستجو برای «${q}»` : ROUTE_TITLES.search
+    const seo = await loadSeo(`path=${encodeURIComponent("/search")}&fallback_title=${encodeURIComponent(label)}`)
+    const md = metaToMetadata(seo?.meta)
+    // Result pages are thin/duplicate content: keep them out of the index but follow product links.
+    return { ...md, title: md.title ?? label, robots: { index: false, follow: true } }
   }
   if (segments.length === 1 && ROUTE_TITLES[segments[0]]) {
     const seo = await loadSeo(`path=${encodeURIComponent(`/${segments[0]}`)}&fallback_title=${encodeURIComponent(ROUTE_TITLES[segments[0]])}`)
@@ -256,5 +269,16 @@ export default async function SiteCatchAllPage({ params, searchParams }: Props) 
       </>
     )
   }
+  if (isSearchPath(segments)) {
+    // SSR the search results grid (links + images) instead of an empty client-only shell.
+    const flat: Record<string, string | undefined> = {}
+    for (const [k, v] of Object.entries(sp)) flat[k] = Array.isArray(v) ? v[0] : v
+    const [seed, page] = await Promise.all([loadCatalogSeed(flat, {}), renderSitePage(segments, sp)])
+    return <CatalogSeedProvider seed={seed}>{page}</CatalogSeedProvider>
+  }
   return renderSitePage(segments, sp)
+}
+
+function isSearchPath(segments: string[]): boolean {
+  return (segments.length === 1 && segments[0] === "search") || (segments.length === 2 && segments[0] === "pages" && segments[1] === "search")
 }

@@ -17,8 +17,23 @@ export function parseSiteRedirects(raw: string | undefined = process.env.SITE_RE
   return out
 }
 
+/** Safe multi-pass percent-decode + NFC, so "/%D8%A8" and "/ب" compare equal. Never throws. */
+export function normalizeRedirectPath(path: string): string {
+  let out = path
+  for (let i = 0; i < 3 && out.includes("%"); i++) {
+    try {
+      const next = decodeURIComponent(out)
+      if (next === out) break
+      out = next
+    } catch {
+      break
+    }
+  }
+  return (out.normalize("NFC").replace(/\/+$/, "") || "/")
+}
+
 export function siteRedirectFor(host: string, pathname: string, rules = parseSiteRedirects()): string | null {
-  const path = pathname.replace(/\/+$/, "") || "/"
+  const path = normalizeRedirectPath(pathname)
   const h = host.toLowerCase()
-  return rules.find((r) => r.from === path && (!r.host || r.host === h))?.to ?? null
+  return rules.find((r) => normalizeRedirectPath(r.from) === path && (!r.host || r.host === h))?.to ?? null
 }

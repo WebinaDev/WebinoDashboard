@@ -17,7 +17,7 @@ class ProductEngagementController extends Controller
     public function priceHistory(Request $request, string $slug): \Illuminate\Http\JsonResponse
     {
         $tid = $this->publicTenantId($request);
-        $product = Product::query()->where('tenant_id', $tid)->publicKey($slug)->storefront()->firstOrFail();
+        $product = Product::query()->where('tenant_id', $tid)->publicKey($slug)->catalogListing(true)->firstOrFail();
         $rows = ProductPriceHistory::query()
             ->where('tenant_id', $tid)
             ->where('product_id', $product->id)
@@ -45,7 +45,7 @@ class ProductEngagementController extends Controller
             'channel' => ['required', 'string', Rule::in(['email', 'sms'])],
             'destination' => ['required', 'string', 'max:190'],
         ]);
-        $product = Product::query()->where('tenant_id', $tid)->publicKey($slug)->storefront()->firstOrFail();
+        $product = Product::query()->where('tenant_id', $tid)->publicKey($slug)->catalogListing(true)->firstOrFail();
         $user = $request->user('sanctum');
         $guest = trim((string) $request->header('X-Guest-Token', ''));
 

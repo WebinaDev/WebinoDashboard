@@ -261,7 +261,7 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
           </label>
         ))}
       </FilterGroup>
-      {(facets?.attributes ?? []).map((attr) => (
+      {(Array.isArray(facets?.attributes) ? facets.attributes : []).map((attr) => (
         <FilterGroup key={attr.slug} title={attr.name} count={attr.terms.length} defaultOpen={filtersOpen}>
           <div className={attr.terms.some((t) => t.color) ? "sfc-swatches" : undefined}>
             {attr.terms.map((term) => {

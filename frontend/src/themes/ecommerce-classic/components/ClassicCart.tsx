@@ -4,7 +4,7 @@ import { OptImg } from "@/components/perf/OptImg"
 import Link from "next/link"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 
-import { cartSnapshot, clearCart, setQty, subscribeCart } from "@/builder/cart"
+import { cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "@/builder/cart"
 import { setServerQty, useServerCart } from "@/builder/storefront/actions"
 import { previewCoupon, readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
 
@@ -147,7 +147,7 @@ export function ClassicCart() {
     const stored = readStoredCoupon()
     if (stored) setCoupon(stored)
   }, [])
-  const local = useSyncExternalStore(subscribeCart, cartSnapshot, () => [])
+  const local = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot)
   const { cart, auth } = useServerCart()
   const pricing = cart?.pricing
 

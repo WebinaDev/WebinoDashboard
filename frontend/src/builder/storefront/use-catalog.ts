@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { createContext, createElement, useContext, useEffect, useState, type ReactNode } from "react"
+import { buildCatalogQuery, catalogApiSort } from "./catalog-query"
 import { useArchiveParams } from "./archive-scope"
 
 import {
@@ -39,13 +40,24 @@ const EMPTY_CATALOG: CatalogState = {
   page: 1,
 }
 
-function apiSort(sort: string): string {
-  if (sort === "price") return "price_asc"
-  if (sort === "price_desc") return "price_desc"
-  if (sort === "updated") return "updated"
-  if (sort === "featured" || sort === "popular") return "popular"
-  if (sort === "best" || sort === "best_selling" || sort === "sales") return "best_selling"
-  return "newest"
+const apiSort = catalogApiSort
+
+/**
+ * SSR seed: the server page fetches the archive catalog once (same query string useCatalog builds)
+ * so /shop, /search and category/brand/tag pages ship product links + images in the HTML.
+ */
+type CatalogSeed = { query: string; json: unknown } | null
+const CatalogSeedContext = createContext<CatalogSeed>(null)
+
+export function CatalogSeedProvider({ seed, children }: { seed: CatalogSeed; children: ReactNode }) {
+  return createElement(CatalogSeedContext.Provider, { value: seed }, children)
+}
+
+function seededState(seed: CatalogSeed, query: string, page: number): CatalogState | null {
+  if (!seed || seed.query !== query) return null
+  const payload = mapCatalogJson(seed.json as Parameters<typeof mapCatalogJson>[0])
+  if (!payload) return null
+  return { products: payload.items, categories: payload.categories, brands: payload.brands, facets: payload.facets ?? null, live: true, total: payload.total, page }
 }
 
 type CatalogPayload = {
@@ -77,9 +89,33 @@ export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: 
         categories: buildCategoryTree(mappedCategories),
         brands: mappedBrands,
         total: Number(json.data.pagination?.total ?? products.length) || 0,
-        facets: json.data.facets ?? null,
+        facets: normalizeFacets(json.data.facets),
       }
     }
+
+/** Coerce imported/cached facet payloads (objects, nulls, PHP-serialised junk) into safe arrays. */
+function normalizeFacets(raw: unknown): CatalogFacets | null {
+  if (!raw || typeof raw !== "object") return null
+  const r = raw as Record<string, unknown>
+  const price = (r.price && typeof r.price === "object" ? r.price : {}) as Record<string, unknown>
+  const attrs = Array.isArray(r.attributes) ? r.attributes : []
+  return {
+    ...(r as object),
+    price: { min: Number(price.min) || 0, max: Number(price.max) || 0 },
+    same_day_count: Number(r.same_day_count) || 0,
+    attributes: attrs
+      .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
+      .map((a) => ({
+        ...a,
+        slug: String(a.slug ?? ""),
+        name: String(a.name ?? ""),
+        terms: (Array.isArray(a.terms) ? a.terms : [])
+          .filter((t): t is Record<string, unknown> => !!t && typeof t === "object")
+          .map((t) => ({ ...t, slug: String(t.slug ?? ""), name: String(t.name ?? ""), count: Number(t.count) || 0 })),
+      }))
+      .filter((a) => a.slug && a.terms.length > 0),
+  } as CatalogFacets
+}
 
 /** Dedupe identical public catalog GETs across header/home/footer hooks. */
 const catalogInflight = new Map<string, Promise<CatalogPayload | null>>()
@@ -127,41 +163,16 @@ export function useFeaturedProducts(limit: number): ShopProduct[] {
 
 export function useCatalog(limit: number): CatalogState {
   const params = useArchiveParams()
-  const q = params.get("q") ?? params.get("s") ?? ""
-  const category = params.get("category") ?? ""
-  const brand = params.get("brand") ?? ""
-  const tag = params.get("tag") ?? ""
-  const attr = params.get("attr") ?? ""
-  const sort = params.get("sort") ?? ""
-  const inStock = params.get("in_stock") === "1"
-  const onSale = params.get("on_sale") === "1"
-  const sameDay = params.get("same_day") === "1"
-  const minPrice = params.get("min_price") ?? ""
-  const maxPrice = params.get("max_price") ?? ""
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1)
 
-  const [state, setState] = useState<CatalogState>(EMPTY_CATALOG)
+  const seed = useContext(CatalogSeedContext)
+  const query = buildCatalogQuery(params, limit)
+  const [state, setState] = useState<CatalogState>(() => seededState(seed, query, page) ?? EMPTY_CATALOG)
 
   useEffect(() => {
     let cancel = false
-    const query = new URLSearchParams({
-      per_page: String(Math.max(limit, 12)),
-      page: String(page),
-      sort: apiSort(sort),
-    })
-    if (q) query.set("q", q)
-    if (category) query.set("category", category)
-    if (brand) query.set("brand", brand)
-    if (tag) query.set("tag", tag)
-    if (attr) query.set("attr", attr)
-    if (sameDay) query.set("same_day", "1")
-    query.set("facets", "1")
-    if (inStock) query.set("in_stock", "1")
-    if (onSale) query.set("on_sale", "1")
-    if (/^\d+$/.test(minPrice)) query.set("min_price", minPrice)
-    if (/^\d+$/.test(maxPrice)) query.set("max_price", maxPrice)
 
-    void fetchCatalogPayload(query.toString()).then((payload) => {
+    void fetchCatalogPayload(query).then((payload) => {
       if (cancel || !payload) return
       setState({
         products: payload.items,
@@ -176,7 +187,7 @@ export function useCatalog(limit: number): CatalogState {
     return () => {
       cancel = true
     }
-  }, [attr, brand, category, inStock, tag, limit, maxPrice, minPrice, onSale, page, q, sameDay, sort])
+  }, [query, page])
 
   return state
 }

@@ -46,7 +46,7 @@ class ModuleController extends Controller
                         'enabled' => $activation?->enabled ?? false,
                         'is_core' => $sub->is_core,
                     ];
-                })->values();
+                })->values()->all();
 
                 return [
                     'slug' => $def->slug,
@@ -58,7 +58,7 @@ class ModuleController extends Controller
                     'installed_version' => $tm?->installed_version,
                     'submodules' => $subs,
                 ];
-            })->values();
+            })->values()->all();
         });
 
         return response()->json(['data' => $data])

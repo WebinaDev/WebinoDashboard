@@ -13,7 +13,7 @@ import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { mapApiProduct, toneClass, type ShopProduct } from "@/builder/catalog"
 import { addShopItem } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
-import { ProductReviewsPanel, StockAlertForm } from "@/builder/storefront/storefront-chrome"
+import { LowerPriceReportForm, PriceDropAlertForm, ProductReviewsPanel, StockAlertForm } from "@/builder/storefront/storefront-chrome"
 import { ProductPriceHistory } from "@/builder/storefront/storefront-extras"
 import { useCatalog } from "@/builder/storefront/use-catalog"
 
@@ -466,14 +466,22 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                 <div id="sfc-stock-alert">
                   <StockAlertForm slug={product.slug} />
                 </div>
-              ) : null}
+              ) : (
+                <details id="sfc-price-alert" className="mt-3">
+                  <summary className="cursor-pointer text-xs font-bold">اطلاع از کاهش قیمت</summary>
+                  <PriceDropAlertForm slug={product.slug} />
+                </details>
+              )}
             </div>
           </div>
 
           <div className="sfc-pdp__report">
-            <Link href={`/pages/contact?subject=${encodeURIComponent(`قیمت بهتر: ${product.name}`)}`}>
-              <IconInfo size={16} /> قیمت بهتری سراغ دارید؟ اعلام کنید
-            </Link>
+            <details className="sfc-pdp__report-price">
+              <summary className="cursor-pointer">
+                <IconInfo size={16} /> قیمت بهتری سراغ دارید؟ اعلام کنید
+              </summary>
+              <LowerPriceReportForm slug={product.slug} />
+            </details>
             <Link href={`/pages/contact?subject=${encodeURIComponent(`گزارش مشخصات: ${product.name}`)}`}>
               <IconInfo size={16} /> گزارش مشخصات کالا یا موارد قانونی
             </Link>

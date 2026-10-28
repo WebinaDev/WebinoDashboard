@@ -27,7 +27,7 @@ class ProductReportController extends Controller
             'competitor_price_minor' => ['nullable', 'integer', 'min:0'],
             'message' => ['nullable', 'string', 'max:2000', 'required_if:type,issue'],
         ]);
-        $product = Product::query()->where('tenant_id', $tid)->publicKey($slug)->storefront()->firstOrFail();
+        $product = Product::query()->where('tenant_id', $tid)->publicKey($slug)->catalogListing(true)->firstOrFail();
         $user = $request->user('sanctum');
 
         $report = ProductReport::query()->create(array_merge($data, [

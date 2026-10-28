@@ -16,6 +16,8 @@ import {
 } from "@/builder/templates/classic"
 import { ProductStoriesStrip } from "@/builder/storefront/storefront-extras"
 import { ArchiveScopeProvider, type ArchiveScope } from "@/builder/storefront/archive-scope"
+import { loadCatalogSeed } from "@/builder/storefront/catalog-seed"
+import { CatalogSeedProvider } from "@/builder/storefront/use-catalog"
 
 export const revalidate = 60
 
@@ -77,17 +79,22 @@ export default async function Page({
   if (pretty && route.path === "brand/:slug") scope.brand = pretty
   if (pretty && route.path === "product-tag/:slug") scope.tag = pretty
   const categorySlug = scope.category ?? searchParams?.category
-  const built = await StorefrontBody({
-    slug: "shop",
-    fallback: classicShopDocument(),
-    runtime: { categorySlug },
-  })
+  const [built, seed] = await Promise.all([
+    StorefrontBody({
+      slug: "shop",
+      fallback: classicShopDocument(),
+      runtime: { categorySlug },
+    }),
+    loadCatalogSeed(searchParams, scope),
+  ])
   return (
+    <CatalogSeedProvider seed={seed}>
     <ArchiveScopeProvider scope={scope}>
       <ThemeSlot kind="product_archive" runtime={{ categorySlug }}>
         {classic ? null : <ProductStoriesStrip />}
         {built ?? <CataloguePage />}
       </ThemeSlot>
     </ArchiveScopeProvider>
+    </CatalogSeedProvider>
   )
 }

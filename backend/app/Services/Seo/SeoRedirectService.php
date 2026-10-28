@@ -26,6 +26,48 @@ final class SeoRedirectService
         return $path;
     }
 
+    /** Safely percent-decode (multi-pass, UTF-8 checked) and NFC-normalise a path. */
+    public function decodePath(string $path): string
+    {
+        $decoded = $path;
+        // Decode repeatedly (double-encoded imports) but stop on invalid UTF-8.
+        for ($i = 0; $i < 3 && str_contains($decoded, '%'); $i++) {
+            $next = rawurldecode($decoded);
+            if ($next === $decoded || ! mb_check_encoding($next, 'UTF-8')) {
+                break;
+            }
+            $decoded = $next;
+        }
+
+        return class_exists(\Normalizer::class) ? (\Normalizer::normalize($decoded, \Normalizer::FORM_C) ?: $decoded) : $decoded;
+    }
+
+    /**
+     * Equivalent spellings of one path so Persian slugs match whether the row/request is decoded,
+     * percent-encoded (upper- or lowercase hex, as WordPress stores it) or carries a trailing slash.
+     *
+     * @return list<string>
+     */
+    public function pathVariants(string $path): array
+    {
+        $decoded = $this->decodePath($path);
+        $upper = implode('/', array_map(fn ($seg) => rawurlencode($seg), explode('/', $decoded)));
+        $lower = preg_replace_callback('/%[0-9A-F]{2}/', fn ($m) => strtolower($m[0]), $upper) ?? $upper;
+        $out = [];
+        foreach ([$path, $decoded, $upper, $lower] as $v) {
+            $v = $v === '/' ? '/' : rtrim($v, '/');
+            if ($v === '') {
+                continue;
+            }
+            $out[] = $v;
+            if ($v !== '/') {
+                $out[] = $v.'/';
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
     /**
      * Manual SEO redirects win; otherwise fall back to WordPress-import permalinks/redirects
      * (old WP URLs → native paths) so a migrated store keeps its 301s.
@@ -37,7 +79,8 @@ final class SeoRedirectService
         $manual = SeoRedirect::query()
             ->where('tenant_id', $tenantId)
             ->where('enabled', true)
-            ->where('from_path', $from)
+            ->whereIn('from_path', $this->pathVariants($from))
+            ->orderByDesc('id')
             ->first();
         if ($manual !== null || $from === '/') {
             return $manual;
@@ -78,13 +121,12 @@ final class SeoRedirectService
 
     private function findImported(int $tenantId, string $from): ?WordpressRedirect
     {
-        $decoded = rawurldecode($from);
+        $variants = $this->pathVariants($from);
+        $decoded = rtrim($this->decodePath($from), '/') ?: '/';
         // Native storefront routes (/shop, /cart, /my-account…) must never bounce to imported empty WC page shells.
         if (isset(self::NATIVE_STORE_PAGES[ltrim($decoded, '/')])) {
             return null;
         }
-        $encoded = implode('/', array_map(fn ($seg) => rawurlencode($seg), explode('/', $decoded)));
-        $variants = array_values(array_unique([$from, $from.'/', $decoded, $decoded.'/', $encoded, $encoded.'/']));
 
         $row = WordpressRedirect::query()
             ->where('tenant_id', $tenantId)

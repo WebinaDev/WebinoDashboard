@@ -32,7 +32,7 @@ class PublicSlugResolverController extends Controller
 
         $hit = null;
         if (in_array($scope, ['any', 'product'], true)) {
-            $p = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->storefront()->first(['id', 'slug', 'name']);
+            $p = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->catalogListing($this->showOutOfStock($tid))->first(['id', 'slug', 'name']);
             if ($p) $hit = ['type' => 'product', 'slug' => $p->slug, 'name' => $p->name];
         }
         if (! $hit && in_array($scope, ['any', 'category'], true)) {
@@ -50,5 +50,13 @@ class PublicSlugResolverController extends Controller
         abort_unless($hit, 404);
 
         return response()->json(['data' => $hit])->header('Cache-Control', 'public, max-age=60');
+    }
+
+    /** Same visibility as the product page (PublicCatalogController::show): sold-out products keep their URL. */
+    private function showOutOfStock(int $tid): bool
+    {
+        $settings = \App\Services\Shop\ShopSettings::getProducts($tid);
+
+        return ($settings['show_out_of_stock'] ?? true) !== false && empty($settings['hide_out_of_stock']);
     }
 }

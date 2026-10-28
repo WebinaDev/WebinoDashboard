@@ -13,7 +13,7 @@ import { ApiError, api } from "@/lib/api"
 import { formatDate, formatNumber, normalizeUiLocale, toLatinDigits, toLocaleDigits } from "@/lib/locale"
 import { useThemeSettings } from "@/providers/AppProviders"
 
-import { cartCount, cartSnapshot, clearCart, setQty, subscribeCart } from "../cart"
+import { cartCount, cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "../cart"
 import { toneClass, mapApiProduct, productCardSrcSet, type ShopProduct } from "../catalog"
 import { parseLinks, propStr } from "../props"
 import type { WidgetNode } from "../types"
@@ -439,7 +439,7 @@ function DefaultStorefrontCart() {
   const t = useTranslations("storefront")
   const tCart = useTranslations("cart")
   const locale = useLocale()
-  const local = useSyncExternalStore(subscribeCart, cartSnapshot, () => [])
+  const local = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot)
   const { cart, auth } = useServerCart()
   const lines = cart?.items ?? []
   const pricing = cart?.pricing

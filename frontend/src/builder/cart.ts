@@ -33,8 +33,33 @@ function write(lines: CartLine[]) {
   listeners.forEach((listener) => listener())
 }
 
+const EMPTY_CART: CartLine[] = []
+let snapshotRaw: string | null | undefined
+let snapshotValue: CartLine[] = EMPTY_CART
+
+/**
+ * Stable snapshot for useSyncExternalStore: must return the same reference
+ * until localStorage actually changes, otherwise React loops (error #185).
+ */
 export function cartSnapshot(): CartLine[] {
-  return read()
+  if (typeof window === "undefined") return EMPTY_CART
+  let raw: string | null = null
+  try {
+    raw = window.localStorage.getItem(KEY)
+  } catch {
+    raw = null
+  }
+  if (raw !== snapshotRaw) {
+    snapshotRaw = raw
+    const lines = read()
+    snapshotValue = lines.length ? lines : EMPTY_CART
+  }
+  return snapshotValue
+}
+
+/** Server snapshot for useSyncExternalStore (constant reference). */
+export function cartServerSnapshot(): CartLine[] {
+  return EMPTY_CART
 }
 
 export function cartCount(): number {

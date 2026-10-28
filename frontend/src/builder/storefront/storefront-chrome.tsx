@@ -473,3 +473,86 @@ export function ProductQuestionsPanel({ slug }: { slug: string }) {
     </section>
   )
 }
+
+/** Email or Iranian mobile → stock-alert channel. */
+function alertChannel(destination: string): "email" | "sms" {
+  return destination.includes("@") ? "email" : "sms"
+}
+
+function toLatinDigits(s: string): string {
+  return s.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+}
+
+/** «اطلاع از کاهش قیمت» — price_drop alert for an in-stock product. */
+export function PriceDropAlertForm({ slug }: { slug: string }) {
+  const [destination, setDestination] = useState("")
+  const [note, setNote] = useState("")
+  const [busy, setBusy] = useState(false)
+  return (
+    <form
+      className="mt-3 flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-muted/40 p-3"
+      onSubmit={(event) => {
+        event.preventDefault()
+        const dest = toLatinDigits(destination.trim())
+        if (!dest) return
+        setBusy(true)
+        void quietApi(`/api/v1/public/catalog/items/${encodeURIComponent(slug)}/stock-alerts`, {
+          method: "POST",
+          json: { alert_type: "price_drop", channel: alertChannel(dest), destination: dest },
+        })
+          .then((res) => setNote(res.ok ? "ثبت شد؛ با کاهش قیمت به شما خبر می‌دهیم." : "ثبت ناموفق بود. دوباره تلاش کنید."))
+          .finally(() => setBusy(false))
+      }}
+    >
+      <label className="grid flex-1 gap-1 text-xs">
+        <span>اطلاع از کاهش قیمت (ایمیل یا شماره موبایل)</span>
+        <input className="sf-field h-10" dir="ltr" required value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="09xxxxxxxxx" />
+      </label>
+      <button type="submit" disabled={busy} className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-60">
+        خبرم کن
+      </button>
+      {note ? <p className="w-full text-xs text-muted-foreground" role="status">{note}</p> : null}
+    </form>
+  )
+}
+
+/** «قیمت بهتری سراغ دارید؟» — lower_price report with competitor URL/price. */
+export function LowerPriceReportForm({ slug }: { slug: string }) {
+  const [url, setUrl] = useState("")
+  const [price, setPrice] = useState("")
+  const [note, setNote] = useState("")
+  const [busy, setBusy] = useState(false)
+  return (
+    <form
+      className="mt-2 grid gap-2 rounded-2xl border border-border bg-muted/40 p-3 text-xs"
+      onSubmit={(event) => {
+        event.preventDefault()
+        const toman = Number(toLatinDigits(price).replace(/[^\d]/g, ""))
+        setBusy(true)
+        void quietApi(`/api/v1/public/catalog/items/${encodeURIComponent(slug)}/reports`, {
+          method: "POST",
+          json: {
+            type: "lower_price",
+            competitor_url: url.trim(),
+            ...(toman > 0 ? { competitor_price_minor: toman } : {}),
+          },
+        })
+          .then((res) => setNote(res.ok ? "سپاس! گزارش شما ثبت شد." : "ثبت گزارش ناموفق بود."))
+          .finally(() => setBusy(false))
+      }}
+    >
+      <label className="grid gap-1">
+        <span>آدرس صفحه فروشنده دیگر</span>
+        <input className="sf-field h-10" dir="ltr" type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
+      </label>
+      <label className="grid gap-1">
+        <span>قیمت (تومان، اختیاری)</span>
+        <input className="sf-field h-10" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} />
+      </label>
+      <button type="submit" disabled={busy} className="justify-self-start rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground disabled:opacity-60">
+        ارسال گزارش
+      </button>
+      {note ? <p className="text-muted-foreground" role="status">{note}</p> : null}
+    </form>
+  )
+}

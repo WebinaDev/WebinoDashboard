@@ -17,7 +17,7 @@ import { formatDate } from "@/lib/locale"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 import { ClassicAmount, ClassicPrice, ClassicRating } from "@/themes/ecommerce-classic/components/parts"
 import { ClassicSortTabs } from "@/themes/ecommerce-classic/components/ClassicArchive"
-import { cartSnapshot, subscribeCart } from "../cart"
+import { cartServerSnapshot, cartSnapshot, subscribeCart } from "../cart"
 import { mapApiProduct, type ShopProduct } from "../catalog"
 import { parseLinks, propBool, propNum, propStr } from "../props"
 import { useServerCart } from "../storefront/actions"
@@ -279,7 +279,7 @@ export function PriceFilterWidget({ widget }: { widget: WidgetNode }) {
 /* --------------------------------------------------------------------- cart */
 
 function useCartSummary() {
-  const local = useSyncExternalStore(subscribeCart, cartSnapshot, () => [])
+  const local = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot)
   const { cart, auth } = useServerCart()
   return useMemo(() => {
     if (auth === "auth") {
