@@ -8,6 +8,7 @@ use App\Models\WordpressImportItem;
 use App\Models\WordpressImportJob;
 use App\Models\WordpressImportLink;
 use App\Services\Reports\OrderReports;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Throwable;
@@ -68,8 +69,13 @@ final class WordpressImportRunner
         if ($job->status === 'paused') {
             throw new InvalidArgumentException('Import is paused.');
         }
+        $this->recoverIfStale($job);
+        if ($job->status === 'running' && $this->lastBeat($job)?->gt(now()->subMinutes(self::BUSY_MINUTES))) {
+            throw new InvalidArgumentException('Import is already running in another process. If it crashed, run: php artisan wordpress-import:reset '.$job->id);
+        }
         $job->status = 'running';
         $job->started_at ??= now();
+        $job->heartbeat_at = now();
         $job->last_error = null;
         $job->save();
 
@@ -87,6 +93,7 @@ final class WordpressImportRunner
                 }
                 $this->process($job, $item);
                 $processed++;
+                WordpressImportJob::query()->whereKey($job->id)->update(['heartbeat_at' => now()]);
             }
             $context = new ImportContext($job, $this->mapper, $this->fetcher);
             $this->importer->fixCategoryParents($context);
@@ -117,6 +124,68 @@ final class WordpressImportRunner
         $job->save();
 
         return $job->fresh() ?? $job;
+    }
+
+    /** Minutes without a heartbeat after which a `running` job is considered dead. */
+    public const STALE_MINUTES = 15;
+
+    /** A heartbeat this recent means another worker is actively ticking the job. */
+    public const BUSY_MINUTES = 3;
+
+    private function lastBeat(WordpressImportJob $job): ?Carbon
+    {
+        $beat = $job->heartbeat_at ?? $job->updated_at ?? $job->started_at;
+
+        return $beat ? Carbon::parse($beat) : null;
+    }
+
+    public function isStale(WordpressImportJob $job): bool
+    {
+        if ($job->status !== 'running') {
+            return false;
+        }
+        $beat = $this->lastBeat($job);
+
+        return $beat === null || $beat->lt(now()->subMinutes(self::STALE_MINUTES));
+    }
+
+    /** Mark a dead `running` job as failed (resumable: pending items are kept). */
+    public function recoverIfStale(WordpressImportJob $job): bool
+    {
+        if (! $this->isStale($job)) {
+            return false;
+        }
+        $beat = $this->lastBeat($job);
+        $job->status = 'failed';
+        $job->last_error = 'Import stalled (no heartbeat since '.($beat?->toIso8601String() ?? 'start').'). Pending items are kept; run the import again to resume.';
+        $job->save();
+
+        return true;
+    }
+
+    /** @return int number of jobs marked failed */
+    public function recoverStaleJobs(): int
+    {
+        $count = 0;
+        WordpressImportJob::query()->where('status', 'running')->get()->each(function (WordpressImportJob $job) use (&$count) {
+            $count += $this->recoverIfStale($job) ? 1 : 0;
+        });
+
+        return $count;
+    }
+
+    /** Force a job back to `ready` so it can be resumed (pending items are kept). */
+    public function reset(WordpressImportJob $job, bool $retryFailed = false): int
+    {
+        $job->status = 'ready';
+        $job->finished_at = null;
+        $job->heartbeat_at = null;
+        $job->last_error = null;
+        $job->save();
+        $retried = $retryFailed ? $this->retryFailed($job) : 0;
+        $this->refreshProgress($job);
+
+        return $retried;
     }
 
     public function retryFailed(WordpressImportJob $job): int
@@ -238,6 +307,11 @@ final class WordpressImportRunner
             $item->status = 'done';
             $item->action = $outcome->action;
             $item->message = $outcome->message;
+            $item->save();
+        } catch (SkipImport $e) {
+            $item->status = 'skipped';
+            $item->action = 'skipped';
+            $item->message = mb_substr($e->getMessage(), 0, 2000);
             $item->save();
         } catch (Throwable $e) {
             // Only unwind transactions opened for this item; never roll back a caller's

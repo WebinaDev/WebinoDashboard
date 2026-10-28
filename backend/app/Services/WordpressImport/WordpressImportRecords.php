@@ -11,6 +11,7 @@ use App\Models\Brand;
 use App\Models\BuilderTemplate;
 use App\Models\CmsPage;
 use App\Models\Coupon;
+use App\Models\MediaAsset;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderNote;
@@ -28,9 +29,12 @@ use App\Models\WalletSetting;
 use App\Models\WordpressImportQueue;
 use App\Models\WordpressRedirect;
 use App\Services\Modules\ModuleSettingsService;
+use App\Services\Seo\SeoRedirectService;
 use App\Services\Shipping\ShippingZonesService;
 use App\Services\Shop\ShopSettings;
 use App\Services\Shop\StorefrontAppearanceService;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -239,7 +243,11 @@ final class WordpressImportRecords
         if ($path === '' || $ctx->dryRun()) {
             return;
         }
-        $this->upsertRedirect($ctx, $path, $localPath, 301, 'permalink', $resource, $externalId, false);
+        try {
+            $this->upsertRedirect($ctx, $path, $localPath, 301, 'permalink', $resource, $externalId, false);
+        } catch (SkipImport) {
+            // Old permalink equals the new route; nothing to redirect.
+        }
     }
 
     /** @param  array<string, mixed>  $payload */
@@ -530,7 +538,7 @@ final class WordpressImportRecords
         if ($mediaUrl === '' && $mediaExternal !== '') {
             $media = $ctx->find('media', $mediaExternal);
             if ($media) {
-                $asset = \App\Models\MediaAsset::query()->where('tenant_id', $ctx->tenantId())->find($media->local_id);
+                $asset = MediaAsset::query()->where('tenant_id', $ctx->tenantId())->find($media->local_id);
                 $mediaUrl = (string) ($asset?->url ?? $asset?->path ?? '');
             }
         }
@@ -597,8 +605,17 @@ final class WordpressImportRecords
         }
         $from = $ctx->mapper->safeHref($fromRaw, $ctx->sourceHost());
         $to = $ctx->mapper->safeHref((string) ($payload['target'] ?? $payload['to'] ?? $payload['to_path'] ?? $payload['url'] ?? ''), $ctx->sourceHost());
-        if ($from === '' || $to === '') {
-            throw new InvalidArgumentException('Redirect needs a source and a target.');
+        if ($from === '') {
+            throw new SkipImport('Redirect has no source path; skipped.');
+        }
+        if ($to === '') {
+            $to = $this->resolveRedirectTarget($ctx, $payload, $from);
+        }
+        if ($to === '') {
+            throw new SkipImport('Redirect has no target and none could be resolved from imported content; skipped.');
+        }
+        if (self::normalizePath($from) === self::normalizePath($to)) {
+            throw new SkipImport('Redirect source and target are the same path; skipped.');
         }
         $state = strtolower(trim((string) ($payload['status'] ?? 'active')));
         if (in_array($state, ['inactive', 'disabled', 'trash', 'draft'], true)) {
@@ -1350,24 +1367,107 @@ final class WordpressImportRecords
         return $ctx->outcome(false, $applied['local_type'], $applied['local_id'], $applied['message']);
     }
 
+    /**
+     * Upsert by (tenant, normalized from_path) so re-runs and duplicate permalinks are idempotent.
+     * A concurrent insert of the same path (unique violation) is retried as an update.
+     * The redirect is also published to the served SEO redirects table.
+     */
     private function upsertRedirect(ImportContext $ctx, string $from, string $to, int $code, string $kind, string $resource, string $externalId, bool $force): WordpressRedirect
     {
-        $from = mb_substr($from, 0, 191);
-        $existing = WordpressRedirect::query()->where('tenant_id', $ctx->tenantId())->where('from_path', $from)->first();
-        if ($existing && $existing->kind === 'redirect' && $kind === 'permalink' && ! $force) {
-            return $existing;
+        $from = mb_substr(self::normalizePath($from), 0, 191);
+        if (str_starts_with($to, '/')) {
+            $to = self::normalizePath($to);
         }
-        $row = $existing ?? new WordpressRedirect(['tenant_id' => $ctx->tenantId(), 'from_path' => $from]);
-        $row->fill([
-            'to_path' => mb_substr($to, 0, 500),
-            'status_code' => $code,
-            'kind' => $kind,
-            'resource' => $resource,
-            'external_id' => mb_substr($externalId, 0, 191),
-        ]);
-        $row->save();
+        if ($from === '') {
+            throw new SkipImport('Redirect has no source path; skipped.');
+        }
+        for ($attempt = 0; ; $attempt++) {
+            $existing = WordpressRedirect::query()->where('tenant_id', $ctx->tenantId())->where('from_path', $from)->first();
+            if ($existing && $existing->kind === 'redirect' && $kind === 'permalink' && ! $force) {
+                return $existing;
+            }
+            $row = $existing ?? new WordpressRedirect(['tenant_id' => $ctx->tenantId(), 'from_path' => $from]);
+            $row->fill([
+                'to_path' => mb_substr($to, 0, 500),
+                'status_code' => $code,
+                'kind' => $kind,
+                'resource' => $resource,
+                'external_id' => mb_substr($externalId, 0, 191),
+            ]);
+            try {
+                // Savepoint, so a lost race does not abort the item's transaction on PostgreSQL.
+                DB::transaction(fn () => $row->save());
+                break;
+            } catch (UniqueConstraintViolationException $e) {
+                if ($attempt >= 1) {
+                    throw $e;
+                }
+            }
+        }
+        if ($from !== $to && $from !== '/' && (str_starts_with($to, '/') || str_starts_with($to, 'http'))) {
+            try {
+                app(SeoRedirectService::class)->upsert($ctx->tenantId(), [
+                    'from_path' => $from, 'to_path' => $to, 'status_code' => $code, 'note' => 'wordpress import',
+                ]);
+            } catch (\Throwable) {
+                // The import record is kept even if the served redirect is invalid (e.g. same path).
+            }
+        }
 
         return $row;
+    }
+
+    /** Lowercase-insensitive-safe canonical path: decoded, no query/fragment, no trailing slash. */
+    public static function normalizePath(string $path): string
+    {
+        $path = trim($path);
+        if ($path === '' || ! str_starts_with($path, '/')) {
+            return $path;
+        }
+        $path = (string) (parse_url('http://x'.$path, PHP_URL_PATH) ?? $path);
+        $decoded = rawurldecode($path);
+        if (mb_check_encoding($decoded, 'UTF-8')) {
+            $path = $decoded;
+        }
+        $path = preg_replace('#/{2,}#', '/', $path) ?? $path;
+        if ($path !== '/' && str_ends_with($path, '/')) {
+            $path = rtrim($path, '/');
+        }
+
+        return $path === '' ? '/' : $path;
+    }
+
+    /**
+     * Find a target for a redirect exported without one: an explicit target object id
+     * (target_type + target_id / object_id), else an imported permalink for the same path.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolveRedirectTarget(ImportContext $ctx, array $payload, string $from): string
+    {
+        $type = strtolower(trim((string) ($payload['target_type'] ?? $payload['object_type'] ?? $payload['post_type'] ?? '')));
+        $id = trim((string) ($payload['target_id'] ?? $payload['target_post_id'] ?? $payload['object_id'] ?? $payload['post_id'] ?? ''));
+        $map = [
+            'product' => ['products', Product::class, '/product/'], 'products' => ['products', Product::class, '/product/'],
+            'page' => ['pages', CmsPage::class, '/pages/'], 'pages' => ['pages', CmsPage::class, '/pages/'],
+            'post' => ['posts', BlogPost::class, '/blog/'], 'posts' => ['posts', BlogPost::class, '/blog/'],
+        ];
+        if ($id !== '' && $id !== '0') {
+            foreach ($type !== '' && isset($map[$type]) ? [$map[$type]] : array_values(array_unique($map, SORT_REGULAR)) as [$resource, $model, $prefix]) {
+                $link = $ctx->find($resource, $id);
+                if (! $link) {
+                    continue;
+                }
+                $slug = $model::query()->where('tenant_id', $ctx->tenantId())->whereKey($link->local_id)->value('slug');
+                if (is_string($slug) && $slug !== '') {
+                    return $prefix.$slug;
+                }
+            }
+        }
+        $known = WordpressRedirect::query()->where('tenant_id', $ctx->tenantId())
+            ->where('from_path', mb_substr(self::normalizePath($from), 0, 191))->where('kind', 'permalink')->value('to_path');
+
+        return is_string($known) ? $known : '';
     }
 
     /** @param  array<string, mixed>  $download */

@@ -37,9 +37,13 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
             if (defined('CURLOPT_MAXFILESIZE')) {
                 $curl[CURLOPT_MAXFILESIZE] = $maxBytes;
             }
+            // Stream the body to a temp file (no double buffering for large media) and
+            // scale the timeout with the allowed size: 12s for 8MB, capped at 120s.
+            $sink = tempnam(sys_get_temp_dir(), 'wpimp');
             $response = Http::withOptions([
                 'allow_redirects' => false,
-                'timeout' => 12,
+                'sink' => $sink,
+                'timeout' => min(120, max(12, (int) ceil($maxBytes / 1048576) * 2)),
                 'connect_timeout' => 5,
                 'curl' => $curl,
             ])->withHeaders([
@@ -48,6 +52,10 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
             ])->get($current);
 
             $status = $response->status();
+            $body = is_string($sink) && is_file($sink) && filesize($sink) > 0 ? (string) file_get_contents($sink) : $response->body();
+            if (is_string($sink)) {
+                @unlink($sink);
+            }
             if (in_array($status, [301, 302, 303, 307, 308], true)) {
                 $location = (string) $response->header('Location');
                 if ($location === '') {
@@ -60,7 +68,6 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
             if (! $response->successful()) {
                 throw new RuntimeException('Media download failed with HTTP '.$status.'.');
             }
-            $body = $response->body();
             if ($body === '' || strlen($body) > $maxBytes) {
                 throw new RuntimeException('Media file is empty or too large.');
             }
@@ -150,6 +157,13 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
         $images = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $files = ['image/svg+xml', 'application/pdf', 'video/mp4', 'video/webm'];
         $allowed = $kind === 'file' ? array_merge($images, $files) : $images;
+        if ($kind === 'media') {
+            // Any raster image (converted to WebP later) or a safe attachment type.
+            if ((str_starts_with($mime, 'image/') && $mime !== 'image/svg+xml') || in_array($mime, $files, true) || self::safeAttachment($mime)) {
+                return $mime;
+            }
+            throw new RuntimeException('Media type '.$mime.' is not allowed.');
+        }
         if (! in_array($mime, $allowed, true)) {
             throw new RuntimeException($kind === 'file'
                 ? 'File must be an image, SVG, PDF, or MP4/WebM video.'
@@ -160,6 +174,23 @@ final class SafeRemoteFetcher implements RemoteAssetFetcher
         }
 
         return $mime;
+    }
+
+    /** Non-executable, non-HTML attachment types that are safe to serve from public storage. */
+    public static function safeAttachment(string $mime): bool
+    {
+        if (preg_match('#^(audio|video)/#', $mime)) {
+            return true;
+        }
+
+        return in_array($mime, [
+            'application/pdf', 'application/zip', 'application/x-zip-compressed', 'application/x-rar', 'application/vnd.rar', 'application/x-7z-compressed',
+            'application/msword', 'application/vnd.ms-excel', 'application/vnd.ms-powerpoint', 'application/epub+zip',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'text/plain', 'text/csv', 'font/woff', 'font/woff2', 'font/ttf', 'font/otf',
+        ], true);
     }
 
     private function filename(string $path, string $mime): string

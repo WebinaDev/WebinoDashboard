@@ -183,3 +183,26 @@ Target tenant: `https://parisma.webinaagency.ir` (ecommerce, builder and ecommer
 - The dashboard home sales block is the current month. Older Parisma orders appear in order reports for their own dates, and on the import job's stats.
 - Remote image download needs PHP curl. ZIP upload needs PHP zip. JSON upload needs neither.
 - Downloads follow at most three redirects and re-check the allowlist on each hop.
+
+## Recovery, reconcile and media (2026-10-28)
+
+**Failure handling**
+- Redirects exported without a target resolve through the imported-entity mapping (`target_type` + `target_id`/`object_id` → `/product/{slug}`, `/pages/{slug}`, `/blog/{slug}`, or an already imported permalink for the same path). If nothing matches, the item is **skipped** with the reason in its message (not failed).
+- Redirect/permalink `from_path` is normalized (URL-decoded, no query, no trailing slash), upserted per tenant+path, and retried as an update on a concurrent unique violation. Re-runs are idempotent. Imported redirects are also published to SEO redirects (`seo_redirects`) so they are actually served.
+- Products with no import link adopt an existing product with the same WordPress permalink (`reference_url`) instead of creating a duplicate.
+- Media: any raster image (BMP, TIFF, AVIF, HEIC with Imagick, …) and any image larger than 2000px or 2MB is converted to WebP (max 2000px, Imagick, otherwise GD). Non-image media (PDF, video, audio, office documents, archives) is stored as a file attachment. Limits: 32MB per image, 64MB per file. Downloads stream to a temp file and the timeout grows with size (max 120s).
+
+**Out-of-stock products** stay in the catalog with the «ناموجود» badge and are sorted after in-stock products. Shop setting `products.show_out_of_stock` defaults to `true`; set it to `false` (or the older `hide_out_of_stock`) to hide them.
+
+**Stalled jobs**: every processed item updates `wordpress_import_jobs.heartbeat_at`. A `running` job with no heartbeat for 15 minutes is marked `failed` (pending items are kept, so it can be resumed). The scheduler runs `wordpress-import:reset --stale` every 10 minutes, and `wordpress-import:run` recovers a stale job on its own. A second runner is refused while the heartbeat is less than 3 minutes old.
+
+```
+php artisan wordpress-import:reset {job} [--retry-failed]   # force back to ready
+php artisan wordpress-import:reset --stale                  # mark dead running jobs failed
+php artisan wordpress-import:run {job} [--retry-failed] [--limit=50]
+php artisan wordpress-import:reconcile {job} [--source=/path/export.json|dir] [--import] [--json]
+```
+
+`reconcile` compares source products (the job's own items, or a WooCommerce JSON export: a file, or a directory with `products*.json` and an optional `variations*.json`, in REST shape) with the imported products. It lists each missing source ID with a reason (failed/skipped message, not in the job, status, bundle/external/grouped type, no SKU, hidden). With `--import` it re-queues the missing products and runs the job.
+
+**Persistent storage (WebinoERP deploy)**: media is written to the `public` disk = `storage/app/public` (`/var/www/html/storage/app/public` in the container), served at `/storage/*`. That path must be on a persistent volume for backend, worker and scheduler. WebinoERP `docker-compose.yml` already bind-mounts `${WEBINO_STORAGE_PUBLIC:-/var/lib/webino/storage-public}`. Keep that env var stable across deploys and back the directory up; if it is not mounted, imported media disappear on every image redeploy.

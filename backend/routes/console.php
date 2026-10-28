@@ -1,13 +1,26 @@
 <?php
 
+use App\Http\Controllers\Api\V1\BuilderFormFilesController;
+use App\Http\Controllers\Api\V1\PricingController;
+use App\Models\BulkPriceJob;
 use App\Models\PricingSetting;
+use App\Services\AiContent\AiQueue;
+use App\Services\Analytics\AnalyticsRollup;
+use App\Services\Bots\Engine\BotMessenger;
+use App\Services\Bots\Engine\ChannelPublisher;
+use App\Services\Builder\BuilderPageLifecycle;
+use App\Services\Marketing\AbandonedCartService;
 use App\Services\Marketplace\Basalam\BasalamScheduler;
-use App\Services\Pricing\ExchangeRateService;
-use App\Services\Pricing\PricingCalculator;
 use App\Services\Marketplace\Digikala\DigikalaScheduler;
 use App\Services\Marketplace\MarketplaceSync;
 use App\Services\Marketplace\TorobWebhookQueue;
+use App\Services\Orders\OrderStock;
+use App\Services\Pricing\ExchangeRateService;
+use App\Services\Pricing\PricingCalculator;
+use App\Services\Security\SecurityEventLogger;
+use App\Services\Sms\SmsLocalFeatures;
 use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
@@ -47,17 +60,17 @@ Artisan::command('pricing:exchange-auto-update', function () {
 })->purpose('Daily WFCP exchange-rate refresh at each tenant\'s configured hour');
 
 Artisan::command('analytics:rollup', function () {
-    app(\App\Services\Analytics\AnalyticsRollup::class)->runDailyForAllTenants();
+    app(AnalyticsRollup::class)->runDailyForAllTenants();
     $this->info('Analytics rollup complete.');
 })->purpose('Roll up yesterday/today analytics and purge old events');
 
 Artisan::command('ai:tick', function () {
-    app(\App\Services\AiContent\AiQueue::class)->tickAllTenants();
+    app(AiQueue::class)->tickAllTenants();
     $this->info('AI content tick complete.');
 })->purpose('Process due AI calendar slots and pending jobs');
 
 Artisan::command('sms:dispatch-scheduled', function () {
-    $sent = app(\App\Services\Sms\SmsLocalFeatures::class)->dispatchDue();
+    $sent = app(SmsLocalFeatures::class)->dispatchDue();
     $this->info("Dispatched {$sent} scheduled SMS / ad campaign batches.");
 })->purpose('Send locally held scheduled SMS and due SMS ad campaigns');
 
@@ -77,10 +90,10 @@ Artisan::command('pricing:bulk-price-schedule', function () {
             return;
         }
         $last = $schedule['last_run_at'] ?? null;
-        if (is_string($last) && \Illuminate\Support\Carbon::parse($last)->isSameHour(now())) {
+        if (is_string($last) && Carbon::parse($last)->isSameHour(now())) {
             return;
         }
-        $running = \App\Models\BulkPriceJob::query()
+        $running = BulkPriceJob::query()
             ->where('tenant_id', $row->tenant_id)
             ->where('locked', true)
             ->where('updated_at', '>=', now()->subMinutes(55))
@@ -88,7 +101,7 @@ Artisan::command('pricing:bulk-price-schedule', function () {
         if ($running) {
             return;
         }
-        $job = \App\Models\BulkPriceJob::query()->create([
+        $job = BulkPriceJob::query()->create([
             'tenant_id' => $row->tenant_id,
             'status' => 'running',
             'params' => [
@@ -104,17 +117,17 @@ Artisan::command('pricing:bulk-price-schedule', function () {
             'last_log' => 'Scheduled job started',
         ]);
         try {
-            app(\App\Http\Controllers\Api\V1\PricingController::class)->runBulkPriceJob($job);
+            app(PricingController::class)->runBulkPriceJob($job);
             $payload['bulk_price_schedule']['last_run_at'] = now()->toIso8601String();
             $row->update(['payload' => $payload]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $job->update(['status' => 'failed', 'locked' => false, 'last_log' => $e->getMessage()]);
         }
     });
 })->purpose('Run scheduled bulk price changes');
 
 Artisan::command('stock:release-reservations', function () {
-    $released = app(\App\Services\Orders\OrderStock::class)->releaseExpired();
+    $released = app(OrderStock::class)->releaseExpired();
     $this->info("Released {$released} expired stock reservations.");
 })->purpose('Give back stock held by unpaid orders whose reservation expired');
 
@@ -123,6 +136,7 @@ Schedule::command('pricing:exchange-auto-update')->hourly()->withoutOverlapping(
 Schedule::command('pricing:bulk-price-schedule')->hourly()->withoutOverlapping();
 Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();
 Schedule::command('ai:tick')->everyMinute()->withoutOverlapping();
+Schedule::command('wordpress-import:reset --stale')->everyTenMinutes()->withoutOverlapping();
 Schedule::command('sms:dispatch-scheduled')->everyMinute()->withoutOverlapping();
 Schedule::command('bots:retry-outbound')->everyMinute()->withoutOverlapping();
 Schedule::command('bots:channel-tick')->everyMinute()->withoutOverlapping();
@@ -135,34 +149,34 @@ Schedule::command('marketplace:basalam-tick')->everyFiveMinutes()->withoutOverla
 Schedule::command('marketplace:digikala-tick')->hourly()->withoutOverlapping();
 
 Artisan::command('builder:scheduled', function () {
-    [$published, $unpublished] = app(\App\Services\Builder\BuilderPageLifecycle::class)->runDue();
+    [$published, $unpublished] = app(BuilderPageLifecycle::class)->runDue();
     $this->info("Builder pages published: {$published}, unpublished: {$unpublished}");
 })->purpose('Publish/unpublish builder pages whose schedule is due');
 
 Schedule::command('builder:scheduled')->everyMinute()->withoutOverlapping();
 
 Artisan::command('builder:purge-form-uploads {--hours=24}', function () {
-    $removed = \App\Http\Controllers\Api\V1\BuilderFormFilesController::purgeOrphans(max(1, (int) $this->option('hours')));
+    $removed = BuilderFormFilesController::purgeOrphans(max(1, (int) $this->option('hours')));
     $this->info("Removed {$removed} unattached form uploads");
 })->purpose('Delete builder form uploads that were never attached to a submission');
 
 Schedule::command('builder:purge-form-uploads')->hourly()->withoutOverlapping();
 
 Artisan::command('bots:retry-outbound', function () {
-    $sent = \App\Services\Bots\Engine\BotMessenger::retryDue();
+    $sent = BotMessenger::retryDue();
     $this->info("Retried bot messages: {$sent} sent.");
 })->purpose('Retry failed Bale/Telegram outbound messages with backoff');
 
 Artisan::command('bots:channel-tick', function () {
-    $n = \App\Services\Bots\Engine\ChannelPublisher::publishDue();
+    $n = ChannelPublisher::publishDue();
     $this->info("Published {$n} scheduled channel posts.");
 })->purpose('Publish due scheduled Bale/Telegram channel posts');
 
 Artisan::command('cart:abandoned-recover', function () {
-    $n = app(\App\Services\Marketing\AbandonedCartService::class)->run();
+    $n = app(AbandonedCartService::class)->run();
     $this->info("Abandoned-cart reminders sent: {$n}.");
 })->purpose('Multi-stage abandoned cart recovery via bot + SMS');
 
 Artisan::command('security:prune-events', function () {
-    $this->info('Pruned security events: '.\App\Services\Security\SecurityEventLogger::prune());
+    $this->info('Pruned security events: '.SecurityEventLogger::prune());
 })->purpose('Delete security events past each tenant retention window');

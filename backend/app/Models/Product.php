@@ -182,6 +182,40 @@ class Product extends Model
             });
     }
 
+    /**
+     * Storefront listing: like storefront(), but optionally keeps published products that are
+     * unavailable only because they are out of stock (shown with a «ناموجود» badge, not buyable;
+     * cart/checkout still check is_sold_out themselves).
+     */
+    public function scopeCatalogListing(Builder $query, bool $includeOutOfStock = false): Builder
+    {
+        if (! $includeOutOfStock) {
+            return $query->storefront();
+        }
+
+        return $query
+            ->where('status', 'publish')
+            ->where('is_hidden', false)
+            ->where(function (Builder $q) {
+                $q->where(function (Builder $in) {
+                    $in->where('is_available', true)->where(fn (Builder $s) => $s->where('is_sold_out', false)->orWhereNull('is_sold_out'));
+                })->orWhere('is_sold_out', true)->orWhere('stock_status', 'outofstock');
+            });
+    }
+
+    /** Order in-stock products before out-of-stock ones (keeps the existing order inside each group). */
+    public function scopeInStockFirst(Builder $query): Builder
+    {
+        $base = $query->getQuery();
+        $orders = $base->orders ?? [];
+        $base->orders = null;
+        // No bindings: earlier ORDER BY subqueries own the 'order' binding slots.
+        $query->orderByRaw("CASE WHEN is_sold_out = TRUE OR stock_status = 'outofstock' THEN 1 ELSE 0 END");
+        $base->orders = array_merge($base->orders ?? [], $orders);
+
+        return $query;
+    }
+
     public function scopeSaleWindowOpen(Builder $query): Builder
     {
         $now = now();

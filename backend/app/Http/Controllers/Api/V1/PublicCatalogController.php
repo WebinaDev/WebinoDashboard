@@ -5,15 +5,21 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
 use App\Http\Controllers\Api\V1\Concerns\SerializesCatalogProduct;
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\CafeBranch;
 use App\Models\Category;
 use App\Models\Menu;
 use App\Models\MenuBanner;
+use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductAttribute;
+use App\Models\ProductAttributeTerm;
 use App\Models\ProductLike;
 use App\Services\Modules\ModuleSettingsService;
 use App\Services\Pricing\PurchaseTypeService;
 use App\Services\Shop\ShopSettings;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PublicCatalogController extends Controller
@@ -21,7 +27,7 @@ class PublicCatalogController extends Controller
     use ResolvesPublicTenant;
     use SerializesCatalogProduct;
 
-    public function index(Request $request, ModuleSettingsService $settings): \Illuminate\Http\JsonResponse
+    public function index(Request $request, ModuleSettingsService $settings): JsonResponse
     {
         $tid = $this->publicTenantId($request);
         $q = trim((string) $request->query('q', ''));
@@ -39,7 +45,7 @@ class PublicCatalogController extends Controller
 
         $productsQuery = Product::query()
             ->where('tenant_id', $tid)
-            ->storefront()
+            ->catalogListing($this->showOutOfStock($tid))
             ->with([
                 'category',
                 'brands' => fn ($q) => $q->select('brands.id', 'brands.name', 'brands.slug'),
@@ -121,13 +127,14 @@ class PublicCatalogController extends Controller
                 if ($attrSlug === '') {
                     continue;
                 }
-                $termId = $termSlug === '' ? null : \App\Models\ProductAttributeTerm::query()
+                $termId = $termSlug === '' ? null : ProductAttributeTerm::query()
                     ->where('tenant_id', $tid)
                     ->where('slug', $termSlug)
                     ->whereHas('attribute', fn ($a) => $a->where('slug', $attrSlug))
                     ->value('id');
                 if ($termSlug !== '' && ! $termId) {
                     $productsQuery->whereRaw('1 = 0');
+
                     continue;
                 }
                 $productsQuery->whereHas('attributes', function ($q) use ($attrSlug, $termId) {
@@ -147,7 +154,7 @@ class PublicCatalogController extends Controller
             'price_desc' => $productsQuery->orderByDesc('price_minor'),
             'popular' => $productsQuery->orderByDesc('views_count'),
             'best_selling' => $productsQuery->orderByDesc(
-                \App\Models\OrderItem::query()
+                OrderItem::query()
                     ->selectRaw('COALESCE(SUM(order_items.quantity), 0)')
                     ->join('orders', 'orders.id', '=', 'order_items.order_id')
                     ->whereColumn('order_items.product_id', 'products.id')
@@ -158,6 +165,9 @@ class PublicCatalogController extends Controller
             'ending_soon' => $productsQuery->orderByRaw('sale_ends_at IS NULL')->orderBy('sale_ends_at')->orderByDesc('discount_percent')->orderByDesc('id'),
             default => $productsQuery->orderByDesc('id'),
         };
+        if ($this->showOutOfStock($tid)) {
+            $productsQuery->inStockFirst();
+        }
 
         $facets = null;
         if ($request->boolean('facets')) {
@@ -225,7 +235,7 @@ class PublicCatalogController extends Controller
         return response()->json([
             'data' => [
                 'categories' => $categories,
-                'brands' => \App\Models\Brand::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug']),
+                'brands' => Brand::query()->where('tenant_id', $tid)->orderBy('name')->get(['id', 'name', 'slug']),
                 'items' => $products,
                 'menus' => $menus,
                 'banners' => $banners,
@@ -252,14 +262,22 @@ class PublicCatalogController extends Controller
         ])->header('Cache-Control', 'no-cache, must-revalidate');
     }
 
-    public function show(Request $request, string $slug): \Illuminate\Http\JsonResponse
+    /** Shop setting (default on): list out-of-stock products with a «ناموجود» badge after in-stock ones. */
+    private function showOutOfStock(int $tid): bool
+    {
+        $settings = ShopSettings::getProducts($tid);
+
+        return ($settings['show_out_of_stock'] ?? true) !== false && empty($settings['hide_out_of_stock']);
+    }
+
+    public function show(Request $request, string $slug): JsonResponse
     {
         $tid = $this->publicTenantId($request);
 
         $product = Product::query()
             ->where('tenant_id', $tid)
             ->where('slug', $slug)
-            ->storefront()
+            ->catalogListing($this->showOutOfStock($tid))
             ->with([
                 'category',
                 'brands' => fn ($q) => $q->select('brands.id', 'brands.name', 'brands.slug'),
@@ -277,7 +295,7 @@ class PublicCatalogController extends Controller
         $data['variants'] = $this->withSwatches($tid, $data['variants'] ?? []);
         $data['return_notice'] = $this->categoryReturnNotice($product->category);
         // Same price formatting as the catalogue list (item page used to fall back to defaults).
-        $general = \App\Services\Shop\ShopSettings::getGeneral($tid);
+        $general = ShopSettings::getGeneral($tid);
         $data['currency_display'] = [
             'currency' => $general['currency'] ?? null,
             'currency_position' => $general['currency_position'] ?? null,
@@ -292,7 +310,7 @@ class PublicCatalogController extends Controller
     }
 
     /** Upsells / cross-sells / related products chosen in the product editor (storefront-visible only, max 12). */
-    public function linked(Request $request, string $slug): \Illuminate\Http\JsonResponse
+    public function linked(Request $request, string $slug): JsonResponse
     {
         $tid = $this->publicTenantId($request);
         $type = (string) $request->query('type', 'upsell');
@@ -327,7 +345,7 @@ class PublicCatalogController extends Controller
     }
 
     /** Per-category return text (category meta.return_notice), inherited from the nearest ancestor that sets one. */
-    private function categoryReturnNotice(?\App\Models\Category $category): ?string
+    private function categoryReturnNotice(?Category $category): ?string
     {
         $seen = [];
         for ($depth = 0; $category !== null && $depth < 8 && ! isset($seen[$category->id]); $depth++) {
@@ -337,7 +355,7 @@ class PublicCatalogController extends Controller
                 return mb_substr($text, 0, 1000);
             }
             $category = $category->parent_id
-                ? \App\Models\Category::query()->where('tenant_id', $category->tenant_id)->find($category->parent_id)
+                ? Category::query()->where('tenant_id', $category->tenant_id)->find($category->parent_id)
                 : null;
         }
 
@@ -355,7 +373,7 @@ class PublicCatalogController extends Controller
     {
         $list = [];
         foreach ($variants as $v) {
-            $list[] = $v instanceof \Illuminate\Contracts\Support\Arrayable ? $v->toArray() : (array) $v;
+            $list[] = $v instanceof Arrayable ? $v->toArray() : (array) $v;
         }
         $termIds = [];
         foreach ($list as $v) {
@@ -368,8 +386,8 @@ class PublicCatalogController extends Controller
         if ($termIds === []) {
             return $list;
         }
-        $terms = \App\Models\ProductAttributeTerm::query()->where('tenant_id', $tid)->whereIn('id', array_unique($termIds))->get()->keyBy('id');
-        $attrs = \App\Models\ProductAttribute::query()->where('tenant_id', $tid)->whereIn('id', $terms->pluck('product_attribute_id')->unique())->get()->keyBy('id');
+        $terms = ProductAttributeTerm::query()->where('tenant_id', $tid)->whereIn('id', array_unique($termIds))->get()->keyBy('id');
+        $attrs = ProductAttribute::query()->where('tenant_id', $tid)->whereIn('id', $terms->pluck('product_attribute_id')->unique())->get()->keyBy('id');
         foreach ($list as $i => $v) {
             foreach ((array) ($v['attribute_values'] ?? []) as $av) {
                 $term = $terms->get((int) ($av['term_id'] ?? 0));

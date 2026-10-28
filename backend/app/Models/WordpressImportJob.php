@@ -20,6 +20,7 @@ class WordpressImportJob extends Model
         'last_error',
         'started_at',
         'finished_at',
+        'heartbeat_at',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class WordpressImportJob extends Model
             'dry_run' => 'boolean',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
+            'heartbeat_at' => 'datetime',
         ];
     }
 

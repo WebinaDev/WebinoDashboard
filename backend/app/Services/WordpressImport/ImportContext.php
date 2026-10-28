@@ -166,6 +166,106 @@ final class ImportContext
      *
      * @param  array<string, mixed>  $image
      */
+    public const MAX_IMAGE_BYTES = 33_554_432;
+
+    public const MAX_FILE_BYTES = 67_108_864;
+
+    public const MAX_DIMENSION = 2000;
+
+    private const WEB_IMAGES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    public static function isRaster(string $mime): bool
+    {
+        return str_starts_with($mime, 'image/') && $mime !== 'image/svg+xml';
+    }
+
+    public static function isAttachment(string $mime): bool
+    {
+        return SafeRemoteFetcher::safeAttachment($mime);
+    }
+
+    private static function extensionFor(string $mime, string $filename): string
+    {
+        $ext = strtolower((string) pathinfo($filename, PATHINFO_EXTENSION));
+        if ($ext !== '' && preg_match('/^[a-z0-9]{1,5}$/', $ext) && ! in_array($ext, ['php', 'phtml', 'phar', 'html', 'htm', 'js', 'mjs', 'svg', 'xml', 'exe', 'sh'], true)) {
+            return $ext;
+        }
+        $sub = explode('/', $mime)[1] ?? 'bin';
+
+        return preg_match('/^[a-z0-9]{1,5}$/', $sub) ? $sub : 'bin';
+    }
+
+    /**
+     * Convert to WebP when the image is not web-native, wider/taller than MAX_DIMENSION, or heavy.
+     * Animated GIFs are left alone. Returns null when no conversion was possible or needed.
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    public function optimizeImage(string $bytes, string $mime): ?array
+    {
+        if ($mime === 'image/gif') {
+            return null;
+        }
+        $size = @getimagesizefromstring($bytes);
+        $w = is_array($size) ? (int) $size[0] : 0;
+        $h = is_array($size) ? (int) $size[1] : 0;
+        $needs = ! in_array($mime, self::WEB_IMAGES, true)
+            || max($w, $h) > self::MAX_DIMENSION
+            || (strlen($bytes) > 2_097_152 && $mime !== 'image/webp');
+        if (! $needs) {
+            return null;
+        }
+        if (class_exists(\Imagick::class)) {
+            try {
+                $im = new \Imagick;
+                $im->readImageBlob($bytes);
+                $im = $im->coalesceImages()->getImage();
+                $im->autoOrient();
+                if (max($im->getImageWidth(), $im->getImageHeight()) > self::MAX_DIMENSION) {
+                    $im->thumbnailImage(self::MAX_DIMENSION, self::MAX_DIMENSION, true);
+                }
+                $im->stripImage();
+                $im->setImageFormat('webp');
+                $im->setImageCompressionQuality(82);
+                $out = $im->getImageBlob();
+                $im->clear();
+                if ($out !== '') {
+                    return [$out, 'image/webp'];
+                }
+            } catch (\Throwable) {
+                // fall through to GD
+            }
+        }
+        if (! function_exists('imagecreatefromstring') || ! function_exists('imagewebp')) {
+            return null;
+        }
+        if ($w > 0 && $h > 0 && $w * $h > 50_000_000) {
+            return null; // refuse decompression bombs
+        }
+        $src = @imagecreatefromstring($bytes);
+        if ($src === false) {
+            return null;
+        }
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $scale = min(1, self::MAX_DIMENSION / max(1, $w, $h));
+        $dst = $src;
+        if ($scale < 1) {
+            $dst = imagescale($src, max(1, (int) round($w * $scale)), max(1, (int) round($h * $scale)), IMG_BICUBIC);
+            if ($dst === false) {
+                return null;
+            }
+        }
+        imagepalettetotruecolor($dst);
+        imagealphablending($dst, false);
+        imagesavealpha($dst, true);
+        ob_start();
+        $ok = imagewebp($dst, null, 82);
+        $out = (string) ob_get_clean();
+
+        return $ok && $out !== '' ? [$out, 'image/webp'] : null;
+    }
+
     public function storeImage(array $image, ?string $fallbackExternalId = null): ?string
     {
         $externalId = trim((string) ($image['external_id'] ?? $fallbackExternalId ?? ''));
@@ -188,13 +288,13 @@ final class ImportContext
                 $raw = substr($raw, (int) strrpos($raw, ',') + 1);
             }
             $decoded = base64_decode($raw, true);
-            if ($decoded === false || $decoded === '' || strlen($decoded) > 8388608) {
+            if ($decoded === false || $decoded === '' || strlen($decoded) > self::MAX_IMAGE_BYTES) {
                 throw new InvalidArgumentException('Image data is invalid or too large.');
             }
             $bytes = $decoded;
             $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes) ?: '';
-            if (! in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true)) {
-                throw new InvalidArgumentException('Image data must be JPEG, PNG, GIF, or WebP.');
+            if (! self::isRaster($mime) && ! self::isAttachment($mime)) {
+                throw new InvalidArgumentException('Image data must be an image or a supported file.');
             }
             $filename = $this->cleanFilename((string) ($image['filename'] ?? 'image'));
         } elseif (! empty($image['url']) && is_string($image['url'])) {
@@ -207,7 +307,7 @@ final class ImportContext
             if ($this->dryRun() || ! $this->downloadMedia()) {
                 return null;
             }
-            $fetched = $this->fetcher->fetch($image['url'], $this->hosts());
+            $fetched = $this->fetcher->fetch($image['url'], $this->hosts(), self::MAX_IMAGE_BYTES, 'media');
             $bytes = $fetched->body;
             $mime = $fetched->mime;
             $filename = $fetched->filename;
@@ -217,6 +317,19 @@ final class ImportContext
 
         if ($this->dryRun()) {
             return null;
+        }
+        // Non-raster payloads (PDF, video, archives, SVG) are kept as file attachments.
+        if (! self::isRaster((string) $mime)) {
+            return $this->storeFile(array_merge($image, ['data_base64' => base64_encode($bytes), 'filename' => $filename, 'url' => null]), $externalId !== '' ? $externalId : null);
+        }
+        $optimized = $this->optimizeImage($bytes, (string) $mime);
+        if ($optimized === null) {
+            if (! in_array($mime, self::WEB_IMAGES, true)) {
+                // Image-like but not decodable here (e.g. HEIC without Imagick): keep the original as a file.
+                return $this->storeFile(array_merge($image, ['data_base64' => base64_encode($bytes), 'filename' => $filename, 'url' => null]), $externalId !== '' ? $externalId : null);
+            }
+        } else {
+            [$bytes, $mime] = $optimized;
         }
 
         $ext = match ($mime) {
@@ -277,7 +390,7 @@ final class ImportContext
         $bytes = null;
         $mime = null;
         $filename = null;
-        $max = 16_777_216;
+        $max = self::MAX_FILE_BYTES;
         if (! empty($file['data_base64']) && is_string($file['data_base64'])) {
             $raw = $file['data_base64'];
             if (str_contains($raw, ',')) {
@@ -297,7 +410,7 @@ final class ImportContext
             if ($this->dryRun() || ! $this->downloadMedia()) {
                 return null;
             }
-            $fetched = $this->fetcher->fetch($file['url'], $this->hosts(), $max, 'file');
+            $fetched = $this->fetcher->fetch($file['url'], $this->hosts(), $max, 'media');
             $bytes = $fetched->body;
             $mime = $fetched->mime;
             $filename = $fetched->filename;
@@ -306,8 +419,11 @@ final class ImportContext
         }
 
         $allowed = ['image/svg+xml', 'application/pdf', 'video/mp4', 'video/webm', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (! in_array($mime, $allowed, true)) {
-            throw new InvalidArgumentException('Unsupported media type. SVG, PDF, MP4, and WebM are accepted; other types are left on the review queue.');
+        if (self::isRaster((string) $mime) && ($optimized = $this->optimizeImage($bytes, (string) $mime)) !== null) {
+            [$bytes, $mime] = $optimized;
+        }
+        if (! in_array($mime, $allowed, true) && ! self::isRaster((string) $mime) && ! self::isAttachment((string) $mime)) {
+            throw new InvalidArgumentException('Unsupported media type '.$mime.'. Images, SVG, PDF, video, audio, documents and archives are accepted.');
         }
         if ($mime === 'image/svg+xml') {
             $bytes = $this->sanitizeSvg($bytes);
@@ -323,7 +439,8 @@ final class ImportContext
             'image/png' => 'png',
             'image/gif' => 'gif',
             'image/webp' => 'webp',
-            default => 'jpg',
+            'image/jpeg' => 'jpg',
+            default => self::extensionFor((string) $mime, (string) $filename),
         };
         if (! str_ends_with(strtolower((string) $filename), '.'.$ext)) {
             $filename = pathinfo((string) $filename, PATHINFO_FILENAME).'.'.$ext;

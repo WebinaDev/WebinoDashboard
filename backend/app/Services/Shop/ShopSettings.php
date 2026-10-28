@@ -4,6 +4,7 @@ namespace App\Services\Shop;
 
 use App\Models\Tenant;
 use App\Services\Modules\ModuleSettingsService;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Sanitized shop management settings (WooCommerce-inspired subset).
@@ -220,7 +221,7 @@ final class ShopSettings
         if (array_key_exists('country', $addrIn)) {
             $country = strtoupper(substr(trim((string) $addrIn['country']), 0, 2));
             if ($country === '' || ! in_array($country, self::allowedCountryCodes(), true)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'payload.store_address.country' => ['Invalid country code.'],
                 ]);
             }
@@ -232,7 +233,7 @@ final class ShopSettings
             foreach ($input[$listKey] as $code) {
                 $c = strtoupper(substr(trim((string) $code), 0, 2));
                 if ($c !== '' && ! in_array($c, self::allowedCountryCodes(), true)) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         "payload.{$listKey}" => ['Invalid country code.'],
                     ]);
                 }
@@ -347,6 +348,8 @@ final class ShopSettings
             'low_stock_threshold' => 2,
             'no_stock_threshold' => 0,
             'hide_out_of_stock' => false,
+            // Show out-of-stock products in listings with a «ناموجود» badge, sorted after in-stock ones.
+            'show_out_of_stock' => true,
             'stock_format' => 'low_amount',
         ];
     }
@@ -553,6 +556,7 @@ final class ShopSettings
             'low_stock_threshold' => max(0, (int) ($input['low_stock_threshold'] ?? $d['low_stock_threshold'])),
             'no_stock_threshold' => max(0, (int) ($input['no_stock_threshold'] ?? $d['no_stock_threshold'])),
             'hide_out_of_stock' => filter_var($input['hide_out_of_stock'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'show_out_of_stock' => filter_var($input['show_out_of_stock'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'stock_format' => $format,
         ];
     }
@@ -770,7 +774,6 @@ final class ShopSettings
     }
 
     /**
-     * @param  mixed  $list
      * @return list<string>
      */
     private static function sanitizeCountryList(mixed $list): array

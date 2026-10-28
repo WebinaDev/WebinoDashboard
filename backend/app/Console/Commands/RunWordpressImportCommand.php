@@ -9,7 +9,7 @@ use InvalidArgumentException;
 
 class RunWordpressImportCommand extends Command
 {
-    protected $signature = 'wordpress-import:run {job : Import job id} {--limit=50 : Records per batch}';
+    protected $signature = 'wordpress-import:run {job : Import job id} {--limit=50 : Records per batch} {--retry-failed : Re-queue failed items before running}';
 
     protected $description = 'Run a WordPress import job until it finishes, pauses, or fails';
 
@@ -25,6 +25,13 @@ class RunWordpressImportCommand extends Command
         if ($job->status === 'paused') {
             $job->status = 'ready';
             $job->save();
+        }
+        if ($runner->recoverIfStale($job)) {
+            $this->warn('Job was stuck in "running" without a heartbeat; resuming it.');
+        }
+        if ($this->option('retry-failed')) {
+            $this->info('Re-queued '.$runner->retryFailed($job).' failed item(s).');
+            $job->refresh();
         }
         do {
             try {

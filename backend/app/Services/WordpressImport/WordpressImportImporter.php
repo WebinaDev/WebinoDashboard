@@ -312,6 +312,11 @@ final class WordpressImportImporter
         }
         $link = $ctx->find('products', $externalId);
         $row = $link ? Product::query()->where('tenant_id', $ctx->tenantId())->find($link->local_id) : null;
+        if (! $row && ($guid = $this->guid($payload)) !== null && $guid !== '') {
+            // Idempotent re-import: adopt a product a previous (unlinked/crashed) run already created.
+            $row = Product::query()->where('tenant_id', $ctx->tenantId())
+                ->where('reference_source', 'wordpress')->where('reference_url', $guid)->first();
+        }
         $slug = $ctx->uniqueSlug(Product::class, $ctx->mapper->slug(
             isset($payload['slug']) ? (string) $payload['slug'] : null,
             $name
