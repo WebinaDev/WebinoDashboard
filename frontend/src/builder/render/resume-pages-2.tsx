@@ -16,6 +16,7 @@ import { contactHref, GLYPH } from "./resume-widgets"
 import "./resume-fonts.css"
 import "./resume-vitality.css"
 import "./resume-journal.css"
+import { Img } from "./img"
 
 type Row = Record<string, unknown> & { id: number }
 type Lang = "fa" | "en"
@@ -101,7 +102,7 @@ export function ResumeVitalityPage({ widget }: { widget: WidgetNode }) {
           </div>
         </div>
         <div className="arch rv"><div className="ring" /><div className="bg" />
-          {h.cutout ? <img src={h.cutout} alt={h.name} fetchPriority="high" /> : <div className="ph-cut" style={{ position: "absolute", inset: 0 }}>{h.first.slice(0, 1)}</div>}
+          {h.cutout ? <Img src={h.cutout} alt={h.name} priority /> : <div className="ph-cut" style={{ position: "absolute", inset: 0 }}>{h.first.slice(0, 1)}</div>}
           {stats[0] ? <div className="badge" style={{ top: "14%", insetInlineStart: "-14%" }}><b>{N(String(stats[0].value ?? ""))}</b><span>{T(stats[0], "label")}</span></div> : null}
           {edu0 ? <div className="badge" style={{ bottom: "12%", insetInlineEnd: "-12%", animationDelay: "-2s" }}><b>{T(edu0, "degree")}</b><span>{T(edu0, "field").replace(/\s*\(.*\)/, "")}</span></div> : null}
         </div>
@@ -138,7 +139,7 @@ export function ResumeVitalityPage({ widget }: { widget: WidgetNode }) {
               const meta = [T(b, "publisher"), b.date ? h.DT(b.date) : "", b.isbn ? `ISBN ${String(b.isbn)}` : ""].filter(Boolean)
               return (
               <div className={`book rv${cover ? " has-cover" : ""}`} key={b.id} style={{ marginBottom: 20 }}>
-                {cover ? <a className="bcover" href={links[0] ? String(links[0].url) : cover} target="_blank" rel="noopener noreferrer"><img src={cover} alt={T(b, "title")} loading="lazy" /></a> : null}
+                {cover ? <a className="bcover" href={links[0] ? String(links[0].url) : cover} target="_blank" rel="noopener noreferrer"><Img src={cover} alt={T(b, "title")} loading="lazy" /></a> : null}
                 <div className="bbody"><small>{optLabel(String(b.kind ?? "book"), lang)}</small><h3>{T(b, "title")}</h3>
                 {authors.length ? <p className="bauth">{L("نویسندگان: ", "By ")}{authors.join(L("، ", ", "))}</p> : null}
                 <p>{[T(b, "description"), ...meta].filter(Boolean).join(" · ")}</p>
@@ -149,7 +150,7 @@ export function ResumeVitalityPage({ widget }: { widget: WidgetNode }) {
             <div className="rv">{[...certs, ...honors].map((c, i) => (
               <div className="cert" key={`${c.id}-${i}`}>{(() => {
                 const img = (Array.isArray(c.media_ids) ? (c.media_ids as number[]) : []).map(h.media).find(Boolean)
-                return img ? <a className="thumb" href={img} target="_blank" rel="noopener noreferrer"><img src={img} alt="" loading="lazy" /></a> : <i>{N(String(i + 1).padStart(2, "0"))}</i>
+                return img ? <a className="thumb" href={img} target="_blank" rel="noopener noreferrer"><Img src={img} alt="" loading="lazy" /></a> : <i>{N(String(i + 1).padStart(2, "0"))}</i>
               })()}<div><b>{T(c, "name") || T(c, "title")}</b>{T(c, "issuer") || c.issue_date ? <div style={{ fontSize: 13, color: "var(--mut)" }}>{[T(c, "issuer"), c.issue_date ? h.DT(c.issue_date) : ""].filter(Boolean).join(" · ")}</div> : null}{c.credential_id ? <div style={{ fontSize: 12, color: "var(--mut)", direction: "ltr", textAlign: "start" }}>ID {String(c.credential_id)}</div> : null}</div></div>))}</div>
           </div>
         </section>
@@ -227,7 +228,7 @@ export function ResumeJournalPage({ widget }: { widget: WidgetNode }) {
           <div><div className="abs"><span className="mono">{L("چکیده", "Abstract")}</span><p>{T(h.id, "headline")}{T(h.id, "location") ? ` · ${T(h.id, "location")}` : ""}</p></div>
             {stats.length ? <div className="meta">{stats.slice(0, 3).map((s) => <div key={s.id}><b>{N(String(s.value ?? ""))}</b><small>{T(s, "label")}</small></div>)}</div> : null}</div></div>
         <div className="hr"><div className="helix"><Helix c1="var(--acc)" c2="#2f6f68" /></div>
-          <div className="dish rv"><div className="r" /><div className="r" /><div className="r" /><div className="face">{h.cutout ? <img src={h.cutout} alt={h.name} fetchPriority="high" /> : <div className="ph-cut" style={{ position: "absolute", inset: 0 }}>{h.first.slice(0, 1)}</div>}</div>
+          <div className="dish rv"><div className="r" /><div className="r" /><div className="r" /><div className="face">{h.cutout ? <Img src={h.cutout} alt={h.name} priority /> : <div className="ph-cut" style={{ position: "absolute", inset: 0 }}>{h.first.slice(0, 1)}</div>}</div>
             {cur ? <div className="tag" style={{ top: "8%", insetInlineStart: "-6%" }}><b>●</b> {T(cur, "title")} · {T(cur, "company")}</div> : null}
             {orcid ? <div className="tag" style={{ bottom: "14%", insetInlineEnd: "-8%", animationDelay: "-2.5s" }} dir="ltr"><b>ORCID</b> {short(orcid.value).replace(/^orcid\.org\//, "")}</div> : null}
           </div></div>

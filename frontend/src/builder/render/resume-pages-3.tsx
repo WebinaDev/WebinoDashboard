@@ -20,6 +20,7 @@ import { ContactIcon } from "./resume-pages-2"
 import { contactHref } from "./resume-widgets"
 import "./resume-fonts.css"
 import "./resume-tide.css"
+import { Img } from "./img"
 
 type Row = Record<string, unknown> & { id: number }
 type Lang = "fa" | "en"
@@ -201,7 +202,7 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
           </div>
           <figure className="portrait">
             <div className="halo" /><div className="arch-ring" />
-            <div className="frame">{h.cutout ? <img src={h.cutout} alt={h.name} fetchPriority="high" /> : <span className="ph">{h.first.slice(0, 1)}</span>}<span className="shine" /></div>
+            <div className="frame">{h.cutout ? <Img src={h.cutout} alt={h.name} priority /> : <span className="ph">{h.first.slice(0, 1)}</span>}<span className="shine" /></div>
             <div className="ripples" aria-hidden><i /><i /><i /></div>
             {stats[0] ? <figcaption className="chip c1"><Stat s={stats[0]} />{T(stats[0], "label")}</figcaption> : null}
             {edus[0] ? <figcaption className="chip c2"><b>{T(edus[0], "degree")}</b>{T(edus[0], "field").replace(/\s*\(.*\)/, "")}</figcaption> : null}
@@ -262,7 +263,7 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
             return (
               <article className="book" data-s key={b.id} style={{ "--k": i } as CSSProperties}>
                 <div className="float"><a className="cover" href={links[0] ? String(links[0].url) : String(b.url || cover || "#")} target="_blank" rel="noopener noreferrer">
-                  {cover ? <img src={cover} alt={T(b, "title")} loading="lazy" /> : <span className="nocov">{T(b, "title").slice(0, 1)}</span>}<span className="gloss" /></a><span className="shadow" /></div>
+                  {cover ? <Img src={cover} alt={T(b, "title")} loading="lazy" /> : <span className="nocov">{T(b, "title").slice(0, 1)}</span>}<span className="gloss" /></a><span className="shadow" /></div>
                 <div className="bb"><small><span>{N(String(i + 1).padStart(2, "0"))}</span>{optLabel(String(b.kind ?? "book"), lang)}</small><h3>{T(b, "title")}</h3>
                   {authors.length ? <p className="au">{L("نویسندگان: ", "By ")}{authors.join(L("، ", ", "))}</p> : null}
                   {T(b, "description") ? <p>{T(b, "description")}</p> : null}
@@ -282,7 +283,7 @@ export function ResumeTidePage({ widget }: { widget: WidgetNode }) {
             const sub = [T(c, "issuer"), c.issue_date ? h.DT(c.issue_date) : c.date ? h.DT(c.date) : ""].filter(Boolean).join(" · ")
             return (
               <article className={`cert${img ? " has" : ""}`} data-s key={`${c.id}-${i}`} style={{ "--k": i % 3 } as CSSProperties}>
-                {img ? <a className="th" href={img} target="_blank" rel="noopener noreferrer"><img src={img} alt={T(c, "name") || T(c, "title")} loading="lazy" /></a> : <span className="ix">{N(String(i + 1).padStart(2, "0"))}</span>}
+                {img ? <a className="th" href={img} target="_blank" rel="noopener noreferrer"><Img src={img} alt={T(c, "name") || T(c, "title")} loading="lazy" /></a> : <span className="ix">{N(String(i + 1).padStart(2, "0"))}</span>}
                 <div><h3>{T(c, "name") || T(c, "title")}</h3>{sub ? <p>{sub}</p> : null}{c.credential_id ? <p className="id" dir="ltr">ID {String(c.credential_id)}</p> : null}</div>
                 <span className="seal" aria-hidden />
               </article>)

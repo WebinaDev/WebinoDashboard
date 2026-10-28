@@ -6,6 +6,7 @@ use App\Models\CmsPage;
 use App\Models\SeoRedirect;
 use App\Models\User;
 use App\Services\Seo\SeoRedirectService;
+use App\Support\PublicCache\FrontendRevalidator;
 use Illuminate\Support\Facades\Log;
 
 /** Publish/unpublish/schedule, edit locks, preview tokens and slug redirects for builder pages. */
@@ -23,6 +24,7 @@ class BuilderPageLifecycle
         $page->status = 'published';
         $page->builder_publish_at = null;
         $page->save();
+        FrontendRevalidator::purgePaths(FrontendRevalidator::pagePaths($page->slug), $this->host());
     }
 
     public function unpublish(CmsPage $page): void
@@ -31,6 +33,7 @@ class BuilderPageLifecycle
         $page->status = 'draft';
         $page->builder_unpublish_at = null;
         $page->save();
+        FrontendRevalidator::purgePaths(FrontendRevalidator::pagePaths($page->slug), $this->host());
     }
 
     /** Runs due schedules; returns [published, unpublished]. */
@@ -145,5 +148,17 @@ class BuilderPageLifecycle
             SeoRedirect::query()->where('tenant_id', $page->tenant_id)->where('to_path', $from)->update(['to_path' => $to]);
             app(SeoRedirectService::class)->upsert((int) $page->tenant_id, ['from_path' => $from, 'to_path' => $to, 'status_code' => 301, 'note' => 'builder slug change']);
         }
+    }
+
+    /** Storefront host for the edge purge key, when the request came in on the tenant domain. */
+    private function host(): ?string
+    {
+        try {
+            $h = app()->runningInConsole() ? null : request()->getHost();
+        } catch (\Throwable) {
+            $h = null;
+        }
+
+        return $h ?: null;
     }
 }

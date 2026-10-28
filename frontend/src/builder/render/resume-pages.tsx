@@ -15,6 +15,7 @@ import { contactHref, GLYPH, useResumeData, type ResumePayload } from "./resume-
 import { useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import "./resume-story.css"
 import "./resume-os.css"
+import { Img } from "./img"
 
 type Row = Record<string, unknown> & { id: number; is_placeholder?: boolean }
 type Lang = "fa" | "en"
@@ -108,7 +109,7 @@ export function ResumeStoryPage({ widget }: { widget: WidgetNode }) {
         </nav>
         <div className="back" aria-hidden>{h.EN ? h.first.toUpperCase() : h.first}</div>
         <div className="halo" aria-hidden /><div className="arch" aria-hidden />
-        {h.cutout ? <img className="cut" data-p=".12" src={h.cutout} alt={h.name} fetchPriority="high" /> : <div className="cut ph-cut" aria-hidden>{h.first.slice(0, 1)}</div>}
+        {h.cutout ? <Img className="cut" data-p=".12" src={h.cutout} alt={h.name} priority /> : <div className="cut ph-cut" aria-hidden>{h.first.slice(0, 1)}</div>}
         <h1 className="front">{h.EN ? h.last.toUpperCase() : h.last}<span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}> {h.first}</span></h1>
         <div className="side s1">
           {h.since ? <div><small>{L("از سال", "SINCE")}</small><b>{h.sinceLabel}</b></div> : null}
@@ -151,7 +152,7 @@ export function ResumeStoryPage({ widget }: { widget: WidgetNode }) {
               {skillsOf.length ? <div className="tags">{skillsOf.map((s) => <em key={s}>{s}</em>)}</div> : null}
             </div>
             <div className="vis">
-              {img ? <img src={img} alt="" loading="lazy" /> : logo ? <div className="logo"><img src={logo} alt={T(x, "company")} loading="lazy" /></div> : (
+              {img ? <Img src={img} alt="" loading="lazy" /> : logo ? <div className="logo"><Img src={logo} alt={T(x, "company")} loading="lazy" /></div> : (
                 <div className="code" dir="ltr">
                   <b>{"// "}{T(x, "company") || T(x, "title")}</b><br />
                   {(ach.length ? ach : skillsOf).slice(0, 6).map((a) => <span key={a}><i>›</i> {a}<br /></span>)}<br />
@@ -178,7 +179,7 @@ export function ResumeStoryPage({ widget }: { widget: WidgetNode }) {
             </div>
             <div className="browser">
               <div className="t"><b /><b /><b /><span>{short(link) || T(pr, "title")}</span></div>
-              {cover ? <img src={cover} alt={T(pr, "title")} loading="lazy" /> : (
+              {cover ? <Img src={cover} alt={T(pr, "title")} loading="lazy" /> : (
                 <div className={`ui ${i % 3 === 1 ? "dark" : ""}`} aria-hidden><div className="sb"><i /><i /><i /><i /><i /></div><div className="mn"><div /><div /><div /><div /></div></div>
               )}
             </div>
@@ -206,7 +207,7 @@ export function ResumeStoryPage({ widget }: { widget: WidgetNode }) {
         <section className="quotes">{quotes.map((q) => <figure key={q.id}><blockquote>{T(q, "body")}</blockquote><figcaption>{T(q, "author")} · {T(q, "author_title")}</figcaption></figure>)}</section>
       ) : null}
       <section className="end" id="contact">
-        {h.cutout ? <div className="mini"><img src={h.cutout} alt="" loading="lazy" /></div> : null}
+        {h.cutout ? <div className="mini"><Img src={h.cutout} alt="" loading="lazy" /></div> : null}
         <h2>{L("بیا یه چیز", "Let’s build")}<span>{L("بزرگ بسازیم.", "something big.")}</span></h2>
         <div className="cts">{h.contacts.map((c) => (
           <a key={c.id} href={contactHref(String(c.type), String(c.value))} target={/^(tel|mailto):/.test(contactHref(String(c.type), String(c.value))) ? undefined : "_blank"} rel="noopener noreferrer me">
@@ -302,7 +303,7 @@ export function ResumeOsPage({ widget }: { widget: WidgetNode }) {
           </div>
           <div className="r">
             <div className="ring" />
-            {h.cutout ? <img src={h.cutout} alt={h.name} fetchPriority="high" /> : <div className="ph-cut" aria-hidden>{h.first.slice(0, 1)}</div>}
+            {h.cutout ? <Img src={h.cutout} alt={h.name} priority /> : <div className="ph-cut" aria-hidden>{h.first.slice(0, 1)}</div>}
             {sk[0] ? <div className="chipf mono" style={{ top: 24, insetInlineStart: 20 }}><span className="live" />{T(sk[0], "name")} <b>·</b> {sk[1] ? T(sk[1], "name") : ""}</div> : null}
             {h.exps.length ? <div className="chipf" style={{ bottom: 22, insetInlineStart: 20 }}>{T(h.exps[h.exps.length - 1], "title")} · <b>{T(h.exps[h.exps.length - 1], "company")}</b></div> : null}
           </div>
@@ -346,7 +347,7 @@ export function ResumeOsPage({ widget }: { widget: WidgetNode }) {
             return (
               <a key={pr.id} className="app" href={link || undefined} target={link ? "_blank" : undefined} rel="noopener noreferrer">
                 <div className="sh" style={{ background: [`linear-gradient(135deg,${accent},#3a1206)`, "linear-gradient(135deg,#1e3a8a,#0b1020)", "linear-gradient(135deg,#3ddc97,#0b3b2a)", "repeating-linear-gradient(45deg,#14161f 0 10px,#191c28 10px 20px)"][i % 4] }}>
-                  {cover ? <img src={cover} alt={T(pr, "title")} loading="lazy" /> : <><div className="mono" style={{ fontSize: 12, opacity: 0.85 }} dir="ltr">{short(link)}</div><div className="mini" aria-hidden><i /><div style={{ display: "grid", gap: 6 }}><i style={{ height: 10, width: "70%" }} /><i style={{ height: 40 }} /><i style={{ height: 10, width: "40%" }} /></div></div></>}
+                  {cover ? <Img src={cover} alt={T(pr, "title")} loading="lazy" /> : <><div className="mono" style={{ fontSize: 12, opacity: 0.85 }} dir="ltr">{short(link)}</div><div className="mini" aria-hidden><i /><div style={{ display: "grid", gap: 6 }}><i style={{ height: 10, width: "70%" }} /><i style={{ height: 40 }} /><i style={{ height: 10, width: "40%" }} /></div></div></>}
                 </div>
                 <div className="ab"><h4>{T(pr, "title")} {pr.is_placeholder ? <span className="ph">{L("نمونه", "Sample")}</span> : null}</h4><p>{[T(pr, "role"), ...trList(pr, "tags", lang)].filter(Boolean).join(" · ")}</p></div>
               </a>

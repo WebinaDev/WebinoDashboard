@@ -43,8 +43,40 @@ final class FrontendRevalidator
         });
     }
 
-    /** @param  list<string>  $tags */
-    public static function send(array $tags = self::TAGS): bool
+    /**
+     * Purge specific public paths (Next route cache + edge nginx) right away, e.g. a builder page on
+     * publish/unpublish, so visitors never see the stale cached copy until the next tag sweep.
+     *
+     * @param  list<string>  $paths
+     */
+    public static function purgePaths(array $paths, ?string $host = null): bool
+    {
+        $paths = array_values(array_unique(array_filter($paths, static fn ($p) => is_string($p) && str_starts_with($p, '/'))));
+        if ($paths === [] || ! self::enabled() || app()->runningUnitTests()) {
+            return false;
+        }
+
+        return self::send(['builder', 'seo'], $paths, $host);
+    }
+
+    /** Public paths a CMS/builder page is reachable at (new flat URL plus the legacy /pages/ one). */
+    public static function pagePaths(?string $slug, bool $isHome = false): array
+    {
+        $slug = trim((string) $slug, '/');
+        $out = $isHome || $slug === '' || $slug === 'home' ? ['/'] : [];
+        if ($slug !== '') {
+            $enc = implode('/', array_map('rawurlencode', explode('/', $slug)));
+            array_push($out, '/'.$enc, '/pages/'.$enc);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<string>  $tags
+     * @param  list<string>  $paths
+     */
+    public static function send(array $tags = self::TAGS, array $paths = [], ?string $host = null): bool
     {
         if (! self::enabled()) {
             return false;
@@ -53,7 +85,7 @@ final class FrontendRevalidator
         try {
             return Http::timeout(3)
                 ->withHeaders($secret !== '' ? ['x-revalidate-secret' => $secret] : [])
-                ->post(self::url(), ['tags' => array_values($tags)])
+                ->post(self::url(), array_filter(['tags' => array_values($tags), 'paths' => array_values($paths), 'host' => $host], static fn ($v) => $v !== null && $v !== []))
                 ->successful();
         } catch (\Throwable) {
             return false;

@@ -16,6 +16,7 @@ import { parseLinks, parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { embedVideoSrc } from "./sanitize-html"
 import { optImg } from "@/lib/image-url"
+import { Img } from "./img"
 
 function safeHref(href: string, fallback = "#"): string {
   const h = href.trim()
@@ -50,7 +51,7 @@ export function TeamGridWidget({ widget }: { widget: WidgetNode }) {
             <div className={`sf-card h-full p-4 ${layout === "cards" ? "flex items-center gap-4 text-start" : ""} ${layout === "slider" ? "w-60 shrink-0 snap-start" : ""}`}>
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={photo} alt={m.name} loading="lazy" className={`${layout === "cards" ? "size-20" : "mx-auto size-24"} rounded-full object-cover`} />
+                <Img src={photo} alt={m.name} loading="lazy" className={`${layout === "cards" ? "size-20" : "mx-auto size-24"} rounded-full object-cover`} />
               ) : null}
               <div className="mt-2">
                 <div className="font-bold">{m.name}</div>
@@ -107,9 +108,9 @@ export function BeforeAfterWidget({ widget }: { widget: WidgetNode }) {
   return (
     <div className="relative select-none overflow-hidden rounded-2xl" dir="ltr">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img loading="lazy" decoding="async" {...optImg(after)} alt={propStr(p, "afterLabel", "بعد")} className="block w-full" />
+      <Img loading="lazy" decoding="async" {...optImg(after)} alt={propStr(p, "afterLabel", "بعد")} className="block w-full" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img loading="lazy" decoding="async" {...optImg(before)} alt={propStr(p, "beforeLabel", "قبل")} className="absolute inset-0 h-full w-full object-cover" style={{ clipPath: clip }} />
+      <Img loading="lazy" decoding="async" {...optImg(before)} alt={propStr(p, "beforeLabel", "قبل")} className="absolute inset-0 h-full w-full object-cover" style={{ clipPath: clip }} />
       <span className="absolute start-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{propStr(p, "beforeLabel", "قبل")}</span>
       <span className="absolute end-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{propStr(p, "afterLabel", "بعد")}</span>
       <input
@@ -284,7 +285,7 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-bold">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo, undefined, true)} alt={name} className="h-9 w-auto" /> : null}
+          {logo ? <Img loading="eager" priority decoding="async" {...optImg(logo, undefined, true)} alt={name} className="h-9 w-auto" /> : null}
           {!logo || propStr(p, "siteName") ? <span>{name}</span> : null}
         </Link>
         <nav className="ms-auto hidden gap-4 text-sm md:flex">
@@ -324,7 +325,7 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-4">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {logo ? <img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt={siteName ?? ""} className="mb-3 h-10 w-auto" /> : <div className="mb-3 font-bold">{siteName}</div>}
+          {logo ? <Img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt={siteName ?? ""} className="mb-3 h-10 w-auto" /> : <div className="mb-3 font-bold">{siteName}</div>}
           {propStr(p, "blurb") ? <p className="text-sm opacity-80">{propStr(p, "blurb")}</p> : null}
         </div>
         {[...grouped.entries()].map(([title, links]) => (

@@ -11,6 +11,7 @@ import { optLabel, RESUME_THEMES, tr, trList } from "../../../modules/resume/lib
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
 import "./resume-widgets.css"
+import { Img } from "./img"
 
 type Row = Record<string, unknown> & { id: number; order?: number; is_placeholder?: boolean }
 export type ResumePayload = {
@@ -125,7 +126,7 @@ function Hero({ c, p }: { c: Ctx; p: Record<string, unknown> }) {
   return (
     <div className="rz-hero-in">
       {b(p, "show_avatar") ? (
-        <div className="rz-avatar">{avatar ? <img src={avatar} alt={name} loading="eager" /> : <span>{(name || "?").slice(0, 1)}</span>}</div>
+        <div className="rz-avatar">{avatar ? <Img src={avatar} alt={name} loading="eager" /> : <span>{(name || "?").slice(0, 1)}</span>}</div>
       ) : null}
       <div className="rz-hero-text">
         <p className="rz-kicker">{variant === "terminal" ? <code>$ whoami</code> : null}{tr(id, "location", c.lang)}{id.open_to_work ? <span className="rz-open">{c.t.open}</span> : null}</p>
@@ -199,7 +200,7 @@ function Experience({ c, p }: { c: Ctx; p: Record<string, unknown> }) {
             {variant === "timeline" ? <span className="rz-dot" aria-hidden /> : null}
             <div className="rz-card">
               <div className="rz-row">
-                {logo ? <img className="rz-logo" src={logo} alt="" loading="lazy" /> : null}
+                {logo ? <Img className="rz-logo" src={logo} alt="" loading="lazy" /> : null}
                 <h3>{tr(r, "title", c.lang)}</h3><Ph r={r} c={c} />
                 <span className="rz-date">{period(r, c)}{b(p, "show_duration") && r.duration_months ? <> · {durationLabel(r.duration_months as number, c.lang)}</> : null}</span>
               </div>
@@ -256,7 +257,7 @@ function Publications({ c, p }: { c: Ctx; p: Record<string, unknown> }) {
         const Wrap = r.url ? "a" : "div"
         return (
           <Wrap key={r.id} className="rz-card rz-pub" {...(r.url ? { href: String(r.url), target: "_blank", rel: "noopener noreferrer" } : {})}>
-            {b(p, "show_cover") ? <div className="rz-book">{cover ? <img src={cover} alt="" loading="lazy" /> : <span>{title.slice(0, 2)}</span>}</div> : null}
+            {b(p, "show_cover") ? <div className="rz-book">{cover ? <Img src={cover} alt="" loading="lazy" /> : <span>{title.slice(0, 2)}</span>}</div> : null}
             <div><Ph r={r} c={c} /><h3>{title}</h3>
               <p className="rz-co">{[optLabel(String(r.kind ?? ""), c.lang), tr(r, "publisher", c.lang), formatResumeDate(r.date as ResumeDate, c.lang, c.cal)].filter(Boolean).join(" · ")}</p>
               {tr(r, "description", c.lang) ? <p className="rz-desc">{tr(r, "description", c.lang)}</p> : null}
@@ -306,7 +307,7 @@ function Portfolio({ c, p }: { c: Ctx; p: Record<string, unknown> }) {
         const title = tr(r, "title", c.lang)
         return (
           <article key={r.id} className="rz-card rz-proj">
-            <div className="rz-thumb">{cover ? <img src={cover} alt={title} loading="lazy" /> : <span>{title.slice(0, 2)}</span>}</div>
+            <div className="rz-thumb">{cover ? <Img src={cover} alt={title} loading="lazy" /> : <span>{title.slice(0, 2)}</span>}</div>
             <div className="rz-pb">
               <div className="rz-row"><h3>{title}</h3><Ph r={r} c={c} />{r.featured ? <span className="rz-star" aria-label="featured">★</span> : null}</div>
               {tr(r, "role", c.lang) ? <p className="rz-co">{tr(r, "role", c.lang)}</p> : null}
@@ -333,7 +334,7 @@ function Testimonials({ c, p }: { c: Ctx; p: Record<string, unknown> }) {
         return (
           <figure key={r.id} className="rz-card rz-quote"><Ph r={r} c={c} />
             <blockquote>{tr(r, "body", c.lang)}</blockquote>
-            <figcaption>{av ? <img src={av} alt="" loading="lazy" /> : null}<span><b>{tr(r, "author", c.lang)}</b><small>{[tr(r, "author_title", c.lang), tr(r, "relation", c.lang)].filter(Boolean).join(" · ")}</small></span></figcaption>
+            <figcaption>{av ? <Img src={av} alt="" loading="lazy" /> : null}<span><b>{tr(r, "author", c.lang)}</b><small>{[tr(r, "author_title", c.lang), tr(r, "relation", c.lang)].filter(Boolean).join(" · ")}</small></span></figcaption>
           </figure>
         )
       })}
