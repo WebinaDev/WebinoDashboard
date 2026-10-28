@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../node_modules/@webina/ui/dist/nav-menus";
 @import "tw-animate-css";
 
 @import "../themes.css";

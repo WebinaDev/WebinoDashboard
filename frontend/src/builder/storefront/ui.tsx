@@ -1,6 +1,8 @@
 "use client"
 
 import { footerMenuSlugs } from "../registry-nav-menus"
+import { filterNavItems, navItemsToLinks, useFooterMenuColumns, useNavMenuItems } from "@/lib/nav-menus"
+import { NavHeaderItem, NavItemLink } from "@/themes/ecommerce-classic/components/ClassicNavMenu"
 import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 
@@ -962,11 +964,20 @@ function DefaultStorefrontHeader({
   const links = parseLinks(widget.props.links, NAV)
   const name = siteName || propStr(widget.props, "mark", "ویبینو")
   const dark = resolvedMode === "dark"
+  // «منوها»: assigned menus replace the widget's own links; nothing assigned keeps the defaults.
+  const loggedIn = auth === "auth" ? true : auth === "guest" ? false : null
+  const menuSlug = propStr(widget.props, "menu", "") || undefined
+  const mainRaw = useNavMenuItems(menuSlug ? { slug: menuSlug } : { location: "header_main" })
+  const mobileRaw = useNavMenuItems({ location: "mobile" })
+  const megaRaw = useNavMenuItems({ location: "mega_menu" })
+  const mainMenu = mainRaw ? filterNavItems(mainRaw, loggedIn) : null
+  const megaMenu = megaRaw ? filterNavItems(megaRaw, loggedIn) : null
+  const mobileLinks = mobileRaw ? navItemsToLinks(filterNavItems(mobileRaw, loggedIn)) : mainMenu ? navItemsToLinks(mainMenu) : links
 
   return (
     <>
       <StorefrontTopBar />
-      <StorefrontMobileNav open={mobileNav} onClose={() => setMobileNav(false)} links={links} />
+      <StorefrontMobileNav open={mobileNav} onClose={() => setMobileNav(false)} links={mobileLinks} />
       <header className="sf-store-header sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <MobileNavToggle onOpen={() => setMobileNav(true)} />
@@ -1009,8 +1020,8 @@ function DefaultStorefrontHeader({
         <button type="button" className="inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-bold" onClick={() => setOpen((value) => !value)}>
           {t("categories")}
         </button>
-        <nav className="hidden flex-1 flex-wrap items-center justify-end gap-1 md:flex">
-          {links.map((link) => (
+        <nav className="hidden flex-1 flex-wrap items-center justify-end gap-1 md:flex [&>a]:inline-flex [&>a]:items-center [&>a]:gap-1 [&>a]:rounded-full [&>a]:px-3 [&>a]:py-1.5 [&>a]:text-sm [&>a:hover]:bg-muted [&>div>a]:inline-flex [&>div>a]:items-center [&>div>a]:gap-1 [&>div>a]:rounded-full [&>div>a]:px-3 [&>div>a]:py-1.5 [&>div>a]:text-sm">
+          {mainMenu ? mainMenu.map((it) => <NavHeaderItem key={it.id} item={it} />) : links.map((link) => (
             <Link key={link.href + link.label} href={link.href} className="rounded-full px-3 py-1.5 text-sm hover:bg-muted">
               {link.label}
             </Link>
@@ -1020,7 +1031,20 @@ function DefaultStorefrontHeader({
       {open ? (
         <div className="border-t border-border bg-card pb-4">
           <div className="mx-auto hidden max-w-6xl px-4 pt-3 md:block">
-            <StorefrontMegaMenuPanel columnsText="" />
+            {megaMenu ? (
+              <div className="grid gap-4 md:grid-cols-4">
+                {megaMenu.map((it) => (
+                  <div key={it.id} className="grid content-start gap-1">
+                    <NavItemLink item={it} className="inline-flex items-center gap-1 font-bold" onNavigate={() => setOpen(false)} />
+                    {(it.children ?? []).map((c) => (
+                      <NavItemLink key={c.id} item={c} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground" onNavigate={() => setOpen(false)} />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <StorefrontMegaMenuPanel columnsText="" />
+            )}
           </div>
           <div className="mx-auto grid max-w-6xl gap-2 px-4 py-3 md:hidden sm:grid-cols-3">
             {catalog.categories.map((item) => (
@@ -1038,6 +1062,8 @@ function DefaultStorefrontHeader({
 
 function DefaultStorefrontFooter({ widget, siteName }: { widget: WidgetNode; siteName?: string }) {
   const t = useTranslations("storefront")
+  const menuColumns = useFooterMenuColumns(footerMenuSlugs(widget.props))
+  const bottomMenu = useNavMenuItems({ location: "footer_bottom" })
   const locale = useLocale()
   const about = propStr(widget.props, "about", "")
   const year = formatDate(new Date(), normalizeUiLocale(locale), { dateStyle: "short" }).split("/")[0] || digits(new Date().getFullYear(), locale)
@@ -1059,7 +1085,28 @@ function DefaultStorefrontFooter({ widget, siteName }: { widget: WidgetNode; sit
           <div className="rounded-2xl bg-muted px-3 py-2">{t("footer_trust")}</div>
         </div>
       </div>
-      <p className="mx-auto max-w-6xl px-4 pb-8 text-xs text-muted-foreground">© {year} {siteName}</p>
+      {menuColumns ? (
+        <div className="mx-auto grid max-w-6xl gap-6 border-t border-border px-4 py-8 sm:grid-cols-2 md:grid-cols-4">
+          {menuColumns.map((col) => (
+            <div key={col.title} className="grid content-start gap-2 text-sm">
+              <h3 className="font-bold">{col.title}</h3>
+              {col.items.map((it) => (
+                <NavItemLink key={it.id} item={it} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground" />
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pb-8 text-xs text-muted-foreground">
+        <p>© {year} {siteName}</p>
+        {bottomMenu ? (
+          <nav className="flex flex-wrap gap-3">
+            {filterNavItems(bottomMenu, false).map((it) => (
+              <NavItemLink key={it.id} item={it} className="inline-flex items-center gap-1 hover:text-foreground" />
+            ))}
+          </nav>
+        ) : null}
+      </div>
     </footer>
   )
 }
