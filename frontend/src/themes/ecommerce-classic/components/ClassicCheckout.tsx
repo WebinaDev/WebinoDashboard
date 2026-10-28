@@ -114,11 +114,13 @@ export function ClassicCheckout() {
   const count = lines.reduce((sum, line) => sum + line.quantity, 0)
   const [districts, setDistricts] = useState<Record<string, string[]>>({})
   const [district, setDistrict] = useState("")
-  const [proPack, setProPack] = useState<{ enabled: boolean; mandatory: boolean; amount_minor: number; label: string } | null>(null)
+  const [proPack, setProPack] = useState<{ enabled: boolean; mandatory: boolean; amount_minor: number; label: string; description?: string; default_selected?: boolean; replaces_carton?: boolean } | null>(null)
   const [proPackOn, setProPackOn] = useState(false)
   const cityDistricts = districts[city.trim()] ?? []
   const proPackFee = proPack?.enabled && proPack.amount_minor > 0 && (proPack.mandatory || proPackOn) ? proPack.amount_minor : 0
-  const shipCost = (rates.find((r) => r.instance_id === rateId)?.cost_minor ?? 0) + proPackFee
+  const pickedRate = rates.find((r) => r.instance_id === rateId) as { cost_minor?: number; packaging_minor?: number } | undefined
+  const cartonOff = proPackFee > 0 && proPack?.replaces_carton !== false ? (pickedRate?.packaging_minor ?? 0) : 0
+  const shipCost = Math.max(0, (pickedRate?.cost_minor ?? 0) - cartonOff) + proPackFee
   const total = subtotal + shipCost
 
   useEffect(() => {
@@ -132,13 +134,15 @@ export function ClassicCheckout() {
       setRegionCities([])
       return
     }
-    void quietApi<{ data?: { cities?: string[]; districts?: Record<string, string[]>; professional_packaging?: { enabled: boolean; mandatory: boolean; amount_minor: number; label: string } } }>(
+    void quietApi<{ data?: { cities?: string[]; districts?: Record<string, string[]>; professional_packaging?: { enabled: boolean; mandatory: boolean; amount_minor: number; label: string; description?: string; default_selected?: boolean; replaces_carton?: boolean } } }>(
       `/api/v1/shipping/regions?state_code=${encodeURIComponent(stateCode)}`,
     ).then((res) => {
       if (!res.ok) return
       setRegionCities(res.data.data?.cities ?? [])
       setDistricts(res.data.data?.districts ?? {})
-      setProPack(res.data.data?.professional_packaging ?? null)
+      const pp = res.data.data?.professional_packaging ?? null
+      setProPack(pp)
+      if (pp?.default_selected) setProPackOn(true)
     })
   }, [stateCode])
 
@@ -369,6 +373,7 @@ export function ClassicCheckout() {
                           <label className="sfc-field sfc-field--check">
                             <input type="checkbox" checked={proPack.mandatory || proPackOn} disabled={proPack.mandatory} onChange={(e) => setProPackOn(e.target.checked)} />
                             <span>{proPack.label || "بسته‌بندی حرفه‌ای"} (+<ClassicAmount value={proPack.amount_minor} />){proPack.mandatory ? " — اجباری" : ""}</span>
+                            {proPack.description ? <small className="sfc-hint">{proPack.description}</small> : null}
                           </label>
                         ) : null}
                       </Fragment>

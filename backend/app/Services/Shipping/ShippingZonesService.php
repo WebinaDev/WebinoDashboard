@@ -499,7 +499,7 @@ class ShippingZonesService
     /**
      * WP parity (shipping-module professional packaging): {enabled, mandatory, amount_minor, label}.
      *
-     * @return array{enabled: bool, mandatory: bool, amount_minor: int, label: string}
+     * @return array{enabled: bool, mandatory: bool, amount_minor: int, label: string, description: string, default_selected: bool, replaces_carton: bool}
      */
     public static function sanitizeProfessionalPackaging(mixed $in): array
     {
@@ -510,10 +510,22 @@ class ShippingZonesService
             'mandatory' => (bool) ($in['mandatory'] ?? false),
             'amount_minor' => max(0, (int) ($in['amount_minor'] ?? 0)),
             'label' => mb_substr(trim((string) ($in['label'] ?? 'بسته‌بندی حرفه‌ای')), 0, 80),
+            'description' => mb_substr(trim((string) ($in['description'] ?? 'بسته‌بندی شکیل و ایمن با لوازم محافظ، روی هزینه ارسال اضافه می‌شود.')), 0, 300),
+            'default_selected' => (bool) ($in['default_selected'] ?? false),
+            // WP parity: when the professional fee applies, carton packaging is not charged too.
+            'replaces_carton' => (bool) ($in['replaces_carton'] ?? true),
         ];
     }
 
     /** Fee to add at checkout: mandatory always applies, otherwise only when the customer opted in. */
+    /** Carton packaging included in a quoted method cost that the professional fee replaces (0 when it doesn't). */
+    public function cartonReplacedByProfessional(int $tenantId, bool $optedIn, int $cartonMinor): int
+    {
+        $p = self::sanitizeProfessionalPackaging($this->getConfig($tenantId)['global']['professional_packaging'] ?? []);
+
+        return ($p['replaces_carton'] && $this->professionalPackagingFee($tenantId, $optedIn) > 0) ? max(0, $cartonMinor) : 0;
+    }
+
     public function professionalPackagingFee(int $tenantId, bool $optedIn): int
     {
         $p = self::sanitizeProfessionalPackaging($this->getConfig($tenantId)['global']['professional_packaging'] ?? []);

@@ -38,7 +38,7 @@ type ZonesPayload = {
     packaging?: { enabled: boolean; boxes: PackBox[] }
     show_map?: boolean
     require_city?: boolean
-    professional_packaging?: { enabled: boolean; mandatory: boolean; amount_minor: number; label: string }
+    professional_packaging?: { enabled: boolean; mandatory: boolean; amount_minor: number; label: string; description?: string; default_selected?: boolean; replaces_carton?: boolean }
     districts?: Record<string, string[]>
   }
   method_types: { id: string; title: string; description: string }[]
@@ -286,6 +286,18 @@ export function ShippingZonesPanel() {
                   <Switch checked={pp.mandatory} onCheckedChange={(v) => savePP({ mandatory: v })} />
                   اجباری (مشتری نمی‌تواند حذفش کند)
                 </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Switch checked={!!pp.default_selected} onCheckedChange={(v) => savePP({ default_selected: v })} />
+                  به‌طور پیش‌فرض انتخاب شده باشد
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Switch checked={pp.replaces_carton !== false} onCheckedChange={(v) => savePP({ replaces_carton: v })} />
+                  جایگزین هزینه کارتن پستی شود (هر دو با هم حساب نشوند)
+                </label>
+                <div className="space-y-1">
+                  <Label>توضیح نمایش‌داده‌شده در تسویه‌حساب</Label>
+                  <Input defaultValue={pp.description ?? ""} onBlur={(e) => savePP({ description: e.target.value })} />
+                </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label>عنوان</Label>

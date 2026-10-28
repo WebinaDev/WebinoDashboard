@@ -71,6 +71,14 @@ class RecalculatePricesJob implements ShouldQueue
         $state['status'] = 'running';
         $this->save($state);
         $calc = PricingCalculator::forTenant($this->tenantId);
+        // WFCP 0.9.62 parity: when the price module is off, stored base prices are left untouched.
+        if (empty($calc->section('general')['enabled'])) {
+            $state['status'] = 'skipped';
+            $state['error'] = 'pricing_module_disabled';
+            $this->save($state);
+
+            return;
+        }
 
         try {
             Product::query()->where('tenant_id', $this->tenantId)->where('purchase_price_minor', '>', 0)

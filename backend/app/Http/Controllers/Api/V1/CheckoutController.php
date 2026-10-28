@@ -239,11 +239,18 @@ class CheckoutController extends Controller
             }
 
             // WP parity: professional packaging fee (optional or mandatory), never coupon-discounted.
-            $proPack = $this->shipping->professionalPackagingFee(
-                (int) $user->tenant_id,
-                (bool) ($checkoutMeta['professional_packaging'] ?? false)
-            );
+            $proOpt = array_key_exists('professional_packaging', $checkoutMeta)
+                ? (bool) $checkoutMeta['professional_packaging']
+                : (bool) (\App\Services\Shipping\ShippingZonesService::sanitizeProfessionalPackaging(
+                    $this->shipping->getConfig((int) $user->tenant_id)['global']['professional_packaging'] ?? []
+                )['default_selected']);
+            $proPack = $this->shipping->professionalPackagingFee((int) $user->tenant_id, $proOpt);
             if ($proPack > 0) {
+                $carton = $this->shipping->cartonReplacedByProfessional((int) $user->tenant_id, $proOpt, (int) ($shippingMeta['packaging_minor'] ?? 0));
+                if ($carton > 0) {
+                    $shippingMinor = max(0, $shippingMinor - $carton);
+                    $shippingMeta['packaging_replaced_minor'] = $carton;
+                }
                 $shippingMinor += $proPack;
                 $shippingMeta['professional_packaging_minor'] = $proPack;
             }
