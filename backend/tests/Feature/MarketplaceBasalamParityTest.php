@@ -29,7 +29,9 @@ class MarketplaceBasalamParityTest extends TestCase
         config(['services.webino.basalam_oauth_base' => 'https://erp.test']);
 
         // Another worker holds the lock: refresh must not call ERP.
-        Http::fake(['*' => Http::response(['access_token' => 'NEW', 'refresh_token' => 'RT2', 'expires_in' => 3600])]);
+        $next = fn () => Http::response(['access_token' => 'NEW', 'refresh_token' => 'RT2', 'expires_in' => 3600]);
+        // One fake whose response we swap: repeated Http::fake() stubs stack and the first '*' would win.
+        Http::fake(['*' => function () use (&$next) { return $next(); }]);
         $lock = Cache::lock('basalam-refresh:'.$this->tenant->id, 60);
         $this->assertTrue($lock->get());
         try {
@@ -40,7 +42,7 @@ class MarketplaceBasalamParityTest extends TestCase
         $lock->release();
 
         // 5xx: token kept, no auth error / reconnect flag.
-        Http::fake(['*' => Http::response('gateway', 502)]);
+        $next = fn () => Http::response('gateway', 502);
         try {
             BasalamAuth::for($this->tenant->id)->refresh();
             $this->fail('expected exception');
@@ -54,7 +56,7 @@ class MarketplaceBasalamParityTest extends TestCase
         $this->assertEmpty($state['needs_reconnect'] ?? null);
 
         // 400: refresh token rejected → needs reconnect.
-        Http::fake(['*' => Http::response(['message' => 'invalid_grant'], 400)]);
+        $next = fn () => Http::response(['message' => 'invalid_grant'], 400);
         try {
             BasalamAuth::for($this->tenant->id)->refresh();
         } catch (\Throwable) {
@@ -62,7 +64,7 @@ class MarketplaceBasalamParityTest extends TestCase
         $this->assertTrue((bool) $this->settings()->state($this->tenant->id, 'basalam')['needs_reconnect']);
 
         // Success clears the flag.
-        Http::fake(['*' => Http::response(['access_token' => 'NEW', 'refresh_token' => 'RT2', 'expires_in' => 3600])]);
+        $next = fn () => Http::response(['access_token' => 'NEW', 'refresh_token' => 'RT2', 'expires_in' => 3600]);
         BasalamAuth::for($this->tenant->id)->refresh();
         $this->assertSame('NEW', $this->settings()->credentials($this->tenant->id, 'basalam')['access_token']);
         $this->assertEmpty($this->settings()->state($this->tenant->id, 'basalam')['needs_reconnect'] ?? null);

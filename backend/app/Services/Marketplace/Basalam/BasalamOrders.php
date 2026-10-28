@@ -342,7 +342,10 @@ class BasalamOrders
         }
         $current = (string) data_get($map->order()->first()?->meta ?? [], 'basalam.status_key', '');
         $final = ['bslm-completed', 'bslm-rejected'];
-        if ((in_array($current, $final, true) && $current !== 'bslm-'.$key) || ($current === 'bslm-shipping' && $key === 'preparation')) {
+        // Plugin v0.9.65: finished orders never move backwards. One exception kept on purpose: Basalam cancelling a
+        // completed order goes forward to refunded (importer restocks once + notes it), never back to processing.
+        $cancelAfterComplete = $current === 'bslm-completed' && $key === 'rejected';
+        if ((in_array($current, $final, true) && $current !== 'bslm-'.$key && ! $cancelAfterComplete) || ($current === 'bslm-shipping' && $key === 'preparation')) {
             return ['order_id' => $map->order_id, 'status' => substr($current, 5), 'ignored' => true];
         }
         $wasImporting = MarketplaceOrderImporter::$importing;
