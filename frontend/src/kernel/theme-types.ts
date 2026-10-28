@@ -130,6 +130,8 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     support_email_title?: string
     support_email?: string
     support_hours?: string
+    /** Contact page map: iframe src (Neshan/Balad/OSM/Google embed). */
+    map_embed?: string
     address_title?: string
     address?: string
     social_title?: string
@@ -216,6 +218,9 @@ export type ClassicThemeSettings = StorefrontAppearanceColors & {
     stories_from_products?: boolean
     stories_count?: number
     amazing_limit?: number
+    /** Home offer carousels auto-advance (default on). */
+    amazing_autoplay?: boolean
+    amazing_autoplay_seconds?: number
     promo_limit?: number
     icon_categories_limit?: number
     brands_limit?: number

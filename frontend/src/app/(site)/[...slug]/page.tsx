@@ -5,7 +5,9 @@ import { CatalogSeedProvider } from "@/builder/storefront/use-catalog"
 import { JsonLd } from "@/components/seo/JsonLd"
 import { renderSitePage } from "@/kernel/render-pages"
 import { apiServer } from "@/lib/api-server"
-import { canonicalSiteSegments } from "@/kernel/route-resolver"
+import { canonicalSiteSegments, resolveSiteRoute } from "@/kernel/route-resolver"
+import { getPublicActivations } from "@/kernel/server-data"
+import { cmsPagePermalink } from "@/lib/content-permalink"
 import { resolveStoreSegments } from "@/kernel/store-slug"
 import { loadCollectionItem } from "../../../../modules/cms/site/collection-item-page"
 import { loadLinkHubPage } from "../../../../modules/link-hub/site/page-page"
@@ -36,7 +38,7 @@ type ProductSeoPayload = {
 /** Product SEO (meta + schema.org Product/BreadcrumbList graph) built by the backend SeoMetaBuilder. */
 async function loadProductSeo(slug: string, type: "product" | "page" = "product"): Promise<ProductSeoPayload["data"] | null> {
   try {
-    const path = type === "product" ? `/product/${slug}` : `/pages/${slug}`
+    const path = type === "product" ? `/product/${slug}` : cmsPagePermalink(slug)
     const res = await apiServer<ProductSeoPayload>(
       `/api/v1/public/seo/meta?type=${type}&slug=${encodeURIComponent(slug)}&path=${encodeURIComponent(path)}`,
       { revalidate: 60, tags: ["seo"] },
@@ -90,8 +92,15 @@ function metaToMetadata(meta: NonNullable<ProductSeoPayload["data"]>["meta"]): M
 }
 
 async function storeSegments(raw: string[]): Promise<string[]> {
-  return (await resolveStoreSegments(raw, canonicalSiteSegments(raw))).segments
+  const segments = (await resolveStoreSegments(raw, canonicalSiteSegments(raw))).segments
+  // A single segment claimed by a module this tenant has not activated (e.g. /about) falls back to the CMS page.
+  if (raw.length === 1 && segments.length === 1 && segments[0] === raw[0] && !RESERVED_ROOT.has(raw[0])) {
+    if (!resolveSiteRoute(segments, await getPublicActivations())) return ["pages", raw[0]]
+  }
+  return segments
 }
+
+const RESERVED_ROOT = new Set(["admin", "dashboard", "login", "setup"])
 
 /** Single poem shown by a builder page's poem-single widget via `?poem=<slug>`. */
 async function loadPoem(slug: string): Promise<PoemSeoSource | null> {

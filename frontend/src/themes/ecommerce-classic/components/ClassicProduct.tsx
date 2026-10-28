@@ -482,7 +482,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               </summary>
               <LowerPriceReportForm slug={product.slug} />
             </details>
-            <Link href={`/pages/contact?subject=${encodeURIComponent(`گزارش مشخصات: ${product.name}`)}`}>
+            <Link href={`/contact?subject=${encodeURIComponent(`گزارش مشخصات: ${product.name}`)}`}>
               <IconInfo size={16} /> گزارش مشخصات کالا یا موارد قانونی
             </Link>
           </div>

@@ -56,9 +56,9 @@ export const CLASSIC_NAV = [
   { label: "خانه", href: "/" },
   { label: "فروشگاه", href: "/shop" },
   { label: "مجله", href: "/blog" },
-  { label: "سوالات متداول", href: "/pages/faq" },
-  { label: "تماس با ما", href: "/pages/contact" },
-  { label: "درباره ما", href: "/pages/about" },
+  { label: "سوالات متداول", href: "/faq" },
+  { label: "تماس با ما", href: "/contact" },
+  { label: "درباره ما", href: "/about" },
 ]
 
 function navIcon(href: string, label: string): ReactNode {

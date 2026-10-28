@@ -21,6 +21,7 @@ import {
   IconTruck,
 } from "./icons"
 import { ClassicProductCard } from "./ClassicProductCard"
+import { ClassicCarousel } from "./ClassicCarousel"
 import { ClassicAmount, ClassicSectionHead, readCategoryVisits, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
 import { optImg } from "@/lib/image-url"
@@ -796,7 +797,6 @@ export function ClassicAmazingBand({ title, limit }: { title?: string; limit?: n
   const theme = useClassicThemeSettings()
   const catalog = useCatalog(24)
   const digits = useDigits()
-  const track = useRef<HTMLDivElement>(null)
   const [now, setNow] = useState<number | null>(null)
   useEffect(() => {
     setNow(Date.now())
@@ -828,13 +828,19 @@ export function ClassicAmazingBand({ title, limit }: { title?: string; limit?: n
           {tx("home.view_all")} <IconChevronLeft size={14} />
         </Link>
       </div>
-      <div className="sfc-amazing__track" ref={track}>
+      <ClassicCarousel
+        className="sfc-amazing__carousel"
+        trackClassName="sfc-amazing__track"
+        autoplay={theme.home?.amazing_autoplay !== false}
+        interval={Number(theme.home?.amazing_autoplay_seconds) || 5}
+        label={title || tx("home.amazing_title")}
+      >
         {list.map((p) => (
           <div key={p.slug} className="sfc-amazing__cell">
             <ClassicProductCard product={p} />
           </div>
         ))}
-      </div>
+      </ClassicCarousel>
     </section>
   )
 }
@@ -917,6 +923,7 @@ export function ClassicTasteBox({ title, limit }: { title?: string; limit?: numb
 
 export function ClassicSpecialBanners({ title, limit }: { title?: string; limit?: number }) {
   const tx = useClassicText()
+  const theme = useClassicThemeSettings()
   const catalog = useCatalog(16)
   const digits = useDigits()
   const [now, setNow] = useState<number | null>(null)
@@ -926,14 +933,14 @@ export function ClassicSpecialBanners({ title, limit }: { title?: string; limit?
     return () => window.clearInterval(timer)
   }, [])
   const offers = catalog.products.filter((p) => p.compare && p.compare > p.price)
-  const list = offers.slice(0, limit && limit > 0 ? limit : 8)
+  const list = offers.slice(0, limit && limit > 0 ? limit : Math.max(4, Number(theme.home?.amazing_limit) || 10))
   if (!list.length) return null
   const end = new Date()
   end.setHours(23, 59, 59, 0)
   const diff = now == null ? 0 : Math.max(0, end.getTime() - now)
   const hms = [Math.floor(diff / 3600000), Math.floor((diff % 3600000) / 60000), Math.floor((diff % 60000) / 1000)]
   const vertical = list.slice(0, 2)
-  const strip = list.slice(0, 6)
+  const strip = list
   return (
     <section className="sfc-special">
       {title ? <ClassicSectionHead title={title} href="/amazing-offers" /> : null}
@@ -952,7 +959,13 @@ export function ClassicSpecialBanners({ title, limit }: { title?: string; limit?
               ))}
             </div>
           </div>
-          <div className="sfc-special__strip">
+          <ClassicCarousel
+            className="sfc-special__carousel"
+            trackClassName="sfc-special__strip"
+            autoplay={theme.home?.amazing_autoplay !== false}
+            interval={Number(theme.home?.amazing_autoplay_seconds) || 5}
+            label={tx("home.special_title")}
+          >
             {strip.map((p) => {
               const off = p.compare && p.compare > p.price ? Math.round((1 - p.price / p.compare) * 100) : 0
               return (
@@ -962,11 +975,14 @@ export function ClassicSpecialBanners({ title, limit }: { title?: string; limit?
                     {off > 0 ? <em>{digits(off)}٪</em> : null}
                   </span>
                   <span className="sfc-special__name">{p.name}</span>
-                  <ClassicAmount value={p.price} />
+                  <span className="sfc-special__prices">
+                    {p.compare && p.compare > p.price ? <del><ClassicAmount value={p.compare} /></del> : null}
+                    <ClassicAmount value={p.price} />
+                  </span>
                 </Link>
               )
             })}
-          </div>
+          </ClassicCarousel>
         </div>
         <div className="sfc-special__verticals">
           {vertical.map((p, i) => {
@@ -1002,10 +1018,10 @@ export function ClassicSpecialBanners({ title, limit }: { title?: string; limit?
 /* ------------------------------------------------------- customer guide */
 
 const GUIDE_DEFAULTS = [
-  { title: "ارسال سریع", text: "تحویل اکسپرس در شهر شما", icon: "truck" as const, href: "/pages/shipping" },
-  { title: "پرداخت امن", text: "درگاه امن و خرید اقساطی", icon: "bag" as const, href: "/pages/payment" },
-  { title: "ضمانت بازگشت", text: "۷ روز ضمانت بازگشت کالا", icon: "shield" as const, href: "/pages/returns" },
-  { title: "اصالت کالا", text: "تضمین اصالت و اورجینال بودن", icon: "clock" as const, href: "/pages/about" },
+  { title: "ارسال سریع", text: "تحویل اکسپرس در شهر شما", icon: "truck" as const, href: "/shipping" },
+  { title: "پرداخت امن", text: "درگاه امن و خرید اقساطی", icon: "bag" as const, href: "/payment" },
+  { title: "ضمانت بازگشت", text: "۷ روز ضمانت بازگشت کالا", icon: "shield" as const, href: "/returns" },
+  { title: "اصالت کالا", text: "تضمین اصالت و اورجینال بودن", icon: "clock" as const, href: "/about" },
 ]
 
 export function ClassicCustomerGuide({ title, itemsText }: { title?: string; itemsText?: string }) {

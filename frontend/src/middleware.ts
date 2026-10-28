@@ -6,6 +6,7 @@
  */
 import { trailingSlashTarget } from "@/lib/trailing-slash"
 import { normalizeRedirectPath, siteRedirectFor } from "@/lib/site-redirects"
+import { canonicalSiteSegments } from "@/kernel/route-resolver"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
@@ -275,6 +276,14 @@ async function handle(request: NextRequest) {
     if (to) return NextResponse.redirect(absoluteRedirectUrl(to, request), 301)
   }
 
+  // /pages/<slug> → /<slug> (builder pages are served at the root).
+  {
+    const root = rootPagePath(pathname)
+    if (root && root !== pathname) {
+      return NextResponse.redirect(absoluteRedirectUrl(root + request.nextUrl.search, request), 301)
+    }
+  }
+
   // Native SEO redirects (no Rank Math)
   if (
     !pathname.startsWith("/dashboard") &&
@@ -296,7 +305,8 @@ async function handle(request: NextRequest) {
           return lookup.ok ? ((await lookup.json()) as { data?: { to_path?: string; status_code?: number } | null }) : null
         })
         if (json) {
-          const to = json.data?.to_path
+          const rawTo = json.data?.to_path
+          const to = rawTo ? stripPagesPrefix(rawTo) : rawTo
           const code = Number(json.data?.status_code ?? 301)
           if (to && normalizeRedirectPath(to) !== lookupPath) {
             const url = absoluteRedirectUrl(to, request)
@@ -424,6 +434,31 @@ function rewriteImageOptimizerSource(request: NextRequest): NextResponse | null 
   const next = request.nextUrl.clone()
   next.searchParams.set("url", `${base}${src}`)
   return NextResponse.rewrite(next)
+}
+
+/**
+ * Builder pages are public at /<slug>; /pages/<slug> is only an internal alias.
+ * Returns the root URL for a /pages/<slug> path, or null when the slug is claimed by a
+ * native route (blog, shop, search…) and must keep its /pages/ form.
+ */
+function rootPagePath(path: string): string | null {
+  const m = /^\/pages\/([^/]+)\/?$/.exec(path)
+  if (!m) return null
+  let slug = m[1]
+  try {
+    slug = decodeURIComponent(slug)
+  } catch {
+    /* keep raw */
+  }
+  if (canonicalSiteSegments([slug])[0] !== "pages") return null
+  return `/${m[1]}`
+}
+
+/** WP-import redirect targets like /pages/blog point at the native route of the same name. */
+function stripPagesPrefix(to: string): string {
+  const m = /^\/pages\/([^/?#]+)\/?([?#].*)?$/.exec(to)
+  if (!m || m[1] === "search") return to
+  return `/${m[1]}${m[2] ?? ""}`
 }
 
 export async function middleware(request: NextRequest) {

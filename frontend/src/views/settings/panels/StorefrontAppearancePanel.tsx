@@ -986,6 +986,11 @@ export function StorefrontAppearancePanel() {
                 onChange={(v) => setSection("footer", { support_hours: v })}
               />
               <FieldText
+                label={t("map_embed")}
+                value={String(footer.map_embed ?? "")}
+                onChange={(v) => setSection("footer", { map_embed: v })}
+              />
+              <FieldText
                 label={t("address")}
                 value={String(footer.address ?? "")}
                 multiline
@@ -1439,6 +1444,16 @@ export function StorefrontAppearancePanel() {
                 label={t("home_amazing_limit")}
                 value={Number(home.amazing_limit ?? 10)}
                 onChange={(v) => setSection("home", { amazing_limit: Math.max(1, v || 10) })}
+              />
+              <FieldSwitch
+                label={t("home_amazing_autoplay")}
+                checked={home.amazing_autoplay !== false}
+                onChange={(v) => setSection("home", { amazing_autoplay: v })}
+              />
+              <FieldNumber
+                label={t("home_amazing_autoplay_seconds")}
+                value={Number(home.amazing_autoplay_seconds ?? 5)}
+                onChange={(v) => setSection("home", { amazing_autoplay_seconds: Math.min(30, Math.max(2, v || 5)) })}
               />
               <FieldNumber
                 label={t("home_promo_limit")}

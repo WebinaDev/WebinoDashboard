@@ -233,7 +233,7 @@ export function RegisterFormWidget({ widget, editing }: { widget: WidgetNode; ed
       {needTerms ? (
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} required />
-          <Link href={safeHref(propStr(p, "termsHref", "/pages/terms"))}>{propStr(p, "termsLabel", "قوانین و شرایط را می‌پذیرم")}</Link>
+          <Link href={safeHref(propStr(p, "termsHref", "/terms"))}>{propStr(p, "termsLabel", "قوانین و شرایط را می‌پذیرم")}</Link>
         </label>
       ) : null}
       <button type="submit" className="rounded-full bg-primary py-2.5 font-bold text-primary-foreground">{propStr(p, "submit", "ایجاد حساب")}</button>

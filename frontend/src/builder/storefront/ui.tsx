@@ -48,7 +48,7 @@ const NAV = [
   { label: "فروشگاه", href: "/shop" },
   { label: "تازه‌ها", href: "/shop?sort=new" },
   { label: "مجله", href: "/blog" },
-  { label: "درباره", href: "/pages/about" },
+  { label: "درباره", href: "/about" },
 ]
 
 function useMoney() {

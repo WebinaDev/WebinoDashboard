@@ -31,10 +31,10 @@ const FALLBACK_GUIDE = {
   links: [
     { label: "حساب کاربری من", href: "/account" },
     { label: "سبد خرید", href: "/cart" },
-    { label: "سوالات متداول", href: "/pages/faq" },
-    { label: "تماس با ما", href: "/pages/contact" },
-    { label: "درباره ما", href: "/pages/about" },
-    { label: "شرایط و قوانین", href: "/pages/terms" },
+    { label: "سوالات متداول", href: "/faq" },
+    { label: "تماس با ما", href: "/contact" },
+    { label: "درباره ما", href: "/about" },
+    { label: "شرایط و قوانین", href: "/terms" },
   ],
 }
 

@@ -4987,8 +4987,7 @@
   margin-block: 0 !important;
 }
 
-/* ==========================================================================
-   Deep mega menu (multi-column + nested children)
+/* ===================================================================   Deep mega menu (multi-column + nested children)
    ========================================================================== */
 
 .sfc-mega.is-open > .sfc-mega__trigger,
@@ -6072,8 +6071,7 @@
   }
 }
 
-/* ==========================================================================
-   Page-level color scheme follows the storefront scheme, not the dashboard.
+/* ===================================================================   Page-level color scheme follows the storefront scheme, not the dashboard.
    next-themes writes `class="dark"` + inline `color-scheme` on <html> from the
    admin/OS preference; on a classic storefront page the shell's data-sf-scheme
    wins so scrollbars, form controls and overscroll match the shop.
@@ -6100,8 +6098,7 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
 }
 
 
-/* ==========================================================================
-   Cart extras — coupon + free-shipping progress (parisma / classic)
+/* ===================================================================   Cart extras — coupon + free-shipping progress (parisma / classic)
    ========================================================================== */
 .sfc-free-ship {
   margin: 0.75rem 0 1rem;
@@ -6165,8 +6162,7 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
   align-self: start;
 }
 
-/* ==========================================================================
-   Classic checkout (parisma purchasing-process chrome)
+/* ===================================================================   Classic checkout (parisma purchasing-process chrome)
    ========================================================================== */
 .sfc-checkout { padding-bottom: 2.5rem; }
 .sfc-checkout__headline {
@@ -6447,8 +6443,7 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
   color: #e8edf8;
 }
 
-/* ===================================================================
- * Theme-settings driven variants (audit follow-up). Dark mode follows the
+/* ============================================================ * Theme-settings driven variants (audit follow-up). Dark mode follows the
  * storefront scheme attribute only — never `html.dark`.
  * =================================================================== */
 
@@ -6754,3 +6749,93 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
 .sfc-topbar__menu a, .sfc-footer__bottom-menu a { display: inline-flex; align-items: center; gap: 4px; color: inherit; opacity: .9; }
 .sfc-topbar__menu a:hover, .sfc-footer__bottom-menu a:hover { opacity: 1; text-decoration: underline; }
 .sfc-header__links > a, .sfc-navmenu__drop > a { display: inline-flex; align-items: center; gap: 6px; }
+/* ---------------------------------------------- carousel (offers, RTL) */
+.sfc-carousel{position:relative;min-width:0}
+.sfc-carousel__track{scroll-behavior:smooth;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.sfc-carousel__arrow{position:absolute;top:50%;z-index:2;width:38px;height:38px;margin-top:-19px;border-radius:50%;border:1px solid var(--sfc-border-2,#e5e7eb);background:var(--sfc-card,#fff);color:var(--sfc-navy,#1f2937);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.12);transition:opacity .2s}
+.sfc-carousel__arrow:disabled{opacity:0;pointer-events:none}
+.sfc-carousel__arrow--prev{right:-8px}
+.sfc-carousel__arrow--next{left:-8px}
+@media (hover:none),(max-width:767px){.sfc-carousel__arrow{display:none}}
+
+/* special offers: real slides instead of a squeezed 6-up strip */
+.sfc-special__strip{grid-auto-columns:calc((100% - 30px) / 4);scroll-snap-type:x mandatory;scrollbar-width:none}
+.sfc-special__strip::-webkit-scrollbar{display:none}
+.sfc-special__item{scroll-snap-align:start;min-width:0;padding:14px 12px}
+.sfc-special__img{width:100%;height:auto;aspect-ratio:1/1;max-width:150px}
+.sfc-special__name{font-size:12.5px;line-height:1.8;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:3.6em;width:100%}
+.sfc-special__prices{display:flex;flex-direction:column;align-items:center;gap:2px;max-width:100%}
+.sfc-special__prices del{color:var(--sfc-muted,#9ca3af);font-size:11px}
+.sfc-special__prices del .sfc-amount{font-size:11px;font-weight:400}
+@media (max-width:1199px){.sfc-special__strip{grid-auto-columns:calc((100% - 20px) / 3)}}
+@media (max-width:767px){.sfc-special__strip{grid-auto-columns:44%}.sfc-amazing__track{grid-auto-columns:46%!important;gap:12px!important}}
+@media (max-width:380px){.sfc-special__strip{grid-auto-columns:62%}.sfc-amazing__track{grid-auto-columns:64%!important}}
+
+/* ---------------------------------------- mobile overflow guards (home) */
+.sfc-special__grid>*,.sfc-blog__grid>*,.sfc-blog__list>*,.sfc-amazing>*{min-width:0}
+.sfc-blog__list{grid-template-columns:minmax(0,1fr)}
+.sfc-blog__item,.sfc-blog__body{min-width:0;max-width:100%}
+.sfc-blog__body strong{white-space:normal;overflow-wrap:anywhere}
+@media (max-width:991px){.sfc-blog__grid,.sfc-special__grid{grid-template-columns:minmax(0,1fr)}}
+
+/* --------------------------------------------- responsive price blocks */
+.sfc-card{container-type:inline-size;container-name:sfc-card}
+.sfc-card__actions{flex-wrap:wrap;min-width:0}
+.sfc-card__actions>*{min-width:0}
+.sfc-card__price{min-width:0;flex:1 1 auto;justify-content:flex-end}
+.sfc-card .sfc-price{min-width:0;max-width:100%;flex:1 1 auto}
+.sfc-card .sfc-price__now,.sfc-card .sfc-price .sfc-amount{font-size:clamp(13px,7.5cqi,17px);max-width:100%}
+.sfc-card .sfc-price__old{flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:100%}
+.sfc-card .sfc-price__old del,.sfc-card .sfc-price__old del .sfc-amount{font-size:clamp(10px,5.2cqi,12px)}
+@container sfc-card (max-width:230px){
+  .sfc-card__actions{flex-direction:column-reverse;align-items:stretch}
+  .sfc-card__actions .sfc-price{align-items:flex-end}
+  .sfc-card__actions .sfc-btn{order:0;width:100%;min-width:0}
+  .sfc-card__actions .sfc-card__price{justify-content:flex-end;min-width:0}
+}
+
+/* ------------------------------------------------------- FAQ page */
+.sfc-faqpage{display:grid;gap:16px;max-width:900px;margin-inline:auto;width:100%}
+.sfc-faqpage__bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sfc-faqpage__search{flex:1 1 260px;display:flex;align-items:center;gap:8px;border:1px solid var(--sfc-border-2,#e5e7eb);border-radius:12px;padding:0 12px;background:var(--sfc-card,#fff);color:var(--sfc-muted,#6b7280)}
+.sfc-faqpage__search input{flex:1;border:0;outline:0;background:transparent;height:44px;font:inherit;color:var(--sfc-navy)}
+.sfc-faqpage__count{font-size:13px;font-weight:700;color:var(--sfc-primary,#ef4056);background:color-mix(in srgb,var(--sfc-primary,#ef4056) 10%,transparent);padding:6px 12px;border-radius:999px}
+.sfc-faqpage__list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.sfc-faqpage__list li{border:1px solid var(--sfc-border-2,#e5e7eb);border-radius:14px;background:var(--sfc-card,#fff);overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.sfc-faqpage__list li.is-open{border-color:var(--sfc-primary,#ef4056);box-shadow:var(--sfc-shadow-soft)}
+.sfc-faqpage__list button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:none;border:0;font:inherit;font-size:14px;font-weight:800;color:var(--sfc-navy);text-align:start;cursor:pointer}
+.sfc-faqpage__list button svg{flex:none;transition:transform .2s}
+.sfc-faqpage__list li.is-open button svg{transform:rotate(180deg);color:var(--sfc-primary,#ef4056)}
+.sfc-faqpage__list [role=region]{padding:0 18px 16px}
+.sfc-faqpage__list p{margin:0 0 6px;font-size:13px;line-height:2.1;color:var(--sfc-muted,#4b5563);text-align:justify}
+.sfc-faqpage__empty{padding:24px;text-align:center;display:grid;gap:12px;justify-items:center}
+.sfc-faqpage__cta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:18px;border-radius:14px;background:color-mix(in srgb,var(--sfc-primary,#ef4056) 8%,var(--sfc-card,#fff))}
+
+/* ---------------------------------------------------- contact page */
+.sfc-contact{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:20px;align-items:start}
+.sfc-contact__info{display:grid;gap:12px}
+.sfc-contact__row{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--sfc-border-2,#e5e7eb);border-radius:14px;background:var(--sfc-card,#fff);min-width:0}
+.sfc-contact__row>div{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:13px;line-height:1.9}
+.sfc-contact__row strong{font-size:13px;color:var(--sfc-navy)}
+.sfc-contact__row a{color:var(--sfc-navy);overflow-wrap:anywhere;text-align:start}
+.sfc-contact__row a:hover{color:var(--sfc-primary,#ef4056)}
+.sfc-contact__icon{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--sfc-primary,#ef4056) 12%,transparent);color:var(--sfc-primary,#ef4056)}
+.sfc-contact__map{border-radius:14px;overflow:hidden;border:1px solid var(--sfc-border-2,#e5e7eb);aspect-ratio:4/3}
+.sfc-contact__map iframe{width:100%;height:100%;border:0}
+.sfc-contact__maplink{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--sfc-primary,#ef4056)}
+.sfc-contact__form{padding:20px;display:grid;gap:12px}
+.sfc-contact__form h2{margin:0;font-size:16px;font-weight:800}
+.sfc-contact__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sfc-contact__form textarea{resize:vertical;min-height:120px}
+.sfc-contact__hp{position:absolute!important;inset-inline-start:0;top:0;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%);pointer-events:none}
+.sfc-contact__form .sfc-btn{justify-self:start}
+@media (max-width:767px){.sfc-contact,.sfc-contact__grid{grid-template-columns:minmax(0,1fr)}.sfc-contact__form .sfc-btn{justify-self:stretch}}
+
+/* Shop sort bar: never wider than the viewport on phones */
+.sfc-sort { min-width: 0; max-width: 100%; }
+.sfc-sort__tabs { min-width: 0; }
+@media (max-width: 767px) {
+  .sfc-sort { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .sfc-sort__tabs { flex: 1 1 100%; overflow-x: auto; scrollbar-width: none; }
+  .sfc-sort__tabs button { flex: 0 0 auto; white-space: nowrap; }
+}
