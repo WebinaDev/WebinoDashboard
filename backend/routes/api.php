@@ -323,6 +323,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/catalog/reviews/{review}/report', [ProductReviewController::class, 'reportAbuse'])->whereNumber('review')->middleware('throttle:public-writes');
             Route::get('/catalog/items/{slug}/price-history', [ProductEngagementController::class, 'priceHistory']);
             Route::post('/catalog/items/{slug}/stock-alerts', [ProductEngagementController::class, 'subscribeAlert'])->middleware('throttle:public-writes');
+            Route::post('/catalog/items/{slug}/reports', [\App\Http\Controllers\Api\V1\ProductReportController::class, 'publicStore'])->middleware('throttle:public-writes');
             Route::get('/compare', [ProductCompareController::class, 'show']);
             Route::post('/compare/products/{productId}', [ProductCompareController::class, 'add'])->whereNumber('productId')->middleware('throttle:public-writes');
             Route::delete('/compare/products/{productId}', [ProductCompareController::class, 'remove'])->whereNumber('productId')->middleware('throttle:public-writes');
@@ -548,6 +549,11 @@ Route::prefix('v1')->group(function () {
             Route::patch('/product-questions/{question}', [ProductQuestionController::class, 'moderate'])
                 ->middleware('can:reviews.moderate')
                 ->whereNumber('question');
+            Route::get('/product-reports', [\App\Http\Controllers\Api\V1\ProductReportController::class, 'adminIndex'])
+                ->middleware('can:reviews.moderate');
+            Route::patch('/product-reports/{report}', [\App\Http\Controllers\Api\V1\ProductReportController::class, 'update'])
+                ->middleware('can:reviews.moderate')
+                ->whereNumber('report');
             Route::get('/product-reviews', [ProductReviewController::class, 'adminIndex']);
             Route::patch('/product-reviews/{review}', [ProductReviewController::class, 'moderate'])
                 ->middleware('can:reviews.moderate')
