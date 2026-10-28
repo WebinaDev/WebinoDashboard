@@ -13,6 +13,6 @@ jobs:
         working-directory: frontend
         run: |
           UI=$(node -p "require('./package.json').dependencies['@webina/ui']")
-          mkdir -p /tmp/ci && cd /tmp/ci && npm init -y >/dev/null && npm i --no-audit --no-fund "$UI" typescript@5
+          mkdir -p /tmp/ci && cd /tmp/ci && npm init -y >/dev/null && npm i --no-audit --no-fund --legacy-peer-deps "$UI" typescript@5
       - name: Fail on widgets defined both locally and in @webina/ui
         run: node /tmp/ci/node_modules/@webina/ui/scripts/check-duplicates.mjs frontend/src/builder
