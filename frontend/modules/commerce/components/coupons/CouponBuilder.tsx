@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
-import { CONDITION_TYPES } from "@/components/coupons/CouponOfferPanel"
+import { CONDITION_TYPES } from "./CouponOfferPanel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"

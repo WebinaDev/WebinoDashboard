@@ -1,9 +1,9 @@
 "use client"
 
-import { BrandMultiSelect } from "@/components/coupons/BrandMultiSelect"
-import { CategoryMultiSelect } from "@/components/coupons/CategoryMultiSelect"
-import { ProductMultiSelect } from "@/components/coupons/ProductMultiSelect"
-import { UserMultiSelect } from "@/components/coupons/UserMultiSelect"
+import { BrandMultiSelect } from "./BrandMultiSelect"
+import { CategoryMultiSelect } from "./CategoryMultiSelect"
+import { ProductMultiSelect } from "./ProductMultiSelect"
+import { UserMultiSelect } from "./UserMultiSelect"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"

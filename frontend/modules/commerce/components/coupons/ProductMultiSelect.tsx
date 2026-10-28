@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl"
 
-import { SearchMultiSelect, type SearchOption } from "@/components/coupons/SearchMultiSelect"
+import { SearchMultiSelect, type SearchOption } from "./SearchMultiSelect"
 import { api } from "@/lib/api"
 
 type ProductHit = { id: number; name: string; sku?: string | null }

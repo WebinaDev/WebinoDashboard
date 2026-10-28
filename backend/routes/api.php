@@ -92,7 +92,7 @@ use App\Http\Controllers\Api\V1\StaffController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\BotController;
-use App\Http\Controllers\Api\V1\CouponController;
+use Modules\Commerce\Http\Controllers\CouponController;
 use App\Http\Controllers\Api\V1\ModirPayamakController;
 use App\Http\Controllers\Api\V1\PublicCatalogController;
 use App\Http\Controllers\Api\V1\PublicCafeController;
