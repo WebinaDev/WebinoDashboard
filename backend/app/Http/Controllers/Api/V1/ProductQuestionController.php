@@ -19,7 +19,7 @@ class ProductQuestionController extends Controller
     public function publicIndex(Request $request, string $slug): JsonResponse
     {
         $tid = $this->publicTenantId($request);
-        $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->storefront()->firstOrFail();
+        $product = Product::query()->where('tenant_id', $tid)->publicKey($slug)->storefront()->firstOrFail();
         $items = ProductQuestion::query()
             ->where('tenant_id', $tid)
             ->where('product_id', $product->id)

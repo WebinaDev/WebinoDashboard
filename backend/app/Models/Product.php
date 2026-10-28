@@ -195,6 +195,31 @@ class Product extends Model
      * unavailable only because they are out of stock (shown with a «ناموجود» badge, not buyable;
      * cart/checkout still check is_sold_out themselves).
      */
+    /**
+     * Public lookup key: exact slug, WooCommerce-style percent-encoded slug, or numeric id
+     * (catalog list items expose `id`, and SSR/legacy links pass it). Slug matches win.
+     */
+    public function scopePublicKey(Builder $query, string $key): Builder
+    {
+        $key = trim(rawurldecode($key));
+        $encoded = strtolower(rawurlencode($key));
+        $isId = ctype_digit($key) && strlen($key) < 19;
+        $query->where(function (Builder $q) use ($key, $encoded, $isId) {
+            $q->where('slug', $key);
+            if ($encoded !== $key) {
+                $q->orWhere('slug', $encoded);
+            }
+            if ($isId) {
+                $q->orWhere('id', (int) $key);
+            }
+        });
+        if ($isId) {
+            $query->orderByRaw('CASE WHEN slug = ? THEN 0 ELSE 1 END', [$key]);
+        }
+
+        return $query;
+    }
+
     public function scopeCatalogListing(Builder $query, bool $includeOutOfStock = false): Builder
     {
         if (! $includeOutOfStock) {

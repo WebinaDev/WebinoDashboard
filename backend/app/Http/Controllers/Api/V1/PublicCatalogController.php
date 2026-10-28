@@ -276,7 +276,7 @@ class PublicCatalogController extends Controller
 
         $product = Product::query()
             ->where('tenant_id', $tid)
-            ->where('slug', $slug)
+            ->publicKey($slug)
             ->catalogListing($this->showOutOfStock($tid))
             ->with([
                 'category',
@@ -317,7 +317,7 @@ class PublicCatalogController extends Controller
         $column = ['upsell' => 'upsell_ids', 'cross_sell' => 'cross_sell_ids', 'related' => 'related_ids'][$type] ?? null;
         abort_if($column === null, 422, 'Invalid type');
 
-        $product = Product::query()->where('tenant_id', $tid)->where('slug', $slug)->storefront()->firstOrFail();
+        $product = Product::query()->where('tenant_id', $tid)->publicKey($slug)->storefront()->firstOrFail();
         $ids = array_slice(array_values(array_filter(array_map('intval', (array) ($product->{$column} ?? [])))), 0, 12);
         $pricing = PurchaseTypeService::forTenant($tid);
         $rows = $ids === [] ? collect() : Product::query()
