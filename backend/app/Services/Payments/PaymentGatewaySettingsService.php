@@ -29,6 +29,7 @@ class PaymentGatewaySettingsService
         'wallet',
         'c2c',
         'cod',
+        'cheque',
     ];
 
     /** Site commerce IPGs configured on «درگاه‌های پرداخت». */
@@ -160,6 +161,11 @@ class PaymentGatewaySettingsService
     public function defaultsFor(string $provider): array
     {
         return match ($provider) {
+            'cheque' => [
+                'title' => 'پرداخت با چک',
+                'instructions' => '',
+                'payee_name' => '',
+            ],
             'zibal' => [
                 'merchant_id' => '',
                 'title' => 'زیبال',
@@ -325,7 +331,9 @@ class PaymentGatewaySettingsService
                 $out['has_'.$key] = $has;
             }
         }
-        $out['callback_url'] = url('/api/v1/payments/callback/'.$this->callbackSlug($provider).'/{order}');
+        if ($provider !== 'cheque') {
+            $out['callback_url'] = url('/api/v1/payments/callback/'.$this->callbackSlug($provider).'/{order}');
+        }
         if ($provider === 'snapppay' || $provider === 'torobpay') {
             $out['server_ip'] = request()?->server('SERVER_ADDR') ?: gethostbyname(gethostname() ?: 'localhost');
         }
@@ -500,7 +508,7 @@ class PaymentGatewaySettingsService
                 ->where('enabled', true)
                 ->whereNotNull('token')
                 ->exists(),
-            'wallet', 'c2c', 'cod' => true,
+            'wallet', 'c2c', 'cod', 'cheque' => true,
             default => false,
         };
     }
@@ -524,6 +532,7 @@ class PaymentGatewaySettingsService
             ['id' => 'wallet', 'title_key' => 'wallet', 'settings_path' => '/dashboard/settings/shop/wallet'],
             ['id' => 'c2c', 'title_key' => 'c2c', 'settings_path' => '/dashboard/settings/shop/c2c'],
             ['id' => 'cod', 'title_key' => 'cod', 'settings_path' => '/dashboard/settings/shop/payments'],
+            ['id' => 'cheque', 'title_key' => 'cheque', 'settings_path' => '/dashboard/settings/shop/payments'],
         ];
 
         $items = [];
@@ -531,7 +540,7 @@ class PaymentGatewaySettingsService
             $id = $row['id'];
             $configured = $this->configured($tenantId, $id);
             $enabled = (bool) ($hub['enabled'][$id] ?? false);
-            $available = $id === 'cod' || $id === 'wallet' || $id === 'c2c' || $configured || $id === 'bale_pay';
+            $available = $id === 'cod' || $id === 'cheque' || $id === 'wallet' || $id === 'c2c' || $configured || $id === 'bale_pay';
             $items[] = [
                 'id' => $id,
                 'title_key' => $row['title_key'],

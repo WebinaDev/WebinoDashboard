@@ -174,6 +174,11 @@ class PublicOrderPaymentController extends Controller
             if (! $settings->isEnabled($tid, $id)) {
                 continue;
             }
+            if ($id === 'cheque') {
+                $out[] = $gw;
+
+                continue;
+            }
             if ($id === 'bale_pay' || $settings->configured($tid, $id)) {
                 $out[] = $gw;
             }
@@ -193,6 +198,7 @@ class PublicOrderPaymentController extends Controller
             ['id' => 'card_to_card', 'label' => 'Card to card'],
             ['id' => 'wallet', 'label' => 'Wallet'],
             ['id' => 'cod', 'label' => 'Cash on delivery'],
+            ['id' => 'cheque', 'label' => 'Cheque'],
             ['id' => 'bale_pay', 'label' => 'Bale Pay'],
             ['id' => 'basalam_pay', 'label' => 'Basalam Pay'],
         ];

@@ -30,7 +30,9 @@ class CheckoutController extends Controller
             'customer_note' => ['nullable', 'string', 'max:500'],
             'coupon_code' => ['nullable', 'string', 'max:64'],
             'coupon_password' => ['nullable', 'string', 'max:191'],
-            'payment_method' => ['nullable', 'string', 'in:wallet'],
+            'payment_method' => ['nullable', 'string', 'in:wallet,cheque'],
+            'shipping_lat' => ['nullable', 'numeric', 'between:-90,90', 'required_with:shipping_lng'],
+            'shipping_lng' => ['nullable', 'numeric', 'between:-180,180', 'required_with:shipping_lat'],
             'channel' => ['nullable', 'string', 'in:site,bale,telegram'],
             'shipping_instance_id' => ['nullable', 'integer', 'min:1'],
             'shipping_state_code' => ['nullable', 'string', 'max:32'],
@@ -266,6 +268,18 @@ class CheckoutController extends Controller
                 }
             }
 
+            if (isset($checkoutMeta['shipping_lat'], $checkoutMeta['shipping_lng'])) {
+                $shippingMeta['shipping_location'] = [
+                    'lat' => round((float) $checkoutMeta['shipping_lat'], 7),
+                    'lng' => round((float) $checkoutMeta['shipping_lng'], 7),
+                ];
+            }
+            if (($checkoutMeta['payment_method'] ?? null) === 'cheque') {
+                if (! app(\App\Services\Payments\PaymentGatewaySettingsService::class)->isEnabled((int) $user->tenant_id, 'cheque')) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['payment_method' => 'پرداخت با چک فعال نیست.']);
+                }
+                $shippingMeta['payment_method'] = 'cheque';
+            }
             $shippingAddress = $checkoutMeta['shipping_address'] ?? null;
             if ($shippingAddress === null || $shippingAddress === '' || (is_array($shippingAddress) && trim(implode('', array_map('strval', $shippingAddress))) === '')) {
                 $shippingAddress = \App\Services\Shop\ShopSettings::defaultCustomerAddress((int) $user->tenant_id);

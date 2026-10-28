@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class PaymentGatewaySettingsController extends Controller
 {
     /** @var list<string> */
-    private const PROVIDERS = ['zarinpal', 'digipay', 'snapppay', 'torobpay', 'bale_pay', 'wallet', 'c2c'];
+    private const PROVIDERS = ['zarinpal', 'digipay', 'snapppay', 'torobpay', 'bale_pay', 'wallet', 'c2c', 'cheque'];
 
     public function __construct(protected PaymentGatewaySettingsService $gateways) {}
 
@@ -39,7 +39,7 @@ class PaymentGatewaySettingsController extends Controller
 
         $tid = (int) $request->user()->tenant_id;
         $settings = $this->gateways->save($tid, $provider, $input);
-        if ($enabled !== null && in_array($provider, PaymentGatewaySettingsService::COMMERCE_GATEWAYS, true)) {
+        if ($enabled !== null && (in_array($provider, PaymentGatewaySettingsService::COMMERCE_GATEWAYS, true) || $provider === 'cheque')) {
             $this->gateways->setGatewayEnabled($tid, $provider, $enabled);
         }
 

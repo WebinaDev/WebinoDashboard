@@ -89,6 +89,7 @@ return [
         'card_to_card' => 'Card to card',
         'wallet' => 'Wallet',
         'cod' => 'Cash on delivery',
+        'cheque' => 'Cheque',
         'bale_pay' => 'Bale Pay',
         'cash' => 'Cash',
         'card' => 'Card',
