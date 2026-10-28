@@ -7,6 +7,7 @@ use App\Services\Marketplace\MarketplaceException;
 use App\Services\Marketplace\MarketplaceLogger;
 use App\Services\Marketplace\MarketplaceSettingsService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -297,6 +298,36 @@ class BasalamAuth
     /** Refresh through the ERP (client_secret never leaves it). */
     public function refresh(): void
     {
+        // Single-flight: only one refresh at a time; waiters reuse the winner's token.
+        $before = $this->refreshToken();
+        $lock = Cache::lock('basalam-refresh:'.$this->tenantId, 60);
+        if (! $lock->get()) {
+            try {
+                $lock->block(20);
+            } catch (\Illuminate\Contracts\Cache\LockTimeoutException) {
+                throw new MarketplaceException('تمدید توکن باسلام در حال انجام است؛ کمی بعد دوباره تلاش کنید.', 503);
+            }
+            try {
+                if ($this->refreshToken() !== $before || ! $this->expiresWithin(300)) {
+                    return;
+                }
+                $this->doRefresh();
+            } finally {
+                $lock->release();
+            }
+
+            return;
+        }
+        try {
+            $this->doRefresh();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /** Actual refresh (call only under lock). Network/CDN/5xx failures never clear the stored token. */
+    protected function doRefresh(): void
+    {
         $refresh = $this->refreshToken();
         if ($refresh === '') {
             throw new MarketplaceException(__('marketplace.basalam_refresh_missing'), 401);
@@ -311,13 +342,17 @@ class BasalamAuth
                 'vendor_id' => $this->vendorId() ?: null,
             ]));
         } catch (Throwable $e) {
-            throw new MarketplaceException(__('marketplace.basalam_refresh_failed', ['error' => $e->getMessage()]), 0);
+            throw new MarketplaceException(BasalamErrors::transport($e->getMessage()), 0);
         }
         $data = (array) $response->json();
         if (! $response->successful() || empty($data['access_token'])) {
-            $message = (string) ($data['message'] ?? $response->status());
+            $status = $response->status();
+            if ($status >= 500 || $status === 429 || $status === 408 || ! is_array($response->json())) {
+                throw new MarketplaceException(BasalamErrors::http($status), $status >= 500 ? $status : 503);
+            }
+            $message = (string) ($data['message'] ?? $status);
             $this->markAuthError($message);
-            throw new MarketplaceException(__('marketplace.basalam_refresh_failed', ['error' => $message]), $response->status() >= 500 ? $response->status() : 401);
+            throw new MarketplaceException(__('marketplace.basalam_refresh_failed', ['error' => $message]), 401);
         }
 
         $this->settings->patchCredentials($this->tenantId, self::PLATFORM, [

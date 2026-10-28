@@ -117,16 +117,58 @@ class BasalamOrders
         return (int) round($pricing->storeCurrency() === 'IRT' ? $rial / 10 : $rial);
     }
 
-    /** @param  array<string, mixed>  $item */
-    public static function lineTotalRial(array $item): int
+    /**
+     * Line total (rial) — «قیمت محصول» row is the sum over all units; when it equals the
+     * unit price for qty > 1, it is a unit price and is multiplied (plugin resolveLineTotalRial).
+     *
+     * @param  array<string, mixed>  $item
+     */
+    public static function lineTotalRial(array $item, ?int $quantity = null): int
     {
-        foreach ((array) data_get($item, 'financial_report.report_items', []) as $row) {
-            if (is_array($row) && ($row['title'] ?? '') === 'قیمت محصول' && isset($row['amount'])) {
-                return (int) $row['amount'];
+        $qty = max(1, (int) ($quantity ?? ($item['quantity'] ?? 1)));
+        $row = 0.0;
+        foreach ((array) data_get($item, 'financial_report.report_items', []) as $r) {
+            if (is_array($r) && ($r['title'] ?? '') === 'قیمت محصول' && isset($r['amount'])) {
+                $row = (float) $r['amount'];
+                break;
+            }
+        }
+        $unit = 0.0;
+        foreach (['price', 'unit_price', 'primary_price'] as $k) {
+            if (isset($item[$k]) && is_numeric($item[$k]) && (float) $item[$k] > 0) {
+                $unit = (float) $item[$k];
+                break;
+            }
+        }
+        if ($row <= 0) {
+            return (int) round($unit * $qty);
+        }
+        if ($qty > 1 && $unit > 0 && abs($row - $unit) < 1) {
+            return (int) round($unit * $qty);
+        }
+
+        return (int) round($row);
+    }
+
+    /**
+     * Commission/fee row (rial) matched by title; index 2 only when no titled row exists.
+     *
+     * @param  array<string, mixed>  $raw
+     */
+    public static function feeAmountRial(array $raw): float
+    {
+        $items = data_get($raw, 'financial_report.product_cost.report_items', []);
+        if (! is_array($items)) {
+            return 0.0;
+        }
+        foreach ($items as $row) {
+            $title = is_array($row) ? (string) ($row['title'] ?? '') : '';
+            if ($title !== '' && isset($row['amount']) && preg_match('/کارمزد|commission|fee/iu', $title)) {
+                return (float) $row['amount'];
             }
         }
 
-        return 0;
+        return (float) ($items[2]['amount'] ?? 0);
     }
 
     /**
@@ -146,7 +188,7 @@ class BasalamOrders
                 continue;
             }
             $qty = max(1, (int) ($item['quantity'] ?? 1));
-            $total = self::lineTotalRial($item);
+            $total = self::lineTotalRial($item, $qty);
             $items[] = [
                 'product_id' => (string) data_get($item, 'product.id'),
                 'variant_id' => (string) (data_get($item, 'variation.id') ?? ''),
@@ -241,8 +283,10 @@ class BasalamOrders
                         'quantity' => (int) ($i['quantity'] ?? 1),
                         'line_total_rial' => self::lineTotalRial((array) $i),
                     ], array_filter((array) ($raw['items'] ?? []), 'is_array'))),
-                    'fee_amount' => (int) ((data_get($raw, 'financial_report.product_cost.report_items.2.amount') ?? 0) / 10),
-                    'balance_amount' => (int) ((data_get($raw, 'financial_report.product_cost.total.amount') ?? 0) / 10),
+                    'fee_amount_rial' => (int) round(abs(self::feeAmountRial($raw))),
+                    'balance_amount_rial' => (int) round((float) (data_get($raw, 'financial_report.product_cost.total.amount') ?? 0)),
+                    'fee_amount' => (int) round(abs(self::feeAmountRial($raw)) / 10),
+                    'balance_amount' => (int) round((float) (data_get($raw, 'financial_report.product_cost.total.amount') ?? 0) / 10),
                     'purchase_count' => data_get($raw, 'customer_data.purchase_count'),
                     'shipping_method' => $method === 'basalam' ? (string) data_get($raw, 'parcel_detail.shipping_method.title', '') : (string) $method,
                     'customer' => array_filter([
@@ -294,6 +338,11 @@ class BasalamOrders
         }
         if (! $map) {
             throw new MarketplaceException(__('marketplace.basalam_order_not_found'), 404);
+        }
+        $current = (string) data_get($map->order()->first()?->meta ?? [], 'basalam.status_key', '');
+        $final = ['bslm-completed', 'bslm-rejected'];
+        if ((in_array($current, $final, true) && $current !== 'bslm-'.$key) || ($current === 'bslm-shipping' && $key === 'preparation')) {
+            return ['order_id' => $map->order_id, 'status' => substr($current, 5), 'ignored' => true];
         }
         $wasImporting = MarketplaceOrderImporter::$importing;
         MarketplaceOrderImporter::$importing = true;

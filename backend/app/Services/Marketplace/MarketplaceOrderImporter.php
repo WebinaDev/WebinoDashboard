@@ -160,6 +160,10 @@ class MarketplaceOrderImporter
         if (in_array($order->status, self::FINAL_STATUSES, true) && ! in_array($localStatus, ['refunded', 'cancelled'], true)) {
             return $changed;
         }
+        // Never regress a shipped order back to preparing/on-hold.
+        if ($order->status === 'shipped' && in_array($localStatus, ['processing', 'on_hold', 'pending'], true)) {
+            return $changed;
+        }
 
         // A completed order cannot be cancelled (workflow guard). When the platform
         // cancels after completion the buyer is refunded there, so take the legal
@@ -307,7 +311,13 @@ class MarketplaceOrderImporter
             }
         }
         if ($remoteProduct !== '') {
-            return (clone $base)->where('remote_product_id', $remoteProduct)->orderByRaw('product_variant_id is null desc')->first();
+            $map = (clone $base)->where('remote_product_id', $remoteProduct)->orderByRaw('product_variant_id is null desc')->first();
+            // Unmapped variation → mapped parent, but never a variable parent (no own price/stock).
+            if ($map && $remoteVariant !== '' && ! $map->product_variant_id && $map->product && (string) $map->product->type === 'variable') {
+                return null;
+            }
+
+            return $map;
         }
 
         return null;

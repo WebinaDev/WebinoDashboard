@@ -121,7 +121,7 @@ class BasalamClient
             if ($basalam) {
                 $this->breaker->recordFailure();
             }
-            throw new MarketplaceException(__('marketplace.basalam_network_error', ['error' => $e->getMessage()]), 0, [], 0, $e->path);
+            throw new MarketplaceException(BasalamErrors::transport($e->getMessage()), 0, [], 0, $e->path);
         }
 
         $status = $response->status();
