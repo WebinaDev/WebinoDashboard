@@ -106,7 +106,7 @@ export function RevisionsPanel({
           ))}
         </div>
       </aside>
-      <div className="min-w-0 flex-1 overflow-auto bg-border p-6" onClick={onClose}>
+      <div className="min-w-0 flex-1 overflow-auto bg-muted p-6" onClick={onClose}>
         {preview ? (
           <>
           {diff ? (
@@ -116,14 +116,14 @@ export function RevisionsPanel({
                 : `بازگردانی این نسخه: ${fa(diff.added)} بخش برمی‌گردد، ${fa(diff.removed)} بخش حذف می‌شود، ${fa(diff.changed)} بخش تغییر می‌کند.`}
             </p>
           ) : null}
-          <div className="pointer-events-none mx-auto max-w-6xl overflow-hidden rounded-2xl bg-muted shadow-xl" onClick={(event) => event.stopPropagation()}>
+          <div className="pointer-events-none mx-auto max-w-6xl overflow-hidden wb-theme-boundary rounded-2xl bg-background text-foreground shadow-xl" onClick={(event) => event.stopPropagation()}>
             <Suspense fallback={null}>
               <DocumentView document={preview.doc} mode="edit" globals={globals} />
             </Suspense>
           </div>
           </>
         ) : (
-          <p className="grid h-full place-items-center text-sm text-white">{t("revision_pick")}</p>
+          <p className="grid h-full place-items-center text-sm text-muted-foreground">{t("revision_pick")}</p>
         )}
       </div>
     </div>
