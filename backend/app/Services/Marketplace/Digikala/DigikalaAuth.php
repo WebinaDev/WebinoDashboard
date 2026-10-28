@@ -261,20 +261,28 @@ class DigikalaAuth
         }
         foreach ([OPENSSL_PKCS1_PADDING, OPENSSL_PKCS1_OAEP_PADDING] as $padding) {
             $plain = '';
-            if (@openssl_private_decrypt($bin, $plain, $key, $padding) && $plain !== '') {
+            // PKCS#1 v1.5 can "succeed" on garbage and yield binary; a real code is printable text.
+            if (@openssl_private_decrypt($bin, $plain, $key, $padding) && self::plausibleCode($plain)) {
                 return trim($plain);
             }
         }
         if (function_exists('openssl_pkey_decrypt')) {
             foreach (['sha256', 'sha1'] as $digest) {
                 $plain = '';
-                if (@openssl_pkey_decrypt($bin, $plain, $key, OPENSSL_PKCS1_OAEP_PADDING, $digest) && $plain !== '') {
+                if (@openssl_pkey_decrypt($bin, $plain, $key, OPENSSL_PKCS1_OAEP_PADDING, $digest) && self::plausibleCode($plain)) {
                     return trim($plain);
                 }
             }
         }
 
         throw new MarketplaceException(__('marketplace.digikala_decrypt_failed'), 422);
+    }
+
+    private static function plausibleCode(string $plain): bool
+    {
+        $t = trim($plain);
+
+        return $t !== '' && mb_check_encoding($t, 'UTF-8') && ! preg_match('/[\x00-\x1F\x7F]/', $t);
     }
 
     /** Decrypt the seller-panel code, exchange it for tokens and clear the stored code. */

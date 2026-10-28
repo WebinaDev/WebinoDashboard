@@ -14,7 +14,7 @@ import {
   legacyAdminToDashboardPath,
 } from "@/kernel/paths"
 import { DEFAULT_AUTH_COOKIE_NAME, readCookieValue } from "@/lib/auth-cookie"
-import { getServerApiBase } from "@/lib/server-api-base"
+import { getServerApiBase, internalApiHeaders } from "@/lib/server-api-base"
 
 const LOCALES = ["fa", "en"] as const
 
@@ -84,7 +84,7 @@ async function contactAliasRedirect(request: NextRequest): Promise<string | null
   if (!apiBase) return null
   const host = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
   if (!host) return null
-  const init = { headers: { Accept: "application/json", "X-Tenant-Domain": host }, cache: "no-store" as const }
+  const init = { headers: { Accept: "application/json", ...internalApiHeaders(), "X-Tenant-Domain": host }, cache: "no-store" as const }
   try {
     const page = await fetch(`${apiBase}/api/v1/public/pages/contact`, init)
     if (page.ok) return null
@@ -124,6 +124,7 @@ async function resolveHostModeRaw(request: NextRequest): Promise<"link-hub" | "p
     const res = await fetch(`${apiBase}/api/v1/public/link-hub/host-mode`, {
       headers: {
         Accept: "application/json",
+        ...internalApiHeaders(),
         "X-Tenant-Domain": host.replace(/:\d+$/, ""),
         Host: host,
       },
@@ -148,7 +149,7 @@ async function fetchSiteStatusRaw(request: NextRequest): Promise<"coming_soon" |
   const host = (request.headers.get("host") || "").replace(/:\d+$/, "").toLowerCase()
   try {
     const res = await fetch(`${apiBase}/api/v1/public/site-status`, {
-      headers: { Accept: "application/json", ...(host ? { "X-Tenant-Domain": host } : {}) },
+      headers: { Accept: "application/json", ...internalApiHeaders(), ...(host ? { "X-Tenant-Domain": host } : {}) },
       cache: "no-store",
     })
     if (!res.ok) return null
@@ -260,7 +261,7 @@ async function handle(request: NextRequest) {
         const json = await memo(`rd:${host}:${pathname}`, async () => {
           const lookup = await fetch(
             `${apiBase}/api/v1/public/seo/redirect?path=${encodeURIComponent(pathname)}`,
-            { headers: { Accept: "application/json" }, cache: "no-store" },
+            { headers: { Accept: "application/json", ...internalApiHeaders(), ...(host ? { "X-Tenant-Domain": host } : {}) }, cache: "no-store" },
           )
           return lookup.ok ? ((await lookup.json()) as { data?: { to_path?: string; status_code?: number } | null }) : null
         })

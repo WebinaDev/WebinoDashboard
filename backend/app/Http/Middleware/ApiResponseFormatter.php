@@ -57,6 +57,12 @@ class ApiResponseFormatter
         foreach ($response->headers->getCookies() as $cookie) {
             $json->headers->setCookie($cookie);
         }
+        // Keep diagnostic/cache hints set by inner middleware (X-Public-Cache HIT/MISS, rate-limit counters).
+        foreach (['X-Public-Cache', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'] as $h) {
+            if ($response->headers->has($h)) {
+                $json->headers->set($h, (string) $response->headers->get($h));
+            }
+        }
         // Keep throttling hints and explicit no-store (never widen caching here).
         if ($response->headers->has('Retry-After')) {
             $json->headers->set('Retry-After', $response->headers->get('Retry-After'));

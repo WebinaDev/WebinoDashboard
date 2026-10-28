@@ -13,6 +13,10 @@ class ThrottleApiToken
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        // Our own SSR frontend (shared secret, see InternalRequest) — all visitors share its IP.
+        if ($user === null && \App\Support\InternalRequest::is($request)) {
+            return $next($request);
+        }
         $limit = (int) config('webino_runtime.api_rate_limit_per_minute', 120);
         $limit = max(1, $limit);
 

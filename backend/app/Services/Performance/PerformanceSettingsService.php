@@ -3,7 +3,6 @@
 namespace App\Services\Performance;
 
 use App\Services\Modules\ModuleSettingsService;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -82,13 +81,15 @@ final class PerformanceSettingsService
         $cleared[] = 'tenant-public';
         Cache::forget('seo:sitemap:'.$tenantId);
         $cleared[] = 'seo-sitemap';
-        try {
-            Artisan::call('cache:clear');
-            $cleared[] = 'app-cache';
-        } catch (\Throwable) {
-            // Host may disallow artisan in request lifecycle.
-        }
-        if ($this->revalidateFrontend()) {
+        // Per-tenant only: a global cache:clear on every product/content save flushed the shared Redis
+        // (every site's public response cache, rate limiters, sessions) — the "Redis always empty" bug.
+        \App\Support\PublicCache\PublicResponseCache::bump($tenantId);
+        $cleared[] = 'public-api-cache';
+        if (str_ends_with($reason, '_save')) {
+            // Automatic purge: deferred + debounced revalidate after the response (never block the write).
+            \App\Support\PublicCache\FrontendRevalidator::schedule();
+            $cleared[] = 'frontend-isr';
+        } elseif ($this->revalidateFrontend()) {
             $cleared[] = 'frontend-isr';
         }
         Cache::put('performance:last_purge:'.$tenantId, [

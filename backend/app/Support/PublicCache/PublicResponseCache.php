@@ -31,11 +31,29 @@ final class PublicResponseCache
         }
     }
 
+    /**
+     * High-churn models written by ordinary visitor traffic (analytics hits, carts, sessions, logs, orders...).
+     * They never change public catalog/builder output, and bumping on them emptied the cache (and fired a
+     * frontend revalidate) on practically every page view.
+     */
+    private const VOLATILE = '/(Log|Logs|SecurityEvent|LinkHubEvent|AnalyticsEvent|Hit|Hits|Visit|PageView|Session|Cart|CartItem|Analytics|Metric|Metrics|Token|Otp|Attempt|Notification|Job|Order|OrderItem|Payment|Transaction|Audit|Activity|Snapshot|Stat|Stats|Alert|Subscriber|Lead|Message|Webhook|Sync|Usage|Heartbeat|Queue|Import|Export|Report)$/';
+
+    public static function isVolatile(Model $model): bool
+    {
+        if (preg_match(self::VOLATILE, class_basename($model))) {
+            return true;
+        }
+        // Only timestamp churn (touch()) is not a content change.
+        $changed = array_diff(array_keys($model->getChanges()), [$model->getUpdatedAtColumn() ?? 'updated_at', 'last_seen_at', 'last_used_at', 'views', 'view_count', 'hits']);
+
+        return $model->wasRecentlyCreated === false && $model->exists && $model->getChanges() !== [] && $changed === [];
+    }
+
     public static function register(): void
     {
         $handler = static function (string $event, array $payload): void {
             $model = $payload[0] ?? null;
-            if (! $model instanceof Model) {
+            if (! $model instanceof Model || self::isVolatile($model)) {
                 return;
             }
             try {

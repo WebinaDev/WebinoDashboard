@@ -20,7 +20,7 @@ class SiteStatusTest extends TestCase
         $this->tenant = Tenant::query()->create(['name' => 'S', 'slug' => 's', 'domain' => 'localhost', 'setup_completed' => true]);
         putenv('TENANT_PROVISION_TOKEN=tok-1');
         $_ENV['TENANT_PROVISION_TOKEN'] = $_SERVER['TENANT_PROVISION_TOKEN'] = 'tok-1';
-        config(['services.webino.provision_hmac_secret' => 'sec']);
+        config(['services.webino.provision_hmac_secret' => 'sec', 'webino_runtime.tenant_provision_token' => 'tok-1']);
     }
 
     private function platform(string $method, array $body = [], string $token = 'tok-1')

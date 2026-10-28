@@ -3,7 +3,7 @@ import { cookies, headers as nextHeaders } from "next/headers"
 
 import { unwrapApiData } from "@webina/ui"
 
-import { getServerApiBase } from "@/lib/server-api-base"
+import { getServerApiBase, internalApiHeaders } from "@/lib/server-api-base"
 
 type FetchOptions = RequestInit & { revalidate?: number | false; tags?: string[] }
 
@@ -28,11 +28,10 @@ async function serverFetch(path: string, rawInit?: FetchOptions, strict = false)
     return null
   }
 
-  const jar = await cookies()
   // Cached public reads must not carry per-visitor cookies: they are part of the Next data-cache key,
   // so forwarding laravel_session/XSRF/NEXT_LOCALE made every visitor a cache miss (full API round-trip per request).
   const sharedPublic = init?.revalidate !== false && init?.revalidate !== 0 && path.startsWith("/api/v1/public/")
-  const cookieHeader = sharedPublic ? "" : jar
+  const cookieHeader = sharedPublic ? "" : (await cookies())
     .getAll()
     .map((c) => `${c.name}=${c.value}`)
     .join("; ")
@@ -61,6 +60,7 @@ async function serverFetch(path: string, rawInit?: FetchOptions, strict = false)
     ...nextOpts,
     headers: {
       Accept: "application/json",
+      ...internalApiHeaders(),
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
       ...(tenantHost ? { "X-Tenant-Domain": tenantHost } : {}),
       ...(init?.headers ?? {}),

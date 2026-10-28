@@ -54,6 +54,7 @@ services:
       REDIS_HOST: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
       CACHE_STORE: redis
+      WEBINO_INTERNAL_API_SECRET: ${WEBINO_INTERNAL_API_SECRET:-}
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
     depends_on:
@@ -147,6 +148,7 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ""
       INTERNAL_API_URL: http://backend:8080
+      WEBINO_INTERNAL_API_SECRET: ${WEBINO_INTERNAL_API_SECRET:-}
       API_PROXY_TARGET: http://backend:8080
       AUTH_COOKIE_NAME: webino_auth_token
     depends_on:

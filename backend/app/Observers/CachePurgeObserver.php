@@ -16,7 +16,7 @@ class CachePurgeObserver
     {
         if ($model instanceof BuilderGlobal) {
             // Header/footer/theme globals: always refresh the storefront (independent of purge toggles).
-            $this->perf->revalidateFrontend(['builder']);
+            \App\Support\PublicCache\FrontendRevalidator::schedule();
 
             return;
         }

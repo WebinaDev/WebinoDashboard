@@ -47,3 +47,12 @@ function isAmbiguousBackend(base: string): boolean {
     return false
   }
 }
+
+/**
+ * Server-to-server proof for the backend (X-Webino-Internal). All SSR traffic leaves from this one container
+ * IP, so without it the backend's per-IP guest limiter returns 429. Server-only env; never sent to browsers.
+ */
+export function internalApiHeaders(): Record<string, string> {
+  const secret = process.env.WEBINO_INTERNAL_API_SECRET ?? ""
+  return secret.length >= 16 ? { "X-Webino-Internal": secret } : {}
+}

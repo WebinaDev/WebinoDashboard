@@ -9,5 +9,6 @@ return [
     'openapi_public' => env('OPENAPI_PUBLIC') === null ? null : filter_var(env('OPENAPI_PUBLIC'), FILTER_VALIDATE_BOOLEAN),
     'sentry_dsn' => env('SENTRY_LARAVEL_DSN'),
     'elasticsearch_hosts' => env('ELASTICSEARCH_HOSTS'),
+    'internal_api_secret' => (string) env('WEBINO_INTERNAL_API_SECRET', ''),
     'public_api_cache' => filter_var(env('PUBLIC_API_CACHE', true), FILTER_VALIDATE_BOOLEAN),
 ];
