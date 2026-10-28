@@ -274,6 +274,7 @@ class BasalamAuth
             'expires_at' => $expiresIn ? time() + $expiresIn : null,
             'is_vendor' => true,
             'connected_at' => now()->toIso8601String(),
+            'needs_reconnect' => null,
             'auth_error' => null,
             'auth_error_at' => null,
         ]);
@@ -352,6 +353,8 @@ class BasalamAuth
             }
             $message = (string) ($data['message'] ?? $status);
             $this->markAuthError($message);
+            // Rejected refresh token (4xx): stop the scheduler retrying until the user reconnects (plugin NEEDS_RECONNECT).
+            $this->settings->putState($this->tenantId, self::PLATFORM, ['needs_reconnect' => true]);
             throw new MarketplaceException(__('marketplace.basalam_refresh_failed', ['error' => $message]), 401);
         }
 
@@ -362,6 +365,7 @@ class BasalamAuth
         $this->settings->putState($this->tenantId, self::PLATFORM, [
             'expires_at' => ! empty($data['expires_in']) ? time() + (int) $data['expires_in'] : null,
             'refreshed_at' => now()->toIso8601String(),
+            'needs_reconnect' => null,
             'auth_error' => null,
             'auth_error_at' => null,
         ]);

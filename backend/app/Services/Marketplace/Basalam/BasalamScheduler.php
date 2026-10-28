@@ -46,8 +46,14 @@ class BasalamScheduler
 
     public function tickTenant(int $tenantId, BasalamAuth $auth): void
     {
-        if ($auth->refreshToken() !== '' && $auth->expiresWithin(1800)) {
-            $auth->refresh();
+        $needsReconnect = ! empty($this->settings->state($tenantId, 'basalam')['needs_reconnect']);
+        if (! $needsReconnect && $auth->refreshToken() !== '' && $auth->expiresWithin(1800)) {
+            try {
+                $auth->refresh();
+            } catch (Throwable $e) {
+                // Network/5xx failures keep the token; the rest of the tick still runs.
+                MarketplaceLogger::error($tenantId, 'basalam', 'auth', 'تمدید خودکار توکن باسلام ناموفق بود: '.$e->getMessage());
+            }
         }
 
         BasalamDiscounts::for($tenantId)->process();
