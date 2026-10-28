@@ -10,8 +10,8 @@ permissions:
   packages: write
 
 concurrency:
-  group: images-${{ github.ref }}
-  cancel-in-progress: true
+  group: images-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io/webinadev
