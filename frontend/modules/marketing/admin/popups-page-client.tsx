@@ -18,7 +18,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatNumber } from "@/lib/locale"
-import { PopupCard, type PopupContent } from "@/components/marketing/PopupCard"
+import { PopupCard, type PopupContent } from "@webina/ui"
 
 type Popup = {
   id?: number
