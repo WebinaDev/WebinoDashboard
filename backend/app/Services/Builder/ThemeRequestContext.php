@@ -14,6 +14,10 @@ class ThemeRequestContext
         public readonly ?string $slug = null,
         /** Current product category slug (category archive or the product's category); collection slug on collection items. */
         public readonly ?string $category = null,
+        /** Current brand slug (brand archive or the product's brand). */
+        public readonly ?string $brand = null,
+        /** Current tag slug (tag archive). */
+        public readonly ?string $tag = null,
     ) {}
 
     /** @param  array<string, mixed>  $data */
@@ -22,11 +26,13 @@ class ThemeRequestContext
         return new self(
             self::normalizePath(isset($data['path']) ? (string) $data['path'] : '/'),
             self::enum($data['singular'] ?? null, ['post', 'page', 'product', 'collection_item']),
-            self::enum($data['archive'] ?? null, ['blog', 'category', 'tag', 'product']),
+            self::enum($data['archive'] ?? null, ['blog', 'category', 'tag', 'product', 'brand']),
             filter_var($data['search'] ?? false, FILTER_VALIDATE_BOOLEAN),
             filter_var($data['not_found'] ?? false, FILTER_VALIDATE_BOOLEAN),
             self::slug($data['slug'] ?? null),
             self::slug($data['category'] ?? null),
+            self::slug($data['brand'] ?? null),
+            self::slug($data['tag'] ?? null),
         );
     }
 

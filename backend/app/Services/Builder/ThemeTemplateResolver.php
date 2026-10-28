@@ -114,9 +114,77 @@ class ThemeTemplateResolver
             'not_found' => $context->notFound,
             'product' => $context->singular === 'product' && $context->slug !== null && ($value === '' || mb_strtolower($value) === $context->slug),
             'product_category' => $context->category !== null && $value !== '' && mb_strtolower($value) === $context->category,
+            'front_page' => $context->path === '/',
+            'page' => $context->singular === 'page' && $context->slug !== null && ($value === '' || $this->inList($context->slug, $value)),
+            'post' => $context->singular === 'post' && $context->slug !== null && ($value === '' || $this->inList($context->slug, $value)),
+            'blog_category' => $context->category !== null && in_array($context->singular ?? $context->archive, ['post', 'blog', 'category'], true) && $value !== '' && $this->inList($context->category, $value),
+            'brand' => $context->brand !== null && ($value === '' || $this->inList($context->brand, $value)),
+            'tag' => $context->tag !== null && ($value === '' || $this->inList($context->tag, $value)),
+            'date_range' => $this->inDateRange($value),
+            'weekday' => $value !== '' && in_array((string) $this->now()->dayOfWeek, array_map('trim', explode(',', $value)), true),
+            'time_range' => $this->inTimeRange($value),
             'collection' => $context->singular === 'collection_item' && $context->category !== null && ($value === '' || mb_strtolower($value) === $context->category),
             default => false,
         };
+    }
+
+    /** Comma-separated slug list match (case-insensitive). */
+    private function inList(string $needle, string $list): bool
+    {
+        foreach (explode(',', $list) as $v) {
+            if (mb_strtolower(trim($v)) === $needle) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function now(): \Carbon\CarbonInterface
+    {
+        return now('Asia/Tehran');
+    }
+
+    /** "1405-08-10..1405-09-10" Jalali (or Gregorian) dates, Tehran time; either end may be empty. */
+    private function inDateRange(string $value): bool
+    {
+        if (! str_contains($value, '..')) {
+            return false;
+        }
+        [$from, $to] = array_map(fn ($d) => $this->gregorian(trim($d)), explode('..', $value, 2));
+        $today = $this->now()->toDateString();
+        $ok = static fn (string $d) => (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $d);
+        if (($from === '' || ! $ok($from)) && ($to === '' || ! $ok($to))) {
+            return false;
+        }
+
+        return ($from === '' || ! $ok($from) || $today >= $from) && ($to === '' || ! $ok($to) || $today <= $to);
+    }
+
+    /** Accepts Jalali (1405-08-10, Persian digits ok) or Gregorian dates; returns Y-m-d or ''. */
+    private function gregorian(string $d): string
+    {
+        $d = strtr($d, ['۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9', '/' => '-']);
+        if (! preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $d, $m)) {
+            return '';
+        }
+        [$y, $mo, $da] = [(int) $m[1], (int) $m[2], (int) $m[3]];
+        if ($y < 1700) {
+            [$y, $mo, $da] = \App\Services\Resume\Jalali::toGregorian($y, $mo, $da);
+        }
+
+        return sprintf('%04d-%02d-%02d', $y, $mo, $da);
+    }
+
+    /** "08:00-14:00" Tehran time; overnight ranges ("22:00-02:00") wrap. */
+    private function inTimeRange(string $value): bool
+    {
+        if (! preg_match('/^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/', $value, $m)) {
+            return false;
+        }
+        $t = $this->now()->format('H:i');
+
+        return $m[1] <= $m[2] ? ($t >= $m[1] && $t < $m[2]) : ($t >= $m[1] || $t < $m[2]);
     }
 
     private function prefix(string $path, string $value): bool

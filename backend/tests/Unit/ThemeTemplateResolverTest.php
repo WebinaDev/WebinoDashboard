@@ -58,4 +58,34 @@ class ThemeTemplateResolverTest extends TestCase
         ];
         $this->assertSame('newer', $resolver->pick($tied, $home)['published']['id']);
     }
+
+    public function test_extended_display_conditions(): void
+    {
+        $r = new ThemeTemplateResolver;
+        $m = fn (array $rule, ThemeRequestContext $c) => $r->matches(['include' => [$rule]], $c);
+        $brand = ThemeRequestContext::fromArray(['path' => '/brand/sony', 'archive' => 'brand', 'brand' => 'Sony']);
+        $post = ThemeRequestContext::fromArray(['path' => '/blog/hello', 'singular' => 'post', 'slug' => 'hello']);
+        $tag = ThemeRequestContext::fromArray(['path' => '/tag/news', 'archive' => 'tag', 'tag' => 'news']);
+
+        $this->assertTrue($m(['type' => 'front_page'], new ThemeRequestContext('/')));
+        $this->assertFalse($m(['type' => 'front_page'], $post));
+        $this->assertTrue($m(['type' => 'brand', 'value' => 'lg, sony'], $brand));
+        $this->assertFalse($m(['type' => 'brand', 'value' => 'lg'], $brand));
+        $this->assertTrue($m(['type' => 'post', 'value' => 'hello'], $post));
+        $this->assertFalse($m(['type' => 'page', 'value' => 'hello'], $post));
+        $this->assertTrue($m(['type' => 'tag'], $tag));
+
+        \Illuminate\Support\Carbon::setTestNow(\Illuminate\Support\Carbon::parse('2026-10-28 10:00', 'Asia/Tehran'));
+        try {
+            $this->assertTrue($m(['type' => 'date_range', 'value' => '۱۴۰۵-۰۸-۰۱..۱۴۰۵-۰۸-۳۰'], $post));
+            $this->assertTrue($m(['type' => 'date_range', 'value' => '2026-10-01..'], $post));
+            $this->assertFalse($m(['type' => 'date_range', 'value' => '1405-09-01..1405-09-30'], $post));
+            $this->assertTrue($m(['type' => 'weekday', 'value' => '3'], $post));
+            $this->assertTrue($m(['type' => 'time_range', 'value' => '08:00-14:00'], $post));
+            $this->assertTrue($m(['type' => 'time_range', 'value' => '22:00-11:00'], $post));
+            $this->assertFalse($m(['type' => 'time_range', 'value' => '12:00-14:00'], $post));
+        } finally {
+            \Illuminate\Support\Carbon::setTestNow();
+        }
+    }
 }

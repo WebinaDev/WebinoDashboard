@@ -65,6 +65,8 @@ class PublicBuilderController extends Controller
             'not_found' => 'nullable|boolean',
             'slug' => 'nullable|string|max:191',
             'category' => 'nullable|string|max:191',
+            'brand' => 'nullable|string|max:191',
+            'tag' => 'nullable|string|max:191',
         ]);
 
         // Product pages: derive the product's category so `product_category` rules can match.
@@ -72,9 +74,10 @@ class PublicBuilderController extends Controller
             $product = Product::query()
                 ->where('tenant_id', $this->publicTenantId($request))
                 ->where('slug', $data['slug'])
-                ->with('category:id,slug')
+                ->with(['category:id,slug', 'brands'])
                 ->first(['id', 'category_id']);
             $data['category'] = $product?->category?->slug;
+            $data['brand'] ??= $product?->brands?->first()?->slug;
         }
 
         return $this->resolved($request, $data['kind'], ThemeRequestContext::fromArray($data));

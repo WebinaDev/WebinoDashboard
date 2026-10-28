@@ -7309,7 +7309,16 @@
     },
     "product": "Specific product (slug)",
     "product_category": "Product category (slug)",
-    "collection": "Collection (CMS)"
+    "collection": "Collection (CMS)",
+    "front_page": "Front page",
+    "page": "Page (slugs)",
+    "post": "Post (slugs)",
+    "blog_category": "Blog category",
+    "brand": "Brand",
+    "tag": "Tag",
+    "date_range": "Date range (from..to)",
+    "weekday": "Weekdays (0=Sun, comma list)",
+    "time_range": "Time range (08:00-14:00)"
   },
   "builder_globals": {
     "follow_dashboard_accent": "Site primary follows the dashboard accent",
