@@ -27,7 +27,8 @@ class PublicSeoController extends Controller
 
         $product = null;
         $post = null;
-        $meta = $builder->build($tenant, $path);
+        // Generic routes (shop, cart, account…) pass their label so titles aren't all just the site name.
+        $meta = $builder->build($tenant, $path, mb_substr(trim((string) $request->query('fallback_title', '')), 0, 120));
 
         if ($type === 'product' && $slug !== '') {
             $product = Product::query()->where('tenant_id', $tenant->id)->where('slug', $slug)->where('status', 'publish')->first();
@@ -46,6 +47,25 @@ class PublicSeoController extends Controller
                 })->first();
             if ($page) {
                 $meta = $builder->forCmsPage($tenant, $page);
+            }
+        } elseif (in_array($type, ['category', 'brand', 'tag'], true) && $slug !== '') {
+            $model = match ($type) {
+                'category' => \App\Models\Category::class,
+                'brand' => \App\Models\Brand::class,
+                default => \App\Models\ProductTag::class,
+            };
+            $term = $model::query()->where('tenant_id', $tenant->id)->where('slug', $slug)->first();
+            if ($term) {
+                $termMeta = is_array($term->meta ?? null) ? $term->meta : [];
+                $termMeta['schema_type'] = $termMeta['schema_type'] ?? 'CollectionPage';
+                $meta = $builder->build(
+                    $tenant,
+                    $path,
+                    (string) $term->name,
+                    mb_substr(strip_tags((string) ($term->description ?? '')), 0, 160),
+                    $termMeta,
+                    'CollectionPage'
+                );
             }
         }
 

@@ -26,6 +26,10 @@ class ProductStoryController extends Controller
             ->orderByDesc('id')
             ->limit(30)
             ->get(['id', 'title', 'media_url', 'media_type', 'slides', 'product_id', 'link_url']);
+        $slugs = \App\Models\Product::query()->where('tenant_id', $tid)
+            ->whereIn('id', $items->pluck('product_id')->filter()->unique())
+            ->pluck('slug', 'id');
+        $items->each(fn ($s) => $s->setAttribute('product_slug', $s->product_id ? ($slugs[$s->product_id] ?? null) : null));
 
         return response()->json(['data' => ['items' => $items]]);
     }

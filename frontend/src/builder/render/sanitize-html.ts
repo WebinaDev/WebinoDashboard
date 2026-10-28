@@ -70,9 +70,20 @@ function escapeAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
 }
 
+/**
+ * Leftover WordPress shortcodes from imported content ([woocommerce_my_account], [contact-form-7 id=…],
+ * [/vc_row] …) render as raw text — drop them. Only bracketed tokens that look like a WP shortcode tag
+ * (lowercase identifier, optional attrs) are removed, so prose like "[1]" or "[توضیح]" stays.
+ */
+const WP_SHORTCODE = /\[\/?[a-z][a-z0-9_-]{2,}(?:\s[^\[\]]*)?\/?\]/g
+
+export function stripWpShortcodes(html: string): string {
+  return html.indexOf("[") === -1 ? html : html.replace(WP_SHORTCODE, "")
+}
+
 /** Server-safe allow-list. Does not require a DOM, so SSR and the client match. */
 export function sanitizeBuilderHtml(html: string): string {
-  let source = html.replace(/\0/g, "")
+  let source = stripWpShortcodes(html.replace(/\0/g, ""))
   source = source.replace(/<!--[\s\S]*?-->/g, "")
   for (let i = 0; i < 4; i++) source = source.replace(DROP_WITH_CONTENT, "")
   source = source.replace(DROP_VOID, "")

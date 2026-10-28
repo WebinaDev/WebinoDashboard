@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useArchiveParams } from "./archive-scope"
 
 import {
   buildCategoryTree,
@@ -13,7 +13,15 @@ import {
   type ShopProduct,
 } from "../catalog"
 
+export type CatalogFacetTerm = { slug: string; name: string; color?: string | null; count: number }
+export type CatalogFacets = {
+  price: { min: number; max: number }
+  same_day_count: number
+  attributes: { slug: string; name: string; type?: string; terms: CatalogFacetTerm[] }[]
+}
+
 export type CatalogState = {
+  facets?: CatalogFacets | null
   products: ShopProduct[]
   categories: ShopCategory[]
   brands: ShopBrand[]
@@ -44,9 +52,10 @@ type CatalogPayload = {
   categories: ShopCategory[]
   brands: ShopBrand[]
   total: number
+  facets?: CatalogFacets | null
 }
 
-export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; pagination?: { total?: number } } } | null): CatalogPayload | null {
+export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; facets?: CatalogFacets | null; pagination?: { total?: number } } } | null): CatalogPayload | null {
       if (!json?.data) return null
       const items = Array.isArray(json.data.items) ? json.data.items : []
       const categories = Array.isArray(json.data.categories) ? json.data.categories : []
@@ -67,6 +76,7 @@ export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: 
         categories: buildCategoryTree(mappedCategories),
         brands: mappedBrands,
         total: Number(json.data.pagination?.total ?? products.length) || 0,
+        facets: json.data.facets ?? null,
       }
     }
 
@@ -115,13 +125,16 @@ export function useFeaturedProducts(limit: number): ShopProduct[] {
 }
 
 export function useCatalog(limit: number): CatalogState {
-  const params = useSearchParams()
+  const params = useArchiveParams()
   const q = params.get("q") ?? ""
   const category = params.get("category") ?? ""
   const brand = params.get("brand") ?? ""
+  const tag = params.get("tag") ?? ""
+  const attr = params.get("attr") ?? ""
   const sort = params.get("sort") ?? ""
   const inStock = params.get("in_stock") === "1"
   const onSale = params.get("on_sale") === "1"
+  const sameDay = params.get("same_day") === "1"
   const minPrice = params.get("min_price") ?? ""
   const maxPrice = params.get("max_price") ?? ""
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1)
@@ -138,6 +151,10 @@ export function useCatalog(limit: number): CatalogState {
     if (q) query.set("q", q)
     if (category) query.set("category", category)
     if (brand) query.set("brand", brand)
+    if (tag) query.set("tag", tag)
+    if (attr) query.set("attr", attr)
+    if (sameDay) query.set("same_day", "1")
+    query.set("facets", "1")
     if (inStock) query.set("in_stock", "1")
     if (onSale) query.set("on_sale", "1")
     if (/^\d+$/.test(minPrice)) query.set("min_price", minPrice)
@@ -149,6 +166,7 @@ export function useCatalog(limit: number): CatalogState {
         products: payload.items,
         categories: payload.categories,
         brands: payload.brands,
+        facets: payload.facets ?? null,
         live: true,
         total: payload.total,
         page,
@@ -157,7 +175,7 @@ export function useCatalog(limit: number): CatalogState {
     return () => {
       cancel = true
     }
-  }, [brand, category, inStock, limit, maxPrice, minPrice, onSale, page, q, sort])
+  }, [attr, brand, category, inStock, tag, limit, maxPrice, minPrice, onSale, page, q, sameDay, sort])
 
   return state
 }

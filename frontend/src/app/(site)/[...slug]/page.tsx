@@ -4,6 +4,7 @@ import { JsonLd } from "@/components/seo/JsonLd"
 import { renderSitePage } from "@/kernel/render-pages"
 import { apiServer } from "@/lib/api-server"
 import { canonicalSiteSegments } from "@/kernel/route-resolver"
+import { resolveStoreSegments } from "@/kernel/store-slug"
 import { loadCollectionItem } from "../../../../modules/cms/site/collection-item-page"
 import { loadLinkHubPage } from "../../../../modules/link-hub/site/page-page"
 import { poemCanonicalPath, poemDescription, poemJsonLd, poemTitle, type PoemSeoSource } from "@/lib/poem-seo"
@@ -44,6 +45,51 @@ async function loadProductSeo(slug: string, type: "product" | "page" = "product"
   }
 }
 
+type TaxonomyType = "category" | "brand" | "tag"
+const TAXONOMY_ROUTE: Record<string, TaxonomyType> = { "product-category": "category", brand: "brand", "product-tag": "tag" }
+
+/** Labels for generic store routes so every page gets its own <title> (not only the site name). */
+const ROUTE_TITLES: Record<string, string> = {
+  shop: "فروشگاه",
+  cart: "سبد خرید",
+  checkout: "تسویه حساب",
+  account: "حساب کاربری",
+  compare: "مقایسه محصولات",
+  "amazing-offers": "شگفت‌انگیزها",
+  "order-tracking": "پیگیری سفارش",
+  wishlist: "علاقه‌مندی‌ها",
+  blog: "مجله",
+}
+
+async function loadSeo(query: string): Promise<ProductSeoPayload["data"] | null> {
+  try {
+    const res = await apiServer<ProductSeoPayload>(`/api/v1/public/seo/meta?${query}`, { revalidate: 60, tags: ["seo"] })
+    return res?.data ?? null
+  } catch {
+    return null
+  }
+}
+
+const taxonomySeo = (type: TaxonomyType, slug: string, path: string) =>
+  loadSeo(`type=${type}&slug=${encodeURIComponent(slug)}&path=${encodeURIComponent(path)}`)
+
+function metaToMetadata(meta: NonNullable<ProductSeoPayload["data"]>["meta"]): Metadata {
+  if (!meta) return {}
+  return {
+    title: meta.title ? { absolute: meta.title } : undefined,
+    description: meta.description || undefined,
+    robots: meta.robots || undefined,
+    alternates: meta.canonical ? { canonical: meta.canonical } : undefined,
+    openGraph: meta.og
+      ? { title: meta.og.title, description: meta.og.description, images: meta.og.image ? [meta.og.image] : undefined, url: meta.og.url, siteName: meta.og.site_name }
+      : undefined,
+  }
+}
+
+async function storeSegments(raw: string[]): Promise<string[]> {
+  return (await resolveStoreSegments(raw, canonicalSiteSegments(raw))).segments
+}
+
 /** Single poem shown by a builder page's poem-single widget via `?poem=<slug>`. */
 async function loadPoem(slug: string): Promise<PoemSeoSource | null> {
   if (!slug) return null
@@ -60,7 +106,17 @@ const originOf = (canonical?: string) => (canonical ? canonical.replace(/^(https
 
 /** Per-route metadata: link hub and product pages; other routes keep the layout defaults. */
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const segments = canonicalSiteSegments((await params).slug ?? [])
+  const raw = (await params).slug ?? []
+  const segments = await storeSegments(raw)
+  const taxonomy = TAXONOMY_ROUTE[segments[0]]
+  if (taxonomy && segments[1] && segments.length === 2) {
+    const slug = decodeURIComponent(segments[1])
+    return metaToMetadata((await taxonomySeo(taxonomy, slug, `/${raw.join("/")}`))?.meta)
+  }
+  if (segments.length === 1 && ROUTE_TITLES[segments[0]]) {
+    const seo = await loadSeo(`path=${encodeURIComponent(`/${segments[0]}`)}&fallback_title=${encodeURIComponent(ROUTE_TITLES[segments[0]])}`)
+    return metaToMetadata(seo?.meta)
+  }
   if (segments[0] === "product" && segments[1] && segments.length === 2) {
     const seo = await loadProductSeo(decodeURIComponent(segments[1]))
     const meta = seo?.meta
@@ -145,8 +201,20 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 }
 
 export default async function SiteCatchAllPage({ params, searchParams }: Props) {
-  const segments = canonicalSiteSegments((await params).slug ?? [])
+  const raw = (await params).slug ?? []
+  const segments = await storeSegments(raw)
   const sp = searchParams ? await searchParams : {}
+  const taxonomy = TAXONOMY_ROUTE[segments[0]]
+  if (taxonomy && segments[1] && segments.length === 2) {
+    const slug = decodeURIComponent(segments[1])
+    const [seo, page] = await Promise.all([taxonomySeo(taxonomy, slug, `/${raw.join("/")}`), renderSitePage(segments, sp)])
+    return (
+      <>
+        <JsonLd data={seo?.json_ld ?? null} />
+        {page}
+      </>
+    )
+  }
   if (segments[0] === "product" && segments[1] && segments.length === 2) {
     const [seo, page] = await Promise.all([loadProductSeo(decodeURIComponent(segments[1])), renderSitePage(segments, sp)])
     return (

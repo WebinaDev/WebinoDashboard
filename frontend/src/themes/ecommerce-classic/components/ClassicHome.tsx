@@ -276,6 +276,7 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
               media_type?: string
               link_url?: string | null
               product_id?: number | null
+              product_slug?: string | null
               slides?: Array<{ media_url?: string; media_type?: string; duration?: number | null }> | null
             }) => ({
               id: String(item.id),
@@ -289,8 +290,8 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
                   type: (slide.media_type === "video" ? "video" : "image") as "image" | "video",
                   duration: typeof slide.duration === "number" ? slide.duration : undefined,
                 })),
-              href: item.link_url || (item.product_id ? `/product/${item.product_id}` : "/shop"),
-              productSlug: item.product_id ? String(item.product_id) : undefined,
+              href: item.link_url || (item.product_slug ? `/product/${item.product_slug}` : item.product_id ? `/product/${item.product_id}` : "/shop"),
+              productSlug: item.product_slug || (item.product_id ? String(item.product_id) : undefined),
             }),
           ),
         )
@@ -352,7 +353,14 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
             >
               <span className="sfc-story__ring">
                 <span className="sfc-story__img">
-                  {story.image ? <OptImg src={story.image} alt="" loading="lazy" /> : <span>{story.title.slice(0, 1)}</span>}
+                  {story.image && story.mediaType === "video" ? (
+                    // Video stories (parisma ishop_story_slider): first frame as the ring thumbnail.
+                    <video src={`${story.image}#t=0.1`} muted playsInline preload="metadata" aria-hidden="true" />
+                  ) : story.image ? (
+                    <OptImg src={story.image} alt="" loading="lazy" />
+                  ) : (
+                    <span>{story.title.slice(0, 1)}</span>
+                  )}
                 </span>
                 {story.badge ? <span className="sfc-story__badge">{story.badge}</span> : null}
               </span>

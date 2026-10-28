@@ -389,7 +389,7 @@ final class ElementorToBuilderConverter
             ], $style)],
             'text-editor', 'text' => [$this->textOrHtml($id, (string) ($settings['editor'] ?? $settings['text'] ?? ''), $style)],
             'html', 'theme-post-content' => [$this->htmlWidget($id, $this->first($settings, ['html', 'editor', 'rendered']) ?: '<div data-widget="html"></div>', null, $style)],
-            'shortcode' => [$this->htmlWidget($id, $this->first($settings, ['rendered', 'html', 'editor']) ?: '<pre>'.e((string) ($settings['shortcode'] ?? '')).'</pre>', $type, $style)],
+            'shortcode' => [$this->htmlWidget($id, $this->first($settings, ['rendered', 'html', 'editor']) ?: '', $type, $style)],
             'image', 'theme-post-featured-image', 'site-logo', 'image-box' => [$this->imageWidget($id, $settings, $style)],
             'button' => [$this->buttonWidget($id, $settings, $style)],
             'call-to-action' => array_values(array_filter([

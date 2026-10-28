@@ -92,6 +92,10 @@ class PublicCatalogController extends Controller
         if ($request->filled('max_price') && (! empty($archive['filter_price']) || $request->boolean('builder'))) {
             $productsQuery->where('price_minor', '<=', (int) $request->query('max_price'));
         }
+        if ($request->boolean('same_day')) {
+            // parisma «ارسال روز / ارسال مستقیم»: shipping_time 0 days or meta.same_day_shipping.
+            $productsQuery->where(fn ($b) => $b->where('shipping_time', 0)->orWhere('meta->same_day_shipping', true));
+        }
         if ($request->filled('category')) {
             $cat = trim((string) $request->query('category'));
             $productsQuery->whereHas('category', fn ($q) => $q->where('slug', $cat)->orWhere('id', $cat));
@@ -152,6 +156,41 @@ class PublicCatalogController extends Controller
             default => $productsQuery->orderByDesc('id'),
         };
 
+        $facets = null;
+        if ($request->boolean('facets')) {
+            $facets = \Illuminate\Support\Facades\Cache::remember("catalog-facets:{$tid}", 300, function () use ($tid) {
+                $base = Product::query()->where('tenant_id', $tid)->storefront();
+                $price = (clone $base)->selectRaw('MIN(price_minor) as min, MAX(price_minor) as max')->first();
+                $rows = \Illuminate\Support\Facades\DB::table('product_attribute_product as pap')
+                    ->join('products as p', 'p.id', '=', 'pap.product_id')
+                    ->where('p.tenant_id', $tid)
+                    ->whereIn('p.id', (clone $base)->select('id'))
+                    ->get(['pap.product_attribute_id', 'pap.term_ids']);
+                $counts = [];
+                foreach ($rows as $r) {
+                    foreach ((array) json_decode((string) $r->term_ids, true) as $termId) {
+                        $counts[(int) $termId] = ($counts[(int) $termId] ?? 0) + 1;
+                    }
+                }
+                $attrs = \App\Models\ProductAttribute::query()->where('tenant_id', $tid)
+                    ->whereIn('id', $rows->pluck('product_attribute_id')->unique())
+                    ->with(['terms' => fn ($q) => $q->orderBy('menu_order')->orderBy('name')])
+                    ->get();
+
+                return [
+                    'price' => ['min' => (int) ($price->min ?? 0), 'max' => (int) ($price->max ?? 0)],
+                    'same_day_count' => (clone $base)->where(fn ($b) => $b->where('shipping_time', 0)->orWhere('meta->same_day_shipping', true))->count(),
+                    'attributes' => $attrs->map(fn ($a) => [
+                        'slug' => $a->slug,
+                        'name' => $a->name,
+                        'type' => $a->type,
+                        'terms' => $a->terms->map(fn ($t) => ['slug' => $t->slug, 'name' => $t->name, 'color' => $t->color, 'count' => $counts[$t->id] ?? 0])
+                            ->filter(fn ($t) => $t['count'] > 0)->values(),
+                    ])->filter(fn ($a) => count($a['terms']) > 0)->values(),
+                ];
+            });
+        }
+
         $perPage = max(1, min(96, (int) $request->query('per_page', $archive['products_per_page'] ?? 12)));
         $page = max(1, (int) $request->query('page', 1));
         $total = (clone $productsQuery)->count();
@@ -198,6 +237,7 @@ class PublicCatalogController extends Controller
                     'price_decimals' => $generalSettings['price_decimals'],
                 ],
                 'archive' => $archive,
+                'facets' => $facets,
                 'pagination' => [
                     'page' => $page,
                     'per_page' => $perPage,

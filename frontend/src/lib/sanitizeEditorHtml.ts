@@ -1,3 +1,4 @@
+import { stripWpShortcodes } from "@/builder/render/sanitize-html"
 import createDOMPurify from "dompurify"
 
 const EDITOR_ALLOWED_TAGS = [
@@ -61,7 +62,8 @@ function getPurify() {
   return purify
 }
 
-export function sanitizeEditorHtml(html: string): string {
+export function sanitizeEditorHtml(input: string): string {
+  const html = stripWpShortcodes(input)
   const p = getPurify()
   if (!p) return html
   return p.sanitize(html, {
