@@ -6,6 +6,7 @@ use App\Models\BotSession;
 use App\Models\BotSetting;
 use App\Services\Bots\BotClient;
 use App\Services\Bots\BotClientFactory;
+use App\Services\Payments\BalePayService;
 
 /**
  * Conversational router for Bale & Telegram webhooks
@@ -16,6 +17,24 @@ final class BotEngine
     public function handle(BotSetting $setting, array $update, ?BotClient $client = null): void
     {
         $client ??= $setting->token ? BotClientFactory::make((string) $setting->provider, (string) $setting->token) : null;
+        if (! empty($update['pre_checkout_query']) && $client) {
+            app(BalePayService::class)->preCheckout((int) $setting->tenant_id, $client, (array) $update['pre_checkout_query']);
+
+            return;
+        }
+        if (! empty($update['message']['successful_payment'])) {
+            $paid = app(BalePayService::class)->successfulPayment(
+                (int) $setting->tenant_id,
+                (string) data_get($update, 'message.chat.id'),
+                (array) $update['message']['successful_payment'],
+            );
+            $client?->call('sendMessage', [
+                'chat_id' => (string) data_get($update, 'message.chat.id'),
+                'text' => $paid ? 'پرداخت با موفقیت ثبت شد. سپاس!' : 'پرداخت تأیید نشد؛ با پشتیبانی تماس بگیرید.',
+            ]);
+
+            return;
+        }
         $callback = $update['callback_query'] ?? null;
         $message = $update['message'] ?? $update['edited_message'] ?? ($callback['message'] ?? null);
         $chatId = (string) (data_get($message, 'chat.id') ?? data_get($update, 'chat.id') ?? '');
@@ -64,7 +83,9 @@ final class BotEngine
             $ctx->setState('', []);
             $this->welcome($ctx);
             $payload = trim(substr($text, 6));
-            if (str_starts_with($payload, 'p_')) {
+            if (str_starts_with($payload, 'pay_') && $ctx->client) {
+                app(BalePayService::class)->sendInvoice($ctx->tenantId(), $ctx->client, $ctx->chatId, (int) substr($payload, 4));
+            } elseif (str_starts_with($payload, 'p_')) {
                 $shop->product((int) substr($payload, 2));
             } elseif ($payload === 'cart') {
                 $shop->showCart();

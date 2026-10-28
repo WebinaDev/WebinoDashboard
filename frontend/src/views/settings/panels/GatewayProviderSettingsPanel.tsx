@@ -196,6 +196,7 @@ const PROVIDER_FIELDS: Record<string, FieldDef[]> = {
     { key: "callback_url", type: "readonly", label: "callback_url" },
   ],
   bale_pay: [
+    { key: "provider_token", type: "password", label: "provider_token" },
     { key: "title", type: "text", label: "title" },
     { key: "description", type: "textarea", label: "description" },
     { key: "instructions", type: "textarea", label: "instructions" },
@@ -250,7 +251,7 @@ export function GatewayProviderSettingsPanel({
   useEffect(() => {
     if (!q.data?.settings) return
     const s = { ...q.data.settings }
-    for (const key of ["access_token", "client_secret", "password", "client_password", "merchant_id"]) {
+    for (const key of ["access_token", "client_secret", "password", "client_password", "merchant_id", "provider_token"]) {
       if (s[`has_${key}`]) s[key] = ""
       delete s[`has_${key}`]
     }

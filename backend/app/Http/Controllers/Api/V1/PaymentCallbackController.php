@@ -53,6 +53,8 @@ class PaymentCallbackController extends Controller
             'snapppay' => $this->handleBnpl($request, $row, 'snapppay', true),
             'torobpay' => $this->handleBnpl($request, $row, 'torobpay', false),
             BasalamPay::PROVIDER => $this->handleBasalamPay($request, $row),
+            // Bale Pay is confirmed only by the bot's successful_payment update; the return URL never marks paid.
+            'bale_pay' => $this->finish(($row->fresh() ?? $row)->status === 'paid', $row),
             default => $this->finish(false),
         };
     }

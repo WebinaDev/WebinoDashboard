@@ -340,7 +340,7 @@ class BotController extends Controller
 
         $callback = is_array($payload['callback_query'] ?? null) ? $payload['callback_query'] : null;
         $message = $payload['message'] ?? $payload['edited_message'] ?? ($callback['message'] ?? null);
-        $chatId = data_get($message, 'chat.id') ?? data_get($payload, 'chat.id');
+        $chatId = data_get($message, 'chat.id') ?? data_get($payload, 'chat.id') ?? data_get($payload, 'pre_checkout_query.from.id');
         if ($secret === '' || ! $chatId) {
             return response()->json(['ok' => false, 'message' => 'Unknown bot'], 404);
         }

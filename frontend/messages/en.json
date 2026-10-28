@@ -2580,6 +2580,7 @@
     "add_card": "Add card",
     "fields": {
       "merchant_id": "Merchant ID",
+      "provider_token": "Payment provider token (Bale wallet)",
       "access_token": "Access token",
       "sandbox": "Sandbox",
       "title": "Title",

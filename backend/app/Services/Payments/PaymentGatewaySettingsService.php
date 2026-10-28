@@ -42,6 +42,7 @@ class PaymentGatewaySettingsService
         'password',
         'client_password',
         'merchant_id',
+        'provider_token',
     ];
 
     public function __construct(protected ModuleSettingsService $settings) {}
@@ -288,6 +289,7 @@ class PaymentGatewaySettingsService
                 'slider_enabled' => false,
             ],
             'bale_pay' => [
+                'provider_token' => '',
                 'title' => 'بله پی',
                 'description' => '',
                 'instructions' => '',
@@ -344,7 +346,7 @@ class PaymentGatewaySettingsService
                 ->first();
             $out['status'] = [
                 'bot_active' => (bool) ($bot?->enabled && filled($bot?->token)),
-                'has_provider_token' => filled($bot?->token),
+                'has_provider_token' => filled($this->getRaw($tenantId, 'bale_pay')['provider_token'] ?? null),
                 'bot_username' => (string) (($bot?->meta ?? [])['username'] ?? ''),
             ];
         }
