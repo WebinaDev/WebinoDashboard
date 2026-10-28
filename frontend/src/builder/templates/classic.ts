@@ -54,6 +54,7 @@ export function classicHomeDocument(): BuilderDocument {
     sec("sec_promo", [col("col_promo", 12, [w("w_promo", "promo-trio")])]),
     sec("sec_special", [col("col_special", 12, [w("w_special", "special-banners", { title: "پیشنهادهای ویژه" })])]),
     sec("sec_offers", [col("col_offers", 12, [w("w_offers", "amazing-offers", { title: "پیشنهاد شگفت‌انگیز" })])]),
+    sec("sec_collection", [col("col_collection", 12, [w("w_collection", "collection-products", { title: "کالکشن ویژه", sort: "newest", limit: 10 })])]),
     sec("sec_taste", [col("col_taste", 12, [w("w_taste", "taste-box", { title: "پیشنهاد برای سلیقه شما" })])]),
     sec("sec_best_row", [col("col_best_row", 12, [w("w_best_row", "product-grid", { title: "پرفروش‌ترین‌ها", limit: 10, source: "featured", layout: "slider" })])]),
     sec("sec_best", [col("col_best", 12, [w("w_best", "best-sellers", { title: "پرفروش‌ترین محصولات", limit: 9 })])]),

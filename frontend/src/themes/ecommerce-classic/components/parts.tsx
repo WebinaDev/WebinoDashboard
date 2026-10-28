@@ -107,8 +107,9 @@ export function ClassicContainer({ children, className }: { children: ReactNode;
 }
 
 /** Push a product slug onto the shared recently-viewed list (localStorage). */
-export function rememberViewedProduct(slug: string) {
+export function rememberViewedProduct(slug: string, categorySlug?: string) {
   if (typeof window === "undefined" || !slug) return
+  if (categorySlug) rememberCategoryVisit(categorySlug)
   try {
     const raw = window.localStorage.getItem("wb_recently_viewed")
     const prev = raw ? (JSON.parse(raw) as unknown) : []
@@ -116,5 +117,31 @@ export function rememberViewedProduct(slug: string) {
     window.localStorage.setItem("wb_recently_viewed", JSON.stringify([slug, ...list].slice(0, 12)))
   } catch {
     /* storage unavailable */
+  }
+}
+
+const CAT_VISITS_KEY = "wb_cat_visits"
+
+/** Count a visit to a category (PDP or archive) — drives «براساس بازدیدهای قبلی شما» ordering. */
+export function rememberCategoryVisit(categorySlug: string) {
+  if (typeof window === "undefined" || !categorySlug) return
+  try {
+    const map = readCategoryVisits()
+    map[categorySlug] = (map[categorySlug] ?? 0) + 1
+    const top = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 30)
+    window.localStorage.setItem(CAT_VISITS_KEY, JSON.stringify(Object.fromEntries(top)))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function readCategoryVisits(): Record<string, number> {
+  if (typeof window === "undefined") return {}
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(CAT_VISITS_KEY) ?? "{}") as unknown
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {}
+    return Object.fromEntries(Object.entries(raw as Record<string, unknown>).filter((e): e is [string, number] => typeof e[1] === "number"))
+  } catch {
+    return {}
   }
 }

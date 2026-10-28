@@ -21,7 +21,7 @@ import {
   IconTruck,
 } from "./icons"
 import { ClassicProductCard } from "./ClassicProductCard"
-import { ClassicAmount, ClassicSectionHead, useDigits } from "./parts"
+import { ClassicAmount, ClassicSectionHead, readCategoryVisits, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
 import { optImg } from "@/lib/image-url"
 
@@ -846,7 +846,14 @@ export function ClassicTasteBox({ title, limit }: { title?: string; limit?: numb
   const homeCfg = useClassicThemeSettings().home ?? {}
   const tx = useClassicText()
   const catalog = useCatalog(24)
-  const groups = catalog.categories.slice(0, limit && limit > 0 ? limit : Math.max(1, Number(homeCfg.taste_groups) || 3)).map((cat) => {
+  const [visits, setVisits] = useState<Record<string, number>>({})
+  useEffect(() => setVisits(readCategoryVisits()), [])
+  const score = (cat: (typeof catalog.categories)[number]) =>
+    (visits[cat.slug] ?? 0) + (cat.children ?? []).reduce((s, k) => s + (visits[k.slug] ?? 0), 0)
+  const ranked = Object.keys(visits).length
+    ? [...catalog.categories].sort((a, b) => score(b) - score(a))
+    : catalog.categories
+  const groups = ranked.slice(0, limit && limit > 0 ? limit : Math.max(1, Number(homeCfg.taste_groups) || 3)).map((cat) => {
     const kids = cat.children?.length ? cat.children : [{ slug: cat.slug, name: cat.name, tone: cat.tone }]
     const products = catalog.products
       .filter((p) => p.categorySlug === cat.slug || p.category === cat.name || kids.some((k) => k.slug === p.categorySlug))

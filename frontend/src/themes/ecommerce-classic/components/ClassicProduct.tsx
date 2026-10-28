@@ -202,9 +202,9 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
 
   useEffect(() => {
     if (editing || !product?.slug) return
-    rememberViewedProduct(product.slug)
+    rememberViewedProduct(product.slug, product.categorySlug)
     if (product.id) trackAnalyticsEvent("product_view", { productId: product.id })
-  }, [editing, product?.id, product?.slug])
+  }, [editing, product?.id, product?.slug, product?.categorySlug])
 
   const galleryLen = product
     ? (product.images.length ? product.images.length : product.image ? 1 : 0)

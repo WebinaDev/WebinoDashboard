@@ -295,6 +295,8 @@ export const WIDGET_CATALOG: Record<string, CatalogEntry> = {
   "amazing-header": { category: "shop", icon: "Rocket" },
   "taste-box": { category: "shop", icon: "Palette" },
   "package-block": { category: "shop", icon: "Boxes" },
+  "package-side": { category: "shop", icon: "Gamepad2" },
+  "collection-products": { category: "shop", icon: "GalleryHorizontal" },
   "customer-guide": { category: "shop", icon: "LifeBuoy" },
   "installment-info": { category: "shop", icon: "CalendarClock" },
   "filter-panel": { category: "shop", icon: "SlidersHorizontal" },

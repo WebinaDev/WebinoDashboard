@@ -5,7 +5,7 @@ import { useClassicText } from "../lib/texts"
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 
 import type { ShopProduct } from "@/builder/catalog"
 import { useCatalog } from "@/builder/storefront/use-catalog"
@@ -13,7 +13,7 @@ import { useArchiveParams, useArchiveScope } from "@/builder/storefront/archive-
 
 import { IconChevronDown, IconChevronLeft, IconSort } from "./icons"
 import { ClassicProductCard } from "./ClassicProductCard"
-import { useDigits } from "./parts"
+import { rememberCategoryVisit, useDigits } from "./parts"
 
 /* --------------------------------------------------------- breadcrumb bar */
 
@@ -55,6 +55,10 @@ export function ClassicSortTabs({ editing, total }: { editing: boolean; total?: 
   const router = useRouter()
   const params = useSearchParams()
   const digits = useDigits()
+  const visitCat = params.get("category") ?? ""
+  useEffect(() => {
+    if (visitCat && !editing) rememberCategoryVisit(visitCat)
+  }, [visitCat, editing])
   const archiveSort = useClassicThemeSettings().archive?.default_sort
   const sortFallback =
     archiveSort === "price_asc"

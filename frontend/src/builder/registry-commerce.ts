@@ -270,6 +270,33 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     create: () => node("package-block", { title: "پکیج ویژه", text: "", href: "/shop" }),
   },
   {
+    type: "collection-products",
+    label: "مجموعه محصولات (کلاسیک)",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "text", key: "category", label: "نامک دسته (خالی = همه)" },
+      { kind: "select", key: "sort", label: "مرتب‌سازی", options: [{ value: "newest", label: "جدیدترین" }, { value: "best_selling", label: "پرفروش‌ترین" }, { value: "popular", label: "محبوب‌ترین" }, { value: "price_asc", label: "ارزان‌ترین" }] },
+      { kind: "number", key: "limit", label: "تعداد", min: 2, max: 24 },
+      { kind: "media", key: "banner", label: "بنر کناری" },
+      { kind: "link", key: "bannerHref", label: "پیوند بنر" },
+    ],
+    create: () => node("collection-products", { title: "کالکشن ویژه", category: "", sort: "newest", limit: 10, banner: "", bannerHref: "" }),
+  },
+  {
+    type: "package-side",
+    label: "پکیج کناری (پکیج گیمرها)",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "slugs", label: "نامک محصولات (با ویرگول؛ خالی = پرفروش‌های دسته)" },
+      { kind: "text", key: "category", label: "نامک دسته" },
+      { kind: "number", key: "discount", label: "درصد تخفیف خرید کامل", min: 0, max: 90 },
+      { kind: "number", key: "limit", label: "تعداد", min: 2, max: 8 },
+    ],
+    create: () => node("package-side", { title: "پکیج گیمرها", slugs: "", category: "", discount: 0, limit: 4 }),
+  },
+  {
     type: "blog-toc",
     label: "فهرست مطالب",
     category: "commerce",

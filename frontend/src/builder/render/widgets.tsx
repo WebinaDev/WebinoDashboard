@@ -125,6 +125,8 @@ const ClassicPromoTrio = dynamic(() => import("@/themes/ecommerce-classic/compon
 const ClassicRecentlyViewed = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicRecentlyViewed))
 const ClassicSpecialBanners = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicSpecialBanners))
 const ClassicStoryStrip = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicStoryStrip))
+const ClassicCollectionProducts = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHomeBlocks").then((m) => m.ClassicCollectionProducts))
+const ClassicPackageSide = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHomeBlocks").then((m) => m.ClassicPackageSide))
 const ClassicTasteBox = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicTasteBox))
 const ClassicTrustStrip = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicProduct").then((m) => m.ClassicTrustStrip))
 
@@ -289,6 +291,27 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <ClassicCustomerGuide title={propStr(widget.props, "title", "")} itemsText={propStr(widget.props, "items", "")} />
     case "package-block":
       return <PackageBlockWidget widget={widget} />
+    case "package-side":
+      return (
+        <ClassicPackageSide
+          title={propStr(widget.props, "title", "پکیج گیمرها")}
+          slugs={propStr(widget.props, "slugs", "")}
+          category={propStr(widget.props, "category", "")}
+          discountPercent={propNum(widget.props, "discount", 0)}
+          limit={propNum(widget.props, "limit", 4)}
+        />
+      )
+    case "collection-products":
+      return (
+        <ClassicCollectionProducts
+          title={propStr(widget.props, "title", "کالکشن ویژه")}
+          category={propStr(widget.props, "category", "")}
+          sort={propStr(widget.props, "sort", "newest")}
+          limit={propNum(widget.props, "limit", 10)}
+          banner={propStr(widget.props, "banner", "")}
+          bannerHref={propStr(widget.props, "bannerHref", "")}
+        />
+      )
     case "blog-toc":
       return <BlogTocWidget widget={widget} />
     case "mega-menu":
