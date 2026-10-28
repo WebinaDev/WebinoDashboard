@@ -42,7 +42,7 @@ return new class extends Migration
 
     public function backfill(): void
     {
-        if (! Schema::hasTable('poetry_poems') || ! Schema::hasTable('media_assets')) {
+        if (! Schema::hasTable('poetry_poems')) {
             return;
         }
         DB::table('poetry_poems')->orderBy('id')->chunkById(200, function ($poems) {
@@ -52,7 +52,7 @@ return new class extends Migration
                 }
                 $now = now();
                 $ids = array_values(array_filter(array_map('intval', (array) json_decode((string) $poem->media_ids, true))));
-                if ($ids) {
+                if ($ids && Schema::hasTable('media_assets')) {
                     $assets = DB::table('media_assets')->where('tenant_id', $poem->tenant_id)->whereIn('id', $ids)->get();
                     foreach ($assets as $a) {
                         $mime = (string) ($a->mime ?? '');
@@ -69,7 +69,7 @@ return new class extends Migration
                         continue;
                     }
                     $kind = preg_match('#aparat\.com|\.mp4(\?|$)#i', $url) ? 'video' : 'audio';
-                    DB::table('poetry_media')->insert(['tenant_id' => $poem->tenant_id, 'title' => trim((string) ($l['label'] ?? '')) ?: $poem->title, 'kind' => $kind,
+                    DB::table('poetry_media')->insert(['tenant_id' => $poem->tenant_id, 'title' => $poem->title, 'kind' => $kind,
                         'external_url' => mb_substr($url, 0, 1024), 'occasion_id' => $poem->occasion_id, 'poem_id' => $poem->id, 'status' => $poem->status, 'created_at' => $now, 'updated_at' => $now]);
                 }
             }
