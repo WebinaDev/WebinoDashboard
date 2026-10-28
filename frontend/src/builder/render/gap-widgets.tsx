@@ -2,6 +2,7 @@
 
 /* Renderers for the @webina/ui v0.2 gap widgets (schemas live in the shared package; renderers stay per platform). */
 
+import { observeVisibility, prefersReducedMotion } from "@webina/ui/builder"
 import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import Link from "next/link"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
@@ -130,18 +131,32 @@ export function LottieWidget({ widget }: { widget: WidgetNode }) {
   const src = safeMedia(propStr(p, "src"))
   useEffect(() => {
     if (!src || !ref.current) return
-    let anim: { destroy: () => void; setSpeed: (n: number) => void } | null = null
+    // Phase 9: load only when near the viewport, pause off-screen, never autoplay under reduced motion.
+    let anim: { destroy: () => void; setSpeed: (n: number) => void; play: () => void; pause: () => void } | null = null
     let alive = true
-    const mod = "lottie-web"
-    import(/* webpackIgnore: true */ mod)
-      .then((m: { default: { loadAnimation: (o: unknown) => typeof anim } }) => {
-        if (!alive || !ref.current) return
-        anim = m.default.loadAnimation({ container: ref.current, renderer: "svg", loop: propBool(p, "loop", true), autoplay: propBool(p, "autoplay", true), path: src })
-        anim?.setSpeed(propNum(p, "speed", 1) || 1)
-      })
-      .catch(() => alive && setFailed(true))
+    let loading = false
+    const autoplay = propBool(p, "autoplay", true) && !prefersReducedMotion()
+    const el = ref.current
+    const stop = observeVisibility(el, (visible) => {
+      if (anim) {
+        if (visible && autoplay) anim.play()
+        else anim.pause()
+        return
+      }
+      if (!visible || loading) return
+      loading = true
+      const mod = "lottie-web"
+      import(/* webpackIgnore: true */ mod)
+        .then((m: { default: { loadAnimation: (o: unknown) => typeof anim } }) => {
+          if (!alive || !ref.current) return
+          anim = m.default.loadAnimation({ container: ref.current, renderer: "svg", loop: propBool(p, "loop", true), autoplay, path: src })
+          anim?.setSpeed(propNum(p, "speed", 1) || 1)
+        })
+        .catch(() => alive && setFailed(true))
+    })
     return () => {
       alive = false
+      stop()
       anim?.destroy()
     }
   }, [src, p])
