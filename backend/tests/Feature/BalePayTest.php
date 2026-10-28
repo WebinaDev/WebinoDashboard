@@ -39,7 +39,10 @@ class BalePayTest extends TestCase
             'tenant_id' => $tenant->id, 'order_id' => $this->order->id, 'provider' => 'bale_pay',
             'status' => 'pending', 'meta' => ['amount_rial' => 50000],
         ]);
-        Http::fake(['tapi.bale.ai/*' => Http::response(['ok' => true, 'result' => []], 200)]);
+        Http::fake([
+            'tapi.bale.ai/*/createInvoiceLink' => Http::response(['ok' => true, 'result' => 'https://ble.ir/invoice/abc'], 200),
+            'tapi.bale.ai/*' => Http::response(['ok' => true, 'result' => []], 200),
+        ]);
     }
 
     private function hook(array $update): void
@@ -82,5 +85,23 @@ class BalePayTest extends TestCase
 
         $this->get('/api/v1/payments/callback/bale_pay/'.$this->order->id);
         $this->assertSame('awaiting_gateway', $this->order->fresh()->status);
+    }
+
+    public function test_miniapp_invoice_link_binds_payer_at_pre_checkout(): void
+    {
+        $intent = PaymentIntent::query()->where('order_id', $this->order->id)->firstOrFail();
+        $link = app(BalePayService::class)->invoiceLink($this->order, $intent);
+        $this->assertSame('https://ble.ir/invoice/abc', $link);
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'createInvoiceLink')
+            && $r['currency'] === 'IRR' && $r['provider_token'] === 'WALLET-1' && $r['prices'][0]['amount'] === 50000);
+
+        $this->hook(['pre_checkout_query' => ['id' => 'q1', 'from' => ['id' => 777],
+            'invoice_payload' => BalePayService::sign($this->order->id), 'total_amount' => 50000, 'currency' => 'IRR']]);
+        $this->assertSame('777', (string) $intent->fresh()->meta['chat_id']);
+
+        $this->pay('888', 50000);
+        $this->assertNotSame('paid', $this->order->fresh()->status);
+        $this->pay('777', 50000);
+        $this->assertSame('paid', $this->order->fresh()->status);
     }
 }

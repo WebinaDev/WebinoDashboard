@@ -40,6 +40,13 @@ type PayPayload = {
   items?: Array<{ product_name?: string; quantity?: number; unit_price_minor?: number }>
 }
 
+type BaleWebApp = { openInvoice?: (url: string, cb?: (status: string) => void) => void }
+
+function baleWebApp(): BaleWebApp | undefined {
+  if (typeof window === "undefined") return undefined
+  return (window as unknown as { Bale?: { WebApp?: BaleWebApp } }).Bale?.WebApp
+}
+
 const ONLINE = new Set(["zarinpal", "digipay", "snapppay", "torobpay", "bale_pay", "basalam_pay"])
 
 export default function OrderPayPageClient({
@@ -67,11 +74,19 @@ export default function OrderPayPageClient({
 
   const pay = useMutation({
     mutationFn: (provider: string) =>
-      api<{ redirect_url?: string | null }>(
+      api<{ redirect_url?: string | null; bale_invoice?: string | null }>(
         `/api/v1/public/orders/${orderId}/pay/intent?token=${encodeURIComponent(token)}`,
-        { method: "POST", json: { provider, token, mode } },
+        { method: "POST", json: { provider, token, mode, bale_miniapp: Boolean(baleWebApp()?.openInvoice) } },
       ),
     onSuccess: (res) => {
+      const bale = baleWebApp()
+      if (res.bale_invoice && bale?.openInvoice) {
+        // Inside Bale: pay from the wallet in place; the webhook marks the order paid.
+        bale.openInvoice(res.bale_invoice, (status) => {
+          if (status === "paid" || status === "pending") window.location.reload()
+        })
+        return
+      }
       const url = res.redirect_url
       if (url?.startsWith("http")) {
         window.location.assign(url)

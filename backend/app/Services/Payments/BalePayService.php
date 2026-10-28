@@ -101,10 +101,47 @@ class BalePayService
         return (bool) $res['ok'];
     }
 
+    /**
+     * Mini-app checkout (storefront opened inside Bale): createInvoiceLink so the page can call
+     * Bale.WebApp.openInvoice directly instead of bouncing through the bot chat. The chat is bound
+     * at pre-checkout (payer's user id), so successful_payment is still verified the same way.
+     */
+    public function invoiceLink(Order $order, PaymentIntent $intent, ?BotClient $client = null): ?string
+    {
+        $tenantId = (int) $order->tenant_id;
+        $token = (string) ($this->gateways->getRaw($tenantId, 'bale_pay')['provider_token'] ?? '');
+        $client ??= \App\Services\Bots\BotClientFactory::forTenant($tenantId, 'bale');
+        if ($token === '' || ! $client) {
+            return null;
+        }
+        $meta = $intent->meta ?? [];
+        $title = 'سفارش #'.($order->number ?? $order->id);
+        $res = $client->call('createInvoiceLink', [
+            'title' => mb_substr($title, 0, 32),
+            'description' => 'پرداخت از طریق کیف پول بله',
+            'payload' => self::sign($order->id),
+            'provider_token' => $token,
+            'currency' => 'IRR',
+            'prices' => [['label' => mb_substr($title, 0, 32), 'amount' => (int) ($meta['amount_rial'] ?? 0)]],
+        ]);
+        $link = $res['ok'] ? data_get($res, 'body.result') : null;
+        if (! is_string($link) || $link === '') {
+            return null;
+        }
+        $intent->update(['meta' => array_merge($meta, ['invoice_link' => $link, 'bind_at_checkout' => true])]);
+
+        return $link;
+    }
+
     /** @param array<string, mixed> $query */
     public function preCheckout(int $tenantId, BotClient $client, array $query): bool
     {
         [, $intent, $err] = $this->resolve($tenantId, (string) ($query['invoice_payload'] ?? ''));
+        // Mini-app invoices have no chat yet: bind the payer now (successful_payment must come from them).
+        $from = (string) data_get($query, 'from.id', '');
+        if (! $err && $intent && $from !== '' && ! empty($intent->meta['bind_at_checkout']) && (string) ($intent->meta['chat_id'] ?? '') === '') {
+            $intent->update(['meta' => array_merge($intent->meta ?? [], ['chat_id' => $from])]);
+        }
         if (! $err && (int) ($query['total_amount'] ?? -1) !== (int) data_get($intent?->meta, 'amount_rial', -2)) {
             $err = 'مبلغ فاکتور با سفارش مطابقت ندارد.';
         }

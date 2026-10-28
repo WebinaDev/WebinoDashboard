@@ -74,10 +74,19 @@ class PublicOrderPaymentController extends Controller
         }
 
         $meta = is_array($intent->meta) ? $intent->meta : [];
+        $baleInvoice = null;
+        if ($intent->provider === 'bale_pay' && $request->boolean('bale_miniapp')) {
+            try {
+                $baleInvoice = app(\App\Services\Payments\BalePayService::class)->invoiceLink($row->fresh() ?? $row, $intent);
+            } catch (\Throwable) {
+                $baleInvoice = null;
+            }
+        }
 
         return response()->json([
             'data' => [
                 'redirect_url' => $intent->redirect_url,
+                'bale_invoice' => $baleInvoice,
                 'provider' => $intent->provider,
                 'mode' => $meta['mode'] ?? null,
                 'fee_percent' => $meta['fee_percent'] ?? 0,
