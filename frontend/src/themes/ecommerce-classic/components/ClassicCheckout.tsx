@@ -14,6 +14,7 @@ import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 import { syncGuestCart, useServerCart } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
 import { readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
+import { ClassicCouponChooser } from "./ClassicCouponChooser"
 
 import { ClassicCheckoutSteps } from "./ClassicCart"
 import { ClassicTrustStrip } from "./ClassicProduct"
@@ -425,6 +426,20 @@ export function ClassicCheckout() {
                               placeholder={tx("cart.coupon_placeholder")}
                             />
                           </label>
+                        ) : null}
+                        {showCoupon ? (
+                          <ClassicCouponChooser
+                            subtotal={subtotal}
+                            appliedCode={coupon || null}
+                            onApply={(code) => {
+                              setCoupon(code)
+                              storeCoupon(code)
+                            }}
+                            onRemove={() => {
+                              setCoupon("")
+                              storeCoupon(null)
+                            }}
+                          />
                         ) : null}
                       </Fragment>
                     )
