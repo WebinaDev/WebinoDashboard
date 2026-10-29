@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
 import CataloguePage from "@/kernel/pages/CataloguePage"
 import { getSiteTypeSlug } from "@/kernel/cafe-catalogue-data"
@@ -58,6 +58,8 @@ export default async function Page({
   if (route.path === "product/:slug") {
     const slug = route.params?.slug
     const seed = await loadProductSeed(slug)
+    // Soft-404 chrome with HTTP 200 was wrong for missing/draft SKUs — real 404.
+    if (!seed) notFound()
     return (
       <ProductSeedProvider seed={seed}>
         <ThemeSlot kind="single_product" runtime={{ productSlug: slug }}>

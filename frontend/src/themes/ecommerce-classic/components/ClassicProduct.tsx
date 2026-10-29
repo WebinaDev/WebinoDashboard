@@ -267,8 +267,13 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
     { label: "دسته‌بندی", value: product.category },
     { label: "وضعیت", value: product.inStock ? tx("product.in_stock") : tx("product.out_of_stock") },
   ]
+  if (product.sku) attrs.push({ label: "کد محصول", value: product.sku })
   if (typeof stock === "number") attrs.push({ label: "موجودی", value: `${digits(stock)} عدد` })
   if (product.variants.length) attrs.push({ label: "تنوع", value: `${digits(product.variants.length)} مدل` })
+  for (const row of product.attributes ?? []) {
+    if (!row.label || !row.value) continue
+    attrs.push({ label: row.label, value: row.value })
+  }
 
   return (
     <div className="sfc-pdp">
@@ -507,7 +512,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
 
           <div className="sfc-tabs" id="sfc-tabs">
             <div className="sfc-tabs__head">
-              <h2 className="sfc-tabs__title">{tab === "desc" ? tx("product.tab_desc") : tab === "spec" ? tx("product.tab_spec") : tx("product.tab_faq")}</h2>
+              <p className="sfc-tabs__title">{tab === "desc" ? tx("product.tab_desc") : tab === "spec" ? tx("product.tab_spec") : tx("product.tab_faq")}</p>
               <div className="sfc-tabs__links" role="tablist">
                 {(
                   [
@@ -554,7 +559,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
                 )
               ) : (
                 <div className="sfc-prose">
-                  <h3>{tx("product.reviews_title")}</h3>
+                  <h2>{tx("product.reviews_title")}</h2>
                   <div
                     className="sfc-prose__body"
                     dangerouslySetInnerHTML={{ __html: sanitizeBuilderHtml(product.description || "") }}

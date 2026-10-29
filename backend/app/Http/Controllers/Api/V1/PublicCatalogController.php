@@ -295,6 +295,7 @@ class PublicCatalogController extends Controller
                 'media' => fn ($q) => $q->orderBy('sort_order'),
                 'allergens',
                 'modifiers' => fn ($q) => $q->with(['options' => fn ($oq) => $oq->orderBy('sort_order')])->orderBy('sort_order'),
+                'attributes' => fn ($q) => $q->orderBy('product_attribute_product.position')->orderBy('name'),
             ])
             ->firstOrFail();
 
@@ -305,6 +306,7 @@ class PublicCatalogController extends Controller
         // Classic PDP head bar (product code) and English model line, like parisma.ir.
         $data['sku'] = $product->sku ?: null;
         $data['english_name'] = $product->english_name ?: null;
+        $data['attributes'] = $this->visibleAttributeRows($product);
         $data['variants'] = $this->withSwatches($tid, $data['variants'] ?? []);
         $data['return_notice'] = $this->categoryReturnNotice($product->category);
         // Same price formatting as the catalogue list (item page used to fall back to defaults).
@@ -382,6 +384,49 @@ class PublicCatalogController extends Controller
      * @param  iterable<mixed>  $variants
      * @return list<mixed>
      */
+
+    /**
+     * Visible product attributes for the storefront «توضیحات تکمیلی» tab (parisma.ir product-specifications).
+     *
+     * @return list<array{slug: string, label: string, value: string}>
+     */
+    protected function visibleAttributeRows(Product $product): array
+    {
+        if (! $product->relationLoaded('attributes')) {
+            $product->load(['attributes' => fn ($q) => $q->orderBy('product_attribute_product.position')->orderBy('name')]);
+        }
+        $rows = [];
+        foreach ($product->attributes as $attr) {
+            $visible = (bool) ($attr->pivot->is_visible ?? true);
+            if (! $visible) {
+                continue;
+            }
+            $termIds = json_decode((string) ($attr->pivot->term_ids ?? '[]'), true);
+            if (! is_array($termIds) || $termIds === []) {
+                continue;
+            }
+            $names = \App\Models\ProductAttributeTerm::query()
+                ->where('product_attribute_id', $attr->id)
+                ->whereIn('id', $termIds)
+                ->orderBy('menu_order')
+                ->orderBy('name')
+                ->pluck('name')
+                ->filter()
+                ->values()
+                ->all();
+            if ($names === []) {
+                continue;
+            }
+            $rows[] = [
+                'slug' => (string) $attr->slug,
+                'label' => (string) $attr->name,
+                'value' => implode('، ', array_map('strval', $names)),
+            ];
+        }
+
+        return $rows;
+    }
+
     protected function withSwatches(int $tid, iterable $variants): array
     {
         $list = [];

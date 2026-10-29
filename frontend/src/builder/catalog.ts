@@ -59,6 +59,8 @@ export type ShopProduct = {
   sku?: string | null
   /** Latin model name shown under the title — item endpoint only. */
   englishName?: string | null
+  /** Visible attribute rows for the «توضیحات تکمیلی» tab (item endpoint). */
+  attributes?: Array<{ label: string; value: string; slug?: string }>
 }
 
 export type ShopCategory = {
@@ -304,6 +306,21 @@ function str(value: unknown): string {
   return typeof value === "string" ? value : ""
 }
 
+
+function mapAttributeRows(raw: unknown): Array<{ label: string; value: string; slug?: string }> {
+  if (!Array.isArray(raw)) return []
+  const out: Array<{ label: string; value: string; slug?: string }> = []
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue
+    const r = row as Record<string, unknown>
+    const label = String(r.label ?? r.name ?? "").trim()
+    const value = String(r.value ?? r.terms_text ?? "").trim()
+    if (!label || !value) continue
+    out.push({ label, value, slug: r.slug ? String(r.slug) : undefined })
+  }
+  return out
+}
+
 export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
   const category = raw.category && typeof raw.category === "object" ? (raw.category as ApiRecord) : null
   const price = num(raw.discounted_price_minor) || num(raw.price_minor)
@@ -366,6 +383,7 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     returnNotice: str(raw.return_notice) || null,
     sku: str(raw.sku) || null,
     englishName: str(raw.english_name) || null,
+    attributes: mapAttributeRows(raw.attributes),
   }
 }
 

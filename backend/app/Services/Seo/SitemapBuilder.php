@@ -96,11 +96,13 @@ final class SitemapBuilder
         $base = $this->base($tenant);
         $cfg = $this->settings->get((int) $tenant->id);
         $urls = [];
+        // Include catalog_visibility=hidden: those PDPs are still reachable by direct URL
+        // (Woo "Hidden") and should stay in the product sitemap like parisma.ir.
         Product::query()
             ->where('tenant_id', $tenant->id)
             ->where('status', 'publish')
             ->where(function ($q) {
-                $q->whereNull('catalog_visibility')->orWhere('catalog_visibility', '!=', 'hidden');
+                $q->whereNull('catalog_visibility')->orWhereNotIn('catalog_visibility', ['private']);
             })
             ->orderBy('id')
             ->limit(20000)

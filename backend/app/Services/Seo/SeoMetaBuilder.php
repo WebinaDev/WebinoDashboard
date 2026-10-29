@@ -36,6 +36,8 @@ final class SeoMetaBuilder
         if ($description === '') {
             $description = trim((string) $cfg['home_description']);
         }
+        $description = self::truncateDescription($description, 160);
+        $ogDescription = self::truncateDescription($ogDescription !== '' ? $ogDescription : $description, 160);
 
         $fullTitle = str_replace(
             ['{title}', '{separator}', '{site}'],
@@ -101,7 +103,7 @@ final class SeoMetaBuilder
             $tenant,
             $this->settings->productPath((int) $tenant->id, (string) $product->slug),
             (string) $product->name,
-            mb_substr(strip_tags((string) ($product->short_description ?? $product->description ?? '')), 0, 160),
+            self::truncateDescription((string) ($product->short_description ?? $product->description ?? ''), 160),
             $seo,
             'Product'
         );
@@ -117,7 +119,7 @@ final class SeoMetaBuilder
             $tenant,
             '/blog/'.$post->slug,
             (string) $post->title,
-            mb_substr(strip_tags((string) ($post->excerpt ?? '')), 0, 160),
+            self::truncateDescription((string) ($post->excerpt ?? ''), 160),
             $seo,
             (string) ($seo['schema_type'] ?? 'Article')
         );
@@ -143,7 +145,7 @@ final class SeoMetaBuilder
             $tenant,
             '/'.ltrim((string) $page->slug, '/'),
             (string) $page->title,
-            mb_substr(strip_tags((string) ($page->excerpt ?? '')), 0, 160),
+            self::truncateDescription((string) ($page->excerpt ?? ''), 160),
             $seo,
             (string) $seo['schema_type']
         );
@@ -337,4 +339,25 @@ final class SeoMetaBuilder
 
         return array_values(array_filter($graphs));
     }
+    /** Truncate plain text at a sentence or word boundary (never mid-word). */
+    public static function truncateDescription(string $text, int $max = 160): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', strip_tags($text)) ?? '');
+        if ($text === '' || mb_strlen($text) <= $max) {
+            return $text;
+        }
+        $slice = mb_substr($text, 0, $max);
+        // Prefer last sentence end in the slice.
+        if (preg_match('/^(.*[\.\!\?\…۔])\s\S*$/u', $slice, $m) === 1 && mb_strlen($m[1]) >= (int) ($max * 0.5)) {
+            return rtrim($m[1]);
+        }
+        // Else break on last whitespace and add ellipsis.
+        $break = mb_strrpos($slice, ' ');
+        if ($break !== false && $break >= (int) ($max * 0.5)) {
+            $slice = mb_substr($slice, 0, $break);
+        }
+
+        return rtrim($slice, " \t.,;:،؛").'…';
+    }
+
 }
