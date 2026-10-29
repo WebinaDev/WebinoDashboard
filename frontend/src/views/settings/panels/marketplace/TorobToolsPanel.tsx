@@ -59,6 +59,7 @@ export function TorobToolsPanel() {
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground text-sm">{t("torob.extractor_deprecated")}</p>
+      <p className="text-muted-foreground text-sm">{t("torob.tokens_note")}</p>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("torob.webhook")}</CardTitle>

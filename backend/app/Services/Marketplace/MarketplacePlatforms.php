@@ -34,7 +34,7 @@ final class MarketplacePlatforms
         'emalls' => [],
         'zarehbin' => [],
         'snapppay-search' => [],
-        'torob' => ['webhook_token'],
+        'torob' => ['webhook_token', 'shop_api_token'],
     ];
 
     /** @return list<string> */
@@ -135,6 +135,7 @@ final class MarketplacePlatforms
                 'action_tracking_enabled' => false,
                 'expand_variations' => true,
                 'webhook_token' => '',
+                'shop_api_token' => '',
             ],
             default => [],
         };

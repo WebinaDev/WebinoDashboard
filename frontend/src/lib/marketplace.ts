@@ -99,6 +99,8 @@ export const MARKETPLACE_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = 
     { key: "version", type: "text", ltr: true, advanced: true },
   ],
   torob: [
+    { key: "shop_api_token", type: "secret" },
+    { key: "webhook_token", type: "secret" },
     { key: "per_page", type: "number" },
     { key: "expand_variations", type: "switch" },
     { key: "order_status_enabled", type: "switch" },

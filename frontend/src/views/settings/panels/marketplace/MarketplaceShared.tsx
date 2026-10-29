@@ -242,6 +242,9 @@ export function ConnectionCard({
               </button>
             ) : null}
           </div>
+          {t.has(`fields.${f.key}_hint`) ? (
+            <p className="text-muted-foreground text-xs leading-relaxed">{t(`fields.${f.key}_hint`)}</p>
+          ) : null}
           <Comp
             {...(f.type === "secret" ? { type: "password" } : { rows: 4 })}
             dir="ltr"

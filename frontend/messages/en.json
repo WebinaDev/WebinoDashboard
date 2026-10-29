@@ -3846,13 +3846,14 @@
       "min_items": "Minimum item count"
     },
     "offer": {
-      "panel": "Offer conditions",
-      "condition_type": "Condition type",
-      "condition_value": "Condition value",
-      "auto_apply": "Auto-apply at checkout",
-      "auto_apply_hint": "When no code is entered, the best eligible offer is applied automatically.",
-      "max_discount": "Maximum discount amount",
-      "shipping_percent": "Shipping discount percent"
+      "buy": "Buy qty",
+      "get": "Get qty",
+      "get_percent": "Get discount %",
+      "bogo_hint": "In each (buy + get) group the cheapest items are discounted.",
+      "bundle_price": "Fixed bundle price (optional)",
+      "bundle_hint": "All products in the product restriction must be in the cart. Without a fixed price, Amount is the % off each set.",
+      "tiers": "Tiers (qty:percent)",
+      "tiers_hint": "One tier per line, e.g. 2:5 and 4:10. The highest reached tier applies."
     },
     "picker": {
       "user_ids": "Allowed users",
@@ -3869,7 +3870,6 @@
       "password": "Password protected"
     },
     "amountHintPercent": "Discount percent (e.g. 10 means 10%).",
-    "offer": {"buy": "Buy qty", "get": "Get qty", "get_percent": "Get discount %", "bogo_hint": "In each (buy + get) group the cheapest items are discounted.", "bundle_price": "Fixed bundle price (optional)", "bundle_hint": "All products in the product restriction must be in the cart. Without a fixed price, Amount is the % off each set.", "tiers": "Tiers (qty:percent)", "tiers_hint": "One tier per line, e.g. 2:5 and 4:10. The highest reached tier applies."},
     "amountHintMinor": "Fixed amounts are stored as integer minor currency units (not WC decimals)."
   },
   "coupon_builder": {
@@ -4108,7 +4108,7 @@
     "secret_saved": "•••••••• (saved — type to replace)",
     "connection": "Connection & settings",
     "connection_api_hint": "Enter your seller-panel credentials. Secret values are never shown again after saving.",
-    "connection_feed_hint": "This service crawls your store feed. Register the feed URL in the service panel.",
+    "connection_feed_hint": "Register the feed URL in the service panel. For Torob, crawling uses Torob’s JWT; paste a Shop API token only if this dashboard should call Torob’s Shop API.",
     "show_advanced": "Show advanced settings",
     "hide_advanced": "Hide advanced settings",
     "test_connection": "Save & test connection",
@@ -4196,7 +4196,7 @@
       "tapsishop": "Push price/stock and import orders from TapsiShop.",
       "technolife": "Push price/stock and import orders from Technolife.",
       "emalls": "Product feed for the Emalls crawler with token validation.",
-      "torob": "Torob product feed (v3 and legacy), order status, purchase tracking and product-page webhook.",
+      "torob": "Product feed like the official WooCommerce plugin (Torob crawls with JWT in X-Torob-Token). Seller-panel Shop API token is for calling Torob’s Shop API. Webhook token notifies Torob of product changes.",
       "zarehbin": "Product feed for the Zarehbin crawler.",
       "snapppay-search": "Product feed for SnappPay search."
     },
@@ -4239,9 +4239,12 @@
       "client_secret": "Client secret",
       "access_token": "Access token",
       "refresh_token": "Refresh token",
-      "webhook_token": "Webhook token",
+      "webhook_token": "Product-page webhook token",
       "gateway_secret": "Basalam Pay secret",
-      "auth_url": "Auth URL"
+      "auth_url": "Auth URL",
+      "shop_api_token": "Torob Shop API token",
+      "shop_api_token_hint": "Paste from Torob seller panel → API access. Used for outbound Shop API calls (read/activate products on Torob). Not required for feed crawling — Torob crawls with an X-Torob-Token JWT like the official WooCommerce plugin.",
+      "webhook_token_hint": "Token Torob pushes via set-token (or paste manually) so the shop can notify Torob of product changes. Separate from the Shop API token."
     },
     "feed_keys": {
       "products": "Products feed",
@@ -4327,7 +4330,8 @@
       "order_saved": "Torob info saved.",
       "order_title": "Torob order info",
       "no_clid": "This order did not come from Torob (no torob_clid).",
-      "extractor_deprecated": "The legacy Torob products extractor in WP is deprecated and redirects to the Torob connector; queue and preview tools here are the equivalent."
+      "extractor_deprecated": "The legacy Torob products extractor in WP is deprecated and redirects to the Torob connector; queue and preview tools here are the equivalent.",
+      "tokens_note": "Tokens: the product feed is guarded by Torob’s JWT (X-Torob-Token), like the WooCommerce plugin. The seller-panel Shop API token is for calling Torob’s API and is stored on the Connection tab. The webhook token notifies Torob of product changes and is usually pushed by Torob via set-token."
     },
     "map_status": {
       "synced": "Synced",
@@ -5973,8 +5977,14 @@
     "subtitle": "Discounts, SMS, bots and notifications at a glance",
     "open": "Open",
     "cards": {
-      "popups": { "title": "Popups", "description": "Promo popups with triggers, page/device targeting and frequency rules" },
-      "abandoned_carts": { "title": "Abandoned carts", "description": "Automatic SMS/bot reminders with staged coupons" },
+      "popups": {
+        "title": "Popups",
+        "description": "Promo popups with triggers, page/device targeting and frequency rules"
+      },
+      "abandoned_carts": {
+        "title": "Abandoned carts",
+        "description": "Automatic SMS/bot reminders with staged coupons"
+      },
       "coupons": {
         "title": "Coupons",
         "description": "Create and manage coupons and restrictions"
