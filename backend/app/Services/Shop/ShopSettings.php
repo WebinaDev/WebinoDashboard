@@ -446,6 +446,10 @@ final class ShopSettings
             'filter_on_sale' => true,
             'filter_color' => true,
             'filters_open_default' => false,
+            /* null = all attribute groups; list of slugs = only those (empty = none). */
+            'filter_attribute_slugs' => null,
+            /* Max options shown per filter group before «نمایش بیشتر». */
+            'filter_options_limit' => 5,
             'products_per_page' => 12,
             'product_columns' => 3,
             'default_sort' => 'newest',
@@ -721,10 +725,40 @@ final class ShopSettings
             'filter_on_sale' => filter_var($input['filter_on_sale'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'filter_color' => filter_var($input['filter_color'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'filters_open_default' => filter_var($input['filters_open_default'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'filter_attribute_slugs' => self::sanitizeFilterAttributeSlugs($input['filter_attribute_slugs'] ?? null),
+            'filter_options_limit' => max(3, min(30, (int) ($input['filter_options_limit'] ?? 5))),
             'products_per_page' => max(1, min(96, (int) ($input['products_per_page'] ?? 12))),
             'product_columns' => max(1, min(6, (int) ($input['product_columns'] ?? 3))),
             'default_sort' => $sort,
         ];
+    }
+
+    /**
+     * @param  mixed  $raw
+     * @return list<string>|null  null = show all attribute filters
+     */
+    private static function sanitizeFilterAttributeSlugs(mixed $raw): ?array
+    {
+        if ($raw === null || $raw === '' || $raw === false) {
+            return null;
+        }
+        if (is_string($raw)) {
+            $raw = preg_split('/[\s,]+/u', $raw, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        }
+        if (! is_array($raw)) {
+            return null;
+        }
+        $out = [];
+        foreach ($raw as $slug) {
+            $s = strtolower(trim((string) $slug));
+            $s = preg_replace('/[^a-z0-9\-_]/', '', $s) ?? '';
+            $s = substr($s, 0, 64);
+            if ($s !== '') {
+                $out[$s] = $s;
+            }
+        }
+
+        return array_values($out);
     }
 
     /**

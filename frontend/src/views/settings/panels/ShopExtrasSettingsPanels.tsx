@@ -490,6 +490,8 @@ export function ShopArchiveSettingsPanel() {
     filter_on_sale?: boolean
     filter_color?: boolean
     filters_open_default?: boolean
+    filter_attribute_slugs?: string[] | null
+    filter_options_limit?: number
     products_per_page?: number
     product_columns?: number
     default_sort?: string
@@ -588,6 +590,34 @@ export function ShopArchiveSettingsPanel() {
                 <SelectItem value="popular">{t("shop_archive.sort_popular")}</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid max-w-lg gap-2">
+            <Label>{t("shop_archive.filter_attrs")}</Label>
+            <Input
+              dir="ltr"
+              placeholder="pa_colors, pa_size"
+              value={Array.isArray(draft.filter_attribute_slugs) ? draft.filter_attribute_slugs.join(", ") : ""}
+              onChange={(e) => {
+                const raw = e.target.value.trim()
+                if (!raw) {
+                  setDraft({ ...draft, filter_attribute_slugs: null })
+                  return
+                }
+                const slugs = raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean)
+                setDraft({ ...draft, filter_attribute_slugs: slugs })
+              }}
+            />
+            <p className="text-muted-foreground text-xs">{t("shop_archive.filter_attrs_help")}</p>
+          </div>
+          <div className="grid max-w-md gap-2">
+            <Label>{t("shop_archive.options_limit")}</Label>
+            <Input
+              type="number"
+              min={3}
+              max={30}
+              value={Number(draft.filter_options_limit ?? 5)}
+              onChange={(e) => setDraft({ ...draft, filter_options_limit: Number(e.target.value) || 5 })}
+            />
           </div>
         </CardContent>
       </Card>

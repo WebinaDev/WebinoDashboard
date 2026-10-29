@@ -21,8 +21,24 @@ export type CatalogFacets = {
   attributes: { slug: string; name: string; type?: string; terms: CatalogFacetTerm[] }[]
 }
 
+export type ShopArchiveSettings = {
+  sidebar_enabled?: boolean
+  filters_open_default?: boolean
+  filter_price?: boolean
+  filter_in_stock?: boolean
+  filter_on_sale?: boolean
+  filter_express?: boolean
+  filter_color?: boolean
+  filter_attribute_slugs?: string[] | null
+  filter_options_limit?: number
+  product_columns?: number
+  products_per_page?: number
+  default_sort?: string
+}
+
 export type CatalogState = {
   facets?: CatalogFacets | null
+  archive?: ShopArchiveSettings | null
   products: ShopProduct[]
   categories: ShopCategory[]
   brands: ShopBrand[]
@@ -64,7 +80,7 @@ function seededState(seed: CatalogSeed, query: string, page: number): CatalogSta
   if (!seed || catalogQueryKey(seed.query) !== catalogQueryKey(query)) return null
   const payload = mapCatalogJson(seed.json as Parameters<typeof mapCatalogJson>[0])
   if (!payload) return null
-  return { products: payload.items, categories: payload.categories, brands: payload.brands, facets: payload.facets ?? null, live: true, total: payload.total, page }
+  return { products: payload.items, categories: payload.categories, brands: payload.brands, facets: payload.facets ?? null, archive: payload.archive ?? null, live: true, total: payload.total, page }
 }
 
 type CatalogPayload = {
@@ -73,9 +89,10 @@ type CatalogPayload = {
   brands: ShopBrand[]
   total: number
   facets?: CatalogFacets | null
+  archive?: ShopArchiveSettings | null
 }
 
-export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; facets?: CatalogFacets | null; pagination?: { total?: number } } } | null): CatalogPayload | null {
+export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; facets?: CatalogFacets | null; archive?: ShopArchiveSettings | null; pagination?: { total?: number } } } | null): CatalogPayload | null {
       if (!json?.data) return null
       const items = Array.isArray(json.data.items) ? json.data.items : []
       const categories = Array.isArray(json.data.categories) ? json.data.categories : []
@@ -91,12 +108,14 @@ export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: 
         .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
         .map((item) => mapApiBrand(item))
         .filter((item): item is ShopBrand => item !== null)
+      const archiveRaw = json.data.archive
       return {
         items: products,
         categories: buildCategoryTree(mappedCategories),
         brands: mappedBrands,
         total: Number(json.data.pagination?.total ?? products.length) || 0,
         facets: normalizeFacets(json.data.facets),
+        archive: archiveRaw && typeof archiveRaw === "object" ? (archiveRaw as ShopArchiveSettings) : null,
       }
     }
 
@@ -186,6 +205,7 @@ export function useCatalog(limit: number): CatalogState {
         categories: payload.categories,
         brands: payload.brands,
         facets: payload.facets ?? null,
+        archive: payload.archive ?? null,
         live: true,
         total: payload.total,
         page,

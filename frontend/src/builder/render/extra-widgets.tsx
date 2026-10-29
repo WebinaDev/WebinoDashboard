@@ -35,6 +35,7 @@ import { linkAttrs, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { useIsClassicSkin } from "./runtime"
 import { ClassicProductRow } from "@/themes/ecommerce-classic/components/ClassicHome"
+import { imageSrcSet, imageUrl, originalUrl } from "@/lib/image-url"
 import { Img } from "./img"
 
 /* ------------------------------------------------------------------ utils */
@@ -159,18 +160,35 @@ export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
   if (!rows.length) return <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">بنرها را در تنظیمات ویجت وارد کنید (تصویر|پیوند|عنوان).</p>
   return (
     <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-      {rows.map(([image, href, alt, mobileImage], i) => (
+      {rows.map(([image, href, alt, mobileImage], i) => {
+        const sizes = "(max-width: 767px) 100vw, (max-width: 1100px) 50vw, 900px"
+        const desk = image
+          ? {
+              src: i === 0 ? originalUrl(image) : imageUrl(image, 1200, false),
+              srcSet: imageSrcSet(image, false),
+              sizes,
+            }
+          : null
+        const mob = mobileImage
+          ? {
+              src: i === 0 ? originalUrl(mobileImage) : imageUrl(mobileImage, 800, false),
+              srcSet: imageSrcSet(mobileImage, false),
+              sizes: "100vw",
+            }
+          : null
+        return (
         <Link key={i} href={safeHref(href || "", "/shop")} className="block overflow-hidden bg-muted" style={{ aspectRatio: ratio.replace(":", "/"), borderRadius: radius }}>
           {image ? (
             <picture>
-              {mobileImage ? <source media="(max-width: 767px)" srcSet={mobileImage} /> : null}
-              <Img src={image} alt={alt || ""} loading={i === 0 ? "eager" : "lazy"} className="h-full w-full object-cover" />
+              {mob ? <source media="(max-width: 767px)" srcSet={mob.srcSet || mob.src} sizes={mob.sizes} /> : null}
+              <Img src={desk?.src || image} srcSet={desk?.srcSet} sizes={desk?.sizes} alt={alt || ""} priority={i === 0} loading={i === 0 ? "eager" : "lazy"} className="h-full w-full object-cover" />
             </picture>
           ) : (
             <span className="grid h-full place-items-center text-sm font-bold">{alt}</span>
           )}
         </Link>
-      ))}
+        )
+      })}
     </div>
   )
 }

@@ -24,7 +24,7 @@ import { ClassicProductCard } from "./ClassicProductCard"
 import { ClassicCarousel } from "./ClassicCarousel"
 import { ClassicAmount, ClassicSectionHead, readCategoryVisits, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
-import { optImg } from "@/lib/image-url"
+import { imageSrcSet, imageUrl, optImg, originalUrl } from "@/lib/image-url"
 
 function imageForCategory(catalog: CatalogState, slug: string, name: string): string | null {
   const hit = catalog.products.find((p) => (p.categorySlug === slug || p.category === name) && p.image)
@@ -404,13 +404,30 @@ function HeroSlidePicture({
   alt: string
   priority?: boolean
 }) {
-  const mobile = mobileImage ? optImg(mobileImage, undefined, priority) : null
+  const heroSizes = "(max-width: 767px) 100vw, (max-width: 1200px) 100vw, 1600px"
+  // Build a real srcSet even for priority slides (LCP still uses the original src).
+  const desktopSrcSet = imageSrcSet(image, false)
+  const desktopSrc = priority ? originalUrl(image) : imageUrl(image, 1600, false)
+  const mobile = mobileImage
+    ? {
+        src: priority ? originalUrl(mobileImage) : imageUrl(mobileImage, 800, false),
+        srcSet: imageSrcSet(mobileImage, false) || undefined,
+        sizes: "100vw",
+      }
+    : null
   return (
     <picture>
       {mobile ? (
-        <source media="(max-width: 767px)" srcSet={mobile.srcSet || (typeof mobile.src === "string" ? mobile.src : undefined)} sizes={mobile.sizes} />
+        <source media="(max-width: 767px)" srcSet={mobile.srcSet || mobile.src} sizes={mobile.sizes} />
       ) : null}
-      <OptImg src={image} alt={alt} className="sfc-hero__img" priority={!!priority} />
+      <OptImg
+        src={desktopSrc}
+        srcSet={desktopSrcSet}
+        sizes={heroSizes}
+        alt={alt}
+        className="sfc-hero__img"
+        priority={!!priority}
+      />
     </picture>
   )
 }

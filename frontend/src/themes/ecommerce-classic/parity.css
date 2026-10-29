@@ -1836,6 +1836,48 @@
   }
 }
 
+/* Tablet: keep hero banners uncropped (object-fit contain) */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .sfc-hero__frame {
+    aspect-ratio: auto;
+    min-height: 180px;
+  }
+  .sfc-hero__slide {
+    position: relative;
+    inset: auto;
+    min-height: 180px;
+    opacity: 0;
+    visibility: hidden;
+    height: 0;
+    overflow: hidden;
+    padding-inline: 0;
+  }
+  .sfc-hero__slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    height: auto;
+    overflow: visible;
+  }
+  .sfc-hero__img,
+  .sfc-hero__slide--image-only .sfc-hero__img {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    object-fit: contain;
+    object-position: center;
+  }
+  .sfc-hero__slide--image-only picture {
+    display: block;
+    width: 100%;
+  }
+  .sfc-hero--image-only .sfc-hero__frame {
+    aspect-ratio: auto;
+  }
+}
+
+
 /* --------------------------------------------- category tiles + offer */
 .sfc-tiles {
   display: grid;
@@ -6737,6 +6779,23 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
 .sf-shell.sf-skin-classic[data-sf-scheme="dark"] .sfc-wishlist__img,
 [data-sf-scheme="dark"] .sf-classic .sfc-wishlist__img {
   background: var(--sfc-surface-2);
+}
+
+/* archive: show-more toggle inside a filter group */
+.sfc-filter__more {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sfc-pink, #e775ae);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sfc-filter__more:hover {
+  text-decoration: underline;
 }
 
 /* archive: color swatches + price range (parisma filters) */

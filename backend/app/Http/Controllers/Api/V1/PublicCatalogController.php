@@ -205,6 +205,15 @@ class PublicCatalogController extends Controller
             });
         }
 
+        if (is_array($facets) && array_key_exists('filter_attribute_slugs', $archive) && is_array($archive['filter_attribute_slugs'])) {
+            $allow = $archive['filter_attribute_slugs'];
+            $attrs = is_array($facets['attributes'] ?? null) ? $facets['attributes'] : [];
+            $facets['attributes'] = array_values(array_filter(
+                $attrs,
+                static fn ($a) => in_array((string) ($a['slug'] ?? ''), $allow, true)
+            ));
+        }
+
         $perPage = max(1, min(96, (int) $request->query('per_page', $archive['products_per_page'] ?? 12)));
         $page = max(1, (int) $request->query('page', 1));
         $total = (clone $productsQuery)->count();

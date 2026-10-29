@@ -5,7 +5,7 @@ import { useClassicText } from "../lib/texts"
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { Children, useEffect, useMemo, useState, type ReactNode } from "react"
 
 import type { ShopProduct } from "@/builder/catalog"
 import { useCatalog } from "@/builder/storefront/use-catalog"
@@ -160,7 +160,233 @@ function FilterGroup({ title, count, children, defaultOpen = true }: { title: st
   )
 }
 
+
+/** Show the first `limit` options; expand with «نمایش بیشتر» when there are more. */
+function FilterOptions({ limit = 5, children }: { limit?: number; children: ReactNode }) {
+  const list = Children.toArray(children).filter(Boolean)
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? list : list.slice(0, Math.max(1, limit))
+  const hidden = Math.max(0, list.length - visible.length)
+  return (
+    <>
+      {visible}
+      {list.length > limit ? (
+        <button type="button" className="sfc-filter__more" onClick={() => setExpanded((v) => !v)}>
+          {expanded ? "نمایش کمتر" : `نمایش بیشتر (${hidden}+)`}
+        </button>
+      ) : null}
+    </>
+  )
+}
+
 export function ClassicFilters({ editing }: { editing: boolean }) {
+  const tx = useClassicText()
+  const router = useRouter()
+  const rawParams = useSearchParams()
+  const params = useArchiveParams()
+  const scope = useArchiveScope()
+  const catalog = useCatalog(48)
+  const digits = useDigits()
+  const facets = catalog.facets
+  const [priceDraft, setPriceDraft] = useState<{ min: string; max: string } | null>(null)
+  const themeArchive = useClassicThemeSettings().archive ?? {}
+  const shopArchive = catalog.archive ?? {}
+  // Prefer live shop.archive from the catalog payload; fall back to theme appearance archive.
+  const archive = { ...themeArchive, ...shopArchive }
+  const filtersOpen = Boolean(archive.filters_open_default)
+  const optionsLimit = Math.max(3, Math.min(30, Number(archive.filter_options_limit) || 5))
+  const showPrice = archive.filter_price !== false
+  const showInStock = archive.filter_in_stock !== false
+  const showOnSale = archive.filter_on_sale !== false
+  const attrAllow = Array.isArray(archive.filter_attribute_slugs) ? archive.filter_attribute_slugs : null
+  const counts = useMemo(() => {
+    const cat = new Map<string, number>()
+    const br = new Map<string, number>()
+    for (const p of catalog.products) {
+      cat.set(p.categorySlug, (cat.get(p.categorySlug) ?? 0) + 1)
+      br.set(p.brandSlug, (br.get(p.brandSlug) ?? 0) + 1)
+    }
+    return { cat, br }
+  }, [catalog.products])
+  if (archive.sidebar_enabled === false) return null
+  const category = params.get("category") ?? ""
+  const brand = params.get("brand") ?? ""
+  const inStock = params.get("in_stock") === "1"
+  const onSale = params.get("on_sale") === "1"
+  const sameDay = params.get("same_day") === "1"
+  const attrSel = new Set((params.get("attr") ?? "").split(",").filter(Boolean))
+  const minPrice = params.get("min_price") ?? ""
+  const maxPrice = params.get("max_price") ?? ""
+  const any = Boolean(category || brand || inStock || onSale || sameDay || attrSel.size || minPrice || maxPrice || params.get("q"))
+
+  const attributeGroups = useMemo(() => {
+    const attrs = Array.isArray(facets?.attributes) ? facets!.attributes : []
+    if (attrAllow) return attrs.filter((a) => attrAllow.includes(a.slug))
+    // Without an explicit allow-list, keep color-like groups when filter_color is on; otherwise all.
+    if (archive.filter_color === false) {
+      return attrs.filter((a) => !a.terms.some((t) => t.color) && !/رنگ|color|colour/i.test(a.name + a.slug))
+    }
+    return attrs
+  }, [facets, attrAllow, archive.filter_color])
+
+  function setParam(key: string, value: string) {
+    if (editing) return
+    const next = new URLSearchParams(rawParams?.toString() ?? "")
+    const current = params.get(key)
+    // Unticking the pretty-URL scope (/{category}/, /برند/{brand}/) leaves it for /shop.
+    if (scope[key as "category" | "brand"] && (!value || current === value)) {
+      next.delete(key)
+      next.delete("page")
+      router.push(`/shop${next.toString() ? `?${next}` : ""}`)
+      return
+    }
+    if (!value || current === value) next.delete(key)
+    else next.set(key, value)
+    next.delete("page")
+    router.replace(`?${next.toString()}`, { scroll: false })
+  }
+
+  function toggleAttr(pair: string) {
+    const nextSet = new Set(attrSel)
+    if (nextSet.has(pair)) nextSet.delete(pair)
+    else nextSet.add(pair)
+    setParam("attr", Array.from(nextSet).join(","))
+  }
+
+  function applyPrice() {
+    if (editing || !priceDraft) return
+    const next = new URLSearchParams(rawParams?.toString() ?? "")
+    const clean = (v: string) => v.replace(/[^\d۰-۹]/g, "").replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    const lo = clean(priceDraft.min)
+    const hi = clean(priceDraft.max)
+    if (lo) next.set("min_price", lo)
+    else next.delete("min_price")
+    if (hi) next.set("max_price", hi)
+    else next.delete("max_price")
+    next.delete("page")
+    setPriceDraft(null)
+    router.replace(`?${next.toString()}`, { scroll: false })
+  }
+
+  return (
+    <aside className="sfc-filter sf-filters">
+      <div className="sfc-filter__head">
+        <strong>{tx("archive.filters_title")}</strong>
+        {any ? (
+          <button type="button" onClick={() => !editing && router.replace("?", { scroll: false })}>
+            {tx("archive.clear_filters")}
+          </button>
+        ) : null}
+      </div>
+      <FilterGroup title="دسته‌بندی" count={catalog.categories.length} defaultOpen={filtersOpen}>
+        <FilterOptions limit={optionsLimit}>
+          {catalog.categories.map((item) => (
+            <label key={item.slug} className="sfc-check">
+              <input type="checkbox" checked={category === item.slug} onChange={() => setParam("category", item.slug)} />
+              <span className="sfc-check__box" aria-hidden="true" />
+              <span className="sfc-check__label">{item.name}</span>
+              <span className="sfc-check__count">{digits(counts.cat.get(item.slug) ?? 0)}</span>
+            </label>
+          ))}
+        </FilterOptions>
+      </FilterGroup>
+      <FilterGroup title="برند" count={catalog.brands.length} defaultOpen={filtersOpen}>
+        <FilterOptions limit={optionsLimit}>
+          {catalog.brands.map((item) => (
+            <label key={item.slug} className="sfc-check">
+              <input type="checkbox" checked={brand === item.slug} onChange={() => setParam("brand", item.slug)} />
+              <span className="sfc-check__box" aria-hidden="true" />
+              <span className="sfc-check__label">{item.name}</span>
+              <span className="sfc-check__count">{digits(counts.br.get(item.slug) ?? 0)}</span>
+            </label>
+          ))}
+        </FilterOptions>
+      </FilterGroup>
+      {attributeGroups.map((attr) => (
+        <FilterGroup key={attr.slug} title={attr.name} count={attr.terms.length} defaultOpen={filtersOpen}>
+          <div className={attr.terms.some((t) => t.color) ? "sfc-swatches" : undefined}>
+            <FilterOptions limit={optionsLimit}>
+              {attr.terms.map((term) => {
+                const pair = `${attr.slug}:${term.slug}`
+                return (
+                  <label key={pair} className="sfc-check">
+                    <input type="checkbox" checked={attrSel.has(pair)} onChange={() => toggleAttr(pair)} />
+                    {term.color ? (
+                      <span className="sfc-check__swatch" style={{ background: term.color }} aria-hidden="true" />
+                    ) : (
+                      <span className="sfc-check__box" aria-hidden="true" />
+                    )}
+                    <span className="sfc-check__label">{term.name}</span>
+                    <span className="sfc-check__count">{digits(term.count)}</span>
+                  </label>
+                )
+              })}
+            </FilterOptions>
+          </div>
+        </FilterGroup>
+      ))}
+      {showPrice && facets && facets.price.max > 0 ? (
+        <FilterGroup title="محدوده قیمت" count={0} defaultOpen={filtersOpen || Boolean(minPrice || maxPrice)}>
+          <div className="sfc-price-range">
+            <label>
+              <span>از</span>
+              <input
+                inputMode="numeric"
+                dir="ltr"
+                placeholder={digits(facets.price.min)}
+                value={priceDraft?.min ?? minPrice}
+                onChange={(e) => setPriceDraft({ min: e.target.value, max: priceDraft?.max ?? maxPrice })}
+              />
+            </label>
+            <label>
+              <span>تا</span>
+              <input
+                inputMode="numeric"
+                dir="ltr"
+                placeholder={digits(facets.price.max)}
+                value={priceDraft?.max ?? maxPrice}
+                onChange={(e) => setPriceDraft({ min: priceDraft?.min ?? minPrice, max: e.target.value })}
+              />
+            </label>
+            <input
+              type="range"
+              min={facets.price.min}
+              max={facets.price.max}
+              step={Math.max(1, Math.round((facets.price.max - facets.price.min) / 100))}
+              value={Number(priceDraft?.max ?? maxPrice) || facets.price.max}
+              onChange={(e) => setPriceDraft({ min: priceDraft?.min ?? minPrice, max: e.target.value })}
+              aria-label="حداکثر قیمت"
+            />
+            <button type="button" className="sfc-btn sfc-btn--sm" onClick={applyPrice} disabled={!priceDraft}>
+              اعمال فیلتر قیمت
+            </button>
+          </div>
+        </FilterGroup>
+      ) : null}
+      {facets && facets.same_day_count > 0 ? (
+        <label className="sfc-switch">
+          <span>ارسال امروز</span>
+          <input type="checkbox" checked={sameDay} onChange={() => setParam("same_day", sameDay ? "" : "1")} />
+          <span className="sfc-switch__track" aria-hidden="true" />
+        </label>
+      ) : null}
+      {showInStock ? (
+        <label className="sfc-switch">
+          <span>{tx("archive.in_stock_only")}</span>
+          <input type="checkbox" checked={inStock} onChange={() => setParam("in_stock", inStock ? "" : "1")} />
+          <span className="sfc-switch__track" aria-hidden="true" />
+        </label>
+      ) : null}
+      {showOnSale ? (
+        <label className="sfc-switch">
+          <span>{tx("archive.on_sale_only")}</span>
+          <input type="checkbox" checked={onSale} onChange={() => setParam("on_sale", onSale ? "" : "1")} />
+          <span className="sfc-switch__track" aria-hidden="true" />
+        </label>
+      ) : null}
+    </aside>
+  )
+}: { editing: boolean }) {
   const tx = useClassicText()
   const router = useRouter()
   const rawParams = useSearchParams()
