@@ -310,6 +310,7 @@ export function ClassicCart() {
         </div>
         <aside className={`sfc-cart__side ${stickySummary ? "is-sticky" : ""}`} data-sticky-summary={stickySummary ? "1" : "0"}>
           {lines.length ? (
+            <>
             <div className="sfc-box sfc-summary">
               <div className="sfc-summary__row">
                 <span>قیمت کالاها ({digits(count)})</span>
@@ -354,6 +355,7 @@ export function ClassicCart() {
                 </Link>
               </div>
             ) : null}
+            </>
           ) : null}
           {auth !== "auth" ? (
             <Link href={`/login?next=${encodeURIComponent("/cart")}`} className="sfc-box sfc-side-card">
