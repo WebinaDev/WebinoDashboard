@@ -540,21 +540,39 @@ final class WordpressImportImporter
         }
         $categoryIds = $this->blogCategoryIds($ctx, $payload);
         $cover = $row?->cover_url;
-        foreach (['cover', 'featured', 'featured_image'] as $coverKey) {
-            if (! empty($payload[$coverKey]) && is_array($payload[$coverKey])) {
-                try {
+        foreach (['cover', 'featured', 'featured_image', 'thumbnail', 'image'] as $coverKey) {
+            if (empty($payload[$coverKey])) {
+                continue;
+            }
+            try {
+                if (is_array($payload[$coverKey])) {
                     $cover = $ctx->storeImage($payload[$coverKey]) ?? $cover;
-                } catch (\Throwable) {
-                    // A missing cover must not drop the post.
+                } elseif (is_string($payload[$coverKey]) && preg_match('#^https?://#i', $payload[$coverKey])) {
+                    $cover = $ctx->storeImage(['url' => $payload[$coverKey]]) ?? $cover;
                 }
+            } catch (\Throwable) {
+                // A missing cover must not drop the post.
+            }
+            if ($cover) {
                 break;
             }
         }
+        if (! $cover && ! empty($payload['featured_media_url']) && is_string($payload['featured_media_url'])) {
+            try {
+                $cover = $ctx->storeImage(['url' => (string) $payload['featured_media_url']]) ?? $cover;
+            } catch (\Throwable) {
+            }
+        }
         if (! empty($payload['images']) && is_array($payload['images'])) {
-            $featured = $payload['images']['featured'] ?? null;
+            $featured = $payload['images']['featured'] ?? $payload['images'][0] ?? null;
             if (is_array($featured)) {
                 try {
                     $cover = $ctx->storeImage($featured) ?? $cover;
+                } catch (\Throwable) {
+                }
+            } elseif (is_string($featured) && preg_match('#^https?://#i', $featured)) {
+                try {
+                    $cover = $ctx->storeImage(['url' => $featured]) ?? $cover;
                 } catch (\Throwable) {
                 }
             }

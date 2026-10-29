@@ -1005,7 +1005,14 @@ export function ClassicHeader({
                     <IconMenu size={20} />
                     <span>{headerCfg.mega_menu_title || "دسته‌بندی محصولات"}</span>
                   </button>
-                  {mega && megaMenu?.length ? (
+                  {mega && categories.length ? (
+                    <DeepMegaPanel
+                      categories={categories}
+                      activeCat={activeCat}
+                      setActiveCat={setActiveCat}
+                      onClose={() => setMega(false)}
+                    />
+                  ) : mega && megaMenu?.length ? (
                     <NavMegaPanel items={megaMenu} onClose={() => setMega(false)} />
                   ) : mega ? (
                     <DeepMegaPanel
