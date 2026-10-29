@@ -215,6 +215,13 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
     if (product.id) trackAnalyticsEvent("product_view", { productId: product.id })
   }, [editing, product?.id, product?.slug, product?.categorySlug])
 
+  // Variable products: pre-select first in-stock model so ATC works without an extra tap.
+  useEffect(() => {
+    if (!product?.variants?.length || variantId != null) return
+    const first = product.variants.find((item) => item.inStock) ?? null
+    if (first) setVariantId(first.id)
+  }, [product, variantId])
+
   const galleryLen = product
     ? (product.images.length ? product.images.length : product.image ? 1 : 0)
     : 0
