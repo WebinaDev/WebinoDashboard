@@ -34,7 +34,56 @@ export const FORM_WIDGET: WidgetDef = {
   }),
 }
 
-export const CONTENT_WIDGETS: WidgetDef[] = sharedContentWidgets(ICON_OPTIONS)
+function withIconCardHref(defs: WidgetDef[]): WidgetDef[] {
+  return defs.map((def) => {
+    if (def.type !== "icon-cards") return def
+    return {
+      ...def,
+      fields: def.fields.map((field) => {
+        if (field.kind !== "repeater" || field.key !== "items") return field
+        const hasHref = field.fields.some((f) => f.key === "href")
+        if (hasHref) return field
+        return {
+          ...field,
+          fields: [...field.fields, { key: "href", label: "پیوند (tel یا mailto یا https)", kind: "url" as const }],
+        }
+      }),
+    }
+  })
+}
+
+export const CONTENT_WIDGETS: WidgetDef[] = [
+  ...withIconCardHref(sharedContentWidgets(ICON_OPTIONS) as WidgetDef[]),
+  {
+    type: "callout",
+    label: "باکس توجه",
+    category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "text", label: "متن" },
+      { kind: "icon", key: "icon", label: "آیکن", options: ICON_OPTIONS },
+      { kind: "select", key: "variant", label: "ظاهر", options: [
+        { value: "soft", label: "نرم" },
+        { value: "solid", label: "توپر" },
+        { value: "outline", label: "خطی" },
+      ] },
+      { kind: "select", key: "tone", label: "رنگ", options: [
+        { value: "brand", label: "برند" },
+        { value: "info", label: "اطلاعات" },
+        { value: "success", label: "موفقیت" },
+        { value: "warning", label: "هشدار" },
+        { value: "muted", label: "خنثی" },
+      ] },
+      { kind: "text", key: "buttonLabel", label: "متن دکمه (اختیاری)" },
+      { kind: "link", key: "buttonHref", label: "پیوند دکمه" },
+    ],
+    create: () => ({
+      id: uid("w"),
+      type: "callout",
+      props: { title: "نکته مهم", text: "متن کوتاه راهنما یا توجه", icon: "badge", variant: "soft", tone: "brand", buttonLabel: "", buttonHref: "" },
+    }),
+  },
+]
 
 const SECTION_PRESETS: Record<string, number[]> = { "12": [12], "6-6": [6, 6], "4-4-4": [4, 4, 4], "3-3-3-3": [3, 3, 3, 3], "8-4": [8, 4], "4-8": [4, 8] }
 

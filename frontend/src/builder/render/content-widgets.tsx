@@ -82,7 +82,7 @@ export function StepsWidget({ widget }: { widget: WidgetNode }) {
 }
 
 export function IconCardsWidget({ widget }: { widget: WidgetNode }) {
-  const rows = parseRows(widget.props.items, ["icon", "title", "text", "prefill"]).filter((row) => row.title || row.text)
+  const rows = parseRows(widget.props.items, ["icon", "title", "text", "prefill", "href"]).filter((row) => row.title || row.text)
   const columns = Math.max(1, Math.min(5, Number(propStr(widget.props, "columns", "3")) || 3))
   const variant = propStr(widget.props, "variant", "card")
   const anchor = propStr(widget.props, "anchor").replace(/[^\w-]/g, "")
@@ -101,6 +101,16 @@ export function IconCardsWidget({ widget }: { widget: WidgetNode }) {
             </span>
           </>
         )
+        const href = (row.href || "").trim()
+        if (href) {
+          return (
+            <li key={index} className="wbx-card wbx-card-action">
+              <a href={safeHref(href)} className="wbx-card-button wbx-card-link" {...linkAttrs({ href }, "href")}>
+                {inner}
+              </a>
+            </li>
+          )
+        }
         const match = row.prefill.match(/^([\w.-]+)\s*=\s*(.*)$/)
         if (!match && !anchor) return <li key={index} className="wbx-card">{inner}</li>
         return (
@@ -119,6 +129,35 @@ export function IconCardsWidget({ widget }: { widget: WidgetNode }) {
         )
       })}
     </ul>
+  )
+}
+
+export function CalloutWidget({ widget }: { widget: WidgetNode }) {
+  const title = propStr(widget.props, "title")
+  const text = propStr(widget.props, "text")
+  const icon = propStr(widget.props, "icon", "badge")
+  const variant = propStr(widget.props, "variant", "soft")
+  const tone = propStr(widget.props, "tone", "brand")
+  const label = propStr(widget.props, "buttonLabel")
+  const href = propStr(widget.props, "buttonHref", "#")
+  if (!title && !text) return <p className="wbx-empty">عنوان یا متن باکس را در تنظیمات ویجت وارد کنید.</p>
+  const toneClass = ["brand", "info", "success", "warning", "muted"].includes(tone) ? tone : "brand"
+  const variantClass = ["soft", "solid", "outline"].includes(variant) ? variant : "soft"
+  return (
+    <aside className={`wbx-callout wbx-callout-${variantClass} wbx-callout-${toneClass}`}>
+      <span className="wbx-callout-icon" aria-hidden="true">
+        <WIcon name={icon || "badge"} size={22} />
+      </span>
+      <div className="wbx-callout-body">
+        {title ? <strong className="wbx-callout-title">{title}</strong> : null}
+        {text ? <p className="wbx-callout-text">{text}</p> : null}
+        {label ? (
+          <a href={safeHref(href)} className="wbx-callout-btn" {...linkAttrs(widget.props, "buttonHref")}>
+            {label}
+          </a>
+        ) : null}
+      </div>
+    </aside>
   )
 }
 

@@ -75,6 +75,38 @@ export const SHADOWS = [
   { value: "0 18px 40px rgba(12,45,99,.18)", label: "L" },
 ]
 
+
+function parseLinearGradient(value?: string): { angle: string; from: string; to: string } {
+  const raw = (value ?? "").trim()
+  const m = raw.match(/^linear-gradient\(\s*([\d.]+)deg\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)$/i)
+  if (!m) return { angle: "135", from: "", to: "" }
+  return { angle: m[1], from: m[2].trim(), to: m[3].trim() }
+}
+
+function GradientBuilder({ value, onChange }: { value?: string; onChange: (gradient: string) => void }) {
+  const parsed = parseLinearGradient(value)
+  const write = (patch: Partial<{ angle: string; from: string; to: string }>) => {
+    const next = { ...parsed, ...patch }
+    const from = next.from.trim()
+    const to = next.to.trim()
+    if (!from && !to) {
+      onChange("")
+      return
+    }
+    const angle = Number(next.angle)
+    const deg = Number.isFinite(angle) ? Math.max(0, Math.min(360, angle)) : 135
+    if (from && to) onChange(`linear-gradient(${deg}deg,${from},${to})`)
+  }
+  return (
+    <div className="grid gap-2 rounded-md border border-dashed border-border/70 p-2">
+      <span className="text-[11px] font-bold text-foreground/70">گرادیان ساده (دو رنگ و زاویه)</span>
+      <TokenColor label="رنگ اول" value={parsed.from} onChange={(from) => write({ from })} />
+      <TokenColor label="رنگ دوم" value={parsed.to} onChange={(to) => write({ to })} />
+      <TextIn label="زاویه (درجه)" value={parsed.angle} placeholder="135" onChange={(angle) => write({ angle })} />
+    </div>
+  )
+}
+
 export function StyleFields({ style, onChange, device, layout = false }: { style: StyleProps; onChange: (patch: StyleProps) => void; device: DeviceMode; layout?: boolean }) {
   const t = useTranslations("builder")
   const opt = (values: string[]) => [{ value: "", label: "—" }, ...values.map((v) => ({ value: v, label: v }))]
@@ -124,6 +156,7 @@ export function StyleFields({ style, onChange, device, layout = false }: { style
       <Group title={t("style_background")}>
         <TokenColor label={t("background")} value={style.background} onChange={(background) => onChange({ background })} />
         <TextIn label={t("background_image")} value={style.backgroundImage} placeholder="https://…" onChange={(backgroundImage) => onChange({ backgroundImage })} />
+        <GradientBuilder value={style.gradient} onChange={(gradient) => onChange({ gradient })} />
         <TextIn label={t("gradient")} value={style.gradient} placeholder="linear-gradient(135deg,#E16BA6,#0C2D63)" onChange={(gradient) => onChange({ gradient })} />
         <TextIn label={t("opacity")} value={style.opacity} placeholder="1" onChange={(opacity) => onChange({ opacity })} />
       </Group>

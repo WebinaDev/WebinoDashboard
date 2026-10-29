@@ -49,6 +49,7 @@ const StorefrontProduct = dynamic(() => import("../storefront/ui").then((m) => m
 const BadgesWidget = dynamic(() => import("./content-widgets").then((m) => m.BadgesWidget))
 const ComparisonTableWidget = dynamic(() => import("./content-widgets").then((m) => m.ComparisonTableWidget))
 const CtaBannerWidget = dynamic(() => import("./content-widgets").then((m) => m.CtaBannerWidget))
+const CalloutWidget = dynamic(() => import("./content-widgets").then((m) => m.CalloutWidget))
 const IconCardsWidget = dynamic(() => import("./content-widgets").then((m) => m.IconCardsWidget))
 const SectionHeadingWidget = dynamic(() => import("./content-widgets").then((m) => m.SectionHeadingWidget))
 const StepsWidget = dynamic(() => import("./content-widgets").then((m) => m.StepsWidget))
@@ -520,6 +521,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <BadgesWidget widget={widget} />
     case "cta-banner":
       return <CtaBannerWidget widget={widget} />
+    case "callout":
+      return <CalloutWidget widget={widget} />
     case "comparison-table":
       return <ComparisonTableWidget widget={widget} />
     case "team-grid":

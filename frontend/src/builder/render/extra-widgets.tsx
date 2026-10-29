@@ -14,10 +14,14 @@ import {
   Gift,
   Headphones,
   Heart,
+  Instagram,
   Link2,
+  Mail,
   MapPin,
+  MessageCircle,
   Phone,
   Search,
+  Send,
   ShieldCheck,
   Sparkles,
   Star,
@@ -27,7 +31,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react"
 
 import { useCatalog, useProductQuery } from "../storefront/use-catalog"
 import { StoreProductCard } from "../storefront/ui"
@@ -62,6 +66,11 @@ const ICONS: Record<string, LucideIcon> = {
   badge: BadgeCheck,
   support: Headphones,
   map: MapPin,
+  location: MapPin,
+  mail: Mail,
+  instagram: Instagram,
+  whatsapp: MessageCircle,
+  telegram: Send,
 }
 
 
@@ -576,17 +585,30 @@ export function AnnouncementWidget({ widget }: { widget: WidgetNode }) {
 
 /* --------------------------------------------------------------------- map */
 
+const MAP_SHADOWS: Record<string, string> = {
+  none: "none",
+  s: "0 1px 3px rgba(12,45,99,.12)",
+  m: "0 6px 18px rgba(12,45,99,.14)",
+  l: "0 18px 40px rgba(12,45,99,.18)",
+}
+
 export function MapWidget({ widget }: { widget: WidgetNode }) {
   const lat = Number(propStr(widget.props, "lat", "35.6892"))
   const lng = Number(propStr(widget.props, "lng", "51.389"))
   const zoom = Math.max(3, Math.min(18, propNum(widget.props, "zoom", 15)))
   const height = Math.max(160, Math.min(800, propNum(widget.props, "height", 320)))
   const address = propStr(widget.props, "address", "")
+  const radius = propStr(widget.props, "radius", "").trim()
+  const shadowKey = propStr(widget.props, "shadow", "").trim().toLowerCase()
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
   const d = 0.01 * Math.pow(2, 15 - zoom)
   const src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - d},${lat - d},${lng + d},${lat + d}&layer=mapnik&marker=${lat},${lng}`
+  const cardStyle: CSSProperties = {
+    borderRadius: radius || undefined,
+    boxShadow: shadowKey && MAP_SHADOWS[shadowKey] ? MAP_SHADOWS[shadowKey] : undefined,
+  }
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+    <div className={`overflow-hidden border border-border bg-card${radius ? "" : " rounded-2xl"}`} style={cardStyle}>
       <iframe title={address || "map"} src={src} className="w-full border-0" style={{ height }} loading="lazy" referrerPolicy="no-referrer" />
       {address ? (
         <p className="flex items-center gap-2 p-3 text-sm text-foreground/80">

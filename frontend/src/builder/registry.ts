@@ -349,8 +349,16 @@ const CORE_WIDGETS: WidgetDef[] = [
       { kind: "number", key: "zoom", label: "بزرگ‌نمایی", min: 3, max: 18 },
       { kind: "number", key: "height", label: "ارتفاع (px)", min: 160, max: 800 },
       { kind: "text", key: "address", label: "نشانی" },
+      { kind: "text", key: "radius", label: "گردی گوشه (مثل ۱۶px؛ خالی = پیش‌فرض)" },
+      { kind: "select", key: "shadow", label: "سایه", options: [
+        { value: "", label: "پیش‌فرض" },
+        { value: "none", label: "بدون سایه" },
+        { value: "s", label: "کم" },
+        { value: "m", label: "متوسط" },
+        { value: "l", label: "زیاد" },
+      ] },
     ],
-    create: () => node("map", { lat: "35.6892", lng: "51.389", zoom: 15, height: 320, address: "" }),
+    create: () => node("map", { lat: "35.6892", lng: "51.389", zoom: 15, height: 320, address: "", radius: "", shadow: "" }),
   },
   {
     type: "counter",

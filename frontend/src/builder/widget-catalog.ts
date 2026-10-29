@@ -250,6 +250,7 @@ export const WIDGET_CATALOG: Record<string, CatalogEntry> = {
   "badges": { category: "marketing", icon: "Award" },
   "trust-badges": { category: "marketing", icon: "ShieldCheck" },
   "icon-cards": { category: "marketing", icon: "LayoutGrid" },
+  "callout": { category: "marketing", icon: "MessageSquareWarning" },
   "team-grid": { category: "marketing", icon: "Users" },
   "brand-row": { category: "marketing", icon: "Tags" },
   "brand-slider": { category: "marketing", icon: "GalleryVerticalEnd" },
