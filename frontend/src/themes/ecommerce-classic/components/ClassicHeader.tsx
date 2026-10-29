@@ -183,7 +183,16 @@ function DeepMegaPanel({
               onClick={onClose}
             >
               <span className="sfc-mega__parent-label">
-                {cat.image ? <img loading="lazy" decoding="async" {...optImg(cat.image)} alt="" width={24} height={24} /> : null}
+                {cat.image ? (
+                  <img loading="lazy" decoding="async" {...optImg(cat.image)} alt="" width={24} height={24} className="sfc-mega__parent-icon" />
+                ) : (
+                  <span className="sfc-mega__parent-icon sfc-mega__parent-icon--fallback" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      <path d="M4 8.5h16v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5v-11Z" />
+                      <path d="M8 8.5V7a4 4 0 0 1 8 0v1.5" />
+                    </svg>
+                  </span>
+                )}
                 <span>{cat.name}</span>
               </span>
               <IconChevronLeft size={14} />

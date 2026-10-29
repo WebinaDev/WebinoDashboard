@@ -26,9 +26,29 @@ import { ClassicAmount, ClassicSectionHead, readCategoryVisits, useDigits } from
 import { useClassicText } from "../lib/texts"
 import { imageSrcSet, imageUrl, optImg, originalUrl } from "@/lib/image-url"
 
-function imageForCategory(catalog: CatalogState, slug: string, name: string): string | null {
-  const hit = catalog.products.find((p) => (p.categorySlug === slug || p.category === name) && p.image)
-  return hit?.image ?? null
+function imageForCategory(
+  catalog: CatalogState,
+  slug: string,
+  _name: string,
+  catImage?: string | null,
+): string | null {
+  if (catImage) return catImage
+  const fromTree = catalog.categories.find((c) => c.slug === slug)?.image
+    ?? catalog.categories.flatMap((c) => c.children ?? []).find((c) => c.slug === slug)?.image
+  if (fromTree) return fromTree
+  // No product-photo fallback: category strip/mega menu use a uniform icon when unset.
+  return null
+}
+
+function CategoryIconFallback({ label }: { label: string }) {
+  return (
+    <span className="sfc-cat-fallback" aria-hidden="true" title={label}>
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <path d="M4 8.5h16v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5v-11Z" />
+        <path d="M8 8.5V7a4 4 0 0 1 8 0v1.5" />
+      </svg>
+    </span>
+  )
 }
 
 function lines(raw: string): string[][] {
@@ -615,11 +635,11 @@ export function ClassicIconCategories({ title, variant = "home", limit }: { titl
       {title ? <ClassicSectionHead title={title} href="/shop" /> : null}
       <div className="sfc-catgrid__items">
         {items.map((cat) => {
-          const img = imageForCategory(catalog, cat.slug, cat.name)
+          const img = imageForCategory(catalog, cat.slug, cat.name, cat.image)
           return (
             <Link key={cat.slug} href={`/shop?category=${cat.slug}`} className="sfc-catgrid__item">
               <span className="sfc-catgrid__icon">
-                {img ? <OptImg src={img} alt="" loading="lazy" /> : <span className={`bg-gradient-to-br ${toneClass(cat.tone)}`}>{cat.name.slice(0, 1)}</span>}
+                {img ? <OptImg src={img} alt="" loading="lazy" /> : <CategoryIconFallback label={cat.name} />}
               </span>
               <span className="sfc-catgrid__name">{cat.name}</span>
             </Link>
@@ -949,10 +969,10 @@ export function ClassicTasteBox({ title, limit }: { title?: string; limit?: numb
               {kids.map((k) => (
                 <Link key={k.slug} href={`/shop?category=${k.slug}`} className="sfc-taste__cat">
                   <span className="sfc-taste__cat-img">
-                    {imageForCategory(catalog, k.slug, k.name) ? (
-                      <OptImg src={imageForCategory(catalog, k.slug, k.name)!} alt="" loading="lazy" />
+                    {imageForCategory(catalog, k.slug, k.name, (k as { image?: string | null }).image) ? (
+                      <OptImg src={imageForCategory(catalog, k.slug, k.name, (k as { image?: string | null }).image)!} alt="" loading="lazy" />
                     ) : (
-                      <span className={`bg-gradient-to-br ${toneClass(k.tone)}`}>{k.name.slice(0, 1)}</span>
+                      <CategoryIconFallback label={k.name} />
                     )}
                   </span>
                   <span className="sfc-taste__cat-label">
@@ -965,7 +985,11 @@ export function ClassicTasteBox({ title, limit }: { title?: string; limit?: numb
             <div className="sfc-taste__products">
               {products.map((p) => (
                 <Link key={p.slug} href={`/product/${p.slug}`} className="sfc-taste__product">
-                  {p.image ? <OptImg src={p.image} alt="" loading="lazy" /> : <span>{p.name.slice(0, 1)}</span>}
+                  {p.image ? (
+                    <OptImg src={p.image} alt="" loading="lazy" className="sfc-taste__product-img" />
+                  ) : (
+                    <span>{p.name.slice(0, 1)}</span>
+                  )}
                 </Link>
               ))}
               <Link href={`/shop?category=${cat.slug}`} className="sfc-taste__showmore">

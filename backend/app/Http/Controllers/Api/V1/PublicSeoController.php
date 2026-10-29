@@ -36,7 +36,7 @@ class PublicSeoController extends Controller
                 $meta = $builder->forProduct($tenant, $product);
             }
         } elseif ($type === 'post' && $slug !== '') {
-            $post = BlogPost::query()->where('tenant_id', $tenant->id)->where('slug', $slug)->where('status', 'publish')->first();
+            $post = BlogPost::query()->where('tenant_id', $tenant->id)->where('slug', $slug)->published()->first();
             if ($post) {
                 $meta = $builder->forBlogPost($tenant, $post);
             }

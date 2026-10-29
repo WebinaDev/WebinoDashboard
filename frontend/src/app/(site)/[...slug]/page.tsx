@@ -139,6 +139,11 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const seo = await loadSeo(`path=${encodeURIComponent(`/${segments[0]}`)}&fallback_title=${encodeURIComponent(ROUTE_TITLES[segments[0]])}`)
     return metaToMetadata(seo?.meta)
   }
+  if (segments[0] === "blog" && segments[1] && segments.length === 2) {
+    const slug = decodeURIComponent(segments[1])
+    const seo = await loadSeo(`type=post&slug=${encodeURIComponent(slug)}&path=${encodeURIComponent(`/blog/${slug}`)}`)
+    return metaToMetadata(seo?.meta)
+  }
   if (segments[0] === "product" && segments[1] && segments.length === 2) {
     const seo = await loadProductSeo(decodeURIComponent(segments[1]))
     const meta = seo?.meta
@@ -231,6 +236,19 @@ export default async function SiteCatchAllPage({ params, searchParams }: Props) 
   if (taxonomy && segments[1] && segments.length === 2) {
     const slug = decodeURIComponent(segments[1])
     const [seo, page] = await Promise.all([taxonomySeo(taxonomy, slug, `/${raw.join("/")}`), renderSitePage(segments, sp)])
+    return (
+      <>
+        <JsonLd data={seo?.json_ld ?? null} />
+        {page}
+      </>
+    )
+  }
+  if (segments[0] === "blog" && segments[1] && segments.length === 2) {
+    const slug = decodeURIComponent(segments[1])
+    const [seo, page] = await Promise.all([
+      loadSeo(`type=post&slug=${encodeURIComponent(slug)}&path=${encodeURIComponent(`/blog/${slug}`)}`),
+      renderSitePage(segments, sp),
+    ])
     return (
       <>
         <JsonLd data={seo?.json_ld ?? null} />

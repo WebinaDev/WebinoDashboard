@@ -10,6 +10,17 @@ import { SiteEmptyState } from "@/themes/shared/content/SiteEmptyState"
 
 export const revalidate = 60
 
+/** Next may leave non-ASCII catch-all segments percent-encoded; decode once before API encode. */
+function decodeBlogSlug(raw: string | undefined): string {
+  if (!raw) return ""
+  try {
+    return decodeURIComponent(raw)
+  } catch {
+    return raw
+  }
+}
+
+
 type Post = {
   slug: string
   title: string
@@ -47,7 +58,7 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
   const locale = await resolveServerLocale()
   const theme = await activeThemeSlug()
   const useClassic = theme === "ecommerce-classic" || theme === "ecommerce-default"
-  const slug = route.params?.slug
+  const slug = decodeBlogSlug(route.params?.slug)
 
   if (slug) {
     const post = await fetchPublicItem<Post>(`/api/v1/public/blog/${encodeURIComponent(slug)}`)

@@ -1646,22 +1646,22 @@
 /* ---------------------------------------------------------------- hero */
 .sfc-hero {
   position: relative;
+  /* Match other homepage sections: same container width + gutters */
+  width: 100%;
+  max-width: calc(var(--sfc-container) + var(--sfc-gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--sfc-gutter);
+  box-sizing: border-box;
 }
 
 .sfc-hero__frame {
   position: relative;
   overflow: hidden;
-  aspect-ratio: 1500 / 465;
+  aspect-ratio: auto;
   border-radius: var(--sfc-radius-banner);
-  background:
-    radial-gradient(circle at 18% 30%, rgba(255, 255, 255, 0.35), transparent 45%),
-    linear-gradient(115deg, #f7c6dd 0%, #e775ae 55%, #c94f8e 100%);
-  -webkit-mask:
-    radial-gradient(circle 44px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle 44px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
-  mask:
-    radial-gradient(circle 44px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle 44px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+  background: transparent;
+  -webkit-mask: none;
+  mask: none;
 }
 
 .sfc-hero__slide {
@@ -1672,20 +1672,29 @@
   padding-inline: 9%;
   opacity: 0;
   visibility: hidden;
+  height: 0;
+  overflow: hidden;
   transition: opacity 0.6s ease, visibility 0.6s;
 }
 
 .sfc-hero__slide.is-active {
+  position: relative;
+  inset: auto;
   opacity: 1;
   visibility: visible;
+  height: auto;
+  overflow: visible;
 }
 
 .sfc-hero__img {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  inset: auto;
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 .sfc-hero__slide--image-only {
   padding-inline: 0;
@@ -1695,10 +1704,11 @@
 .sfc-hero__slide--image-only .sfc-hero__img {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
 }
 .sfc-hero--image-only .sfc-hero__frame {
-  /* keep aspect-ratio; image fills the frame without overlay card */
+  aspect-ratio: auto;
+  background: transparent;
 }
 
 
@@ -5860,8 +5870,17 @@
   align-items: center;
 }
 
+.sfc-taste__col,
+.sfc-taste__products,
 .sfc-taste__product {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sfc-taste__product {
+  position: relative;
   aspect-ratio: 1;
+  width: 100%;
   border-radius: 12px;
   overflow: hidden;
   background: var(--sfc-surface-2);
@@ -5869,10 +5888,15 @@
   place-items: center;
 }
 
-.sfc-taste__product img {
-  width: 100%;
-  height: 100%;
+.sfc-taste__product img,
+.sfc-taste__product-img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+  object-position: center;
 }
 
 .sfc-taste__showmore {
@@ -5958,8 +5982,8 @@
 .sfc-special__strip {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(120px, 1fr);
-  gap: 10px;
+  grid-auto-columns: minmax(160px, 200px);
+  gap: 12px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
@@ -5978,8 +6002,8 @@
 
 .sfc-special__img {
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: 140px;
+  height: 160px;
   display: grid;
   place-items: center;
 }
@@ -6980,4 +7004,40 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
   .sfc-sort { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
   .sfc-sort__tabs { flex: 1 1 100%; overflow-x: auto; scrollbar-width: none; }
   .sfc-sort__tabs button { flex: 0 0 auto; white-space: nowrap; }
+}
+
+
+/* Category strip + mega: uniform fallback icon when category has no image */
+.sfc-cat-fallback,
+.sfc-mega__parent-icon--fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--sfc-pink, #e775ae);
+  background: linear-gradient(160deg, #fff5fa, #ffe4f1);
+  border-radius: inherit;
+}
+.sfc-mega__parent-icon,
+.sfc-mega__parent-icon--fallback {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.sfc-mega__parent-icon--fallback {
+  background: #fff5fa;
+}
+.sfc-catgrid__icon .sfc-cat-fallback {
+  border-radius: 50%;
+}
+.sf-banner-grid__item {
+  background: transparent;
+}
+.sf-banner-grid__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }

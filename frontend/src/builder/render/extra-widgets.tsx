@@ -155,7 +155,8 @@ export function ProductQueryWidget({ widget }: { widget: WidgetNode }) {
 export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
   const rows = splitRows(propStr(widget.props, "items", ""))
   const cols = Math.max(1, Math.min(4, propNum(widget.props, "columns", 2)))
-  const ratio = propStr(widget.props, "ratio", "16/7")
+  const _ratio = propStr(widget.props, "ratio", "16/7")
+  void _ratio
   const radius = Math.max(0, Math.min(40, propNum(widget.props, "radius", 16)))
   if (!rows.length) return <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">بنرها را در تنظیمات ویجت وارد کنید (تصویر|پیوند|عنوان).</p>
   return (
@@ -177,11 +178,11 @@ export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
             }
           : null
         return (
-        <Link key={i} href={safeHref(href || "", "/shop")} className="block overflow-hidden bg-muted" style={{ aspectRatio: ratio.replace(":", "/"), borderRadius: radius }}>
+        <Link key={i} href={safeHref(href || "", "/shop")} className="sf-banner-grid__item block overflow-hidden bg-transparent" style={{ borderRadius: radius }}>
           {image ? (
             <picture>
               {mob ? <source media="(max-width: 767px)" srcSet={mob.srcSet || mob.src} sizes={mob.sizes} /> : null}
-              <Img src={desk?.src || image} srcSet={desk?.srcSet} sizes={desk?.sizes} alt={alt || ""} priority={i === 0} loading={i === 0 ? "eager" : "lazy"} className="h-full w-full object-cover" />
+              <Img src={desk?.src || image} srcSet={desk?.srcSet} sizes={desk?.sizes} alt={alt || ""} priority={i === 0} loading={i === 0 ? "eager" : "lazy"} className="sf-banner-grid__img w-full h-auto object-contain" />
             </picture>
           ) : (
             <span className="grid h-full place-items-center text-sm font-bold">{alt}</span>
