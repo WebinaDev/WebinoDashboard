@@ -159,9 +159,16 @@ export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
   if (!rows.length) return <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">بنرها را در تنظیمات ویجت وارد کنید (تصویر|پیوند|عنوان).</p>
   return (
     <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-      {rows.map(([image, href, alt], i) => (
+      {rows.map(([image, href, alt, mobileImage], i) => (
         <Link key={i} href={safeHref(href || "", "/shop")} className="block overflow-hidden bg-muted" style={{ aspectRatio: ratio.replace(":", "/"), borderRadius: radius }}>
-          {image ? <Img src={image} alt={alt || ""} loading="lazy" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-sm font-bold">{alt}</span>}
+          {image ? (
+            <picture>
+              {mobileImage ? <source media="(max-width: 767px)" srcSet={mobileImage} /> : null}
+              <Img src={image} alt={alt || ""} loading={i === 0 ? "eager" : "lazy"} className="h-full w-full object-cover" />
+            </picture>
+          ) : (
+            <span className="grid h-full place-items-center text-sm font-bold">{alt}</span>
+          )}
         </Link>
       ))}
     </div>

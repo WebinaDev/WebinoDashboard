@@ -1687,6 +1687,20 @@
   height: 100%;
   object-fit: cover;
 }
+.sfc-hero__slide--image-only {
+  padding-inline: 0;
+  display: block;
+}
+.sfc-hero__slide--image-only picture,
+.sfc-hero__slide--image-only .sfc-hero__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.sfc-hero--image-only .sfc-hero__frame {
+  /* keep aspect-ratio; image fills the frame without overlay card */
+}
+
 
 .sfc-hero__copy {
   position: relative;

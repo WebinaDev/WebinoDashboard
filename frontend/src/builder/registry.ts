@@ -219,7 +219,7 @@ const CORE_WIDGETS: WidgetDef[] = [
     label: "شبکه بنر",
     category: "basic",
     fields: [
-      { kind: "repeater", key: "items", label: "بنرها", fields: [{ key: "image", label: "تصویر", kind: "media" }, { key: "href", label: "پیوند", kind: "url" }, { key: "alt", label: "متن جایگزین", kind: "text" }] },
+      { kind: "repeater", key: "items", label: "بنرها", fields: [{ key: "image", label: "تصویر", kind: "media" }, { key: "href", label: "پیوند", kind: "url" }, { key: "alt", label: "متن جایگزین", kind: "text" }, { key: "mobileImage", label: "عکس موبایل", kind: "media" }] },
       { kind: "number", key: "columns", label: "ستون‌ها", min: 1, max: 4 },
       { kind: "select", key: "ratio", label: "نسبت تصویر", options: [
         { value: "16/7", label: "۱۶:۷" },

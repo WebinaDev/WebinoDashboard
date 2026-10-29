@@ -393,17 +393,50 @@ const HERO_DEFAULTS = [
   { kicker: "مراقبت حرفه‌ای مو", title: "موهای رویایی فقط با این...", sub: "Hair Styler Pro", href: "/shop?category=hair" },
 ]
 
-export function ClassicHero({ slidesText, height }: { slidesText?: string; height?: number }) {
+function HeroSlidePicture({
+  image,
+  mobileImage,
+  alt,
+  priority,
+}: {
+  image: string
+  mobileImage?: string
+  alt: string
+  priority?: boolean
+}) {
+  const mobile = mobileImage ? optImg(mobileImage, undefined, priority) : null
+  return (
+    <picture>
+      {mobile ? (
+        <source media="(max-width: 767px)" srcSet={mobile.srcSet || (typeof mobile.src === "string" ? mobile.src : undefined)} sizes={mobile.sizes} />
+      ) : null}
+      <OptImg src={image} alt={alt} className="sfc-hero__img" priority={!!priority} />
+    </picture>
+  )
+}
+
+export function ClassicHero({
+  slidesText,
+  height,
+  imageOnly = false,
+}: {
+  slidesText?: string
+  height?: number
+  imageOnly?: boolean
+}) {
   const tx = useClassicText()
-  const parsed = lines(slidesText ?? "").map(([title, kicker, href, image, sub, cta]) => ({
+  const parsed = lines(slidesText ?? "").map(([title, kicker, href, image, sub, cta, mobileImage]) => ({
     title: title || "",
     kicker: kicker || "",
     href: href || "/shop",
     image: image || "",
     sub: sub || "",
     cta: cta || "",
+    mobileImage: mobileImage || "",
   }))
-  const slides = parsed.length ? parsed : HERO_DEFAULTS.map((s) => ({ ...s, image: "", cta: "" }))
+  const slides = parsed.length
+    ? parsed
+    : HERO_DEFAULTS.map((s) => ({ ...s, image: "", cta: "", mobileImage: "" }))
   const [index, setIndex] = useState(0)
   const count = slides.length
   useEffect(() => {
@@ -413,31 +446,42 @@ export function ClassicHero({ slidesText, height }: { slidesText?: string; heigh
   }, [count])
   const slide = slides[index] ?? slides[0]
   return (
-    <section className="sfc-hero" style={height ? { minHeight: height } : undefined}>
+    <section className={`sfc-hero${imageOnly ? " sfc-hero--image-only" : ""}`} style={height ? { minHeight: height } : undefined}>
       <div className="sfc-hero__frame">
-        {slides.map((s, i) => (
-          <Link
-            key={s.title + i}
-            href={s.href}
-            className={`sfc-hero__slide ${i === index ? "is-active" : ""}`}
-            aria-hidden={i !== index}
-            tabIndex={i === index ? 0 : -1}
-          >
-            {s.image ? <OptImg loading={i === 0 ? "eager" : "lazy"} {...(i === 0 ? { fetchPriority: "high" as const } : {})} decoding="async" {...optImg(s.image, undefined, i === 0)} alt={s.title} className="sfc-hero__img" /> : <span className="sfc-hero__fallback" aria-hidden="true" />}
-            <span className={`sfc-hero__copy ${s.image ? "sfc-hero__copy--over" : ""}`}>
-              <span className="sfc-hero__corner sfc-hero__corner--top" aria-hidden="true" />
-              {s.kicker ? <span className="sfc-hero__kicker">{s.kicker}</span> : null}
-              <strong className="sfc-hero__title">{s.title}</strong>
-              {s.sub ? <span className="sfc-hero__sub">{s.sub}</span> : null}
-              <span className="sfc-hero__cta">{s.cta || tx("home.cta_view_products")}</span>
-              <span className="sfc-hero__corner sfc-hero__corner--bottom" aria-hidden="true" />
-            </span>
-          </Link>
-        ))}
+        {slides.map((s, i) => {
+          const autoImageOnly = !s.title.trim() && !s.sub.trim() && !s.cta.trim()
+          const onlyImage = imageOnly || autoImageOnly
+          return (
+            <Link
+              key={(s.title || s.image || "slide") + i}
+              href={s.href}
+              className={`sfc-hero__slide${i === index ? " is-active" : ""}${onlyImage ? " sfc-hero__slide--image-only" : ""}`}
+              aria-hidden={i !== index}
+              tabIndex={i === index ? 0 : -1}
+              aria-label={onlyImage ? s.title || s.kicker || undefined : undefined}
+            >
+              {s.image ? (
+                <HeroSlidePicture image={s.image} mobileImage={s.mobileImage || undefined} alt={s.title || s.kicker || ""} priority={i === 0} />
+              ) : (
+                <span className="sfc-hero__fallback" aria-hidden="true" />
+              )}
+              {!onlyImage ? (
+                <span className={`sfc-hero__copy ${s.image ? "sfc-hero__copy--over" : ""}`}>
+                  <span className="sfc-hero__corner sfc-hero__corner--top" aria-hidden="true" />
+                  {s.kicker ? <span className="sfc-hero__kicker">{s.kicker}</span> : null}
+                  {s.title ? <strong className="sfc-hero__title">{s.title}</strong> : null}
+                  {s.sub ? <span className="sfc-hero__sub">{s.sub}</span> : null}
+                  <span className="sfc-hero__cta">{s.cta || tx("home.cta_view_products")}</span>
+                  <span className="sfc-hero__corner sfc-hero__corner--bottom" aria-hidden="true" />
+                </span>
+              ) : null}
+            </Link>
+          )
+        })}
         <div className="sfc-hero__dots" role="tablist">
           {slides.map((s, i) => (
             <button
-              key={s.title + i}
+              key={(s.title || s.image || "dot") + i}
               type="button"
               role="tab"
               aria-selected={i === index}

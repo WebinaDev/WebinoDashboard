@@ -217,7 +217,10 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <PopupWidget widget={widget} editing={editing} />
     case "hero-slider":
       return classic ? (
-        <ClassicHero slidesText={propStr(widget.props, "slides", "")} />
+        <ClassicHero
+          slidesText={propStr(widget.props, "slides", "")}
+          imageOnly={propBool(widget.props, "imageOnly", false)}
+        />
       ) : (
         <HeroWidget />
       )
