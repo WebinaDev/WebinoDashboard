@@ -21,8 +21,8 @@ const GATEWAY_FILES: Record<string, string> = {
 
 const SHIPPING_FILES: Array<{ test: RegExp; file: string }> = [
   { test: /تیپاکس|tipax/i, file: "tipax.svg" },
-  { test: /پست|پیشتاز|post|pishtaz|iran\s*post/i, file: "post.svg" },
-  { test: /پیک|موتور|courier|peyk|bike/i, file: "peyk.svg" },
+  { test: /پیک|موتور|courier|peyk|bike|moto/i, file: "peyk.svg" },
+  { test: /پیشتاز|(^|[^\u0600-\u06FF])پست([^\u0600-\u06FF]|$)|\bpost\b|pishtaz|iran\s*post/i, file: "post.svg" },
   { test: /چاپار|chapar/i, file: "shipping.svg" },
   { test: /ماکس|max/i, file: "shipping.svg" },
 ]
