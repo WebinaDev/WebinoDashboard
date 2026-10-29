@@ -2465,6 +2465,23 @@
       "image": "Image",
       "video": "Video",
       "upload": "Upload file"
+    },
+    "instagram": {
+      "title": "Instagram",
+      "description": "Connect a Business or Creator account via the Instagram Graph API for the live page-builder feed. Store the token here only, never in code.",
+      "enabled": "Enable live feed",
+      "enabledHint": "When off, the widget shows an empty or follow CTA state.",
+      "fieldHandle": "Instagram username",
+      "handleHint": "Without @, e.g. parisma.gallery",
+      "fieldIgUserId": "Instagram account ID (IG User ID)",
+      "igUserIdHint": "Numeric Business or Creator account id from Meta",
+      "fieldToken": "Long-lived Graph API token",
+      "tokenHint": "Long-lived Instagram User access token. Paste a new token to replace. Use clear to remove.",
+      "tokenSet": "A token is saved",
+      "tokenMissing": "No token yet",
+      "clearToken": "Clear token",
+      "fieldCacheHours": "Cache hours (1 to 6)",
+      "cacheHint": "Posts and mirrored images are kept on the server for this long."
     }
   },
   "commerce_gateways": {
@@ -2719,7 +2736,11 @@
     "field_body": "Body",
     "field_description": "Description",
     "magazine_title": "Magazine articles",
-    "field_cover_url": "Cover image URL"
+    "field_cover_url": "Cover image URL",
+    "field_company": "Company",
+    "field_rating": "Rating (1 to 5)",
+    "field_avatar_url": "Avatar URL",
+    "field_sort_order": "Sort order"
   },
   "media": {
     "title": "Media library",

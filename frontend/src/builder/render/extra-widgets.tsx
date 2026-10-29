@@ -295,18 +295,92 @@ export function IconListWidget({ widget }: { widget: WidgetNode }) {
 
 /* ------------------------------------------------------------ testimonials */
 
+type TestimonialRow = {
+  id?: number
+  author?: string
+  name?: string
+  role?: string | null
+  company?: string | null
+  quote?: string
+  text?: string
+  rating?: number | null
+  avatar_url?: string | null
+  image?: string | null
+}
+
 export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
-  const rows = splitRows(propStr(widget.props, "items", "")).filter(([name, text]) => name || text)
   const title = propStr(widget.props, "title", "")
-  if (!rows.length) return null
+  const source = propStr(widget.props, "source", "module") || "module"
+  const layout = propStr(widget.props, "layout", "strip") || "strip"
+  const limit = Math.max(1, Math.min(24, propNum(widget.props, "limit", 8)))
+  const manual = splitRows(propStr(widget.props, "items", "")).filter(([name, text]) => name || text)
+  const [rows, setRows] = useState<TestimonialRow[] | null>(source === "manual" ? [] : null)
+
+  useEffect(() => {
+    if (source === "manual") {
+      setRows(
+        manual.slice(0, limit).map(([name, text, rating, avatar, role]) => ({
+          name,
+          text,
+          rating: Number(rating) || null,
+          image: avatar || null,
+          role: role || null,
+        })),
+      )
+      return
+    }
+    let cancel = false
+    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    fetch(`${base}/api/v1/public/testimonials?per_page=${limit}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancel) return
+        const items = Array.isArray(json?.data)
+          ? json.data
+          : Array.isArray(json?.data?.data)
+            ? json.data.data
+            : []
+        setRows(items.slice(0, limit))
+      })
+      .catch(() => !cancel && setRows([]))
+    return () => {
+      cancel = true
+    }
+    // manual rows are only used when source=manual; intentional deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, limit, propStr(widget.props, "items", "")])
+
+  if (!rows || !rows.length) {
+    if (source === "manual" && !manual.length) return null
+    if (source !== "manual" && rows && !rows.length) return null
+    if (rows === null) {
+      return (
+        <section>
+          <SectionTitle title={title} />
+          <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-foreground/60">در حال بارگذاری نظرات…</div>
+        </section>
+      )
+    }
+    return null
+  }
+
+  const trackClass =
+    layout === "slider"
+      ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
+      : "flex snap-x gap-3 overflow-x-auto pb-2"
+
   return (
-    <section>
+    <section dir="rtl">
       <SectionTitle title={title} />
-      <div className="flex snap-x gap-3 overflow-x-auto pb-2">
-        {rows.map(([name, text, rating, avatar], i) => {
-          const stars = Math.max(0, Math.min(5, Number(rating) || 0))
+      <div className={trackClass}>
+        {rows.map((row, i) => {
+          const name = row.author || row.name || ""
+          const text = row.quote || row.text || ""
+          const role = [row.role, row.company].filter(Boolean).join(" · ")
+          const avatar = row.avatar_url || row.image || ""
+          const stars = Math.max(0, Math.min(5, Number(row.rating) || 0))
           return (
-            <figure key={i} className="w-72 shrink-0 snap-start rounded-2xl border border-border bg-card p-5">
+            <figure key={row.id ?? i} className="w-72 shrink-0 snap-start rounded-2xl border border-border bg-card p-5">
               {stars ? (
                 <div className="mb-2 flex gap-0.5 text-[var(--sfc-rating,#f9bc00)]" aria-label={`${stars} / 5`}>
                   {Array.from({ length: stars }).map((_, k) => (
@@ -317,7 +391,10 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
               <blockquote className="text-sm leading-7 text-foreground/80">{text}</blockquote>
               <figcaption className="mt-3 flex items-center gap-2 text-xs font-bold text-foreground">
                 {avatar ? <Img src={avatar} alt="" className="size-8 rounded-full object-cover" loading="lazy" /> : null}
-                {name}
+                <span>
+                  <span className="block">{name}</span>
+                  {role ? <span className="block text-[11px] font-medium text-foreground/60">{role}</span> : null}
+                </span>
               </figcaption>
             </figure>
           )
@@ -799,40 +876,113 @@ export function WidgetIntro({ widget, children }: { widget: WidgetNode; children
 
 /* ------------------------------------------------- Instagram / social feed */
 
-/** 3.16 — Instagram has no public, key-less API, so the feed is curated: image|post link|caption per line. */
+type FeedItem = { id?: string; image?: string; href?: string; caption?: string }
+
 export function FeedWidget({ widget }: { widget: WidgetNode }) {
-  const rows = splitRows(propStr(widget.props, "items", "")).filter(([src]) => src)
   const handle = propStr(widget.props, "handle", "").replace(/^@/, "")
-  const profile = propStr(widget.props, "profileUrl", "") || (handle ? `https://instagram.com/${handle}` : "")
+  const profile = propStr(widget.props, "profileUrl", "") || (handle ? `https://www.instagram.com/${handle}/` : "https://www.instagram.com/")
   const title = propStr(widget.props, "title", "")
   const cols = Math.max(2, Math.min(6, propNum(widget.props, "columns", 4)))
-  if (!rows.length) return null
+  const limit = Math.max(1, Math.min(24, propNum(widget.props, "limit", 8)))
+  const layout = propStr(widget.props, "layout", "grid") || "grid"
+  const ctaLabel = propStr(widget.props, "ctaLabel", "مشاهده در اینستاگرام") || "مشاهده در اینستاگرام"
+  const [items, setItems] = useState<FeedItem[] | null>(null)
+  const [meta, setMeta] = useState<{ configured?: boolean; message?: string | null; profile_url?: string; handle?: string }>({})
+
+  useEffect(() => {
+    let cancel = false
+    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const params = new URLSearchParams({ limit: String(limit) })
+    if (handle) params.set("handle", handle)
+    fetch(`${base}/api/v1/public/instagram-feed?${params}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancel) return
+        const list = Array.isArray(json?.data) ? json.data : []
+        setItems(list.slice(0, limit))
+        setMeta(json?.meta && typeof json.meta === "object" ? json.meta : {})
+      })
+      .catch(() => {
+        if (!cancel) {
+          setItems([])
+          setMeta({ configured: false, message: null })
+        }
+      })
+    return () => {
+      cancel = true
+    }
+  }, [handle, limit])
+
+  const profileHref = safeHref(meta.profile_url || profile)
+  const shownHandle = (meta.handle || handle || "").replace(/^@/, "")
+
+  if (items === null) {
+    return (
+      <section dir="rtl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          {title ? <h2 className="text-lg font-extrabold text-foreground">{title}</h2> : <span />}
+        </div>
+        <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-foreground/60">در حال بارگذاری فید…</div>
+      </section>
+    )
+  }
+
+  if (!items.length) {
+    return (
+      <section dir="rtl" className="rounded-2xl border border-border bg-card p-6 text-center">
+        {title ? <h2 className="text-lg font-extrabold text-foreground">{title}</h2> : null}
+        <p className="mt-2 text-sm text-foreground/70">
+          {meta.message || "فید اینستاگرام هنوز آماده نیست. حساب را در تنظیمات سایت وصل کنید یا از پروفایل دنبال کنید."}
+        </p>
+        <a
+          href={profileHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground"
+          dir="ltr"
+        >
+          {shownHandle ? `@${shownHandle}` : ctaLabel}
+        </a>
+      </section>
+    )
+  }
+
+  const list = (
+    <>
+      {items.map((row, i) => {
+        const src = row.image || ""
+        if (!src) return null
+        const img = <Img src={src} alt={row.caption || ""} loading="lazy" className="h-full w-full object-cover transition-transform hover:scale-105" />
+        return (
+          <div key={row.id || i} className={`overflow-hidden rounded-xl bg-muted ${layout === "strip" ? "aspect-square w-40 shrink-0 snap-start" : "aspect-square"}`}>
+            {row.href ? (
+              <a href={safeHref(row.href)} target="_blank" rel="noopener noreferrer" aria-label={row.caption || "پست اینستاگرام"}>
+                {img}
+              </a>
+            ) : (
+              img
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+
   return (
-    <section>
+    <section dir="rtl">
       <div className="mb-3 flex items-center justify-between gap-3">
         {title ? <h2 className="text-lg font-extrabold text-foreground">{title}</h2> : <span />}
-        {profile ? (
-          <a href={safeHref(profile)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary" dir="ltr">
-            {handle ? `@${handle}` : "Instagram"}
-          </a>
-        ) : null}
+        <a href={profileHref} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary" dir="ltr">
+          {shownHandle ? `@${shownHandle}` : "Instagram"}
+        </a>
       </div>
-      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-        {rows.map(([src, href, caption], i) => {
-          const img = <Img src={src} alt={caption || ""} loading="lazy" className="h-full w-full object-cover transition-transform hover:scale-105" />
-          return (
-            <div key={i} className="aspect-square overflow-hidden rounded-xl bg-muted">
-              {href ? (
-                <a href={safeHref(href)} target="_blank" rel="noopener noreferrer" aria-label={caption || "post"}>
-                  {img}
-                </a>
-              ) : (
-                img
-              )}
-            </div>
-          )
-        })}
-      </div>
+      {layout === "strip" ? (
+        <div className="flex snap-x gap-2 overflow-x-auto pb-2">{list}</div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+          {list}
+        </div>
+      )}
     </section>
   )
 }

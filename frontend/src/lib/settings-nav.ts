@@ -8,6 +8,7 @@ export type SettingsUnitId =
   | "site-sms"
   | "site-notifications"
   | "site-pwa"
+  | "site-instagram"
   | "site-dashboard"
   | "site-themes"
   | "shop-general"
@@ -175,6 +176,20 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "اپ پیش‌رونده",
         titleEn: "Progressive Web App",
         route: "/dashboard/settings/site/pwa",
+      },
+    ],
+  },
+  {
+    id: "site-instagram",
+    area: "site",
+    titleFa: "اینستاگرام",
+    titleEn: "Instagram",
+    sections: [
+      {
+        id: "instagram",
+        titleFa: "فید زنده",
+        titleEn: "Live feed",
+        route: "/dashboard/settings/site/instagram",
       },
     ],
   },

@@ -21,6 +21,7 @@ import { ProductNotificationsPanel } from "@/views/settings/panels/ProductNotifi
 import { NewsletterSubscribersPanel } from "@/views/settings/panels/NewsletterSubscribersPanel"
 import { NotificationsSettingsPanel } from "@/views/settings/panels/NotificationsSettingsPanel"
 import { PwaSettingsPanel } from "@/views/settings/panels/PwaSettingsPanel"
+import { InstagramSettingsPanel } from "@/views/settings/panels/InstagramSettingsPanel"
 import { DashboardSiteSettingsPanel } from "@/views/settings/panels/DashboardSiteSettingsPanel"
 import { ShopGeneralSettingsPanel } from "@/views/settings/panels/ShopGeneralSettingsPanel"
 import { ShopProductsSettingsPanel } from "@/views/settings/panels/ShopProductsSettingsPanel"
@@ -61,6 +62,7 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/site/sms")) return <SmsSettingsPanel />
   if (path.endsWith("/site/notifications")) return <NotificationsSettingsPanel />
   if (path.endsWith("/site/pwa")) return <PwaSettingsPanel />
+  if (path.endsWith("/site/instagram")) return <InstagramSettingsPanel />
   if (path.endsWith("/site/dashboard")) return <DashboardSiteSettingsPanel />
   if (path.endsWith("/shop/general")) return <ShopGeneralSettingsPanel />
   if (path.endsWith("/shop/products")) return <ShopProductsSettingsPanel />

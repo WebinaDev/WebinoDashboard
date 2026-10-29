@@ -15,6 +15,7 @@ final class SiteTypeProfiles
                 'name_en' => 'E-commerce',
                 'theme' => 'ecommerce-starter',
                 'modules' => array_merge(self::coreModules(), [
+                    'corporate' => ['testimonials'],
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
@@ -32,6 +33,7 @@ final class SiteTypeProfiles
                 'name_en' => 'Educational Magazine',
                 'theme' => 'magazine-default',
                 'modules' => array_merge(self::coreModules(), [
+                    'corporate' => ['testimonials'],
                     'magazine' => ['issues', 'articles', 'series', 'authors'],
                     'academy' => ['courses', 'lessons'],
                     'cms' => ['pages', 'menus', 'seo'],
@@ -47,6 +49,7 @@ final class SiteTypeProfiles
                 'name_en' => 'Cafe & Restaurant',
                 'theme' => 'cafe-starter',
                 'modules' => array_merge(self::coreModules(), [
+                    'corporate' => ['testimonials'],
                     'cafe' => ['menu', 'reservations', 'hours', 'gallery', 'venue', 'qr', 'engagement'],
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'cart', 'checkout', 'orders', 'pos'],
                     'cms' => ['pages', 'menus', 'seo'],
@@ -64,6 +67,7 @@ final class SiteTypeProfiles
                 'name_en' => 'Coffee',
                 'theme' => 'ecommerce-starter',
                 'modules' => array_merge(self::coreModules(), [
+                    'corporate' => ['testimonials'],
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory'],
                     'coffee-profile' => ['profile'],
                     'users' => ['customers', 'staff', 'rbac'],
@@ -92,6 +96,7 @@ final class SiteTypeProfiles
                 'name_en' => 'Blog',
                 'theme' => 'magazine-default',
                 'modules' => array_merge(self::coreModules(), [
+                    'corporate' => ['testimonials'],
                     'blog' => ['posts', 'categories'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'users' => ['subscribers', 'rbac'],

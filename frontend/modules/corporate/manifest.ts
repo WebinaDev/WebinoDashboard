@@ -4,7 +4,7 @@ export const corporateManifest: ModuleManifest = {
   slug: "corporate",
   nameFa: "شرکتی",
   nameEn: "Corporate",
-  siteTypes: ["corporate"],
+  siteTypes: ["corporate", "ecommerce", "cafe", "coffee", "magazine", "blog"],
   submodules: ["portfolio", "team", "testimonials", "announcements", "consultations"],
   adminNav: { section: "content", order: 15 },
   adminRoutes: [

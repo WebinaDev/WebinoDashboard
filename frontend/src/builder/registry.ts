@@ -286,9 +286,18 @@ const CORE_WIDGETS: WidgetDef[] = [
     category: "basic",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
-      { kind: "repeater", key: "items", label: "نظرها", fields: [{ key: "name", label: "نام", kind: "text" }, { key: "text", label: "متن", kind: "textarea" }, { key: "rating", label: "امتیاز ۱ تا ۵", kind: "text" }, { key: "image", label: "تصویر", kind: "media" }] },
+      { kind: "select", key: "source", label: "منبع", options: [
+        { value: "module", label: "ماژول نظرات (پیشنهادی)" },
+        { value: "manual", label: "ورود دستی" },
+      ] },
+      { kind: "number", key: "limit", label: "حداکثر تعداد", min: 1, max: 24 },
+      { kind: "select", key: "layout", label: "چیدمان", options: [
+        { value: "strip", label: "نوار افقی" },
+        { value: "slider", label: "اسلایدر" },
+      ] },
+      { kind: "repeater", key: "items", label: "نظرهای دستی (فقط وقتی منبع دستی باشد)", fields: [{ key: "name", label: "نام", kind: "text" }, { key: "text", label: "متن", kind: "textarea" }, { key: "rating", label: "امتیاز ۱ تا ۵", kind: "text" }, { key: "image", label: "تصویر", kind: "media" }, { key: "role", label: "سمت", kind: "text" }] },
     ],
-    create: () => node("testimonials", { title: "نظر مشتریان", items: "" }),
+    create: () => node("testimonials", { title: "نظر مشتریان", source: "module", limit: 8, layout: "strip", items: "" }),
   },
   {
     type: "image-gallery",
@@ -469,8 +478,19 @@ const CORE_WIDGETS: WidgetDef[] = [
     type: "feed",
     label: "فید اینستاگرام",
     category: "basic",
-    fields: [{ kind: "text", key: "title", label: "عنوان" }, { kind: "text", key: "handle", label: "نام کاربری (@)" }, { kind: "url", key: "profileUrl", label: "پیوند پروفایل" }, { kind: "repeater", key: "items", label: "پست‌ها", fields: [{ key: "image", label: "تصویر", kind: "media" }, { key: "href", label: "پیوند پست", kind: "url" }, { key: "caption", label: "توضیح", kind: "text" }] }, { kind: "number", key: "columns", label: "ستون‌ها", min: 2, max: 6 }],
-    create: () => node("feed", { title: "ما را در اینستاگرام دنبال کنید", items: "", columns: 4 }),
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "text", key: "handle", label: "نام کاربری (@)" },
+      { kind: "url", key: "profileUrl", label: "پیوند پروفایل" },
+      { kind: "number", key: "limit", label: "تعداد پست", min: 1, max: 24 },
+      { kind: "number", key: "columns", label: "ستون‌ها", min: 2, max: 6 },
+      { kind: "select", key: "layout", label: "چیدمان", options: [
+        { value: "grid", label: "شبکه" },
+        { value: "strip", label: "نوار افقی" },
+      ] },
+      { kind: "text", key: "ctaLabel", label: "متن دکمه وقتی فید خالی است" },
+    ],
+    create: () => node("feed", { title: "ما را در اینستاگرام دنبال کنید", handle: "", columns: 4, limit: 8, layout: "grid", ctaLabel: "مشاهده در اینستاگرام", items: "" }),
   },
   {
     type: "price-filter",

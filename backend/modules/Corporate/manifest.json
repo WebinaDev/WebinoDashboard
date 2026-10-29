@@ -4,7 +4,12 @@
   "name_en": "Corporate",
   "distribution": "git",
   "site_types": [
-    "corporate"
+    "corporate",
+    "ecommerce",
+    "cafe",
+    "coffee",
+    "magazine",
+    "blog"
   ],
   "submodules": [
     "portfolio",

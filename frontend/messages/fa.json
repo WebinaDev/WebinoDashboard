@@ -1943,6 +1943,23 @@
       "image": "تصویر",
       "video": "ویدیو",
       "upload": "بارگذاری فایل"
+    },
+    "instagram": {
+      "title": "اینستاگرام",
+      "description": "اتصال حساب Business یا Creator از طریق Instagram Graph API برای فید زنده صفحه‌ساز. توکن را فقط اینجا ذخیره کنید، نه در کد.",
+      "enabled": "فعال بودن فید زنده",
+      "enabledHint": "وقتی خاموش باشد ویجت فقط وضعیت خالی یا دکمه دنبال کردن را نشان می‌دهد.",
+      "fieldHandle": "نام کاربری اینستاگرام",
+      "handleHint": "بدون @، مثلا parisma.gallery",
+      "fieldIgUserId": "شناسه حساب اینستاگرام (IG User ID)",
+      "igUserIdHint": "شناسه عددی حساب Business یا Creator در Meta",
+      "fieldToken": "توکن بلندمدت Graph API",
+      "tokenHint": "Long lived Instagram User access token. برای تعویض، توکن جدید را بنویسید. برای پاک کردن، پاک کردن توکن را بزنید.",
+      "tokenSet": "توکن ذخیره شده است",
+      "tokenMissing": "توکن هنوز تنظیم نشده",
+      "clearToken": "پاک کردن توکن",
+      "fieldCacheHours": "مدت کش (ساعت، ۱ تا ۶)",
+      "cacheHint": "پست‌ها و تصویرهای ذخیره‌شده روی سرور تا این مدت نگه داشته می‌شوند."
     }
   },
   "commerce_gateways": {
@@ -2719,7 +2736,11 @@
     "field_body": "متن",
     "field_description": "توضیحات",
     "magazine_title": "مطالب مجله",
-    "field_cover_url": "آدرس تصویر جلد"
+    "field_cover_url": "آدرس تصویر جلد",
+    "field_company": "شرکت",
+    "field_rating": "امتیاز (۱ تا ۵)",
+    "field_avatar_url": "آدرس تصویر",
+    "field_sort_order": "ترتیب"
   },
   "media": {
     "title": "کتابخانه رسانه",

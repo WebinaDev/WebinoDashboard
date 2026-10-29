@@ -13,6 +13,7 @@ use App\Services\Marketplace\MarketplacePlatforms;
 use App\Services\Marketplace\MarketplaceSettingsService;
 use App\Services\Orders\OrderDocumentSettings;
 use App\Services\Payments\PaymentGatewaySettingsService;
+use App\Services\Integrations\InstagramSettings;
 use App\Services\Pwa\PwaSettings;
 use App\Services\Security\SecuritySettings;
 use App\Services\Shop\ShopSettings;
@@ -24,7 +25,7 @@ class TenantSettingsController extends Controller
     private const AREAS = ['site', 'shop'];
 
     private const SECTIONS = [
-        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard', 'notifications', 'general', 'privacy', 'style', 'system-logs', 'license'],
+        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard', 'notifications', 'general', 'privacy', 'style', 'system-logs', 'license', 'instagram'],
         'shop' => [
             'general',
             'products',
@@ -100,6 +101,9 @@ class TenantSettingsController extends Controller
         }
         if ($key === PwaSettings::KEY) {
             return response()->json(['data' => PwaSettings::forTenant($tenantId, $this->locale($request))]);
+        }
+        if ($key === InstagramSettings::KEY) {
+            return response()->json(['data' => InstagramSettings::public($tenantId)]);
         }
         if ($key === 'site.dashboard') {
             $prefs = $settings->get($tenantId, 'settings', 'site.dashboard.prefs', [
@@ -218,6 +222,9 @@ class TenantSettingsController extends Controller
                 'data' => PwaSettings::save($tenantId, $payload['payload'], $this->locale($request)),
             ]);
         }
+        if ($key === InstagramSettings::KEY) {
+            return response()->json(['data' => InstagramSettings::save($tenantId, $payload['payload'])]);
+        }
         if ($key === 'site.dashboard') {
             return response()->json(['data' => $this->saveDashboardPrefs($tenantId, $settings, $payload['payload'])]);
         }
@@ -329,6 +336,7 @@ class TenantSettingsController extends Controller
             'site.ai' => AiContentSettings::defaults(),
             'site.analytics' => AnalyticsSettings::defaults(),
             'site.pwa' => PwaSettings::defaults(),
+            'site.instagram' => InstagramSettings::defaults(),
             'site.dashboard' => [
                 'self_update_enabled' => (bool) config('dashboard.self_update'),
                 'build_pipeline_enabled' => (bool) config('dashboard.build_pipeline'),

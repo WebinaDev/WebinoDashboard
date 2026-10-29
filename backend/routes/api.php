@@ -102,6 +102,7 @@ use App\Http\Controllers\Api\V1\PublicBlogController;
 use App\Http\Controllers\Api\V1\PublicCmsController;
 use App\Http\Controllers\Api\V1\PublicConsultationController;
 use App\Http\Controllers\Api\V1\PublicCorporateController;
+use App\Http\Controllers\Api\V1\PublicInstagramFeedController;
 use App\Http\Controllers\Api\V1\PublicKernelController;
 use App\Http\Controllers\Api\V1\PublicMagazineController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
@@ -291,6 +292,9 @@ Route::prefix('v1')->group(function () {
         Route::middleware('public.module:testimonials')->group(function () {
             Route::get('/testimonials', [PublicCorporateController::class, 'testimonials']);
         });
+
+        // Live Instagram feed (token in site settings; graceful empty when unset).
+        Route::get('/instagram-feed', PublicInstagramFeedController::class);
 
         Route::middleware('public.module:team')->group(function () {
             Route::get('/team', [PublicCorporateController::class, 'team']);
