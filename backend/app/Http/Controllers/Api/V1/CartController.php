@@ -46,6 +46,7 @@ class CartController extends Controller
         ]);
         $line->quantity = ($line->exists ? $line->quantity : 0) + $qty;
         $line->save();
+        $cart->touch();
 
         $lines = CartItem::query()->where('cart_id', $cart->id)->get();
         $current = $types->cartType($lines->where('id', '!=', $line->id)->values());
@@ -90,6 +91,7 @@ class CartController extends Controller
         $qty = (int) $data['quantity'];
         if ($qty === 0) {
             $existing?->delete();
+            $cart->touch();
 
             return $this->respond($cart);
         }
@@ -108,6 +110,7 @@ class CartController extends Controller
         ]);
         $line->quantity = $qty;
         $line->save();
+        $cart->touch();
 
         return $this->respond($cart);
     }
@@ -168,6 +171,7 @@ class CartController extends Controller
             ->where('cart_id', $cart->id)
             ->where('product_id', $product->id)
             ->delete();
+        $cart->touch();
 
         return $this->respond($cart);
     }
@@ -206,7 +210,17 @@ class CartController extends Controller
             return;
         }
         $cutoff = now()->subMinutes(max(1, (int) $minutes));
-        if ($cart->updated_at && $cart->updated_at->greaterThan($cutoff)) {
+        // Last activity = cart row OR any line (adding items used to leave cart.updated_at
+        // stale, so the next GET wiped the line that had just been added).
+        $lastItemAt = $cart->items()->max('updated_at');
+        $last = $cart->updated_at;
+        if ($lastItemAt) {
+            $itemAt = \Carbon\Carbon::parse($lastItemAt);
+            if (! $last || $itemAt->greaterThan($last)) {
+                $last = $itemAt;
+            }
+        }
+        if ($last && $last->greaterThan($cutoff)) {
             return;
         }
         if ($cart->items()->exists()) {

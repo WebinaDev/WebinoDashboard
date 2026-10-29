@@ -67,8 +67,19 @@ export function useServerCart() {
   return { cart, auth, reload }
 }
 
-export async function addShopItem(product: ShopProduct, qty = 1): Promise<"server" | "local" | "error"> {
+export type AddShopResult = "server" | "local" | "error"
+
+/** Add to the signed-in server cart when possible; otherwise the guest localStorage cart. */
+export async function addShopItem(product: ShopProduct, qty = 1): Promise<AddShopResult> {
   const safeQty = Math.max(1, Math.min(99, Math.round(qty)))
+  const localLine = {
+    slug: product.slug,
+    name: product.name,
+    price: product.price,
+    tone: product.tone,
+    image: product.image,
+    productId: product.id,
+  }
   if (product.id) {
     const res = await quietApi<ServerCart>("/api/v1/cart/items", {
       method: "POST",
@@ -80,17 +91,7 @@ export async function addShopItem(product: ShopProduct, qty = 1): Promise<"serve
     }
     if (res.status !== 401 && res.status !== 403) return "error"
   }
-  addToCart(
-    {
-      slug: product.slug,
-      name: product.name,
-      price: product.price,
-      tone: product.tone,
-      image: product.image,
-      productId: product.id,
-    },
-    safeQty,
-  )
+  addToCart(localLine, safeQty)
   notifyCart()
   return "local"
 }

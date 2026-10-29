@@ -9,6 +9,7 @@ import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { StorefrontMegaMenuPanel, ProductReviewsPanel, ProductQuestionsPanel } from "../storefront/storefront-chrome"
 import { StoreProductCard, StorefrontAccount } from "../storefront/ui"
 import { addShopItem } from "../storefront/actions"
+import { CartAddedModal, type CartAddedPayload } from "../storefront/cart-added-modal"
 import { useCatalog } from "../storefront/use-catalog"
 import { linkAttrs, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
@@ -259,6 +260,9 @@ export function AddToCartBoxWidget({ productSlug, editing = false }: { productSl
   const locale = useLocale()
   const product = catalog.products.find((item) => item.slug === slug) ?? (editing ? catalog.products[0] : undefined)
   const [note, setNote] = useState("")
+  const [atcOpen, setAtcOpen] = useState(false)
+  const [atcItem, setAtcItem] = useState<CartAddedPayload | null>(null)
+  const [atcError, setAtcError] = useState<string | null>(null)
   if (!product) return null
   const money = `${formatNumber(Math.round(product.price), normalizeUiLocale(locale))} ${t("currency_toman")}`
   return (
@@ -272,12 +276,32 @@ export function AddToCartBoxWidget({ productSlug, editing = false }: { productSl
           type="button"
           disabled={!product.inStock}
           className="mt-4 w-full rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
-          onClick={() => void addShopItem(product).then((r) => setNote(r === "error" ? t("add_failed") : t("added")))}
+          onClick={() =>
+            void addShopItem(product).then((r) => {
+              if (r === "error") {
+                setNote(t("add_failed"))
+                setAtcError(t("add_failed"))
+                setAtcItem(null)
+                setAtcOpen(true)
+                return
+              }
+              setNote("")
+              setAtcError(null)
+              setAtcItem({
+                name: product.name,
+                image: product.image,
+                priceLabel: money,
+                quantity: 1,
+              })
+              setAtcOpen(true)
+            })
+          }
         >
           {tCart("add_to_cart")}
         </button>
         {note ? <p className="mt-2 text-xs text-muted-foreground">{note}</p> : null}
       </div>
+      <CartAddedModal open={atcOpen} item={atcItem} error={atcError} onClose={() => setAtcOpen(false)} />
     </div>
   )
 }

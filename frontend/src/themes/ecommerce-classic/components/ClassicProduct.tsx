@@ -12,6 +12,7 @@ import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { mapApiProduct, toneClass, type ShopProduct } from "@/builder/catalog"
 import { addShopItem } from "@/builder/storefront/actions"
+import { CartAddedModal, type CartAddedPayload } from "@/builder/storefront/cart-added-modal"
 import { quietApi } from "@/builder/storefront/session"
 import { LowerPriceReportForm, PriceDropAlertForm, ProductReviewsPanel, StockAlertForm } from "@/builder/storefront/storefront-chrome"
 import { ProductPriceHistory } from "@/builder/storefront/storefront-extras"
@@ -175,7 +176,9 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   const [variantId, setVariantId] = useState<number | null>(null)
   const [tab, setTab] = useState<"desc" | "spec" | "faq">("desc")
   const [liked, setLiked] = useState(false)
-  const [note, setNote] = useState("")
+  const [atcOpen, setAtcOpen] = useState(false)
+  const [atcItem, setAtcItem] = useState<CartAddedPayload | null>(null)
+  const [atcError, setAtcError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
 
@@ -251,14 +254,34 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
 
   function add() {
     if (editing || blocked || !product) return
+    if (product.variants.length > 0 && !variant) {
+      setAtcError("لطفاً مدل محصول را انتخاب کنید.")
+      setAtcItem(null)
+      setAtcOpen(true)
+      return
+    }
     trackAnalyticsEvent("add_to_cart", { productId: product.id })
     void addShopItem(product, qty).then((result) => {
-      if (result !== "error" && !ajaxAdd) {
+      if (result === "error") {
+        setAtcError("افزودن به سبد ناموفق بود. لطفاً دوباره تلاش کنید.")
+        setAtcItem(null)
+        setAtcOpen(true)
+        return
+      }
+      if (!ajaxAdd) {
         // Theme Settings → «افزودن به سبد بدون رفرش» off: go to the cart like a classic form post.
         router.push("/cart")
         return
       }
-      setNote(result === "error" ? "افزودن ناموفق بود." : "به سبد خرید افزوده شد.")
+      const label = variant?.name ? `${product.name} (${variant.name})` : product.name
+      setAtcError(null)
+      setAtcItem({
+        name: label,
+        image: activeImage || product.image,
+        priceLabel: `${digits(price)} تومان`,
+        quantity: qty,
+      })
+      setAtcOpen(true)
     })
   }
 
@@ -622,7 +645,12 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
             <button type="button" className="sfc-btn sfc-btn--block sfc-btn--lg" disabled={editing || blocked} onClick={add}>
               {blocked ? tx("product.out_of_stock") : tx("product.add_to_cart")}
             </button>
-            {note ? <p className="sfc-buy__note">{note}</p> : null}
+            <CartAddedModal
+              open={atcOpen}
+              item={atcItem}
+              error={atcError}
+              onClose={() => setAtcOpen(false)}
+            />
             <div className="sfc-buy__price">
               {off > 0 ? (
                 <div className="sfc-buy__old">

@@ -558,7 +558,8 @@ export function ClassicCategoryTiles({ tilesText }: { tilesText?: string }) {
     : catalog.categories.slice(0, 3).map((c) => ({
         name: c.name,
         href: `/shop?category=${c.slug}`,
-        image: imageForCategory(catalog, c.slug, c.name),
+        // Category image/icon only — never a product photo as a banner/tile stand-in.
+        image: imageForCategory(catalog, c.slug, c.name, c.image),
       }))
   const offer = catalog.products.find((p) => p.compare && p.compare > p.price)
   const off = offer?.compare && offer.compare > offer.price ? Math.round((1 - offer.price / offer.compare) * 100) : 0

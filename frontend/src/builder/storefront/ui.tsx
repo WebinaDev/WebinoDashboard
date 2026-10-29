@@ -21,6 +21,7 @@ import { toneClass, mapApiProduct, productCardSrcSet, type ShopProduct } from ".
 import { parseLinks, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { addShopItem, setServerQty, syncGuestCart, useServerCart } from "./actions"
+import { CartAddedModal, type CartAddedPayload } from "./cart-added-modal"
 import { ProductPriceHistory } from "./storefront-extras"
 import {
   StorefrontAccountShell,
@@ -71,6 +72,9 @@ function DefaultStoreProductCard({ product }: { product: ShopProduct }) {
   const locale = useLocale()
   const [liked, setLiked] = useState(false)
   const [note, setNote] = useState("")
+  const [atcOpen, setAtcOpen] = useState(false)
+  const [atcItem, setAtcItem] = useState<CartAddedPayload | null>(null)
+  const [atcError, setAtcError] = useState<string | null>(null)
   const off =
     product.compare && product.compare > product.price
       ? Math.round((1 - product.price / product.compare) * 100)
@@ -126,13 +130,31 @@ function DefaultStoreProductCard({ product }: { product: ShopProduct }) {
           disabled={!product.inStock}
           className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
           onClick={() => {
-            void addShopItem(product).then((result) => setNote(result === "error" ? t("add_failed") : ""))
+            void addShopItem(product).then((result) => {
+              if (result === "error") {
+                setAtcError(t("add_failed"))
+                setAtcItem(null)
+                setAtcOpen(true)
+                setNote(t("add_failed"))
+                return
+              }
+              setNote("")
+              setAtcError(null)
+              setAtcItem({
+                name: product.name,
+                image: product.image,
+                priceLabel: money(product.price),
+                quantity: 1,
+              })
+              setAtcOpen(true)
+            })
           }}
         >
           {tCart("add_to_cart")}
         </button>
       </div>
       {note ? <p className="mt-2 text-xs text-destructive">{note}</p> : null}
+      <CartAddedModal open={atcOpen} item={atcItem} error={atcError} onClose={() => setAtcOpen(false)} />
     </article>
   )
 }
@@ -210,6 +232,9 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
   const [variantId, setVariantId] = useState<number | null>(null)
   const [tab, setTab] = useState("desc")
   const [note, setNote] = useState("")
+  const [atcOpen, setAtcOpen] = useState(false)
+  const [atcItem, setAtcItem] = useState<CartAddedPayload | null>(null)
+  const [atcError, setAtcError] = useState<string | null>(null)
   const { auth } = useServerCart()
 
   useEffect(() => {
@@ -260,7 +285,24 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
   function add() {
     if (editing || blocked) return
     trackAnalyticsEvent("add_to_cart", { productId: product.id })
-    void addShopItem(product as ShopProduct, qty).then((result) => setNote(result === "error" ? t("add_failed") : t("added")))
+    void addShopItem(product as ShopProduct, qty).then((result) => {
+      if (result === "error") {
+        setNote(t("add_failed"))
+        setAtcError(t("add_failed"))
+        setAtcItem(null)
+        setAtcOpen(true)
+        return
+      }
+      setNote("")
+      setAtcError(null)
+      setAtcItem({
+        name: product.name,
+        image: activeImage || product.image,
+        priceLabel: money(variant && variant.price > 0 ? variant.price : product.price),
+        quantity: qty,
+      })
+      setAtcOpen(true)
+    })
   }
 
   return (
@@ -353,6 +395,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
           ) : null}
         </div>
         {note ? <p className="mt-2 text-xs text-muted-foreground">{note}</p> : null}
+        <CartAddedModal open={atcOpen} item={atcItem} error={atcError} onClose={() => setAtcOpen(false)} />
         <div className="mt-3 flex flex-wrap gap-2">
           {product.id ? (
             <button

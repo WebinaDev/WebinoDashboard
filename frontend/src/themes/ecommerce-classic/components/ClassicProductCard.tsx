@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { addShopItem } from "@/builder/storefront/actions"
+import { CartAddedModal, type CartAddedPayload } from "@/builder/storefront/cart-added-modal"
 import { quietApi } from "@/builder/storefront/session"
 import { productCardSrcSet, toneClass, type ShopProduct } from "@/builder/catalog"
 
@@ -48,6 +49,9 @@ export function ClassicProductCard({
     : null
   const [liked, setLiked] = useState(false)
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle")
+  const [atcOpen, setAtcOpen] = useState(false)
+  const [atcItem, setAtcItem] = useState<CartAddedPayload | null>(null)
+  const [atcError, setAtcError] = useState<string | null>(null)
   const href = `/product/${product.slug}`
   const variable = product.variants.length > 0
   const stockLabel = !product.inStock
@@ -126,8 +130,26 @@ export function ClassicProductCard({
                 onClick={() => {
                   setState("busy")
                   void addShopItem(product).then((result) => {
-                    setState(result === "error" ? "error" : "done")
-                    if (result !== "error" && !ajaxAdd) router.push("/cart")
+                    if (result === "error") {
+                      setState("error")
+                      setAtcError("افزودن به سبد ناموفق بود. لطفاً دوباره تلاش کنید.")
+                      setAtcItem(null)
+                      setAtcOpen(true)
+                      return
+                    }
+                    setState("done")
+                    if (!ajaxAdd) {
+                      router.push("/cart")
+                      return
+                    }
+                    setAtcError(null)
+                    setAtcItem({
+                      name: product.name,
+                      image: product.image,
+                      priceLabel: `${digits(product.price)} تومان`,
+                      quantity: 1,
+                    })
+                    setAtcOpen(true)
                   })
                 }}
               >
@@ -137,6 +159,13 @@ export function ClassicProductCard({
           ) : null}
         </div>
       </div>
+      <CartAddedModal
+        open={atcOpen}
+        item={atcItem}
+        error={atcError}
+        onClose={() => setAtcOpen(false)}
+      />
     </article>
   )
 }
+
