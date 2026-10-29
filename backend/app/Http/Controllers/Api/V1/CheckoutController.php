@@ -45,6 +45,12 @@ class CheckoutController extends Controller
             'customer_national_id' => ['nullable', 'string', 'max:20'],
             'shipping_district' => ['nullable', 'string', 'max:80'],
             'professional_packaging' => ['nullable', 'boolean'],
+            'recipient_name' => ['nullable', 'string', 'max:255'],
+            'address_line' => ['nullable', 'string', 'max:500'],
+            'address_label' => ['nullable', 'string', 'max:64'],
+            'shipping_plaque' => ['nullable', 'string', 'max:32'],
+            'shipping_unit' => ['nullable', 'string', 'max:32'],
+            'save_address' => ['nullable', 'boolean'],
         ]);
         $nationalMode = (string) (app(\App\Services\Shop\StorefrontAppearanceService::class)
             ->get((int) $request->user()->tenant_id)['commerce']['checkout_national_id'] ?? 'hidden');
@@ -350,6 +356,51 @@ class CheckoutController extends Controller
                 $order->status = 'paid';
                 $order->amount_paid_minor = (int) $order->total_minor;
                 $order->save();
+            }
+
+            // Keep the buyer's address book in sync so the next checkout can pick a saved card.
+            $bookLine = array_filter([
+                'label' => trim((string) ($checkoutMeta['address_label'] ?? '')) ?: 'آدرس ارسال',
+                'name' => trim((string) (is_array($checkoutMeta['shipping_address'] ?? null)
+                    ? ($checkoutMeta['shipping_address']['name'] ?? '')
+                    : ($checkoutMeta['recipient_name'] ?? ''))),
+                'phone' => trim((string) ($checkoutMeta['customer_phone'] ?? '')),
+                'address' => trim((string) ($checkoutMeta['address_line'] ?? (is_string($checkoutMeta['shipping_address'] ?? null) ? $checkoutMeta['shipping_address'] : ''))),
+                'city' => trim((string) ($checkoutMeta['shipping_city'] ?? '')),
+                'province_code' => trim((string) ($checkoutMeta['shipping_state_code'] ?? '')),
+                'postcode' => trim((string) ($checkoutMeta['shipping_postcode'] ?? '')),
+                'plaque' => trim((string) ($checkoutMeta['shipping_plaque'] ?? '')),
+                'unit' => trim((string) ($checkoutMeta['shipping_unit'] ?? '')),
+                'is_default' => true,
+            ], fn ($v) => $v !== '' && $v !== null);
+            // Prefer structured street line when the client sends it.
+            if (! empty($checkoutMeta['address_line'])) {
+                $bookLine['address'] = trim((string) $checkoutMeta['address_line']);
+            }
+            if (! empty($checkoutMeta['recipient_name'])) {
+                $bookLine['name'] = trim((string) $checkoutMeta['recipient_name']);
+            }
+            if (($checkoutMeta['save_address'] ?? true) && (! empty($bookLine['address']) || ! empty($bookLine['city']))) {
+                $existing = is_array($user->addresses) ? $user->addresses : [];
+                $normalized = [];
+                foreach ($existing as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $row['is_default'] = false;
+                    $same = trim((string) ($row['address'] ?? '')) === trim((string) ($bookLine['address'] ?? ''))
+                        && trim((string) ($row['city'] ?? '')) === trim((string) ($bookLine['city'] ?? ''))
+                        && trim((string) ($row['province_code'] ?? '')) === trim((string) ($bookLine['province_code'] ?? ''));
+                    if ($same) {
+                        $normalized[] = array_merge($row, $bookLine, ['is_default' => true]);
+                    } else {
+                        $normalized[] = $row;
+                    }
+                }
+                if (! collect($normalized)->contains(fn ($r) => ! empty($r['is_default']))) {
+                    array_unshift($normalized, $bookLine);
+                }
+                $user->forceFill(['addresses' => array_slice($normalized, 0, 10)])->save();
             }
 
             CartItem::query()->where('cart_id', $cart->id)->delete();

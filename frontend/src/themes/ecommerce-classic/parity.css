@@ -7369,3 +7369,33 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
   opacity: 0.6;
   cursor: wait;
 }
+
+.sfc-address-book__empty,
+.sfc-address-book__hint {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--sfc-muted, #4d5e8a);
+}
+.sfc-address-card--new {
+  border-style: dashed;
+}
+.sfc-checkout__pay--inline {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sfc-border, #e8edf3);
+}
+.sfc-pay-method {
+  position: relative;
+}
+.sfc-pay-method input[type="radio"] {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  accent-color: var(--sfc-pink, #e775ae);
+}
+.sfc-pay-method.is-selected,
+.sfc-pay-method:has(input:checked) {
+  border-color: var(--sfc-pink, #e775ae);
+  box-shadow: 0 0 0 3px rgba(231, 117, 174, 0.18);
+}

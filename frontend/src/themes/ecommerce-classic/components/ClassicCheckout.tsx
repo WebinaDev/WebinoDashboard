@@ -132,6 +132,8 @@ export function ClassicCheckout() {
   const [selectedAddressIdx, setSelectedAddressIdx] = useState<number | null>(null)
   const [guestCheckout, setGuestCheckout] = useState(false)
   const [doneProvider, setDoneProvider] = useState<string | null>(null)
+  const [selectedPay, setSelectedPay] = useState<Gateway["id"] | null>(null)
+  const [addressNote, setAddressNote] = useState("")
   const flash = params.get("payment")
 
   const lines = cart?.items ?? []
@@ -193,12 +195,22 @@ export function ClassicCheckout() {
 
   useEffect(() => {
     if (auth !== "auth") return
-    void quietApi<{ data?: { addresses?: SavedAddress[] }; addresses?: SavedAddress[] }>("/api/v1/account/addresses").then((res) => {
-      if (!res.ok) return
-      const list = (res.data.data?.addresses ?? res.data.addresses ?? []).filter((a) => a && (a.address || a.city))
+    void quietApi<unknown>("/api/v1/account/addresses").then((res) => {
+      if (!res.ok) {
+        setAddressNote("دفترچه آدرس در دسترس نیست؛ می‌توانید آدرس را همین‌جا وارد کنید.")
+        return
+      }
+      const payload = res.data as { addresses?: SavedAddress[]; data?: { addresses?: SavedAddress[] } }
+      const raw = payload?.addresses ?? payload?.data?.addresses ?? []
+      const list = (Array.isArray(raw) ? raw : []).filter((a) => a && (a.address || a.city))
       setSavedAddresses(list)
+      if (!list.length) {
+        setAddressNote("هنوز آدرسی ذخیره نشده. فرم زیر را پر کنید؛ با ثبت سفارش در دفترچه می‌ماند.")
+        return
+      }
+      setAddressNote("")
       const def = list.findIndex((a) => a.is_default)
-      if (def >= 0) applySavedAddress(list[def], def)
+      applySavedAddress(list[def >= 0 ? def : 0], def >= 0 ? def : 0)
     })
   }, [auth])
 
@@ -216,9 +228,18 @@ export function ClassicCheckout() {
   }, [cart?.pricing?.purchase_type])
 
   useEffect(() => {
-    if (!orderId || auth !== "auth") return
-    void api<{ gateways?: Gateway[] }>(`/api/v1/payments/checkout-options?order_id=${orderId}`)
-      .then((res) => setGateways(res.gateways ?? []))
+    if (auth !== "auth") return
+    const qs = orderId ? `?order_id=${orderId}` : "?mode=cash"
+    void api<{ gateways?: Gateway[] }>(`/api/v1/payments/checkout-options${qs}`)
+      .then((res) => {
+        const list = res.gateways ?? []
+        setGateways(list)
+        setSelectedPay((prev) => {
+          if (prev && list.some((g) => g.id === prev)) return prev
+          const cod = list.find((g) => g.id === "cod")
+          return (cod?.id ?? list[0]?.id ?? null) as Gateway["id"] | null
+        })
+      })
       .catch(() => setGateways([]))
   }, [auth, orderId])
 
@@ -251,32 +272,46 @@ export function ClassicCheckout() {
     if (row.province_code) setStateCode(row.province_code)
   }
 
-  async function saveCurrentAddress() {
-    if (auth !== "auth") return
-    const next: SavedAddress = {
-      label: recipient.trim() || "آدرس من",
+  function buildAddressPayload(asDefault = false): SavedAddress {
+    return {
+      label: recipient.trim() || city.trim() || "آدرس من",
       name: recipient.trim() || undefined,
       phone: phone || undefined,
       address: address.trim() || undefined,
       city: city.trim() || undefined,
       province_code: stateCode || undefined,
       postcode: postcode || undefined,
-      is_default: savedAddresses.length === 0,
+      is_default: asDefault || savedAddresses.length === 0,
     }
+  }
+
+  async function saveCurrentAddress(opts?: { quiet?: boolean }): Promise<boolean> {
+    if (auth !== "auth") return false
+    const next = buildAddressPayload(selectedAddressIdx == null)
     if (!next.address) {
-      setError("برای ذخیره، آدرس را وارد کنید.")
-      return
+      if (!opts?.quiet) setError("برای ذخیره، آدرس را وارد کنید.")
+      return false
     }
-    const merged = [...savedAddresses]
-    if (selectedAddressIdx != null && selectedAddressIdx >= 0) merged[selectedAddressIdx] = { ...merged[selectedAddressIdx], ...next }
-    else merged.push(next)
+    const merged = savedAddresses.map((row, i) => ({ ...row, is_default: false }))
+    if (selectedAddressIdx != null && selectedAddressIdx >= 0) {
+      merged[selectedAddressIdx] = { ...merged[selectedAddressIdx], ...next, is_default: true }
+    } else {
+      merged.unshift({ ...next, is_default: true })
+    }
     const capped = merged.slice(0, 10)
-    const res = await quietApi("/api/v1/account/addresses", { method: "PATCH", json: { addresses: capped } })
+    const res = await quietApi<unknown>("/api/v1/account/addresses", { method: "PATCH", json: { addresses: capped } })
     if (!res.ok) {
-      setError("ذخیره آدرس ناموفق بود.")
-      return
+      if (!opts?.quiet) setError("ذخیره آدرس ناموفق بود.")
+      return false
     }
-    setSavedAddresses(capped)
+    const payload = res.data as { addresses?: SavedAddress[]; data?: { addresses?: SavedAddress[] } }
+    const raw = payload?.addresses ?? payload?.data?.addresses ?? capped
+    const list = (Array.isArray(raw) ? raw : capped).filter((a) => a && (a.address || a.city))
+    setSavedAddresses(list)
+    const def = list.findIndex((a) => a.is_default)
+    setSelectedAddressIdx(def >= 0 ? def : 0)
+    setAddressNote(list.length ? "آدرس در دفترچه ذخیره شد." : "")
+    return true
   }
 
   if (auth === "loading") {
@@ -331,14 +366,51 @@ export function ClassicCheckout() {
     }
   }
 
+  async function confirmPayment(orderKey: number, provider: Gateway["id"]) {
+    const offline = provider === "cod" || provider === "cheque" || provider === "c2c"
+    if (offline) {
+      const res = await api<{ id: number; number?: string | null; status: string; payment_provider?: string }>(
+        "/api/v1/payments/offline",
+        { method: "POST", json: { order_id: orderKey, provider } },
+      )
+      setOrderNumber(res.number ? String(res.number) : String(res.id))
+      setDoneProvider(provider)
+      setStep(3)
+      return
+    }
+    if (provider === "wallet") {
+      setError("پرداخت با کیف پول از پنل حساب کاربری انجام می‌شود.")
+      return
+    }
+    const intent = await api<{ redirect_url: string | null; data?: { redirect_url?: string | null } }>(
+      "/api/v1/payments/intent",
+      { method: "POST", json: { order_id: orderKey, provider, mode } },
+    )
+    const url = intent.redirect_url ?? intent.data?.redirect_url ?? null
+    if (url?.startsWith("http")) {
+      window.location.assign(url)
+      return
+    }
+    setError(t("pay_missing"))
+  }
+
   async function placeOrder() {
     if (nationalMode !== "hidden" && (nationalMode === "required" || nationalId) && !isValidIranNationalId(nationalId)) {
       setError(tx("checkout.national_id_invalid"))
       return
     }
+    if (!selectedPay) {
+      setError("لطفاً روش پرداخت را انتخاب کنید.")
+      return
+    }
+    if (showShippingQuote && rates.length > 0 && !rateId) {
+      setError("لطفاً روش ارسال را انتخاب کنید.")
+      return
+    }
     setBusy(true)
     setError("")
     try {
+      await saveCurrentAddress({ quiet: true })
       const stateName = states.find((item) => item.code === stateCode)?.name ?? stateCode
       const shippingAddress = [recipient.trim(), stateName, city, address, postcode].filter(Boolean).join("، ")
       const order = await api<{ id: number; number?: string | null }>("/api/v1/checkout", {
@@ -355,12 +427,24 @@ export function ClassicCheckout() {
           shipping_district: district || null,
           professional_packaging: proPackFee > 0,
           customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
+          recipient_name: recipient.trim() || null,
+          address_line: address.trim() || null,
+          address_label: recipient.trim() || city.trim() || "آدرس من",
+          save_address: true,
         },
       })
       if (showCoupon && coupon) storeCoupon(null)
       setOrderId(order.id)
       setOrderNumber(order.number ? String(order.number) : String(order.id))
-      setStep(2)
+      await confirmPayment(order.id, selectedPay)
+      // Refresh address book after server-side persist
+      const book = await quietApi<unknown>("/api/v1/account/addresses")
+      if (book.ok) {
+        const payload = book.data as { addresses?: SavedAddress[]; data?: { addresses?: SavedAddress[] } }
+        const raw = payload?.addresses ?? payload?.data?.addresses ?? []
+        const list = (Array.isArray(raw) ? raw : []).filter((a) => a && (a.address || a.city))
+        setSavedAddresses(list)
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("add_failed"))
     } finally {
@@ -369,35 +453,12 @@ export function ClassicCheckout() {
   }
 
   async function pay(provider: Gateway["id"]) {
+    setSelectedPay(provider)
     if (!orderId) return
     setError("")
     setBusy(true)
     try {
-      const offline = provider === "cod" || provider === "cheque" || provider === "c2c"
-      if (offline) {
-        const res = await api<{ id: number; number?: string | null; status: string; payment_provider?: string }>(
-          "/api/v1/payments/offline",
-          { method: "POST", json: { order_id: orderId, provider } },
-        )
-        setOrderNumber(res.number ? String(res.number) : String(res.id))
-        setDoneProvider(provider)
-        setStep(3)
-        return
-      }
-      if (provider === "wallet") {
-        setError("پرداخت با کیف پول از پنل حساب کاربری انجام می‌شود.")
-        return
-      }
-      const intent = await api<{ redirect_url: string | null; data?: { redirect_url?: string | null } }>(
-        "/api/v1/payments/intent",
-        { method: "POST", json: { order_id: orderId, provider, mode } },
-      )
-      const url = intent.redirect_url ?? intent.data?.redirect_url ?? null
-      if (url?.startsWith("http")) {
-        window.location.assign(url)
-        return
-      }
-      setError(t("pay_missing"))
+      await confirmPayment(orderId, provider)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("add_failed"))
     } finally {
@@ -407,7 +468,7 @@ export function ClassicCheckout() {
 
   return (
     <div className="sfc-checkout sfc-container">
-      <ClassicCheckoutSteps active={step === 3 || flash === "success" ? 3 : orderId ? 2 : 1} />
+      <ClassicCheckoutSteps active={step === 3 || flash === "success" ? 3 : 1} />
       <div className="sfc-checkout__headline">
         <h1>
           {step === 3 || flash === "success"
@@ -467,9 +528,9 @@ export function ClassicCheckout() {
               }}
             >
               <h2 className="sfc-checkout__section-title">{tx("checkout.address_title")}</h2>
-              {savedAddresses.length ? (
-                <div className="sfc-address-book">
-                  <p className="sfc-address-book__label">آدرس‌های ذخیره‌شده</p>
+              <div className="sfc-address-book">
+                <p className="sfc-address-book__label">آدرس‌های ذخیره‌شده</p>
+                {savedAddresses.length ? (
                   <div className="sfc-address-book__list">
                     {savedAddresses.map((row, index) => (
                       <button
@@ -483,9 +544,23 @@ export function ClassicCheckout() {
                         {row.phone ? <em dir="ltr">{row.phone}</em> : null}
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      className={`sfc-address-card sfc-address-card--new ${selectedAddressIdx == null ? "is-active" : ""}`}
+                      onClick={() => {
+                        setSelectedAddressIdx(null)
+                        setAddressNote("آدرس جدید را در فرم زیر وارد کنید.")
+                      }}
+                    >
+                      <strong>آدرس جدید</strong>
+                      <span>فرم را برای آدرس تازه پر کنید</span>
+                    </button>
                   </div>
-                </div>
-              ) : null}
+                ) : (
+                  <p className="sfc-address-book__empty">{addressNote || "دفترچه خالی است. فرم زیر را پر کنید."}</p>
+                )}
+                {savedAddresses.length && addressNote ? <p className="sfc-address-book__hint">{addressNote}</p> : null}
+              </div>
               <div className="sfc-checkout__fields">
                 {fieldOrder.map((field) => {
                   switch (field) {
@@ -544,7 +619,7 @@ export function ClassicCheckout() {
                         {proPack?.enabled && proPack.amount_minor > 0 ? (
                           <label className="sfc-field sfc-field--check">
                             <input type="checkbox" checked={proPack.mandatory || proPackOn} disabled={proPack.mandatory} onChange={(e) => setProPackOn(e.target.checked)} />
-                            <span>{proPack.label || "بسته‌بندی حرفه‌ای"} (+<ClassicAmount value={proPack.amount_minor} />){proPack.mandatory ? " — اجباری" : ""}</span>
+                            <span>{proPack.label || "بسته‌بندی حرفه‌ای"} (+<ClassicAmount value={proPack.amount_minor} />){proPack.mandatory ? " (اجباری)" : ""}</span>
                             {proPack.description ? <small className="sfc-hint">{proPack.description}</small> : null}
                           </label>
                         ) : null}
@@ -689,74 +764,91 @@ export function ClassicCheckout() {
                 </div>
               ) : null}
 
+              <div className="sfc-checkout__pay sfc-checkout__pay--inline">
+                <h2 className="sfc-checkout__section-title">{tx("checkout.payment_title")}</h2>
+                {hasCash && hasInstallment ? (
+                  <div className="sfc-pay-modes">
+                    <button type="button" className={mode === "cash" ? "is-active" : ""} onClick={() => setMode("cash")}>
+                      {tx("checkout.cash_tab")}
+                    </button>
+                    <button type="button" className={mode === "installment" ? "is-active" : ""} onClick={() => setMode("installment")}>
+                      {tx("checkout.installment_tab")}
+                    </button>
+                  </div>
+                ) : null}
+                <div className="sfc-pay-list" role="radiogroup" aria-label={tx("checkout.payment_title")}>
+                  {displayGateways.length === 0 ? (
+                    <p className="sfc-empty-note">{tCheckout("no_gateway_mode")}</p>
+                  ) : (
+                    displayGateways.map((gateway) => {
+                      const offline = gateway.kind === "offline" || gateway.id === "cod" || gateway.id === "cheque" || gateway.id === "c2c"
+                      const active = selectedPay === gateway.id
+                      return (
+                        <label
+                          key={gateway.id}
+                          className={`sfc-pay-method ${offline ? "is-offline" : ""} ${active ? "is-selected" : ""}`}
+                        >
+                          <input
+                            type="radio"
+                            name="checkout-pay"
+                            checked={active}
+                            onChange={() => setSelectedPay(gateway.id)}
+                          />
+                          <span className="sfc-pay-method__icon">
+                            {offline ? <IconTruck size={22} /> : <IconCard size={22} />}
+                          </span>
+                          <span className="sfc-pay-method__body">
+                            <strong>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</strong>
+                            {gateway.quote && gateway.quote.fee_percent > 0 ? (
+                              <em>
+                                {tCheckout("fee_line", {
+                                  percent: toLocaleDigits(gateway.quote.fee_percent, locale),
+                                })}
+                                {" · "}
+                                {formatNumber(gateway.quote.charge_minor, normalizeUiLocale(locale))} تومان
+                              </em>
+                            ) : (
+                              <em>{offline ? (gateway.id === "cod" ? "پرداخت هنگام تحویل" : "بدون درگاه آنلاین") : tx("checkout.gateway_ready")}</em>
+                            )}
+                          </span>
+                          <IconCheck size={18} className="sfc-pay-method__check" />
+                        </label>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+
               {error ? <p className="sfc-flash sfc-flash--err">{error}</p> : null}
 
-              <button type="submit" disabled={busy || !lines.length} className="sfc-btn sfc-btn--block sfc-btn--lg">
-                {busy ? "در حال ثبت…" : "ثبت سفارش و انتخاب پرداخت"}
+              <button type="submit" disabled={busy || !lines.length || !selectedPay} className="sfc-btn sfc-btn--block sfc-btn--lg">
+                {busy ? "در حال ثبت…" : "ثبت نهایی سفارش"}
               </button>
             </form>
           ) : (
             <div className="sfc-box sfc-checkout__pay">
               <h2 className="sfc-checkout__section-title">{tx("checkout.payment_title")}</h2>
-              {hasCash && hasInstallment ? (
-              <div className="sfc-pay-modes">
-                <button
-                  type="button"
-                  className={mode === "cash" ? "is-active" : ""}
-                  onClick={() => setMode("cash")}
-                >
-                  {tx("checkout.cash_tab")}
-                </button>
-                <button
-                  type="button"
-                  className={mode === "installment" ? "is-active" : ""}
-                  onClick={() => setMode("installment")}
-                >
-                  {tx("checkout.installment_tab")}
-                </button>
-              </div>
-              ) : null}
+              <p className="sfc-empty-note">سفارش ثبت شد؛ پرداخت را تکمیل کنید.</p>
               <div className="sfc-pay-list">
-                {displayGateways.length === 0 ? (
-                  <p className="sfc-empty-note">{tCheckout("no_gateway_mode")}</p>
-                ) : (
-                  displayGateways.map((gateway) => {
-                    const offline = gateway.kind === "offline" || gateway.id === "cod" || gateway.id === "cheque" || gateway.id === "c2c"
-                    return (
-                      <button
-                        key={gateway.id}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void pay(gateway.id)}
-                        className={`sfc-pay-method ${offline ? "is-offline" : ""}`}
-                      >
-                        <span className="sfc-pay-method__icon">
-                          {offline ? <IconTruck size={22} /> : <IconCard size={22} />}
-                        </span>
-                        <span className="sfc-pay-method__body">
-                          <strong>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</strong>
-                          {gateway.quote && gateway.quote.fee_percent > 0 ? (
-                            <em>
-                              {tCheckout("fee_line", {
-                                percent: toLocaleDigits(gateway.quote.fee_percent, locale),
-                              })}
-                              {" · "}
-                              {formatNumber(gateway.quote.charge_minor, normalizeUiLocale(locale))} تومان
-                            </em>
-                          ) : (
-                            <em>{offline ? (gateway.id === "cod" ? "پرداخت هنگام تحویل" : "بدون درگاه آنلاین") : tx("checkout.gateway_ready")}</em>
-                          )}
-                        </span>
-                        <IconCheck size={18} className="sfc-pay-method__check" />
-                      </button>
-                    )
-                  })
-                )}
+                {displayGateways.map((gateway) => {
+                  const offline = gateway.kind === "offline" || gateway.id === "cod" || gateway.id === "cheque" || gateway.id === "c2c"
+                  return (
+                    <button
+                      key={gateway.id}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void pay(gateway.id)}
+                      className={`sfc-pay-method ${offline ? "is-offline" : ""}`}
+                    >
+                      <span className="sfc-pay-method__icon">{offline ? <IconTruck size={22} /> : <IconCard size={22} />}</span>
+                      <span className="sfc-pay-method__body">
+                        <strong>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</strong>
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
               {error ? <p className="sfc-flash sfc-flash--err">{error}</p> : null}
-              <button type="button" className="sfc-link-btn" onClick={() => { setOrderId(null); setStep(1) }}>
-                {tx("checkout.back_to_edit")}
-              </button>
             </div>
           )}
 
