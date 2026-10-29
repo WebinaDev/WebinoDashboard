@@ -14,7 +14,7 @@ import {
   Gift,
   Headphones,
   Heart,
-  Instagram,
+  Camera,
   Link2,
   Mail,
   MapPin,
@@ -68,7 +68,7 @@ const ICONS: Record<string, LucideIcon> = {
   map: MapPin,
   location: MapPin,
   mail: Mail,
-  instagram: Instagram,
+  instagram: Camera,
   whatsapp: MessageCircle,
   telegram: Send,
 }
@@ -187,14 +187,28 @@ export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
             }
           : null
         return (
-        <Link key={i} href={safeHref(href || "", "/shop")} className="sf-banner-grid__item block overflow-hidden bg-transparent" style={{ borderRadius: radius }}>
+        <Link
+          key={i}
+          href={safeHref(href || "", "/shop")}
+          className="sf-banner-grid__item block overflow-hidden bg-transparent"
+          style={{ borderRadius: radius, ["--sfc-banner-radius" as string]: `${radius}px` }}
+        >
           {image ? (
             <picture>
               {mob ? <source media="(max-width: 767px)" srcSet={mob.srcSet || mob.src} sizes={mob.sizes} /> : null}
-              <Img src={desk?.src || image} srcSet={desk?.srcSet} sizes={desk?.sizes} alt={alt || ""} priority={i === 0} loading={i === 0 ? "eager" : "lazy"} className="sf-banner-grid__img w-full h-auto object-contain" />
+              <Img
+                src={desk?.src || image}
+                srcSet={desk?.srcSet}
+                sizes={desk?.sizes}
+                alt={alt || ""}
+                priority={i === 0}
+                loading={i === 0 ? "eager" : "lazy"}
+                className="sf-banner-grid__img w-full h-auto object-contain"
+                style={{ borderRadius: radius }}
+              />
             </picture>
           ) : (
-            <span className="grid h-full place-items-center text-sm font-bold">{alt}</span>
+            <span className="grid h-full place-items-center text-sm font-bold">{alt || "بنر"}</span>
           )}
         </Link>
         )
