@@ -204,6 +204,7 @@ async function handle(request: NextRequest) {
   const isPublicAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
+    pathname.startsWith("/wp-json") ||
     pathname.includes(".")
 
   if (isPublicAsset) {
@@ -474,5 +475,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)", "/_next/image"],
+  matcher: ["/((?!api|wp-json|_next|_vercel|.*\\..*).*)", "/_next/image"],
 }

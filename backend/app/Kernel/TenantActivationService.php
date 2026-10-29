@@ -251,6 +251,14 @@ final class TenantActivationService
     {
         Cache::forget("modules:tenant:{$tenantId}");
         Cache::forget("kernel:tenant:{$tenantId}:activations");
+
+        // isSubmoduleEnabled caches each pair under tenant:{id}:sub:{module}.{sub}.
+        foreach (TenantSubmoduleActivation::query()->where('tenant_id', $tenantId)->get(['module_slug', 'submodule_slug']) as $row) {
+            Cache::forget("tenant:{$tenantId}:sub:{$row->module_slug}.{$row->submodule_slug}");
+        }
+        foreach (ModuleAliasMap::legacyPairs() as [$module, $sub]) {
+            Cache::forget("tenant:{$tenantId}:sub:{$module}.{$sub}");
+        }
     }
 
     /** @return list<array{module_slug: string, submodule_slug: string, enabled: bool, licensed: bool}> */
