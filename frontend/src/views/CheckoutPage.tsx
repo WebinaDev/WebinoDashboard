@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api } from "@/lib/api"
 import { toLocaleDigits } from "@/lib/locale"
+import { gatewayBrandSrc } from "@/lib/checkout-brands"
 
 type Provider = "zarinpal" | "digipay" | "snapppay" | "torobpay"
 type PayMode = "cash" | "installment"
@@ -179,7 +180,11 @@ export default function CheckoutPage() {
           const quote = gateway.quote
           const percent = quote?.fee_percent ?? gateway.fee_percent
           return (
-            <div key={gateway.id} className="rounded-md border p-3">
+            <div key={gateway.id} className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3">
+              <div className="flex items-center gap-3">
+                <img src={gatewayBrandSrc(gateway.id)} alt="" width={40} height={40} className="size-10 rounded-lg object-contain" loading="lazy" />
+                <span className="font-medium">{gateway.title || gateway.id}</span>
+              </div>
               {percent > 0 && quote ? (
                 <div className="text-muted-foreground mb-2 space-y-1 text-xs">
                   <div className="flex justify-between">

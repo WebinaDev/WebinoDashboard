@@ -18,6 +18,7 @@ import { ClassicCouponChooser } from "./ClassicCouponChooser"
 
 import { ClassicCheckoutSteps } from "./ClassicCart"
 import { ClassicTrustStrip } from "./ClassicProduct"
+import { gatewayBrandSrc, shippingBrandSrc } from "@/lib/checkout-brands"
 import { IconBadge, IconCard, IconCheck, IconShield, IconTruck } from "./icons"
 import { ClassicAmount, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
@@ -47,7 +48,7 @@ type SavedAddress = {
   is_default?: boolean
 }
 
-type Rate = { instance_id: number; title: string; cost_minor: number }
+type Rate = { instance_id: number; title: string; cost_minor: number; method_id?: string; service?: string }
 
 function labelForGateway(
   id: string,
@@ -748,14 +749,20 @@ export function ClassicCheckout() {
                       <p className="sfc-empty-note">{tx("checkout.shipping_hint")}</p>
                     ) : (
                       rates.map((rate) => (
-                        <label key={rate.instance_id} className={`sfc-rate ${rateId === rate.instance_id ? "is-active" : ""}`}>
+                        <label key={rate.instance_id} className={`sfc-rate sfc-brand-card ${rateId === rate.instance_id ? "is-active" : ""}`}>
                           <input
                             type="radio"
                             name="ship"
                             checked={rateId === rate.instance_id}
                             onChange={() => setRateId(rate.instance_id)}
                           />
-                          <span>{rate.title}</span>
+                          <span className="sfc-brand-card__logo" aria-hidden="true">
+                            <img src={shippingBrandSrc(rate)} alt="" width={40} height={40} loading="lazy" decoding="async" />
+                          </span>
+                          <span className="sfc-brand-card__body">
+                            <strong>{rate.title}</strong>
+                            <em>{rate.cost_minor > 0 ? "هزینه ارسال" : "ارسال رایگان"}</em>
+                          </span>
                           <ClassicAmount value={rate.cost_minor} />
                         </label>
                       ))
@@ -786,16 +793,17 @@ export function ClassicCheckout() {
                       return (
                         <label
                           key={gateway.id}
-                          className={`sfc-pay-method ${offline ? "is-offline" : ""} ${active ? "is-selected" : ""}`}
+                          className={`sfc-pay-method sfc-brand-card ${offline ? "is-offline" : ""} ${active ? "is-selected" : ""}`}
                         >
                           <input
                             type="radio"
                             name="checkout-pay"
+                            value={gateway.id}
                             checked={active}
                             onChange={() => setSelectedPay(gateway.id)}
                           />
-                          <span className="sfc-pay-method__icon">
-                            {offline ? <IconTruck size={22} /> : <IconCard size={22} />}
+                          <span className="sfc-pay-method__icon sfc-brand-card__logo" aria-hidden="true">
+                            <img src={gatewayBrandSrc(gateway.id)} alt="" width={40} height={40} loading="lazy" decoding="async" />
                           </span>
                           <span className="sfc-pay-method__body">
                             <strong>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</strong>
@@ -838,9 +846,11 @@ export function ClassicCheckout() {
                       type="button"
                       disabled={busy}
                       onClick={() => void pay(gateway.id)}
-                      className={`sfc-pay-method ${offline ? "is-offline" : ""}`}
+                      className={`sfc-pay-method sfc-brand-card ${offline ? "is-offline" : ""}`}
                     >
-                      <span className="sfc-pay-method__icon">{offline ? <IconTruck size={22} /> : <IconCard size={22} />}</span>
+                      <span className="sfc-pay-method__icon sfc-brand-card__logo" aria-hidden="true">
+                        <img src={gatewayBrandSrc(gateway.id)} alt="" width={40} height={40} loading="lazy" decoding="async" />
+                      </span>
                       <span className="sfc-pay-method__body">
                         <strong>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</strong>
                       </span>

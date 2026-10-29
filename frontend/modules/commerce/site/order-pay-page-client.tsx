@@ -10,6 +10,7 @@ import type { ResolvedSiteRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { toLocaleDigits } from "@/lib/locale"
+import { gatewayBrandSrc } from "@/lib/checkout-brands"
 
 type PayMode = "cash" | "installment"
 
@@ -174,7 +175,11 @@ export default function OrderPayPageClient({
             return g.cash_enabled !== false && (g.cash_enabled === true || g.cash_enabled === undefined)
           })
           .map((g) => (
-          <div key={g.id} className="rounded-md border p-3">
+          <div key={g.id} className="rounded-xl bg-muted/40 p-3">
+            <div className="mb-2 flex items-center gap-3">
+              <img src={gatewayBrandSrc(g.id)} alt="" width={40} height={40} className="size-10 rounded-lg object-contain" loading="lazy" />
+              <div className="font-medium">{g.label}</div>
+            </div>
             {ONLINE.has(g.id) && (g.fee_percent ?? 0) > 0 ? (
               <div className="text-muted-foreground mb-2 space-y-1 text-xs">
                 <div className="flex justify-between">

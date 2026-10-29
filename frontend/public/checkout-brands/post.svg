@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Iran Post">
+  <rect width="96" height="96" rx="20" fill="#016B3D"/>
+  <rect x="22" y="28" width="52" height="40" rx="4" fill="#fff"/>
+  <path d="M22 36l26 16 26-16" fill="none" stroke="#016B3D" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="70" cy="58" r="8" fill="#E10600"/>
+</svg>

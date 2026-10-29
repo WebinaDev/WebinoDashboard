@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="TorobPay">
+  <rect width="96" height="96" rx="20" fill="#FF6A00"/>
+  <path d="M28 30h40v12H52v26H44V42H28z" fill="#fff"/>
+  <circle cx="68" cy="66" r="8" fill="#fff"/>
+</svg>

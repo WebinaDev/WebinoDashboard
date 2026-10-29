@@ -45,6 +45,7 @@ import { ClassicFooter } from "@/themes/ecommerce-classic/components/ClassicFoot
 import { CLASSIC_NAV, ClassicHeader } from "@/themes/ecommerce-classic/components/ClassicHeader"
 import { ClassicProduct } from "@/themes/ecommerce-classic/components/ClassicProduct"
 import { ClassicProductCard } from "@/themes/ecommerce-classic/components/ClassicProductCard"
+import { gatewayBrandSrc, shippingBrandSrc } from "@/lib/checkout-brands"
 
 const NAV = [
   { label: "خانه", href: "/" },
@@ -868,12 +869,16 @@ function DefaultStorefrontCheckout() {
           </button>
           <div className="mt-3 grid gap-2">
             {rates.map((rate) => (
-              <label key={rate.instance_id} className="sf-muted flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
-                <span className="flex items-center gap-2">
+              <label key={rate.instance_id} className="sf-muted flex items-center justify-between gap-3 rounded-2xl bg-muted/40 px-3 py-2.5 text-sm">
+                <span className="flex min-w-0 items-center gap-3">
                   <input type="radio" name="ship" checked={rateId === rate.instance_id} onChange={() => setRateId(rate.instance_id)} />
-                  {rate.title}
+                  <img src={shippingBrandSrc(rate)} alt="" width={36} height={36} className="size-9 rounded-lg object-contain" loading="lazy" />
+                  <span className="min-w-0">
+                    <span className="block font-semibold">{rate.title}</span>
+                    <span className="text-xs text-muted-foreground">{rate.cost_minor > 0 ? "هزینه ارسال" : "ارسال رایگان"}</span>
+                  </span>
                 </span>
-                <span>{money(rate.cost_minor)}</span>
+                <span className="shrink-0 font-semibold">{money(rate.cost_minor)}</span>
               </label>
             ))}
           </div>
@@ -906,16 +911,21 @@ function DefaultStorefrontCheckout() {
               type="button"
               disabled={!orderId}
               onClick={() => void pay(gateway.id)}
-              className="rounded-2xl border border-border px-3 py-3 text-start text-sm font-semibold disabled:opacity-50"
+              className="flex items-center gap-3 rounded-2xl bg-muted/40 px-3 py-3 text-start text-sm font-semibold disabled:opacity-50"
             >
-              <span>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</span>
-              {gateway.quote && gateway.quote.fee_percent > 0 ? (
-                <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                  {tCheckout("fee_line", { percent: toLocaleDigits(gateway.quote.fee_percent, locale) })}
-                  {" · "}
-                  {money(gateway.quote.charge_minor)}
-                </span>
-              ) : null}
+              <img src={gatewayBrandSrc(gateway.id)} alt="" width={40} height={40} className="size-10 rounded-lg object-contain" loading="lazy" />
+              <span className="min-w-0">
+                <span className="block">{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</span>
+                {gateway.quote && gateway.quote.fee_percent > 0 ? (
+                  <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                    {tCheckout("fee_line", { percent: toLocaleDigits(gateway.quote.fee_percent, locale) })}
+                    {" · "}
+                    {money(gateway.quote.charge_minor)}
+                  </span>
+                ) : (
+                  <span className="mt-1 block text-xs font-normal text-muted-foreground">آماده پرداخت</span>
+                )}
+              </span>
             </button>
           ))}
         </div>
