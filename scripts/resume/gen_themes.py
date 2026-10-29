@@ -88,6 +88,16 @@ THEMES = {
    "font_fa": "\"Yekan Bakh\", Vazirmatn, sans-serif", "font_en": "Fraunces, Inter, serif", "font_mono": "\"JetBrains Mono\", ui-monospace, monospace",
    "radius": "22px", "shadow": "0 30px 60px -30px rgba(12,44,55,.45)", "motion": "tide", "default_mode": "light"},
   "layout": [W("resume.page_tide", variant="default")]},
+ "fluent": {
+  "key": "fluent", "name_fa": "فلوئنت (Fluent)", "name_en": "Fluent", "audience": "education", "full_page": True,
+  "description_fa": "صفحه کامل سینمایی برای مدرس زبان: دفترچه واژگان، نردبان CEFR، روبان مهارت، فصل‌های تدریس، نشان TTC و دعوت به کلاس",
+  "description_en": "Full-page cinematic theme for language teachers: lexicon cards, CEFR ladder, skills ribbon, lesson chapters, TTC seal and enrol CTA",
+  "tokens": {
+   "light": {"--bg": "#f4efe6", "--surface": "#fffdf8", "--text": "#1a2433", "--muted": "#6a6170", "--border": "#e2d7c6", "--accent": "#c45c26", "--accent-fg": "#ffffff", "--accent-2": "#1f4b7a"},
+   "dark":  {"--bg": "#f4efe6", "--surface": "#fffdf8", "--text": "#1a2433", "--muted": "#6a6170", "--border": "#e2d7c6", "--accent": "#c45c26", "--accent-fg": "#ffffff", "--accent-2": "#1f4b7a"},
+   "font_fa": "\"Yekan Bakh\", Vazirmatn, sans-serif", "font_en": "Fraunces, Inter, serif", "font_mono": "\"JetBrains Mono\", ui-monospace, monospace",
+   "radius": "20px", "shadow": "0 28px 60px -28px rgba(26,36,51,.4)", "motion": "fluent", "default_mode": "light"},
+  "layout": [W("resume.page_fluent", variant="default")]},
 }
 for p in ["backend/resources/resume/themes.json", "frontend/modules/resume/lib/themes.json"]:
     json.dump(THEMES, open(f"{ROOT}/{p}", "w"), ensure_ascii=False, indent=1)

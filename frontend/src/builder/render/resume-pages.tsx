@@ -19,7 +19,7 @@ import { Img } from "./img"
 
 type Row = Record<string, unknown> & { id: number; is_placeholder?: boolean }
 type Lang = "fa" | "en"
-const THEME_ACCENT: Record<string, string> = { story: "#e8502a", "webina-os": "#e8502a", vitality: "#c2577a", "clinical-journal": "#e1846b", tide: "#2a7f86" }
+const THEME_ACCENT: Record<string, string> = { story: "#e8502a", "webina-os": "#e8502a", vitality: "#c2577a", "clinical-journal": "#e1846b", tide: "#2a7f86", fluent: "#c45c26" }
 
 export function useBase(widget: WidgetNode, theme: string) {
   const data = useResumeData()

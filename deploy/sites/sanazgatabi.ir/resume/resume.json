@@ -1,0 +1,372 @@
+{
+ "_meta": {
+  "schema": "webina.resume/v1",
+  "sources": [
+   "https://sanazgatabi.ir landing (Elementor) 2026-10-29",
+   "https://sanazgatabi.ir/wp-content/uploads/2025/01/Sanaz-Gatabi-Resume-A.pdf",
+   "User-supplied bio facts and photos (group chat)"
+  ],
+  "note": "Demo theme content (ads portfolio, WP shop, fake testimonials/socials) excluded. Certificate image shown; alt text uses the public professional name only.",
+  "locales": [
+   "fa",
+   "en"
+  ],
+  "default_locale": "fa",
+  "still_missing": "real Instagram/LinkedIn/Telegram URLs",
+  "import": "php artisan resume:import sanazgatabiir deploy/sites/sanazgatabi.ir/resume/resume.json --replace --theme=fluent --locale=fa"
+ },
+ "profile": {
+  "full_name_fa": "ساناز گتابی",
+  "full_name_en": "Sanaz Gatabi",
+  "headline_fa": "مدرس زبان انگلیسی · رفیق راه شما برای رسیدن به اوج",
+  "headline_en": "English Language Instructor · Your companion on the path to fluency",
+  "location": "بابلسر، مازندران، ایران",
+  "location_en": "Babolsar, Mazandaran, Iran",
+  "career_start_year": 2011,
+  "open_to_work": false,
+  "is_placeholder": false,
+  "avatar_path": "avatar.webp",
+  "cutout_path": "cutout.jpg",
+  "cover_path": "cover.jpg"
+ },
+ "about": {
+  "is_placeholder": false,
+  "translated_from": "fa",
+  "body_fa": "من یک مدرس زبان انگلیسی با ۱۳ سال تجربه حرفه‌ای در آموزش به گروه‌های سنی مختلف و تمامی سطوح زبانی هستم. با عشق به یادگیری و آموزش، تلاش می‌کنم تجربه‌ای متفاوت و الهام‌بخش را برای زبان‌آموزانم فراهم کنم. دریافت مدرک TTC با درجه عالی، به من این امکان را داده است تا از روش‌های مدرن آموزشی بهره ببرم و برنامه‌هایی متناسب با نیازها و اهداف زبان‌آموزان طراحی کنم. من معتقدم که یادگیری زبان، سفری پر از کشف و رشد است. به همین دلیل، در کلاس‌هایم محیطی پویا، پرانرژی و خلاق ایجاد می‌کنم که زبان‌آموزان را به یادگیری بیشتر و بهتر تشویق کند. هدف من این است که هر فرد، با اعتمادبه‌نفس و مهارت کافی، به اهداف زبانی خود دست یابد و از این مسیر لذت ببرد.",
+  "body_en": "I am an English language instructor with 13 years of professional teaching experience across all ages and proficiency levels. With a love of learning and teaching, I aim to create a distinctive, inspiring experience for every learner. Holding a TTC certificate with top marks allows me to use modern methods and design programmes tailored to each learner's needs and goals. I believe language learning is a journey of discovery and growth, so I build a dynamic, energetic and creative classroom that encourages learners to go further. My goal is for every person to reach their language goals with confidence and skill, and to enjoy the path.",
+  "highlights_fa": [
+   "آموزش زبان انگلیسی از مبتدی تا پیشرفته",
+   "تقویت مهارت مکالمه و ارتباط کاربردی",
+   "طراحی دوره اختصاصی بر اساس هدف زبان‌آموز",
+   "آمادگی آزمون‌های بین‌المللی IELTS و TOEFL"
+  ],
+  "highlights_en": [
+   "English from beginner to advanced",
+   "Conversation and practical communication",
+   "Custom courses built around learner goals",
+   "IELTS and TOEFL exam preparation"
+  ]
+ },
+ "contacts": [
+  {
+   "type": "phone",
+   "value": "+989116276671",
+   "label": "موبایل",
+   "label_en": "Mobile",
+   "visibility": "public",
+   "order": 0,
+   "is_primary": true,
+   "is_placeholder": false
+  },
+  {
+   "type": "email",
+   "value": "Sanazgatabi6@gmail.com",
+   "label": "ایمیل",
+   "label_en": "Email",
+   "visibility": "public",
+   "order": 1,
+   "is_placeholder": false
+  },
+  {
+   "type": "website",
+   "value": "https://sanazgatabi.ir",
+   "label": "وب‌سایت",
+   "label_en": "Website",
+   "visibility": "public",
+   "order": 2,
+   "is_placeholder": false
+  }
+ ],
+ "experiences": [
+  {
+   "title_fa": "مدرس زبان انگلیسی",
+   "title_en": "English Language Instructor",
+   "company_en": "Aria Johari English Academy",
+   "employment_type": "part_time",
+   "location": "تهران",
+   "location_en": "Tehran, Iran",
+   "start": {
+    "g": "2023",
+    "j": "1402"
+   },
+   "end": null,
+   "is_current": true,
+   "order": 0,
+   "is_placeholder": false,
+   "description_fa": "تدریس خصوصی به زبان‌آموزان مختلف، طراحی محتوای آموزشی جذاب و فعالیت‌های یادگیری خلاقانه، و برقراری ارتباط مؤثر با زبان‌آموزان و والدین همراه با نظارت مستمر بر پیشرفت دانش‌آموزان.",
+   "description_en": "Private English tutoring for students; designing engaging materials and creative learning activities; building effective communication with students and parents while tracking progress.",
+   "skills": [
+    "Curriculum Design",
+    "Effective Communication",
+    "Classroom Management"
+   ],
+   "company_fa": "آکادمی زبان آریا جوهری"
+  },
+  {
+   "title_fa": "مدرس زبان انگلیسی",
+   "title_en": "English Language Instructor",
+   "company_en": "Arashnia Academy",
+   "employment_type": "part_time",
+   "location": "تهران",
+   "location_en": "Tehran, Iran",
+   "start": {
+    "g": "2022",
+    "j": "1401"
+   },
+   "end": {
+    "g": "2023",
+    "j": "1402"
+   },
+   "is_current": false,
+   "order": 1,
+   "is_placeholder": false,
+   "description_fa": "تدریس دوره‌های زبان انگلیسی به بزرگسالان و نوجوانان، ارزیابی پیشرفت زبان‌آموزان با بازخورد مستمر، و همکاری با تیم آموزشی برای بهبود کیفیت تدریس و به‌کارگیری روش‌های نوین.",
+   "description_en": "Taught English courses to adults and teenagers; assessed progress with continuous feedback; collaborated with the teaching team to improve quality and adopt modern methods.",
+   "skills": [
+    "Student Assessment",
+    "Curriculum Design",
+    "Workshop Facilitation"
+   ],
+   "company_fa": "آکادمی آرش‌نیا"
+  },
+  {
+   "title_fa": "مدرس زبان انگلیسی",
+   "title_en": "English Language Instructor",
+   "company_en": "Freelance",
+   "employment_type": "freelance",
+   "location": "ایران",
+   "location_en": "Iran",
+   "start": {
+    "g": "2021",
+    "j": "1400"
+   },
+   "end": null,
+   "is_current": true,
+   "order": 2,
+   "is_placeholder": false,
+   "description_fa": "تدریس خصوصی زبان انگلیسی در تمامی سطوح برای بزرگسالان و نوجوانان، با تمرکز بر مکالمه، نوشتار و آمادگی آزمون‌های بین‌المللی.",
+   "description_en": "Private English tutoring at all levels for adults and teenagers, focused on conversation, writing and international exam preparation.",
+   "skills": [
+    "Adaptability",
+    "Curriculum Design",
+    "Student Assessment"
+   ],
+   "company_fa": "فریلنسری"
+  },
+  {
+   "title_fa": "مدرس زبان انگلیسی",
+   "title_en": "English Language Instructor",
+   "company_en": "Shokooh Academy",
+   "employment_type": "full_time",
+   "location": "بابلسر",
+   "location_en": "Babolsar, Iran",
+   "start": {
+    "g": "2011",
+    "j": "1390"
+   },
+   "end": {
+    "g": "2021",
+    "j": "1400"
+   },
+   "is_current": false,
+   "order": 3,
+   "is_placeholder": false,
+   "description_fa": "تدریس زبان انگلیسی به دانش‌آموزان در سطوح مختلف از مبتدی تا پیشرفته، برگزاری کارگاه‌ها و جلسات مشاوره برای والدین جهت همراهی بهتر با روند یادگیری فرزندان.",
+   "description_en": "Taught English at beginner to advanced levels; ran workshops and parent consultation sessions to support each learner's progress.",
+   "skills": [
+    "Classroom Management",
+    "Workshop Facilitation",
+    "Effective Communication"
+   ],
+   "company_fa": "آکادمی شکوه"
+  }
+ ],
+ "educations": [
+  {
+   "degree_fa": "کارشناسی",
+   "degree_en": "Bachelor's",
+   "field_fa": "مدیریت دولتی",
+   "field_en": "Public Administration",
+   "school_fa": "دانشگاه پیام نور بابل",
+   "school_en": "Payame Noor University, Babol",
+   "location": "بابل، مازندران",
+   "location_en": "Babol, Mazandaran, Iran",
+   "start": {
+    "g": "2009",
+    "j": "1388"
+   },
+   "end": {
+    "g": "2013",
+    "j": "1392"
+   },
+   "is_current": false,
+   "order": 0,
+   "is_placeholder": false
+  }
+ ],
+ "certifications": [
+  {
+   "name_fa": "دوره تربیت مدرس (TTC)",
+   "name_en": "Teacher Training Course (TTC)",
+   "issuer_fa": "مؤسسه پژوهشی ادبیات تطبیقی و انتقادی اسرا (آکادمی آرش‌نیا)",
+   "issuer_en": "ASRA Research Institute of Comparative and Critical Literature (Arashnia Academy)",
+   "issue_date": {
+    "g": "2024-01-17",
+    "j": "1402-10-27"
+   },
+   "credential_id": "1451",
+   "description_fa": "دوره ۴۰ ساعته تربیت مدرس با درجه A+",
+   "description_en": "40-hour teacher training course, grade A+",
+   "order": 0,
+   "is_placeholder": false,
+   "media_paths": [
+    "certs/ttc.jpg"
+   ]
+  }
+ ],
+ "honors": [
+  {
+   "title_fa": "جایزه ممتاز تدریس",
+   "title_en": "Excellence in Teaching Award",
+   "issuer_fa": "ندارد",
+   "issuer_en": "ندارد",
+   "date": {
+    "g": "2020",
+    "j": "1399"
+   },
+   "description_fa": "قدردانی بابت تعهد و تأثیرگذاری بر نتایج یادگیری زبان‌آموزان.",
+   "description_en": "Recognized for outstanding dedication and impact on student learning outcomes.",
+   "order": 0,
+   "is_placeholder": false
+  },
+  {
+   "title_fa": "خدمت داوطلبانه برجسته",
+   "title_en": "Outstanding Volunteer Service Award",
+   "issuer_fa": "ندارد",
+   "issuer_en": "ندارد",
+   "date": {
+    "g": "2019",
+    "j": "1398"
+   },
+   "description_fa": "تقدیر بابت مشارکت استثنایی در تدریس داوطلبانه.",
+   "description_en": "Honored for exceptional contributions in volunteer teaching.",
+   "order": 1,
+   "is_placeholder": false
+  }
+ ],
+ "skills": [
+  {
+   "name_fa": "طراحی برنامه درسی",
+   "name_en": "Curriculum Design",
+   "category": "teaching",
+   "order": 0,
+   "is_placeholder": false
+  },
+  {
+   "name_fa": "فناوری آموزشی",
+   "name_en": "Educational Technology",
+   "category": "teaching",
+   "order": 1,
+   "is_placeholder": false
+  },
+  {
+   "name_fa": "ارزیابی زبان‌آموز",
+   "name_en": "Student Assessment",
+   "category": "teaching",
+   "order": 2,
+   "is_placeholder": false
+  },
+  {
+   "name_fa": "برگزاری کارگاه",
+   "name_en": "Workshop Facilitation",
+   "category": "teaching",
+   "order": 3,
+   "is_placeholder": false
+  },
+  {
+   "name_fa": "مدیریت کلاس",
+   "name_en": "Classroom Management",
+   "category": "teaching",
+   "order": 4,
+   "is_placeholder": false
+  },
+  {
+   "name_fa": "برنامه‌ریزی درس",
+   "name_en": "Lesson Planning",
+   "category": "teaching",
+   "order": 5,
+   "is_placeholder": false
+  },
+  {
+   "name_fa": "ارتباط مؤثر",
+   "name_en": "Effective Communication",
+   "category": "soft",
+   "order": 6,
+   "is_placeholder": false
+  },
+  {
+   "name_fa": "انعطاف‌پذیری",
+   "name_en": "Adaptability",
+   "category": "soft",
+   "order": 7,
+   "is_placeholder": false
+  }
+ ],
+ "languages": [
+  {
+   "name_fa": "انگلیسی",
+   "name_en": "English",
+   "proficiency": "full",
+   "order": 0,
+   "is_placeholder": false
+  },
+  {
+   "name_fa": "فارسی",
+   "name_en": "Persian",
+   "proficiency": "native",
+   "order": 1,
+   "is_placeholder": false
+  }
+ ],
+ "stats": [
+  {
+   "label_fa": "سال تجربه تدریس",
+   "label_en": "Years of teaching",
+   "value": "13+",
+   "order": 0,
+   "is_placeholder": false
+  },
+  {
+   "label_fa": "آکادمی همکاری",
+   "label_en": "Academies",
+   "value": "3",
+   "order": 1,
+   "is_placeholder": false
+  },
+  {
+   "label_fa": "سطح زبانی",
+   "label_en": "Levels covered",
+   "value": "A1–C2",
+   "order": 2,
+   "is_placeholder": false
+  },
+  {
+   "label_fa": "مدرک TTC",
+   "label_en": "TTC grade",
+   "value": "A+",
+   "order": 3,
+   "is_placeholder": false
+  }
+ ],
+ "theme": {
+  "key": "fluent",
+  "accent": "#c45c26",
+  "mode": "light",
+  "default_lang": "fa",
+  "languages": [
+   "fa",
+   "en"
+  ],
+  "date_calendar": "auto"
+ }
+}
