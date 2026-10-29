@@ -33,6 +33,8 @@ import {
 } from "./storefront-chrome"
 import { quietApi } from "./session"
 import { useCatalog } from "./use-catalog"
+import { useProductSeed } from "./product-seed"
+import { sanitizeBuilderHtml } from "@/builder/render/sanitize-html"
 import { useIsClassicSkin } from "../render/runtime"
 import { ClassicFilters } from "@/themes/ecommerce-classic/components/ClassicArchive"
 import { ClassicCart, ClassicCheckoutSteps } from "@/themes/ecommerce-classic/components/ClassicCart"
@@ -201,6 +203,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
   const tCart = useTranslations("cart")
   const locale = useLocale()
   const catalog = useCatalog(8)
+  const seeded = useProductSeed(slug)
   const [remote, setRemote] = useState<ShopProduct | null | undefined>(undefined)
   const [qty, setQuantity] = useState(1)
   const [image, setImage] = useState(0)
@@ -234,7 +237,10 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
     }
   }, [slug])
 
-  const fallback = catalog.products.find((item) => item.slug === slug) ?? (catalog.live ? null : catalog.products[0] ?? null)
+  const fallback =
+    seeded ??
+    catalog.products.find((item) => item.slug === slug) ??
+    (catalog.live ? null : catalog.products[0] ?? null)
   const product = remote === undefined ? fallback : (remote ?? fallback)
 
   useEffect(() => {
@@ -402,8 +408,13 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
             ) : (
               t("faq_empty")
             )
+          ) : product.description ? (
+            <div
+              className="prose max-w-none text-foreground"
+              dangerouslySetInnerHTML={{ __html: sanitizeBuilderHtml(product.description) }}
+            />
           ) : (
-            product.description || t("empty_none")
+            t("empty_none")
           )}
         </div>
       </div>

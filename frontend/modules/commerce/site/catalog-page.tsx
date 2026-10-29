@@ -17,6 +17,7 @@ import {
 import { ProductStoriesStrip } from "@/builder/storefront/storefront-extras"
 import { ArchiveScopeProvider, type ArchiveScope } from "@/builder/storefront/archive-scope"
 import { loadCatalogSeed } from "@/builder/storefront/catalog-seed"
+import { loadProductSeed, ProductSeedProvider } from "@/builder/storefront/product-seed"
 import { CatalogSeedProvider } from "@/builder/storefront/use-catalog"
 
 export const revalidate = 60
@@ -55,10 +56,13 @@ export default async function Page({
   const classic = (await activeThemeSlug().catch(() => null)) === "ecommerce-classic"
   if (route.path === "product/:slug") {
     const slug = route.params?.slug
+    const seed = await loadProductSeed(slug)
     return (
-      <ThemeSlot kind="single_product" runtime={{ productSlug: slug }}>
-        {await themedOrPublished("product", classic ? classicProductDocument() : storeProductDocument(), { productSlug: slug })}
-      </ThemeSlot>
+      <ProductSeedProvider seed={seed}>
+        <ThemeSlot kind="single_product" runtime={{ productSlug: slug }}>
+          {await themedOrPublished("product", classic ? classicProductDocument() : storeProductDocument(), { productSlug: slug })}
+        </ThemeSlot>
+      </ProductSeedProvider>
     )
   }
   if (route.path === "cart") {

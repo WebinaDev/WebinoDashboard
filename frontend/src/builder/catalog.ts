@@ -38,6 +38,8 @@ export type ShopProduct = {
   imageCard?: string | null
   images: string[]
   description: string
+  /** Plain short blurb for clamps/cards; full HTML stays in description. */
+  shortDescription?: string
   live: boolean
   inStock: boolean
   isNew?: boolean
@@ -349,7 +351,8 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     image: images[0] || null,
     imageCard: images[0] && images[0] === cover ? str(raw.image_card_url) || null : null,
     images,
-    description: plainText(str(raw.description)),
+    description: str(raw.description),
+    shortDescription: plainText(str(raw.short_description) || str(raw.description)).slice(0, 280),
     live: true,
     inStock: !soldOut,
     isNew: raw.is_new === true,

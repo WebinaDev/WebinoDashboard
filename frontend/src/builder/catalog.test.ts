@@ -31,7 +31,8 @@ test("mapApiProduct keeps live price, stock, brand and installments", () => {
   assert.equal(product.variants[0]?.inStock, false)
   assert.equal(product.installments[0]?.months, 3)
   assert.equal(product.cashPrice, 1400)
-  assert.equal(product.description, "روشن")
+  assert.equal(product.description, "<p>روشن</p>")
+  assert.equal(product.shortDescription, "روشن")
 })
 
 test("mapApiBrand drops incomplete rows", () => {

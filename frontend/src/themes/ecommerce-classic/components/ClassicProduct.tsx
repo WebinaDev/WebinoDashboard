@@ -16,6 +16,8 @@ import { quietApi } from "@/builder/storefront/session"
 import { LowerPriceReportForm, PriceDropAlertForm, ProductReviewsPanel, StockAlertForm } from "@/builder/storefront/storefront-chrome"
 import { ProductPriceHistory } from "@/builder/storefront/storefront-extras"
 import { useCatalog } from "@/builder/storefront/use-catalog"
+import { useProductSeed } from "@/builder/storefront/product-seed"
+import { sanitizeBuilderHtml } from "@/builder/render/sanitize-html"
 
 import { ClassicBreadcrumbBar } from "./ClassicArchive"
 import {
@@ -165,6 +167,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   const wishlistEnabled = commerce.wishlist_enabled !== false
   const router = useRouter()
   const catalog = useCatalog(8)
+  const seeded = useProductSeed(slug)
   const [remote, setRemote] = useState<ShopProduct | null | undefined>(undefined)
   const [qty, setQty] = useState(1)
   const [image, setImage] = useState(0)
@@ -197,7 +200,10 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
     }
   }, [slug])
 
-  const fallback = catalog.products.find((item) => item.slug === slug) ?? (catalog.live ? null : catalog.products[0] ?? null)
+  const fallback =
+    seeded ??
+    catalog.products.find((item) => item.slug === slug) ??
+    (catalog.live ? null : catalog.products[0] ?? null)
   const product = remote === undefined ? fallback : (remote ?? fallback)
 
   useEffect(() => {
@@ -450,7 +456,17 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               ) : null}
 
               <span className="sfc-divider-title">{tx("product.features_title")}</span>
-              <p className={`sfc-pdp__desc ${expanded ? "is-open" : ""}`}>{product.description}</p>
+              {expanded ? (
+                <div
+                  className="sfc-pdp__desc is-open sfc-prose"
+                  dangerouslySetInnerHTML={{ __html: sanitizeBuilderHtml(product.description || "") }}
+                />
+              ) : (
+                <p className="sfc-pdp__desc">
+                  {product.shortDescription ||
+                    product.description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()}
+                </p>
+              )}
               <button type="button" className="sfc-divider-title sfc-divider-title--btn" onClick={() => setExpanded((v) => !v)}>
                 {expanded ? tx("product.desc_close") : tx("product.desc_open")}
               </button>
@@ -539,7 +555,10 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               ) : (
                 <div className="sfc-prose">
                   <h3>{tx("product.reviews_title")}</h3>
-                  <p>{product.description}</p>
+                  <div
+                    className="sfc-prose__body"
+                    dangerouslySetInnerHTML={{ __html: sanitizeBuilderHtml(product.description || "") }}
+                  />
                 </div>
               )}
             </div>

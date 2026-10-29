@@ -799,7 +799,9 @@ function ProductGridInner({ widget, editing }: { widget: WidgetNode; editing: bo
   const title = propStr(widget.props, "title", "")
   const runtime = useBuilderRuntime()
   const params = useSearchParams()
-  const catalog = useCatalog(limit)
+  // Archive grid seeds SSR with per_page=48; fetch the same window so CatalogSeed matches.
+  const classic = runtime.themeSlug === "ecommerce-classic"
+  const catalog = useCatalog(classic && !runtime.loopDocument ? Math.max(limit, 48) : limit)
   const sort = params.get("sort") ?? "new"
   const category = params.get("category") || runtime.categorySlug || ""
   const brand = params.get("brand") ?? ""
@@ -813,7 +815,6 @@ function ProductGridInner({ widget, editing }: { widget: WidgetNode; editing: bo
     return rows.slice(0, limit)
   }, [brand, catalog.products, category, limit, runtime.productSlug, sort, source])
 
-  const classic = runtime.themeSlug === "ecommerce-classic"
   const layout = propStr(widget.props, "layout", showSort ? "grid" : "slider")
   if (classic && !runtime.loopDocument) {
     return layout === "grid" ? (

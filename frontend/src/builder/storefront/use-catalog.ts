@@ -53,8 +53,15 @@ export function CatalogSeedProvider({ seed, children }: { seed: CatalogSeed; chi
   return createElement(CatalogSeedContext.Provider, { value: seed }, children)
 }
 
+/** Compare catalog queries ignoring per_page so archive SSR seed (48) matches product-grid (12). */
+function catalogQueryKey(query: string): string {
+  const params = new URLSearchParams(query)
+  params.delete("per_page")
+  return params.toString()
+}
+
 function seededState(seed: CatalogSeed, query: string, page: number): CatalogState | null {
-  if (!seed || seed.query !== query) return null
+  if (!seed || catalogQueryKey(seed.query) !== catalogQueryKey(query)) return null
   const payload = mapCatalogJson(seed.json as Parameters<typeof mapCatalogJson>[0])
   if (!payload) return null
   return { products: payload.items, categories: payload.categories, brands: payload.brands, facets: payload.facets ?? null, live: true, total: payload.total, page }

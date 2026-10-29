@@ -8,7 +8,7 @@ const FALLBACK_HEADERS = { "Content-Type": "application/xml; charset=UTF-8" }
 export async function GET() {
   const apiBase = getServerApiBase()
   if (!apiBase) {
-    return new Response(FALLBACK, { headers: FALLBACK_HEADERS })
+    return new Response(FALLBACK, { headers: { ...FALLBACK_HEADERS, "Cache-Control": "no-store" } })
   }
   try {
     const res = await fetch(`${apiBase}/api/v1/public/seo/sitemap/index`, {
@@ -16,11 +16,15 @@ export async function GET() {
       next: { revalidate: 300 },
     })
     const body = await res.text()
-    return new Response(body, {
-      status: res.status,
-      headers: { "Content-Type": "application/xml; charset=UTF-8", "Cache-Control": "public, max-age=300" },
+    const empty = !res.ok || /<urlset[^>]*>\s*<\/urlset>/i.test(body)
+    return new Response(body || FALLBACK, {
+      status: res.ok ? 200 : res.status,
+      headers: {
+        "Content-Type": "application/xml; charset=UTF-8",
+        "Cache-Control": empty ? "no-store" : "public, max-age=300",
+      },
     })
   } catch {
-    return new Response(FALLBACK, { headers: FALLBACK_HEADERS })
+    return new Response(FALLBACK, { headers: { ...FALLBACK_HEADERS, "Cache-Control": "no-store" } })
   }
 }
