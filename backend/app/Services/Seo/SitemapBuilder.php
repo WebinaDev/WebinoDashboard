@@ -125,15 +125,26 @@ final class SitemapBuilder
         }
         $base = $this->base($tenant);
         $urls = [];
+        // Blog posts use status "published" (scopePublished); legacy "publish" kept for older tenants.
         BlogPost::query()
             ->where('tenant_id', $tenant->id)
-            ->where('status', 'publish')
+            ->where(function ($q) {
+                $q->where('status', 'published')->orWhere('status', 'publish');
+            })
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
             ->orderByDesc('published_at')
             ->limit(10000)
             ->get(['slug', 'updated_at', 'published_at'])
             ->each(function ($p) use (&$urls, $base) {
+                $slug = ltrim((string) $p->slug, '/');
+                if ($slug === '') {
+                    return;
+                }
+                // Percent-encode each path segment (Persian slugs) without touching slashes.
+                $encoded = implode('/', array_map('rawurlencode', explode('/', $slug)));
                 $urls[] = [
-                    'loc' => $base.'/blog/'.$p->slug,
+                    'loc' => $base.'/blog/'.$encoded,
                     'lastmod' => optional($p->updated_at ?? $p->published_at)?->toAtomString() ?? Carbon::now()->toAtomString(),
                 ];
             });
@@ -152,15 +163,24 @@ final class SitemapBuilder
         $lang = (string) ($cfg['news_language'] ?: 'fa');
         $items = BlogPost::query()
             ->where('tenant_id', $tenant->id)
-            ->where('status', 'publish')
+            ->where(function ($q) {
+                $q->where('status', 'published')->orWhere('status', 'publish');
+            })
+            ->whereNotNull('published_at')
             ->where('published_at', '>=', Carbon::now()->subDays(2))
+            ->where('published_at', '<=', now())
             ->orderByDesc('published_at')
             ->limit(1000)
             ->get(['slug', 'title', 'published_at']);
 
         $body = '';
         foreach ($items as $p) {
-            $loc = e($base.'/blog/'.$p->slug);
+            $slug = ltrim((string) $p->slug, '/');
+            if ($slug === '') {
+                continue;
+            }
+            $encoded = implode('/', array_map('rawurlencode', explode('/', $slug)));
+            $loc = e($base.'/blog/'.$encoded);
             $title = e((string) $p->title);
             $date = optional($p->published_at)?->toAtomString() ?? Carbon::now()->toAtomString();
             $body .= "  <url>\n    <loc>{$loc}</loc>\n"
