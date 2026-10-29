@@ -18,7 +18,7 @@ final class OrderStatusTransitions
         $cancelLike = ['cancelled', 'refunded', 'webino-returned', 'failed'];
 
         return [
-            'pending_payment' => ['awaiting_gateway', 'on_hold', 'paid', 'payment_failed', 'cancelled', 'failed'],
+            'pending_payment' => ['awaiting_gateway', 'on_hold', 'processing', 'paid', 'payment_failed', 'cancelled', 'failed'],
             'awaiting_gateway' => ['paid', 'payment_failed', 'on_hold', 'cancelled', 'failed'],
             'on_hold' => ['paid', 'processing', 'cancelled', 'refunded', 'webino-need-review'],
             'paid' => ['processing', 'sent-to-warehouse', 'webino-in-stock', 'cancelled', 'refunded'],

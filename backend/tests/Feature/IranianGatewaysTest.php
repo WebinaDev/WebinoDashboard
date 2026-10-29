@@ -87,10 +87,14 @@ class IranianGatewaysTest extends TestCase
             ],
         ])->assertOk()->assertJsonPath('data.enabled', false);
 
-        $cash = collect($this->getJson('/api/v1/payments/checkout-options?mode=cash')->assertOk()->json('data.gateways'));
-        $this->assertSame(['zarinpal'], $cash->pluck('id')->all());
+        $cashPayload = $this->getJson('/api/v1/payments/checkout-options?mode=cash')->assertOk()->json();
+        $cash = collect($cashPayload['gateways'] ?? $cashPayload['data']['gateways'] ?? []);
+        $this->assertContains('zarinpal', $cash->pluck('id')->all());
+        $this->assertNotContains('digipay', $cash->pluck('id')->all());
+        $this->assertContains('cod', $cash->pluck('id')->all());
 
-        $installment = collect($this->getJson('/api/v1/payments/checkout-options?mode=installment')->assertOk()->json('data.gateways'));
+        $installmentPayload = $this->getJson('/api/v1/payments/checkout-options?mode=installment')->assertOk()->json();
+        $installment = collect($installmentPayload['gateways'] ?? $installmentPayload['data']['gateways'] ?? []);
         $this->assertSame(['snapppay'], $installment->pluck('id')->all());
         $this->assertFalse($gateways->isEnabled($this->tenant->id, 'digipay'));
     }

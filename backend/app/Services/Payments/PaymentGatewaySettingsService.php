@@ -481,7 +481,35 @@ class PaymentGatewaySettingsService
                 'fee_percent' => $this->feePercent($raw),
                 'fee_payer' => (string) ($raw['fee_payer'] ?? 'merchant'),
                 'sandbox' => $this->isSandbox($id, $raw),
+                'kind' => 'online',
             ];
+        }
+
+        // Offline / local tenders (COD etc.) belong on the same checkout list.
+        if ($mode === null || $mode === 'cash') {
+            $offlineTitles = [
+                'cod' => 'پرداخت در محل',
+                'cheque' => 'پرداخت با چک',
+                'wallet' => 'کیف پول',
+                'c2c' => 'کارت به کارت',
+            ];
+            foreach ($offlineTitles as $id => $fallbackTitle) {
+                if (! $this->isEnabled($tenantId, $id) || ! $this->configured($tenantId, $id)) {
+                    continue;
+                }
+                $raw = $this->getRaw($tenantId, $id);
+                $title = (string) ($raw['title'] ?? '');
+                $out[] = [
+                    'id' => $id,
+                    'title' => $title !== '' ? $title : $fallbackTitle,
+                    'cash_enabled' => true,
+                    'installment_enabled' => false,
+                    'fee_percent' => 0.0,
+                    'fee_payer' => 'merchant',
+                    'sandbox' => false,
+                    'kind' => 'offline',
+                ];
+            }
         }
 
         return $out;

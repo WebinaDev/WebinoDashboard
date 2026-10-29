@@ -408,6 +408,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout');
             Route::get('/payments/checkout-options', [PaymentIntentController::class, 'options']);
             Route::post('/payments/intent', [PaymentIntentController::class, 'store']);
+            Route::post('/payments/offline', [PaymentIntentController::class, 'confirmOffline'])->middleware('throttle:checkout');
         });
 
         Route::get('/account/tickets', [SupportTicketController::class, 'accountIndex']);

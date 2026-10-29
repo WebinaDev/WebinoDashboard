@@ -122,3 +122,9 @@ export async function syncGuestCart() {
     notifyCart()
   }
 }
+
+export async function removeServerItem(productId: number) {
+  const res = await quietApi(`/api/v1/cart/items/${productId}`, { method: "DELETE" })
+  if (res.ok) notifyCart()
+  return res
+}

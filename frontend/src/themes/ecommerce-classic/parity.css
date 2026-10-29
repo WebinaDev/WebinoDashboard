@@ -7242,3 +7242,130 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
     padding: 0;
   }
 }
+
+/* --- Checkout polish: address book, success, cart mobile bar --- */
+.sfc-cart-line__controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sfc-cart-line__remove {
+  font-size: 0.75rem;
+  color: var(--sfc-pink, #e80645);
+}
+.sfc-cart__mobile-bar {
+  display: none;
+}
+@media (max-width: 768px) {
+  .sfc-cart__mobile-bar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid var(--sfc-border, #e8edf3);
+    box-shadow: 0 -8px 24px rgba(2, 25, 89, 0.08);
+  }
+  .sfc-cart__mobile-bar > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.8rem;
+    color: var(--sfc-muted, #4d5e8a);
+  }
+  .sfc-cart__side.is-sticky .sfc-cart__checkout-cta {
+    display: none;
+  }
+}
+
+.sfc-address-book {
+  margin-bottom: 1rem;
+}
+.sfc-address-book__label {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--sfc-muted, #4d5e8a);
+}
+.sfc-address-book__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.6rem;
+}
+.sfc-address-card {
+  text-align: right;
+  border: 1px solid var(--sfc-border, #e8edf3);
+  border-radius: 14px;
+  padding: 0.75rem 0.85rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sfc-address-card strong {
+  color: var(--sfc-navy, #021959);
+  font-size: 0.9rem;
+}
+.sfc-address-card span,
+.sfc-address-card em {
+  font-size: 0.78rem;
+  color: var(--sfc-muted, #4d5e8a);
+  font-style: normal;
+}
+.sfc-address-card.is-active,
+.sfc-address-card:hover {
+  border-color: var(--sfc-pink, #e775ae);
+  box-shadow: 0 0 0 3px rgba(231, 117, 174, 0.15);
+}
+.sfc-checkout__save-address {
+  margin: 0.25rem 0 1rem;
+}
+.sfc-checkout__success {
+  text-align: center;
+  padding: 2rem 1.25rem;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+}
+.sfc-checkout__success-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #e8f8ef;
+  color: #0a7a3e;
+}
+.sfc-checkout__success h2 {
+  margin: 0 0 0.5rem;
+  color: var(--sfc-navy, #021959);
+}
+.sfc-checkout__success-note {
+  color: var(--sfc-muted, #4d5e8a);
+  margin: 0.5rem 0 1.25rem;
+}
+.sfc-checkout__success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+.sfc-btn--ghost {
+  background: transparent !important;
+  color: var(--sfc-navy, #021959) !important;
+  border: 1px solid var(--sfc-border, #e8edf3);
+}
+.sfc-pay-method.is-offline {
+  border-style: dashed;
+}
+.sfc-pay-method:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

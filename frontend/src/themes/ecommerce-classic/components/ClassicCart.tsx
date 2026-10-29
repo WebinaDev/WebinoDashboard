@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 
 import { cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "@/builder/cart"
-import { setServerQty, useServerCart } from "@/builder/storefront/actions"
+import { removeServerItem, setServerQty, useServerCart } from "@/builder/storefront/actions"
 import { previewCoupon, readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
 
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
@@ -98,7 +98,7 @@ function Countdown() {
   )
 }
 
-type Line = { key: string; name: string; image?: string | null; price: number; qty: number; href?: string; onQty: (qty: number) => void }
+type Line = { key: string; name: string; image?: string | null; price: number; qty: number; href?: string; onQty: (qty: number) => void; onRemove?: () => void }
 
 
 function FreeShippingBar({ total, threshold }: { total: number; threshold: number }) {
@@ -116,7 +116,7 @@ function FreeShippingBar({ total, threshold }: { total: number; threshold: numbe
               <>{tx("cart.free_ship_done")}</>
             ) : (
               <>
-                با حداقل خرید <ClassicAmount value={threshold} /> — هنوز <ClassicAmount value={remain} /> مانده است
+                با حداقل خرید <ClassicAmount value={threshold} />؛ هنوز <ClassicAmount value={remain} /> مانده است
               </>
             )}
           </p>
@@ -161,6 +161,7 @@ export function ClassicCart() {
           qty: line.quantity,
           href: line.product.slug ? `/product/${line.product.slug}` : undefined,
           onQty: (qty: number) => void setServerQty(line.product.id, qty),
+          onRemove: () => void removeServerItem(line.product.id),
         }))
       : local.map((line) => ({
           key: line.slug,
@@ -170,6 +171,7 @@ export function ClassicCart() {
           qty: line.qty,
           href: `/product/${line.slug}`,
           onQty: (qty: number) => setQty(line.slug, qty),
+          onRemove: () => setQty(line.slug, 0),
         }))
   const count = lines.reduce((sum, l) => sum + l.qty, 0)
   const total = auth === "auth" && pricing?.subtotal_minor != null ? pricing.subtotal_minor : lines.reduce((sum, l) => sum + l.price * l.qty, 0)
@@ -208,7 +210,6 @@ export function ClassicCart() {
         <h1>
           سبد خرید <span className="sfc-pill">{digits(count)}</span>
         </h1>
-        <span className="sfc-cart__later">سبد خرید بعدی ({digits(0)})</span>
       </div>
       {showCoupon && lines.length ? (
         <ClassicCouponChooser
@@ -260,14 +261,21 @@ export function ClassicCart() {
                     )}
                     <ClassicAmount value={line.price} className="sfc-cart-line__price" />
                   </div>
-                  <div className="sfc-stepper sfc-stepper--sm">
-                    <button type="button" aria-label="افزایش" onClick={() => line.onQty(Math.min(99, line.qty + 1))}>
-                      <IconPlus size={14} />
-                    </button>
-                    <span className="sfc-stepper__value">{digits(line.qty)}</span>
-                    <button type="button" aria-label="کاهش" onClick={() => line.onQty(Math.max(0, line.qty - 1))}>
-                      <IconMinus size={14} />
-                    </button>
+                  <div className="sfc-cart-line__controls">
+                    <div className="sfc-stepper sfc-stepper--sm">
+                      <button type="button" aria-label="افزایش" onClick={() => line.onQty(Math.min(99, line.qty + 1))}>
+                        <IconPlus size={14} />
+                      </button>
+                      <span className="sfc-stepper__value">{digits(line.qty)}</span>
+                      <button type="button" aria-label="کاهش" onClick={() => line.onQty(Math.max(0, line.qty - 1))}>
+                        <IconMinus size={14} />
+                      </button>
+                    </div>
+                    {line.onRemove ? (
+                      <button type="button" className="sfc-link-btn sfc-cart-line__remove" onClick={() => line.onRemove?.()}>
+                        حذف
+                      </button>
+                    ) : null}
                   </div>
                   <ClassicAmount value={line.price * line.qty} className="sfc-cart-line__total" />
                 </div>
@@ -300,7 +308,7 @@ export function ClassicCart() {
             </div>
           )}
         </div>
-        <aside className={`sfc-cart__side ${stickySummary ? "is-sticky" : ""}`}>
+        <aside className={`sfc-cart__side ${stickySummary ? "is-sticky" : ""}`} data-sticky-summary={stickySummary ? "1" : "0"}>
           {lines.length ? (
             <div className="sfc-box sfc-summary">
               <div className="sfc-summary__row">
@@ -327,11 +335,25 @@ export function ClassicCart() {
               </div>
               <Link
                 href={auth === "auth" ? "/checkout" : `/login?next=${encodeURIComponent("/checkout")}`}
-                className="sfc-btn sfc-btn--block sfc-btn--lg"
+                className="sfc-btn sfc-btn--block sfc-btn--lg sfc-cart__checkout-cta"
               >
                 {auth === "auth" ? "ادامه فرایند خرید" : "ورود و ادامه خرید"}
               </Link>
             </div>
+            {stickySummary ? (
+              <div className="sfc-cart__mobile-bar" aria-hidden="false">
+                <div>
+                  <span>قابل پرداخت</span>
+                  <ClassicAmount value={payable} />
+                </div>
+                <Link
+                  href={auth === "auth" ? "/checkout" : `/login?next=${encodeURIComponent("/checkout")}`}
+                  className="sfc-btn sfc-btn--sm"
+                >
+                  تسویه
+                </Link>
+              </div>
+            ) : null}
           ) : null}
           {auth !== "auth" ? (
             <Link href={`/login?next=${encodeURIComponent("/cart")}`} className="sfc-box sfc-side-card">
