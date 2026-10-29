@@ -17,7 +17,8 @@ import {
 import { ProductStoriesStrip } from "@/builder/storefront/storefront-extras"
 import { ArchiveScopeProvider, type ArchiveScope } from "@/builder/storefront/archive-scope"
 import { loadCatalogSeed } from "@/builder/storefront/catalog-seed"
-import { loadProductSeed, ProductSeedProvider } from "@/builder/storefront/product-seed"
+import { ProductSeedProvider } from "@/builder/storefront/product-seed"
+import { loadProductSeed } from "@/builder/storefront/load-product-seed"
 import { CatalogSeedProvider } from "@/builder/storefront/use-catalog"
 
 export const revalidate = 60
