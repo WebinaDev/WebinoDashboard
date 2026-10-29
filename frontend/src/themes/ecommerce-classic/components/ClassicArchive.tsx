@@ -208,6 +208,15 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
     }
     return { cat, br }
   }, [catalog.products])
+  const attributeGroups = useMemo(() => {
+    const attrs = Array.isArray(facets?.attributes) ? facets!.attributes : []
+    if (attrAllow) return attrs.filter((a) => attrAllow.includes(a.slug))
+    // Without an explicit allow-list, keep color-like groups when filter_color is on; otherwise all.
+    if (archive.filter_color === false) {
+      return attrs.filter((a) => !a.terms.some((t) => t.color) && !/رنگ|color|colour/i.test(a.name + a.slug))
+    }
+    return attrs
+  }, [facets, attrAllow, archive.filter_color])
   if (archive.sidebar_enabled === false) return null
   const category = params.get("category") ?? ""
   const brand = params.get("brand") ?? ""
@@ -218,16 +227,6 @@ export function ClassicFilters({ editing }: { editing: boolean }) {
   const minPrice = params.get("min_price") ?? ""
   const maxPrice = params.get("max_price") ?? ""
   const any = Boolean(category || brand || inStock || onSale || sameDay || attrSel.size || minPrice || maxPrice || params.get("q"))
-
-  const attributeGroups = useMemo(() => {
-    const attrs = Array.isArray(facets?.attributes) ? facets!.attributes : []
-    if (attrAllow) return attrs.filter((a) => attrAllow.includes(a.slug))
-    // Without an explicit allow-list, keep color-like groups when filter_color is on; otherwise all.
-    if (archive.filter_color === false) {
-      return attrs.filter((a) => !a.terms.some((t) => t.color) && !/رنگ|color|colour/i.test(a.name + a.slug))
-    }
-    return attrs
-  }, [facets, attrAllow, archive.filter_color])
 
   function setParam(key: string, value: string) {
     if (editing) return
