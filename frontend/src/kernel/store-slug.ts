@@ -26,6 +26,9 @@ const WC_NATIVE: Record<string, string> = {
   checkout: "checkout",
   compare: "compare",
   wishlist: "wishlist",
+  blog: "blog",
+  "مجله": "blog",
+  account: "account",
 }
 
 const ROUTE_FOR: Record<StoreSlugHit["type"], string> = {

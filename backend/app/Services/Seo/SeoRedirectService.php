@@ -93,6 +93,7 @@ final class SeoRedirectService
     public const NATIVE_STORE_PAGES = [
         'shop' => '/shop', 'cart' => '/cart', 'checkout' => '/checkout', 'my-account' => '/my-account',
         'compare' => '/compare', 'wishlist' => '/wishlist', 'amazing-offers' => '/amazing-offers', 'search' => '/search',
+        'blog' => '/blog', 'account' => '/account', 'login' => '/login',
     ];
 
     /** Native path for an imported WC page target like /pages/shop-2, /shop-2 or /pages/my-account; null otherwise. */

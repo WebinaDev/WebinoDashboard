@@ -441,9 +441,9 @@ function rewriteImageOptimizerSource(request: NextRequest): NextResponse | null 
 }
 
 /**
- * Builder pages are public at /<slug>; /pages/<slug> is only an internal alias.
- * Returns the root URL for a /pages/<slug> path, or null when the slug is claimed by a
- * native route (blog, shop, search…) and must keep its /pages/ form.
+ * Builder/CMS pages are public at /<slug>; /pages/<slug> is only an internal alias.
+ * Always 301 /pages/X → /X so native module routes (/blog, /shop, /cart…) and CMS
+ * pages (/terms, /privacy-policy…) share one canonical. Reserved app shells stay put.
  */
 function rootPagePath(path: string): string | null {
   const m = /^\/pages\/([^/]+)\/?$/.exec(path)
@@ -454,7 +454,7 @@ function rootPagePath(path: string): string | null {
   } catch {
     /* keep raw */
   }
-  if (canonicalSiteSegments([slug])[0] !== "pages") return null
+  if (["admin", "dashboard", "login", "setup"].includes(slug)) return null
   return `/${m[1]}`
 }
 
