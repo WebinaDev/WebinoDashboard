@@ -442,7 +442,77 @@
       "kpis": "نمای کلی این ماه",
       "charts": "نمودارها و بینش‌ها",
       "breakdown": "تفکیک سفارش‌ها",
-      "fulfillment": "کارهای سفارش"
+      "fulfillment": "کارهای سفارش",
+      "cafe": "عملیات کافه"
+    },
+    "cafe": {
+      "title": "پیشخوان کافه",
+      "subtitle": "سفارش‌ها، آشپزخانه، رزرو و منوی امروز",
+      "view_all": "مشاهده همه",
+      "shortcuts": "میانبرهای مدیریت کافه",
+      "stat": {
+        "orders_today": "سفارش امروز",
+        "orders_today_hint": "همه کانال‌ها",
+        "revenue_today": "فروش امروز",
+        "revenue_today_hint": "جمع مبلغ سفارش‌ها",
+        "kitchen": "آشپزخانه باز",
+        "kitchen_hint": "سفارش‌های فعال میز",
+        "reservations": "رزرو امروز",
+        "reservations_hint": "میزهای رزروشده",
+        "reservations_pending": "{count} در انتظار تأیید",
+        "menu": "آیتم منو",
+        "menu_hint": "{menus} منوی فعال",
+        "tables": "میز فعال",
+        "tables_hint": "{total} میز · {branches} شعبه",
+        "events": "رویدادها",
+        "events_hint": "رویدادهای پیش‌رو",
+        "events_pending": "{count} رزرو رویداد در انتظار",
+        "gallery": "گالری",
+        "gallery_hint": "تصاویر منتشرشده",
+        "feedback": "نظرات منو",
+        "feedback_hint": "بازخورد مشتریان",
+        "branches": "شعبه‌ها",
+        "branches_hint": "QR و میزها"
+      },
+      "kitchen": {
+        "title": "صف آشپزخانه",
+        "empty": "سفارش بازی در آشپزخانه نیست.",
+        "table": "میز {table}",
+        "items": "قلم",
+        "status": {
+          "new": "جدید",
+          "preparing": "در حال آماده‌سازی",
+          "ready": "آماده",
+          "served": "سرو شده",
+          "out_for_delivery": "در مسیر ارسال",
+          "done": "تمام"
+        }
+      },
+      "reservations": {
+        "title": "رزروهای پیش‌رو",
+        "empty": "رزرو آینده‌ای ثبت نشده است.",
+        "guests": "نفر"
+      },
+      "popular": {
+        "title": "محبوب‌ترین آیتم‌ها",
+        "empty": "هنوز داده محبوبیتی نیست.",
+        "likes": "{count} پسند",
+        "sold": "{count} فروش"
+      },
+      "feedback": {
+        "title": "آخرین بازخوردها",
+        "empty": "بازخورد جدیدی نیست."
+      },
+      "shortcut": {
+        "kitchen": "آشپزخانه",
+        "menu": "منو",
+        "reservations": "رزرو",
+        "qr": "QR و میز",
+        "inbox": "صندوق بازخورد",
+        "gallery": "گالری",
+        "hours": "ساعات کاری",
+        "venue": "درباره کافه"
+      }
     },
     "partner": {
       "title": "سفارش‌های من",
@@ -4498,7 +4568,13 @@
     "navPrimary": "اصلی",
     "navSecondary": "بیشتر",
     "preview": "پیش‌نمایش",
-    "previewEmpty": "متن پیام اینجا نمایش داده می‌شود…"
+    "previewEmpty": "متن پیام اینجا نمایش داده می‌شود…",
+    "navGroups": {
+      "compose": "ارسال و ساخت",
+      "audience": "مخاطبان",
+      "insights": "گزارش و ورودی",
+      "account": "حساب و خطوط"
+    }
   },
   "coupons": {
     "title": "کدتخفیف",

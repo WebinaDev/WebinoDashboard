@@ -1010,7 +1010,77 @@
       "kpis": "This month at a glance",
       "charts": "Charts and insights",
       "breakdown": "Orders breakdown",
-      "fulfillment": "Order tasks"
+      "fulfillment": "Order tasks",
+      "cafe": "Cafe operations"
+    },
+    "cafe": {
+      "title": "Cafe desk",
+      "subtitle": "Today’s orders, kitchen, reservations, and menu",
+      "view_all": "View all",
+      "shortcuts": "Cafe admin shortcuts",
+      "stat": {
+        "orders_today": "Orders today",
+        "orders_today_hint": "All channels",
+        "revenue_today": "Sales today",
+        "revenue_today_hint": "Order totals",
+        "kitchen": "Open kitchen",
+        "kitchen_hint": "Active table orders",
+        "reservations": "Reservations today",
+        "reservations_hint": "Booked tables",
+        "reservations_pending": "{count} awaiting confirmation",
+        "menu": "Menu items",
+        "menu_hint": "{menus} active menus",
+        "tables": "Active tables",
+        "tables_hint": "{total} tables · {branches} branches",
+        "events": "Events",
+        "events_hint": "Upcoming events",
+        "events_pending": "{count} event bookings pending",
+        "gallery": "Gallery",
+        "gallery_hint": "Published photos",
+        "feedback": "Menu feedback",
+        "feedback_hint": "Guest comments",
+        "branches": "Branches",
+        "branches_hint": "QR & tables"
+      },
+      "kitchen": {
+        "title": "Kitchen queue",
+        "empty": "No open kitchen orders.",
+        "table": "Table {table}",
+        "items": "items",
+        "status": {
+          "new": "New",
+          "preparing": "Preparing",
+          "ready": "Ready",
+          "served": "Served",
+          "out_for_delivery": "Out for delivery",
+          "done": "Done"
+        }
+      },
+      "reservations": {
+        "title": "Upcoming reservations",
+        "empty": "No upcoming reservations.",
+        "guests": "guests"
+      },
+      "popular": {
+        "title": "Popular items",
+        "empty": "No popularity data yet.",
+        "likes": "{count} likes",
+        "sold": "{count} sold"
+      },
+      "feedback": {
+        "title": "Latest feedback",
+        "empty": "No recent feedback."
+      },
+      "shortcut": {
+        "kitchen": "Kitchen",
+        "menu": "Menu",
+        "reservations": "Reservations",
+        "qr": "QR & tables",
+        "inbox": "Feedback inbox",
+        "gallery": "Gallery",
+        "hours": "Hours",
+        "venue": "Venue"
+      }
     },
     "partner": {
       "title": "My orders",
@@ -4498,7 +4568,13 @@
     "navPrimary": "Primary",
     "navSecondary": "More",
     "preview": "Preview",
-    "previewEmpty": "Your message will appear here…"
+    "previewEmpty": "Your message will appear here…",
+    "navGroups": {
+      "compose": "Compose",
+      "audience": "Audience",
+      "insights": "Insights",
+      "account": "Account"
+    }
   },
   "coupons": {
     "title": "Discount codes",

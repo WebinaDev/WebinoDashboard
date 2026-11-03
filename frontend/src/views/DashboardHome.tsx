@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
 import { HomeActionBar } from "@/components/home/HomeActionBar"
+import { HomeCafePanel } from "@/components/home/HomeCafePanel"
 import { HomeCommentsQueue } from "@/components/home/HomeCommentsQueue"
 import { HomeFulfillmentTodos } from "@/components/home/HomeFulfillmentTodos"
 import { HomeQuickLinks } from "@/components/home/HomeQuickLinks"
@@ -27,6 +28,7 @@ import { isModuleEnabled } from "@/kernel/route-resolver"
 import { api } from "@/lib/api"
 import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
 import {
+  asOverviewCafe,
   asOverviewComments,
   asOverviewFulfillment,
   asOverviewPanels,
@@ -160,8 +162,9 @@ export default function DashboardHome({
   const traffic = asOverviewTraffic(data?.traffic)
   const fulfillment = asOverviewFulfillment(data?.fulfillment)
   const comments = asOverviewComments(data?.comments)
+  const cafe = asOverviewCafe(data?.cafe)
   const safePanels = asOverviewPanels(panels) ?? panels
-  const currency = sales?.currency || undefined
+  const currency = sales?.currency || cafe?.currency || undefined
   const showLoading = overview.isLoading && !overview.data
 
   if (isPortalOnly) {
@@ -208,7 +211,7 @@ export default function DashboardHome({
         </div>
       ) : (
         <div className="space-y-4 sm:space-y-6">
-          <HomeQuickLinks />
+          <HomeQuickLinks preferCafe={cafeEnabled || Boolean(cafe)} />
 
           <HomeActionBar
             alerts={data?.alerts}
@@ -226,6 +229,10 @@ export default function DashboardHome({
             trafficOnline={trafficOnline}
             shopActive={shopActive}
           />
+
+          {(hasSection("cafe") || cafeEnabled) && cafe ? (
+            <HomeCafePanel cafe={cafe} locale={lng} />
+          ) : null}
 
           {cafeEnabled ? <HomeTodoList locale={lng} /> : null}
 

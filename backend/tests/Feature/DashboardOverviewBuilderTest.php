@@ -86,4 +86,45 @@ class DashboardOverviewBuilderTest extends TestCase
         $this->assertSame('Espresso', $data['sales']['top_products'][0]['name']);
         $this->assertSame(3, (int) $data['sales']['top_products'][0]['quantity']);
     }
+
+    public function test_cafe_overview_section_from_submodule_activations(): void
+    {
+        DashboardModule::query()->firstOrCreate(['slug' => 'cafe'], [
+            'requires_license' => false,
+            'git_repo' => null,
+            'default_version' => '0.1.0',
+        ]);
+        $this->enableSubmodules($this->tenant->id, [
+            'cafe.menu' => true,
+            'cafe.reservations' => true,
+            'cafe.hours' => true,
+            'cafe.gallery' => true,
+            'cafe.venue' => true,
+            'cafe.qr' => true,
+            'cafe.engagement' => true,
+        ]);
+
+        Product::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Latte',
+            'slug' => 'latte-'.uniqid(),
+            'price_minor' => 150000,
+            'currency' => 'IRR',
+            'status' => 'publish',
+            'stock' => 10,
+        ]);
+
+        $data = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/v1/dashboard/overview?locale=fa')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertContains('cafe', $data['sections']);
+        $this->assertContains('sales', $data['sections']);
+        $this->assertContains('products', $data['sections']);
+        $this->assertSame(1, (int) $data['cafe']['menu']['items_published']);
+        $this->assertArrayHasKey('kitchen', $data['cafe']);
+        $this->assertArrayHasKey('shortcuts', $data['cafe']);
+        $this->assertNotEmpty($data['cafe']['shortcuts']);
+    }
 }

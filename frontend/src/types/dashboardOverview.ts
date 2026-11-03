@@ -218,6 +218,77 @@ export type DashboardOverviewCommentRow = {
   href?: string
 }
 
+export type DashboardOverviewCafe = {
+  currency: string
+  today: {
+    orders: number
+    revenue_minor: number
+    reservations: number
+  }
+  kitchen: {
+    open: number
+    by_status: Record<string, number>
+    preview: Array<{
+      id: number
+      number: string
+      kitchen_status: string
+      table_number?: string | number | null
+      fulfillment: string
+      customer_name: string
+      total_minor: number
+      href: string
+      item_count: number
+    }>
+    href: string
+  }
+  menu: {
+    items_published: number
+    items_draft: number
+    menus_active: number
+    href: string
+  }
+  tables: { total: number; active: number; href: string }
+  branches: { count: number; href: string }
+  reservations: {
+    today: number
+    pending: number
+    upcoming: Array<{
+      id: number
+      guest_name: string
+      party_size: number
+      reserved_at: string
+      status: string
+      href: string
+    }>
+    href: string
+  }
+  events: { upcoming: number; bookings_pending: number; href: string }
+  gallery: { count: number; href: string }
+  engagement: {
+    feedback_count: number
+    recent_feedback: Array<{
+      id: number
+      product_id: number | null
+      product_name: string
+      rating: number
+      comment: string
+      created_at: string
+      href: string
+    }>
+    popular_items: Array<{
+      product_id: number
+      name: string
+      likes_count: number
+      metric?: string
+      image_url: string
+      href: string
+    }>
+    href: string
+  }
+  recent_orders: DashboardOverviewOrderRow[]
+  shortcuts: Array<{ key: string; href: string }>
+}
+
 export type DashboardOverviewResponse = {
   generated_at: number
   locale?: string
@@ -228,6 +299,7 @@ export type DashboardOverviewResponse = {
   traffic?: DashboardOverviewTraffic
   tasks?: DashboardOverviewTasks
   fulfillment?: DashboardOverviewFulfillment
+  cafe?: DashboardOverviewCafe
   comments?: {
     items: DashboardOverviewCommentRow[]
     counts: { hold: number; approved: number; spam: number; trash: number }
@@ -324,4 +396,14 @@ export function asOverviewPanels(
     return undefined
   }
   return value as unknown as DashboardOverviewPanels
+}
+
+export function asOverviewCafe(
+  value: unknown,
+): DashboardOverviewCafe | undefined {
+  if (!isRecord(value) || isOverviewErrorStub(value)) return undefined
+  if (!isRecord(value.today) || !isRecord(value.kitchen) || !isRecord(value.menu)) {
+    return undefined
+  }
+  return value as unknown as DashboardOverviewCafe
 }

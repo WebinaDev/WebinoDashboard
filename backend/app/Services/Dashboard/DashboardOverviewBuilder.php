@@ -2,14 +2,24 @@
 
 namespace App\Services\Dashboard;
 
+use App\Models\CafeBranch;
+use App\Models\CafeEvent;
+use App\Models\CafeTable;
+use App\Models\EventBooking;
+use App\Models\Menu;
 use App\Models\Order;
 use App\Models\OrderReturn;
 use App\Models\Product;
+use App\Models\ProductFeedback;
+use App\Models\ProductLike;
 use App\Models\ProductReview;
+use App\Models\Reservation;
 use App\Models\Tenant;
 use App\Models\TenantModule;
+use App\Models\TenantSubmoduleActivation;
 use App\Models\User;
 use App\Services\Analytics\AnalyticsQuery;
+use App\Services\Modules\ModuleSettingsService;
 use App\Services\Orders\OrderShippingStatuses;
 use App\Services\Reports\OrderReports;
 use App\Services\Sms\ModirPayamakClient;
@@ -18,6 +28,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Aggregated admin home overview (parity with WP Webino_Dashboard_Home_Overview).
@@ -42,7 +53,7 @@ final class DashboardOverviewBuilder
     public function build(User $user, string $locale = 'fa'): array
     {
         $tid = (int) $user->tenant_id;
-        $cacheKey = "dashboard:overview:v1:{$tid}:a".AnalyticsQuery::cacheVersion($tid).":{$user->id}:".md5($locale);
+        $cacheKey = "dashboard:overview:v2:{$tid}:a".AnalyticsQuery::cacheVersion($tid).":{$user->id}:".md5($locale);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user, $tid, $locale) {
             return $this->buildPayload($user, $tid, $locale);
@@ -123,9 +134,24 @@ final class DashboardOverviewBuilder
         $canPortal = $caps->allows($user, 'account.portal') || $caps->allows($user, 'partner.portal');
         $isPartner = $caps->allows($user, 'partner.portal');
 
-        // Cafe tenants sell through the cafe module; give them the same sales/orders widgets.
-        $shopActive = ($this->moduleEnabled($tid, 'catalog') || $this->moduleEnabled($tid, 'commerce') || $this->moduleEnabled($tid, 'cafe')) && ($canCatalog || $canSales || $canOrders);
+        // Cafe / commerce activations often live in TenantSubmoduleActivation even when
+        // TenantModule rows are incomplete (site-type provision lag). Treat either as shop-on.
+        $cafeActive = $this->moduleEnabled($tid, 'cafe');
+        $shopActive = ($this->moduleEnabled($tid, 'catalog') || $this->moduleEnabled($tid, 'commerce') || $cafeActive) && ($canCatalog || $canSales || $canOrders);
         $analyticsActive = $this->moduleEnabled($tid, 'analytics') || $this->moduleEnabled($tid, 'dashboard');
+
+        if ($cafeActive && ($canCatalog || $canOrders || $canSales)) {
+            try {
+                $payload['cafe'] = $this->cafeSection($tid, $locale);
+                $sections[] = 'cafe';
+            } catch (\Throwable $e) {
+                $payload['cafe'] = ['error' => $e->getMessage()];
+                Log::warning('dashboard.overview.cafe_failed', [
+                    'tenant_id' => $tid,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
 
         if ($shopActive && $canCatalog) {
             try {
@@ -167,15 +193,18 @@ final class DashboardOverviewBuilder
                 $payload['tasks'] = ['error' => $e->getMessage()];
             }
 
-            try {
-                $payload['fulfillment'] = $this->fulfillmentSection($tid, $locale);
-                $sections[] = 'fulfillment';
-            } catch (\Throwable $e) {
-                $payload['fulfillment'] = ['error' => $e->getMessage()];
-                Log::warning('dashboard.overview.fulfillment_failed', [
-                    'tenant_id' => $tid,
-                    'message' => $e->getMessage(),
-                ]);
+            // Warehouse-style pack/ship queues are for ecommerce; cafe kitchens use the cafe section.
+            if (! $cafeActive) {
+                try {
+                    $payload['fulfillment'] = $this->fulfillmentSection($tid, $locale);
+                    $sections[] = 'fulfillment';
+                } catch (\Throwable $e) {
+                    $payload['fulfillment'] = ['error' => $e->getMessage()];
+                    Log::warning('dashboard.overview.fulfillment_failed', [
+                        'tenant_id' => $tid,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 
@@ -931,14 +960,299 @@ final class DashboardOverviewBuilder
         ];
     }
 
+    /** @return array<string, mixed> */
+    private function cafeSection(int $tid, string $locale): array
+    {
+        $todayStart = Carbon::today();
+        $todayEnd = Carbon::today()->endOfDay();
+        $kitchenSince = Carbon::now()->subHours(18);
+        $excludeKitchen = ['pending_payment', 'awaiting_gateway', 'payment_failed', 'on_hold', 'cancelled', 'failed', 'refunded'];
+
+        $ordersTodayQ = Order::query()
+            ->where('tenant_id', $tid)
+            ->whereBetween('created_at', [$todayStart, $todayEnd])
+            ->whereNotIn('status', ['cancelled', 'failed', 'refunded']);
+        $ordersToday = (clone $ordersTodayQ)->count();
+        $revenueToday = (int) (clone $ordersTodayQ)->sum('total_minor');
+        $currency = (string) (Order::query()->where('tenant_id', $tid)->orderByDesc('id')->value('currency')
+            ?: Product::query()->where('tenant_id', $tid)->value('currency')
+            ?: 'IRR');
+
+        $kitchenQ = Order::query()
+            ->where('tenant_id', $tid)
+            ->where('created_at', '>=', $kitchenSince)
+            ->whereNotIn('status', $excludeKitchen)
+            ->where(function ($q) {
+                $q->whereNotNull('table_number')
+                    ->orWhere('meta->source', 'guest_table');
+            });
+        $kitchenOpen = (clone $kitchenQ)->count();
+        $kitchenByStatus = [];
+        foreach ((clone $kitchenQ)->get(['id', 'meta']) as $row) {
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $ks = (string) ($meta['kitchen_status'] ?? 'new');
+            $kitchenByStatus[$ks] = ($kitchenByStatus[$ks] ?? 0) + 1;
+        }
+        $kitchenPreview = (clone $kitchenQ)
+            ->with(['items.product:id,name'])
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get()
+            ->map(function (Order $o) {
+                $meta = is_array($o->meta) ? $o->meta : [];
+
+                return [
+                    'id' => $o->id,
+                    'number' => (string) ($o->number ?? $o->id),
+                    'kitchen_status' => (string) ($meta['kitchen_status'] ?? 'new'),
+                    'table_number' => $o->table_number,
+                    'fulfillment' => (string) ($meta['fulfillment'] ?? 'dine_in'),
+                    'customer_name' => (string) ($o->customer_name ?: '—'),
+                    'total_minor' => (int) $o->total_minor,
+                    'href' => '/dashboard/kitchen',
+                    'item_count' => $o->relationLoaded('items') ? (int) $o->items->sum('quantity') : 0,
+                ];
+            })
+            ->all();
+
+        $menuItems = Product::query()
+            ->where('tenant_id', $tid)
+            ->whereIn('status', ['publish', 'published'])
+            ->count();
+        $menuItemsDraft = Product::query()
+            ->where('tenant_id', $tid)
+            ->where('status', 'draft')
+            ->count();
+        $menusActive = Schema::hasTable('menus')
+            ? Menu::query()->where('tenant_id', $tid)->where('is_active', true)->count()
+            : 0;
+        $tablesTotal = Schema::hasTable('cafe_tables')
+            ? CafeTable::query()->where('tenant_id', $tid)->count()
+            : 0;
+        $tablesActive = Schema::hasTable('cafe_tables')
+            ? CafeTable::query()->where('tenant_id', $tid)->where('is_active', true)->count()
+            : 0;
+        $branches = Schema::hasTable('cafe_branches')
+            ? CafeBranch::query()->where('tenant_id', $tid)->count()
+            : 0;
+
+        $reservationsToday = Schema::hasTable('reservations')
+            ? Reservation::query()->where('tenant_id', $tid)->whereBetween('reserved_at', [$todayStart, $todayEnd])->where('status', '!=', 'cancelled')->count()
+            : 0;
+        $reservationsPending = Schema::hasTable('reservations')
+            ? Reservation::query()->where('tenant_id', $tid)->where('status', 'pending')->count()
+            : 0;
+        $upcomingReservations = Schema::hasTable('reservations')
+            ? Reservation::query()
+                ->where('tenant_id', $tid)
+                ->where('reserved_at', '>=', Carbon::now())
+                ->where('status', '!=', 'cancelled')
+                ->orderBy('reserved_at')
+                ->limit(5)
+                ->get()
+                ->map(fn (Reservation $r) => [
+                    'id' => $r->id,
+                    'guest_name' => (string) $r->guest_name,
+                    'party_size' => (int) $r->party_size,
+                    'reserved_at' => optional($r->reserved_at)?->toIso8601String() ?? '',
+                    'status' => (string) $r->status,
+                    'href' => '/dashboard/reservations',
+                ])
+                ->all()
+            : [];
+
+        $eventsUpcoming = Schema::hasTable('cafe_events')
+            ? CafeEvent::query()
+                ->where('tenant_id', $tid)
+                ->where('is_active', true)
+                ->where(function ($q) {
+                    $q->whereNull('ends_at')->orWhere('ends_at', '>=', Carbon::now());
+                })
+                ->count()
+            : 0;
+        $eventBookingsPending = Schema::hasTable('event_bookings')
+            ? EventBooking::query()
+                ->where('status', 'pending')
+                ->whereHas('event', fn ($q) => $q->where('tenant_id', $tid))
+                ->count()
+            : 0;
+
+        $gallery = app(ModuleSettingsService::class)->get(
+            $tid,
+            'cafe',
+            'gallery',
+            ModuleSettingsService::cafeGalleryDefaults(),
+        );
+        $galleryCount = is_array($gallery['images'] ?? null) ? count($gallery['images']) : 0;
+
+        $feedbackRecent = Schema::hasTable('product_feedback')
+            ? ProductFeedback::query()
+                ->where('tenant_id', $tid)
+                ->orderByDesc('id')
+                ->limit(5)
+                ->get()
+                ->map(function (ProductFeedback $f) {
+                    $name = Product::query()->where('id', $f->product_id)->value('name');
+
+                    return [
+                        'id' => $f->id,
+                        'product_id' => $f->product_id,
+                        'product_name' => (string) ($name ?: '—'),
+                        'rating' => (int) ($f->rating ?? 0),
+                        'comment' => (string) ($f->comment ?? ''),
+                        'created_at' => optional($f->created_at)?->toIso8601String() ?? '',
+                        'href' => '/dashboard/inbox',
+                    ];
+                })
+                ->all()
+            : [];
+        $feedbackCount = Schema::hasTable('product_feedback')
+            ? ProductFeedback::query()->where('tenant_id', $tid)->count()
+            : 0;
+
+        $popular = Schema::hasTable('product_likes')
+            ? ProductLike::query()
+                ->select('product_id', DB::raw('count(*) as likes_count'))
+                ->where('tenant_id', $tid)
+                ->groupBy('product_id')
+                ->orderByDesc('likes_count')
+                ->limit(5)
+                ->get()
+                ->map(function ($row) {
+                    $p = Product::query()->find($row->product_id);
+
+                    return [
+                        'product_id' => (int) $row->product_id,
+                        'name' => (string) ($p?->name ?: '—'),
+                        'likes_count' => (int) $row->likes_count,
+                        'image_url' => (string) ($p?->image_url ?: $p?->cover_image_url ?: ''),
+                        'href' => '/dashboard/menu',
+                    ];
+                })
+                ->all()
+            : [];
+
+        // Fall back to top-sold menu items this month when likes are empty.
+        if ($popular === []) {
+            $fromTs = Carbon::now()->startOfMonth()->timestamp;
+            $toTs = Carbon::now()->endOfMonth()->timestamp;
+            try {
+                $report = $this->reports->buildReport($tid, $fromTs, $toTs, 'day', OrderReports::salesStatuses());
+                $popular = array_map(function ($row) use ($tid) {
+                    $pid = (int) ($row['product_id'] ?? $row['id'] ?? 0);
+                    $p = $pid ? Product::query()->where('tenant_id', $tid)->find($pid) : null;
+
+                    return [
+                        'product_id' => $pid,
+                        'name' => (string) ($row['name'] ?? $p?->name ?: '—'),
+                        'likes_count' => (int) ($row['quantity'] ?? 0),
+                        'metric' => 'sold',
+                        'image_url' => (string) ($p?->image_url ?: $p?->cover_image_url ?: ''),
+                        'href' => '/dashboard/menu',
+                    ];
+                }, array_slice($report['top_products'] ?? [], 0, 5));
+            } catch (\Throwable) {
+                $popular = [];
+            }
+        }
+
+        $recentOrders = Order::query()
+            ->where('tenant_id', $tid)
+            ->with(['user:id,name,email', 'items'])
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get()
+            ->map(fn (Order $o) => $this->orderRow($o, $locale))
+            ->all();
+
+        return [
+            'currency' => $currency,
+            'today' => [
+                'orders' => $ordersToday,
+                'revenue_minor' => $revenueToday,
+                'reservations' => $reservationsToday,
+            ],
+            'kitchen' => [
+                'open' => $kitchenOpen,
+                'by_status' => $kitchenByStatus,
+                'preview' => $kitchenPreview,
+                'href' => '/dashboard/kitchen',
+            ],
+            'menu' => [
+                'items_published' => $menuItems,
+                'items_draft' => $menuItemsDraft,
+                'menus_active' => $menusActive,
+                'href' => '/dashboard/menu',
+            ],
+            'tables' => [
+                'total' => $tablesTotal,
+                'active' => $tablesActive,
+                'href' => '/dashboard/qr',
+            ],
+            'branches' => [
+                'count' => $branches,
+                'href' => '/dashboard/qr',
+            ],
+            'reservations' => [
+                'today' => $reservationsToday,
+                'pending' => $reservationsPending,
+                'upcoming' => $upcomingReservations,
+                'href' => '/dashboard/reservations',
+            ],
+            'events' => [
+                'upcoming' => $eventsUpcoming,
+                'bookings_pending' => $eventBookingsPending,
+                'href' => '/dashboard/reservations',
+            ],
+            'gallery' => [
+                'count' => $galleryCount,
+                'href' => '/dashboard/gallery',
+            ],
+            'engagement' => [
+                'feedback_count' => $feedbackCount,
+                'recent_feedback' => $feedbackRecent,
+                'popular_items' => $popular,
+                'href' => '/dashboard/inbox',
+            ],
+            'recent_orders' => $recentOrders,
+            'shortcuts' => [
+                ['key' => 'kitchen', 'href' => '/dashboard/kitchen'],
+                ['key' => 'menu', 'href' => '/dashboard/menu'],
+                ['key' => 'reservations', 'href' => '/dashboard/reservations'],
+                ['key' => 'qr', 'href' => '/dashboard/qr'],
+                ['key' => 'inbox', 'href' => '/dashboard/inbox'],
+                ['key' => 'gallery', 'href' => '/dashboard/gallery'],
+                ['key' => 'hours', 'href' => '/dashboard/hours'],
+                ['key' => 'venue', 'href' => '/dashboard/venue'],
+            ],
+        ];
+    }
+
     private function moduleEnabled(int $tid, string $slug): bool
     {
+        if ($slug === 'dashboard' || $slug === 'core') {
+            return true;
+        }
+
+        // Submodule activations are the site-type source of truth (cafe/commerce often
+        // appear here before TenantModule rows are fully synced / licensed).
+        if (Schema::hasTable('tenant_submodule_activations')) {
+            $subOn = TenantSubmoduleActivation::query()
+                ->where('tenant_id', $tid)
+                ->where('module_slug', $slug)
+                ->where('enabled', true)
+                ->exists();
+            if ($subOn) {
+                return true;
+            }
+        }
+
         $row = TenantModule::query()
             ->where('tenant_id', $tid)
             ->where('module_slug', $slug)
             ->first();
 
-        return $row ? (bool) $row->enabled : $slug === 'dashboard' || $slug === 'core';
+        return $row ? (bool) $row->enabled : false;
     }
 
     private function changePct(int $current, int $previous): ?float

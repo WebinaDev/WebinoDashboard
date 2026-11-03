@@ -19,10 +19,21 @@ const PREFERRED = [
   "/settings",
 ]
 
+const CAFE_PREFERRED = [
+  "/kitchen",
+  "/menu",
+  "/reservations",
+  "/qr",
+  "/inbox",
+  "/gallery",
+  "/orders",
+  "/hours",
+]
+
 type QuickLink = { title: string; url: string; icon: NavMainItem["icon"] }
 
 /** ERP quick-link grid: permission-aware (built from the visible nav). */
-export function HomeQuickLinks() {
+export function HomeQuickLinks({ preferCafe = false }: { preferCafe?: boolean }) {
   const t = useTranslations("shell.home")
   const { navSections } = useDashboardNav()
 
@@ -35,8 +46,9 @@ export function HomeQuickLinks() {
       }
     }
   }
+  const preferred = preferCafe ? CAFE_PREFERRED : PREFERRED
   const picked: QuickLink[] = []
-  for (const suffix of PREFERRED) {
+  for (const suffix of preferred) {
     const hit = all.find((l) => l.url === `${DASHBOARD_BASE}${suffix}` && !picked.includes(l))
     if (hit) picked.push(hit)
   }
