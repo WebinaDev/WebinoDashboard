@@ -154,6 +154,17 @@ final class TenantActivationService
                 );
             }
 
+            // Preserve ERP opt-in modules (e.g. poetry) that are already enabled+licensed
+            // and are outside the site-type profile so re-apply does not strip them.
+            $profileModuleSet = array_fill_keys($profileParents, true);
+            $preservedOptIns = TenantSubmoduleActivation::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('enabled', true)
+                ->where('licensed', true)
+                ->get(['module_slug', 'submodule_slug'])
+                ->filter(fn (TenantSubmoduleActivation $row) => ! isset($profileModuleSet[$row->module_slug]))
+                ->values();
+
             TenantSubmoduleActivation::query()
                 ->where('tenant_id', $tenant->id)
                 ->update(['enabled' => false]);
@@ -189,6 +200,25 @@ final class TenantActivationService
                 [$module, $sub] = explode('.', $key, 2);
                 TenantSubmoduleActivation::query()->updateOrCreate(
                     ['tenant_id' => $tenant->id, 'module_slug' => $module, 'submodule_slug' => $sub],
+                    ['enabled' => true, 'licensed' => true]
+                );
+            }
+
+            foreach ($preservedOptIns as $row) {
+                if (! $knownModules->has($row->module_slug)) {
+                    self::ensureDashboardModules([$row->module_slug]);
+                    $knownModules->put($row->module_slug, true);
+                }
+                TenantSubmoduleActivation::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenant->id,
+                        'module_slug' => $row->module_slug,
+                        'submodule_slug' => $row->submodule_slug,
+                    ],
+                    ['enabled' => true, 'licensed' => true]
+                );
+                TenantModule::query()->updateOrCreate(
+                    ['tenant_id' => $tenant->id, 'module_slug' => $row->module_slug],
                     ['enabled' => true, 'licensed' => true]
                 );
             }
