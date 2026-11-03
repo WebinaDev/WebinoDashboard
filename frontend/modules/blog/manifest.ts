@@ -31,8 +31,8 @@ export const blogManifest: ModuleManifest = {
       capability: "content.manage",
     },
     {
-      // Poetry admin (poems, stanzas/refrains, taxonomies, Telegram import). Poetry is a core backend
-      // feature (/api/v1/poetry/*, content.manage); visibility is gated in isSubmoduleEnabled (blog.poetry).
+      // Poetry admin (poems, stanzas/refrains, taxonomies, Telegram import). Opt-in only —
+      // gated by isSubmoduleEnabled(blog.poetry) / poetry.* activations from ERP addon.
       path: "poetry",
       submodule: "poetry",
       page: "poetry",

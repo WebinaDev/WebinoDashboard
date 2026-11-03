@@ -80,13 +80,18 @@ export function isSubmoduleEnabled(
     return enabled("cafe", "item") || enabled("cafe", "menu")
   }
 
-  // Poetry has no activation row of its own: it ships with the backend and is shown to blog and
-  // resume sites (blog posts enabled, or any resume submodule enabled).
+  // Poetry is ERP opt-in only. Never imply it from blog.posts or resume — that made
+  // «شعر و ادبیات» appear on every storefront/resume site. Require blog.poetry or any
+  // enabled poetry.* activation (seeded when the poetry addon is licensed).
   if (moduleSlug === "blog" && submoduleSlug === "poetry") {
     return (
       enabled("blog", "poetry") ||
-      enabled("blog", "posts") ||
-      activations.some((a) => a.module_slug === "resume" && a.enabled)
+      activations.some(
+        (a) =>
+          a.module_slug === "poetry" &&
+          a.enabled &&
+          (ignoreLicense || a.licensed !== false),
+      )
     )
   }
 

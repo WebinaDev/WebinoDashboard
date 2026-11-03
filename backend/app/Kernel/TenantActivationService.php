@@ -66,6 +66,38 @@ final class TenantActivationService
                 ['enabled' => $enabled, 'licensed' => true, 'synced_at' => now()]
             );
 
+            // Opt-in addons (e.g. poetry) are outside SiteTypeProfiles, so applySiteType
+            // never seeds their submodule rows. Create them from the catalog when licensing.
+            $subSlugs = DB::table('submodules')->where('module_slug', $slug)->pluck('slug');
+            if ($subSlugs->isEmpty() && $slug === 'poetry') {
+                $subSlugs = collect(['works', 'poets', 'collections']);
+            }
+            foreach ($subSlugs as $subSlug) {
+                if (! is_string($subSlug) || $subSlug === '') {
+                    continue;
+                }
+                TenantSubmoduleActivation::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenant->id,
+                        'module_slug' => $slug,
+                        'submodule_slug' => $subSlug,
+                    ],
+                    ['enabled' => $enabled, 'licensed' => true]
+                );
+            }
+
+            // Blog admin route for poetry is blog.poetry (see blog manifest); keep it in sync.
+            if ($slug === 'poetry') {
+                TenantSubmoduleActivation::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenant->id,
+                        'module_slug' => 'blog',
+                        'submodule_slug' => 'poetry',
+                    ],
+                    ['enabled' => $enabled, 'licensed' => true]
+                );
+            }
+
             TenantSubmoduleActivation::query()
                 ->where('tenant_id', $tenant->id)
                 ->where('module_slug', $slug)
