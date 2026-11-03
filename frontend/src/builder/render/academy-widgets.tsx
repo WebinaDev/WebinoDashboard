@@ -141,7 +141,17 @@ export function CourseGridWidget({ widget }: { widget: WidgetNode }) {
   const source = propStr(p, "source", "live")
   const count = Math.max(1, Math.min(24, propNum(p, "count", 6)))
   const live = useAcademyCourses(source === "live", count)
-  const manual = parseRows(p.items, ["title", "level", "meta", "price", "image", "href", "badge"]).filter((r) => r.title)
+  const manual: CourseRow[] = parseRows(p.items, ["title", "level", "meta", "price", "image", "href", "badge"])
+    .filter((r) => r.title)
+    .map((r) => ({
+      title: r.title,
+      level: r.level || "",
+      meta: r.meta || "",
+      price: r.price || "",
+      image: r.image || "",
+      href: r.href || "/academy",
+      badge: r.badge || "",
+    }))
   const detail = propStr(p, "detailHref", "/academy/{slug}")
   const rows: CourseRow[] =
     source === "live" && live && live.length
