@@ -103,6 +103,24 @@
   color: var(--wax-ink);
 }
 
+.wax-ocean-deep {
+  --wax-ink: #f4fafc;
+  --wax-muted: #9ec4d4;
+  --wax-line: rgba(255, 255, 255, 0.14);
+  --wax-surface: #0b1f33;
+  --wax-soft: #134a5c;
+  --wax-accent: #2bb0c7;
+  --wax-accent-2: #7ed4e2;
+  --wax-deep: #061018;
+  --wax-foam: #0e3144;
+  --wax-glow: color-mix(in srgb, #2bb0c7 30%, transparent);
+  background:
+    radial-gradient(ellipse 80% 60% at 90% 0%, color-mix(in srgb, #2bb0c7 40%, transparent), transparent 55%),
+    radial-gradient(ellipse 45% 35% at 10% 90%, color-mix(in srgb, #1a7a8c 30%, transparent), transparent 50%),
+    radial-gradient(120% 80% at 20% 0%, #134a5c 0%, #0b1f33 55%, #061018 100%);
+  color: var(--wax-ink);
+}
+
 .wax-ocean.wax-ink,
 .wax.wax-ink.wax-ocean {
   --wax-accent: #2bb0c7;

@@ -163,7 +163,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         {footer ? (
           <StorefrontDocument document={footer} runtime={{ siteName: tenantName, themeSlug, lang: pageLang?.lang ?? null }} context={themeContext} />
         ) : (
-          <SiteFooter siteName={tenantName} />
+          <SiteFooter siteName={tenantName} branding={branding} />
         )}
         <SiteJsonLd />
         <CustomCodeSlot entries={globals?.customCode} location="body_end" path={requestPath} />
