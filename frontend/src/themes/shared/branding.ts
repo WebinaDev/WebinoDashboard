@@ -118,11 +118,16 @@ export function resolveBrandPalette(
 function shellIsolationCss(branding?: Partial<SiteBranding> | null): string {
   const p = resolveBrandPalette(branding)
   const dark = branding?.appearance?.dark_mode_default === true
-  const bg = dark ? (isLightHex(p.bg) ? "#0b1220" : p.bg) : p.bg
-  const surface = dark ? (isLightHex(p.surface) ? "#141c2b" : p.surface) : p.surface
-  const text = dark && isLightHex(p.text) ? "#e8eef7" : p.text
-  const muted = dark && isLightHex(p.muted) ? "#9aa8bd" : p.muted
-  const border = dark && isLightHex(p.border) ? "#243044" : p.border
+  const bgHex = p.bg || PARISMA_PALETTE.bg
+  const surfaceHex = p.surface || PARISMA_PALETTE.surface
+  const textHex = p.text || PARISMA_PALETTE.text
+  const mutedHex = p.muted || PARISMA_PALETTE.muted
+  const borderHex = p.border || PARISMA_PALETTE.border!
+  const bg = dark ? (isLightHex(bgHex) ? "#0b1220" : bgHex) : bgHex
+  const surface = dark ? (isLightHex(surfaceHex) ? "#141c2b" : surfaceHex) : surfaceHex
+  const text = dark && isLightHex(textHex) ? "#e8eef7" : textHex
+  const muted = dark && isLightHex(mutedHex) ? "#9aa8bd" : mutedHex
+  const border = dark && isLightHex(borderHex) ? "#243044" : borderHex
   const footer = p.footer ?? PARISMA_PALETTE.footer!
   const footerBg = dark && isLightHex(footer) ? surface : footer
   const primaryFg = isLightHex(p.primary) ? "#111827" : "#ffffff"
