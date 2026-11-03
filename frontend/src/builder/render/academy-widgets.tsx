@@ -103,8 +103,10 @@ function useAcademyCourses(enabled: boolean, count: number) {
 
 export function AcademyHeroWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const layout = propStr(p, "layout", "split")
   const image = safeMedia(propStr(p, "image"))
+  const requested = propStr(p, "layout", "split")
+  // Without a portrait, split leaves a dead half-viewport — fall back to centered full-bleed copy.
+  const layout = requested === "split" && !image ? "centered" : requested
   const stats = parseRows(p.stats, ["value", "label"]).filter((r) => r.value || r.label)
   return (
     <section className={shell(p, "wax-hero")} style={sectionBg(p)}>
