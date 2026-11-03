@@ -140,7 +140,7 @@ export function SeoSettingsPanel() {
 
   const patch = (partial: Partial<SeoSettings>) => {
     if (!draft) return
-    setDraft({ ...draft, ...partial })
+    setDraft({ ...draft, ...partial } as SeoSettings)
   }
 
   const homeSerpTitle = useMemo(() => {
