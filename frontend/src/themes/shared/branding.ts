@@ -131,7 +131,8 @@ function shellIsolationCss(branding?: Partial<SiteBranding> | null): string {
   const footer = p.footer ?? PARISMA_PALETTE.footer!
   const footerBg = dark && isLightHex(footer) ? surface : footer
   const primaryFg = isLightHex(p.primary) ? "#111827" : "#ffffff"
-  return `.sf-shell{
+  // Beat `.dark [data-accent=…]` surface tokens (0,2,0) so public shells keep brand palette.
+  return `.sf-shell,.dark .sf-shell,.dark[data-accent] .sf-shell,html.dark .sf-shell{
   color-scheme:${dark ? "dark" : "light"};
   --color-background:${bg};
   --color-foreground:${text};
