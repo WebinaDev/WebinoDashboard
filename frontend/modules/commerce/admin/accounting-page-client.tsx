@@ -395,8 +395,11 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
   })
 
   const testHesabfa = useMutation({
-    mutationFn: () => api("/api/v1/accounting/integrations/hesabfa/test", { method: "POST" }),
-    onSuccess: (res: { ok?: boolean; message?: string }) => {
+    mutationFn: () =>
+      api<{ ok?: boolean; message?: string }>("/api/v1/accounting/integrations/hesabfa/test", {
+        method: "POST",
+      }),
+    onSuccess: (res) => {
       if (res?.ok) toast.success(tAcc("integration_ok"))
       else toast.error(res?.message || tAcc("integration_fail"))
     },
@@ -412,8 +415,8 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
 
   const pushHesabfa = useMutation({
     mutationFn: (invoiceId: number) =>
-      api(`/api/v1/accounting/integrations/hesabfa/invoices/${invoiceId}/push`, { method: "POST" }),
-    onSuccess: (res: { ok?: boolean; message?: string }) => {
+      api<{ ok?: boolean; message?: string }>(`/api/v1/accounting/integrations/hesabfa/invoices/${invoiceId}/push`, { method: "POST" }),
+    onSuccess: (res) => {
       if (res?.ok === false) toast.error(res.message || tAcc("integration_fail"))
       else toast.success(tAcc("push_hesabfa"))
       void qc.invalidateQueries({ queryKey: ["accounting"] })
