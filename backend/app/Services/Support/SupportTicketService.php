@@ -63,8 +63,12 @@ final class SupportTicketService
         }
 
         $resolveDue = null;
+        $firstDue = null;
         if ($department?->sla_resolve_hours) {
             $resolveDue = Carbon::now()->addHours((int) $department->sla_resolve_hours);
+        }
+        if ($department?->sla_first_response_hours) {
+            $firstDue = Carbon::now()->addHours((int) $department->sla_first_response_hours);
         }
 
         $ticket = SupportTicket::query()->create([
@@ -83,6 +87,7 @@ final class SupportTicketService
             'form_values' => $formValues,
             'tags' => $attrs['tags'] ?? null,
             'resolve_due_at' => $resolveDue,
+            'first_response_due_at' => $firstDue,
         ]);
 
         if ($body !== '') {
@@ -103,6 +108,9 @@ final class SupportTicketService
             'assignee_id' => $ticket->assignee_id,
         ]);
 
+        app(TicketSlaService::class)->applyOnCreate($ticket);
+        $ticket->refresh();
+
         if ($assigneeId && data_get($settings, 'assignment.notify_assignee')) {
             UserNotification::query()->create([
                 'tenant_id' => $tenantId,
@@ -114,6 +122,8 @@ final class SupportTicketService
                 'created_at' => now(),
             ]);
         }
+
+        app(TicketAutomationEngine::class)->dispatch($tenantId, 'ticket.created', $ticket);
 
         return $ticket->fresh(['user', 'department', 'assignee', 'replies.user']);
     }
@@ -139,6 +149,11 @@ final class SupportTicketService
                 'created_at' => now(),
             ]);
         }
+
+        app(TicketAutomationEngine::class)->dispatch((int) $ticket->tenant_id, 'ticket.assigned', $ticket, [
+            'from' => $from,
+            'to' => $assigneeId,
+        ]);
 
         return $ticket;
     }
@@ -167,7 +182,32 @@ final class SupportTicketService
             'note' => $note,
         ]);
 
+        app(TicketAutomationEngine::class)->dispatch((int) $ticket->tenant_id, 'ticket.referred', $ticket, [
+            'from_department_id' => $fromDept,
+            'to_department_id' => $departmentId,
+        ]);
+
         return $ticket;
+    }
+
+    public function onStatusChanged(SupportTicket $ticket, string $from, ?int $actorId = null): void
+    {
+        $this->recordEvent($ticket, $actorId, 'status_changed', [
+            'from' => $from,
+            'to' => $ticket->status,
+        ]);
+        if ($ticket->status === 'closed') {
+            app(TicketSlaService::class)->markResolved($ticket);
+            app(CsatCampaignService::class)->queueOnResolve($ticket);
+            app(TicketAutomationEngine::class)->dispatch((int) $ticket->tenant_id, 'ticket.closed', $ticket, [
+                'from' => $from,
+            ]);
+        }
+        app(TicketAutomationEngine::class)->dispatch((int) $ticket->tenant_id, 'ticket.status_changed', $ticket, [
+            'from' => $from,
+            'to' => $ticket->status,
+        ]);
+        app(TicketAutomationEngine::class)->dispatch((int) $ticket->tenant_id, 'ticket.updated', $ticket);
     }
 
     /** @param  array<string, mixed>  $payload */
@@ -185,11 +225,7 @@ final class SupportTicketService
 
     public function markFirstStaffResponse(SupportTicket $ticket): void
     {
-        if ($ticket->first_response_at) {
-            return;
-        }
-        $ticket->first_response_at = Carbon::now();
-        $ticket->save();
+        app(TicketSlaService::class)->markFirstResponse($ticket);
     }
 
     private function roundRobinAssignee(int $tenantId, int $departmentId): ?int

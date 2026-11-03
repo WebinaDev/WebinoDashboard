@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { quietApi } from "@/builder/storefront/session"
 
-import { PopupCard, type PopupContent } from "@webina/ui"
+import { PopupCard, type PopupContent } from "@/components/marketing/PopupCard"
 
 type PublicPopup = {
   id: number

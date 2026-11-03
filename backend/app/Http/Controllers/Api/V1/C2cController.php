@@ -58,7 +58,11 @@ class C2cController extends Controller
             ->where('tenant_id', $tid)
             ->where(function ($w) {
                 $w->where('payment_tender', 'card_to_card')
-                    ->orWhere('payment_provider', 'card_to_card');
+                    ->orWhere('payment_provider', 'card_to_card')
+                    // Offline pay-link receipts awaiting staff review.
+                    ->orWhere(function ($pay) {
+                        $pay->where('is_pay_link', true)->whereNotNull('c2c_receipt_url');
+                    });
             })
             ->with(['user:id,name,email']);
         app(OrderAccess::class)->scopeOwned($q, $request->user());
@@ -94,12 +98,13 @@ class C2cController extends Controller
 
         $isCard = (string) ($row->payment_tender ?? '') === 'card_to_card'
             || (string) ($row->payment_provider ?? '') === 'card_to_card';
+        $isPayLinkReceipt = (bool) $row->is_pay_link && filled($row->c2c_receipt_url);
         $confirmable = ['pending_payment', 'awaiting_gateway', 'on_hold'];
         $target = $data['action'] === 'approve' ? 'paid' : 'failed';
-        if (! $isCard || ! in_array((string) $row->status, $confirmable, true) || ! OrderStatusTransitions::canTransition((string) $row->status, $target)) {
+        if ((! $isCard && ! $isPayLinkReceipt) || ! in_array((string) $row->status, $confirmable, true) || ! OrderStatusTransitions::canTransition((string) $row->status, $target)) {
             return response()->json([
-                'message' => 'Only a card-to-card order waiting for confirmation can be decided.',
-                'errors' => ['action' => ['Only a card-to-card order waiting for confirmation can be decided.']],
+                'message' => 'Only a card-to-card / offline pay-link order waiting for confirmation can be decided.',
+                'errors' => ['action' => ['Only a card-to-card / offline pay-link order waiting for confirmation can be decided.']],
             ], 422);
         }
 

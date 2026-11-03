@@ -17,6 +17,8 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
+import { AutomationPanel, CsatPanel, KnowledgePanel, SlaPanel } from "./tickets-advanced-panels"
+
 type FormField = {
   key: string
   type: string
@@ -197,6 +199,10 @@ export default function TicketsSettingsPage(_props: { route: ResolvedAdminRoute 
           <TabsTrigger value="forms">{t("tab_forms")}</TabsTrigger>
           <TabsTrigger value="assignment">{t("tab_assignment")}</TabsTrigger>
           <TabsTrigger value="canned">{t("tab_canned")}</TabsTrigger>
+          <TabsTrigger value="automation">{t("tab_automation")}</TabsTrigger>
+          <TabsTrigger value="sla">{t("tab_sla")}</TabsTrigger>
+          <TabsTrigger value="csat">{t("tab_csat")}</TabsTrigger>
+          <TabsTrigger value="knowledge">{t("tab_knowledge")}</TabsTrigger>
           <TabsTrigger value="general">{t("tab_general")}</TabsTrigger>
         </TabsList>
 
@@ -610,6 +616,19 @@ export default function TicketsSettingsPage(_props: { route: ResolvedAdminRoute 
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="automation">
+          <AutomationPanel />
+        </TabsContent>
+        <TabsContent value="sla">
+          <SlaPanel />
+        </TabsContent>
+        <TabsContent value="csat">
+          <CsatPanel />
+        </TabsContent>
+        <TabsContent value="knowledge">
+          <KnowledgePanel />
         </TabsContent>
       </Tabs>
     </PageShell>

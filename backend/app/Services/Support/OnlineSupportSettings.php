@@ -47,6 +47,7 @@ final class OnlineSupportSettings
             ],
             'channels' => [
                 'ticket' => ['enabled' => true],
+                'live_chat' => ['enabled' => true],
                 'telegram' => ['enabled' => false, 'url' => ''],
                 'bale' => ['enabled' => false, 'url' => ''],
                 'whatsapp' => ['enabled' => false, 'url' => ''],
@@ -97,7 +98,7 @@ final class OnlineSupportSettings
             is_array($hide) ? $hide : []
         ))));
 
-        foreach (['ticket', 'telegram', 'bale', 'whatsapp', 'phone', 'email'] as $ch) {
+        foreach (['ticket', 'live_chat', 'telegram', 'bale', 'whatsapp', 'phone', 'email'] as $ch) {
             data_set($next, "channels.$ch.enabled", (bool) data_get($next, "channels.$ch.enabled", false));
         }
         // Ticket channel on by default when widget enabled unless explicitly off.

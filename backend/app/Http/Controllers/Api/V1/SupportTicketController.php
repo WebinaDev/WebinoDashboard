@@ -143,6 +143,11 @@ class SupportTicketController extends Controller
         if (! $isInternal) {
             $this->tickets->markFirstStaffResponse($row);
             $row->update(['status' => 'answered']);
+            app(\App\Services\Support\TicketAutomationEngine::class)->dispatch(
+                (int) $row->tenant_id,
+                'ticket.replied.staff',
+                $row,
+            );
             \App\Services\Bots\Engine\BotNotifier::ticketReply($row, $body);
             if ($row->user_id) {
                 UserNotification::query()->create([
@@ -175,6 +180,11 @@ class SupportTicketController extends Controller
         } else {
             $row->touch();
         }
+        app(\App\Services\Support\TicketAutomationEngine::class)->dispatch(
+            (int) $row->tenant_id,
+            'ticket.replied.customer',
+            $row,
+        );
 
         return response()->json(['data' => $this->mapDetail($row->fresh(['user', 'department', 'replies.user']), false)]);
     }
@@ -215,6 +225,8 @@ class SupportTicketController extends Controller
         }
 
         $dirty = false;
+        $prevStatus = $row->status;
+        $prevPriority = $row->priority;
         foreach (['status', 'priority', 'department_id', 'tags'] as $field) {
             if (array_key_exists($field, $data) && $field !== 'assignee_id') {
                 if ($field === 'department_id' && isset($data['refer_department_id'])) {
@@ -236,6 +248,17 @@ class SupportTicketController extends Controller
                 'priority' => $row->priority,
                 'department_id' => $row->department_id,
             ]);
+            if (isset($data['status']) && $data['status'] !== $prevStatus) {
+                $this->tickets->onStatusChanged($row, (string) $prevStatus, (int) $request->user()->id);
+            }
+            if (isset($data['priority']) && $data['priority'] !== $prevPriority) {
+                app(\App\Services\Support\TicketAutomationEngine::class)->dispatch(
+                    (int) $row->tenant_id,
+                    'ticket.priority_changed',
+                    $row,
+                    ['from' => $prevPriority, 'to' => $row->priority],
+                );
+            }
         }
 
         if (array_key_exists('assignee_id', $data) && $row->erp_ticket_id) {
@@ -543,6 +566,12 @@ class SupportTicketController extends Controller
             'csat_at' => optional($t->csat_at)?->toIso8601String(),
             'resolve_due_at' => optional($t->resolve_due_at)?->toIso8601String(),
             'first_response_at' => optional($t->first_response_at)?->toIso8601String(),
+            'first_response_due_at' => optional($t->first_response_due_at)?->toIso8601String(),
+            'sla_breached_at' => optional($t->sla_breached_at)?->toIso8601String(),
+            'sla_breach_type' => $t->sla_breach_type,
+            'sla_policy_id' => $t->sla_policy_id,
+            'resolved_at' => optional($t->resolved_at)?->toIso8601String(),
+            'csat_comment' => $t->csat_comment,
         ];
         if ($staff) {
             $row['user_name'] = $t->user?->name ?? $t->guest_name;

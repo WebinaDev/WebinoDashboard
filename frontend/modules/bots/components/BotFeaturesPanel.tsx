@@ -29,8 +29,16 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
   const [autoBlog, setAutoBlog] = useState(false)
   const [syncEdits, setSyncEdits] = useState(false)
   const [autoDelay, setAutoDelay] = useState(0)
-  const [forceJoin, setForceJoin] = useState({ enabled: false, channel_id: "", channel_link: "", message: "", check_btn: "" })
+  const [forceJoin, setForceJoin] = useState({
+    enabled: false,
+    mode: "mandatory" as "mandatory" | "optional",
+    channel_id: "",
+    channel_link: "",
+    message: "",
+    check_btn: "",
+  })
   const [webappUrl, setWebappUrl] = useState("")
+  const [blogTpl, setBlogTpl] = useState("")
   const [widgetGreeting, setWidgetGreeting] = useState("")
   const [widgetPosition, setWidgetPosition] = useState("bottom-left")
   const [widgetShowOnMobile, setWidgetShowOnMobile] = useState(true)
@@ -54,9 +62,11 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
     setAutoBlog(Boolean(ch.auto_new_blog))
     setSyncEdits(Boolean(ch.sync_edits))
     setAutoDelay(Number(ch.auto_delay_minutes ?? 0))
+    setBlogTpl(String(ch.blog_template ?? ""))
     const fj = (m.force_join ?? {}) as Record<string, unknown>
     setForceJoin({
       enabled: Boolean(fj.enabled ?? m.addons?.force_join),
+      mode: fj.mode === "optional" ? "optional" : "mandatory",
       channel_id: String(fj.channel_id ?? ""),
       channel_link: String(fj.channel_link ?? ""),
       message: String(fj.message ?? ""),
@@ -88,6 +98,7 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
             channel: {
               channel_id: channelId.trim(),
               template: channelTpl,
+              blog_template: blogTpl,
               auto_new_products: autoNew,
               auto_new_blog: autoBlog,
               sync_edits: syncEdits,
@@ -95,6 +106,7 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
             },
             force_join: {
               enabled: forceJoin.enabled,
+              mode: forceJoin.mode,
               channel_id: forceJoin.channel_id,
               channel_link: forceJoin.channel_link,
               message: forceJoin.message,
@@ -168,8 +180,16 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={autoBlog} onCheckedChange={(v) => setAutoBlog(Boolean(v))} />
             {t("features.autoBlog")}
-            <span className="text-muted-foreground text-xs">({t("hub.uiOnly")})</span>
           </label>
+          <div className="space-y-1">
+            <Label>{t("features.blogTpl")}</Label>
+            <textarea
+              className={textareaClass}
+              value={blogTpl}
+              onChange={(e) => setBlogTpl(e.target.value)}
+              placeholder={"📝 {title}\n\n{excerpt}"}
+            />
+          </div>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={syncEdits} onCheckedChange={(v) => setSyncEdits(Boolean(v))} />
             {t("engine.syncEdits")}
@@ -181,7 +201,7 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
         </div>
       </BotSection>
 
-      <BotSection title={t("features.forceJoinTitle")} description={t("features.forceJoinHint")} badge={t("hub.uiOnly")}>
+      <BotSection title={t("features.forceJoinTitle")} description={t("features.forceJoinHint")}>
         <div className="grid max-w-xl gap-3">
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
@@ -194,6 +214,19 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
             />
             {t("features.forceJoinEnabled")}
           </label>
+          <div className="space-y-1">
+            <Label>{t("features.forceJoinMode")}</Label>
+            <select
+              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+              value={forceJoin.mode}
+              onChange={(e) =>
+                setForceJoin((p) => ({ ...p, mode: e.target.value === "optional" ? "optional" : "mandatory" }))
+              }
+            >
+              <option value="mandatory">{t("features.forceJoinModes.mandatory")}</option>
+              <option value="optional">{t("features.forceJoinModes.optional")}</option>
+            </select>
+          </div>
           <Input
             dir="ltr"
             placeholder={t("features.forceJoinChannelId")}
@@ -220,7 +253,7 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
         </div>
       </BotSection>
 
-      <BotSection title={t("features.webappTitle")} description={t("features.webappHint")} badge={t("hub.uiOnly")}>
+      <BotSection title={t("features.webappTitle")} description={t("features.webappHint")}>
         <div className="grid max-w-xl gap-3">
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
@@ -230,6 +263,7 @@ export function BotFeaturesPanel({ provider }: { provider: LiveBotProvider }) {
             {t("addons.webapp")}
           </label>
           <Input dir="ltr" value={webappUrl} onChange={(e) => setWebappUrl(e.target.value)} placeholder="https://…" />
+          <p className="text-muted-foreground text-xs">{t("features.webappLiveHint")}</p>
         </div>
       </BotSection>
 

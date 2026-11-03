@@ -9,14 +9,13 @@ use App\Services\Bots\BotClientFactory;
 use App\Services\Payments\BalePayService;
 
 /**
- * Conversational router for Bale & Telegram webhooks
- * (port of WP bale-bot engine Router + MessageHandler + CallbackHandler; Telegram twin shares it).
+ * Conversational router for Bale & Telegram (webhook + polling).
  */
 final class BotEngine
 {
     public function handle(BotSetting $setting, array $update, ?BotClient $client = null): void
     {
-        $client ??= $setting->token ? BotClientFactory::make((string) $setting->provider, (string) $setting->token) : null;
+        $client ??= BotClientFactory::forSetting($setting);
         if (! empty($update['pre_checkout_query']) && $client) {
             app(BalePayService::class)->preCheckout((int) $setting->tenant_id, $client, (array) $update['pre_checkout_query']);
 
@@ -58,10 +57,30 @@ final class BotEngine
 
         $ctx = new BotContext($setting, $session, $client, $chatId, $from);
 
-        if ($callback) {
-            if ($client && ! empty($callback['id'])) {
+        // Force-join gate (before any other handling except membership callbacks).
+        $cbData = $callback ? (string) ($callback['data'] ?? '') : null;
+        if ($callback && $client && ! empty($callback['id'])) {
+            // Answer early so UI doesn't spin; force-join may still block.
+            if (! str_starts_with($cbData ?? '', 'fj:')) {
+                $client->call('answerCallbackQuery', ['callback_query_id' => (string) $callback['id']]);
+            } else {
                 $client->call('answerCallbackQuery', ['callback_query_id' => (string) $callback['id']]);
             }
+        }
+        $gate = new ForceJoinGate($ctx);
+        if (! $gate->allow($cbData)) {
+            return;
+        }
+        if ($callback && str_starts_with($cbData ?? '', 'fj:')) {
+            // Membership just cleared — continue into welcome for a clean UX.
+            if ($cbData === 'fj:check' || $cbData === 'fj:skip') {
+                $this->welcome($ctx);
+
+                return;
+            }
+        }
+
+        if ($callback) {
             $this->callback($ctx, (string) ($callback['data'] ?? ''));
 
             return;
@@ -77,12 +96,22 @@ final class BotEngine
         $shop = new ShopFlow($ctx);
         $addons = new AddonsFlow($ctx);
         $admin = new AdminFlow($ctx);
-        $menu = BotFlow::MENU;
+        $menuTexts = BotFlow::activeMenuTexts($ctx);
+        $hit = fn (string $key): bool => (new class($ctx) extends BotFlow
+        {
+            public function hit(string $key, string $text): bool
+            {
+                return $this->isMenuText($text, $key);
+            }
+        })->hit($key, $text);
 
         if ($text === '/start' || str_starts_with($text, '/start ')) {
-            $ctx->setState('', []);
-            $this->welcome($ctx);
             $payload = trim(substr($text, 6));
+            $ctx->setState('', []);
+            if ($payload !== '') {
+                $addons->consumeStartPayload($payload);
+            }
+            $this->welcome($ctx);
             if (str_starts_with($payload, 'pay_') && $ctx->client) {
                 app(BalePayService::class)->sendInvoice($ctx->tenantId(), $ctx->client, $ctx->chatId, (int) substr($payload, 4));
             } elseif (str_starts_with($payload, 'p_')) {
@@ -94,10 +123,11 @@ final class BotEngine
             return;
         }
 
-        // Contact share outside checkout = account linking.
+        // Contact share outside checkout = account linking (+ referral settle).
         if (! empty($message['contact']) && $ctx->state() !== 'checkout_contact') {
             if ($user = $shop->linkContact((array) $message['contact'])) {
                 $ctx->setState('', []);
+                $addons->settleReferralForUser($user);
                 (new class($ctx) extends BotFlow
                 {
                     public function ok(string $name): void
@@ -111,7 +141,7 @@ final class BotEngine
         }
 
         $state = $ctx->state();
-        $isMenu = in_array($text, $menu, true);
+        $isMenu = in_array($text, $menuTexts, true);
         if ($state !== '' && ! $isMenu) {
             if (str_starts_with($state, 'checkout_') && $shop->handleCheckoutText($text, $message)) {
                 return;
@@ -138,18 +168,39 @@ final class BotEngine
         }
 
         match (true) {
-            $text === $menu['store'] || $text === '/shop' => $shop->categories(),
-            $text === $menu['search'] || $text === '/search' => $this->askSearch($ctx),
-            $text === $menu['cart'] || $text === '/cart' => $shop->showCart(),
-            $text === $menu['orders'] || $text === '/orders' => $shop->orders(),
-            $text === $menu['account'] || $text === '/account' => $shop->account(),
-            ($text === $menu['faq'] || $text === '/faq') && $ctx->addon('faq') => $addons->faq(),
-            ($text === $menu['support'] || $text === '/support') && $ctx->addon('tickets') => $addons->support(),
-            ($text === $menu['loyalty'] || $text === '/points') && $ctx->addon('loyalty') => $addons->loyalty(),
+            $hit('store') || $text === '/shop' => $shop->categories(),
+            $hit('search') || $text === '/search' => $this->askSearch($ctx),
+            $hit('cart') || $text === '/cart' => $shop->showCart(),
+            $hit('orders') || $text === '/orders' => $shop->orders(),
+            $hit('account') || $text === '/account' => $shop->account(),
+            $hit('sale') || $text === '/sale' => $shop->saleProducts(),
+            $hit('wishlist') || $text === '/wishlist' => $shop->wishlist(),
+            ($hit('faq') || $text === '/faq') && $ctx->addon('faq') => $addons->faq(),
+            ($hit('support') || $text === '/support') && $ctx->addon('tickets') => $addons->support(),
+            ($hit('loyalty') || $text === '/points') && ($ctx->addon('loyalty') || $ctx->addon('referral')) => $addons->loyalty(),
             $text === '/daily' && $ctx->addon('loyalty') => $addons->daily(),
-            ($text === $menu['admin'] || $text === '/admin') && $ctx->isAdmin() => $admin->menu(),
+            ($hit('referral') || $text === '/invite') && ($ctx->addon('referral') || ! empty($ctx->meta()['referral']['enabled'])) => $addons->referral(),
+            $hit('webapp') && BotFlow::resolveWebappUrl($ctx) !== '' => $this->openWebapp($ctx),
+            ($hit('admin') || $text === '/admin') && $ctx->isAdmin() => $admin->menu(),
             default => $this->fallback($ctx, $addons, $shop, $text),
         };
+    }
+
+    private function openWebapp(BotContext $ctx): void
+    {
+        (new class($ctx) extends BotFlow
+        {
+            public function go(): void
+            {
+                $url = self::resolveWebappUrl($this->ctx);
+                if ($url === '') {
+                    $this->send('وب‌اپ فعال نیست.');
+
+                    return;
+                }
+                $this->send('برای باز کردن وب‌اپ روی دکمه بزنید:', $this->webappInline(), $this->mainMenu());
+            }
+        })->go();
     }
 
     private function fallback(BotContext $ctx, AddonsFlow $addons, ShopFlow $shop, string $text): void
@@ -158,7 +209,6 @@ final class BotEngine
             return;
         }
         if (mb_strlen($text) >= 2 && ! str_starts_with($text, '/')) {
-            // Treat free text as a product search (WP StoreFlow search fallback).
             $shop->products(0, 1, mb_substr($text, 0, 64));
 
             return;
@@ -185,7 +235,13 @@ final class BotEngine
             public function go(bool $unknown): void
             {
                 $name = (string) ($this->ctx->from['first_name'] ?? '');
-                $this->send($unknown ? $this->tpl('unknown') : $this->tpl('welcome', ['name' => $name, 'store' => $this->storeName()]), null, $this->mainMenu());
+                $text = $unknown ? $this->tpl('unknown') : $this->tpl('welcome', ['name' => $name, 'store' => $this->storeName()]);
+                $blocks = self::homeBlocksText($this->ctx);
+                if ($blocks !== '' && ! $unknown) {
+                    $text .= "\n\n".$blocks;
+                }
+                $inline = $this->webappInline();
+                $this->send($text, $inline, $this->mainMenu());
             }
         })->go($unknown);
     }
@@ -203,6 +259,7 @@ final class BotEngine
         match ($op) {
             'cats' => $shop->categories(),
             'c' => $shop->products((int) $a, (int) ($b ?: 1)),
+            'sale' => $shop->saleProducts((int) ($a ?: 1)),
             'p' => $shop->product((int) $a),
             'a' => $shop->add((int) $a),
             'cart' => $shop->showCart(),
@@ -225,6 +282,7 @@ final class BotEngine
             'tw' => $addons->startReply((int) $a),
             'lr' => $ctx->addon('loyalty') ? $addons->redeem((int) $a) : null,
             'daily' => $ctx->addon('loyalty') ? $addons->daily() : null,
+            'ref' => $addons->referral(),
             // Admin
             'ao' => $admin->recentOrders(),
             'aod' => $admin->orderDetail((int) $a),

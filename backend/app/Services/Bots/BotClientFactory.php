@@ -89,6 +89,42 @@ class BotClientFactory
         };
     }
 
+    /**
+     * Resolve client for a setting: sandbox override + mirror-token failover.
+     */
+    public static function forSetting(BotSetting $row): ?BotClient
+    {
+        if (! filled($row->token)) {
+            return null;
+        }
+        $conn = is_array($row->meta['connection'] ?? null) ? $row->meta['connection'] : [];
+        $proxy = isset($conn['proxy_url']) && filled($conn['proxy_url']) ? (string) $conn['proxy_url'] : null;
+        $primary = (string) $row->token;
+        if (! empty($conn['sandbox']) && filled($conn['sandbox_token'] ?? null)) {
+            $primary = (string) $conn['sandbox_token'];
+        }
+        $tokens = [$primary];
+        foreach (self::mirrorTokens($conn) as $mirror) {
+            if ($mirror !== '' && ! in_array($mirror, $tokens, true)) {
+                $tokens[] = $mirror;
+            }
+        }
+        $clients = array_map(fn (string $t) => self::make((string) $row->provider, $t, $proxy), $tokens);
+
+        return count($clients) === 1 ? $clients[0] : new FailoverBotClient($clients);
+    }
+
+    /** @param  array<string, mixed>  $conn */
+    public static function mirrorTokens(array $conn): array
+    {
+        $raw = $conn['mirror_token'] ?? $conn['mirror_tokens'] ?? '';
+        if (is_array($raw)) {
+            return array_values(array_filter(array_map(fn ($t) => trim((string) $t), $raw)));
+        }
+
+        return array_values(array_filter(array_map('trim', preg_split('/[\s,]+/', (string) $raw) ?: [])));
+    }
+
     public static function forTenant(int $tenantId, string $provider): ?BotClient
     {
         $row = BotSetting::query()
@@ -96,16 +132,11 @@ class BotClientFactory
             ->where('provider', $provider)
             ->where('enabled', true)
             ->first();
-        if (! $row || ! $row->token) {
+        if (! $row) {
             return null;
         }
-        $conn = is_array($row->meta['connection'] ?? null) ? $row->meta['connection'] : [];
-        $token = $row->token;
-        if (! empty($conn['sandbox']) && filled($conn['sandbox_token'] ?? null)) {
-            $token = (string) $conn['sandbox_token'];
-        }
 
-        return self::make($provider, $token, isset($conn['proxy_url']) ? (string) $conn['proxy_url'] : null);
+        return self::forSetting($row);
     }
 
     public static function log(int $tenantId, string $provider, string $chatId, string $type, string $payload, string $status, string $direction = 'out'): void

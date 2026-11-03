@@ -116,7 +116,7 @@ export function BotTokensPanel({ provider }: { provider: LiveBotProvider }) {
             onChange={(e) => setMirrorToken(e.target.value)}
             autoComplete="off"
           />
-          <p className="text-muted-foreground text-xs">{t("tokens.mirrorHint")}</p>
+          <p className="text-muted-foreground text-xs">{t("tokens.mirrorLiveHint")}</p>
         </div>
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={sandbox} onCheckedChange={(v) => setSandbox(Boolean(v))} />

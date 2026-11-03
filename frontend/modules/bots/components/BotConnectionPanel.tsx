@@ -104,7 +104,7 @@ export function BotConnectionPanel({ provider }: { provider: LiveBotProvider }) 
               </SelectContent>
             </Select>
             {mode === "polling" ? (
-              <p className="text-muted-foreground text-xs">{t("connection.pollingStub")}</p>
+              <p className="text-muted-foreground text-xs">{t("connection.pollingLive")}</p>
             ) : null}
           </div>
           <div className="space-y-1">
@@ -143,6 +143,14 @@ export function BotConnectionPanel({ provider }: { provider: LiveBotProvider }) 
               <p className="text-muted-foreground mt-1 break-all text-xs" dir="ltr">
                 {t("connection.currentUrl")}: {health.webhook?.url || t("connection.notSet")}
               </p>
+              {health.mode === "polling" ? (
+                <p className="text-muted-foreground mt-1 text-xs" dir="ltr">
+                  polling · offset {health.poll_offset ?? 0}
+                  {typeof health.mirrors === "number" ? ` · mirrors ${health.mirrors}` : ""}
+                </p>
+              ) : typeof health.mirrors === "number" && health.mirrors > 0 ? (
+                <p className="text-muted-foreground mt-1 text-xs">mirrors {health.mirrors}</p>
+              ) : null}
               {health.webhook?.last_error_message ? (
                 <p className="text-destructive mt-1 text-xs">{health.webhook.last_error_message}</p>
               ) : null}

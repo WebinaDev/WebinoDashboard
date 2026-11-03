@@ -36,8 +36,9 @@ return new class extends Migration
             );
         }
 
-        if (Schema::hasTable('site_type_activations')) {
-            foreach ($this->siteTypes as $siteType) {
+        if (Schema::hasTable('site_type_activations') && Schema::hasTable('site_types')) {
+            $existing = DB::table('site_types')->whereIn('slug', $this->siteTypes)->pluck('slug')->all();
+            foreach ($existing as $siteType) {
                 DB::table('site_type_activations')->updateOrInsert(
                     [
                         'site_type_slug' => $siteType,

@@ -12,6 +12,7 @@ use App\Services\Payments\PaymentGatewaySettingsService;
 use App\Services\Shipping\ShippingZonesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PublicOrderPaymentController extends Controller
 {
@@ -208,6 +209,7 @@ class PublicOrderPaymentController extends Controller
             'mode' => ['nullable', 'string', 'in:cash,installment'],
             'confirm_offline' => ['nullable', 'boolean'],
             'customer_note' => ['nullable', 'string', 'max:1000'],
+            'receipt_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
         $provider = str_replace('-', '_', strtolower($data['provider']));
@@ -252,17 +254,22 @@ class PublicOrderPaymentController extends Controller
             }
 
             $meta = is_array($row->meta) ? $row->meta : [];
+            $receiptUrl = trim((string) ($data['receipt_url'] ?? ''));
             $meta['offline_payment'] = [
                 'provider' => $provider,
                 'confirmed_at' => now()->toIso8601String(),
                 'customer_note' => trim((string) ($data['customer_note'] ?? '')),
+                'receipt_url' => $receiptUrl !== '' ? $receiptUrl : null,
             ];
             $patch = [
                 'payment_provider' => $provider,
                 'payment_tender' => $provider === 'cod' ? 'other' : $provider,
                 'meta' => $meta,
             ];
-            if ($provider === 'card_to_card') {
+            if ($receiptUrl !== '') {
+                $patch['c2c_receipt_url'] = $receiptUrl;
+                $patch['c2c_status'] = 'pending';
+            } elseif ($provider === 'card_to_card') {
                 $patch['c2c_status'] = 'pending';
             }
             $applied = $statuses->apply($row, 'on_hold', $patch);
@@ -321,6 +328,42 @@ class PublicOrderPaymentController extends Controller
                 'charge_minor' => $meta['charge_minor'] ?? null,
             ],
         ]);
+    }
+
+    /** Customer uploads a payment receipt image/PDF for offline pay-link confirmation. */
+    public function uploadReceipt(Request $request, int $order): \Illuminate\Http\JsonResponse
+    {
+        $row = $this->findPayLinkOrder($request, $order);
+        $this->assertPayToken($request, $row);
+
+        $request->validate([
+            'token' => ['nullable', 'string', 'max:64'],
+            'file' => ['required', 'file', 'max:5120', 'mimes:jpg,jpeg,png,webp,pdf'],
+        ]);
+
+        $tid = (int) $row->tenant_id;
+        $path = $request->file('file')->store("pay-receipts/{$tid}/{$row->id}", 'public');
+        abort_unless(is_string($path) && $path !== '', 500, 'Upload failed.');
+        $url = Storage::disk('public')->url($path);
+
+        $meta = is_array($row->meta) ? $row->meta : [];
+        $meta['pay_link_receipt'] = [
+            'url' => $url,
+            'path' => $path,
+            'uploaded_at' => now()->toIso8601String(),
+            'original_name' => $request->file('file')->getClientOriginalName(),
+        ];
+        $row->update([
+            'meta' => $meta,
+            'c2c_receipt_url' => $url,
+        ]);
+
+        return response()->json([
+            'data' => [
+                'receipt_url' => $url,
+                'order_id' => $row->id,
+            ],
+        ], 201);
     }
 
     protected function findPayLinkOrder(Request $request, int $order): Order

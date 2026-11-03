@@ -5,6 +5,7 @@ use App\Models\PricingSetting;
 use App\Services\AiContent\AiQueue;
 use App\Services\Analytics\AnalyticsRollup;
 use App\Services\Bots\Engine\BotMessenger;
+use App\Services\Bots\Engine\BotPoller;
 use App\Services\Bots\Engine\ChannelPublisher;
 use App\Services\Builder\BuilderPageLifecycle;
 use App\Services\Marketing\AbandonedCartService;
@@ -15,8 +16,11 @@ use App\Services\Marketplace\TorobWebhookQueue;
 use App\Services\Orders\OrderStock;
 use App\Services\Pricing\ExchangeRateService;
 use App\Services\Pricing\PricingCalculator;
+use App\Models\Tenant;
 use App\Services\Security\SecurityEventLogger;
 use App\Services\Sms\SmsLocalFeatures;
+use App\Services\Support\CsatCampaignService;
+use App\Services\Support\TicketSlaService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -127,6 +131,7 @@ Schedule::command('wordpress-import:reset --stale')->everyTenMinutes()->withoutO
 Schedule::command('sms:dispatch-scheduled')->everyMinute()->withoutOverlapping();
 Schedule::command('bots:retry-outbound')->everyMinute()->withoutOverlapping();
 Schedule::command('bots:channel-tick')->everyMinute()->withoutOverlapping();
+Schedule::command('bots:poll')->everyMinute()->withoutOverlapping(2);
 Schedule::command('security:prune-events')->daily()->withoutOverlapping();
 Schedule::command('cart:abandoned-recover')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('marketplace:maintain')->everyFiveMinutes()->withoutOverlapping();
@@ -159,6 +164,11 @@ Artisan::command('bots:channel-tick', function () {
     $this->info("Published {$n} scheduled channel posts.");
 })->purpose('Publish due scheduled Bale/Telegram channel posts');
 
+Artisan::command('bots:poll', function () {
+    $res = app(BotPoller::class)->tick();
+    $this->info("Polled {$res['bots']} bot(s), handled {$res['updates']} update(s).");
+})->purpose('Poll getUpdates for Bale/Telegram bots in polling mode');
+
 Artisan::command('cart:abandoned-recover', function () {
     $n = app(AbandonedCartService::class)->run();
     $this->info("Abandoned-cart reminders sent: {$n}.");
@@ -167,3 +177,27 @@ Artisan::command('cart:abandoned-recover', function () {
 Artisan::command('security:prune-events', function () {
     $this->info('Pruned security events: '.SecurityEventLogger::prune());
 })->purpose('Delete security events past each tenant retention window');
+
+Artisan::command('support:sla-tick', function () {
+    $sla = app(TicketSlaService::class);
+    $breached = 0;
+    $warned = 0;
+    Tenant::query()->orderBy('id')->pluck('id')->each(function ($tid) use ($sla, &$breached, &$warned) {
+        $r = $sla->refreshTenant((int) $tid);
+        $breached += $r['breached'];
+        $warned += $r['warned'];
+    });
+    $this->info("SLA tick: breached={$breached} warned={$warned}");
+})->purpose('Detect SLA warnings and breaches for support tickets');
+
+Artisan::command('support:csat-tick', function () {
+    $csat = app(CsatCampaignService::class);
+    $sent = 0;
+    Tenant::query()->orderBy('id')->pluck('id')->each(function ($tid) use ($csat, &$sent) {
+        $sent += $csat->dispatchDue((int) $tid);
+    });
+    $this->info("CSAT invitations sent: {$sent}");
+})->purpose('Send due post-resolve CSAT survey invitations');
+
+Schedule::command('support:sla-tick')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('support:csat-tick')->everyFiveMinutes()->withoutOverlapping();

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
+import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -20,6 +21,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
+import { LiveChatPanel } from "./live-chat-panel"
 import TicketsPage from "./tickets-page"
 
 type OnlineSettings = {
@@ -59,7 +61,11 @@ export default function SupportInboxPage({ route }: { route: ResolvedAdminRoute 
   const tCommon = useTranslations("common")
   const locale = useLocale()
   const qc = useQueryClient()
-  const [tab, setTab] = useState("inbox")
+  const search = useSearchParams()
+  const [tab, setTab] = useState(() => {
+    const q = search?.get("tab")
+    return q === "live" || q === "widget" || q === "hours" || q === "channels" ? q : "inbox"
+  })
   const [draft, setDraft] = useState<OnlineSettings>({})
 
   const settings = useQuery({
@@ -115,6 +121,7 @@ export default function SupportInboxPage({ route }: { route: ResolvedAdminRoute 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-4 flex h-auto flex-wrap">
           <TabsTrigger value="inbox">{t("tab_inbox")}</TabsTrigger>
+          <TabsTrigger value="live">{t("tab_live")}</TabsTrigger>
           <TabsTrigger value="widget">{t("tab_widget")}</TabsTrigger>
           <TabsTrigger value="hours">{t("tab_hours")}</TabsTrigger>
           <TabsTrigger value="channels">{t("tab_channels")}</TabsTrigger>
@@ -122,6 +129,10 @@ export default function SupportInboxPage({ route }: { route: ResolvedAdminRoute 
 
         <TabsContent value="inbox">
           <TicketsPage route={route} forceStatus="open" embedded />
+        </TabsContent>
+
+        <TabsContent value="live">
+          <LiveChatPanel />
         </TabsContent>
 
         <TabsContent value="widget" className="space-y-4">
@@ -386,7 +397,7 @@ export default function SupportInboxPage({ route }: { route: ResolvedAdminRoute 
         <TabsContent value="channels" className="space-y-4">
           <Card>
             <CardContent className="space-y-4 p-4">
-              {(["ticket", "telegram", "bale", "whatsapp", "phone", "email"] as const).map((ch) => (
+              {(["ticket", "live_chat", "telegram", "bale", "whatsapp", "phone", "email"] as const).map((ch) => (
                 <div key={ch} className="grid gap-2 rounded-md border p-3 md:grid-cols-[8rem_1fr_auto] md:items-center">
                   <div className="flex items-center gap-2">
                     <Switch
@@ -413,6 +424,8 @@ export default function SupportInboxPage({ route }: { route: ResolvedAdminRoute 
                       value={draft.channels?.[ch]?.address ?? ""}
                       onChange={(e) => setChannel(ch, { address: e.target.value })}
                     />
+                  ) : ch === "live_chat" ? (
+                    <p className="text-muted-foreground text-xs">{t("channel_live_chat_hint")}</p>
                   ) : (
                     <p className="text-muted-foreground text-xs">{t("channel_ticket_hint")}</p>
                   )}

@@ -42,6 +42,8 @@ export type BotConnectionStatus = {
   webhook?: { url?: string; pending_update_count?: number; last_error_message?: string }
   error?: string
   mode?: string
+  poll_offset?: number
+  mirrors?: number
 }
 
 export type BotDashboardStats = {

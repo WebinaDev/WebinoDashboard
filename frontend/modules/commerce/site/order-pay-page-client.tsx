@@ -122,6 +122,9 @@ export default function OrderPayPageClient({
   const [offlineProvider, setOfflineProvider] = useState<string | null>(null)
   const [offlineNote, setOfflineNote] = useState("")
   const [offlineConfirmed, setOfflineConfirmed] = useState(false)
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null)
+  const [receiptUploading, setReceiptUploading] = useState(false)
 
   const orderId = route.params?.orderId
   const token = searchParams.token ?? ""
@@ -189,7 +192,12 @@ export default function OrderPayPageClient({
   })
 
   const pay = useMutation({
-    mutationFn: (payload: { provider: string; confirm_offline?: boolean; customer_note?: string }) =>
+    mutationFn: (payload: {
+      provider: string
+      confirm_offline?: boolean
+      customer_note?: string
+      receipt_url?: string
+    }) =>
       api<{
         redirect_url?: string | null
         offline?: boolean
@@ -214,6 +222,47 @@ export default function OrderPayPageClient({
     },
     onError: (e: Error) => setLocalError(getApiErrorMessage(e)),
   })
+
+  async function uploadReceiptIfNeeded(): Promise<string | undefined> {
+    if (receiptUrl) return receiptUrl
+    if (!receiptFile || !orderId) return undefined
+    setReceiptUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", receiptFile)
+      fd.append("token", token)
+      const res = await api<{ receipt_url?: string }>(
+        `/api/v1/public/orders/${orderId}/pay/receipt?token=${encodeURIComponent(token)}`,
+        { method: "POST", body: fd },
+      )
+      const url = res.receipt_url
+      if (url) setReceiptUrl(url)
+      return url
+    } finally {
+      setReceiptUploading(false)
+    }
+  }
+
+  async function confirmOfflinePayment() {
+    if (!offlineProvider) return
+    try {
+      setLocalError(null)
+      const uploaded = await uploadReceiptIfNeeded()
+      // Card-to-card strongly benefits from a receipt for admin review.
+      if (offlineProvider === "card_to_card" && !uploaded && !receiptUrl) {
+        setLocalError(t("receipt_required"))
+        return
+      }
+      pay.mutate({
+        provider: offlineProvider,
+        confirm_offline: true,
+        customer_note: offlineNote.trim() || undefined,
+        receipt_url: uploaded || receiptUrl || undefined,
+      })
+    } catch (e) {
+      setLocalError(getApiErrorMessage(e as Error))
+    }
+  }
 
   function isOfflineGateway(g: Gateway): boolean {
     return g.offline === true || !ONLINE.has(g.id)
@@ -632,20 +681,47 @@ export default function OrderPayPageClient({
                   onChange={(e) => setOfflineNote(e.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>
+                  {t("receipt_upload")}
+                  {offlineProvider === "card_to_card" ? (
+                    <span className="text-destructive ms-1">*</span>
+                  ) : null}
+                </Label>
+                <Input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  className="mt-1 cursor-pointer"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null
+                    setReceiptFile(f)
+                    setReceiptUrl(null)
+                  }}
+                />
+                <p className="text-muted-foreground text-xs">{t("receipt_upload_hint")}</p>
+                {receiptUrl ? (
+                  <p className="text-xs text-emerald-700" dir="ltr">
+                    {t("receipt_uploaded")}
+                  </p>
+                ) : null}
+              </div>
               <Button
                 className="w-full"
-                disabled={pay.isPending || data.needs_payment === false}
-                onClick={() =>
-                  pay.mutate({
-                    provider: offlineProvider,
-                    confirm_offline: true,
-                    customer_note: offlineNote.trim() || undefined,
-                  })
-                }
+                disabled={pay.isPending || receiptUploading || data.needs_payment === false}
+                onClick={() => void confirmOfflinePayment()}
               >
-                {t("confirm_offline")}
+                {receiptUploading ? t("receipt_uploading") : t("confirm_offline")}
               </Button>
-              <Button type="button" variant="ghost" className="w-full" onClick={() => setOfflineProvider(null)}>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setOfflineProvider(null)
+                  setReceiptFile(null)
+                  setReceiptUrl(null)
+                }}
+              >
                 {t("cancel_offline")}
               </Button>
             </div>

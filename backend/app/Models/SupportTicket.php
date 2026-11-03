@@ -30,6 +30,16 @@ class SupportTicket extends Model
         'csat_at',
         'first_response_at',
         'resolve_due_at',
+        'sla_policy_id',
+        'first_response_due_at',
+        'sla_breached_at',
+        'sla_breach_type',
+        'sla_alerted_at',
+        'resolved_at',
+        'csat_campaign_id',
+        'csat_token',
+        'csat_requested_at',
+        'csat_comment',
     ];
 
     protected function casts(): array
@@ -41,6 +51,11 @@ class SupportTicket extends Model
             'tags' => 'array',
             'first_response_at' => 'datetime',
             'resolve_due_at' => 'datetime',
+            'first_response_due_at' => 'datetime',
+            'sla_breached_at' => 'datetime',
+            'sla_alerted_at' => 'datetime',
+            'resolved_at' => 'datetime',
+            'csat_requested_at' => 'datetime',
         ];
     }
 

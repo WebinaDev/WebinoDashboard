@@ -18,7 +18,20 @@ import type { BotSettings } from "../lib/bot-settings"
 import { settingsPath } from "../lib/bot-settings"
 import type { LiveBotProvider } from "../lib/platforms"
 
-const MENU_KEYS = ["store", "search", "cart", "orders", "account", "loyalty", "faq", "support", "wishlist", "sale"] as const
+const MENU_KEYS = [
+  "store",
+  "search",
+  "cart",
+  "orders",
+  "account",
+  "loyalty",
+  "faq",
+  "support",
+  "wishlist",
+  "sale",
+  "referral",
+  "webapp",
+] as const
 
 export function BotPageBuilderPanel({ provider }: { provider: LiveBotProvider }) {
   const t = useTranslations("bots")
@@ -70,7 +83,7 @@ export function BotPageBuilderPanel({ provider }: { provider: LiveBotProvider })
 
   return (
     <div className="space-y-4">
-      <BotSection title={t("pageBuilder.title")} description={t("pageBuilder.hint")} badge={t("hub.uiOnly")}>
+      <BotSection title={t("pageBuilder.title")} description={t("pageBuilder.hint")}>
         <div className="grid gap-2 sm:grid-cols-2">
           {MENU_KEYS.map((k) => (
             <div key={k} className="rounded-lg border border-border/70 p-3">
@@ -92,7 +105,7 @@ export function BotPageBuilderPanel({ provider }: { provider: LiveBotProvider })
         </div>
       </BotSection>
 
-      <BotSection title={t("pageBuilder.homeTitle")} description={t("pageBuilder.homeHint")} badge={t("hub.uiOnly")}>
+      <BotSection title={t("pageBuilder.homeTitle")} description={t("pageBuilder.homeHint")}>
         <div className="space-y-1">
           <Label>{t("pageBuilder.homeBlocks")}</Label>
           <textarea

@@ -34,6 +34,7 @@ export function BotReportsPanel({ provider }: { provider: LiveBotProvider }) {
   const qc = useQueryClient()
   const [postText, setPostText] = useState("")
   const [productId, setProductId] = useState("")
+  const [blogPostId, setBlogPostId] = useState("")
 
   const statsQ = useQuery({
     queryKey: ["bots", provider, "dashboard-stats"],
@@ -57,12 +58,14 @@ export function BotReportsPanel({ provider }: { provider: LiveBotProvider }) {
         json: {
           text: postText || null,
           product_id: productId ? Number(productId) : null,
+          blog_post_id: blogPostId ? Number(blogPostId) : null,
           publish_now: true,
         },
       }),
     onSuccess: async () => {
       setPostText("")
       setProductId("")
+      setBlogPostId("")
       toast.success(t("engine.publishNow"))
       await qc.invalidateQueries({ queryKey: ["bots", provider, "channel-posts"] })
     },
@@ -149,7 +152,16 @@ export function BotReportsPanel({ provider }: { provider: LiveBotProvider }) {
           <textarea className={textareaClass} value={postText} onChange={(e) => setPostText(e.target.value)} placeholder={t("engine.postText")} />
           <div className="space-y-2">
             <Input dir="ltr" value={productId} onChange={(e) => setProductId(e.target.value)} placeholder={t("engine.productId")} />
-            <Button disabled={createPost.isPending || (!postText && !productId)} onClick={() => createPost.mutate()}>
+            <Input
+              dir="ltr"
+              value={blogPostId}
+              onChange={(e) => setBlogPostId(e.target.value)}
+              placeholder={t("engine.blogPostId")}
+            />
+            <Button
+              disabled={createPost.isPending || (!postText && !productId && !blogPostId)}
+              onClick={() => createPost.mutate()}
+            >
               {t("engine.publishNow")}
             </Button>
           </div>

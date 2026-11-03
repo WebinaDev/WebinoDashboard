@@ -18,7 +18,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatNumber } from "@/lib/locale"
-import { PopupCard, type PopupContent } from "@webina/ui"
+import { PopupCard, type PopupContent } from "@/components/marketing/PopupCard"
 
 type Popup = {
   id?: number
@@ -67,7 +67,7 @@ const toLocal = (v: string | null) => (v ? v.slice(0, 16) : null)
 export default function PopupsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const locale = useLocale()
   const qc = useQueryClient()
-  const list = useQuery({ queryKey: ["marketing-popups"], queryFn: () => api<{ data: Popup[] }>("/api/v1/marketing/popups") })
+  const list = useQuery({ queryKey: ["marketing-popups"], queryFn: () => api<Popup[]>("/api/v1/marketing/popups") })
   const [edit, setEdit] = useState<Popup | null>(null)
 
   const save = useMutation({
@@ -196,7 +196,7 @@ export default function PopupsPageClient({ route: _route }: { route: ResolvedAdm
     )
   }
 
-  const rows = list.data?.data ?? []
+  const rows = Array.isArray(list.data) ? list.data : []
   return (
     <PageShell title="پاپ‌آپ‌ها" description="پاپ‌آپ‌های تبلیغاتی و عضویت فروشگاه" actions={<Button onClick={() => setEdit(EMPTY)}>پاپ‌آپ جدید</Button>}>
       {rows.length === 0 && !list.isLoading ? <p className="text-muted-foreground text-sm">هنوز پاپ‌آپی ساخته نشده است.</p> : null}

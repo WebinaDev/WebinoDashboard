@@ -97,6 +97,50 @@ final class ShopFlow extends BotFlow
         $this->send('محصولات (صفحهٔ '.$page.' از '.$pages.'):', $rows);
     }
 
+    /** Products currently on sale (page-builder «sale» menu). */
+    public function saleProducts(int $page = 1): void
+    {
+        $now = now();
+        $q = Product::query()->where('tenant_id', $this->ctx->tenantId())->storefront()
+            ->whereNotNull('sale_price_minor')->where('sale_price_minor', '>', 0)
+            ->where(fn ($w) => $w->whereNull('sale_starts_at')->orWhere('sale_starts_at', '<=', $now))
+            ->where(fn ($w) => $w->whereNull('sale_ends_at')->orWhere('sale_ends_at', '>=', $now))
+            ->orderByDesc('id');
+        $total = (clone $q)->count();
+        if ($total === 0) {
+            $this->send('فعلاً محصول حراجی نیست.');
+
+            return;
+        }
+        $page = max(1, $page);
+        $items = $q->forPage($page, self::PER_PAGE)->get(['id', 'name', 'price_minor', 'sale_price_minor', 'sale_starts_at', 'sale_ends_at', 'currency']);
+        $rows = [];
+        foreach ($items as $p) {
+            $rows[] = [['text' => '🔥 '.$p->name.' — '.self::money($p->storefrontPriceMinor(), (string) $p->currency), 'callback_data' => 'p:'.$p->id]];
+        }
+        $pages = (int) ceil($total / self::PER_PAGE);
+        $nav = [];
+        if ($page > 1) {
+            $nav[] = ['text' => '◀️ قبلی', 'callback_data' => 'sale:'.($page - 1)];
+        }
+        if ($page < $pages) {
+            $nav[] = ['text' => 'بعدی ▶️', 'callback_data' => 'sale:'.($page + 1)];
+        }
+        if ($nav !== []) {
+            $rows[] = $nav;
+        }
+        $this->send('🔥 حراج (صفحهٔ '.$page.' از '.$pages.'):', $rows);
+    }
+
+    /** Wishlist is not a separate store yet — point users to site / account. */
+    public function wishlist(): void
+    {
+        $url = $this->siteUrl().'/account';
+        $this->send('❤️ لیست علاقه‌مندی‌ها را در حساب کاربری سایت مدیریت کنید.', [
+            [['text' => '🌐 باز کردن حساب', 'url' => $url]],
+        ], $this->mainMenu());
+    }
+
     public function product(int $id): void
     {
         $p = Product::query()->where('tenant_id', $this->ctx->tenantId())->storefront()->find($id);
@@ -288,6 +332,7 @@ final class ShopFlow extends BotFlow
         $this->ctx->session->user_id = $user->id;
         $this->ctx->session->save();
         $this->cart(); // merge guest cart
+        (new AddonsFlow($this->ctx))->settleReferralForUser($user);
 
         return $user;
     }

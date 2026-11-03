@@ -67,18 +67,41 @@ class BotController extends Controller
         if (array_key_exists('webhook_secret', $data) && filled($data['webhook_secret'])) {
             $patch['webhook_secret'] = $data['webhook_secret'];
         }
+        $prevMode = data_get($row->meta, 'connection.mode', 'webhook');
         if (array_key_exists('meta', $data)) {
             // Merge top-level meta keys so section panels do not wipe each other.
-            $patch['meta'] = array_merge($row->meta ?? [], $data['meta'] ?? []);
+            $merged = array_merge($row->meta ?? [], $data['meta'] ?? []);
+            // Deep-merge nested settings so section panels do not wipe each other.
+            foreach (['connection', 'channel', 'force_join', 'referral', 'page_builder', 'club', 'widget', 'addons', 'cascade'] as $key) {
+                if (isset($data['meta'][$key]) && is_array($data['meta'][$key])) {
+                    $merged[$key] = array_merge(
+                        is_array(($row->meta ?? [])[$key] ?? null) ? $row->meta[$key] : [],
+                        $data['meta'][$key]
+                    );
+                }
+            }
+            $patch['meta'] = $merged;
         }
         $row->update($patch);
+        $row->refresh();
         if (isset($patch['token'])) {
             // Cache bot username for the site widget / deep links (best-effort).
-            $me = BotClientFactory::make($provider, (string) $patch['token'])->call('getMe', []);
+            $client = BotClientFactory::forSetting($row) ?? BotClientFactory::make($provider, (string) $patch['token']);
+            $me = $client->call('getMe', []);
             $username = (string) data_get($me, 'body.result.username', '');
             if ($username !== '') {
                 $row->update(['meta' => array_merge($row->meta ?? [], ['bot_username' => $username])]);
+                $row->refresh();
             }
+        }
+        $newMode = data_get($row->meta, 'connection.mode', 'webhook');
+        if ($newMode === 'polling' && $prevMode !== 'polling' && filled($row->token)) {
+            \App\Services\Bots\Engine\BotPoller::enablePolling($row);
+            $row->refresh();
+        }
+        // Keep platform menu button in sync when webapp / page-builder labels change.
+        if (isset($patch['meta']) && filled($row->token)) {
+            \App\Services\Bots\Engine\WebAppManager::syncMenuButton($row);
         }
 
         return $this->settings($request, $provider);
@@ -415,14 +438,10 @@ class BotController extends Controller
             return response()->json(['data' => ['ok' => false, 'error' => 'Bot token missing', 'mode' => data_get($row?->meta, 'connection.mode', 'webhook')]]);
         }
 
-        $token = $row->token;
         $conn = is_array($row->meta['connection'] ?? null) ? $row->meta['connection'] : [];
-        if (! empty($conn['sandbox']) && filled($conn['sandbox_token'] ?? null)) {
-            $token = (string) $conn['sandbox_token'];
-        }
-        $client = BotClientFactory::make($provider, $token, $conn['proxy_url'] ?? null);
-        $me = $client->call('getMe', []);
-        $hook = $client->call('getWebhookInfo', []);
+        $client = BotClientFactory::forSetting($row);
+        $me = $client?->call('getMe', []) ?? ['ok' => false, 'body' => ['description' => 'no_client']];
+        $hook = $client?->call('getWebhookInfo', []) ?? ['ok' => false];
         $ok = (bool) ($me['ok'] ?? false);
 
         return response()->json([
@@ -440,6 +459,8 @@ class BotController extends Controller
                 ],
                 'error' => $ok ? null : (string) data_get($me, 'body.description', 'getMe failed'),
                 'mode' => ($conn['mode'] ?? 'webhook') === 'polling' ? 'polling' : 'webhook',
+                'poll_offset' => (int) ($conn['poll_offset'] ?? 0),
+                'mirrors' => count(BotClientFactory::mirrorTokens($conn)),
             ],
         ]);
     }
@@ -509,6 +530,7 @@ class BotController extends Controller
         $tid = $request->user()->tenant_id;
         $data = $request->validate([
             'product_id' => ['nullable', 'integer'],
+            'blog_post_id' => ['nullable', 'integer'],
             'text' => ['nullable', 'string', 'max:4000'],
             'media_url' => ['nullable', 'url', 'max:1024'],
             'button_text' => ['nullable', 'string', 'max:64'],
@@ -523,6 +545,10 @@ class BotController extends Controller
         if (! empty($data['product_id'])) {
             $product = \App\Models\Product::query()->where('tenant_id', $tid)->findOrFail((int) $data['product_id']);
             $post = \App\Services\Bots\Engine\ChannelPublisher::draftFromProduct($setting, $product, 'manual', isset($data['scheduled_at']) ? \Illuminate\Support\Carbon::parse($data['scheduled_at']) : null);
+            $post->update(array_filter(['text' => $data['text'] ?? null, 'media_url' => $data['media_url'] ?? null, 'button_text' => $data['button_text'] ?? null, 'button_url' => $data['button_url'] ?? null]));
+        } elseif (! empty($data['blog_post_id'])) {
+            $blog = \App\Models\BlogPost::query()->where('tenant_id', $tid)->findOrFail((int) $data['blog_post_id']);
+            $post = \App\Services\Bots\Engine\ChannelPublisher::draftFromBlog($setting, $blog, 'manual', isset($data['scheduled_at']) ? \Illuminate\Support\Carbon::parse($data['scheduled_at']) : null);
             $post->update(array_filter(['text' => $data['text'] ?? null, 'media_url' => $data['media_url'] ?? null, 'button_text' => $data['button_text'] ?? null, 'button_url' => $data['button_url'] ?? null]));
         } else {
             if (blank($data['text'] ?? null) && blank($data['media_url'] ?? null)) {

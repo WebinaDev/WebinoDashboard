@@ -54,6 +54,8 @@ use App\Http\Controllers\Api\V1\PublicLinkHubController;
 use App\Http\Controllers\Api\V1\MagazineArticleController;
 use App\Http\Controllers\Api\V1\MagazineTaxonomyController;
 use App\Http\Controllers\Api\V1\MarketingController;
+use App\Http\Controllers\Api\V1\MarketingPopupController;
+use App\Http\Controllers\Api\V1\LoyaltyMissionController;
 use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\MediaTermController;
 use App\Http\Controllers\Api\V1\MobileContractController;
@@ -219,6 +221,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/support/widget', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'publicWidget']);
         Route::get('/support/departments', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'publicDepartments']);
         Route::post('/support/messages', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'publicSubmit'])->middleware('throttle:public-writes');
+        Route::post('/support/chat/start', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'publicStart'])->middleware('throttle:public-writes');
+        Route::post('/support/chat/messages', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'publicMessage'])->middleware('throttle:public-writes');
+        Route::get('/support/chat/poll', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'publicPoll']);
+        Route::get('/support/chat/stream', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'publicStream']);
+        Route::get('/support/kb', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'publicIndex']);
+        Route::get('/support/kb/{slug}', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'publicShow']);
+        Route::post('/support/kb/{slug}/feedback', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'publicFeedback'])->middleware('throttle:public-writes');
+        Route::get('/support/csat/{token}', [\App\Http\Controllers\Api\V1\SupportCsatController::class, 'publicShow']);
+        Route::post('/support/csat/{token}', [\App\Http\Controllers\Api\V1\SupportCsatController::class, 'publicSubmit'])->middleware('throttle:public-writes');
         Route::get('/geo/cities', [GeoController::class, 'cities']);
         Route::get('/orders/{order}/pay', [PublicOrderPaymentController::class, 'show'])->whereNumber('order');
         Route::post('/orders/{order}/pay/confirm', [PublicOrderPaymentController::class, 'confirm'])->whereNumber('order')->middleware('throttle:public-writes');
@@ -242,6 +253,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/builder/forms/{key}', [PublicBuilderFormController::class, 'submit'])->where('key', '(?!upload$)[^/]{1,100}')->middleware('throttle:public-writes');
         Route::post('/newsletter/subscribe', [PublicStorefrontController::class, 'subscribe'])->middleware('throttle:public-writes');
         Route::post('/orders/track', [PublicStorefrontController::class, 'trackOrder'])->middleware('throttle:10,1');
+        Route::get('/marketing/popups', [MarketingPopupController::class, 'publicIndex']);
+        Route::post('/marketing/popups/{popup}/event', [MarketingPopupController::class, 'event'])
+            ->whereNumber('popup')
+            ->middleware('throttle:public-writes');
+        Route::post('/orders/{order}/pay/receipt', [PublicOrderPaymentController::class, 'uploadReceipt'])
+            ->whereNumber('order')
+            ->middleware('throttle:public-writes');
 
         Route::middleware('public.module:blog')->group(function () {
             Route::get('/blog', [PublicBlogController::class, 'index']);
@@ -393,6 +411,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/loyalty/rewards', [ShopExtrasController::class, 'loyaltyRewards']);
         Route::get('/loyalty/balance', [ShopExtrasController::class, 'loyaltyBalance']);
         Route::post('/loyalty/redeem', [ShopExtrasController::class, 'redeemLoyalty']);
+        Route::get('/loyalty/missions', [LoyaltyMissionController::class, 'index']);
+        Route::post('/loyalty/missions/{mission}/claim', [LoyaltyMissionController::class, 'claim'])->whereNumber('mission');
         Route::post('/shipping/quote', [ShippingZonesController::class, 'quote']);
         Route::get('/shipping/regions', [ShippingZonesController::class, 'regions']);
 
@@ -586,6 +606,42 @@ Route::prefix('v1')->group(function () {
 
                 Route::get('/support/settings', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'settingsShow']);
                 Route::put('/support/settings', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'settingsUpdate']);
+
+                Route::get('/support/automation/rules', [\App\Http\Controllers\Api\V1\SupportAutomationController::class, 'index']);
+                Route::post('/support/automation/rules', [\App\Http\Controllers\Api\V1\SupportAutomationController::class, 'store']);
+                Route::patch('/support/automation/rules/{rule}', [\App\Http\Controllers\Api\V1\SupportAutomationController::class, 'update'])->whereNumber('rule');
+                Route::delete('/support/automation/rules/{rule}', [\App\Http\Controllers\Api\V1\SupportAutomationController::class, 'destroy'])->whereNumber('rule');
+                Route::get('/support/automation/rules/{rule}/runs', [\App\Http\Controllers\Api\V1\SupportAutomationController::class, 'runs'])->whereNumber('rule');
+                Route::post('/support/automation/rules/{rule}/execute', [\App\Http\Controllers\Api\V1\SupportAutomationController::class, 'execute'])->whereNumber('rule');
+
+                Route::get('/support/sla/policies', [\App\Http\Controllers\Api\V1\SupportSlaController::class, 'index']);
+                Route::post('/support/sla/policies', [\App\Http\Controllers\Api\V1\SupportSlaController::class, 'store']);
+                Route::patch('/support/sla/policies/{policy}', [\App\Http\Controllers\Api\V1\SupportSlaController::class, 'update'])->whereNumber('policy');
+                Route::delete('/support/sla/policies/{policy}', [\App\Http\Controllers\Api\V1\SupportSlaController::class, 'destroy'])->whereNumber('policy');
+                Route::get('/support/sla/dashboard', [\App\Http\Controllers\Api\V1\SupportSlaController::class, 'dashboard']);
+                Route::post('/support/sla/refresh', [\App\Http\Controllers\Api\V1\SupportSlaController::class, 'refresh']);
+
+                Route::get('/support/csat/campaigns', [\App\Http\Controllers\Api\V1\SupportCsatController::class, 'campaigns']);
+                Route::post('/support/csat/campaigns', [\App\Http\Controllers\Api\V1\SupportCsatController::class, 'store']);
+                Route::patch('/support/csat/campaigns/{campaign}', [\App\Http\Controllers\Api\V1\SupportCsatController::class, 'update'])->whereNumber('campaign');
+                Route::delete('/support/csat/campaigns/{campaign}', [\App\Http\Controllers\Api\V1\SupportCsatController::class, 'destroy'])->whereNumber('campaign');
+                Route::get('/support/csat/report', [\App\Http\Controllers\Api\V1\SupportCsatController::class, 'report']);
+
+                Route::get('/support/kb/categories', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'categories']);
+                Route::post('/support/kb/categories', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'storeCategory']);
+                Route::patch('/support/kb/categories/{category}', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'updateCategory'])->whereNumber('category');
+                Route::delete('/support/kb/categories/{category}', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'destroyCategory'])->whereNumber('category');
+                Route::get('/support/kb/articles', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'articles']);
+                Route::post('/support/kb/articles', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'storeArticle']);
+                Route::patch('/support/kb/articles/{article}', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'updateArticle'])->whereNumber('article');
+                Route::delete('/support/kb/articles/{article}', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'destroyArticle'])->whereNumber('article');
+
+                Route::get('/support/chat/sessions', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'staffIndex']);
+                Route::get('/support/chat/sessions/{session}', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'staffShow'])->whereNumber('session');
+                Route::post('/support/chat/sessions/{session}/accept', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'staffAccept'])->whereNumber('session');
+                Route::post('/support/chat/sessions/{session}/messages', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'staffMessage'])->whereNumber('session');
+                Route::post('/support/chat/sessions/{session}/close', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'staffClose'])->whereNumber('session');
+                Route::get('/support/chat/sessions/{session}/poll', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'staffPoll'])->whereNumber('session');
             });
 
             Route::get('/themes', [ThemeController::class, 'index']);
@@ -944,6 +1000,14 @@ Route::prefix('v1')->group(function () {
                 Route::get('/marketing/abandoned-carts/settings', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'settings']);
                 Route::put('/marketing/abandoned-carts/settings', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'update']);
                 Route::post('/marketing/abandoned-carts/run', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'runNow'])->middleware('throttle:6,1');
+                Route::get('/marketing/popups', [MarketingPopupController::class, 'index']);
+                Route::post('/marketing/popups', [MarketingPopupController::class, 'store']);
+                Route::get('/marketing/popups/{popup}', [MarketingPopupController::class, 'show'])->whereNumber('popup');
+                Route::put('/marketing/popups/{popup}', [MarketingPopupController::class, 'update'])->whereNumber('popup');
+                Route::delete('/marketing/popups/{popup}', [MarketingPopupController::class, 'destroy'])->whereNumber('popup');
+                Route::get('/loyalty/missions', [LoyaltyMissionController::class, 'index']);
+                Route::put('/loyalty/missions', [LoyaltyMissionController::class, 'save']);
+                Route::post('/loyalty/missions/{mission}/claim', [LoyaltyMissionController::class, 'claim'])->whereNumber('mission');
             });
 
             Route::middleware(['module:coupons', 'can:marketing.*'])->group(function () {

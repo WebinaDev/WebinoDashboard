@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BotChannelPost extends Model
 {
     protected $fillable = [
-        'tenant_id', 'provider', 'channel_id', 'product_id', 'text', 'media_url', 'button_text', 'button_url',
+        'tenant_id', 'provider', 'channel_id', 'product_id', 'blog_post_id', 'text', 'media_url', 'button_text', 'button_url',
         'status', 'scheduled_at', 'published_at', 'message_id', 'source', 'last_error',
     ];
 

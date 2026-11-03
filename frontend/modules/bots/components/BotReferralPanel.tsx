@@ -70,7 +70,7 @@ export function BotReferralPanel({ provider }: { provider: LiveBotProvider }) {
   if (q.isLoading) return <FormSettingsSkeleton cards={1} fieldsPerCard={4} />
 
   return (
-    <BotSection title={t("referral.title")} description={t("referral.hint")} badge={t("hub.uiOnly")}>
+    <BotSection title={t("referral.title")} description={t("referral.hint")}>
       <div className="grid max-w-xl gap-3">
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={enabled} onCheckedChange={(v) => setEnabled(Boolean(v))} />
@@ -88,6 +88,15 @@ export function BotReferralPanel({ provider }: { provider: LiveBotProvider }) {
           <Label>{t("referral.webappUrl")}</Label>
           <Input dir="ltr" value={webappUrl} onChange={(e) => setWebappUrl(e.target.value)} placeholder="https://…" />
         </div>
+        {q.data?.meta?.bot_username ? (
+          <p className="text-muted-foreground text-xs" dir="ltr">
+            {t("referral.inviteHint")}:{" "}
+            {provider === "bale" ? "https://ble.ir/" : "https://t.me/"}
+            {String(q.data.meta.bot_username).replace(/^@/, "")}?start=ref_CHATID
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-xs">{t("referral.needUsername")}</p>
+        )}
         <Button disabled={save.isPending} onClick={() => save.mutate()}>
           {tCommon("save")}
         </Button>
