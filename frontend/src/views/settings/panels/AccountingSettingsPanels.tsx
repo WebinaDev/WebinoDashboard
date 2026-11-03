@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -212,9 +213,9 @@ export function AccountingModianPanel() {
             />
           </div>
           <p className="text-muted-foreground text-sm">
-            <a className="underline" href="/dashboard/accounting/moadian">
+            <Link className="underline" href="/dashboard/accounting/moadian">
               {t("accounting.open_moadian_admin")}
-            </a>
+            </Link>
           </p>
         </CardContent>
       </Card>
