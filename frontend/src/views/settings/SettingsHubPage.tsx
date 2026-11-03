@@ -51,8 +51,6 @@ import { PaymentHubPanel } from "@/views/settings/panels/PaymentHubPanel"
 import { ShippingHubPanel } from "@/views/settings/panels/ShippingHubPanel"
 import { ShippingCarrierSettingsPanel } from "@/views/settings/panels/ShippingCarrierSettingsPanel"
 import { GatewayProviderSettingsPanel } from "@/views/settings/panels/GatewayProviderSettingsPanel"
-import { ShippingHubPanel } from "@/views/settings/panels/ShippingHubPanel"
-import { ShippingCarrierSettingsPanel } from "@/views/settings/panels/ShippingCarrierSettingsPanel"
 import { MarketplaceRouter } from "@/views/settings/panels/marketplace/MarketplaceRouter"
 
 function SettingsPanelRouter({ pathname }: { pathname: string }) {
