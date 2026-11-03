@@ -1224,6 +1224,7 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
 
             // Resume module v2 — one entity per section (docs/resume/README.md).
             // Restored after fe5ea88 dropped these routes (same class of breakage as poetry in 78ad237).
+            // Without this block, dashboard /resume/* pages spin forever (API 404) on all resume subpages.
             Route::prefix('resume')->middleware(['module:resume', 'can:content.manage,content.*', \App\Http\Middleware\ResumeTenantScope::class])->group(function () {
                 $c = \App\Http\Controllers\Api\V1\Resume\ResumeAdminController::class;
                 $sec = '[a-z0-9_]+';
