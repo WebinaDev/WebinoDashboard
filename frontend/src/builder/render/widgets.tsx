@@ -68,6 +68,13 @@ const TocWidget = dynamic(() => import("./pro-widgets").then((m) => m.TocWidget)
 const LoopFilterWidget = dynamic(() => import("./loop-filter").then((m) => m.LoopFilterWidget))
 const ArchiveFiltersWidget = dynamic(() => import("./archive-filters").then((m) => m.ArchiveFiltersWidget))
 const CafeTableBookingWidget = dynamic(() => import("./cafe-booking-widget").then((m) => m.CafeTableBookingWidget))
+const CafeHeroWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeHeroWidget))
+const CafeMenuBoardWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeMenuBoardWidget))
+const CafeHoursWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeHoursWidget))
+const CafeGalleryWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeGalleryWidget))
+const CafeStoryWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeStoryWidget))
+const CafeReserveCtaWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeReserveCtaWidget))
+const CafeCategoryStripWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeCategoryStripWidget))
 const AcademyHeroWidget = dynamic(() => import("./academy-widgets").then((m) => m.AcademyHeroWidget))
 const CourseGridWidget = dynamic(() => import("./academy-widgets").then((m) => m.CourseGridWidget))
 const InstructorGridWidget = dynamic(() => import("./academy-widgets").then((m) => m.InstructorGridWidget))
@@ -443,6 +450,20 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <PoetrySiteFooterWidget widget={widget} />
     case "cafe-table-booking":
       return <CafeTableBookingWidget widget={widget} editing={editing} />
+    case "cafe-hero":
+      return <CafeHeroWidget widget={widget} />
+    case "cafe-menu-board":
+      return <CafeMenuBoardWidget widget={widget} />
+    case "cafe-hours":
+      return <CafeHoursWidget widget={widget} />
+    case "cafe-gallery":
+      return <CafeGalleryWidget widget={widget} />
+    case "cafe-story":
+      return <CafeStoryWidget widget={widget} />
+    case "cafe-reserve-cta":
+      return <CafeReserveCtaWidget widget={widget} />
+    case "cafe-category-strip":
+      return <CafeCategoryStripWidget widget={widget} />
     case "academy-hero":
       return <AcademyHeroWidget widget={widget} />
     case "course-grid":
