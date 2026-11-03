@@ -25,15 +25,17 @@ export function storefrontColorScheme(branding: SiteBranding): "light" | "dark" 
 export function SiteBrandingShell({ branding, children, themeSlug }: Props) {
   const styleCss = storefrontStyleCss(branding, themeSlug)
   const isClassic = themeSlug === "ecommerce-classic"
+  const scheme = storefrontColorScheme(branding)
   return (
     <SiteBrandingProvider branding={branding}>
       <div
         data-accent={branding.accent}
         data-font={branding.font}
         data-theme-slug={themeSlug || undefined}
-        data-sf-scheme={isClassic ? storefrontColorScheme(branding) : undefined}
+        data-sf-scheme={scheme}
         className={cn(
-          "flex min-h-svh flex-col bg-background text-foreground",
+          // sf-shell isolates storefront tokens from dashboard html.dark / accent leakage
+          "sf-shell flex min-h-svh flex-col bg-background text-foreground",
           siteFontClass(branding.font),
           storefrontShellClass(themeSlug),
         )}

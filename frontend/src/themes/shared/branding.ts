@@ -111,15 +111,72 @@ export function resolveBrandPalette(
 }
 
 /**
+ * Isolate every public storefront shell from dashboard `html.dark` / accent leakage.
+ * Without this, resume (and other non-classic) sites inherit the fixed teal
+ * `--color-card` / `--color-background` (`#091E24` / oklch 22% .03 220) for chrome + footer.
+ */
+function shellIsolationCss(branding?: Partial<SiteBranding> | null): string {
+  const p = resolveBrandPalette(branding)
+  const dark = branding?.appearance?.dark_mode_default === true
+  const bg = dark ? (isLightHex(p.bg) ? "#0b1220" : p.bg) : p.bg
+  const surface = dark ? (isLightHex(p.surface) ? "#141c2b" : p.surface) : p.surface
+  const text = dark && isLightHex(p.text) ? "#e8eef7" : p.text
+  const muted = dark && isLightHex(p.muted) ? "#9aa8bd" : p.muted
+  const border = dark && isLightHex(p.border) ? "#243044" : p.border
+  const footer = p.footer ?? PARISMA_PALETTE.footer!
+  const footerBg = dark && isLightHex(footer) ? surface : footer
+  const primaryFg = isLightHex(p.primary) ? "#111827" : "#ffffff"
+  return `.sf-shell{
+  color-scheme:${dark ? "dark" : "light"};
+  --color-background:${bg};
+  --color-foreground:${text};
+  --color-card:${surface};
+  --color-card-foreground:${text};
+  --color-popover:${surface};
+  --color-popover-foreground:${text};
+  --color-primary:${p.primary};
+  --color-primary-foreground:${primaryFg};
+  --color-secondary:${surface};
+  --color-secondary-foreground:${text};
+  --color-muted:${surface};
+  --color-muted-foreground:${muted};
+  --color-accent:${p.accent};
+  --color-accent-foreground:${primaryFg};
+  --color-border:${border};
+  --color-input:${border};
+  --color-ring:${p.primary};
+  --color-sidebar:${bg};
+  --color-sidebar-foreground:${text};
+  --color-sidebar-primary:${p.primary};
+  --color-sidebar-primary-foreground:${primaryFg};
+  --color-sidebar-border:${border};
+  --color-sidebar-accent:${surface};
+  --color-sidebar-accent-foreground:${text};
+  --color-sidebar-ring:${p.primary};
+  --wb-color-primary:${p.primary};
+  --wb-color-secondary:${p.secondary};
+  --wb-color-accent:${p.accent};
+  --wb-color-background:${bg};
+  --wb-color-surface:${surface};
+  --wb-color-text:${text};
+  --wb-color-muted:${muted};
+  --wb-color-border:${border};
+  --sf-footer-bg:${footerBg};
+}`
+}
+
+/**
  * Scoped CSS so Style / Classic Theme settings drive storefront tokens without fighting
  * the isolated dark palette (inline styles would override `.dark` rules).
+ * All themes get shell isolation; classic also gets Parisma/SFC token mapping.
  */
 export function storefrontStyleCss(
   branding?: Partial<SiteBranding> | null,
   themeSlug?: string | null,
 ): string {
-  // Classic storefront only — other skins keep their own tokens.
-  if (themeSlug !== "ecommerce-classic") return ""
+  const isolate = shellIsolationCss(branding)
+  // Classic storefront only — extra skin tokens on top of isolation.
+  if (themeSlug !== "ecommerce-classic") return isolate
   const p = resolveBrandPalette(branding)
   const appearance = (branding?.appearance ?? {}) as ClassicThemeSettings
   const typo = appearance.typography ?? {}
@@ -243,5 +300,5 @@ ${within(".sfc-header__logo img")}{
   --wb-color-secondary:${navy};
 }`
 
-  return `${light}${dark}`
+  return `${isolate}${light}${dark}`
 }

@@ -5,7 +5,7 @@ export async function SiteFooter({ siteName }: { siteName: string }) {
   const t = await getServerTranslations("site.footer")
 
   return (
-    <footer className="border-t bg-muted/30">
+    <footer className="border-t border-border bg-[var(--sf-footer-bg,var(--color-card))] text-foreground">
       <div className="container mx-auto flex flex-col gap-4 px-4 py-8 text-sm md:flex-row md:items-center md:justify-between">
         <p className="text-muted-foreground">© {new Date().getFullYear()} {siteName}</p>
         <div className="flex flex-wrap gap-4">
