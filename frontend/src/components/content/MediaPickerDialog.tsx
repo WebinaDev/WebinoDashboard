@@ -18,7 +18,7 @@ import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { resolveMediaAlt, type MediaAltFields } from "@/lib/media-alt"
 
-export type MediaPickerAccept = "image" | "video" | "all"
+export type MediaPickerAccept = "image" | "video" | "audio" | "all"
 
 type MediaItem = MediaAltFields & {
   id: number
@@ -36,20 +36,23 @@ const PER_PAGE = 24
 function mimeQuery(accept: MediaPickerAccept): string | undefined {
   if (accept === "image") return "image"
   if (accept === "video") return "video"
+  if (accept === "audio") return "audio"
   return undefined
 }
 
 function dropzoneAccept(accept: MediaPickerAccept): string {
   if (accept === "image") return "image/*"
   if (accept === "video") return "video/*"
-  return "image/*,video/*"
+  if (accept === "audio") return "audio/*"
+  return "image/*,video/*,audio/*"
 }
 
 function matchesAccept(mime: string | null | undefined, accept: MediaPickerAccept): boolean {
   if (!mime) return accept === "all"
   if (accept === "image") return mime.startsWith("image/")
   if (accept === "video") return mime.startsWith("video/")
-  return mime.startsWith("image/") || mime.startsWith("video/")
+  if (accept === "audio") return mime.startsWith("audio/")
+  return mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/")
 }
 
 export function MediaPickerDialog({
@@ -145,7 +148,13 @@ export function MediaPickerDialog({
 
   const dialogTitle =
     title ??
-    (accept === "video" ? t("media_pick_video_title") : accept === "all" ? t("media_pick_any_title") : t("media_pick_title"))
+    (accept === "video"
+      ? t("media_pick_video_title")
+      : accept === "audio"
+        ? t("media_pick_audio_title")
+        : accept === "all"
+          ? t("media_pick_any_title")
+          : t("media_pick_title"))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -219,6 +228,7 @@ export function MediaPickerDialog({
           <div className="grid max-h-[26rem] grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4 md:grid-cols-6">
             {items.map((item) => {
               const isVideo = Boolean(item.mime?.startsWith("video/"))
+              const isAudio = Boolean(item.mime?.startsWith("audio/"))
               return (
                 <button
                   key={item.id}
@@ -239,6 +249,11 @@ export function MediaPickerDialog({
                       playsInline
                       preload="metadata"
                     />
+                  ) : isAudio ? (
+                    <div className="bg-muted text-muted-foreground flex aspect-square w-full flex-col items-center justify-center gap-1 p-2 text-center text-[10px] leading-tight">
+                      <span aria-hidden>♪</span>
+                      <span className="line-clamp-3 break-all">{item.title || "audio"}</span>
+                    </div>
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

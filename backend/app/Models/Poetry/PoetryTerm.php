@@ -10,7 +10,12 @@ class PoetryTerm extends Model
 
     protected $table = 'poetry_terms';
 
-    protected $fillable = ['tenant_id', 'kind', 'slug', 'name', 'description', 'image', 'sort'];
+    protected $fillable = ['tenant_id', 'kind', 'slug', 'name', 'description', 'image', 'seo', 'sort'];
+
+    protected function casts(): array
+    {
+        return ['seo' => 'array'];
+    }
 
     protected static function booted(): void
     {

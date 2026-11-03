@@ -110,6 +110,10 @@ class PoetryAdminController extends Controller
             'slug' => ['nullable', 'string', 'max:120', 'regex:/^[\pL\pN\-]+$/u'],
             'description' => ['nullable', 'string', 'max:5000'],
             'image' => ['nullable', 'string', 'max:512'],
+            'seo' => ['nullable', 'array'],
+            'seo.title' => ['nullable', 'string', 'max:255'],
+            'seo.description' => ['nullable', 'string', 'max:500'],
+            'seo.focus_keyword' => ['nullable', 'string', 'max:120'],
             'sort' => ['nullable', 'integer', 'min:0'],
         ]);
         $kind = $data['kind'] ?? $term?->kind;

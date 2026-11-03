@@ -286,6 +286,7 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:profile')->group(function () {
             Route::get('/resume', [PublicResumeController::class, 'show']);
+            Route::get('/resume/full', [\App\Http\Controllers\Api\V1\Resume\PublicResumeFullController::class, 'show'])->middleware(\App\Http\Middleware\ResumeTenantScope::class);
         });
 
         // Host-mode must work even before the module is activated (alias DNS check).
@@ -1219,6 +1220,24 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
             Route::middleware(['module:profile', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/resume/profile', [ResumeProfileController::class, 'show']);
                 Route::put('/resume/profile', [ResumeProfileController::class, 'update']);
+            });
+
+            // Resume module v2 — one entity per section (docs/resume/README.md).
+            // Restored after fe5ea88 dropped these routes (same class of breakage as poetry in 78ad237).
+            Route::prefix('resume')->middleware(['module:resume', 'can:content.manage,content.*', \App\Http\Middleware\ResumeTenantScope::class])->group(function () {
+                $c = \App\Http\Controllers\Api\V1\Resume\ResumeAdminController::class;
+                $sec = '[a-z0-9_]+';
+                Route::get('/schema', [$c, 'schema']);
+                Route::get('/overview', [$c, 'overview']);
+                Route::get('/themes', [$c, 'themes']);
+                Route::post('/theme/apply', [$c, 'applyTheme']);
+                Route::post('/import', [$c, 'import'])->middleware('throttle:10,1');
+                Route::get('/{section}', [$c, 'index'])->where('section', $sec);
+                Route::put('/{section}', [$c, 'updateSingle'])->where('section', $sec);
+                Route::post('/{section}', [$c, 'store'])->where('section', $sec);
+                Route::post('/{section}/reorder', [$c, 'reorder'])->where('section', $sec);
+                Route::put('/{section}/{id}', [$c, 'update'])->where('section', $sec)->whereNumber('id');
+                Route::delete('/{section}/{id}', [$c, 'destroy'])->where('section', $sec)->whereNumber('id');
             });
 
             Route::middleware(['module:link-hub', 'can:content.manage,content.*'])->group(function () {

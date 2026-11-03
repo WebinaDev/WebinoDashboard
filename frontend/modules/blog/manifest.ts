@@ -31,14 +31,49 @@ export const blogManifest: ModuleManifest = {
       capability: "content.manage",
     },
     {
-      // Poetry admin (poems, stanzas/refrains, taxonomies, Telegram import). Opt-in only —
-      // gated by isSubmoduleEnabled(blog.poetry) / poetry.* activations from ERP addon.
+      // Poetry admin — opt-in only (blog.poetry / poetry.* ERP addon). One navGroup so
+      // poems / audio / video / categories sit together (do not also register on poetryManifest).
       path: "poetry",
       submodule: "poetry",
       page: "poetry",
       labelKey: "nav.poetry",
       section: "content",
       order: 12,
+      navGroup: "poetry",
+      navOrder: 0,
+      capability: "content.manage",
+    },
+    {
+      path: "poetry/audio",
+      submodule: "poetry",
+      page: "poetry-audio",
+      labelKey: "nav.poetry_audio",
+      section: "content",
+      order: 12,
+      navGroup: "poetry",
+      navOrder: 1,
+      capability: "content.manage",
+    },
+    {
+      path: "poetry/video",
+      submodule: "poetry",
+      page: "poetry-video",
+      labelKey: "nav.poetry_video",
+      section: "content",
+      order: 12,
+      navGroup: "poetry",
+      navOrder: 2,
+      capability: "content.manage",
+    },
+    {
+      path: "poetry/categories",
+      submodule: "poetry",
+      page: "poetry-categories",
+      labelKey: "nav.poetry_categories",
+      section: "content",
+      order: 12,
+      navGroup: "poetry",
+      navOrder: 3,
       capability: "content.manage",
     },
     {

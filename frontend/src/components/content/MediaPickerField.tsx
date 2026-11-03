@@ -14,25 +14,41 @@ function looksLikeVideo(url: string, mime?: string | null): boolean {
   return /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(url)
 }
 
+function looksLikeAudio(url: string, mime?: string | null): boolean {
+  if (mime?.startsWith("audio/")) return true
+  return /\.(mp3|wav|ogg|m4a|aac|flac|opus)(\?|$)/i.test(url)
+}
+
 export function MediaPickerField({
   label,
   imageUrl,
   onPick,
   onClear,
   accept = "image",
+  mime,
 }: {
   label: string
   imageUrl: string
   onPick: (item: MediaPickResult) => void
   onClear?: () => void
   accept?: MediaPickerAccept
+  /** Optional mime from last pick — helps preview audio/video without guessing from URL. */
+  mime?: string | null
 }) {
   const t = useTranslations("store")
   const [open, setOpen] = useState(false)
   const pickLabel =
-    accept === "video" ? t("pick_video") : accept === "all" ? t("pick_media") : t("pick_image")
-  const clearLabel = accept === "video" ? t("clear_video") : t("clear_image")
-  const showVideo = Boolean(imageUrl) && (accept === "video" || looksLikeVideo(imageUrl))
+    accept === "video"
+      ? t("pick_video")
+      : accept === "audio"
+        ? t("pick_audio")
+        : accept === "all"
+          ? t("pick_media")
+          : t("pick_image")
+  const clearLabel =
+    accept === "video" ? t("clear_video") : accept === "audio" ? t("clear_audio") : t("clear_image")
+  const showVideo = Boolean(imageUrl) && (accept === "video" || looksLikeVideo(imageUrl, mime))
+  const showAudio = Boolean(imageUrl) && !showVideo && (accept === "audio" || looksLikeAudio(imageUrl, mime))
 
   return (
     <div className="space-y-2">
@@ -46,6 +62,8 @@ export function MediaPickerField({
             playsInline
             preload="metadata"
           />
+        ) : showAudio ? (
+          <audio src={imageUrl} className="w-full max-w-xs" controls preload="metadata" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt="" className="aspect-square max-h-32 w-auto rounded-lg border object-cover" />

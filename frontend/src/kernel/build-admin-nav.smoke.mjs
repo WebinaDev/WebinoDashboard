@@ -69,9 +69,13 @@ assert.match(cms, /path:\s*"theme-builder"/)
 assert.match(cms, /labelKey:\s*"nav\.theme_builder"/)
 assert.doesNotMatch(cms, /navGroup:\s*"theme_builder"/)
 assert.match(ai, /section:\s*"tools"/)
-// Poetry admin is blog.poetry only — poetry module must not register a second /dashboard/poetry
-// nav entry (that produced raw `nav.group_poetry` beside translated `nav.poetry`).
+// Poetry admin lives on blog.* routes under one navGroup — poetry module must not
+// register a second /dashboard/poetry entry (that produced a duplicate sidebar group).
 assert.match(blog, /path:\s*"poetry"/)
+assert.match(blog, /path:\s*"poetry\/audio"/)
+assert.match(blog, /path:\s*"poetry\/video"/)
+assert.match(blog, /path:\s*"poetry\/categories"/)
+assert.match(blog, /navGroup:\s*"poetry"/)
 assert.match(blog, /submodule:\s*"poetry"/)
 assert.match(blog, /labelKey:\s*"nav\.poetry"/)
 assert.doesNotMatch(poetry, /navGroup:\s*"poetry"/)
