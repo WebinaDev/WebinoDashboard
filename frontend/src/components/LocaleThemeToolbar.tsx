@@ -33,6 +33,12 @@ function ThemeIcon({ mode }: { mode: ThemeMode }) {
   return <Monitor className="size-4" />
 }
 
+/** Decorative flags for the language menu (keep in sync with ERP LanguageMenu). */
+const LOCALE_MENU_ITEMS = [
+  { code: "fa" as const, labelKey: "locale_fa" as const, flag: "🇮🇷" },
+  { code: "en" as const, labelKey: "locale_en" as const, flag: "🇬🇧" },
+]
+
 export function LocaleThemeToolbar({
   compact,
   languageOnly,
@@ -77,14 +83,19 @@ export function LocaleThemeToolbar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem className="gap-2" onClick={() => changeLanguage("en")}>
-            <span className="flex-1 text-start">{t("locale_en")}</span>
-            {lng === "en" ? <Check className="ms-auto size-4 shrink-0" /> : null}
-          </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2" onClick={() => changeLanguage("fa")}>
-            <span className="flex-1 text-start">{t("locale_fa")}</span>
-            {lng === "fa" ? <Check className="ms-auto size-4 shrink-0" /> : null}
-          </DropdownMenuItem>
+          {LOCALE_MENU_ITEMS.map((item) => (
+            <DropdownMenuItem
+              key={item.code}
+              className="gap-2"
+              onClick={() => changeLanguage(item.code)}
+            >
+              <span aria-hidden className="shrink-0 leading-none">
+                {item.flag}
+              </span>
+              <span className="flex-1 text-start">{t(item.labelKey)}</span>
+              {lng === item.code ? <Check className="ms-auto size-4 shrink-0" /> : null}
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
