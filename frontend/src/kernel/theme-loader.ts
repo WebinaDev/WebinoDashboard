@@ -5,7 +5,7 @@ import type { SiteChromeProps } from "@/themes/shared/types"
 
 type ThemeModule = {
   SiteHeader: ComponentType<SiteChromeProps>
-  SiteFooter: ComponentType<{ siteName: string }>
+  SiteFooter: ComponentType<SiteChromeProps>
 }
 
 const THEME_LOADERS: Record<string, () => Promise<ThemeModule>> = {
