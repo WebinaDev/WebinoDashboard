@@ -13,6 +13,9 @@ export type ThemeDef = {
 
 export const RESUME_SCHEMA = schemaJson as unknown as { version: number; sections: SectionDef[]; visibility: string[] }
 export const RESUME_SECTIONS = RESUME_SCHEMA.sections
+/** Admin sections that live under Resume only (courses / stats / theme are separate modules). */
+export const RESUME_STANDALONE_SLUGS = new Set(["courses", "stats", "settings"])
+export const RESUME_NAV_SECTIONS = RESUME_SECTIONS.filter((s) => !RESUME_STANDALONE_SLUGS.has(s.slug))
 export const RESUME_THEMES = themesJson as unknown as Record<string, ThemeDef>
 export const sectionBySlug = (slug: string) => RESUME_SECTIONS.find((s) => s.slug === slug)
 

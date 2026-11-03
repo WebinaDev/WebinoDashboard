@@ -112,6 +112,17 @@ export function isSubmoduleEnabled(
     )
   }
 
+  // Courses / highlight stats / theme-display were split out of Resume IA but still
+  // share resume data + resume.profile activation (no separate ERP rows required).
+  if (
+    (moduleSlug === "courses" ||
+      moduleSlug === "highlight-stats" ||
+      moduleSlug === "theme-display") &&
+    submoduleSlug === "main"
+  ) {
+    return enabled("resume", "profile") || enabled(moduleSlug, submoduleSlug)
+  }
+
   return enabled(moduleSlug, submoduleSlug)
 }
 

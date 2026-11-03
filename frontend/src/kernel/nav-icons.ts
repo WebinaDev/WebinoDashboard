@@ -127,6 +127,9 @@ const PATH_ICONS: Record<string, LucideIcon> = {
   "settings/site": Settings,
   "settings/shop": Store,
   catalog: Package,
+  courses: GraduationCap,
+  stats: BarChart3,
+  "theme-display": Palette,
 }
 
 const GROUP_ICONS: Record<string, LucideIcon> = {

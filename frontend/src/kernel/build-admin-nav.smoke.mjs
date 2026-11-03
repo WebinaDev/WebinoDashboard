@@ -26,6 +26,10 @@ const magazine = read("magazine/manifest.ts")
 const cms = read("cms/manifest.ts")
 const poetry = read("poetry/manifest.ts")
 const blog = read("blog/manifest.ts")
+const resume = read("resume/manifest.ts")
+const courses = read("courses/manifest.ts")
+const highlightStats = read("highlight-stats/manifest.ts")
+const themeDisplay = read("theme-display/manifest.ts")
 
 assert.match(commerce, /section:\s*"commerce"/)
 assert.match(commerce, /navGroup:\s*"shop"/)
@@ -81,6 +85,16 @@ assert.match(blog, /labelKey:\s*"nav\.poetry"/)
 assert.doesNotMatch(poetry, /navGroup:\s*"poetry"/)
 assert.match(poetry, /adminRoutes:\s*\[\s*\]/)
 assert.doesNotMatch(core, /coreRoutes\("themes"/)
+// Courses / stats / theme-display must not nest under resume navGroup or /resume/*
+assert.doesNotMatch(resume, /path:\s*"resume\/courses"/)
+assert.doesNotMatch(resume, /path:\s*"resume\/stats"/)
+assert.doesNotMatch(resume, /path:\s*"resume\/settings"/)
+assert.match(courses, /path:\s*"courses"/)
+assert.match(courses, /section:\s*"courses"/)
+assert.match(highlightStats, /path:\s*"stats"/)
+assert.match(highlightStats, /section:\s*"stats"/)
+assert.match(themeDisplay, /path:\s*"theme-display"/)
+assert.match(themeDisplay, /section:\s*"theme_display"/)
 
 const layout = fs.readFileSync(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../views/DashboardLayoutPage.tsx"),

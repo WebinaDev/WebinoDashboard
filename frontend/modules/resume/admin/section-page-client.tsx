@@ -18,8 +18,15 @@ import { ResumeSubnav } from "./subnav"
 
 export const resumeApi = (path: string) => `/api/v1/resume/${path}`
 
-export function sectionFromRoute(route: ResolvedAdminRoute): SectionDef {
-  const slug = route.path.split("/").pop() ?? ""
+export type SectionPageOptions = {
+  /** Force a schema slug (for standalone pages whose URL is not /resume/:slug). */
+  sectionSlug?: string
+  /** Hide resume subnav and use the section’s own eyebrow (separate modules). */
+  standalone?: boolean
+}
+
+export function sectionFromRoute(route: ResolvedAdminRoute, sectionSlug?: string): SectionDef {
+  const slug = sectionSlug ?? route.path.split("/").pop() ?? ""
   return sectionBySlug(slug) ?? sectionBySlug("identity")!
 }
 
@@ -65,7 +72,7 @@ function FormGrid({ section, row, set, ctx }: { section: SectionDef; row: Record
   )
 }
 
-function SinglePage({ section }: { section: SectionDef }) {
+function SinglePage({ section, standalone }: { section: SectionDef; standalone?: boolean }) {
   const [lang, setLang] = useState<"fa" | "en">("fa")
   const [row, setRow] = useState<Record<string, unknown> | null>(null)
   const [saving, setSaving] = useState(false)
@@ -82,9 +89,16 @@ function SinglePage({ section }: { section: SectionDef }) {
       toast.error((e as Error).message || "ذخیره نشد")
     } finally { setSaving(false) }
   }
+  const title = lang === "en" ? section.label_en : section.label_fa
+  const eyebrow = standalone ? title : "رزومه"
+  const description = standalone
+    ? (lang === "en"
+      ? "Manage this section on its own page. Persian and English fields each feed the matching site locale."
+      : "این بخش صفحهٔ مستقل خود را دارد. فیلدهای فارسی و انگلیسی هر کدام زبان سایت خود را تغذیه می‌کنند.")
+    : "هر فیلد را به فارسی و انگلیسی وارد کنید؛ سایت فارسی و انگلیسی هر کدام زبان خودشان را نشان می‌دهند."
   return (
-    <PageShell eyebrow="رزومه" title={section.label_fa} description="هر فیلد را به فارسی و انگلیسی وارد کنید؛ سایت فارسی و انگلیسی هر کدام زبان خودشان را نشان می‌دهند." actions={<LangTabs lang={lang} onChange={setLang} />}>
-      <ResumeSubnav active={section.slug} />
+    <PageShell eyebrow={eyebrow} title={title} description={description} actions={<LangTabs lang={lang} onChange={setLang} />}>
+      {standalone ? null : <ResumeSubnav active={section.slug} />}
       <div className="rounded-xl border border-border bg-card p-4 text-card-foreground sm:p-6" dir={lang === "fa" ? "rtl" : "ltr"}>
         {row ? <FormGrid section={section} row={row} set={(k, v) => setRow((r) => ({ ...(r ?? {}), [k]: v }))} ctx={ctx} /> : <div className="h-40 animate-pulse rounded-lg bg-muted" />}
       </div>
@@ -112,7 +126,7 @@ function rowMeta(section: SectionDef, r: ResumeRow): string {
   return parts.join(" · ")
 }
 
-function ListPage({ section }: { section: SectionDef }) {
+function ListPage({ section, standalone }: { section: SectionDef; standalone?: boolean }) {
   const [rows, setRows] = useState<ResumeRow[] | null>(null)
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null)
   const [lang, setLang] = useState<"fa" | "en">("fa")
@@ -164,9 +178,17 @@ function ListPage({ section }: { section: SectionDef }) {
     void (async () => { const ids = rows.map((x) => x.id); ids.splice(j, 0, ids.splice(i, 1)[0]); setRows(ids.map((id) => rows.find((x) => x.id === id)!)); await api<ResumeRow[]>(resumeApi(`${section.slug}/reorder`), { method: "POST", json: { ids } }).then(setRows); setDragId(null) })()
   }
 
+  const title = lang === "en" ? section.label_en : section.label_fa
+  const eyebrow = standalone ? title : "رزومه"
+  const description = standalone
+    ? (lang === "en"
+      ? "Drag cards to reorder. Show or hide each item independently."
+      : "برای تغییر ترتیب کارت‌ها را بکشید. هر مورد جدا نمایش یا مخفی می‌شود.")
+    : "برای تغییر ترتیب کارت‌ها را بکشید. هر مورد جدا نمایش یا مخفی می‌شود."
+
   return (
-    <PageShell eyebrow="رزومه" title={section.label_fa} description="برای تغییر ترتیب کارت‌ها را بکشید. هر مورد جدا نمایش یا مخفی می‌شود." actions={<Button onClick={() => { setLang("fa"); setEditing({ ...blank }) }}><Plus className="size-4" /> افزودن</Button>}>
-      <ResumeSubnav active={section.slug} />
+    <PageShell eyebrow={eyebrow} title={title} description={description} actions={<Button onClick={() => { setLang("fa"); setEditing({ ...blank }) }}><Plus className="size-4" /> افزودن</Button>}>
+      {standalone ? null : <ResumeSubnav active={section.slug} />}
       {rows === null ? (
         <div className="grid gap-3">{[0, 1, 2].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-muted" />)}</div>
       ) : rows.length === 0 ? (
@@ -233,7 +255,13 @@ function ListPage({ section }: { section: SectionDef }) {
   )
 }
 
-export default function ResumeSectionPageClient({ route }: { route: ResolvedAdminRoute }) {
-  const section = sectionFromRoute(route)
-  return section.single ? <SinglePage section={section} /> : <ListPage section={section} />
+export default function ResumeSectionPageClient({
+  route,
+  sectionSlug,
+  standalone = false,
+}: { route: ResolvedAdminRoute } & SectionPageOptions) {
+  const section = sectionFromRoute(route, sectionSlug)
+  return section.single
+    ? <SinglePage section={section} standalone={standalone} />
+    : <ListPage section={section} standalone={standalone} />
 }

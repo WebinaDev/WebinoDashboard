@@ -34,7 +34,10 @@ function ThemeSwatch({ k }: { k: string }) {
   )
 }
 
-export default function ResumeThemePageClient({ route: _route }: { route: ResolvedAdminRoute }) {
+export default function ResumeThemePageClient({
+  route: _route,
+  standalone = false,
+}: { route: ResolvedAdminRoute; standalone?: boolean }) {
   const [s, setS] = useState<ResumeRow | null>(null)
   const [siteLang, setSiteLang] = useState<string>("fa")
   const [busy, setBusy] = useState(false)
@@ -66,8 +69,13 @@ export default function ResumeThemePageClient({ route: _route }: { route: Resolv
   const moveSec = (i: number, d: number) => { const n = [...order]; const j = i + d; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j], n[i]]; set("section_order", n) }
 
   return (
-    <PageShell eyebrow="رزومه" title="تم و نمایش" description="تعویض تم فقط ظاهر را عوض می‌کند و داده‌ها دست نمی‌خورند." actions={<Button onClick={save} disabled={busy || !s}>ذخیره</Button>}>
-      <ResumeSubnav active="settings" />
+    <PageShell
+      eyebrow={standalone ? "تم و نمایش" : "رزومه"}
+      title="تم و نمایش"
+      description="تعویض تم فقط ظاهر را عوض می‌کند و داده‌ها دست نمی‌خورند."
+      actions={<Button onClick={save} disabled={busy || !s}>ذخیره</Button>}
+    >
+      {standalone ? null : <ResumeSubnav active="settings" />}
       <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
         <h2 className="mb-3 font-semibold">تم رزومه</h2>
         <div className="grid gap-3 md:grid-cols-3">

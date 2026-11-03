@@ -8,7 +8,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 
 import { faDigits } from "../lib/jalali"
-import { RESUME_SECTIONS } from "../lib/schema"
+import { RESUME_NAV_SECTIONS } from "../lib/schema"
 import { ResumeSubnav } from "./subnav"
 
 type Overview = Record<string, { count: number; placeholders: number }>
@@ -20,7 +20,7 @@ export default function ResumeOverviewPageClient({ route: _route }: { route: Res
     <PageShell eyebrow="ماژول" title="رزومه" description="هر بخش رزومه مثل لینکدین جداگانه مدیریت می‌شود؛ ویجت‌های resume.* در صفحه‌ساز همین داده را نمایش می‌دهند.">
       <ResumeSubnav active="overview" />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {RESUME_SECTIONS.map((s) => {
+        {RESUME_NAV_SECTIONS.map((s) => {
           const c = data?.[s.slug]
           return (
             <Link key={s.slug} href={`/dashboard/resume/${s.slug}`} className="group rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm transition hover:border-primary hover:shadow-md">

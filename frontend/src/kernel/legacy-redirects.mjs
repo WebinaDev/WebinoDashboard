@@ -30,4 +30,7 @@ export const LEGACY_DASHBOARD_REDIRECTS = [
   { source: "/dashboard/marketplace", destination: "/dashboard/modules/catalog" },
   { source: "/dashboard/marketplace/payment-callback", destination: "/dashboard/modules/payment-callback" },
   { source: "/dashboard/analytics", destination: "/dashboard/analytics/overview" },
+  { source: "/dashboard/resume/courses", destination: "/dashboard/courses" },
+  { source: "/dashboard/resume/stats", destination: "/dashboard/stats" },
+  { source: "/dashboard/resume/settings", destination: "/dashboard/theme-display" },
 ]

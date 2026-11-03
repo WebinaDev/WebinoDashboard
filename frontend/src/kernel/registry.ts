@@ -16,7 +16,10 @@ import { magazineManifest } from "../../modules/magazine/manifest"
 import { marketingManifest } from "../../modules/marketing/manifest"
 import { linkHubManifest } from "../../modules/link-hub/manifest"
 import { poetryManifest } from "../../modules/poetry/manifest"
+import { coursesManifest } from "../../modules/courses/manifest"
+import { highlightStatsManifest } from "../../modules/highlight-stats/manifest"
 import { resumeManifest } from "../../modules/resume/manifest"
+import { themeDisplayManifest } from "../../modules/theme-display/manifest"
 import { usersManifest } from "../../modules/users/manifest"
 
 export const SITE_TYPES: {
@@ -57,6 +60,9 @@ const GIT_TRANSITION_MANIFESTS: ModuleManifest[] = [
   { ...academyManifest, distribution: "git" },
   { ...cafeManifest, distribution: "git" },
   { ...resumeManifest, distribution: "git" },
+  { ...coursesManifest, distribution: "git" },
+  { ...highlightStatsManifest, distribution: "git" },
+  { ...themeDisplayManifest, distribution: "git" },
   { ...corporateManifest, distribution: "git" },
   { ...linkHubManifest, distribution: "git" },
   { ...poetryManifest, distribution: "git" },
