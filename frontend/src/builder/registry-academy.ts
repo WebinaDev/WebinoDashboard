@@ -14,8 +14,9 @@ const tone: FieldDef = {
   options: [
     { value: "blush", label: "صورتی روشن (برند گتابی)" },
     { value: "ocean", label: "آبی اقیانوسی (آکادمی زبان)" },
+    { value: "ocean-deep", label: "اقیانوس تیره (CTA)" },
     { value: "light", label: "سفید خنثی" },
-    { value: "ink", label: "سرمه‌ای تیره" },
+    { value: "ink", label: "سرمه‌ای تیره (گتابی)" },
     { value: "transparent", label: "شفاف" },
   ],
 }
@@ -91,6 +92,7 @@ export const ACADEMY_WIDGETS: WidgetDef[] = [
         tone: "blush",
         fullBleed: true,
         motion: true,
+        mobileFullWidth: true,
       }),
   },
   {

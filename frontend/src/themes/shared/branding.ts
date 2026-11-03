@@ -46,6 +46,8 @@ export function brandFontStack(font: string | null | undefined): string | null {
       return 'var(--font-yekan), "Yekan Bakh", "Vazirmatn", Tahoma, sans-serif'
     case "iran-sans":
       return 'var(--font-yekan), "IRANSans", "Yekan Bakh", Tahoma, sans-serif'
+    case "inter":
+      return 'Inter, ui-sans-serif, system-ui, "Segoe UI", Tahoma, sans-serif'
     case "system":
       return "system-ui, -apple-system, Segoe UI, Tahoma, sans-serif"
     default:
@@ -176,13 +178,56 @@ function shellIsolationCss(branding?: Partial<SiteBranding> | null): string {
  * the isolated dark palette (inline styles would override `.dark` rules).
  * All themes get shell isolation; classic also gets Parisma/SFC token mapping.
  */
+/** Magazine / academy / resume shells: brand fonts + soft atmospheric page wash (not flat chrome). */
+function magazineAtmosphereCss(branding?: Partial<SiteBranding> | null): string {
+  const p = resolveBrandPalette(branding)
+  const font =
+    brandFontStack(branding?.font_heading) ||
+    brandFontStack(branding?.font_body) ||
+    brandFontStack(branding?.font) ||
+    brandFontStack("yekan-bakh")
+  const primary = p.primary
+  const navy = p.navy ?? p.secondary
+  const header = p.header ?? PARISMA_PALETTE.header!
+  const footer = p.footer ?? PARISMA_PALETTE.footer!
+  const footerFg = isLightHex(footer) ? navy : "#ffffff"
+  const headerFg = isLightHex(header) ? navy : "#ffffff"
+  return `.sf-shell{
+  ${font ? `font-family:${font};` : ""}
+  background:
+    radial-gradient(ellipse 80% 50% at 100% 0%, ${primary}24, transparent 55%),
+    radial-gradient(ellipse 55% 40% at 0% 100%, ${navy}14, transparent 50%),
+    ${p.bg};
+}
+.sf-shell header,
+.sf-shell [data-site-header]{
+  background: color-mix(in srgb, ${header} 92%, transparent);
+  color: ${headerFg};
+  backdrop-filter: blur(14px) saturate(1.15);
+  border-bottom: 1px solid ${p.border};
+}
+.sf-shell footer,
+.sf-shell [data-site-footer]{
+  background: ${footer};
+  color: ${footerFg};
+}
+.sf-shell a{color:inherit}`
+}
+
 export function storefrontStyleCss(
   branding?: Partial<SiteBranding> | null,
   themeSlug?: string | null,
 ): string {
   const isolate = shellIsolationCss(branding)
   // Classic storefront only — extra skin tokens on top of isolation.
-  if (themeSlug !== "ecommerce-classic") return isolate
+  if (themeSlug !== "ecommerce-classic") {
+    // Magazine / builder academies (and other non-classic shells) still need
+    // expressive brand atmosphere — otherwise pages look like blank chrome.
+    if (themeSlug === "magazine-default" || themeSlug === "resume-default" || !themeSlug) {
+      return `${isolate}${magazineAtmosphereCss(branding)}`
+    }
+    return isolate
+  }
   const p = resolveBrandPalette(branding)
   const appearance = (branding?.appearance ?? {}) as ClassicThemeSettings
   const typo = appearance.typography ?? {}

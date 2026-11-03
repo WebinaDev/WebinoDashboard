@@ -26,7 +26,17 @@ const CSS_SAFE = /^[#a-z0-9(),.\s%-]+$/i
 function shell(p: Record<string, unknown>, extra = "") {
   const tone = propStr(p, "tone", "light")
   const toneCls =
-    tone === "blush" ? "wax-blush" : tone === "ocean" ? "wax-ocean" : tone === "ink" ? "wax-ink" : tone === "transparent" ? "wax-clear" : "wax-light"
+    tone === "blush"
+      ? "wax-blush"
+      : tone === "ocean"
+        ? "wax-ocean"
+        : tone === "ocean-deep"
+          ? "wax-ocean-deep"
+          : tone === "ink"
+            ? "wax-ink"
+            : tone === "transparent"
+              ? "wax-clear"
+              : "wax-light"
   const bg = propStr(p, "bgImage") ? "wax-has-bg" : ""
   const bleed = propBool(p, "fullBleed", false) ? "wax-bleed" : ""
   const motion = propBool(p, "motion", false) ? "wax-motion" : ""
@@ -97,7 +107,7 @@ export function AcademyHeroWidget({ widget }: { widget: WidgetNode }) {
   const image = safeMedia(propStr(p, "image"))
   const stats = parseRows(p.stats, ["value", "label"]).filter((r) => r.value || r.label)
   return (
-    <section className={shell(p)} style={sectionBg(p)}>
+    <section className={shell(p, "wax-hero")} style={sectionBg(p)}>
       <div className={`wax-hero-grid ${layout}`}>
         <div className="wax-copy wax-rise">
           {propStr(p, "eyebrow") ? <div className="wax-eyebrow">{propStr(p, "eyebrow")}</div> : null}
