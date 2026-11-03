@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\V1\BuilderFormFilesController;
-use App\Http\Controllers\Api\V1\PricingController;
-use App\Models\BulkPriceJob;
 use App\Models\PricingSetting;
 use App\Services\AiContent\AiQueue;
 use App\Services\Analytics\AnalyticsRollup;
@@ -94,35 +92,6 @@ Artisan::command('pricing:bulk-price-schedule', function () {
         if (is_string($last) && Carbon::parse($last)->isSameHour(now())) {
             return;
         }
-        $running = BulkPriceJob::query()
-            ->where('tenant_id', $row->tenant_id)
-            ->where('locked', true)
-            ->where('updated_at', '>=', now()->subMinutes(55))
-            ->exists();
-        if ($running) {
-            return;
-        }
-        $job = BulkPriceJob::query()->create([
-            'tenant_id' => $row->tenant_id,
-            'status' => 'running',
-            'params' => [
-                'change_type' => $schedule['change_type'] ?? 'percent',
-                'value' => $schedule['value'] ?? 0,
-                'apply_to_sale' => (bool) ($schedule['apply_to_sale'] ?? false),
-                'category_slugs' => $schedule['category_slugs'] ?? [],
-                'rounding' => (bool) ($schedule['rounding'] ?? false),
-                'round_step' => $schedule['round_step'] ?? 1000,
-            ],
-            'state' => ['processed' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0],
-            'locked' => true,
-            'last_log' => 'Scheduled job started',
-        ]);
-        try {
-            app(PricingController::class)->runBulkPriceJob($job);
-            $payload['bulk_price_schedule']['last_run_at'] = now()->toIso8601String();
-            $row->update(['payload' => $payload]);
-        } catch (Throwable $e) {
-            $job->update(['status' => 'failed', 'locked' => false, 'last_log' => $e->getMessage()]);
         if ($bulk->hasActiveJob($row->tenant_id)) {
             return;
         }
