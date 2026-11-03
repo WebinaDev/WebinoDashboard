@@ -62,7 +62,7 @@ class ProvisionController extends Controller
             'domain' => $seed['domain'] ?? $tenant->domain,
             'domain_aliases' => $domainAliases ?? $tenant->domain_aliases,
             'alias_subdomain' => $aliasSubdomain ?? $tenant->alias_subdomain ?? 'contact',
-            'product' => $seed['product'] ?? env('TENANT_PRODUCT', 'webinodashboard'),
+            'product' => $seed['product'] ?? config('webino_runtime.tenant_product', 'webinodashboard'),
             'business_category_slug' => $seed['business_category_slug'] ?? $tenant->business_category_slug,
             'business_type_slug' => $seed['business_type_slug'] ?? $tenant->business_type_slug,
             'site_type_slug' => $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? $tenant->site_type_slug,
@@ -84,7 +84,7 @@ class ProvisionController extends Controller
             $fill['branding'] = array_replace($current, $seed['branding']);
         }
         $tenant->fill($fill);
-        $provisionToken = (string) ($seed['provision_token'] ?? env('TENANT_PROVISION_TOKEN', '') ?: '');
+        $provisionToken = (string) ($seed['provision_token'] ?? config('webino_runtime.tenant_provision_token', '') ?: '');
         if ($provisionToken !== '') {
             $tenant->provision_token = $provisionToken;
         }
