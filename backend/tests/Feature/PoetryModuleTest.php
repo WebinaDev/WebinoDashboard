@@ -114,6 +114,23 @@ class PoetryModuleTest extends TestCase
         $this->postJson('/api/v1/poetry/import/parse', ['text' => 'x'])->assertUnauthorized();
     }
 
+    public function test_term_crud_accepts_seo(): void
+    {
+        $this->actingAs($this->user, 'sanctum');
+        $id = $this->postJson('/api/v1/poetry/terms', [
+            'kind' => 'occasion',
+            'name' => 'شب قدر',
+            'slug' => 'shab-e-qadr',
+            'seo' => ['title' => 'شب قدر', 'description' => 'اشعار شب قدر', 'focus_keyword' => 'قدر'],
+        ])->assertCreated()->assertJsonPath('data.seo.focus_keyword', 'قدر')->json('data.id');
+        $this->putJson("/api/v1/poetry/terms/{$id}", ['seo' => ['focus_keyword' => 'شب قدر']])
+            ->assertOk()->assertJsonPath('data.seo.focus_keyword', 'شب قدر');
+        $this->getJson('/api/v1/poetry/terms?kind=occasion')->assertOk()
+            ->assertJsonFragment(['slug' => 'shab-e-qadr']);
+        $this->deleteJson("/api/v1/poetry/terms/{$id}")->assertOk();
+        $this->assertNull(PoetryTerm::query()->find($id));
+    }
+
     public function test_import_parser_handles_telegram_format(): void
     {
         $raw = <<<'TXT'
