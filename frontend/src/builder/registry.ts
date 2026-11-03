@@ -7,6 +7,7 @@ import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
 import { ICON_OPTIONS } from "./render/icon-options"
 import { COMMERCE_PLUGIN } from "./registry-commerce"
+import { ACADEMY_WIDGETS } from "./registry-academy"
 import { CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
 import { POETRY_WIDGETS } from "./registry-poetry"
 import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
@@ -719,6 +720,7 @@ const CORE_WIDGETS: WidgetDef[] = [
   },
   ...CONTENT_WIDGETS,
   ...GAP_WIDGETS,
+  ...ACADEMY_WIDGETS,
   ...POETRY_WIDGETS,
   ...POETRY_MODULE_WIDGETS,
   ...RESUME_WIDGETS,

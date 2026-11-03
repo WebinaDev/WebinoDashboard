@@ -68,6 +68,13 @@ const TocWidget = dynamic(() => import("./pro-widgets").then((m) => m.TocWidget)
 const LoopFilterWidget = dynamic(() => import("./loop-filter").then((m) => m.LoopFilterWidget))
 const ArchiveFiltersWidget = dynamic(() => import("./archive-filters").then((m) => m.ArchiveFiltersWidget))
 const CafeTableBookingWidget = dynamic(() => import("./cafe-booking-widget").then((m) => m.CafeTableBookingWidget))
+const AcademyHeroWidget = dynamic(() => import("./academy-widgets").then((m) => m.AcademyHeroWidget))
+const CourseGridWidget = dynamic(() => import("./academy-widgets").then((m) => m.CourseGridWidget))
+const InstructorGridWidget = dynamic(() => import("./academy-widgets").then((m) => m.InstructorGridWidget))
+const CurriculumTimelineWidget = dynamic(() => import("./academy-widgets").then((m) => m.CurriculumTimelineWidget))
+const EnrollCtaWidget = dynamic(() => import("./academy-widgets").then((m) => m.EnrollCtaWidget))
+const AcademyStatsWidget = dynamic(() => import("./academy-widgets").then((m) => m.AcademyStatsWidget))
+const LogoCloudWidget = dynamic(() => import("./academy-widgets").then((m) => m.LogoCloudWidget))
 const AudioBlockWidget = dynamic(() => import("./gap-widgets").then((m) => m.AudioBlockWidget))
 const BeforeAfterWidget = dynamic(() => import("./gap-widgets").then((m) => m.BeforeAfterWidget))
 const LoginFormWidget = dynamic(() => import("./gap-widgets").then((m) => m.LoginFormWidget))
@@ -436,6 +443,20 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <PoetrySiteFooterWidget widget={widget} />
     case "cafe-table-booking":
       return <CafeTableBookingWidget widget={widget} editing={editing} />
+    case "academy-hero":
+      return <AcademyHeroWidget widget={widget} />
+    case "course-grid":
+      return <CourseGridWidget widget={widget} />
+    case "instructor-grid":
+      return <InstructorGridWidget widget={widget} />
+    case "curriculum-timeline":
+      return <CurriculumTimelineWidget widget={widget} />
+    case "enroll-cta":
+      return <EnrollCtaWidget widget={widget} />
+    case "academy-stats":
+      return <AcademyStatsWidget widget={widget} />
+    case "logo-cloud":
+      return <LogoCloudWidget widget={widget} />
     case "image-box":
       return <ImageBoxWidget widget={widget} />
     case "flip-box":

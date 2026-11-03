@@ -63,6 +63,7 @@ import {
   GalleryVerticalEnd,
   Gauge,
   Gem,
+  GraduationCap,
   Grid2x2,
   Grid3x3,
   Hash,
@@ -174,7 +175,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-export type CatalogCategoryId = "layout" | "basic" | "media" | "interactive" | "marketing" | "forms" | "chrome" | "shop" | "product" | "checkout" | "blog" | "resume" | "poetry" | "cafe" | "other"
+export type CatalogCategoryId = "layout" | "basic" | "media" | "interactive" | "marketing" | "forms" | "chrome" | "shop" | "product" | "checkout" | "blog" | "resume" | "poetry" | "cafe" | "academy" | "other"
 
 export type CatalogCategory = { id: CatalogCategoryId; label: string; labelEn: string; icon: string }
 export type CatalogEntry = { category: CatalogCategoryId; icon: string }
@@ -194,6 +195,7 @@ export const WIDGET_CATALOG_CATEGORIES: CatalogCategory[] = [
   { id: "resume", label: "رزومه", labelEn: "Resume", icon: "IdCard" },
   { id: "poetry", label: "شعر و ادبی", labelEn: "Poetry & literary", icon: "Feather" },
   { id: "cafe", label: "کافه", labelEn: "Cafe", icon: "Coffee" },
+  { id: "academy", label: "آکادمی و آموزش", labelEn: "Academy", icon: "GraduationCap" },
   { id: "other", label: "سایر", labelEn: "Other", icon: "Blocks" },
 ]
 
@@ -364,9 +366,17 @@ export const WIDGET_CATALOG: Record<string, CatalogEntry> = {
   "poetry-footer": { category: "poetry", icon: "PanelBottomClose" },
   "poetry-site-footer": { category: "poetry", icon: "PanelBottomOpen" },
   "cafe-table-booking": { category: "cafe", icon: "CalendarCheck" },
+  "academy-hero": { category: "academy", icon: "GalleryThumbnails" },
+  "course-grid": { category: "academy", icon: "Grid2x2" },
+  "instructor-grid": { category: "academy", icon: "Users" },
+  "curriculum-timeline": { category: "academy", icon: "Footprints" },
+  "enroll-cta": { category: "academy", icon: "Megaphone" },
+  "academy-stats": { category: "academy", icon: "Hash" },
+  "logo-cloud": { category: "academy", icon: "Tags" },
 }
 
 export const CATALOG_ICONS: Record<string, LucideIcon> = {
+  GraduationCap,
   AlignHorizontalSpaceAround,
   AlignRight,
   AppWindow,

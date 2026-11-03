@@ -1,0 +1,644 @@
+/* Academy landing widgets — brand-agnostic tokens; tones set palette. */
+
+.wax {
+  --wax-ink: #021959;
+  --wax-muted: #4d5e8a;
+  --wax-line: #e8edf3;
+  --wax-surface: #ffffff;
+  --wax-soft: #f7f2f6;
+  --wax-accent: #e775ae;
+  --wax-accent-2: #dc5f9d;
+  --wax-glow: color-mix(in srgb, var(--wax-accent) 18%, transparent);
+  position: relative;
+  color: var(--wax-ink);
+  isolation: isolate;
+}
+
+.wax-blush {
+  --wax-soft: #fdf5f9;
+  --wax-accent: #e775ae;
+  --wax-accent-2: #c45c26;
+  background: linear-gradient(165deg, #fff 0%, #fdf5f9 48%, #f3f5f8 100%);
+}
+
+.wax-ocean {
+  --wax-ink: #0b1f33;
+  --wax-muted: #3d5a73;
+  --wax-soft: #eef6fb;
+  --wax-accent: #1a7a8c;
+  --wax-accent-2: #0e4d6b;
+  --wax-line: #d5e6f0;
+  background: linear-gradient(160deg, #f4fafc 0%, #e7f3f8 55%, #dcecf4 100%);
+}
+
+.wax-light {
+  background: var(--wax-surface);
+}
+
+.wax-ink {
+  --wax-ink: #f7f9fc;
+  --wax-muted: #b8c4d9;
+  --wax-line: rgba(255, 255, 255, 0.14);
+  --wax-surface: #021959;
+  --wax-soft: #0a2760;
+  --wax-accent: #e775ae;
+  background: radial-gradient(120% 80% at 10% 0%, #1a3a7a 0%, #021959 55%, #04132e 100%);
+  color: var(--wax-ink);
+}
+
+.wax-clear {
+  background: transparent;
+}
+
+.wax-pad {
+  padding: clamp(2.5rem, 6vw, 5rem) clamp(1.25rem, 4vw, 3rem);
+}
+
+.wax-bleed {
+  width: 100vw;
+  margin-inline-start: calc(50% - 50vw);
+}
+
+.wax-mfw {
+  /* reserved for mobile full-bleed helpers */
+}
+
+.wax-has-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: var(--wax-bg-img) center / cover no-repeat;
+}
+
+.wax-has-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--wax-ov, transparent);
+  opacity: var(--wax-ov-op, 0.55);
+}
+
+.wax-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--wax-accent);
+  margin-bottom: 0.85rem;
+}
+
+.wax-eyebrow::before {
+  content: "";
+  width: 1.4rem;
+  height: 2px;
+  border-radius: 99px;
+  background: var(--wax-accent);
+}
+
+.wax-title {
+  font-size: clamp(1.85rem, 4.5vw, 3.35rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+  max-width: 18ch;
+}
+
+.wax-text {
+  margin: 1rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--wax-muted);
+  max-width: 42ch;
+}
+
+.wax-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.wax-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.35rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: transform 0.25s ease, background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.wax-btn:hover {
+  transform: translateY(-2px);
+}
+
+.wax-btn-primary {
+  background: var(--wax-accent);
+  color: #fff;
+  box-shadow: 0 12px 28px var(--wax-glow);
+}
+
+.wax-btn-ghost {
+  background: transparent;
+  color: var(--wax-ink);
+  border: 1px solid color-mix(in srgb, var(--wax-ink) 22%, transparent);
+}
+
+.wax-ink .wax-btn-ghost {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.wax-hero-grid {
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .wax-hero-grid.split {
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+}
+
+.wax-hero-grid.overlay {
+  min-height: clamp(24rem, 70vh, 38rem);
+  place-items: end start;
+}
+
+.wax-hero-grid.overlay .wax-copy {
+  max-width: 36rem;
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--wax-surface) 82%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.wax-ink .wax-hero-grid.overlay .wax-copy {
+  background: color-mix(in srgb, #021959 72%, transparent);
+}
+
+.wax-hero-grid.centered {
+  text-align: center;
+  justify-items: center;
+}
+
+.wax-hero-grid.centered .wax-title,
+.wax-hero-grid.centered .wax-text {
+  margin-inline: auto;
+  max-width: 22ch;
+}
+
+.wax-hero-grid.centered .wax-text {
+  max-width: 48ch;
+}
+
+.wax-hero-grid.centered .wax-actions {
+  justify-content: center;
+}
+
+.wax-portrait {
+  position: relative;
+  border-radius: 2rem;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  background: var(--wax-soft);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--wax-ink) 12%, transparent);
+}
+
+.wax-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wax-portrait::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -12% auto;
+  width: 55%;
+  height: 45%;
+  border-radius: 50%;
+  background: var(--wax-glow);
+  filter: blur(28px);
+  z-index: -1;
+}
+
+.wax-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--wax-line);
+}
+
+.wax-stat strong {
+  display: block;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.wax-stat span {
+  color: var(--wax-muted);
+  font-size: 0.85rem;
+}
+
+.wax-section-head {
+  margin-bottom: 1.75rem;
+  max-width: 40rem;
+}
+
+.wax-section-head h2 {
+  margin: 0;
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.wax-section-head p {
+  margin: 0.6rem 0 0;
+  color: var(--wax-muted);
+  line-height: 1.7;
+}
+
+.wax-course-grid,
+.wax-instructor-grid {
+  display: grid;
+  gap: 1.1rem;
+  grid-template-columns: repeat(var(--wax-cols, 3), minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .wax-course-grid,
+  .wax-instructor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .wax-course-grid,
+  .wax-instructor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wax-course {
+  display: flex;
+  flex-direction: column;
+  border-radius: 1.35rem;
+  overflow: hidden;
+  background: var(--wax-surface);
+  border: 1px solid var(--wax-line);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+  min-height: 100%;
+}
+
+.wax-course:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--wax-ink) 10%, transparent);
+}
+
+.wax-course-media {
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, var(--wax-soft), color-mix(in srgb, var(--wax-accent) 18%, white));
+  position: relative;
+}
+
+.wax-course-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wax-badge {
+  position: absolute;
+  top: 0.75rem;
+  inset-inline-start: 0.75rem;
+  background: var(--wax-accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+}
+
+.wax-course-body {
+  padding: 1.1rem 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.wax-course-body h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.wax-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: var(--wax-muted);
+  font-size: 0.82rem;
+}
+
+.wax-price {
+  margin-top: auto;
+  padding-top: 0.65rem;
+  font-weight: 800;
+  color: var(--wax-accent-2);
+}
+
+.wax-more {
+  display: inline-flex;
+  margin-top: 1.35rem;
+  font-weight: 700;
+  color: var(--wax-accent);
+  text-decoration: none;
+}
+
+.wax-instructor {
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  background: var(--wax-surface);
+  border: 1px solid var(--wax-line);
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.25s ease;
+}
+
+.wax-instructor:hover {
+  transform: translateY(-3px);
+}
+
+.wax-instructor img {
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 0.85rem;
+  display: block;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--wax-accent) 22%, transparent);
+}
+
+.wax-instructor h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.wax-instructor .role {
+  color: var(--wax-accent);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+.wax-instructor .creds,
+.wax-instructor .bio {
+  color: var(--wax-muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  margin-top: 0.45rem;
+}
+
+.wax-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  position: relative;
+}
+
+.wax-timeline::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0.85rem;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--wax-accent), color-mix(in srgb, var(--wax-accent) 10%, transparent));
+}
+
+.wax-tl-item {
+  position: relative;
+  padding: 0 0 1.5rem 2.75rem;
+}
+
+.wax-tl-item::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0.45rem;
+  top: 0.35rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: var(--wax-accent);
+  box-shadow: 0 0 0 4px var(--wax-glow);
+}
+
+.wax-tl-item h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.wax-tl-item p {
+  margin: 0.35rem 0 0;
+  color: var(--wax-muted);
+  line-height: 1.65;
+}
+
+.wax-tl-meta {
+  display: inline-block;
+  margin-top: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--wax-accent);
+  background: color-mix(in srgb, var(--wax-accent) 12%, transparent);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.wax-enroll {
+  display: grid;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+@media (min-width: 860px) {
+  .wax-enroll {
+    grid-template-columns: 1.3fr 0.7fr;
+  }
+}
+
+.wax-enroll-card {
+  border-radius: 1.5rem;
+  padding: 1.35rem;
+  background: color-mix(in srgb, var(--wax-surface) 12%, transparent);
+  border: 1px solid var(--wax-line);
+}
+
+.wax-perks {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.wax-perks li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+}
+
+.wax-perks li::before {
+  content: "✓";
+  color: var(--wax-accent);
+  font-weight: 800;
+}
+
+.wax-price-lg {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  margin: 0;
+}
+
+.wax-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1rem;
+}
+
+.wax-stat-card {
+  border-radius: 1.25rem;
+  padding: 1.15rem 1.2rem;
+  background: var(--wax-surface);
+  border: 1px solid var(--wax-line);
+}
+
+.wax-stat-card strong {
+  display: block;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 800;
+}
+
+.wax-stat-card span {
+  color: var(--wax-muted);
+  font-size: 0.88rem;
+}
+
+.wax-stat-card small {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--wax-muted);
+  opacity: 0.85;
+  font-size: 0.78rem;
+}
+
+.wax-logos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.wax-logos.marquee {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.wax-logos.marquee .wax-logo-track {
+  display: flex;
+  gap: 2rem;
+  animation: wax-marquee 28s linear infinite;
+  width: max-content;
+}
+
+@keyframes wax-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wax-logos.marquee .wax-logo-track {
+    animation: none;
+  }
+  .wax-btn:hover,
+  .wax-course:hover,
+  .wax-instructor:hover {
+    transform: none;
+  }
+}
+
+.wax-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--wax-line);
+  background: var(--wax-surface);
+  color: var(--wax-muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.wax-logo img {
+  max-height: 2rem;
+  max-width: 6rem;
+  object-fit: contain;
+}
+
+.wax-motion .wax-rise {
+  animation: wax-rise 0.7s ease both;
+}
+
+@keyframes wax-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.wax-empty {
+  border: 1px dashed var(--wax-line);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--wax-muted);
+  font-size: 0.9rem;
+}

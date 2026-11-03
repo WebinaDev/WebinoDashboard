@@ -20,6 +20,7 @@ Source of truth: `frontend/src/builder/widget-catalog.ts` (shape: `categories[]`
 | `resume` | رزومه | Resume | `IdCard` |
 | `poetry` | شعر و ادبی | Poetry & literary | `Feather` |
 | `cafe` | کافه | Cafe | `Coffee` |
+| `academy` | آکادمی و آموزش | Academy | `GraduationCap` |
 | `other` | سایر | Other | `Blocks` |
 
 `resume-*` keys (resume module, in progress) fall into `resume` with `FileUser` until listed; unknown keys go to `other`.
@@ -191,6 +192,13 @@ Source of truth: `frontend/src/builder/widget-catalog.ts` (shape: `categories[]`
 | `poetry-footer` | `poetry` | `PanelBottomClose` |
 | `poetry-site-footer` | `poetry` | `PanelBottomOpen` |
 | `cafe-table-booking` | `cafe` | `CalendarCheck` |
+| `academy-hero` | `academy` | `GalleryThumbnails` |
+| `course-grid` | `academy` | `Grid2x2` |
+| `instructor-grid` | `academy` | `Users` |
+| `curriculum-timeline` | `academy` | `Footprints` |
+| `enroll-cta` | `academy` | `Megaphone` |
+| `academy-stats` | `academy` | `Hash` |
+| `logo-cloud` | `academy` | `Tags` |
 
 ## Duplicate widgets — proposed merges (not done yet)
 
