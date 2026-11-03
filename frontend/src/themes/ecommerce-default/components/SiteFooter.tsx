@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { getServerTranslations } from "@/lib/server-translations"
+import type { SiteChromeProps } from "@/themes/shared/types"
 
-export async function SiteFooter({ siteName }: { siteName: string }) {
+export async function SiteFooter({ siteName }: SiteChromeProps) {
   const t = await getServerTranslations("site.footer")
 
   return (

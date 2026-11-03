@@ -6,7 +6,7 @@ export function SiteHeader(props: SiteChromeProps) {
   return <CafeSkinHeader {...props} skin="cafe-mash-donald" />
 }
 
-export function SiteFooter({ siteName }: { siteName: string }) {
+export function SiteFooter({ siteName }: SiteChromeProps) {
   return <CafeSkinFooter siteName={siteName} skin="cafe-mash-donald" />
 }
 

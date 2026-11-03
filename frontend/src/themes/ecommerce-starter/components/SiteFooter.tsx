@@ -1,6 +1,7 @@
 import Link from "next/link"
+import type { SiteChromeProps } from "@/themes/shared/types"
 
-export async function SiteFooter({ siteName }: { siteName: string }) {
+export async function SiteFooter({ siteName }: SiteChromeProps) {
   return (
     <footer className="mt-12 border-t border-zinc-200 bg-white">
       <div className="container mx-auto flex flex-col gap-2 px-4 py-8 text-xs text-zinc-500 md:flex-row md:items-center md:justify-between">

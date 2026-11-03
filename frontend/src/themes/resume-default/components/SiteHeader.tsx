@@ -2,8 +2,9 @@ import Link from "next/link"
 import { getServerTranslations } from "@/lib/server-translations"
 
 import { Button } from "@/components/ui/button"
+import type { SiteChromeProps } from "@/themes/shared/types"
 
-export async function SiteHeader({ siteName }: { siteName: string }) {
+export async function SiteHeader({ siteName }: SiteChromeProps) {
   const t = await getServerTranslations("site.nav")
 
   const NAV = [
