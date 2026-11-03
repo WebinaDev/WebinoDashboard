@@ -59,16 +59,28 @@ class SiteTypeDemoSeederTest extends TestCase
         $tenant = $this->createTenant([
             'setup_completed' => false,
             'site_type_slug' => null,
+            'name' => 'کافه نمونه',
+            'store_display_name' => 'کافه نمونه',
         ]);
 
         app(TenantActivationService::class)->applySiteType($tenant, 'cafe');
         $tenant->refresh();
 
         $this->assertSame('cafe-starter', $tenant->active_theme_slug);
+        $this->assertGreaterThanOrEqual(30, Product::query()->where('tenant_id', $tenant->id)->count());
         $this->assertDatabaseHas('products', [
             'tenant_id' => $tenant->id,
-            'slug' => 'cafe-latte',
+            'slug' => 'latte',
         ]);
+        $this->assertDatabaseHas('categories', [
+            'tenant_id' => $tenant->id,
+            'slug' => 'hot-coffee',
+        ]);
+        $this->assertDatabaseHas('categories', [
+            'tenant_id' => $tenant->id,
+            'slug' => 'breakfast',
+        ]);
+        $this->assertNotEmpty($tenant->branding['demo_seeded_at'] ?? null);
     }
 
     public function test_magazine_apply_seeds_articles(): void
@@ -82,7 +94,7 @@ class SiteTypeDemoSeederTest extends TestCase
         $tenant->refresh();
 
         $this->assertSame('magazine-default', $tenant->active_theme_slug);
-        $this->assertGreaterThanOrEqual(1, MagazineArticle::query()->where('tenant_id', $tenant->id)->count());
+        $this->assertGreaterThanOrEqual(4, MagazineArticle::query()->where('tenant_id', $tenant->id)->count());
     }
 
     public function test_set_default_theme_endpoint(): void

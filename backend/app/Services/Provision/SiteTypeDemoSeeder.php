@@ -7,7 +7,6 @@ use App\Kernel\ThemeCatalog;
 use App\Models\BuilderTemplate;
 use App\Models\Category;
 use App\Models\MagazineArticle;
-use App\Models\Menu;
 use App\Models\Product;
 use App\Models\ResumeProfile;
 use App\Models\Tenant;
@@ -33,6 +32,7 @@ class SiteTypeDemoSeeder
         protected ProvisionContentSeeder $pagesSeeder,
         protected ThemePresetLibrary $presets,
         protected ModuleSettingsService $settings,
+        protected CafeRichDemoSeeder $cafeRichDemo,
     ) {}
 
     /**
@@ -244,78 +244,19 @@ class SiteTypeDemoSeeder
                 [
                     'slug' => 'about',
                     'title' => 'درباره کافه',
-                    'body' => "{$brand} منوی نمونه کافه روی ویبینو است؛ آیتم‌ها را از پنل منو ویرایش کنید.",
+                    'body' => "{$brand} با منوی کامل نمونه (قهوه، دمنوش، دسر، صبحانه و ساندویچ) روی ویبینو راه‌اندازی شده است. آیتم‌ها، ساعت کاری و گالری را از پنل کافه ویرایش کنید.",
+                ],
+                [
+                    'slug' => 'reservations',
+                    'title' => 'رزرو میز',
+                    'body' => 'برای رزرو میز از فرم رزرو یا تماس با کافه استفاده کنید. این صفحهٔ نمونه پس از ساخت سایت اضافه شده است.',
                 ],
             ],
         ], $seed));
 
-        $tid = (int) $tenant->id;
-        $this->settings->put($tid, 'cafe', 'venue', array_merge(
-            $this->settings->get($tid, 'cafe', 'venue', ModuleSettingsService::cafeVenueDefaults()),
-            [
-                'tagline_fa' => 'منوی دیجیتال نمونه ویبینو',
-                'tagline_en' => 'Webina sample digital menu',
-                'about_fa' => "{$brand} با دادهٔ نمونه راه‌اندازی شده است تا قالب کافه را ببینید.",
-                'about_en' => "{$brand} ships with sample cafe content so you can preview the theme.",
-                'mini_site_enabled' => true,
-            ],
-        ));
-
-        $menu = Menu::query()->firstOrCreate(
-            ['tenant_id' => $tid, 'slug' => 'main-menu'],
-            [
-                'name' => 'منوی اصلی',
-                'menu_type' => 'cafe',
-                'locale' => 'fa',
-                'is_active' => true,
-                'sort_order' => 0,
-                'description' => 'منوی نمونه کافه ویبینو',
-            ]
-        );
-
-        $category = Category::query()->firstOrCreate(
-            ['tenant_id' => $tid, 'slug' => 'hot-drinks'],
-            [
-                'name' => 'نوشیدنی گرم',
-                'sort_order' => 0,
-                'status' => 'publish',
-                'display_mode' => 'grid',
-                'meta' => ['demo' => self::DEMO_TAG],
-            ]
-        );
-
-        $items = [
-            ['slug' => 'cafe-latte', 'name' => 'لاته', 'en' => 'Latte', 'price' => 185000, 'desc' => 'اسپرسو و شیر بخار — نمونه منو ویبینو'],
-            ['slug' => 'cafe-cappuccino', 'name' => 'کاپوچینو', 'en' => 'Cappuccino', 'price' => 175000, 'desc' => 'کف شیر کلاسیک برای نمایش قالب کافه'],
-            ['slug' => 'cafe-mocha', 'name' => 'موکا', 'en' => 'Mocha', 'price' => 195000, 'desc' => 'شکلات و اسپرسو — آیتم دمو'],
-            ['slug' => 'cafe-herbal', 'name' => 'دمنوش آرام‌بخش', 'en' => 'Herbal tea', 'price' => 145000, 'desc' => 'دمنوش نمونه برای دسته نوشیدنی گرم'],
-        ];
-
-        foreach ($items as $i => $item) {
-            Product::query()->firstOrCreate(
-                ['tenant_id' => $tid, 'slug' => $item['slug']],
-                [
-                    'category_id' => $category->id,
-                    'menu_id' => $menu->id,
-                    'name' => $item['name'],
-                    'english_name' => $item['en'],
-                    'description' => $item['desc'],
-                    'short_description' => $item['desc'],
-                    'price_minor' => $item['price'] * 10,
-                    'currency' => 'IRR',
-                    'stock' => 50,
-                    'manage_stock' => false,
-                    'stock_status' => 'instock',
-                    'is_available' => true,
-                    'is_featured' => $i < 2,
-                    'status' => 'publish',
-                    'type' => 'simple',
-                    'catalog_visibility' => 'visible',
-                    'sort_order' => $i,
-                    'meta' => ['demo' => self::DEMO_TAG],
-                ]
-            );
-        }
+        // Rich Blue-Cafe-class sample: menus, categories, modifiers, hours, gallery, venue.
+        // firstOrCreate only — never wipe merchant content; demo_seeded_at gate is upstream.
+        $this->cafeRichDemo->seed($tenant, $this->settings, self::DEMO_TAG, overwrite: false);
     }
 
     /** @param  array<string, mixed>  $seed */
@@ -397,12 +338,19 @@ class SiteTypeDemoSeeder
     /** @param  array<string, mixed>  $seed */
     protected function seedMagazine(Tenant $tenant, array $seed): void
     {
+        $brand = (string) ($tenant->store_display_name ?: $tenant->name ?: 'مجله ویبینو');
+
         $this->pagesSeeder->seed($tenant, array_merge([
             'default_pages' => [
                 [
                     'slug' => 'about',
                     'title' => 'درباره مجله',
-                    'body' => 'مجلهٔ آموزشی نمونه روی ویبینو — مقالات دمو را از پنل مجله مدیریت کنید.',
+                    'body' => "{$brand} مجلهٔ آموزشی نمونه روی ویبینو است — مقالات، دسته‌ها و دورهٔ آکادمی دمو را از پنل مدیریت کنید.",
+                ],
+                [
+                    'slug' => 'authors',
+                    'title' => 'نویسندگان',
+                    'body' => 'صفحهٔ نمونهٔ نویسندگان. پروفایل واقعی نویسندگان را از پنل مجله اضافه کنید.',
                 ],
             ],
             'sample_blog_post' => [
@@ -418,29 +366,50 @@ class SiteTypeDemoSeeder
             ],
         ], $seed));
 
-        MagazineArticle::query()->firstOrCreate(
-            ['tenant_id' => $tenant->id, 'slug' => 'getting-started-webina'],
+        $articles = [
             [
+                'slug' => 'getting-started-webina',
                 'title' => 'شروع با قالب مجله ویبینو',
                 'excerpt' => 'راهنمای کوتاه برای ویرایش مقالات و سری‌های آموزشی.',
                 'body' => "این مقالهٔ نمونه پس از انتخاب نوع سایت «مجله آموزشی» ایجاد شده است.\nعنوان، چکیده و متن را از پنل مجله تغییر دهید.",
-                'status' => 'published',
-                'published_at' => now(),
-                'visibility' => 'public',
-            ]
-        );
-
-        MagazineArticle::query()->firstOrCreate(
-            ['tenant_id' => $tenant->id, 'slug' => 'content-tips'],
+                'days' => 0,
+            ],
             [
+                'slug' => 'content-tips',
                 'title' => 'نکته‌های تولید محتوا',
                 'excerpt' => 'چند پیشنهاد کوتاه برای ستون‌های آموزشی.',
-                'body' => 'از دسته‌ها و برچسب‌های مجله برای سازمان‌دهی نوشته‌های دمو استفاده کنید.',
-                'status' => 'published',
-                'published_at' => now()->subDay(),
-                'visibility' => 'public',
-            ]
-        );
+                'body' => "از دسته‌ها و برچسب‌های مجله برای سازمان‌دهی نوشته‌های دمو استفاده کنید.\nهر ستون یک موضوع روشن داشته باشد و در پایان یک دعوت به اقدام کوتاه بگذارید.",
+                'days' => 1,
+            ],
+            [
+                'slug' => 'editorial-calendar',
+                'title' => 'تقویم تحریریهٔ هفتگی',
+                'excerpt' => 'چطور سه مطلب در هفته را بدون افت کیفیت برنامه‌ریزی کنید.',
+                'body' => "شنبه: ایده‌پردازی و طرح کلی.\nدوشنبه و چهارشنبه: نوشتن و ویرایش.\nجمعه: انتشار و بازنشر در شبکه‌های اجتماعی.\nاین الگوی نمونه را با ریتم واقعی تحریریهٔ خود جایگزین کنید.",
+                'days' => 3,
+            ],
+            [
+                'slug' => 'reader-engagement',
+                'title' => 'درگیر کردن خواننده',
+                'excerpt' => 'پرسش، خلاصه و لینک‌های مرتبط در انتهای هر مقاله.',
+                'body' => "در پایان هر مطلب یک پرسش باز بگذارید، دو لینک مرتبط پیشنهاد دهید و خبرنامه را معرفی کنید.\nمحتوای نمونه فقط برای نمایش قالب مجله است.",
+                'days' => 5,
+            ],
+        ];
+
+        foreach ($articles as $article) {
+            MagazineArticle::query()->firstOrCreate(
+                ['tenant_id' => $tenant->id, 'slug' => $article['slug']],
+                [
+                    'title' => $article['title'],
+                    'excerpt' => $article['excerpt'],
+                    'body' => $article['body'],
+                    'status' => 'published',
+                    'published_at' => now()->subDays($article['days']),
+                    'visibility' => 'public',
+                ]
+            );
+        }
     }
 
     protected function importBuilderKit(Tenant $tenant, string $kitId): void
