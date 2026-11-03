@@ -64,6 +64,10 @@ assert.match(magazine, /navGroup:\s*"magazine"/)
 assert.match(magazine, /path:\s*"magazine\/categories"/)
 assert.match(cms, /section:\s*"content"/)
 assert.match(cms, /path:\s*"pages"/)
+assert.match(cms, /navGroup:\s*"page_builder"/)
+assert.match(cms, /path:\s*"theme-builder"/)
+assert.match(cms, /labelKey:\s*"nav\.theme_builder"/)
+assert.doesNotMatch(cms, /navGroup:\s*"theme_builder"/)
 assert.match(ai, /section:\s*"tools"/)
 // Poetry admin is blog.poetry only — poetry module must not register a second /dashboard/poetry
 // nav entry (that produced raw `nav.group_poetry` beside translated `nav.poetry`).

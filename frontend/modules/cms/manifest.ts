@@ -15,8 +15,6 @@ export const cmsManifest: ModuleManifest = {
       labelKey: "nav.nav_menus",
       section: "content",
       order: 17,
-      navGroup: "theme_builder",
-      navOrder: 1,
       capability: "content.manage",
     },
     {
@@ -24,9 +22,10 @@ export const cmsManifest: ModuleManifest = {
       submodule: "pages",
       page: "theme-builder-redirect",
       labelKey: "nav.theme_builder",
-      section: "content",
-      order: 18,
-      navHidden: true,
+      section: "tools",
+      order: 56,
+      navGroup: "page_builder",
+      navOrder: 1,
       capability: "content.manage",
     },
     {

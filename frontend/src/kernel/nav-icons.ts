@@ -125,8 +125,8 @@ const PATH_ICONS: Record<string, LucideIcon> = {
 }
 
 const GROUP_ICONS: Record<string, LucideIcon> = {
-  "nav.group_theme_builder": Palette,
-  group_theme_builder: Palette,
+  "nav.group_page_builder": LayoutTemplate,
+  group_page_builder: LayoutTemplate,
   "nav.group_shop": ShoppingBag,
   "nav.group_magazine": Newspaper,
   "nav.group_bots": Bot,
