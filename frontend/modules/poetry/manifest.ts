@@ -1,6 +1,11 @@
 import type { ModuleManifest } from "@/kernel/types"
 
-/** Opt-in only — never listed in SiteTypeProfiles; enable via ERP feature selection. */
+/**
+ * Opt-in only — never listed in SiteTypeProfiles; enable via ERP feature selection.
+ * Admin UI for poems lives on blog.poetry (`modules/blog/manifest.ts` → `/dashboard/poetry`).
+ * Do not re-declare that path here: a second adminRoutes entry created a duplicate sidebar
+ * group titled the raw key `nav.group_poetry` (no i18n) alongside the translated `nav.poetry`.
+ */
 export const poetryManifest: ModuleManifest = {
   slug: "poetry",
   nameFa: "شعر و ادبیات",
@@ -8,19 +13,7 @@ export const poetryManifest: ModuleManifest = {
   siteTypes: [],
   submodules: ["works", "poets", "collections"],
   adminNav: { section: "content", order: 17 },
-  adminRoutes: [
-    {
-      path: "poetry",
-      submodule: "works",
-      page: "works",
-      labelKey: "nav.poetry",
-      section: "content",
-      order: 17,
-      navGroup: "poetry",
-      navOrder: 0,
-      capability: "content.manage",
-    },
-  ],
+  adminRoutes: [],
   siteRoutes: [
     { path: "poetry", submodule: "works", labelKey: "site.poetry" },
     { path: "poetry/:slug", submodule: "works", labelKey: "site.poetry_work" },

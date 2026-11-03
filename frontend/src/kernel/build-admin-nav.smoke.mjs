@@ -24,6 +24,8 @@ const core = read("core/manifest.ts")
 const ai = read("ai-content/manifest.ts")
 const magazine = read("magazine/manifest.ts")
 const cms = read("cms/manifest.ts")
+const poetry = read("poetry/manifest.ts")
+const blog = read("blog/manifest.ts")
 
 assert.match(commerce, /section:\s*"commerce"/)
 assert.match(commerce, /navGroup:\s*"shop"/)
@@ -63,6 +65,13 @@ assert.match(magazine, /path:\s*"magazine\/categories"/)
 assert.match(cms, /section:\s*"content"/)
 assert.match(cms, /path:\s*"pages"/)
 assert.match(ai, /section:\s*"tools"/)
+// Poetry admin is blog.poetry only — poetry module must not register a second /dashboard/poetry
+// nav entry (that produced raw `nav.group_poetry` beside translated `nav.poetry`).
+assert.match(blog, /path:\s*"poetry"/)
+assert.match(blog, /submodule:\s*"poetry"/)
+assert.match(blog, /labelKey:\s*"nav\.poetry"/)
+assert.doesNotMatch(poetry, /navGroup:\s*"poetry"/)
+assert.match(poetry, /adminRoutes:\s*\[\s*\]/)
 assert.doesNotMatch(core, /coreRoutes\("themes"/)
 
 const layout = fs.readFileSync(
