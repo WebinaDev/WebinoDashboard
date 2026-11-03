@@ -8,7 +8,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -25,6 +24,7 @@ import { formatNumber, toLocaleDigits } from "@/lib/locale"
 import { fetchSmsAccount, fetchSmsLedger, smsQueryOptions } from "../lib/modirpayamak-api"
 import { formatSmsDateTime } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 const LEDGER_PAGE_SIZE = 30
@@ -78,12 +78,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
       ) : null}
 
       <div className="mb-4 grid gap-4 sm:grid-cols-2">
-        <Card className="shadow-soft">
-          <CardHeader>
-            <CardTitle className="text-base">{t("balance")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {balanceLoading ? (
+        <SmsSection title={t("balance")}>
+{balanceLoading ? (
               <Skeleton className="h-9 w-40" />
             ) : (
               <MoneyDisplay className="text-3xl font-bold" amount={account?.balance ?? 0} currency="IRT" symbol="default" />
@@ -91,16 +87,11 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
             <Button asChild className="mt-4" variant="outline" disabled={unavailable}>
               <Link href="/dashboard/marketing/sms/topup">{t("topup")}</Link>
             </Button>
-          </CardContent>
-        </Card>
+          </SmsSection>
 
         {account ? (
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-base">{t("walletAccount")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="space-y-1 text-sm">
+          <SmsSection title={t("walletAccount")}>
+<dl className="space-y-1 text-sm">
                 {account.domain ? (
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">{t("walletDomain")}</dt>
@@ -126,28 +117,19 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                   </div>
                 ) : null}
               </dl>
-            </CardContent>
-          </Card>
+            </SmsSection>
         ) : balanceLoading ? (
-          <Card className="shadow-soft">
-            <CardHeader>
-              <Skeleton className="h-5 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <SmsSection title={t("walletAccount")}>
+            <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
-            </CardContent>
-          </Card>
+            </div>
+          </SmsSection>
         ) : null}
       </div>
 
-      <Card className="shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{t("ledger")}</CardTitle>
-          <CardDescription>{t("ledgerTitle")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="overflow-x-auto">
+      <SmsSection title={t("ledger")} description={t("ledgerTitle")}>
+<div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -216,8 +198,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </SmsSection>
     </SmsPanelShell>
   )
 }

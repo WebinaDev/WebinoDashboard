@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useCallback, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { ExternalLink, Palette, RotateCcw } from "lucide-react"
+import { ExternalLink, Palette, RotateCcw, Star } from "lucide-react"
 
 import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Badge } from "@/components/ui/badge"
@@ -71,12 +71,31 @@ export default function ThemesPageClient({ route }: Props) {
   )
 
   async function activateTheme(slug: string) {
-    setPending(slug)
+    setPending(`activate:${slug}`)
     setError(null)
     setMessage(null)
     try {
       await api(`/api/v1/themes/${slug}/activate`, { method: "POST" })
       setMessage(t("activated"))
+      await queryClient.invalidateQueries({ queryKey: ["themes"] })
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tCommon("error_generic"))
+    } finally {
+      setPending(null)
+    }
+  }
+
+  async function setDefaultTheme(slug: string, alsoActivate = false) {
+    setPending(`default:${slug}`)
+    setError(null)
+    setMessage(null)
+    try {
+      await api(`/api/v1/themes/${slug}/default`, {
+        method: "POST",
+        json: { activate: alsoActivate },
+      })
+      setMessage(alsoActivate ? t("default_and_activated") : t("default_saved"))
       await queryClient.invalidateQueries({ queryKey: ["themes"] })
       router.refresh()
     } catch (e) {
@@ -128,6 +147,7 @@ export default function ThemesPageClient({ route }: Props) {
   }
 
   const activeSlug = data.active_theme_slug
+  const defaultSlug = data.default_theme_slug ?? data.suggested_theme_slug ?? null
 
   return (
     <div className="flex flex-col gap-8 p-6">
@@ -144,9 +164,11 @@ export default function ThemesPageClient({ route }: Props) {
           <Palette className="size-5" />
           <h2 className="text-lg font-medium">{t("demos_heading")}</h2>
         </div>
+        <p className="text-muted-foreground max-w-2xl text-sm">{t("gallery_hint")}</p>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data.themes.map((theme) => {
             const isActive = theme.slug === activeSlug
+            const isDefault = theme.is_default || theme.slug === defaultSlug
             const name = locale === "fa" ? theme.name_fa : theme.name_en
             return (
               <Card key={theme.slug} className={isActive ? "border-primary" : undefined}>
@@ -167,6 +189,15 @@ export default function ThemesPageClient({ route }: Props) {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {isActive ? <Badge>{t("active_badge")}</Badge> : null}
+                      {isDefault ? (
+                        <Badge variant="outline" className="gap-1">
+                          <Star className="size-3" aria-hidden />
+                          {t("default_badge")}
+                        </Badge>
+                      ) : null}
+                      {theme.is_suggested && !isDefault ? (
+                        <Badge variant="secondary">{t("suggested_badge")}</Badge>
+                      ) : null}
                       {theme.is_demo ? <Badge variant="secondary">{t("demo_badge")}</Badge> : null}
                     </div>
                   </div>
@@ -174,10 +205,18 @@ export default function ThemesPageClient({ route }: Props) {
                 <CardContent className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
-                    disabled={isActive || pending === theme.slug}
+                    disabled={isActive || pending === `activate:${theme.slug}`}
                     onClick={() => activateTheme(theme.slug)}
                   >
                     {isActive ? t("active_badge") : t("activate")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isDefault || pending === `default:${theme.slug}`}
+                    onClick={() => setDefaultTheme(theme.slug)}
+                  >
+                    {isDefault ? t("default_badge") : t("set_default")}
                   </Button>
                   <Button size="sm" variant="outline" asChild>
                     <a href="/" target="_blank" rel="noreferrer">

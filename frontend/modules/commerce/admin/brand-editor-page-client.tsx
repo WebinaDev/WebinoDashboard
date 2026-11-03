@@ -204,6 +204,9 @@ export default function BrandEditorPageClient({ route }: { route: ResolvedAdminR
                   seo_description: seo.description ?? "",
                 }))
               }
+              collapsible
+              storageKey="webina.seo.open.brand"
+              defaultOpen={false}
             />
             <div className="flex gap-2 pt-2">
               <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>

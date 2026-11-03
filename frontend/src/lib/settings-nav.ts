@@ -11,6 +11,8 @@ export type SettingsUnitId =
   | "site-instagram"
   | "site-dashboard"
   | "site-themes"
+  | "site-menus"
+  | "site-theme-builder"
   | "shop-general"
   | "shop-accounting"
   | "shop-bots"
@@ -125,14 +127,14 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
       },
       {
         id: "seo",
-        titleFa: "سئو",
-        titleEn: "SEO",
+        titleFa: "سئوی سایت",
+        titleEn: "Site SEO",
         route: "/dashboard/settings/site/seo",
       },
       {
         id: "performance",
-        titleFa: "عملکرد",
-        titleEn: "Performance",
+        titleFa: "عملکرد و بهینه‌سازی",
+        titleEn: "Performance & optimization",
         route: "/dashboard/settings/site/performance",
       },
     ],
@@ -210,14 +212,42 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
   {
     id: "site-themes",
     area: "site",
-    titleFa: "تم سایت",
-    titleEn: "Site theme",
+    titleFa: "قالب‌ها",
+    titleEn: "Templates",
     sections: [
       {
-        id: "themes",
-        titleFa: "تم سایت",
-        titleEn: "Site theme",
-        route: "/dashboard/themes",
+        id: "templates",
+        titleFa: "قالب‌ها و تم پیش‌فرض",
+        titleEn: "Templates & default theme",
+        route: "/dashboard/settings/site/templates",
+      },
+    ],
+  },
+  {
+    id: "site-menus",
+    area: "site",
+    titleFa: "منوها",
+    titleEn: "Menus",
+    sections: [
+      {
+        id: "menus",
+        titleFa: "منوهای ناوبری",
+        titleEn: "Navigation menus",
+        route: "/dashboard/settings/site/menus",
+      },
+    ],
+  },
+  {
+    id: "site-theme-builder",
+    area: "site",
+    titleFa: "پوسته‌ساز",
+    titleEn: "Theme builder",
+    sections: [
+      {
+        id: "theme",
+        titleFa: "پوسته‌ساز",
+        titleEn: "Theme builder",
+        route: "/dashboard/settings/site/theme",
       },
     ],
   },
@@ -406,6 +436,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
     titleEn: "Shipping",
     sections: [
       {
+        id: "shipping-hub",
+        titleFa: "مرکز حمل‌ونقل",
+        titleEn: "Shipping hub",
+        route: "/dashboard/settings/shop/shipping/hub",
+      },
+      {
         id: "zones",
         titleFa: "مناطق ارسال",
         titleEn: "Zones",
@@ -458,64 +494,16 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
     titleEn: "Payments",
     sections: [
       {
+        id: "payments",
+        titleFa: "مرکز درگاه‌ها",
+        titleEn: "Payments hub",
+        route: "/dashboard/settings/shop/payments",
+      },
+      {
         id: "gateways",
         titleFa: "درگاه‌های پرداخت",
         titleEn: "Payment gateways",
         route: "/dashboard/settings/shop/gateways",
-      },
-      {
-        id: "payments",
-        titleFa: "درگاه‌ها",
-        titleEn: "Gateways",
-        route: "/dashboard/settings/shop/payments",
-      },
-      {
-        id: "zarinpal",
-        titleFa: "زرین‌پال",
-        titleEn: "Zarinpal",
-        route: "/dashboard/settings/shop/zarinpal",
-      },
-      {
-        id: "zibal",
-        titleFa: "زیبال",
-        titleEn: "Zibal",
-        route: "/dashboard/settings/shop/zibal",
-      },
-      {
-        id: "digipay",
-        titleFa: "دیجی‌پی",
-        titleEn: "Digipay",
-        route: "/dashboard/settings/shop/digipay",
-      },
-      {
-        id: "snapppay",
-        titleFa: "اسنپ‌پی",
-        titleEn: "SnappPay",
-        route: "/dashboard/settings/shop/snapppay",
-      },
-      {
-        id: "torobpay",
-        titleFa: "ترب‌پی",
-        titleEn: "TorobPay",
-        route: "/dashboard/settings/shop/torobpay",
-      },
-      {
-        id: "bale-pay",
-        titleFa: "بله پی",
-        titleEn: "Bale Pay",
-        route: "/dashboard/settings/shop/bale-pay",
-      },
-      {
-        id: "wallet",
-        titleFa: "کیف پول",
-        titleEn: "Wallet",
-        route: "/dashboard/settings/shop/wallet",
-      },
-      {
-        id: "c2c",
-        titleFa: "کارت به کارت",
-        titleEn: "Card to card",
-        route: "/dashboard/settings/shop/c2c",
       },
     ],
   },

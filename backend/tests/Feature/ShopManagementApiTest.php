@@ -120,10 +120,21 @@ class ShopManagementApiTest extends TestCase
 
         $this->postJson('/api/v1/pricing/bulk-price-change/start', [
             'change_type' => 'percent',
+            'direction' => 'increase',
             'value' => 10,
             'rounding' => true,
             'round_step' => 1000,
+            'fields' => ['price_minor'],
         ])->assertOk();
+
+        // Cron tick drains remaining batches (start already ran the first few).
+        for ($i = 0; $i < 20; $i++) {
+            $status = $this->getJson('/api/v1/pricing/bulk-price-change/state')->assertOk()->json('data.status');
+            if (in_array($status, ['done', 'failed', 'cancelled'], true)) {
+                break;
+            }
+            \Artisan::call('pricing:bulk-price-tick');
+        }
 
         $this->getJson('/api/v1/pricing/bulk-price-change/state')
             ->assertOk()

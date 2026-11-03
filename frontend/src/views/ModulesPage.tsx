@@ -35,7 +35,7 @@ type ErpModule = {
 
 const SETTINGS_SHORTCUTS: Record<string, string> = {
   accounting: "/dashboard/accounting",
-  bots: "/dashboard/settings/shop/bots/telegram",
+  bots: "/dashboard/bots",
   marketplace: "/dashboard/settings/shop/marketplace",
   analytics: "/dashboard/settings/site/analytics",
   ai: "/dashboard/settings/site/ai",

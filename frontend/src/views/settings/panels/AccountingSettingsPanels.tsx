@@ -138,8 +138,11 @@ export function AccountingModianPanel() {
     enabled?: boolean
     economic_code?: string
     national_id?: string
+    fiscal_id?: string
     api_key?: string
     sandbox?: boolean
+    auto_send_on_sync?: boolean
+    has_api_key?: boolean
   }>("shop", "accounting", "modian")
 
   if (loading || !draft) return <p className="text-muted-foreground text-sm">{t("loading")}</p>
@@ -175,7 +178,18 @@ export function AccountingModianPanel() {
             />
           </div>
           <div className="grid max-w-md gap-2">
-            <Label>{t("accounting.api_key")}</Label>
+            <Label>{t("accounting.fiscal_id")}</Label>
+            <Input
+              value={draft.fiscal_id ?? ""}
+              onChange={(e) => setDraft({ ...draft, fiscal_id: e.target.value })}
+              dir="ltr"
+            />
+          </div>
+          <div className="grid max-w-md gap-2">
+            <Label>
+              {t("accounting.api_key")}
+              {draft.has_api_key ? " ✓" : ""}
+            </Label>
             <Input
               type="password"
               value={draft.api_key ?? ""}
@@ -186,10 +200,22 @@ export function AccountingModianPanel() {
           <div className="flex max-w-lg items-center justify-between gap-3">
             <Label>{t("accounting.sandbox")}</Label>
             <Switch
-              checked={Boolean(draft.sandbox)}
+              checked={draft.sandbox !== false}
               onCheckedChange={(v) => setDraft({ ...draft, sandbox: v })}
             />
           </div>
+          <div className="flex max-w-lg items-center justify-between gap-3">
+            <Label>{t("accounting.auto_send_on_sync")}</Label>
+            <Switch
+              checked={Boolean(draft.auto_send_on_sync)}
+              onCheckedChange={(v) => setDraft({ ...draft, auto_send_on_sync: v })}
+            />
+          </div>
+          <p className="text-muted-foreground text-sm">
+            <a className="underline" href="/dashboard/accounting/moadian">
+              {t("accounting.open_moadian_admin")}
+            </a>
+          </p>
         </CardContent>
       </Card>
       <SettingsSaveBar onSave={() => void persist()} pending={pending} saved={saved} error={error} />

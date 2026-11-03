@@ -55,7 +55,7 @@ class BlogCategoryController extends Controller
         $row = BlogCategory::query()->create([
             'tenant_id' => $tid,
             'name' => $data['name'],
-            'slug' => $data['slug'] ?? Str::slug($data['name']) ?: 'cat-'.Str::random(4),
+            'slug' => $this->resolveSlug($data['slug'] ?? null, $data['name']),
             'seo' => $data['seo'] ?? null,
         ]);
 
@@ -71,9 +71,39 @@ class BlogCategoryController extends Controller
             'slug' => 'nullable|string|max:190',
             'seo' => 'nullable|array',
         ]);
+        if (! empty($data['slug'])) {
+            $data['slug'] = $this->resolveSlug($data['slug'], $data['name'] ?? $row->name);
+        } else {
+            unset($data['slug']);
+        }
         $row->update($data);
 
         return response()->json(['data' => ['id' => $row->id, 'name' => $row->name, 'slug' => $row->slug]]);
+    }
+
+    /** Empty slug → derive from name (Persian-aware); never persist blank. */
+    private function resolveSlug(?string $slug, string $name): string
+    {
+        $raw = trim((string) $slug);
+        if ($raw === '') {
+            $raw = $this->slugifyName($name);
+        }
+
+        return $raw !== '' ? $raw : 'cat-'.Str::random(4);
+    }
+
+    private function slugifyName(string $name): string
+    {
+        $ascii = Str::slug($name);
+        if ($ascii !== '') {
+            return $ascii;
+        }
+        $s = mb_strtolower(trim($name));
+        $s = preg_replace('/\s+/u', '-', $s) ?? '';
+        $s = preg_replace('/[^\w\x{0600}-\x{06FF}-]+/u', '', $s) ?? '';
+        $s = preg_replace('/-+/u', '-', $s) ?? '';
+
+        return trim($s, '-');
     }
 
     public function destroy(Request $request, int $id): JsonResponse

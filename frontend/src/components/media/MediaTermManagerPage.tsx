@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Pencil } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -189,8 +189,11 @@ export default function MediaTermsPage({
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
+                    size="icon"
                     variant="ghost"
+                    className="size-8 text-destructive"
+                    aria-label={t("delete")}
+                    title={t("delete")}
                     onClick={() =>
                       confirm({
                         description: item.name,
@@ -198,7 +201,7 @@ export default function MediaTermsPage({
                       })
                     }
                   >
-                    {t("delete")}
+                    <Trash2 className="size-3.5" />
                   </Button>
                 </div>
               </li>

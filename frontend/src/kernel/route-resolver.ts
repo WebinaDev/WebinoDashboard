@@ -62,6 +62,18 @@ export function isSubmoduleEnabled(
     )
   }
 
+  // Cafe (and older tenants) often lack users.* activation rows even though staff
+  // must manage buyers. Treat commerce catalog/orders/pos as implying customers/staff.
+  if (moduleSlug === "users" && (submoduleSlug === "customers" || submoduleSlug === "staff")) {
+    return (
+      enabled("users", submoduleSlug) ||
+      enabled("users", "rbac") ||
+      enabled("commerce", "orders") ||
+      enabled("commerce", "catalog") ||
+      enabled("commerce", "pos")
+    )
+  }
+
   // Item pages (/catalogue/:slug) were added to the cafe manifest after tenants were provisioned, so
   // older tenants have no `cafe.item` activation row and every item link 404'd. The menu implies them.
   if (moduleSlug === "cafe" && submoduleSlug === "item") {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Security\CaptchaService;
 use App\Services\Security\LoginAttemptService;
 use App\Services\Tenant\TenantResolver;
 use App\Support\AuthCookie;
@@ -25,12 +26,26 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
             'otp' => ['nullable', 'string'],
             'recovery_code' => ['nullable', 'string'],
+            'captcha_token' => ['nullable', 'string', 'max:4000'],
+            'captcha_challenge_id' => ['nullable', 'string', 'max:80'],
         ]);
 
         $tenant = app(TenantResolver::class)->identifyFromRequest($request);
         $tenantId = $tenant ? (int) $tenant->id : 0;
         $ip = (string) ($request->ip() ?? '0.0.0.0');
         $email = (string) $data['email'];
+
+        if ($tenantId > 0 && ! CaptchaService::verify(
+            $tenantId,
+            'login',
+            $data['captcha_token'] ?? null,
+            $data['captcha_challenge_id'] ?? null,
+            $ip
+        )) {
+            throw ValidationException::withMessages([
+                'captcha_token' => [__('api.forbidden')],
+            ]);
+        }
 
         if ($tenantId > 0 && $attempts->isLocked($tenantId, $email, $ip)) {
             $secs = $attempts->remainingLockSeconds($tenantId, $email, $ip);

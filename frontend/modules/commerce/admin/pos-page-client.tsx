@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
@@ -22,6 +23,8 @@ import {
   type PosCartLine,
   type ProductHit,
   type ProductVariantHit,
+  fetchPosSettings,
+  gatewaysForTender,
   lineKey,
   searchPosProducts,
 } from "../lib/pos-commerce"
@@ -30,6 +33,7 @@ type CustomerHit = {
   id: number
   name?: string | null
   email?: string | null
+  phone?: string | null
 }
 
 type Gateway = { id: string; label: string }
@@ -38,6 +42,9 @@ type OrderResult = {
   id: number
   total_minor?: number
   payment_url?: string | null
+  customer_created?: boolean
+  payment_sms_sent?: boolean
+  payment_sms_error?: string
 }
 
 const selectClass =
@@ -58,20 +65,67 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
   const [customerPhone, setCustomerPhone] = useState("")
   const [salesChannel, setSalesChannel] = useState("in_store")
   const [paymentTender, setPaymentTender] = useState("cash")
+  const [cardReaderId, setCardReaderId] = useState("")
+  const [selectedGateways, setSelectedGateways] = useState<string[]>([])
   const [discountMinor, setDiscountMinor] = useState(0)
   const [shippingMinor, setShippingMinor] = useState(0)
   const [amountPaid, setAmountPaid] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [lastOrderId, setLastOrderId] = useState<number | null>(null)
+  const [lastPayUrl, setLastPayUrl] = useState<string | null>(null)
+  const [lastSmsNote, setLastSmsNote] = useState<string | null>(null)
 
   const { data: gateways = [] } = useQuery({
     queryKey: ["payment-gateways"],
     queryFn: () => api<Gateway[]>("/api/v1/payment-gateways"),
   })
 
+  const { data: posSettings } = useQuery({
+    queryKey: ["pos-settings"],
+    queryFn: fetchPosSettings,
+  })
+
+  const enabledTenders = useMemo(() => {
+    const configured = (posSettings?.payment_methods ?? []).filter((m) => m.enabled).map((m) => m.id)
+    if (configured.length === 0) return [...POS_PAYMENT_TENDERS]
+    return POS_PAYMENT_TENDERS.filter((id) => configured.includes(id))
+  }, [posSettings])
+
+  const tenderLabel = (id: string) => {
+    const custom = posSettings?.payment_methods?.find((m) => m.id === id)?.label?.trim()
+    return custom || enumLabel("payment_tender", id)
+  }
+
+  const cardReaders = useMemo(
+    () => (posSettings?.card_readers ?? []).filter((r) => r.enabled),
+    [posSettings],
+  )
+
+  const isPaymentSms = paymentTender === "payment_sms" || paymentTender === "online"
+
+  const availableGateways = useMemo(
+    () => gatewaysForTender(posSettings?.payment_methods, paymentTender, gateways),
+    [posSettings, paymentTender, gateways],
+  )
+
+  useEffect(() => {
+    if (!isPaymentSms) return
+    setSelectedGateways((prev) => {
+      const ids = availableGateways.map((g) => g.id)
+      const kept = prev.filter((id) => ids.includes(id))
+      return kept.length > 0 ? kept : ids
+    })
+  }, [isPaymentSms, availableGateways])
+
   const subtotal = useMemo(() => lines.reduce((s, l) => s + l.qty * l.unit_price_minor, 0), [lines])
   const total = Math.max(0, subtotal - discountMinor + shippingMinor)
   const change = Math.max(0, amountPaid - total)
+
+  useEffect(() => {
+    if (enabledTenders.length && !enabledTenders.includes(paymentTender as (typeof POS_PAYMENT_TENDERS)[number])) {
+      setPaymentTender(enabledTenders[0] ?? "cash")
+    }
+  }, [enabledTenders, paymentTender])
 
   useEffect(() => {
     const q = productQ.trim()
@@ -79,6 +133,16 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
     const timer = window.setTimeout(() => void runProductSearch(), 280)
     return () => window.clearTimeout(timer)
   }, [productQ])
+
+  useEffect(() => {
+    const q = customerQ.trim()
+    if (q.length < 2) {
+      setCustomerHits([])
+      return
+    }
+    const timer = window.setTimeout(() => void runCustomerSearch(), 280)
+    return () => window.clearTimeout(timer)
+  }, [customerQ])
 
   async function runProductSearch() {
     const q = productQ.trim()
@@ -175,6 +239,8 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
     }
   }
 
+  const selectedReader = cardReaders.find((r) => r.id === cardReaderId)
+
   const checkout = useMutation({
     mutationFn: () =>
       api<OrderResult>("/api/v1/pos/orders", {
@@ -196,17 +262,33 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
           shipping_minor: shippingMinor,
           amount_paid_minor: amountPaid,
           is_pos: true,
-          status: amountPaid >= total ? "paid" : "pending_payment",
+          card_reader_id: paymentTender === "pos_terminal" ? cardReaderId || null : null,
+          card_reader_name:
+            paymentTender === "pos_terminal" ? selectedReader?.name || null : null,
+          gateways: isPaymentSms && selectedGateways.length ? selectedGateways : undefined,
+          status: isPaymentSms || amountPaid < total ? "pending_payment" : "paid",
         },
       }),
     onSuccess: async (row) => {
       setLastOrderId(row.id)
+      setLastPayUrl(row.payment_url || null)
+      if (row.payment_sms_sent) {
+        setLastSmsNote(t("sms_sent"))
+      } else if (row.payment_sms_error) {
+        setLastSmsNote(t("sms_failed", { error: row.payment_sms_error }))
+      } else if (row.customer_created) {
+        setLastSmsNote(t("customer_created"))
+      } else {
+        setLastSmsNote(null)
+      }
       setLines([])
       setAmountPaid(0)
       setDiscountMinor(0)
       setShippingMinor(0)
       setError(null)
-      await printOrder(row.id)
+      if (!isPaymentSms) {
+        await printOrder(row.id)
+      }
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
@@ -225,17 +307,31 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
           <Button size="sm" variant="outline" asChild>
             <Link href="/dashboard/pos/my-orders">{t("my_orders")}</Link>
           </Button>
+          <Button size="sm" variant="outline" asChild>
+            <Link href="/dashboard/pos/settings">{t("settings")}</Link>
+          </Button>
         </div>
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {lastOrderId ? (
-        <p className="text-sm">
-          {t("last_order")}{" "}
-          <Link className="underline" href={`/dashboard/orders/${lastOrderId}`}>
-            #{toLocaleDigits(lastOrderId, normalizeUiLocale(locale))}
-          </Link>
-        </p>
+        <div className="space-y-1 text-sm">
+          <p>
+            {t("last_order")}{" "}
+            <Link className="underline" href={`/dashboard/orders/${lastOrderId}`}>
+              #{toLocaleDigits(lastOrderId, normalizeUiLocale(locale))}
+            </Link>
+          </p>
+          {lastPayUrl ? (
+            <p className="break-all">
+              {t("payment_url")}:{" "}
+              <a className="underline" href={lastPayUrl} target="_blank" rel="noreferrer" dir="ltr">
+                {lastPayUrl}
+              </a>
+            </p>
+          ) : null}
+          {lastSmsNote ? <p className="text-muted-foreground">{lastSmsNote}</p> : null}
+        </div>
       ) : null}
 
       {variantPick ? (
@@ -380,10 +476,11 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
                     onClick={() => {
                       setUserId(c.id)
                       setCustomerName(c.name || "")
+                      setCustomerPhone(c.phone || "")
                       setCustomerHits([])
                     }}
                   >
-                    {c.name || c.email} #{toLocaleDigits(c.id, normalizeUiLocale(locale))}
+                    {c.name || c.email || c.phone} #{toLocaleDigits(c.id, normalizeUiLocale(locale))}
                   </button>
                 </li>
               ))}
@@ -393,12 +490,29 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>{t("customer_name")}</Label>
-              <Input className="mt-1" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+              <Input
+                className="mt-1"
+                value={customerName}
+                onChange={(e) => {
+                  setCustomerName(e.target.value)
+                  setUserId(null)
+                }}
+              />
             </div>
             <div>
               <Label>{t("customer_phone")}</Label>
-              <Input className="mt-1" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+              <Input
+                className="mt-1"
+                value={customerPhone}
+                onChange={(e) => {
+                  setCustomerPhone(e.target.value)
+                  setUserId(null)
+                }}
+              />
             </div>
+            {!userId && (customerPhone.trim() || customerName.trim()) ? (
+              <p className="text-muted-foreground text-xs sm:col-span-2">{t("auto_create_hint")}</p>
+            ) : null}
             <div>
               <Label>{t("sales_channel")}</Label>
               <select className={`${selectClass} mt-1`} value={salesChannel} onChange={(e) => setSalesChannel(e.target.value)}>
@@ -412,19 +526,46 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
             <div>
               <Label>{t("payment_tender")}</Label>
               <select className={`${selectClass} mt-1`} value={paymentTender} onChange={(e) => setPaymentTender(e.target.value)}>
-                {POS_PAYMENT_TENDERS.map((x) => (
+                {enabledTenders.map((x) => (
                   <option key={x} value={x}>
-                    {enumLabel("payment_tender", x)}
+                    {tenderLabel(x)}
                   </option>
                 ))}
               </select>
             </div>
-            {paymentTender === "online" && gateways.length > 0 ? (
+            {paymentTender === "pos_terminal" && cardReaders.length > 0 ? (
               <div className="sm:col-span-2">
+                <Label>{t("card_reader")}</Label>
+                <select
+                  className={`${selectClass} mt-1`}
+                  value={cardReaderId}
+                  onChange={(e) => setCardReaderId(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {cardReaders.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            {isPaymentSms && availableGateways.length > 0 ? (
+              <div className="sm:col-span-2 space-y-2">
                 <Label>{t("gateways")}</Label>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {gateways.map((g) => g.label).join(" · ")}
-                </p>
+                {availableGateways.map((g) => (
+                  <label key={g.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedGateways.includes(g.id)}
+                      onCheckedChange={(v) =>
+                        setSelectedGateways((prev) =>
+                          v === true ? [...prev, g.id] : prev.filter((x) => x !== g.id),
+                        )
+                      }
+                    />
+                    {g.label}
+                  </label>
+                ))}
               </div>
             ) : null}
             <div>

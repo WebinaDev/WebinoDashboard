@@ -6,7 +6,8 @@
   "site_types": [
     "ecommerce",
     "magazine",
-    "corporate"
+    "corporate",
+    "cafe"
   ],
   "submodules": [
     "customers",

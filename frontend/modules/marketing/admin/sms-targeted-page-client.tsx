@@ -8,7 +8,6 @@ import { RefreshCw } from "lucide-react"
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -40,6 +39,7 @@ import {
   unwrapSmsList,
 } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 import { translateSmsStatus } from "../lib/sms-ui"
 
 function statsEntries(data: unknown): Array<{ key: string; value: string }> {
@@ -108,13 +108,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         </Button>
       </div>
 
-      <Card className="shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{t("pickCampaign")}</CardTitle>
-          <CardDescription>{t("selectOutbox")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Input
+      <SmsSection title={t("pickCampaign")} description={t("selectOutbox")}>
+<Input
             className="max-w-xs font-mono"
             dir="ltr"
             placeholder={t("outboxIdPlaceholder")}
@@ -189,17 +184,12 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </SmsSection>
 
       {selected ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-base">{t("bulkStats")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {statsQ.isPending ? (
+          <SmsSection title={t("bulkStats")}>
+{statsQ.isPending ? (
                 <Skeleton className="h-24 w-full" />
               ) : stats.length === 0 ? (
                 <p className="text-muted-foreground text-sm">{t("common.empty")}</p>
@@ -225,14 +215,9 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-base">{t("recipients")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recipientsQ.isPending ? (
+            </SmsSection>
+          <SmsSection title={t("recipients")}>
+{recipientsQ.isPending ? (
                 <Skeleton className="h-24 w-full" />
               ) : recipients.length === 0 ? (
                 <p className="text-muted-foreground text-sm">{t("common.empty")}</p>
@@ -264,8 +249,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </SmsSection>
         </div>
       ) : null}
     </SmsPanelShell>

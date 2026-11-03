@@ -1,13 +1,16 @@
 "use client"
 
+import { ChevronDown } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useId } from "react"
 
 import { MediaPickerField } from "@/components/content/MediaPickerField"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { usePersistedOpen } from "@/hooks/usePersistedOpen"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { cn } from "@/lib/utils"
 
@@ -113,6 +116,9 @@ export function SimpleSeoFields({
   className,
   previewUrl,
   siteName,
+  collapsible = false,
+  storageKey,
+  defaultOpen = true,
 }: {
   seo: SimpleSeo | null | undefined
   onChange: (next: SimpleSeo) => void
@@ -120,20 +126,24 @@ export function SimpleSeoFields({
   /** Shown in SERP preview (path or full URL). */
   previewUrl?: string
   siteName?: string
+  /** When true, panel header toggles body open/closed. */
+  collapsible?: boolean
+  /** localStorage key for remembered open state (`"1"` / `"0"`). */
+  storageKey?: string
+  defaultOpen?: boolean
 }) {
   const t = useTranslations("ui")
   const locale = normalizeUiLocale(useLocale())
   const id = useId()
   const value = seo ?? {}
   const patch = (partial: Partial<SimpleSeo>) => onChange({ ...value, ...partial })
+  const [open, setOpen] = usePersistedOpen(storageKey ?? "webina.seo.open.default", defaultOpen)
 
   const serpTitle = value.title?.trim() || ""
   const serpDesc = value.description?.trim() || ""
 
-  return (
-    <div className={cn("space-y-3 rounded-xl border p-4", className)}>
-      <p className="text-sm font-semibold">{t("seo_panel")}</p>
-
+  const body = (
+    <div className="space-y-3">
       <SerpPreview title={serpTitle} description={serpDesc} url={previewUrl ?? ""} siteName={siteName} />
       <SeoScoreChecklist seo={value} />
 
@@ -209,5 +219,32 @@ export function SimpleSeoFields({
         </div>
       </div>
     </div>
+  )
+
+  if (!collapsible) {
+    return (
+      <div className={cn("space-y-3 rounded-xl border p-4", className)}>
+        <p className="text-sm font-semibold">{t("seo_panel")}</p>
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className={cn("rounded-xl border", className)}>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="hover:bg-muted/40 flex w-full items-center justify-between gap-3 px-4 py-3 text-start"
+        >
+          <span className="text-sm font-semibold">{t("seo_panel")}</span>
+          <span className="text-muted-foreground flex items-center gap-1 text-xs">
+            {open ? t("filters_hide") : t("filters_show")}
+            <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
+          </span>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-3 px-4 pb-4">{body}</CollapsibleContent>
+    </Collapsible>
   )
 }

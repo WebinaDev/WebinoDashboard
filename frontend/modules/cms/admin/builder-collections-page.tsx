@@ -1,11 +1,16 @@
 "use client"
 
+import { Plus, Search } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { PageShell } from "@/components/PageShell"
+import { ScrollTable } from "@/components/ScrollTable"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api, apiDownload, ApiError } from "@/lib/api"
 
@@ -135,23 +140,44 @@ export default function BuilderCollectionsPage(_props: { route: ResolvedAdminRou
   }
 
   const refCollections = collections.filter((c) => c.id !== active?.id || !draft)
+  const itemTotal = collections.reduce((sum, c) => sum + (c.items_count ?? 0), 0)
 
   return (
     <PageShell
       title={t("title")}
       description={t("subtitle")}
-      actions={<Button onClick={() => { setActive(null); setDraft({ name: "", slug: "", fields: [{ key: "text", label: t("default_field"), type: "text" }], seo: { schema_type: "Thing" } }) }}>{t("new_collection")}</Button>}
+      eyebrow={t("eyebrow")}
+      actions={
+        <Button onClick={() => { setActive(null); setDraft({ name: "", slug: "", fields: [{ key: "text", label: t("default_field"), type: "text" }], seo: { schema_type: "Thing" } }) }}>
+          <Plus className="size-4" aria-hidden />
+          {t("new_collection")}
+        </Button>
+      }
     >
-      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <nav className="grid content-start gap-2">
+      <ListStatsStrip
+        items={[
+          { id: "collections", label: t("stat_collections"), value: collections.length },
+          { id: "items", label: t("stat_items"), value: itemTotal },
+          { id: "active", label: t("stat_active"), value: active?.name ?? "—" },
+        ]}
+      />
+      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <nav className="bg-card grid content-start gap-2 rounded-xl border p-3">
+          <p className="text-muted-foreground mb-1 text-xs font-medium uppercase tracking-wide">{t("sidebar_heading")}</p>
           {collections.map((c) => (
-            <button key={c.id} type="button" className={`rounded-xl border px-3 py-2 text-start text-sm ${active?.id === c.id ? "border-primary bg-primary/5" : ""}`} onClick={() => { setDraft(null); setEditing(null); setPage(1); setQ(""); setActive(c) }}>
-              {c.name} <span className="text-muted-foreground text-xs" dir="ltr">({c.slug} · {c.items_count ?? 0})</span>
+            <button key={c.id} type="button" className={`rounded-lg border px-3 py-2 text-start text-sm transition-colors ${active?.id === c.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`} onClick={() => { setDraft(null); setEditing(null); setPage(1); setQ(""); setActive(c) }}>
+              <span className="font-medium">{c.name}</span>
+              <span className="text-muted-foreground mt-0.5 block text-xs" dir="ltr">{c.slug} · {c.items_count ?? 0}</span>
             </button>
           ))}
-          {collections.length === 0 ? <p className="text-muted-foreground text-xs">{t("empty")}</p> : null}
+          {collections.length === 0 ? (
+            <div className="text-muted-foreground space-y-2 p-3 text-center text-xs">
+              <p>{t("empty")}</p>
+              <Button type="button" size="sm" onClick={() => { setActive(null); setDraft({ name: "", slug: "", fields: [{ key: "text", label: t("default_field"), type: "text" }], seo: { schema_type: "Thing" } }) }}>{t("new_collection")}</Button>
+            </div>
+          ) : null}
         </nav>
-        <section className="grid content-start gap-4 rounded-2xl border p-4 text-sm">
+        <section className="bg-card grid content-start gap-4 rounded-xl border p-4 text-sm">
           {draft ? (
             <div className="grid gap-2">
               <label className="grid gap-1 text-xs">{t("name")}<input className="h-9 rounded-md border px-2" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></label>
@@ -208,8 +234,8 @@ export default function BuilderCollectionsPage(_props: { route: ResolvedAdminRou
           {active && !draft ? (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <strong>{active.name}</strong>
-                <span className="text-muted-foreground text-xs" dir="ltr">{active.slug}</span>
+                <strong className="text-base">{active.name}</strong>
+                <Badge variant="secondary" dir="ltr">{active.slug}</Badge>
                 <Button type="button" size="sm" variant="outline" onClick={() => setDraft({ name: active.name, slug: active.slug, fields: active.fields, seo: active.seo ?? { schema_type: "Thing" } })}>{t("edit_fields")}</Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => setEditing({ ...EMPTY_ITEM, data: {}, seo: {} })}>{t("new_item")}</Button>
                 <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void guard(() => apiDownload(`/api/v1/builder/collections/${active.id}/export`, `${active.slug}.csv`))}>{t("export_csv")}</Button>
@@ -255,7 +281,10 @@ export default function BuilderCollectionsPage(_props: { route: ResolvedAdminRou
                 </div>
               ) : null}
               <div className="flex flex-wrap items-center gap-2">
-                <input type="search" aria-label={t("search")} placeholder={t("search")} className="h-9 w-56 rounded-md border px-2 text-xs" value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} />
+                <div className="relative">
+                  <Search className="text-muted-foreground pointer-events-none absolute start-2 top-1/2 size-3.5 -translate-y-1/2" aria-hidden />
+                  <Input type="search" aria-label={t("search")} placeholder={t("search")} className="h-9 w-56 ps-8 text-xs" value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} />
+                </div>
                 {selected.length ? (
                   <>
                     <span className="text-xs">{t("selected_count", { count: selected.length })}</span>
@@ -265,29 +294,41 @@ export default function BuilderCollectionsPage(_props: { route: ResolvedAdminRou
                   </>
                 ) : null}
               </div>
-              <table className="w-full text-xs">
-                <thead><tr><th className="w-8"><input type="checkbox" aria-label={t("select_all")} checked={items.length > 0 && selected.length === items.length} onChange={(e) => setSelected(e.target.checked ? items.map((i) => i.id) : [])} /></th><th className="text-start">{t("item_title")}</th><th>{t("slug")}</th><th>{t("published")}</th><th /></tr></thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id} className="border-t">
-                      <td><input type="checkbox" aria-label={item.title} checked={selected.includes(item.id)} onChange={(e) => setSelected(e.target.checked ? [...selected, item.id] : selected.filter((id) => id !== item.id))} /></td>
-                      <td className="py-2">{item.title}</td>
-                      <td className="text-center" dir="ltr">{item.slug}</td>
-                      <td className="text-center">{item.published ? "✓" : "—"}</td>
-                      <td className="flex justify-end gap-1 py-1">
-                        <Button type="button" size="sm" variant="outline" onClick={() => setEditing({ ...item })}>{t("edit")}</Button>
-                        <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => {
-                          if (!window.confirm(t("delete_item_confirm"))) return
-                          void guard(async () => {
-                            await api(`/api/v1/builder/collections/${active.id}/items/${item.id}`, { method: "DELETE" })
-                            await loadItems(active.id, page, q)
-                          })
-                        }}>{t("delete")}</Button>
-                      </td>
+              <ScrollTable>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="w-8 p-2"><input type="checkbox" aria-label={t("select_all")} checked={items.length > 0 && selected.length === items.length} onChange={(e) => setSelected(e.target.checked ? items.map((i) => i.id) : [])} /></th>
+                      <th className="p-2 text-start">{t("item_title")}</th>
+                      <th className="p-2 text-start">{t("slug")}</th>
+                      <th className="p-2 text-start">{t("published")}</th>
+                      <th className="p-2" />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr key={item.id} className="border-t">
+                        <td className="p-2"><input type="checkbox" aria-label={item.title} checked={selected.includes(item.id)} onChange={(e) => setSelected(e.target.checked ? [...selected, item.id] : selected.filter((id) => id !== item.id))} /></td>
+                        <td className="p-2 font-medium">{item.title}</td>
+                        <td className="text-muted-foreground p-2" dir="ltr">{item.slug}</td>
+                        <td className="p-2">{item.published ? <Badge>{t("published")}</Badge> : <Badge variant="outline">—</Badge>}</td>
+                        <td className="p-2">
+                          <div className="flex justify-end gap-1">
+                            <Button type="button" size="sm" variant="outline" onClick={() => setEditing({ ...item })}>{t("edit")}</Button>
+                            <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => {
+                              if (!window.confirm(t("delete_item_confirm"))) return
+                              void guard(async () => {
+                                await api(`/api/v1/builder/collections/${active.id}/items/${item.id}`, { method: "DELETE" })
+                                await loadItems(active.id, page, q)
+                              })
+                            }}>{t("delete")}</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollTable>
               {pages > 1 || total > 0 ? (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{t("total_items", { count: total })}</span>

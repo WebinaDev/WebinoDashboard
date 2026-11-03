@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\OpenApiController;
-use App\Http\Controllers\Api\V1\Poetry\PoetryAdminController;
-use App\Http\Controllers\Api\V1\Poetry\PublicPoetryController;
 use App\Http\Controllers\Api\V1\AcademyCourseController;
 use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AccountingController;
@@ -65,6 +63,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
 use App\Http\Controllers\Api\V1\PaymentGatewaySettingsController;
 use App\Http\Controllers\Api\V1\PaymentIntentController;
+use App\Http\Controllers\Api\V1\PaymentWebhookController;
 use App\Http\Controllers\Api\V1\TenantBillingController;
 use App\Http\Controllers\Api\V1\PaymentsHubController;
 use App\Http\Controllers\Api\V1\PortfolioItemController;
@@ -92,7 +91,7 @@ use App\Http\Controllers\Api\V1\StaffController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\BotController;
-use Modules\Commerce\Http\Controllers\CouponController;
+use App\Http\Controllers\Api\V1\CouponController;
 use App\Http\Controllers\Api\V1\ModirPayamakController;
 use App\Http\Controllers\Api\V1\PublicCatalogController;
 use App\Http\Controllers\Api\V1\PublicCafeController;
@@ -102,7 +101,6 @@ use App\Http\Controllers\Api\V1\PublicBlogController;
 use App\Http\Controllers\Api\V1\PublicCmsController;
 use App\Http\Controllers\Api\V1\PublicConsultationController;
 use App\Http\Controllers\Api\V1\PublicCorporateController;
-use App\Http\Controllers\Api\V1\PublicInstagramFeedController;
 use App\Http\Controllers\Api\V1\PublicKernelController;
 use App\Http\Controllers\Api\V1\PublicMagazineController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
@@ -113,6 +111,7 @@ use App\Http\Controllers\Api\V1\ShopExtrasAdminController;
 use App\Http\Controllers\Api\V1\SeoAdminController;
 use App\Http\Controllers\Api\V1\PublicSeoController;
 use App\Http\Controllers\Api\V1\PerformanceSettingsController;
+use App\Http\Controllers\Api\V1\SecurityHubController;
 use App\Http\Controllers\Api\V1\PollController;
 use App\Http\Controllers\Api\V1\ProductCompareController;
 use App\Http\Controllers\Api\V1\ProductEngagementController;
@@ -127,6 +126,8 @@ use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
 use App\Http\Controllers\Api\V1\ReportsController;
 use App\Http\Controllers\Api\V1\ResumeProfileController;
 use App\Http\Controllers\Api\V1\SetupController;
+use App\Http\Controllers\Api\V1\ShippingCarrierSettingsController;
+use App\Http\Controllers\Api\V1\ShippingHubController;
 use App\Http\Controllers\Api\V1\ShippingZonesController;
 use App\Http\Controllers\Api\V1\SiteConsultationController;
 use App\Http\Controllers\Api\V1\TapinController;
@@ -175,6 +176,17 @@ Route::prefix('v1')->group(function () {
     Route::get('/payments/callback/{provider}/{order}', [PaymentCallbackController::class, 'handle'])
         ->whereNumber('order');
 
+    // Server-to-server IPN / webhooks (FX, crypto, some aggregators).
+    Route::post('/payments/webhook/{provider}', [PaymentWebhookController::class, 'handle'])
+        ->withoutMiddleware([
+            \App\Http\Middleware\ThrottleApiToken::class,
+            \App\Http\Middleware\AuthenticateFromCookie::class,
+            \App\Http\Middleware\EnsureUserIsActive::class,
+            \App\Http\Middleware\RequirePasswordChange::class,
+            \App\Http\Middleware\RequireTwoFactor::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+
     Route::get('/downloads/{orderItem}/{download}', [ProductDownloadController::class, 'serve'])
         ->name('downloads.serve')
         ->whereNumber(['orderItem', 'download']);
@@ -192,31 +204,22 @@ Route::prefix('v1')->group(function () {
     Route::post('/provision/modules/install', [ProvisionController::class, 'installModule']);
     Route::match(['get', 'post'], '/provision/modules/{slug}/status', [ProvisionController::class, 'moduleStatus']);
     Route::post('/provision/license-sync', [ProvisionController::class, 'licenseSync']);
-    Route::get('/provision/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'platformShow']);
-    Route::put('/provision/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'platformUpdate']);
     Route::post('/provision/panel-login', [ProvisionController::class, 'panelLogin']);
-    Route::middleware([\App\Http\Middleware\VerifyErpLinkSignature::class, 'throttle:120,1'])->prefix('erp-link')->group(function () {
-        Route::post('/customer', [\App\Http\Controllers\Api\V1\Erp\ErpLinkController::class, 'customer']);
-        Route::post('/usage', [\App\Http\Controllers\Api\V1\Erp\ErpLinkController::class, 'usage']);
-        Route::post('/suspension', [\App\Http\Controllers\Api\V1\Erp\ErpLinkController::class, 'suspension']);
-    });
     Route::post('/integrations/erp/announcements', [ErpAnnouncementController::class, 'ingest']);
 
     Route::prefix('public')->middleware('public.tenant')->group(function () {
         require __DIR__.'/marketplace_public.php';
 
-        Route::get('/tenant', [PublicSiteController::class, 'tenant'])->middleware('public.cache');
+        Route::get('/tenant', [PublicSiteController::class, 'tenant']);
         Route::get('/home', [PublicSiteController::class, 'home']);
-        Route::get('/site-language', [\App\Http\Controllers\Api\V1\SiteLanguageController::class, 'publicShow']);
-        Route::get('/site-status', [PublicSiteController::class, 'siteStatus'])->middleware('public.cache');
-        Route::get('/license-renewal', [\App\Http\Controllers\Api\V1\LicenseRenewalController::class, 'show'])->middleware('throttle:60,1');
         Route::get('/geo/states', [GeoController::class, 'states']);
         Route::get('/bots/widget', [BotController::class, 'widget']);
-        Route::get('/marketing/popups', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'publicIndex'])->middleware('throttle:120,1');
-        Route::get('/nav-menus', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'publicIndex'])->middleware('throttle:240,1');
-        Route::post('/marketing/popups/{popup}/event', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'event'])->whereNumber('popup')->middleware('throttle:60,1');
+        Route::get('/support/widget', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'publicWidget']);
+        Route::get('/support/departments', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'publicDepartments']);
+        Route::post('/support/messages', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'publicSubmit'])->middleware('throttle:public-writes');
         Route::get('/geo/cities', [GeoController::class, 'cities']);
         Route::get('/orders/{order}/pay', [PublicOrderPaymentController::class, 'show'])->whereNumber('order');
+        Route::post('/orders/{order}/pay/confirm', [PublicOrderPaymentController::class, 'confirm'])->whereNumber('order')->middleware('throttle:public-writes');
         Route::post('/orders/{order}/pay/intent', [PublicOrderPaymentController::class, 'intent'])->whereNumber('order')->middleware('throttle:public-writes');
         Route::get('/kernel/activations', [PublicKernelController::class, 'activations']);
         Route::get('/analytics/bootstrap', [PublicAnalyticsController::class, 'bootstrap']);
@@ -229,6 +232,8 @@ Route::prefix('v1')->group(function () {
         // Alias without "analytics" in the path (adblock bypass).
         Route::post('/metrics/collect', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
         Route::post('/forms/submit', [PublicBuilderFormController::class, 'submit'])->middleware('throttle:public-writes');
+        Route::get('/security/captcha', [SecurityHubController::class, 'publicCaptchaConfig']);
+        Route::post('/security/captcha/challenge', [SecurityHubController::class, 'publicCaptchaChallenge'])->middleware('throttle:30,1');
         Route::post('/builder/forms/upload', [\App\Http\Controllers\Api\V1\BuilderFormFilesController::class, 'upload'])->middleware('throttle:public-writes');
         // Shared builder form surface (`publicFormEndpoints` in @webina/ui/builder): POST {key} submits, POST {key}/upload stores a file.
         Route::post('/builder/forms/{key}/upload', [\App\Http\Controllers\Api\V1\BuilderFormFilesController::class, 'upload'])->where('key', '[^/]{1,100}')->middleware('throttle:public-writes');
@@ -236,15 +241,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/newsletter/subscribe', [PublicStorefrontController::class, 'subscribe'])->middleware('throttle:public-writes');
         Route::post('/orders/track', [PublicStorefrontController::class, 'trackOrder'])->middleware('throttle:10,1');
 
-        Route::prefix('poetry')->middleware(\App\Http\Middleware\PoetryTenantScope::class)->group(function () {
-            Route::get('/terms', [PublicPoetryController::class, 'terms']);
-            Route::get('/poems', [PublicPoetryController::class, 'index']);
-            Route::get('/popular', [PublicPoetryController::class, 'popular']);
-            Route::get('/poems/{slug}', [PublicPoetryController::class, 'show']);
-            Route::get('/poems/{slug}/text', [PublicPoetryController::class, 'text']);
-            Route::get('/figures/{slug}', [PublicPoetryController::class, 'figure']);
-            Route::get('/media', [PublicPoetryController::class, 'media']);
-        });
         Route::middleware('public.module:blog')->group(function () {
             Route::get('/blog', [PublicBlogController::class, 'index']);
             Route::get('/blog/category/{slug}', [PublicBlogController::class, 'category']);
@@ -258,7 +254,6 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:profile')->group(function () {
             Route::get('/resume', [PublicResumeController::class, 'show']);
-            Route::get('/resume/full', [\App\Http\Controllers\Api\V1\Resume\PublicResumeFullController::class, 'show'])->middleware(\App\Http\Middleware\ResumeTenantScope::class);
         });
 
         // Host-mode must work even before the module is activated (alias DNS check).
@@ -293,23 +288,20 @@ Route::prefix('v1')->group(function () {
             Route::get('/testimonials', [PublicCorporateController::class, 'testimonials']);
         });
 
-        // Live Instagram feed (token in site settings; graceful empty when unset).
-        Route::get('/instagram-feed', PublicInstagramFeedController::class);
-
         Route::middleware('public.module:team')->group(function () {
             Route::get('/team', [PublicCorporateController::class, 'team']);
         });
 
         Route::middleware('public.module:cms')->group(function () {
             Route::get('/pages/{slug}', [PublicCmsController::class, 'page']);
-            Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page'])->middleware('public.cache');
+            Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
             Route::get('/builder/preview/{token}', [PublicBuilderController::class, 'preview'])->middleware('throttle:60,1');
             Route::post('/builder/ab/{test}/event', [\App\Http\Controllers\Api\V1\BuilderAbController::class, 'event'])->whereNumber('test')->middleware('throttle:120,1');
             Route::get('/builder/collections/{slug}/items', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'publicItems']);
             Route::get('/builder/collections/{slug}/items/{item}', [\App\Http\Controllers\Api\V1\BuilderCollectionsController::class, 'publicItem']);
-            Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template'])->middleware('public.cache');
-            Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve'])->middleware('public.cache');
-            Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow'])->middleware('public.cache');
+            Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
+            Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve']);
+            Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow']);
         });
 
         Route::middleware('public.module:consultations')->group(function () {
@@ -321,9 +313,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/catalog/items/{slug}', [PublicCatalogController::class, 'show']);
             Route::get('/catalog/items/{slug}/linked', [PublicCatalogController::class, 'linked']);
             Route::get('/catalog/categories/tree', [PublicStorefrontController::class, 'categoryTree']);
-            Route::get('/catalog/resolve-slug', [\App\Http\Controllers\Api\V1\PublicSlugResolverController::class, 'resolve']);
             Route::post('/coupons/preview', [PublicStorefrontController::class, 'previewCoupon'])->middleware('throttle:20,1');
-            Route::post('/coupons/available', [PublicStorefrontController::class, 'availableCoupons'])->middleware('throttle:30,1');
             Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);
             Route::get('/catalog/items/{slug}/questions', [ProductQuestionController::class, 'publicIndex']);
             Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore'])->middleware('throttle:public-writes');
@@ -331,7 +321,6 @@ Route::prefix('v1')->group(function () {
             Route::post('/catalog/reviews/{review}/report', [ProductReviewController::class, 'reportAbuse'])->whereNumber('review')->middleware('throttle:public-writes');
             Route::get('/catalog/items/{slug}/price-history', [ProductEngagementController::class, 'priceHistory']);
             Route::post('/catalog/items/{slug}/stock-alerts', [ProductEngagementController::class, 'subscribeAlert'])->middleware('throttle:public-writes');
-            Route::post('/catalog/items/{slug}/reports', [\App\Http\Controllers\Api\V1\ProductReportController::class, 'publicStore'])->middleware('throttle:public-writes');
             Route::get('/compare', [ProductCompareController::class, 'show']);
             Route::post('/compare/products/{productId}', [ProductCompareController::class, 'add'])->whereNumber('productId')->middleware('throttle:public-writes');
             Route::delete('/compare/products/{productId}', [ProductCompareController::class, 'remove'])->whereNumber('productId')->middleware('throttle:public-writes');
@@ -408,10 +397,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout');
             Route::get('/payments/checkout-options', [PaymentIntentController::class, 'options']);
             Route::post('/payments/intent', [PaymentIntentController::class, 'store']);
-            Route::post('/payments/offline', [PaymentIntentController::class, 'confirmOffline'])->middleware('throttle:checkout');
         });
 
         Route::get('/account/tickets', [SupportTicketController::class, 'accountIndex']);
+        Route::get('/account/tickets/meta', [SupportTicketController::class, 'accountMeta']);
         Route::post('/account/tickets', [SupportTicketController::class, 'accountCreate']);
         Route::get('/account/tickets/{ticket}', [SupportTicketController::class, 'accountShow'])->whereNumber('ticket');
         Route::patch('/account/tickets/{ticket}', [SupportTicketController::class, 'accountPatch'])->whereNumber('ticket');
@@ -457,9 +446,6 @@ Route::prefix('v1')->group(function () {
                 Route::post('/modules/marketplace/purchase', [ModuleMarketplaceController::class, 'purchase']);
                 Route::match(['get', 'post'], '/modules/marketplace/payment-callback', [ModuleMarketplaceController::class, 'paymentCallback']);
             Route::patch('/modules/{slug}', [ModuleController::class, 'update'])
-                ->middleware('can:settings.manage,system.manage');
-            Route::get('/settings/site-language', [\App\Http\Controllers\Api\V1\SiteLanguageController::class, 'show']);
-            Route::put('/settings/site-language', [\App\Http\Controllers\Api\V1\SiteLanguageController::class, 'update'])
                 ->middleware('can:settings.manage,system.manage');
 
             Route::post('/license/sync', [LicenseController::class, 'sync']);
@@ -523,6 +509,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/performance/settings', [PerformanceSettingsController::class, 'show']);
                 Route::put('/performance/settings', [PerformanceSettingsController::class, 'update']);
                 Route::post('/performance/purge', [PerformanceSettingsController::class, 'purge']);
+                Route::get('/performance/insights', [PerformanceSettingsController::class, 'insights']);
                 Route::get('/shop/shipping-carriers', [ShopExtrasAdminController::class, 'shippingCarriersShow']);
                 Route::put('/shop/shipping-carriers', [ShopExtrasAdminController::class, 'shippingCarriersUpdate']);
                 Route::get('/shop/sms-panels', [ShopExtrasAdminController::class, 'smsPanelsShow']);
@@ -544,8 +531,8 @@ Route::prefix('v1')->group(function () {
                 ->middleware('can:settings.manage');
             Route::get('/security/events', [\App\Http\Controllers\Api\V1\SecurityEventsController::class, 'index'])->middleware('can:settings.manage');
             Route::get('/security/events/summary', [\App\Http\Controllers\Api\V1\SecurityEventsController::class, 'summary'])->middleware('can:settings.manage');
-            Route::get('/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'adminShow'])->middleware('can:settings.manage');
-            Route::put('/site-status', [\App\Http\Controllers\Api\V1\SiteStatusController::class, 'adminUpdate'])->middleware('can:settings.manage');
+            Route::get('/security/audit', [SecurityHubController::class, 'audit'])->middleware('can:settings.manage');
+            Route::post('/security/audit/apply', [SecurityHubController::class, 'applyFix'])->middleware('can:settings.manage');
             Route::get('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'show']);
             Route::put('/settings/{area}/{section}/{sub?}', [TenantSettingsController::class, 'update'])
                 ->middleware('can:settings.manage');
@@ -558,27 +545,39 @@ Route::prefix('v1')->group(function () {
             Route::patch('/product-questions/{question}', [ProductQuestionController::class, 'moderate'])
                 ->middleware('can:reviews.moderate')
                 ->whereNumber('question');
-            Route::get('/product-reports', [\App\Http\Controllers\Api\V1\ProductReportController::class, 'adminIndex'])
-                ->middleware('can:reviews.moderate');
-            Route::patch('/product-reports/{report}', [\App\Http\Controllers\Api\V1\ProductReportController::class, 'update'])
-                ->middleware('can:reviews.moderate')
-                ->whereNumber('report');
             Route::get('/product-reviews', [ProductReviewController::class, 'adminIndex']);
             Route::patch('/product-reviews/{review}', [ProductReviewController::class, 'moderate'])
                 ->middleware('can:reviews.moderate')
                 ->whereNumber('review');
 
             Route::middleware('can:support.*')->group(function () {
-            Route::get('/shop/tickets', [SupportTicketController::class, 'staffIndex']);
-            Route::get('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffShow'])->whereNumber('ticket');
-            Route::patch('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffPatch'])->whereNumber('ticket');
-            Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, 'staffReply'])->whereNumber('ticket');
-            Route::post('/shop/tickets/{ticket}/convert-task', [SupportTicketController::class, 'staffConvertTask'])->whereNumber('ticket');
-            Route::post('/shop/tickets/{ticket}/sync-erp', [SupportTicketController::class, 'staffSyncErp'])->whereNumber('ticket');
+                Route::get('/shop/tickets', [SupportTicketController::class, 'staffIndex']);
+                Route::post('/shop/tickets', [SupportTicketController::class, 'staffCreate']);
+                Route::get('/shop/tickets/agents', [SupportTicketController::class, 'staffAgents']);
+                Route::get('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffShow'])->whereNumber('ticket');
+                Route::patch('/shop/tickets/{ticket}', [SupportTicketController::class, 'staffPatch'])->whereNumber('ticket');
+                Route::post('/shop/tickets/{ticket}/replies', [SupportTicketController::class, 'staffReply'])->whereNumber('ticket');
+                Route::post('/shop/tickets/{ticket}/convert-task', [SupportTicketController::class, 'staffConvertTask'])->whereNumber('ticket');
+                Route::post('/shop/tickets/{ticket}/sync-erp', [SupportTicketController::class, 'staffSyncErp'])->whereNumber('ticket');
+
+                Route::get('/support/departments', [\App\Http\Controllers\Api\V1\SupportDepartmentController::class, 'index']);
+                Route::post('/support/departments', [\App\Http\Controllers\Api\V1\SupportDepartmentController::class, 'store']);
+                Route::patch('/support/departments/{department}', [\App\Http\Controllers\Api\V1\SupportDepartmentController::class, 'update'])->whereNumber('department');
+                Route::delete('/support/departments/{department}', [\App\Http\Controllers\Api\V1\SupportDepartmentController::class, 'destroy'])->whereNumber('department');
+
+                Route::get('/support/canned-responses', [\App\Http\Controllers\Api\V1\SupportCannedResponseController::class, 'index']);
+                Route::post('/support/canned-responses', [\App\Http\Controllers\Api\V1\SupportCannedResponseController::class, 'store']);
+                Route::patch('/support/canned-responses/{canned}', [\App\Http\Controllers\Api\V1\SupportCannedResponseController::class, 'update'])->whereNumber('canned');
+                Route::delete('/support/canned-responses/{canned}', [\App\Http\Controllers\Api\V1\SupportCannedResponseController::class, 'destroy'])->whereNumber('canned');
+
+                Route::get('/support/settings', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'settingsShow']);
+                Route::put('/support/settings', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'settingsUpdate']);
             });
 
             Route::get('/themes', [ThemeController::class, 'index']);
             Route::post('/themes/{slug}/activate', [ThemeController::class, 'activate'])
+                ->middleware('can:settings.manage,system.manage');
+            Route::post('/themes/{slug}/default', [ThemeController::class, 'setDefault'])
                 ->middleware('can:settings.manage,system.manage');
             Route::patch('/themes/branding', [ThemeController::class, 'updateBranding'])
                 ->middleware('can:settings.manage,system.manage');
@@ -634,6 +633,7 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/modifiers/{modifier}', [ProductModifierController::class, 'destroy'])->whereNumber('modifier');
                 Route::put('/products/{product}/allergens', [ProductModifierController::class, 'syncAllergens'])->whereNumber('product');
                 Route::put('/products/{product}/media', [ProductModifierController::class, 'syncMedia'])->whereNumber('product');
+                Route::get('/product-catalog/sources', [ProductCatalogController::class, 'sources']);
                 Route::get('/product-catalog/search', [ProductCatalogController::class, 'search']);
                 Route::post('/product-catalog/import', [ProductCatalogController::class, 'import']);
             });
@@ -687,6 +687,10 @@ Route::prefix('v1')->group(function () {
                 Route::post('/pricing/bulk-price-change/start', [PricingController::class, 'bulkPriceStart']);
                 Route::get('/pricing/bulk-price-change/preview', [PricingController::class, 'bulkPricePreview']);
                 Route::get('/pricing/bulk-price-change/state', [PricingController::class, 'bulkPriceState']);
+                Route::get('/pricing/bulk-price-change/jobs', [PricingController::class, 'bulkPriceJobs']);
+                Route::post('/pricing/bulk-price-change/jobs/{job}/pause', [PricingController::class, 'bulkPricePause'])->whereNumber('job');
+                Route::post('/pricing/bulk-price-change/jobs/{job}/resume', [PricingController::class, 'bulkPriceResume'])->whereNumber('job');
+                Route::post('/pricing/bulk-price-change/jobs/{job}/cancel', [PricingController::class, 'bulkPriceCancel'])->whereNumber('job');
             });
 
             Route::middleware(['module:marketplace', 'can:catalog.*,commerce.*'])->prefix('marketplace')->group(function () {
@@ -799,33 +803,37 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/cafe/venue-settings', [CafeSettingsController::class, 'updateVenue']);
             });
 
-            Route::middleware(['module:orders', 'can:orders.*,orders.own'])->group(function () {
+            Route::middleware(['module:orders', 'can:orders.*,orders.own,pos.use'])->group(function () {
                 Route::get('/orders', [OrderController::class, 'index']);
                 Route::get('/orders/statuses', [OrderController::class, 'statuses']);
                 Route::get('/orders/filter-options', [OrderController::class, 'filterOptions']);
+                Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
+                Route::get('/orders/{order}/notes', [OrderController::class, 'notesIndex'])->whereNumber('order');
+                Route::get('/orders/{order}/returns', [OrderController::class, 'returnsIndex'])->whereNumber('order');
+                Route::get('/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
+            });
+
+            Route::middleware(['module:orders', 'can:orders.*,orders.own'])->group(function () {
                 Route::post('/orders', [OrderController::class, 'store']);
                 Route::post('/orders/bulk', [OrderController::class, 'bulk']);
-                Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
                 Route::patch('/orders/{order}', [OrderController::class, 'update'])->whereNumber('order');
                 Route::put('/orders/{order}', [OrderController::class, 'rewrite'])->whereNumber('order');
                 Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->whereNumber('order');
-                Route::get('/orders/{order}/notes', [OrderController::class, 'notesIndex'])->whereNumber('order');
                 Route::post('/orders/{order}/notes', [OrderController::class, 'notesStore'])->whereNumber('order');
                 Route::delete('/order-notes/{note}', [OrderController::class, 'notesDestroy'])->whereNumber('note');
-                Route::get('/orders/{order}/returns', [OrderController::class, 'returnsIndex'])->whereNumber('order');
                 Route::post('/orders/{order}/returns', [OrderController::class, 'returnsStore'])->whereNumber('order');
                 Route::post('/order-returns/{returnId}/action', [OrderController::class, 'returnsAction'])->whereNumber('returnId');
-                Route::get('/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
                 Route::get('/orders/print-labels', [OrderDocumentController::class, 'labels']);
             });
 
             Route::middleware(['module:pos', 'can:pos.use'])->group(function () {
                 Route::get('/products/pos-search', [OrderController::class, 'posSearch']);
                 Route::get('/pos/customers', [OrderController::class, 'posCustomers']);
+                Route::get('/pos/settings', [OrderController::class, 'posSettings']);
+                Route::put('/pos/settings', [OrderController::class, 'updatePosSettings']);
                 Route::get('/payment-gateways', [OrderController::class, 'paymentGateways']);
                 Route::post('/pos/orders', [OrderController::class, 'store']);
                 Route::get('/pos/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
-                Route::post('/pos/orders/{order}/pay-link-sms', [\App\Http\Controllers\Api\V1\PosPayLinkSmsController::class, 'send'])->whereNumber('order');
             });
 
             Route::middleware(['module:c2c', 'can:settings.manage,commerce.*'])->group(function () {
@@ -848,6 +856,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/payments/hub/{gateway}/toggle', [PaymentsHubController::class, 'toggle']);
             Route::get('/payments/gateways/{provider}', [PaymentGatewaySettingsController::class, 'show']);
             Route::post('/payments/gateways/{provider}', [PaymentGatewaySettingsController::class, 'update']);
+            Route::post('/payments/gateways/{provider}/test', [PaymentGatewaySettingsController::class, 'test']);
 
             Route::get('/shipping/zones', [ShippingZonesController::class, 'index']);
             Route::post('/shipping/zones/global', [ShippingZonesController::class, 'saveGlobal']);
@@ -857,6 +866,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/shipping/zones/{zone}/methods', [ShippingZonesController::class, 'storeMethod'])->whereNumber('zone');
             Route::put('/shipping/zones/{zone}/methods/{method}', [ShippingZonesController::class, 'updateMethod'])->whereNumber(['zone', 'method']);
             Route::delete('/shipping/zones/{zone}/methods/{method}', [ShippingZonesController::class, 'destroyMethod'])->whereNumber(['zone', 'method']);
+
+            Route::get('/shipping/hub', [ShippingHubController::class, 'show']);
+            Route::post('/shipping/hub', [ShippingHubController::class, 'update']);
+            Route::post('/shipping/hub/{carrier}/toggle', [ShippingHubController::class, 'toggle']);
+            Route::get('/shipping/carriers/{carrier}', [ShippingCarrierSettingsController::class, 'show']);
+            Route::post('/shipping/carriers/{carrier}', [ShippingCarrierSettingsController::class, 'update']);
+            Route::post('/shipping/carriers/{carrier}/test', [ShippingCarrierSettingsController::class, 'test']);
 
             Route::get('/shipping/tapin', [TapinController::class, 'show']);
             Route::post('/shipping/tapin', [TapinController::class, 'update']);
@@ -910,11 +926,6 @@ Route::prefix('v1')->group(function () {
 
             Route::middleware(['module:marketing', 'can:marketing.*'])->group(function () {
                 Route::get('/marketing/campaigns', [MarketingController::class, 'campaigns']);
-                Route::get('/marketing/popups', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'index']);
-                Route::post('/marketing/popups', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'store']);
-                Route::get('/marketing/popups/{popup}', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'show'])->whereNumber('popup');
-                Route::put('/marketing/popups/{popup}', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'update'])->whereNumber('popup');
-                Route::delete('/marketing/popups/{popup}', [\App\Http\Controllers\Api\V1\MarketingPopupController::class, 'destroy'])->whereNumber('popup');
                 Route::get('/marketing/abandoned-carts', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'index']);
                 Route::get('/marketing/abandoned-carts/settings', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'settings']);
                 Route::put('/marketing/abandoned-carts/settings', [\App\Http\Controllers\Api\V1\AbandonedCartController::class, 'update']);
@@ -929,6 +940,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/marketing/coupons/bulk', [CouponController::class, 'bulk']);
                 Route::get('/marketing/coupons/offer-templates', [CouponController::class, 'offerTemplates']);
                 Route::post('/marketing/coupons/from-template', [CouponController::class, 'fromTemplate']);
+                Route::get('/marketing/coupons/offers', [CouponController::class, 'offers']);
+                Route::get('/marketing/coupons/storefront-settings', [CouponController::class, 'storefrontSettings']);
+                Route::post('/marketing/coupons/storefront-settings', [CouponController::class, 'updateStorefrontSettings']);
                 Route::get('/marketing/coupons/{coupon}', [CouponController::class, 'show'])->whereNumber('coupon');
                 Route::put('/marketing/coupons/{coupon}', [CouponController::class, 'update'])->whereNumber('coupon');
                 Route::patch('/marketing/coupons/{coupon}', [CouponController::class, 'update'])->whereNumber('coupon');
@@ -939,6 +953,10 @@ Route::prefix('v1')->group(function () {
                 Route::middleware(['module:'.$moduleSlug, 'can:marketing.*'])->prefix('bots/'.$provider)->group(function () use ($provider) {
                     Route::get('/settings', fn (\Illuminate\Http\Request $r) => app(BotController::class)->settings($r, $provider));
                     Route::put('/settings', fn (\Illuminate\Http\Request $r) => app(BotController::class)->updateSettings($r, $provider));
+                    Route::get('/dashboard-stats', fn (\Illuminate\Http\Request $r) => app(BotController::class)->dashboardStats($r, $provider));
+                    Route::get('/connection-status', fn (\Illuminate\Http\Request $r) => app(BotController::class)->connectionStatus($r, $provider));
+                    Route::post('/set-webhook', fn (\Illuminate\Http\Request $r) => app(BotController::class)->setWebhook($r, $provider));
+                    Route::post('/delete-webhook', fn (\Illuminate\Http\Request $r) => app(BotController::class)->deleteWebhook($r, $provider));
                     Route::get('/sessions', fn (\Illuminate\Http\Request $r) => app(BotController::class)->sessions($r, $provider));
                     Route::get('/logs', fn (\Illuminate\Http\Request $r) => app(BotController::class)->logs($r, $provider));
                     Route::post('/send', fn (\Illuminate\Http\Request $r) => app(BotController::class)->send($r, $provider));
@@ -965,13 +983,6 @@ Route::prefix('v1')->group(function () {
 
             Route::middleware(['module:cms', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/cms/pages', [CmsController::class, 'pages']);
-                Route::get('/nav-menus', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'index']);
-                Route::post('/nav-menus', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'store']);
-                Route::get('/nav-menus/sources', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'sources']);
-                Route::get('/nav-menus/from-categories', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'fromCategories']);
-                Route::get('/nav-menus/{menu}', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'show'])->whereNumber('menu');
-                Route::put('/nav-menus/{menu}', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'update'])->whereNumber('menu');
-                Route::delete('/nav-menus/{menu}', [\App\Http\Controllers\Api\V1\NavMenuController::class, 'destroy'])->whereNumber('menu');
                 Route::post('/cms/pages', [CmsController::class, 'store']);
                 Route::get('/cms/pages/{page}', [CmsController::class, 'show'])->whereNumber('page');
                 Route::patch('/cms/pages/{page}', [CmsController::class, 'update'])->whereNumber('page');
@@ -1069,22 +1080,6 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::delete('/import/wordpress/tokens/{token}', [WordpressImportController::class, 'destroyToken'])->whereNumber('token');
             });
 
-            Route::prefix('poetry')->middleware(['can:content.manage,content.*', \App\Http\Middleware\PoetryTenantScope::class])->group(function () {
-                Route::get('/poems', [PoetryAdminController::class, 'index']);
-                Route::post('/poems', [PoetryAdminController::class, 'store']);
-                Route::get('/poems/{poem}', [PoetryAdminController::class, 'show'])->whereNumber('poem');
-                Route::put('/poems/{poem}', [PoetryAdminController::class, 'update'])->whereNumber('poem');
-                Route::delete('/poems/{poem}', [PoetryAdminController::class, 'destroy'])->whereNumber('poem');
-                Route::post('/import/parse', [PoetryAdminController::class, 'parse']);
-                Route::get('/media', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'index']);
-                Route::post('/media', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'store']);
-                Route::put('/media/{media}', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'update'])->whereNumber('media');
-                Route::delete('/media/{media}', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'destroy'])->whereNumber('media');
-                Route::get('/terms', [PoetryAdminController::class, 'terms']);
-                Route::post('/terms', [PoetryAdminController::class, 'storeTerm']);
-                Route::put('/terms/{term}', [PoetryAdminController::class, 'updateTerm'])->whereNumber('term');
-                Route::delete('/terms/{term}', [PoetryAdminController::class, 'destroyTerm'])->whereNumber('term');
-            });
             Route::middleware(['module:blog', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/blog/posts', [BlogPostController::class, 'index']);
                 Route::post('/blog/posts', [BlogPostController::class, 'store']);
@@ -1102,6 +1097,7 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
             Route::middleware(['module:media', 'can:catalog.*,content.manage,content.*'])->group(function () {
                 Route::get('/media', [MediaController::class, 'index']);
                 Route::post('/media', [MediaController::class, 'store']);
+                Route::post('/media/ai-cleanup', [MediaController::class, 'aiCleanup']);
                 Route::patch('/media/{id}', [MediaController::class, 'update'])->whereNumber('id');
                 Route::delete('/media/{id}', [MediaController::class, 'destroy'])->whereNumber('id');
                 Route::get('/media/terms', [MediaTermController::class, 'index']);
@@ -1128,23 +1124,6 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
             Route::middleware(['module:profile', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/resume/profile', [ResumeProfileController::class, 'show']);
                 Route::put('/resume/profile', [ResumeProfileController::class, 'update']);
-            });
-
-            // Resume module v2 — one entity per section (docs/resume/README.md).
-            Route::prefix('resume')->middleware(['module:resume', 'can:content.manage,content.*', \App\Http\Middleware\ResumeTenantScope::class])->group(function () {
-                $c = \App\Http\Controllers\Api\V1\Resume\ResumeAdminController::class;
-                $sec = '[a-z0-9_]+';
-                Route::get('/schema', [$c, 'schema']);
-                Route::get('/overview', [$c, 'overview']);
-                Route::get('/themes', [$c, 'themes']);
-                Route::post('/theme/apply', [$c, 'applyTheme']);
-                Route::post('/import', [$c, 'import'])->middleware('throttle:10,1');
-                Route::get('/{section}', [$c, 'index'])->where('section', $sec);
-                Route::put('/{section}', [$c, 'updateSingle'])->where('section', $sec);
-                Route::post('/{section}', [$c, 'store'])->where('section', $sec);
-                Route::post('/{section}/reorder', [$c, 'reorder'])->where('section', $sec);
-                Route::put('/{section}/{id}', [$c, 'update'])->where('section', $sec)->whereNumber('id');
-                Route::delete('/{section}/{id}', [$c, 'destroy'])->where('section', $sec)->whereNumber('id');
             });
 
             Route::middleware(['module:link-hub', 'can:content.manage,content.*'])->group(function () {
@@ -1204,7 +1183,6 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::get('/customers', [CustomerController::class, 'index']);
                 Route::post('/customers', [CustomerController::class, 'store']);
                 Route::patch('/customers/{customer}', [CustomerController::class, 'update'])->whereNumber('customer');
-                Route::get('/customers/{customer}/profile', [CustomerController::class, 'profile'])->whereNumber('customer');
                 Route::get('/customers/{customer}/notes', [CustomerNoteController::class, 'index'])->whereNumber('customer');
                 Route::post('/customers/{customer}/notes', [CustomerNoteController::class, 'store'])->whereNumber('customer');
                 Route::delete('/customers/{customer}/notes/{note}', [CustomerNoteController::class, 'destroy'])->whereNumber('customer')->whereNumber('note');
@@ -1294,6 +1272,28 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::post('/accounting/persons', [AccountingController::class, 'personsStore']);
                 Route::get('/accounting/accounts', [AccountingController::class, 'accountsIndex']);
                 Route::post('/accounting/accounts', [AccountingController::class, 'accountsStore']);
+
+                Route::get('/accounting/invoices', [AccountingController::class, 'invoicesIndex']);
+                Route::get('/accounting/invoices/{invoice}', [AccountingController::class, 'invoiceShow'])->whereNumber('invoice');
+                Route::get('/accounting/orders-sync', [AccountingController::class, 'ordersSyncStatus']);
+                Route::get('/accounting/orders/{order}', [AccountingController::class, 'orderAccounting'])->whereNumber('order');
+                Route::post('/accounting/sync/orders', [AccountingController::class, 'syncOrdersBulk']);
+                Route::post('/accounting/sync/order/{order}', [AccountingController::class, 'syncOrder'])->whereNumber('order');
+                Route::get('/accounting/reports', [AccountingController::class, 'reports']);
+
+                Route::get('/accounting/moadian/settings', [AccountingController::class, 'moadianSettingsShow']);
+                Route::put('/accounting/moadian/settings', [AccountingController::class, 'moadianSettingsUpdate']);
+                Route::get('/accounting/moadian/jobs', [AccountingController::class, 'moadianJobsIndex']);
+                Route::post('/accounting/moadian/process', [AccountingController::class, 'moadianProcess']);
+                Route::post('/accounting/moadian/jobs/{job}/retry', [AccountingController::class, 'moadianRetry'])->whereNumber('job');
+                Route::post('/accounting/moadian/invoices/{invoice}/send', [AccountingController::class, 'moadianSendInvoice'])->whereNumber('invoice');
+                Route::post('/accounting/moadian/orders/{order}/send', [AccountingController::class, 'moadianSendOrder'])->whereNumber('order');
+
+                Route::get('/accounting/integrations', [AccountingController::class, 'integrationsHub']);
+                Route::get('/accounting/integrations/{provider}', [AccountingController::class, 'integrationSettingsShow']);
+                Route::put('/accounting/integrations/{provider}', [AccountingController::class, 'integrationSettingsUpdate']);
+                Route::post('/accounting/integrations/{provider}/test', [AccountingController::class, 'integrationTest']);
+                Route::post('/accounting/integrations/{provider}/invoices/{invoice}/push', [AccountingController::class, 'integrationPushInvoice'])->whereNumber('invoice');
             });
         });
     });

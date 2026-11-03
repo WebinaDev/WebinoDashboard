@@ -5,12 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Services\Payments\PaymentGatewaySettingsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PaymentGatewaySettingsController extends Controller
 {
-    /** @var list<string> */
-    private const PROVIDERS = ['zarinpal', 'digipay', 'snapppay', 'torobpay', 'bale_pay', 'wallet', 'c2c', 'cheque'];
-
     public function __construct(protected PaymentGatewaySettingsService $gateways) {}
 
     public function show(Request $request, string $provider): \Illuminate\Http\JsonResponse
@@ -19,6 +17,7 @@ class PaymentGatewaySettingsController extends Controller
 
         return response()->json([
             'settings' => $this->gateways->getPublic((int) $request->user()->tenant_id, $provider),
+            'enabled' => $this->gateways->isEnabled((int) $request->user()->tenant_id, $provider),
         ]);
     }
 
@@ -27,7 +26,7 @@ class PaymentGatewaySettingsController extends Controller
         $provider = $this->normalize($provider);
         $body = $request->all();
         $input = is_array($body['settings'] ?? null) ? $body['settings'] : $body;
-        unset($input['settings']);
+        unset($input['settings'], $input['_meta']);
         $enabled = null;
         if (array_key_exists('enabled', $input)) {
             $enabled = (bool) $input['enabled'];
@@ -39,7 +38,7 @@ class PaymentGatewaySettingsController extends Controller
 
         $tid = (int) $request->user()->tenant_id;
         $settings = $this->gateways->save($tid, $provider, $input);
-        if ($enabled !== null && (in_array($provider, PaymentGatewaySettingsService::COMMERCE_GATEWAYS, true) || $provider === 'cheque')) {
+        if ($enabled !== null) {
             $this->gateways->setGatewayEnabled($tid, $provider, $enabled);
         }
 
@@ -49,10 +48,25 @@ class PaymentGatewaySettingsController extends Controller
         ]);
     }
 
+    public function test(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $provider = $this->normalize($provider);
+        $tid = (int) $request->user()->tenant_id;
+        $result = $this->gateways->testConnection($tid, $provider);
+        // Never log credential payloads — only ok + provider id.
+        Log::info('payment.gateway.test', [
+            'tenant_id' => $tid,
+            'provider' => $provider,
+            'ok' => (bool) ($result['ok'] ?? false),
+        ]);
+
+        return response()->json(['data' => $result]);
+    }
+
     protected function normalize(string $provider): string
     {
         $provider = str_replace('-', '_', strtolower(trim($provider)));
-        if (! in_array($provider, self::PROVIDERS, true)) {
+        if (! $this->gateways->catalog()->has($provider)) {
             abort(404, 'Unknown payment provider');
         }
 

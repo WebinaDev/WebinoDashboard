@@ -15,6 +15,7 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -55,8 +56,10 @@ type OrderRow = {
   payment_tender?: string | null
   sales_channel?: string | null
   is_pos?: boolean
+  created_by?: number | null
   created_at?: string
   user?: { id: number; name?: string | null } | null
+  creator?: { id: number; name?: string | null } | null
   province?: string | null
   shipping_destination?: string | null
   shipping_title?: string | null
@@ -64,7 +67,7 @@ type OrderRow = {
   gateway_title?: string | null
   utm?: string | null
   marketplace?: string | null
-  meta?: { refund_required?: boolean } | null
+  meta?: { refund_required?: boolean; cashier_name?: string } | null
 }
 
 type OrdersMeta = {
@@ -162,7 +165,8 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
 
-  const mineMode = route.path === "pos/my-orders" || searchParams.get("mine") === "1"
+  const posSource = route.path === "pos/my-orders" || searchParams.get("source") === "pos"
+  const mineMode = posSource || searchParams.get("mine") === "1"
 
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -206,6 +210,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
   const queryKey = [
     "admin-orders",
     mineMode,
+    posSource,
     debouncedSearch,
     status,
     dateFrom,
@@ -235,7 +240,7 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
       params.set("dir", dir)
       if (mineMode) {
         params.set("mine", "1")
-        if (route.path === "pos/my-orders") params.set("is_pos", "1")
+        if (posSource) params.set("is_pos", "1")
       }
       if (debouncedSearch) params.set("search", debouncedSearch)
       if (status) params.set("status", status)
@@ -358,6 +363,39 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
       await invalidateOrders()
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  const tAcc = useTranslations("accounting_portal")
+
+  const bulkAccountingSync = useMutation({
+    mutationFn: () =>
+      api("/api/v1/accounting/sync/orders", {
+        method: "POST",
+        json: { order_ids: selected, limit: Math.min(100, selected.length) },
+      }),
+    onSuccess: async () => {
+      toast.success(tAcc("sync_done"))
+      setSelected([])
+      await invalidateOrders()
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const bulkMoadianSend = useMutation({
+    mutationFn: async () => {
+      const results = await Promise.allSettled(
+        selected.map((id) => api(`/api/v1/accounting/moadian/orders/${id}/send`, { method: "POST" })),
+      )
+      const failed = results.filter((r) => r.status === "rejected").length
+      return { ok: results.length - failed, failed }
+    },
+    onSuccess: async (res) => {
+      if (res.failed) toast.error(t("bulk_moadian_partial", { ok: res.ok, failed: res.failed }))
+      else toast.success(tAcc("moadian_sent"))
+      setSelected([])
+      await invalidateOrders()
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   function toggleAll(checked: boolean) {
@@ -556,6 +594,16 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
             <Button variant="secondary" disabled={bulkEmail.isPending} onClick={() => bulkEmail.mutate()}>
               {t("bulk_email")}
             </Button>
+            <Button
+              variant="outline"
+              disabled={bulkAccountingSync.isPending}
+              onClick={() => bulkAccountingSync.mutate()}
+            >
+              {t("accounting_sync")}
+            </Button>
+            <Button disabled={bulkMoadianSend.isPending} onClick={() => bulkMoadianSend.mutate()}>
+              {t("send_moadian")}
+            </Button>
             <Button variant="destructive" disabled={bulkTrash.isPending} onClick={() => setTrashOpen(true)}>
               {t("trash")}
             </Button>
@@ -672,7 +720,12 @@ export default function OrdersPageClient({ route }: { route: ResolvedAdminRoute 
                           <MoneyDisplay amount={o.total_minor} />
                         </td>
                         <td className="p-2 text-muted-foreground">
-                          {o.customer_name || o.user?.name || o.customer_phone || "—"}
+                          <div>{o.customer_name || o.user?.name || o.customer_phone || "—"}</div>
+                          {posSource && (o.creator?.name || o.meta?.cashier_name) ? (
+                            <div className="text-xs opacity-80">
+                              {t("cashier")}: {o.creator?.name || o.meta?.cashier_name}
+                            </div>
+                          ) : null}
                         </td>
                         <td className="p-2 text-muted-foreground">{formatDisplayDateTime(o.created_at, locale)}</td>
                         <td className="p-2">{o.province || "—"}</td>

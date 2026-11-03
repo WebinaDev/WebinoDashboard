@@ -2,8 +2,8 @@ import type { ModuleManifest } from "@/kernel/types"
 
 export const blogManifest: ModuleManifest = {
   slug: "blog",
-  nameFa: "مجله",
-  nameEn: "Magazine",
+  nameFa: "وبلاگ",
+  nameEn: "Blog",
   siteTypes: ["ecommerce", "magazine", "cafe", "corporate", "coffee", "blog"],
   submodules: ["posts", "categories"],
   adminNav: { section: "content", order: 11 },

@@ -46,25 +46,20 @@ class ShopExtrasAdminController extends Controller
         return response()->json(['data' => $registry->hub($tid)]);
     }
 
-    public function shippingCarriersUpdate(Request $request, ModuleSettingsService $settings, ShippingCarrierRegistry $registry): \Illuminate\Http\JsonResponse
-    {
+    public function shippingCarriersUpdate(
+        Request $request,
+        \App\Services\Shipping\ShippingCarrierSettingsService $carrierSettings,
+    ): \Illuminate\Http\JsonResponse {
         $tid = (int) $request->user()->tenant_id;
         $payload = $request->validate([
-            'tapin' => ['sometimes', 'array'],
-            'snapp' => ['sometimes', 'array'],
-            'post' => ['sometimes', 'array'],
+            'enabled' => ['sometimes', 'array'],
         ]);
-        $current = $registry->hub($tid);
-        if (isset($payload['snapp']['api_token']) && $payload['snapp']['api_token'] === '••••••') {
-            unset($payload['snapp']['api_token']);
+        // Prefer hub enable map; per-carrier credentials go through /shipping/carriers/{id}.
+        if (isset($payload['enabled'])) {
+            $carrierSettings->saveHub($tid, $payload);
         }
-        $merged = array_replace_recursive($current, $payload);
-        if (! empty($merged['snapp']['api_token'])) {
-            $merged['snapp']['has_api_token'] = true;
-        }
-        $settings->put($tid, ShippingCarrierRegistry::MODULE, 'hub', $merged);
 
-        return response()->json(['data' => $merged]);
+        return response()->json(['data' => $carrierSettings->hubPayload($tid)]);
     }
 
     public function smsPanelsShow(Request $request, SmsPanelAdapterRegistry $registry): \Illuminate\Http\JsonResponse

@@ -9,7 +9,6 @@ import { toast } from "sonner"
 
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -31,6 +30,7 @@ import {
   smsQueryOptions,
 } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 
 interface Phonebook {
   id: number
@@ -113,12 +113,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-base">{t("newPhonebook")}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex gap-2">
-              <Input
+          <SmsSection title={t("newPhonebook")}>
+<Input
                 value={newName}
                 disabled={unavailable}
                 onChange={(e) => setNewName(e.target.value)}
@@ -134,16 +130,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 {creatingBook ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {t("actions.save")}
               </Button>
-            </CardContent>
-          </Card>
+            </SmsSection>
 
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-base">{t("phonebook")}</CardTitle>
-              <CardDescription>{t("phonebookDeleteUnavailable")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {booksQ.isPending ? (
+          <SmsSection title={t("phonebook")} description={t("phonebookDeleteUnavailable")}>
+{booksQ.isPending ? (
                 <div className="space-y-2">
                   {Array.from({ length: 3 }, (_, i) => (
                     <Skeleton key={i} className="h-12 w-full rounded-md" />
@@ -175,27 +165,18 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </SmsSection>
         </div>
 
         <div className="space-y-4">
           {!selectedBook ? (
-            <Card className="shadow-soft">
-              <CardContent className="text-muted-foreground py-8 text-center text-sm">
-                {t("selectPhonebook")}
-              </CardContent>
-            </Card>
+            <SmsSection>
+              <p className="text-muted-foreground py-4 text-center text-sm">{t("selectPhonebook")}</p>
+            </SmsSection>
           ) : (
             <>
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="text-base">
-                    {t("contacts")} — {selectedBook.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <fieldset disabled={unavailable} className="space-y-3">
+              <SmsSection title={`${t("contacts")} — ${selectedBook.name}`}>
+                <fieldset disabled={unavailable} className="space-y-3">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <Label>{t("contactPhone")}</Label>
@@ -230,15 +211,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                       {t("addContact")}
                     </Button>
                   </fieldset>
-                </CardContent>
-              </Card>
+                </SmsSection>
 
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="text-base">{t("contacts")}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
+              <SmsSection title={t("contacts")}>
+                <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -285,8 +261,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                       </TableBody>
                     </Table>
                   </div>
-                </CardContent>
-              </Card>
+                </SmsSection>
             </>
           )}
         </div>

@@ -38,6 +38,7 @@ import {
 import { useDashboardNav } from "@/hooks/useDashboardNav"
 import { useLocaleSync } from "@/hooks/useLocaleSync"
 import { resolveAdminRoute } from "@/kernel/route-resolver"
+import { isPageBuilderFullscreenPath } from "@/lib/page-builder-nav"
 import { DASHBOARD_BASE, stripDashboardBase } from "@/kernel/paths"
 import { normalizeAccent } from "@/lib/accent"
 import { api } from "@/lib/api"
@@ -50,6 +51,7 @@ import { PwaSplashOverlay } from "@/components/pwa/PwaSplashOverlay"
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister"
 import { mergePwaSettings, resolvePwaBootstrap, type PwaStoredSettings } from "@/lib/pwa-settings"
 import { useThemeSettings } from "@/providers/AppProviders"
+import { AdminGlobalSearch } from "@/components/shell/AdminGlobalSearch"
 import { MobileBottomNav } from "@/components/shell/MobileBottomNav"
 import { MobileMoreSheet } from "@/components/shell/MobileMoreSheet"
 import "@/components/shell/mobile-chrome.css"
@@ -210,7 +212,7 @@ export default function DashboardLayoutPage({
     document.title = `${breadcrumbCurrent} · ${site}`
   }, [breadcrumbCurrent, tenantLabel, tCommon])
 
-  const builderEditor = /\/builder\/.+/.test(pathname)
+  const builderEditor = isPageBuilderFullscreenPath(pathname)
   if (builderEditor) {
     return (
       <div className="flex h-svh flex-col overflow-hidden bg-[#e8eef5] dark:bg-[#12141a]">
@@ -266,7 +268,7 @@ export default function DashboardLayoutPage({
               orientation="vertical"
               className="me-2 hidden data-[orientation=vertical]:h-4 sm:block"
             />
-            <Breadcrumb className="min-w-0 flex-1 overflow-hidden">
+            <Breadcrumb className="min-w-0 max-w-[42%] shrink overflow-hidden sm:max-w-[36%] md:max-w-none md:shrink-0">
               <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href={DASHBOARD_BASE}>
@@ -286,6 +288,9 @@ export default function DashboardLayoutPage({
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+            <div className="ms-2 flex min-w-0 flex-1 items-center justify-end md:justify-center">
+              <AdminGlobalSearch navSections={navSections} />
+            </div>
             <div className="ms-auto flex items-center gap-1 md:gap-2">
               <AnnouncementInbox />
               <NotificationBell />
@@ -324,6 +329,9 @@ export default function DashboardLayoutPage({
                   </a>
                 </Button>
               ) : null}
+              <div className="md:hidden">
+                <LocaleThemeToolbar languageOnly />
+              </div>
               <div className="hidden md:block">
                 <LocaleThemeToolbar />
               </div>
@@ -352,20 +360,6 @@ export default function DashboardLayoutPage({
                       </a>
                     </DropdownMenuItem>
                   ) : null}
-                  <DropdownMenuItem
-                    onClick={() => {
-                      const next = locale === "fa" ? "en" : "fa"
-                      document.cookie = `NEXT_LOCALE=${next};path=/;max-age=31536000`
-                      localStorage.setItem("locale", next)
-                      void api("/api/v1/account/preferences", {
-                        method: "PATCH",
-                        json: { locale: next },
-                      }).catch(() => {})
-                      window.location.reload()
-                    }}
-                  >
-                    {locale === "fa" ? tCommon("locale_en") : tCommon("locale_fa")}
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { AiGenerateButton } from "@/components/content/AiGenerateButton"
 import {
   ContentPublishPanel,
-  defaultPublishDateLocal,
+  defaultPublishedState,
   publishStateToPayload,
   type ContentPublishState,
 } from "@/components/content/ContentPublishPanel"
@@ -20,12 +20,18 @@ import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { cmsPagePermalink } from "@/lib/content-permalink"
 import { buildParentTreeOptions } from "@/lib/content-parent-tree"
+import { slugifyTitle } from "@/lib/slugify"
+
+type TabId = "content" | "seo" | "advanced"
+
+const TABS: TabId[] = ["content", "seo", "advanced"]
+const SEO_OPEN_KEY = "webina.seo.open.cms-page"
 
 type Detail = {
   id?: number
@@ -54,23 +60,21 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
   const id = route.params?.pageId ? Number(route.params.pageId) : null
   const isNew = !id || route.path === "pages/new"
 
+  const [tab, setTab] = useState<TabId>("content")
   const [form, setForm] = useState<Detail>({
     title: "",
     slug: "",
     body: "",
     excerpt: "",
-    status: "draft",
+    status: "published",
     seo: {},
   })
-  const [publish, setPublish] = useState<ContentPublishState>({
-    status: "draft",
-    visibility: "public",
-    password: "",
+  const [publish, setPublish] = useState<ContentPublishState>(() => ({
+    ...defaultPublishedState(),
     commentStatus: "closed",
-    publishImmediately: true,
-    publishDate: defaultPublishDateLocal(),
-  })
+  }))
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [slugEditing, setSlugEditing] = useState(false)
 
   const detailQ = useQuery({
     queryKey: ["cms", "page", id],
@@ -83,15 +87,16 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
       setForm({
         ...detailQ.data,
         body: detailQ.data.body || "",
+        excerpt: detailQ.data.excerpt || "",
         seo: detailQ.data.seo || {},
       })
       setPublish({
-        status: detailQ.data.status || "draft",
+        status: detailQ.data.status || "published",
         visibility: detailQ.data.visibility ?? "public",
         password: detailQ.data.password ?? "",
         commentStatus: detailQ.data.comment_status === "open" ? "open" : "closed",
         publishImmediately: true,
-        publishDate: defaultPublishDateLocal(),
+        publishDate: defaultPublishedState().publishDate,
       })
     }
   }, [detailQ.data])
@@ -116,7 +121,7 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
         parent_id: form.parent_id ?? null,
         featured_media_id: form.featured_media_id ?? null,
         seo: form.seo,
-        ...publishStateToPayload({ ...publish, status: publish.status }),
+        ...publishStateToPayload(publish),
       }
       if (isNew) return api<Detail>("/api/v1/cms/pages", { method: "POST", json: payload })
       return api<Detail>(`/api/v1/cms/pages/${id}`, { method: "PATCH", json: payload })
@@ -130,6 +135,49 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
   })
 
   const publicPath = form.slug ? cmsPagePermalink(form.slug) : ""
+
+  const sidebar = (
+    <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+      <div className="space-y-2 rounded-xl border p-4">
+        <p className="text-sm font-medium">{t("parent")}</p>
+        <select
+          className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+          value={form.parent_id ?? ""}
+          onChange={(e) => setForm({ ...form, parent_id: e.target.value ? Number(e.target.value) : null })}
+        >
+          <option value="">{t("no_parent")}</option>
+          {parentOptions.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2 rounded-xl border p-4">
+        <p className="text-sm font-medium">{t("featured")}</p>
+        {form.featured_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={form.featured_image_url} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" />
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
+            {t("pick_image")}
+          </Button>
+          {form.featured_image_url ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setForm({ ...form, featured_media_id: null, featured_image_url: null })}
+            >
+              {t("remove_featured")}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </aside>
+  )
 
   return (
     <PageShell
@@ -149,80 +197,111 @@ export default function CmsPageEditor({ route }: { route: ResolvedAdminRoute }) 
               </Link>
             </Button>
           ) : null}
-          <Button type="button" disabled={!form.title.trim() || saveMut.isPending} onClick={() => void saveMut.mutateAsync()}>
-            {tCommon("save")}
-          </Button>
-        </div>
-      }
-    >
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <div className="space-y-4">
-          <Input
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            placeholder={t("col_title")}
-            className="text-lg font-semibold"
-          />
-          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder={t("slug")} />
-          <Textarea
-            value={form.excerpt}
-            onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
-            placeholder={t("excerpt")}
-            rows={3}
-          />
-          <RichTextEditor value={form.body} onChange={(html) => setForm({ ...form, body: html })} />
-          <SimpleSeoFields seo={form.seo} onChange={(seo) => setForm({ ...form, seo })} />
-        </div>
-        <aside className="space-y-4">
           <ContentPublishPanel
+            variant="toolbar"
             state={publish}
             onChange={(patch) => setPublish((s) => ({ ...s, ...patch }))}
             onSave={() => void saveMut.mutateAsync()}
             isSaving={saveMut.isPending}
+            saveDisabled={!form.title.trim()}
             locale={locale}
             showSchedule={false}
           />
-
-          <div className="space-y-2 rounded-xl border p-4">
-            <p className="text-sm font-medium">{t("parent")}</p>
-            <select
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-              value={form.parent_id ?? ""}
-              onChange={(e) => setForm({ ...form, parent_id: e.target.value ? Number(e.target.value) : null })}
-            >
-              <option value="">{t("no_parent")}</option>
-              {parentOptions.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2 rounded-xl border p-4">
-            <p className="text-sm font-medium">{t("featured")}</p>
-            {form.featured_image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={form.featured_image_url} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" />
-            ) : null}
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
-                {t("pick_image")}
-              </Button>
-              {form.featured_image_url ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setForm({ ...form, featured_media_id: null, featured_image_url: null })}
-                >
-                  {t("remove_featured")}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        </aside>
+        </div>
+      }
+    >
+      <div className="mb-4 flex flex-wrap gap-2 border-b pb-2">
+        {TABS.map((idTab) => (
+          <Button
+            key={idTab}
+            size="sm"
+            variant={tab === idTab ? "default" : "ghost"}
+            onClick={() => setTab(idTab)}
+          >
+            {t(`tab_${idTab}`)}
+          </Button>
+        ))}
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          {tab === "content" ? (
+            <>
+              <Input
+                value={form.title}
+                onChange={(e) => {
+                  const title = e.target.value
+                  setForm((f) => ({
+                    ...f,
+                    title,
+                    slug: isNew && !slugEditing ? slugifyTitle(title) : f.slug,
+                  }))
+                }}
+                placeholder={t("col_title")}
+                className="text-lg font-semibold"
+              />
+              <div className="text-muted-foreground flex flex-wrap items-center gap-1 text-sm">
+                <span>{t("permalink")}:</span>
+                {slugEditing ? (
+                  <Input
+                    className="h-8 max-w-xs"
+                    value={form.slug}
+                    onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                    onBlur={() => setSlugEditing(false)}
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <span dir="ltr" className="text-foreground font-medium">
+                      {publicPath || "…"}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={() => setSlugEditing(true)}
+                    >
+                      {t("slug")}
+                    </Button>
+                  </>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label>{t("excerpt")}</Label>
+                <RichTextEditor value={form.excerpt} onChange={(html) => setForm({ ...form, excerpt: html })} />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("body_content")}</Label>
+                <RichTextEditor value={form.body} onChange={(html) => setForm({ ...form, body: html })} />
+              </div>
+            </>
+          ) : null}
+
+          {tab === "seo" ? (
+            <SimpleSeoFields
+              seo={form.seo}
+              onChange={(seo) => setForm({ ...form, seo })}
+              previewUrl={publicPath}
+              collapsible
+              storageKey={SEO_OPEN_KEY}
+            />
+          ) : null}
+
+          {tab === "advanced" ? (
+            <div className="space-y-3 rounded-xl border p-4 text-sm">
+              <p className="font-medium">{t("tab_advanced")}</p>
+              <p className="text-muted-foreground">{t("permalink")}: {publicPath || "—"}</p>
+              <p className="text-muted-foreground">
+                {t("col_status")}: {publish.status} · {t("visibility_label")}: {publish.visibility}
+              </p>
+            </div>
+          ) : null}
+        </div>
+
+        {sidebar}
+      </div>
+
       <MediaPickerDialog
         open={pickerOpen}
         onOpenChange={setPickerOpen}

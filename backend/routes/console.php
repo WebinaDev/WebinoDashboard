@@ -77,7 +77,8 @@ Artisan::command('sms:dispatch-scheduled', function () {
 Artisan::command('pricing:bulk-price-schedule', function () {
     $hour = (int) now()->format('G');
     $weekday = (int) now()->dayOfWeek;
-    PricingSetting::query()->each(function (PricingSetting $row) use ($hour, $weekday) {
+    $bulk = app(\App\Services\Pricing\BulkPriceChangeService::class);
+    PricingSetting::query()->each(function (PricingSetting $row) use ($hour, $weekday, $bulk) {
         $payload = is_array($row->payload) ? $row->payload : [];
         $schedule = is_array($payload['bulk_price_schedule'] ?? null) ? $payload['bulk_price_schedule'] : null;
         if (! $schedule || empty($schedule['enabled'])) {
@@ -122,9 +123,25 @@ Artisan::command('pricing:bulk-price-schedule', function () {
             $row->update(['payload' => $payload]);
         } catch (Throwable $e) {
             $job->update(['status' => 'failed', 'locked' => false, 'last_log' => $e->getMessage()]);
+        if ($bulk->hasActiveJob($row->tenant_id)) {
+            return;
+        }
+        try {
+            $bulk->createJob($row->tenant_id, $schedule);
+            $payload['bulk_price_schedule']['last_run_at'] = now()->toIso8601String();
+            $row->update(['payload' => $payload]);
+        } catch (\Throwable $e) {
+            // Skip this tenant; tick / next hour can retry.
         }
     });
-})->purpose('Run scheduled bulk price changes');
+})->purpose('Queue scheduled bulk price change jobs');
+
+Artisan::command('pricing:bulk-price-tick', function () {
+    $bulk = app(\App\Services\Pricing\BulkPriceChangeService::class);
+    $bulk->releaseStaleLocks();
+    $n = $bulk->tick();
+    $this->info("Processed batches for {$n} bulk price job(s).");
+})->purpose('Advance pending/running bulk price jobs in small batches');
 
 Artisan::command('stock:release-reservations', function () {
     $released = app(OrderStock::class)->releaseExpired();
@@ -134,6 +151,7 @@ Artisan::command('stock:release-reservations', function () {
 Schedule::command('stock:release-reservations')->everyMinute()->withoutOverlapping();
 Schedule::command('pricing:exchange-auto-update')->hourly()->withoutOverlapping();
 Schedule::command('pricing:bulk-price-schedule')->hourly()->withoutOverlapping();
+Schedule::command('pricing:bulk-price-tick')->everyMinute()->withoutOverlapping(5);
 Schedule::command('analytics:rollup')->hourly()->withoutOverlapping();
 Schedule::command('ai:tick')->everyMinute()->withoutOverlapping();
 Schedule::command('wordpress-import:reset --stale')->everyTenMinutes()->withoutOverlapping();

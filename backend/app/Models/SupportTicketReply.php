@@ -14,6 +14,7 @@ class SupportTicketReply extends Model
         'ticket_id',
         'user_id',
         'is_staff',
+        'is_internal',
         'body',
         'attachments',
         'created_at',
@@ -23,6 +24,7 @@ class SupportTicketReply extends Model
     {
         return [
             'is_staff' => 'boolean',
+            'is_internal' => 'boolean',
             'attachments' => 'array',
             'created_at' => 'datetime',
         ];

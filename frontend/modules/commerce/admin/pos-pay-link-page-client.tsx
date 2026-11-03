@@ -25,15 +25,19 @@ import {
   buildShippingAddress,
   fetchGeoCities,
   fetchGeoStates,
+  fetchPosSettings,
+  gatewaysForTender,
   lineKey,
   searchPosProducts,
   type StructuredAddress,
 } from "../lib/pos-commerce"
+import { PayLinkQr } from "./pay-link-qr"
 
 type CustomerHit = {
   id: number
   name?: string | null
   email?: string | null
+  phone?: string | null
 }
 
 type Gateway = {
@@ -44,6 +48,9 @@ type Gateway = {
 type OrderResult = {
   id: number
   payment_url?: string | null
+  customer_created?: boolean
+  payment_sms_sent?: boolean
+  payment_sms_error?: string
 }
 
 const selectClass =
@@ -82,18 +89,39 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
   const [shippingMinor, setShippingMinor] = useState(0)
   const [selectedGateways, setSelectedGateways] = useState<string[]>([])
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
+  const [createdOrderId, setCreatedOrderId] = useState<number | null>(null)
+  const [smsNote, setSmsNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [quoteLoading, setQuoteLoading] = useState(false)
+  const [adminStep, setAdminStep] = useState<1 | 2 | 3>(1)
 
   const { data: gateways = [] } = useQuery({
     queryKey: ["payment-gateways"],
     queryFn: () => api<Gateway[]>("/api/v1/payment-gateways"),
   })
 
+  const { data: posSettings } = useQuery({
+    queryKey: ["pos-settings"],
+    queryFn: fetchPosSettings,
+  })
+
   const { data: states = [] } = useQuery({
     queryKey: ["geo-states"],
     queryFn: fetchGeoStates,
   })
+
+  const availableGateways = useMemo(
+    () => gatewaysForTender(posSettings?.payment_methods, "online", gateways),
+    [posSettings, gateways],
+  )
+
+  useEffect(() => {
+    const ids = availableGateways.map((g) => g.id)
+    setSelectedGateways((prev) => {
+      const kept = prev.filter((id) => ids.includes(id))
+      return kept.length > 0 ? kept : ids
+    })
+  }, [availableGateways])
 
   const subtotal = useMemo(() => lines.reduce((s, l) => s + l.qty * l.unit_price_minor, 0), [lines])
   const total = Math.max(0, subtotal - discountMinor + shippingMinor)
@@ -113,6 +141,16 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
     const timer = window.setTimeout(() => void runProductSearch(), 280)
     return () => window.clearTimeout(timer)
   }, [productQ])
+
+  useEffect(() => {
+    const q = customerQ.trim()
+    if (q.length < 2) {
+      setCustomerHits([])
+      return
+    }
+    const timer = window.setTimeout(() => void runCustomerSearch(), 280)
+    return () => window.clearTimeout(timer)
+  }, [customerQ])
 
   async function runProductSearch() {
     if (!productQ.trim()) {
@@ -222,8 +260,16 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
       }),
     onSuccess: (row) => {
       setPaymentUrl(row.payment_url || null)
-      setOrderId(row.id ?? null)
+      setCreatedOrderId(row.id)
+      if (row.payment_sms_sent) {
+        setSmsNote(t("sms_sent"))
+      } else if (row.payment_sms_error) {
+        setSmsNote(t("sms_failed", { error: row.payment_sms_error }))
+      } else {
+        setSmsNote(row.customer_created ? t("customer_created") : null)
+      }
       setError(null)
+      setAdminStep(3)
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
@@ -233,10 +279,29 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t("pay_link_title")}</h1>
+          <p className="text-muted-foreground text-sm">{t("pay_link_hint")}</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard/pos">{t("back_pos")}</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/pos/settings">{t("settings")}</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/pos">{t("back_pos")}</Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 text-sm">
+        {([1, 2, 3] as const).map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={`rounded-md border px-3 py-1 ${adminStep === n ? "bg-muted font-medium" : "text-muted-foreground"}`}
+            onClick={() => setAdminStep(n)}
+          >
+            {n === 1 ? t("wizard_step_products") : n === 2 ? t("wizard_step_address") : t("wizard_step_result")}
+          </button>
+        ))}
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
@@ -244,21 +309,49 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
       {paymentUrl ? (
         <Card>
           <CardHeader>
-            <CardTitle>{t("payment_url")}</CardTitle>
+            <CardTitle>{t("payment_link_ready")}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <a className="break-all text-sm underline" href={paymentUrl} target="_blank" rel="noreferrer" dir="ltr">
-              {paymentUrl}
-            </a>
-            {orderId ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Button size="sm" disabled={!customerPhone || smsMut.isPending} onClick={() => smsMut.mutate(customerPhone)}>
-                  {t("pay_link_send_sms")}
-                </Button>
-                {smsSent ? <span className="text-sm text-emerald-600">{t("pay_link_sms_sent")}</span> : null}
-                {!customerPhone ? <span className="text-muted-foreground text-xs">{t("pay_link_sms_need_phone")}</span> : null}
-              </div>
+          <CardContent className="space-y-4">
+            {createdOrderId ? (
+              <p className="text-sm">
+                {t("last_order")}{" "}
+                <Link className="underline" href={`/dashboard/orders/${createdOrderId}`}>
+                  #{toLocaleDigits(createdOrderId, locale)}
+                </Link>
+              </p>
             ) : null}
+            <div>
+              <Label>{t("payment_url")}</Label>
+              <a
+                className="mt-1 block break-all text-sm underline"
+                href={paymentUrl}
+                target="_blank"
+                rel="noreferrer"
+                dir="ltr"
+              >
+                {paymentUrl}
+              </a>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="mt-2"
+                onClick={() => void navigator.clipboard?.writeText(paymentUrl)}
+              >
+                {t("copy_url")}
+              </Button>
+            </div>
+            <div>
+              <Label>{t("payment_qr")}</Label>
+              <div className="mt-2">
+                <PayLinkQr
+                  url={paymentUrl}
+                  downloadSvgLabel={t("download_qr_svg")}
+                  downloadPngLabel={t("download_qr_png")}
+                />
+              </div>
+            </div>
+            {smsNote ? <p className="text-sm">{smsNote}</p> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -298,7 +391,8 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
         </Card>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className={`grid gap-6 ${adminStep < 3 ? "lg:grid-cols-1" : ""}`}>
+        {adminStep === 1 ? (
         <Card>
           <CardHeader>
             <CardTitle>{t("products")}</CardTitle>
@@ -379,9 +473,16 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
                 ))
               )}
             </div>
+            <div className="flex justify-end pt-2">
+              <Button disabled={lines.length === 0} onClick={() => setAdminStep(2)}>
+                {t("wizard_next")}
+              </Button>
+            </div>
           </CardContent>
         </Card>
+        ) : null}
 
+        {adminStep === 2 ? (
         <Card>
           <CardHeader>
             <CardTitle>{t("pay_link_form")}</CardTitle>
@@ -409,10 +510,11 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
                         setUserId(c.id)
                         setCustomerName(c.name || "")
                         setCustomerEmail(c.email || "")
+                        setCustomerPhone(c.phone || "")
                         setCustomerHits([])
                       }}
                     >
-                      {c.name || c.email} #{toLocaleDigits(c.id, locale)}
+                      {c.name || c.email || c.phone} #{toLocaleDigits(c.id, locale)}
                     </button>
                   </li>
                 ))}
@@ -422,17 +524,39 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label>{t("customer_name")}</Label>
-                <Input className="mt-1" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                <Input
+                  className="mt-1"
+                  value={customerName}
+                  onChange={(e) => {
+                    setCustomerName(e.target.value)
+                    setUserId(null)
+                  }}
+                />
               </div>
               <div>
                 <Label>{t("customer_phone")}</Label>
-                <Input className="mt-1" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+                <Input
+                  className="mt-1"
+                  value={customerPhone}
+                  onChange={(e) => {
+                    setCustomerPhone(e.target.value)
+                    setUserId(null)
+                  }}
+                />
               </div>
               <div className="sm:col-span-2">
                 <Label>{t("customer_email")}</Label>
-                <Input className="mt-1" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+                <Input
+                  className="mt-1"
+                  value={customerEmail}
+                  onChange={(e) => {
+                    setCustomerEmail(e.target.value)
+                    setUserId(null)
+                  }}
+                />
               </div>
             </div>
+            <p className="text-muted-foreground text-xs">{t("auto_create_hint")}</p>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
@@ -529,7 +653,7 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
             <div>
               <Label>{t("gateways")}</Label>
               <div className="mt-2 space-y-2">
-                {gateways.map((g) => (
+                {availableGateways.map((g) => (
                   <label key={g.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={selectedGateways.includes(g.id)}
@@ -538,6 +662,9 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
                     {g.label}
                   </label>
                 ))}
+                {availableGateways.length === 0 ? (
+                  <p className="text-muted-foreground text-xs">{t("no_gateways")}</p>
+                ) : null}
               </div>
             </div>
 
@@ -546,15 +673,25 @@ export default function PosPayLinkPageClient({ route: _route }: { route: Resolve
               <MoneyDisplay amount={total} />
             </div>
 
-            <Button
-              className="w-full"
-              disabled={create.isPending || lines.length === 0}
-              onClick={() => create.mutate()}
-            >
-              {t("create_pay_link")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => setAdminStep(1)}>
+                {t("wizard_back")}
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={create.isPending || lines.length === 0 || !customerPhone.trim()}
+                onClick={() => create.mutate()}
+              >
+                {t("create_pay_link")}
+              </Button>
+            </div>
           </CardContent>
         </Card>
+        ) : null}
+
+        {adminStep === 3 && !paymentUrl ? (
+          <p className="text-muted-foreground text-sm">{t("create_first")}</p>
+        ) : null}
       </div>
     </div>
   )

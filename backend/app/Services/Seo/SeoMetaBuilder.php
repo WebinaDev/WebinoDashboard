@@ -20,45 +20,79 @@ final class SeoMetaBuilder
     {
         $cfg = $this->settings->get((int) $tenant->id);
         $site = (string) ($tenant->store_display_name ?: $tenant->name ?: 'Webino');
+        $isHome = $path === '/' || $path === '';
         $title = trim((string) ($entitySeo['seo_title'] ?? $entitySeo['title'] ?? $fallbackTitle));
         $description = trim((string) ($entitySeo['seo_description'] ?? $entitySeo['description'] ?? $fallbackDescription));
         $keyword = trim((string) ($entitySeo['seo_keyword'] ?? $entitySeo['focus_keyword'] ?? ''));
         $robots = trim((string) ($entitySeo['seo_robots'] ?? $entitySeo['robots'] ?? $cfg['robots_default']));
-        $ogTitle = trim((string) ($entitySeo['seo_og_title'] ?? $entitySeo['og_title'] ?? $title));
+        $ogTitle = trim((string) ($entitySeo['seo_og_title'] ?? $entitySeo['og_title'] ?? ''));
+        if ($ogTitle === '' && $isHome) {
+            $ogTitle = trim((string) ($cfg['og_title'] ?? ''));
+        }
+        if ($ogTitle === '') {
+            $ogTitle = $title;
+        }
         $ogImage = trim((string) ($entitySeo['seo_og_image'] ?? $entitySeo['og_image'] ?? $cfg['og_image']));
-        $ogDescription = trim((string) ($entitySeo['og_description'] ?? $description));
+        $ogDescription = trim((string) ($entitySeo['og_description'] ?? ''));
+        if ($ogDescription === '' && $isHome) {
+            $ogDescription = trim((string) ($cfg['og_description'] ?? ''));
+        }
+        if ($ogDescription === '') {
+            $ogDescription = $description;
+        }
         $schemaType = trim((string) ($entitySeo['schema_type'] ?? $type ?? 'WebPage'));
 
         if ($title === '') {
-            $title = $path === '/' || $path === '' ? ((string) $cfg['home_title'] ?: $site) : $site;
+            $title = $isHome ? ((string) $cfg['home_title'] ?: $site) : $site;
         }
-        // Every page needs a meta description: entity SEO → entity fallback (e.g. page excerpt) → site description.
-        if ($description === '') {
-            $description = trim((string) $cfg['home_description']);
+        if ($description === '' && $isHome) {
+            $description = (string) $cfg['home_description'];
         }
         $description = self::truncateDescription($description, 160);
         $ogDescription = self::truncateDescription($ogDescription !== '' ? $ogDescription : $description, 160);
 
+        $templateKey = match ($type) {
+            'Product' => 'title_template_product',
+            'Article', 'BlogPosting', 'NewsArticle' => 'title_template_post',
+            'WebPage' => 'title_template_page',
+            default => 'title_template',
+        };
+        $template = (string) ($cfg[$templateKey] ?: $cfg['title_template']);
+
         $fullTitle = str_replace(
             ['{title}', '{separator}', '{site}'],
             [$title, (string) $cfg['separator'], $site],
-            (string) $cfg['title_template']
+            $template
         );
         // Avoid "Site | Site" when title already equals site name.
-        if (trim($title) === $site || $path === '/' || $path === '') {
+        if (trim($title) === $site || $isHome) {
             $home = trim((string) $cfg['home_title']);
             $fullTitle = $home !== '' ? $home : $site;
             if ($title !== '' && $title !== $site) {
                 $fullTitle = str_replace(
                     ['{title}', '{separator}', '{site}'],
                     [$title, (string) $cfg['separator'], $site],
-                    (string) $cfg['title_template']
+                    $template
                 );
             }
         }
 
         $base = rtrim((string) ($tenant->domain ? ('https://'.$tenant->domain) : config('app.frontend_url', '')), '/');
-        $canonical = $base.($path === '' ? '/' : (str_starts_with($path, '/') ? $path : '/'.$path));
+        if (! empty($cfg['canonical_force_https']) && str_starts_with($base, 'http://')) {
+            $base = 'https://'.substr($base, 7);
+        }
+        $pathPart = $path === '' ? '/' : (str_starts_with($path, '/') ? $path : '/'.$path);
+        if (! empty($cfg['canonical_strip_params']) && str_contains($pathPart, '?')) {
+            $pathPart = strtok($pathPart, '?') ?: $pathPart;
+        }
+        $canonical = $base.$pathPart;
+
+        $verification = array_filter([
+            'google' => trim((string) ($cfg['google_site_verification'] ?? '')),
+            'bing' => trim((string) ($cfg['bing_site_verification'] ?? '')),
+            'yandex' => trim((string) ($cfg['yandex_verification'] ?? '')),
+            'pinterest' => trim((string) ($cfg['pinterest_verification'] ?? '')),
+        ]);
 
         return [
             'title' => $fullTitle,
@@ -66,9 +100,17 @@ final class SeoMetaBuilder
             'keywords' => $keyword,
             'robots' => $robots,
             'canonical' => $canonical,
+            'breadcrumb' => ($cfg['breadcrumbs_enabled'] ?? true) !== false,
+            'breadcrumbs' => [
+                'enabled' => ($cfg['breadcrumbs_enabled'] ?? true) !== false,
+                'show_home' => ($cfg['breadcrumbs_show_home'] ?? true) !== false,
+                'home_label' => (string) ($cfg['breadcrumbs_home_label'] ?? ''),
+                'separator' => (string) ($cfg['breadcrumbs_separator'] ?? '›'),
+            ],
+            'verification' => $verification,
             'og' => [
                 'title' => $ogTitle !== '' ? $ogTitle : $fullTitle,
-                'description' => $ogDescription,
+                'description' => $ogDescription !== '' ? $ogDescription : $description,
                 'image' => $ogImage,
                 'type' => $schemaType === 'Product' ? 'product' : 'website',
                 'url' => $canonical,
@@ -77,7 +119,7 @@ final class SeoMetaBuilder
             'twitter' => [
                 'card' => (string) $cfg['twitter_card'],
                 'title' => $ogTitle !== '' ? $ogTitle : $fullTitle,
-                'description' => $ogDescription,
+                'description' => $ogDescription !== '' ? $ogDescription : $description,
                 'image' => $ogImage,
             ],
             'schema_type' => $schemaType,
@@ -154,11 +196,9 @@ final class SeoMetaBuilder
             $meta['canonical'] = $raw['canonical'];
         }
         $meta['lang'] = $page->lang;
-        // Resume theme pages: title/description/site name follow the page language (identity name + headline).
-        if (str_starts_with((string) $page->translation_group, 'resume-') && empty($seo['seo_title'])) {
-            $meta = $this->resumeLocalized($tenant, $meta, (string) ($page->lang ?: 'fa'));
-        }
-        $meta['breadcrumb'] = ($raw['breadcrumb'] ?? true) !== false;
+        // Page override can only turn breadcrumbs off; sitewide disable wins.
+        $meta['breadcrumb'] = (($meta['breadcrumb'] ?? true) !== false)
+            && (($raw['breadcrumb'] ?? true) !== false);
         // hreflang alternates: this page plus published translations in the same group.
         $meta['alternates'] = [];
         if ($page->translation_group) {
@@ -303,26 +343,38 @@ final class SeoMetaBuilder
             }
             unset($productGraph);
 
-            $canonicalParts = parse_url((string) ($meta['canonical'] ?? ''));
-            $root = isset($canonicalParts['scheme'], $canonicalParts['host'])
-                ? $canonicalParts['scheme'].'://'.$canonicalParts['host'].(isset($canonicalParts['port']) ? ':'.$canonicalParts['port'] : '')
-                : ($tenant->domain ? 'https://'.$tenant->domain : rtrim((string) config('app.frontend_url', ''), '/'));
-            $crumbs = [['name' => $site, 'url' => $root.'/']];
-            $crumbs[] = ['name' => 'فروشگاه', 'url' => $root.'/shop'];
-            $category = $product->category_id ? \App\Models\Category::query()->find($product->category_id) : null;
-            if ($category) {
-                $crumbs[] = ['name' => $category->name, 'url' => $root.'/shop?category='.rawurlencode((string) $category->slug)];
+            $breadcrumbOn = ($cfg['schema_breadcrumb_enabled'] ?? true) !== false
+                && ($cfg['breadcrumbs_enabled'] ?? true) !== false
+                && (($meta['breadcrumb'] ?? true) !== false);
+            if ($breadcrumbOn) {
+                $canonicalParts = parse_url((string) ($meta['canonical'] ?? ''));
+                $root = isset($canonicalParts['scheme'], $canonicalParts['host'])
+                    ? $canonicalParts['scheme'].'://'.$canonicalParts['host'].(isset($canonicalParts['port']) ? ':'.$canonicalParts['port'] : '')
+                    : ($tenant->domain ? 'https://'.$tenant->domain : rtrim((string) config('app.frontend_url', ''), '/'));
+                $homeLabel = trim((string) ($cfg['breadcrumbs_home_label'] ?? ''));
+                if ($homeLabel === '') {
+                    $homeLabel = (string) $site;
+                }
+                $crumbs = [];
+                if (($cfg['breadcrumbs_show_home'] ?? true) !== false) {
+                    $crumbs[] = ['name' => $homeLabel, 'url' => $root.'/'];
+                }
+                $crumbs[] = ['name' => 'فروشگاه', 'url' => $root.'/shop'];
+                $category = $product->category_id ? \App\Models\Category::query()->find($product->category_id) : null;
+                if ($category) {
+                    $crumbs[] = ['name' => $category->name, 'url' => $root.'/shop?category='.rawurlencode((string) $category->slug)];
+                }
+                $crumbs[] = ['name' => $product->name, 'url' => $meta['canonical'] ?? ($root.'/product/'.rawurlencode((string) $product->slug))];
+                $graphs[] = [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => array_map(fn ($c, $i) => [
+                        '@type' => 'ListItem',
+                        'position' => $i + 1,
+                        'name' => $c['name'],
+                        'item' => $c['url'],
+                    ], $crumbs, array_keys($crumbs)),
+                ];
             }
-            $crumbs[] = ['name' => $product->name, 'url' => $meta['canonical'] ?? ($root.$this->settings->productPath((int) $tenant->id, rawurlencode((string) $product->slug)))];
-            $graphs[] = [
-                '@type' => 'BreadcrumbList',
-                'itemListElement' => array_map(fn ($c, $i) => [
-                    '@type' => 'ListItem',
-                    'position' => $i + 1,
-                    'name' => $c['name'],
-                    'item' => $c['url'],
-                ], $crumbs, array_keys($crumbs)),
-            ];
         }
 
         if ($post !== null) {

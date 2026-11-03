@@ -17,7 +17,8 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -196,7 +197,28 @@ function PriceRange({ row }: { row: ProductRow }) {
   return <MoneyDisplay amount={min} />
 }
 
-export default function ProductsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
+export type ProductsPageClientProps = {
+  route: ResolvedAdminRoute
+  /** Override page title (e.g. Product database). */
+  title?: string
+  /** Override page description. */
+  description?: string
+  /** Override list section heading. */
+  heading?: string
+  /** Show quick SKU import panel under the product list. */
+  showQuickImport?: boolean
+  /** Extra content rendered below the product table (e.g. import tools). */
+  footer?: ReactNode
+}
+
+export default function ProductsPageClient({
+  route: _route,
+  title,
+  description,
+  heading,
+  showQuickImport = false,
+  footer,
+}: ProductsPageClientProps) {
   const t = useTranslations("store")
   const tCommon = useTranslations("common")
   const enumLabel = useEnumLabel()
@@ -678,17 +700,30 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
 
   const colSpan = visibleColumns.length + 2
 
+  const hasActiveListFilters = Boolean(
+    debouncedSearch ||
+      (status && status !== "all") ||
+      type ||
+      stockStatus ||
+      categoryId ||
+      brandId ||
+      tagId ||
+      visibility ||
+      dateFrom ||
+      dateTo,
+  )
+
   return (
     <PageShell
-      title={t("products_title")}
-      description={t("products_subtitle")}
+      title={title ?? t("products_title")}
+      description={description ?? t("products_subtitle")}
       actions={
         <div className="flex flex-wrap gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" title={t("col_picker")}>
                 <Columns3 className="size-4" />
-                {t("col_picker")}
+                <span className="hidden sm:inline">{t("col_picker")}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="max-h-[min(24rem,70vh)] overflow-y-auto">
@@ -918,14 +953,38 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
       ) : null}
 
       <div className="rounded-lg border border-border bg-card/40">
-        <div className="border-b px-4 py-3 text-sm font-medium">{t("products_heading")}</div>
+        <div className="border-b px-4 py-3 text-sm font-medium">{heading ?? t("products_heading")}</div>
         <div className="p-2 sm:p-4">
           {isError ? (
             <QueryErrorState onRetry={() => refetch()} />
           ) : isLoading ? (
             <TableListSkeleton rows={8} columns={Math.min(visibleColumns.length + 2, 10)} />
           ) : products.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("empty_products")}</p>
+            <div className="flex flex-col items-start gap-3 px-2 py-8">
+              <p className="text-muted-foreground text-sm">
+                {hasActiveListFilters ? t("empty_products_filtered") : t("empty_products")}
+              </p>
+              {hasActiveListFilters ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearch("")
+                    setStatus("")
+                    clearFilters()
+                  }}
+                >
+                  {t("clear_filters")}
+                </Button>
+              ) : (
+                <Button asChild size="sm">
+                  <Link href="/dashboard/products/new">
+                    <Plus className="size-4" />
+                    {t("add_product")}
+                  </Link>
+                </Button>
+              )}
+            </div>
           ) : (
             <>
               <div className="space-y-2 md:hidden">
@@ -1029,7 +1088,114 @@ export default function ProductsPageClient({ route: _route }: { route: ResolvedA
           ) : null}
         </div>
       </div>
+      {showQuickImport || footer ? (
+        <div className="space-y-4">
+          {showQuickImport ? <ProductQuickImportPanel /> : null}
+          {footer}
+        </div>
+      ) : null}
       {confirmDialog}
     </PageShell>
+  )
+}
+
+function ProductQuickImportPanel() {
+  const t = useTranslations("store")
+  const tNav = useTranslations("nav")
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [importName, setImportName] = useState("")
+  const [importSku, setImportSku] = useState("")
+  const [importPrice, setImportPrice] = useState("0")
+
+  const importM = useMutation({
+    mutationFn: () =>
+      api<{ id: number }>("/api/v1/product-catalog/import", {
+        method: "POST",
+        json: {
+          name: importName,
+          sku: importSku || null,
+          price_minor: Number(importPrice) || 0,
+        },
+      }),
+    onSuccess: async (product) => {
+      toast.success(t("catalog_import_success"))
+      setImportName("")
+      setImportSku("")
+      setImportPrice("0")
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+      if (product?.id) router.push(`/dashboard/products/${product.id}`)
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-muted/20">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <div>
+          <p className="text-sm font-medium">{t("catalog_quick_import_title")}</p>
+          <p className="text-muted-foreground text-xs">{t("catalog_quick_import_desc")}</p>
+        </div>
+        <span className="text-muted-foreground text-xs">
+          {open ? t("catalog_quick_import_collapse") : t("catalog_quick_import_open")}
+        </span>
+      </button>
+      {open ? (
+        <div className="grid gap-3 border-t border-border px-4 py-4 sm:grid-cols-4">
+          <div className="sm:col-span-4">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/product-catalog">{tNav("product_catalog")}</Link>
+            </Button>
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="catalog-import-name">{t("name")}</Label>
+            <Input
+              id="catalog-import-name"
+              className="mt-1"
+              value={importName}
+              onChange={(e) => setImportName(e.target.value)}
+              placeholder={t("catalog_import_name_ph")}
+            />
+          </div>
+          <div>
+            <Label htmlFor="catalog-import-sku">{t("sku")}</Label>
+            <Input
+              id="catalog-import-sku"
+              className="mt-1"
+              value={importSku}
+              onChange={(e) => setImportSku(e.target.value)}
+              placeholder={t("catalog_import_sku_ph")}
+            />
+          </div>
+          <div>
+            <Label htmlFor="catalog-import-price">{t("price")}</Label>
+            <Input
+              id="catalog-import-price"
+              className="mt-1"
+              type="number"
+              min={0}
+              value={importPrice}
+              onChange={(e) => setImportPrice(e.target.value)}
+              placeholder={t("catalog_import_price_ph")}
+            />
+          </div>
+          <div className="flex items-end sm:col-span-4">
+            <Button
+              type="button"
+              disabled={!importName.trim() || importM.isPending}
+              onClick={() => void importM.mutateAsync()}
+            >
+              {t("catalog_quick_import_submit")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   )
 }

@@ -2,16 +2,18 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toLocaleDigits } from "@/lib/locale"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useRef } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatDisplayDateTime } from "@/lib/format-date"
-import { useLocale } from "next-intl"
+
+import { CafeAdminShell, CafeEmptyState, cafeSelectClass } from "./cafe-admin-ui"
 
 type KitchenOrder = {
   id: number
@@ -34,6 +36,12 @@ type KitchenOrder = {
 
 const FLOW = ["new", "preparing", "ready", "served", "out_for_delivery", "done"] as const
 
+function nextStatus(current: string): string | null {
+  const idx = FLOW.indexOf(current as (typeof FLOW)[number])
+  if (idx < 0 || idx >= FLOW.length - 1) return null
+  return FLOW[idx + 1]
+}
+
 function beep() {
   const ctx = new AudioContext()
   const osc = ctx.createOscillator()
@@ -46,7 +54,7 @@ function beep() {
   osc.stop(ctx.currentTime + 0.18)
 }
 
-export default function KitchenPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function KitchenPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.kitchen")
   const locale = useLocale()
   const queryClient = useQueryClient()
@@ -72,71 +80,125 @@ export default function KitchenPageClient({ route }: { route: ResolvedAdminRoute
 
   const update = useMutation({
     mutationFn: (payload: { id: number; kitchen_status: string }) =>
-      api(`/api/v1/cafe/kitchen-orders/${payload.id}`, { method: "PATCH", json: { kitchen_status: payload.kitchen_status } }),
-    onSuccess: async () => {
+      api(`/api/v1/cafe/kitchen-orders/${payload.id}`, {
+        method: "PATCH",
+        json: { kitchen_status: payload.kitchen_status },
+      }),
+    onSuccess: async (_data, variables) => {
+      toast.success(t("status_updated", { status: t(`status.${variables.kitchen_status}`) }))
       await queryClient.invalidateQueries({ queryKey: ["cafe-kitchen"] })
     },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
-      {orders.length === 0 ? <p className="text-muted-foreground text-sm">{t("empty")}</p> : null}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {orders.map((order) => (
-          <Card key={order.id} className={order.kitchen_status === "new" ? "border-primary" : undefined}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-2 text-base">
-                <span>#{order.number}</span>
-                <Badge>{t(`status.${order.kitchen_status}`)}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p>
-                {t(`fulfillment.${order.fulfillment}`)}
-                {order.fulfillment === "dine_in" ? ` · ${t("table")}: ${order.table_number ? toLocaleDigits(order.table_number, locale) : t("none")}` : ""}
-              </p>
-              <p className="text-muted-foreground">{t(order.status === "paid" ? "paid_online" : "pay_on_site")}</p>
-              {order.customer_name || order.customer_phone ? (
-                <p>
-                  {order.customer_name ?? ""} {order.customer_phone ? <a dir="ltr" href={`tel:${order.customer_phone}`}>{toLocaleDigits(order.customer_phone, locale)}</a> : null}
-                </p>
-              ) : null}
-              {order.pickup_at ? <p>{t("pickup_at")}: {formatDisplayDateTime(order.pickup_at, locale)}</p> : null}
-              {order.fulfillment === "delivery" ? (
-                <p>
-                  {order.shipping_address || t("none")}
-                  {order.delivery?.lat != null && order.delivery?.lng != null ? (
-                    <>
-                      {" "}
-                      <a className="text-primary underline" target="_blank" rel="noreferrer" href={`https://www.openstreetmap.org/?mlat=${order.delivery.lat}&mlon=${order.delivery.lng}#map=18/${order.delivery.lat}/${order.delivery.lng}`}>
-                        {t("open_map")}
-                      </a>
-                    </>
+    <CafeAdminShell title={t("title")} description={t("description")}>
+      {orders.length === 0 ? (
+        <CafeEmptyState message={`${t("empty")} — ${t("empty_hint")}`} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {orders.map((order) => {
+            const advanceTo = nextStatus(order.kitchen_status)
+            return (
+              <article
+                key={order.id}
+                className={`rounded-xl border p-4 ${order.kitchen_status === "new" ? "border-primary" : ""}`}
+              >
+                <header className="mb-3 flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-base font-semibold">#{toLocaleDigits(String(order.number), locale)}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {t(`fulfillment.${order.fulfillment}`)}
+                      {order.fulfillment === "dine_in"
+                        ? ` · ${t("table")}: ${order.table_number ? toLocaleDigits(order.table_number, locale) : t("none")}`
+                        : ""}
+                    </p>
+                  </div>
+                  <Badge variant={order.kitchen_status === "new" ? "default" : "secondary"}>
+                    {t(`status.${order.kitchen_status}`)}
+                  </Badge>
+                </header>
+
+                <div className="space-y-1.5 text-sm">
+                  <p className="text-muted-foreground text-xs">
+                    {t(order.status === "paid" ? "paid_online" : "pay_on_site")}
+                  </p>
+                  {order.customer_name || order.customer_phone ? (
+                    <p>
+                      {order.customer_name ?? ""}{" "}
+                      {order.customer_phone ? (
+                        <a dir="ltr" href={`tel:${order.customer_phone}`}>
+                          {toLocaleDigits(order.customer_phone, locale)}
+                        </a>
+                      ) : null}
+                    </p>
                   ) : null}
-                </p>
-              ) : null}
-              <p className="text-muted-foreground">{formatDisplayDateTime(order.created_at, locale)}</p>
-              {order.customer_note ? <p>{order.customer_note}</p> : null}
-              <ul className="space-y-1">
-                {order.items.map((item) => (
-                  <li key={item.id}>{toLocaleDigits(String(item.quantity), locale)}× {item.name}{item.selections?.length ? ` (${item.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en || s.name_fa)).join("، ")})` : ""}</li>
-                ))}
-              </ul>
-              <div className="flex flex-wrap gap-1 pt-2">
-                {FLOW.map((status) => (
-                  <Button key={status} size="sm" variant={order.kitchen_status === status ? "default" : "outline"} onClick={() => update.mutate({ id: order.id, kitchen_status: status })}>
-                    {t(`status.${status}`)}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+                  {order.pickup_at ? (
+                    <p>
+                      {t("pickup_at")}: {formatDisplayDateTime(order.pickup_at, locale)}
+                    </p>
+                  ) : null}
+                  {order.fulfillment === "delivery" ? (
+                    <p>
+                      {order.shipping_address || t("none")}
+                      {order.delivery?.lat != null && order.delivery?.lng != null ? (
+                        <>
+                          {" "}
+                          <a
+                            className="text-primary underline"
+                            target="_blank"
+                            rel="noreferrer"
+                            href={`https://www.openstreetmap.org/?mlat=${order.delivery.lat}&mlon=${order.delivery.lng}#map=18/${order.delivery.lat}/${order.delivery.lng}`}
+                          >
+                            {t("open_map")}
+                          </a>
+                        </>
+                      ) : null}
+                    </p>
+                  ) : null}
+                  <p className="text-muted-foreground text-xs">{formatDisplayDateTime(order.created_at, locale)}</p>
+                  {order.customer_note ? <p className="rounded-md bg-muted/40 px-2 py-1 text-xs">{order.customer_note}</p> : null}
+                  <ul className="space-y-1 border-t pt-2">
+                    {order.items.map((item) => (
+                      <li key={item.id}>
+                        {toLocaleDigits(String(item.quantity), locale)}× {item.name}
+                        {item.selections?.length
+                          ? ` (${item.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en || s.name_fa)).join("، ")})`
+                          : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                  {advanceTo ? (
+                    <Button
+                      size="sm"
+                      disabled={update.isPending}
+                      onClick={() => update.mutate({ id: order.id, kitchen_status: advanceTo })}
+                    >
+                      {t("advance")}: {t(`status.${advanceTo}`)}
+                    </Button>
+                  ) : null}
+                  <select
+                    className={`${cafeSelectClass} h-8 w-auto min-w-[8rem]`}
+                    aria-label={t("set_status")}
+                    value={order.kitchen_status}
+                    disabled={update.isPending}
+                    onChange={(e) => update.mutate({ id: order.id, kitchen_status: e.target.value })}
+                  >
+                    {FLOW.map((status) => (
+                      <option key={status} value={status}>
+                        {t(`status.${status}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+    </CafeAdminShell>
   )
 }

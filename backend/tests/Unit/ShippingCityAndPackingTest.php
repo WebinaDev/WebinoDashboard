@@ -28,6 +28,44 @@ class ShippingCityAndPackingTest extends TestCase
         $this->assertNull(BoxPacker::pack($lines, ['enabled' => false, 'boxes' => []]));
     }
 
+    public function test_packaging_extras_and_envelopes(): void
+    {
+        $p = new Product(['length' => 20, 'width' => 15, 'height' => 1, 'weight' => 100]);
+        $lines = [(object) ['product' => $p, 'quantity' => 1]];
+        $res = BoxPacker::pack($lines, [
+            'enabled' => true,
+            'fixed_cost' => 2000,
+            'tape_enabled' => true,
+            'tape_cost' => 500,
+            'bubble_wrap_enabled' => true,
+            'bubble_wrap_cost' => 1500,
+            'boxes' => [],
+            'envelopes' => [
+                ['name' => 'A4', 'length' => 32, 'width' => 23, 'height' => 2, 'max_weight_g' => 500, 'cost' => 4000, 'kind' => 'envelope'],
+            ],
+        ]);
+        $this->assertNotNull($res);
+        $this->assertSame('A4', $res['boxes'][0]['name']);
+        // envelope 4000 + fixed 2000 + tape 500 + bubble 1500
+        $this->assertSame(8000, $res['cost_minor']);
+    }
+
+    public function test_free_shipping_only_mode(): void
+    {
+        $tenant = Tenant::query()->create(['name' => 'F', 'slug' => 'f-ship', 'domain' => 'f.test', 'license_key' => 'l-f', 'setup_completed' => true]);
+        $svc = app(ShippingZonesService::class);
+        $zone = $svc->createZone($tenant->id, 'IR');
+        $flat = $svc->addMethod($tenant->id, (int) $zone['id'], 'flat_rate');
+        $svc->updateMethod($tenant->id, (int) $zone['id'], (int) $flat['instance_id'], ['settings' => ['cost' => 10000]]);
+        $free = $svc->addMethod($tenant->id, (int) $zone['id'], 'free_shipping');
+        $svc->updateMethod($tenant->id, (int) $zone['id'], (int) $free['instance_id'], ['settings' => ['min_amount' => 0]]);
+        $svc->saveGlobal($tenant->id, ['enable_shipping' => true, 'free_shipping_only' => true]);
+
+        $rates = $svc->quote($tenant->id, null, null, 50000);
+        $this->assertCount(1, $rates);
+        $this->assertSame('free_shipping', $rates[0]['method_id']);
+    }
+
     public function test_flat_city_rates_and_region_cities(): void
     {
         $tenant = Tenant::query()->create(['name' => 'S', 'slug' => 's-ship', 'domain' => 's.test', 'license_key' => 'l-s', 'setup_completed' => true]);

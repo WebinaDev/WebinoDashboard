@@ -99,7 +99,10 @@ import { KitPresetsPanel } from "./KitPresetsPanel"
 import { A11yPanel } from "./A11yPanel"
 import { Finder, type FinderAction } from "./Finder"
 import { PageSettingsPanel } from "./PageSettingsPanel"
+import { BuilderGlobalsPanel } from "./BuilderGlobalsPanel"
+import { ThemeTemplatesPanel } from "./ThemeTemplatesPanel"
 import { ApiError } from "@/lib/api"
+import { builderThemeSettingsHref } from "@/lib/page-builder-nav"
 import { widgetLabel } from "../render/widgets"
 
 type PagePayload = {
@@ -189,6 +192,9 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [chromeId, setChromeId] = useState<number | null>(null)
   const [showRevisions, setShowRevisions] = useState(false)
   const [showPageSettings, setShowPageSettings] = useState(false)
+  const [showGlobalsPanel, setShowGlobalsPanel] = useState(false)
+  const [showThemePanel, setShowThemePanel] = useState(false)
+  const [publishingGlobals, setPublishingGlobals] = useState(false)
   const [showA11y, setShowA11y] = useState(false)
   const [showFinder, setShowFinder] = useState(false)
   const [lockedBy, setLockedBy] = useState<string | null>(null)
@@ -238,6 +244,27 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       toast.error(t("globals_publish_failed"))
     }
   }
+
+  async function publishGlobalsNow() {
+    setPublishingGlobals(true)
+    try {
+      await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
+      await api("/api/v1/builder/globals/publish", { method: "POST" })
+      globalsTouched.current = false
+      toast.success(t("published"))
+    } catch {
+      toast.error(t("globals_publish_failed"))
+    } finally {
+      setPublishingGlobals(false)
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const panel = new URLSearchParams(window.location.search).get("panel")
+    if (panel === "globals") setShowGlobalsPanel(true)
+    if (panel === "theme") setShowThemePanel(true)
+  }, [])
 
   useEffect(() => {
     let cancel = false
@@ -818,7 +845,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const preview = mode.kind === "page" ? previewHref(slug || "home") : "/"
   const backHref =
     mode.kind === "theme"
-      ? "/dashboard/theme-builder"
+      ? builderThemeSettingsHref()
       : mode.kind === "product"
         ? `/dashboard/products/${mode.id}`
         : mode.kind === "post"
@@ -826,6 +853,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           : mode.kind === "article"
             ? `/dashboard/magazine/posts/${mode.id}`
             : "/dashboard/builder"
+  const modeLabel = mode.kind === "theme" ? t("theme_mode_label") : mode.kind === "chrome" ? t(mode.chrome) : t("page_mode_label")
   const needle = widgetQuery.trim()
   const inspecting = selection !== null
   const selectionLabel = !selection ? "" : selection.kind === "widget" ? widgetDef(selection.widget.type)?.label ?? selection.widget.type : selection.kind === "section" ? t("section") : t("column")
@@ -840,59 +868,37 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
 
   return (
     <DesignProvider value={designApi}>
-    <div className="flex h-svh max-h-full min-h-0 flex-col bg-background text-foreground">
-      <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 text-foreground sm:gap-2 sm:px-3">
-        <Link href={backHref} aria-label={t("back")} title={t("back")} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted"><ArrowRight className="size-4" aria-hidden /></Link>
-        <input value={title} onChange={(event) => setTitle(event.target.value)} className="hidden h-9 w-40 min-w-0 rounded-lg border border-border bg-background px-2 text-sm outline-none focus:border-primary md:block" aria-label={t("title")} />
-        <span className="hidden text-[11px] text-muted-foreground lg:inline" aria-live="polite">{saving ? t("saving") : dirty ? t("unsaved") : t("all_saved")}</span>
-        <div className="mx-auto flex items-center gap-0.5 rounded-xl bg-muted p-1" role="group" aria-label={t("device_preview")}>
+    <div className="flex h-svh max-h-full min-h-0 flex-col bg-[#101820] text-[#0C2D63]">
+      <header className="flex h-14 items-center gap-2 border-b border-white/10 px-3 text-white">
+        <Link href={backHref} className="rounded-md px-2 py-1 text-xs text-white/70 hover:bg-white/10">{t("back")}</Link>
+        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/80">{modeLabel}</span>
+        <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-8 w-44 rounded-md bg-white/10 px-2 text-sm outline-none" aria-label={t("title")} />
+        {mode.kind === "page" ? (
+          <input value={slug} onChange={(event) => setSlug(event.target.value)} className="h-8 w-32 rounded-md bg-white/10 px-2 text-xs outline-none" aria-label={t("slug")} />
+        ) : null}
+        <div className="mx-auto flex items-center gap-1 rounded-full bg-white/5 p-1">
           <IconButton label={t("desktop")} active={device === "desktop"} onClick={() => setDevice("desktop")}><Monitor className="size-4" /></IconButton>
           <IconButton label={t("tablet")} active={device === "tablet"} onClick={() => setDevice("tablet")}><Tablet className="size-4" /></IconButton>
           <IconButton label={t("mobile")} active={device === "mobile"} onClick={() => setDevice("mobile")}><Smartphone className="size-4" /></IconButton>
         </div>
-        <div className="flex items-center gap-0.5">
-          <IconButton label={t("undo")} onClick={undo}><Undo2 className="size-4" /></IconButton>
-          <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
-        </div>
-        <a href={preview} target="_blank" rel="noreferrer" aria-label={t("preview")} title={t("preview")} className="hidden size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted sm:grid"><Eye className="size-4" aria-hidden /></a>
-        <div className="relative">
-          <IconButton label={t("more")} active={showMore} onClick={() => setShowMore((v) => !v)}><MoreVertical className="size-4" /></IconButton>
-          {showMore ? (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} aria-hidden />
-              <div role="menu" className="absolute end-0 top-11 z-50 grid w-64 gap-0.5 rounded-xl border border-border bg-popover p-1.5 text-sm text-popover-foreground shadow-xl" onClick={() => setShowMore(false)}>
-                <div className="grid gap-1.5 p-1.5 md:hidden" onClick={(event) => event.stopPropagation()}>
-                  <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-9 rounded-lg border border-border bg-background px-2 text-sm outline-none" aria-label={t("title")} placeholder={t("title")} />
-                </div>
-                {mode.kind === "page" ? (
-                  <div className="grid gap-1 p-1.5" onClick={(event) => event.stopPropagation()}>
-                    <span className="text-[11px] text-muted-foreground">{t("slug")}</span>
-                    <input value={slug} onChange={(event) => setSlug(event.target.value)} dir="ltr" className="h-9 rounded-lg border border-border bg-background px-2 text-xs outline-none" aria-label={t("slug")} />
-                  </div>
-                ) : null}
-                <a href={preview} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted sm:hidden"><Eye className="size-4" aria-hidden />{t("preview")}</a>
-                <MoreItem icon={Search} label={t("finder")} onClick={() => setShowFinder(true)} />
-                {mode.kind === "page" && pageId ? <MoreItem icon={FileCog} label={t("page_settings")} onClick={() => setShowPageSettings(true)} /> : null}
-                {revisionTarget ? <MoreItem icon={History} label={t("revisions")} onClick={() => setShowRevisions(true)} /> : null}
-                <MoreItem icon={PaletteIcon} label="کیت‌های آماده" onClick={() => setShowKits(true)} />
-                <Link href="/dashboard/builder/settings" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
-                <MoreItem icon={LayoutTemplate} label={t("save_page_template")} onClick={() => void saveToLibrary(null)} />
-                <MoreItem icon={Accessibility} label={t("a11y_audit")} onClick={() => setShowA11y(true)} />
-                <div className="my-1 h-px bg-border" />
-                <label className="flex items-center gap-2 rounded-lg px-2 py-1.5" onClick={(event) => event.stopPropagation()}>
-                  <ZoomIn className="size-4" aria-hidden />
-                  <span className="flex-1">{t("zoom")}</span>
-                  <select aria-label={t("zoom")} className="rounded-md border border-border bg-background px-1 py-0.5 text-xs" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
-                    {[50, 75, 90, 100, 125].map((value) => <option key={value} value={value}>{value}٪</option>)}
-                  </select>
-                </label>
-                <MoreItem icon={Download} label={t("export_json")} onClick={exportJson} />
-                <MoreItem icon={Upload} label={t("import_json")} onClick={() => importRef.current?.click()} />
-                <MoreItem icon={Keyboard} label={t("shortcuts")} onClick={() => setShowHelp(true)} />
-              </div>
-            </>
-          ) : null}
-        </div>
+        <IconButton label={t("undo")} onClick={undo}><Undo2 className="size-4" /></IconButton>
+        <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
+        <button type="button" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setShowGlobalsPanel(true)}>
+          <Settings2 className="size-3.5" aria-hidden />
+          {t("globals")}
+        </button>
+        <button type="button" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setShowThemePanel(true)}>
+          <Palette className="size-3.5" aria-hidden />
+          {t("theme_builder")}
+        </button>
+        <label className="flex items-center gap-1 text-[11px] text-white/70" title={t("zoom")}>
+          <ZoomIn className="size-3.5" aria-hidden />
+          <select aria-label={t("zoom")} className="rounded bg-transparent text-white" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
+            {[50, 75, 90, 100, 125].map((value) => <option key={value} value={value} className="text-black">{value}٪</option>)}
+          </select>
+        </label>
+        <IconButton label={t("export_json")} onClick={exportJson}><Download className="size-4" /></IconButton>
+        <IconButton label={t("import_json")} onClick={() => importRef.current?.click()}><Upload className="size-4" /></IconButton>
         <input
           ref={importRef}
           type="file"
@@ -959,23 +965,47 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           }}
         />
       ) : null}
-      <div className="relative flex min-h-0 flex-1">
-        {drawerOpen ? <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setDrawerOpen(false)} aria-hidden /> : null}
-        <aside
-          aria-label={inspecting ? t("settings") : t("widgets")}
-          className={`z-40 flex flex-col border-border bg-background text-foreground shadow-2xl transition-transform duration-300 lg:static lg:w-80 lg:shrink-0 lg:translate-x-0 lg:translate-y-0 lg:border-e lg:shadow-none max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:h-[72svh] max-md:rounded-t-2xl max-md:border-t md:max-lg:fixed md:max-lg:inset-y-0 md:max-lg:start-0 md:max-lg:top-14 md:max-lg:w-96 md:max-lg:border-e ${drawerOpen ? "" : "max-md:translate-y-full md:max-lg:hidden"}`}
-        >
-          <div className="flex justify-center pt-2 md:hidden" aria-hidden><span className="h-1 w-10 rounded-full bg-border" /></div>
-          {inspecting && selection ? (
-            <div className="flex min-h-0 flex-1 flex-col">
-              <div className="flex items-center gap-2 border-b border-border px-2 py-2">
-                <button type="button" onClick={() => setSelectedId(null)} className="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-primary hover:bg-primary/10">
-                  <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
-                  {t("widgets")}
-                </button>
-                <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-bold">
-                  <span className="truncate">{selectionLabel}</span>
-                  {selection.kind === "widget" ? <WidgetGlyph type={selection.widget.type} className="size-4 shrink-0 text-primary" /> : selection.kind === "section" ? <Rows3 className="size-4 shrink-0 text-primary" aria-hidden /> : <Columns3 className="size-4 shrink-0 text-primary" aria-hidden />}
+      {showGlobalsPanel ? (
+        <BuilderGlobalsPanel
+          settings={globals}
+          onChange={updateGlobals}
+          onClose={() => setShowGlobalsPanel(false)}
+          onPublish={() => void publishGlobalsNow()}
+          publishing={publishingGlobals}
+        />
+      ) : null}
+      {showThemePanel ? <ThemeTemplatesPanel onClose={() => setShowThemePanel(false)} /> : null}
+      <div className="flex min-h-0 flex-1">
+        <aside className="flex w-72 shrink-0 flex-col border-e border-[#e6eef6] bg-[#f7f9fc]">
+          <div className="flex border-b border-[#e6eef6] text-xs font-semibold">
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "widgets" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("widgets")}>
+              <Blocks className="size-3.5" aria-hidden />
+              {t("widgets")}
+            </button>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "navigator" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("navigator")}>
+              <ListTree className="size-3.5" aria-hidden />
+              {t("navigator")}
+            </button>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "library" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("library")}>
+              <LayoutTemplate className="size-3.5" aria-hidden />
+              {t("library")}
+            </button>
+          </div>
+          {panel === "widgets" ? (
+            <div className="min-h-0 flex-1 overflow-auto p-3">
+              <label className="mb-3 flex items-center gap-2 rounded-xl border border-[#e6eef6] bg-white px-2">
+                <Search className="size-3.5 text-[#0C2D63]/40" aria-hidden />
+                <input value={widgetQuery} onChange={(event) => setWidgetQuery(event.target.value)} placeholder={t("widget_search")} aria-label={t("widget_search")} className="h-9 w-full bg-transparent text-xs outline-none" />
+              </label>
+              <Button type="button" variant="outline" className="mb-3 w-full" onClick={() => { commit(addSection(doc)) }}>{t("add_section")}</Button>
+              {globals.components.length ? (
+                <div className="mb-4">
+                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-[#0C2D63]/60"><Blocks className="size-3" aria-hidden />{t("components")}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {globals.components.filter((c) => !needle || c.name.includes(needle)).map((c) => (
+                      <button key={c.id} type="button" className="rounded-xl border border-[#e6eef6] bg-white px-2 py-3 text-xs hover:border-[#E16BA6]" onClick={() => insertComponent(c.id)}>{c.name}</button>
+                    ))}
+                  </div>
                 </div>
                 <button type="button" aria-label={t("close")} onClick={() => setDrawerOpen(false)} className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden"><X className="size-4" aria-hidden /></button>
               </div>

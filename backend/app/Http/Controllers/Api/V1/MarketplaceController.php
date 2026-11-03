@@ -51,6 +51,12 @@ class MarketplaceController extends Controller
         abort_unless(MarketplacePlatforms::exists($platform), 404);
     }
 
+    protected function assertLive(string $platform): void
+    {
+        $this->assertPlatform($platform);
+        abort_if(MarketplacePlatforms::isScaffold($platform), 422, __('marketplace.coming_soon'));
+    }
+
     public function hub(Request $request): JsonResponse
     {
         $tid = $this->tid($request);
@@ -64,19 +70,25 @@ class MarketplaceController extends Controller
 
         $rows = [];
         foreach (MarketplacePlatforms::CATALOG as $slug => $meta) {
-            $raw = $this->settings->raw($tid, $slug);
+            $soon = ($meta['status'] ?? MarketplacePlatforms::LIVE) === MarketplacePlatforms::SCAFFOLD;
+            $raw = $soon
+                ? ['enabled' => false, 'auto_sync' => false, 'credentials' => []]
+                : $this->settings->raw($tid, $slug);
             $m = $mapCounts->get($slug);
             $rows[] = [
                 'platform' => $slug,
                 'label' => $meta['label'],
                 'label_en' => $meta['label_en'],
                 'kind' => $meta['kind'],
+                'category' => $meta['category'] ?? MarketplacePlatforms::CAT_SHOPS,
+                'status' => $meta['status'] ?? MarketplacePlatforms::LIVE,
+                'coming_soon' => $soon,
                 'pricing_tab' => $meta['pricing_tab'],
                 'supports_orders' => $meta['orders'],
                 'supports_create' => $meta['create'],
-                'enabled' => $raw['enabled'],
-                'auto_sync' => $raw['auto_sync'],
-                'configured' => $this->isConfigured($tid, $slug, $raw['credentials']),
+                'enabled' => (bool) ($raw['enabled'] ?? false),
+                'auto_sync' => (bool) ($raw['auto_sync'] ?? false),
+                'configured' => $soon ? false : $this->isConfigured($tid, $slug, $raw['credentials'] ?? []),
                 'maps_count' => (int) ($m->c ?? 0),
                 'map_errors' => (int) ($m->e ?? 0),
                 'last_sync_at' => $m->s ?? null,
@@ -88,7 +100,14 @@ class MarketplaceController extends Controller
             ];
         }
 
-        return response()->json(['data' => ['platforms' => $rows]]);
+        return response()->json(['data' => [
+            'categories' => MarketplacePlatforms::categoryRows(),
+            'platforms' => $rows,
+            'matrix' => [
+                'live' => MarketplacePlatforms::liveSlugs(),
+                'scaffold' => array_values(array_diff(MarketplacePlatforms::slugs(), MarketplacePlatforms::liveSlugs())),
+            ],
+        ]]);
     }
 
     /** @param  array<string, mixed>  $c */
@@ -108,8 +127,20 @@ class MarketplaceController extends Controller
     {
         $this->assertPlatform($platform);
         $tid = $this->tid($request);
+        if (MarketplacePlatforms::isScaffold($platform)) {
+            $meta = MarketplacePlatforms::CATALOG[$platform];
+
+            return response()->json(['data' => [
+                'enabled' => false,
+                'auto_sync' => false,
+                'credentials' => [],
+                'coming_soon' => true,
+                'meta' => $meta,
+            ]]);
+        }
         $data = $this->settings->publicView($tid, $platform);
         $data['meta'] = MarketplacePlatforms::CATALOG[$platform];
+        $data['coming_soon'] = false;
         if (MarketplacePlatforms::isFeed($platform)) {
             $data['feed_urls'] = $this->feedUrlList($request, $platform);
         }
@@ -119,7 +150,7 @@ class MarketplaceController extends Controller
 
     public function saveSettings(Request $request, string $platform): JsonResponse
     {
-        $this->assertPlatform($platform);
+        $this->assertLive($platform);
         $data = $request->validate([
             'enabled' => ['sometimes', 'boolean'],
             'auto_sync' => ['sometimes', 'boolean'],
@@ -132,7 +163,7 @@ class MarketplaceController extends Controller
 
     public function testConnection(Request $request, string $platform): JsonResponse
     {
-        $this->assertPlatform($platform);
+        $this->assertLive($platform);
         $tid = $this->tid($request);
         try {
             $result = MarketplaceAdapterRegistry::make($platform, $tid)->testConnection();
@@ -146,7 +177,7 @@ class MarketplaceController extends Controller
 
     public function syncNow(Request $request, string $platform): JsonResponse
     {
-        $this->assertPlatform($platform);
+        $this->assertLive($platform);
         abort_if(MarketplacePlatforms::isFeed($platform), 422, __('marketplace.feed_no_push'));
         $job = $this->sync->enqueue($this->tid($request), $platform, MarketplaceSync::SYNC_ALL, [], 2, 0, MarketplaceSync::SYNC_ALL);
 
@@ -155,7 +186,7 @@ class MarketplaceController extends Controller
 
     public function pullOrders(Request $request, string $platform): JsonResponse
     {
-        $this->assertPlatform($platform);
+        $this->assertLive($platform);
         abort_unless(MarketplacePlatforms::CATALOG[$platform]['orders'], 422, __('marketplace.orders_unsupported'));
         $job = $this->sync->enqueue($this->tid($request), $platform, MarketplaceSync::PULL_ORDERS, [], 5, 0, MarketplaceSync::PULL_ORDERS);
 

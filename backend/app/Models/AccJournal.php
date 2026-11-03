@@ -12,10 +12,12 @@ class AccJournal extends Model
 
     protected $fillable = [
         'tenant_id',
+        'order_id',
         'number',
         'date',
         'description',
         'status',
+        'source',
         'total_debit_minor',
         'total_credit_minor',
     ];
@@ -37,5 +39,10 @@ class AccJournal extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(AccJournalLine::class, 'journal_id');
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 }

@@ -58,6 +58,9 @@ class ShippingZonesService
                 'enable_shipping' => true,
                 'default_method' => 'flat_rate',
                 'free_shipping_min' => 0,
+                'free_shipping_only' => false,
+                'max_weight_g' => 0,
+                'packaging' => self::sanitizePackaging([]),
             ],
             'zones' => [],
             'next_zone_id' => 1,
@@ -101,6 +104,8 @@ class ShippingZonesService
             'enable_shipping' => (bool) ($global['enable_shipping'] ?? true),
             'default_method' => (string) ($global['default_method'] ?? 'flat_rate'),
             'free_shipping_min' => max(0, (int) ($global['free_shipping_min'] ?? 0)),
+            'free_shipping_only' => (bool) ($global['free_shipping_only'] ?? ($cfg['global']['free_shipping_only'] ?? false)),
+            'max_weight_g' => max(0, (int) ($global['max_weight_g'] ?? ($cfg['global']['max_weight_g'] ?? 0))),
             'packaging' => self::sanitizePackaging($global['packaging'] ?? ($cfg['global']['packaging'] ?? [])),
             'show_map' => (bool) ($global['show_map'] ?? ($cfg['global']['show_map'] ?? false)),
             'require_city' => (bool) ($global['require_city'] ?? ($cfg['global']['require_city'] ?? false)),
@@ -202,6 +207,14 @@ class ShippingZonesService
                 'local_pickup' => 'تحویل حضوری',
                 'tapin' => 'تاپین',
                 'flat_city' => 'ارسال شهری',
+                'post_pishtaz' => 'پست پیشتاز',
+                'post_vizhe' => 'پست ویژه',
+                'courier_dedicated' => 'پیک اختصاصی',
+                'courier_snapp' => 'اسنپ‌باکس',
+                'courier_tapsi' => 'تپسی',
+                'courier_tapsi_auto' => 'تپسی‌اتو',
+                'courier_alopeyk' => 'الوپیک',
+                'courier_zap' => 'زپ',
             ];
             $method = [
                 'instance_id' => $instanceId,
@@ -321,6 +334,14 @@ class ShippingZonesService
         }
 
         $pack = $lines !== null ? BoxPacker::pack($lines, (array) ($global['packaging'] ?? [])) : null;
+        $maxWeight = (int) ($global['max_weight_g'] ?? 0);
+        if ($maxWeight > 0 && $lines !== null) {
+            $totalW = ShipmentWeight::cartGrams($lines);
+            if ($totalW > $maxWeight) {
+                return [];
+            }
+        }
+        $freeOnly = ! empty($global['free_shipping_only']);
         $matched = [];
         foreach ($cfg['zones'] ?? [] as $zone) {
             if (! $this->zoneMatches($zone, $stateCode, $postcode)) {
@@ -330,22 +351,27 @@ class ShippingZonesService
                 if (empty($method['enabled'])) {
                     continue;
                 }
+                $methodId = (string) ($method['method_id'] ?? '');
+                if ($freeOnly && ! in_array($methodId, ['free_shipping', 'local_pickup'], true)) {
+                    continue;
+                }
                 $cost = $this->methodCost($method, $cartSubtotalMinor, (int) ($global['free_shipping_min'] ?? 0), $city);
                 if ($cost === null) {
                     continue;
                 }
                 $packagingMinor = 0;
-                if ($pack !== null && ($method['method_id'] ?? '') !== 'local_pickup') {
+                if ($pack !== null && $methodId !== 'local_pickup') {
                     $packagingMinor = (int) $pack['cost_minor'];
                     $cost += $packagingMinor;
                 }
                 $matched[] = [
                     'instance_id' => (int) $method['instance_id'],
-                    'method_id' => (string) $method['method_id'],
-                    'title' => (string) ($method['title'] ?? $method['method_id']),
+                    'method_id' => $methodId,
+                    'title' => (string) ($method['title'] ?? $methodId),
                     'cost_minor' => $cost,
                     'zone_id' => (int) $zone['id'],
-                    'service' => (string) (($method['settings']['service'] ?? null) ?: 'pishtaz'),
+                    'service' => (string) (($method['settings']['service'] ?? null) ?: $this->defaultService($methodId)),
+                    'delivery_type' => (string) (($method['settings']['delivery_type'] ?? null) ?: $this->defaultService($methodId)),
                     'packaging_minor' => $packagingMinor,
                     'packaging' => $pack['boxes'] ?? [],
                 ];
@@ -364,7 +390,31 @@ class ShippingZonesService
             ['id' => 'local_pickup', 'title' => 'تحویل حضوری', 'description' => 'بدون هزینه ارسال'],
             ['id' => 'tapin', 'title' => 'تاپین', 'description' => 'نرخ از تاپین یا تعرفه محلی'],
             ['id' => 'flat_city', 'title' => 'نرخ ثابت شهری', 'description' => 'هزینهٔ جدا برای هر شهر (پیک شهری)'],
+            ['id' => 'post_pishtaz', 'title' => 'پست پیشتاز', 'description' => 'نرخ ثابت / تاپین پیشتاز'],
+            ['id' => 'post_vizhe', 'title' => 'پست ویژه', 'description' => 'نرخ ثابت / تاپین ویژه'],
+            ['id' => 'courier_dedicated', 'title' => 'پیک اختصاصی', 'description' => 'پیک فروشگاه — نرخ ثابت یا شهری'],
+            ['id' => 'courier_snapp', 'title' => 'اسنپ‌باکس', 'description' => 'پیک اسنپ (نرخ ثابت تا اتصال API)'],
+            ['id' => 'courier_tapsi', 'title' => 'تپسی', 'description' => 'پیک تپسی'],
+            ['id' => 'courier_tapsi_auto', 'title' => 'تپسی‌اتو', 'description' => 'تپسی اتو'],
+            ['id' => 'courier_alopeyk', 'title' => 'الوپیک', 'description' => 'پیک الوپیک'],
+            ['id' => 'courier_zap', 'title' => 'زپ', 'description' => 'پیک زپ'],
         ];
+    }
+
+    protected function defaultService(string $methodId): string
+    {
+        return match ($methodId) {
+            'post_pishtaz' => 'pishtaz',
+            'post_vizhe' => 'vip',
+            'courier_dedicated' => 'courier',
+            'courier_snapp' => 'snapp',
+            'courier_tapsi' => 'tapsi',
+            'courier_tapsi_auto' => 'tapsi_auto',
+            'courier_alopeyk' => 'alopeyk',
+            'courier_zap' => 'zap',
+            'tapin' => 'pishtaz',
+            default => $methodId,
+        };
     }
 
     /**
@@ -420,7 +470,9 @@ class ShippingZonesService
                 (int) ($settings['min_amount'] ?? 0),
                 $globalFreeMin
             ) ? 0 : null,
-            'flat_rate' => max(0, (int) ($settings['cost'] ?? 0)),
+            'flat_rate', 'post_pishtaz', 'post_vizhe',
+            'courier_dedicated', 'courier_snapp', 'courier_tapsi', 'courier_tapsi_auto', 'courier_alopeyk', 'courier_zap'
+                => max(0, (int) ($settings['cost'] ?? 0)),
             'tapin' => max(0, (int) ($settings['fallback_cost'] ?? $settings['cost'] ?? 0)),
             'flat_city' => $this->cityCost($settings, $city, $cartSubtotal),
             default => max(0, (int) ($settings['cost'] ?? 0)),
@@ -436,6 +488,10 @@ class ShippingZonesService
             'local_pickup' => [],
             'tapin' => ['fallback_cost' => 0, 'service' => 'pishtaz'],
             'flat_city' => ['city_rates' => [], 'other_cities' => 'hide', 'other_cost' => 0, 'free_min' => 0],
+            'post_pishtaz' => ['cost' => 0, 'service' => 'pishtaz', 'delivery_type' => 'post_pishtaz'],
+            'post_vizhe' => ['cost' => 0, 'service' => 'vip', 'delivery_type' => 'post_vizhe'],
+            'courier_dedicated', 'courier_snapp', 'courier_tapsi', 'courier_tapsi_auto', 'courier_alopeyk', 'courier_zap'
+                => ['cost' => 0, 'delivery_type' => $methodId, 'city_rates' => []],
             default => [],
         };
     }
@@ -497,87 +553,56 @@ class ShippingZonesService
     }
 
     /**
-     * WP parity (shipping-module professional packaging): {enabled, mandatory, amount_minor, label}.
-     *
-     * @return array{enabled: bool, mandatory: bool, amount_minor: int, label: string, description: string, default_selected: bool, replaces_carton: bool}
+     * @return array{
+     *   enabled: bool,
+     *   fixed_cost: int,
+     *   tape_enabled: bool,
+     *   tape_cost: int,
+     *   bubble_wrap_enabled: bool,
+     *   bubble_wrap_cost: int,
+     *   boxes: list<array<string, mixed>>,
+     *   envelopes: list<array<string, mixed>>
+     * }
      */
-    public static function sanitizeProfessionalPackaging(mixed $in): array
-    {
-        $in = is_array($in) ? $in : [];
-
-        return [
-            'enabled' => (bool) ($in['enabled'] ?? false),
-            'mandatory' => (bool) ($in['mandatory'] ?? false),
-            'amount_minor' => max(0, (int) ($in['amount_minor'] ?? 0)),
-            'label' => mb_substr(trim((string) ($in['label'] ?? 'بسته‌بندی حرفه‌ای')), 0, 80),
-            'description' => mb_substr(trim((string) ($in['description'] ?? 'بسته‌بندی شکیل و ایمن با لوازم محافظ، روی هزینه ارسال اضافه می‌شود.')), 0, 300),
-            'default_selected' => (bool) ($in['default_selected'] ?? false),
-            // WP parity: when the professional fee applies, carton packaging is not charged too.
-            'replaces_carton' => (bool) ($in['replaces_carton'] ?? true),
-        ];
-    }
-
-    /** Fee to add at checkout: mandatory always applies, otherwise only when the customer opted in. */
-    /** Carton packaging included in a quoted method cost that the professional fee replaces (0 when it doesn't). */
-    public function cartonReplacedByProfessional(int $tenantId, bool $optedIn, int $cartonMinor): int
-    {
-        $p = self::sanitizeProfessionalPackaging($this->getConfig($tenantId)['global']['professional_packaging'] ?? []);
-
-        return ($p['replaces_carton'] && $this->professionalPackagingFee($tenantId, $optedIn) > 0) ? max(0, $cartonMinor) : 0;
-    }
-
-    public function professionalPackagingFee(int $tenantId, bool $optedIn): int
-    {
-        $p = self::sanitizeProfessionalPackaging($this->getConfig($tenantId)['global']['professional_packaging'] ?? []);
-        if (! $p['enabled'] || $p['amount_minor'] <= 0) {
-            return 0;
-        }
-
-        return ($p['mandatory'] || $optedIn) ? $p['amount_minor'] : 0;
-    }
-
-    /**
-     * WP parity (checkout district/محله): map of city name => list of district names.
-     *
-     * @return array<string, list<string>>
-     */
-    public static function sanitizeDistricts(mixed $in): array
-    {
-        $out = [];
-        foreach (is_array($in) ? $in : [] as $city => $list) {
-            $city = mb_substr(trim((string) $city), 0, 80);
-            if ($city === '' || ! is_array($list)) {
-                continue;
-            }
-            $names = array_values(array_unique(array_filter(array_map(static fn ($d) => mb_substr(trim((string) $d), 0, 80), $list), static fn ($d) => $d !== '')));
-            if ($names !== []) {
-                $out[$city] = array_slice($names, 0, 300);
-            }
-        }
-
-        return $out;
-    }
-
-    /** @return array{enabled: bool, boxes: list<array<string, mixed>>} */
     public static function sanitizePackaging(mixed $in): array
     {
         $in = is_array($in) ? $in : [];
-        $boxes = [];
-        foreach (array_slice((array) ($in['boxes'] ?? []), 0, 30) as $b) {
-            if (! is_array($b)) {
-                continue;
-            }
-            $boxes[] = [
-                'name' => mb_substr(trim((string) ($b['name'] ?? 'جعبه')), 0, 64) ?: 'جعبه',
+        $sanitizeBox = static function (array $b, string $fallback): array {
+            return [
+                'name' => mb_substr(trim((string) ($b['name'] ?? $fallback)), 0, 64) ?: $fallback,
                 'length' => max(0, (float) ($b['length'] ?? 0)),
                 'width' => max(0, (float) ($b['width'] ?? 0)),
                 'height' => max(0, (float) ($b['height'] ?? 0)),
                 'max_weight_g' => max(0, (int) ($b['max_weight_g'] ?? 0)),
                 'box_weight_g' => max(0, (int) ($b['box_weight_g'] ?? 0)),
                 'cost' => max(0, (int) ($b['cost'] ?? 0)),
+                'kind' => (string) ($b['kind'] ?? ($fallback === 'پاکت' ? 'envelope' : 'carton')),
             ];
+        };
+        $boxes = [];
+        foreach (array_slice((array) ($in['boxes'] ?? []), 0, 30) as $b) {
+            if (is_array($b)) {
+                $boxes[] = $sanitizeBox($b, 'جعبه');
+            }
+        }
+        $envelopes = [];
+        foreach (array_slice((array) ($in['envelopes'] ?? []), 0, 20) as $b) {
+            if (is_array($b)) {
+                $row = $sanitizeBox($b, 'پاکت');
+                $row['kind'] = 'envelope';
+                $envelopes[] = $row;
+            }
         }
 
-        return ['enabled' => (bool) ($in['enabled'] ?? false), 'boxes' => $boxes];
+        return [
+            'enabled' => (bool) ($in['enabled'] ?? false),
+            'fixed_cost' => max(0, (int) ($in['fixed_cost'] ?? 0)),
+            'tape_enabled' => (bool) ($in['tape_enabled'] ?? false),
+            'tape_cost' => max(0, (int) ($in['tape_cost'] ?? 0)),
+            'bubble_wrap_enabled' => (bool) ($in['bubble_wrap_enabled'] ?? false),
+            'bubble_wrap_cost' => max(0, (int) ($in['bubble_wrap_cost'] ?? 0)),
+            'boxes' => $boxes,
+            'envelopes' => $envelopes,
+        ];
     }
 }

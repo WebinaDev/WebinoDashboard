@@ -204,7 +204,11 @@ final class AddonsFlow extends BotFlow
         foreach ($rewards as $r) {
             $rows[] = [['text' => '🎁 '.$r->title.' — '.$r->points_cost.' امتیاز', 'callback_data' => 'lr:'.$r->id]];
         }
-        if ((int) ($this->ctx->meta()['club']['daily_points'] ?? 0) > 0) {
+        $dailyPts = (int) ($this->ctx->meta()['club']['daily_points'] ?? 0);
+        if ($dailyPts <= 0) {
+            $dailyPts = (int) ($settings['daily_points'] ?? 0);
+        }
+        if ($dailyPts > 0) {
             $rows[] = [['text' => '📅 امتیاز روزانه', 'callback_data' => 'daily']];
         }
         $this->send('🎁 باشگاه مشتریان'."\n\nامتیاز فعلی شما: ".(int) $user->loyalty_points.($rows ? "\n\nجوایز قابل دریافت:" : ''), $rows ?: null);
@@ -235,6 +239,10 @@ final class AddonsFlow extends BotFlow
     {
         $user = $this->ctx->user();
         $points = (int) ($this->ctx->meta()['club']['daily_points'] ?? 0);
+        if ($points <= 0) {
+            $loyalty = ShopSettings::getLoyalty($this->ctx->tenantId());
+            $points = (int) ($loyalty['daily_points'] ?? 0);
+        }
         if (! $user || $points <= 0) {
             return;
         }

@@ -68,7 +68,8 @@ class BotController extends Controller
             $patch['webhook_secret'] = $data['webhook_secret'];
         }
         if (array_key_exists('meta', $data)) {
-            $patch['meta'] = $data['meta'];
+            // Merge top-level meta keys so section panels do not wipe each other.
+            $patch['meta'] = array_merge($row->meta ?? [], $data['meta'] ?? []);
         }
         $row->update($patch);
         if (isset($patch['token'])) {
@@ -335,7 +336,12 @@ class BotController extends Controller
     {
         $this->assertProvider($provider);
         // Prefer header only — query ?secret= leaks into access logs and Referer.
-        $secret = trim((string) ($request->header('X-Bot-Secret') ?? ''));
+        // Telegram setWebhook secret_token arrives as X-Telegram-Bot-Api-Secret-Token.
+        $secret = trim((string) (
+            $request->header('X-Bot-Secret')
+            ?: $request->header('X-Telegram-Bot-Api-Secret-Token')
+            ?: ''
+        ));
         $payload = $request->all();
 
         $callback = is_array($payload['callback_query'] ?? null) ? $payload['callback_query'] : null;
@@ -374,6 +380,116 @@ class BotController extends Controller
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    public function dashboardStats(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $tid = $request->user()->tenant_id;
+        $setting = BotSetting::query()->where('tenant_id', $tid)->where('provider', $provider)->first();
+        $since = now()->subDay();
+
+        return response()->json([
+            'data' => [
+                'sessions_total' => BotSession::query()->where('tenant_id', $tid)->where('provider', $provider)->count(),
+                'sessions_24h' => BotSession::query()->where('tenant_id', $tid)->where('provider', $provider)->where('last_seen_at', '>=', $since)->count(),
+                'logs_24h' => BotMessageLog::query()->where('tenant_id', $tid)->where('provider', $provider)->where('created_at', '>=', $since)->count(),
+                'logs_failed_24h' => BotMessageLog::query()->where('tenant_id', $tid)->where('provider', $provider)->where('created_at', '>=', $since)->where('status', 'failed')->count(),
+                'outbox_dead' => \App\Models\BotOutboundMessage::query()->where('tenant_id', $tid)->where('provider', $provider)->where('status', 'dead')->count(),
+                'channel_posts' => \App\Models\BotChannelPost::query()->where('tenant_id', $tid)->where('provider', $provider)->where('status', '!=', 'deleted')->count(),
+                'campaigns_running' => BotCampaign::query()->where('tenant_id', $tid)->where('provider', $provider)->whereIn('status', ['running', 'scheduled'])->count(),
+                'broadcast_active' => (bool) data_get($this->broadcasts->currentJob($tid, $provider), 'active'),
+                'enabled' => (bool) ($setting?->enabled),
+                'has_token' => filled($setting?->token),
+                'bot_username' => data_get($setting?->meta, 'bot_username'),
+            ],
+        ]);
+    }
+
+    public function connectionStatus(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $tid = $request->user()->tenant_id;
+        $row = BotSetting::query()->where('tenant_id', $tid)->where('provider', $provider)->first();
+        if (! $row || ! filled($row->token)) {
+            return response()->json(['data' => ['ok' => false, 'error' => 'Bot token missing', 'mode' => data_get($row?->meta, 'connection.mode', 'webhook')]]);
+        }
+
+        $token = $row->token;
+        $conn = is_array($row->meta['connection'] ?? null) ? $row->meta['connection'] : [];
+        if (! empty($conn['sandbox']) && filled($conn['sandbox_token'] ?? null)) {
+            $token = (string) $conn['sandbox_token'];
+        }
+        $client = BotClientFactory::make($provider, $token, $conn['proxy_url'] ?? null);
+        $me = $client->call('getMe', []);
+        $hook = $client->call('getWebhookInfo', []);
+        $ok = (bool) ($me['ok'] ?? false);
+
+        return response()->json([
+            'data' => [
+                'ok' => $ok,
+                'bot' => [
+                    'id' => data_get($me, 'body.result.id'),
+                    'username' => data_get($me, 'body.result.username'),
+                    'first_name' => data_get($me, 'body.result.first_name'),
+                ],
+                'webhook' => [
+                    'url' => data_get($hook, 'body.result.url'),
+                    'pending_update_count' => data_get($hook, 'body.result.pending_update_count'),
+                    'last_error_message' => data_get($hook, 'body.result.last_error_message'),
+                ],
+                'error' => $ok ? null : (string) data_get($me, 'body.description', 'getMe failed'),
+                'mode' => ($conn['mode'] ?? 'webhook') === 'polling' ? 'polling' : 'webhook',
+            ],
+        ]);
+    }
+
+    public function setWebhook(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $tid = $request->user()->tenant_id;
+        $row = BotSetting::query()->firstOrCreate(
+            ['tenant_id' => $tid, 'provider' => $provider],
+            ['enabled' => false, 'webhook_secret' => Str::random(32)]
+        );
+        if (! filled($row->token)) {
+            return response()->json(['message' => 'Bot token missing'], 422);
+        }
+        if (! filled($row->webhook_secret)) {
+            $row->update(['webhook_secret' => Str::random(32)]);
+            $row->refresh();
+        }
+        $conn = is_array($row->meta['connection'] ?? null) ? $row->meta['connection'] : [];
+        $client = BotClientFactory::make($provider, $row->token, $conn['proxy_url'] ?? null);
+        $url = url('/api/v1/public/bots/'.$provider.'/webhook');
+        $payload = [
+            'url' => $url,
+            'secret_token' => $row->webhook_secret,
+        ];
+        $res = $client->call('setWebhook', $payload);
+        if (! ($res['ok'] ?? false)) {
+            return response()->json(['message' => (string) data_get($res, 'body.description', 'setWebhook failed'), 'data' => $res], 422);
+        }
+        $meta = $row->meta ?? [];
+        $meta['connection'] = array_merge($conn, ['mode' => 'webhook']);
+        $row->update(['meta' => $meta]);
+
+        return response()->json(['data' => ['ok' => true, 'url' => $url, 'result' => $res['body'] ?? null]]);
+    }
+
+    public function deleteWebhook(Request $request, string $provider): \Illuminate\Http\JsonResponse
+    {
+        $this->assertProvider($provider);
+        $tid = $request->user()->tenant_id;
+        $row = BotSetting::query()->where('tenant_id', $tid)->where('provider', $provider)->first();
+        if (! $row || ! filled($row->token)) {
+            return response()->json(['message' => 'Bot token missing'], 422);
+        }
+        $conn = is_array($row->meta['connection'] ?? null) ? $row->meta['connection'] : [];
+        $client = BotClientFactory::make($provider, $row->token, $conn['proxy_url'] ?? null);
+        $res = $client->call('deleteWebhook', ['drop_pending_updates' => false]);
+
+        return response()->json(['data' => ['ok' => (bool) ($res['ok'] ?? false), 'result' => $res['body'] ?? null]], ($res['ok'] ?? false) ? 200 : 422);
     }
 
     // ---------- Channel publisher ----------

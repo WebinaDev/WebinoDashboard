@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { dashboardPath } from "@/kernel/paths"
 import type { ResolvedAdminRoute } from "@/kernel/types"
@@ -16,6 +15,7 @@ import { formatNumber } from "@/lib/locale"
 import { cancelSmsAd, fetchSmsAdStats, smsQueryOptions } from "../lib/modirpayamak-api"
 import { formatSmsDateTime } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 
 export default function PageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("smsAds")
@@ -112,21 +112,13 @@ export default function PageClient({ route }: { route: ResolvedAdminRoute }) {
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {kpis.map((k) => (
-            <Card key={k.label} className="shadow-soft">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-muted-foreground text-sm font-normal">{k.label}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-2xl font-semibold">{k.value}</CardContent>
-            </Card>
+            <SmsSection title={k.label}>
+{k.value}</SmsSection>
           ))}
         </div>
 
-        <Card className="shadow-soft">
-          <CardHeader>
-            <CardTitle>{t("attributedOrders")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(data.order_samples ?? []).length === 0 ? (
+        <SmsSection title={t("attributedOrders")}>
+{(data.order_samples ?? []).length === 0 ? (
               <p className="text-muted-foreground text-sm">{t("noOrders")}</p>
             ) : (
               <ul className="divide-border divide-y text-sm">
@@ -140,17 +132,11 @@ export default function PageClient({ route }: { route: ResolvedAdminRoute }) {
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
+          </SmsSection>
 
-        <Card className="shadow-soft">
-          <CardHeader>
-            <CardTitle>{tSms("message")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="bg-muted/40 whitespace-pre-wrap rounded-lg p-3 text-sm">{camp.message}</pre>
-          </CardContent>
-        </Card>
+        <SmsSection title={tSms("message")}>
+<pre className="bg-muted/40 whitespace-pre-wrap rounded-lg p-3 text-sm">{camp.message}</pre>
+          </SmsSection>
       </div>
     </SmsPanelShell>
   )

@@ -8,6 +8,7 @@ return [
     'connection_ok' => 'اتصال با موفقیت برقرار شد.',
     'invalid_remote_id' => 'شناسه محصول در بازارچه نامعتبر است.',
     'platform_disabled' => 'این بازارچه غیرفعال است.',
+    'coming_soon' => 'این بازارچه به‌زودی در دسترس خواهد بود.',
     'request_unauthorized' => 'درخواست احراز هویت نشد.',
 
     'snappshop_vendor_missing' => 'شناسه فروشنده اسنپ‌شاپ وارد نشده است.',

@@ -14,7 +14,17 @@ class AccPerson extends Model
         'name',
         'type',
         'phone',
+        'national_id',
+        'economic_code',
+        'meta',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'meta' => 'array',
+        ];
+    }
 
     public function tenant(): BelongsTo
     {

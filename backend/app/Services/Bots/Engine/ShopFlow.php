@@ -25,7 +25,17 @@ final class ShopFlow extends BotFlow
 {
     public const PER_PAGE = 6;
 
+    /** @deprecated Prefer PaymentGatewaySettingsService::liveCommerceGatewayIds() */
     public const ONLINE_GATEWAYS = ['zarinpal', 'zibal', 'digipay', 'snapppay', 'torobpay', 'bale_pay'];
+
+    /** @return list<string> */
+    public static function onlineGateways(): array
+    {
+        return array_values(array_unique(array_merge(
+            app(\App\Services\Payments\PaymentGatewaySettingsService::class)->liveCommerceGatewayIds(),
+            ['bale_pay'],
+        )));
+    }
 
     // ---------- Store ----------
 

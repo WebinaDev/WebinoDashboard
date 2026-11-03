@@ -4,17 +4,23 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\AccAccount;
+use App\Models\AccInvoice;
 use App\Models\AccJournal;
 use App\Models\AccJournalLine;
+use App\Models\AccMoadianJob;
 use App\Models\AccPerson;
+use App\Models\Order;
+use App\Models\Tenant;
 use App\Models\TenantModule;
+use App\Services\Accounting\AccountingIntegrationsRegistry;
+use App\Services\Accounting\MoadianService;
+use App\Services\Accounting\OrderAccountingSync;
+use App\Services\Webino\WebinoAccountingClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Validation\Rule;
-use App\Models\Tenant;
-use App\Services\Webino\WebinoAccountingClient;
 
 class AccountingController extends Controller
 {
@@ -56,12 +62,30 @@ class AccountingController extends Controller
     {
         $tid = $request->user()->tenant_id;
 
+        $syncedOrderIds = AccInvoice::query()
+            ->where('tenant_id', $tid)
+            ->whereNotNull('order_id')
+            ->pluck('order_id');
+
         return response()->json([
             'data' => [
                 'journals_count' => AccJournal::query()->where('tenant_id', $tid)->count(),
                 'persons_count' => AccPerson::query()->where('tenant_id', $tid)->count(),
                 'accounts_count' => AccAccount::query()->where('tenant_id', $tid)->count(),
                 'draft_journals' => AccJournal::query()->where('tenant_id', $tid)->where('status', 'draft')->count(),
+                'invoices_count' => AccInvoice::query()->where('tenant_id', $tid)->count(),
+                'synced_orders_count' => $syncedOrderIds->unique()->count(),
+                'pending_moadian' => AccInvoice::query()
+                    ->where('tenant_id', $tid)
+                    ->where(function ($q) {
+                        $q->whereIn('moadian_status', ['queued', 'retry', 'pending'])
+                            ->orWhereNull('moadian_status');
+                    })
+                    ->count(),
+                'moadian_accepted' => AccInvoice::query()
+                    ->where('tenant_id', $tid)
+                    ->where('moadian_status', 'accepted')
+                    ->count(),
             ],
         ]);
     }
@@ -249,5 +273,333 @@ class AccountingController extends Controller
         ]);
     }
 
+    public function invoicesIndex(Request $request): JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $items = AccInvoice::query()
+            ->where('tenant_id', $tid)
+            ->with(['lines', 'order:id,number,status,total_minor', 'person:id,name,phone'])
+            ->orderByDesc('issue_date')
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get();
 
+        return response()->json(['data' => $items]);
+    }
+
+    public function invoiceShow(Request $request, int $invoice): JsonResponse
+    {
+        $row = AccInvoice::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->with(['lines', 'order', 'person', 'journal.lines', 'moadianJobs' => fn ($q) => $q->orderByDesc('id')->limit(10)])
+            ->findOrFail($invoice);
+
+        return response()->json(['data' => $row]);
+    }
+
+    public function syncOrder(Request $request, int $order, OrderAccountingSync $sync): JsonResponse
+    {
+        $model = Order::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->with('items')
+            ->findOrFail($order);
+        $invoice = $sync->syncOrder($model);
+
+        return response()->json(['data' => $invoice], 201);
+    }
+
+    public function syncOrdersBulk(Request $request, OrderAccountingSync $sync): JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $data = $request->validate([
+            'order_ids' => ['nullable', 'array'],
+            'order_ids.*' => ['integer'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $q = Order::query()
+            ->where('tenant_id', $tid)
+            ->whereIn('status', OrderAccountingSync::SYNC_STATUSES)
+            ->with('items')
+            ->orderByDesc('id')
+            ->limit((int) ($data['limit'] ?? 50));
+
+        if (! empty($data['order_ids'])) {
+            $q->whereIn('id', $data['order_ids']);
+        } else {
+            $synced = AccInvoice::query()->where('tenant_id', $tid)->whereNotNull('order_id')->pluck('order_id');
+            $q->whereNotIn('id', $synced);
+        }
+
+        $created = [];
+        foreach ($q->get() as $order) {
+            $created[] = $sync->syncOrder($order);
+        }
+
+        return response()->json(['data' => ['count' => count($created), 'invoices' => $created]]);
+    }
+
+    public function ordersSyncStatus(Request $request): JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $synced = AccInvoice::query()
+            ->where('tenant_id', $tid)
+            ->whereNotNull('order_id')
+            ->get(['id', 'order_id', 'number', 'moadian_status', 'moadian_reference', 'total_minor', 'status']);
+
+        $eligible = Order::query()
+            ->where('tenant_id', $tid)
+            ->whereIn('status', OrderAccountingSync::SYNC_STATUSES)
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get(['id', 'number', 'status', 'total_minor', 'customer_name', 'created_at']);
+
+        $byOrder = $synced->keyBy('order_id');
+        $rows = $eligible->map(function (Order $o) use ($byOrder) {
+            $inv = $byOrder->get($o->id);
+
+            return [
+                'order' => $o,
+                'synced' => (bool) $inv,
+                'invoice' => $inv,
+            ];
+        });
+
+        return response()->json([
+            'data' => [
+                'rows' => $rows,
+                'unsynced_count' => $rows->where('synced', false)->count(),
+                'synced_count' => $synced->count(),
+            ],
+        ]);
+    }
+
+    public function orderAccounting(Request $request, int $order): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+        Order::query()->where('tenant_id', $tid)->findOrFail($order);
+
+        $invoice = AccInvoice::query()
+            ->where('tenant_id', $tid)
+            ->where('order_id', $order)
+            ->where('type', 'sale')
+            ->with(['lines', 'person:id,name,phone', 'journal:id,number,status'])
+            ->first();
+
+        return response()->json([
+            'data' => [
+                'synced' => (bool) $invoice,
+                'invoice' => $invoice,
+                'can_sync' => true,
+            ],
+        ]);
+    }
+
+    public function reports(Request $request): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        $invoiceQ = AccInvoice::query()->where('tenant_id', $tid)->where('type', 'sale');
+        if (is_string($from) && $from !== '') {
+            $invoiceQ->whereDate('issue_date', '>=', $from);
+        }
+        if (is_string($to) && $to !== '') {
+            $invoiceQ->whereDate('issue_date', '<=', $to);
+        }
+
+        $salesTotal = (clone $invoiceQ)->sum('total_minor');
+        $taxTotal = (clone $invoiceQ)->sum('tax_minor');
+        $invoiceCount = (clone $invoiceQ)->count();
+
+        $moadian = AccInvoice::query()
+            ->where('tenant_id', $tid)
+            ->where('type', 'sale')
+            ->selectRaw('COALESCE(moadian_status, ?) as status_key, COUNT(*) as c', ['not_sent'])
+            ->groupBy('status_key')
+            ->pluck('c', 'status_key');
+
+        $eligible = Order::query()
+            ->where('tenant_id', $tid)
+            ->whereIn('status', OrderAccountingSync::SYNC_STATUSES)
+            ->count();
+        $syncedOrders = AccInvoice::query()
+            ->where('tenant_id', $tid)
+            ->whereNotNull('order_id')
+            ->pluck('order_id')
+            ->unique()
+            ->count();
+
+        $recent = AccInvoice::query()
+            ->where('tenant_id', $tid)
+            ->with(['order:id,number', 'person:id,name'])
+            ->orderByDesc('issue_date')
+            ->orderByDesc('id')
+            ->limit(12)
+            ->get(['id', 'number', 'issue_date', 'total_minor', 'tax_minor', 'moadian_status', 'order_id', 'person_id']);
+
+        return response()->json([
+            'data' => [
+                'sales_total_minor' => (int) $salesTotal,
+                'tax_total_minor' => (int) $taxTotal,
+                'invoice_count' => (int) $invoiceCount,
+                'eligible_orders' => (int) $eligible,
+                'synced_orders' => (int) $syncedOrders,
+                'unsynced_orders' => max(0, (int) $eligible - (int) $syncedOrders),
+                'moadian_breakdown' => $moadian,
+                'recent_invoices' => $recent,
+            ],
+        ]);
+    }
+
+    public function moadianSettingsShow(Request $request, MoadianService $moadian): JsonResponse
+    {
+        return response()->json(['data' => $moadian->getSettings((int) $request->user()->tenant_id)]);
+    }
+
+    public function moadianSettingsUpdate(Request $request, MoadianService $moadian): JsonResponse
+    {
+        $data = $request->validate([
+            'enabled' => ['sometimes', 'boolean'],
+            'economic_code' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'national_id' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'fiscal_id' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'api_key' => ['sometimes', 'nullable', 'string', 'max:512'],
+            'client_id' => ['sometimes', 'nullable', 'string', 'max:128'],
+            'client_secret' => ['sometimes', 'nullable', 'string', 'max:512'],
+            'private_key' => ['sometimes', 'nullable', 'string', 'max:8000'],
+            'base_url' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'hook_url' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'sandbox' => ['sometimes', 'boolean'],
+            'sandbox_base_url' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'auto_send_on_sync' => ['sometimes', 'boolean'],
+        ]);
+
+        return response()->json([
+            'data' => $moadian->saveSettings((int) $request->user()->tenant_id, $data),
+        ]);
+    }
+
+    public function moadianJobsIndex(Request $request): JsonResponse
+    {
+        $items = AccMoadianJob::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->with('invoice:id,number,order_id,moadian_status')
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get();
+
+        return response()->json(['data' => $items]);
+    }
+
+    public function moadianSendInvoice(Request $request, int $invoice, MoadianService $moadian): JsonResponse
+    {
+        $row = AccInvoice::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($invoice);
+        $job = $moadian->enqueue($row, 'send');
+        $job = $moadian->processJob($job);
+
+        return response()->json(['data' => [
+            'job' => $job,
+            'invoice' => $row->fresh(['lines', 'order']),
+        ]]);
+    }
+
+    public function moadianSendOrder(Request $request, int $order, OrderAccountingSync $sync, MoadianService $moadian): JsonResponse
+    {
+        $model = Order::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->with('items')
+            ->findOrFail($order);
+        $invoice = $sync->syncOrder($model);
+        $job = $moadian->enqueue($invoice, 'send');
+        $job = $moadian->processJob($job);
+
+        return response()->json(['data' => [
+            'job' => $job,
+            'invoice' => $invoice->fresh(['lines', 'order']),
+        ]]);
+    }
+
+    public function moadianProcess(Request $request, MoadianService $moadian): JsonResponse
+    {
+        $limit = (int) $request->input('limit', 10);
+
+        return response()->json([
+            'data' => $moadian->processDue((int) $request->user()->tenant_id, $limit),
+        ]);
+    }
+
+    public function moadianRetry(Request $request, int $job, MoadianService $moadian): JsonResponse
+    {
+        $row = AccMoadianJob::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($job);
+        $row->update(['status' => 'pending', 'run_after' => now()]);
+        $row = $moadian->processJob($row);
+
+        return response()->json(['data' => $row]);
+    }
+
+    public function integrationsHub(Request $request, AccountingIntegrationsRegistry $registry): JsonResponse
+    {
+        return response()->json(['data' => [
+            'platforms' => $registry->hub((int) $request->user()->tenant_id),
+        ]]);
+    }
+
+    public function integrationSettingsShow(Request $request, string $provider, AccountingIntegrationsRegistry $registry): JsonResponse
+    {
+        return response()->json(['data' => $registry->getSettings((int) $request->user()->tenant_id, $provider)]);
+    }
+
+    public function integrationSettingsUpdate(Request $request, string $provider, AccountingIntegrationsRegistry $registry): JsonResponse
+    {
+        return response()->json([
+            'data' => $registry->saveSettings((int) $request->user()->tenant_id, $provider, $request->all()),
+        ]);
+    }
+
+    public function integrationTest(Request $request, string $provider, AccountingIntegrationsRegistry $registry): JsonResponse
+    {
+        return response()->json(['data' => $registry->test((int) $request->user()->tenant_id, $provider)]);
+    }
+
+    public function integrationPushInvoice(Request $request, string $provider, int $invoice, AccountingIntegrationsRegistry $registry): JsonResponse
+    {
+        $row = AccInvoice::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->with('lines')
+            ->findOrFail($invoice);
+
+        $payload = [
+            'Number' => $row->number,
+            'DateTime' => $row->issue_date?->toDateString(),
+            'InvoiceType' => 0,
+            'Status' => 1,
+            'ContactCode' => $row->person_id,
+            'InvoiceItems' => $row->lines->map(fn ($l) => [
+                'Description' => $l->description,
+                'Quantity' => $l->qty,
+                'UnitPrice' => $l->unit_price_minor,
+                'Discount' => $l->discount_minor,
+                'Tax' => $l->tax_minor,
+            ])->all(),
+        ];
+
+        $res = $registry->pushInvoice((int) $request->user()->tenant_id, $provider, $payload);
+        if ($res['ok'] ?? false) {
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $meta['integrations'][$provider] = [
+                'remote_id' => $res['remote_id'] ?? null,
+                'pushed_at' => now()->toIso8601String(),
+            ];
+            $row->update(['meta' => $meta]);
+        }
+
+        return response()->json(['data' => $res], ($res['ok'] ?? false) ? 200 : 422);
+    }
 }
+

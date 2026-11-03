@@ -8,7 +8,7 @@ import { toast } from "sonner"
 
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -32,6 +32,7 @@ import {
   smsQueryOptions,
 } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 
 type SecretaryType = "auto_reply" | "inbox_forward" | "code_reader" | "membership"
 type FilterType = SecretaryType | "all"
@@ -173,13 +174,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         </Button>
       </div>
 
-      <Card className="shadow-soft mb-4 max-w-lg">
-        <CardHeader>
-          <CardTitle className="text-base">{t("addSecretary")}</CardTitle>
-          <CardDescription>{t("secretariesHint")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <fieldset disabled={unavailable} className="space-y-3">
+      <SmsSection title={t("addSecretary")} description={t("secretariesHint")}>
+<fieldset disabled={unavailable} className="space-y-3">
             <div>
               <Label>{t("secretaryType")}</Label>
               <Select value={formType} onValueChange={(v) => setFormType(v as SecretaryType)}>
@@ -231,8 +227,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               {t("addSecretary")}
             </Button>
           </fieldset>
-        </CardContent>
-      </Card>
+        </SmsSection>
 
       <Card className="shadow-soft">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">

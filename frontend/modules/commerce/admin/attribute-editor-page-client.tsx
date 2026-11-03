@@ -116,6 +116,7 @@ export default function AttributeEditorPageClient({ route }: { route: ResolvedAd
   const isNew = !attributeId || attributeId === "new"
 
   const [form, setForm] = useState(emptyAttr)
+  const [slugTouched, setSlugTouched] = useState(false)
   const [termDialogOpen, setTermDialogOpen] = useState(false)
   const [editingTermId, setEditingTermId] = useState<number | null>(null)
   const [termForm, setTermForm] = useState(emptyTerm)
@@ -145,6 +146,7 @@ export default function AttributeEditorPageClient({ route }: { route: ResolvedAd
       has_archives: Boolean(attribute.has_archives),
       show_swatch_label: Boolean(attribute.show_swatch_label),
     })
+    setSlugTouched(true)
   }, [attribute])
 
   const openNewTerm = () => {
@@ -239,14 +241,28 @@ export default function AttributeEditorPageClient({ route }: { route: ResolvedAd
           <CardContent className="space-y-3">
             <div>
               <Label>{t("name")}</Label>
-              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+              <Input
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value
+                  setForm((f) => ({
+                    ...f,
+                    name,
+                    slug: !slugTouched ? slugFromName(name) : f.slug,
+                  }))
+                }}
+              />
             </div>
             <div>
               <Label>{t("slug")}</Label>
               <Input
                 value={form.slug}
                 dir="ltr"
-                onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
+                placeholder={t("slug_from_name_hint")}
+                onChange={(e) => {
+                  setSlugTouched(true)
+                  setForm((f) => ({ ...f, slug: e.target.value }))
+                }}
               />
             </div>
             <div className="space-y-2">

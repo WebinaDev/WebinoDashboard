@@ -2,10 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
+import { Trash2 } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
@@ -14,16 +15,18 @@ import { formatDate } from "@/lib/locale/format-date"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import type { CafeHoursDay, CafeHoursSettings } from "@/themes/cafe-starter/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
+
+import { CafeAdminShell, CafeEmptyState, CafeSection } from "./cafe-admin-ui"
 
 const DAY_KEYS = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"] as const
 
-export default function HoursPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function HoursPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.hours")
   const tCommon = useTranslations("common")
   const locale = useLocale()
   const [newDate, setNewDate] = useState<string | null>(null)
   const queryClient = useQueryClient()
-  const [message, setMessage] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["cafe-hours-settings"],
@@ -35,7 +38,12 @@ export default function HoursPageClient({ route }: { route: ResolvedAdminRoute }
 
   const days: CafeHoursDay[] = DAY_KEYS.map((key) => {
     const found = values.days.find((row) => row.day === key || row.day === t(`days.${key}`))
-    return { day: key, open: normalizeClock(found?.open) ?? "09:00", close: normalizeClock(found?.close) ?? "22:00", closed: found?.closed ?? false }
+    return {
+      day: key,
+      open: normalizeClock(found?.open) ?? "09:00",
+      close: normalizeClock(found?.close) ?? "22:00",
+      closed: found?.closed ?? false,
+    }
   })
 
   const save = useMutation({
@@ -45,9 +53,10 @@ export default function HoursPageClient({ route }: { route: ResolvedAdminRoute }
         json: { ...values, days },
       }),
     onSuccess: async () => {
-      setMessage(t("saved"))
+      toast.success(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-hours-settings"] })
     },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   function updateDay(index: number, patch: Partial<CafeHoursDay>) {
@@ -57,80 +66,94 @@ export default function HoursPageClient({ route }: { route: ResolvedAdminRoute }
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
-      {isLoading ? <p>{tCommon("loading")}</p> : null}
-      {message ? <p className="text-sm text-green-600">{message}</p> : null}
+    <CafeAdminShell
+      title={t("title")}
+      description={t("description")}
+      actions={
+        <Button onClick={() => save.mutate()} disabled={save.isPending || isLoading}>
+          {tCommon("save")}
+        </Button>
+      }
+    >
+      {isLoading ? <p className="text-muted-foreground text-sm">{tCommon("loading")}</p> : null}
 
-      <Card>
-        <CardHeader><CardTitle>{t("schedule_heading")}</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
+      <CafeSection title={t("schedule_heading")} description={t("schedule_hint")}>
+        <div className="space-y-2">
           {days.map((day, index) => (
-            <div key={`${day.day}-${index}`} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-4">
-              <p className="font-medium sm:col-span-1">{t(`days.${day.day}`)}</p>
+            <div
+              key={`${day.day}-${index}`}
+              className="grid items-end gap-2 rounded-lg border px-3 py-2.5 sm:grid-cols-[minmax(0,7rem)_1fr_1fr_auto]"
+            >
+              <p className="text-sm font-medium">{t(`days.${day.day}`)}</p>
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs">{t("open")}</Label>
-                <LocaleTimePicker locale={locale} value={day.open ?? null} disabled={Boolean(day.closed)} aria-label={t("open")} onChange={(v) => updateDay(index, { open: v })} />
+                <LocaleTimePicker
+                  locale={locale}
+                  value={day.open ?? null}
+                  disabled={Boolean(day.closed)}
+                  aria-label={t("open")}
+                  onChange={(v) => updateDay(index, { open: v })}
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs">{t("close")}</Label>
-                <LocaleTimePicker locale={locale} value={day.close ?? null} disabled={Boolean(day.closed)} aria-label={t("close")} onChange={(v) => updateDay(index, { close: v })} />
+                <LocaleTimePicker
+                  locale={locale}
+                  value={day.close ?? null}
+                  disabled={Boolean(day.closed)}
+                  aria-label={t("close")}
+                  onChange={(v) => updateDay(index, { close: v })}
+                />
               </div>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex h-9 items-center gap-2 text-sm">
                 <Checkbox checked={Boolean(day.closed)} onCheckedChange={(v) => updateDay(index, { closed: Boolean(v) })} />
                 {t("closed")}
               </label>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </CafeSection>
 
-      <Card>
-        <CardHeader><CardTitle>{t("closed_dates_heading")}</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <Label>{t("closed_dates_hint")}</Label>
-          <div className="flex flex-wrap items-center gap-2">
-            <LocaleDatePicker locale={locale} value={newDate} onChange={setNewDate} aria-label={t("closed_dates_heading")} />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!newDate}
-              onClick={() => {
-                if (!newDate) return
-                const list = Array.from(new Set([...(values.closed_dates ?? []), newDate])).sort()
-                setForm({ ...values, days, closed_dates: list })
-                setNewDate(null)
-              }}
-            >
-              {t("add_date")}
-            </Button>
-          </div>
-          {(values.closed_dates ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("no_dates")}</p>
-          ) : (
-            <ul className="flex flex-wrap gap-2">
-              {(values.closed_dates ?? []).map((d) => (
-                <li key={d} className="flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
-                  {formatDate(d, { locale: locale === "en" ? "en" : "fa" })}
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-destructive"
-                    aria-label={t("remove_date")}
-                    onClick={() => setForm({ ...values, days, closed_dates: (values.closed_dates ?? []).filter((x) => x !== d) })}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Button onClick={() => save.mutate()} disabled={save.isPending}>{tCommon("save")}</Button>
-    </div>
+      <CafeSection title={t("closed_dates_heading")} description={t("closed_dates_hint")}>
+        <div className="flex flex-wrap items-center gap-2">
+          <LocaleDatePicker locale={locale} value={newDate} onChange={setNewDate} aria-label={t("closed_dates_heading")} />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!newDate}
+            onClick={() => {
+              if (!newDate) return
+              const list = Array.from(new Set([...(values.closed_dates ?? []), newDate])).sort()
+              setForm({ ...values, days, closed_dates: list })
+              setNewDate(null)
+            }}
+          >
+            {t("add_date")}
+          </Button>
+        </div>
+        {(values.closed_dates ?? []).length === 0 ? (
+          <CafeEmptyState message={t("no_dates")} />
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {(values.closed_dates ?? []).map((d) => (
+              <li key={d} className="bg-muted/40 flex items-center gap-1 rounded-md border pe-1 ps-2.5 py-1 text-sm">
+                {formatDate(d, { locale: locale === "en" ? "en" : "fa" })}
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="size-7"
+                  title={t("remove_date")}
+                  aria-label={t("remove_date")}
+                  onClick={() => setForm({ ...values, days, closed_dates: (values.closed_dates ?? []).filter((x) => x !== d) })}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CafeSection>
+    </CafeAdminShell>
   )
 }

@@ -39,7 +39,67 @@ export const POS_SALES_CHANNELS = [
   "online",
 ] as const
 
-export const POS_PAYMENT_TENDERS = ["cash", "card_to_card", "pos_terminal", "online", "wallet", "other"] as const
+export const POS_PAYMENT_TENDERS = [
+  "cash",
+  "card_to_card",
+  "pos_terminal",
+  "online",
+  "wallet",
+  "payment_sms",
+  "other",
+] as const
+
+export type PosPaymentMethod = {
+  id: string
+  enabled: boolean
+  label?: string
+  type?: string
+  /** Mapped site gateway ids for online / payment_sms tenders. Empty = all enabled. */
+  gateway_ids?: string[]
+}
+
+/** Resolve which site gateways a POS tender may use. */
+export function gatewaysForTender(
+  methods: PosPaymentMethod[] | undefined,
+  tenderId: string,
+  allGateways: Array<{ id: string; label: string }>,
+): Array<{ id: string; label: string }> {
+  const method = methods?.find((m) => m.id === tenderId)
+  const mapped = (method?.gateway_ids ?? []).filter(Boolean)
+  if (mapped.length === 0) return allGateways
+  const allow = new Set(mapped.map((id) => id.replace(/-/g, "_").toLowerCase()))
+  return allGateways.filter((g) => allow.has(g.id.replace(/-/g, "_").toLowerCase()))
+}
+
+export type PosCardReader = {
+  id: string
+  name: string
+  enabled: boolean
+}
+
+export type PayLinkFieldConfig = {
+  visible: boolean
+  required: boolean
+  customer_editable: boolean
+}
+
+export type PosSettings = {
+  payment_methods: PosPaymentMethod[]
+  card_readers: PosCardReader[]
+  pay_link_fields: Record<string, PayLinkFieldConfig>
+  pay_link_send_sms: boolean
+  auto_create_customer: boolean
+  /** Customer /pay instructions for offline gateways (card_to_card, wallet, cod, …). */
+  offline_instructions?: Record<string, string>
+}
+
+export async function fetchPosSettings(): Promise<PosSettings> {
+  return api<PosSettings>("/api/v1/pos/settings")
+}
+
+export async function savePosSettings(payload: Partial<PosSettings>): Promise<PosSettings> {
+  return api<PosSettings>("/api/v1/pos/settings", { method: "PUT", json: payload })
+}
 
 export function displayPurchaseType(value: string): string {
   return value === "retail" ? "cash" : value

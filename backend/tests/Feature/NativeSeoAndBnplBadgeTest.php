@@ -41,11 +41,22 @@ class NativeSeoAndBnplBadgeTest extends TestCase
     {
         $this->postJson('/api/v1/seo/settings', [
             'home_title' => 'خانه ویبینو',
+            'home_description' => 'توضیح خانه',
+            'title_template_product' => '{title} {separator} فروشگاه',
             'sitemap_enabled' => true,
             'sitemap_include_news' => true,
+            'schema_breadcrumb_enabled' => true,
+            'breadcrumbs_enabled' => true,
+            'breadcrumbs_home_label' => 'خانه',
+            'canonical_strip_params' => true,
+            'google_site_verification' => 'gsc-token-xyz',
+            'robots_txt_extra' => "Disallow: /private\n",
         ])->assertOk()
             ->assertJsonPath('data.home_title', 'خانه ویبینو')
-            ->assertJsonPath('data.sitemap_include_news', true);
+            ->assertJsonPath('data.sitemap_include_news', true)
+            ->assertJsonPath('data.google_site_verification', 'gsc-token-xyz')
+            ->assertJsonPath('data.title_template_product', '{title} {separator} فروشگاه')
+            ->assertJsonPath('data.breadcrumbs_home_label', 'خانه');
 
         $this->postJson('/api/v1/seo/redirects', [
             'from_path' => '/old-sale',
@@ -61,6 +72,12 @@ class NativeSeoAndBnplBadgeTest extends TestCase
             ->assertJsonPath('data.to_path', '/shop');
 
         $this->withHeader('Host', 'shop.test')
+            ->getJson('/api/v1/public/seo/meta?path=/')
+            ->assertOk()
+            ->assertJsonPath('data.meta.verification.google', 'gsc-token-xyz')
+            ->assertJsonPath('data.meta.title', 'خانه ویبینو');
+
+        $this->withHeader('Host', 'shop.test')
             ->get('/api/v1/public/seo/sitemap/index')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/xml; charset=UTF-8');
@@ -68,7 +85,8 @@ class NativeSeoAndBnplBadgeTest extends TestCase
         $this->withHeader('Host', 'shop.test')
             ->get('/api/v1/public/seo/robots')
             ->assertOk()
-            ->assertSee('Sitemap:', false);
+            ->assertSee('Sitemap:', false)
+            ->assertSee('Disallow: /private', false);
     }
 
     public function test_builder_page_meta_description_falls_back_seo_then_excerpt_then_site(): void

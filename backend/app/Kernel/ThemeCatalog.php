@@ -74,11 +74,11 @@ final class ThemeCatalog
     public static function all(): array
     {
         return [
-            self::entry('ecommerce-starter', 'فروشگاه — استارتر', 'E-commerce starter', ['ecommerce'], false, 0),
-            self::entry('ecommerce-default', 'فروشگاه — پیش‌فرض', 'E-commerce default', ['ecommerce'], false, 1),
-            self::entry('ecommerce-demo-v1', 'فروشگاه — دمو ۱', 'E-commerce demo v1', ['ecommerce'], true, 2),
-            self::entry('ecommerce-classic', 'فروشگاه — کلاسیک', 'Classic e-commerce', ['ecommerce'], false, 3),
-            self::entry('magazine-default', 'مجله — پیش‌فرض', 'Magazine default', ['magazine', 'blog'], false, 1),
+            self::entry('ecommerce-starter', 'فروشگاه — استارتر', 'E-commerce starter', ['ecommerce', 'coffee'], false, 0),
+            self::entry('ecommerce-default', 'فروشگاه — پیش‌فرض', 'E-commerce default', ['ecommerce', 'coffee'], false, 1),
+            self::entry('ecommerce-demo-v1', 'فروشگاه — دمو ۱', 'E-commerce demo v1', ['ecommerce', 'coffee'], true, 2),
+            self::entry('ecommerce-classic', 'فروشگاه — کلاسیک', 'Classic e-commerce', ['ecommerce', 'coffee'], false, 3),
+            self::entry('magazine-default', 'مجله — پیش‌فرض', 'Magazine default', ['magazine'], false, 1),
             self::entry('magazine-demo-v1', 'مجله — دمو ۱', 'Magazine demo v1', ['magazine'], true, 2),
             self::entry('cafe-starter', 'کافه — استارتر', 'Cafe starter', ['cafe'], false, 0),
             self::entry('cafe-default', 'کافه — پیش‌فرض', 'Cafe default', ['cafe'], false, 1),
@@ -94,6 +94,35 @@ final class ThemeCatalog
             self::entry('corporate-default', 'شرکتی — پیش‌فرض', 'Corporate default', ['corporate'], false, 1),
             self::entry('corporate-demo-v1', 'شرکتی — دمو ۱', 'Corporate demo v1', ['corporate'], true, 2),
         ];
+    }
+
+    /** Suggested / profile default theme for a site type (SiteTypeProfiles.theme). */
+    public static function suggestedDefaultForSiteType(?string $siteTypeSlug): ?string
+    {
+        if (! is_string($siteTypeSlug) || $siteTypeSlug === '' || ! SiteTypeProfiles::isValid($siteTypeSlug)) {
+            return null;
+        }
+
+        return SiteTypeProfiles::all()[$siteTypeSlug]['theme'] ?? null;
+    }
+
+    /**
+     * Resolve preferred default: tenant branding override, else site-type suggested theme.
+     *
+     * @param  array<string, mixed>|null  $branding
+     */
+    public static function resolveDefaultSlug(?string $siteTypeSlug, ?array $branding): ?string
+    {
+        $suggested = self::suggestedDefaultForSiteType($siteTypeSlug);
+        $preferred = is_array($branding) && filled($branding['default_theme_slug'] ?? null)
+            ? (string) $branding['default_theme_slug']
+            : null;
+
+        if ($preferred && self::isAllowedForSiteType($preferred, $siteTypeSlug)) {
+            return $preferred;
+        }
+
+        return $suggested;
     }
 
     /**

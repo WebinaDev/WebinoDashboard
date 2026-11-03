@@ -1,7 +1,15 @@
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
-import ThemesPageClient from "./themes-page-client"
-
-export default function ThemesPage({ route }: { route: ResolvedAdminRoute }) {
-  return <ThemesPageClient route={route} />
+/** Legacy /dashboard/themes → settings templates gallery. */
+export default function ThemesPage(_props: { route: ResolvedAdminRoute }) {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace("/dashboard/settings/site/templates")
+  }, [router])
+  return null
 }

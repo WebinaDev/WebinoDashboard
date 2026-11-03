@@ -9,7 +9,6 @@ import { toast } from "sonner"
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -35,6 +34,7 @@ import {
   type SmsPatternRegistryRow,
 } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 
 type VarRow = { name: string; type: "string" | "integer" }
 
@@ -232,13 +232,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
       </div>
 
       {showCreate ? (
-        <Card className="shadow-soft mb-4 max-w-lg">
-          <CardHeader>
-            <CardTitle className="text-base">{t("addPattern")}</CardTitle>
-            <CardDescription>{t("patternRulesTitle")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <ul className="text-muted-foreground list-disc space-y-1 pe-4 text-xs">
+        <SmsSection title={t("addPattern")} description={t("patternRulesTitle")}>
+<ul className="text-muted-foreground list-disc space-y-1 pe-4 text-xs">
               {[1, 2, 3, 4, 5, 6].map((n) => (
                 <li key={n}>{t(`patternRule${n}` as "patternRule1")}</li>
               ))}
@@ -354,17 +349,11 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 {t("actions.save")}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </SmsSection>
       ) : null}
 
-      <Card className="shadow-soft mb-4">
-        <CardHeader>
-          <CardTitle className="text-base">{t("matrixApprovedList")}</CardTitle>
-          <CardDescription>{t("matrixApprovedHint")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+      <SmsSection title={t("matrixApprovedList")} description={t("matrixApprovedHint")}>
+<div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -414,16 +403,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </SmsSection>
 
-      <Card className="shadow-soft mb-4 max-w-xl">
-        <CardHeader>
-          <CardTitle className="text-base">{t("bindPattern")}</CardTitle>
-          <CardDescription>{t("patternsHint")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <fieldset disabled={unavailable} className="space-y-3">
+      <SmsSection title={t("bindPattern")} description={t("patternsHint")}>
+<fieldset disabled={unavailable} className="space-y-3">
             <div>
               <Label>{t("scope")}</Label>
               <Select value={bindScope} onValueChange={setBindScope}>
@@ -463,15 +446,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               {t("bindPattern")}
             </Button>
           </fieldset>
-        </CardContent>
-      </Card>
+        </SmsSection>
 
-      <Card className="shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{t("patternRegistry")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+      <SmsSection title={t("patternRegistry")}>
+<div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -531,8 +509,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </SmsSection>
     </SmsPanelShell>
   )
 }

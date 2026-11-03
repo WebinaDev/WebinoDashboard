@@ -30,11 +30,11 @@ class EnsureModuleEnabled
                 ->where('submodule_slug', $subSlug)
                 ->first();
 
-            if (! $row || ! $row->enabled) {
+            if ((! $row || ! $row->enabled) && ! $this->impliedByCommerce($user->tenant_id, $moduleSlug, $subSlug)) {
                 return $this->disabled($slug);
             }
 
-            if ($row->licensed === false && ! $this->domainEntitled($user)) {
+            if ($row && $row->licensed === false && ! $this->domainEntitled($user)) {
                 return $this->unlicensed($slug);
             }
 
@@ -78,6 +78,21 @@ class EnsureModuleEnabled
         $tenant = $user->relationLoaded('tenant') ? $user->tenant : $user->tenant()->first();
 
         return $tenant?->isLicenseEntitled() ?? false;
+    }
+
+    /** Cafe tenants often lack users.* rows; commerce implies customer/staff admin APIs. */
+    private function impliedByCommerce(int $tenantId, string $moduleSlug, string $subSlug): bool
+    {
+        if ($moduleSlug !== 'users' || ! in_array($subSlug, ['customers', 'staff'], true)) {
+            return false;
+        }
+
+        return TenantSubmoduleActivation::query()
+            ->where('tenant_id', $tenantId)
+            ->where('module_slug', 'commerce')
+            ->whereIn('submodule_slug', ['orders', 'catalog', 'pos'])
+            ->where('enabled', true)
+            ->exists();
     }
 
     private function denyIfGitCodeMissing(string $moduleSlug): ?Response

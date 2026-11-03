@@ -4,12 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { useConfirm } from "@/components/ConfirmDialog"
 import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,8 +18,16 @@ import { MapPinPicker } from "@/components/MapPinPickerLazy"
 import { useDraftSettings } from "@/views/settings/use-tenant-settings"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
-import { ModifierEditor } from "./modifier-editor"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import {
+  CafeAdminShell,
+  CafeAdvancedSection,
+  CafeEmptyState,
+  CafeSection,
+  CafeTabBar,
+  cafeSelectClass,
+} from "./cafe-admin-ui"
+import { ModifierEditor } from "./modifier-editor"
 import type {
   CafeEngagementSettings,
   CafeMenuListItem,
@@ -137,7 +145,7 @@ const emptyProduct = {
   discount_percent: 0,
 }
 
-export default function MenuPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function MenuPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("cafe_admin.menu")
   const tCatalog = useTranslations("catalog")
@@ -145,8 +153,6 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
   const queryClient = useQueryClient()
 
   const [tab, setTab] = useState<Tab>("settings")
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const { data: menuSettings, isLoading: loadingSettings } = useQuery({
     queryKey: ["cafe-menu-settings"],
@@ -163,10 +169,10 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
         json: settingsValues,
       }),
     onSuccess: async () => {
-      setMessage(t("saved"))
+      toast.success(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-menu-settings"] })
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const { data: categories = [], isLoading: loadingCategories } = useQuery({
@@ -227,9 +233,9 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
     onSuccess: async () => {
       setCategoryForm({ name: "", description: "", icon_url: "", image_url: "", display_mode: "grid", sort_order: 0 })
       await queryClient.invalidateQueries({ queryKey: ["categories"] })
-      setMessage(tCatalog("category_saved"))
+      toast.success(tCatalog("category_saved"))
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const saveProduct = useMutation({
@@ -265,9 +271,9 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       setEditingProduct(null)
       setProductForm(emptyProduct)
       await queryClient.invalidateQueries({ queryKey: ["products"] })
-      setMessage(tCatalog("product_saved"))
+      toast.success(tCatalog("product_saved"))
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const deleteProduct = useMutation({
@@ -298,9 +304,9 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
     onSuccess: async () => {
       setSelectedIds([])
       await queryClient.invalidateQueries({ queryKey: ["products"] })
-      setMessage(t("bulk_applied"))
+      toast.success(t("bulk_applied"))
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const [menuForm, setMenuForm] = useState({
@@ -334,9 +340,9 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       setEditingMenu(null)
       setMenuForm({ name: "", slug: "", menu_type: "cafe", locale: "", description: "", is_active: true, sort_order: 0 })
       await queryClient.invalidateQueries({ queryKey: ["menus"] })
-      setMessage(t("menu_saved"))
+      toast.success(t("menu_saved"))
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const deleteMenu = useMutation({
@@ -391,9 +397,9 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
         is_active: true,
       })
       await queryClient.invalidateQueries({ queryKey: ["menu-banners"] })
-      setMessage(t("banner_saved"))
+      toast.success(t("banner_saved"))
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const deleteBanner = useMutation({
@@ -419,10 +425,10 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
         json: engagementValues,
       }),
     onSuccess: async () => {
-      setMessage(t("engagement_saved"))
+      toast.success(t("engagement_saved"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-engagement-settings"] })
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   function startEditProduct(product: Product) {
@@ -490,44 +496,38 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
     (tab === "engagement" && loadingEngagement)
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 border-b pb-3">
-        {tabs.map((key) => (
-          <Button
-            key={key}
-            size="sm"
-            variant={tab === key ? "default" : "outline"}
-            onClick={() => {
-              setTab(key)
-              setMessage(null)
-              setError(null)
-            }}
-          >
-            {t(`tab_${key}`)}
+    <CafeAdminShell
+      title={t("title")}
+      description={t("description")}
+      actions={
+        tab === "settings" ? (
+          <Button onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending || isLoading}>
+            {tCommon("save")}
           </Button>
-        ))}
-      </div>
+        ) : tab === "engagement" ? (
+          <Button onClick={() => saveEngagement.mutate()} disabled={saveEngagement.isPending || isLoading}>
+            {tCommon("save")}
+          </Button>
+        ) : undefined
+      }
+    >
+      <CafeTabBar
+        tabs={tabs}
+        active={tab}
+        onChange={(key) => setTab(key as Tab)}
+        labelFor={(key) => t(`tab_${key}`)}
+      />
 
-      {isLoading ? <p>{tCommon("loading")}</p> : null}
-      {message ? <p className="text-sm text-green-600">{message}</p> : null}
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+      {isLoading ? <p className="text-muted-foreground text-sm">{tCommon("loading")}</p> : null}
 
       {tab === "settings" ? (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("display_heading")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
+          <CafeSection title={t("display_heading")} description={t("display_hint")}>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
                 <Label>{t("default_view")}</Label>
                 <select
-                  className="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  className={cafeSelectClass}
                   value={settingsValues.default_view}
                   onChange={(e) =>
                     setSettingsForm({
@@ -562,49 +562,61 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                 />
                 {t("show_new_badge")}
               </label>
-            </CardContent>
-          </Card>
+            </div>
+          </CafeSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("cta_heading")}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div>
+          <CafeSection title={t("cta_heading")} description={t("cta_hint")}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
                 <Label>{t("cta_label_fa")}</Label>
                 <Input
                   value={settingsValues.header_cta_label_fa ?? ""}
                   onChange={(e) => setSettingsForm({ ...settingsValues, header_cta_label_fa: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("cta_label_en")}</Label>
                 <Input
                   value={settingsValues.header_cta_label_en ?? ""}
                   onChange={(e) => setSettingsForm({ ...settingsValues, header_cta_label_en: e.target.value })}
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>{t("cta_url")}</Label>
                 <Input
                   value={settingsValues.header_cta_url ?? ""}
                   onChange={(e) => setSettingsForm({ ...settingsValues, header_cta_url: e.target.value })}
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CafeSection>
 
-
-          <Card>
-            <CardHeader><CardTitle>{t("brand_heading")}</CardTitle></CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div>
+          <CafeAdvancedSection
+            title={t("brand_heading")}
+            description={t("brand_hint")}
+            showLabel={t("show_advanced")}
+            hideLabel={t("hide_advanced")}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
                 <Label>{t("accent_color")}</Label>
-                <Input value={settingsValues.accent_color ?? ""} onChange={(e) => setSettingsForm({ ...settingsValues, accent_color: e.target.value })} />
+                <Input
+                  value={settingsValues.accent_color ?? ""}
+                  onChange={(e) => setSettingsForm({ ...settingsValues, accent_color: e.target.value })}
+                />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("seasonal_theme")}</Label>
-                <select className="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm" value={settingsValues.seasonal_theme ?? "none"} onChange={(e) => setSettingsForm({ ...settingsValues, seasonal_theme: e.target.value as CafeMenuSettings["seasonal_theme"] })}>
+                <select
+                  className={cafeSelectClass}
+                  value={settingsValues.seasonal_theme ?? "none"}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      seasonal_theme: e.target.value as CafeMenuSettings["seasonal_theme"],
+                    })
+                  }
+                >
                   <option value="none">{t("season_none")}</option>
                   <option value="nowruz">{t("season_nowruz")}</option>
                   <option value="yalda">{t("season_yalda")}</option>
@@ -612,9 +624,18 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   <option value="summer">{t("season_summer")}</option>
                 </select>
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("font_preset")}</Label>
-                <select className="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm" value={settingsValues.font_preset ?? "sans"} onChange={(e) => setSettingsForm({ ...settingsValues, font_preset: e.target.value as CafeMenuSettings["font_preset"] })}>
+                <select
+                  className={cafeSelectClass}
+                  value={settingsValues.font_preset ?? "sans"}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      font_preset: e.target.value as CafeMenuSettings["font_preset"],
+                    })
+                  }
+                >
                   <option value="sans">{t("font_sans")}</option>
                   <option value="serif">{t("font_serif")}</option>
                   <option value="display">{t("font_display")}</option>
@@ -627,16 +648,41 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                 onPick={(item) => setSettingsForm({ ...settingsValues, teaser_video_url: item.url })}
                 onClear={() => setSettingsForm({ ...settingsValues, teaser_video_url: "" })}
               />
-              <div>
+            </div>
+          </CafeAdvancedSection>
+
+          <CafeAdvancedSection
+            title={t("fees_heading")}
+            description={t("fees_hint")}
+            showLabel={t("show_advanced")}
+            hideLabel={t("hide_advanced")}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
                 <Label>{t("packaging_fee_minor")}</Label>
-                <Input type="number" min={0} value={settingsValues.packaging_fee_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, packaging_fee_minor: Math.max(0, Number(e.target.value) || 0) })} />
+                <Input
+                  type="number"
+                  min={0}
+                  value={settingsValues.packaging_fee_minor ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      packaging_fee_minor: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("packaging_fee_mode")}</Label>
                 <select
-                  className="border-input bg-background text-foreground h-9 w-full rounded-md border [color-scheme:light] dark:[color-scheme:dark] px-3 text-sm"
+                  className={cafeSelectClass}
                   value={settingsValues.packaging_fee_mode ?? "per_order"}
-                  onChange={(e) => setSettingsForm({ ...settingsValues, packaging_fee_mode: e.target.value === "per_item" ? "per_item" : "per_order" })}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      packaging_fee_mode: e.target.value === "per_item" ? "per_item" : "per_order",
+                    })
+                  }
                 >
                   <option value="per_order">{t("packaging_per_order")}</option>
                   <option value="per_item">{t("packaging_per_item")}</option>
@@ -645,70 +691,242 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
               <div className="space-y-2 sm:col-span-2">
                 <Label>{t("packaging_applies")}</Label>
                 <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={Boolean(settingsValues.packaging_dine_in)} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_dine_in: Boolean(v) })} />{t("fulfillment_dine_in")}</label>
-                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.packaging_pickup !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_pickup: Boolean(v) })} />{t("fulfillment_pickup")}</label>
-                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.packaging_delivery !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_delivery: Boolean(v) })} />{t("fulfillment_delivery")}</label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={Boolean(settingsValues.packaging_dine_in)}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_dine_in: Boolean(v) })}
+                    />
+                    {t("fulfillment_dine_in")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={settingsValues.packaging_pickup !== false}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_pickup: Boolean(v) })}
+                    />
+                    {t("fulfillment_pickup")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={settingsValues.packaging_delivery !== false}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_delivery: Boolean(v) })}
+                    />
+                    {t("fulfillment_delivery")}
+                  </label>
                 </div>
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("service_fee_percent")}</Label>
-                <Input type="number" min={0} max={100} step="0.5" value={settingsValues.service_fee_percent ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, service_fee_percent: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })} />
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.5"
+                  value={settingsValues.service_fee_percent ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      service_fee_percent: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                    })
+                  }
+                />
               </div>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.service_fee_dine_in_only !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, service_fee_dine_in_only: Boolean(v) })} />{t("service_fee_dine_in_only")}</label>
-              <div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.service_fee_dine_in_only !== false}
+                  onCheckedChange={(v) =>
+                    setSettingsForm({ ...settingsValues, service_fee_dine_in_only: Boolean(v) })
+                  }
+                />
+                {t("service_fee_dine_in_only")}
+              </label>
+              <div className="space-y-1.5">
                 <Label>{t("delivery_fee_minor")}</Label>
-                <Input type="number" value={settingsValues.delivery_fee_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, delivery_fee_minor: Number(e.target.value) })} />
+                <Input
+                  type="number"
+                  value={settingsValues.delivery_fee_minor ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({ ...settingsValues, delivery_fee_minor: Number(e.target.value) })
+                  }
+                />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("free_delivery_threshold_minor")}</Label>
-                <Input type="number" value={settingsValues.free_delivery_threshold_minor ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, free_delivery_threshold_minor: Number(e.target.value) })} />
+                <Input
+                  type="number"
+                  value={settingsValues.free_delivery_threshold_minor ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      free_delivery_threshold_minor: Number(e.target.value),
+                    })
+                  }
+                />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("prep_minutes")}</Label>
-                <Input type="number" value={settingsValues.prep_minutes ?? 20} onChange={(e) => setSettingsForm({ ...settingsValues, prep_minutes: Number(e.target.value) })} />
+                <Input
+                  type="number"
+                  value={settingsValues.prep_minutes ?? 20}
+                  onChange={(e) => setSettingsForm({ ...settingsValues, prep_minutes: Number(e.target.value) })}
+                />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("max_orders_per_day")}</Label>
-                <Input type="number" value={settingsValues.max_orders_per_day ?? ""} onChange={(e) => setSettingsForm({ ...settingsValues, max_orders_per_day: e.target.value === "" ? null : Number(e.target.value) })} />
+                <Input
+                  type="number"
+                  value={settingsValues.max_orders_per_day ?? ""}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      max_orders_per_day: e.target.value === "" ? null : Number(e.target.value),
+                    })
+                  }
+                />
               </div>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.block_orders_when_closed !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, block_orders_when_closed: Boolean(v) })} />{t("block_orders_when_closed")}</label>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.fulfillment_dine_in !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_dine_in: Boolean(v) })} />{t("fulfillment_dine_in")}</label>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.fulfillment_pickup !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_pickup: Boolean(v) })} />{t("fulfillment_pickup")}</label>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={Boolean(settingsValues.fulfillment_delivery)} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_delivery: Boolean(v) })} />{t("fulfillment_delivery")}</label>
+              <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                <Checkbox
+                  checked={settingsValues.block_orders_when_closed !== false}
+                  onCheckedChange={(v) =>
+                    setSettingsForm({ ...settingsValues, block_orders_when_closed: Boolean(v) })
+                  }
+                />
+                {t("block_orders_when_closed")}
+              </label>
+            </div>
+          </CafeAdvancedSection>
+
+          <CafeAdvancedSection
+            title={t("fulfillment_ops_heading")}
+            description={t("fulfillment_ops_hint")}
+            showLabel={t("show_advanced")}
+            hideLabel={t("hide_advanced")}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.fulfillment_dine_in !== false}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_dine_in: Boolean(v) })}
+                />
+                {t("fulfillment_dine_in")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.fulfillment_pickup !== false}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_pickup: Boolean(v) })}
+                />
+                {t("fulfillment_pickup")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={Boolean(settingsValues.fulfillment_delivery)}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_delivery: Boolean(v) })}
+                />
+                {t("fulfillment_delivery")}
+              </label>
               <div className="space-y-2 sm:col-span-2">
                 <Label>{t("payment_heading")}</Label>
                 <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.pay_online_enabled !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, pay_online_enabled: Boolean(v) })} />{t("pay_online_enabled")}</label>
-                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.pay_cash_enabled !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, pay_cash_enabled: Boolean(v) })} />{t("pay_cash_enabled")}</label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={settingsValues.pay_online_enabled !== false}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, pay_online_enabled: Boolean(v) })}
+                    />
+                    {t("pay_online_enabled")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={settingsValues.pay_cash_enabled !== false}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, pay_cash_enabled: Boolean(v) })}
+                    />
+                    {t("pay_cash_enabled")}
+                  </label>
                 </div>
                 <p className="text-muted-foreground text-xs">{t("payment_hint")}</p>
               </div>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.dine_in_require_table !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, dine_in_require_table: Boolean(v) })} />{t("dine_in_require_table")}</label>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={settingsValues.delivery_require_pin !== false} onCheckedChange={(v) => setSettingsForm({ ...settingsValues, delivery_require_pin: Boolean(v) })} />{t("delivery_require_pin")}</label>
-              <div>
-                <Label>{t("delivery_radius_km")}</Label>
-                <Input type="number" min={0} step="0.5" value={settingsValues.delivery_radius_km ?? 0} onChange={(e) => setSettingsForm({ ...settingsValues, delivery_radius_km: Math.max(0, Number(e.target.value) || 0) })} />
-              </div>
-              <div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.dine_in_require_table !== false}
+                  onCheckedChange={(v) =>
+                    setSettingsForm({ ...settingsValues, dine_in_require_table: Boolean(v) })
+                  }
+                />
+                {t("dine_in_require_table")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.delivery_require_pin !== false}
+                  onCheckedChange={(v) =>
+                    setSettingsForm({ ...settingsValues, delivery_require_pin: Boolean(v) })
+                  }
+                />
+                {t("delivery_require_pin")}
+              </label>
+              <div className="space-y-1.5">
                 <Label>{t("pickup_slot_minutes")}</Label>
-                <Input type="number" min={5} max={120} value={settingsValues.pickup_slot_minutes ?? 15} onChange={(e) => setSettingsForm({ ...settingsValues, pickup_slot_minutes: Math.min(120, Math.max(5, Number(e.target.value) || 15)) })} />
+                <Input
+                  type="number"
+                  min={5}
+                  max={120}
+                  value={settingsValues.pickup_slot_minutes ?? 15}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      pickup_slot_minutes: Math.min(120, Math.max(5, Number(e.target.value) || 15)),
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </CafeAdvancedSection>
+
+          <CafeAdvancedSection
+            title={t("location_heading")}
+            description={t("location_hint")}
+            showLabel={t("show_advanced")}
+            hideLabel={t("hide_advanced")}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{t("delivery_radius_km")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={settingsValues.delivery_radius_km ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      delivery_radius_km: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>{t("cafe_location")}</Label>
                 <MapPinPicker
-                  value={settingsValues.cafe_lat != null && settingsValues.cafe_lng != null ? { lat: Number(settingsValues.cafe_lat), lng: Number(settingsValues.cafe_lng) } : null}
-                  onChange={(p) => setSettingsForm({ ...settingsValues, cafe_lat: Number(p.lat.toFixed(6)), cafe_lng: Number(p.lng.toFixed(6)) })}
+                  value={
+                    settingsValues.cafe_lat != null && settingsValues.cafe_lng != null
+                      ? { lat: Number(settingsValues.cafe_lat), lng: Number(settingsValues.cafe_lng) }
+                      : null
+                  }
+                  onChange={(p) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      cafe_lat: Number(p.lat.toFixed(6)),
+                      cafe_lng: Number(p.lng.toFixed(6)),
+                    })
+                  }
                   radiusKm={settingsValues.delivery_radius_km ?? 0}
-                  center={settingsValues.cafe_lat != null && settingsValues.cafe_lng != null ? { lat: Number(settingsValues.cafe_lat), lng: Number(settingsValues.cafe_lng) } : null}
+                  center={
+                    settingsValues.cafe_lat != null && settingsValues.cafe_lng != null
+                      ? { lat: Number(settingsValues.cafe_lat), lng: Number(settingsValues.cafe_lng) }
+                      : null
+                  }
                   labels={{ hint: t("cafe_location_hint"), locate: t("my_location"), failed: t("map_failed") }}
                 />
               </div>
-            </CardContent>
-          </Card>
-
-          <Button onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending}>
-            {tCommon("save")}
-          </Button>
+            </div>
+          </CafeAdvancedSection>
 
           <CafeVatCard />
         </>
@@ -717,51 +935,54 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
       {tab === "items" ? (
         <>
           <div className="grid gap-6 xl:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{tCatalog("categories_heading")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3">
-                  <div>
-                    <Label>{tCatalog("name")}</Label>
-                    <Input
-                      value={categoryForm.name}
-                      onChange={(e) => setCategoryForm((f) => ({ ...f, name: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label>{tCatalog("description")}</Label>
-                    <Textarea
-                      value={categoryForm.description}
-                      onChange={(e) => setCategoryForm((f) => ({ ...f, description: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label>{t("default_view")}</Label>
-                    <select className="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm" value={categoryForm.display_mode} onChange={(e) => setCategoryForm((f) => ({ ...f, display_mode: e.target.value }))}>
-                      <option value="grid">{t("view_grid")}</option>
-                      <option value="list">{t("view_list")}</option>
-                      <option value="cover">{t("view_cover")}</option>
-                    </select>
-                  </div>
-                  <MediaPickerField
-                    label={tCatalog("image_url")}
-                    imageUrl={categoryForm.image_url}
-                    onPick={(item) => setCategoryForm((f) => ({ ...f, image_url: item.url }))}
-                    onClear={() => setCategoryForm((f) => ({ ...f, image_url: "" }))}
+            <CafeSection title={tCatalog("categories_heading")}>
+              <div className="grid gap-3">
+                <div className="space-y-1.5">
+                  <Label>{tCatalog("name")}</Label>
+                  <Input
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm((f) => ({ ...f, name: e.target.value }))}
                   />
-                  <MediaPickerField
-                    label={tCatalog("icon_url")}
-                    imageUrl={categoryForm.icon_url}
-                    onPick={(item) => setCategoryForm((f) => ({ ...f, icon_url: item.url }))}
-                    onClear={() => setCategoryForm((f) => ({ ...f, icon_url: "" }))}
-                  />
-                  <Button onClick={() => saveCategory.mutate()} disabled={!categoryForm.name || saveCategory.isPending}>
-                    <Plus className="mr-2 size-4" />
-                    {tCatalog("add_category")}
-                  </Button>
                 </div>
+                <div className="space-y-1.5">
+                  <Label>{tCatalog("description")}</Label>
+                  <Textarea
+                    value={categoryForm.description}
+                    onChange={(e) => setCategoryForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("default_view")}</Label>
+                  <select
+                    className={cafeSelectClass}
+                    value={categoryForm.display_mode}
+                    onChange={(e) => setCategoryForm((f) => ({ ...f, display_mode: e.target.value }))}
+                  >
+                    <option value="grid">{t("view_grid")}</option>
+                    <option value="list">{t("view_list")}</option>
+                    <option value="cover">{t("view_cover")}</option>
+                  </select>
+                </div>
+                <MediaPickerField
+                  label={tCatalog("image_url")}
+                  imageUrl={categoryForm.image_url}
+                  onPick={(item) => setCategoryForm((f) => ({ ...f, image_url: item.url }))}
+                  onClear={() => setCategoryForm((f) => ({ ...f, image_url: "" }))}
+                />
+                <MediaPickerField
+                  label={tCatalog("icon_url")}
+                  imageUrl={categoryForm.icon_url}
+                  onPick={(item) => setCategoryForm((f) => ({ ...f, icon_url: item.url }))}
+                  onClear={() => setCategoryForm((f) => ({ ...f, icon_url: "" }))}
+                />
+                <Button onClick={() => saveCategory.mutate()} disabled={!categoryForm.name || saveCategory.isPending}>
+                  <Plus className="me-2 size-4" />
+                  {tCatalog("add_category")}
+                </Button>
+              </div>
+              {categories.length === 0 ? (
+                <CafeEmptyState message={t("categories_empty")} />
+              ) : (
                 <ul className="space-y-2">
                   {categories.map((cat) => (
                     <li key={cat.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
@@ -772,32 +993,38 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                       <label className="ms-auto me-2 flex items-center gap-2 text-xs">
                         <Checkbox
                           checked={cat.vat_applicable !== false}
-                          onCheckedChange={(v) => toggleCategoryVat.mutate({ id: cat.id, vat_applicable: Boolean(v) })}
+                          onCheckedChange={(v) =>
+                            toggleCategoryVat.mutate({ id: cat.id, vat_applicable: Boolean(v) })
+                          }
                         />
                         {t("vat_subject")}
                       </label>
-                      <Button size="icon" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteCategory.mutateAsync(cat.id) })}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        title={t("delete_action")}
+                        aria-label={t("delete_action")}
+                        onClick={() => confirm({ onConfirm: () => deleteCategory.mutateAsync(cat.id) })}
+                      >
                         <Trash2 className="size-4" />
                       </Button>
                     </li>
                   ))}
                 </ul>
-              </CardContent>
-            </Card>
+              )}
+            </CafeSection>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>{editingProduct ? tCatalog("edit_product") : tCatalog("new_product")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
+            <CafeSection title={editingProduct ? tCatalog("edit_product") : tCatalog("new_product")}>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
                   <Label>{tCatalog("name")}</Label>
                   <Input
                     value={productForm.name}
                     onChange={(e) => setProductForm((f) => ({ ...f, name: e.target.value }))}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>{tCatalog("description")}</Label>
                   <Textarea
                     value={productForm.description}
@@ -805,7 +1032,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
+                  <div className="space-y-1.5">
                     <Label>{tCatalog("price")}</Label>
                     <Input
                       type="number"
@@ -813,7 +1040,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                       onChange={(e) => setProductForm((f) => ({ ...f, price_minor: Number(e.target.value) }))}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label>{t("calories")}</Label>
                     <Input
                       type="number"
@@ -844,10 +1071,10 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   onClear={() => setProductForm((f) => ({ ...f, image_url: "" }))}
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
+                  <div className="space-y-1.5">
                     <Label>{tCatalog("category")}</Label>
                     <select
-                      className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                      className={cafeSelectClass}
                       value={productForm.category_id}
                       onChange={(e) => setProductForm((f) => ({ ...f, category_id: e.target.value }))}
                     >
@@ -859,10 +1086,10 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                       ))}
                     </select>
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label>{t("menu_id")}</Label>
                     <select
-                      className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                      className={cafeSelectClass}
                       value={productForm.menu_id}
                       onChange={(e) => setProductForm((f) => ({ ...f, menu_id: e.target.value }))}
                     >
@@ -875,7 +1102,7 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                     </select>
                   </div>
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>{t("spice_level")}</Label>
                   <Input
                     type="number"
@@ -910,9 +1137,14 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   <label className="flex items-center gap-2 text-sm">
                     {t("vat_subject")}
                     <select
-                      className="border-input bg-background text-foreground h-8 rounded-md border px-2 text-sm [color-scheme:light] dark:[color-scheme:dark]"
+                      className={`${cafeSelectClass} h-8 w-auto`}
                       value={productForm.vat_mode}
-                      onChange={(e) => setProductForm((f) => ({ ...f, vat_mode: e.target.value as "inherit" | "yes" | "no" }))}
+                      onChange={(e) =>
+                        setProductForm((f) => ({
+                          ...f,
+                          vat_mode: e.target.value as "inherit" | "yes" | "no",
+                        }))
+                      }
                     >
                       <option value="inherit">{t("vat_inherit")}</option>
                       <option value="yes">{t("vat_yes")}</option>
@@ -943,18 +1175,15 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                     </Button>
                   ) : null}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CafeSection>
           </div>
 
           {editingProduct ? <ModifierEditor productId={editingProduct.id} /> : null}
 
           {selectedIds.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("bulk_heading")}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-end gap-4">
+            <CafeSection title={t("bulk_heading")}>
+              <div className="flex flex-wrap items-end gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox checked={bulkSoldOut} onCheckedChange={(v) => setBulkSoldOut(Boolean(v))} />
                   {t("is_sold_out")}
@@ -963,10 +1192,10 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   <Checkbox checked={bulkAvailable} onCheckedChange={(v) => setBulkAvailable(Boolean(v))} />
                   {tCatalog("available")}
                 </label>
-                <div>
+                <div className="space-y-1.5">
                   <Label>{t("menu_id")}</Label>
                   <select
-                    className="border-input bg-background mt-1 rounded-md border px-3 py-2 text-sm"
+                    className={`${cafeSelectClass} w-auto min-w-[10rem]`}
                     value={bulkMenuId}
                     onChange={(e) => setBulkMenuId(e.target.value)}
                   >
@@ -978,9 +1207,14 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>{t("bulk_percent")}</Label>
-                  <Input type="number" value={bulkPercent} onChange={(e) => setBulkPercent(e.target.value)} className="w-28" />
+                  <Input
+                    type="number"
+                    value={bulkPercent}
+                    onChange={(e) => setBulkPercent(e.target.value)}
+                    className="w-28"
+                  />
                 </div>
                 <Button onClick={() => bulkUpdate.mutate()} disabled={bulkUpdate.isPending}>
                   {t("bulk_apply")} ({selectedIds.length})
@@ -989,92 +1223,124 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   variant="outline"
                   disabled={bulkUpdate.isPending || bulkPercent === ""}
                   onClick={() =>
-                    api("/api/v1/cafe/bulk-price", { method: "POST", json: { product_ids: selectedIds, percent: Number(bulkPercent) } }).then(async () => {
-                      setMessage(t("bulk_applied"))
-                      await queryClient.invalidateQueries({ queryKey: ["products"] })
+                    api("/api/v1/cafe/bulk-price", {
+                      method: "POST",
+                      json: { product_ids: selectedIds, percent: Number(bulkPercent) },
                     })
+                      .then(async () => {
+                        toast.success(t("bulk_applied"))
+                        await queryClient.invalidateQueries({ queryKey: ["products"] })
+                      })
+                      .catch((e: Error) => toast.error(getApiErrorMessage(e)))
                   }
                 >
                   {t("bulk_price")}
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </CafeSection>
           ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{tCatalog("products_heading")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {products.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{tCatalog("empty")}</p>
-              ) : (
-                <div className="space-y-2">
-                  {products.map((product) => (
-                    <div key={product.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={selectedIds.includes(product.id)}
-                          onCheckedChange={() => toggleProduct(product.id)}
-                        />
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-muted-foreground text-xs">
-                            {product.category?.name ?? tCatalog("no_category")} · {product.price_minor}
-                          </p>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {product.is_featured ? <Badge>{t("is_featured")}</Badge> : null}
-                            {product.is_sold_out ? <Badge variant="outline">{t("is_sold_out")}</Badge> : null}
-                            {!product.is_available ? (
-                              <Badge variant="secondary">{tCatalog("unavailable")}</Badge>
-                            ) : null}
-                          </div>
+          <CafeSection title={tCatalog("products_heading")}>
+            {products.length === 0 ? (
+              <CafeEmptyState message={tCatalog("empty")} />
+            ) : (
+              <div className="space-y-2">
+                {products.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedIds.includes(product.id)}
+                        onCheckedChange={() => toggleProduct(product.id)}
+                      />
+                      {product.image_url || product.cover_image_url ? (
+                        <div className="bg-muted size-12 shrink-0 overflow-hidden rounded-md">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={product.image_url || product.cover_image_url || ""}
+                            alt=""
+                            className="size-full object-cover"
+                          />
+                        </div>
+                      ) : null}
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {product.category?.name ?? tCatalog("no_category")} · {product.price_minor}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {product.is_featured ? <Badge>{t("is_featured")}</Badge> : null}
+                          {product.is_sold_out ? <Badge variant="outline">{t("is_sold_out")}</Badge> : null}
+                          {!product.is_available ? (
+                            <Badge variant="secondary">{tCatalog("unavailable")}</Badge>
+                          ) : null}
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => startEditProduct(product)}>
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteProduct.mutateAsync(product.id) })}>
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="size-8"
+                        title={tCatalog("edit_product")}
+                        aria-label={tCatalog("edit_product")}
+                        onClick={() => startEditProduct(product)}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        title={t("delete_action")}
+                        aria-label={t("delete_action")}
+                        onClick={() => confirm({ onConfirm: () => deleteProduct.mutateAsync(product.id) })}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CafeSection>
         </>
       ) : null}
 
       {tab === "menus" ? (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{editingMenu ? t("edit_menu") : t("add_menu")}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div>
+          <CafeSection title={editingMenu ? t("edit_menu") : t("add_menu")}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
                 <Label>{tCatalog("name")}</Label>
                 <Input value={menuForm.name} onChange={(e) => setMenuForm((f) => ({ ...f, name: e.target.value }))} />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("menu_slug")}</Label>
                 <Input value={menuForm.slug} onChange={(e) => setMenuForm((f) => ({ ...f, slug: e.target.value }))} />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("menu_type")}</Label>
                 <Input
                   value={menuForm.menu_type}
                   onChange={(e) => setMenuForm((f) => ({ ...f, menu_type: e.target.value }))}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("menu_locale")}</Label>
-                <Input value={menuForm.locale} onChange={(e) => setMenuForm((f) => ({ ...f, locale: e.target.value }))} />
+                <Input
+                  value={menuForm.locale}
+                  onChange={(e) => setMenuForm((f) => ({ ...f, locale: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>{t("menu_description")}</Label>
-                <Input value={menuForm.description} onChange={(e) => setMenuForm((f) => ({ ...f, description: e.target.value }))} />
+                <Input
+                  value={menuForm.description}
+                  onChange={(e) => setMenuForm((f) => ({ ...f, description: e.target.value }))}
+                />
               </div>
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <Checkbox
@@ -1092,63 +1358,79 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                     variant="outline"
                     onClick={() => {
                       setEditingMenu(null)
-                      setMenuForm({ name: "", slug: "", menu_type: "cafe", locale: "", description: "", is_active: true, sort_order: 0 })
+                      setMenuForm({
+                        name: "",
+                        slug: "",
+                        menu_type: "cafe",
+                        locale: "",
+                        description: "",
+                        is_active: true,
+                        sort_order: 0,
+                      })
                     }}
                   >
                     {tCatalog("cancel_edit")}
                   </Button>
                 ) : null}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CafeSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("menus_heading")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {menus.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t("menus_empty")}</p>
-              ) : (
-                menus.map((menu) => (
-                  <div key={menu.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+          <CafeSection title={t("menus_heading")}>
+            {menus.length === 0 ? (
+              <CafeEmptyState message={t("menus_empty")} />
+            ) : (
+              <ul className="space-y-2">
+                {menus.map((menu) => (
+                  <li key={menu.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                     <div>
                       <p className="font-medium">{menu.name}</p>
                       <p className="text-muted-foreground text-xs">{menu.slug}</p>
                       {!menu.is_active ? <Badge variant="secondary">{t("menu_inactive")}</Badge> : null}
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => startEditMenu(menu)}>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="size-8"
+                        title={t("edit_menu")}
+                        aria-label={t("edit_menu")}
+                        onClick={() => startEditMenu(menu)}
+                      >
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteMenu.mutateAsync(menu.id) })}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        title={t("delete_action")}
+                        aria-label={t("delete_action")}
+                        onClick={() => confirm({ onConfirm: () => deleteMenu.mutateAsync(menu.id) })}
+                      >
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CafeSection>
         </>
       ) : null}
 
       {tab === "banners" ? (
         <>
           <p className="text-muted-foreground text-sm">{t("banner_limit_hint")}</p>
-          <Card>
-            <CardHeader>
-              <CardTitle>{editingBanner ? t("edit_banner") : t("add_banner")}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div>
+          <CafeSection title={editingBanner ? t("edit_banner") : t("add_banner")}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
                 <Label>{t("banner_title_fa")}</Label>
                 <Input
                   value={bannerForm.title_fa}
                   onChange={(e) => setBannerForm((f) => ({ ...f, title_fa: e.target.value }))}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("banner_title_en")}</Label>
                 <Input
                   value={bannerForm.title_en}
@@ -1163,17 +1445,17 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   onClear={() => setBannerForm((f) => ({ ...f, image_url: "" }))}
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>{t("banner_link")}</Label>
                 <Input
                   value={bannerForm.link_url}
                   onChange={(e) => setBannerForm((f) => ({ ...f, link_url: e.target.value }))}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>{t("menu_id")}</Label>
                 <select
-                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                  className={cafeSelectClass}
                   value={bannerForm.menu_id}
                   onChange={(e) => setBannerForm((f) => ({ ...f, menu_id: e.target.value }))}
                 >
@@ -1219,96 +1501,111 @@ export default function MenuPageClient({ route }: { route: ResolvedAdminRoute })
                   </Button>
                 ) : null}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CafeSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("banners_heading")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {banners.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t("banners_empty")}</p>
-              ) : (
-                banners.map((banner) => (
-                  <div key={banner.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
-                    <div>
-                      <p className="font-medium">{banner.title_fa || banner.title_en || banner.image_url}</p>
-                      {!banner.is_active ? <Badge variant="secondary">{t("menu_inactive")}</Badge> : null}
+          <CafeSection title={t("banners_heading")}>
+            {banners.length === 0 ? (
+              <CafeEmptyState message={t("banners_empty")} />
+            ) : (
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {banners.map((banner) => (
+                  <li key={banner.id} className="overflow-hidden rounded-lg border">
+                    <div className="bg-muted aspect-[16/9] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={banner.image_url} alt={banner.title_fa || banner.title_en || ""} className="size-full object-cover" />
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => startEditBanner(banner)}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => confirm({ onConfirm: () => deleteBanner.mutateAsync(banner.id) })}>
-                        <Trash2 className="size-4" />
-                      </Button>
+                    <div className="flex items-start justify-between gap-2 p-3">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {banner.title_fa || banner.title_en || "—"}
+                        </p>
+                        {!banner.is_active ? (
+                          <Badge variant="secondary" className="mt-1">
+                            {t("menu_inactive")}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="size-8"
+                          title={t("edit_banner")}
+                          aria-label={t("edit_banner")}
+                          onClick={() => startEditBanner(banner)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8"
+                          title={t("delete_action")}
+                          aria-label={t("delete_action")}
+                          onClick={() => confirm({ onConfirm: () => deleteBanner.mutateAsync(banner.id) })}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CafeSection>
         </>
       ) : null}
 
       {tab === "engagement" ? (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("engagement_heading")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={Boolean(engagementValues.phone_gate_enabled)}
-                  onCheckedChange={(v) =>
-                    setEngagementForm({ ...engagementValues, phone_gate_enabled: Boolean(v) })
-                  }
-                />
-                {t("engagement_phone_gate")}
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={Boolean(engagementValues.likes_enabled)}
-                  onCheckedChange={(v) => setEngagementForm({ ...engagementValues, likes_enabled: Boolean(v) })}
-                />
-                {t("engagement_likes")}
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={Boolean(engagementValues.feedback_enabled)}
-                  onCheckedChange={(v) => setEngagementForm({ ...engagementValues, feedback_enabled: Boolean(v) })}
-                />
-                {t("engagement_feedback")}
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={Boolean(engagementValues.share_whatsapp_enabled)}
-                  onCheckedChange={(v) =>
-                    setEngagementForm({ ...engagementValues, share_whatsapp_enabled: Boolean(v) })
-                  }
-                />
-                {t("engagement_whatsapp")}
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={Boolean(engagementValues.share_telegram_enabled)}
-                  onCheckedChange={(v) =>
-                    setEngagementForm({ ...engagementValues, share_telegram_enabled: Boolean(v) })
-                  }
-                />
-                {t("engagement_telegram")}
-              </label>
-            </CardContent>
-          </Card>
-          <Button onClick={() => saveEngagement.mutate()} disabled={saveEngagement.isPending}>
-            {tCommon("save")}
-          </Button>
-        </>
+        <CafeSection title={t("engagement_heading")}>
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.phone_gate_enabled)}
+                onCheckedChange={(v) =>
+                  setEngagementForm({ ...engagementValues, phone_gate_enabled: Boolean(v) })
+                }
+              />
+              {t("engagement_phone_gate")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.likes_enabled)}
+                onCheckedChange={(v) => setEngagementForm({ ...engagementValues, likes_enabled: Boolean(v) })}
+              />
+              {t("engagement_likes")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.feedback_enabled)}
+                onCheckedChange={(v) => setEngagementForm({ ...engagementValues, feedback_enabled: Boolean(v) })}
+              />
+              {t("engagement_feedback")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.share_whatsapp_enabled)}
+                onCheckedChange={(v) =>
+                  setEngagementForm({ ...engagementValues, share_whatsapp_enabled: Boolean(v) })
+                }
+              />
+              {t("engagement_whatsapp")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.share_telegram_enabled)}
+                onCheckedChange={(v) =>
+                  setEngagementForm({ ...engagementValues, share_telegram_enabled: Boolean(v) })
+                }
+              />
+              {t("engagement_telegram")}
+            </label>
+          </div>
+        </CafeSection>
       ) : null}
       {confirmDialog}
-    </div>
+    </CafeAdminShell>
   )
 }
 
@@ -1325,42 +1622,74 @@ function CafeVatCard() {
   }>("shop", "accounting", "tax")
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("vat_heading")}</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2">
-        {loading || !draft ? (
-          <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
-        ) : (
-          <>
-            <label className="flex items-center gap-2 text-sm"><Checkbox checked={Boolean(draft.enabled)} onCheckedChange={(v) => setDraft({ ...draft, enabled: Boolean(v) })} />{t("vat_enabled")}</label>
-            <label className="flex items-center gap-2 text-sm"><Checkbox checked={draft.show_on_invoice !== false} onCheckedChange={(v) => setDraft({ ...draft, show_on_invoice: Boolean(v) })} />{t("vat_show_on_invoice")}</label>
-            <div>
-              <Label>{t("vat_rate")}</Label>
-              <Input type="number" min={0} max={100} step="0.5" value={draft.rate_percent ?? 10} onChange={(e) => setDraft({ ...draft, rate_percent: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })} />
-            </div>
-            <div>
-              <Label>{t("vat_prices")}</Label>
-              <select
-                className="border-input bg-background text-foreground h-9 w-full rounded-md border px-3 text-sm [color-scheme:light] dark:[color-scheme:dark]"
-                value={draft.prices_include_tax ? "incl" : "excl"}
-                onChange={(e) => setDraft({ ...draft, prices_include_tax: e.target.value === "incl" })}
-              >
-                <option value="excl">{t("vat_exclusive")}</option>
-                <option value="incl">{t("vat_inclusive")}</option>
-              </select>
-            </div>
-            <label className="flex items-center gap-2 text-sm sm:col-span-2"><Checkbox checked={Boolean(draft.shipping_taxable)} onCheckedChange={(v) => setDraft({ ...draft, shipping_taxable: Boolean(v) })} />{t("vat_on_fees")}</label>
-            <p className="text-muted-foreground text-xs sm:col-span-2">{t("vat_hint")}</p>
-            <div className="flex items-center gap-3 sm:col-span-2">
-              <Button onClick={() => void persist()} disabled={pending}>{tCommon("save")}</Button>
-              {saved ? <span className="text-sm text-green-600">{t("vat_saved")}</span> : null}
-              {error ? <span className="text-destructive text-sm">{error}</span> : null}
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <CafeAdvancedSection
+      title={t("vat_heading")}
+      description={t("vat_section_hint")}
+      showLabel={t("show_advanced")}
+      hideLabel={t("hide_advanced")}
+    >
+      {loading || !draft ? (
+        <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={Boolean(draft.enabled)}
+              onCheckedChange={(v) => setDraft({ ...draft, enabled: Boolean(v) })}
+            />
+            {t("vat_enabled")}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={draft.show_on_invoice !== false}
+              onCheckedChange={(v) => setDraft({ ...draft, show_on_invoice: Boolean(v) })}
+            />
+            {t("vat_show_on_invoice")}
+          </label>
+          <div className="space-y-1.5">
+            <Label>{t("vat_rate")}</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step="0.5"
+              value={draft.rate_percent ?? 10}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  rate_percent: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                })
+              }
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("vat_prices")}</Label>
+            <select
+              className={cafeSelectClass}
+              value={draft.prices_include_tax ? "incl" : "excl"}
+              onChange={(e) => setDraft({ ...draft, prices_include_tax: e.target.value === "incl" })}
+            >
+              <option value="excl">{t("vat_exclusive")}</option>
+              <option value="incl">{t("vat_inclusive")}</option>
+            </select>
+          </div>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <Checkbox
+              checked={Boolean(draft.shipping_taxable)}
+              onCheckedChange={(v) => setDraft({ ...draft, shipping_taxable: Boolean(v) })}
+            />
+            {t("vat_on_fees")}
+          </label>
+          <p className="text-muted-foreground text-xs sm:col-span-2">{t("vat_hint")}</p>
+          <div className="flex items-center gap-3 sm:col-span-2">
+            <Button onClick={() => void persist()} disabled={pending}>
+              {tCommon("save")}
+            </Button>
+            {saved ? <span className="text-sm text-green-600">{t("vat_saved")}</span> : null}
+            {error ? <span className="text-destructive text-sm">{error}</span> : null}
+          </div>
+        </div>
+      )}
+    </CafeAdvancedSection>
   )
 }

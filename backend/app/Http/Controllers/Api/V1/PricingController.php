@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\Marketplace\MarketplacePlatforms;
 use App\Services\Payments\PaymentGatewaySettingsService;
+use App\Services\Pricing\BulkPriceChangeService;
 use App\Services\Pricing\ExchangeRateService;
 use App\Services\Pricing\PricingCalculator;
 use App\Services\Pricing\PricingSettings;
@@ -50,6 +51,7 @@ class PricingController extends Controller
             ->map(fn (array $g) => ['id' => $g['id'], 'title_key' => $g['title_key'], 'enabled' => $g['enabled']])
             ->values();
         $platforms = collect(MarketplacePlatforms::CATALOG)
+            ->filter(fn (array $p) => ($p['status'] ?? MarketplacePlatforms::LIVE) === MarketplacePlatforms::LIVE)
             ->map(fn (array $p, string $slug) => [
                 'slug' => $slug,
                 'label' => $p['label'],
@@ -426,70 +428,77 @@ class PricingController extends Controller
         return response()->json(['data' => $payload]);
     }
 
-    public function bulkPriceStart(Request $request): \Illuminate\Http\JsonResponse
+    public function bulkPriceStart(Request $request, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
     {
-        $tid = $request->user()->tenant_id;
-        BulkPriceJob::query()
-            ->where('tenant_id', $tid)
-            ->where('locked', true)
-            ->where('updated_at', '<', now()->subMinutes(55))
-            ->update(['locked' => false, 'status' => 'failed', 'last_log' => 'Unlocked stale job']);
-        $running = BulkPriceJob::query()->where('tenant_id', $tid)->where('locked', true)->whereIn('status', ['pending', 'running'])->exists();
-        if ($running) {
-            return response()->json(['message' => 'A bulk price job is already running'], 409);
-        }
-
         $data = $request->validate([
             'change_type' => ['required', 'string', 'in:fixed,percent'],
-            'value' => ['required', 'numeric'],
+            'direction' => ['nullable', 'string', 'in:increase,decrease'],
+            'value' => ['required', 'numeric', 'min:0'],
+            'fields' => ['nullable', 'array'],
+            'fields.*' => ['string', 'in:price_minor,sale_price_minor'],
             'apply_to_sale' => ['nullable', 'boolean'],
-            'category_slugs' => ['nullable'],
-            'range_rules' => ['nullable', 'string'],
-            'combine_rules' => ['nullable', 'boolean'],
+            'apply_to_variants' => ['nullable', 'boolean'],
+            'dry_run' => ['nullable', 'boolean'],
             'rounding' => ['nullable', 'boolean'],
-            'round_threshold' => ['nullable', 'integer'],
-            'round_step' => ['nullable', 'integer'],
-        ]);
-
-        $job = BulkPriceJob::query()->create([
-            'tenant_id' => $tid,
-            'status' => 'running',
-            'params' => $data,
-            'state' => ['processed' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0],
-            'locked' => true,
-            'last_log' => 'Job started',
+            'round_step' => ['nullable', 'integer', 'min:1'],
+            'filters' => ['nullable', 'array'],
+            'category_slugs' => ['nullable'],
+            'category_ids' => ['nullable', 'array'],
+            'brand_ids' => ['nullable', 'array'],
+            'tag_ids' => ['nullable', 'array'],
+            'status' => ['nullable', 'string'],
+            'type' => ['nullable', 'string'],
+            'stock_status' => ['nullable', 'string'],
+            'stock_min' => ['nullable', 'integer'],
+            'stock_max' => ['nullable', 'integer'],
+            'is_featured' => ['nullable', 'boolean'],
+            'on_sale' => ['nullable', 'boolean'],
+            'has_variants' => ['nullable', 'boolean'],
+            'include_locked' => ['nullable', 'boolean'],
+            'sku' => ['nullable', 'string'],
+            'search' => ['nullable', 'string'],
+            'catalog_visibility' => ['nullable', 'string'],
+            'created_from' => ['nullable', 'date'],
+            'created_to' => ['nullable', 'date'],
+            'updated_from' => ['nullable', 'date'],
+            'updated_to' => ['nullable', 'date'],
+            'price_min' => ['nullable', 'integer'],
+            'price_max' => ['nullable', 'integer'],
         ]);
 
         try {
-            $this->runBulkPriceJob($job);
+            $job = $bulk->createJob($request->user()->tenant_id, $data);
+            // Kick first batches inline so the UI shows progress without waiting for cron.
+            $bulk->processJobId($job->id, BulkPriceChangeService::BATCH_SIZE, 2);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         } catch (\Throwable $e) {
-            $job->update([
-                'status' => 'failed',
-                'locked' => false,
-                'last_log' => $e->getMessage(),
-            ]);
-
             return response()->json(['message' => 'Bulk price change failed', 'error' => $e->getMessage()], 500);
         }
 
-        return response()->json(['data' => $job->fresh()]);
+        return response()->json(['data' => $bulk->serializeJob($job->fresh())]);
     }
 
-    public function bulkPriceScheduleShow(Request $request): \Illuminate\Http\JsonResponse
+    public function bulkPriceScheduleShow(Request $request, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
     {
         $row = \App\Models\PricingSetting::query()->where('tenant_id', $request->user()->tenant_id)->first();
         $payload = is_array($row?->payload) ? $row->payload : [];
 
-        return response()->json(['data' => $this->normalizeBulkSchedule($payload['bulk_price_schedule'] ?? [])]);
+        return response()->json(['data' => $this->normalizeBulkSchedule($payload['bulk_price_schedule'] ?? [], $bulk)]);
     }
 
-    public function bulkPriceScheduleSave(Request $request): \Illuminate\Http\JsonResponse
+    public function bulkPriceScheduleSave(Request $request, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
     {
         $data = $request->validate([
             'enabled' => ['required', 'boolean'],
             'change_type' => ['required', 'string', 'in:fixed,percent'],
+            'direction' => ['nullable', 'string', 'in:increase,decrease'],
             'value' => ['required', 'numeric'],
+            'fields' => ['nullable', 'array'],
+            'fields.*' => ['string', 'in:price_minor,sale_price_minor'],
             'apply_to_sale' => ['nullable', 'boolean'],
+            'apply_to_variants' => ['nullable', 'boolean'],
+            'filters' => ['nullable', 'array'],
             'category_slugs' => ['nullable', 'array'],
             'category_slugs.*' => ['string'],
             'rounding' => ['nullable', 'boolean'],
@@ -499,92 +508,95 @@ class PricingController extends Controller
             'weekday' => ['nullable', 'integer', 'min:0', 'max:6'],
         ]);
         $tid = $request->user()->tenant_id;
-        $row = \App\Services\Pricing\PricingSettings::row($tid);
+        $row = PricingSettings::row($tid);
         $payload = is_array($row->payload) ? $row->payload : [];
         $prev = is_array($payload['bulk_price_schedule'] ?? null) ? $payload['bulk_price_schedule'] : [];
         $payload['bulk_price_schedule'] = $this->normalizeBulkSchedule([
             ...$prev,
             ...$data,
             'last_run_at' => $prev['last_run_at'] ?? null,
-        ]);
+        ], $bulk);
         $row->update(['payload' => $payload]);
 
         return response()->json(['data' => $payload['bulk_price_schedule']]);
     }
 
-    public function bulkPriceState(Request $request): \Illuminate\Http\JsonResponse
+    public function bulkPriceState(Request $request, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
         $job = BulkPriceJob::query()->where('tenant_id', $tid)->latest('id')->first();
 
-        return response()->json([
-            'data' => $job ? [
-                'status' => $job->status,
-                'locked' => $job->locked,
-                'params' => $job->params,
-                'state' => $job->state,
-                'last_log' => $job->last_log,
-            ] : null,
-        ]);
+        return response()->json(['data' => $job ? $bulk->serializeJob($job) : null]);
     }
 
-    public function bulkPricePreview(Request $request): \Illuminate\Http\JsonResponse
+    public function bulkPriceJobs(Request $request, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        $slugs = $this->normalizeCategorySlugs($request->input('category_slugs'));
-        $q = $this->bulkPriceProductQuery($tid, $slugs);
-        $total = (clone $q)->count();
-        $locked = (clone $q)->where('lock_price', true)->count();
-        $sample = $q->orderBy('name')->limit(5)->get(['id', 'name', 'price_minor', 'lock_price']);
+        $jobs = BulkPriceJob::query()
+            ->where('tenant_id', $tid)
+            ->latest('id')
+            ->limit(20)
+            ->get()
+            ->map(fn (BulkPriceJob $j) => $bulk->serializeJob($j));
 
-        return response()->json([
-            'data' => [
-                'total' => $total,
-                'locked' => $locked,
-                'eligible' => max(0, $total - $locked),
-                'sample' => $sample,
-            ],
-        ]);
+        return response()->json(['data' => $jobs]);
     }
 
-    /** @return list<string> */
-    protected function normalizeCategorySlugs(mixed $raw): array
+    public function bulkPricePause(Request $request, BulkPriceJob $job, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
     {
-        if (is_array($raw)) {
-            return array_values(array_filter(array_map('trim', array_map('strval', $raw))));
-        }
-        if ($raw === null || $raw === '') {
-            return [];
-        }
+        abort_if($job->tenant_id !== $request->user()->tenant_id, 403);
 
-        return array_values(array_filter(array_map('trim', explode(',', (string) $raw))));
+        return response()->json(['data' => $bulk->serializeJob($bulk->pause($job))]);
     }
 
-    /** @param list<string> $slugs */
-    protected function bulkPriceProductQuery(int $tenantId, array $slugs): \Illuminate\Database\Eloquent\Builder
+    public function bulkPriceResume(Request $request, BulkPriceJob $job, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
     {
-        $q = Product::query()->where('tenant_id', $tenantId)->where('status', 'publish')->where('status', '!=', 'trash');
-        if ($slugs !== []) {
-            $q->where(function ($w) use ($slugs) {
-                $w->whereHas('category', fn ($c) => $c->whereIn('slug', $slugs))
-                    ->orWhereHas('categories', fn ($c) => $c->whereIn('categories.slug', $slugs));
-            });
+        abort_if($job->tenant_id !== $request->user()->tenant_id, 403);
+        try {
+            $fresh = $bulk->resume($job);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
+        $bulk->processJobId($fresh->id, BulkPriceChangeService::BATCH_SIZE, 2);
 
-        return $q;
+        return response()->json(['data' => $bulk->serializeJob($fresh->fresh())]);
+    }
+
+    public function bulkPriceCancel(Request $request, BulkPriceJob $job, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
+    {
+        abort_if($job->tenant_id !== $request->user()->tenant_id, 403);
+
+        return response()->json(['data' => $bulk->serializeJob($bulk->cancel($job))]);
+    }
+
+    public function bulkPricePreview(Request $request, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
+    {
+        $filters = array_merge(
+            $request->query(),
+            is_array($request->input('filters')) ? $request->input('filters') : []
+        );
+
+        return response()->json(['data' => $bulk->preview($request->user()->tenant_id, $filters)]);
     }
 
     /** @param  array<string, mixed>  $raw */
-    public function normalizeBulkSchedule(array $raw): array
+    public function normalizeBulkSchedule(array $raw, ?BulkPriceChangeService $bulk = null): array
     {
+        $bulk ??= app(BulkPriceChangeService::class);
+        $params = $bulk->normalizeParams($raw);
+
         return [
             'enabled' => (bool) ($raw['enabled'] ?? false),
-            'change_type' => ($raw['change_type'] ?? 'percent') === 'fixed' ? 'fixed' : 'percent',
-            'value' => (float) ($raw['value'] ?? 0),
-            'apply_to_sale' => (bool) ($raw['apply_to_sale'] ?? false),
-            'category_slugs' => array_values(array_filter(array_map('strval', is_array($raw['category_slugs'] ?? null) ? $raw['category_slugs'] : []))),
-            'rounding' => (bool) ($raw['rounding'] ?? false),
-            'round_step' => max(1, (int) ($raw['round_step'] ?? 1000)),
+            'change_type' => $params['change_type'],
+            'direction' => $params['direction'],
+            'value' => $params['value'],
+            'fields' => $params['fields'],
+            'apply_to_sale' => $params['apply_to_sale'],
+            'apply_to_variants' => $params['apply_to_variants'],
+            'filters' => $params['filters'],
+            'category_slugs' => $params['filters']['category_slugs'],
+            'rounding' => $params['rounding'],
+            'round_step' => $params['round_step'],
             'frequency' => ($raw['frequency'] ?? 'daily') === 'weekly' ? 'weekly' : 'daily',
             'hour' => max(0, min(23, (int) ($raw['hour'] ?? 3))),
             'weekday' => max(0, min(6, (int) ($raw['weekday'] ?? 0))),
@@ -592,73 +604,13 @@ class PricingController extends Controller
         ];
     }
 
+    /** @deprecated Prefer BulkPriceChangeService::processJobId — kept for schedule command compatibility. */
     public function runBulkPriceJob(BulkPriceJob $job): void
     {
-        $params = $job->params ?? [];
-        $tid = $job->tenant_id;
-        $slugs = $this->normalizeCategorySlugs($params['category_slugs'] ?? null);
-        $q = $this->bulkPriceProductQuery($tid, $slugs);
-
-        $products = $q->get();
-        $updated = 0;
-        $skipped = 0;
-        $changeType = $params['change_type'] ?? 'percent';
-        $value = (float) ($params['value'] ?? 0);
-        $applySale = (bool) ($params['apply_to_sale'] ?? false);
-        $round = (bool) ($params['rounding'] ?? false);
-        $step = max(1, (int) ($params['round_step'] ?? 1000));
-
-        foreach ($products as $product) {
-            if ($product->lock_price || (string) $product->status === 'trash') {
-                $skipped++;
-                continue;
-            }
-            $meta = is_array($product->meta) ? $product->meta : [];
-            $base = (int) ($meta['bulk_price_base_minor'] ?? 0);
-            if ($base <= 0) {
-                $base = (int) $product->price_minor;
-                $meta['bulk_price_base_minor'] = $base;
-            }
-            $signature = $changeType.'|'.$value.'|'.$base.'|'.($applySale ? '1' : '0');
-            if (($meta['bulk_price_applied'] ?? '') === $signature) {
-                $skipped++;
-                continue;
-            }
-            $price = (float) $base;
-            $new = $changeType === 'fixed' ? $price + $value : $price + ($price * $value / 100);
-            if ($round) {
-                $new = round($new / $step) * $step;
-            }
-            $fields = ['price_minor' => (int) max(0, $new)];
-            if ($applySale && $product->sale_price_minor) {
-                $saleBase = (int) ($meta['bulk_sale_base_minor'] ?? 0);
-                if ($saleBase <= 0) {
-                    $saleBase = (int) $product->sale_price_minor;
-                    $meta['bulk_sale_base_minor'] = $saleBase;
-                }
-                $sale = (float) $saleBase;
-                $newSale = $changeType === 'fixed' ? $sale + $value : $sale + ($sale * $value / 100);
-                if ($round) {
-                    $newSale = round($newSale / $step) * $step;
-                }
-                $fields['sale_price_minor'] = (int) max(0, $newSale);
-            }
-            $meta['bulk_price_applied'] = $signature;
-            $fields['meta'] = $meta;
-            $product->update($fields);
-            $updated++;
-        }
-
-        $job->update([
-            'status' => 'done',
-            'locked' => false,
-            'state' => [
-                'processed' => $products->count(),
-                'updated' => $updated,
-                'skipped' => $skipped,
-                'total' => $products->count(),
-            ],
-            'last_log' => "Updated {$updated}, skipped {$skipped}",
-        ]);
+        app(BulkPriceChangeService::class)->processJobId(
+            $job->id,
+            BulkPriceChangeService::BATCH_SIZE,
+            500
+        );
     }
 }

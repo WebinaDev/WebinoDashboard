@@ -21,14 +21,18 @@ interface BotClient
 
 abstract class HttpBotClient implements BotClient
 {
-    public function __construct(protected string $token) {}
+    public function __construct(protected string $token, protected ?string $proxyUrl = null) {}
 
     abstract protected function baseUrl(): string;
 
     public function call(string $method, array $payload): array
     {
         try {
-            $res = Http::timeout(20)->asJson()->post($this->baseUrl().$this->token.'/'.$method, $payload);
+            $req = Http::timeout(20)->asJson();
+            if (filled($this->proxyUrl)) {
+                $req = $req->withOptions(['proxy' => $this->proxyUrl]);
+            }
+            $res = $req->post($this->baseUrl().$this->token.'/'.$method, $payload);
         } catch (\Throwable $e) {
             return ['ok' => false, 'body' => ['description' => $e->getMessage()], 'status' => 0];
         }
@@ -76,11 +80,11 @@ class TelegramBotClient extends HttpBotClient
 
 class BotClientFactory
 {
-    public static function make(string $provider, string $token): BotClient
+    public static function make(string $provider, string $token, ?string $proxyUrl = null): BotClient
     {
         return match ($provider) {
-            'bale' => new BaleBotClient($token),
-            'telegram' => new TelegramBotClient($token),
+            'bale' => new BaleBotClient($token, $proxyUrl),
+            'telegram' => new TelegramBotClient($token, $proxyUrl),
             default => throw new \InvalidArgumentException('Unknown bot provider'),
         };
     }
@@ -95,8 +99,13 @@ class BotClientFactory
         if (! $row || ! $row->token) {
             return null;
         }
+        $conn = is_array($row->meta['connection'] ?? null) ? $row->meta['connection'] : [];
+        $token = $row->token;
+        if (! empty($conn['sandbox']) && filled($conn['sandbox_token'] ?? null)) {
+            $token = (string) $conn['sandbox_token'];
+        }
 
-        return self::make($provider, $row->token);
+        return self::make($provider, $token, isset($conn['proxy_url']) ? (string) $conn['proxy_url'] : null);
     }
 
     public static function log(int $tenantId, string $provider, string $chatId, string $type, string $payload, string $status, string $direction = 'out'): void

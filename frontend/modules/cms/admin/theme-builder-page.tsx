@@ -91,10 +91,13 @@ export default function ThemeBuilderPage(_props: { route: ResolvedAdminRoute }) 
       actions={
         <>
           <Button variant="outline" asChild>
-            <Link href="/dashboard/builder/settings"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
+            <Link href="/dashboard/builder/new?panel=globals"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
           </Button>
           <Button variant="outline" asChild>
             <Link href="/dashboard/builder">{t("pages")}</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/settings/site/menus">{t("menus_link")}</Link>
           </Button>
         </>
       }

@@ -9,7 +9,6 @@ import { toast } from "sonner"
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -36,6 +35,7 @@ import {
   unwrapSmsList,
 } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 
 const PAGE_SIZE = 50
 
@@ -111,13 +111,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         </Button>
       </div>
 
-      <Card className="shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{t("scheduledTitle")}</CardTitle>
-          <CardDescription>{t("scheduledHint")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="overflow-x-auto">
+      <SmsSection title={t("scheduledTitle")} description={t("scheduledHint")}>
+<div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -208,8 +203,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </SmsSection>
     </SmsPanelShell>
   )
 }

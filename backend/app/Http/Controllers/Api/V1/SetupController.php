@@ -160,6 +160,18 @@ class SetupController extends Controller
         $request->validate(['preset' => ['nullable', 'string', 'max:64']]);
         $preset = $request->input('preset', 'classic-kit');
 
+        /** @var Tenant $tenant */
+        $tenant = $request->user()->tenant;
+        $siteType = $tenant->site_type_slug ?? $tenant->business_type_slug;
+        if (is_string($siteType) && SiteTypeProfiles::isValid($siteType)) {
+            try {
+                // Explicit admin «import demo» — allowed on existing sites; never used on upgrade paths.
+                app(\App\Services\Provision\SiteTypeDemoSeeder::class)->seed($tenant, $siteType, [], true);
+            } catch (\Throwable) {
+                /* continue with theme kit import */
+            }
+        }
+
         return app(ThemeBuilderController::class)->apply($request->merge(['preset' => $preset]));
     }
 

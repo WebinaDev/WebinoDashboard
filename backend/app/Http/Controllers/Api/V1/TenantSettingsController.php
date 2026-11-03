@@ -81,6 +81,9 @@ class TenantSettingsController extends Controller
         if ($key === ShopSettings::TAX_KEY || $key === 'shop.accounting') {
             return response()->json(['data' => ShopSettings::getTax($tenantId)]);
         }
+        if ($key === 'shop.accounting.modian') {
+            return response()->json(['data' => app(\App\Services\Accounting\MoadianService::class)->getSettings($tenantId)]);
+        }
         if ($key === ShopSettings::ADVANCED_KEY) {
             return response()->json(['data' => ShopSettings::getAdvanced($tenantId)]);
         }
@@ -198,6 +201,11 @@ class TenantSettingsController extends Controller
         }
         if ($key === ShopSettings::TAX_KEY || $key === 'shop.accounting') {
             return response()->json(['data' => ShopSettings::saveTax($tenantId, $payload['payload'])]);
+        }
+        if ($key === 'shop.accounting.modian') {
+            return response()->json([
+                'data' => app(\App\Services\Accounting\MoadianService::class)->saveSettings($tenantId, $payload['payload']),
+            ]);
         }
         if ($key === ShopSettings::ADVANCED_KEY) {
             return response()->json(['data' => ShopSettings::saveAdvanced($tenantId, $payload['payload'])]);
@@ -369,13 +377,7 @@ class TenantSettingsController extends Controller
             'shop.loyalty' => ShopSettings::loyaltyDefaults(),
             'shop.archive' => ShopSettings::archiveDefaults(),
             'shop.accounting', 'shop.accounting.tax' => ShopSettings::taxDefaults(),
-            'shop.accounting.modian' => [
-                'enabled' => false,
-                'economic_code' => '',
-                'national_id' => '',
-                'api_key' => '',
-                'sandbox' => true,
-            ],
+            'shop.accounting.modian' => app(\App\Services\Accounting\MoadianService::class)->defaults(),
             'shop.marketplace' => [
                 'platforms' => [],
                 '_source' => 'marketplace.settings',

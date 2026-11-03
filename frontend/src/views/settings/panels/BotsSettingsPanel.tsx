@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { dashboardPath } from "@/kernel/paths"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
@@ -94,6 +96,9 @@ export function BotsSettingsPanel({ provider }: { provider: "bale" | "telegram" 
         <div className="flex flex-wrap items-center gap-3">
           <Button type="button" onClick={() => void save.mutateAsync()} disabled={save.isPending}>
             {save.isPending ? tCommon("saving") : tCommon("save")}
+          </Button>
+          <Button asChild type="button" variant="outline">
+            <Link href={dashboardPath(`bots/${provider}`)}>{t("hub.open")}</Link>
           </Button>
           {saved ? (
             <p className="text-sm text-green-600 dark:text-green-400">{tHub("saved")}</p>

@@ -10,6 +10,7 @@ use App\Services\Marketplace\MarketplaceLogger;
 use App\Services\Orders\OrderStatusService;
 use App\Services\Payments\BnplClient;
 use App\Services\Payments\DigipayClient;
+use App\Services\Payments\Drivers\GatewayDriverRegistry;
 use App\Services\Payments\PaymentGatewaySettingsService;
 use App\Services\Tenant\TenantResolver;
 use App\Services\Shop\LoyaltyService;
@@ -30,6 +31,7 @@ class PaymentCallbackController extends Controller
         protected PaymentGatewaySettingsService $gateways,
         protected DigipayClient $digipay,
         protected BnplClient $bnpl,
+        protected GatewayDriverRegistry $drivers,
         protected LoyaltyService $loyalty,
         protected OrderStatusService $statuses,
     ) {}
@@ -48,7 +50,11 @@ class PaymentCallbackController extends Controller
 
         return match ($provider) {
             'zarinpal' => $this->handleZarinpal($request, $row),
-            'zibal' => $this->handleZibal($request, $row),
+            'zibal' => $this->handleViaDriver($request, $row, 'zibal', 'zibal_track_id', 'trackId'),
+            'idpay' => $this->handleViaDriver($request, $row, 'idpay', 'idpay_id', 'id'),
+            'nextpay' => $this->handleViaDriver($request, $row, 'nextpay', 'nextpay_trans_id', 'trans_id'),
+            'payping' => $this->handleViaDriver($request, $row, 'payping', 'payping_code', 'refid'),
+            'payir' => $this->handleViaDriver($request, $row, 'payir', 'payir_token', 'token'),
             'digipay' => $this->handleDigipay($request, $row),
             'snapppay' => $this->handleBnpl($request, $row, 'snapppay', true),
             'torobpay' => $this->handleBnpl($request, $row, 'torobpay', false),
@@ -57,6 +63,62 @@ class PaymentCallbackController extends Controller
             'bale_pay' => $this->finish(($row->fresh() ?? $row)->status === 'paid', $row),
             default => $this->finish(false),
         };
+    }
+
+    /**
+     * Generic verify path for registry-backed cash IPGs.
+     */
+    protected function handleViaDriver(
+        Request $request,
+        Order $order,
+        string $provider,
+        string $metaKey,
+        string $queryKey,
+    ): RedirectResponse {
+        $presented = (string) ($request->query($queryKey) ?? $request->input($queryKey) ?? '');
+        // PayPing may return refid without the original payment code in query.
+        $intent = $presented !== ''
+            ? $this->intentMatching($order, $provider, $metaKey, $presented)
+            : PaymentIntent::query()
+                ->where('tenant_id', $order->tenant_id)
+                ->where('order_id', $order->id)
+                ->where('provider', $provider)
+                ->latest()
+                ->first();
+        if ($intent === null && $provider === 'payping') {
+            $intent = PaymentIntent::query()
+                ->where('tenant_id', $order->tenant_id)
+                ->where('order_id', $order->id)
+                ->where('provider', 'payping')
+                ->latest()
+                ->first();
+        }
+        if ($intent === null || ! $this->stateAllows($request, $intent, false)) {
+            return $this->finish(false, $order);
+        }
+
+        $driver = $this->drivers->get($provider);
+        if (! $driver || $driver->status() !== 'live') {
+            return $this->finish(false, $order);
+        }
+
+        $settings = $this->gateways->getRaw((int) $order->tenant_id, $provider);
+        $amountRial = (int) data_get($intent->meta, 'amount_rial', 0);
+        $callback = array_merge($request->query(), $request->all());
+        $result = $driver->verify($settings, $amountRial, $callback, is_array($intent->meta) ? $intent->meta : []);
+        if (! ($result['ok'] ?? false)) {
+            $this->markAttemptFailed($request, $order, $intent);
+
+            return $this->finish(false, $order);
+        }
+
+        $this->markPaid($order, $intent, [
+            'payment_ref' => (string) ($result['ref_id'] ?? $presented),
+            'payment_provider' => $provider,
+        ]);
+        $intent->update(['status' => 'completed']);
+
+        return $this->finish(true, $order);
     }
 
     /**
@@ -101,31 +163,6 @@ class PaymentCallbackController extends Controller
 
             return $this->finish(false, $order);
         }
-    }
-
-    protected function handleZibal(Request $request, Order $order): RedirectResponse
-    {
-        $success = (int) $request->query('success', 0) === 1;
-        $trackId = (string) $request->query('trackId', '');
-        $intent = $this->intentMatching($order, 'zibal', 'zibal_track_id', $trackId);
-        if ($intent === null || ! $success) {
-            return $this->finish(false, $order);
-        }
-        $settings = $this->gateways->getRaw((int) $order->tenant_id, 'zibal');
-        $merchant = (string) ($settings['merchant_id'] ?? '');
-        if ($merchant === '') {
-            return $this->finish(false, $order);
-        }
-        $verify = Http::timeout(30)->acceptJson()->asJson()->post('https://gateway.zibal.ir/v1/verify', [
-            'merchant' => $merchant,
-            'trackId' => $trackId,
-        ])->json();
-        if ((int) data_get($verify, 'result') !== 100) {
-            return $this->finish(false, $order);
-        }
-        $this->markPaid($order, $intent, (string) data_get($verify, 'refNumber', $trackId));
-
-        return $this->finish(true, $order);
     }
 
     protected function handleZarinpal(Request $request, Order $order): RedirectResponse

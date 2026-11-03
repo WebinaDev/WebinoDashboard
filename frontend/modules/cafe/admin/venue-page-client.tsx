@@ -3,9 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,9 @@ import { Textarea } from "@/components/ui/textarea"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import type { CafeVenueSettings } from "@/themes/cafe-starter/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
+
+import { CafeAdminShell, CafeSection } from "./cafe-admin-ui"
 
 const defaults: CafeVenueSettings = {
   tagline_fa: "",
@@ -30,11 +33,10 @@ const defaults: CafeVenueSettings = {
   bill_pay_url: "",
 }
 
-export default function VenuePageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function VenuePageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.venue")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
-  const [message, setMessage] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["cafe-venue-settings"],
@@ -47,85 +49,93 @@ export default function VenuePageClient({ route }: { route: ResolvedAdminRoute }
   const save = useMutation({
     mutationFn: () => api<CafeVenueSettings>("/api/v1/cafe/venue-settings", { method: "PATCH", json: values }),
     onSuccess: async () => {
-      setMessage(t("saved"))
+      toast.success(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-venue-settings"] })
     },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
-      {isLoading ? <p>{tCommon("loading")}</p> : null}
-      {message ? <p className="text-sm text-green-600">{message}</p> : null}
+    <CafeAdminShell
+      title={t("title")}
+      description={t("description")}
+      actions={
+        <Button onClick={() => save.mutate()} disabled={save.isPending || isLoading}>
+          {tCommon("save")}
+        </Button>
+      }
+    >
+      {isLoading ? <p className="text-muted-foreground text-sm">{tCommon("loading")}</p> : null}
 
-      <Card>
-        <CardHeader><CardTitle>{t("profile_heading")}</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <div>
+      <CafeSection title={t("profile_heading")} description={t("profile_hint")}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
             <Label>{t("tagline_fa")}</Label>
             <Input value={values.tagline_fa ?? ""} onChange={(e) => setForm({ ...values, tagline_fa: e.target.value })} />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("tagline_en")}</Label>
             <Input value={values.tagline_en ?? ""} onChange={(e) => setForm({ ...values, tagline_en: e.target.value })} />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("about_fa")}</Label>
             <Textarea value={values.about_fa ?? ""} onChange={(e) => setForm({ ...values, about_fa: e.target.value })} />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("about_en")}</Label>
             <Textarea value={values.about_en ?? ""} onChange={(e) => setForm({ ...values, about_en: e.target.value })} />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CafeSection>
 
-      <Card>
-        <CardHeader><CardTitle>{t("contact_heading")}</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <div>
+      <CafeSection title={t("contact_heading")}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
             <Label>{t("phone")}</Label>
-            <Input value={values.phone ?? ""} onChange={(e) => setForm({ ...values, phone: e.target.value })} />
+            <Input value={values.phone ?? ""} onChange={(e) => setForm({ ...values, phone: e.target.value })} dir="ltr" />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("instagram")}</Label>
-            <Input value={values.instagram ?? ""} onChange={(e) => setForm({ ...values, instagram: e.target.value })} />
+            <Input value={values.instagram ?? ""} onChange={(e) => setForm({ ...values, instagram: e.target.value })} dir="ltr" />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("address_fa")}</Label>
             <Textarea value={values.address_fa ?? ""} onChange={(e) => setForm({ ...values, address_fa: e.target.value })} />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("address_en")}</Label>
             <Textarea value={values.address_en ?? ""} onChange={(e) => setForm({ ...values, address_en: e.target.value })} />
           </div>
-          <div className="sm:col-span-2">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>{t("map_url")}</Label>
-            <Input value={values.map_url ?? ""} onChange={(e) => setForm({ ...values, map_url: e.target.value })} />
+            <Input value={values.map_url ?? ""} onChange={(e) => setForm({ ...values, map_url: e.target.value })} dir="ltr" />
           </div>
-          <div>
+        </div>
+      </CafeSection>
+
+      <CafeSection title={t("links_heading")} description={t("links_hint")}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
             <Label>{t("whatsapp_url")}</Label>
-            <Input value={values.whatsapp_url ?? ""} onChange={(e) => setForm({ ...values, whatsapp_url: e.target.value })} />
+            <Input value={values.whatsapp_url ?? ""} onChange={(e) => setForm({ ...values, whatsapp_url: e.target.value })} dir="ltr" />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("telegram_url")}</Label>
-            <Input value={values.telegram_url ?? ""} onChange={(e) => setForm({ ...values, telegram_url: e.target.value })} />
+            <Input value={values.telegram_url ?? ""} onChange={(e) => setForm({ ...values, telegram_url: e.target.value })} dir="ltr" />
           </div>
-          <div className="sm:col-span-2">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>{t("bill_pay_url")}</Label>
-            <Input value={values.bill_pay_url ?? ""} onChange={(e) => setForm({ ...values, bill_pay_url: e.target.value })} />
+            <Input value={values.bill_pay_url ?? ""} onChange={(e) => setForm({ ...values, bill_pay_url: e.target.value })} dir="ltr" />
           </div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
-            <Checkbox checked={values.mini_site_enabled !== false} onCheckedChange={(v) => setForm({ ...values, mini_site_enabled: Boolean(v) })} />
+            <Checkbox
+              checked={values.mini_site_enabled !== false}
+              onCheckedChange={(v) => setForm({ ...values, mini_site_enabled: Boolean(v) })}
+            />
             {t("mini_site_enabled")}
           </label>
-        </CardContent>
-      </Card>
-
-      <Button onClick={() => save.mutate()} disabled={save.isPending}>{tCommon("save")}</Button>
-    </div>
+        </div>
+      </CafeSection>
+    </CafeAdminShell>
   )
 }

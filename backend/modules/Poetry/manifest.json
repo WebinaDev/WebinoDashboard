@@ -1,0 +1,17 @@
+{
+  "slug": "poetry",
+  "name_fa": "شعر و ادبیات",
+  "name_en": "Poetry & Literature",
+  "distribution": "git",
+  "site_types": [],
+  "submodules": ["works", "poets", "collections"],
+  "admin_nav": {
+    "section": "content",
+    "order": 17
+  },
+  "public_routes": [
+    "/poetry",
+    "/poetry/:slug"
+  ],
+  "default_active": false
+}

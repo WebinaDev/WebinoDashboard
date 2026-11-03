@@ -27,7 +27,7 @@ class PricingSettings
         $calc = new PricingCalculator(self::row($tenantId)->payload ?? []);
         $out = $calc->settings();
         $channels = [];
-        foreach (MarketplacePlatforms::slugs() as $slug) {
+        foreach (MarketplacePlatforms::liveSlugs() as $slug) {
             $channels[$slug] = $calc->channelSettings($slug);
         }
         $out['platforms'] = $channels;

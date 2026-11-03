@@ -1,7 +1,7 @@
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
-import { TelegramSettingsPageClient } from "./bot-settings-shared"
+import BotWorkspacePageClient from "./bot-workspace-page-client"
 
 export default function Page({ route }: { route: ResolvedAdminRoute }) {
-  return <TelegramSettingsPageClient route={route} />
+  return <BotWorkspacePageClient route={route} />
 }

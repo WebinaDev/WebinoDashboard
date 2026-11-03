@@ -15,13 +15,26 @@ class ThemeController extends Controller
         /** @var Tenant $tenant */
         $tenant = $request->user()->tenant;
         $siteType = $tenant->site_type_slug ?? $tenant->business_type_slug;
+        $branding = ThemeCatalog::normalizeBranding($tenant->branding);
+        $rawBranding = is_array($tenant->branding) ? $tenant->branding : [];
+        $defaultSlug = ThemeCatalog::resolveDefaultSlug($siteType, $rawBranding);
+        $suggestedSlug = ThemeCatalog::suggestedDefaultForSiteType($siteType);
+
+        $themes = array_map(static function (array $theme) use ($defaultSlug, $suggestedSlug) {
+            $theme['is_default'] = $defaultSlug !== null && $theme['slug'] === $defaultSlug;
+            $theme['is_suggested'] = $suggestedSlug !== null && $theme['slug'] === $suggestedSlug;
+
+            return $theme;
+        }, ThemeCatalog::forSiteType($siteType));
 
         return response()->json([
             'data' => [
                 'site_type_slug' => $siteType,
                 'active_theme_slug' => $tenant->active_theme_slug,
-                'branding' => ThemeCatalog::normalizeBranding($tenant->branding),
-                'themes' => ThemeCatalog::forSiteType($siteType),
+                'default_theme_slug' => $defaultSlug,
+                'suggested_theme_slug' => $suggestedSlug,
+                'branding' => $branding,
+                'themes' => $themes,
                 'accents' => ThemeCatalog::ACCENTS,
                 'fonts' => ThemeCatalog::FONTS,
             ],
@@ -46,6 +59,37 @@ class ThemeController extends Controller
         return response()->json([
             'data' => [
                 'active_theme_slug' => $tenant->active_theme_slug,
+                'default_theme_slug' => ThemeCatalog::resolveDefaultSlug($siteType, is_array($tenant->branding) ? $tenant->branding : null),
+                'branding' => ThemeCatalog::normalizeBranding($tenant->branding),
+            ],
+        ]);
+    }
+
+    public function setDefault(Request $request, string $slug): \Illuminate\Http\JsonResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = $request->user()->tenant;
+        $siteType = $tenant->site_type_slug ?? $tenant->business_type_slug;
+
+        if (! ThemeCatalog::isAllowedForSiteType($slug, $siteType)) {
+            return response()->json(['message' => __('api.theme_not_allowed')], 422);
+        }
+
+        $branding = is_array($tenant->branding) ? $tenant->branding : [];
+        $branding['default_theme_slug'] = $slug;
+        $tenant->branding = $branding;
+        $activate = filter_var($request->input('activate', false), FILTER_VALIDATE_BOOLEAN);
+        if ($activate) {
+            $tenant->active_theme_slug = $slug;
+        }
+        $tenant->save();
+
+        $this->bustTenantCache($tenant);
+
+        return response()->json([
+            'data' => [
+                'active_theme_slug' => $tenant->active_theme_slug,
+                'default_theme_slug' => $slug,
                 'branding' => ThemeCatalog::normalizeBranding($tenant->branding),
             ],
         ]);
@@ -79,6 +123,9 @@ class ThemeController extends Controller
             $next = ThemeCatalog::defaultBranding();
             if (isset($existing['pwa'])) {
                 $next['pwa'] = $existing['pwa'];
+            }
+            if (filled($existing['default_theme_slug'] ?? null)) {
+                $next['default_theme_slug'] = $existing['default_theme_slug'];
             }
             $tenant->branding = $next;
         } else {

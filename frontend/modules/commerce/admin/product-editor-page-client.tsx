@@ -1,12 +1,28 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowDown, ArrowUp, LayoutTemplate, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  ExternalLink,
+  LayoutTemplate,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+} from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { useConfirm } from "@/components/ConfirmDialog"
+import {
+  ContentPublishPanel,
+  defaultProductPublishState,
+  type ContentPublishState,
+} from "@/components/content/ContentPublishPanel"
 import { SimpleSeoFields } from "@/components/seo/SimpleSeoFields"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { MediaPickerField } from "@/components/content/MediaPickerField"
@@ -19,6 +35,7 @@ import { ProductMarketplaceTab } from "./product-marketplace-tab"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { PageShell } from "@/components/PageShell"
 import { PrintProductLabelButton } from "../components/products/PrintProductLabelButton"
 import { useDashboardNav } from "@/hooks/useDashboardNav"
@@ -29,6 +46,10 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useEnumLabel } from "@/lib/enum-labels"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { formatDisplayDateTime } from "@/lib/format-date"
+import { slugFromName } from "@/lib/taxonomy-helpers"
+
+const SEO_OPEN_KEY = "webina.seo.open.product"
+const PRODUCT_STATUS_OPTIONS = ["draft", "pending", "publish", "private"]
 
 type TabId = "content" | "seo" | "pricing" | "attributes" | "downloads" | "coffee" | "marketplace" | "advanced"
 
@@ -231,8 +252,8 @@ const emptyForm: FormState = {
   video_url: "",
   video_cover_url: "",
   type: "simple",
-  status: "draft",
-  catalog_visibility: "visible",
+  status: defaultProductPublishState().status,
+  catalog_visibility: defaultProductPublishState().visibility,
   backorders: "no",
   sku: "",
   is_featured: false,
@@ -478,6 +499,9 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   const [slugEditing, setSlugEditing] = useState(false)
   const [tagInput, setTagInput] = useState("")
   const [catFilter, setCatFilter] = useState("")
+  const [newCategoryName, setNewCategoryName] = useState("")
+  const [newBrandName, setNewBrandName] = useState("")
+  const [newBrandLogo, setNewBrandLogo] = useState("")
   const [attrGroupFilter, setAttrGroupFilter] = useState<number | "all">("all")
   const [customOptionDraft, setCustomOptionDraft] = useState<Record<number, string>>({})
   const [variantPreview, setVariantPreview] = useState<{ count: number; preview: Array<{ name: string }> } | null>(
@@ -529,6 +553,15 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   }, [product])
 
   const hasVariants = variants.length > 0 || (product?.variants?.length ?? 0) > 0
+
+  const publishState: ContentPublishState = useMemo(
+    () => ({
+      ...defaultProductPublishState(),
+      status: form.status || defaultProductPublishState().status,
+      visibility: form.catalog_visibility || defaultProductPublishState().visibility,
+    }),
+    [form.status, form.catalog_visibility],
+  )
 
   useEffect(() => {
     if (!productId || !coffeeEnabled || tab !== "coffee") return
@@ -638,6 +671,45 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
       await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
       if (isNew && row?.id) window.location.assign(`/dashboard/products/${row.id}`)
       else if (productId) await queryClient.invalidateQueries({ queryKey: ["admin-product", productId] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  const createCategory = useMutation({
+    mutationFn: (name: string) =>
+      api<{ id: number; name: string }>("/api/v1/categories", {
+        method: "POST",
+        json: { name, slug: slugFromName(name) || undefined },
+      }),
+    onSuccess: async (row) => {
+      setNewCategoryName("")
+      if (row?.id) {
+        setForm((f) => ({ ...f, category_ids: f.category_ids.includes(row.id) ? f.category_ids : [...f.category_ids, row.id] }))
+      }
+      await queryClient.invalidateQueries({ queryKey: ["products-lookup"] })
+      await queryClient.invalidateQueries({ queryKey: ["admin-categories"] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
+  const createBrand = useMutation({
+    mutationFn: (input: { name: string; image_url?: string }) =>
+      api<{ id: number; name: string }>("/api/v1/brands", {
+        method: "POST",
+        json: {
+          name: input.name,
+          slug: slugFromName(input.name) || undefined,
+          image_url: input.image_url || null,
+        },
+      }),
+    onSuccess: async (row) => {
+      setNewBrandName("")
+      setNewBrandLogo("")
+      if (row?.id) {
+        setForm((f) => ({ ...f, brand_ids: f.brand_ids.includes(row.id) ? f.brand_ids : [...f.brand_ids, row.id] }))
+      }
+      await queryClient.invalidateQueries({ queryKey: ["products-lookup"] })
+      await queryClient.invalidateQueries({ queryKey: ["admin-brands"] })
     },
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
@@ -892,7 +964,7 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   const sidebar = (
     <aside className="space-y-3 lg:sticky lg:top-4 lg:self-start">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">{t("publish_box")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -912,33 +984,6 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
             </select>
             {hasVariants ? <p className="text-muted-foreground mt-1 text-xs">{t("type_locked_variants")}</p> : null}
           </div>
-          <div>
-            <Label>{t("status")}</Label>
-            <select
-              className={selectClass}
-              value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-            >
-              <option value="publish">{t("status_publish")}</option>
-              <option value="draft">{t("status_draft")}</option>
-              <option value="pending">{t("status_pending")}</option>
-              <option value="private">{t("status_private")}</option>
-            </select>
-          </div>
-          <div>
-            <Label>{t("catalog_visibility")}</Label>
-            <select
-              className={selectClass}
-              value={form.catalog_visibility}
-              onChange={(e) => setForm((f) => ({ ...f, catalog_visibility: e.target.value }))}
-            >
-              {(["visible", "catalog", "search", "hidden"] as const).map((v) => (
-                <option key={v} value={v}>
-                  {enumLabel("catalog_visibility", v)}
-                </option>
-              ))}
-            </select>
-          </div>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
               checked={form.is_featured}
@@ -946,52 +991,129 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
             />
             {t("is_featured")}
           </label>
-          <Button className="w-full" onClick={() => save.mutate()} disabled={!form.name || save.isPending}>
-            {tCommon("save")}
-          </Button>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">{t("categories")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <Input value={catFilter} onChange={(e) => setCatFilter(e.target.value)} placeholder={t("search_categories")} />
-          <div className="max-h-48 space-y-2 overflow-y-auto">
+          <div className="max-h-40 space-y-2 overflow-y-auto">
             {filteredCats.map((c) => (
-              <label key={c.id} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={form.category_ids.includes(c.id)}
-                  onCheckedChange={() => setForm((f) => ({ ...f, category_ids: toggleId(f.category_ids, c.id) }))}
-                />
-                {c.parent_id ? "— " : ""}
-                {c.name}
-              </label>
+              <div key={c.id} className="flex items-center gap-1.5 text-sm">
+                <label className="flex min-w-0 flex-1 items-center gap-2">
+                  <Checkbox
+                    checked={form.category_ids.includes(c.id)}
+                    onCheckedChange={() => setForm((f) => ({ ...f, category_ids: toggleId(f.category_ids, c.id) }))}
+                  />
+                  <span className="truncate">
+                    {c.parent_id ? "— " : ""}
+                    {c.name}
+                  </span>
+                </label>
+                {form.category_ids.includes(c.id) ? (
+                  <Button asChild type="button" size="icon" variant="ghost" className="size-7 shrink-0">
+                    <Link href={`/dashboard/product-categories/${c.id}`} title={t("edit_category_full")}>
+                      <Pencil className="size-3.5" />
+                      <span className="sr-only">{t("edit_category_full")}</span>
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
             ))}
+          </div>
+          <div className="flex gap-1.5 border-t pt-2">
+            <Input
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder={t("quick_add_category_ph")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  const name = newCategoryName.trim()
+                  if (name) createCategory.mutate(name)
+                }
+              }}
+            />
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="shrink-0"
+              disabled={!newCategoryName.trim() || createCategory.isPending}
+              onClick={() => createCategory.mutate(newCategoryName.trim())}
+              aria-label={t("quick_add_category")}
+            >
+              <Plus className="size-4" />
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">{t("brands")}</CardTitle>
         </CardHeader>
-        <CardContent className="max-h-40 space-y-2 overflow-y-auto">
-          {(lookup?.brands ?? []).map((b) => (
-            <label key={b.id} className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={form.brand_ids.includes(b.id)}
-                onCheckedChange={() => setForm((f) => ({ ...f, brand_ids: toggleId(f.brand_ids, b.id) }))}
-              />
-              {b.name}
-            </label>
-          ))}
+        <CardContent className="space-y-2">
+          <div className="max-h-36 space-y-2 overflow-y-auto">
+            {(lookup?.brands ?? []).map((b) => (
+              <div key={b.id} className="flex items-center gap-1.5 text-sm">
+                <label className="flex min-w-0 flex-1 items-center gap-2">
+                  <Checkbox
+                    checked={form.brand_ids.includes(b.id)}
+                    onCheckedChange={() => setForm((f) => ({ ...f, brand_ids: toggleId(f.brand_ids, b.id) }))}
+                  />
+                  <span className="truncate">{b.name}</span>
+                </label>
+                {form.brand_ids.includes(b.id) ? (
+                  <Button asChild type="button" size="icon" variant="ghost" className="size-7 shrink-0">
+                    <Link href={`/dashboard/brands/${b.id}`} title={t("edit_brand_full")}>
+                      <Pencil className="size-3.5" />
+                      <span className="sr-only">{t("edit_brand_full")}</span>
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2 border-t pt-2">
+            <Input
+              value={newBrandName}
+              onChange={(e) => setNewBrandName(e.target.value)}
+              placeholder={t("quick_add_brand_ph")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  const name = newBrandName.trim()
+                  if (name) createBrand.mutate({ name, image_url: newBrandLogo || undefined })
+                }
+              }}
+            />
+            <MediaPickerField
+              label={t("brand_logo")}
+              imageUrl={newBrandLogo}
+              onPick={(item) => setNewBrandLogo(item.url)}
+              onClear={() => setNewBrandLogo("")}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="w-full"
+              disabled={!newBrandName.trim() || createBrand.isPending}
+              onClick={() => createBrand.mutate({ name: newBrandName.trim(), image_url: newBrandLogo || undefined })}
+            >
+              <Plus className="size-4" />
+              {t("quick_add_brand")}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">{t("tags")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -1041,27 +1163,140 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
               <option key={tg.id} value={tg.name} />
             ))}
           </datalist>
+          <p className="text-muted-foreground text-xs">{t("tags_create_hint")}</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("featured_image")}</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("media_block")}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {form.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={form.image_url} alt="" className="max-h-36 w-full rounded-md object-cover" />
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={() => setCoverPickerOpen(true)}>
-              {t("pick_from_media")}
-            </Button>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>{t("featured_image")}</Label>
             {form.image_url ? (
-              <Button type="button" size="sm" variant="ghost" onClick={() => setForm((f) => ({ ...f, image_url: "" }))}>
-                {t("remove_image")}
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.image_url} alt="" className="aspect-video w-full rounded-lg border object-cover" />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCoverPickerOpen(true)}
+                className="text-muted-foreground hover:bg-muted/40 flex aspect-video w-full items-center justify-center rounded-lg border border-dashed text-xs"
+              >
+                {t("pick_from_media")}
+              </button>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setCoverPickerOpen(true)}>
+                {t("pick_from_media")}
               </Button>
-            ) : null}
+              {form.image_url ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setForm((f) => ({ ...f, image_url: "" }))}
+                >
+                  {t("remove_image")}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="space-y-2 border-t pt-3">
+            <div className="flex items-center justify-between gap-2">
+              <Label>{t("gallery")}</Label>
+              <Button type="button" size="sm" variant="outline" onClick={() => setGalleryPickerOpen(true)}>
+                <Plus className="size-3.5" />
+                {t("pick_from_media")}
+              </Button>
+            </div>
+            {galleryUrls.length ? (
+              <div className="grid grid-cols-3 gap-1.5">
+                {galleryUrls.map((url, gi) => (
+                  <div key={`${url}-${gi}`} className="group relative overflow-hidden rounded-md border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="aspect-square w-full object-cover" />
+                    <div className="bg-background/90 absolute inset-x-0 bottom-0 flex justify-center gap-0.5 p-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        className="rounded p-0.5"
+                        aria-label={t("gallery_move_up")}
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            gallery_text: moveGalleryUrl(
+                              f.gallery_text.split("\n").map((s) => s.trim()).filter(Boolean),
+                              gi,
+                              -1,
+                            ).join("\n"),
+                          }))
+                        }
+                      >
+                        <ArrowUp className="size-3" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded p-0.5"
+                        aria-label={t("gallery_move_down")}
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            gallery_text: moveGalleryUrl(
+                              f.gallery_text.split("\n").map((s) => s.trim()).filter(Boolean),
+                              gi,
+                              1,
+                            ).join("\n"),
+                          }))
+                        }
+                      >
+                        <ArrowDown className="size-3" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded p-0.5"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            gallery_text: f.gallery_text
+                              .split("\n")
+                              .map((s) => s.trim())
+                              .filter((u) => u && u !== url)
+                              .join("\n"),
+                          }))
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setGalleryPickerOpen(true)}
+                className="text-muted-foreground hover:bg-muted/40 flex w-full items-center justify-center rounded-lg border border-dashed px-3 py-6 text-xs"
+              >
+                {t("gallery_empty")}
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-3 border-t pt-3">
+            <MediaPickerField
+              label={t("video")}
+              accept="video"
+              imageUrl={form.video_url}
+              onPick={(item) => setForm((f) => ({ ...f, video_url: item.url }))}
+              onClear={() => setForm((f) => ({ ...f, video_url: "" }))}
+            />
+            <MediaPickerField
+              label={t("video_cover")}
+              imageUrl={form.video_cover_url}
+              onPick={(item) => setForm((f) => ({ ...f, video_cover_url: item.url }))}
+              onClear={() => setForm((f) => ({ ...f, video_cover_url: "" }))}
+            />
           </div>
         </CardContent>
       </Card>
@@ -1073,53 +1308,72 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
     <PageShell
       title={isNew ? t("new_product") : t("edit_product")}
       actions={
-        <>
-          {productId ? (
-            <Button variant="outline" asChild>
-              <Link href={`/dashboard/builder/product/${productId}`}>
+        <TooltipProvider delayDuration={200}>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {productId ? (
+              <HeaderIconLink href={`/dashboard/builder/product/${productId}`} label={t("open_builder")}>
                 <LayoutTemplate className="size-4" />
-                {t("open_builder")}
-              </Link>
-            </Button>
-          ) : null}
-          {productId ? <PrintProductLabelButton productIds={[Number(productId)]} /> : null}
-          {aiEnabled && productId ? (
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/ai-content/products">
+              </HeaderIconLink>
+            ) : null}
+            {storePermalink ? (
+              <HeaderIconLink href={storePermalink} label={t("view_on_store")} external>
+                <ExternalLink className="size-4" />
+              </HeaderIconLink>
+            ) : null}
+            <HeaderIconLink href="/dashboard/products" label={t("back_to_list")}>
+              <ArrowLeft className="size-4" />
+            </HeaderIconLink>
+            {productId ? <PrintProductLabelButton productIds={[Number(productId)]} /> : null}
+            {aiEnabled && productId ? (
+              <HeaderIconLink href="/dashboard/ai-content/products" label={t("ai_generate")}>
                 <Sparkles className="size-4" />
-                {t("ai_generate")}
-              </Link>
-            </Button>
-          ) : null}
-          {storePermalink ? (
-            <Button variant="outline" asChild>
-              <a href={storePermalink} target="_blank" rel="noreferrer">
-                {t("view_on_store")}
-              </a>
-            </Button>
-          ) : null}
-          {!isNew && productId ? (
-            <Button
-              variant="destructive"
-              disabled={trashProduct.isPending}
-              onClick={() =>
-                confirm({
-                  description: t("confirm_trash_product"),
-                  onConfirm: () => trashProduct.mutateAsync(),
-                })
+              </HeaderIconLink>
+            ) : null}
+            {!isNew && productId ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="size-8 text-destructive"
+                    disabled={trashProduct.isPending}
+                    aria-label={tCommon("delete")}
+                    onClick={() =>
+                      confirm({
+                        description: t("confirm_trash_product"),
+                        onConfirm: () => trashProduct.mutateAsync(),
+                      })
+                    }
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{tCommon("delete")}</TooltipContent>
+              </Tooltip>
+            ) : null}
+            <ContentPublishPanel
+              variant="toolbar"
+              state={publishState}
+              onChange={(patch) =>
+                setForm((f) => ({
+                  ...f,
+                  ...(patch.status != null ? { status: patch.status } : {}),
+                  ...(patch.visibility != null ? { catalog_visibility: patch.visibility } : {}),
+                }))
               }
-            >
-              <Trash2 className="size-4" />
-              {tCommon("delete")}
-            </Button>
-          ) : null}
-          <Button variant="outline" asChild>
-            <Link href="/dashboard/products">{t("back_to_list")}</Link>
-          </Button>
-          <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>
-            {tCommon("save")}
-          </Button>
-        </>
+              onSave={() => void save.mutateAsync()}
+              isSaving={save.isPending}
+              saveDisabled={!form.name.trim()}
+              locale={locale}
+              showSchedule={false}
+              showDiscussion={false}
+              statusOptions={PRODUCT_STATUS_OPTIONS}
+              statusEnumGroup="product_status"
+              visibilityMode="catalog"
+            />
+          </div>
+        </TooltipProvider>
       }
     >
       {message ? <p className="text-sm text-green-600">{message}</p> : null}
@@ -1222,144 +1476,47 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                       onChange={(html) => setForm((f) => ({ ...f, description: html }))}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <Label>{t("gallery")}</Label>
-                      <Button type="button" size="sm" variant="outline" onClick={() => setGalleryPickerOpen(true)}>
-                        {t("pick_from_media")}
-                      </Button>
-                    </div>
-                    {galleryUrls.length ? (
-                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                        {galleryUrls.map((url, gi) => (
-                          <div key={`${url}-${gi}`} className="relative overflow-hidden rounded-md border">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={url} alt="" className="aspect-square w-full object-cover" />
-                            <div className="bg-background/90 absolute end-1 top-1 flex flex-col gap-0.5 rounded p-0.5">
-                              <button
-                                type="button"
-                                className="rounded px-1 text-xs"
-                                aria-label={t("gallery_move_up")}
-                                onClick={() =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    gallery_text: moveGalleryUrl(
-                                      f.gallery_text.split("\n").map((s) => s.trim()).filter(Boolean),
-                                      gi,
-                                      -1,
-                                    ).join("\n"),
-                                  }))
-                                }
-                              >
-                                <ArrowUp className="size-3" />
-                              </button>
-                              <button
-                                type="button"
-                                className="rounded px-1 text-xs"
-                                aria-label={t("gallery_move_down")}
-                                onClick={() =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    gallery_text: moveGalleryUrl(
-                                      f.gallery_text.split("\n").map((s) => s.trim()).filter(Boolean),
-                                      gi,
-                                      1,
-                                    ).join("\n"),
-                                  }))
-                                }
-                              >
-                                <ArrowDown className="size-3" />
-                              </button>
-                              <button
-                                type="button"
-                                className="rounded px-1 text-xs"
-                                onClick={() =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    gallery_text: f.gallery_text
-                                      .split("\n")
-                                      .map((s) => s.trim())
-                                      .filter((u) => u && u !== url)
-                                      .join("\n"),
-                                  }))
-                                }
-                              >
-                                ×
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-xs">{t("gallery_empty")}</p>
-                    )}
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <MediaPickerField
-                      label={t("video_url")}
-                      accept="video"
-                      imageUrl={form.video_url}
-                      onPick={(item) => setForm((f) => ({ ...f, video_url: item.url }))}
-                      onClear={() => setForm((f) => ({ ...f, video_url: "" }))}
-                    />
-                    <MediaPickerField
-                      label={t("video_cover_url")}
-                      imageUrl={form.video_cover_url}
-                      onPick={(item) => setForm((f) => ({ ...f, video_cover_url: item.url }))}
-                      onClear={() => setForm((f) => ({ ...f, video_cover_url: "" }))}
-                    />
-                  </div>
                 </CardContent>
               </Card>
           ) : null}
 
           {tab === "seo" ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("tab_seo")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <SimpleSeoFields
-                  seo={{ focus_keyword: form.seo_keyword, title: form.seo_title, description: form.seo_description }}
-                  onChange={(seo) =>
-                    setForm((f) => ({
-                      ...f,
-                      seo_keyword: seo.focus_keyword ?? "",
-                      seo_title: seo.title ?? "",
-                      seo_description: seo.description ?? "",
-                    }))
-                  }
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <Label>{t("seo_robots")}</Label>
-                    <select
-                      className={selectClass}
-                      value={form.seo_robots}
-                      onChange={(e) => setForm((f) => ({ ...f, seo_robots: e.target.value }))}
-                    >
-                      <option value="index">{t("seo_robots_index")}</option>
-                      <option value="noindex">{t("seo_robots_noindex")}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label>{t("seo_og_title")}</Label>
-                    <Input
-                      value={form.seo_og_title}
-                      onChange={(e) => setForm((f) => ({ ...f, seo_og_title: e.target.value }))}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <MediaPickerField
-                      label={t("seo_og_image")}
-                      imageUrl={form.seo_og_image}
-                      onPick={(item) => setForm((f) => ({ ...f, seo_og_image: item.url }))}
-                      onClear={() => setForm((f) => ({ ...f, seo_og_image: "" }))}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              <SimpleSeoFields
+                seo={{
+                  focus_keyword: form.seo_keyword,
+                  title: form.seo_title,
+                  description: form.seo_description,
+                  og_title: form.seo_og_title,
+                  og_image: form.seo_og_image,
+                  schema_type: "Product",
+                }}
+                onChange={(seo) =>
+                  setForm((f) => ({
+                    ...f,
+                    seo_keyword: seo.focus_keyword ?? "",
+                    seo_title: seo.title ?? "",
+                    seo_description: seo.description ?? "",
+                    seo_og_title: seo.og_title ?? "",
+                    seo_og_image: seo.og_image ?? "",
+                  }))
+                }
+                previewUrl={storePermalink}
+                collapsible
+                storageKey={SEO_OPEN_KEY}
+              />
+              <div className="rounded-xl border p-4">
+                <Label>{t("seo_robots")}</Label>
+                <select
+                  className={`${selectClass} mt-1 max-w-xs`}
+                  value={form.seo_robots}
+                  onChange={(e) => setForm((f) => ({ ...f, seo_robots: e.target.value }))}
+                >
+                  <option value="index">{t("seo_robots_index")}</option>
+                  <option value="noindex">{t("seo_robots_noindex")}</option>
+                </select>
+              </div>
+            </div>
           ) : null}
 
           {tab === "pricing" ? (
@@ -1685,14 +1842,14 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                     onFilter={setAttrGroupFilter}
                     filter={attrGroupFilter}
                   />
-                  {(lookup?.attributes ?? [])
-                    .filter((attr) => {
-                      if (attrGroupFilter === "all") return true
-                      const group = attrGroups.find((g) => g.id === attrGroupFilter)
-                      if (!group?.attribute_ids?.length) return true
-                      return group.attribute_ids.includes(attr.id)
-                    })
-                    .map((attr) => {
+                  {groupedProductAttributes(lookup?.attributes ?? [], attrGroups, attrGroupFilter).map((section) => (
+                    <div key={section.key} className="space-y-2">
+                      {section.title ? (
+                        <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                          {section.title === "__ungrouped__" ? t("ungrouped_attributes") : section.title}
+                        </p>
+                      ) : null}
+                      {section.attrs.map((attr) => {
                     const assigned = assignedIds.has(attr.id)
                     const row = attrAssigns.find((a) => a.id === attr.id)
                     const showSwatches = assigned && row && attr.type && SWATCH_TYPES.has(attr.type)
@@ -1844,6 +2001,8 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
                       </div>
                     )
                   })}
+                    </div>
+                  ))}
                   {isNew ? (
                     <p className="text-muted-foreground text-sm">{t("save_first_attrs")}</p>
                   ) : null}
@@ -2342,6 +2501,68 @@ export default function ProductEditorPageClient({ route }: { route: ResolvedAdmi
   )
 }
 
+function groupedProductAttributes(
+  attributes: LookupAttr[],
+  groups: AttributeGroup[],
+  filter: number | "all",
+): Array<{ key: string; title: string | null; attrs: LookupAttr[] }> {
+  if (filter !== "all") {
+    const group = groups.find((g) => g.id === filter)
+    const attrs = attributes.filter((attr) => {
+      if (!group?.attribute_ids?.length) return true
+      return group.attribute_ids.includes(attr.id)
+    })
+    return [{ key: `group-${filter}`, title: group?.name ?? null, attrs }]
+  }
+
+  const claimed = new Set<number>()
+  const sections: Array<{ key: string; title: string | null; attrs: LookupAttr[] }> = []
+  for (const group of groups) {
+    const ids = group.attribute_ids ?? []
+    if (!ids.length) continue
+    const attrs = attributes.filter((a) => ids.includes(a.id))
+    if (!attrs.length) continue
+    attrs.forEach((a) => claimed.add(a.id))
+    sections.push({ key: `group-${group.id}`, title: group.name, attrs })
+  }
+  const ungrouped = attributes.filter((a) => !claimed.has(a.id))
+  if (ungrouped.length) {
+    sections.push({ key: "ungrouped", title: sections.length ? "__ungrouped__" : null, attrs: ungrouped })
+  }
+  return sections.length ? sections : [{ key: "all", title: null, attrs: attributes }]
+}
+
+function HeaderIconLink({
+  href,
+  label,
+  children,
+  external,
+}: {
+  href: string
+  label: string
+  children: ReactNode
+  external?: boolean
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button asChild type="button" size="icon" variant="outline" className="size-8 shrink-0">
+          {external ? (
+            <a href={href} target="_blank" rel="noreferrer" aria-label={label}>
+              {children}
+            </a>
+          ) : (
+            <Link href={href} aria-label={label}>
+              {children}
+            </Link>
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 function AttributeGroupsPanel({
   groups,
   assignedIds,
@@ -2370,7 +2591,12 @@ function AttributeGroupsPanel({
 
   return (
     <div className="space-y-2 rounded-lg border p-3">
-      <Label>{t("attribute_groups")}</Label>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Label>{t("attribute_groups")}</Label>
+        <Button asChild type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs">
+          <Link href="/dashboard/attributes">{t("manage_attribute_groups")}</Link>
+        </Button>
+      </div>
       <select className={selectClass} value={filter === "all" ? "all" : String(filter)} onChange={(e) => {
         const v = e.target.value
         onFilter(v === "all" ? "all" : Number(v))

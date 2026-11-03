@@ -2,23 +2,25 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
-import { useState } from "react"
 import { Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
 
 import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import type { CafeGalleryImage, CafeGallerySettings } from "@/themes/cafe-starter/types"
 import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
 
-export default function GalleryPageClient({ route }: { route: ResolvedAdminRoute }) {
+import { CafeAdminShell, CafeEmptyState, CafeSection } from "./cafe-admin-ui"
+
+export default function GalleryPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.gallery")
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
-  const [message, setMessage] = useState<string | null>(null)
   const [draft, setDraft] = useState<CafeGalleryImage>({ url: "", caption_fa: "", caption_en: "", sort_order: 0 })
 
   const { data, isLoading } = useQuery({
@@ -32,9 +34,10 @@ export default function GalleryPageClient({ route }: { route: ResolvedAdminRoute
   const save = useMutation({
     mutationFn: () => api<CafeGallerySettings>("/api/v1/cafe/gallery-settings", { method: "PATCH", json: values }),
     onSuccess: async () => {
-      setMessage(t("saved"))
+      toast.success(t("saved"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-gallery-settings"] })
     },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   function addImage() {
@@ -50,17 +53,19 @@ export default function GalleryPageClient({ route }: { route: ResolvedAdminRoute
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
-      {isLoading ? <p>{tCommon("loading")}</p> : null}
-      {message ? <p className="text-sm text-green-600">{message}</p> : null}
+    <CafeAdminShell
+      title={t("title")}
+      description={t("description")}
+      actions={
+        <Button onClick={() => save.mutate()} disabled={save.isPending || isLoading}>
+          {tCommon("save")}
+        </Button>
+      }
+    >
+      {isLoading ? <p className="text-muted-foreground text-sm">{tCommon("loading")}</p> : null}
 
-      <Card>
-        <CardHeader><CardTitle>{t("add_heading")}</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+      <CafeSection title={t("add_heading")}>
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <MediaPickerField
               label={t("image_url")}
@@ -69,43 +74,54 @@ export default function GalleryPageClient({ route }: { route: ResolvedAdminRoute
               onClear={() => setDraft((d) => ({ ...d, url: "" }))}
             />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("caption_fa")}</Label>
             <Input value={draft.caption_fa ?? ""} onChange={(e) => setDraft((d) => ({ ...d, caption_fa: e.target.value }))} />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("caption_en")}</Label>
             <Input value={draft.caption_en ?? ""} onChange={(e) => setDraft((d) => ({ ...d, caption_en: e.target.value }))} />
           </div>
-          <Button onClick={addImage} className="sm:col-span-2">
-            <Plus className="mr-2 size-4" />
-            {t("add_image")}
-          </Button>
-        </CardContent>
-      </Card>
+          <div className="sm:col-span-2">
+            <Button type="button" variant="outline" onClick={addImage} disabled={!draft.url.trim()}>
+              <Plus className="me-2 size-4" />
+              {t("add_image")}
+            </Button>
+          </div>
+        </div>
+      </CafeSection>
 
-      <Card>
-        <CardHeader><CardTitle>{t("images_heading")}</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
-          {values.images.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("empty")}</p>
-          ) : (
-            values.images.map((img, index) => (
-              <div key={`${img.url}-${index}`} className="flex items-center justify-between rounded-lg border p-3 text-sm">
-                <div>
-                  <p className="font-medium">{img.url}</p>
-                  <p className="text-muted-foreground text-xs">{img.caption_fa || img.caption_en}</p>
+      <CafeSection title={t("images_heading")}>
+        {values.images.length === 0 ? (
+          <CafeEmptyState message={t("empty")} />
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {values.images.map((img, index) => (
+              <li key={`${img.url}-${index}`} className="overflow-hidden rounded-lg border">
+                <div className="bg-muted aspect-[4/3] overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={img.caption_fa || img.caption_en || ""} className="size-full object-cover" />
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => removeImage(index)}>
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      <Button onClick={() => save.mutate()} disabled={save.isPending}>{tCommon("save")}</Button>
-    </div>
+                <div className="flex items-start justify-between gap-2 p-3">
+                  <p className="text-muted-foreground line-clamp-2 text-xs">
+                    {img.caption_fa || img.caption_en || "—"}
+                  </p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-8 shrink-0"
+                    title={t("delete_action")}
+                    aria-label={t("delete_action")}
+                    onClick={() => removeImage(index)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CafeSection>
+    </CafeAdminShell>
   )
 }

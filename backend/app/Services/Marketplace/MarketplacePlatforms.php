@@ -11,17 +11,60 @@ final class MarketplacePlatforms
 
     public const FEED = 'feed';
 
-    /** @var array<string, array{label: string, label_en: string, kind: string, pricing_tab: string, orders: bool, create: bool, default_unit: string}> */
+    public const LIVE = 'live';
+
+    public const SCAFFOLD = 'scaffold';
+
+    public const CAT_SHOPS = 'shops';
+
+    public const CAT_SEARCH = 'search';
+
+    public const CAT_CLASSIFIEDS = 'classifieds';
+
+    /**
+     * Hub category metadata (display order).
+     *
+     * @var array<string, array{label: string, label_en: string}>
+     */
+    public const CATEGORIES = [
+        self::CAT_SHOPS => ['label' => 'فروشگاه‌های شخص‌ثالث', 'label_en' => 'Third-party shops'],
+        self::CAT_SEARCH => ['label' => 'موتورهای جستجوی کالا', 'label_en' => 'Shopping search'],
+        self::CAT_CLASSIFIEDS => ['label' => 'آگهی‌ها', 'label_en' => 'Classifieds'],
+    ];
+
+    /**
+     * @var array<string, array{
+     *   label: string,
+     *   label_en: string,
+     *   kind: string,
+     *   category: string,
+     *   status: string,
+     *   pricing_tab: string,
+     *   orders: bool,
+     *   create: bool,
+     *   default_unit: string
+     * }>
+     */
     public const CATALOG = [
-        'basalam' => ['label' => 'باسلام', 'label_en' => 'Basalam', 'kind' => self::API, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => true, 'default_unit' => 'rial'],
-        'digikala' => ['label' => 'دیجی‌کالا', 'label_en' => 'Digikala', 'kind' => self::API, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => false, 'default_unit' => 'rial'],
-        'snappshop' => ['label' => 'اسنپ‌شاپ', 'label_en' => 'SnappShop', 'kind' => self::API, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => false, 'default_unit' => 'toman'],
-        'tapsishop' => ['label' => 'تپسی‌شاپ', 'label_en' => 'TapsiShop', 'kind' => self::API, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => false, 'default_unit' => 'toman'],
-        'technolife' => ['label' => 'تکنولایف', 'label_en' => 'Technolife', 'kind' => self::API, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => false, 'default_unit' => 'toman'],
-        'emalls' => ['label' => 'ایمالز', 'label_en' => 'Emalls', 'kind' => self::FEED, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
-        'torob' => ['label' => 'ترب', 'label_en' => 'Torob', 'kind' => self::FEED, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
-        'zarehbin' => ['label' => 'ذره‌بین', 'label_en' => 'Zarehbin', 'kind' => self::FEED, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
-        'snapppay-search' => ['label' => 'جستجوی اسنپ‌پی', 'label_en' => 'SnappPay Search', 'kind' => self::FEED, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        // Third-party shops
+        'digikala' => ['label' => 'دیجی‌کالا', 'label_en' => 'Digikala', 'kind' => self::API, 'category' => self::CAT_SHOPS, 'status' => self::LIVE, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => false, 'default_unit' => 'rial'],
+        'basalam' => ['label' => 'باسلام', 'label_en' => 'Basalam', 'kind' => self::API, 'category' => self::CAT_SHOPS, 'status' => self::LIVE, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => true, 'default_unit' => 'rial'],
+        'snappshop' => ['label' => 'اسنپ‌شاپ', 'label_en' => 'SnappShop', 'kind' => self::API, 'category' => self::CAT_SHOPS, 'status' => self::LIVE, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => false, 'default_unit' => 'toman'],
+        'tapsishop' => ['label' => 'تپسی‌شاپ', 'label_en' => 'TapsiShop', 'kind' => self::API, 'category' => self::CAT_SHOPS, 'status' => self::LIVE, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => false, 'default_unit' => 'toman'],
+        'tapsifood' => ['label' => 'تپسی‌فود', 'label_en' => 'TapsiFood', 'kind' => self::API, 'category' => self::CAT_SHOPS, 'status' => self::SCAFFOLD, 'pricing_tab' => 'marketplaces', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        'technolife' => ['label' => 'تکنولایف', 'label_en' => 'Technolife', 'kind' => self::API, 'category' => self::CAT_SHOPS, 'status' => self::LIVE, 'pricing_tab' => 'marketplaces', 'orders' => true, 'create' => false, 'default_unit' => 'toman'],
+        'snappfood' => ['label' => 'اسنپ‌فود', 'label_en' => 'SnappFood', 'kind' => self::API, 'category' => self::CAT_SHOPS, 'status' => self::SCAFFOLD, 'pricing_tab' => 'marketplaces', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        'snappmarket' => ['label' => 'اسنپ‌مارکت', 'label_en' => 'SnappMarket', 'kind' => self::API, 'category' => self::CAT_SHOPS, 'status' => self::SCAFFOLD, 'pricing_tab' => 'marketplaces', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        // Shopping search
+        'torob' => ['label' => 'ترب', 'label_en' => 'Torob', 'kind' => self::FEED, 'category' => self::CAT_SEARCH, 'status' => self::LIVE, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        'emalls' => ['label' => 'ایمالز', 'label_en' => 'Emalls', 'kind' => self::FEED, 'category' => self::CAT_SEARCH, 'status' => self::LIVE, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        'shopino' => ['label' => 'شاپینو', 'label_en' => 'Shopino', 'kind' => self::FEED, 'category' => self::CAT_SEARCH, 'status' => self::SCAFFOLD, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        'zarehbin' => ['label' => 'ذره‌بین', 'label_en' => 'Zarehbin', 'kind' => self::FEED, 'category' => self::CAT_SEARCH, 'status' => self::LIVE, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        'snapppay-search' => ['label' => 'جستجوی اسنپ‌پی', 'label_en' => 'SnappPay Search', 'kind' => self::FEED, 'category' => self::CAT_SEARCH, 'status' => self::LIVE, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        'passazh' => ['label' => 'پاساژ', 'label_en' => 'Passazh', 'kind' => self::FEED, 'category' => self::CAT_SEARCH, 'status' => self::SCAFFOLD, 'pricing_tab' => 'search-engines', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        // Classifieds
+        'divar' => ['label' => 'دیوار', 'label_en' => 'Divar', 'kind' => self::API, 'category' => self::CAT_CLASSIFIEDS, 'status' => self::SCAFFOLD, 'pricing_tab' => 'marketplaces', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
+        'sheypoor' => ['label' => 'شیپور', 'label_en' => 'Sheypoor', 'kind' => self::API, 'category' => self::CAT_CLASSIFIEDS, 'status' => self::SCAFFOLD, 'pricing_tab' => 'marketplaces', 'orders' => false, 'create' => false, 'default_unit' => 'toman'],
     ];
 
     /** Credential keys that are never returned to the client. */
@@ -34,7 +77,14 @@ final class MarketplacePlatforms
         'emalls' => [],
         'zarehbin' => [],
         'snapppay-search' => [],
-        'torob' => ['webhook_token', 'shop_api_token'],
+        'torob' => ['webhook_token'],
+        'tapsifood' => [],
+        'snappfood' => [],
+        'snappmarket' => [],
+        'shopino' => [],
+        'passazh' => [],
+        'divar' => [],
+        'sheypoor' => [],
     ];
 
     /** @return list<string> */
@@ -44,9 +94,15 @@ final class MarketplacePlatforms
     }
 
     /** @return list<string> */
+    public static function liveSlugs(): array
+    {
+        return array_keys(array_filter(self::CATALOG, fn ($p) => ($p['status'] ?? self::LIVE) === self::LIVE));
+    }
+
+    /** @return list<string> */
     public static function apiSlugs(): array
     {
-        return array_keys(array_filter(self::CATALOG, fn ($p) => $p['kind'] === self::API));
+        return array_keys(array_filter(self::CATALOG, fn ($p) => $p['kind'] === self::API && ($p['status'] ?? self::LIVE) === self::LIVE));
     }
 
     public static function exists(string $platform): bool
@@ -59,6 +115,21 @@ final class MarketplacePlatforms
         return (self::CATALOG[$platform]['kind'] ?? null) === self::FEED;
     }
 
+    public static function isLive(string $platform): bool
+    {
+        return (self::CATALOG[$platform]['status'] ?? self::LIVE) === self::LIVE;
+    }
+
+    public static function isScaffold(string $platform): bool
+    {
+        return (self::CATALOG[$platform]['status'] ?? self::LIVE) === self::SCAFFOLD;
+    }
+
+    public static function category(string $platform): string
+    {
+        return self::CATALOG[$platform]['category'] ?? self::CAT_SHOPS;
+    }
+
     public static function label(string $platform, string $locale = 'fa'): string
     {
         $row = self::CATALOG[$platform] ?? null;
@@ -67,6 +138,19 @@ final class MarketplacePlatforms
         }
 
         return $locale === 'en' ? $row['label_en'] : $row['label'];
+    }
+
+    /**
+     * @return list<array{id: string, label: string, label_en: string}>
+     */
+    public static function categoryRows(): array
+    {
+        $out = [];
+        foreach (self::CATEGORIES as $id => $meta) {
+            $out[] = ['id' => $id, 'label' => $meta['label'], 'label_en' => $meta['label_en']];
+        }
+
+        return $out;
     }
 
     /** @return array<string, mixed> */

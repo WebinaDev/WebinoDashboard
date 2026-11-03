@@ -9,7 +9,6 @@ import { toast } from "sonner"
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -27,6 +26,7 @@ import {
   type SmsAttachedNumber,
 } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsPreviewBubble, SmsSection, SmsTwoColumn } from "../lib/sms-admin-ui"
 
 type SendMode = "webservice" | "pattern" | "p2p"
 type MessageKind = "transactional" | "marketing"
@@ -245,12 +245,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         <SmsServiceBanner message={String(numbersQ.data?.message ?? "")} onRetry={() => void numbersQ.refetch()} />
       ) : null}
 
-      <Card className="max-w-xl shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{t("sendTitle")}</CardTitle>
-          <CardDescription>{t("lineHint")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SmsTwoColumn>
+        <SmsSection title={t("sendTitle")} description={t("lineHint")}>
           <fieldset disabled={unavailable} className="space-y-4">
             <div className="space-y-1">
               <Label>{t("messageKind")}</Label>
@@ -386,8 +382,25 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </Button>
             </div>
           </fieldset>
-        </CardContent>
-      </Card>
+        </SmsSection>
+
+        <SmsSection title={t("preview")}>
+          <SmsPreviewBubble
+            empty={t("previewEmpty")}
+            meta={
+              from || phone || phones ? (
+                <span dir="ltr">
+                  {from || "—"} → {mode === "p2p" ? phones.split(/[\s,]+/).filter(Boolean)[0] || "…" : phone || "—"}
+                </span>
+              ) : null
+            }
+          >
+            {mode === "pattern"
+              ? selectedPattern?.pattern_message || patternCode || undefined
+              : message.trim() || undefined}
+          </SmsPreviewBubble>
+        </SmsSection>
+      </SmsTwoColumn>
     </SmsPanelShell>
   )
 }

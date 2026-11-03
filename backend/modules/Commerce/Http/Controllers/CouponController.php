@@ -5,12 +5,29 @@ namespace Modules\Commerce\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
 use App\Services\Coupons\CouponService;
+use App\Services\Modules\ModuleSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class CouponController extends Controller
 {
-    public function __construct(protected CouponService $coupons) {}
+    public const STOREFRONT_KEY = 'coupon_storefront';
+
+    /** @return array{single_coupon: bool, cart_chooser: bool, progress_widget: bool, auto_apply: bool} */
+    public static function storefrontDefaults(): array
+    {
+        return [
+            'single_coupon' => true,
+            'cart_chooser' => true,
+            'progress_widget' => true,
+            'auto_apply' => true,
+        ];
+    }
+
+    public function __construct(
+        protected CouponService $coupons,
+        protected ModuleSettingsService $moduleSettings,
+    ) {}
 
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -56,20 +73,120 @@ class CouponController extends Controller
     public function offerTemplates(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
-        $owned = Coupon::query()->where('tenant_id', $tid)->where('status', '!=', 'trash')->get(['id', 'restrictions'])
+        $ownedIds = Coupon::query()->where('tenant_id', $tid)->where('status', '!=', 'trash')->get(['id', 'restrictions'])
             ->mapWithKeys(fn ($c) => [($c->restrictions['offer_template'] ?? '') => $c->id])->filter();
-        $rows = array_map(fn ($t) => $t + ['coupon_id' => $owned[$t['id']] ?? null], \App\Services\Coupons\OfferTemplates::all());
+        $owned = [];
+        foreach (\App\Services\Coupons\OfferTemplates::all() as $t) {
+            $owned[$t['id']] = isset($ownedIds[$t['id']]);
+        }
+        $rows = array_map(fn ($t) => $t + ['coupon_id' => $ownedIds[$t['id']] ?? null], \App\Services\Coupons\OfferTemplates::all());
 
-        return response()->json(['data' => $rows]);
+        return response()->json([
+            'data' => $rows,
+            'items' => $rows,
+            'owned' => $owned,
+        ]);
     }
 
     public function fromTemplate(Request $request): \Illuminate\Http\JsonResponse
     {
         $data = $request->validate(['template_id' => ['required', 'string', 'max:64']]);
-        $coupon = \App\Services\Coupons\OfferTemplates::createFor((int) $request->user()->tenant_id, $data['template_id']);
+        $tid = (int) $request->user()->tenant_id;
+        $already = Coupon::query()->where('tenant_id', $tid)->where('status', '!=', 'trash')
+            ->whereJsonContains('restrictions->offer_template', $data['template_id'])
+            ->exists();
+        $coupon = \App\Services\Coupons\OfferTemplates::createFor($tid, $data['template_id']);
         abort_if(! $coupon, 404);
 
-        return response()->json(['data' => $coupon], 201);
+        return response()->json(['data' => $coupon, 'already' => $already, 'coupon' => $coupon], $already ? 200 : 201);
+    }
+
+    /** Offer / coupon-builder coupons (auto-apply, conditioned, or tagged is_offer). */
+    public function offers(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $items = Coupon::query()
+            ->where('tenant_id', $tid)
+            ->where('status', '!=', 'trash')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(function (Coupon $c) {
+                $r = is_array($c->restrictions) ? $c->restrictions : [];
+
+                return (bool) $c->auto_apply
+                    || (! empty($c->condition_type) && $c->condition_type !== 'none')
+                    || ! empty($r['is_offer'])
+                    || ! empty($r['offer_template']);
+            })
+            ->map(function (Coupon $c) {
+                $tpl = is_string($c->restrictions['offer_template'] ?? null) ? $c->restrictions['offer_template'] : null;
+                $title = $c->description ?: $c->code;
+                $condition = $c->condition_type && $c->condition_type !== 'none'
+                    ? trim(($c->condition_type).' '.($c->condition_value ?? ''))
+                    : $c->code;
+                if ($tpl) {
+                    $found = \App\Services\Coupons\OfferTemplates::find($tpl);
+                    if ($found) {
+                        $title = $found['title'];
+                        $condition = $found['condition_label'];
+                    }
+                }
+
+                return [
+                    'id' => $c->id,
+                    'code' => $c->code,
+                    'type' => $c->type,
+                    'amount' => (string) $c->amount,
+                    'title' => $title,
+                    'condition_label' => $condition,
+                    'description' => $c->description,
+                    'free_shipping' => (bool) $c->free_shipping,
+                    'max_discount' => $c->max_discount_minor,
+                    'shipping_percent' => $c->shipping_percent,
+                    'template_id' => $tpl,
+                    'auto_apply' => (bool) $c->auto_apply,
+                ];
+            })
+            ->values();
+
+        return response()->json(['data' => ['items' => $items], 'items' => $items]);
+    }
+
+    public function storefrontSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $settings = $this->moduleSettings->get(
+            (int) $request->user()->tenant_id,
+            'marketing',
+            self::STOREFRONT_KEY,
+            self::storefrontDefaults()
+        );
+
+        return response()->json(['data' => array_merge(self::storefrontDefaults(), $settings)]);
+    }
+
+    public function updateStorefrontSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'single_coupon' => ['sometimes', 'boolean'],
+            'cart_chooser' => ['sometimes', 'boolean'],
+            'progress_widget' => ['sometimes', 'boolean'],
+            'auto_apply' => ['sometimes', 'boolean'],
+        ]);
+        $current = $this->moduleSettings->get(
+            (int) $request->user()->tenant_id,
+            'marketing',
+            self::STOREFRONT_KEY,
+            self::storefrontDefaults()
+        );
+        $merged = array_merge(self::storefrontDefaults(), $current, $data);
+        $saved = $this->moduleSettings->put(
+            (int) $request->user()->tenant_id,
+            'marketing',
+            self::STOREFRONT_KEY,
+            $merged
+        );
+
+        return response()->json(['data' => array_merge(self::storefrontDefaults(), $saved)]);
     }
 
     public function show(Request $request, Coupon $coupon): \Illuminate\Http\JsonResponse

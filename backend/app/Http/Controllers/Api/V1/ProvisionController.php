@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Support\ImpersonationNextPath;
 use App\Support\ImpersonationPayload;
 use App\Services\Modules\ModuleGitInstaller;
-use App\Services\Provision\ProvisionContentSeeder;
+use App\Services\Provision\SiteTypeDemoSeeder;
 use App\Services\Webino\WebinoLicenseClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
 
 class ProvisionController extends Controller
 {
-    public function bootstrap(Request $request, WebinoLicenseClient $client, ModuleGitInstaller $installer, ProvisionContentSeeder $contentSeeder, TenantActivationService $activations): \Illuminate\Http\JsonResponse
+    public function bootstrap(Request $request, WebinoLicenseClient $client, ModuleGitInstaller $installer, SiteTypeDemoSeeder $contentSeeder, TenantActivationService $activations): \Illuminate\Http\JsonResponse
     {
         $this->assertProvisionAuth($request);
 
@@ -54,44 +54,67 @@ class ProvisionController extends Controller
             ? $seed['alias_subdomain']
             : null;
 
-        $tenant->fill([
+        $wasCompleted = (bool) $tenant->setup_completed;
+        $fill = [
             'name' => $seed['tenant_name'] ?? $tenant->name,
             'store_display_name' => $seed['store_display_name'] ?? $tenant->store_display_name,
             'default_currency' => $seed['default_currency'] ?? $tenant->default_currency ?? 'IRT',
             'domain' => $seed['domain'] ?? $tenant->domain,
             'domain_aliases' => $domainAliases ?? $tenant->domain_aliases,
             'alias_subdomain' => $aliasSubdomain ?? $tenant->alias_subdomain ?? 'contact',
-            'product' => $seed['product'] ?? config('webino_runtime.tenant_product', 'webinodashboard'),
-            'business_category_slug' => $seed['business_category_slug'] ?? null,
-            'business_type_slug' => $seed['business_type_slug'] ?? null,
-            'site_type_slug' => $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? null,
-            'vertical' => $seed['vertical'] ?? null,
-            'package_sku' => $seed['package_sku'] ?? null,
-            'theme_preset' => $seed['theme_preset'] ?? null,
+            'product' => $seed['product'] ?? env('TENANT_PRODUCT', 'webinodashboard'),
+            'business_category_slug' => $seed['business_category_slug'] ?? $tenant->business_category_slug,
+            'business_type_slug' => $seed['business_type_slug'] ?? $tenant->business_type_slug,
+            'site_type_slug' => $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? $tenant->site_type_slug,
+            'vertical' => $seed['vertical'] ?? $tenant->vertical,
+            'package_sku' => $seed['package_sku'] ?? $tenant->package_sku,
+            'theme_preset' => $seed['theme_preset'] ?? $tenant->theme_preset,
             'active_theme_slug' => $seed['active_theme_slug'] ?? $tenant->active_theme_slug,
-            'nav_preset' => $seed['nav_preset'] ?? null,
-            'branding' => $seed['branding'] ?? null,
+            'nav_preset' => $seed['nav_preset'] ?? $tenant->nav_preset,
             'home_blocks' => $seed['home_blocks'] ?? $tenant->home_blocks,
-            'crm_account_id' => $seed['crm_account_id'] ?? null,
-            'setup_completed' => false,
-        ]);
-        $provisionToken = (string) ($seed['provision_token'] ?? config('webino_runtime.tenant_provision_token', '') ?: '');
+            'crm_account_id' => $seed['crm_account_id'] ?? $tenant->crm_account_id,
+        ];
+        // Never reopen onboarding or wipe branding on re-provision of a live site.
+        if (! $wasCompleted) {
+            $fill['branding'] = $seed['branding'] ?? $tenant->branding;
+            $fill['setup_completed'] = false;
+        } elseif (array_key_exists('branding', $seed) && is_array($seed['branding'])) {
+            // Merge non-destructive branding keys only when explicitly provided.
+            $current = is_array($tenant->branding) ? $tenant->branding : [];
+            $fill['branding'] = array_replace($current, $seed['branding']);
+        }
+        $tenant->fill($fill);
+        $provisionToken = (string) ($seed['provision_token'] ?? env('TENANT_PROVISION_TOKEN', '') ?: '');
         if ($provisionToken !== '') {
             $tenant->provision_token = $provisionToken;
         }
         $tenant->save();
 
-        $contentSeeder->seed($tenant, $seed);
-
-        $siteType = $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? null;
+        $siteType = $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? $tenant->site_type_slug ?? null;
+        // Capture before applySiteType marks demo_seeded_at so provision seed overrides can still run once.
+        $allowDemoSeed = $contentSeeder->shouldAutoSeed($tenant);
         if (is_string($siteType) && $siteType !== '') {
+            $applied = false;
             try {
                 $activations->applySiteType($tenant, $siteType);
+                $applied = true;
             } catch (\Throwable) {
-                /* fallback to license sync */
+                /* fallback to license sync below */
             }
-        } elseif (filled($tenant->domain)) {
-            $this->syncEntitlements($tenant, $client, $installer, $activations);
+            // Re-apply with TENANT seed overrides only for first provision (idempotent firstOrCreate).
+            if ($allowDemoSeed) {
+                $contentSeeder->seed($tenant->fresh(), $siteType, $seed, true);
+            }
+            if (! $applied && filled($tenant->domain)) {
+                $this->syncEntitlements($tenant, $client, $installer, $activations);
+            }
+        } else {
+            if ($allowDemoSeed) {
+                $contentSeeder->seed($tenant, null, $seed);
+            }
+            if (filled($tenant->domain)) {
+                $this->syncEntitlements($tenant, $client, $installer, $activations);
+            }
         }
 
         if (filled($seed['admin_email'] ?? null)) {
@@ -305,7 +328,7 @@ class ProvisionController extends Controller
     protected function assertProvisionAuth(Request $request): void
     {
         $token = (string) $request->header('X-Provision-Token', '');
-        $expected = (string) config('webino_runtime.tenant_provision_token', '');
+        $expected = (string) env('TENANT_PROVISION_TOKEN', '');
         if ($expected === '' || ! hash_equals($expected, $token)) {
             throw new \Illuminate\Http\Exceptions\HttpResponseException(
                 response()->json(['message' => __('api.invalid_provision_token')], 403)
@@ -338,7 +361,7 @@ class ProvisionController extends Controller
     protected function syncEntitlements(Tenant $tenant, WebinoLicenseClient $client, ModuleGitInstaller $installer, ?TenantActivationService $activations = null): void
     {
         try {
-            $crm = $client->check($tenant->domain ?: 'localhost', config('services.webino.product', config('webino_runtime.tenant_product', 'webinodashboard')));
+            $crm = $client->check($tenant->domain ?: 'localhost', config('services.webino.product', env('TENANT_PRODUCT', 'webinodashboard')));
         } catch (\Throwable) {
             return;
         }

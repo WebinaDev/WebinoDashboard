@@ -6,12 +6,13 @@ import { useState } from "react"
 
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { fetchSmsPackages, initSmsTopup, smsQueryOptions, type SmsPackage } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 
 export default function PageClient({ route: _route }: { route: ResolvedAdminRoute }) {
@@ -67,23 +68,17 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </Card>
             ))
           : packages.map((p) => (
-              <Card key={p.id} className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="text-base">{p.name}</CardTitle>
-                  <CardDescription>{t("topupHint")}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <MoneyDisplay className="text-2xl font-bold" amount={p.amount} currency="IRT" symbol="default" />
-                  {p.bonus > 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                      + <MoneyDisplay amount={p.bonus} currency="IRT" symbol="default" /> {t("bonus")}
-                    </p>
-                  ) : null}
-                  <Button disabled={unavailable || pay.isPending} onClick={() => pay.mutate(p.id)}>
-                    {t("buy")}
-                  </Button>
-                </CardContent>
-              </Card>
+              <SmsSection key={p.id} title={p.name} description={t("topupHint")}>
+                <MoneyDisplay className="text-2xl font-bold" amount={p.amount} currency="IRT" symbol="default" />
+                {p.bonus > 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    + <MoneyDisplay amount={p.bonus} currency="IRT" symbol="default" /> {t("bonus")}
+                  </p>
+                ) : null}
+                <Button disabled={unavailable || pay.isPending} onClick={() => pay.mutate(p.id)}>
+                  {t("buy")}
+                </Button>
+              </SmsSection>
             ))}
       </div>
       {!loading && packages.length === 0 && !unavailable ? (

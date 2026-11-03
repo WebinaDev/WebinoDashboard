@@ -45,6 +45,8 @@ return [
     'dashboard_build_pipeline_disabled' => 'خط لولهٔ ساخت داشبورد روی این سرور غیرفعال است.',
     'ticket_closed' => 'این تیکت بسته شده است.',
     'ticket_staff_replied' => 'پشتیبانی به تیکت شما پاسخ داد',
+    'ticket_assigned' => 'یک تیکت پشتیبانی به شما ارجاع شد',
+    'ticket_open_limit' => 'به سقف تعداد تیکت‌های باز رسیده‌اید.',
     'user_message_default_subject' => 'پیام از فروشگاه شما',
     'user_message_no_phone' => 'این کاربر شماره تلفن ندارد.',
     'user_message_no_email' => 'این کاربر ایمیل ندارد.',

@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 
 import { PageShell } from "@/components/PageShell"
-import { Card, CardContent } from "@/components/ui/card"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 
 import { BotCampaignsPanel } from "../../bots/components/BotCampaignsPanel"
@@ -15,12 +14,11 @@ export default function BotCampaignsPageClient({ route: _route }: { route: Resol
   const [provider, setProvider] = useState<BotProvider>("bale")
 
   return (
-    <PageShell title={t("campaigns.title")} description={t("description")}>
-      <Card className="mb-4 shadow-soft">
-        <CardContent className="flex flex-wrap items-center gap-3 pt-6">
-          <BotProviderSwitcher provider={provider} onChange={setProvider} />
-        </CardContent>
-      </Card>
+    <PageShell
+      title={t("campaigns.title")}
+      description={t("campaigns.pageDescription")}
+      actions={<BotProviderSwitcher provider={provider} onChange={setProvider} />}
+    >
       <BotCampaignsPanel provider={provider} />
     </PageShell>
   )

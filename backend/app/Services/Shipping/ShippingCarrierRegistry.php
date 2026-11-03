@@ -3,37 +3,39 @@
 namespace App\Services\Shipping;
 
 use App\Models\Order;
-use App\Services\Modules\ModuleSettingsService;
+use App\Services\Shipping\Drivers\CarrierDriverRegistry;
 
 /**
- * Pluggable shipment tracking beyond Tapin.
+ * Pluggable shipment tracking + hub bridge (payments-hub style).
  */
 class ShippingCarrierRegistry
 {
-    public const MODULE = 'shipping_carriers';
+    public const MODULE = ShippingCarrierSettingsService::MODULE;
 
     public function __construct(
-        protected ModuleSettingsService $settings,
-        protected SnappShippingTracker $snapp,
+        protected ShippingCarrierSettingsService $carrierSettings,
+        protected CarrierDriverRegistry $drivers,
         protected TapinClient $tapin,
     ) {}
 
     /** @return array<string, mixed> */
     public function hub(int $tenantId): array
     {
-        $raw = $this->settings->get($tenantId, self::MODULE, 'hub', $this->defaultHub());
+        // Legacy shape for ShopExtrasAdminController consumers + full hub payload.
+        $payload = $this->carrierSettings->hubPayload($tenantId);
+        $legacy = [];
+        foreach ($payload['items'] as $item) {
+            $id = (string) $item['id'];
+            $raw = $this->carrierSettings->getPublic($tenantId, $id);
+            $legacy[$id] = array_merge(
+                ['enabled' => (bool) $item['enabled'], 'status' => $item['status']],
+                array_diff_key($raw, ['_meta' => true])
+            );
+        }
 
-        return is_array($raw) ? $raw : $this->defaultHub();
-    }
-
-    /** @return array<string, mixed> */
-    public function defaultHub(): array
-    {
-        return [
-            'tapin' => ['enabled' => true],
-            'snapp' => ['enabled' => false, 'api_token' => '', 'has_api_token' => false],
-            'post' => ['enabled' => false, 'tracking_url_template' => 'https://tracking.post.ir/?code={code}'],
-        ];
+        return array_merge($legacy, [
+            '_hub' => $payload,
+        ]);
     }
 
     /** @return array{carrier: string, status: string|null, events: list<array<string, mixed>>, tracking_url: string|null} */
@@ -41,31 +43,33 @@ class ShippingCarrierRegistry
     {
         $meta = is_array($order->meta) ? $order->meta : [];
         $code = $order->trackingCode();
-        $hub = $this->hub($tenantId);
+        $preferred = (string) ($meta['shipping_carrier'] ?? $meta['carrier'] ?? '');
 
-        if (! empty($hub['snapp']['enabled']) && ! empty($meta['snapp']['tracking_code'])) {
-            return $this->snapp->track($tenantId, (string) $meta['snapp']['tracking_code'], $hub['snapp'] ?? []);
-        }
+        $candidates = array_values(array_filter(array_unique([
+            $preferred,
+            ! empty($meta['snapp']) ? 'snapp' : null,
+            ! empty($meta['tapin']) ? 'tapin' : null,
+            'post',
+        ])));
 
-        if ($code && ! empty($hub['post']['enabled'])) {
-            $tpl = (string) ($hub['post']['tracking_url_template'] ?? '');
-            $url = str_replace('{code}', urlencode($code), $tpl);
+        foreach ($candidates as $carrierId) {
+            if ($carrierId === '' || ! $this->carrierSettings->isEnabled($tenantId, $carrierId)) {
+                continue;
+            }
+            $driver = $this->drivers->get($carrierId);
+            if (! $driver) {
+                continue;
+            }
+            $trackCode = $code;
+            if ($carrierId === 'snapp' && ! empty($meta['snapp']['tracking_code'])) {
+                $trackCode = (string) $meta['snapp']['tracking_code'];
+            }
+            if ($trackCode === '' || $trackCode === null) {
+                continue;
+            }
+            $config = $this->carrierSettings->getRaw($tenantId, $carrierId);
 
-            return [
-                'carrier' => 'post',
-                'status' => (string) ($meta['shipping_status'] ?? 'in_transit'),
-                'events' => [],
-                'tracking_url' => $url !== '' ? $url : null,
-            ];
-        }
-
-        if ($code && ! empty($hub['tapin']['enabled']) && ! empty($meta['tapin'])) {
-            return [
-                'carrier' => 'tapin',
-                'status' => (string) ($meta['tapin']['status'] ?? $order->status),
-                'events' => is_array($meta['tapin']['events'] ?? null) ? $meta['tapin']['events'] : [],
-                'tracking_url' => $order->trackingUrl(),
-            ];
+            return $driver->track($config, (string) $trackCode, $meta);
         }
 
         return [

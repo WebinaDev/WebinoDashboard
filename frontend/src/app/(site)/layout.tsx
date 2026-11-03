@@ -15,7 +15,7 @@ import { SiteBrandingShell } from "@/themes/shared/SiteBrandingShell"
 import { resolveSiteBranding } from "@/themes/shared/types"
 import { AnalyticsTrackerScript } from "@/components/AnalyticsTrackerScript"
 import { BotSiteWidget } from "@/components/BotSiteWidget"
-import { StorefrontPopups } from "@/components/marketing/StorefrontPopups"
+import { SupportFloatWidget } from "@/components/SupportFloatWidget"
 import { JsonLd } from "@/components/seo/JsonLd"
 import { cn } from "@/lib/utils"
 
@@ -38,6 +38,12 @@ type SeoPayload = {
       description?: string
       robots?: string
       canonical?: string
+      verification?: {
+        google?: string
+        bing?: string
+        yandex?: string
+        pinterest?: string
+      }
       og?: { title?: string; description?: string; image?: string; url?: string; site_name?: string }
       twitter?: { card?: string; title?: string; description?: string; image?: string }
     }
@@ -53,6 +59,12 @@ export async function generateMetadata(): Promise<Metadata> {
     ])
     const favicon = tenantRes?.data?.branding?.favicon_url
     const meta = seoRes?.data?.meta
+    const verification = meta?.verification
+    const other: Record<string, string> = {}
+    if (verification?.google) other["google-site-verification"] = verification.google
+    if (verification?.bing) other["msvalidate.01"] = verification.bing
+    if (verification?.yandex) other["yandex-verification"] = verification.yandex
+    if (verification?.pinterest) other["p:domain_verify"] = verification.pinterest
     return {
       title: meta?.title || tenantRes?.data?.store_display_name || tenantRes?.data?.name,
       description: meta?.description || undefined,
@@ -75,6 +87,8 @@ export async function generateMetadata(): Promise<Metadata> {
             images: meta.twitter.image ? [meta.twitter.image] : undefined,
           }
         : undefined,
+      verification: verification?.google ? { google: verification.google } : undefined,
+      other: Object.keys(other).length ? other : undefined,
       icons: favicon ? { icon: favicon } : undefined,
     }
   } catch {
@@ -154,7 +168,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         <SiteJsonLd />
         <CustomCodeSlot entries={globals?.customCode} location="body_end" path={requestPath} />
         <BotSiteWidget />
-        <StorefrontPopups />
+        <SupportFloatWidget />
         <AnalyticsTrackerScript />
       </div>
       </BuilderRuntimeProvider>

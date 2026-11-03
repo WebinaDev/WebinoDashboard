@@ -124,9 +124,9 @@ class OrderController extends Controller
                 'payment_tenders' => ['cash', 'card_to_card', 'pos_terminal', 'online', 'wallet', 'other'],
                 'sales_channels' => array_merge(
                     ['in_store', 'phone', 'bale', 'eitaa', 'rubika', 'telegram', 'instagram', 'other', 'online'],
-                    MarketplacePlatforms::slugs()
+                    MarketplacePlatforms::liveSlugs()
                 ),
-                'marketplaces' => MarketplacePlatforms::slugs(),
+                'marketplaces' => MarketplacePlatforms::liveSlugs(),
                 'shipping_methods' => $shippingMethods,
                 'provinces' => $provinces,
                 'customer_roles' => ['customer', 'partner', 'staff', 'admin'],
@@ -174,9 +174,105 @@ class OrderController extends Controller
         if ($denied = $this->rejectStaffWalletTender($data, null)) {
             return $denied;
         }
-        $order = $this->writer->create($tid, $data, $request->user());
 
-        return response()->json(['data' => $order], 201);
+        $posSettings = app(\App\Services\Orders\PosSettings::class)->get($tid);
+        $isPosFlow = ! empty($data['is_pos']) || ! empty($data['is_pay_link']) || str_contains('/'.$request->path(), '/pos/');
+        $customerCreated = false;
+        if ($isPosFlow) {
+            $data['is_pos'] = true;
+            $resolved = app(\App\Services\Orders\PosCustomerResolver::class)->resolve(
+                $tid,
+                $data,
+                (bool) ($posSettings['auto_create_customer'] ?? true)
+                    && (! array_key_exists('create_customer', $data) || ! empty($data['create_customer']))
+            );
+            if ($resolved['user_id']) {
+                $data['user_id'] = $resolved['user_id'];
+            }
+            $customerCreated = (bool) ($resolved['created'] ?? false);
+            if (($data['payment_tender'] ?? null) === 'payment_sms') {
+                $data['is_pay_link'] = true;
+            }
+        }
+
+        $order = $this->writer->create($tid, $data, $request->user());
+        $payload = $order->toArray();
+        $payload['customer_created'] = $customerCreated;
+
+        $explicitSms = array_key_exists('send_payment_sms', $data)
+            ? ! empty($data['send_payment_sms'])
+            : null;
+        $sendSms = ! empty($data['is_pay_link'])
+            && ($explicitSms === true
+                || ($explicitSms === null && ! empty($posSettings['pay_link_send_sms'])));
+        if ($sendSms) {
+            $sms = $this->sendPayLinkSms($order);
+            $payload['payment_sms_sent'] = (bool) ($sms['sent'] ?? false);
+            $payload['payment_sms_error'] = (string) ($sms['error'] ?? '');
+        }
+
+        return response()->json(['data' => $payload], 201);
+    }
+
+    public function posSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'data' => app(\App\Services\Orders\PosSettings::class)->get((int) $request->user()->tenant_id),
+        ]);
+    }
+
+    public function updatePosSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'payment_methods' => ['sometimes', 'array'],
+            'card_readers' => ['sometimes', 'array'],
+            'pay_link_fields' => ['sometimes', 'array'],
+            'pay_link_send_sms' => ['sometimes', 'boolean'],
+            'auto_create_customer' => ['sometimes', 'boolean'],
+            'offline_instructions' => ['sometimes', 'array'],
+            'offline_instructions.*' => ['nullable', 'string', 'max:4000'],
+        ]);
+
+        $saved = app(\App\Services\Orders\PosSettings::class)->put((int) $request->user()->tenant_id, $data);
+
+        return response()->json(['data' => $saved]);
+    }
+
+    /**
+     * @return array{sent: bool, error?: string}
+     */
+    protected function sendPayLinkSms(Order $order): array
+    {
+        $phone = trim((string) ($order->customer_phone ?? ''));
+        if ($phone === '') {
+            return ['sent' => false, 'error' => 'Customer phone is required for payment SMS.'];
+        }
+        $tenant = \App\Models\Tenant::query()->find($order->tenant_id);
+        if (! $tenant) {
+            return ['sent' => false, 'error' => 'Tenant not found.'];
+        }
+        try {
+            $result = app(\App\Services\Orders\OrderStatusNotifier::class)->sendOrderSms($tenant, $order, [
+                'event_key' => 'pending',
+                'force_customer' => true,
+                'force_admin' => false,
+                'order' => [
+                    'payment_url' => (string) ($order->payment_url ?? ''),
+                    'pay_link' => (string) ($order->payment_url ?? ''),
+                    'customer_phone' => $phone,
+                ],
+            ]);
+            if (! empty($result['ok'])) {
+                return ['sent' => true];
+            }
+
+            return [
+                'sent' => false,
+                'error' => (string) ($result['reason'] ?? ($result['results'][0]['error'] ?? 'SMS send failed')),
+            ];
+        } catch (\Throwable $e) {
+            return ['sent' => false, 'error' => $e->getMessage()];
+        }
     }
 
     public function update(Request $request, int $order): \Illuminate\Http\JsonResponse
@@ -595,23 +691,28 @@ class OrderController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $q = trim((string) $request->query('q', ''));
+        $digits = app(\App\Services\Orders\PosCustomerResolver::class)->digits($q);
         $users = User::query()
             ->where('tenant_id', $tid)
-            ->when($q !== '', function ($w) use ($q) {
+            ->when($q !== '', function ($w) use ($q, $digits) {
                 $like = '%'.$q.'%';
-                $w->where(function ($x) use ($like) {
+                $w->where(function ($x) use ($like, $digits) {
                     $x->where('name', 'like', $like)
-                        ->orWhere('email', 'like', $like);
+                        ->orWhere('email', 'like', $like)
+                        ->orWhere('phone', 'like', $like);
+                    if ($digits !== '') {
+                        $x->orWhere('phone', 'like', '%'.$digits.'%');
+                    }
                 });
             })
             ->orderBy('name')
             ->limit(20)
-            ->get(['id', 'name', 'email', 'wallet_balance_minor', 'bank_sheba']);
+            ->get(['id', 'name', 'email', 'phone', 'wallet_balance_minor', 'bank_sheba']);
 
         return response()->json(['data' => $users]);
     }
 
-    public function paymentGateways(): \Illuminate\Http\JsonResponse
+    public function paymentGateways(Request $request): \Illuminate\Http\JsonResponse
     {
         $exclude = ['basalam_pay'];
         $data = array_values(array_filter(
@@ -619,12 +720,40 @@ class OrderController extends Controller
             fn (array $gw) => ! in_array($gw['id'] ?? '', $exclude, true)
         ));
 
+        // Sync with site gateway enablement when available.
+        $tid = (int) ($request->user()?->tenant_id ?? 0);
+        if ($tid > 0) {
+            $settings = app(\App\Services\Payments\PaymentGatewaySettingsService::class);
+            $commerce = $settings->liveCommerceGatewayIds();
+            $online = [];
+            foreach ($data as $gw) {
+                $id = (string) ($gw['id'] ?? '');
+                if ($id === '') {
+                    continue;
+                }
+                if (in_array($id, $commerce, true)) {
+                    if (! $settings->isEnabled($tid, $id) || ! $settings->configured($tid, $id)) {
+                        continue;
+                    }
+                } elseif (in_array($id, ['card_to_card', 'c2c', 'wallet', 'cod'], true)) {
+                    $hubId = $id === 'card_to_card' ? 'c2c' : $id;
+                    if (! $settings->isEnabled($tid, $hubId) && $hubId !== 'cod') {
+                        continue;
+                    }
+                } elseif (! $settings->isEnabled($tid, $id)) {
+                    continue;
+                }
+                $online[] = $gw;
+            }
+            $data = $online;
+        }
+
         return response()->json(['data' => $data]);
     }
 
     protected function applyOrderIndexFilters(Builder $q, Request $request, bool $excludeStatus = false): void
     {
-        app(OrderAccess::class)->scopeOwned($q, $request->user());
+        app(OrderAccess::class)->scopeForActor($q, $request->user());
         if ($request->boolean('mine')) {
             $q->where('created_by', $request->user()->id);
         }
@@ -658,8 +787,22 @@ class OrderController extends Controller
         if ($request->filled('max_total')) {
             $q->where('total_minor', '<=', \App\Support\LatinDigits::int($request->query('max_total')));
         }
-        if ($request->boolean('is_pos')) {
+        $source = strtolower(trim((string) $request->query('source', '')));
+        if ($request->boolean('is_pos') || $source === 'pos') {
             $q->where('is_pos', true);
+        }
+        $cashier = $request->query('cashier', $request->query('created_by'));
+        if ($cashier !== null && trim((string) $cashier) !== '') {
+            $cashier = trim((string) $cashier);
+            if (ctype_digit($cashier)) {
+                $q->where('created_by', (int) $cashier);
+            } else {
+                $like = '%'.$cashier.'%';
+                $q->where(function (Builder $w) use ($like) {
+                    $w->whereHas('creator', fn (Builder $u) => $u->where('name', 'like', $like))
+                        ->orWhere('meta->cashier_name', 'like', $like);
+                });
+            }
         }
         if ($request->filled('user_id')) {
             $q->where('user_id', (int) $request->query('user_id'));
@@ -769,18 +912,22 @@ class OrderController extends Controller
     /** @return list<array{id: string, label: string}> */
     protected function paymentGatewayOptions(): array
     {
-        return [
-            ['id' => 'zarinpal', 'label' => 'Zarinpal'],
-            ['id' => 'digipay', 'label' => 'Digipay'],
-            ['id' => 'snapppay', 'label' => 'SnappPay'],
-            ['id' => 'torobpay', 'label' => 'TorobPay'],
-            ['id' => 'card_to_card', 'label' => 'Card to card'],
-            ['id' => 'wallet', 'label' => 'Wallet'],
-            ['id' => 'cod', 'label' => 'Cash on delivery'],
-            ['id' => 'cheque', 'label' => 'Cheque'],
-            ['id' => 'bale_pay', 'label' => 'Bale Pay'],
-            ['id' => 'basalam_pay', 'label' => 'Basalam Pay'],
-        ];
+        $catalog = app(\App\Services\Payments\PaymentGatewayCatalog::class);
+        $out = [];
+        foreach ($catalog->liveCommerceIds() as $id) {
+            $meta = $catalog->get($id);
+            $out[] = [
+                'id' => $id,
+                'label' => (string) ($meta['label_en'] ?? $meta['label_fa'] ?? $id),
+            ];
+        }
+        $out[] = ['id' => 'card_to_card', 'label' => 'Card to card'];
+        $out[] = ['id' => 'wallet', 'label' => 'Wallet'];
+        $out[] = ['id' => 'cod', 'label' => 'Cash on delivery'];
+        $out[] = ['id' => 'bale_pay', 'label' => 'Bale Pay'];
+        $out[] = ['id' => 'basalam_pay', 'label' => 'Basalam Pay'];
+
+        return $out;
     }
 
     protected function find(Request $request, int $order): Order
@@ -788,7 +935,7 @@ class OrderController extends Controller
         $q = Order::query()
             ->where('tenant_id', $request->user()->tenant_id)
             ->whereKey($order);
-        app(OrderAccess::class)->scopeOwned($q, $request->user());
+        app(OrderAccess::class)->scopeForActor($q, $request->user());
 
         return $q->firstOrFail();
     }
@@ -915,6 +1062,10 @@ class OrderController extends Controller
             'payment_provider' => ['nullable', 'string'],
             'is_pos' => ['nullable', 'boolean'],
             'is_pay_link' => ['nullable', 'boolean'],
+            'create_customer' => ['nullable', 'boolean'],
+            'send_payment_sms' => ['nullable', 'boolean'],
+            'card_reader_id' => ['nullable', 'string', 'max:64'],
+            'card_reader_name' => ['nullable', 'string', 'max:120'],
             'buyer_tax' => ['nullable', 'array'],
             'currency' => ['nullable', 'string', 'max:8'],
             'meta' => ['nullable', 'array'],

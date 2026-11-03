@@ -35,7 +35,9 @@ type ZonesPayload = {
     enable_shipping: boolean
     default_method: string
     free_shipping_min: number
-    packaging?: { enabled: boolean; boxes: PackBox[] }
+    free_shipping_only?: boolean
+    max_weight_g?: number
+    packaging?: PackagingConfig
     show_map?: boolean
     require_city?: boolean
     professional_packaging?: { enabled: boolean; mandatory: boolean; amount_minor: number; label: string; description?: string; default_selected?: boolean; replaces_carton?: boolean }
@@ -53,6 +55,18 @@ type PackBox = {
   max_weight_g: number
   box_weight_g?: number
   cost: number
+  kind?: string
+}
+
+type PackagingConfig = {
+  enabled: boolean
+  fixed_cost?: number
+  tape_enabled?: boolean
+  tape_cost?: number
+  bubble_wrap_enabled?: boolean
+  bubble_wrap_cost?: number
+  boxes: PackBox[]
+  envelopes?: PackBox[]
 }
 
 const boxesToText = (boxes: PackBox[] = []) =>
@@ -264,6 +278,24 @@ export function ShippingZonesPanel() {
             />
             {t("shipping.require_city")}
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={Boolean(global.free_shipping_only)}
+              onCheckedChange={(v) => saveGlobal.mutate({ ...global, free_shipping_only: v })}
+            />
+            {t("shipping.free_shipping_only")}
+          </label>
+          <div className="grid max-w-xs gap-1">
+            <Label className="text-xs">{t("shipping.max_weight_g")}</Label>
+            <Input
+              type="number"
+              dir="ltr"
+              defaultValue={global.max_weight_g ?? 0}
+              onBlur={(e) =>
+                saveGlobal.mutate({ ...global, max_weight_g: Math.max(0, Number(e.target.value) || 0) })
+              }
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -342,12 +374,97 @@ export function ShippingZonesPanel() {
               onCheckedChange={(v) =>
                 saveGlobal.mutate({
                   ...global,
-                  packaging: { enabled: v, boxes: global.packaging?.boxes ?? [] },
+                  packaging: {
+                    ...(global.packaging ?? { boxes: [], envelopes: [] }),
+                    enabled: v,
+                    boxes: global.packaging?.boxes ?? [],
+                    envelopes: global.packaging?.envelopes ?? [],
+                  },
                 })
               }
             />
             {t("shipping.packaging_enabled")}
           </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-1">
+              <Label className="text-xs">{t("shipping.packaging_fixed")}</Label>
+              <Input
+                type="number"
+                dir="ltr"
+                defaultValue={global.packaging?.fixed_cost ?? 0}
+                onBlur={(e) =>
+                  saveGlobal.mutate({
+                    ...global,
+                    packaging: {
+                      ...(global.packaging ?? { enabled: false, boxes: [] }),
+                      fixed_cost: Math.max(0, Number(e.target.value) || 0),
+                    },
+                  })
+                }
+              />
+            </div>
+            <div className="flex items-end gap-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Switch
+                  checked={Boolean(global.packaging?.tape_enabled)}
+                  onCheckedChange={(v) =>
+                    saveGlobal.mutate({
+                      ...global,
+                      packaging: { ...(global.packaging ?? { enabled: false, boxes: [] }), tape_enabled: v },
+                    })
+                  }
+                />
+                {t("shipping.packaging_tape")}
+              </label>
+              <Input
+                type="number"
+                className="w-28"
+                dir="ltr"
+                defaultValue={global.packaging?.tape_cost ?? 0}
+                onBlur={(e) =>
+                  saveGlobal.mutate({
+                    ...global,
+                    packaging: {
+                      ...(global.packaging ?? { enabled: false, boxes: [] }),
+                      tape_cost: Math.max(0, Number(e.target.value) || 0),
+                    },
+                  })
+                }
+              />
+            </div>
+            <div className="flex items-end gap-2 sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Switch
+                  checked={Boolean(global.packaging?.bubble_wrap_enabled)}
+                  onCheckedChange={(v) =>
+                    saveGlobal.mutate({
+                      ...global,
+                      packaging: {
+                        ...(global.packaging ?? { enabled: false, boxes: [] }),
+                        bubble_wrap_enabled: v,
+                      },
+                    })
+                  }
+                />
+                {t("shipping.packaging_bubble")}
+              </label>
+              <Input
+                type="number"
+                className="w-28"
+                dir="ltr"
+                defaultValue={global.packaging?.bubble_wrap_cost ?? 0}
+                onBlur={(e) =>
+                  saveGlobal.mutate({
+                    ...global,
+                    packaging: {
+                      ...(global.packaging ?? { enabled: false, boxes: [] }),
+                      bubble_wrap_cost: Math.max(0, Number(e.target.value) || 0),
+                    },
+                  })
+                }
+              />
+            </div>
+          </div>
           <div className="grid gap-1">
             <Label className="text-xs">{t("shipping.packaging_boxes")}</Label>
             <textarea
@@ -358,7 +475,30 @@ export function ShippingZonesPanel() {
               onBlur={(e) =>
                 saveGlobal.mutate({
                   ...global,
-                  packaging: { enabled: Boolean(global.packaging?.enabled), boxes: textToBoxes(e.target.value) },
+                  packaging: {
+                    ...(global.packaging ?? { enabled: false, boxes: [] }),
+                    enabled: Boolean(global.packaging?.enabled),
+                    boxes: textToBoxes(e.target.value),
+                  },
+                })
+              }
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-xs">{t("shipping.packaging_envelopes")}</Label>
+            <textarea
+              dir="ltr"
+              className="border-input bg-background min-h-20 w-full rounded-md border p-2 font-mono text-xs"
+              defaultValue={boxesToText(global.packaging?.envelopes)}
+              placeholder="A4|32|23|2|500|5000"
+              onBlur={(e) =>
+                saveGlobal.mutate({
+                  ...global,
+                  packaging: {
+                    ...(global.packaging ?? { enabled: false, boxes: [] }),
+                    enabled: Boolean(global.packaging?.enabled),
+                    envelopes: textToBoxes(e.target.value),
+                  },
                 })
               }
             />

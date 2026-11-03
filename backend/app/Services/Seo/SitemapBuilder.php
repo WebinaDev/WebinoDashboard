@@ -251,8 +251,22 @@ final class SitemapBuilder
         if (! empty($cfg['noindex_search'])) {
             $lines[] = 'Disallow: /search';
         }
+        if (! empty($cfg['noindex_attachments'])) {
+            $lines[] = 'Disallow: /media/';
+            $lines[] = 'Disallow: /uploads/';
+        }
         if (! empty($cfg['sitemap_enabled'])) {
             $lines[] = 'Sitemap: '.$base.'/sitemap.xml';
+        }
+        $extra = trim((string) ($cfg['robots_txt_extra'] ?? ''));
+        if ($extra !== '') {
+            $lines[] = '';
+            foreach (preg_split("/\r\n|\n|\r/", $extra) ?: [] as $extraLine) {
+                $extraLine = trim((string) $extraLine);
+                if ($extraLine !== '') {
+                    $lines[] = $extraLine;
+                }
+            }
         }
 
         return implode("\n", $lines)."\n";

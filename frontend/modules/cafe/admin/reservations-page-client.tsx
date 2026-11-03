@@ -3,11 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +17,8 @@ import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { useLocaleNext } from "@/hooks/use-locale-next"
 import type { CafeBranch, CafeEvent } from "@/themes/cafe-starter/types"
+
+import { CafeAdminShell, CafeAdvancedSection, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
 
 type Reservation = {
   id: number
@@ -67,14 +69,12 @@ function statusVariant(status: string): "default" | "secondary" | "outline" {
   return "secondary"
 }
 
-export default function ReservationsPageClient({ route }: { route: ResolvedAdminRoute }) {
+export default function ReservationsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.reservations")
+  const tMenu = useTranslations("cafe_admin.menu")
   const tCommon = useTranslations("common")
   const { formatDateTime, formatNumber, locale } = useLocaleNext()
   const queryClient = useQueryClient()
-
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [eventForm, setEventForm] = useState(emptyEvent)
 
   const { data, isLoading } = useQuery({
@@ -95,9 +95,9 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
-      setMessage(t("updated"))
+      toast.success(t("updated"))
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const createEvent = useMutation({
@@ -120,9 +120,9 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
     onSuccess: async () => {
       setEventForm(emptyEvent)
       await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
-      setMessage(t("event_created"))
+      toast.success(t("event_created"))
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const updateBooking = useMutation({
@@ -133,45 +133,38 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
-      setMessage(t("updated"))
+      toast.success(t("updated"))
     },
-    onError: (e: Error) => setError(getApiErrorMessage(e)),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
   const reservations = data?.reservations ?? []
   const events = data?.events ?? []
-
-  function formatDate(value: string) {
-    return formatDateTime(value)
-  }
+  const pendingFirst = [...reservations].sort((a, b) => {
+    if (a.status === "pending" && b.status !== "pending") return -1
+    if (b.status === "pending" && a.status !== "pending") return 1
+    return 0
+  })
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{route.fullPath}</p>
-      </div>
+    <CafeAdminShell title={t("title")} description={t("description")}>
+      {isLoading ? <p className="text-muted-foreground text-sm">{tCommon("loading")}</p> : null}
 
-      {isLoading ? <p>{tCommon("loading")}</p> : null}
-      {message ? <p className="text-sm text-green-600">{message}</p> : null}
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("reservations_heading")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {reservations.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("empty_reservations")}</p>
-          ) : (
-            reservations.map((item) => (
-              <div key={item.id} className="rounded-lg border p-4 text-sm">
+      <CafeSection title={t("reservations_heading")}>
+        {pendingFirst.length === 0 ? (
+          <CafeEmptyState message={t("empty_reservations")} />
+        ) : (
+          <div className="space-y-2">
+            {pendingFirst.map((item) => (
+              <div key={item.id} className="rounded-lg border px-3 py-3 text-sm">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
+                  <div className="min-w-0 space-y-0.5">
                     <p className="font-medium">{item.guest_name}</p>
-                    <p className="text-muted-foreground">{item.guest_phone}</p>
-                    <p className="mt-1">
-                      {t("party_size")}: {formatNumber(item.party_size)} · {formatDate(item.reserved_at)}
+                    <p className="text-muted-foreground" dir="ltr">
+                      {item.guest_phone}
+                    </p>
+                    <p>
+                      {t("party_size")}: {formatNumber(item.party_size)} · {formatDateTime(item.reserved_at)}
                     </p>
                     {item.branch ? (
                       <p className="text-muted-foreground text-xs">{item.branch.name_fa || item.branch.name_en}</p>
@@ -195,25 +188,27 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
                   </div>
                 ) : null}
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+            ))}
+          </div>
+        )}
+      </CafeSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("create_event")}</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <div>
+      <CafeAdvancedSection
+        title={t("create_event")}
+        description={t("create_event_hint")}
+        showLabel={tMenu("show_advanced")}
+        hideLabel={tMenu("hide_advanced")}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
             <Label>{t("event_title_fa")}</Label>
             <Input value={eventForm.title_fa} onChange={(e) => setEventForm((f) => ({ ...f, title_fa: e.target.value }))} />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("event_title_en")}</Label>
             <Input value={eventForm.title_en} onChange={(e) => setEventForm((f) => ({ ...f, title_en: e.target.value }))} />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("starts_at")}</Label>
             <LocaleDatePicker
               locale={locale}
@@ -223,7 +218,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
               aria-label={t("starts_at")}
             />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("ends_at")}</Label>
             <LocaleDatePicker
               locale={locale}
@@ -233,7 +228,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
               aria-label={t("ends_at")}
             />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("capacity")}</Label>
             <Input
               type="number"
@@ -241,7 +236,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
               onChange={(e) => setEventForm((f) => ({ ...f, capacity: Number(e.target.value) }))}
             />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("price")}</Label>
             <Input
               type="number"
@@ -249,10 +244,10 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
               onChange={(e) => setEventForm((f) => ({ ...f, price_minor: Number(e.target.value) }))}
             />
           </div>
-          <div className="sm:col-span-2">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>{t("branch")}</Label>
             <select
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+              className={cafeSelectClass}
               value={eventForm.branch_id}
               onChange={(e) => setEventForm((f) => ({ ...f, branch_id: e.target.value }))}
             >
@@ -264,7 +259,7 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
               ))}
             </select>
           </div>
-          <div className="sm:col-span-2">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>{t("description_fa")}</Label>
             <Textarea
               value={eventForm.description_fa}
@@ -278,45 +273,43 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
             />
             {t("event_active")}
           </label>
-          <Button
-            className="sm:col-span-2"
-            onClick={() => createEvent.mutate()}
-            disabled={!eventForm.title_fa || !eventForm.title_en || !eventForm.starts_at || createEvent.isPending}
-          >
-            {t("create_event")}
-          </Button>
-        </CardContent>
-      </Card>
+          <div className="sm:col-span-2">
+            <Button
+              onClick={() => createEvent.mutate()}
+              disabled={!eventForm.title_fa || !eventForm.title_en || !eventForm.starts_at || createEvent.isPending}
+            >
+              {t("create_event")}
+            </Button>
+          </div>
+        </div>
+      </CafeAdvancedSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("events_heading")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {events.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("empty_events")}</p>
-          ) : (
-            events.map((event) => (
-              <div key={event.id} className="rounded-lg border p-4 text-sm">
+      <CafeSection title={t("events_heading")}>
+        {events.length === 0 ? (
+          <CafeEmptyState message={t("empty_events")} />
+        ) : (
+          <div className="space-y-3">
+            {events.map((event) => (
+              <div key={event.id} className="rounded-lg border px-3 py-3 text-sm">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-medium">{event.title_fa || event.title_en}</p>
-                    <p className="text-muted-foreground">{formatDate(event.starts_at)}</p>
+                    <p className="text-muted-foreground">{formatDateTime(event.starts_at)}</p>
                     <p className="text-muted-foreground text-xs">
-                      {t("capacity")}: {event.capacity} · {t("price")}: {event.price_minor}
+                      {t("capacity")}: {formatNumber(event.capacity)} · {t("price")}: {formatNumber(event.price_minor)}
                     </p>
                   </div>
                   {!event.is_active ? <Badge variant="secondary">{t("event_inactive")}</Badge> : null}
                 </div>
                 {(event.bookings ?? []).length > 0 ? (
                   <div className="mt-3 space-y-2 border-t pt-3">
-                    <p className="font-medium">{t("bookings_heading")}</p>
+                    <p className="text-sm font-medium">{t("bookings_heading")}</p>
                     {(event.bookings ?? []).map((booking) => (
-                      <div key={booking.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2">
+                      <div key={booking.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-2.5 py-2">
                         <div>
                           <p>{booking.guest_name}</p>
-                          <p className="text-muted-foreground text-xs">
-                            {booking.guest_phone} · {t("seats")}: {booking.seats}
+                          <p className="text-muted-foreground text-xs" dir="ltr">
+                            {booking.guest_phone} · {t("seats")}: {formatNumber(booking.seats)}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -341,10 +334,10 @@ export default function ReservationsPageClient({ route }: { route: ResolvedAdmin
                   </div>
                 ) : null}
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            ))}
+          </div>
+        )}
+      </CafeSection>
+    </CafeAdminShell>
   )
 }

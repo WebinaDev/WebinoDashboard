@@ -8,7 +8,6 @@ import { ChevronLeft, ChevronRight, Eye, RefreshCw } from "lucide-react"
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -45,6 +44,7 @@ import {
   unwrapSmsList,
 } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 import { translateSmsStatus } from "../lib/sms-ui"
 
 const PAGE_SIZE = 20
@@ -183,13 +183,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         </TabsList>
 
         <TabsContent value="outbox" className="mt-0">
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-base">{t("outbox")}</CardTitle>
-              <CardDescription>{t("outboxHint")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="overflow-x-auto">
+          <SmsSection title={t("outbox")} description={t("outboxHint")}>
+<div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -270,18 +265,12 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 onNext={() => setOutboxPage((p) => p + 1)}
                 label={pageLabel(outboxPage)}
               />
-            </CardContent>
-          </Card>
+            </SmsSection>
         </TabsContent>
 
         <TabsContent value="local" className="mt-0">
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-base">{t("localMessages")}</CardTitle>
-              <CardDescription>{t("localMessagesHint")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="overflow-x-auto">
+          <SmsSection title={t("localMessages")} description={t("localMessagesHint")}>
+<div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -363,18 +352,12 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 onNext={() => setLocalPage((p) => p + 1)}
                 label={pageLabel(localPage)}
               />
-            </CardContent>
-          </Card>
+            </SmsSection>
         </TabsContent>
 
         <TabsContent value="inbox" className="mt-0">
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-base">{t("inbox")}</CardTitle>
-              <CardDescription>{t("inboxHint")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="overflow-x-auto">
+          <SmsSection title={t("inbox")} description={t("inboxHint")}>
+<div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -445,8 +428,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                 onNext={() => setInboxPage((p) => p + 1)}
                 label={pageLabel(inboxPage)}
               />
-            </CardContent>
-          </Card>
+            </SmsSection>
         </TabsContent>
       </Tabs>
 

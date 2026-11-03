@@ -164,29 +164,19 @@ class ShopParityTest extends TestCase
     public function test_product_catalog_search_and_import(): void
     {
         $this->actingAs($this->admin, 'sanctum');
-        Product::query()->create([
-            'tenant_id' => $this->tenant->id,
-            'name' => 'Searchable Widget',
-            'slug' => 'searchable-widget',
-            'sku' => 'SW-1',
-            'price_minor' => 1000,
-            'currency' => 'IRT',
-            'status' => 'publish',
-            'type' => 'simple',
-            'stock' => 1,
-            'stock_status' => 'instock',
-            'is_available' => true,
-            'is_hidden' => false,
-        ]);
 
-        $this->getJson('/api/v1/product-catalog/search?q=Widget')
+        $this->getJson('/api/v1/product-catalog/sources')
             ->assertOk()
-            ->assertJsonPath('data.local.0.name', 'Searchable Widget');
+            ->assertJsonFragment(['key' => 'digikala']);
+
+        $this->getJson('/api/v1/product-catalog/search?source=digikala')
+            ->assertStatus(422);
 
         $this->postJson('/api/v1/product-catalog/import', [
             'name' => 'Imported SKU',
             'sku' => 'IMP-1',
             'price_minor' => 2500,
+            'source' => 'digikala',
         ])->assertCreated()
             ->assertJsonPath('data.sku', 'IMP-1');
     }

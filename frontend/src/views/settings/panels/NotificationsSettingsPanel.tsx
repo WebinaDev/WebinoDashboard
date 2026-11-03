@@ -25,8 +25,6 @@ const EVENTS = [
   "return_requested",
   "return_approved",
   "return_rejected",
-  "return_received",
-  "return_refunded",
   "user_welcome",
   "stock_low",
   "stock_out",
@@ -40,8 +38,6 @@ const EVENT_VARS: Record<EventKey, string[]> = {
   return_requested: ["order_number", "customer_name", "status", "return_reason", "site_name"],
   return_approved: ["order_number", "customer_name", "status", "site_name"],
   return_rejected: ["order_number", "customer_name", "status", "site_name"],
-  return_received: ["order_number", "customer_name", "status", "site_name"],
-  return_refunded: ["order_number", "customer_name", "status", "return_amount", "site_name"],
   user_welcome: ["customer_name", "site_name"],
   stock_low: ["product_name", "stock", "site_name"],
   stock_out: ["product_name", "stock", "site_name"],
@@ -279,7 +275,8 @@ export function NotificationsSettingsPanel() {
           ))}
         </TabsList>
         {CHANNELS.map((channel) => {
-          const ch = current.channels[channel]
+          const ch = current.channels?.[channel]
+          if (!ch) return null
           return (
             <TabsContent key={channel} value={channel} className="space-y-4">
               <Card>
@@ -300,7 +297,8 @@ export function NotificationsSettingsPanel() {
 
               <fieldset disabled={!ch.enabled} className="space-y-3 disabled:opacity-60">
                 {EVENTS.map((event) => {
-                  const cfg = ch.events[event]
+                  const cfg = ch.events?.[event]
+                  if (!cfg) return null
                   return (
                     <Card key={event}>
                       <CardHeader className="pb-2">

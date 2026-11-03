@@ -312,6 +312,7 @@ export function ShopLoyaltySettingsPanel() {
     max_points_per_product?: number
     welcome_points?: number
     referral_points?: number
+    daily_points?: number
   }>("shop", "loyalty")
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsMsg, setRewardsMsg] = useState<string | null>(null)
@@ -336,7 +337,7 @@ export function ShopLoyaltySettingsPanel() {
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card id="loyalty-points">
         <CardHeader>
           <CardTitle className="text-base">{t("shop_loyalty.title")}</CardTitle>
         </CardHeader>
@@ -374,7 +375,7 @@ export function ShopLoyaltySettingsPanel() {
             />
             <p className="text-muted-foreground text-xs">{tLoyalty("hint")}</p>
           </div>
-          <div className="grid max-w-xs gap-2">
+          <div id="loyalty-referral" className="grid max-w-xs scroll-mt-24 gap-2">
             <Label>{tLoyalty("referral_points")}</Label>
             <Input
               type="number"
@@ -384,9 +385,19 @@ export function ShopLoyaltySettingsPanel() {
             />
             <p className="text-muted-foreground text-xs">{tLoyalty("hint")}</p>
           </div>
+          <div className="grid max-w-xs gap-2">
+            <Label>{tLoyalty("daily_points")}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={Number(draft.daily_points ?? 0)}
+              onChange={(e) => setDraft({ ...draft, daily_points: Number(e.target.value) })}
+            />
+            <p className="text-muted-foreground text-xs">{tLoyalty("hint")}</p>
+          </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card id="loyalty-rewards" className="scroll-mt-24">
         <CardHeader>
           <CardTitle className="text-base">{t("shop_loyalty.rewards")}</CardTitle>
         </CardHeader>

@@ -79,11 +79,50 @@ class MarketplaceCoreTest extends TestCase
     public function test_hub_lists_all_platforms(): void
     {
         $this->actingAs($this->shopUser(), 'sanctum');
-        $rows = $this->getJson('/api/v1/marketplace/hub')->assertOk()->json('data.platforms') ?? $this->getJson('/api/v1/marketplace/hub')->json('data');
+        $payload = $this->getJson('/api/v1/marketplace/hub')->assertOk()->json('data');
+        $rows = $payload['platforms'] ?? [];
         $slugs = array_column($rows, 'platform');
-        foreach (['basalam', 'digikala', 'snappshop', 'tapsishop', 'technolife', 'emalls', 'torob', 'zarehbin', 'snapppay-search'] as $p) {
+        foreach ([
+            'basalam', 'digikala', 'snappshop', 'tapsishop', 'tapsifood', 'technolife', 'snappfood', 'snappmarket',
+            'emalls', 'torob', 'shopino', 'zarehbin', 'snapppay-search', 'passazh',
+            'divar', 'sheypoor',
+        ] as $p) {
             $this->assertContains($p, $slugs);
         }
+
+        $cats = collect($payload['categories'] ?? [])->pluck('id');
+        $this->assertContains('shops', $cats);
+        $this->assertContains('search', $cats);
+        $this->assertContains('classifieds', $cats);
+
+        $bySlug = collect($rows)->keyBy('platform');
+        $this->assertSame('shops', $bySlug['digikala']['category']);
+        $this->assertSame('search', $bySlug['torob']['category']);
+        $this->assertSame('classifieds', $bySlug['divar']['category']);
+        $this->assertSame('live', $bySlug['basalam']['status']);
+        $this->assertFalse((bool) $bySlug['basalam']['coming_soon']);
+        $this->assertSame('scaffold', $bySlug['divar']['status']);
+        $this->assertTrue((bool) $bySlug['divar']['coming_soon']);
+        $this->assertTrue((bool) $bySlug['tapsifood']['coming_soon']);
+        $this->assertTrue((bool) $bySlug['shopino']['coming_soon']);
+
+        $matrix = $payload['matrix'] ?? [];
+        $this->assertContains('digikala', $matrix['live'] ?? []);
+        $this->assertContains('divar', $matrix['scaffold'] ?? []);
+        $this->assertContains('snappfood', $matrix['scaffold'] ?? []);
+    }
+
+    public function test_scaffold_settings_and_mutations_blocked(): void
+    {
+        $this->actingAs($this->shopUser(), 'sanctum');
+
+        $view = $this->getJson('/api/v1/marketplace/divar/settings')->assertOk()->json('data');
+        $this->assertTrue((bool) ($view['coming_soon'] ?? false));
+
+        $this->postJson('/api/v1/marketplace/divar/settings', ['enabled' => true])
+            ->assertStatus(422);
+        $this->postJson('/api/v1/marketplace/tapsifood/test-connection')
+            ->assertStatus(422);
     }
 
     public function test_secrets_are_masked_and_preserved(): void

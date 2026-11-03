@@ -236,6 +236,9 @@ export default function ProductCategoryEditorPageClient({ route }: { route: Reso
                   seo_description: seo.description ?? "",
                 }))
               }
+              collapsible
+              storageKey="webina.seo.open.product-category"
+              defaultOpen={false}
             />
             <div className="flex gap-2 pt-2">
               <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>

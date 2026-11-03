@@ -1,5 +1,6 @@
 "use client"
 
+import { Truck } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
@@ -11,11 +12,13 @@ export function OrderStatusStepper({
   status,
   nextStatuses = [],
   onSelect,
+  onShip,
   disabled,
 }: {
   status: string
   nextStatuses?: string[]
   onSelect?: (status: string) => void
+  onShip?: () => void
   disabled?: boolean
 }) {
   const t = useTranslations("orders_admin")
@@ -24,6 +27,7 @@ export function OrderStatusStepper({
 
   return (
     <div className="space-y-3">
+      <p className="text-sm font-medium">{t("status")}</p>
       <div className="flex flex-wrap items-center gap-2">
         {ORDER_STATUS_PIPELINE.map((step, i) => {
           const done = currentIdx >= 0 && i <= currentIdx
@@ -45,23 +49,28 @@ export function OrderStatusStepper({
           )
         })}
       </div>
-      {nextStatuses.length > 0 && onSelect ? (
-        <div className="flex flex-wrap gap-2">
-          <span className="text-muted-foreground self-center text-xs">{t("next_status")}:</span>
-          {nextStatuses.map((s) => (
-            <Button
-              key={s}
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={disabled}
-              onClick={() => onSelect(s)}
-            >
-              {enumLabel("order_status", orderStatusEnumKey(s))}
-            </Button>
-          ))}
-        </div>
-      ) : null}
+      <div className="flex flex-wrap gap-2">
+        {nextStatuses.length > 0 && onSelect
+          ? nextStatuses.map((s) => (
+              <Button
+                key={s}
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={disabled}
+                onClick={() => onSelect(s)}
+              >
+                {enumLabel("order_status", orderStatusEnumKey(s))}
+              </Button>
+            ))
+          : null}
+        {onShip ? (
+          <Button type="button" size="sm" variant="secondary" disabled={disabled} onClick={onShip}>
+            <Truck className="size-3.5" />
+            {t("ship_order")}
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }

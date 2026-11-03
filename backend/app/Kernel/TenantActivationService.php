@@ -94,14 +94,33 @@ final class TenantActivationService
         // Guaranteed catalog parents for tenant_modules.module_slug FK (even if boot no-op'd).
         self::ensureDashboardModules($profileParents);
 
-        DB::transaction(function () use ($tenant, $siteTypeSlug, $profile, $profileParents) {
+        $demoSeeder = app(\App\Services\Provision\SiteTypeDemoSeeder::class);
+        // Suggested theme: first provision / empty theme / theme invalid for new type only.
+        // Never clobber a live (or already-seeded) site's active theme on re-apply / upgrade.
+        $applySuggestedTheme = $demoSeeder->shouldAutoSeed($tenant)
+            || ! filled($tenant->active_theme_slug)
+            || ! ThemeCatalog::isAllowedForSiteType((string) $tenant->active_theme_slug, $siteTypeSlug);
+
+        DB::transaction(function () use ($tenant, $siteTypeSlug, $profile, $profileParents, $applySuggestedTheme) {
             $tenant->site_type_slug = $siteTypeSlug;
             $tenant->business_type_slug = $siteTypeSlug;
-            $tenant->active_theme_slug = $profile['theme'];
-            $tenant->theme_preset = $siteTypeSlug;
+            if ($applySuggestedTheme) {
+                $theme = ThemeCatalog::resolveDefaultSlug(
+                    $siteTypeSlug,
+                    is_array($tenant->branding) ? $tenant->branding : null
+                ) ?? $profile['theme'];
+                $tenant->active_theme_slug = $theme;
+                $tenant->theme_preset = $siteTypeSlug;
+            }
             $tenant->save();
 
-            $activations = SiteTypeActivation::query()->where('site_type_slug', $siteTypeSlug)->get();
+            // Only default-on rows seed a new/re-typed site. Opt-in modules (e.g. poetry)
+            // may exist in site_type_activations with enabled_by_default=false and must
+            // stay off unless ERP licenseModules() explicitly enables them.
+            $activations = SiteTypeActivation::query()
+                ->where('site_type_slug', $siteTypeSlug)
+                ->where('enabled_by_default', true)
+                ->get();
             if ($activations->isEmpty()) {
                 foreach ($profile['modules'] as $moduleSlug => $submodules) {
                     foreach ($submodules as $subSlug) {
@@ -187,6 +206,13 @@ final class TenantActivationService
         });
 
         $this->clearCache($tenant->id);
+
+        // Demo + suggested template: gated in seeder (empty + never-seeded + unfinished only).
+        try {
+            $demoSeeder->seed($tenant->fresh(), $siteTypeSlug);
+        } catch (\Throwable) {
+            // Demo content is best-effort; activations must still succeed.
+        }
     }
 
     private function syncLegacyModuleFlags(Tenant $tenant): void

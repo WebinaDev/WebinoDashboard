@@ -9,7 +9,6 @@ import { toast } from "sonner"
 
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -26,6 +25,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { createSmsDraft, deleteSmsDraft, fetchSmsDrafts, smsQueryOptions } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 
 function asRows(data: unknown): Array<Record<string, unknown>> {
   if (!data) return []
@@ -110,15 +110,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         />
       ) : null}
 
-      <Card className="shadow-soft mb-4 max-w-lg">
-        <CardHeader>
-          <CardTitle className="text-base">
-            {editingId ? t("editDraft") : t("newDraft")}
-          </CardTitle>
-          <CardDescription>{t("draftsHint")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <fieldset disabled={unavailable} className="space-y-3">
+      <SmsSection title={editingId ? t("editDraft") : t("newDraft")} description={t("draftsHint")}>
+<fieldset disabled={unavailable} className="space-y-3">
             <div>
               <Label>{t("name")}</Label>
               <Input className="mt-1" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -147,15 +140,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               ) : null}
             </div>
           </fieldset>
-        </CardContent>
-      </Card>
+        </SmsSection>
 
-      <Card className="shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{t("draftsTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+      <SmsSection title={t("draftsTitle")}>
+<div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -218,8 +206,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </SmsSection>
     </SmsPanelShell>
   )
 }

@@ -19,6 +19,8 @@ import { slugifyTitle } from "@/lib/slugify"
 
 type Cat = { id: number; name: string; slug: string; count?: number; seo?: { focus_keyword?: string } }
 
+const SEO_OPEN_KEY = "webina.seo.open.blog-categories"
+
 export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("content_admin")
@@ -39,11 +41,14 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
   })
 
   const createMut = useMutation({
-    mutationFn: () =>
-      api("/api/v1/blog/categories", {
+    mutationFn: () => {
+      const trimmedName = name.trim()
+      const nextSlug = slug.trim() || slugifyTitle(trimmedName)
+      return api("/api/v1/blog/categories", {
         method: "POST",
-        json: { name, slug: slug || undefined, seo },
-      }),
+        json: { name: trimmedName, slug: nextSlug || undefined, seo },
+      })
+    },
     onSuccess: () => {
       toast.success(tCommon("saved"))
       setName("")
@@ -118,7 +123,7 @@ export default function BlogCategoriesPage(_props: { route: ResolvedAdminRoute }
               }}
             />
           </div>
-          <SimpleSeoFields seo={seo} onChange={setSeo} className="border-0 p-0 shadow-none" />
+          <SimpleSeoFields seo={seo} onChange={setSeo} collapsible storageKey={SEO_OPEN_KEY} defaultOpen={false} />
           <Button type="submit" disabled={!name.trim() || createMut.isPending}>
             {t("add_category")}
           </Button>

@@ -14,11 +14,13 @@ class PaymentsHubController extends Controller
     {
         $tid = (int) $request->user()->tenant_id;
         $hub = $this->gateways->getHub($tid);
+        $payload = $this->gateways->hubPayload($tid);
 
         return response()->json([
-            'items' => $this->gateways->hubItems($tid),
+            'categories' => $payload['categories'],
+            'items' => $payload['items'],
             'geo_notice' => $hub['geo_notice'] ?? $this->gateways->defaultGeoNotice(),
-            'curated_gateway_ids' => PaymentGatewaySettingsService::GATEWAY_IDS,
+            'curated_gateway_ids' => $this->gateways->gatewayIds(),
         ]);
     }
 
@@ -34,11 +36,13 @@ class PaymentsHubController extends Controller
         ]);
         $this->gateways->saveHub($tid, $data);
         $hub = $this->gateways->getHub($tid);
+        $payload = $this->gateways->hubPayload($tid);
 
         return response()->json([
-            'items' => $this->gateways->hubItems($tid),
+            'categories' => $payload['categories'],
+            'items' => $payload['items'],
             'geo_notice' => $hub['geo_notice'] ?? $this->gateways->defaultGeoNotice(),
-            'curated_gateway_ids' => PaymentGatewaySettingsService::GATEWAY_IDS,
+            'curated_gateway_ids' => $this->gateways->gatewayIds(),
         ]);
     }
 
@@ -48,9 +52,11 @@ class PaymentsHubController extends Controller
         $gateway = str_replace('-', '_', $gateway);
         $data = $request->validate(['enabled' => ['required', 'boolean']]);
         $this->gateways->setGatewayEnabled($tid, $gateway, (bool) $data['enabled']);
+        $payload = $this->gateways->hubPayload($tid);
 
         return response()->json([
-            'items' => $this->gateways->hubItems($tid),
+            'categories' => $payload['categories'],
+            'items' => $payload['items'],
         ]);
     }
 }

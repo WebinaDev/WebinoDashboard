@@ -10,6 +10,9 @@ import { SecuritySettingsPanel } from "@/views/settings/panels/SecuritySettingsP
 import { SiteGeneralSettingsPanel } from "@/views/settings/panels/SiteGeneralSettingsPanel"
 import { SitePrivacySettingsPanel } from "@/views/settings/panels/SitePrivacySettingsPanel"
 import { BrandStyleSettingsPanel } from "@/views/settings/panels/BrandStyleSettingsPanel"
+import { MenusSettingsPanel } from "@/views/settings/panels/MenusSettingsPanel"
+import { ThemeBuilderSettingsPanel } from "@/views/settings/panels/ThemeBuilderSettingsPanel"
+import { TemplatesSettingsPanel } from "@/views/settings/panels/TemplatesSettingsPanel"
 import { SystemLogsSettingsPanel } from "@/views/settings/panels/SystemLogsSettingsPanel"
 import { AiContentSettingsPanel } from "@/views/settings/panels/AiContentSettingsPanel"
 import { AnalyticsSettingsPanel } from "@/views/settings/panels/AnalyticsSettingsPanel"
@@ -45,8 +48,11 @@ import {
 } from "@/views/settings/panels/ShopModulePanels"
 import { PricingSettingsPanel } from "@/views/settings/panels/pricing/PricingSettingsPanel"
 import { PaymentHubPanel } from "@/views/settings/panels/PaymentHubPanel"
-import { CommerceGatewaysPanel } from "@/views/settings/panels/CommerceGatewaysPanel"
+import { ShippingHubPanel } from "@/views/settings/panels/ShippingHubPanel"
+import { ShippingCarrierSettingsPanel } from "@/views/settings/panels/ShippingCarrierSettingsPanel"
 import { GatewayProviderSettingsPanel } from "@/views/settings/panels/GatewayProviderSettingsPanel"
+import { ShippingHubPanel } from "@/views/settings/panels/ShippingHubPanel"
+import { ShippingCarrierSettingsPanel } from "@/views/settings/panels/ShippingCarrierSettingsPanel"
 import { MarketplaceRouter } from "@/views/settings/panels/marketplace/MarketplaceRouter"
 
 function SettingsPanelRouter({ pathname }: { pathname: string }) {
@@ -55,6 +61,9 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/site/general")) return <SiteGeneralSettingsPanel />
   if (path.endsWith("/site/privacy")) return <SitePrivacySettingsPanel />
   if (path.endsWith("/site/style")) return <BrandStyleSettingsPanel />
+  if (path.endsWith("/site/menus")) return <MenusSettingsPanel />
+  if (path.endsWith("/site/theme")) return <ThemeBuilderSettingsPanel />
+  if (path.endsWith("/site/templates")) return <TemplatesSettingsPanel />
   if (path.endsWith("/site/system-logs")) return <SystemLogsSettingsPanel />
   if (path.endsWith("/site/security")) return <SecuritySettingsPanel />
   if (path.endsWith("/site/ai")) return <AiContentSettingsPanel />
@@ -87,18 +96,49 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (pricing) return <PricingSettingsPanel tab={pricing[1]} />
   if (path.endsWith("/shop/shipping/zones")) return <ShippingZonesPanel />
   if (path.endsWith("/shop/shipping/tapin")) return <ShippingTapinPanel />
-  if (path.endsWith("/shop/gateways")) return <CommerceGatewaysPanel />
-  if (path.endsWith("/shop/payments")) return <PaymentHubPanel />
-  if (path.endsWith("/shop/zarinpal")) return <GatewayProviderSettingsPanel provider="zarinpal" />
-  if (path.endsWith("/shop/zibal")) return <GatewayProviderSettingsPanel provider="zibal" />
-  if (path.endsWith("/shop/digipay")) return <GatewayProviderSettingsPanel provider="digipay" />
-  if (path.endsWith("/shop/snapppay")) return <GatewayProviderSettingsPanel provider="snapppay" />
-  if (path.endsWith("/shop/torobpay")) return <GatewayProviderSettingsPanel provider="torobpay" />
-  if (path.endsWith("/shop/bale-pay")) return <GatewayProviderSettingsPanel provider="bale_pay" />
-  if (path.endsWith("/shop/wallet")) return <GatewayProviderSettingsPanel provider="wallet" />
-  if (path.endsWith("/shop/c2c")) return <GatewayProviderSettingsPanel provider="c2c" />
+  if (path.endsWith("/shop/shipping/hub") || path.endsWith("/shop/shipping/carriers")) {
+    return <ShippingHubPanel />
+  }
+  const shippingCarrier = path.match(/\/shop\/shipping\/carriers\/([a-z0-9-]+)$/)
+  if (shippingCarrier) {
+    return <ShippingCarrierSettingsPanel carrier={shippingCarrier[1].replace(/-/g, "_")} />
+  }
+  if (path.endsWith("/shop/gateways") || path.endsWith("/shop/payments")) return <PaymentHubPanel />
   if (path.endsWith("/shop/invoices")) return <InvoicesSettingsPanel />
   if (path.endsWith("/shop/advanced")) return <AdvancedSettingsPanel />
+
+  // Dynamic gateway settings: /dashboard/settings/shop/{gateway-slug}
+  const gatewayMatch = path.match(/\/shop\/([a-z0-9-]+)$/)
+  if (gatewayMatch) {
+    const slug = gatewayMatch[1]
+    const reserved = new Set([
+      "general",
+      "products",
+      "downloads",
+      "reviews",
+      "stories",
+      "maps",
+      "loyalty",
+      "archive",
+      "pricing",
+      "shipping",
+      "storefront-appearance",
+      "theme-optimizer",
+      "product-notifications",
+      "newsletter",
+      "gateways",
+      "payments",
+      "invoices",
+      "advanced",
+      "bots",
+      "marketplace",
+      "accounting",
+      "ext",
+    ])
+    if (!reserved.has(slug)) {
+      return <GatewayProviderSettingsPanel provider={slug.replace(/-/g, "_")} />
+    }
+  }
 
   return null
 }

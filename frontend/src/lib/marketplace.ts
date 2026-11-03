@@ -1,25 +1,38 @@
 export type MarketplaceKind = "api" | "feed"
+export type MarketplaceCategory = "shops" | "search" | "classifieds"
+export type MarketplaceStatus = "live" | "scaffold"
 
 export type MarketplacePlatformMeta = {
   slug: string
   fa: string
   en: string
   kind: MarketplaceKind
+  category: MarketplaceCategory
+  status: MarketplaceStatus
 }
 
 export const MARKETPLACE_PLATFORMS: MarketplacePlatformMeta[] = [
-  { slug: "basalam", fa: "باسلام", en: "Basalam", kind: "api" },
-  { slug: "digikala", fa: "دیجی‌کالا", en: "Digikala", kind: "api" },
-  { slug: "snappshop", fa: "اسنپ‌شاپ", en: "SnappShop", kind: "api" },
-  { slug: "tapsishop", fa: "تپسی‌شاپ", en: "TapsiShop", kind: "api" },
-  { slug: "technolife", fa: "تکنولایف", en: "Technolife", kind: "api" },
-  { slug: "emalls", fa: "ایمالز", en: "Emalls", kind: "feed" },
-  { slug: "torob", fa: "ترب", en: "Torob", kind: "feed" },
-  { slug: "zarehbin", fa: "ذره‌بین", en: "Zarehbin", kind: "feed" },
-  { slug: "snapppay-search", fa: "جستجوی اسنپ‌پی", en: "SnappPay Search", kind: "feed" },
+  { slug: "digikala", fa: "دیجی‌کالا", en: "Digikala", kind: "api", category: "shops", status: "live" },
+  { slug: "basalam", fa: "باسلام", en: "Basalam", kind: "api", category: "shops", status: "live" },
+  { slug: "snappshop", fa: "اسنپ‌شاپ", en: "SnappShop", kind: "api", category: "shops", status: "live" },
+  { slug: "tapsishop", fa: "تپسی‌شاپ", en: "TapsiShop", kind: "api", category: "shops", status: "live" },
+  { slug: "tapsifood", fa: "تپسی‌فود", en: "TapsiFood", kind: "api", category: "shops", status: "scaffold" },
+  { slug: "technolife", fa: "تکنولایف", en: "Technolife", kind: "api", category: "shops", status: "live" },
+  { slug: "snappfood", fa: "اسنپ‌فود", en: "SnappFood", kind: "api", category: "shops", status: "scaffold" },
+  { slug: "snappmarket", fa: "اسنپ‌مارکت", en: "SnappMarket", kind: "api", category: "shops", status: "scaffold" },
+  { slug: "torob", fa: "ترب", en: "Torob", kind: "feed", category: "search", status: "live" },
+  { slug: "emalls", fa: "ایمالز", en: "Emalls", kind: "feed", category: "search", status: "live" },
+  { slug: "shopino", fa: "شاپینو", en: "Shopino", kind: "feed", category: "search", status: "scaffold" },
+  { slug: "zarehbin", fa: "ذره‌بین", en: "Zarehbin", kind: "feed", category: "search", status: "live" },
+  { slug: "snapppay-search", fa: "جستجوی اسنپ‌پی", en: "SnappPay Search", kind: "feed", category: "search", status: "live" },
+  { slug: "passazh", fa: "پاساژ", en: "Passazh", kind: "feed", category: "search", status: "scaffold" },
+  { slug: "divar", fa: "دیوار", en: "Divar", kind: "api", category: "classifieds", status: "scaffold" },
+  { slug: "sheypoor", fa: "شیپور", en: "Sheypoor", kind: "api", category: "classifieds", status: "scaffold" },
 ]
 
 export const MARKETPLACE_SLUGS = MARKETPLACE_PLATFORMS.map((p) => p.slug)
+
+export const MARKETPLACE_LIVE_SLUGS = MARKETPLACE_PLATFORMS.filter((p) => p.status === "live").map((p) => p.slug)
 
 export function marketplaceLabel(slug: string, locale: string = "fa"): string {
   const row = MARKETPLACE_PLATFORMS.find((p) => p.slug === slug)
@@ -28,11 +41,15 @@ export function marketplaceLabel(slug: string, locale: string = "fa"): string {
 }
 
 export function isMarketplaceChannel(slug: string | null | undefined): boolean {
-  return !!slug && MARKETPLACE_SLUGS.includes(slug)
+  return !!slug && MARKETPLACE_LIVE_SLUGS.includes(slug)
 }
 
 export function marketplaceMeta(slug: string): MarketplacePlatformMeta | undefined {
   return MARKETPLACE_PLATFORMS.find((p) => p.slug === slug)
+}
+
+export function isMarketplaceLive(slug: string): boolean {
+  return marketplaceMeta(slug)?.status === "live"
 }
 
 export const MARKETPLACE_SETTINGS_BASE = "/dashboard/settings/shop/marketplace"
@@ -127,11 +144,20 @@ export const MARKETPLACE_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = 
   ],
 }
 
+export type MarketplaceHubCategory = {
+  id: MarketplaceCategory
+  label: string
+  label_en: string
+}
+
 export type MarketplaceHubRow = {
   platform: string
   label: string
   label_en: string
   kind: MarketplaceKind
+  category: MarketplaceCategory
+  status: MarketplaceStatus
+  coming_soon: boolean
   pricing_tab: string
   supports_orders: boolean
   supports_create: boolean
@@ -150,7 +176,16 @@ export type MarketplaceSettingsView = {
   enabled: boolean
   auto_sync: boolean
   credentials: Record<string, unknown>
-  meta: { label: string; label_en: string; kind: MarketplaceKind; orders: boolean; create: boolean }
+  coming_soon?: boolean
+  meta: {
+    label: string
+    label_en: string
+    kind: MarketplaceKind
+    category?: MarketplaceCategory
+    status?: MarketplaceStatus
+    orders: boolean
+    create: boolean
+  }
   feed_urls?: { key: string; url: string; method: string }[]
 }
 

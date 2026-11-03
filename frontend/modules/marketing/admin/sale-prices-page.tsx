@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { PageShell } from "@/components/PageShell"
+import { MarketingSection } from "../lib/marketing-admin-ui"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +20,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
@@ -258,12 +258,9 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
   }
 
   return (
-    <PageShell title={t("title")}>
-      <div className="bg-sky-500/10 text-sky-950 dark:text-sky-100 mb-4 rounded-xl px-4 py-3 text-sm leading-relaxed">
-        {t("banner")}
-      </div>
-
-      <div className="mb-4 flex flex-wrap gap-2">
+    <PageShell title={t("title")} description={t("banner")}>
+      <MarketingSection title={t("title")} description={t("banner")} className="mb-20">
+      <div className="flex flex-wrap gap-2">
         <Input
           className="max-w-xs"
           value={search}
@@ -327,7 +324,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
         </Button>
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm">
           <Checkbox
             checked={allPageSelected}
@@ -339,8 +336,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
         <p className="text-muted-foreground text-xs">{total}</p>
       </div>
 
-      <Card className="mb-20">
-        <CardContent className="p-0">
+      <div className="overflow-hidden rounded-lg border border-border/70">
           {q.isLoading ? (
             <p className="text-muted-foreground p-6 text-sm">{tCommon("loading")}</p>
           ) : items.length === 0 ? (
@@ -398,11 +394,10 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
               })}
             </ul>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
-      <div className="bg-background/95 border-border fixed inset-x-0 bottom-0 z-40 border-t p-3 backdrop-blur md:static md:mt-4 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-        <div className="mx-auto flex max-w-3xl flex-wrap justify-end gap-2 md:max-w-none">
+      <div className="bg-background/95 border-border sticky bottom-0 z-10 -mx-4 border-t px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => openRemove("selected")}>
             {t("remove")}
           </Button>
@@ -411,6 +406,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
           </Button>
         </div>
       </div>
+      </MarketingSection>
 
       <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">

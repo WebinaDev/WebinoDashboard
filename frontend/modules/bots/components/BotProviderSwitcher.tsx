@@ -5,7 +5,9 @@ import { useTranslations } from "next-intl"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-export type BotProvider = "bale" | "telegram"
+import { LIVE_BOT_PROVIDERS, type LiveBotProvider } from "../lib/platforms"
+
+export type BotProvider = LiveBotProvider
 
 export function BotProviderSwitcher({
   provider,
@@ -24,8 +26,11 @@ export function BotProviderSwitcher({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="bale">Bale</SelectItem>
-            <SelectItem value="telegram">Telegram</SelectItem>
+            {LIVE_BOT_PROVIDERS.map((id) => (
+              <SelectItem key={id} value={id}>
+                {t(`platforms.${id}`)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

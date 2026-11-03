@@ -53,6 +53,23 @@ class SecurityHeaders
             $response->headers->remove('X-Debug-Token-Link');
         }
 
+        $ssl = $settings['ssl'] ?? [];
+        if (! empty($ssl['force_https']) || ! empty($ssl['hsts'])) {
+            if ($request->secure() || $request->header('X-Forwarded-Proto') === 'https') {
+                $maxAge = max(0, (int) ($ssl['hsts_max_age'] ?? 31536000));
+                if (! empty($ssl['hsts']) && $maxAge > 0) {
+                    $hsts = 'max-age='.$maxAge;
+                    if (! empty($ssl['hsts_include_subdomains'])) {
+                        $hsts .= '; includeSubDomains';
+                    }
+                    if (! empty($ssl['hsts_preload'])) {
+                        $hsts .= '; preload';
+                    }
+                    $response->headers->set('Strict-Transport-Security', $hsts);
+                }
+            }
+        }
+
         return $response;
     }
 

@@ -8,7 +8,7 @@ use App\Models\Tenant;
 use App\Models\TenantModule;
 use App\Models\User;
 use App\Services\Modules\ModuleGitInstaller;
-use App\Services\Provision\ProvisionContentSeeder;
+use App\Services\Provision\SiteTypeDemoSeeder;
 use App\Services\Webino\WebinoLicenseClient;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
@@ -20,7 +20,7 @@ class ProvisionBootstrapCommand extends Command
 
     protected $description = 'Apply TENANT_SEED_JSON and license from provisioning env';
 
-    public function handle(WebinoLicenseClient $licenseClient, ModuleGitInstaller $installer, ProvisionContentSeeder $contentSeeder): int
+    public function handle(WebinoLicenseClient $licenseClient, ModuleGitInstaller $installer, SiteTypeDemoSeeder $contentSeeder): int
     {
         $seedJson = config('webino_runtime.tenant_seed_json');
         if (! filled($seedJson)) {
@@ -50,7 +50,14 @@ class ProvisionBootstrapCommand extends Command
         }
 
         $this->applySeed($tenant, $seed);
-        $contentSeeder->seed($tenant, $seed);
+        $siteType = $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? $tenant->site_type_slug ?? $tenant->business_type_slug;
+        // Never force-seed on --force: that flag only re-runs bootstrap metadata/license.
+        // Demo content remains gated (new/empty/never-seeded); use setup/import-demo for explicit load.
+        $contentSeeder->seed(
+            $tenant->fresh(),
+            is_string($siteType) ? $siteType : null,
+            $seed,
+        );
 
         // Domain is the license identity; ignore legacy TENANT_LICENSE_KEY / seed license_key.
         if (filled($tenant->domain)) {
@@ -79,23 +86,32 @@ class ProvisionBootstrapCommand extends Command
      */
     protected function applySeed(Tenant $tenant, array $seed): void
     {
-        $tenant->fill([
+        $wasCompleted = (bool) $tenant->setup_completed;
+        $fill = [
             'name' => $seed['tenant_name'] ?? $tenant->name,
             'store_display_name' => $seed['store_display_name'] ?? $tenant->store_display_name,
             'default_currency' => $seed['default_currency'] ?? $tenant->default_currency ?? 'IRT',
             'domain' => $seed['domain'] ?? $tenant->domain,
-            'business_category_slug' => $seed['business_category_slug'] ?? null,
-            'business_type_slug' => $seed['business_type_slug'] ?? null,
-            'vertical' => $seed['vertical'] ?? null,
-            'package_sku' => $seed['package_sku'] ?? null,
-            'theme_preset' => $seed['theme_preset'] ?? null,
+            'business_category_slug' => $seed['business_category_slug'] ?? $tenant->business_category_slug,
+            'business_type_slug' => $seed['business_type_slug'] ?? $tenant->business_type_slug,
+            'site_type_slug' => $seed['site_type_slug'] ?? $seed['business_type_slug'] ?? $tenant->site_type_slug,
+            'vertical' => $seed['vertical'] ?? $tenant->vertical,
+            'package_sku' => $seed['package_sku'] ?? $tenant->package_sku,
+            'theme_preset' => $seed['theme_preset'] ?? $tenant->theme_preset,
             'active_theme_slug' => $seed['active_theme_slug'] ?? $tenant->active_theme_slug,
-            'nav_preset' => $seed['nav_preset'] ?? null,
-            'branding' => $seed['branding'] ?? null,
+            'nav_preset' => $seed['nav_preset'] ?? $tenant->nav_preset,
             'home_blocks' => $seed['home_blocks'] ?? $tenant->home_blocks,
-            'crm_account_id' => $seed['crm_account_id'] ?? null,
-            'setup_completed' => false,
-        ]);
+            'crm_account_id' => $seed['crm_account_id'] ?? $tenant->crm_account_id,
+        ];
+        // Never reopen onboarding or wipe branding (incl. demo_seeded_at) on live-site re-bootstrap.
+        if (! $wasCompleted) {
+            $fill['branding'] = $seed['branding'] ?? $tenant->branding;
+            $fill['setup_completed'] = false;
+        } elseif (array_key_exists('branding', $seed) && is_array($seed['branding'])) {
+            $current = is_array($tenant->branding) ? $tenant->branding : [];
+            $fill['branding'] = array_replace($current, $seed['branding']);
+        }
+        $tenant->fill($fill);
         if (array_key_exists('domain_aliases', $seed) && is_array($seed['domain_aliases'])) {
             $tenant->domain_aliases = array_values(array_filter(array_map('strval', $seed['domain_aliases'])));
         }

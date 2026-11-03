@@ -42,6 +42,7 @@ export const coreManifest: ModuleManifest = {
       navHidden: true,
     },
     {
+      // Settings hub only — list/moderation lives at users/comments (page: users-comments).
       path: "settings/shop/reviews",
       submodule: "settings",
       page: "settings",
@@ -50,6 +51,7 @@ export const coreManifest: ModuleManifest = {
       order: 50,
       navGroup: "users",
       navOrder: 3,
+      navHidden: true,
       capability: "reviews.moderate",
       menuKey: "settings/shop/reviews",
     },

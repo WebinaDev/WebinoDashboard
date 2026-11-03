@@ -243,6 +243,8 @@ class OrderStatusNotifier
                 'customer_phone' => (string) ($order->customer_phone ?? ''),
                 'total' => (string) ($order->total_minor ?? ''),
                 'currency' => (string) ($order->currency ?? ''),
+                'payment_url' => (string) ($order->payment_url ?? ''),
+                'pay_link' => (string) ($order->payment_url ?? ''),
             ];
         }
         foreach ($overrides as $k => $v) {

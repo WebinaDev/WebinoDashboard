@@ -92,8 +92,8 @@ export default function BuilderListPage(_props: { route: ResolvedAdminRoute }) {
     <PageShell title={t("list_title")} description={t("list_subtitle")}>
       <div className="mb-4 flex flex-wrap gap-2">
         <Button asChild><Link href="/dashboard/builder/new"><FilePlus2 className="size-4" aria-hidden />{t("create")}</Link></Button>
-        <Button variant="outline" asChild><Link href="/dashboard/theme-builder"><Palette className="size-4" aria-hidden />{t("theme_builder")}</Link></Button>
-        <Button variant="outline" asChild><Link href="/dashboard/builder/settings"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link></Button>
+        <Button variant="outline" asChild><Link href="/dashboard/settings/site/theme"><Palette className="size-4" aria-hidden />{t("theme_builder")}</Link></Button>
+        <Button variant="outline" asChild><Link href="/dashboard/builder/new?panel=globals"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link></Button>
         <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/header"><PanelTop className="size-4" aria-hidden />{t("header")}</Link></Button>
         <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/footer"><PanelBottom className="size-4" aria-hidden />{t("footer")}</Link></Button>
         <Button variant="outline" disabled={busy} onClick={() => void seed()}>{t("seed")}</Button>

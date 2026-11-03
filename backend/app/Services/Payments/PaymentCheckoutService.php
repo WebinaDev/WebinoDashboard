@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\PaymentIntent;
 use App\Models\Tenant;
 use App\Services\Marketplace\Basalam\BasalamPay;
+use App\Services\Payments\Drivers\GatewayDriverRegistry;
 use App\Services\Pricing\PurchaseTypeService;
 use Illuminate\Support\Facades\Http;
 
@@ -22,12 +23,19 @@ class PaymentCheckoutService
         protected PaymentGatewaySettingsService $gateways,
         protected DigipayClient $digipay,
         protected BnplClient $bnpl,
+        protected GatewayDriverRegistry $drivers,
     ) {}
 
     public function createIntent(Order $order, string $provider, ?string $mode = null): PaymentIntent
     {
         $provider = str_replace('-', '_', strtolower($provider));
-        $allowed = ['zarinpal', 'zibal', 'digipay', 'snapppay', 'torobpay', 'bale_pay', BasalamPay::PROVIDER];
+        $allowed = array_values(array_unique(array_merge(
+            $this->gateways->liveCommerceGatewayIds(),
+            ['bale_pay', BasalamPay::PROVIDER],
+        )));
+        if ($this->gateways->catalog()->isScaffold($provider)) {
+            throw new \DomainException('این درگاه به‌زودی فعال می‌شود.');
+        }
         if (! in_array($provider, $allowed, true)) {
             throw new \InvalidArgumentException('Unsupported payment provider: '.$provider);
         }
@@ -71,15 +79,66 @@ class PaymentCheckoutService
             'amount_rial' => $amountRial,
         ];
 
+        $driver = $this->drivers->get($provider);
+        if ($driver && $driver->status() === 'live') {
+            return $this->createDriverIntent($order, $settings, $callbackUrl, $amountRial, $provider, $driver);
+        }
+
         return match ($provider) {
-            'zarinpal' => $this->createZarinpalIntent($order, $settings, $callbackUrl, $amountRial),
-            'zibal' => $this->createZibalIntent($order, $settings, $callbackUrl, $amountRial),
             'digipay' => $this->createDigipayIntent($order, $settings, $callbackUrl, $amountRial),
             'snapppay' => $this->createBnplIntent($order, $settings, $callbackUrl, $amountRial, 'snapppay'),
             'torobpay' => $this->createBnplIntent($order, $settings, $callbackUrl, $amountRial, 'torobpay'),
             'bale_pay' => $this->createBalePayIntent($order, $settings, $callbackUrl, $amountRial),
             default => throw new \InvalidArgumentException('Unsupported provider'),
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     */
+    protected function createDriverIntent(
+        Order $order,
+        array $settings,
+        string $callbackUrl,
+        int $amountRial,
+        string $provider,
+        \App\Services\Payments\Drivers\GatewayDriverInterface $driver,
+    ): PaymentIntent {
+        $description = str_replace(
+            '{order_id}',
+            (string) $order->id,
+            (string) ($settings['payment_description'] ?? 'Order #'.$order->id)
+        );
+        $result = $driver->request($settings, $amountRial, $callbackUrl, $description, [
+            'order_id' => (string) $order->id,
+            'mobile' => $order->customer_phone ?: null,
+            'email' => $order->customer_email ?: null,
+            'name' => $order->customer_name ?: null,
+            'currency' => $this->storeCurrencyCode($order),
+        ]);
+        if (! ($result['ok'] ?? false) || empty($result['redirect_url'])) {
+            throw new \RuntimeException((string) ($result['message'] ?? 'Gateway request failed'));
+        }
+
+        $intent = PaymentIntent::query()->create([
+            'tenant_id' => $order->tenant_id,
+            'order_id' => $order->id,
+            'provider' => $provider,
+            'status' => 'created',
+            'redirect_url' => (string) $result['redirect_url'],
+            'meta' => $this->withExtra(array_merge(
+                ['stub' => false, 'amount_rial' => $amountRial],
+                is_array($result['meta'] ?? null) ? $result['meta'] : [],
+            )),
+        ]);
+
+        $order->update([
+            'payment_provider' => $provider,
+            'payment_url' => (string) $result['redirect_url'],
+            'status' => 'awaiting_gateway',
+        ]);
+
+        return $intent;
     }
 
     /**
@@ -120,97 +179,6 @@ class PaymentCheckoutService
         ]);
 
         return $intent;
-    }
-
-    /**
-     * @param  array<string, mixed>  $settings
-     */
-    protected function createZarinpalIntent(Order $order, array $settings, string $callbackUrl, int $amountRial): PaymentIntent
-    {
-        $merchantId = (string) ($settings['merchant_id'] ?? '');
-        $sandbox = (bool) ($settings['sandbox'] ?? true);
-        $requestUrl = $sandbox
-            ? 'https://sandbox.zarinpal.com/pg/v4/payment/request.json'
-            : 'https://payment.zarinpal.com/pg/v4/payment/request.json';
-
-        $currency = $this->storeCurrencyCode($order);
-        $payload = [
-            'merchant_id' => $merchantId,
-            'amount' => (int) max(1, round(Currency::fromRial($amountRial, $currency))),
-            'currency' => $currency,
-            'callback_url' => $callbackUrl,
-            'description' => str_replace(
-                '{order_id}',
-                (string) $order->id,
-                (string) ($settings['payment_description'] ?? 'Order #'.$order->id)
-            ),
-            'metadata' => array_filter([
-                'order_id' => (string) $order->id,
-                'mobile' => $order->customer_phone ?: null,
-                'email' => $order->customer_email ?: null,
-            ]),
-        ];
-
-        $response = Http::timeout(30)->acceptJson()->asJson()->post($requestUrl, $payload)->json();
-        $code = (int) data_get($response, 'data.code');
-        if ($code !== 100) {
-            $msg = data_get($response, 'errors.message') ?? data_get($response, 'data.message') ?? json_encode($response);
-            throw new \RuntimeException('Zarinpal request failed: '.$msg);
-        }
-
-        $authority = (string) data_get($response, 'data.authority');
-        $startPay = $sandbox
-            ? 'https://sandbox.zarinpal.com/pg/StartPay/'.$authority
-            : 'https://www.zarinpal.com/pg/StartPay/'.$authority;
-
-        return PaymentIntent::query()->create([
-            'tenant_id' => $order->tenant_id,
-            'order_id' => $order->id,
-            'provider' => 'zarinpal',
-            'status' => 'created',
-            'redirect_url' => $startPay,
-            'meta' => $this->withExtra([
-                'stub' => false,
-                'zarinpal_authority' => $authority,
-                'amount_rial' => $amountRial,
-                'currency' => $currency,
-            ]),
-        ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $settings
-     */
-    protected function createZibalIntent(Order $order, array $settings, string $callbackUrl, int $amountRial): PaymentIntent
-    {
-        $merchant = (string) ($settings['merchant_id'] ?? '');
-        $currency = $this->storeCurrencyCode($order);
-        $amount = (int) max(1, round(Currency::fromRial($amountRial, $currency)));
-        $response = Http::timeout(30)->acceptJson()->asJson()->post('https://gateway.zibal.ir/v1/request', [
-            'merchant' => $merchant,
-            'amount' => $amount,
-            'callbackUrl' => $callbackUrl,
-            'description' => str_replace('{order_id}', (string) $order->id, (string) ($settings['payment_description'] ?? 'Order #'.$order->id)),
-            'orderId' => (string) $order->id,
-        ])->json();
-        $result = (int) data_get($response, 'result');
-        if ($result !== 100) {
-            throw new \RuntimeException('Zibal request failed: '.(data_get($response, 'message') ?? json_encode($response)));
-        }
-        $trackId = (string) data_get($response, 'trackId');
-
-        return PaymentIntent::query()->create([
-            'tenant_id' => $order->tenant_id,
-            'order_id' => $order->id,
-            'provider' => 'zibal',
-            'status' => 'created',
-            'redirect_url' => 'https://gateway.zibal.ir/start/'.$trackId,
-            'meta' => $this->withExtra([
-                'zibal_track_id' => $trackId,
-                'amount_rial' => $amountRial,
-                'currency' => $currency,
-            ]),
-        ]);
     }
 
     /**
@@ -356,7 +324,7 @@ class PaymentCheckoutService
         if (! in_array($mode, ['cash', 'installment'], true)) {
             throw new \InvalidArgumentException('Unsupported payment mode.');
         }
-        if (in_array($provider, PaymentGatewaySettingsService::COMMERCE_GATEWAYS, true)
+        if (in_array($provider, $this->gateways->liveCommerceGatewayIds(), true)
             && ! $this->gateways->supportsMode($settings, $mode)) {
             throw new \DomainException('Payment gateway does not support this mode.');
         }

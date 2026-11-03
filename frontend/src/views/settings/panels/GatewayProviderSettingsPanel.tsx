@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { MediaPickerField } from "@/components/content/MediaPickerField"
+import { PageShell } from "@/components/PageShell"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,251 +18,159 @@ import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 
-type FieldDef =
-  | { key: string; type: "text" | "password" | "number" | "textarea" | "readonly"; label: string; hint?: string }
-  | { key: string; type: "switch"; label: string; hint?: string }
-  | { key: string; type: "select"; label: string; options: { value: string; label: string }[] }
+type FieldDef = {
+  key: string
+  type?: string
+  secret?: boolean
+  hint?: string
+}
 
-const PROVIDER_FIELDS: Record<string, FieldDef[]> = {
-  zarinpal: [
-    { key: "merchant_id", type: "password", label: "merchant_id" },
-    { key: "access_token", type: "password", label: "access_token" },
-    { key: "sandbox", type: "switch", label: "sandbox" },
-    { key: "cash_enabled", type: "switch", label: "cash_enabled" },
-    { key: "installment_enabled", type: "switch", label: "installment_enabled" },
-    { key: "fee_percent", type: "number", label: "fee_percent" },
-    { key: "title", type: "text", label: "title" },
-    { key: "description", type: "textarea", label: "description" },
-    { key: "instructions", type: "textarea", label: "instructions" },
-    { key: "payment_description", type: "text", label: "payment_description" },
-    { key: "order_button_text", type: "text", label: "order_button_text" },
-    { key: "success_message", type: "text", label: "success_message" },
-    { key: "failed_message", type: "text", label: "failed_message" },
-    { key: "cancelled_message", type: "text", label: "cancelled_message" },
-    { key: "invalid_token_message", type: "text", label: "invalid_token_message" },
-    { key: "fee_label", type: "text", label: "fee_label" },
-    {
-      key: "fee_payer",
-      type: "select",
-      label: "fee_payer",
-      options: [
-        { value: "merchant", label: "merchant" },
-        { value: "customer", label: "customer" },
-      ],
-    },
-    { key: "icon_url", type: "text", label: "icon_url" },
-    { key: "redact_logs", type: "switch", label: "redact_logs" },
-    { key: "callback_url", type: "readonly", label: "callback_url" },
-  ],
-  zibal: [
-    { key: "merchant_id", type: "password", label: "merchant_id" },
-    { key: "cash_enabled", type: "switch", label: "cash_enabled" },
-    { key: "installment_enabled", type: "switch", label: "installment_enabled" },
-    { key: "fee_percent", type: "number", label: "fee_percent" },
-    { key: "title", type: "text", label: "title" },
-    { key: "payment_description", type: "text", label: "payment_description" },
-    {
-      key: "fee_payer",
-      type: "select",
-      label: "fee_payer",
-      options: [
-        { value: "merchant", label: "merchant" },
-        { value: "customer", label: "customer" },
-      ],
-    },
-    { key: "callback_url", type: "readonly", label: "callback_url" },
-  ],
-  digipay: [
-    { key: "has_pdp", type: "switch", label: "has_pdp" },
-    { key: "dark_pdp", type: "switch", label: "dark_pdp" },
-    {
-      key: "environment",
-      type: "select",
-      label: "environment",
-      options: [
-        { value: "staging", label: "staging" },
-        { value: "live", label: "live" },
-      ],
-    },
-    { key: "client_id", type: "text", label: "client_id" },
-    { key: "client_secret", type: "password", label: "client_secret" },
-    { key: "username", type: "text", label: "username" },
-    { key: "password", type: "password", label: "password" },
-    { key: "digipay_version", type: "text", label: "digipay_version" },
-    { key: "seller_id", type: "text", label: "seller_id" },
-    { key: "supplier_id", type: "text", label: "supplier_id" },
-    { key: "category_id", type: "text", label: "category_id" },
-    { key: "product_type", type: "number", label: "product_type" },
-    { key: "preferred_gateway", type: "number", label: "preferred_gateway", hint: "0=wallet 2=ipg" },
-    { key: "preferred_gateway_installment", type: "number", label: "preferred_gateway_installment", hint: "5=BNPL" },
-    { key: "cash_enabled", type: "switch", label: "cash_enabled" },
-    { key: "installment_enabled", type: "switch", label: "installment_enabled" },
-    { key: "fee_percent", type: "number", label: "fee_percent" },
-    {
-      key: "fee_payer",
-      type: "select",
-      label: "fee_payer",
-      options: [
-        { value: "merchant", label: "merchant" },
-        { value: "customer", label: "customer" },
-      ],
-    },
-    { key: "title_ipg", type: "text", label: "title_ipg" },
-    { key: "description_ipg", type: "textarea", label: "description_ipg" },
-    { key: "title_wallet", type: "text", label: "title_wallet" },
-    { key: "description_wallet", type: "textarea", label: "description_wallet" },
-    { key: "title_cpg", type: "text", label: "title_cpg" },
-    { key: "description_cpg", type: "textarea", label: "description_cpg" },
-    { key: "title_bpg", type: "text", label: "title_bpg" },
-    { key: "description_bpg", type: "textarea", label: "description_bpg" },
-    { key: "order_button_text", type: "text", label: "order_button_text" },
-    { key: "success_message", type: "text", label: "success_message" },
-    { key: "failed_message", type: "text", label: "failed_message" },
-    { key: "cancelled_message", type: "text", label: "cancelled_message" },
-    { key: "icon_url", type: "text", label: "icon_url" },
-    { key: "callback_url", type: "readonly", label: "callback_url" },
-  ],
-  snapppay: [
-    { key: "base_url", type: "text", label: "base_url" },
-    { key: "client_id", type: "text", label: "client_id" },
-    { key: "client_secret", type: "password", label: "client_secret" },
-    { key: "client_username", type: "text", label: "client_username" },
-    { key: "client_password", type: "password", label: "client_password" },
-    { key: "cash_enabled", type: "switch", label: "cash_enabled" },
-    { key: "installment_enabled", type: "switch", label: "installment_enabled" },
-    { key: "fee_percent", type: "number", label: "fee_percent" },
-    {
-      key: "fee_payer",
-      type: "select",
-      label: "fee_payer",
-      options: [
-        { value: "merchant", label: "merchant" },
-        { value: "customer", label: "customer" },
-      ],
-    },
-    { key: "title", type: "text", label: "title" },
-    { key: "description", type: "textarea", label: "description" },
-    { key: "mobile_enabled", type: "switch", label: "mobile_enabled" },
-    { key: "postal_enabled", type: "switch", label: "postal_enabled" },
-    { key: "default_gateway", type: "switch", label: "default_gateway" },
-    { key: "has_comission", type: "switch", label: "has_comission" },
-    { key: "has_pdp", type: "switch", label: "has_pdp" },
-    { key: "dark_pdp", type: "switch", label: "dark_pdp" },
-    { key: "direct_payment", type: "switch", label: "direct_payment" },
-    { key: "success_message", type: "text", label: "success_message" },
-    { key: "failed_message", type: "text", label: "failed_message" },
-    { key: "cancelled_message", type: "text", label: "cancelled_message" },
-    { key: "server_ip", type: "readonly", label: "server_ip" },
-    { key: "callback_url", type: "readonly", label: "callback_url" },
-  ],
-  torobpay: [
-    { key: "has_pdp", type: "switch", label: "has_pdp" },
-    { key: "dark_pdp", type: "switch", label: "dark_pdp" },
-    { key: "base_url", type: "text", label: "base_url" },
-    { key: "client_id", type: "text", label: "client_id" },
-    { key: "client_secret", type: "password", label: "client_secret" },
-    { key: "client_username", type: "text", label: "client_username" },
-    { key: "client_password", type: "password", label: "client_password" },
-    { key: "cash_enabled", type: "switch", label: "cash_enabled" },
-    { key: "installment_enabled", type: "switch", label: "installment_enabled" },
-    { key: "fee_percent", type: "number", label: "fee_percent" },
-    {
-      key: "fee_payer",
-      type: "select",
-      label: "fee_payer",
-      options: [
-        { value: "merchant", label: "merchant" },
-        { value: "customer", label: "customer" },
-      ],
-    },
-    { key: "title", type: "text", label: "title" },
-    { key: "description", type: "textarea", label: "description" },
-    { key: "mobile_enabled", type: "switch", label: "mobile_enabled" },
-    { key: "postal_enabled", type: "switch", label: "postal_enabled" },
-    { key: "default_gateway", type: "switch", label: "default_gateway" },
-    { key: "direct_payment", type: "switch", label: "direct_payment" },
-    { key: "disable_payment_retry", type: "switch", label: "disable_payment_retry" },
-    { key: "utm_torob_enabled", type: "switch", label: "utm_torob_enabled" },
-    { key: "utm_exclude_others", type: "switch", label: "utm_exclude_others" },
-    { key: "dns_smart_resolve_enabled", type: "switch", label: "dns_smart_resolve_enabled" },
-    { key: "dns_ip_override", type: "text", label: "dns_ip_override" },
-    { key: "settle_enabled", type: "switch", label: "settle_enabled" },
-    { key: "widget_enabled", type: "switch", label: "widget_enabled" },
-    { key: "badge_enabled", type: "switch", label: "badge_enabled" },
-    { key: "marquee_enabled", type: "switch", label: "marquee_enabled" },
-    { key: "topbar_enabled", type: "switch", label: "topbar_enabled" },
-    { key: "slider_enabled", type: "switch", label: "slider_enabled" },
-    { key: "success_message", type: "text", label: "success_message" },
-    { key: "failed_message", type: "text", label: "failed_message" },
-    { key: "server_ip", type: "readonly", label: "server_ip" },
-    { key: "callback_url", type: "readonly", label: "callback_url" },
-  ],
-  bale_pay: [
-    { key: "provider_token", type: "password", label: "provider_token" },
-    { key: "title", type: "text", label: "title" },
-    { key: "description", type: "textarea", label: "description" },
-    { key: "instructions", type: "textarea", label: "instructions" },
-    { key: "order_button_text", type: "text", label: "order_button_text" },
-    { key: "success_message", type: "text", label: "success_message" },
-    { key: "failed_message", type: "text", label: "failed_message" },
-    { key: "icon_url", type: "text", label: "icon_url" },
-  ],
-  wallet: [
-    { key: "enabled", type: "switch", label: "enabled" },
-    { key: "title", type: "text", label: "title" },
-    { key: "description", type: "textarea", label: "description" },
-    { key: "order_button_text", type: "text", label: "order_button_text" },
-    { key: "login_prompt", type: "text", label: "login_prompt" },
-    { key: "balance_label", type: "text", label: "balance_label" },
-    { key: "icon_url", type: "text", label: "icon_url" },
-    { key: "min_topup", type: "number", label: "min_topup" },
-  ],
-  c2c: [
-    { key: "enabled", type: "switch", label: "enabled" },
-    { key: "title", type: "text", label: "title" },
-    { key: "description", type: "textarea", label: "description" },
-    { key: "instructions", type: "textarea", label: "instructions" },
-    { key: "order_button_text", type: "text", label: "order_button_text" },
-    { key: "icon_url", type: "text", label: "icon_url" },
-    { key: "iban", type: "text", label: "iban" },
-    { key: "deadline_h", type: "number", label: "deadline_h" },
-  ],
+type GatewayMeta = {
+  id: string
+  status?: string
+  category?: string
+  label_fa?: string
+  label_en?: string
+  docs_url?: string | null
+  fields?: FieldDef[]
+  coming_soon?: boolean
 }
 
 type CardRow = { number: string; name: string; bank: string }
 
-export function GatewayProviderSettingsPanel({
-  provider,
-}: {
-  provider: keyof typeof PROVIDER_FIELDS
-}) {
+const LEGACY_FIELDS: Record<string, FieldDef[]> = {
+  zarinpal: [
+    { key: "merchant_id", type: "password", secret: true },
+    { key: "access_token", type: "password", secret: true },
+    { key: "sandbox", type: "switch" },
+    { key: "cash_enabled", type: "switch" },
+    { key: "installment_enabled", type: "switch" },
+    { key: "fee_percent", type: "number" },
+    { key: "title", type: "text" },
+    { key: "fee_payer", type: "select" },
+    { key: "callback_url", type: "readonly" },
+  ],
+  zibal: [
+    { key: "merchant_id", type: "password", secret: true },
+    { key: "cash_enabled", type: "switch" },
+    { key: "fee_percent", type: "number" },
+    { key: "title", type: "text" },
+    { key: "callback_url", type: "readonly" },
+  ],
+  digipay: [
+    { key: "environment", type: "select" },
+    { key: "client_id", type: "text" },
+    { key: "client_secret", type: "password", secret: true },
+    { key: "username", type: "text" },
+    { key: "password", type: "password", secret: true },
+    { key: "cash_enabled", type: "switch" },
+    { key: "installment_enabled", type: "switch" },
+    { key: "fee_percent", type: "number" },
+    { key: "callback_url", type: "readonly" },
+  ],
+  snapppay: [
+    { key: "base_url", type: "text" },
+    { key: "client_id", type: "text" },
+    { key: "client_secret", type: "password", secret: true },
+    { key: "client_username", type: "text" },
+    { key: "client_password", type: "password", secret: true },
+    { key: "installment_enabled", type: "switch" },
+    { key: "fee_percent", type: "number" },
+    { key: "callback_url", type: "readonly" },
+    { key: "server_ip", type: "readonly" },
+  ],
+  torobpay: [
+    { key: "base_url", type: "text" },
+    { key: "client_id", type: "text" },
+    { key: "client_secret", type: "password", secret: true },
+    { key: "client_username", type: "text" },
+    { key: "client_password", type: "password", secret: true },
+    { key: "installment_enabled", type: "switch" },
+    { key: "settle_enabled", type: "switch" },
+    { key: "callback_url", type: "readonly" },
+  ],
+  bale_pay: [
+    { key: "title", type: "text" },
+    { key: "description", type: "textarea" },
+    { key: "instructions", type: "textarea" },
+  ],
+  wallet: [
+    { key: "title", type: "text" },
+    { key: "description", type: "textarea" },
+    { key: "min_topup", type: "number" },
+  ],
+  c2c: [
+    { key: "title", type: "text" },
+    { key: "description", type: "textarea" },
+    { key: "instructions", type: "textarea" },
+    { key: "iban", type: "text" },
+    { key: "deadline_h", type: "number" },
+    { key: "smart_verify", type: "switch" },
+  ],
+}
+
+const SECRET_HINT_KEYS = [
+  "access_token",
+  "client_secret",
+  "password",
+  "client_password",
+  "merchant_id",
+  "api_key",
+  "api_token",
+  "secret_key",
+  "terminal_key",
+  "private_key",
+  "public_key",
+  "pin",
+  "login_account",
+  "webhook_secret",
+  "ipn_secret",
+  "publishable_key",
+  "passphrase",
+  "alternate_passphrase",
+]
+
+export function GatewayProviderSettingsPanel({ provider }: { provider: string }) {
   const t = useTranslations("payments_gateway")
   const tHub = useTranslations("payments_hub")
   const tCommon = useTranslations("common")
+  const locale = useLocale()
   const qc = useQueryClient()
-  const fields = PROVIDER_FIELDS[provider] ?? []
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null)
+  const [enabled, setEnabled] = useState(false)
   const [cards, setCards] = useState<CardRow[]>([{ number: "", name: "", bank: "" }])
+  const [meta, setMeta] = useState<GatewayMeta | null>(null)
 
   const q = useQuery({
     queryKey: ["payment-gateway", provider],
     queryFn: () =>
-      api<{ settings: Record<string, unknown> }>(`/api/v1/payments/gateways/${provider}`),
+      api<{ settings: Record<string, unknown>; enabled?: boolean }>(
+        `/api/v1/payments/gateways/${provider}`,
+      ),
   })
 
   useEffect(() => {
     if (!q.data?.settings) return
     const s = { ...q.data.settings }
-    for (const key of ["access_token", "client_secret", "password", "client_password", "merchant_id", "provider_token"]) {
+    const m = (s._meta as GatewayMeta | undefined) ?? null
+    setMeta(m)
+    delete s._meta
+    for (const key of SECRET_HINT_KEYS) {
       if (s[`has_${key}`]) s[key] = ""
       delete s[`has_${key}`]
     }
     setDraft(s)
+    if (typeof q.data.enabled === "boolean") setEnabled(q.data.enabled)
     if (provider === "c2c") {
       const raw = Array.isArray(s.cards) ? (s.cards as CardRow[]) : []
       setCards(raw.length ? raw : [{ number: "", name: "", bank: "" }])
     }
   }, [q.data, provider])
+
+  const fields = useMemo(() => {
+    if (meta?.fields?.length) return meta.fields
+    return LEGACY_FIELDS[provider] ?? []
+  }, [meta, provider])
 
   const save = useMutation({
     mutationFn: async () => {
@@ -270,13 +180,26 @@ export function GatewayProviderSettingsPanel({
       }
       return api(`/api/v1/payments/gateways/${provider}`, {
         method: "POST",
-        json: { settings: payload },
+        json: { settings: payload, enabled },
       })
     },
     onSuccess: async () => {
       toast.success(tCommon("saved"))
       await qc.invalidateQueries({ queryKey: ["payment-gateway", provider] })
       await qc.invalidateQueries({ queryKey: ["payments-hub"] })
+      await qc.invalidateQueries({ queryKey: ["payment-gateways"] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const test = useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean; message: string }>(`/api/v1/payments/gateways/${provider}/test`, {
+        method: "POST",
+      }),
+    onSuccess: (res) => {
+      if (res.ok) toast.success(res.message || t("test_ok"))
+      else toast.error(res.message || t("test_fail"))
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -286,21 +209,60 @@ export function GatewayProviderSettingsPanel({
   }
   if (!draft) return null
 
-  const titleKey = provider === "bale_pay" ? "bale_pay" : provider
+  const title =
+    (locale.startsWith("fa") ? meta?.label_fa : meta?.label_en) ||
+    (() => {
+      try {
+        return tHub(provider as "zarinpal")
+      } catch {
+        return provider
+      }
+    })()
+  const soon = Boolean(meta?.coming_soon) || meta?.status === "scaffold"
+  const desc = soon ? tHub("coming_soon_desc") : tHub("configure_hint")
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <PageShell
+      title={title}
+      description={desc}
+      eyebrow={tHub("eyebrow")}
+      actions={
         <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard/settings/shop/payments">{tHub("back_to_hub")}</Link>
         </Button>
-      </div>
+      }
+    >
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{tHub(titleKey as "zarinpal")}</CardTitle>
-          <CardDescription>{tHub(`${titleKey}_desc` as "zarinpal_desc")}</CardDescription>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+              {title}
+              {soon ? <Badge variant="secondary">{tHub("coming_soon")}</Badge> : null}
+            </CardTitle>
+            <CardDescription>{desc}</CardDescription>
+            {meta?.docs_url ? (
+              <a
+                href={meta.docs_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary text-xs underline"
+              >
+                {tHub("docs")}
+              </a>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor={`${provider}-enabled`}>{t("fields.enabled")}</Label>
+            <Switch id={`${provider}-enabled`} checked={enabled} onCheckedChange={setEnabled} />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {soon ? (
+            <p className="bg-muted/40 rounded-lg border border-dashed px-3 py-2 text-xs">
+              {tHub("scaffold_hint")}
+            </p>
+          ) : null}
+
           {provider === "bale_pay" && draft.status && typeof draft.status === "object" ? (
             <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-2 text-xs">
               {t("bale_status", {
@@ -314,8 +276,14 @@ export function GatewayProviderSettingsPanel({
 
           <div className="grid gap-4 sm:grid-cols-2">
             {fields.map((field) => {
-              const label = t(`fields.${field.label}` as "fields.title")
-              if (field.type === "switch") {
+              const type = field.type ?? (field.secret ? "password" : "text")
+              let label = field.key
+              try {
+                label = t(`fields.${field.key}` as "fields.title")
+              } catch {
+                label = field.key
+              }
+              if (type === "switch") {
                 return (
                   <div
                     key={field.key}
@@ -323,9 +291,7 @@ export function GatewayProviderSettingsPanel({
                   >
                     <div>
                       <Label>{label}</Label>
-                      {"hint" in field && field.hint ? (
-                        <p className="text-muted-foreground text-xs">{field.hint}</p>
-                      ) : null}
+                      {field.hint ? <p className="text-muted-foreground text-xs">{field.hint}</p> : null}
                     </div>
                     <Switch
                       checked={Boolean(draft[field.key])}
@@ -334,28 +300,42 @@ export function GatewayProviderSettingsPanel({
                   </div>
                 )
               }
-              if (field.type === "textarea") {
+              if (type === "textarea") {
                 return (
                   <div key={field.key} className="space-y-2 sm:col-span-2">
                     <Label>{label}</Label>
                     <Textarea
-                      rows={2}
+                      rows={3}
+                      className={field.secret ? "font-mono" : undefined}
+                      dir={field.secret ? "ltr" : undefined}
                       value={String(draft[field.key] ?? "")}
                       onChange={(e) => setDraft({ ...draft, [field.key]: e.target.value })}
                     />
                   </div>
                 )
               }
-              if (field.type === "select") {
+              if (type === "select") {
+                const options =
+                  field.key === "environment"
+                    ? [
+                        { value: "staging", label: "staging" },
+                        { value: "live", label: "live" },
+                      ]
+                    : field.key === "fee_payer"
+                      ? [
+                          { value: "merchant", label: "merchant" },
+                          { value: "customer", label: "customer" },
+                        ]
+                      : []
                 return (
                   <div key={field.key} className="space-y-2">
                     <Label>{label}</Label>
                     <select
                       className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-                      value={String(draft[field.key] ?? field.options[0]?.value ?? "")}
+                      value={String(draft[field.key] ?? options[0]?.value ?? "")}
                       onChange={(e) => setDraft({ ...draft, [field.key]: e.target.value })}
                     >
-                      {field.options.map((o) => (
+                      {options.map((o) => (
                         <option key={o.value} value={o.value}>
                           {t(`fields.${o.label}` as "fields.merchant")}
                         </option>
@@ -376,31 +356,29 @@ export function GatewayProviderSettingsPanel({
                   </div>
                 )
               }
+              const isPassword = type === "password" || Boolean(field.secret)
               return (
                 <div key={field.key} className="space-y-2">
                   <Label>{label}</Label>
                   <Input
-                    type={field.type === "number" ? "number" : field.type === "password" ? "password" : "text"}
-                    readOnly={field.type === "readonly"}
-                    className={field.type === "readonly" ? "bg-muted font-mono" : field.type === "password" ? "font-mono" : undefined}
-                    dir={field.type === "readonly" || field.type === "password" ? "ltr" : undefined}
+                    type={type === "number" ? "number" : isPassword ? "password" : "text"}
+                    readOnly={type === "readonly"}
+                    className={
+                      type === "readonly" ? "bg-muted font-mono" : isPassword ? "font-mono" : undefined
+                    }
+                    dir={type === "readonly" || isPassword ? "ltr" : undefined}
                     placeholder={
-                      field.type === "password" && q.data?.settings?.[`has_${field.key}`]
-                        ? "••••••••"
-                        : undefined
+                      isPassword && q.data?.settings?.[`has_${field.key}`] ? "••••••••" : undefined
                     }
                     value={String(draft[field.key] ?? "")}
                     onChange={(e) =>
                       setDraft({
                         ...draft,
-                        [field.key]:
-                          field.type === "number" ? Number(e.target.value) : e.target.value,
+                        [field.key]: type === "number" ? Number(e.target.value) : e.target.value,
                       })
                     }
                   />
-                  {"hint" in field && field.hint ? (
-                    <p className="text-muted-foreground text-xs">{field.hint}</p>
-                  ) : null}
+                  {field.hint ? <p className="text-muted-foreground text-xs">{field.hint}</p> : null}
                 </div>
               )
             })}
@@ -453,11 +431,21 @@ export function GatewayProviderSettingsPanel({
             </div>
           ) : null}
 
-          <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
-            {save.isPending ? tCommon("saving") : tCommon("save")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
+              {save.isPending ? tCommon("saving") : tCommon("save")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={test.isPending}
+              onClick={() => test.mutate()}
+            >
+              {test.isPending ? tCommon("loading") : t("test_connection")}
+            </Button>
+          </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   )
 }

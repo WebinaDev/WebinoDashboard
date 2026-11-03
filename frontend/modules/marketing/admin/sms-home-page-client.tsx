@@ -8,7 +8,6 @@ import { ListStatsStrip } from "@/components/ListStatsStrip"
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -35,6 +34,7 @@ import {
   localRecipientsPreview,
 } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 import { translateSmsStatus } from "../lib/sms-ui"
 
 export default function PageClient({ route: _route }: { route: ResolvedAdminRoute }) {
@@ -74,31 +74,30 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         />
       ) : null}
 
-      <Card className="mb-4 overflow-hidden shadow-soft">
-        <CardContent className="grid gap-4 pt-6 md:grid-cols-[1.4fr_1fr]">
-          <div className="space-y-3">
-            <h2 className="text-xl font-semibold md:text-2xl">{tAds("heroTitle")}</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">{tAds("heroDesc")}</p>
-            <Button asChild size="sm">
-              <Link href={dashboardPath("marketing/sms/ads/new")}>{tAds("createCta")}</Link>
-            </Button>
-          </div>
-          <div className="grid gap-2 text-sm">
-            {(
-              [
-                ["bannerVolume", "bannerVolumeDesc"],
-                ["bannerSegments", "bannerSegmentsDesc"],
-                ["bannerCopy", "bannerCopyDesc"],
-              ] as const
-            ).map(([title, desc]) => (
-              <div key={title} className="border-border rounded-lg border p-3">
-                <p className="font-medium">{tAds(title)}</p>
-                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{tAds(desc)}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <SmsSection
+        title={tAds("heroTitle")}
+        description={tAds("heroDesc")}
+        actions={
+          <Button asChild size="sm">
+            <Link href={dashboardPath("marketing/sms/ads/new")}>{tAds("createCta")}</Link>
+          </Button>
+        }
+      >
+        <div className="grid gap-2 text-sm sm:grid-cols-3">
+          {(
+            [
+              ["bannerVolume", "bannerVolumeDesc"],
+              ["bannerSegments", "bannerSegmentsDesc"],
+              ["bannerCopy", "bannerCopyDesc"],
+            ] as const
+          ).map(([title, desc]) => (
+            <div key={title} className="border-border rounded-lg border p-3">
+              <p className="font-medium">{tAds(title)}</p>
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{tAds(desc)}</p>
+            </div>
+          ))}
+        </div>
+      </SmsSection>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <ListStatsStrip
@@ -127,12 +126,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         </Button>
       </div>
 
-      <Card className="mb-4 shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{tAds("campaignsTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {adsQ.isPending ? (
+      <SmsSection title={tAds("campaignsTitle")}>
+{adsQ.isPending ? (
             <Skeleton className="h-16 w-full" />
           ) : campaigns.length === 0 ? (
             <p className="text-muted-foreground text-sm">{tAds("noCampaigns")}</p>
@@ -150,15 +145,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </SmsSection>
 
-      <Card className="shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{t("recentSends")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
+      <SmsSection title={t("recentSends")}>
+{loading ? (
             <div className="space-y-2">
               <Skeleton className="h-8 w-full" />
               <Skeleton className="h-8 w-full" />
@@ -205,8 +195,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </SmsSection>
     </SmsPanelShell>
   )
 }

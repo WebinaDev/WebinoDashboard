@@ -199,7 +199,10 @@ class MarketplaceSync
         foreach (Tenant::query()->pluck('id') as $tenantId) {
             foreach (MarketplacePlatforms::CATALOG as $slug => $meta) {
                 // Basalam polls from BasalamScheduler, gated by its sync_status_order setting.
-                if (! $meta['orders'] || $slug === 'basalam' || ! $this->settings->isEnabled((int) $tenantId, $slug)) {
+                if (($meta['status'] ?? MarketplacePlatforms::LIVE) !== MarketplacePlatforms::LIVE
+                    || ! $meta['orders']
+                    || $slug === 'basalam'
+                    || ! $this->settings->isEnabled((int) $tenantId, $slug)) {
                     continue;
                 }
                 $this->enqueue((int) $tenantId, $slug, self::PULL_ORDERS, [], 5, 0, self::PULL_ORDERS);

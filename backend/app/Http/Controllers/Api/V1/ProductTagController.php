@@ -35,6 +35,7 @@ class ProductTagController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255'],
+            'meta' => ['nullable', 'array'],
         ]);
 
         $slug = $this->ensureUniqueSlug($tid, $data['slug'] ?? Str::slug($data['name']));
@@ -43,6 +44,7 @@ class ProductTagController extends Controller
             'tenant_id' => $tid,
             'name' => $data['name'],
             'slug' => $slug,
+            'meta' => $data['meta'] ?? null,
         ]);
 
         return response()->json(['data' => $tag->loadCount('products')], 201);
@@ -55,6 +57,7 @@ class ProductTagController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255'],
+            'meta' => ['sometimes', 'nullable', 'array'],
         ]);
 
         if (isset($data['slug'])) {

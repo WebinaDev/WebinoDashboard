@@ -3,10 +3,11 @@
 namespace App\Services\Security;
 
 use App\Services\Modules\ModuleSettingsService;
+use Illuminate\Support\Facades\Crypt;
 
 /**
- * Tenant security settings (login lockout, WAF, headers, 2FA enforcement).
- * Stored under settings / site.security and actually enforced by middleware + AuthController.
+ * Tenant security settings (login lockout, WAF, headers, 2FA, captcha, SSL, edge).
+ * Stored under settings / site.security and enforced by middleware + AuthController + forms.
  */
 final class SecuritySettings
 {
@@ -65,6 +66,36 @@ final class SecuritySettings
                 'log_events' => true,
                 'retention_days' => 30,
             ],
+            // HTTPS / HSTS (headers only; reverse proxy still terminates TLS).
+            'ssl' => [
+                'force_https' => false,
+                'hsts' => false,
+                'hsts_max_age' => 31536000,
+                'hsts_include_subdomains' => false,
+                'hsts_preload' => false,
+            ],
+            // Edge / CDN awareness (does not write Performance CDN settings).
+            'edge' => [
+                'hide_origin_ip' => false,
+                'notes' => '',
+            ],
+            // Captcha providers (numeric works offline for Iranian hosts).
+            'captcha' => [
+                'provider' => 'none',
+                'site_key' => '',
+                'secret_key' => '',
+                'v3_threshold' => 0.5,
+                'protect' => [
+                    'forms' => false,
+                    'login' => false,
+                    'checkout' => false,
+                    'comments' => false,
+                ],
+            ],
+            'spam' => [
+                'honeypot' => true,
+                'min_submit_ms' => 1500,
+            ],
         ];
     }
 
@@ -80,6 +111,8 @@ final class SecuritySettings
         }
         unset($merged['privacy']['hide_wp_version'], $merged['privacy']['disable_file_edit']);
 
+        $merged['captcha']['secret_key'] = self::maskSecret(self::decryptSecret((string) ($merged['captcha']['secret_key'] ?? '')));
+
         return $merged;
     }
 
@@ -89,12 +122,28 @@ final class SecuritySettings
      */
     public static function save(int $tenantId, array $input): array
     {
-        $current = self::get($tenantId);
+        $stored = app(ModuleSettingsService::class)->get($tenantId, self::MODULE, self::KEY, []);
+        $current = array_replace_recursive(self::defaults(), is_array($stored) ? $stored : []);
         $merged = array_replace_recursive($current, $input);
+
+        // Preserve secret when client sends mask / empty.
+        $incomingSecret = data_get($input, 'captcha.secret_key');
+        if (! is_string($incomingSecret) || $incomingSecret === '' || str_contains($incomingSecret, '•') || str_contains($incomingSecret, '*')) {
+            data_set($merged, 'captcha.secret_key', (string) data_get($current, 'captcha.secret_key', ''));
+        } else {
+            data_set($merged, 'captcha.secret_key', 'enc:'.Crypt::encryptString(trim($incomingSecret)));
+        }
+
         $clean = self::sanitize($merged);
+        // sanitize masks; re-apply encrypted secret for storage
+        $clean['captcha']['secret_key'] = (string) data_get($merged, 'captcha.secret_key', '');
+        if ($clean['captcha']['secret_key'] !== '' && ! str_starts_with($clean['captcha']['secret_key'], 'enc:')) {
+            $clean['captcha']['secret_key'] = 'enc:'.Crypt::encryptString($clean['captcha']['secret_key']);
+        }
+
         app(ModuleSettingsService::class)->put($tenantId, self::MODULE, self::KEY, $clean);
 
-        return $clean;
+        return self::get($tenantId);
     }
 
     /** @param  array<string, mixed>  $input */
@@ -120,6 +169,15 @@ final class SecuritySettings
         if (! in_array($referrer, $allowedReferrers, true)) {
             $referrer = $d['headers']['referrer_policy'];
         }
+
+        $provider = (string) ($input['captcha']['provider'] ?? $d['captcha']['provider']);
+        if (! in_array($provider, CaptchaService::PROVIDERS, true)) {
+            $provider = 'none';
+        }
+
+        $hstsMax = max(0, min(63072000, (int) ($input['ssl']['hsts_max_age'] ?? $d['ssl']['hsts_max_age'])));
+        $threshold = (float) ($input['captcha']['v3_threshold'] ?? 0.5);
+        $threshold = max(0.0, min(1.0, $threshold));
 
         return [
             'general' => [
@@ -176,6 +234,33 @@ final class SecuritySettings
                 'log_events' => ! empty($input['forensics']['log_events']),
                 'retention_days' => max(1, min(365, (int) ($input['forensics']['retention_days'] ?? 30))),
             ],
+            'ssl' => [
+                'force_https' => ! empty($input['ssl']['force_https']),
+                'hsts' => ! empty($input['ssl']['hsts']),
+                'hsts_max_age' => $hstsMax,
+                'hsts_include_subdomains' => ! empty($input['ssl']['hsts_include_subdomains']),
+                'hsts_preload' => ! empty($input['ssl']['hsts_preload']),
+            ],
+            'edge' => [
+                'hide_origin_ip' => ! empty($input['edge']['hide_origin_ip']),
+                'notes' => mb_substr(trim((string) ($input['edge']['notes'] ?? '')), 0, 2000),
+            ],
+            'captcha' => [
+                'provider' => $provider,
+                'site_key' => mb_substr(trim((string) ($input['captcha']['site_key'] ?? '')), 0, 200),
+                'secret_key' => self::maskSecret(self::decryptSecret((string) ($input['captcha']['secret_key'] ?? ''))),
+                'v3_threshold' => $threshold,
+                'protect' => [
+                    'forms' => ! empty($input['captcha']['protect']['forms']),
+                    'login' => ! empty($input['captcha']['protect']['login']),
+                    'checkout' => ! empty($input['captcha']['protect']['checkout']),
+                    'comments' => ! empty($input['captcha']['protect']['comments']),
+                ],
+            ],
+            'spam' => [
+                'honeypot' => ! empty($input['spam']['honeypot'] ?? true),
+                'min_submit_ms' => max(0, min(30000, (int) ($input['spam']['min_submit_ms'] ?? 1500))),
+            ],
         ];
     }
 
@@ -184,5 +269,31 @@ final class SecuritySettings
         $s = self::get($tenantId);
 
         return ! empty($s['general']['enabled']);
+    }
+
+    private static function decryptSecret(string $value): string
+    {
+        if (str_starts_with($value, 'enc:')) {
+            try {
+                return Crypt::decryptString(substr($value, 4));
+            } catch (\Throwable) {
+                return '';
+            }
+        }
+
+        return $value;
+    }
+
+    private static function maskSecret(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+        if (strlen($value) <= 4) {
+            return '••••';
+        }
+
+        return '••••'.substr($value, -4);
     }
 }

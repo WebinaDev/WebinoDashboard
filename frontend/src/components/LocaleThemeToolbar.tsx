@@ -33,7 +33,14 @@ function ThemeIcon({ mode }: { mode: ThemeMode }) {
   return <Monitor className="size-4" />
 }
 
-export function LocaleThemeToolbar({ compact }: { compact?: boolean }) {
+export function LocaleThemeToolbar({
+  compact,
+  languageOnly,
+}: {
+  compact?: boolean
+  /** Header: language icon only; accent/theme remain in more-sheet / full toolbar */
+  languageOnly?: boolean
+}) {
   const router = useRouter()
   const locale = useLocale()
   const t = useTranslations("common")
@@ -62,67 +69,72 @@ export function LocaleThemeToolbar({ compact }: { compact?: boolean }) {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            size={compact ? "icon" : "sm"}
+            size="icon"
             type="button"
             aria-label={t("locale_label")}
           >
             <Languages className="size-4" />
-            {compact ? null : lng === "fa" ? t("locale_fa") : t("locale_en")}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => changeLanguage("en")}>
-            {t("locale_en")}
+          <DropdownMenuItem className="gap-2" onClick={() => changeLanguage("en")}>
+            <span className="flex-1 text-start">{t("locale_en")}</span>
+            {lng === "en" ? <Check className="ms-auto size-4 shrink-0" /> : null}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => changeLanguage("fa")}>
-            {t("locale_fa")}
+          <DropdownMenuItem className="gap-2" onClick={() => changeLanguage("fa")}>
+            <span className="flex-1 text-start">{t("locale_fa")}</span>
+            {lng === "fa" ? <Check className="ms-auto size-4 shrink-0" /> : null}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      {languageOnly ? null : (
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                className="relative"
+                aria-label={t("accent_label")}
+              >
+                <Palette className="size-4" />
+                <AccentSwatch value={accent} className="absolute end-1.5 bottom-1.5 size-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              {ACCENT_MENU_ITEMS.map((item) => (
+                <DropdownMenuItem
+                  key={item.value}
+                  className="gap-2"
+                  onClick={() => setAccent(item.value)}
+                >
+                  <AccentSwatch
+                    value={item.value}
+                    className={cn(
+                      "size-3.5",
+                      isBusinessAccent(item.value) && "ring-primary/30 shadow-sm",
+                    )}
+                  />
+                  <span className="flex-1 text-start">{t(`accent_${item.value}` as never)}</span>
+                  {accent === item.value ? <Check className="ms-auto size-4 shrink-0" /> : null}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
+            type="button"
             variant="outline"
             size="icon"
-            type="button"
-            className="relative"
-            aria-label={t("accent_label")}
+            onClick={() => setMode(nextTheme)}
+            aria-label={t(`theme_${mode}` as "theme_light")}
           >
-            <Palette className="size-4" />
-            <AccentSwatch value={accent} className="absolute end-1.5 bottom-1.5 size-2" />
+            <ThemeIcon mode={mode} />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-48">
-          {ACCENT_MENU_ITEMS.map((item) => (
-            <DropdownMenuItem
-              key={item.value}
-              className="gap-2"
-              onClick={() => setAccent(item.value)}
-            >
-              <AccentSwatch
-                value={item.value}
-                className={cn(
-                  "size-3.5",
-                  isBusinessAccent(item.value) && "ring-primary/30 shadow-sm",
-                )}
-              />
-              <span className="flex-1 text-start">{t(`accent_${item.value}` as never)}</span>
-              {accent === item.value ? <Check className="ms-auto size-4 shrink-0" /> : null}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        onClick={() => setMode(nextTheme)}
-        aria-label={t(`theme_${mode}` as "theme_light")}
-      >
-        <ThemeIcon mode={mode} />
-      </Button>
+        </>
+      )}
     </div>
   )
 }

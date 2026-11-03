@@ -2,7 +2,7 @@
 
 import { Mic, Paperclip, Square } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -18,9 +18,18 @@ export type TicketAttachmentView = {
 type Props = {
   body: string
   onBodyChange: (value: string) => void
-  onSubmit: (payload: { body: string; files: File[]; voice: File | null }) => void | Promise<void>
+  onSubmit: (payload: {
+    body: string
+    files: File[]
+    voice: File | null
+    is_internal?: boolean
+  }) => void | Promise<void>
   pending?: boolean
   disabled?: boolean
+  allowInternal?: boolean
+  isInternal?: boolean
+  onInternalChange?: (value: boolean) => void
+  toolbar?: ReactNode
 }
 
 export function TicketReplyAttachments({ attachments }: { attachments?: TicketAttachmentView[] }) {
@@ -64,7 +73,17 @@ export function TicketReplyAttachments({ attachments }: { attachments?: TicketAt
   )
 }
 
-export function TicketReplyComposer({ body, onBodyChange, onSubmit, pending, disabled }: Props) {
+export function TicketReplyComposer({
+  body,
+  onBodyChange,
+  onSubmit,
+  pending,
+  disabled,
+  allowInternal,
+  isInternal,
+  onInternalChange,
+  toolbar,
+}: Props) {
   const t = useTranslations("tickets")
   const fileRef = useRef<HTMLInputElement>(null)
   const mediaRef = useRef<MediaRecorder | null>(null)
@@ -108,6 +127,7 @@ export function TicketReplyComposer({ body, onBodyChange, onSubmit, pending, dis
 
   return (
     <div className="space-y-3">
+      {toolbar}
       <Textarea
         value={body}
         onChange={(e) => onBodyChange(e.target.value)}
@@ -135,12 +155,23 @@ export function TicketReplyComposer({ body, onBodyChange, onSubmit, pending, dis
           {recording ? <Square className="me-1 size-3.5" /> : <Mic className="me-1 size-3.5" />}
           {recording ? t("stop_voice") : t("record_voice")}
         </Button>
+        {allowInternal ? (
+          <label className="text-muted-foreground flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={Boolean(isInternal)}
+              onChange={(e) => onInternalChange?.(e.target.checked)}
+              disabled={disabled || pending}
+            />
+            {t("internal_note")}
+          </label>
+        ) : null}
         <Button
           type="button"
           disabled={!canSend}
-          onClick={() => void onSubmit({ body, files, voice })}
+          onClick={() => void onSubmit({ body, files, voice, is_internal: isInternal })}
         >
-          {t("send_reply")}
+          {isInternal ? t("save_note") : t("send_reply")}
         </Button>
       </div>
       {files.length || voice ? (
@@ -155,10 +186,16 @@ export function TicketReplyComposer({ body, onBodyChange, onSubmit, pending, dis
   )
 }
 
-export function buildTicketReplyFormData(payload: { body: string; files: File[]; voice: File | null }) {
+export function buildTicketReplyFormData(payload: {
+  body: string
+  files: File[]
+  voice: File | null
+  is_internal?: boolean
+}) {
   const fd = new FormData()
   if (payload.body.trim()) fd.append("body", payload.body.trim())
   payload.files.forEach((file, index) => fd.append(`attachments[${index}]`, file))
   if (payload.voice) fd.append("voice", payload.voice)
+  if (payload.is_internal) fd.append("is_internal", "1")
   return fd
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Folder, Pencil, Tags, Trash2 } from "lucide-react"
+import { Folder, Layers, Pencil, Sparkles, Tags, Trash2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -28,6 +28,7 @@ import { PostsPagination, MEDIA_PER_PAGE_OPTIONS } from "@/components/PostsPagin
 import { mediaAltPatch, resolveMediaAlt, type MediaAltFields } from "@/lib/media-alt"
 import { QueryErrorState } from "@/components/QueryErrorState"
 import { TableListSkeleton } from "@/components/TableListSkeleton"
+import { cn } from "@/lib/utils"
 
 type Term = { id: number; name: string; slug: string; parent?: number | null; count?: number }
 type MediaItem = MediaAltFields & {
@@ -48,6 +49,32 @@ type MediaItem = MediaAltFields & {
 
 type TermsPayload = { folders: Term[]; categories: Term[]; tags: Term[] }
 type ListPayload = { items: MediaItem[]; page: number; total: number; per_page: number }
+type AiCleanupPayload = { fixed: number; scanned: number; items: { id: number; fields: string[] }[] }
+
+type ProblemFilter =
+  | "without_folder"
+  | "without_category"
+  | "without_tags"
+  | "without_caption"
+  | "without_alt"
+  | "without_description"
+  | "bad_slug"
+
+const PROBLEM_FILTERS: ProblemFilter[] = [
+  "without_folder",
+  "without_category",
+  "without_tags",
+  "without_caption",
+  "without_alt",
+  "without_description",
+  "bad_slug",
+]
+
+const META_ICON = {
+  folder: "text-sky-600 dark:text-sky-400",
+  category: "text-emerald-600 dark:text-emerald-400",
+  tag: "text-amber-600 dark:text-amber-400",
+} as const
 
 export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
   const t = useTranslations("media")
@@ -60,6 +87,8 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
   const [search, setSearch] = useState("")
   const [folderId, setFolderId] = useState(MEDIA_TERM_ALL)
   const [categoryId, setCategoryId] = useState(MEDIA_TERM_ALL)
+  const [problems, setProblems] = useState<ProblemFilter[]>([])
+  const [selected, setSelected] = useState<number[]>([])
   const [busy, setBusy] = useState(false)
   const [editItem, setEditItem] = useState<MediaItem | null>(null)
   const [folderItem, setFolderItem] = useState<MediaItem | null>(null)
@@ -80,13 +109,18 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
     return () => window.clearTimeout(timer)
   }, [searchInput])
 
+  useEffect(() => {
+    setSelected([])
+  }, [page, perPage, search, folderId, categoryId, problems])
+
   const listQ = useQuery({
-    queryKey: ["media", "list", page, perPage, search, folderId, categoryId],
+    queryKey: ["media", "list", page, perPage, search, folderId, categoryId, problems],
     queryFn: () => {
       const p = new URLSearchParams({ page: String(page), per_page: String(perPage) })
       if (search) p.set("search", search)
       if (folderId && folderId !== MEDIA_TERM_ALL) p.set("folder_id", folderId)
       if (categoryId && categoryId !== MEDIA_TERM_ALL) p.set("category_id", categoryId)
+      for (const key of problems) p.set(key, "1")
       return api<ListPayload>(`/api/v1/media?${p}`)
     },
   })
@@ -96,6 +130,20 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
   const folders = termsQ.data?.folders ?? []
   const categories = termsQ.data?.categories ?? []
   const tags = termsQ.data?.tags ?? []
+  const allPageSelected = items.length > 0 && items.every((item) => selected.includes(item.id))
+
+  function toggleProblem(key: ProblemFilter) {
+    setProblems((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))
+    setPage(1)
+  }
+
+  function toggleSelected(id: number, on: boolean) {
+    setSelected((prev) => (on ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)))
+  }
+
+  function toggleSelectAll(on: boolean) {
+    setSelected(on ? items.map((item) => item.id) : [])
+  }
 
   async function uploadFiles(files: File[]) {
     setBusy(true)
@@ -139,6 +187,27 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
+  const aiMut = useMutation({
+    mutationFn: () => {
+      const json: Record<string, unknown> = { limit: 100 }
+      if (selected.length > 0) {
+        json.ids = selected
+      } else {
+        for (const key of problems) json[key] = true
+        if (search) json.search = search
+        if (folderId && folderId !== MEDIA_TERM_ALL) json.folder_id = Number(folderId)
+        if (categoryId && categoryId !== MEDIA_TERM_ALL) json.category_id = Number(categoryId)
+      }
+      return api<AiCleanupPayload>("/api/v1/media/ai-cleanup", { method: "POST", json })
+    },
+    onSuccess: (data) => {
+      toast.success(t("ai_fixed", { count: data.fixed, scanned: data.scanned }))
+      setSelected([])
+      void qc.invalidateQueries({ queryKey: ["media"] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
   const editForm = useMemo(() => {
     if (!editItem) return null
     return {
@@ -154,6 +223,8 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
   useEffect(() => {
     setEditDraft(editForm)
   }, [editForm])
+
+  const canAiFix = selected.length > 0 || problems.length > 0
 
   return (
     <PageShell title={t("title")} description={t("subtitle")}>
@@ -187,6 +258,51 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
         />
       </div>
 
+      <div className="mb-4 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-xs font-medium">{t("problem_filters")}</span>
+          {PROBLEM_FILTERS.map((key) => {
+            const active = problems.includes(key)
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => toggleProblem(key)}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {t(`filter_${key}`)}
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 text-xs">
+            <Checkbox checked={allPageSelected} onCheckedChange={(v) => toggleSelectAll(!!v)} />
+            {t("select_page")}
+          </label>
+          {selected.length > 0 ? (
+            <span className="text-muted-foreground text-xs">{t("selected_count", { count: selected.length })}</span>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!canAiFix || aiMut.isPending}
+            onClick={() => void aiMut.mutateAsync()}
+            title={selected.length > 0 ? t("ai_fix_selected") : t("ai_fix_filtered")}
+          >
+            <Sparkles className="size-3.5" />
+            {aiMut.isPending ? t("ai_fixing") : selected.length > 0 ? t("ai_fix_selected") : t("ai_fix_filtered")}
+          </Button>
+        </div>
+      </div>
+
       {listQ.isError ? (
         <QueryErrorState onRetry={() => listQ.refetch()} />
       ) : listQ.isLoading ? (
@@ -195,47 +311,115 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
         <p className="text-muted-foreground text-sm">{t("empty")}</p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((item) => (
-            <li key={item.id} className="flex flex-col gap-2 rounded-xl border p-3 text-sm">
-              {item.url && item.mime?.startsWith("image/") ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.url} alt={resolveMediaAlt(item)} className="bg-muted h-36 w-full rounded-lg object-cover" />
-              ) : (
-                <div className="bg-muted text-muted-foreground flex h-36 items-center justify-center rounded-lg text-xs">
-                  {item.mime || t("file")}
+          {items.map((item) => {
+            const hasFolder = !!item.folder_id
+            const hasCats = (item.category_ids?.length ?? 0) > 0
+            const hasTags = (item.tag_ids?.length ?? 0) > 0
+            return (
+              <li key={item.id} className="flex flex-col gap-2 rounded-xl border p-3 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <Checkbox
+                    checked={selected.includes(item.id)}
+                    onCheckedChange={(v) => toggleSelected(item.id, !!v)}
+                    aria-label={t("select_item")}
+                  />
+                  <div className="flex flex-wrap justify-end gap-1">
+                    {hasFolder ? (
+                      <span className={cn("inline-flex items-center", META_ICON.folder)} title={t("folder")}>
+                        <Folder className="size-3.5" aria-hidden />
+                        <span className="sr-only">{t("folder")}</span>
+                      </span>
+                    ) : null}
+                    {hasCats ? (
+                      <span className={cn("inline-flex items-center", META_ICON.category)} title={t("category")}>
+                        <Layers className="size-3.5" aria-hidden />
+                        <span className="sr-only">{t("category")}</span>
+                      </span>
+                    ) : null}
+                    {hasTags ? (
+                      <span className={cn("inline-flex items-center", META_ICON.tag)} title={t("assign_tags")}>
+                        <Tags className="size-3.5" aria-hidden />
+                        <span className="sr-only">{t("assign_tags")}</span>
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-              )}
-              <p className="truncate font-medium">{item.title || item.original_name}</p>
-              <div className="flex flex-wrap gap-1">
-                <Button type="button" size="sm" variant="ghost" onClick={() => setFolderItem(item)}>
-                  <Folder className="size-3.5" />
-                </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setCatsItem(item)}>
-                  {t("categories_short")}
-                </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => { setTagsItem(item); setTagDraft("") }}>
-                  <Tags className="size-3.5" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setEditItem(item)}
-                >
-                  <Pencil className="size-3.5" />
-                </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() =>
-                    confirm({
-                      description: item.title || item.original_name || undefined,
-                      onConfirm: () => deleteMut.mutateAsync(item.id),
-                    })
-                  }
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
-              </div>
-            </li>
-          ))}
+                {item.url && item.mime?.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.url} alt={resolveMediaAlt(item)} className="bg-muted h-36 w-full rounded-lg object-cover" />
+                ) : (
+                  <div className="bg-muted text-muted-foreground flex h-36 items-center justify-center rounded-lg text-xs">
+                    {item.mime || t("file")}
+                  </div>
+                )}
+                <p className="truncate font-medium">{item.title || item.original_name}</p>
+                <div className="flex flex-wrap gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className={META_ICON.folder}
+                    aria-label={t("assign_folder")}
+                    title={t("assign_folder")}
+                    onClick={() => setFolderItem(item)}
+                  >
+                    <Folder className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className={META_ICON.category}
+                    aria-label={t("assign_categories")}
+                    title={t("assign_categories")}
+                    onClick={() => setCatsItem(item)}
+                  >
+                    <Layers className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className={META_ICON.tag}
+                    aria-label={t("assign_tags")}
+                    title={t("assign_tags")}
+                    onClick={() => {
+                      setTagsItem(item)
+                      setTagDraft("")
+                    }}
+                  >
+                    <Tags className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    aria-label={t("edit_meta")}
+                    title={t("edit_meta")}
+                    onClick={() => setEditItem(item)}
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    aria-label={t("delete")}
+                    title={t("delete")}
+                    onClick={() =>
+                      confirm({
+                        description: item.title || item.original_name || undefined,
+                        onConfirm: () => deleteMut.mutateAsync(item.id),
+                      })
+                    }
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
 

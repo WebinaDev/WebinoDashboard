@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreMediaRequest;
 use App\Models\MediaAsset;
 use App\Models\MediaTerm;
+use App\Services\Media\MediaAiCleanupService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -21,29 +23,7 @@ class MediaController extends Controller
             ->with(['folderTerm', 'terms'])
             ->orderByDesc('id');
 
-        if ($request->filled('folder_id')) {
-            $query->where('folder_term_id', (int) $request->query('folder_id'));
-        } elseif ($request->filled('folder')) {
-            $query->where('folder', $request->string('folder'));
-        }
-
-        if ($request->filled('category_id')) {
-            $cid = (int) $request->query('category_id');
-            $query->whereHas('terms', fn ($t) => $t->where('media_terms.id', $cid)->where('kind', 'category'));
-        }
-
-        if ($mime = trim((string) $request->query('mime', ''))) {
-            $query->where('mime', 'like', str_replace(['%', '_'], ['\\%', '\\_'], $mime).'/%');
-        }
-
-        if ($search = trim((string) $request->query('search', ''))) {
-            $like = '%'.$search.'%';
-            $query->where(function ($w) use ($like) {
-                $w->where('original_name', 'like', $like)
-                    ->orWhere('title', 'like', $like)
-                    ->orWhere('alt', 'like', $like);
-            });
-        }
+        $this->applyListFilters($query, $request);
 
         $perPage = min(100, max(1, (int) $request->query('per_page', 24)));
         $paginator = $query->paginate($perPage);
@@ -54,6 +34,67 @@ class MediaController extends Controller
                 'page' => $paginator->currentPage(),
                 'total' => $paginator->total(),
                 'per_page' => $paginator->perPage(),
+            ],
+        ]);
+    }
+
+    public function aiCleanup(Request $request, MediaAiCleanupService $cleanup): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+        $data = $request->validate([
+            'ids' => 'sometimes|nullable|array',
+            'ids.*' => 'integer',
+            'limit' => 'sometimes|integer|min:1|max:200',
+            'without_folder' => 'sometimes|boolean',
+            'without_category' => 'sometimes|boolean',
+            'without_tags' => 'sometimes|boolean',
+            'without_caption' => 'sometimes|boolean',
+            'without_alt' => 'sometimes|boolean',
+            'without_description' => 'sometimes|boolean',
+            'bad_slug' => 'sometimes|boolean',
+            'folder_id' => 'sometimes|nullable|integer',
+            'category_id' => 'sometimes|nullable|integer',
+            'search' => 'sometimes|nullable|string|max:190',
+        ]);
+
+        $limit = (int) ($data['limit'] ?? 100);
+        $query = MediaAsset::query()->where('tenant_id', $tid)->orderByDesc('id');
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', $data['ids'] ?? []))));
+        $hasProblemFilter = $request->boolean('without_folder')
+            || $request->boolean('without_category')
+            || $request->boolean('without_tags')
+            || $request->boolean('without_caption')
+            || $request->boolean('without_alt')
+            || $request->boolean('without_description')
+            || $request->boolean('bad_slug');
+
+        if ($ids !== []) {
+            $query->whereIn('id', $ids);
+        } elseif ($hasProblemFilter || $request->filled('search') || $request->filled('folder_id') || $request->filled('category_id')) {
+            $this->applyListFilters($query, $request);
+        } else {
+            return response()->json([
+                'message' => 'Provide ids or at least one problem/list filter.',
+            ], 422);
+        }
+
+        $rows = $query->limit($limit)->get();
+        $results = [];
+        $fixed = 0;
+        foreach ($rows as $row) {
+            $result = $cleanup->fix($row);
+            $results[] = $result;
+            if ($result['fields'] !== []) {
+                $fixed++;
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'fixed' => $fixed,
+                'scanned' => count($results),
+                'items' => $results,
             ],
         ]);
     }
@@ -179,6 +220,78 @@ class MediaController extends Controller
         $row->delete();
 
         return response()->json(['data' => ['deleted' => true]]);
+    }
+
+    private function applyListFilters(Builder $query, Request $request): void
+    {
+        if ($request->filled('folder_id')) {
+            $query->where('folder_term_id', (int) $request->input('folder_id'));
+        } elseif ($request->filled('folder')) {
+            $query->where('folder', $request->string('folder'));
+        }
+
+        if ($request->filled('category_id')) {
+            $cid = (int) $request->input('category_id');
+            $query->whereHas('terms', fn ($t) => $t->where('media_terms.id', $cid)->where('kind', 'category'));
+        }
+
+        if ($mime = trim((string) $request->input('mime', ''))) {
+            $query->where('mime', 'like', str_replace(['%', '_'], ['\\%', '\\_'], $mime).'/%');
+        }
+
+        if ($search = trim((string) $request->input('search', ''))) {
+            $like = '%'.$search.'%';
+            $query->where(function ($w) use ($like) {
+                $w->where('original_name', 'like', $like)
+                    ->orWhere('title', 'like', $like)
+                    ->orWhere('alt', 'like', $like);
+            });
+        }
+
+        if ($request->boolean('without_folder')) {
+            $query->whereNull('folder_term_id');
+        }
+        if ($request->boolean('without_category')) {
+            $query->whereDoesntHave('terms', fn ($t) => $t->where('kind', 'category'));
+        }
+        if ($request->boolean('without_tags')) {
+            $query->whereDoesntHave('terms', fn ($t) => $t->where('kind', 'tag'));
+        }
+        if ($request->boolean('without_caption')) {
+            $query->where(function ($w) {
+                $w->whereNull('caption')->orWhere('caption', '');
+            });
+        }
+        if ($request->boolean('without_alt')) {
+            $query->where(function ($w) {
+                $w->whereNull('alt')->orWhere('alt', '');
+            });
+        }
+        if ($request->boolean('without_description')) {
+            $query->where(function ($w) {
+                $w->whereNull('description')->orWhere('description', '');
+            });
+        }
+        if ($request->boolean('bad_slug')) {
+            $this->applyBadSlugFilter($query);
+        }
+    }
+
+    private function applyBadSlugFilter(Builder $query): void
+    {
+        $driver = $query->getConnection()->getDriverName();
+        $query->where(function ($w) use ($driver) {
+            $w->whereNull('slug')->orWhere('slug', '')->orWhere('slug', 'like', '% %');
+            if ($driver === 'sqlite') {
+                $w->orWhereRaw("slug GLOB '*[^a-z0-9-]*'")
+                    ->orWhere('slug', 'like', '-%')
+                    ->orWhere('slug', 'like', '%-')
+                    ->orWhere('slug', 'like', '%--%');
+            } else {
+                // MySQL / MariaDB: not a clean lowercase latin slug (also catches Persian).
+                $w->orWhereRaw("slug NOT REGEXP '^[a-z0-9]+(-[a-z0-9]+)*$'");
+            }
+        });
     }
 
     /** @param  list<int>  $categoryIds @param  list<int>  $tagIds */

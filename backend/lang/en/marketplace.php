@@ -8,6 +8,7 @@ return [
     'connection_ok' => 'Connection established successfully.',
     'invalid_remote_id' => 'The remote product ID is invalid.',
     'platform_disabled' => 'This marketplace is disabled.',
+    'coming_soon' => 'This marketplace is coming soon.',
     'request_unauthorized' => 'The request could not be authenticated.',
 
     'snappshop_vendor_missing' => 'SnappShop vendor ID is missing.',

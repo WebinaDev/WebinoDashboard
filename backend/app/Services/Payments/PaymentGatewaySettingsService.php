@@ -2,37 +2,40 @@
 
 namespace App\Services\Payments;
 
-use App\Services\Marketplace\Basalam\BasalamPay;
-use App\Services\Modules\ModuleSettingsService;
-use App\Services\Wallet\WalletService;
 use App\Http\Controllers\Api\V1\C2cController;
 use App\Models\BotSetting;
 use App\Models\C2cSetting;
 use App\Models\WalletSetting;
+use App\Services\Marketplace\Basalam\BasalamPay;
+use App\Services\Modules\ModuleSettingsService;
+use App\Services\Orders\PosSettings;
+use App\Services\Payments\Drivers\GatewayDriverRegistry;
+use App\Services\Wallet\WalletService;
 
 /**
  * Tenant payment gateway settings (hub + per-provider credentials).
+ * Catalog: config/payment_gateways.php
  */
 class PaymentGatewaySettingsService
 {
     public const MODULE = 'payments';
 
-    /** @var list<string> */
+    /**
+     * @deprecated Prefer catalog()->ids() — kept for older call sites.
+     *
+     * @var list<string>
+     */
     public const GATEWAY_IDS = [
-        'zarinpal',
-        'zibal',
-        'digipay',
-        'snapppay',
-        'torobpay',
-        'bale_pay',
-        'basalam_pay',
-        'wallet',
-        'c2c',
-        'cod',
-        'cheque',
+        'zarinpal', 'zibal', 'digipay', 'snapppay', 'torobpay',
+        'bale_pay', 'basalam_pay', 'wallet', 'c2c', 'cod',
     ];
 
-    /** Site commerce IPGs configured on «درگاه‌های پرداخت». */
+    /**
+     * Live commerce IPGs historically used at checkout.
+     * Prefer catalog()->liveCommerceIds() for new code.
+     *
+     * @var list<string>
+     */
     public const COMMERCE_GATEWAYS = ['zarinpal', 'zibal', 'digipay', 'snapppay', 'torobpay'];
 
     /** @var list<string> */
@@ -42,10 +45,49 @@ class PaymentGatewaySettingsService
         'password',
         'client_password',
         'merchant_id',
-        'provider_token',
+        'api_key',
+        'api_token',
+        'secret_key',
+        'terminal_key',
+        'private_key',
+        'public_key',
+        'pin',
+        'login_account',
+        'webhook_secret',
+        'ipn_secret',
+        'publishable_key',
+        'passphrase',
+        'alternate_passphrase',
     ];
 
-    public function __construct(protected ModuleSettingsService $settings) {}
+    public function __construct(
+        protected ModuleSettingsService $settings,
+        protected PaymentGatewayCatalog $catalog,
+        protected GatewayDriverRegistry $drivers,
+    ) {}
+
+    public function catalog(): PaymentGatewayCatalog
+    {
+        return $this->catalog;
+    }
+
+    /** @return list<string> */
+    public function gatewayIds(): array
+    {
+        return $this->catalog->ids();
+    }
+
+    /** @return list<string> */
+    public function commerceGatewayIds(): array
+    {
+        return $this->catalog->commerceIds();
+    }
+
+    /** @return list<string> */
+    public function liveCommerceGatewayIds(): array
+    {
+        return $this->catalog->liveCommerceIds();
+    }
 
     /** @return array{enabled: bool, services: array<string, bool>, colors: array<string, string>} */
     public function defaultGeoNotice(): array
@@ -76,7 +118,7 @@ class PaymentGatewaySettingsService
     public function defaultHub(): array
     {
         $enabled = [];
-        foreach (self::GATEWAY_IDS as $id) {
+        foreach ($this->gatewayIds() as $id) {
             $enabled[$id] = false;
         }
         $enabled['cod'] = true;
@@ -90,7 +132,19 @@ class PaymentGatewaySettingsService
     /** @return array<string, mixed> */
     public function getHub(int $tenantId): array
     {
-        return $this->settings->get($tenantId, self::MODULE, 'hub', $this->defaultHub());
+        $hub = $this->settings->get($tenantId, self::MODULE, 'hub', $this->defaultHub());
+        $enabled = is_array($hub['enabled'] ?? null) ? $hub['enabled'] : [];
+        foreach ($this->gatewayIds() as $id) {
+            if (! array_key_exists($id, $enabled)) {
+                $enabled[$id] = $id === 'cod';
+            }
+        }
+        $hub['enabled'] = $enabled;
+        if (! isset($hub['geo_notice']) || ! is_array($hub['geo_notice'])) {
+            $hub['geo_notice'] = $this->defaultGeoNotice();
+        }
+
+        return $hub;
     }
 
     /**
@@ -130,7 +184,7 @@ class PaymentGatewaySettingsService
             $current['geo_notice'] = $geo;
         }
         if (isset($input['enabled']) && is_array($input['enabled'])) {
-            foreach (self::GATEWAY_IDS as $id) {
+            foreach ($this->gatewayIds() as $id) {
                 if (array_key_exists($id, $input['enabled'])) {
                     $current['enabled'][$id] = (bool) $input['enabled'][$id];
                 }
@@ -143,12 +197,57 @@ class PaymentGatewaySettingsService
     public function setGatewayEnabled(int $tenantId, string $gatewayId, bool $enabled): array
     {
         $hub = $this->getHub($tenantId);
-        if (! in_array($gatewayId, self::GATEWAY_IDS, true)) {
+        if (! $this->catalog->has($gatewayId)) {
             abort(422, 'Unknown gateway');
         }
         $hub['enabled'][$gatewayId] = $enabled;
+        $saved = $this->settings->put($tenantId, self::MODULE, 'hub', $hub);
+        $this->syncPosGatewayMapping($tenantId);
 
-        return $this->settings->put($tenantId, self::MODULE, 'hub', $hub);
+        return $saved;
+    }
+
+    /**
+     * Drop disabled / unknown gateway ids from POS online tender mappings.
+     */
+    public function syncPosGatewayMapping(int $tenantId): void
+    {
+        try {
+            $pos = app(PosSettings::class);
+        } catch (\Throwable) {
+            return;
+        }
+        $current = $pos->get($tenantId);
+        $methods = $current['payment_methods'] ?? [];
+        if (! is_array($methods)) {
+            return;
+        }
+        $allowed = [];
+        foreach ($this->gatewayIds() as $id) {
+            if ($this->isEnabled($tenantId, $id)) {
+                $allowed[] = $id;
+            }
+        }
+        $allowed[] = 'card_to_card';
+        $allowed = array_values(array_unique($allowed));
+        $changed = false;
+        foreach ($methods as $i => $method) {
+            if (! is_array($method) || ($method['type'] ?? '') !== 'online') {
+                continue;
+            }
+            $ids = is_array($method['gateway_ids'] ?? null) ? $method['gateway_ids'] : [];
+            $filtered = array_values(array_filter(
+                $ids,
+                fn ($gid) => in_array(str_replace('-', '_', strtolower((string) $gid)), $allowed, true)
+            ));
+            if ($filtered !== $ids) {
+                $methods[$i]['gateway_ids'] = $filtered;
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            $pos->put($tenantId, ['payment_methods' => $methods]);
+        }
     }
 
     public function isEnabled(int $tenantId, string $gatewayId): bool
@@ -161,145 +260,13 @@ class PaymentGatewaySettingsService
     /** @return array<string, mixed> */
     public function defaultsFor(string $provider): array
     {
-        return match ($provider) {
-            'cheque' => [
-                'title' => 'پرداخت با چک',
-                'instructions' => '',
-                'payee_name' => '',
-            ],
-            'zibal' => [
-                'merchant_id' => '',
-                'title' => 'زیبال',
-                'payment_description' => 'Order #{order_id}',
-                'fee_payer' => 'merchant',
-                'fee_percent' => 0.0,
-                'cash_enabled' => true,
-                'installment_enabled' => false,
-            ],
-            'zarinpal' => [
-                'merchant_id' => '',
-                'access_token' => '',
-                'sandbox' => true,
-                'gateway_enabled' => false,
-                'title' => 'زرین‌پال',
-                'description' => '',
-                'instructions' => '',
-                'success_message' => '',
-                'failed_message' => '',
-                'order_button_text' => '',
-                'fee_label' => '',
-                'cancelled_message' => '',
-                'invalid_token_message' => '',
-                'payment_description' => 'Order #{order_id}',
-                'icon_url' => '',
-                'fee_payer' => 'merchant',
-                'fee_percent' => 0.0,
-                'cash_enabled' => true,
-                'installment_enabled' => false,
-                'redact_logs' => true,
-            ],
-            'digipay' => [
-                'environment' => 'staging',
-                'client_id' => '',
-                'client_secret' => '',
-                'username' => '',
-                'password' => '',
-                'digipay_version' => '2022-02-02',
-                'seller_id' => '',
-                'supplier_id' => '',
-                'category_id' => '',
-                'product_type' => 1,
-                'preferred_gateway' => 2,
-                'preferred_gateway_installment' => 5,
-                'fee_percent' => 0.0,
-                'fee_payer' => 'merchant',
-                'cash_enabled' => true,
-                'installment_enabled' => true,
-                'has_pdp' => true,
-                'dark_pdp' => false,
-                'title_ipg' => 'دیجی‌پی',
-                'description_ipg' => '',
-                'title_wallet' => 'کیف پول دیجی‌پی',
-                'description_wallet' => '',
-                'title_cpg' => 'اعتبار دیجی‌پی',
-                'description_cpg' => '',
-                'title_bpg' => 'اقساط دیجی‌پی',
-                'description_bpg' => '',
-                'order_button_text' => '',
-                'success_message' => '',
-                'failed_message' => '',
-                'cancelled_message' => '',
-                'icon_url' => '',
-            ],
-            'snapppay' => [
-                'base_url' => 'https://api.snapppay.ir',
-                'sandbox' => false,
-                'fee_percent' => 0.0,
-                'fee_payer' => 'customer',
-                'cash_enabled' => false,
-                'installment_enabled' => true,
-                'client_id' => '',
-                'client_secret' => '',
-                'client_username' => '',
-                'client_password' => '',
-                'mobile_enabled' => true,
-                'postal_enabled' => true,
-                'default_gateway' => false,
-                'has_comission' => false,
-                'has_pdp' => false,
-                'dark_pdp' => false,
-                'direct_payment' => false,
-                'title' => 'اسنپ‌پی',
-                'description' => '',
-                'success_message' => '',
-                'failed_message' => '',
-                'cancelled_message' => '',
-            ],
-            'torobpay' => [
-                'base_url' => 'https://cpg.torobpay.com',
-                'sandbox' => false,
-                'fee_percent' => 0.0,
-                'fee_payer' => 'customer',
-                'cash_enabled' => false,
-                'installment_enabled' => true,
-                'client_id' => '',
-                'client_secret' => '',
-                'client_username' => '',
-                'client_password' => '',
-                'mobile_enabled' => true,
-                'postal_enabled' => true,
-                'default_gateway' => false,
-                'has_pdp' => true,
-                'dark_pdp' => false,
-                'direct_payment' => false,
-                'disable_payment_retry' => false,
-                'utm_torob_enabled' => false,
-                'utm_exclude_others' => false,
-                'dns_smart_resolve_enabled' => false,
-                'dns_ip_override' => '',
-                'settle_enabled' => false,
-                'title' => 'ترب‌پی',
-                'description' => '',
-                'success_message' => '',
-                'failed_message' => '',
-                'widget_enabled' => false,
-                'badge_enabled' => false,
-                'marquee_enabled' => false,
-                'topbar_enabled' => false,
-                'slider_enabled' => false,
-            ],
-            'bale_pay' => [
-                'provider_token' => '',
-                'title' => 'بله پی',
-                'description' => '',
-                'instructions' => '',
-                'order_button_text' => '',
-                'success_message' => '',
-                'failed_message' => '',
-                'icon_url' => '',
-            ],
-            default => [],
-        };
+        $fromCatalog = $this->catalog->defaults($provider);
+        if ($fromCatalog !== []) {
+            return $fromCatalog;
+        }
+
+        // Legacy fallbacks for digipay/snapp/torob detailed fields already in catalog.
+        return [];
     }
 
     /** @return array<string, mixed> */
@@ -307,6 +274,9 @@ class PaymentGatewaySettingsService
     {
         if (in_array($provider, ['wallet', 'c2c'], true)) {
             return $this->getLocalGateway($tenantId, $provider);
+        }
+        if ($provider === 'cod') {
+            return $this->settings->get($tenantId, self::MODULE, 'cod', $this->defaultsFor('cod'));
         }
 
         return $this->settings->get(
@@ -318,15 +288,20 @@ class PaymentGatewaySettingsService
     }
 
     /**
-     * Public settings (secrets masked).
+     * Public settings (secrets masked) + form schema for the settings UI.
      *
      * @return array<string, mixed>
      */
     public function getPublic(int $tenantId, string $provider): array
     {
+        if (! $this->catalog->has($provider) && ! in_array($provider, ['wallet', 'c2c', 'cod', 'bale_pay', 'basalam_pay'], true)) {
+            abort(422, 'Unknown provider');
+        }
+
         $raw = $this->getRaw($tenantId, $provider);
         $out = $raw;
-        foreach (self::SECRET_KEYS as $key) {
+        $secretKeys = array_unique(array_merge(self::SECRET_KEYS, $this->catalog->secretKeys()));
+        foreach ($secretKeys as $key) {
             if (array_key_exists($key, $out)) {
                 $has = filled($out[$key] ?? null);
                 unset($out[$key]);
@@ -351,6 +326,22 @@ class PaymentGatewaySettingsService
             ];
         }
 
+        $meta = $this->catalog->get($provider) ?? [];
+        $status = (string) ($meta['status'] ?? 'live');
+        $comingSoon = $status === 'scaffold';
+        $out['_meta'] = [
+            'id' => $provider,
+            'status' => $status,
+            'category' => $meta['category'] ?? 'other',
+            'label_fa' => $meta['label_fa'] ?? $provider,
+            'label_en' => $meta['label_en'] ?? $provider,
+            'docs_url' => $this->catalog->docsUrl($provider),
+            'fields' => $this->catalog->fields($provider),
+            'supports' => $meta['supports'] ?? ['cash'],
+            'coming_soon' => $comingSoon,
+            'testable' => true,
+        ];
+
         return $out;
     }
 
@@ -360,21 +351,34 @@ class PaymentGatewaySettingsService
      */
     public function save(int $tenantId, string $provider, array $input): array
     {
+        if (! $this->catalog->has($provider)) {
+            abort(422, 'Unknown provider');
+        }
         if (in_array($provider, ['wallet', 'c2c'], true)) {
             return $this->saveLocalGateway($tenantId, $provider, $input);
         }
 
         $defaults = $this->defaultsFor($provider);
-        if ($defaults === []) {
-            abort(422, 'Unknown provider');
+        if ($defaults === [] && $provider !== 'basalam_pay') {
+            // Allow empty defaults only for marketplace-linked providers.
+            if ($provider !== 'cod') {
+                // still allow saving title/description overlays
+                $defaults = ['title' => '', 'description' => ''];
+            }
         }
+        if ($provider === 'basalam_pay') {
+            abort(422, 'Configure Basalam Pay from marketplace settings');
+        }
+
         $current = $this->getRaw($tenantId, $provider);
         $merged = $current;
-        foreach ($defaults as $key => $default) {
+        $secretKeys = array_unique(array_merge(self::SECRET_KEYS, $this->catalog->secretKeys()));
+        $allowedKeys = array_unique(array_merge(array_keys($defaults), array_keys($current)));
+        foreach ($allowedKeys as $key) {
             if (! array_key_exists($key, $input)) {
                 continue;
             }
-            if (in_array($key, self::SECRET_KEYS, true)) {
+            if (in_array($key, $secretKeys, true)) {
                 $val = $input[$key];
                 if ($val === null || $val === '' || (is_string($val) && str_contains($val, '•'))) {
                     continue;
@@ -382,7 +386,32 @@ class PaymentGatewaySettingsService
                 $merged[$key] = (string) $val;
                 continue;
             }
+            $default = $defaults[$key] ?? $current[$key] ?? '';
             $merged[$key] = $this->castValue($input[$key], $default);
+        }
+        // Accept any extra non-secret keys from catalog fields not yet in defaults.
+        foreach ($this->catalog->fields($provider) as $field) {
+            $key = (string) ($field['key'] ?? '');
+            if ($key === '' || $key === 'callback_url' || $key === 'server_ip') {
+                continue;
+            }
+            if (! array_key_exists($key, $input)) {
+                continue;
+            }
+            if (in_array($key, $secretKeys, true)) {
+                $val = $input[$key];
+                if ($val === null || $val === '' || (is_string($val) && str_contains($val, '•'))) {
+                    continue;
+                }
+                $merged[$key] = (string) $val;
+                continue;
+            }
+            $type = (string) ($field['type'] ?? 'text');
+            $merged[$key] = match ($type) {
+                'switch' => (bool) $input[$key],
+                'number' => is_numeric($input[$key]) ? 0 + $input[$key] : 0,
+                default => $input[$key],
+            };
         }
         if (array_key_exists('fee_percent', $merged)) {
             $merged['fee_percent'] = $this->feePercent($merged);
@@ -393,6 +422,24 @@ class PaymentGatewaySettingsService
         $this->settings->put($tenantId, self::MODULE, $provider, $merged);
 
         return $this->getPublic($tenantId, $provider);
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @return array{ok: bool, message: string}
+     */
+    public function testConnection(int $tenantId, string $provider): array
+    {
+        $raw = $this->getRaw($tenantId, $provider);
+        $driver = $this->drivers->get($provider);
+        if ($driver) {
+            return $driver->testConnection($raw);
+        }
+        if ($this->configured($tenantId, $provider)) {
+            return ['ok' => true, 'message' => 'پیکربندی کامل است.'];
+        }
+
+        return ['ok' => false, 'message' => 'اعتبارنامه ناقص است.'];
     }
 
     public function feePercent(array $settings): float
@@ -412,8 +459,6 @@ class PaymentGatewaySettingsService
     }
 
     /**
-     * Fee preview in store minor units. Customer-paid fees increase the charged total.
-     *
      * @param  array<string, mixed>  $settings
      * @return array{fee_percent: float, fee_payer: string, fee_minor: int, base_minor: int, charge_minor: int}
      */
@@ -446,20 +491,24 @@ class PaymentGatewaySettingsService
     }
 
     /**
-     * Enabled, configured commerce gateways safe to show at checkout.
+     * Enabled, configured, live commerce gateways safe to show at checkout.
      *
      * @return list<array<string, mixed>>
      */
     public function checkoutGateways(int $tenantId, ?string $mode = null): array
     {
         $out = [];
-        foreach (self::COMMERCE_GATEWAYS as $id) {
+        foreach ($this->liveCommerceGatewayIds() as $id) {
             if (! $this->isEnabled($tenantId, $id) || ! $this->configured($tenantId, $id)) {
                 continue;
             }
             $raw = $this->getRaw($tenantId, $id);
             $cash = (bool) ($raw['cash_enabled'] ?? false);
             $installment = (bool) ($raw['installment_enabled'] ?? false);
+            // Local/wallet-style may omit flags — treat as cash.
+            if (! array_key_exists('cash_enabled', $raw) && ! array_key_exists('installment_enabled', $raw)) {
+                $cash = true;
+            }
             if ($mode === 'cash' && ! $cash) {
                 continue;
             }
@@ -473,15 +522,18 @@ class PaymentGatewaySettingsService
             if ($title === '' && $id === 'digipay') {
                 $title = (string) ($raw['title_ipg'] ?? 'دیجی‌پی');
             }
+            if ($title === '') {
+                $title = (string) ($this->catalog->get($id)['label_fa'] ?? $id);
+            }
             $out[] = [
                 'id' => $id,
-                'title' => $title !== '' ? $title : $id,
+                'title' => $title,
                 'cash_enabled' => $cash,
                 'installment_enabled' => $installment,
                 'fee_percent' => $this->feePercent($raw),
                 'fee_payer' => (string) ($raw['fee_payer'] ?? 'merchant'),
                 'sandbox' => $this->isSandbox($id, $raw),
-                'kind' => 'online',
+                'status' => 'live',
             ];
         }
 
@@ -520,74 +572,104 @@ class PaymentGatewaySettingsService
         if ($provider === BasalamPay::PROVIDER) {
             return BasalamPay::for($tenantId)->configured();
         }
+        $required = $this->catalog->required($provider);
+        if ($required === []) {
+            return match ($provider) {
+                'bale_pay' => BotSetting::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('provider', 'bale')
+                    ->where('enabled', true)
+                    ->whereNotNull('token')
+                    ->exists(),
+                'wallet', 'c2c', 'cod' => true,
+                default => true,
+            };
+        }
         $raw = $this->getRaw($tenantId, $provider);
+        foreach ($required as $key) {
+            // snapp/torob use client_username/client_password in stored settings
+            $aliases = match ($key) {
+                'client_username' => ['client_username', 'username'],
+                'client_password' => ['client_password', 'password'],
+                default => [$key],
+            };
+            $ok = false;
+            foreach ($aliases as $alias) {
+                if (filled($raw[$alias] ?? null)) {
+                    $ok = true;
+                    break;
+                }
+            }
+            if (! $ok) {
+                return false;
+            }
+        }
 
-        return match ($provider) {
-            'zarinpal', 'zibal' => filled($raw['merchant_id'] ?? null),
-            'digipay' => filled($raw['client_id'] ?? null)
-                && filled($raw['client_secret'] ?? null)
-                && filled($raw['username'] ?? null)
-                && filled($raw['password'] ?? null),
-            'snapppay', 'torobpay' => filled($raw['client_id'] ?? null)
-                && filled($raw['client_secret'] ?? null)
-                && filled($raw['client_username'] ?? null)
-                && filled($raw['client_password'] ?? null),
-            'bale_pay' => BotSetting::query()
-                ->where('tenant_id', $tenantId)
-                ->where('provider', 'bale')
-                ->where('enabled', true)
-                ->whereNotNull('token')
-                ->exists(),
-            'wallet', 'c2c', 'cod', 'cheque' => true,
-            default => false,
-        };
+        return true;
     }
 
     /**
-     * Hub rows for the settings UI.
+     * Hub rows for the settings UI, grouped by category.
      *
-     * @return list<array<string, mixed>>
+     * @return array{categories: list<array<string, mixed>>, items: list<array<string, mixed>>}
      */
-    public function hubItems(int $tenantId): array
+    public function hubPayload(int $tenantId): array
     {
         $hub = $this->getHub($tenantId);
-        $catalog = [
-            ['id' => 'zarinpal', 'title_key' => 'zarinpal', 'settings_path' => '/dashboard/settings/shop/zarinpal'],
-            ['id' => 'zibal', 'title_key' => 'zibal', 'settings_path' => '/dashboard/settings/shop/zibal'],
-            ['id' => 'digipay', 'title_key' => 'digipay', 'settings_path' => '/dashboard/settings/shop/digipay'],
-            ['id' => 'snapppay', 'title_key' => 'snapppay', 'settings_path' => '/dashboard/settings/shop/snapppay'],
-            ['id' => 'torobpay', 'title_key' => 'torobpay', 'settings_path' => '/dashboard/settings/shop/torobpay'],
-            ['id' => 'bale_pay', 'title_key' => 'bale_pay', 'settings_path' => '/dashboard/settings/shop/bale-pay'],
-            ['id' => 'basalam_pay', 'title_key' => 'basalam_pay', 'settings_path' => '/dashboard/settings/shop/marketplace/basalam?tab=settings'],
-            ['id' => 'wallet', 'title_key' => 'wallet', 'settings_path' => '/dashboard/settings/shop/wallet'],
-            ['id' => 'c2c', 'title_key' => 'c2c', 'settings_path' => '/dashboard/settings/shop/c2c'],
-            ['id' => 'cod', 'title_key' => 'cod', 'settings_path' => '/dashboard/settings/shop/payments'],
-            ['id' => 'cheque', 'title_key' => 'cheque', 'settings_path' => '/dashboard/settings/shop/payments'],
-        ];
-
         $items = [];
-        foreach ($catalog as $row) {
-            $id = $row['id'];
+        foreach ($this->catalog->all() as $id => $meta) {
             $configured = $this->configured($tenantId, $id);
             $enabled = (bool) ($hub['enabled'][$id] ?? false);
-            $available = $id === 'cod' || $id === 'cheque' || $id === 'wallet' || $id === 'c2c' || $configured || $id === 'bale_pay';
+            $status = (string) ($meta['status'] ?? 'scaffold');
+            $local = ! empty($meta['local']);
+            $comingSoon = $status === 'scaffold';
+            // Scaffolds stay available for credential storage + toggle; checkout refuses charge.
+            $available = $local || $id === 'cod' || $id === 'bale_pay' || $configured || $comingSoon;
             $items[] = [
                 'id' => $id,
-                'title_key' => $row['title_key'],
+                'title_key' => $id,
+                'label_fa' => $meta['label_fa'] ?? $id,
+                'label_en' => $meta['label_en'] ?? $id,
+                'category' => $meta['category'] ?? 'other',
                 'gateway_id' => $id,
                 'enabled' => $enabled,
                 'available' => $available,
                 'configured' => $configured,
-                'settings_path' => $row['settings_path'],
+                'status' => $status,
+                'coming_soon' => $comingSoon,
+                'docs_url' => $this->catalog->docsUrl($id),
+                'supports' => $meta['supports'] ?? ['cash'],
+                'settings_path' => $this->catalog->settingsPath($id),
             ];
         }
 
-        return $items;
+        $categories = [];
+        foreach ($this->catalog->categories() as $catId => $cat) {
+            $categories[] = [
+                'id' => $catId,
+                'label_fa' => $cat['label_fa'],
+                'label_en' => $cat['label_en'],
+                'order' => $cat['order'] ?? 100,
+            ];
+        }
+
+        return [
+            'categories' => $categories,
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function hubItems(int $tenantId): array
+    {
+        return $this->hubPayload($tenantId)['items'];
     }
 
     protected function callbackSlug(string $provider): string
     {
-        return $provider === 'bale_pay' ? 'bale-pay' : $provider;
+        return str_replace('_', '-', $provider);
     }
 
     /** @return array<string, mixed> */
@@ -601,7 +683,7 @@ class PaymentGatewaySettingsService
                 'balance_label' => '',
                 'icon_url' => '',
                 'min_topup' => 1000,
-            ]);
+            ], $this->defaultsFor('wallet'));
             $row = WalletSetting::query()->firstOrCreate(
                 ['tenant_id' => $tenantId],
                 ['payload' => $defaults]
@@ -618,7 +700,8 @@ class PaymentGatewaySettingsService
             'order_button_text' => '',
             'icon_url' => '',
             'deadline_h' => 2,
-        ]);
+            'smart_verify' => true,
+        ], $this->defaultsFor('c2c'));
         $row = C2cSetting::query()->firstOrCreate(
             ['tenant_id' => $tenantId],
             ['payload' => $defaults]
@@ -642,7 +725,7 @@ class PaymentGatewaySettingsService
             if ($key === 'has_access_token' || str_starts_with((string) $key, 'has_')) {
                 continue;
             }
-            if ($key === 'callback_url' || $key === 'server_ip' || $key === 'status') {
+            if ($key === 'callback_url' || $key === 'server_ip' || $key === 'status' || $key === '_meta') {
                 continue;
             }
             $current[$key] = $value;

@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
 
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -18,6 +17,7 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { fetchSmsNumbers, smsQueryOptions, type SmsAttachedNumber } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 
 function unwrapNumbers(
   payload: { data?: SmsAttachedNumber[]; numbers?: SmsAttachedNumber[] } | undefined,
@@ -54,13 +54,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         />
       ) : null}
 
-      <Card className="shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">{t("linesTitle")}</CardTitle>
-          <CardDescription>{t("linesHint")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+      <SmsSection title={t("linesTitle")} description={t("linesHint")}>
+<div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -106,8 +101,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </SmsSection>
     </SmsPanelShell>
   )
 }

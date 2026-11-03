@@ -77,6 +77,16 @@ class OrderWriter
                 $payToken = bin2hex(random_bytes(8));
                 $meta['pay_link_token'] = $payToken;
             }
+            if ((! empty($data['is_pos']) || ! empty($data['is_pay_link'])) && $actor) {
+                $meta['cashier_id'] = $actor->id;
+                $meta['cashier_name'] = (string) ($actor->name ?? '');
+            }
+            if (! empty($data['card_reader_id'])) {
+                $meta['card_reader_id'] = (string) $data['card_reader_id'];
+            }
+            if (! empty($data['card_reader_name'])) {
+                $meta['card_reader_name'] = (string) $data['card_reader_name'];
+            }
 
             $order = Order::query()->create([
                 'tenant_id' => $tenantId,
@@ -127,12 +137,23 @@ class OrderWriter
 
             if (! empty($data['is_pay_link']) && empty($order->payment_url) && $payToken) {
                 $order->update([
-                    'payment_url' => '/pay/'.$order->id.'?token='.$payToken,
+                    'payment_url' => $this->absolutePayUrl($tenantId, (int) $order->id, $payToken),
                 ]);
             }
 
             return $order->fresh()->load(['items.product', 'user', 'creator', 'notes', 'returns']);
         });
+    }
+
+    public function absolutePayUrl(int $tenantId, int $orderId, string $token): string
+    {
+        $tenant = \App\Models\Tenant::query()->find($tenantId);
+        $domain = $tenant?->domain ? preg_replace('#^https?://#i', '', rtrim((string) $tenant->domain, '/')) : '';
+        $base = $domain !== ''
+            ? 'https://'.$domain
+            : rtrim((string) config('app.frontend_url', config('app.url')), '/');
+
+        return $base.'/pay/'.$orderId.'?token='.$token;
     }
 
     /**

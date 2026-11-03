@@ -253,6 +253,8 @@ export type SiteThemeCatalogItem = {
   name_en: string
   site_types: string[]
   is_demo: boolean
+  is_default?: boolean
+  is_suggested?: boolean
   preview: string
   sort_order: number
 }
@@ -260,6 +262,8 @@ export type SiteThemeCatalogItem = {
 export type ThemeCatalogResponse = {
   site_type_slug: string | null
   active_theme_slug: string | null
+  default_theme_slug?: string | null
+  suggested_theme_slug?: string | null
   branding: SiteBranding
   themes: SiteThemeCatalogItem[]
   accents: SiteBranding["accent"][]

@@ -429,6 +429,7 @@ final class ShopSettings
             'max_points_per_product' => 150,
             'welcome_points' => 0,
             'referral_points' => 0,
+            'daily_points' => 0,
         ];
     }
 
@@ -692,6 +693,7 @@ final class ShopSettings
             'max_points_per_product' => max(0, (int) ($input['max_points_per_product'] ?? 150)),
             'welcome_points' => max(0, (int) ($input['welcome_points'] ?? 0)),
             'referral_points' => max(0, (int) ($input['referral_points'] ?? 0)),
+            'daily_points' => max(0, (int) ($input['daily_points'] ?? 0)),
         ];
     }
 

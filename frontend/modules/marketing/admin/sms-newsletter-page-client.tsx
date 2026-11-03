@@ -7,7 +7,6 @@ import { toast } from "sonner"
 
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -29,6 +28,7 @@ import {
   unsubscribeNewsletterSubscriber,
 } from "../lib/modirpayamak-api"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
+import { SmsSection } from "../lib/sms-admin-ui"
 
 export default function PageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("sms")
@@ -114,17 +114,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
         />
       ) : null}
 
-      <Card className="shadow-soft max-w-xl">
-        <CardHeader>
-          <CardTitle className="text-base">{t("newsletterCampaign")}</CardTitle>
-          <CardDescription>
-            {newsletter.pattern_code
+      <SmsSection title={t("newsletterCampaign")} description={newsletter.pattern_code
               ? t("newsletterPatternBound", { code: newsletter.pattern_code })
-              : t("newsletterBindHint")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
+              : t("newsletterBindHint")}>
+<div>
             <Label>{t("productId")}</Label>
             <Input
               className="mt-1"
@@ -149,15 +142,10 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
           <Button type="button" disabled={send.isPending || unavailable} onClick={onSend}>
             {t("sendCampaign")}
           </Button>
-        </CardContent>
-      </Card>
+        </SmsSection>
 
-      <Card className="shadow-soft mt-4 max-w-xl">
-        <CardHeader>
-          <CardTitle className="text-base">{t("newsletterSubscribers")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+      <SmsSection title={t("newsletterSubscribers")}>
+<div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <div className="flex-1">
               <Label>{t("phone")}</Label>
               <Input
@@ -218,8 +206,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </SmsSection>
     </SmsPanelShell>
   )
 }

@@ -45,6 +45,7 @@ export const usersManifest: ModuleManifest = {
     {
       path: "rbac",
       submodule: "rbac",
+      page: "rbac",
       labelKey: "nav.rbac",
       section: "users",
       order: 52,
@@ -56,6 +57,7 @@ export const usersManifest: ModuleManifest = {
     {
       path: "customers",
       submodule: "customers",
+      page: "customers",
       labelKey: "nav.customers",
       section: "users",
       order: 50,
@@ -67,6 +69,7 @@ export const usersManifest: ModuleManifest = {
     {
       path: "staff",
       submodule: "staff",
+      page: "staff",
       labelKey: "nav.staff",
       section: "users",
       order: 50,
@@ -82,6 +85,20 @@ export const usersManifest: ModuleManifest = {
       labelKey: "nav.tickets",
       section: "users",
       order: 53,
+      navGroup: "users",
+      navOrder: 5,
+      capability: "support.*",
+      menuKey: "tickets",
+    },
+    {
+      path: "tickets/settings",
+      submodule: "tickets",
+      page: "tickets-settings",
+      labelKey: "nav.tickets_settings",
+      section: "users",
+      order: 53,
+      navHidden: true,
+      capability: "support.*",
     },
     {
       path: "tickets/:ticketId",
@@ -91,6 +108,7 @@ export const usersManifest: ModuleManifest = {
       section: "users",
       order: 53,
       navHidden: true,
+      capability: "support.*",
     },
     {
       path: "support",
@@ -99,6 +117,10 @@ export const usersManifest: ModuleManifest = {
       labelKey: "nav.online_support",
       section: "users",
       order: 54,
+      navGroup: "users",
+      navOrder: 6,
+      capability: "support.*",
+      menuKey: "online_support",
     },
   ],
   siteRoutes: [],
