@@ -1,4 +1,5 @@
 import CataloguePage from "@/kernel/pages/CataloguePage"
+import { preferBuilderPage } from "@/kernel/prefer-builder-page"
 import type { ResolvedSiteRoute } from "@/kernel/types"
 
 export const dynamic = "force-dynamic"
@@ -9,7 +10,7 @@ type Props = {
 }
 
 export default async function Page({ searchParams }: Props) {
-  return (
+  const catalogue = (
     <CataloguePage
       initialQuery={searchParams?.q}
       menuSlug={searchParams?.menu}
@@ -18,4 +19,6 @@ export default async function Page({ searchParams }: Props) {
       tableId={searchParams?.table_id}
     />
   )
+  // Designed builder menu boards win; interactive ordering stays on /catalogue.
+  return preferBuilderPage("menu", catalogue)
 }

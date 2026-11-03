@@ -21,9 +21,12 @@
   --wcx-line: rgba(212, 168, 75, 0.4);
   --wcx-card: #211912;
   background:
-    radial-gradient(120% 80% at 10% 0%, rgba(139, 46, 31, 0.28), transparent 55%),
-    radial-gradient(90% 70% at 90% 100%, rgba(196, 163, 90, 0.12), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 15% 12%, rgba(212, 168, 75, 0.22), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 88% 8%, rgba(139, 46, 31, 0.38), transparent 50%),
+    radial-gradient(90% 70% at 90% 100%, rgba(196, 163, 90, 0.14), transparent 50%),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 2px, transparent 2px 7px),
     linear-gradient(180deg, #1a120e 0%, #0e0a08 100%);
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.45);
 }
 .wcx-bakery {
   --wcx-bg: #2a1a14;
@@ -33,9 +36,11 @@
   --wcx-line: rgba(122, 155, 118, 0.4);
   --wcx-card: #3a241c;
   background:
-    radial-gradient(100% 80% at 80% 0%, rgba(122, 155, 118, 0.22), transparent 50%),
-    radial-gradient(90% 70% at 0% 100%, rgba(180, 90, 60, 0.2), transparent 55%),
+    radial-gradient(ellipse 80% 55% at 80% 0%, rgba(122, 155, 118, 0.28), transparent 52%),
+    radial-gradient(ellipse 60% 50% at 8% 90%, rgba(196, 120, 70, 0.28), transparent 55%),
+    radial-gradient(40% 30% at 50% 40%, rgba(255, 236, 210, 0.08), transparent 60%),
     linear-gradient(165deg, #3a2218 0%, #1c110e 100%);
+  box-shadow: inset 0 -40px 80px rgba(28, 17, 14, 0.35);
 }
 .wcx-espresso {
   --wcx-bg: #12100e;
@@ -94,17 +99,31 @@
 }
 
 .wcx-hero {
-  min-height: min(92vh, 820px);
+  min-height: min(94vh, 900px);
   display: grid;
   align-items: end;
 }
 .wcx-hero-inner { max-width: 48rem; padding-bottom: clamp(2rem, 8vh, 5rem); }
 .wcx-hero h1 {
   margin: 0 0 0.75rem;
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: clamp(2.8rem, 8vw, 5.5rem);
-  line-height: 0.95;
+  font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(3rem, 9vw, 6.2rem);
+  line-height: 0.92;
   letter-spacing: -0.03em;
+  text-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+.wcx-saloon .wcx-hero h1 {
+  background: linear-gradient(180deg, #f8ecd4 10%, #d4a84b 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.55));
+}
+.wcx-bakery .wcx-hero h1 {
+  background: linear-gradient(180deg, #fff8f0 0%, #e8c9a8 70%, #7a9b76 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .wcx-hero .wcx-lead { margin: 0 0 1.5rem; max-width: 34rem; color: var(--wcx-muted); font-size: 1.15rem; line-height: 1.75; }
 .wcx-logo {

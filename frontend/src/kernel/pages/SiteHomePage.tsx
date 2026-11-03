@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { getServerTranslations } from "@/lib/server-translations"
 
-import { StorefrontBody } from "@/builder/public-document"
+import { StorefrontBody, loadPublishedPage } from "@/builder/public-document"
 import { classicHomeDocument } from "@/builder/templates/classic"
 import { Button } from "@/components/ui/button"
 
@@ -15,10 +15,6 @@ export default async function SiteHomePage() {
   const t = await getServerTranslations("site")
   const siteType = await getSiteTypeSlug()
   const activations = await getPublicActivations()
-
-  if (siteType === "cafe" && isSubmoduleEnabled(activations, "commerce", "catalog")) {
-    return <CataloguePage />
-  }
 
   let home: {
     tenant: { name: string; active_theme_slug?: string | null }
@@ -36,6 +32,25 @@ export default async function SiteHomePage() {
     home = res?.data ?? null
   } catch {
     home = null
+  }
+
+  // Cafe tenants used to always render CataloguePage and never the designed builder home.
+  // Prefer a published builder document (resume-site quality) when present.
+  const publishedHome = siteType === "cafe" ? await loadPublishedPage("home") : null
+  if (publishedHome) {
+    const built = await StorefrontBody({
+      slug: "home",
+      fallback: null,
+      runtime: {
+        siteName: home?.tenant?.name,
+        themeSlug: home?.tenant?.active_theme_slug,
+      },
+    })
+    if (built) return built
+  }
+
+  if (siteType === "cafe" && isSubmoduleEnabled(activations, "commerce", "catalog")) {
+    return <CataloguePage />
   }
 
   const built = await StorefrontBody({

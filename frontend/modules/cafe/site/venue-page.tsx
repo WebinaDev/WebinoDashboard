@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 
 import { fetchAboutData } from "@/kernel/cafe-catalogue-data"
+import { preferBuilderPage } from "@/kernel/prefer-builder-page"
 import { AboutView } from "@/themes/cafe-starter/views/AboutView"
 import type { ResolvedSiteRoute } from "@/kernel/types"
 
@@ -13,5 +14,5 @@ export default async function Page(_props: { route: ResolvedSiteRoute }) {
     notFound()
   }
 
-  return <AboutView venue={venue} />
+  return preferBuilderPage("about", <AboutView venue={venue} />)
 }

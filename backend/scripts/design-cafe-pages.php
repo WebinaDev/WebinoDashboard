@@ -73,7 +73,7 @@ if ($which === 'limbo') {
         section([w('cafe-hero', [
             'eyebrow' => 'VAWAN · ESALMSHAHR',
             'title' => 'LIMBO',
-            'text' => 'سالن غربی، قهوه تخصصی و رستوران — جایی برای شب‌های بلند و میزهای شلوغ.',
+            'text' => 'چراغ‌های گرم، چوب تیره و بوی اسپرسو — سالن غربی واوان برای شب‌هایی که باید طولانی بمانند.',
             'primaryLabel' => 'منوی دیجیتال',
             'primaryHref' => '/menu',
             'secondaryLabel' => 'رزرو میز',
@@ -84,8 +84,9 @@ if ($which === 'limbo') {
             'tone' => $tone,
             'fullBleed' => true,
             'motion' => true,
-            'bgOverlay' => '#140f0c',
-            'bgOverlayOpacity' => 62,
+            'bgImage' => '/themes/cafe-demo/hero/bar.webp',
+            'bgOverlay' => '#0e0a08',
+            'bgOverlayOpacity' => 58,
         ])]),
         section([w('cafe-category-strip', [
             'title' => 'از کجا شروع کنیم؟',
@@ -262,9 +263,9 @@ if ($which === 'lyna') {
     $tone = 'bakery';
     $home = doc([
         section([w('cafe-hero', [
-            'eyebrow' => 'BAKERY & CAFE',
+            'eyebrow' => 'ARTISAN BAKERY',
             'title' => 'Lyna',
-            'text' => 'نان تنور صبح، ویترین شیرینی، قهوهٔ آرام برای نشستن‌های کوتاه.',
+            'text' => 'آرد تازه، کره واقعی، پسته و کاکائو — قنادی لاینا برای صبح‌هایی که بوی نان خانه را می‌خواهید.',
             'primaryLabel' => 'ویترین امروز',
             'primaryHref' => '/menu',
             'secondaryLabel' => 'داستان لاینا',
@@ -274,8 +275,9 @@ if ($which === 'lyna') {
             'tone' => $tone,
             'fullBleed' => true,
             'motion' => true,
-            'bgOverlay' => '#2a1a14',
-            'bgOverlayOpacity' => 55,
+            'bgImage' => '/themes/cafe-demo/items/chocolate-cake.webp',
+            'bgOverlay' => '#1c110e',
+            'bgOverlayOpacity' => 52,
         ])]),
         section([w('cafe-category-strip', [
             'title' => 'از ویترین بردارید',
