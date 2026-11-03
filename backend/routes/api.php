@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\OpenApiController;
+use App\Http\Controllers\Api\V1\Poetry\PoetryAdminController;
+use App\Http\Controllers\Api\V1\Poetry\PublicPoetryController;
 use App\Http\Controllers\Api\V1\AcademyCourseController;
 use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AccountingController;
@@ -91,7 +93,7 @@ use App\Http\Controllers\Api\V1\StaffController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\BotController;
-use App\Http\Controllers\Api\V1\CouponController;
+use Modules\Commerce\Http\Controllers\CouponController;
 use App\Http\Controllers\Api\V1\ModirPayamakController;
 use App\Http\Controllers\Api\V1\PublicCatalogController;
 use App\Http\Controllers\Api\V1\PublicCafeController;
@@ -250,6 +252,18 @@ Route::prefix('v1')->group(function () {
         Route::middleware('public.module:articles')->group(function () {
             Route::get('/magazine', [PublicMagazineController::class, 'index']);
             Route::get('/magazine/{slug}', [PublicMagazineController::class, 'show']);
+        });
+
+        // Poetry public API is scoped by tenant host; keep available for Ali and any tenant
+        // that has poetry content even when the ERP poetry addon is not selected.
+        Route::prefix('poetry')->middleware(\App\Http\Middleware\PoetryTenantScope::class)->group(function () {
+            Route::get('/terms', [PublicPoetryController::class, 'terms']);
+            Route::get('/poems', [PublicPoetryController::class, 'index']);
+            Route::get('/popular', [PublicPoetryController::class, 'popular']);
+            Route::get('/poems/{slug}', [PublicPoetryController::class, 'show']);
+            Route::get('/poems/{slug}/text', [PublicPoetryController::class, 'text']);
+            Route::get('/figures/{slug}', [PublicPoetryController::class, 'figure']);
+            Route::get('/media', [PublicPoetryController::class, 'media']);
         });
 
         Route::middleware('public.module:profile')->group(function () {
@@ -1104,6 +1118,23 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::post('/media/terms', [MediaTermController::class, 'store']);
                 Route::patch('/media/terms/{id}', [MediaTermController::class, 'update'])->whereNumber('id');
                 Route::delete('/media/terms/{id}', [MediaTermController::class, 'destroy'])->whereNumber('id');
+            });
+
+            Route::prefix('poetry')->middleware(['can:content.manage,content.*', \App\Http\Middleware\PoetryTenantScope::class])->group(function () {
+                Route::get('/poems', [PoetryAdminController::class, 'index']);
+                Route::post('/poems', [PoetryAdminController::class, 'store']);
+                Route::get('/poems/{poem}', [PoetryAdminController::class, 'show'])->whereNumber('poem');
+                Route::put('/poems/{poem}', [PoetryAdminController::class, 'update'])->whereNumber('poem');
+                Route::delete('/poems/{poem}', [PoetryAdminController::class, 'destroy'])->whereNumber('poem');
+                Route::post('/import/parse', [PoetryAdminController::class, 'parse']);
+                Route::get('/media', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'index']);
+                Route::post('/media', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'store']);
+                Route::put('/media/{media}', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'update'])->whereNumber('media');
+                Route::delete('/media/{media}', [\App\Http\Controllers\Api\V1\Poetry\PoetryMediaAdminController::class, 'destroy'])->whereNumber('media');
+                Route::get('/terms', [PoetryAdminController::class, 'terms']);
+                Route::post('/terms', [PoetryAdminController::class, 'storeTerm']);
+                Route::put('/terms/{term}', [PoetryAdminController::class, 'updateTerm'])->whereNumber('term');
+                Route::delete('/terms/{term}', [PoetryAdminController::class, 'destroyTerm'])->whereNumber('term');
             });
 
             Route::middleware(['module:magazine', 'can:content.manage,content.*'])->group(function () {
