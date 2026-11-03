@@ -38,7 +38,7 @@ export const CAFE_WIDGETS: WidgetDef[] = [
   {
     type: "cafe-hero",
     label: "هیرو کافه (تمام‌عرض)",
-    category: "cafe",
+    category: "content",
     fields: [
       { kind: "text", key: "eyebrow", label: "برچسب بالا" },
       { kind: "text", key: "title", label: "عنوان برند" },
@@ -83,7 +83,7 @@ export const CAFE_WIDGETS: WidgetDef[] = [
   {
     type: "cafe-menu-board",
     label: "تابلوی منو کافه",
-    category: "cafe",
+    category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان بخش" },
       { kind: "textarea", key: "subtitle", label: "زیرعنوان" },
@@ -143,7 +143,7 @@ export const CAFE_WIDGETS: WidgetDef[] = [
   {
     type: "cafe-hours",
     label: "ساعت کاری کافه",
-    category: "cafe",
+    category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "textarea", key: "note", label: "یادداشت" },
@@ -177,7 +177,7 @@ export const CAFE_WIDGETS: WidgetDef[] = [
   {
     type: "cafe-gallery",
     label: "گالری فضای کافه",
-    category: "cafe",
+    category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "textarea", key: "subtitle", label: "زیرعنوان" },
@@ -215,7 +215,7 @@ export const CAFE_WIDGETS: WidgetDef[] = [
   {
     type: "cafe-story",
     label: "داستان / سرآشپز کافه",
-    category: "cafe",
+    category: "content",
     fields: [
       { kind: "text", key: "eyebrow", label: "برچسب" },
       { kind: "text", key: "title", label: "عنوان" },
@@ -250,7 +250,7 @@ export const CAFE_WIDGETS: WidgetDef[] = [
   {
     type: "cafe-reserve-cta",
     label: "فراخوان رزرو میز",
-    category: "cafe",
+    category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       { kind: "textarea", key: "text", label: "متن" },
@@ -277,7 +277,7 @@ export const CAFE_WIDGETS: WidgetDef[] = [
   {
     type: "cafe-category-strip",
     label: "نوار دسته‌های منو",
-    category: "cafe",
+    category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان" },
       {
@@ -295,7 +295,7 @@ export const CAFE_WIDGETS: WidgetDef[] = [
         label: "دسته‌های دستی",
         fields: [
           { key: "title", label: "نام", kind: "text" },
-          { key: "href", label: "پیوند", kind: "link" },
+          { key: "href", label: "پیوند", kind: "url" },
           { key: "image", label: "تصویر", kind: "media" },
         ],
       },
