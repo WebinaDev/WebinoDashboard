@@ -1,46 +1,21 @@
-/* Poem editor — literary desk: cool ink/paper atmosphere (not purple, not cream+terracotta). */
+/* Poem + poetry media editors — literary polish on dashboard theme tokens (dark/light). */
 @import url("https://fonts.bunny.net/css?family=amiri:400,700&display=swap");
 
 .poem-desk {
-  --poem-ink: #1a2332;
-  --poem-ink-soft: color-mix(in srgb, var(--poem-ink) 62%, transparent);
-  --poem-rule: color-mix(in srgb, var(--poem-ink) 14%, transparent);
-  --poem-accent: #2f5d6e;
-  --poem-paper: #f3f5f7;
-  --poem-paper-deep: #e8ecf0;
+  --poem-ink: var(--color-foreground);
+  --poem-ink-soft: var(--color-muted-foreground);
+  --poem-rule: var(--color-border);
+  --poem-accent: var(--color-primary);
+  --poem-surface: var(--color-card);
+  --poem-surface-fg: var(--color-card-foreground);
+  --poem-input: var(--color-background);
+  --poem-muted: var(--color-muted);
   --poem-serif: "Amiri", "Noto Naskh Arabic", "Scheherazade New", "Traditional Arabic", Georgia,
     "Times New Roman", serif;
   --poem-ui: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
   position: relative;
-  isolation: isolate;
   color: var(--poem-ink);
   font-family: var(--poem-ui);
-}
-
-.poem-desk::before {
-  content: "";
-  position: absolute;
-  inset: -12px;
-  z-index: -1;
-  border-radius: 18px;
-  background:
-    radial-gradient(ellipse 80% 50% at 12% 0%, color-mix(in srgb, var(--poem-accent) 10%, transparent), transparent 55%),
-    radial-gradient(ellipse 70% 45% at 88% 100%, color-mix(in srgb, #4a5568 8%, transparent), transparent 50%),
-    linear-gradient(165deg, var(--poem-paper) 0%, #fafbfc 48%, var(--poem-paper-deep) 100%);
-  pointer-events: none;
-}
-
-.poem-desk::after {
-  content: "";
-  position: absolute;
-  inset: -12px;
-  z-index: -1;
-  border-radius: 18px;
-  opacity: 0.35;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-  mix-blend-mode: soft-light;
 }
 
 .poem-desk__layout {
@@ -54,15 +29,20 @@
     grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
     gap: 1.5rem;
   }
+
+  .poem-desk__layout--media {
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 340px);
+  }
 }
 
 .poem-manuscript {
   position: relative;
   border: 1px solid var(--poem-rule);
   border-radius: 14px;
-  background: color-mix(in srgb, #ffffff 88%, var(--poem-paper));
+  background: var(--poem-surface);
+  color: var(--poem-surface-fg);
   padding: clamp(1.25rem, 3vw, 2.25rem) clamp(1rem, 3.5vw, 2.75rem);
-  box-shadow: 0 1px 0 color-mix(in srgb, #fff 70%, transparent) inset;
+  box-shadow: var(--shadow-soft);
 }
 
 .poem-manuscript__rule {
@@ -94,7 +74,7 @@
 }
 
 .poem-title-input::placeholder {
-  color: color-mix(in srgb, var(--poem-ink) 32%, transparent);
+  color: color-mix(in oklch, var(--poem-ink-soft) 85%, transparent);
   font-weight: 400;
 }
 
@@ -131,7 +111,7 @@
 }
 
 .poem-stanza:hover {
-  background: color-mix(in srgb, var(--poem-accent) 4%, transparent);
+  background: color-mix(in oklch, var(--poem-accent) 8%, transparent);
   border-radius: 8px;
 }
 
@@ -141,7 +121,7 @@
   align-items: center;
   gap: 0.4rem;
   margin-bottom: 0.55rem;
-  opacity: 0.55;
+  opacity: 0.7;
   transition: opacity 160ms ease;
 }
 
@@ -155,7 +135,7 @@
   height: 1.85rem;
   border: 1px solid var(--poem-rule);
   border-radius: 6px;
-  background: color-mix(in srgb, #fff 80%, var(--poem-paper));
+  background: var(--poem-input);
   font-size: 0.75rem;
   padding-inline: 0.4rem;
   color: var(--poem-ink);
@@ -177,12 +157,12 @@
 }
 
 .poem-stanza__lines::placeholder {
-  color: color-mix(in srgb, var(--poem-ink) 28%, transparent);
+  color: color-mix(in oklch, var(--poem-ink-soft) 80%, transparent);
 }
 
 .poem-stanza--refrain .poem-stanza__lines {
   font-style: italic;
-  color: color-mix(in srgb, var(--poem-ink) 88%, var(--poem-accent));
+  color: color-mix(in oklch, var(--poem-ink) 88%, var(--poem-accent));
 }
 
 .poem-stanza--title .poem-stanza__lines {
@@ -210,8 +190,10 @@
 .poem-side__panel {
   border: 1px solid var(--poem-rule);
   border-radius: 12px;
-  background: color-mix(in srgb, #ffffff 82%, var(--poem-paper));
+  background: var(--poem-surface);
+  color: var(--poem-surface-fg);
   overflow: hidden;
+  box-shadow: var(--shadow-soft);
 }
 
 .poem-side__trigger {
@@ -226,7 +208,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--poem-ink);
-  background: transparent;
+  background: color-mix(in oklch, var(--poem-muted) 55%, transparent);
   border: 0;
   cursor: pointer;
 }
@@ -264,7 +246,7 @@
   width: 100%;
   border: 1px solid var(--poem-rule);
   border-radius: 8px;
-  background: #fff;
+  background: var(--poem-input);
   padding: 0.45rem 0.6rem;
   font-size: 0.875rem;
   color: var(--poem-ink);
@@ -274,8 +256,8 @@
 .poem-field input:focus,
 .poem-field select:focus,
 .poem-field textarea:focus {
-  border-color: color-mix(in srgb, var(--poem-accent) 55%, var(--poem-rule));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--poem-accent) 12%, transparent);
+  border-color: color-mix(in oklch, var(--poem-accent) 55%, var(--poem-rule));
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--poem-accent) 16%, transparent);
 }
 
 .poem-chips {
@@ -296,8 +278,8 @@
 }
 
 .poem-chip[data-on="true"] {
-  border-color: color-mix(in srgb, var(--poem-accent) 45%, var(--poem-rule));
-  background: color-mix(in srgb, var(--poem-accent) 12%, #fff);
+  border-color: color-mix(in oklch, var(--poem-accent) 45%, var(--poem-rule));
+  background: color-mix(in oklch, var(--poem-accent) 14%, var(--poem-surface));
   color: var(--poem-ink);
 }
 
@@ -323,7 +305,7 @@
   border: 1px solid var(--poem-rule);
   border-radius: 8px;
   padding: 0.15rem;
-  background: color-mix(in srgb, #fff 70%, var(--poem-paper));
+  background: var(--poem-muted);
 }
 
 .poem-toolbar__status button {
@@ -337,16 +319,19 @@
 }
 
 .poem-toolbar__status button[data-on="true"] {
-  background: color-mix(in srgb, var(--poem-accent) 16%, #fff);
+  background: var(--poem-surface);
   color: var(--poem-ink);
   font-weight: 600;
+  box-shadow: var(--shadow-soft);
 }
 
 .poem-list-shell {
   border: 1px solid var(--poem-rule);
   border-radius: 14px;
-  background: color-mix(in srgb, #ffffff 86%, var(--poem-paper));
+  background: var(--poem-surface);
+  color: var(--poem-surface-fg);
   overflow: hidden;
+  box-shadow: var(--shadow-soft);
 }
 
 .poem-list-shell table {
@@ -360,12 +345,14 @@
   padding: 0.65rem 0.85rem;
   border-bottom: 1px solid var(--poem-rule);
   text-align: start;
+  background: color-mix(in oklch, var(--poem-muted) 70%, transparent);
 }
 
 .poem-list-shell td {
   padding: 0.7rem 0.85rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--poem-rule) 70%, transparent);
+  border-bottom: 1px solid color-mix(in oklch, var(--poem-rule) 70%, transparent);
   vertical-align: middle;
+  color: var(--poem-ink);
 }
 
 .poem-list-shell tr:last-child td {
@@ -377,7 +364,66 @@
 }
 
 .poem-list-shell tbody tr:hover {
-  background: color-mix(in srgb, var(--poem-accent) 5%, transparent);
+  background: color-mix(in oklch, var(--poem-accent) 7%, transparent);
+}
+
+.poem-media-preview {
+  border: 1px dashed var(--poem-rule);
+  border-radius: 12px;
+  background: color-mix(in oklch, var(--poem-muted) 55%, var(--poem-surface));
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.poem-media-preview audio,
+.poem-media-preview video {
+  width: 100%;
+  max-height: 14rem;
+  border-radius: 8px;
+}
+
+.poem-media-thumb {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--poem-rule);
+  background: var(--poem-muted);
+}
+
+.poem-media-thumb--placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--poem-ink-soft);
+  font-size: 0.7rem;
+}
+
+.poem-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.poem-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid var(--poem-rule);
+  color: var(--poem-ink-soft);
+  background: transparent;
+}
+
+.poem-badge[data-tone="ok"] {
+  border-color: color-mix(in oklch, var(--poem-accent) 40%, var(--poem-rule));
+  background: color-mix(in oklch, var(--poem-accent) 12%, transparent);
+  color: var(--poem-ink);
 }
 
 @media (prefers-reduced-motion: reduce) {

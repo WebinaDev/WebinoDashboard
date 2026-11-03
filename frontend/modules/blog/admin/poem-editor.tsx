@@ -125,16 +125,8 @@ export function PoemEditor({ initial, terms, onDone, onError, save }: Props) {
 
   return (
     <div className="poem-desk space-y-4" dir={dir}>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="text-muted-foreground text-xs font-medium tracking-[0.14em] uppercase">
-            {t("eyebrow")}
-          </p>
-          <h2 className="text-lg font-semibold tracking-tight sm:text-xl">
-            {f.id ? t("edit_poem") : t("new_poem")}
-          </h2>
-          <p className="text-muted-foreground max-w-xl text-sm">{t("editor_hint")}</p>
-        </div>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <p className="text-muted-foreground max-w-xl text-sm">{t("editor_hint")}</p>
         <TooltipProvider delayDuration={200}>
           <div className="poem-toolbar">
             <div className="poem-toolbar__status" role="group" aria-label={t("status")}>

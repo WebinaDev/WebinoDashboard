@@ -20,9 +20,11 @@ import {
   type PoetryTerm,
 } from "./poetry-types"
 
-const box = "rounded-lg border border-border bg-card p-4"
-const inp = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-const btn = "rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
+import "./poetry-admin.css"
+
+const box = "poem-list-shell p-4"
+const inp = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+const btn = "rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-muted disabled:opacity-50"
 const primary = "rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
 
 export default function PoetryAdminPage(_props: { route?: ResolvedAdminRoute }) {
@@ -45,8 +47,9 @@ export default function PoetryAdminPage(_props: { route?: ResolvedAdminRoute }) 
 
   return (
     <PageShell
-      title={t("page_title")}
-      description={t("poems_subtitle")}
+      eyebrow={editing ? t("eyebrow") : undefined}
+      title={editing ? (editing.id ? t("edit_poem") : t("new_poem")) : t("page_title")}
+      description={editing ? undefined : t("poems_subtitle")}
       actions={
         editing ? null : (
           <div className="flex gap-1">
@@ -68,7 +71,7 @@ export default function PoetryAdminPage(_props: { route?: ResolvedAdminRoute }) 
         )
       }
     >
-      <div dir="rtl" className="space-y-4">
+      <div className="space-y-4">
         {editing ? (
           <PoemEditor
             initial={editing}

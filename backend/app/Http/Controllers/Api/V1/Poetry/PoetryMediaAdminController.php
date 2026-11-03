@@ -26,6 +26,12 @@ class PoetryMediaAdminController extends Controller
         if (in_array($request->query('kind'), PoetryMedia::KINDS, true)) {
             $q->where('kind', $request->query('kind'));
         }
+        if (in_array($request->query('status'), ['draft', 'published'], true)) {
+            $q->where('status', $request->query('status'));
+        }
+        if ($request->filled('poem_id')) {
+            $q->where('poem_id', (int) $request->query('poem_id'));
+        }
         $page = $q->paginate(min(100, max(1, (int) $request->query('per_page', 50))));
 
         return response()->json(['data' => collect($page->items())->map(fn ($m) => PoetryPresenter::media($m))->all(),

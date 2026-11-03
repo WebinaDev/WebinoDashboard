@@ -9699,6 +9699,17 @@
     "name": "Name",
     "stat_total": "Total",
     "stat_with_poems": "With poems",
-    "add_category": "Add category"
+    "stat_linked_poems": "Linked to a poem",
+    "add_category": "Add category",
+    "eyebrow_media": "Media library",
+    "media_main": "File & preview",
+    "media_meta": "Media details",
+    "media_preview": "Preview",
+    "panel_media_link": "Link & occasion",
+    "panel_media_details": "Performance & sort",
+    "audio_title_ph": "Audio title…",
+    "video_title_ph": "Video title…",
+    "filter_all": "All",
+    "filter_any_poem": "Any related poem"
   }
 }

@@ -9699,6 +9699,17 @@
     "name": "نام",
     "stat_total": "کل",
     "stat_with_poems": "با شعر",
-    "add_category": "افزودن دسته"
+    "stat_linked_poems": "با شعر مرتبط",
+    "add_category": "افزودن دسته",
+    "eyebrow_media": "کتابخانه رسانه",
+    "media_main": "فایل و پیش‌نمایش",
+    "media_meta": "جزئیات رسانه",
+    "media_preview": "پیش‌نمایش",
+    "panel_media_link": "پیوند و مناسبت",
+    "panel_media_details": "اجرا و ترتیب",
+    "audio_title_ph": "عنوان صوت…",
+    "video_title_ph": "عنوان ویدیو…",
+    "filter_all": "همه",
+    "filter_any_poem": "هر شعر مرتبط"
   }
 }
