@@ -336,21 +336,26 @@ class PaymentCheckoutService
     {
         $minor = $chargeMinor ?? (int) $order->total_minor;
         $currency = $this->storeCurrencyCode($order);
-        // Store amounts are in minor units of the store currency.
-        // IRT (toman): convert to rial ×10 for Digipay/BNPL; Zarinpal uses currency field.
-        return max(1, Currency::toRialInt($minor, $currency));
+        // Store amounts are in minor units of the store display currency.
+        // Iranian PSPs settle in IRR (rial) — never send display toman/hezar as rial.
+        try {
+            return max(1, Currency::toGatewayRial($minor, $currency));
+        } catch (\InvalidArgumentException) {
+            // Foreign display without FX: refuse silent wrong units; treat as IRT.
+            return max(1, Currency::toGatewayRial($minor, 'IRT'));
+        }
     }
 
     protected function storeCurrencyCode(Order $order): string
     {
-        $code = strtoupper((string) ($order->currency ?: ''));
-        if (in_array($code, ['IRT', 'IRR'], true)) {
+        $code = Currency::normalize((string) ($order->currency ?: ''), 'IRT');
+        if (in_array($code, Currency::DISPLAY_CODES, true)) {
             return $code;
         }
         $tenant = Tenant::query()->find($order->tenant_id);
-        $fromTenant = strtoupper((string) ($tenant?->default_currency ?? 'IRT'));
+        $fromTenant = Currency::normalize((string) ($tenant?->default_currency ?? 'IRT'), 'IRT');
 
-        return in_array($fromTenant, ['IRT', 'IRR'], true) ? $fromTenant : 'IRT';
+        return in_array($fromTenant, Currency::DISPLAY_CODES, true) ? $fromTenant : 'IRT';
     }
 
     /**
@@ -363,7 +368,11 @@ class PaymentCheckoutService
             $qty = max(1, (int) ($line->quantity ?? 1));
             $unit = (int) ($line->unit_price_minor ?? 0);
             $currency = $this->storeCurrencyCode($order);
-            $unitRial = Currency::toRialInt($unit, $currency);
+            try {
+                $unitRial = Currency::toGatewayRial($unit, $currency);
+            } catch (\InvalidArgumentException) {
+                $unitRial = Currency::toGatewayRial($unit, 'IRT');
+            }
             $items[] = [
                 'count' => $qty,
                 'amount' => max(1, $unitRial),

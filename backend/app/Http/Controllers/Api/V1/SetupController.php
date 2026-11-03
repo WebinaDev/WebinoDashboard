@@ -80,7 +80,7 @@ class SetupController extends Controller
     {
         $data = $request->validate([
             'store_display_name' => ['nullable', 'string', 'max:255'],
-            'default_currency' => ['nullable', 'string', 'in:IRT,IRR'],
+            'default_currency' => ['nullable', 'string', 'in:IRT,IRR,IRHT,USD,EUR,GBP'],
             'currency_symbol' => ['nullable', 'string', 'in:default,toman-1,toman-2,rial-1,rial-2'],
             'default_locale' => ['nullable', 'string', 'in:fa,en'],
             'tenant_name' => ['nullable', 'string', 'max:255'],
@@ -119,8 +119,11 @@ class SetupController extends Controller
      */
     public static function normalizeCurrencySymbol(string $currency, ?string $symbol): string
     {
-        $currency = strtoupper($currency) === 'IRR' ? 'IRR' : 'IRT';
-        $allowed = $currency === 'IRR'
+        $code = \App\Support\Currency::normalize($currency, 'IRT');
+        if (\App\Support\Currency::isForeign($code)) {
+            return 'default';
+        }
+        $allowed = $code === 'IRR'
             ? ['rial-1', 'rial-2']
             : ['default', 'toman-1', 'toman-2'];
         $id = is_string($symbol) ? trim($symbol) : '';
@@ -129,7 +132,7 @@ class SetupController extends Controller
             return $id;
         }
 
-        return $currency === 'IRR' ? 'rial-1' : 'default';
+        return $code === 'IRR' ? 'rial-1' : 'default';
     }
 
     public function updateCrm(Request $request): \Illuminate\Http\JsonResponse

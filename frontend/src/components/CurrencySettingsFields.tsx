@@ -9,6 +9,7 @@ import {
   STORE_CURRENCIES,
   currencyLabel,
   defaultSymbolForCurrency,
+  isForeignCurrency,
   symbolsForCurrency,
   type CurrencySymbolId,
   type StoreCurrencyCode,
@@ -34,13 +35,18 @@ export function CurrencySettingsFields({
 
   function pickCurrency(code: StoreCurrencyCode) {
     onCurrencyChange(code)
-    onSymbolChange(defaultSymbolForCurrency(code))
+    if (!isForeignCurrency(code)) {
+      onSymbolChange(defaultSymbolForCurrency(code))
+    }
   }
 
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
         <Label>{currencyFieldLabel}</Label>
+        <p className="text-xs text-muted-foreground">
+          واحد نمایش قیمت در پنل و سایت. مبالغ در پایگاه به ریال (IRR) ذخیره می‌شوند؛ درگاه‌های ایرانی همیشه ریال تسویه می‌گیرند.
+        </p>
         <div className="flex flex-wrap gap-2">
           {STORE_CURRENCIES.map((c) => (
             <button
@@ -55,31 +61,34 @@ export function CurrencySettingsFields({
               )}
             >
               {currencyLabel(c.code, locale)}
+              <span className="ms-1 text-[10px] opacity-60">{c.code}</span>
             </button>
           ))}
         </div>
       </div>
-      <div className="grid gap-2">
-        <Label>{symbolLabel}</Label>
-        <div className="flex flex-wrap gap-2">
-          {options.map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onSymbolChange(id)}
-              aria-pressed={symbol === id}
-              className={cn(
-                "flex h-14 w-14 items-center justify-center rounded-md border bg-background p-2 transition-colors",
-                symbol === id
-                  ? "border-primary ring-2 ring-primary/30"
-                  : "border-border hover:bg-muted/40"
-              )}
-            >
-              <CurrencyMark symbol={id} className="h-8" />
-            </button>
-          ))}
+      {options.length > 0 ? (
+        <div className="grid gap-2">
+          <Label>{symbolLabel}</Label>
+          <div className="flex flex-wrap gap-2">
+            {options.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onSymbolChange(id)}
+                aria-pressed={symbol === id}
+                className={cn(
+                  "flex h-14 w-14 items-center justify-center rounded-md border bg-background p-2 transition-colors",
+                  symbol === id
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-border hover:bg-muted/40"
+                )}
+              >
+                <CurrencyMark symbol={id} className="h-8" />
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }
