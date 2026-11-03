@@ -8472,7 +8472,8 @@
     "theme_panel_hint": "Open theme templates here; visual editing uses the builder chrome labeled as theme builder.",
     "theme_settings_link": "Site settings · Theme builder",
     "theme_mode_label": "Theme builder",
-    "page_mode_label": "Page builder"
+    "page_mode_label": "Page builder",
+    "theme_templates": "Theme templates"
   },
   "theme_builder": {
     "title": "Theme builder",

@@ -8472,7 +8472,8 @@
     "theme_panel_hint": "قالب‌های پوسته را از اینجا باز کنید؛ ویرایش بصری همان صفحه‌ساز است اما با برچسب پوسته‌ساز.",
     "theme_settings_link": "تنظیمات سایت · پوسته‌ساز",
     "theme_mode_label": "پوسته‌ساز",
-    "page_mode_label": "صفحه‌ساز"
+    "page_mode_label": "صفحه‌ساز",
+    "theme_templates": "قالب‌های پوسته"
   },
   "theme_builder": {
     "title": "پوسته‌ساز",
