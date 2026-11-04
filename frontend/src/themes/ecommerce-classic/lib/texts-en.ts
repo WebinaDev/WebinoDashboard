@@ -39,6 +39,7 @@ export const CLASSIC_TEXTS_EN: Record<string, string> = {
   "home.recent_title": "Recently viewed",
   "home.taste_title": "Picked for your taste",
   "home.story_view_product": "View product",
+  "home.story_view": "View",
   "home.badge_sale": "Sale",
   "home.badge_new": "New",
   "product.not_found": "Product not found.",

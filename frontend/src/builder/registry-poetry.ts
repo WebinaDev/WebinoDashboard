@@ -33,7 +33,7 @@ const CAROUSEL_FIELDS: FieldDef[] = [
 ]
 
 export const POETRY_WIDGET_TYPES = [
-  "poetry-hero", "poem-list", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
+  "poetry-hero", "story-strip", "poem-list", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
 ] as const
 
 const DECOR_FRAMES = [{ value: "rose-arch", label: "محراب گل‌سرخی" }, { value: "arch", label: "محرابی ساده" }, { value: "none", label: "بدون قاب" }]
@@ -70,6 +70,16 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/poems", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", photoMode: "photo", logo: "", tone: "light", frame: "arch", pattern: true }),
+  },
+  {
+    /** Reuses shop ProductStory API + ClassicStoryStrip; variant=poetry for crimson rings / CTA copy. */
+    type: "story-strip", label: "هایلایت‌ها (استوری)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان (دسترسی‌پذیری)" },
+      { kind: "number", key: "limit", label: "تعداد (۰ = همه)", min: 0, max: 48 },
+      { kind: "select", key: "variant", label: "ظاهر حلقه", options: [{ value: "poetry", label: "شعر (زرشکی/طلایی)" }, { value: "", label: "فروشگاهی (پیش‌فرض)" }] },
+    ],
+    create: () => node("story-strip", { title: "هایلایت‌ها", limit: 0, variant: "poetry" }),
   },
   {
     type: "poem-list", label: "فهرست آخرین اشعار (با پخش صوت)", category: "content",

@@ -17,6 +17,7 @@ import { MEDIA_TERM_ALL, MediaTermTreeSelect } from "@/components/media/MediaTer
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { resolveMediaAlt, type MediaAltFields } from "@/lib/media-alt"
+import { mediaDropzoneAccept } from "@/lib/media-upload"
 
 export type MediaPickerAccept = "image" | "video" | "audio" | "all"
 
@@ -40,19 +41,17 @@ function mimeQuery(accept: MediaPickerAccept): string | undefined {
   return undefined
 }
 
-function dropzoneAccept(accept: MediaPickerAccept): string {
-  if (accept === "image") return "image/*"
-  if (accept === "video") return "video/*"
-  if (accept === "audio") return "audio/*"
-  return "image/*,video/*,audio/*"
-}
-
 function matchesAccept(mime: string | null | undefined, accept: MediaPickerAccept): boolean {
   if (!mime) return accept === "all"
   if (accept === "image") return mime.startsWith("image/")
   if (accept === "video") return mime.startsWith("video/")
   if (accept === "audio") return mime.startsWith("audio/")
-  return mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/")
+  return (
+    mime.startsWith("image/") ||
+    mime.startsWith("video/") ||
+    mime.startsWith("audio/") ||
+    mime === "application/pdf"
+  )
 }
 
 export function MediaPickerDialog({
@@ -166,7 +165,7 @@ export function MediaPickerDialog({
         <MediaDropzone
           multiple={false}
           busy={uploading}
-          accept={dropzoneAccept(accept)}
+          accept={mediaDropzoneAccept(accept)}
           onFiles={(files) => void uploadFiles(files)}
           emptyLabel={t("media_dropzone")}
           className="min-h-24"

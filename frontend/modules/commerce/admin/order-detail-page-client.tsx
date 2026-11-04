@@ -33,6 +33,7 @@ import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 import { formatDisplayDateTime } from "@/lib/format-date"
 import { isMarketplaceChannel, marketplaceLabel } from "@/lib/marketplace"
 import { displayPurchaseType } from "../lib/pos-commerce"
+import { BasalamOrderPanel } from "@/views/settings/panels/marketplace/BasalamOrderPanel"
 import { OrderMarketplacePanels } from "./order-marketplace-panels"
 
 type OrderReturn = {
@@ -392,6 +393,7 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
         <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
       ) : (
         <div className="space-y-6">
+          {order.sales_channel === "basalam" ? <BasalamOrderPanel orderId={order.id} /> : null}
           {/* Header — WP OrderDetailPage top card */}
           <Card className="shadow-sm">
             <CardContent className="flex flex-col gap-4 pt-6 lg:flex-row lg:items-start lg:justify-between">
@@ -413,7 +415,9 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                   ) : null}
                   {order.payment_provider || order.payment_tender ? (
                     <Badge variant="outline">
-                      {order.payment_provider || enumLabel("payment_tender", order.payment_tender)}
+                      {order.sales_channel === "basalam" || /basalam/i.test(String(order.payment_provider || ""))
+                        ? marketplaceLabel("basalam", locale)
+                        : order.payment_provider || enumLabel("payment_tender", order.payment_tender)}
                     </Badge>
                   ) : null}
                 </div>
@@ -526,15 +530,17 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
 
                   <Separator />
 
-                  <OrderStatusStepper
-                    status={order.status}
-                    nextStatuses={nextStatuses}
-                    disabled={patchOrder.isPending}
-                    onSelect={(next) => patchOrder.mutate({ status: next })}
-                    onShip={() => setShipOpen(true)}
-                  />
+                  {order.sales_channel !== "basalam" ? (
+                    <OrderStatusStepper
+                      status={order.status}
+                      nextStatuses={nextStatuses}
+                      disabled={patchOrder.isPending}
+                      onSelect={(next) => patchOrder.mutate({ status: next })}
+                      onShip={() => setShipOpen(true)}
+                    />
+                  ) : null}
 
-                  <Separator />
+                  {order.sales_channel !== "basalam" ? <Separator /> : null}
 
                   <div className="space-y-2">
                     <Label>{t("sms_title")}</Label>
@@ -1029,7 +1035,11 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                 <dl className="space-y-2 text-sm">
                   <div>
                     <dt className="text-muted-foreground text-xs">{t("payment_provider")}</dt>
-                    <dd>{order.payment_provider || tCommon("em_dash")}</dd>
+                    <dd>
+                      {order.sales_channel === "basalam" || /basalam/i.test(String(order.payment_provider || ""))
+                        ? marketplaceLabel("basalam", locale)
+                        : order.payment_provider || tCommon("em_dash")}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground text-xs">{t("transaction_id")}</dt>

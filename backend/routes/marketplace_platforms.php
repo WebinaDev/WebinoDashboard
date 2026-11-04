@@ -94,6 +94,7 @@ Route::prefix('basalam')->controller(MarketplaceBasalamController::class)->group
     Route::post('/sync/orders/pull', 'ordersPull');
     Route::post('/reconcile', 'ordersPull');
     Route::get('/orders/{order}', 'orderInfo')->whereNumber('order');
+    Route::get('/orders/{order}/view', 'orderView')->whereNumber('order');
     Route::post('/orders/{order}/confirm', 'orderConfirm')->whereNumber('order');
     Route::post('/orders/{order}/cancel', 'orderCancel')->whereNumber('order');
     Route::post('/orders/{order}/cancel-request', 'orderCancelRequest')->whereNumber('order');

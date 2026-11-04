@@ -160,6 +160,7 @@ const ResumeVitalityPage = dynamic(() => import("./resume-pages-2").then((m) => 
 const ResumeJournalPage = dynamic(() => import("./resume-pages-2").then((m) => m.ResumeJournalPage))
 const ResumeTidePage = dynamic(() => import("./resume-pages-3").then((m) => m.ResumeTidePage))
 const ResumeFluentPage = dynamic(() => import("./resume-pages-4").then((m) => m.ResumeFluentPage))
+const ResumeDoodlePage = dynamic(() => import("./resume-pages-5").then((m) => m.ResumeDoodlePage))
 const ResumeOsPage = dynamic(() => import("./resume-pages").then((m) => m.ResumeOsPage))
 const ResumeWidget = dynamic(() => import("./resume-widgets").then((m) => m.ResumeWidget))
 const PoemDetailWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemDetailWidget))
@@ -250,7 +251,13 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
         <CategoryWidget widget={widget} />
       )
     case "story-strip":
-      return <ClassicStoryStrip title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} />
+      return (
+        <ClassicStoryStrip
+          title={propStr(widget.props, "title", "")}
+          limit={propNum(widget.props, "limit", 0)}
+          {...(propStr(widget.props, "variant", "") === "poetry" ? ({ variant: "poetry" } as Record<string, unknown>) : {})}
+        />
+      )
     case "category-tiles":
       return <ClassicCategoryTiles tilesText={propStr(widget.props, "tiles", "")} />
     case "promo-trio":
@@ -424,6 +431,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <ResumeTidePage widget={widget} />
     case "resume.page_fluent":
       return <ResumeFluentPage widget={widget} />
+    case "resume.page_doodle":
+      return <ResumeDoodlePage widget={widget} />
     case "poem-detail":
       return <PoemDetailWidget widget={widget} />
     case "poetry-figure":

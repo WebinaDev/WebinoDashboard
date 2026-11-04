@@ -371,10 +371,14 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
   },
   {
     type: "story-strip",
-    label: "نوار استوری",
+    label: "هایلایت‌ها (استوری)",
     category: "commerce",
-    fields: [{ kind: "text", key: "title", label: "عنوان (دسترسی‌پذیری)" }, { kind: "number", key: "limit", label: "تعداد (۰ = پیش‌فرض)", min: 0, max: 48 }],
-    create: () => node("story-strip", { title: "استوری‌ها" }),
+    fields: [
+      { kind: "text", key: "title", label: "عنوان (دسترسی‌پذیری)" },
+      { kind: "number", key: "limit", label: "تعداد (۰ = پیش‌فرض)", min: 0, max: 48 },
+      { kind: "select", key: "variant", label: "ظاهر حلقه", options: [{ value: "", label: "فروشگاهی" }, { value: "poetry", label: "شعر (زرشکی/طلایی)" }] },
+    ],
+    create: () => node("story-strip", { title: "هایلایت‌ها", variant: "" }),
   },
   {
     type: "category-tiles",

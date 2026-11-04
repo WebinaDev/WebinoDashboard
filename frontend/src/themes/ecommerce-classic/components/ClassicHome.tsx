@@ -245,16 +245,22 @@ function ClassicStoryViewer({
         </div>
         <button type="button" className="sfc-story-viewer__hit sfc-story-viewer__hit--prev" aria-label="قبلی" onClick={() => go(-1)} />
         <button type="button" className="sfc-story-viewer__hit sfc-story-viewer__hit--next" aria-label="بعدی" onClick={() => go(1)} />
-        <div className="sfc-story-viewer__cta">
-          {typeof story.productPrice === "number" ? (
-            <span className="sfc-story-viewer__price">
-              <ClassicAmount value={story.productPrice} />
-            </span>
-          ) : null}
-          <Link href={story.href} className="sfc-story-viewer__btn" onClick={onClose}>
-            {story.productName ? `${tx("home.story_view_product").split(" ")[0]} ${story.productName}` : tx("home.story_view_product")}
-          </Link>
-        </div>
+        {story.href ? (
+          <div className="sfc-story-viewer__cta">
+            {typeof story.productPrice === "number" ? (
+              <span className="sfc-story-viewer__price">
+                <ClassicAmount value={story.productPrice} />
+              </span>
+            ) : null}
+            <Link href={story.href} className="sfc-story-viewer__btn" onClick={onClose}>
+              {story.productName
+                ? `${tx("home.story_view_product").split(" ")[0]} ${story.productName}`
+                : story.productSlug
+                  ? tx("home.story_view_product")
+                  : tx("home.story_view")}
+            </Link>
+          </div>
+        ) : null}
         <div className="sfc-story-viewer__nav">
           <button type="button" aria-label="قبلی" onClick={() => go(-1)}>
             <IconChevronRight size={18} />
@@ -271,13 +277,23 @@ function ClassicStoryViewer({
   )
 }
 
-export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: number }) {
+export function ClassicStoryStrip({
+  title,
+  limit,
+  variant,
+}: {
+  title?: string
+  limit?: number
+  /** Poetry / content sites: crimson–gold rings and generic (non-product) CTA. */
+  variant?: "poetry"
+}) {
   const tx = useClassicText()
   const theme = useClassicThemeSettings()
   const catalog = useCatalog(16)
   const [remote, setRemote] = useState<Story[] | null>(null)
   const [viewer, setViewer] = useState<number | null>(null)
   const [seen, setSeen] = useState<Set<string>>(() => new Set())
+  const poetry = variant === "poetry"
 
   useEffect(() => {
     setSeen(readSeen())
@@ -311,7 +327,15 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
                   type: (slide.media_type === "video" ? "video" : "image") as "image" | "video",
                   duration: typeof slide.duration === "number" ? slide.duration : undefined,
                 })),
-              href: item.link_url || (item.product_slug ? `/product/${item.product_slug}` : item.product_id ? `/product/${item.product_id}` : "/shop"),
+              href:
+                item.link_url ||
+                (item.product_slug
+                  ? `/product/${item.product_slug}`
+                  : item.product_id
+                    ? `/product/${item.product_id}`
+                    : poetry
+                      ? ""
+                      : "/"),
               productSlug: item.product_slug || (item.product_id ? String(item.product_id) : undefined),
             }),
           ),
@@ -323,7 +347,7 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
     return () => {
       cancel = true
     }
-  }, [])
+  }, [poetry])
 
   const storiesEnriched = useMemo(() => {
     const base = remote && remote.length ? remote : null
@@ -363,7 +387,7 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
 
   return (
     <>
-      <section className="sfc-stories" aria-label={title || "استوری"}>
+      <section className={`sfc-stories${poetry ? " sfc-stories--poetry" : ""}`} aria-label={title || (poetry ? "هایلایت‌ها" : "استوری")}>
         <div className="sfc-stories__track">
           {stories.map((story, index) => (
             <button

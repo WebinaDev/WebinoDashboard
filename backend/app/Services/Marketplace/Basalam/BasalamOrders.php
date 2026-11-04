@@ -173,6 +173,59 @@ class BasalamOrders
     }
 
     /**
+     * Vendor receivable in store currency: product net plus shipping the booth keeps
+     * (WP OrderManager::saleTotalFromInvoice).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function saleTotalFromInvoice(array $data, ?string $currency = null): float
+    {
+        $report = isset($data['financial_report']) && is_array($data['financial_report']) ? $data['financial_report'] : [];
+        $product = self::reportTotalRial($report, ['product_cost', 'product_submit']);
+        $shipping = self::reportTotalRial($report, ['shipping_cost', 'shipping_submit']);
+        $rial = $product + $shipping;
+        if ($rial <= 0) {
+            return 0.0;
+        }
+        $code = $currency ?: 'IRT';
+
+        return (float) Currency::fromRial($rial, $code);
+    }
+
+    /**
+     * @param  array<string, mixed>  $report
+     * @param  list<string>  $keys
+     */
+    private static function reportTotalRial(array $report, array $keys): float
+    {
+        foreach ($keys as $key) {
+            $block = $report[$key] ?? null;
+            if (! is_array($block)) {
+                continue;
+            }
+            $amount = $block['total']['amount'] ?? ($block['total'] ?? null);
+            if (is_numeric($amount) && (float) $amount > 0) {
+                return (float) $amount;
+            }
+        }
+
+        return 0.0;
+    }
+
+    /** Persist order-view snapshot after import / refresh. */
+    public function rememberSnapshot(Order $order, array $data): void
+    {
+        BasalamOrderView::remember($order, $data);
+        $order->refresh();
+        $sale = self::saleTotalFromInvoice($data, (string) ($order->currency ?: 'IRT'));
+        if ($sale > 0) {
+            $meta = $order->meta ?? [];
+            $meta['basalam']['sale_total'] = $sale;
+            $order->update(['meta' => $meta]);
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $raw  Invoice detail (or a polled parcel wrapper without customer_data).
      * @return array{id: string, status: string, items: list<array<string, mixed>>, customer: array<string, string>, raw: array<string, mixed>}
      */
@@ -262,20 +315,33 @@ class BasalamOrders
             return [];
         }
         $engine = $this->engine();
-        $shippingRial = (float) (data_get($raw, 'financial_report.shipping_submit.total.amount') ?? 0);
+        $shippingRial = self::reportTotalRial(
+            isset($raw['financial_report']) && is_array($raw['financial_report']) ? $raw['financial_report'] : [],
+            ['shipping_cost', 'shipping_submit'],
+        );
         $statusId = (int) data_get($raw, 'status.id');
         $key = self::statusKey($statusId);
         $method = $engine['order_shipping_method'] ?? 'basalam';
+        $storeCurrency = MarketplacePricing::forTenant($this->tid())->storeCurrency();
+        $saleTotal = self::saleTotalFromInvoice($raw, $storeCurrency);
+        $tracking = BasalamOrderView::pickString($raw, [
+            'parcel_detail.tracking_code',
+            'parcel_detail.post_tracking_code',
+            'shipping.tracking_code',
+            'tracking_code',
+        ]);
 
         return [
             'shipping_minor' => $this->rialToStore($shippingRial),
             'paid' => $key !== 'rejected',
             'meta' => [
-                'basalam' => [
+                'basalam' => array_filter([
                     'invoice_id' => (string) ($raw['invoice_id'] ?? $raw['id'] ?? ''),
                     'hash_id' => (string) ($raw['hash_id'] ?? ''),
                     'status_id' => $statusId ?: null,
                     'status_key' => 'bslm-'.$key,
+                    'sale_total' => $saleTotal > 0 ? $saleTotal : null,
+                    'tracking_code' => $tracking !== '' ? $tracking : null,
                     'items' => array_values(array_map(fn ($i) => [
                         'item_id' => (int) ($i['id'] ?? 0),
                         'product_id' => (int) data_get($i, 'product.id', 0),
@@ -290,12 +356,15 @@ class BasalamOrders
                     'balance_amount' => (int) round((float) (data_get($raw, 'financial_report.product_cost.total.amount') ?? 0) / 10),
                     'purchase_count' => data_get($raw, 'customer_data.purchase_count'),
                     'shipping_method' => $method === 'basalam' ? (string) data_get($raw, 'parcel_detail.shipping_method.title', '') : (string) $method,
+                    'payment_title' => 'پرداخت باسلام',
                     'customer' => array_filter([
                         'user_id' => data_get($raw, 'customer_data.user.id'),
                         'city_id' => data_get($raw, 'customer_data.city.id'),
                         'province_id' => data_get($raw, 'customer_data.city.parent.id'),
+                        'mobile' => data_get($raw, 'customer_data.recipient.mobile'),
+                        'phone' => data_get($raw, 'customer_data.recipient.phone'),
                     ]),
-                ],
+                ], fn ($v) => $v !== null && $v !== ''),
             ],
         ];
     }
@@ -322,11 +391,23 @@ class BasalamOrders
         $adapter = MarketplaceAdapterRegistry::make('basalam', $this->tid());
         $result = $this->importer()->importOne($this->tid(), $adapter, array_merge($detail, ['id' => (string) $invoiceId]));
         $map = $this->importer()->findMap($this->tid(), 'basalam', (string) $invoiceId);
+        if ($map?->order_id) {
+            $order = Order::query()->find($map->order_id);
+            if ($order) {
+                $this->rememberSnapshot($order, $detail);
+            }
+        }
         if ($result === 'created') {
             MarketplaceLogger::info($this->tid(), 'basalam', 'orders', "سفارش {$invoiceId} با موفقیت ایجاد شد.", ['order_id' => $map?->order_id]);
         }
 
         return ['result' => $result, 'order_id' => $map?->order_id];
+    }
+
+    /** Rich Basalam invoice view for the order detail screen. */
+    public function orderView(Order $order): array
+    {
+        return BasalamOrderView::forOrder($order, $this);
     }
 
     /** Apply a Basalam status to the local order, creating it first when unknown. */
@@ -553,6 +634,14 @@ class BasalamOrders
     {
         $code = trim($code);
         $phone = trim($phone);
+        if ($phone === '') {
+            $phone = trim((string) (
+                $order->customer_phone
+                ?: data_get($order->meta, 'basalam.customer.mobile')
+                ?: data_get($order->meta, 'basalam.customer.phone')
+                ?: ''
+            ));
+        }
         if ($code === '') {
             throw new MarketplaceException(__('marketplace.basalam_tracking_required'), 422);
         }

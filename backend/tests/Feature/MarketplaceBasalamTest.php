@@ -154,6 +154,9 @@ class MarketplaceBasalamTest extends TestCase
         $this->assertSame('bslm-wait-vendor', $order->meta['basalam']['status_key']);
         $this->assertSame('P1', $order->meta['basalam']['customer']['payment_id']);
         $this->assertSame(30_000, (int) $order->shipping_minor);
+        // product 5_000_000 + shipping 300_000 rial → IRT (÷10)
+        $this->assertSame(530_000.0, (float) ($order->meta['basalam']['sale_total'] ?? 0));
+        $this->assertNotEmpty($order->meta['basalam']['order_snapshot'] ?? null);
 
         // Link the imported line to a stock-managed local product so we can watch stock.
         $local = $this->product(['stock' => 4]);
@@ -165,13 +168,21 @@ class MarketplaceBasalamTest extends TestCase
         $info = $this->getJson("/api/v1/marketplace/basalam/orders/{$order->id}")->assertOk()->json('data');
         $this->assertSame(5001, $info['invoice_id']);
         $this->assertArrayHasKey('3481', $info['cancel_reasons']);
+        $this->assertSame(530_000.0, (float) ($info['sale_total'] ?? 0));
+
+        $view = $this->getJson("/api/v1/marketplace/basalam/orders/{$order->id}/view")->assertOk()->json('data');
+        $this->assertSame('5001', (string) ($view['invoice_id'] ?? ''));
+        $this->assertNotEmpty($view['items'] ?? []);
+        $this->assertNotEmpty($view['finance'] ?? []);
+        $this->assertSame(530_000.0, (float) ($view['sale_total'] ?? 0));
 
         $this->postJson("/api/v1/marketplace/basalam/orders/{$order->id}/confirm")->assertOk();
         $this->assertSame('processing', $order->fresh()->status);
         Http::assertSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/v1/vendor/set-preparation-order') && (int) ($r->data()['order_id'] ?? 0) === 5001);
 
         $this->postJson("/api/v1/marketplace/basalam/orders/{$order->id}/tracking", ['tracking_code' => '', 'phone' => '0912'])->assertStatus(422);
-        $this->postJson("/api/v1/marketplace/basalam/orders/{$order->id}/tracking", ['tracking_code' => 'TRK1', 'phone' => '09120000000', 'shipping_method' => 4040])->assertOk();
+        // Phone falls back to the order customer when omitted (WP parity).
+        $this->postJson("/api/v1/marketplace/basalam/orders/{$order->id}/tracking", ['tracking_code' => 'TRK1', 'shipping_method' => 4040])->assertOk();
         Http::assertSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/v2/vendor/set-posted-order'));
 
         $orders->handleEvent(['event_id' => 3, 'status' => BasalamEndpoints::STATUS_COMPLETED, 'more_data' => ['invoice_id' => 5001]]);

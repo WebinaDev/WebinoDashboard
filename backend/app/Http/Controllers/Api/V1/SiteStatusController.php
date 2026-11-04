@@ -15,7 +15,7 @@ class SiteStatusController extends ProvisionController
         $this->assertProvisionAuth($request);
         $tenant = Tenant::query()->firstOrFail();
 
-        return response()->json($svc->contract($svc->get((int) $tenant->id)));
+        return response()->json(['data' => $svc->contract($svc->get((int) $tenant->id))]);
     }
 
     /** PUT /api/v1/provision/site-status (platform). */
@@ -38,7 +38,7 @@ class SiteStatusController extends ProvisionController
             }
         }
 
-        return response()->json($svc->contract($svc->put((int) $tenant->id, $changes, 'platform')));
+        return response()->json(['data' => $svc->contract($svc->put((int) $tenant->id, $changes, 'platform'))]);
     }
 
     /** GET /api/v1/site-status (site admin). */

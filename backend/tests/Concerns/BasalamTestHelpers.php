@@ -96,7 +96,21 @@ trait BasalamTestHelpers
                 'recipient' => ['name' => 'Ali Rezaei', 'mobile' => '09120000000', 'postal_address' => 'Tehran', 'postal_code' => '1234567890'],
                 'city' => ['id' => 1, 'title' => 'Tehran', 'parent' => ['id' => 2, 'title' => 'Tehran']],
             ],
-            'financial_report' => ['shipping_submit' => ['total' => ['amount' => 300_000]]],
+            'financial_report' => [
+                'product_cost' => [
+                    'total' => ['amount' => 5_000_000],
+                    'report_items' => [
+                        ['title' => 'قیمت محصول', 'amount' => 5_000_000],
+                        ['title' => 'کارمزد', 'amount' => -250_000],
+                    ],
+                ],
+                'shipping_submit' => ['total' => ['amount' => 300_000]],
+            ],
+            'created_at' => '2026-11-01T10:00:00+03:30',
+            'parcel_detail' => [
+                'shipping_method' => ['title' => 'پست پیشتاز'],
+                'tracking_code' => '',
+            ],
         ];
     }
 }

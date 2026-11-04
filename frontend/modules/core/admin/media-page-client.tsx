@@ -26,6 +26,7 @@ import { useConfirm } from "@/components/ConfirmDialog"
 import { MEDIA_TERM_ALL, MediaTermTreeSelect } from "@/components/media/MediaTermTreeSelect"
 import { PostsPagination, MEDIA_PER_PAGE_OPTIONS } from "@/components/PostsPagination"
 import { mediaAltPatch, resolveMediaAlt, type MediaAltFields } from "@/lib/media-alt"
+import { MEDIA_LIBRARY_ACCEPT } from "@/lib/media-upload"
 import { QueryErrorState } from "@/components/QueryErrorState"
 import { TableListSkeleton } from "@/components/TableListSkeleton"
 import { cn } from "@/lib/utils"
@@ -228,7 +229,13 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
 
   return (
     <PageShell title={t("title")} description={t("subtitle")}>
-      <MediaDropzone busy={busy} onFiles={(files) => void uploadFiles(files)} emptyLabel={t("dropzone")} className="mb-4" />
+      <MediaDropzone
+        busy={busy}
+        accept={MEDIA_LIBRARY_ACCEPT}
+        onFiles={(files) => void uploadFiles(files)}
+        emptyLabel={t("dropzone")}
+        className="mb-4"
+      />
 
       <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <Input
@@ -347,6 +354,20 @@ export default function MediaPageClient(_props: { route: ResolvedAdminRoute }) {
                 {item.url && item.mime?.startsWith("image/") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.url} alt={resolveMediaAlt(item)} className="bg-muted h-36 w-full rounded-lg object-cover" />
+                ) : item.url && item.mime?.startsWith("video/") ? (
+                  <video
+                    src={item.url}
+                    className="bg-muted h-36 w-full rounded-lg object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    controls
+                  />
+                ) : item.url && item.mime?.startsWith("audio/") ? (
+                  <div className="bg-muted flex h-36 flex-col items-center justify-center gap-2 rounded-lg px-3">
+                    <span className="text-muted-foreground text-xs">{item.mime}</span>
+                    <audio src={item.url} className="w-full" controls preload="metadata" />
+                  </div>
                 ) : (
                   <div className="bg-muted text-muted-foreground flex h-36 items-center justify-center rounded-lg text-xs">
                     {item.mime || t("file")}

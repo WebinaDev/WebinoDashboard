@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Ban, Check, Clock, Hash, Truck } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
@@ -23,12 +24,22 @@ type BasalamOrderInfo = {
   shipping_method_id: number | null
   items: Record<string, unknown>[]
   customer: Record<string, unknown> | null
+  payment_title?: string | null
   cancel_reasons: Record<string, string>
   shipping_methods: Record<string, string>
   last_sync_at: string | null
 }
 
 type Panel = "cancel" | "cancel_request" | "delay" | "tracking" | null
+
+function SectionTitle({ icon: Icon, label }: { icon: typeof Check; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm font-medium">
+      <Icon className="text-muted-foreground size-4" aria-hidden />
+      <span>{label}</span>
+    </div>
+  )
+}
 
 /** Basalam order actions: confirm, cancel, cancel request, delay, tracking code and resync. */
 export function BasalamOrderActions({ orderId }: { orderId: number }) {
@@ -67,6 +78,7 @@ export function BasalamOrderActions({ orderId }: { orderId: number }) {
       setPanel(null)
       setDescription("")
       void qc.invalidateQueries({ queryKey: ["basalam-order", orderId] })
+      void qc.invalidateQueries({ queryKey: ["basalam", "order-view", orderId] })
       void qc.invalidateQueries({ queryKey: ["order", orderId] })
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
@@ -80,115 +92,138 @@ export function BasalamOrderActions({ orderId }: { orderId: number }) {
 
   return (
     <div className="space-y-3 text-sm">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span>
-          {t("invoice")}: <code dir="ltr">{d.invoice_id}</code>
-        </span>
-        {d.status_key ? <Badge variant="secondary">{t.has(`status_keys.${d.status_key}`) ? t(`status_keys.${d.status_key}`) : d.status_key}</Badge> : null}
-        {d.tracking_code ? (
-          <span>
-            {t("tracking")}: <code dir="ltr">{d.tracking_code}</code>
+      {d.invoice_id ? (
+        <div className="bg-muted/50 flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
+          <Hash className="text-muted-foreground size-4 shrink-0" aria-hidden />
+          <span className="text-muted-foreground">{t("invoice")}</span>
+          <span className="font-medium tracking-wide" dir="ltr">
+            {d.invoice_id}
           </span>
-        ) : null}
-        <span className="text-muted-foreground">{fmtDate(d.last_sync_at, locale)}</span>
-      </div>
+          {d.status_key ? (
+            <Badge variant="secondary">{t.has(`status_keys.${d.status_key}`) ? t(`status_keys.${d.status_key}`) : d.status_key}</Badge>
+          ) : null}
+          <span className="text-muted-foreground ms-auto text-xs">{fmtDate(d.last_sync_at, locale)}</span>
+        </div>
+      ) : null}
 
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={act.isPending} onClick={() => act.mutate({ path: "confirm" })}>
-          {t("order_confirm")}
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => toggle("tracking")}>
-          {t("order_tracking")}
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => toggle("delay")}>
-          {t("order_delay")}
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => toggle("cancel_request")}>
-          {t("order_cancel_request")}
-        </Button>
-        <Button size="sm" variant="outline" className="text-destructive" onClick={() => toggle("cancel")}>
-          {t("order_cancel")}
-        </Button>
-        <Button size="sm" variant="ghost" disabled={act.isPending} onClick={() => act.mutate({ path: "resync" })}>
-          {t("order_resync")}
-        </Button>
-      </div>
-
-      {panel === "tracking" ? (
-        <div className="grid max-w-xl gap-2 rounded-md border p-3 sm:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-2">
+        <section className="space-y-3 rounded-xl border p-3">
+          <SectionTitle icon={Check} label={t("group_decision")} />
           <div className="grid gap-1">
-            <Label className="text-xs">{t("tracking_code")}</Label>
-            <Input dir="ltr" value={tracking} onChange={(e) => setTracking(e.target.value)} />
-          </div>
-          <div className="grid gap-1">
-            <Label className="text-xs">{t("phone")}</Label>
-            <Input dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div className="grid gap-1">
-            <Label className="text-xs">{t("shipping_method")}</Label>
-            <select className={selectClass} value={method} onChange={(e) => setMethod(e.target.value)}>
-              {Object.entries(d.shipping_methods).map(([id, label]) => (
+            <Label className="text-xs">{t("cancel_reason")}</Label>
+            <select className={selectClass} value={reasonId} onChange={(e) => setReasonId(e.target.value)}>
+              {Object.entries(d.cancel_reasons).map(([id, label]) => (
                 <option key={id} value={id}>
                   {label}
                 </option>
               ))}
             </select>
           </div>
-          <Button
-            size="sm"
-            className="sm:col-span-3 sm:justify-self-start"
-            disabled={act.isPending || !tracking.trim() || !phone.trim()}
-            onClick={() => act.mutate({ path: "tracking", body: { tracking_code: tracking.trim(), phone: phone.trim(), shipping_method: Number(method) } })}
-          >
-            {t("submit")}
-          </Button>
-        </div>
-      ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={act.isPending} onClick={() => act.mutate({ path: "confirm" })}>
+              <Check className="size-3.5" aria-hidden />
+              {t("order_confirm")}
+            </Button>
+            <Button size="sm" variant="outline" className="text-destructive" onClick={() => toggle("cancel")}>
+              <Ban className="size-3.5" aria-hidden />
+              {t("order_cancel")}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => toggle("cancel_request")}>
+              {t("order_cancel_request")}
+            </Button>
+          </div>
+          {panel === "cancel" ? (
+            <div className="grid gap-2 rounded-md border p-3">
+              <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("description")} />
+              <Button
+                size="sm"
+                variant="destructive"
+                className="justify-self-start"
+                disabled={act.isPending}
+                onClick={() => {
+                  confirm({
+                    intent: "action",
+                    description: t("confirm_cancel_order"),
+                    onConfirm: () => act.mutateAsync({ path: "cancel", body: { reason_id: Number(reasonId), description } }),
+                  })
+                }}
+              >
+                {t("order_cancel")}
+              </Button>
+            </div>
+          ) : null}
+          {panel === "cancel_request" ? (
+            <div className="grid gap-2 rounded-md border p-3">
+              <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("description")} />
+              <Button size="sm" className="justify-self-start" disabled={act.isPending} onClick={() => act.mutate({ path: "cancel-request", body: { description } })}>
+                {t("submit")}
+              </Button>
+            </div>
+          ) : null}
+        </section>
 
-      {panel === "delay" ? (
-        <div className="grid max-w-xl gap-2 rounded-md border p-3">
-          <Label className="text-xs">{t("postpone_days")}</Label>
-          <Input className="w-32" type="number" min={1} max={60} dir="ltr" value={days} onChange={(e) => setDays(e.target.value)} />
-          <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("description")} />
-          <Button size="sm" className="justify-self-start" disabled={act.isPending || !(Number(days) > 0)} onClick={() => act.mutate({ path: "delay", body: { postpone_days: Number(days), description } })}>
-            {t("submit")}
-          </Button>
-        </div>
-      ) : null}
-
-      {panel === "cancel_request" ? (
-        <div className="grid max-w-xl gap-2 rounded-md border p-3">
-          <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("description")} />
-          <Button size="sm" className="justify-self-start" disabled={act.isPending} onClick={() => act.mutate({ path: "cancel-request", body: { description } })}>
-            {t("submit")}
-          </Button>
-        </div>
-      ) : null}
-
-      {panel === "cancel" ? (
-        <div className="grid max-w-xl gap-2 rounded-md border p-3">
-          <Label className="text-xs">{t("cancel_reason")}</Label>
-          <select className={selectClass} value={reasonId} onChange={(e) => setReasonId(e.target.value)}>
-            {Object.entries(d.cancel_reasons).map(([id, label]) => (
-              <option key={id} value={id}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("description")} />
-          <Button
-            size="sm"
-            variant="destructive"
-            className="justify-self-start"
-            disabled={act.isPending}
-            onClick={() => {
-              confirm({ intent: "action", description: t("confirm_cancel_order"), onConfirm: () => act.mutateAsync({ path: "cancel", body: { reason_id: Number(reasonId), description } }) })
-            }}
-          >
-            {t("order_cancel")}
-          </Button>
-        </div>
-      ) : null}
+        <section className="space-y-3 rounded-xl border p-3">
+          <SectionTitle icon={Truck} label={t("group_ship")} />
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => toggle("tracking")}>
+              <Truck className="size-3.5" aria-hidden />
+              {t("order_tracking")}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => toggle("delay")}>
+              <Clock className="size-3.5" aria-hidden />
+              {t("order_delay")}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={act.isPending} onClick={() => act.mutate({ path: "resync" })}>
+              {t("order_resync")}
+            </Button>
+          </div>
+          {panel === "tracking" ? (
+            <div className="grid gap-2 rounded-md border p-3 sm:grid-cols-2">
+              <div className="grid gap-1">
+                <Label className="text-xs">{t("tracking_code")}</Label>
+                <Input dir="ltr" value={tracking} onChange={(e) => setTracking(e.target.value)} />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">{t("phone")}</Label>
+                <Input dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t("phone_optional")} />
+              </div>
+              <div className="grid gap-1 sm:col-span-2">
+                <Label className="text-xs">{t("shipping_method")}</Label>
+                <select className={selectClass} value={method} onChange={(e) => setMethod(e.target.value)}>
+                  {Object.entries(d.shipping_methods).map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                size="sm"
+                className="sm:col-span-2 sm:justify-self-start"
+                disabled={act.isPending || !tracking.trim()}
+                onClick={() =>
+                  act.mutate({
+                    path: "tracking",
+                    body: { tracking_code: tracking.trim(), phone: phone.trim() || undefined, shipping_method: Number(method) },
+                  })
+                }
+              >
+                {t("submit")}
+              </Button>
+            </div>
+          ) : null}
+          {panel === "delay" ? (
+            <div className="grid gap-2 rounded-md border p-3">
+              <Label className="text-xs">{t("postpone_days")}</Label>
+              <Input className="w-32" type="number" min={1} max={60} dir="ltr" value={days} onChange={(e) => setDays(e.target.value)} />
+              <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("description")} />
+              <Button size="sm" className="justify-self-start" disabled={act.isPending || !(Number(days) > 0)} onClick={() => act.mutate({ path: "delay", body: { postpone_days: Number(days), description } })}>
+                {t("submit")}
+              </Button>
+            </div>
+          ) : null}
+        </section>
+      </div>
       {confirmDialog}
     </div>
   )

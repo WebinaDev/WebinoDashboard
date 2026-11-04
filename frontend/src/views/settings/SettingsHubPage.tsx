@@ -71,11 +71,11 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/site/pwa")) return <PwaSettingsPanel />
   if (path.endsWith("/site/instagram")) return <InstagramSettingsPanel />
   if (path.endsWith("/site/dashboard")) return <DashboardSiteSettingsPanel />
+  if (path.endsWith("/site/highlights") || path.endsWith("/shop/stories")) return <ShopStoriesSettingsPanel />
   if (path.endsWith("/shop/general")) return <ShopGeneralSettingsPanel />
   if (path.endsWith("/shop/products")) return <ShopProductsSettingsPanel />
   if (path.endsWith("/shop/downloads")) return <ShopDownloadsSettingsPanel />
   if (path.endsWith("/shop/reviews")) return <ShopReviewsSettingsPanel />
-  if (path.endsWith("/shop/stories")) return <ShopStoriesSettingsPanel />
   if (path.endsWith("/shop/maps")) return <ShopMapsSettingsPanel />
   if (path.endsWith("/shop/loyalty")) return <ShopLoyaltySettingsPanel />
   if (path.endsWith("/shop/storefront-appearance")) return <StorefrontAppearancePanel />

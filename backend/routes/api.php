@@ -109,6 +109,7 @@ use App\Http\Controllers\Api\V1\PublicKernelController;
 use App\Http\Controllers\Api\V1\PublicMagazineController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
 use App\Http\Controllers\Api\V1\PublicSiteController;
+use App\Http\Controllers\Api\V1\SiteStatusController;
 use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\GoogleOAuthController;
 use App\Http\Controllers\Api\V1\ShopExtrasAdminController;
@@ -209,6 +210,8 @@ Route::prefix('v1')->group(function () {
     Route::match(['get', 'post'], '/provision/modules/{slug}/status', [ProvisionController::class, 'moduleStatus']);
     Route::post('/provision/license-sync', [ProvisionController::class, 'licenseSync']);
     Route::post('/provision/panel-login', [ProvisionController::class, 'panelLogin']);
+    Route::get('/provision/site-status', [SiteStatusController::class, 'platformShow']);
+    Route::put('/provision/site-status', [SiteStatusController::class, 'platformUpdate']);
     Route::post('/integrations/erp/announcements', [ErpAnnouncementController::class, 'ingest']);
 
     Route::prefix('public')->middleware('public.tenant')->group(function () {
@@ -216,6 +219,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/tenant', [PublicSiteController::class, 'tenant']);
         Route::get('/home', [PublicSiteController::class, 'home']);
+        Route::get('/site-status', [PublicSiteController::class, 'siteStatus']);
         Route::get('/geo/states', [GeoController::class, 'states']);
         Route::get('/bots/widget', [BotController::class, 'widget']);
         Route::get('/support/widget', [\App\Http\Controllers\Api\V1\OnlineSupportController::class, 'publicWidget']);
@@ -482,6 +486,9 @@ Route::prefix('v1')->group(function () {
                 Route::match(['get', 'post'], '/modules/marketplace/payment-callback', [ModuleMarketplaceController::class, 'paymentCallback']);
             Route::patch('/modules/{slug}', [ModuleController::class, 'update'])
                 ->middleware('can:settings.manage,system.manage');
+
+            Route::get('/site-status', [SiteStatusController::class, 'adminShow']);
+            Route::put('/site-status', [SiteStatusController::class, 'adminUpdate'])->middleware('can:settings.manage');
 
             Route::post('/license/sync', [LicenseController::class, 'sync']);
             Route::get('/license/status', [LicenseController::class, 'status']);

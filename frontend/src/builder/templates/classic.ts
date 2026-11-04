@@ -46,7 +46,7 @@ export function classicFooterDocument(_siteName = ""): BuilderDocument {
 
 export function classicHomeDocument(): BuilderDocument {
   return doc([
-    sec("sec_stories", [col("col_stories", 12, [w("w_stories", "story-strip", { title: "استوری‌ها" })])]),
+    sec("sec_stories", [col("col_stories", 12, [w("w_stories", "story-strip", { title: "هایلایت‌ها" })])]),
     sec("sec_hero", [col("col_hero", 12, [w("w_hero", "hero-slider")])]),
     sec("sec_tiles", [col("col_tiles", 12, [w("w_tiles", "category-tiles")])]),
     sec("sec_cats", [col("col_cats", 12, [w("w_cats", "category-grid", { title: "دسته‌بندی‌های محبوب", variant: "popular" })])]),

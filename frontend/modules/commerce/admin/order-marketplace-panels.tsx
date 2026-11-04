@@ -57,6 +57,7 @@ function Section({ title, actions, children }: { title: string; actions?: React.
 
 export function OrderMarketplacePanels({ order }: { order: OrderLike }) {
   const channel = order.sales_channel ?? ""
+  const mk = (order.meta?.marketplace ?? {}) as { platform?: string }
   return (
     <>
       {isMarketplaceChannel(channel) ? <MarketplaceOrderInfo order={order} /> : null}
@@ -70,24 +71,27 @@ function MarketplaceOrderInfo({ order }: { order: OrderLike }) {
   const locale = useLocale()
   const mk = (order.meta?.marketplace ?? {}) as { platform?: string; remote_order_id?: string; remote_status?: string }
   const platform = mk.platform || order.sales_channel || ""
+  const isBasalam = platform === "basalam"
   return (
     <Section title={t("order.title", { platform: marketplaceLabel(platform, locale) })}>
-      <dl className="grid gap-2 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="text-muted-foreground text-xs">{t("order.platform")}</dt>
-          <dd>
-            <Badge variant="secondary">{marketplaceLabel(platform, locale)}</Badge>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground text-xs">{t("remote_order")}</dt>
-          <dd className="font-mono" dir="ltr">{mk.remote_order_id || "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground text-xs">{t("order.remote_status")}</dt>
-          <dd>{mk.remote_status || "—"}</dd>
-        </div>
-      </dl>
+      {!isBasalam ? (
+        <dl className="mb-3 grid gap-2 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-muted-foreground text-xs">{t("order.platform")}</dt>
+            <dd>
+              <Badge variant="secondary">{marketplaceLabel(platform, locale)}</Badge>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground text-xs">{t("remote_order")}</dt>
+            <dd className="font-mono" dir="ltr">{mk.remote_order_id || "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground text-xs">{t("order.remote_status")}</dt>
+            <dd>{mk.remote_status || "—"}</dd>
+          </div>
+        </dl>
+      ) : null}
       <OrderPlatformActions platform={platform} orderId={order.id} remoteOrderId={mk.remote_order_id ?? null} meta={order.meta ?? {}} />
     </Section>
   )

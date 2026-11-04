@@ -59,12 +59,26 @@ fi
 
 # bootstrap/app.php reads these with env() before config loads; once config is cached the
 # .env file is no longer parsed, so export them from the mounted .env into the process env.
-for key in TRUSTED_PROXIES AUTH_COOKIE_NAME; do
+for key in TRUSTED_PROXIES AUTH_COOKIE_NAME MEDIA_MAX_UPLOAD_KB; do
   if [ -z "$(printenv "$key" 2>/dev/null)" ] && [ -f .env ]; then
     val="$(grep -E "^${key}=" .env | tail -n 1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
     if [ -n "$val" ]; then export "$key=$val"; fi
   fi
 done
+
+# Per-site upload ceiling from ERP (MEDIA_MAX_UPLOAD_KB). Overrides image-baked 64M.
+# post_max_size is set a bit above upload_max so multipart envelopes fit.
+_upload_kb="${MEDIA_MAX_UPLOAD_KB:-65536}"
+case "$_upload_kb" in ''|*[!0-9]*) _upload_kb=65536 ;; esac
+_upload_mb=$(( (_upload_kb + 1023) / 1024 ))
+[ "$_upload_mb" -ge 8 ] || _upload_mb=8
+_post_mb=$(( _upload_mb + 8 ))
+{
+  echo "upload_max_filesize=${_upload_mb}M"
+  echo "post_max_size=${_post_mb}M"
+} > /usr/local/etc/php/conf.d/zz-webino-upload.ini
+export WEBINO_CLIENT_MAX_BODY_SIZE="${_upload_mb}m"
+echo "[webino] upload limits: MEDIA_MAX_UPLOAD_KB=${_upload_kb} php=${_upload_mb}M nginx=${WEBINO_CLIENT_MAX_BODY_SIZE}"
 
 # Cache config/routes/views/events (on by default; RUN_OPTIMIZE=0 to skip). Never fatal.
 if [ "${RUN_OPTIMIZE:-1}" = "1" ]; then

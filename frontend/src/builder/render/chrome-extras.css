@@ -4,7 +4,22 @@
 .wbx-account > summary::-webkit-details-marker { display: none; }
 .wbx-cart:hover, .wbx-account > summary:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
 .wbx-badge { position: absolute; top: 2px; inset-inline-end: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--akx-c, var(--primary, #b4101e)); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
-.wbx-login { padding: 8px 16px; border-radius: 999px; background: var(--akx-c, var(--primary, #b4101e)); color: #fff; font-size: 13px; font-weight: 700; white-space: nowrap; }
+/* Beat `.akx a { color: inherit }` (ink) so crimson CTA stays readable — cream/gold text on --akx-c. */
+.wbx-login,
+.akx a.wbx-login {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--akx-c, var(--primary, #b4101e));
+  color: var(--akx-cream, #f7f3f4);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.wbx-login:hover,
+.akx a.wbx-login:hover {
+  color: var(--akx-gold, #e3b26c);
+  filter: brightness(1.05);
+}
 .wbx-account { position: relative; }
 .wbx-account-menu { position: absolute; top: calc(100% + 6px); inset-inline-end: 0; z-index: 60; min-width: 180px; display: grid; padding: 6px; border-radius: 14px; background: #fff; color: #2a0a0d; box-shadow: 0 12px 32px rgba(0,0,0,.14); }
 .wbx-account-menu a { padding: 9px 12px; border-radius: 10px; font-size: 13px; }
@@ -41,6 +56,18 @@ html:has(.wbx-bleed), body:has(.wbx-bleed) { overflow-x: clip; }
 .wb-section-stack > section:has(.wbx-foot) { margin-block: 0 !important; }
 /* Full-page resume themes (rzx-*) own their chrome: no theme margin strips above/below them. */
 .wb-section-stack > section:has(> .wb-columns [class^="rzx-"], > .wb-columns [class*=" rzx-"]) { margin-block: 0 !important; padding-block: 0 !important; }
+/* Storefront skins pad .sf-main with --sf-content-gap (shop spacing under chrome). Resume full-pages
+   paint their own hero flush to the viewport — zero the gap so a white strip does not sit above them. */
+.sf-shell:has([class^="rzx-"], [class*=" rzx-"]) {
+  --sf-content-gap: 0;
+}
+.sf-shell:has([class^="rzx-"], [class*=" rzx-"]) .sf-main,
+.sf-shell:has([class^="rzx-"], [class*=" rzx-"]) main.sf-main {
+  padding-top: 0;
+}
 /* Full-bleed sections at the very start/end of the page body touch the header/footer (no theme margin strip). */
 .sf-main .wb-section-stack > section.wb-full-bleed:last-child { margin-bottom: 0 !important; }
 .sf-main .wb-section-stack > section.wb-full-bleed:first-child { margin-top: 0 !important; }
+.sf-main:has(> .wb-canvas > .wb-section-stack > section.wb-full-bleed:first-child) {
+  padding-top: 0;
+}

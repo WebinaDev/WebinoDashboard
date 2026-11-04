@@ -92,10 +92,16 @@ class BasalamClient
             $this->breaker->assertAllowed();
         }
 
+        // Accounting rejects tokens presented with a merchant-site Referer (403). Use the ERP origin.
+        $accounting = str_contains(strtolower($url), 'accounting.basalam.com')
+            || str_contains(strtolower($url), 'identity.basalam.com');
+        $referer = $accounting
+            ? (rtrim((string) (config('services.webino.basalam_oauth_base') ?: config('services.webino.base_url') ?: config('app.url')), '/') ?: BasalamAuth::siteUrl($this->tenantId))
+            : BasalamAuth::siteUrl($this->tenantId);
         $headers = array_merge([
             'Accept' => 'application/json',
             'User-Agent' => 'Webino-Basalam',
-            'Referer' => BasalamAuth::siteUrl($this->tenantId),
+            'Referer' => $referer,
         ], $opts['headers'] ?? []);
         if (($opts['auth'] ?? true) === true) {
             $token = $this->auth()->accessToken();
@@ -106,7 +112,12 @@ class BasalamClient
         }
 
         $started = microtime(true);
-        $sendOpts = ['headers' => $headers, 'timeout' => $opts['timeout'] ?? 30, 'query' => $opts['query'] ?? []];
+        $sendOpts = [
+            'headers' => $headers,
+            'timeout' => $opts['timeout'] ?? ($accounting ? 25 : 30),
+            'query' => $opts['query'] ?? [],
+            'http11' => $accounting || ! empty($opts['http11']),
+        ];
         if (! empty($opts['multipart'])) {
             $sendOpts['multipart'] = $opts['multipart'];
         } elseif ($body !== null && ! ($method === 'GET')) {

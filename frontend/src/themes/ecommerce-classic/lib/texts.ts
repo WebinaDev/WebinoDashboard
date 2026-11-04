@@ -66,6 +66,7 @@ export const CLASSIC_TEXTS: ClassicTextEntry[] = [
   { group: "home", key: "recent_title", fa: "بازدیدهای اخیر شما", labelFa: "عنوان بازدیدهای اخیر", labelEn: "Recently viewed title" },
   { group: "home", key: "taste_title", fa: "پیشنهاد برای سلیقه شما", labelFa: "عنوان سلیقه‌ها", labelEn: "Taste box title" },
   { group: "home", key: "story_view_product", fa: "مشاهده محصول", labelFa: "دکمه مشاهده محصول (استوری)", labelEn: "Story product button" },
+  { group: "home", key: "story_view", fa: "مشاهده", labelFa: "دکمه مشاهده (هایلایت بدون محصول)", labelEn: "Story view button" },
   { group: "home", key: "badge_sale", fa: "تخفیف", labelFa: "برچسب تخفیف", labelEn: "Sale badge" },
   { group: "home", key: "badge_new", fa: "جدید", labelFa: "برچسب جدید", labelEn: "New badge" },
   { group: "product", key: "not_found", fa: "محصولی پیدا نشد.", labelFa: "محصول پیدا نشد", labelEn: "Product not found" },

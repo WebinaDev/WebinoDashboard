@@ -1643,6 +1643,15 @@
   }
 }
 
+/* Poetry / content highlights (Ali Khabari): crimson–gold rings instead of shop pink. */
+.sfc-stories--poetry .sfc-story__ring {
+  background: conic-gradient(from 210deg, #c9a24a, #b4101e, #5a0f17, #c9a24a);
+  box-shadow: 0 6px 14px -6px rgba(180, 16, 30, 0.4);
+}
+.sfc-stories--poetry .sfc-story__label {
+  color: #2a0a0d;
+}
+
 /* ---------------------------------------------------------------- hero */
 .sfc-hero {
   position: relative;

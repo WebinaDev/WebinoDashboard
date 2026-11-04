@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { MediaPickerField } from "@/components/content/MediaPickerField"
 import { api } from "@/lib/api"
 
 type Slide = { media_url: string; media_type: "image" | "video"; duration?: number | null }
@@ -24,46 +25,31 @@ type StoryRow = {
 
 const EMPTY: StoryRow = { title: "", media_url: "", media_type: "image", slides: [], is_active: true }
 
-async function upload(file: File): Promise<{ url: string; media_type: "image" | "video" }> {
-  const form = new FormData()
-  form.append("file", file)
-  const res = await api<{ data: { url: string; media_type: "image" | "video" } }>("/api/v1/shop/product-stories/upload", { method: "POST", body: form })
-  return res.data
+function mediaTypeFromPick(url: string, mime?: string | null): "image" | "video" {
+  if (mime?.startsWith("video/") || /\.(mp4|webm)(\?|$)/i.test(url)) return "video"
+  return "image"
 }
 
-function MediaField({ label, url, type, onChange }: { label: string; url: string; type: "image" | "video"; onChange: (url: string, type: "image" | "video") => void }) {
-  const t = useTranslations("settings_hub")
-  const [busy, setBusy] = useState(false)
+function MediaField({
+  label,
+  url,
+  type,
+  onChange,
+}: {
+  label: string
+  url: string
+  type: "image" | "video"
+  onChange: (url: string, type: "image" | "video") => void
+}) {
   return (
-    <div className="grid gap-1">
-      <Label>{label}</Label>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input dir="ltr" className="max-w-sm" value={url} placeholder="https://…" onChange={(e) => onChange(e.target.value, /\.(mp4|webm)(\?|$)/i.test(e.target.value) ? "video" : type)} />
-        <select className="h-9 rounded-md border px-2 text-sm" value={type} onChange={(e) => onChange(url, e.target.value === "video" ? "video" : "image")}>
-          <option value="image">{t("shop_stories.image")}</option>
-          <option value="video">{t("shop_stories.video")}</option>
-        </select>
-        <label className="cursor-pointer text-xs text-primary underline">
-          {busy ? t("loading") : t("shop_stories.upload")}
-          <input
-            type="file"
-            className="hidden"
-            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-              setBusy(true)
-              try {
-                const res = await upload(file)
-                onChange(res.url, res.media_type)
-              } finally {
-                setBusy(false)
-              }
-            }}
-          />
-        </label>
-      </div>
-    </div>
+    <MediaPickerField
+      label={label}
+      imageUrl={url}
+      accept="all"
+      mime={type === "video" ? "video/mp4" : undefined}
+      onPick={(item) => onChange(item.url, mediaTypeFromPick(item.url, item.mime))}
+      onClear={() => onChange("", "image")}
+    />
   )
 }
 
@@ -111,9 +97,11 @@ export function ShopStoriesSettingsPanel() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle className="text-base">{t("shop_stories.title")}</CardTitle>
-          <Button size="sm" onClick={() => setEditing({ ...EMPTY, slides: [] })}>{t("shop_stories.add")}</Button>
+          <Button size="sm" onClick={() => setEditing({ ...EMPTY, slides: [] })}>
+            {t("shop_stories.add")}
+          </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {rows.length === 0 ? <p className="text-muted-foreground text-sm">{t("shop_stories.empty")}</p> : null}
@@ -127,8 +115,12 @@ export function ShopStoriesSettingsPanel() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditing({ ...r, slides: [...r.slides] })}>{t("shop_stories.edit")}</Button>
-                <Button size="sm" variant="outline" onClick={() => r.id && void remove(r.id)}>{t("shop_stories.delete")}</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing({ ...r, slides: [...r.slides] })}>
+                  {t("shop_stories.edit")}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => r.id && void remove(r.id)}>
+                  {t("shop_stories.delete")}
+                </Button>
               </div>
             </div>
           ))}
@@ -145,25 +137,62 @@ export function ShopStoriesSettingsPanel() {
               <Label>{t("shop_stories.story_title")}</Label>
               <Input className="max-w-sm" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
             </div>
-            <MediaField label={t("shop_stories.cover")} url={editing.media_url} type={editing.media_type} onChange={(media_url, media_type) => setEditing({ ...editing, media_url, media_type })} />
+            <MediaField
+              label={t("shop_stories.cover")}
+              url={editing.media_url}
+              type={editing.media_type}
+              onChange={(media_url, media_type) => setEditing({ ...editing, media_url, media_type })}
+            />
             {editing.slides.map((slide, i) => (
               <div key={i} className="grid gap-2 rounded-lg border p-2">
                 <MediaField
                   label={t("shop_stories.slide", { n: i + 2 })}
                   url={slide.media_url}
                   type={slide.media_type}
-                  onChange={(media_url, media_type) => setEditing({ ...editing, slides: editing.slides.map((s, j) => (j === i ? { ...s, media_url, media_type } : s)) })}
+                  onChange={(media_url, media_type) =>
+                    setEditing({ ...editing, slides: editing.slides.map((s, j) => (j === i ? { ...s, media_url, media_type } : s)) })
+                  }
                 />
                 <div className="flex flex-wrap items-center gap-2">
                   <Label>{t("shop_stories.duration")}</Label>
-                  <Input type="number" min={2} max={60} className="w-24" value={slide.duration ?? ""} onChange={(e) => setEditing({ ...editing, slides: editing.slides.map((s, j) => (j === i ? { ...s, duration: e.target.value ? Number(e.target.value) : null } : s)) })} />
-                  <Button size="sm" variant="ghost" disabled={i === 0} onClick={() => { const next = [...editing.slides]; [next[i - 1], next[i]] = [next[i], next[i - 1]]; setEditing({ ...editing, slides: next }) }}>↑</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditing({ ...editing, slides: editing.slides.filter((_, j) => j !== i) })}>{t("shop_stories.delete")}</Button>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={60}
+                    className="w-24"
+                    value={slide.duration ?? ""}
+                    onChange={(e) =>
+                      setEditing({
+                        ...editing,
+                        slides: editing.slides.map((s, j) => (j === i ? { ...s, duration: e.target.value ? Number(e.target.value) : null } : s)),
+                      })
+                    }
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={i === 0}
+                    onClick={() => {
+                      const next = [...editing.slides]
+                      ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
+                      setEditing({ ...editing, slides: next })
+                    }}
+                  >
+                    ↑
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing({ ...editing, slides: editing.slides.filter((_, j) => j !== i) })}>
+                    {t("shop_stories.delete")}
+                  </Button>
                 </div>
               </div>
             ))}
             <div>
-              <Button size="sm" variant="outline" disabled={editing.slides.length >= 10} onClick={() => setEditing({ ...editing, slides: [...editing.slides, { media_url: "", media_type: "image" }] })}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={editing.slides.length >= 10}
+                onClick={() => setEditing({ ...editing, slides: [...editing.slides, { media_url: "", media_type: "image" }] })}
+              >
                 {t("shop_stories.add_slide")}
               </Button>
             </div>
@@ -181,8 +210,12 @@ export function ShopStoriesSettingsPanel() {
             </div>
             {error ? <p className="text-destructive text-sm">{error}</p> : null}
             <div className="flex gap-2">
-              <Button size="sm" disabled={!editing.title.trim() || !editing.media_url.trim()} onClick={() => void save()}>{t("shop_stories.save")}</Button>
-              <Button size="sm" variant="outline" onClick={() => setEditing(null)}>{t("shop_stories.cancel")}</Button>
+              <Button size="sm" disabled={!editing.title.trim() || !editing.media_url.trim()} onClick={() => void save()}>
+                {t("shop_stories.save")}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setEditing(null)}>
+                {t("shop_stories.cancel")}
+              </Button>
             </div>
           </CardContent>
         </Card>

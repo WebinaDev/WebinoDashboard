@@ -872,10 +872,23 @@ class MarketplaceBasalamController extends Controller
             'shipping_method_id' => $meta['shipping_method_id'] ?? null,
             'items' => $meta['items'] ?? [],
             'customer' => $meta['customer'] ?? null,
+            'sale_total' => $meta['sale_total'] ?? null,
+            'payment_title' => $meta['payment_title'] ?? 'پرداخت باسلام',
             'cancel_reasons' => BasalamEndpoints::CANCEL_REASONS,
             'shipping_methods' => BasalamEndpoints::SHIPPING_METHODS,
             'last_sync_at' => $map->last_sync_at?->toIso8601String(),
         ]]);
+    }
+
+    public function orderView(Request $request, int $order): JsonResponse
+    {
+        $model = $this->order($request, $order);
+        $map = MarketplaceOrderMap::query()->where('tenant_id', $this->tid($request))->where('platform', 'basalam')->where('order_id', $model->id)->first();
+        if (! $map) {
+            return response()->json(['message' => __('marketplace.basalam_order_not_basalam')], 404);
+        }
+
+        return $this->run(fn () => response()->json(['data' => $this->orders($request)->orderView($model)]));
     }
 
     public function orderConfirm(Request $request, int $order): JsonResponse
@@ -914,12 +927,12 @@ class MarketplaceBasalamController extends Controller
     {
         $data = $request->validate([
             'tracking_code' => ['required', 'string', 'max:100'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:20'],
             'shipping_method' => ['nullable', 'integer', 'min:1'],
         ]);
         $model = $this->order($request, $order);
 
-        return $this->run(fn () => response()->json(['data' => $this->orders($request)->tracking($model, $data['tracking_code'], $data['phone'], (int) ($data['shipping_method'] ?? 3197)), 'message' => __('marketplace.basalam_order_tracking_saved')]));
+        return $this->run(fn () => response()->json(['data' => $this->orders($request)->tracking($model, $data['tracking_code'], (string) ($data['phone'] ?? ''), (int) ($data['shipping_method'] ?? 3197)), 'message' => __('marketplace.basalam_order_tracking_saved')]));
     }
 
     public function orderResync(Request $request, int $order): JsonResponse

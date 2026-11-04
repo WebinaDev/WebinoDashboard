@@ -658,5 +658,51 @@
     }
    }
   ]
+ },
+ "doodle": {
+  "key": "doodle",
+  "name_fa": "دودل (Doodle)",
+  "name_en": "Doodle",
+  "audience": "education",
+  "full_page": true,
+  "description_fa": "صفحه کامل دفترچه‌ای با خط‌خطی و حس کلاس زبان: کاغذ نوت‌بوک، چسب واشی، آیکون‌های دست‌کشیده",
+  "description_en": "Full-page notebook doodle theme for language teachers: ruled paper, washi tape, hand-drawn marks",
+  "tokens": {
+   "light": {
+    "--bg": "#f6efe3",
+    "--surface": "#fffaf2",
+    "--text": "#2a241c",
+    "--muted": "#6b5e4e",
+    "--border": "#d9c9b0",
+    "--accent": "#c45c26",
+    "--accent-fg": "#ffffff",
+    "--accent-2": "#2f6f6a"
+   },
+   "dark": {
+    "--bg": "#f6efe3",
+    "--surface": "#fffaf2",
+    "--text": "#2a241c",
+    "--muted": "#6b5e4e",
+    "--border": "#d9c9b0",
+    "--accent": "#c45c26",
+    "--accent-fg": "#ffffff",
+    "--accent-2": "#2f6f6a"
+   },
+   "font_fa": "\"Yekan Bakh\", Vazirmatn, sans-serif",
+   "font_en": "Inter, \"Yekan Bakh\", sans-serif",
+   "font_mono": "\"JetBrains Mono\", ui-monospace, monospace",
+   "radius": "20px",
+   "shadow": "0 28px 60px -28px rgba(26,36,51,.4)",
+   "motion": "doodle",
+   "default_mode": "light"
+  },
+  "layout": [
+   {
+    "type": "resume.page_doodle",
+    "props": {
+     "variant": "default"
+    }
+   }
+  ]
  }
 }

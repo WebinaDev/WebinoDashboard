@@ -44,5 +44,14 @@ decorate_workers_output = no
 request_terminate_timeout = 300
 CONF
 echo "[webino] php-fpm pool: max_children=${CHILDREN} start=${START} min_spare=${MIN_SPARE} max_spare=${MAX_SPARE} max_requests=${MAX_REQUESTS}"
+
+# Align nginx body size with MEDIA_MAX_UPLOAD_KB / WEBINO_CLIENT_MAX_BODY_SIZE from entrypoint.
+BODY_SIZE="${WEBINO_CLIENT_MAX_BODY_SIZE:-64m}"
+NGINX_CONF=/etc/nginx/webino-backend.conf
+if [ -f "$NGINX_CONF" ]; then
+  sed -i -E "s/client_max_body_size[[:space:]]+[^;]+;/client_max_body_size ${BODY_SIZE};/g" "$NGINX_CONF" || true
+  echo "[webino] nginx client_max_body_size=${BODY_SIZE}"
+fi
+
 php-fpm -D
 exec nginx -c /etc/nginx/webino-backend.conf -g 'daemon off;'
