@@ -128,7 +128,7 @@ export default function PageClient({ route }: { route: ResolvedAdminRoute }) {
                     <Link className="text-primary hover:underline" href={dashboardPath(`orders/${o.id}`)}>
                       #{o.number}
                     </Link>
-                    <span dir="ltr">{fmt(o.total)}</span>
+                    <MoneyDisplay amount={o.total} currency="IRT" symbol="default" />
                   </li>
                 ))}
               </ul>

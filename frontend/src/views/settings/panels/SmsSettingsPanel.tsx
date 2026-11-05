@@ -23,9 +23,11 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import {
+  fetchShopSmsSettings,
   fetchSiteSmsSettings,
   fetchSmsPatternRegistry,
   fetchSmsPatterns,
+  saveShopSmsSettings,
   saveSiteSmsSettings,
   saveSmsTemplates,
   sendSiteOtp,
@@ -96,6 +98,11 @@ export function SmsSettingsPanel() {
     queryFn: fetchSiteSmsSettings,
     retry: false,
   })
+  const shopQ = useQuery({
+    queryKey: ["shop-sms-settings"],
+    queryFn: fetchShopSmsSettings,
+    retry: false,
+  })
   const patternsQ = useQuery({
     queryKey: ["sms-patterns-site"],
     queryFn: () => fetchSmsPatterns(1, 100),
@@ -112,6 +119,8 @@ export function SmsSettingsPanel() {
   const [bindRegister, setBindRegister] = useState("")
   const [testPhone, setTestPhone] = useState("")
   const [registry, setRegistry] = useState<SmsPatternRegistryRow[]>([])
+  const [adminPhones, setAdminPhones] = useState<string[]>([])
+  const [phoneDraft, setPhoneDraft] = useState("")
 
   const unavailable = Boolean(q.data?.unavailable) || isSmsUnavailable(q.data)
   const patterns = useMemo(
@@ -132,17 +141,38 @@ export function SmsSettingsPanel() {
     setBindRegister(registryCode(rows, "otp_register"))
   }, [registryQ.data])
 
+  useEffect(() => {
+    const phones = shopQ.data?.settings?.admin_phones
+    if (!Array.isArray(phones)) return
+    setAdminPhones(phones.map((phone) => String(phone).trim()).filter(Boolean))
+  }, [shopQ.data])
+
+  const addAdminPhone = () => {
+    const next = phoneDraft.trim()
+    if (!next) return
+    setAdminPhones((prev) => (prev.includes(next) ? prev : [...prev, next]))
+    setPhoneDraft("")
+  }
+
   const save = useMutation({
     mutationFn: async () => {
       const res = (await saveSiteSmsSettings(draft ?? {})) as { ok?: boolean; unavailable?: boolean; message?: string }
       if (res?.unavailable || res?.ok === false) {
         throw new Error(res.message || t("unavailable"))
       }
+      const phones = adminPhones.map((phone) => phone.trim()).filter(Boolean)
+      const shopRes = (await saveShopSmsSettings({
+        settings: { admin_phones: phones },
+      })) as { ok?: boolean; unavailable?: boolean; message?: string }
+      if (shopRes?.unavailable || shopRes?.ok === false) {
+        throw new Error(shopRes.message || t("unavailable"))
+      }
       return res
     },
     onSuccess: async () => {
       toast.success(tCommon("saved"))
       await qc.invalidateQueries({ queryKey: ["site-sms-settings"] })
+      await qc.invalidateQueries({ queryKey: ["shop-sms-settings"] })
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -342,6 +372,52 @@ export function SmsSettingsPanel() {
               </div>
             </div>
             <p className="text-muted-foreground text-xs">{t("lines_from_crm")}</p>
+
+            <div className="space-y-2 rounded-xl border p-4">
+              <Label>{t("admin_phones")}</Label>
+              <p className="text-muted-foreground text-xs">{t("admin_phones_hint")}</p>
+              <div className="flex gap-2">
+                <Input
+                  value={phoneDraft}
+                  dir="ltr"
+                  className="font-mono"
+                  placeholder={t("phone_placeholder")}
+                  onChange={(e) => setPhoneDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return
+                    e.preventDefault()
+                    addAdminPhone()
+                  }}
+                />
+                <Button type="button" variant="outline" onClick={addAdminPhone}>
+                  {t("add_phone")}
+                </Button>
+              </div>
+              {adminPhones.length === 0 ? (
+                <p className="text-muted-foreground text-xs">{t("admin_phones_empty")}</p>
+              ) : (
+                <ul className="space-y-2">
+                  {adminPhones.map((phone) => (
+                    <li
+                      key={phone}
+                      className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
+                    >
+                      <span className="font-mono text-sm" dir="ltr">
+                        {phone}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAdminPhones((prev) => prev.filter((item) => item !== phone))}
+                      >
+                        {t("remove_phone")}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">

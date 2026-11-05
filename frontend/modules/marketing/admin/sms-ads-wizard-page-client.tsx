@@ -235,9 +235,14 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                   >
                     <span className="block text-sm font-medium">{label}</span>
                     <span className="mt-1 flex items-center gap-2 text-sm">
-                      <span className="font-semibold">{fmt(sale)}</span>
+                      <MoneyDisplay amount={sale} currency="IRT" symbol="default" amountClassName="font-semibold" />
                       {list > sale ? (
-                        <span className="text-muted-foreground line-through">{fmt(list)}</span>
+                        <MoneyDisplay
+                          amount={list}
+                          currency="IRT"
+                          symbol="default"
+                          className="text-muted-foreground line-through"
+                        />
                       ) : null}
                     </span>
                   </button>
@@ -305,7 +310,11 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t("unitPrice")}</span>
-                <span>{fmt(quote?.price_per_unit ?? (channel === "sms" ? smsSale : notifSale))}</span>
+                <MoneyDisplay
+                  amount={quote?.price_per_unit ?? (channel === "sms" ? smsSale : notifSale)}
+                  currency="IRT"
+                  symbol="default"
+                />
               </div>
               {(quote?.discount_percent ?? 0) > 0 ? (
                 <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
