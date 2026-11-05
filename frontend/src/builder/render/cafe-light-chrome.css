@@ -113,3 +113,14 @@
   color: var(--lcx-ink);
 }
 .sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) .wcx-light .wcx-eyebrow { color: var(--lcx-pink-ink); }
+
+/* Limbo (cafe-signature + saloon tone): brand accent is the logo red, not gold. */
+.sf-shell[data-theme-slug="cafe-signature"] .wcx-saloon {
+  --wcx-accent: #e10600;
+  --wcx-line: rgba(225, 6, 0, 0.4);
+}
+.sf-shell[data-theme-slug="cafe-signature"] .wcx-saloon .wcx-btn-primary { color: #fff; }
+.sf-shell[data-theme-slug="cafe-signature"] .wcx-saloon .wcx-hero h1 {
+  background: linear-gradient(180deg, #fff4ea 15%, #ff5a4f 90%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
