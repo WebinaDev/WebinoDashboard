@@ -25,6 +25,7 @@ import {
   smsQueryOptions,
   type SmsAttachedNumber,
 } from "../lib/modirpayamak-api"
+import { normalizeSmsLines } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
 import { SmsPreviewBubble, SmsSection, SmsTwoColumn } from "../lib/sms-admin-ui"
 
@@ -38,10 +39,6 @@ type IppanelPattern = {
   variable?: Array<{ name?: string; type?: string }> | null
 }
 
-function unwrapNumbers(payload: { data?: SmsAttachedNumber[]; numbers?: SmsAttachedNumber[] } | undefined): SmsAttachedNumber[] {
-  const list = payload?.numbers ?? payload?.data
-  return Array.isArray(list) ? list : []
-}
 
 function extractPatterns(raw: unknown): IppanelPattern[] {
   if (Array.isArray(raw)) return raw as IppanelPattern[]
@@ -100,7 +97,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
   })
 
   const unavailable = numbersQ.data ? isSmsUnavailable(numbersQ.data) : false
-  const numbers = useMemo(() => unwrapNumbers(numbersQ.data), [numbersQ.data])
+  const numbers = useMemo(() => normalizeSmsLines(numbersQ.data) as SmsAttachedNumber[], [numbersQ.data])
   const patterns = useMemo(() => extractPatterns(patternsQ.data?.data ?? patternsQ.data), [patternsQ.data])
   const selectedPattern = useMemo(
     () => patterns.find((p) => (p.pattern_code ?? "").trim() === patternCode.trim()),
@@ -283,7 +280,8 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                   <SelectContent>
                     {numbers.map((n) => (
                       <SelectItem key={`${n.role}-${n.number}`} value={n.number}>
-                        {n.number} ({n.role})
+                        {n.label ? `${n.label} — ` : ""}
+                        {n.number} ({n.role === "service" ? t("roleService") : n.role === "personal" || n.role === "marketing" ? t("rolePersonal") : n.role})
                       </SelectItem>
                     ))}
                   </SelectContent>

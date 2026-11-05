@@ -39,7 +39,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
   })
 
   const unavailable = q.data ? isSmsUnavailable(q.data) : false
-  const rows = unavailable ? [] : unwrapSmsList(q.data?.data)
+  const rows = unavailable ? [] : unwrapSmsList(q.data)
 
   return (
     <SmsPanelShell title={t("inboxTitle")} description={t("inboxHint")}>

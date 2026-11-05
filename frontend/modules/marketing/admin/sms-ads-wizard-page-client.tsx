@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -315,13 +316,13 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
               <div className="flex justify-between font-medium">
                 <span>{t("total")}</span>
                 <span>
-                  {fmt(quote?.customer_cost ?? 0)} {tSms("toman")}
+                  <MoneyDisplay amount={quote?.customer_cost ?? 0} currency="IRT" symbol="default" />
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{tSms("balance")}</span>
                 <span>
-                  {fmt(quote?.balance ?? account?.balance ?? 0)} {tSms("toman")}
+                  <MoneyDisplay amount={quote?.balance ?? account?.balance ?? 0} currency="IRT" symbol="default" />
                 </span>
               </div>
             </div>

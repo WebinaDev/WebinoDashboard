@@ -15,16 +15,10 @@ import {
 } from "@/components/ui/table"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { getApiErrorMessage } from "@/lib/api-helpers"
-import { fetchSmsNumbers, smsQueryOptions, type SmsAttachedNumber } from "../lib/modirpayamak-api"
+import { fetchSmsNumbers, smsQueryOptions } from "../lib/modirpayamak-api"
+import { normalizeSmsLines } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
 import { SmsSection } from "../lib/sms-admin-ui"
-
-function unwrapNumbers(
-  payload: { data?: SmsAttachedNumber[]; numbers?: SmsAttachedNumber[] } | undefined,
-): SmsAttachedNumber[] {
-  const list = payload?.numbers ?? payload?.data
-  return Array.isArray(list) ? list : []
-}
 
 export default function PageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("sms")
@@ -36,7 +30,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
   })
 
   const unavailable = numbersQ.data ? isSmsUnavailable(numbersQ.data) : false
-  const numbers = unavailable ? [] : unwrapNumbers(numbersQ.data)
+  const numbers = unavailable ? [] : normalizeSmsLines(numbersQ.data)
   const loading = numbersQ.isPending
 
   return (

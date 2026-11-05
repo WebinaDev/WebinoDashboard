@@ -20,7 +20,8 @@ import {
 import { dashboardPath } from "@/kernel/paths"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { getApiErrorMessage } from "@/lib/api-helpers"
-import { formatNumber, toLocaleDigits } from "@/lib/locale"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
+import { toLocaleDigits } from "@/lib/locale"
 import {
   fetchSmsAds,
   fetchSmsDashboard,
@@ -32,6 +33,7 @@ import {
   formatSmsDateTime,
   localMessagePreview,
   localRecipientsPreview,
+  unwrapSmsList,
 } from "../lib/sms-report"
 import { SmsPanelShell } from "../lib/sms-panel-shell"
 import { SmsSection } from "../lib/sms-admin-ui"
@@ -58,7 +60,9 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
 
   const unavailable = dashQ.data ? isSmsUnavailable(dashQ.data) : false
   const account = unavailable ? null : (dashQ.data?.account ?? null)
-  const messages: SmsMessage[] = unavailable ? [] : (dashQ.data?.messages?.slice(0, 10) ?? [])
+  const messages: SmsMessage[] = unavailable
+    ? []
+    : (unwrapSmsList(dashQ.data).slice(0, 10) as unknown as SmsMessage[])
   const campaigns: SmsAdCampaign[] = adsQ.data?.items ?? []
   const loading = dashQ.isPending || dashQ.isFetching
 
@@ -182,8 +186,12 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                         </TableCell>
                         <TableCell className="max-w-[14rem] truncate">{localMessagePreview(row)}</TableCell>
                         <TableCell>{translateSmsStatus(t, m.status)}</TableCell>
-                        <TableCell dir="ltr">
-                          {m.cost != null ? toLocaleDigits(formatNumber(m.cost, locale), locale) : none}
+                        <TableCell>
+                          {m.cost != null ? (
+                            <MoneyDisplay amount={m.cost} currency="IRT" symbol="default" />
+                          ) : (
+                            none
+                          )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {formatSmsDateTime(m.created_at, locale, none)}

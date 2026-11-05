@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
 import { ChevronLeft, ChevronRight, Eye, RefreshCw } from "lucide-react"
 
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { isSmsUnavailable, SmsServiceBanner } from "@/components/marketing/SmsServiceBanner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -126,16 +127,15 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
 
   const localMessages = useMemo(() => {
     if (isSmsUnavailable(messagesQ.data)) return []
-    const raw = messagesQ.data?.messages
-    return Array.isArray(raw) ? (raw as unknown as Array<Record<string, unknown>>) : []
+    return unwrapSmsList(messagesQ.data)
   }, [messagesQ.data])
 
   const outboxItems = useMemo(
-    () => (isSmsUnavailable(outboxQ.data) ? [] : unwrapSmsList(outboxQ.data?.data)),
+    () => (isSmsUnavailable(outboxQ.data) ? [] : unwrapSmsList(outboxQ.data)),
     [outboxQ.data],
   )
   const inboxItems = useMemo(
-    () => (isSmsUnavailable(inboxQ.data) ? [] : unwrapSmsList(inboxQ.data?.data)),
+    () => (isSmsUnavailable(inboxQ.data) ? [] : unwrapSmsList(inboxQ.data)),
     [inboxQ.data],
   )
 
@@ -240,7 +240,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                                 <TableCell dir="ltr">{smsField(m, "exit_count") || "—"}</TableCell>
                                 <TableCell>{resolveOutboxStatus(t, m)}</TableCell>
                                 <TableCell dir="ltr">
-                                  {cost != null ? toLocaleDigits(formatNumber(cost, locale), locale) : "—"}
+                                  {cost != null ? <MoneyDisplay amount={cost} currency="IRT" symbol="default" /> : "—"}
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">
                                   {formatSmsDateTime(outboxTime(m), locale)}
@@ -330,7 +330,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
                                 <TableCell>{smsField(m, "recipient_role", "role") || "—"}</TableCell>
                                 <TableCell>{translateSmsStatus(t, smsField(m, "status"))}</TableCell>
                                 <TableCell dir="ltr">
-                                  {cost != null ? toLocaleDigits(formatNumber(cost, locale), locale) : "—"}
+                                  {cost != null ? <MoneyDisplay amount={cost} currency="IRT" symbol="default" /> : "—"}
                                 </TableCell>
                                 <TableCell className="font-mono text-xs" dir="ltr">
                                   {smsField(m, "outbox_id") || "—"}

@@ -1,3 +1,6 @@
+import DateObject from "react-date-object"
+import persian from "react-date-object/calendars/persian"
+
 import { emptyMark, formatDate } from "@/lib/locale"
 
 import { translateSmsStatus } from "./sms-ui"
@@ -59,6 +62,29 @@ export function formatSmsDateTime(value: unknown, locale: string, empty?: string
   }
   if (/^\d{13}$/.test(s)) {
     return formatDate(Number(s), locale, { includeTime: true })
+  }
+  const jalali = s.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/)
+  if (jalali && Number(jalali[1]) > 1300 && Number(jalali[1]) < 1500) {
+    const parsed = new DateObject({
+      calendar: persian,
+      year: Number(jalali[1]),
+      month: Number(jalali[2]),
+      day: Number(jalali[3]),
+      hour: Number(jalali[4] ?? 0),
+      minute: Number(jalali[5] ?? 0),
+      second: Number(jalali[6] ?? 0),
+    })
+    if (parsed.isValid) {
+      return formatDate(parsed.toDate(), locale, { includeTime: true })
+    }
+  }
+  const naive = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (naive && Number(naive[1]) < 1700) {
+    return formatDate(
+      `${naive[1]}-${naive[2]}-${naive[3]}T${naive[4]}:${naive[5]}:${naive[6] ?? "00"}+03:30`,
+      locale,
+      { includeTime: true },
+    )
   }
   return formatDate(s, locale, { includeTime: true }) || blank
 }
@@ -147,6 +173,24 @@ export function localMessagePreview(row: Record<string, unknown>): string {
   }
   if (typeof body === "string" && body) return body
   return smsField(row, "message", "body", "text") || "—"
+}
+
+export function normalizeSmsLines(
+  payload: unknown,
+): Array<{ id?: number; number: string; role: string; label?: string }> {
+  const out: Array<{ id?: number; number: string; role: string; label?: string }> = []
+  for (const row of unwrapSmsList(payload)) {
+    const number = smsField(row, "number", "line", "from_number", "sender", "phone")
+    if (!number) continue
+    const roleRaw = smsField(row, "role", "type", "line_type").toLowerCase()
+    let role = "service"
+    if (/personal|marketing|dedicated|webservice|advert|اختصاص/.test(roleRaw)) role = "personal"
+    else if (roleRaw && !/pattern|shared|service|خدماتی|پترن/.test(roleRaw)) role = roleRaw
+    const label = smsField(row, "label", "title", "name")
+    const id = smsNum(row, "id")
+    out.push({ number, role, label: label || undefined, id: id ?? undefined })
+  }
+  return out
 }
 
 export function isUnixFuture(value: unknown): boolean {

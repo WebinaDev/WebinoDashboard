@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { dashboardPath } from "@/kernel/paths"
@@ -72,9 +73,9 @@ export default function PageClient({ route }: { route: ResolvedAdminRoute }) {
   const kpis = [
     { label: t("kpi.sent"), value: fmt(data.sent) },
     { label: t("kpi.failed"), value: fmt(data.failed) },
-    { label: t("kpi.cost"), value: fmt(data.cost) },
+    { label: t("kpi.cost"), value: <MoneyDisplay amount={data.cost} currency="IRT" symbol="default" /> },
     { label: t("kpi.orders"), value: fmt(data.orders) },
-    { label: t("kpi.revenue"), value: fmt(data.revenue) },
+    { label: t("kpi.revenue"), value: <MoneyDisplay amount={data.revenue} currency="IRT" symbol="default" /> },
     { label: t("kpi.roas"), value: data.roas == null ? none : fmt(data.roas) },
     { label: t("kpi.conversion"), value: `${fmt(data.conversion_pct)}%` },
   ]

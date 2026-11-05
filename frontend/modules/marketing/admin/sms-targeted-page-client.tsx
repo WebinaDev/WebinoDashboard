@@ -66,7 +66,7 @@ export default function PageClient({ route: _route }: { route: ResolvedAdminRout
   })
   const unavailable = outboxQ.data ? isSmsUnavailable(outboxQ.data) : false
   const rows = useMemo(
-    () => (unavailable ? [] : unwrapSmsList(outboxQ.data?.data)),
+    () => (unavailable ? [] : unwrapSmsList(outboxQ.data)),
     [unavailable, outboxQ.data],
   )
 
