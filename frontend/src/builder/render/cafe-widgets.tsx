@@ -111,8 +111,7 @@ function useCafeCatalog(enabled: boolean, count: number, category: string) {
         const q = new URLSearchParams({ per_page: String(count), status: "publish" })
         if (category) q.set("category", category)
         const res = await fetch(`/api/v1/public/catalog?${q}`, { credentials: "same-origin" })
-        const json = (await res.json()) as {
-          data?: Array<{
+        type LiveItem = {
             name?: string
             slug?: string
             short_description?: string
@@ -120,10 +119,11 @@ function useCafeCatalog(enabled: boolean, count: number, category: string) {
             image_url?: string
             price_minor?: number
             category?: { name?: string; slug?: string }
-          }>
         }
+        const json = (await res.json()) as { data?: LiveItem[] | { items?: LiveItem[] } }
         if (dead) return
-        const list = Array.isArray(json?.data) ? json.data : []
+        const d = json?.data
+        const list: LiveItem[] = Array.isArray(d) ? d : Array.isArray(d?.items) ? d.items : []
         setRows(
           list.slice(0, count).map((p) => ({
             title: String(p.name || ""),
@@ -153,17 +153,19 @@ function useCafeCategories(enabled: boolean, baseHref: string) {
     ;(async () => {
       try {
         const res = await fetch("/api/v1/public/catalog?per_page=1&facets=1", { credentials: "same-origin" })
+        type LiveCat = { name?: string; slug?: string; image_url?: string; cover_image_url?: string; icon_url?: string }
         const json = (await res.json()) as {
-          meta?: { facets?: { categories?: Array<{ name?: string; slug?: string; image_url?: string }> } }
-          facets?: { categories?: Array<{ name?: string; slug?: string; image_url?: string }> }
+          data?: { categories?: LiveCat[] }
+          meta?: { facets?: { categories?: LiveCat[] } }
+          facets?: { categories?: LiveCat[] }
         }
         if (dead) return
-        const cats = json?.meta?.facets?.categories || json?.facets?.categories || []
+        const cats: LiveCat[] = json?.data?.categories || json?.meta?.facets?.categories || json?.facets?.categories || []
         setRows(
           cats.map((c) => {
             const slug = String(c.slug || "")
             const href = (baseHref || "/menu?category={slug}").replace("{slug}", slug)
-            return { title: String(c.name || slug), href: safeHref(href, "/menu"), image: String(c.image_url || ""), slug }
+            return { title: String(c.name || slug), href: safeHref(href, "/menu"), image: String(c.image_url || c.cover_image_url || c.icon_url || ""), slug }
           }),
         )
       } catch {
