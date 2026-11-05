@@ -791,7 +791,7 @@ function MethodEditor({
         </div>
         {method.method_id === "flat_rate" ? (
           <div className="grid gap-1">
-            <Label className="text-xs">{labels.cost}</Label>
+            <Label className="text-xs">{labels.cost} (تیپاکس / پیک / پست)</Label>
             <Input
               type="number"
               defaultValue={Number(settings.cost ?? 0)}
@@ -872,11 +872,11 @@ function MethodEditor({
                 defaultValue={String(settings.service ?? "pishtaz")}
                 onChange={(e) => onChange({ settings: { ...settings, service: e.target.value } })}
               >
-                <option value="pishtaz">pishtaz</option>
-                <option value="vip">vip</option>
-                <option value="tipax">tipax</option>
-                <option value="courier">courier</option>
-                <option value="alonomic">alonomic</option>
+                <option value="pishtaz">پیشتاز</option>
+                <option value="vip">ویژه</option>
+                <option value="tipax">تیپاکس</option>
+                <option value="courier">پیک</option>
+                <option value="alonomic">الونومیک</option>
               </select>
             </div>
           </>

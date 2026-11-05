@@ -2268,7 +2268,7 @@
       "weight_unit": "Weight unit",
       "dimension_unit": "Dimension unit",
       "guest_checkout": "Guest checkout",
-      "guest_checkout_hint": "Stored now; full public checkout path completes later",
+      "guest_checkout_hint": "On: guests can checkout without signup. Off: login is required before checkout.",
       "countries_ph": "e.g. IR, AE",
       "country_ph": "e.g. IR"
     },
@@ -2525,7 +2525,7 @@
       "title": "Privacy & accounts",
       "description": "Guest checkout and account creation",
       "guest_checkout": "Guest checkout",
-      "guest_checkout_hint": "Allow checkout without login (public cart path required)",
+      "guest_checkout_hint": "On: guest checkout allowed. Off: force login before checkout.",
       "account_creation": "Account creation",
       "account_creation_hint": "Allow new customer registration"
     },

@@ -14,9 +14,9 @@ import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { toLocaleDigits } from "@/lib/locale"
 
-type GatewayId = "zarinpal" | "digipay" | "snapppay" | "torobpay"
+type GatewayId = "zarinpal" | "zibal" | "digipay" | "snapppay" | "torobpay"
 
-const GATEWAYS: GatewayId[] = ["zarinpal", "digipay", "snapppay", "torobpay"]
+const GATEWAYS: GatewayId[] = ["zarinpal", "zibal", "digipay", "snapppay", "torobpay"]
 
 type Settings = Record<string, unknown>
 
@@ -43,6 +43,9 @@ export function CommerceGatewaysPanel() {
         <p className="text-muted-foreground mt-1 text-sm">{t("hint")}</p>
       </div>
       <p className="text-muted-foreground text-xs">{t("fee_hint")}</p>
+      <p className="text-muted-foreground text-xs">
+        بدون کد پذیرنده / کلید API درگاه را روشن نکنید. فیلدهای لازم: زرین‌پال (merchant_id، access_token)، زیبال (merchant_id)، دیجی‌پی (client_id، client_secret، username، password)، اسنپ‌پی و ترب‌پی (client_id، client_secret، client_username، client_password). بله و باسلام از مسیر جداگانه تنظیم می‌شوند.
+      </p>
       {GATEWAYS.map((id) => (
         <GatewayCard key={id} id={id} title={tHub(id)} locale={locale} />
       ))}
@@ -222,6 +225,9 @@ function fieldsFor(id: GatewayId): Array<{ key: string; label: "merchant_id" | "
       { key: "merchant_id", label: "merchant_id", secret: true },
       { key: "access_token", label: "access_token", secret: true },
     ]
+  }
+  if (id === "zibal") {
+    return [{ key: "merchant_id", label: "merchant_id", secret: true }]
   }
   if (id === "digipay") {
     return [

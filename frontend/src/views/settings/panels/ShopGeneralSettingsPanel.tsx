@@ -433,16 +433,28 @@ export function ShopGeneralSettingsPanel() {
               onCheckedChange={(v) => setDraft({ ...draft, cart_redirect_after_add: v })}
             />
           </div>
-          <div className="flex max-w-lg items-center justify-between gap-3">
+          <div className="grid max-w-lg gap-3 rounded-xl border p-3">
             <div>
-              <Label htmlFor="guest-checkout">{t("shop_general.guest_checkout")}</Label>
+              <Label>{t("shop_general.guest_checkout")}</Label>
               <p className="text-muted-foreground text-xs">{t("shop_general.guest_checkout_hint")}</p>
             </div>
-            <Switch
-              id="guest-checkout"
-              checked={Boolean(draft.guest_checkout)}
-              onCheckedChange={(v) => setDraft({ ...draft, guest_checkout: v })}
-            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                className={`rounded-lg border px-3 py-2 text-sm ${!draft.guest_checkout ? "border-primary bg-primary/5 font-medium" : "border-input"}`}
+                onClick={() => setDraft({ ...draft, guest_checkout: false })}
+              >
+                اجبار به ثبت‌نام / ورود
+              </button>
+              <button
+                type="button"
+                id="guest-checkout"
+                className={`rounded-lg border px-3 py-2 text-sm ${draft.guest_checkout ? "border-primary bg-primary/5 font-medium" : "border-input"}`}
+                onClick={() => setDraft({ ...draft, guest_checkout: true })}
+              >
+                اجازه خرید مهمان
+              </button>
+            </div>
           </div>
           <div className="grid max-w-md gap-3 sm:grid-cols-2">
             <div className="grid gap-2">

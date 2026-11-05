@@ -1699,8 +1699,8 @@
       "cart_redirect": "پرش به سبد بعد از افزودن",
       "weight_unit": "واحد وزن",
       "dimension_unit": "واحد طول",
-      "guest_checkout": "پرداخت مهمان",
-      "guest_checkout_hint": "ذخیره می‌شود؛ مسیر تسویهٔ عمومی در فاز بعدی کامل می‌شود",
+      "guest_checkout": "خرید مهمان",
+      "guest_checkout_hint": "روشن: مشتری بدون ثبت‌نام تسویه می‌کند. خاموش: ورود برای تسویه اجباری است.",
       "countries_ph": "مثلاً IR, AE",
       "country_ph": "مثلاً IR"
     },
@@ -1956,8 +1956,8 @@
     "site_privacy": {
       "title": "حریم خصوصی و حساب",
       "description": "پرداخت مهمان و ایجاد حساب",
-      "guest_checkout": "پرداخت مهمان",
-      "guest_checkout_hint": "اجازهٔ تکمیل سفارش بدون ورود (نیاز به مسیر عمومی سبد)",
+      "guest_checkout": "خرید مهمان",
+      "guest_checkout_hint": "روشن: خرید بدون ثبت‌نام. خاموش: اجبار به ورود قبل از تسویه.",
       "account_creation": "ایجاد حساب کاربری",
       "account_creation_hint": "اجازهٔ ثبت‌نام مشتری جدید"
     },

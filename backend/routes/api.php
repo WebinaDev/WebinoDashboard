@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\PublicPortfolioController;
 use App\Http\Controllers\Api\V1\PublicReservationController;
 use App\Http\Controllers\Api\V1\PublicCafeEngagementController;
 use App\Http\Controllers\Api\V1\PublicGuestCartController;
+use App\Http\Controllers\Api\V1\PublicShopCheckoutController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\BuilderController;
@@ -386,6 +387,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/cafe/table', [PublicGuestCartController::class, 'table']);
             Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout'])->middleware('throttle:public-writes');
             Route::post('/cafe/orders/{order}/pay', [PublicGuestCartController::class, 'pay'])->whereNumber('order')->middleware('throttle:public-writes');
+        });
+
+        // Guest shop checkout (enabled only when tenant guest_checkout is on).
+        Route::middleware('public.module:catalog')->group(function () {
+            Route::get('/shop/checkout-options', [PublicShopCheckoutController::class, 'options']);
+            Route::get('/shop/shipping/regions', [PublicShopCheckoutController::class, 'regions']);
+            Route::post('/shop/shipping/quote', [PublicShopCheckoutController::class, 'quote'])->middleware('throttle:60,1');
+            Route::post('/shop/checkout', [PublicShopCheckoutController::class, 'store'])->middleware('throttle:checkout');
+            Route::post('/shop/payments/offline', [PublicShopCheckoutController::class, 'confirmOffline'])->middleware('throttle:checkout');
         });
     });
 

@@ -3,7 +3,7 @@ import { OptImg } from "@/components/perf/OptImg"
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useState, Fragment } from "react"
+import { useEffect, useMemo, useState, useSyncExternalStore, Fragment } from "react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
@@ -12,6 +12,7 @@ import { formatNumber, normalizeUiLocale, toLatinDigits, toLocaleDigits } from "
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import { syncGuestCart, useServerCart } from "@/builder/storefront/actions"
+import { cartSnapshot, cartServerSnapshot, clearCart, subscribeCart } from "@/builder/cart"
 import { quietApi } from "@/builder/storefront/session"
 import { readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
 import { ClassicCouponChooser } from "./ClassicCouponChooser"
@@ -108,6 +109,7 @@ export function ClassicCheckout() {
   const locale = useLocale()
   const params = useSearchParams()
   const { auth, cart } = useServerCart()
+  const localCart = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot)
 
   const [states, setStates] = useState<{ code: string; name: string }[]>([])
   const [stateCode, setStateCode] = useState("")
@@ -132,13 +134,35 @@ export function ClassicCheckout() {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
   const [selectedAddressIdx, setSelectedAddressIdx] = useState<number | null>(null)
   const [guestCheckout, setGuestCheckout] = useState(false)
+  const [guestFlagKnown, setGuestFlagKnown] = useState(false)
+  const [guestMode, setGuestMode] = useState(false)
+  const [payToken, setPayToken] = useState<string | null>(null)
   const [doneProvider, setDoneProvider] = useState<string | null>(null)
   const [selectedPay, setSelectedPay] = useState<Gateway["id"] | null>(null)
   const [addressNote, setAddressNote] = useState("")
   const flash = params.get("payment")
 
-  const lines = cart?.items ?? []
-  const pricing = cart?.pricing
+  const isGuestSession = auth !== "auth" && guestCheckout && guestMode
+  const guestLines = useMemo(
+    () =>
+      localCart
+        .filter((line) => line.productId)
+        .map((line) => ({
+          id: Number(line.productId),
+          quantity: line.qty,
+          product: {
+            id: Number(line.productId),
+            name: line.name,
+            price_minor: Math.round(line.price),
+            slug: line.slug,
+            image_url: line.image ?? null,
+            cover_image_url: line.image ?? null,
+          },
+        })),
+    [localCart],
+  )
+  const lines = isGuestSession ? guestLines : (cart?.items ?? [])
+  const pricing = isGuestSession ? undefined : cart?.pricing
   const subtotal = pricing?.subtotal_minor ?? lines.reduce((sum, line) => sum + line.product.price_minor * line.quantity, 0)
   const count = lines.reduce((sum, line) => sum + line.quantity, 0)
   const [districts, setDistricts] = useState<Record<string, string[]>>({})
@@ -163,8 +187,11 @@ export function ClassicCheckout() {
       setRegionCities([])
       return
     }
+    const regionsPath = isGuestSession
+      ? `/api/v1/public/shop/shipping/regions?state_code=${encodeURIComponent(stateCode)}`
+      : `/api/v1/shipping/regions?state_code=${encodeURIComponent(stateCode)}`
     void quietApi<{ data?: { cities?: string[]; districts?: Record<string, string[]>; professional_packaging?: { enabled: boolean; mandatory: boolean; amount_minor: number; label: string; description?: string; default_selected?: boolean; replaces_carton?: boolean } } }>(
-      `/api/v1/shipping/regions?state_code=${encodeURIComponent(stateCode)}`,
+      regionsPath,
     ).then((res) => {
       if (!res.ok) return
       setRegionCities(res.data.data?.cities ?? [])
@@ -173,7 +200,7 @@ export function ClassicCheckout() {
       setProPack(pp)
       if (pp?.default_selected) setProPackOn(true)
     })
-  }, [stateCode])
+  }, [stateCode, isGuestSession])
 
   useEffect(() => {
     void quietApi<{ states?: { code: string; name: string }[] }>("/api/v1/public/geo/states").then((res) => {
@@ -188,9 +215,14 @@ export function ClassicCheckout() {
 
   useEffect(() => {
     void quietApi<{ guest_checkout?: boolean; data?: { guest_checkout?: boolean } }>("/api/v1/public/tenant").then((res) => {
-      if (!res.ok) return
+      if (!res.ok) {
+        setGuestFlagKnown(true)
+        return
+      }
       const raw = res.data as { guest_checkout?: boolean; data?: { guest_checkout?: boolean } }
-      setGuestCheckout(Boolean(raw.guest_checkout ?? raw.data?.guest_checkout))
+      const allowed = Boolean(raw.guest_checkout ?? raw.data?.guest_checkout)
+      setGuestCheckout(allowed)
+      setGuestFlagKnown(true)
     })
   }, [])
 
@@ -229,9 +261,12 @@ export function ClassicCheckout() {
   }, [cart?.pricing?.purchase_type])
 
   useEffect(() => {
-    if (auth !== "auth") return
+    if (auth !== "auth" && !isGuestSession) return
     const qs = orderId ? `?order_id=${orderId}` : "?mode=cash"
-    void api<{ gateways?: Gateway[] }>(`/api/v1/payments/checkout-options${qs}`)
+    const path = isGuestSession
+      ? `/api/v1/public/shop/checkout-options${qs.includes("mode=") ? qs : "?mode=cash"}`
+      : `/api/v1/payments/checkout-options${qs}`
+    void api<{ gateways?: Gateway[] }>(path)
       .then((res) => {
         const list = res.gateways ?? []
         setGateways(list)
@@ -242,7 +277,7 @@ export function ClassicCheckout() {
         })
       })
       .catch(() => setGateways([]))
-  }, [auth, orderId])
+  }, [auth, orderId, isGuestSession])
 
   const allowed = useMemo(
     () => gateways.filter((gateway) => (mode === "installment" ? gateway.installment_enabled : gateway.cash_enabled)),
@@ -315,7 +350,7 @@ export function ClassicCheckout() {
     return true
   }
 
-  if (auth === "loading") {
+  if (auth === "loading" || !guestFlagKnown) {
     return (
       <div className="sfc-checkout sfc-container">
         <ClassicCheckoutSteps active={1} />
@@ -326,7 +361,7 @@ export function ClassicCheckout() {
     )
   }
 
-  if (auth !== "auth") {
+  if (auth !== "auth" && !(guestCheckout && guestMode)) {
     return (
       <div className="sfc-checkout sfc-container">
         <ClassicCheckoutSteps active={1} />
@@ -335,12 +370,19 @@ export function ClassicCheckout() {
           <h2>{guestCheckout ? "ورود یا ادامه به‌عنوان مهمان" : tx("checkout.login_title")}</h2>
           <p>
             {guestCheckout
-              ? "برای ثبت سفارش وارد شوید (ورود با پیامک). خرید مهمان به‌زودی از همین صفحه فعال می‌شود."
+              ? "می‌توانید وارد شوید یا بدون ثبت‌نام سفارش را ثبت کنید."
               : tx("checkout.login_text")}
           </p>
-          <Link href={`/login?next=${encodeURIComponent("/checkout")}`} className="sfc-btn sfc-btn--lg">
-            {tx("checkout.login_button")}
-          </Link>
+          <div className="sfc-checkout__guest-actions" style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "center" }}>
+            <Link href={`/login?next=${encodeURIComponent("/checkout")}`} className="sfc-btn sfc-btn--lg">
+              {tx("checkout.login_button")}
+            </Link>
+            {guestCheckout ? (
+              <button type="button" className="sfc-btn sfc-btn--lg sfc-btn--ghost" onClick={() => setGuestMode(true)}>
+                ادامه به‌عنوان مهمان
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     )
@@ -349,13 +391,18 @@ export function ClassicCheckout() {
   async function quoteShipping() {
     setError("")
     try {
-      const res = await api<{ rates?: Rate[] }>("/api/v1/shipping/quote", {
+      const res = await api<{ rates?: Rate[] }>(isGuestSession ? "/api/v1/public/shop/shipping/quote" : "/api/v1/shipping/quote", {
         method: "POST",
         json: {
           state_code: stateCode || null,
           postcode: postcode || null,
           city: city || null,
           cart_subtotal_minor: pricing?.subtotal_minor ?? subtotal,
+          ...(isGuestSession
+            ? {
+                items: guestLines.map((line) => ({ product_id: line.product.id, quantity: line.quantity })),
+              }
+            : {}),
         },
       })
       const next = res.rates ?? []
@@ -367,9 +414,26 @@ export function ClassicCheckout() {
     }
   }
 
-  async function confirmPayment(orderKey: number, provider: Gateway["id"]) {
+  async function confirmPayment(orderKey: number, provider: Gateway["id"], tokenOverride?: string | null) {
     const offline = provider === "cod" || provider === "cheque" || provider === "c2c"
     if (offline) {
+      if (isGuestSession) {
+        const token = tokenOverride ?? payToken
+        if (!token) {
+          setError("توکن پرداخت مهمان موجود نیست.")
+          return
+        }
+        const res = await api<{ data?: { id: number; number?: string | null; status: string; payment_provider?: string }; id?: number; number?: string | null }>(
+          "/api/v1/public/shop/payments/offline",
+          { method: "POST", json: { order_id: orderKey, provider, pay_token: token } },
+        )
+        const row = res.data ?? res
+        setOrderNumber(row.number ? String(row.number) : String(row.id ?? orderKey))
+        setDoneProvider(provider)
+        setStep(3)
+        clearCart()
+        return
+      }
       const res = await api<{ id: number; number?: string | null; status: string; payment_provider?: string }>(
         "/api/v1/payments/offline",
         { method: "POST", json: { order_id: orderKey, provider } },
@@ -381,6 +445,10 @@ export function ClassicCheckout() {
     }
     if (provider === "wallet") {
       setError("پرداخت با کیف پول از پنل حساب کاربری انجام می‌شود.")
+      return
+    }
+    if (isGuestSession) {
+      setError("درگاه آنلاین هنوز برای خرید مهمان فعال نشده؛ از پرداخت در محل استفاده کنید یا وارد شوید.")
       return
     }
     const intent = await api<{ redirect_url: string | null; data?: { redirect_url?: string | null } }>(
@@ -411,40 +479,77 @@ export function ClassicCheckout() {
     setBusy(true)
     setError("")
     try {
-      await saveCurrentAddress({ quiet: true })
+      if (!isGuestSession) await saveCurrentAddress({ quiet: true })
       const stateName = states.find((item) => item.code === stateCode)?.name ?? stateCode
       const shippingAddress = [recipient.trim(), stateName, city, address, postcode].filter(Boolean).join("، ")
-      const order = await api<{ id: number; number?: string | null }>("/api/v1/checkout", {
-        method: "POST",
-        json: {
-          shipping_address: shippingAddress || null,
-          customer_phone: phone || null,
-          customer_note: note || null,
-          coupon_code: showCoupon ? coupon || null : null,
-          shipping_instance_id: rateId,
-          shipping_state_code: stateCode || null,
-          shipping_postcode: postcode || null,
-          shipping_city: city || null,
-          shipping_district: district || null,
-          professional_packaging: proPackFee > 0,
-          customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
-          recipient_name: recipient.trim() || null,
-          address_line: address.trim() || null,
-          address_label: recipient.trim() || city.trim() || "آدرس من",
-          save_address: true,
-        },
-      })
-      if (showCoupon && coupon) storeCoupon(null)
-      setOrderId(order.id)
-      setOrderNumber(order.number ? String(order.number) : String(order.id))
-      await confirmPayment(order.id, selectedPay)
-      // Refresh address book after server-side persist
-      const book = await quietApi<unknown>("/api/v1/account/addresses")
-      if (book.ok) {
-        const payload = book.data as { addresses?: SavedAddress[]; data?: { addresses?: SavedAddress[] } }
-        const raw = payload?.addresses ?? payload?.data?.addresses ?? []
-        const list = (Array.isArray(raw) ? raw : []).filter((a) => a && (a.address || a.city))
-        setSavedAddresses(list)
+      if (isGuestSession) {
+        if (!guestLines.length) {
+          setError("سبد خرید خالی است.")
+          return
+        }
+        if (!recipient.trim() || !phone.trim() || !address.trim()) {
+          setError("نام گیرنده، موبایل و آدرس الزامی است.")
+          return
+        }
+        const order = await api<{ data?: { id: number; number?: string | null; pay_token?: string }; id?: number; number?: string | null; pay_token?: string }>(
+          "/api/v1/public/shop/checkout",
+          {
+            method: "POST",
+            json: {
+              items: guestLines.map((line) => ({ product_id: line.product.id, quantity: line.quantity })),
+              shipping_address: shippingAddress || null,
+              customer_phone: phone || null,
+              customer_note: note || null,
+              shipping_instance_id: rateId,
+              shipping_state_code: stateCode || null,
+              shipping_postcode: postcode || null,
+              shipping_city: city || null,
+              shipping_district: district || null,
+              professional_packaging: proPackFee > 0,
+              customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
+              recipient_name: recipient.trim() || null,
+              address_line: address.trim() || null,
+            },
+          },
+        )
+        const row = order.data ?? order
+        const token = row.pay_token ?? null
+        setPayToken(token)
+        setOrderId(Number(row.id))
+        setOrderNumber(row.number ? String(row.number) : String(row.id))
+        await confirmPayment(Number(row.id), selectedPay, token)
+      } else {
+        const order = await api<{ id: number; number?: string | null }>("/api/v1/checkout", {
+          method: "POST",
+          json: {
+            shipping_address: shippingAddress || null,
+            customer_phone: phone || null,
+            customer_note: note || null,
+            coupon_code: showCoupon ? coupon || null : null,
+            shipping_instance_id: rateId,
+            shipping_state_code: stateCode || null,
+            shipping_postcode: postcode || null,
+            shipping_city: city || null,
+            shipping_district: district || null,
+            professional_packaging: proPackFee > 0,
+            customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
+            recipient_name: recipient.trim() || null,
+            address_line: address.trim() || null,
+            address_label: recipient.trim() || city.trim() || "آدرس من",
+            save_address: true,
+          },
+        })
+        if (showCoupon && coupon) storeCoupon(null)
+        setOrderId(order.id)
+        setOrderNumber(order.number ? String(order.number) : String(order.id))
+        await confirmPayment(order.id, selectedPay)
+        const book = await quietApi<unknown>("/api/v1/account/addresses")
+        if (book.ok) {
+          const payload = book.data as { addresses?: SavedAddress[]; data?: { addresses?: SavedAddress[] } }
+          const raw = payload?.addresses ?? payload?.data?.addresses ?? []
+          const list = (Array.isArray(raw) ? raw : []).filter((a) => a && (a.address || a.city))
+          setSavedAddresses(list)
+        }
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("add_failed"))
@@ -510,9 +615,11 @@ export function ClassicCheckout() {
             <Link href="/shop" className="sfc-btn sfc-btn--lg">
               ادامه خرید
             </Link>
-            <Link href="/dashboard/account/orders" className="sfc-btn sfc-btn--lg sfc-btn--ghost">
-              پیگیری سفارش
-            </Link>
+            {isGuestSession ? null : (
+              <Link href="/dashboard/account/orders" className="sfc-btn sfc-btn--lg sfc-btn--ghost">
+                پیگیری سفارش
+              </Link>
+            )}
           </div>
         </div>
       ) : null}
@@ -529,7 +636,7 @@ export function ClassicCheckout() {
               }}
             >
               <h2 className="sfc-checkout__section-title">{tx("checkout.address_title")}</h2>
-              <div className="sfc-address-book">
+              <div className="sfc-address-book" style={isGuestSession ? { display: "none" } : undefined}>
                 <p className="sfc-address-book__label">آدرس‌های ذخیره‌شده</p>
                 {savedAddresses.length ? (
                   <div className="sfc-address-book__list">

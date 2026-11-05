@@ -32,15 +32,27 @@ export function SitePrivacySettingsPanel() {
           <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex max-w-lg items-center justify-between gap-3">
+          <div className="grid max-w-lg gap-3 rounded-xl border p-3">
             <div>
               <Label>{t("guest_checkout")}</Label>
               <p className="text-muted-foreground text-xs">{t("guest_checkout_hint")}</p>
             </div>
-            <Switch
-              checked={Boolean(draft.guest_checkout)}
-              onCheckedChange={(v) => setDraft({ ...draft, guest_checkout: v })}
-            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                className={`rounded-lg border px-3 py-2 text-sm ${!draft.guest_checkout ? "border-primary bg-primary/5 font-medium" : "border-input"}`}
+                onClick={() => setDraft({ ...draft, guest_checkout: false })}
+              >
+                اجبار به ثبت‌نام / ورود
+              </button>
+              <button
+                type="button"
+                className={`rounded-lg border px-3 py-2 text-sm ${draft.guest_checkout ? "border-primary bg-primary/5 font-medium" : "border-input"}`}
+                onClick={() => setDraft({ ...draft, guest_checkout: true })}
+              >
+                اجازه خرید مهمان
+              </button>
+            </div>
           </div>
           <div className="flex max-w-lg items-center justify-between gap-3">
             <div>
