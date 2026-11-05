@@ -92,6 +92,14 @@
 /* Beat `.akx a { color: inherit }` (SiteBuilder) which was painting section ink onto occasion cards. */
 .akx a.wpz-occasion,
 a.wpz-occasion { color: #fff; }
+/* Same inherit bug on CTAs inside .akx */
+.akx a.wpz-btn-primary,
+a.wpz-btn.wpz-btn-primary { color: #fff; }
+.akx a.wpz-btn-primary:hover,
+a.wpz-btn.wpz-btn-primary:hover { color: #fff; }
+.wpz-dark .akx a.wpz-btn-primary,
+.wpz-on-dark .akx a.wpz-btn-primary { color: var(--wpz-crimson-deep); }
+
 .akx a.wpz-occasion .wpz-occasion-title,
 a.wpz-occasion .wpz-occasion-title,
 .akx a.wpz-occasion .wpz-occasion-sub,
