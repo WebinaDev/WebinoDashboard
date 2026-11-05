@@ -4,6 +4,8 @@ use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\Api\V1\Poetry\PoetryAdminController;
 use App\Http\Controllers\Api\V1\Poetry\PublicPoetryController;
 use App\Http\Controllers\Api\V1\AcademyCourseController;
+use App\Http\Controllers\Api\V1\AcademyAdminExtrasController;
+use App\Http\Controllers\Api\V1\AcademyStudentController;
 use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AccountingController;
 use App\Http\Controllers\Api\V1\AiContentController;
@@ -310,7 +312,11 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('public.module:academy')->group(function () {
             Route::get('/academy', [PublicAcademyController::class, 'index']);
+            Route::get('/academy/certificates/{serial}', [PublicAcademyController::class, 'verifyCertificate']);
+            Route::get('/academy/certificates/{serial}/download', [PublicAcademyController::class, 'downloadCertificate']);
             Route::get('/academy/{slug}', [PublicAcademyController::class, 'show']);
+            Route::post('/academy/{slug}/enroll', [PublicAcademyController::class, 'enrollFree'])->middleware(['auth:sanctum', 'throttle:public-writes']);
+            Route::post('/academy/{slug}/reviews', [PublicAcademyController::class, 'storeReview'])->middleware('throttle:public-writes');
         });
 
         Route::middleware('public.module:portfolio')->group(function () {
@@ -474,6 +480,18 @@ Route::prefix('v1')->group(function () {
             Route::post('/favorites/{productId}', [AccountPortalController::class, 'favoritesAdd'])->whereNumber('productId');
             Route::delete('/favorites/{productId}', [AccountPortalController::class, 'favoritesRemove'])->whereNumber('productId');
             Route::get('/reviews', [AccountPortalController::class, 'reviewsIndex']);
+
+            Route::middleware('module:academy')->group(function () {
+                Route::get('/academy/my-courses', [AcademyStudentController::class, 'myCourses']);
+                Route::get('/academy/my-certificates', [AcademyStudentController::class, 'myCertificates']);
+                Route::get('/academy/my-submissions', [AcademyStudentController::class, 'mySubmissions']);
+                Route::get('/academy/courses/{course}/lessons/{lesson}', [AcademyStudentController::class, 'lessonContent'])->whereNumber(['course', 'lesson']);
+                Route::get('/academy/courses/{course}/lessons/{lesson}/file', [AcademyStudentController::class, 'downloadLessonFile'])->whereNumber(['course', 'lesson']);
+                Route::post('/academy/courses/{course}/lessons/{lesson}/progress', [AcademyStudentController::class, 'markProgress'])->whereNumber(['course', 'lesson']);
+                Route::post('/academy/quizzes/{quiz}/attempts', [AcademyStudentController::class, 'startQuiz'])->whereNumber('quiz');
+                Route::post('/academy/quiz-attempts/{attempt}/submit', [AcademyStudentController::class, 'submitQuiz'])->whereNumber('attempt');
+                Route::post('/academy/assignments/{assignment}/submissions', [AcademyStudentController::class, 'submitAssignment'])->whereNumber('assignment');
+            });
             Route::post('/questions', [ProductQuestionController::class, 'accountStore']);
             Route::get('/questions/products', [ProductQuestionController::class, 'accountProducts']);
             Route::get('/profile', [AccountPortalController::class, 'profileShow']);
@@ -1276,9 +1294,22 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
             Route::middleware(['module:academy', 'can:content.manage,content.*'])->group(function () {
                 Route::get('/academy/courses', [AcademyCourseController::class, 'index']);
                 Route::post('/academy/courses', [AcademyCourseController::class, 'store']);
+                Route::get('/academy/courses/{course}', [AcademyCourseController::class, 'show'])->whereNumber('course');
                 Route::patch('/academy/courses/{course}', [AcademyCourseController::class, 'update'])->whereNumber('course');
                 Route::delete('/academy/courses/{course}', [AcademyCourseController::class, 'destroy'])->whereNumber('course');
+                Route::post('/academy/courses/{course}/sections', [AcademyCourseController::class, 'storeSection'])->whereNumber('course');
+                Route::patch('/academy/courses/{course}/sections/{section}', [AcademyCourseController::class, 'updateSection'])->whereNumber(['course', 'section']);
+                Route::delete('/academy/courses/{course}/sections/{section}', [AcademyCourseController::class, 'destroySection'])->whereNumber(['course', 'section']);
                 Route::post('/academy/courses/{course}/lessons', [AcademyCourseController::class, 'storeLesson'])->whereNumber('course');
+                Route::patch('/academy/courses/{course}/lessons/{lesson}', [AcademyCourseController::class, 'updateLesson'])->whereNumber(['course', 'lesson']);
+                Route::delete('/academy/courses/{course}/lessons/{lesson}', [AcademyCourseController::class, 'destroyLesson'])->whereNumber(['course', 'lesson']);
+                Route::post('/academy/courses/{course}/lessons/{lesson}/file', [AcademyCourseController::class, 'uploadLessonFile'])->whereNumber(['course', 'lesson']);
+                Route::get('/academy/enrollments', [AcademyAdminExtrasController::class, 'enrollments']);
+                Route::get('/academy/grading-queue', [AcademyAdminExtrasController::class, 'gradingQueue']);
+                Route::post('/academy/submissions/{submission}/grade', [AcademyAdminExtrasController::class, 'gradeSubmission'])->whereNumber('submission');
+                Route::get('/academy/reviews', [AcademyAdminExtrasController::class, 'reviews']);
+                Route::patch('/academy/reviews/{review}', [AcademyAdminExtrasController::class, 'moderateReview'])->whereNumber('review');
+                Route::get('/academy/certificates', [AcademyAdminExtrasController::class, 'certificates']);
             });
 
             Route::middleware(['module:portfolio', 'can:content.manage,content.*'])->group(function () {

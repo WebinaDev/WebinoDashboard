@@ -3,6 +3,7 @@
 namespace App\Services\Orders;
 
 use App\Models\Order;
+use App\Services\Academy\AcademyEnrollmentService;
 use Illuminate\Support\Facades\DB;
 
 final class OrderStatusService
@@ -42,6 +43,14 @@ final class OrderStatusService
             $locked->save();
             if ($refund) {
                 DB::afterCommit(fn () => app(RefundRequiredNotifier::class)->notify($locked->fresh() ?? $locked));
+            }
+            if ($to === 'paid' && $from !== 'paid') {
+                DB::afterCommit(function () use ($locked) {
+                    try {
+                        app(AcademyEnrollmentService::class)->enrollFromPaidOrder($locked->fresh() ?? $locked);
+                    } catch (\Throwable) {
+                    }
+                });
             }
             $order->setRawAttributes($locked->getAttributes(), true);
             $order->syncOriginal();

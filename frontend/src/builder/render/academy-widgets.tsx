@@ -99,17 +99,26 @@ function useAcademyCourses(enabled: boolean, count: number) {
     if (!enabled) return
     let dead = false
     ;(async () => {
+      const ac = new AbortController()
+      const timer = window.setTimeout(() => ac.abort(), 12000)
       try {
-        const res = await fetch(`/api/v1/public/academy?per_page=${count}`, { credentials: "same-origin" })
-        const json = (await res.json()) as { data?: Array<{ title?: string; slug?: string; description?: string; cover_url?: string }> }
+        const res = await fetch(`/api/v1/public/academy?per_page=${count}`, {
+          credentials: "same-origin",
+          signal: ac.signal,
+          headers: { Accept: "application/json" },
+        })
+        type LiveCourse = { title?: string; slug?: string; description?: string; cover_url?: string; level?: string; price_minor?: number }
+        const json = (await res.json()) as { data?: LiveCourse[] | { items?: LiveCourse[] }; items?: LiveCourse[] }
         if (dead) return
-        const list = Array.isArray(json?.data) ? json.data : []
+        if (!res.ok) { setRows([]); return }
+        const d = json?.data
+        const list: LiveCourse[] = Array.isArray(d) ? d : Array.isArray(d?.items) ? d.items : Array.isArray(json?.items) ? json.items : []
         setRows(
           list.slice(0, count).map((c) => ({
             title: String(c.title || ""),
-            level: "",
+            level: String(c.level || ""),
             meta: "",
-            price: "",
+            price: typeof c.price_minor === "number" && c.price_minor > 0 ? `${Math.round(c.price_minor / 10).toLocaleString("fa-IR")} تومان` : "",
             image: String(c.cover_url || ""),
             href: c.slug ? `/academy/${c.slug}` : "/academy",
             badge: "",
@@ -118,6 +127,8 @@ function useAcademyCourses(enabled: boolean, count: number) {
         )
       } catch {
         if (!dead) setRows([])
+      } finally {
+        window.clearTimeout(timer)
       }
     })()
     return () => {

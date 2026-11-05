@@ -9,7 +9,14 @@
   ],
   "submodules": [
     "courses",
-    "lessons"
+    "lessons",
+    "sections",
+    "quizzes",
+    "assignments",
+    "enrollments",
+    "certificates",
+    "reviews",
+    "progress"
   ],
   "admin_nav": {
     "section": "site",
@@ -17,6 +24,7 @@
   },
   "public_routes": [
     "/academy",
-    "/academy/:slug"
+    "/academy/:slug",
+    "/academy/certificates/:serial"
   ]
 }
