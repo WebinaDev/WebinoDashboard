@@ -12,6 +12,8 @@ test("poetry widgets: ten types with Persian labels (includes story-strip highli
   }
   const strip = POETRY_WIDGETS.find((w) => w.type === "story-strip")!
   assert.equal(strip.create().props.variant, "poetry")
+  assert.equal(strip.create().props.layout, "carousel")
+  assert.ok(strip.fields.some((f) => f.key === "layout"))
 })
 
 test("poetry footer and poet-about expose socials (network|href)", () => {

@@ -261,6 +261,9 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
           title={propStr(widget.props, "title", "")}
           limit={propNum(widget.props, "limit", 0)}
           {...(propStr(widget.props, "variant", "") === "poetry" ? ({ variant: "poetry" } as Record<string, unknown>) : {})}
+          {...(propStr(widget.props, "layout", "") === "carousel" || propStr(widget.props, "layout", "") === "rings"
+            ? ({ layout: propStr(widget.props, "layout", "") } as Record<string, unknown>)
+            : {})}
         />
       )
     case "category-tiles":

@@ -281,11 +281,14 @@ export function ClassicStoryStrip({
   title,
   limit,
   variant,
+  layout,
 }: {
   title?: string
   limit?: number
   /** Poetry / content sites: crimson–gold rings and generic (non-product) CTA. */
   variant?: "poetry"
+  /** rings = Instagram circles (shop default); carousel = rectangular cards like products (magazine/poetry default). */
+  layout?: "rings" | "carousel"
 }) {
   const tx = useClassicText()
   const theme = useClassicThemeSettings()
@@ -294,6 +297,7 @@ export function ClassicStoryStrip({
   const [viewer, setViewer] = useState<number | null>(null)
   const [seen, setSeen] = useState<Set<string>>(() => new Set())
   const poetry = variant === "poetry"
+  const asCarousel = layout === "carousel" || (layout !== "rings" && poetry)
 
   useEffect(() => {
     setSeen(readSeen())
@@ -385,34 +389,68 @@ export function ClassicStoryStrip({
   const stories = limit && limit > 0 ? allStories.slice(0, limit) : allStories
   if (!stories.length) return null
 
+  const sectionLabel = title || (poetry ? "هایلایت‌ها" : "استوری")
+  const sectionClass = [
+    "sfc-stories",
+    poetry ? "sfc-stories--poetry" : "",
+    asCarousel ? "sfc-stories--carousel" : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+
+  const thumb = (story: Story) =>
+    story.image && story.mediaType === "video" ? (
+      // Video stories (parisma ishop_story_slider): first frame as the ring/card thumbnail.
+      <video src={`${story.image}#t=0.1`} muted playsInline preload="metadata" aria-hidden="true" />
+    ) : story.image ? (
+      <OptImg src={story.image} alt="" loading="lazy" />
+    ) : (
+      <span>{story.title.slice(0, 1)}</span>
+    )
+
   return (
     <>
-      <section className={`sfc-stories${poetry ? " sfc-stories--poetry" : ""}`} aria-label={title || (poetry ? "هایلایت‌ها" : "استوری")}>
-        <div className="sfc-stories__track">
-          {stories.map((story, index) => (
-            <button
-              key={story.id}
-              type="button"
-              className={`sfc-story ${seen.has(story.id) ? "is-seen" : ""}`}
-              onClick={() => setViewer(index)}
-            >
-              <span className="sfc-story__ring">
-                <span className="sfc-story__img">
-                  {story.image && story.mediaType === "video" ? (
-                    // Video stories (parisma ishop_story_slider): first frame as the ring thumbnail.
-                    <video src={`${story.image}#t=0.1`} muted playsInline preload="metadata" aria-hidden="true" />
-                  ) : story.image ? (
-                    <OptImg src={story.image} alt="" loading="lazy" />
-                  ) : (
-                    <span>{story.title.slice(0, 1)}</span>
-                  )}
-                </span>
+      <section className={sectionClass} aria-label={sectionLabel}>
+        {asCarousel && title ? <h2 className="sfc-stories__heading">{title}</h2> : null}
+        {asCarousel ? (
+          <ClassicCarousel
+            className="sfc-stories__carousel"
+            trackClassName="sfc-stories__track sfc-stories__track--carousel"
+            label={sectionLabel}
+          >
+            {stories.map((story, index) => (
+              <button
+                key={story.id}
+                type="button"
+                className={`sfc-story sfc-story--card ${seen.has(story.id) ? "is-seen" : ""}`}
+                onClick={() => setViewer(index)}
+              >
+                <span className="sfc-story__media">{thumb(story)}</span>
                 {story.badge ? <span className="sfc-story__badge">{story.badge}</span> : null}
-              </span>
-              <span className="sfc-story__label">{story.title}</span>
-            </button>
-          ))}
-        </div>
+                <span className="sfc-story__caption">
+                  <span className="sfc-story__label">{story.title}</span>
+                </span>
+              </button>
+            ))}
+          </ClassicCarousel>
+        ) : (
+          <div className="sfc-stories__track">
+            {stories.map((story, index) => (
+              <button
+                key={story.id}
+                type="button"
+                className={`sfc-story ${seen.has(story.id) ? "is-seen" : ""}`}
+                onClick={() => setViewer(index)}
+              >
+                <span className="sfc-story__ring">
+                  <span className="sfc-story__img">{thumb(story)}</span>
+                  {story.badge ? <span className="sfc-story__badge">{story.badge}</span> : null}
+                </span>
+                <span className="sfc-story__label">{story.title}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
       {viewer != null ? (
         <ClassicStoryViewer

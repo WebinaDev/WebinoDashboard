@@ -374,11 +374,12 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     label: "هایلایت‌ها (استوری)",
     category: "commerce",
     fields: [
-      { kind: "text", key: "title", label: "عنوان (دسترسی‌پذیری)" },
+      { kind: "text", key: "title", label: "عنوان" },
       { kind: "number", key: "limit", label: "تعداد (۰ = پیش‌فرض)", min: 0, max: 48 },
-      { kind: "select", key: "variant", label: "ظاهر حلقه", options: [{ value: "", label: "فروشگاهی" }, { value: "poetry", label: "شعر (زرشکی/طلایی)" }] },
+      { kind: "select", key: "variant", label: "پالت", options: [{ value: "", label: "فروشگاهی" }, { value: "poetry", label: "شعر (زرشکی/طلایی)" }] },
+      { kind: "select", key: "layout", label: "نمایش", options: [{ value: "rings", label: "حلقه‌های دایره‌ای" }, { value: "carousel", label: "کروسل کارت (مثل محصولات)" }] },
     ],
-    create: () => node("story-strip", { title: "هایلایت‌ها", variant: "" }),
+    create: () => node("story-strip", { title: "هایلایت‌ها", variant: "", layout: "rings" }),
   },
   {
     type: "category-tiles",

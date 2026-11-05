@@ -72,14 +72,15 @@ export const POETRY_WIDGETS: WidgetDef[] = [
     create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/poems", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", photoMode: "photo", logo: "", tone: "light", frame: "arch", pattern: true }),
   },
   {
-    /** Reuses shop ProductStory API + ClassicStoryStrip; variant=poetry for crimson rings / CTA copy. */
+    /** Reuses shop ProductStory API + ClassicStoryStrip; poetry defaults to rectangular carousel cards. */
     type: "story-strip", label: "هایلایت‌ها (استوری)", category: "content",
     fields: [
-      { kind: "text", key: "title", label: "عنوان (دسترسی‌پذیری)" },
+      { kind: "text", key: "title", label: "عنوان" },
       { kind: "number", key: "limit", label: "تعداد (۰ = همه)", min: 0, max: 48 },
-      { kind: "select", key: "variant", label: "ظاهر حلقه", options: [{ value: "poetry", label: "شعر (زرشکی/طلایی)" }, { value: "", label: "فروشگاهی (پیش‌فرض)" }] },
+      { kind: "select", key: "variant", label: "پالت", options: [{ value: "poetry", label: "شعر (زرشکی/طلایی)" }, { value: "", label: "فروشگاهی (پیش‌فرض)" }] },
+      { kind: "select", key: "layout", label: "نمایش", options: [{ value: "carousel", label: "کروسل کارت (مثل محصولات)" }, { value: "rings", label: "حلقه‌های دایره‌ای" }] },
     ],
-    create: () => node("story-strip", { title: "هایلایت‌ها", limit: 0, variant: "poetry" }),
+    create: () => node("story-strip", { title: "هایلایت‌ها", limit: 0, variant: "poetry", layout: "carousel" }),
   },
   {
     type: "poem-list", label: "فهرست آخرین اشعار (با پخش صوت)", category: "content",
