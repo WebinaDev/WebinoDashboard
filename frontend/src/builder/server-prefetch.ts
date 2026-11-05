@@ -1,6 +1,7 @@
 import { apiServer } from "@/lib/api-server"
 import { mediaPath, usesLiveMedia } from "./poetry-media"
 import { parseRows, propBool, propNum, propStr } from "./props"
+import { CAFE_CATEGORIES_KEY, CAFE_VENUE_KEY, cafeMenuCount, cafeMenuKey } from "./cafe-keys"
 import type { BuilderDocument, SectionNode, WidgetNode } from "./types"
 
 /**
@@ -60,6 +61,19 @@ function planKeys(w: WidgetNode, keys: Set<string>) {
     case "poetry-product":
       keys.add("catalog::per_page=60&sort=newest")
       return
+    case "cafe-menu-board":
+      if (propStr(p, "source", "live") === "live") keys.add(cafeMenuKey(cafeMenuCount(propNum(p, "count", 12)), propStr(p, "category")))
+      return
+    case "cafe-category-strip":
+      if (propStr(p, "source", "live") === "live") keys.add(CAFE_CATEGORIES_KEY)
+      return
+    case "cafe-hours":
+    case "cafe-gallery":
+      if (propStr(p, "source", "live") === "live") keys.add(CAFE_VENUE_KEY)
+      return
+    case "cafe-story":
+      if (propStr(p, "source", "venue") === "venue") keys.add(CAFE_VENUE_KEY)
+      return
   }
 }
 
@@ -76,7 +90,7 @@ export async function prefetchForDocuments(docs: (BuilderDocument | null | undef
       if (res) out[key] = res
       return
     }
-    const res = await apiServer<{ data?: unknown; meta?: unknown }>(`/api${key}`, { revalidate: 60, tags: ["poetry"] })
+    const res = await apiServer<{ data?: unknown; meta?: unknown }>(`/api${key}`, { revalidate: 60, tags: [key.startsWith("/v1/public/cafe") ? "cafe" : "poetry"] })
     if (res && "data" in res) {
       out[key] = res.data ?? null
       if (res.meta) out[`${key}::meta`] = res.meta

@@ -9,6 +9,8 @@ import { useEffect, useState, type CSSProperties } from "react"
 
 import { parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
+import { CAFE_CATEGORIES_KEY, CAFE_VENUE_KEY, cafeMenuCount, cafeMenuKey } from "../cafe-keys"
+import { useBuilderRuntime } from "./runtime"
 import { Img } from "./img"
 import "./cafe-widgets.css"
 import "./cafe-light-chrome.css"
@@ -73,14 +75,23 @@ type CatRow = { title: string; href: string; image: string; slug?: string }
 type GalleryRow = { url: string; caption: string }
 type HoursDay = { day: string; open: string; close: string; closed?: boolean }
 
+type VenueData = {
+  hours?: { days?: HoursDay[]; timezone?: string }
+  gallery?: { images?: Array<{ url?: string; caption_fa?: string; caption_en?: string }> }
+  venue?: { about_fa?: string; tagline_fa?: string; phone?: string; address_fa?: string }
+}
+
+/** SSR seed from server-prefetch.ts (runtime.prefetch); undefined when the server did not prefetch the key. */
+function usePrefetched<T>(key: string): T | undefined {
+  const pre = (useBuilderRuntime() as { prefetch?: Record<string, unknown> }).prefetch
+  return pre && key in pre ? (pre[key] as T) : undefined
+}
+
 function useCafeVenue(enabled: boolean) {
-  const [data, setData] = useState<{
-    hours?: { days?: HoursDay[]; timezone?: string }
-    gallery?: { images?: Array<{ url?: string; caption_fa?: string; caption_en?: string }> }
-    venue?: { about_fa?: string; tagline_fa?: string; phone?: string; address_fa?: string }
-  } | null>(null)
+  const seed = usePrefetched<VenueData | null>(CAFE_VENUE_KEY)
+  const [data, setData] = useState<VenueData | null>(seed ?? null)
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || seed !== undefined) return
     let dead = false
     ;(async () => {
       try {
@@ -88,7 +99,7 @@ function useCafeVenue(enabled: boolean) {
           credentials: "same-origin",
           headers: typeof window !== "undefined" ? { "X-Tenant-Domain": window.location.host } : undefined,
         })
-        const json = (await res.json()) as { data?: typeof data }
+        const json = (await res.json()) as { data?: VenueData }
         if (!dead) setData(json?.data ?? null)
       } catch {
         if (!dead) setData(null)
@@ -97,47 +108,50 @@ function useCafeVenue(enabled: boolean) {
     return () => {
       dead = true
     }
-  }, [enabled])
+  }, [enabled, seed])
   return data
 }
 
+type LiveItem = {
+  name?: string
+  slug?: string
+  short_description?: string
+  description?: string
+  image_url?: string
+  price_minor?: number
+  discounted_price_minor?: number
+  currency?: string
+  category?: { name?: string; slug?: string }
+}
+
+/** Public catalog is `{ data: { items, categories, ... } }`; older payloads were a bare array. */
+function menuRowsFrom(json: unknown, count: number): MenuRow[] {
+  const d = (json as { data?: LiveItem[] | { items?: LiveItem[] } } | null)?.data
+  const list: LiveItem[] = Array.isArray(d) ? d : Array.isArray(d?.items) ? d.items : []
+  return list.slice(0, count).map((p) => ({
+    title: String(p.name || ""),
+    price: "",
+    priceMinor: Number(p.discounted_price_minor) || Number(p.price_minor) || 0,
+    currency: String(p.currency || "IRR"),
+    desc: String(p.short_description || p.description || ""),
+    category: String(p.category?.name || ""),
+    image: String(p.image_url || ""),
+    href: p.slug ? `/catalogue?item=${p.slug}` : "/catalogue",
+  }))
+}
+
 function useCafeCatalog(enabled: boolean, count: number, category: string) {
-  const [rows, setRows] = useState<MenuRow[] | null>(null)
+  const key = cafeMenuKey(count, category)
+  const seed = usePrefetched<unknown>(key)
+  const [rows, setRows] = useState<MenuRow[] | null>(seed !== undefined ? menuRowsFrom(seed, count) : null)
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || seed !== undefined) return
     let dead = false
     ;(async () => {
       try {
-        const q = new URLSearchParams({ per_page: String(count), status: "publish" })
-        if (category) q.set("category", category)
-        const res = await fetch(`/api/v1/public/catalog?${q}`, { credentials: "same-origin" })
-        type LiveItem = {
-            name?: string
-            slug?: string
-            short_description?: string
-            description?: string
-            image_url?: string
-            price_minor?: number
-            discounted_price_minor?: number
-            currency?: string
-            category?: { name?: string; slug?: string }
-        }
-        const json = (await res.json()) as { data?: LiveItem[] | { items?: LiveItem[] } }
-        if (dead) return
-        const d = json?.data
-        const list: LiveItem[] = Array.isArray(d) ? d : Array.isArray(d?.items) ? d.items : []
-        setRows(
-          list.slice(0, count).map((p) => ({
-            title: String(p.name || ""),
-            price: "",
-            priceMinor: Number(p.discounted_price_minor) || Number(p.price_minor) || 0,
-            currency: String(p.currency || "IRR"),
-            desc: String(p.short_description || p.description || ""),
-            category: String(p.category?.name || ""),
-            image: String(p.image_url || ""),
-            href: p.slug ? `/catalogue?item=${p.slug}` : "/catalogue",
-          })),
-        )
+        const res = await fetch(`/api/v1/public/catalog?${key.slice("catalog::".length)}`, { credentials: "same-origin" })
+        const json = await res.json()
+        if (!dead) setRows(menuRowsFrom(json, count))
       } catch {
         if (!dead) setRows([])
       }
@@ -145,42 +159,46 @@ function useCafeCatalog(enabled: boolean, count: number, category: string) {
     return () => {
       dead = true
     }
-  }, [enabled, count, category])
+  }, [enabled, key, count, seed])
   return rows
 }
 
+type LiveCat = { name?: string; slug?: string; image_url?: string; cover_image_url?: string; icon_url?: string }
+
+function catRowsFrom(raw: unknown, baseHref: string): CatRow[] {
+  const json = raw as {
+    data?: { categories?: LiveCat[] }
+    meta?: { facets?: { categories?: LiveCat[] } }
+    facets?: { categories?: LiveCat[] }
+  } | null
+  const cats: LiveCat[] = json?.data?.categories || json?.meta?.facets?.categories || json?.facets?.categories || []
+  return cats.map((c) => {
+    const slug = String(c.slug || "")
+    const href = (baseHref || "/menu?category={slug}").replace("{slug}", slug)
+    return { title: String(c.name || slug), href: safeHref(href, "/menu"), image: String(c.image_url || c.cover_image_url || c.icon_url || ""), slug }
+  })
+}
+
 function useCafeCategories(enabled: boolean, baseHref: string) {
-  const [rows, setRows] = useState<CatRow[] | null>(null)
+  const seed = usePrefetched<unknown>(CAFE_CATEGORIES_KEY)
+  const [raw, setRaw] = useState<unknown>(seed ?? null)
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || seed !== undefined) return
     let dead = false
     ;(async () => {
       try {
-        const res = await fetch("/api/v1/public/catalog?per_page=1&facets=1", { credentials: "same-origin" })
-        type LiveCat = { name?: string; slug?: string; image_url?: string; cover_image_url?: string; icon_url?: string }
-        const json = (await res.json()) as {
-          data?: { categories?: LiveCat[] }
-          meta?: { facets?: { categories?: LiveCat[] } }
-          facets?: { categories?: LiveCat[] }
-        }
-        if (dead) return
-        const cats: LiveCat[] = json?.data?.categories || json?.meta?.facets?.categories || json?.facets?.categories || []
-        setRows(
-          cats.map((c) => {
-            const slug = String(c.slug || "")
-            const href = (baseHref || "/menu?category={slug}").replace("{slug}", slug)
-            return { title: String(c.name || slug), href: safeHref(href, "/menu"), image: String(c.image_url || c.cover_image_url || c.icon_url || ""), slug }
-          }),
-        )
+        const res = await fetch(`/api/v1/public/catalog?${CAFE_CATEGORIES_KEY.slice("catalog::".length)}`, { credentials: "same-origin" })
+        const json = await res.json()
+        if (!dead) setRaw(json)
       } catch {
-        if (!dead) setRows([])
+        if (!dead) setRaw({})
       }
     })()
     return () => {
       dead = true
     }
-  }, [enabled, baseHref])
-  return rows
+  }, [enabled, seed])
+  return raw == null ? null : catRowsFrom(raw, baseHref)
 }
 
 export function CafeHeroWidget({ widget }: { widget: WidgetNode }) {
@@ -247,7 +265,7 @@ export function CafeHeroWidget({ widget }: { widget: WidgetNode }) {
 export function CafeMenuBoardWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const source = propStr(p, "source", "live")
-  const count = Math.max(4, Math.min(48, propNum(p, "count", 12)))
+  const count = cafeMenuCount(propNum(p, "count", 12))
   const category = propStr(p, "category")
   const layout = propStr(p, "layout", "board")
   const live = useCafeCatalog(source === "live", count, category)
