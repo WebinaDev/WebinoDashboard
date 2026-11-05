@@ -74,7 +74,7 @@ export function classicShopDocument(): BuilderDocument {
         w("w_shop_title", "heading", { text: "فروشگاه", tag: "h1" }),
         w("w_filters", "filter-panel"),
       ], 12),
-      col("col_grid", 9, [w("w_grid", "product-grid", { title: "", limit: 12, source: "all", showSort: true, layout: "grid" })], 12),
+      col("col_grid", 9, [w("w_grid", "product-grid", { title: "", limit: 12, source: "all", showSort: true, layout: "slider" })], 12),
     ]),
   ])
 }

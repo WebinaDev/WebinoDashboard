@@ -159,7 +159,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "select", key: "imageFit", label: "نمایش تصویر محصول", options: [{ value: "cover", label: "پرکردن قاب (پیش‌فرض)" }, { value: "contain", label: "کامل (بدون برش)" }] },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("shop-showcase", { title: "فروشگاه قاب‌های مذهبی", items: "", source: "catalog", count: 6, category: "", imageRatio: "4/5", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, moreLabel: "مشاهده همه", moreHref: "/shop", buttonLabel: "مشاهده محصول", priceLabel: "قیمت (از مشتری)", tone: "light", frame: "arch" }),
+    create: () => node("shop-showcase", { title: "فروشگاه قاب‌های مذهبی", items: "", source: "catalog", count: 6, category: "", imageRatio: "1/1", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, moreLabel: "مشاهده همه", moreHref: "/shop", buttonLabel: "مشاهده محصول", priceLabel: "قیمت (از مشتری)", tone: "light", frame: "rounded" }),
   },
   {
     type: "poet-about", label: "درباره شاعر", category: "content",

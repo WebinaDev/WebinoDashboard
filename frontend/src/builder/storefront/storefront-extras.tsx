@@ -149,11 +149,11 @@ export function ProductStoriesStrip() {
             <Link
               key={item.id}
               href={href}
-              className="relative block w-[42vw] max-w-[210px] min-w-[148px] shrink-0 snap-start overflow-hidden rounded-2xl bg-muted aspect-[4/5] shadow-sm transition-transform hover:-translate-y-0.5"
+              className="relative block w-[42vw] max-w-[210px] min-w-[148px] shrink-0 snap-start overflow-hidden rounded-2xl bg-muted aspect-square shadow-sm transition-transform hover:-translate-y-0.5"
             >
               <img src={item.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
-              <span className="absolute inset-x-0 bottom-0 z-[1] bg-gradient-to-t from-black/90 via-black/45 to-transparent px-3 pb-3 pt-8">
-                <span className="line-clamp-2 text-start text-sm font-extrabold text-white">{item.title}</span>
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] bg-gradient-to-t from-black from-15% via-black/80 to-transparent px-3 pb-3 pt-10">
+                <span className="line-clamp-2 text-start text-sm font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{item.title}</span>
               </span>
             </Link>
           )

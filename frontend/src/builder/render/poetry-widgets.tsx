@@ -372,7 +372,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
     .map((x) => ({ title: x.name.replace(/\s*(\(نمونه\)|\[demo\]|«نمونه»)\s*/gi, " ").trim(), image: x.image || x.images[0] || "", price: x.price ? String(x.price) : "", href: `/product/${encodeURIComponent(x.slug)}`, demo: isDemoProduct(x.slug, x.name) }))
   const rows: ShowRow[] = manual.length ? (manual as unknown as ShowRow[]) : fromCatalog
   const loading = live && items === null
-  const ratio = RATIOS[propStr(p, "imageRatio", "4/5")] ?? "4 / 5"
+  const ratio = RATIOS[propStr(p, "imageRatio", "1/1")] ?? "1 / 1"
   const editor = inDashboard()
   const { carousel, opts } = carouselOpts(p, 4)
   const grid3 = propStr(p, "layout", "carousel") === "grid3"
