@@ -206,3 +206,17 @@ html:has(.wpz-mfw), html:has(.akx-mfw) { overflow-x: clip; }
 .wpz-poem { position: relative; }
 .wpz-stretch::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
 .wpz-poem :is(.wpz-play, .wpz-menu-wrap, .wpz-icon-btn) { position: relative; z-index: 2; }
+
+/* ── 2026-11 polish: unified card system (products / occasions / highlights) ── */
+:root { --ak-card-gap: 14px; --ak-card-radius: 16px; }
+.wpz-carousel { --wpz-cgap: var(--ak-card-gap); }
+.wpz-product {
+  padding: 8px 8px 16px; gap: 6px; height: 100%;
+  border-radius: var(--ak-card-radius);
+}
+.wpz-product .wpz-product-media { border-radius: calc(var(--ak-card-radius) - 6px); }
+.wpz-product .wpz-product-title { font-size: .9rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wpz-product .wpz-price { font-size: .88rem; }
+.wpz-product .wpz-btn-primary { margin-top: auto; width: calc(100% - 8px); max-width: none; padding: 8px 12px; font-size: .82rem; border-radius: 12px; }
+.wpz-carousel-track { padding-block: 6px 18px; align-items: stretch; }
+.wpz-occasion { border-radius: var(--ak-card-radius); }

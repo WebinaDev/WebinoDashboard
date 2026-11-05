@@ -7651,3 +7651,21 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
 .sfc-checkout .sfc-summary__title {
   font-size: 0.95rem;
 }
+
+/* 2026-11 polish: highlights use the same glass card + width as product cards (5/view desktop). */
+.sfc-stories--carousel .sfc-stories__track--carousel { gap: 14px; padding: 6px 2px 18px; }
+.sfc-story--card {
+  flex: 0 0 calc((100% - 4 * 14px) / 5); width: calc((100% - 4 * 14px) / 5); min-width: 0;
+  aspect-ratio: auto; display: flex; flex-direction: column; gap: 8px; padding: 8px 8px 12px;
+  border-radius: 16px; color: #2a0a0d;
+  background: color-mix(in srgb, #fff 70%, transparent); box-shadow: 0 8px 22px rgba(74, 7, 16, 0.08);
+}
+.sfc-story--card .sfc-story__media { position: relative; inset: auto; aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden; }
+.sfc-story--card .sfc-story__caption { position: static; padding: 0 4px; background: none; }
+.sfc-stories--poetry .sfc-story--card .sfc-story__label,
+.sfc-stories .sfc-story--card .sfc-story__label,
+.sfc-story--card .sfc-story__label { color: #2a0a0d; text-shadow: none; text-align: center; font-size: 0.9rem; }
+.sfc-stories--poetry.sfc-stories--carousel .sfc-story--card { box-shadow: 0 8px 24px rgba(74, 7, 16, 0.12); }
+@media (max-width: 767px) {
+  .sfc-story--card { flex-basis: calc((100% - 14px) / 2.2); width: calc((100% - 14px) / 2.2); }
+}

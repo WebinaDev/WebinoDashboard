@@ -370,7 +370,9 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
   const loading = live && items === null
   const ratio = RATIOS[propStr(p, "imageRatio", "1/1")] ?? "1 / 1"
   const editor = inDashboard()
-  const { carousel, opts } = carouselOpts(p, 4)
+  const { carousel, opts: rawOpts } = carouselOpts(p, 5)
+  // denser product carousel: never fewer than 5 cards per view on desktop / 2.2 on mobile
+  const opts = { ...rawOpts, desktop: Math.max(rawOpts.desktop, 5), mobile: Math.max(rawOpts.mobile, 2.2) }
   const grid3 = propStr(p, "layout", "carousel") === "grid3"
   if (!rows.length && !loading && !editor) return null
   return (
