@@ -17,6 +17,7 @@ import { quietApi } from "../storefront/session"
 import { hideOnClass } from "@webina/ui/builder"
 import "@webina/ui/styles/hide-on.css"
 import "./chrome-extras.css"
+import "./cafe-light-chrome.css"
 
 type P = Record<string, unknown>
 const CSS_SAFE = /^[#a-z0-9(),.\s%-]+$/i

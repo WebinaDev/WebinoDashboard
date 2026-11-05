@@ -11,6 +11,7 @@ import { parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { Img } from "./img"
 import "./cafe-widgets.css"
+import "./cafe-light-chrome.css"
 
 function safeHref(href: string, fallback = "#"): string {
   const v = (href || "").trim()

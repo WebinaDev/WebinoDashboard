@@ -1,0 +1,115 @@
+/* Light-tone cafe sites (e.g. Lyna / pistachio-pop) on a dark cafe theme.
+   Scope: cafe theme shell whose builder content uses tone:light. Keeps the dark cafe
+   theme background, the sf-classic navy ink and white bg-card chrome from leaking in. */
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) {
+  --lcx-cream: #fffaf0;
+  --lcx-pistachio: #c8e29d;
+  --lcx-pink: #e2576e;
+  --lcx-pink-ink: #c23a54;
+  --lcx-ink: #1f2a1c;
+  --lcx-muted: #5b6657;
+  background: var(--lcx-cream) !important;
+  color: var(--lcx-ink);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) .wb-canvas.sf-classic {
+  background: transparent !important;
+  color: var(--lcx-ink);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) .wb-section-stack > section:has(> .wb-columns header.bg-card),
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) .wb-section-stack > section:has(footer) {
+  margin-block: 0 !important;
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) .wcx-light {
+  --wcx-bg: var(--lcx-cream);
+  --wcx-fg: var(--lcx-ink);
+  --wcx-muted: var(--lcx-muted);
+  --wcx-accent: var(--lcx-pink-ink);
+  --wcx-line: rgba(31, 42, 28, 0.12);
+  --wcx-card: #ffffff;
+  background: var(--lcx-cream);
+}
+
+/* Header */
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) {
+  background: rgba(255, 250, 240, 0.92) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 0 !important;
+  color: var(--lcx-ink);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) > div {
+  max-width: 1180px;
+  padding-block: 14px;
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) > div > a:first-child {
+  color: var(--lcx-pink);
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) nav {
+  margin-inline: auto;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(31, 42, 28, 0.08);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) nav a {
+  padding: 8px 16px;
+  border-radius: 999px;
+  color: var(--lcx-ink);
+  font-weight: 600;
+  transition: background-color .15s, color .15s;
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) nav a:hover {
+  background: var(--lcx-pistachio);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) nav a:first-child {
+  background: var(--lcx-ink);
+  color: #fff;
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) > div > a.bg-primary {
+  margin-inline-start: auto;
+  background: var(--lcx-pink) !important;
+  color: #fff !important;
+  padding: 10px 22px;
+  box-shadow: 0 6px 18px -6px rgba(226, 87, 110, 0.6);
+}
+@media (min-width: 768px) {
+  .sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) header.bg-card:not(.wcx-head) > div > a.bg-primary { margin-inline-start: 0; }
+}
+
+/* Footer */
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) footer.bg-card {
+  background: var(--lcx-ink) !important;
+  color: #f4f1e6;
+  border-radius: 40px 40px 0 0;
+  margin-top: 24px;
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) footer.bg-card .font-bold {
+  color: var(--lcx-pistachio);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) footer.bg-card :is(p, ul, li, a) {
+  color: #e9ecdf;
+  opacity: 1;
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) footer.bg-card a:hover {
+  color: var(--lcx-pistachio);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) footer.bg-card :is(.border-t, hr) {
+  border-color: rgba(200, 226, 157, 0.2);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) footer.bg-card :is(.text-muted-foreground, small) {
+  color: #b9c2ae !important;
+}
+
+/* Pistachio-pop hero/CTA colors */
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) .wcx-light .wcx-btn-primary {
+  background: var(--lcx-pink);
+  color: #fff;
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) .wcx-light .wcx-btn-ghost {
+  border-color: var(--lcx-ink);
+  color: var(--lcx-ink);
+}
+.sf-shell[data-theme-slug^="cafe-"]:has(.wcx-light) .wcx-light .wcx-eyebrow { color: var(--lcx-pink-ink); }

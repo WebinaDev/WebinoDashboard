@@ -342,3 +342,15 @@
 @media (prefers-reduced-motion: reduce) {
   .wcx-motion * { animation: none !important; }
 }
+
+/* Split hero headline was unstyled (fell back to 16px body text). */
+.wcx-hero-split h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2.4rem, 6vw, 4.6rem);
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--wcx-fg);
+}
+.wcx-hero-split .wcx-lead { margin: 0 0 1.5rem; max-width: 34rem; color: var(--wcx-muted); font-size: 1.1rem; line-height: 1.9; }
+/* Light tone: dark accent fill needs light label text. */
+.wcx-light .wcx-btn-primary { color: #fff; }
