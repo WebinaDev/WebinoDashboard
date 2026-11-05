@@ -1,5 +1,6 @@
 "use client"
 
+import { useBuilderMoney } from "../money"
 import { ChevronDown, Plus, ShoppingBag, X } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
@@ -21,11 +22,7 @@ import { Img } from "./img"
 import { collectionQuery, collectionRows } from "../collections"
 import { applyFilterState, archiveFilterParams, archiveFiltersFromSearch, catalogSort, LOOP_FILTER_EVENT, mergeQueryProps, reduceFilterState, type LoopFilterDetail, type LoopFilterState } from "../loop-query"
 
-function useMoney() {
-  const t = useTranslations("builder")
-  const locale = useLocale()
-  return (amount: number) => `${formatNumber(Math.max(0, Math.round(amount)), normalizeUiLocale(locale))} ${t("currency_toman")}`
-}
+const useMoney = () => useBuilderMoney()
 
 function safeHref(href: string): string {
   const v = href.trim()

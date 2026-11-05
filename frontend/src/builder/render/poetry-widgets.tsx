@@ -25,6 +25,7 @@ import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import { WpzCarousel, clampSpv, type CarouselOpts } from "./wpz-carousel"
 import { HeroSlider, heroSlides } from "./poetry-hero-slider"
 import { FooterExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
+import { PriceOrText } from "../money"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
 export const faNum = (v: string | number) => String(v).replace(/\d/g, (d) => FA[Number(d)])
@@ -35,11 +36,6 @@ export function safeHref(href: string, fallback = "#"): string {
   return /^(https?:|mailto:|tel:|\/|#)/i.test(v) ? v : fallback
 }
 
-export function formatToman(raw: string): string {
-  const n = Number(String(raw).replace(/[^\d]/g, ""))
-  if (!raw || !Number.isFinite(n) || n <= 0) return raw || ""
-  return `${faNum(n.toLocaleString("en-US").replace(/,/g, "٬"))} تومان`
-}
 
 function frameClass(p: Record<string, unknown>, def = "arch") {
   const f = propStr(p, "frame", def)
@@ -391,7 +387,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
               {r.image ? <img {...optImg(r.image, "(max-width: 760px) 80vw, 300px")} alt={r.title} className="wpz-product-img" loading="lazy" decoding="async" /> : <span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span>}
             </Link>
             <h3 className="wpz-product-title">{r.title}</h3>
-            <p className="wpz-price">{formatToman(r.price) || propStr(p, "priceLabel")}</p>
+            <p className="wpz-price">{r.price ? <PriceOrText value={r.price} /> : propStr(p, "priceLabel")}</p>
             <Link className="wpz-btn wpz-btn-primary" href={safeHref(r.href, "/shop")}>{propStr(p, "buttonLabel", "مشاهده محصول")}</Link>
           </article>
         ))}

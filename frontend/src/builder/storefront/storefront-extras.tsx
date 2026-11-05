@@ -12,7 +12,7 @@ export function StorefrontCompareTable({
   onRemove,
 }: {
   items: Array<{ id: number; slug: string; name: string; price_minor: number; brand?: string | null; category?: string | null; in_stock?: boolean }>
-  money: (minor: number) => string
+  money: (minor: number) => import("react").ReactNode
   onRemove: (id: number) => void
 }) {
   const t = useTranslations("storefront")

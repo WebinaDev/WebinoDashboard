@@ -1,5 +1,6 @@
 "use client"
 
+import { currencyText, useBuilderCurrency } from "../money"
 import { useEffect, useMemo, useState } from "react"
 
 import {
@@ -38,6 +39,7 @@ function toggle(list: string | undefined, value: string): string {
  */
 export function ArchiveFiltersWidget({ widget, editing }: { widget: WidgetNode; editing: boolean }) {
   const p = widget.props
+  const cur = useBuilderCurrency()
   const group = propStr(p, "filterGroup", "").trim()
   const syncUrl = propBool(p, "syncUrl", true)
   const showCategory = propBool(p, "showCategory", true)
@@ -126,7 +128,7 @@ export function ArchiveFiltersWidget({ widget, editing }: { widget: WidgetNode; 
       ) : null}
       {propBool(p, "showPrice", true) ? (
         <fieldset className={box}>
-          <legend className="mb-1">بازه قیمت ({propStr(p, "currencyLabel", "تومان")})</legend>
+          <legend className="mb-1">بازه قیمت ({currencyText(propStr(p, "currencyLabel", ""), cur.currency)})</legend>
           <div className="flex gap-2">
             <input aria-label="از قیمت" inputMode="numeric" dir="ltr" className="h-10 w-full rounded-xl border border-border bg-background px-3" placeholder="از" value={archive.minPrice ?? ""} onChange={(e) => set({ minPrice: price(e.target.value) })} />
             <input aria-label="تا قیمت" inputMode="numeric" dir="ltr" className="h-10 w-full rounded-xl border border-border bg-background px-3" placeholder="تا" value={archive.maxPrice ?? ""} onChange={(e) => set({ maxPrice: price(e.target.value) })} />

@@ -1,5 +1,6 @@
 "use client"
 
+import { useBuilderMoney } from "../money"
 import { footerMenuSlugs } from "../registry-nav-menus"
 import { filterNavItems, navItemsToLinks, useFooterMenuColumns, useNavMenuItems } from "@/lib/nav-menus"
 import { NavHeaderItem, NavItemLink } from "@/themes/ecommerce-classic/components/ClassicNavMenu"
@@ -55,12 +56,7 @@ const NAV = [
   { label: "درباره", href: "/about" },
 ]
 
-function useMoney() {
-  const t = useTranslations("builder")
-  const locale = useLocale()
-  return (amount: number) =>
-    `${formatNumber(Math.max(0, Math.round(amount)), normalizeUiLocale(locale))} ${t("currency_toman")}`
-}
+const useMoney = () => useBuilderMoney()
 
 function digits(value: number, locale: string) {
   return formatNumber(value, normalizeUiLocale(locale))
@@ -351,7 +347,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
           <div className="text-2xl font-bold">{money(product.price)}</div>
         </div>
         {product.cashPrice && product.cashPrice !== product.price ? (
-          <p className="mt-2 text-sm text-muted-foreground">{t("cash_hint", { amount: money(product.cashPrice) })}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("cash_hint", { amount: money.text(product.cashPrice) })}</p>
         ) : null}
         <InstallmentBadges productId={product.id} amountMinor={product.price} />
         {product.variants.length ? (
@@ -375,7 +371,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
             <div className="text-sm font-bold">{t("installment_title")}</div>
             <ul className="mt-2 grid gap-1 text-sm">
               {product.installments.map((plan) => (
-                <li key={plan.months}>{t("installment_row", { months: digits(plan.months, locale), amount: money(plan.monthly) })}</li>
+                <li key={plan.months}>{t("installment_row", { months: digits(plan.months, locale), amount: money.text(plan.monthly) })}</li>
               ))}
             </ul>
           </div>
@@ -548,7 +544,7 @@ function DefaultStorefrontCart() {
           <div className="text-sm opacity-80">{t("subtotal")}</div>
           <div className="mt-1 text-2xl font-bold">{money(total)}</div>
           {pricing?.purchase_type === "installment" && pricing.installment_monthly_minor ? (
-            <p className="mt-2 text-xs opacity-90">{t("installment_row", { months: digits(pricing.installment_months ?? 0, locale), amount: money(pricing.installment_monthly_minor) })}</p>
+            <p className="mt-2 text-xs opacity-90">{t("installment_row", { months: digits(pricing.installment_months ?? 0, locale), amount: money.text(pricing.installment_monthly_minor) })}</p>
           ) : null}
           <Link href="/checkout" className="mt-4 block rounded-full bg-card py-2.5 text-center text-sm font-bold text-foreground">
             {t("checkout")}

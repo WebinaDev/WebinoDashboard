@@ -6,7 +6,7 @@ import Link from "next/link"
 export type CartAddedPayload = {
   name: string
   image?: string | null
-  priceLabel: string
+  priceLabel: import("react").ReactNode
   quantity: number
 }
 

@@ -3,6 +3,8 @@
 /* Cafe / bakery builder widgets — tones: saloon, bakery, espresso, light */
 
 import Link from "next/link"
+
+import { BuilderPrice, PriceOrText } from "../money"
 import { useEffect, useState, type CSSProperties } from "react"
 
 import { parseRows, propBool, propNum, propStr } from "../props"
@@ -63,12 +65,9 @@ function Head({ title, subtitle }: { title: string; subtitle: string }) {
   )
 }
 
-function formatToman(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return ""
-  return `${Math.round(n).toLocaleString("fa-IR")} تومان`
-}
 
-type MenuRow = { title: string; price: string; desc: string; category: string; image: string; href: string }
+/** priceMinor: live catalog amount in `currency` units (IRR by default); price: manual text in store currency. */
+type MenuRow = { title: string; price: string; priceMinor?: number; currency?: string; desc: string; category: string; image: string; href: string }
 type CatRow = { title: string; href: string; image: string; slug?: string }
 type GalleryRow = { url: string; caption: string }
 type HoursDay = { day: string; open: string; close: string; closed?: boolean }
@@ -118,6 +117,8 @@ function useCafeCatalog(enabled: boolean, count: number, category: string) {
             description?: string
             image_url?: string
             price_minor?: number
+            discounted_price_minor?: number
+            currency?: string
             category?: { name?: string; slug?: string }
         }
         const json = (await res.json()) as { data?: LiveItem[] | { items?: LiveItem[] } }
@@ -127,7 +128,9 @@ function useCafeCatalog(enabled: boolean, count: number, category: string) {
         setRows(
           list.slice(0, count).map((p) => ({
             title: String(p.name || ""),
-            price: formatToman((Number(p.price_minor) || 0) / 10),
+            price: "",
+            priceMinor: Number(p.discounted_price_minor) || Number(p.price_minor) || 0,
+            currency: String(p.currency || "IRR"),
             desc: String(p.short_description || p.description || ""),
             category: String(p.category?.name || ""),
             image: String(p.image_url || ""),
@@ -267,7 +270,7 @@ export function CafeMenuBoardWidget({ widget }: { widget: WidgetNode }) {
               <div className="wcx-card-body">
                 <h3>{r.title}</h3>
                 {r.desc ? <p>{r.desc}</p> : null}
-                {r.price ? <div className="wcx-price">{r.price}</div> : null}
+                {r.priceMinor ? <div className="wcx-price"><BuilderPrice amount={r.priceMinor} from={r.currency} /></div> : r.price ? <div className="wcx-price"><PriceOrText value={r.price} /></div> : null}
               </div>
             </article>
           ))}
@@ -280,7 +283,7 @@ export function CafeMenuBoardWidget({ widget }: { widget: WidgetNode }) {
                 <strong>{r.title}</strong>
                 {r.desc ? <em>{r.desc}</em> : null}
               </div>
-              {r.price ? <div className="wcx-price">{r.price}</div> : null}
+              {r.priceMinor ? <div className="wcx-price"><BuilderPrice amount={r.priceMinor} from={r.currency} /></div> : r.price ? <div className="wcx-price"><PriceOrText value={r.price} /></div> : null}
             </div>
           ))}
         </div>

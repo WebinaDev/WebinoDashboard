@@ -495,7 +495,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
       { kind: "textarea", key: "tags", label: "برچسب‌ها (نامک|عنوان در هر خط)" },
       { kind: "textarea", key: "attributes", label: "ویژگی‌ها (ویژگی:مقدار|عنوان، مثل color:red|قرمز)" },
     ],
-    create: () => node("archive-filters", { filterGroup: "shop", title: "فیلترها", syncUrl: true, showSearch: true, showSort: true, showCategory: true, showPrice: true, currencyLabel: "تومان", showStock: true, showOnSale: true, tags: "", attributes: "" }),
+    create: () => node("archive-filters", { filterGroup: "shop", title: "فیلترها", syncUrl: true, showSearch: true, showSort: true, showCategory: true, showPrice: true, currencyLabel: "", showStock: true, showOnSale: true, tags: "", attributes: "" }),
   },
   {
     type: "cafe-table-booking",

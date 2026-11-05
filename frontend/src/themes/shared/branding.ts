@@ -43,9 +43,9 @@ export function brandFontStack(font: string | null | undefined): string | null {
     case "yekan-bakh":
       return 'var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif'
     case "vazirmatn":
-      return 'var(--font-yekan), "Yekan Bakh", "Vazirmatn", Tahoma, sans-serif'
+      return '"Vazirmatn", var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif'
     case "iran-sans":
-      return 'var(--font-yekan), "IRANSans", "Yekan Bakh", Tahoma, sans-serif'
+      return '"IRANSans", var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif'
     case "inter":
       return 'Inter, ui-sans-serif, system-ui, "Segoe UI", Tahoma, sans-serif'
     case "system":
@@ -134,9 +134,16 @@ function shellIsolationCss(branding?: Partial<SiteBranding> | null): string {
   const footerBg = dark && isLightHex(footer) ? surface : footer
   const primaryFg = isLightHex(p.primary) ? "#111827" : "#ffffff"
   const fontStack =
-    brandFontStack(branding?.font_heading || branding?.font || branding?.font_body) || brandFontStack("yekan-bakh")
+    brandFontStack(branding?.font_body || branding?.font || branding?.font_heading) || brandFontStack("yekan-bakh")
+  const headingStack = brandFontStack(branding?.font_heading || branding?.font) || fontStack
+  const usesVazir = [branding?.font_body, branding?.font_heading, branding?.font_ui, branding?.font].includes("vazirmatn")
+  // Vazirmatn is not self-hosted: load the same open licence webfont the builder font presets use.
+  const vazirFace = usesVazir
+    ? `@font-face{font-family:"Vazirmatn";src:url("https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn%5Bwght%5D.woff2") format("woff2");font-weight:100 900;font-display:swap}\n`
+    : ""
+  const headingRule = headingStack ? `.sf-shell :is(h1,h2,h3,h4,h5,h6){font-family:${headingStack}}\n` : ""
   // Beat `.dark [data-accent=…]` surface tokens (0,2,0) so public shells keep brand palette.
-  return `.sf-shell,.dark .sf-shell,.dark[data-accent] .sf-shell,html.dark .sf-shell{
+  return `${vazirFace}${headingRule}.sf-shell,.dark .sf-shell,.dark[data-accent] .sf-shell,html.dark .sf-shell{
   color-scheme:${dark ? "dark" : "light"};
   ${fontStack ? `font-family:${fontStack};` : ""}
   --color-background:${bg};

@@ -424,3 +424,43 @@ export function asGlobals(value: unknown): BuilderGlobals {
     queries: Array.isArray(incoming.queries) ? incoming.queries.filter((q) => q && typeof q.id === "string" && typeof q.source === "string") : [],
   }
 }
+
+/** Dashboard font slugs (Settings > brand style) mapped to builder stacks + the webfont faces they need. */
+const BRAND_FONT_STACKS: Record<string, { stack: string; preset?: string }> = {
+  "yekan-bakh": { stack: '"Yekan Bakh", Tahoma, sans-serif' },
+  vazirmatn: { stack: 'Vazirmatn, "Yekan Bakh", Tahoma, sans-serif', preset: "vazirmatn" },
+  "iran-sans": { stack: 'IRANSans, "Yekan Bakh", Tahoma, sans-serif' },
+  inter: { stack: 'Inter, "Yekan Bakh", ui-sans-serif, system-ui, sans-serif' },
+  system: { stack: "system-ui, -apple-system, Segoe UI, Tahoma, sans-serif" },
+}
+
+type BrandFonts = { font?: string | null; font_body?: string | null; font_heading?: string | null; font_ui?: string | null }
+
+/**
+ * The storefront follows the font chosen in the dashboard: body / heading / ui slugs replace the
+ * builder globals fonts, and any preset webfont they need is added to customFonts.
+ */
+export function applyBrandFonts(globals: BuilderGlobals, branding: BrandFonts | null | undefined): BuilderGlobals {
+  if (!branding) return globals
+  const pick = (slug: string | null | undefined) => (slug ? BRAND_FONT_STACKS[slug] : undefined)
+  const body = pick(branding.font_body || branding.font)
+  const heading = pick(branding.font_heading || branding.font) ?? body
+  const ui = pick(branding.font_ui || branding.font) ?? body
+  if (!body && !heading) return globals
+  const faces = [...(globals.customFonts ?? [])]
+  for (const entry of [body, heading, ui]) {
+    const preset = entry?.preset ? FONT_PRESETS.find((p) => p.id === entry.preset) : undefined
+    for (const face of preset?.faces ?? []) {
+      if (!faces.some((f) => f.family === face.family && f.url === face.url)) faces.push(face)
+    }
+  }
+  return {
+    ...globals,
+    fonts: {
+      body: body?.stack ?? globals.fonts.body,
+      heading: heading?.stack ?? globals.fonts.heading,
+      accent: ui?.stack ?? globals.fonts.accent,
+    },
+    customFonts: faces,
+  }
+}

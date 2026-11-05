@@ -23,6 +23,7 @@ import { useBuilderRuntime } from "./runtime"
 import "./poetry-pages-widgets.css"
 import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import { optImg } from "@/lib/image-url"
+import { BuilderPrice } from "../money"
 
 type P = Record<string, unknown>
 type Term = { id: number; kind: string; slug: string; name: string; count?: number }
@@ -47,11 +48,6 @@ export function safeLink(href: string, fallback = "#"): string {
 }
 const isExternal = (h: string) => /^https?:/i.test(h)
 
-export function toman(raw: string | number): string {
-  const n = Number(toEn(String(raw)).replace(/[^\d]/g, ""))
-  if (!Number.isFinite(n) || n <= 0) return ""
-  return `${fa(n.toLocaleString("en-US").replace(/,/g, "٬"))} تومان`
-}
 
 /** Colour fields → CSS variables. */
 /** mobileFullWidth (default on): edge-to-edge on phones. */
@@ -618,7 +614,7 @@ export function useCatalog(enabled: boolean, query: string): { items: ShopProduc
 function PriceLine({ p, it }: { p: P; it: Item }) {
   const text = propStr(p, "priceText", "قیمت (از مشتری)")
   if (propStr(p, "priceMode", "auto") === "text" || !it.price) return <em>{text}</em>
-  return <>{it.old ? <s>{toman(it.old)}</s> : null}<em>{toman(it.price)}</em></>
+  return <>{it.old ? <s><BuilderPrice amount={it.old} /></s> : null}<em><BuilderPrice amount={it.price} /></em></>
 }
 
 function BuyButton({ p, it, qty = 1, big = false, option = "" }: { p: P; it: Item; qty?: number; big?: boolean; option?: string }) {

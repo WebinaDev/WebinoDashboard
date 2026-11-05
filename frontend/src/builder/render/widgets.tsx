@@ -1,5 +1,6 @@
 "use client"
 
+import { useBuilderMoney } from "../money"
 import "./doodle-widgets.css"
 
 import { useMenuTree } from "@/lib/nav-menus"
@@ -189,11 +190,7 @@ const NAV = [
   { label: "درباره", href: "/about" },
 ]
 
-function useMoney() {
-  const t = useTranslations("builder")
-  const locale = useLocale()
-  return (amount: number) => `${formatNumber(Math.max(0, Math.round(amount)), normalizeUiLocale(locale))} ${t("currency_toman")}`
-}
+const useMoney = () => useBuilderMoney()
 
 function AbstractArt({ tone, label }: { tone: string; label: string }) {
   return (
@@ -962,7 +959,7 @@ function LoopCard({ product, template }: { product: ShopProduct; template: Build
   const filled = fillDocumentTokens(widgets, {
     name: product.name,
     brand: product.brand,
-    price: money(product.price),
+    price: money.text(product.price),
     slug: product.slug,
     href: `/product/${product.slug}`,
   })

@@ -11,6 +11,7 @@ import { StoreProductCard, StorefrontAccount } from "../storefront/ui"
 import { addShopItem } from "../storefront/actions"
 import { CartAddedModal, type CartAddedPayload } from "../storefront/cart-added-modal"
 import { useCatalog } from "../storefront/use-catalog"
+import { BuilderPrice } from "../money"
 import { linkAttrs, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime, useIsClassicSkin } from "./runtime"
@@ -264,7 +265,7 @@ export function AddToCartBoxWidget({ productSlug, editing = false }: { productSl
   const [atcItem, setAtcItem] = useState<CartAddedPayload | null>(null)
   const [atcError, setAtcError] = useState<string | null>(null)
   if (!product) return null
-  const money = `${formatNumber(Math.round(product.price), normalizeUiLocale(locale))} ${t("currency_toman")}`
+  const money = <BuilderPrice amount={product.price} />
   return (
     <div className="mx-auto max-w-md px-4 py-4">
       <div className="sf-atc-box sf-card p-5">

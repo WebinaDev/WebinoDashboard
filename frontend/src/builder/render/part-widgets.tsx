@@ -29,6 +29,8 @@ import { useBuilderRuntime } from "./runtime"
 import { ProductQueryWidget, splitRows } from "./extra-widgets"
 import { sanitizeBuilderHtml, stripWpShortcodes } from "./sanitize-html"
 import { Img } from "./img"
+import { useBuilderCurrency } from "../money"
+import { currencyLabel } from "@/lib/currencies"
 
 function Placeholder({ label }: { label: string }) {
   return <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">{label}</p>
@@ -229,7 +231,8 @@ export function PriceFilterWidget({ widget }: { widget: WidgetNode }) {
   const params = useSearchParams()
   const [min, setMin] = useState(params.get("min_price") ?? "")
   const [max, setMax] = useState(params.get("max_price") ?? "")
-  const title = propStr(widget.props, "title", "محدوده قیمت (تومان)")
+  const cur = useBuilderCurrency()
+  const title = propStr(widget.props, "title", "محدوده قیمت (تومان)").replace("(تومان)", `(${currencyLabel(cur.currency, "fa")})`)
   const apply = (lo: string, hi: string) => {
     const next = new URLSearchParams(params.toString())
     const clean = (v: string) => v.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/\D/g, "")

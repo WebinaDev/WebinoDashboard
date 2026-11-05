@@ -82,7 +82,7 @@
 .wcx-head { max-width: 42rem; margin-bottom: 1.75rem; }
 .wcx-head h2 {
   margin: 0 0 0.5rem;
-  font-family: "Playfair Display", "IranNastaliq", Georgia, serif;
+  font-family: var(--wb-font-heading, inherit);
   font-size: clamp(1.75rem, 3.5vw, 2.75rem);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -106,7 +106,7 @@
 .wcx-hero-inner { max-width: 48rem; padding-bottom: clamp(2rem, 8vh, 5rem); }
 .wcx-hero h1 {
   margin: 0 0 0.75rem;
-  font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  font-family: var(--wb-font-heading, inherit);
   font-size: clamp(3rem, 9vw, 6.2rem);
   line-height: 0.92;
   letter-spacing: -0.03em;
@@ -266,7 +266,7 @@
 .wcx-story .wcx-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .wcx-story .wcx-copy h2 {
   margin: 0 0 1rem;
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: var(--wb-font-heading, inherit);
   font-size: clamp(1.8rem, 3.2vw, 2.6rem);
   line-height: 1.15;
 }
@@ -282,7 +282,7 @@
 }
 .wcx-reserve h2 {
   margin: 0 0 0.75rem;
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: var(--wb-font-heading, inherit);
   font-size: clamp(1.8rem, 3.5vw, 2.8rem);
 }
 .wcx-reserve p { margin: 0 auto 1.5rem; max-width: 36rem; color: var(--wcx-muted); line-height: 1.75; }

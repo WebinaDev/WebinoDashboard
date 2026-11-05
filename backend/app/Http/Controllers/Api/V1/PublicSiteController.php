@@ -40,6 +40,7 @@ class PublicSiteController extends Controller
             'account_creation' => true,
         ]);
         $shopGeneral = ShopSettings::getGeneral((int) $tenant->id);
+        $currency = \App\Support\Currency::normalize((string) ($tenant->default_currency ?? 'IRT'), 'IRT');
         $guestCheckout = ! empty($privacy['guest_checkout']) || ! empty($shopGeneral['guest_checkout']);
 
         return response()->json([
@@ -62,6 +63,13 @@ class PublicSiteController extends Controller
                 'theme_preset' => $tenant->theme_preset,
                 'active_theme_slug' => $tenant->active_theme_slug,
                 'branding' => $branding,
+                // Storefront prices use the dashboard currency + glyph (same source as the dashboard MoneyDisplay).
+                'currency' => $currency,
+                'currency_symbol' => SetupController::normalizeCurrencySymbol(
+                    $currency,
+                    is_array($tenant->branding) ? ($tenant->branding['currency_symbol'] ?? null) : null
+                ),
+                'thousand_separator' => $shopGeneral['thousand_separator'] ?? ',',
                 'guest_checkout' => $guestCheckout,
                 'account_creation' => ($privacy['account_creation'] ?? true) !== false,
                 'nav_preset' => $tenant->nav_preset,

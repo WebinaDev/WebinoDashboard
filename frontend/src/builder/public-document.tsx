@@ -2,7 +2,7 @@ import { cache, Suspense, type ReactNode } from "react"
 
 import { apiServer, apiServerStrict } from "@/lib/api-server"
 import { hoistDataUrls } from "@/lib/inline-media"
-import { asGlobals, type BuilderGlobals } from "./globals"
+import { applyBrandFonts, asGlobals, type BuilderGlobals } from "./globals"
 import { DocumentView } from "./render/DocumentView"
 import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
@@ -48,9 +48,22 @@ export function loadPublishedTemplate(kind: "header" | "footer"): Promise<Builde
   return loadResolvedTemplate(kind, { path: "/" })
 }
 
+type PublicTenantBrand = {
+  branding?: { font?: string | null; font_body?: string | null; font_heading?: string | null; font_ui?: string | null } | null
+}
+
+const loadPublicTenantBrand = cache(async (): Promise<PublicTenantBrand | null> => {
+  const res = await apiServer<{ data?: PublicTenantBrand }>("/api/v1/public/tenant", { revalidate: 60, tags: ["tenant"] })
+  return res?.data ?? null
+})
+
 export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | null> => {
-  const res = await apiServer<{ data?: { settings?: unknown } }>("/api/v1/public/builder/globals", { revalidate: PUBLIC_DOC_REVALIDATE, tags: ["builder"] })
-  return res?.data?.settings ? asGlobals(hoistDataUrls(res.data.settings)) : null
+  const [res, tenant] = await Promise.all([
+    apiServer<{ data?: { settings?: unknown } }>("/api/v1/public/builder/globals", { revalidate: PUBLIC_DOC_REVALIDATE, tags: ["builder"] }),
+    loadPublicTenantBrand(),
+  ])
+  // Typography follows the font chosen in the dashboard settings, not a separate builder-only pick.
+  return res?.data?.settings ? applyBrandFonts(asGlobals(hoistDataUrls(res.data.settings)), tenant?.branding) : null
 })
 
 export const loadResolvedTemplate = cache(async (kind: string, query: ThemeQuery): Promise<BuilderDocument | null> => {

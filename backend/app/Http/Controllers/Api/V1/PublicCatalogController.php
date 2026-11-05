@@ -258,6 +258,7 @@ class PublicCatalogController extends Controller
                     'thousand_separator' => $generalSettings['thousand_separator'],
                     'decimal_separator' => $generalSettings['decimal_separator'],
                     'price_decimals' => $generalSettings['price_decimals'],
+                    'currency_symbol' => $this->currencySymbol($tid),
                 ],
                 'archive' => $archive,
                 'facets' => $facets,
@@ -273,6 +274,18 @@ class PublicCatalogController extends Controller
     }
 
     /** Shop setting (default on): list out-of-stock products with a «ناموجود» badge after in-stock ones. */
+    /** Dashboard currency glyph id (branding.currency_symbol normalized against the tenant currency). */
+    private function currencySymbol(int $tid): string
+    {
+        $tenant = \App\Models\Tenant::query()->find($tid, ['id', 'default_currency', 'branding']);
+        $branding = $tenant && is_array($tenant->branding) ? $tenant->branding : [];
+
+        return SetupController::normalizeCurrencySymbol(
+            (string) ($tenant?->default_currency ?? 'IRT'),
+            is_string($branding['currency_symbol'] ?? null) ? $branding['currency_symbol'] : null
+        );
+    }
+
     private function showOutOfStock(int $tid): bool
     {
         $settings = ShopSettings::getProducts($tid);
@@ -316,6 +329,7 @@ class PublicCatalogController extends Controller
             'currency_position' => $general['currency_position'] ?? null,
             'thousand_separator' => $general['thousand_separator'] ?? null,
             'decimal_separator' => $general['decimal_separator'] ?? null,
+            'currency_symbol' => $this->currencySymbol($tid),
             'price_decimals' => $general['price_decimals'] ?? null,
         ];
 

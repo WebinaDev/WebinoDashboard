@@ -4,6 +4,8 @@ import type { ReactNode } from "react"
 import { apiServer } from "@/lib/api-server"
 import { hoistDataUrls } from "@/lib/inline-media"
 import { globalsCss } from "@/builder/globals"
+import { BuilderCurrencyProvider } from "@/builder/money"
+import { resolveBuilderCurrency } from "@/builder/currency-config"
 import { loadPublishedGlobals, loadResolvedTemplate, StorefrontDocument } from "@/builder/public-document"
 import { requestPageLang } from "@/builder/page-lang"
 import { CustomCodeSlot } from "@/builder/render/custom-code"
@@ -28,6 +30,9 @@ type TenantPayload = {
     active_theme_slug?: string | null
     branding?: Partial<import("@/kernel/theme-types").SiteBranding> | null
     host_mode?: "link-hub" | "primary" | string | null
+    currency?: string | null
+    currency_symbol?: string | null
+    thousand_separator?: string | null
   }
 }
 
@@ -102,6 +107,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   let themeSlug = "corporate-default"
   let branding = resolveSiteBranding(null)
   let hostMode: string = "primary"
+  let currency = resolveBuilderCurrency(null)
 
   try {
     const res = await apiServer<TenantPayload>("/api/v1/public/tenant", {
@@ -113,6 +119,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       themeSlug = res.data.active_theme_slug ?? themeSlug
       branding = resolveSiteBranding(hoistDataUrls(res.data.branding))
       hostMode = res.data.host_mode || "primary"
+      currency = resolveBuilderCurrency({ currency: res.data.currency, currency_symbol: res.data.currency_symbol, thousand_separator: res.data.thousand_separator })
     }
   } catch {
     /* fallback */
@@ -143,6 +150,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   return (
     <SiteBrandingShell branding={branding} themeSlug={themeSlug}>
       {/* Theme slug reaches client storefront widgets rendered outside a builder document (wishlist, offers, vendor). */}
+      <BuilderCurrencyProvider value={currency}>
       <BuilderRuntimeProvider value={{ themeSlug, siteName: tenantName, logoUrl: branding.logo_url, lang: pageLang?.lang ?? null }}>
       <div
         className={globals ? "wb-site flex min-h-svh flex-1 flex-col" : "flex min-h-svh flex-1 flex-col"}
@@ -172,6 +180,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         <AnalyticsTrackerScript />
       </div>
       </BuilderRuntimeProvider>
+      </BuilderCurrencyProvider>
     </SiteBrandingShell>
   )
 }
