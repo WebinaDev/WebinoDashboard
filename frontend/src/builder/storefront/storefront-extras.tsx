@@ -138,18 +138,23 @@ export function ProductStoriesStrip() {
 
   if (!items.length) return null
 
+  // Rectangular product-like cards (not Instagram rings) so highlight covers show fully.
   return (
-    <section className="mx-auto max-w-6xl px-4 py-4">
+    <section className="sf-stories-carousel mx-auto max-w-6xl px-4 py-4" aria-label={t("stories_title")}>
       <h2 className="mb-3 text-sm font-bold">{t("stories_title")}</h2>
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
         {items.map((item) => {
           const href = item.link_url || (item.product_id ? `/product/${item.product_id}` : "#")
           return (
-            <Link key={item.id} href={href} className="flex w-24 shrink-0 flex-col items-center gap-2">
-              <span className="grid size-20 overflow-hidden rounded-full border-2 border-primary p-0.5">
-                <img src={item.media_url} alt={item.title} className="h-full w-full rounded-full object-cover" loading="lazy" />
+            <Link
+              key={item.id}
+              href={href}
+              className="relative block w-[42vw] max-w-[210px] min-w-[148px] shrink-0 snap-start overflow-hidden rounded-2xl bg-muted aspect-[4/5] shadow-sm transition-transform hover:-translate-y-0.5"
+            >
+              <img src={item.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+              <span className="absolute inset-x-0 bottom-0 z-[1] bg-gradient-to-t from-black/90 via-black/45 to-transparent px-3 pb-3 pt-8">
+                <span className="line-clamp-2 text-start text-sm font-extrabold text-white">{item.title}</span>
               </span>
-              <span className="line-clamp-2 text-center text-[11px] font-semibold">{item.title}</span>
             </Link>
           )
         })}
