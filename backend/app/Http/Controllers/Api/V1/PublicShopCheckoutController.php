@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -117,14 +119,14 @@ class PublicShopCheckoutController extends Controller
             throw ValidationException::withMessages(['customer_phone' => 'شماره موبایل معتبر نیست.']);
         }
 
-        $lines = $this->resolveProductLines($tid, $data['items']);
+        $guestToken = trim((string) ($data['guest_token'] ?? '')) ?: Str::random(40);
+        $lines = $this->resolveProductLines($tid, $data['items'], $guestToken);
         if ($lines === null || $lines->isEmpty()) {
             return response()->json(['message' => __('api.cart_empty')], 422);
         }
 
         $types = PurchaseTypeService::forTenant($tid);
         ['type' => $purchaseType, 'months' => $months] = $types->cartType($lines);
-        $guestToken = trim((string) ($data['guest_token'] ?? '')) ?: Str::random(40);
         $payToken = Str::random(40);
 
         $order = DB::transaction(function () use ($tid, $data, $lines, $types, $purchaseType, $months, $phone, $guestToken, $payToken) {
@@ -255,6 +257,12 @@ class PublicShopCheckoutController extends Controller
 
             app(OrderStock::class)->sync($order, null, (string) $order->status);
 
+            // Drop the temporary guest cart lines used for pricing/stock checks.
+            $cartId = $lines->first()?->cart_id;
+            if ($cartId) {
+                CartItem::query()->where('cart_id', $cartId)->delete();
+            }
+
             return $order->fresh()->load('items.product');
         });
 
@@ -334,10 +342,12 @@ class PublicShopCheckoutController extends Controller
     }
 
     /**
+     * Build real CartItem models on a temporary guest cart so pricing/stock helpers type-check.
+     *
      * @param  list<array{product_id?: mixed, quantity?: mixed}>  $items
-     * @return \Illuminate\Support\Collection<int, object>|null
+     * @return \Illuminate\Support\Collection<int, CartItem>|null
      */
-    protected function resolveProductLines(int $tenantId, array $items): ?\Illuminate\Support\Collection
+    protected function resolveProductLines(int $tenantId, array $items, ?string $guestToken = null): ?\Illuminate\Support\Collection
     {
         if ($items === []) {
             return null;
@@ -359,18 +369,25 @@ class PublicShopCheckoutController extends Controller
             ->whereIn('id', array_keys($qtyById))
             ->get()
             ->keyBy('id');
+        $token = $guestToken ?: ('guest-shop:'.Str::random(24));
+        $cart = Cart::query()->firstOrCreate(
+            ['tenant_id' => $tenantId, 'user_id' => null, 'guest_token' => $token],
+        );
+        CartItem::query()->where('cart_id', $cart->id)->delete();
         $lines = collect();
         foreach ($qtyById as $pid => $qty) {
             $product = $products->get($pid);
             if (! $product) {
                 continue;
             }
-            $lines->push((object) [
-                'id' => $pid,
+            $line = new CartItem;
+            $line->forceFill([
+                'cart_id' => $cart->id,
                 'product_id' => $pid,
                 'quantity' => $qty,
-                'product' => $product,
-            ]);
+            ])->save();
+            $line->setRelation('product', $product);
+            $lines->push($line);
         }
 
         return $lines->isEmpty() ? null : $lines;
