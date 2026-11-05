@@ -34,14 +34,40 @@ function shell(p: Record<string, unknown>, extra = "") {
           ? "wax-ocean-deep"
           : tone === "ink"
             ? "wax-ink"
-            : tone === "transparent"
-              ? "wax-clear"
-              : "wax-light"
+            : tone === "chalk"
+              ? "wax-chalk"
+              : tone === "transparent"
+                ? "wax-clear"
+                : "wax-light"
   const bg = propStr(p, "bgImage") ? "wax-has-bg" : ""
   const bleed = propBool(p, "fullBleed", false) ? "wax-bleed" : ""
   const motion = propBool(p, "motion", false) ? "wax-motion" : ""
   const mfw = propBool(p, "mobileFullWidth", true) ? "wax-mfw" : ""
-  return `wax wax-pad ${toneCls} ${bg} ${bleed} ${motion} ${mfw} ${extra}`.trim()
+  const dashed = propStr(p, "ctaStyle", "default") === "dashed-book" ? "wax-dashed-book" : ""
+  return `wax wax-pad ${toneCls} ${bg} ${bleed} ${motion} ${mfw} ${dashed} ${extra}`.trim()
+}
+
+function chalkTitle(title: string, accent: string) {
+  if (!title && !accent) return null
+  if (!accent) return title
+  // Accent may sit mid-title: if title already contains accent, wrap that span; else append.
+  if (title.includes(accent)) {
+    const parts = title.split(accent)
+    return (
+      <>
+        {parts[0]}
+        <em className="wax-accent-em">{accent}</em>
+        {parts.slice(1).join(accent)}
+      </>
+    )
+  }
+  return (
+    <>
+      {title}
+      {title ? " " : ""}
+      <em className="wax-accent-em">{accent}</em>
+    </>
+  )
 }
 
 function sectionBg(p: Record<string, unknown>): CSSProperties {
@@ -55,17 +81,17 @@ function sectionBg(p: Record<string, unknown>): CSSProperties {
   return v as CSSProperties
 }
 
-function Head({ title, subtitle }: { title: string; subtitle: string }) {
-  if (!title && !subtitle) return null
+function Head({ title, subtitle, accent = "" }: { title: string; subtitle: string; accent?: string }) {
+  if (!title && !subtitle && !accent) return null
   return (
     <header className="wax-section-head wax-rise">
-      {title ? <h2>{title}</h2> : null}
+      {title || accent ? <h2>{chalkTitle(title, accent)}</h2> : null}
       {subtitle ? <p>{subtitle}</p> : null}
     </header>
   )
 }
 
-type CourseRow = { title: string; level: string; meta: string; price: string; image: string; href: string; badge: string; slug?: string }
+type CourseRow = { title: string; level: string; meta: string; price: string; image: string; href: string; badge: string; tint?: string; desc?: string; slug?: string }
 
 function useAcademyCourses(enabled: boolean, count: number) {
   const [rows, setRows] = useState<CourseRow[] | null>(null)
@@ -108,12 +134,17 @@ export function AcademyHeroWidget({ widget }: { widget: WidgetNode }) {
   // Without a portrait, split leaves a dead half-viewport — fall back to centered full-bleed copy.
   const layout = requested === "split" && !image ? "centered" : requested
   const stats = parseRows(p.stats, ["value", "label"]).filter((r) => r.value || r.label)
+  const chalk = propStr(p, "tone", "light") === "chalk"
+  const frame = propStr(p, "frame", chalk ? "blob" : "rect")
+  const floatA = propStr(p, "floatA")
+  const floatB = propStr(p, "floatB")
+  const titleAccent = propStr(p, "titleAccent")
   return (
     <section className={shell(p, "wax-hero")} style={sectionBg(p)}>
       <div className={`wax-hero-grid ${layout}`}>
-        <div className="wax-copy wax-rise">
+        <div className={`wax-copy wax-rise${chalk ? " wax-hero-card" : ""}`}>
           {propStr(p, "eyebrow") ? <div className="wax-eyebrow">{propStr(p, "eyebrow")}</div> : null}
-          {propStr(p, "title") ? <h1 className="wax-title">{propStr(p, "title")}</h1> : null}
+          {propStr(p, "title") || titleAccent ? <h1 className="wax-title">{chalkTitle(propStr(p, "title"), titleAccent)}</h1> : null}
           {propStr(p, "text") ? <p className="wax-text">{propStr(p, "text")}</p> : null}
           <div className="wax-actions">
             {propStr(p, "primaryLabel") ? (
@@ -139,8 +170,20 @@ export function AcademyHeroWidget({ widget }: { widget: WidgetNode }) {
           ) : null}
         </div>
         {layout !== "centered" && image ? (
-          <div className="wax-portrait wax-rise" style={{ animationDelay: "0.12s" }}>
-            <Img src={image} alt={propStr(p, "imageAlt", propStr(p, "title"))} />
+          <div className={`wax-portrait wax-rise${frame === "blob" ? " wax-frame-blob" : ""}`} style={{ animationDelay: "0.12s" }}>
+            <div className="wax-portrait-frame">
+              <Img src={image} alt={propStr(p, "imageAlt", propStr(p, "title"))} />
+            </div>
+            {floatA ? (
+              <span className="wax-float wax-float-a" style={CSS_SAFE.test(propStr(p, "floatABg")) ? { background: propStr(p, "floatABg") } : undefined}>
+                {floatA}
+              </span>
+            ) : null}
+            {floatB ? (
+              <span className="wax-float wax-float-b" style={CSS_SAFE.test(propStr(p, "floatBBg")) ? { background: propStr(p, "floatBBg"), color: "#fff" } : undefined}>
+                {floatB}
+              </span>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -153,7 +196,7 @@ export function CourseGridWidget({ widget }: { widget: WidgetNode }) {
   const source = propStr(p, "source", "live")
   const count = Math.max(1, Math.min(24, propNum(p, "count", 6)))
   const live = useAcademyCourses(source === "live", count)
-  const manual: CourseRow[] = parseRows(p.items, ["title", "level", "meta", "price", "image", "href", "badge"])
+  const manual: CourseRow[] = parseRows(p.items, ["title", "level", "meta", "price", "image", "href", "badge", "tint", "desc"])
     .filter((r) => r.title)
     .map((r) => ({
       title: r.title,
@@ -163,6 +206,8 @@ export function CourseGridWidget({ widget }: { widget: WidgetNode }) {
       image: r.image || "",
       href: r.href || "/academy",
       badge: r.badge || "",
+      tint: r.tint || "",
+      desc: r.desc || "",
     }))
   const detail = propStr(p, "detailHref", "/academy/{slug}")
   const rows: CourseRow[] =
@@ -177,26 +222,36 @@ export function CourseGridWidget({ widget }: { widget: WidgetNode }) {
 
   return (
     <section className={shell(p)} style={{ ...sectionBg(p), ["--wax-cols" as string]: cols }}>
-      <Head title={propStr(p, "title")} subtitle={propStr(p, "subtitle")} />
+      <Head title={propStr(p, "title")} subtitle={propStr(p, "subtitle")} accent={propStr(p, "titleAccent")} />
       {!rows.length ? (
         <p className="wax-empty">{source === "live" && live === null ? "در حال بارگذاری دوره‌ها…" : "دوره‌ای برای نمایش تنظیم نشده است."}</p>
       ) : (
-        <div className="wax-course-grid">
+        <div className={`wax-course-grid${propStr(p, "tone") === "chalk" ? " wax-course-grid-chalk" : ""}`}>
           {rows.map((c, i) => {
             const href = safeHref(c.href, "/academy")
             const img = safeMedia(c.image)
             return (
-              <Link key={`${c.title}-${i}`} href={href} className="wax-course wax-rise" style={{ animationDelay: `${Math.min(i, 6) * 0.05}s` }}>
+              <Link
+                key={`${c.title}-${i}`}
+                href={href}
+                className="wax-course wax-rise"
+                style={{
+                  animationDelay: `${Math.min(i, 6) * 0.05}s`,
+                  ...(c.tint && CSS_SAFE.test(c.tint) ? { ["--wax-tint" as string]: c.tint } : {}),
+                }}
+              >
                 <div className="wax-course-media">
-                  {img ? <Img src={img} alt={c.title} loading="lazy" /> : null}
+                  {img ? <Img src={img} alt={c.title} loading="lazy" /> : <span className="wax-course-icon" aria-hidden="true">✎</span>}
                   {c.badge ? <span className="wax-badge">{c.badge}</span> : null}
                 </div>
                 <div className="wax-course-body">
                   <h3>{c.title}</h3>
+                  {c.level ? <div className="wax-course-en">{c.level}</div> : null}
                   <div className="wax-meta">
-                    {c.level ? <span>{c.level}</span> : null}
                     {c.meta ? <span>{c.meta}</span> : null}
+                    {c.badge ? <span className="wax-chip-accent">{c.badge}</span> : null}
                   </div>
+                  {c.desc ? <p className="wax-course-desc">{c.desc}</p> : null}
                   {c.price ? <div className="wax-price">{c.price}</div> : null}
                 </div>
               </Link>

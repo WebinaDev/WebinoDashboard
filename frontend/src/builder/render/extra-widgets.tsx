@@ -1,3 +1,4 @@
+import "./doodle-widgets.css"
 "use client"
 
 /* Additional page-builder widgets (product query carousel, banner grid, tabs, FAQ accordion,
@@ -361,6 +362,7 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
   const title = propStr(widget.props, "title", "")
   const source = propStr(widget.props, "source", "module") || "module"
   const layout = propStr(widget.props, "layout", "strip") || "strip"
+  const skin = propStr(widget.props, "skin", "default") || "default"
   const limit = Math.max(1, Math.min(24, propNum(widget.props, "limit", 8)))
   const manual = splitRows(propStr(widget.props, "items", "")).filter(([name, text]) => name || text)
   const [rows, setRows] = useState<TestimonialRow[] | null>(source === "manual" ? [] : null)
@@ -413,8 +415,12 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
     return null
   }
 
-  const trackClass =
-    layout === "slider"
+  const doodle = skin === "doodle"
+  const trackClass = doodle
+    ? layout === "grid"
+      ? "wbx-quotes-doodle grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
+      : "wbx-quotes-doodle flex snap-x gap-3.5 overflow-x-auto pb-2"
+    : layout === "slider"
       ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
       : "flex snap-x gap-3 overflow-x-auto pb-2"
 
@@ -429,7 +435,7 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
           const avatar = row.avatar_url || row.image || ""
           const stars = Math.max(0, Math.min(5, Number(row.rating) || 0))
           return (
-            <figure key={row.id ?? i} className="w-72 shrink-0 snap-start rounded-2xl border border-border bg-card p-5">
+            <figure key={row.id ?? i} className={doodle ? "wbx-quote-doodle" : "w-72 shrink-0 snap-start rounded-2xl border border-border bg-card p-5"}>
               {stars ? (
                 <div className="mb-2 flex gap-0.5 text-[var(--sfc-rating,#f9bc00)]" aria-label={`${stars} / 5`}>
                   {Array.from({ length: stars }).map((_, k) => (
@@ -438,7 +444,7 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
                 </div>
               ) : null}
               <blockquote className="text-sm leading-7 text-foreground/80">{text}</blockquote>
-              <figcaption className="mt-3 flex items-center gap-2 text-xs font-bold text-foreground">
+              <figcaption className={`mt-3 flex items-center gap-2 text-xs font-bold ${doodle ? "wbx-quote-cite" : "text-foreground"}`}>
                 {avatar ? <Img src={avatar} alt="" className="size-8 rounded-full object-cover" loading="lazy" /> : null}
                 <span>
                   <span className="block">{name}</span>

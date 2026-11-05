@@ -1,5 +1,7 @@
 "use client"
 
+import "./doodle-widgets.css"
+
 import { useMenuTree } from "@/lib/nav-menus"
 import DOMPurify from "dompurify"
 import { Heart, ShieldCheck, Sparkles, Star, Truck } from "lucide-react"
@@ -51,6 +53,9 @@ const ComparisonTableWidget = dynamic(() => import("./content-widgets").then((m)
 const CtaBannerWidget = dynamic(() => import("./content-widgets").then((m) => m.CtaBannerWidget))
 const CalloutWidget = dynamic(() => import("./content-widgets").then((m) => m.CalloutWidget))
 const IconCardsWidget = dynamic(() => import("./content-widgets").then((m) => m.IconCardsWidget))
+const BlobImageWidget = dynamic(() => import("./doodle-widgets").then((m) => m.BlobImageWidget))
+const TintCardsWidget = dynamic(() => import("./doodle-widgets").then((m) => m.TintCardsWidget))
+const CircleBadgesWidget = dynamic(() => import("./doodle-widgets").then((m) => m.CircleBadgesWidget))
 const SectionHeadingWidget = dynamic(() => import("./content-widgets").then((m) => m.SectionHeadingWidget))
 const StepsWidget = dynamic(() => import("./content-widgets").then((m) => m.StepsWidget))
 const FormWidget = dynamic(() => import("./form-widget").then((m) => m.FormWidget))
@@ -572,6 +577,12 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <BadgesWidget widget={widget} />
     case "cta-banner":
       return <CtaBannerWidget widget={widget} />
+    case "blob-image":
+      return <BlobImageWidget widget={widget} />
+    case "tint-cards":
+      return <TintCardsWidget widget={widget} />
+    case "circle-badges":
+      return <CircleBadgesWidget widget={widget} />
     case "callout":
       return <CalloutWidget widget={widget} />
     case "comparison-table":
@@ -653,6 +664,18 @@ function ImageWidget({ widget }: { widget: WidgetNode }) {
   const [open, setOpen] = useState(false)
   const src = propStr(widget.props, "src")
   const alt = propStr(widget.props, "alt", "تصویر")
+  const frameStyle = propStr(widget.props, "frameStyle", "default")
+  if (frameStyle.startsWith("blob-")) {
+    const shape = frameStyle.slice("blob-".length) || "a"
+    const blobWidget = {
+      ...widget,
+      props: {
+        ...widget.props,
+        blobShape: shape === "round" ? "round" : shape,
+      },
+    }
+    return <BlobImageWidget widget={blobWidget} />
+  }
   const lightbox = globals.images.lightbox && globals.lightbox.enabled
   if (!src) {
     return (
@@ -692,6 +715,25 @@ function ImageWidget({ widget }: { widget: WidgetNode }) {
 
 function ButtonWidget({ widget }: { widget: WidgetNode }) {
   const tone = propStr(widget.props, "tone", "pink")
+  if (tone === "doodle") {
+    const fill = propStr(widget.props, "doodleFill", "solid")
+    const style = {
+      ["--wb-doodle-bg" as string]: propStr(widget.props, "doodleBg", "#e85d4c") || "#e85d4c",
+      ["--wb-doodle-fg" as string]: propStr(widget.props, "doodleColor", "#fff") || "#fff",
+      ["--wb-doodle-bc" as string]: propStr(widget.props, "doodleBorderColor", "#2b2230") || "#2b2230",
+      ["--wb-doodle-sc" as string]: propStr(widget.props, "doodleShadowColor", "#2b2230") || "#2b2230",
+    }
+    return (
+      <Link
+        href={propStr(widget.props, "href", "/shop")}
+        {...linkAttrs(widget.props, "href")}
+        className={`wb-btn-doodle${fill === "ghost" ? " is-ghost" : ""}`}
+        style={style}
+      >
+        {propStr(widget.props, "label", "ادامه")}
+      </Link>
+    )
+  }
   const variant = tone === "navy" ? "secondary" : tone === "ghost" ? "ghost" : tone === "outline" ? "outline" : "primary"
   return (
     <Link href={propStr(widget.props, "href", "/shop")} {...linkAttrs(widget.props, "href")} className={`wb-btn wb-btn-${variant}`}>

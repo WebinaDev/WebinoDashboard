@@ -7,6 +7,7 @@ import { sharedContentWidgets, sharedFormWidget, sharedGapWidgets } from "@webin
 import { uid } from "./ids"
 import { createSection } from "./tree"
 import { ICON_OPTIONS } from "./render/icon-options"
+import { doodleWidgets, withDoodleContentFields } from "./doodle-registry"
 import type { WidgetDef } from "./types"
 
 const sharedForm = sharedFormWidget({ formKeyLabel: "شناسه فرم (برای تنظیم اقدام‌ها)", fieldsLabel: "فیلدها" })
@@ -53,7 +54,8 @@ function withIconCardHref(defs: WidgetDef[]): WidgetDef[] {
 }
 
 export const CONTENT_WIDGETS: WidgetDef[] = [
-  ...withIconCardHref(sharedContentWidgets(ICON_OPTIONS) as WidgetDef[]),
+  ...withDoodleContentFields(withIconCardHref(sharedContentWidgets(ICON_OPTIONS) as WidgetDef[])),
+  ...doodleWidgets(ICON_OPTIONS),
   {
     type: "callout",
     label: "باکس توجه",
@@ -93,6 +95,19 @@ const SECTION_PRESETS: Record<string, number[]> = { "12": [12], "6-6": [6, 6], "
  */
 export const GAP_WIDGETS: WidgetDef[] = sharedGapWidgets(ICON_OPTIONS).map((def) => {
   const base = def as unknown as WidgetDef
+  if (def.type === "site-header" || def.type === "site-footer") {
+    return {
+      ...base,
+      fields: base.fields.map((field) => {
+        if (field.kind !== "select" || field.key !== "tone") return field
+        if (field.options.some((o) => o.value === "chalk")) return field
+        return {
+          ...field,
+          options: [...field.options, { value: "chalk", label: "دودل / گچی" }],
+        }
+      }),
+    }
+  }
   if (!["section", "columns", "flex-container", "grid-container"].includes(def.type)) return base
   return {
     ...base,

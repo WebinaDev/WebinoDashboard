@@ -10,6 +10,7 @@ import { COMMERCE_PLUGIN } from "./registry-commerce"
 import { ACADEMY_WIDGETS } from "./registry-academy"
 import { CAFE_WIDGETS } from "./registry-cafe"
 import { CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
+import { BUTTON_DOODLE_FIELDS, BUTTON_DOODLE_TONE, IMAGE_BLOB_FIELDS } from "./doodle-registry"
 import { POETRY_WIDGETS } from "./registry-poetry"
 import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
 import { RESUME_WIDGETS } from "./registry-resume"
@@ -58,8 +59,9 @@ const CORE_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "media", key: "src", label: "تصویر" },
       { kind: "text", key: "alt", label: "متن جایگزین" },
+      ...IMAGE_BLOB_FIELDS,
     ],
-    create: () => node("image", { src: "", alt: "" }),
+    create: () => node("image", { src: "", alt: "", frameStyle: "default" }),
   },
   {
     type: "button",
@@ -72,7 +74,9 @@ const CORE_WIDGETS: WidgetDef[] = [
         { value: "pink", label: "صورتی" },
         { value: "navy", label: "سرمه‌ای" },
         { value: "ghost", label: "خطی" },
+        BUTTON_DOODLE_TONE,
       ] },
+      ...BUTTON_DOODLE_FIELDS,
     ],
     create: () => node("button", { label: "مشاهده", href: "/shop", tone: "pink" }),
   },
@@ -296,10 +300,15 @@ const CORE_WIDGETS: WidgetDef[] = [
       { kind: "select", key: "layout", label: "چیدمان", options: [
         { value: "strip", label: "نوار افقی" },
         { value: "slider", label: "اسلایدر" },
+        { value: "grid", label: "شبکه" },
+      ] },
+      { kind: "select", key: "skin", label: "پوسته", options: [
+        { value: "default", label: "پیش‌فرض" },
+        { value: "doodle", label: "دودل / گچی" },
       ] },
       { kind: "repeater", key: "items", label: "نظرهای دستی (فقط وقتی منبع دستی باشد)", fields: [{ key: "name", label: "نام", kind: "text" }, { key: "text", label: "متن", kind: "textarea" }, { key: "rating", label: "امتیاز ۱ تا ۵", kind: "text" }, { key: "image", label: "تصویر", kind: "media" }, { key: "role", label: "سمت", kind: "text" }] },
     ],
-    create: () => node("testimonials", { title: "نظر مشتریان", source: "module", limit: 8, layout: "strip", items: "" }),
+    create: () => node("testimonials", { title: "نظر مشتریان", source: "module", limit: 8, layout: "strip", skin: "default", items: "" }),
   },
   {
     type: "image-gallery",

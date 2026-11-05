@@ -801,3 +801,181 @@
   font-size: 0.9rem;
   background: color-mix(in srgb, var(--wax-soft) 55%, transparent);
 }
+
+/* —— chalk / doodle tone (tenant-agnostic) —— */
+.wax-chalk {
+  --wax-ink: #2b2230;
+  --wax-muted: #6e6070;
+  --wax-line: #efd5c8;
+  --wax-surface: #ffffff;
+  --wax-soft: #fff8f1;
+  --wax-accent: #e85d4c;
+  --wax-accent-2: #3aa6b9;
+  --wax-mustard: #f0a202;
+  --wax-deep: #2b2230;
+  --wax-foam: #fff8f1;
+  --wax-glow: color-mix(in srgb, #e85d4c 18%, transparent);
+  --doodle-paper: #fff8f1;
+  --doodle-ink: #2b2230;
+  --doodle-coral: #e85d4c;
+  --doodle-turquoise: #3aa6b9;
+  --doodle-mustard: #f0a202;
+  --doodle-mute: #6e6070;
+  --doodle-line: #efd5c8;
+  background:
+    radial-gradient(circle at 12% 18%, #e85d4c14 0 80px, transparent 81px),
+    radial-gradient(circle at 88% 12%, #3aa6b914 0 90px, transparent 91px),
+    radial-gradient(circle at 70% 80%, #f0a20214 0 100px, transparent 101px),
+    var(--doodle-paper);
+  color: var(--wax-ink);
+}
+.wax-chalk::before { display: none; }
+
+.wax-chalk .wax-accent-em {
+  font-style: normal;
+  color: var(--doodle-coral);
+}
+
+.wax-chalk .wax-eyebrow {
+  background: var(--doodle-turquoise);
+  color: #fff;
+  border: 2px solid var(--doodle-ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wax-chalk .wax-hero-card {
+  background: var(--wax-surface);
+  border: 3px solid var(--doodle-ink);
+  border-radius: 28px;
+  padding: 36px 32px;
+  box-shadow: 10px 10px 0 var(--doodle-turquoise);
+}
+
+.wax-chalk .wax-btn,
+.wax-chalk .wax-btn-primary {
+  border: 2.5px solid var(--doodle-ink);
+  border-radius: 16px;
+  background: var(--doodle-coral);
+  color: #fff;
+  box-shadow: 4px 4px 0 var(--doodle-ink);
+  font-weight: 800;
+}
+.wax-chalk .wax-btn:hover,
+.wax-chalk .wax-btn-primary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--doodle-ink);
+}
+.wax-chalk .wax-btn-ghost {
+  background: #fff;
+  color: var(--doodle-ink);
+}
+
+.wax-portrait { position: relative; justify-self: center; }
+.wax-portrait-frame { overflow: hidden; border: 3px solid var(--wax-ink, #2b2230); border-radius: 22px; }
+.wax-portrait-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wax-frame-blob .wax-portrait-frame {
+  width: min(380px, 90vw);
+  aspect-ratio: 1;
+  border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
+  border: 3px solid var(--doodle-ink, #2b2230);
+  box-shadow: 8px 8px 0 var(--doodle-coral, #e85d4c);
+  background: var(--doodle-mustard, #f0a202);
+}
+.wax-float {
+  position: absolute;
+  z-index: 2;
+  background: #fff;
+  border: 2.5px solid var(--doodle-ink, #2b2230);
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 3px 3px 0 var(--doodle-ink, #2b2230);
+  max-width: 12rem;
+}
+.wax-float-a { top: 8%; inset-inline-start: -8%; transform: rotate(-6deg); }
+.wax-float-b { bottom: 12%; inset-inline-end: -6%; transform: rotate(5deg); }
+
+.wax-course-grid-chalk {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 720px) {
+  .wax-course-grid-chalk { grid-template-columns: 1fr; }
+}
+.wax-chalk .wax-course,
+.wax-course-grid-chalk .wax-course {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+  background: #fff;
+  border: 3px solid var(--doodle-ink, #2b2230);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 5px 5px 0 var(--wax-tint, var(--doodle-mustard, #f0a202));
+  text-decoration: none;
+  color: inherit;
+}
+.wax-chalk .wax-course-media,
+.wax-course-grid-chalk .wax-course-media {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  border: 2.5px solid var(--doodle-ink, #2b2230);
+  background: var(--wax-tint, var(--doodle-mustard, #f0a202));
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+.wax-chalk .wax-course-media img,
+.wax-course-grid-chalk .wax-course-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wax-course-icon { font-size: 28px; line-height: 1; }
+.wax-course-en { font-size: 12px; color: var(--doodle-mute, #6e6070); font-weight: 700; margin-top: 2px; }
+.wax-course-desc { grid-column: 1 / -1; color: var(--doodle-mute, #6e6070); font-size: 14px; margin: 0; }
+.wax-chalk .wax-meta span,
+.wax-course-grid-chalk .wax-meta span {
+  border: 2px solid var(--doodle-ink, #2b2230);
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.wax-chip-accent {
+  background: var(--doodle-coral, #e85d4c) !important;
+  color: #fff !important;
+}
+.wax-chalk .wax-course .wax-badge { display: none; }
+
+.wax-dashed-book,
+.wax-chalk.wax-dashed-book {
+  border: 3px dashed var(--doodle-ink, #2b2230);
+  border-radius: 28px;
+  background: linear-gradient(135deg, #ffe8e3, #e5f6f9 50%, #fff3d1);
+  box-shadow: 6px 6px 0 var(--doodle-ink, #2b2230);
+  text-align: center;
+}
+.wax-dashed-book .wax-enroll {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+.wax-dashed-book .wax-enroll-card { display: none; }
+
+.wax-chalk .wax-instructor,
+.wax-chalk .wax-stat-card,
+.wax-chalk .wax-tl-item {
+  border: 3px solid var(--doodle-ink);
+  border-radius: 20px;
+  box-shadow: 4px 4px 0 var(--doodle-mustard);
+  background: #fff;
+}

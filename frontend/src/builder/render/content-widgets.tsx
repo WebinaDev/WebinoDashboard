@@ -13,6 +13,8 @@ import { linkAttrs, parseRows, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { WIcon } from "./extra-widgets"
 import "./content-widgets.css"
+import "./doodle-widgets.css"
+import { safeCssColor } from "./doodle-widgets"
 
 function safeHref(href: string, fallback = "#"): string {
   const v = href.trim()
@@ -35,9 +37,19 @@ export function SectionHeadingWidget({ widget }: { widget: WidgetNode }) {
   const text = propStr(widget.props, "text")
   const tag = propStr(widget.props, "tag", "h2")
   const Tag = (tag === "h1" || tag === "h3" ? tag : "h2") as "h1" | "h2" | "h3"
+  const eyebrowStyle = propStr(widget.props, "eyebrowStyle", "soft")
+  const eyebrowPill = eyebrowStyle === "pill"
+  const eyebrowCss = eyebrowPill
+    ? {
+        ["--wbx-eyebrow-bg" as string]: safeCssColor(propStr(widget.props, "eyebrowBg"), "#3aa6b9"),
+        ["--wbx-eyebrow-fg" as string]: safeCssColor(propStr(widget.props, "eyebrowColor"), "#fff"),
+        ["--wbx-eyebrow-bc" as string]: safeCssColor(propStr(widget.props, "eyebrowBorderColor"), "#2b2230"),
+        ["--wbx-eyebrow-bw" as string]: `${Math.max(1, Math.min(5, Number(propStr(widget.props, "eyebrowBorderWidth", "2")) || 2))}px`,
+      }
+    : undefined
   return (
     <header className={`wbx-heading ${align(widget)} wbx-heading-${Tag}`}>
-      {eyebrow ? <span className="wbx-eyebrow">{eyebrow}</span> : null}
+      {eyebrow ? <span className={eyebrowPill ? "wbx-eyebrow wbx-eyebrow-pill" : "wbx-eyebrow"} style={eyebrowCss}>{eyebrow}</span> : null}
       {title ? <Tag className="wbx-heading-title">{title}</Tag> : null}
       {subtitle ? <p className="wbx-heading-subtitle">{subtitle}</p> : null}
       {text ? <p className="wbx-heading-text">{text}</p> : null}
@@ -85,10 +97,23 @@ export function IconCardsWidget({ widget }: { widget: WidgetNode }) {
   const rows = parseRows(widget.props.items, ["icon", "title", "text", "prefill", "href"]).filter((row) => row.title || row.text)
   const columns = Math.max(1, Math.min(5, Number(propStr(widget.props, "columns", "3")) || 3))
   const variant = propStr(widget.props, "variant", "card")
+  const cardStyle = propStr(widget.props, "cardStyle", "default")
+  const doodle = cardStyle === "doodle"
   const anchor = propStr(widget.props, "anchor").replace(/[^\w-]/g, "")
   if (!rows.length) return <p className="wbx-empty">کارت‌ها را در تنظیمات ویجت وارد کنید (آیکن|عنوان|متن).</p>
+  const doodleStyle = doodle
+    ? {
+        ["--wbx-cols" as string]: columns,
+        ["--wbx-doodle-bw" as string]: `${Math.max(1, Math.min(8, Number(propStr(widget.props, "borderWidth", "3")) || 3))}px`,
+        ["--wbx-doodle-bc" as string]: safeCssColor(propStr(widget.props, "borderColor"), "#2b2230"),
+        ["--wbx-doodle-sx" as string]: `${Math.max(0, Math.min(16, Number(propStr(widget.props, "shadowX", "6")) || 6))}px`,
+        ["--wbx-doodle-sy" as string]: `${Math.max(0, Math.min(16, Number(propStr(widget.props, "shadowY", "6")) || 6))}px`,
+        ["--wbx-doodle-sc" as string]: safeCssColor(propStr(widget.props, "shadowColor"), "#3aa6b9"),
+        ["--wbx-doodle-radius" as string]: `${Math.max(8, Math.min(40, Number(propStr(widget.props, "radius", "24")) || 24))}px`,
+      }
+    : { ["--wbx-cols" as string]: columns }
   return (
-    <ul className={`wbx-cards wbx-cards-${variant}`} style={{ ["--wbx-cols" as string]: columns }}>
+    <ul className={`wbx-cards wbx-cards-${variant}${doodle ? " wbx-cards-doodle" : ""}`} style={doodleStyle}>
       {rows.map((row, index) => {
         const inner = (
           <>
@@ -183,8 +208,21 @@ export function CtaBannerWidget({ widget }: { widget: WidgetNode }) {
   const href = propStr(widget.props, "href", "#")
   const secondary = propStr(widget.props, "secondaryLabel")
   const tone = propStr(widget.props, "tone", "primary")
+  const borderStyle = propStr(widget.props, "borderStyle", "none")
+  const dashed = borderStyle === "dashed"
+  const from = safeCssColor(propStr(widget.props, "gradientFrom"), "#ffe8e3")
+  const via = safeCssColor(propStr(widget.props, "gradientVia"), "#e5f6f9")
+  const to = safeCssColor(propStr(widget.props, "gradientTo"), "#fff3d1")
+  const borderColor = safeCssColor(propStr(widget.props, "borderColor"), "#2b2230")
+  const ctaStyle = dashed
+    ? {
+        ["--wbx-cta-grad" as string]: `linear-gradient(135deg, ${from}, ${via} 50%, ${to})`,
+        ["--wbx-cta-bc" as string]: borderColor,
+        ["--wbx-cta-sc" as string]: borderColor,
+      }
+    : undefined
   return (
-    <div className={`wbx-cta wbx-cta-${tone}`}>
+    <div className={`wbx-cta wbx-cta-${tone}${dashed ? " wbx-cta-dashed" : ""}`} style={ctaStyle}>
       {title ? <h2 className="wbx-cta-title">{title}</h2> : null}
       {text ? <p className="wbx-cta-text">{text}</p> : null}
       {label ? (

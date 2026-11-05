@@ -1,5 +1,7 @@
 "use client"
 
+import "./doodle-widgets.css"
+
 /* Renderers for the @webina/ui v0.2 gap widgets (schemas live in the shared package; renderers stay per platform). */
 
 import { filterNavItems, navItemsToTree, useMenuTree, usePublicNavMenus } from "@/lib/nav-menus"
@@ -279,13 +281,20 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
   const name = propStr(p, "siteName") || siteName || ""
   const menuTree = useMenuTree(propStr(p, "menu", ""))
   const links = menuTree ?? parseLinks(p.links, [])
-  const toneCls = tone === "dark" ? "bg-foreground text-background" : tone === "transparent" ? "bg-transparent" : "bg-card"
+  const chalk = tone === "chalk" || tone === "doodle"
+  const toneCls = chalk
+    ? "wb-chrome-chalk"
+    : tone === "dark"
+      ? "bg-foreground text-background"
+      : tone === "transparent"
+        ? "bg-transparent"
+        : "bg-card"
   return (
-    <header className={`${toneCls} ${propBool(p, "sticky", true) ? "sticky top-0 z-40" : ""} border-b border-border`}>
+    <header className={`${toneCls} ${propBool(p, "sticky", true) ? "sticky top-0 z-40" : ""} ${chalk ? "" : "border-b border-border"}`}>
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-bold">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {logo ? <Img loading="eager" priority decoding="async" {...optImg(logo, undefined, true)} alt={name} className="h-9 w-auto" /> : null}
+          {logo ? <Img loading="eager" priority decoding="async" {...optImg(logo, undefined, true)} alt={name} className="h-9 w-auto" /> : chalk ? <span className="wb-chrome-chalk-mark" aria-hidden>{(name || "و").slice(0, 1)}</span> : null}
           {!logo || propStr(p, "siteName") ? <span>{name}</span> : null}
         </Link>
         <nav className="ms-auto hidden gap-4 text-sm md:flex">
@@ -320,8 +329,9 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
     }
   }
   const socials = parseRows(p.socials, ["network", "href"]).filter((s) => s.href)
+  const chalkFooter = tone === "chalk" || tone === "doodle"
   return (
-    <footer className={`${tone === "dark" ? "bg-foreground text-background" : "bg-card"} ${footerExtraClass(p)}`} style={footerExtraStyle(p)}>
+    <footer className={`${chalkFooter ? "wb-chrome-chalk-footer" : tone === "dark" ? "bg-foreground text-background" : "bg-card"} ${footerExtraClass(p)}`} style={footerExtraStyle(p)}>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-4">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
