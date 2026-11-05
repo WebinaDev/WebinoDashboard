@@ -1,5 +1,6 @@
-import "./doodle-widgets.css"
 "use client"
+
+import "./doodle-widgets.css"
 
 /* Additional page-builder widgets (product query carousel, banner grid, tabs, FAQ accordion,
  * icon box/list, testimonials, brand slider, gallery/carousel, announcement, map, counters,
