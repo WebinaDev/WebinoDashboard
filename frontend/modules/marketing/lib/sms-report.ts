@@ -128,8 +128,41 @@ export function outboxSender(row: Record<string, unknown>): string {
   return smsField(row, "number", "from_number", "sender", "line") || "—"
 }
 
+function digMessage(value: unknown): string {
+  if (typeof value === "string") {
+    const trim = value.trim()
+    if (!trim) return ""
+    if (trim.startsWith("{") || trim.startsWith("[")) {
+      const parsed = parseJsonMaybe(trim)
+      if (parsed && typeof parsed === "object") return digMessage(parsed)
+    }
+    return trim
+  }
+  if (typeof value === "number") return String(value)
+  if (!value || typeof value !== "object" || Array.isArray(value)) return ""
+  const row = value as Record<string, unknown>
+  for (const key of ["pattern_message", "message", "body", "text", "summary", "content"]) {
+    const found = digMessage(row[key])
+    if (found) return found
+  }
+  return ""
+}
+
 export function outboxMessage(row: Record<string, unknown>): string {
-  return smsField(row, "message", "body", "text", "summary") || "—"
+  const code = smsField(row, "pattern_code", "code")
+  let fallback = ""
+  for (const key of ["pattern_message", "message", "body", "text", "summary", "content"]) {
+    const found = digMessage(row[key])
+    if (!found) continue
+    if (code && found === code) {
+      fallback = found
+      continue
+    }
+    return found
+  }
+  const nested = digMessage(row.pattern)
+  if (nested && nested !== code) return nested
+  return fallback || "—"
 }
 
 export function outboxType(row: Record<string, unknown>): string {
@@ -163,16 +196,12 @@ export function localRecipientsPreview(row: Record<string, unknown>): string {
 }
 
 export function localMessagePreview(row: Record<string, unknown>): string {
-  const body = parseJsonMaybe(row.message_body)
-  if (body && typeof body === "object" && !Array.isArray(body)) {
-    const o = body as Record<string, unknown>
-    const msg = smsField(o, "message", "body", "text")
-    if (msg) return msg
-    const code = smsField(o, "code", "pattern_code")
-    if (code) return `pattern:${code}`
-  }
-  if (typeof body === "string" && body) return body
-  return smsField(row, "message", "body", "text") || "—"
+  const fromBody = digMessage(parseJsonMaybe(row.message_body))
+  const code = smsField(row, "pattern_code", "code")
+  if (fromBody && fromBody !== code && !fromBody.startsWith("pattern:")) return fromBody
+  const direct = outboxMessage(row)
+  if (direct !== "—") return direct
+  return fromBody || "—"
 }
 
 export function normalizeSmsLines(
