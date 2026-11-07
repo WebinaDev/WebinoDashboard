@@ -559,7 +559,24 @@
       "continue_shopping": "Keep ordering from the menu",
       "go_checkout": "Continue to checkout",
       "qty_inc": "Increase quantity",
-      "qty_dec": "Decrease quantity"
+      "qty_dec": "Decrease quantity",
+      "first_name": "First name",
+      "last_name": "Last name",
+      "coupon": "Coupon code",
+      "coupon_apply": "Apply",
+      "coupon_remove": "Remove",
+      "coupon_ok": "Coupon applied",
+      "coupon_bad": "Invalid coupon",
+      "discount": "Discount",
+      "login_required": "Sign in to place your order",
+      "login_cta": "Sign in",
+      "venue_address": "Pickup address",
+      "order_time": "Time",
+      "err_first_name": "Enter your first name.",
+      "err_last_name": "Enter your last name.",
+      "err_time": "Choose a time.",
+      "checkout_pay_label": "Pay online",
+      "no_online_gateway": "No store payment gateway is configured yet."
     },
     "kitchen": {
       "new": "New",
@@ -570,9 +587,9 @@
       "done": "Done"
     },
     "fulfillment": {
-      "dine_in": "Dine in",
+      "dine_in": "Dine-in / takeaway",
       "pickup": "Pickup",
-      "delivery": "Delivery"
+      "delivery": "Courier delivery"
     },
     "close": "Close",
     "scroll_to_menu": "View menu",

@@ -9,9 +9,10 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 
 import { useAddToCart } from "../lib/cart"
-import { digits, keepQuery, localizedField, money, placeholderFor } from "../lib/helpers"
+import { digits, keepQuery, localizedField, formatCafeAmount, placeholderFor } from "../lib/helpers"
 import type { ShopCurrencyDisplay } from "@/lib/format"
 import type { CafeOrderingStatus, CatalogItem } from "../types"
+import { CafeMoney } from "./CafeMoney"
 import { CafeSheet } from "./CafeSheet"
 
 /** Where each skin shows item details: Super a side panel; others bottom on phone, centered on md+ (CSS). */
@@ -125,7 +126,8 @@ export function ItemPanel({
   const { t, locale } = ctrl
   const image = item.cover_image_url || item.image_url
   const currency = item.currency
-  const fmt = (minor: number) => money(minor, currency, ctrl.currencyDisplay, locale)
+  const fmtNode = (minor: number) => <CafeMoney amount={minor} currency={currency} display={ctrl.currencyDisplay} locale={locale} />
+  const fmtPlain = (minor: number) => formatCafeAmount(minor, currency, ctrl.currencyDisplay, locale)
   const blocked = item.is_sold_out || !item.is_available || ctrl.ordering?.accepting_orders === false
 
   function toggle(modId: number, optId: number, max: number) {
@@ -196,7 +198,7 @@ export function ItemPanel({
                 {item.variants.map((v) => (
                   <button key={v.id} type="button" data-on={variant === v.id ? "true" : "false"} onClick={() => setVariant(v.id)}>
                     <span>{v.name}</span>
-                    <small>{fmt(v.price_minor)}</small>
+                    <small>{fmtNode(v.price_minor)}</small>
                   </button>
                 ))}
               </div>
@@ -215,7 +217,7 @@ export function ItemPanel({
                   return (
                     <button key={opt.id} type="button" data-on={on ? "true" : "false"} onClick={() => toggle(mod.id, opt.id, mod.max_select)}>
                       <span>{localizedField(locale, opt.name_fa, opt.name_en)}</span>
-                      {opt.price_minor > 0 ? <small>+{fmt(opt.price_minor)}</small> : null}
+                      {opt.price_minor > 0 ? <small>+{fmtNode(opt.price_minor)}</small> : null}
                     </button>
                   )
                 })}
@@ -255,7 +257,9 @@ export function ItemPanel({
             ) : (
               <>
                 <span>{t("add_to_cart")}</span>
-                <span className="cafe-add-total">{fmt(unit * qty)}</span>
+                <span className="cafe-add-total" aria-label={fmtPlain(unit * qty)}>
+                  {fmtNode(unit * qty)}
+                </span>
               </>
             )}
           </button>

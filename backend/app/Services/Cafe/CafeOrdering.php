@@ -196,31 +196,42 @@ class CafeOrdering
     /**
      * Full server-side quote (fees + VAT) so cart, checkout and the order record agree.
      * Client prices are never used: callers pass line amounts recomputed from the catalog.
+     * `$discountMinor` is the shop CouponService discount (same module as ecommerce checkout).
      *
      * @param  list<array{amount: int, taxable: bool}>  $lines
      * @return array<string, mixed>
      */
-    public function quote(int $tenantId, string $fulfillment, array $lines, int $itemCount): array
+    public function quote(int $tenantId, string $fulfillment, array $lines, int $itemCount, int $discountMinor = 0): array
     {
         $subtotal = 0;
         foreach ($lines as $line) {
             $subtotal += max(0, (int) $line['amount']);
         }
-        $fees = $this->fees($tenantId, $fulfillment, $subtotal, $itemCount);
-        $tax = \App\Services\Orders\OrderTax::computeLines($tenantId, $lines, $fees['total_minor']);
+        $discountMinor = max(0, min($discountMinor, $subtotal));
+        $net = max(0, $subtotal - $discountMinor);
+        // Delivery free-threshold follows shop parity: evaluate fees against the discounted cart.
+        $fees = $this->fees($tenantId, $fulfillment, $net, $itemCount);
+        if ($discountMinor > 0) {
+            // Same tax helper the shop checkout uses after CouponService discounts the cart.
+            $tax = \App\Services\Orders\OrderTax::compute($tenantId, $net, $fees['total_minor']);
+        } else {
+            $tax = \App\Services\Orders\OrderTax::computeLines($tenantId, $lines, $fees['total_minor']);
+        }
         $rate = (float) ($tax['lines'][0]['rate'] ?? 0);
+        $taxLines = $tax['lines'];
 
         return $fees + [
             'fulfillment' => $fulfillment,
             'subtotal_minor' => $subtotal,
+            'discount_minor' => $discountMinor,
             'fees_minor' => $fees['total_minor'],
             'tax_minor' => $tax['tax_minor'],
             'tax_added_minor' => $tax['added_minor'],
-            'tax_lines' => $tax['lines'],
+            'tax_lines' => $taxLines,
             'vat_rate' => $rate,
             'vat_inclusive' => $tax['tax_minor'] > 0 && $tax['added_minor'] === 0,
             'show_vat' => \App\Services\Orders\OrderTax::showOnInvoice($tenantId),
-            'grand_total_minor' => max(0, $subtotal + $fees['total_minor'] + $tax['added_minor']),
+            'grand_total_minor' => max(0, $net + $fees['total_minor'] + $tax['added_minor']),
         ];
     }
 
@@ -261,9 +272,13 @@ class CafeOrdering
             $out[] = ['id' => $id, 'title' => (string) ($gw['title'] ?? ''), 'type' => 'online'];
         }
 
+        // Only invent a blank cash row when cafe still allows pay-at-counter and no offline tender exists.
         if ($allowCash && ! $hasCashLike) {
             $out[] = ['id' => 'cash', 'title' => '', 'type' => 'cash'];
         }
+
+        // Prefer online (shop IPG) first so cafe checkout mirrors ecommerce when both are on.
+        usort($out, static fn ($a, $b) => (($a['type'] ?? '') === 'online' ? 0 : 1) <=> (($b['type'] ?? '') === 'online' ? 0 : 1));
 
         return $out;
     }

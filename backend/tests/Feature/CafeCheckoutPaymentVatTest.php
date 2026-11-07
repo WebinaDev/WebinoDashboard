@@ -16,6 +16,8 @@ class CafeCheckoutPaymentVatTest extends TestCase
 
     private \App\Models\Tenant $tenant;
 
+    private \App\Models\User $customer;
+
     private array $h;
 
     protected function setUp(): void
@@ -27,18 +29,30 @@ class CafeCheckoutPaymentVatTest extends TestCase
             'commerce.cart' => true,
             'commerce.checkout' => true,
             'commerce.orders' => true,
+            'marketing.coupons' => true,
             'cafe.menu' => true,
             'cafe.qr' => true,
         ]);
         $this->h = ['X-Tenant-Domain' => $this->tenant->domain];
-        $this->menu([]);
+        $this->customer = \App\Models\User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'customer']);
+        $this->actingAs($this->customer, 'sanctum');
+        // Fixed clock so pickup_time slots in helpers stay deterministic (prep 20 → first slot 10:30).
+        \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-06-01 10:00', 'Asia/Tehran'));
+        // Tests that exercise COD re-enable cash; defaults now mirror shop (online-only).
+        $this->menu(['pay_cash_enabled' => true, 'fulfillment_pickup' => true, 'prep_minutes' => 20, 'pickup_slot_minutes' => 15]);
+    }
+
+    protected function tearDown(): void
+    {
+        \Carbon\Carbon::setTestNow();
+        parent::tearDown();
     }
 
     private function menu(array $overrides): void
     {
         app(ModuleSettingsService::class)->put($this->tenant->id, 'cafe', 'menu', array_merge(
             ModuleSettingsService::cafeMenuDefaults(),
-            ['block_orders_when_closed' => false, 'fulfillment_delivery' => true],
+            ['block_orders_when_closed' => false, 'fulfillment_delivery' => true, 'pay_cash_enabled' => true],
             $overrides,
         ));
     }
@@ -73,6 +87,8 @@ class CafeCheckoutPaymentVatTest extends TestCase
             'guest_token' => $token,
             'fulfillment' => 'delivery',
             'payment_method' => 'cash',
+            'customer_first_name' => 'سارا',
+            'customer_last_name' => 'محمدی',
             'customer_name' => 'سارا محمدی',
             'customer_phone' => '09121234567',
             'address' => 'تهران، خیابان انقلاب، کوچه نرگس',
@@ -80,6 +96,7 @@ class CafeCheckoutPaymentVatTest extends TestCase
             'unit' => '2',
             'lat' => 35.70,
             'lng' => 51.40,
+            'pickup_time' => '10:30',
         ], $extra);
     }
 
@@ -221,7 +238,8 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->assertSame(170000 + 10000, $totals['grand_total_minor']);
 
         $order = $this->postJson('/api/v1/public/cafe/checkout', [
-            'guest_token' => $token, 'fulfillment' => 'dine_in', 'table_number' => '5', 'payment_method' => 'cash', 'idempotency_key' => 'vat-key-123',
+            'guest_token' => $token, 'fulfillment' => 'dine_in', 'table_number' => '5', 'payment_method' => 'cash',
+            'customer_name' => 'سارا محمدی', 'customer_phone' => '09121234567', 'pickup_time' => '10:30', 'idempotency_key' => 'vat-key-123',
         ], $this->h)->assertCreated()->json('data');
         $this->assertSame(10000, (int) $order['tax_minor']);
         $this->assertSame(180000, (int) $order['total_minor']);
@@ -244,7 +262,7 @@ class CafeCheckoutPaymentVatTest extends TestCase
 
     public function test_pickup_slots_follow_hours_prep_and_holidays(): void
     {
-        $this->menu(['prep_minutes' => 20, 'pickup_slot_minutes' => 30]);
+        $this->menu(['prep_minutes' => 20, 'pickup_slot_minutes' => 30, 'fulfillment_pickup' => true, 'pay_cash_enabled' => true]);
         // Tuesday 2026-10-13 21:50 Tehran; open 08:00-23:00 every day.
         \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-10-13 21:50', 'Asia/Tehran'));
         $all = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
@@ -273,7 +291,7 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $p = $this->product('Latte', 100000);
         $this->add($p, 'tok-pickup-1');
         $base = ['guest_token' => 'tok-pickup-1', 'fulfillment' => 'pickup', 'payment_method' => 'cash',
-            'customer_name' => 'رضا', 'customer_phone' => '09121234567'];
+            'customer_name' => 'رضا کاظمی', 'customer_phone' => '09121234567'];
         $this->postJson('/api/v1/public/cafe/checkout', $base + ['pickup_time' => '22:00', 'idempotency_key' => 'pk-1-aaaa'], $this->h)
             ->assertStatus(422)->assertJsonValidationErrors(['pickup_time']);
         $this->postJson('/api/v1/public/cafe/checkout', $base + ['pickup_time' => '09:00', 'idempotency_key' => 'pk-2-aaaa'], $this->h)
@@ -294,7 +312,8 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->assertSame(10000, $totals['tax_minor']);
 
         $order = $this->postJson('/api/v1/public/cafe/checkout', [
-            'guest_token' => 'tok-hide-vat', 'fulfillment' => 'dine_in', 'table_number' => '2', 'payment_method' => 'cash', 'idempotency_key' => 'hide-vat-key-1',
+            'guest_token' => 'tok-hide-vat', 'fulfillment' => 'dine_in', 'table_number' => '2', 'payment_method' => 'cash',
+            'customer_name' => 'سارا محمدی', 'customer_phone' => '09121234567', 'pickup_time' => '10:30', 'idempotency_key' => 'hide-vat-key-1',
         ], $this->h)->assertCreated()->json('data');
 
         $admin = \App\Models\User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin']);
@@ -361,7 +380,12 @@ class CafeCheckoutPaymentVatTest extends TestCase
 
         $p = $this->product('Tea', 30000);
         $this->add($p, 'tok-tbl');
-        $base = ['guest_token' => 'tok-tbl', 'fulfillment' => 'dine_in', 'payment_method' => 'cash'];
+        $this->actingAs($this->customer, 'sanctum');
+        $this->menu(['dine_in_require_table' => true, 'pay_cash_enabled' => true]);
+        $base = [
+            'guest_token' => 'tok-tbl', 'fulfillment' => 'dine_in', 'payment_method' => 'cash',
+            'customer_name' => 'سارا محمدی', 'customer_phone' => '09121234567', 'pickup_time' => '10:30',
+        ];
         $this->postJson('/api/v1/public/cafe/checkout', $base + ['table_number' => '77', 'idempotency_key' => 'tbl-key-1'], $this->h)
             ->assertStatus(422)->assertJsonValidationErrors(['table_number']);
         $this->postJson('/api/v1/public/cafe/checkout', $base + ['table_number' => (string) $off->code, 'idempotency_key' => 'tbl-key-2'], $this->h)

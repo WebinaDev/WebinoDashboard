@@ -15,10 +15,10 @@ import {
   keepQuery,
   localizedField,
   menuKind,
-  money,
   placeholderFor,
   type ViewMode,
 } from "../lib/helpers"
+import { CafeMoney } from "../components/CafeMoney"
 import { offPercent, type CatalogueController } from "../lib/useCatalogueController"
 import { useReveal } from "../lib/useScrollSpy"
 
@@ -217,15 +217,21 @@ export function PriceBlock({
   ctrl: CatalogueController
   cta?: string
 }) {
-  const was = ctrl.wasOf(item)
+  const was = offPercent(item) > 0 ? item.price_minor : null
   return (
     <div className="cafe-buy">
       <div className="cafe-price-row">
-        {was ? <span className="cafe-was">{was}</span> : null}
+        {was != null ? (
+          <span className="cafe-was">
+            <CafeMoney amount={was} currency={item.currency} display={ctrl.currencyDisplay} locale={ctrl.locale} />
+          </span>
+        ) : null}
         {offPercent(item) > 0 ? (
           <span className="cafe-off">{ctrl.t("discount_percent", { percent: digits(offPercent(item), ctrl.locale) })}</span>
         ) : null}
-        <span className="cafe-price">{ctrl.priceOf(item)}</span>
+        <span className="cafe-price">
+          <CafeMoney amount={item.discounted_price_minor} currency={item.currency} display={ctrl.currencyDisplay} locale={ctrl.locale} />
+        </span>
       </div>
       {cta ? <span className="cafe-cta">{cta}</span> : null}
     </div>

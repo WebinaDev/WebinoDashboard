@@ -72,21 +72,22 @@ final class ModuleSettingsService
             'service_fee_percent' => 0,
             'service_fee_dine_in_only' => true,
             'pay_online_enabled' => true,
-            'pay_cash_enabled' => true,
+            // Shop sync: cafe checkout uses store IPG; pay-at-counter is off unless merchant re-enables it.
+            'pay_cash_enabled' => false,
             'delivery_radius_km' => 0,
             'cafe_lat' => null,
             'cafe_lng' => null,
             'delivery_require_pin' => true,
             'pickup_slot_minutes' => 15,
-            'dine_in_require_table' => true,
+            'dine_in_require_table' => false,
             'delivery_fee_minor' => 0,
             'free_delivery_threshold_minor' => 0,
             'prep_minutes' => 20,
             'max_orders_per_day' => null,
             'block_orders_when_closed' => true,
             'fulfillment_dine_in' => true,
-            'fulfillment_pickup' => true,
-            'fulfillment_delivery' => false,
+            'fulfillment_pickup' => false,
+            'fulfillment_delivery' => true,
         ];
     }
 

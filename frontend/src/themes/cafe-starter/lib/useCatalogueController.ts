@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { createElement, useEffect, useMemo, useState, type ReactNode } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { api } from "@/lib/api"
 import type { ShopCurrencyDisplay } from "@/lib/format"
+import { CafeMoney } from "../components/CafeMoney"
 import { cafeSkinLayout, resolveCafeSkin } from "../skin"
 import type {
   CafeMenuSettings,
@@ -147,8 +148,13 @@ export function useCatalogueController({
     writeScheme(next)
   }
 
-  function moneyOf(minor: number) {
-    return money(minor, catalog.items[0]?.currency || "IRT", currencyDisplay, locale)
+  function moneyOf(minor: number): ReactNode {
+    return createElement(CafeMoney, {
+      amount: minor,
+      currency: catalog.items[0]?.currency || "IRT",
+      display: currencyDisplay,
+      locale,
+    })
   }
 
   /** "New" badges follow the menu setting in every skin. */
@@ -156,12 +162,24 @@ export function useCatalogueController({
     return menu.show_new_badge !== false && Boolean(item.is_new)
   }
 
-  function priceOf(item: CatalogItem) {
-    return money(item.discounted_price_minor, item.currency, currencyDisplay, locale)
+  function priceOf(item: CatalogItem): ReactNode {
+    return createElement(CafeMoney, {
+      amount: item.discounted_price_minor,
+      currency: item.currency,
+      display: currencyDisplay,
+      locale,
+    })
   }
 
-  function wasOf(item: CatalogItem) {
-    return offPercent(item) > 0 ? money(item.price_minor, item.currency, currencyDisplay, locale) : null
+  function wasOf(item: CatalogItem): ReactNode | null {
+    return offPercent(item) > 0
+      ? createElement(CafeMoney, {
+          amount: item.price_minor,
+          currency: item.currency,
+          display: currencyDisplay,
+          locale,
+        })
+      : null
   }
 
   return {

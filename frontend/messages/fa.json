@@ -3015,7 +3015,24 @@
       "continue_shopping": "ادامه سفارش از منو",
       "go_checkout": "ادامه تسویه حساب",
       "qty_inc": "افزایش تعداد",
-      "qty_dec": "کاهش تعداد"
+      "qty_dec": "کاهش تعداد",
+      "first_name": "نام",
+      "last_name": "نام خانوادگی",
+      "coupon": "کد تخفیف",
+      "coupon_apply": "اعمال",
+      "coupon_remove": "حذف",
+      "coupon_ok": "کد تخفیف اعمال شد",
+      "coupon_bad": "کد تخفیف معتبر نیست",
+      "discount": "تخفیف",
+      "login_required": "برای ثبت سفارش وارد حساب شوید",
+      "login_cta": "ورود / ثبت‌نام",
+      "venue_address": "آدرس محل تحویل",
+      "order_time": "زمان",
+      "err_first_name": "نام را وارد کنید.",
+      "err_last_name": "نام خانوادگی را وارد کنید.",
+      "err_time": "زمان را انتخاب کنید.",
+      "checkout_pay_label": "پرداخت آنلاین",
+      "no_online_gateway": "درگاه پرداخت فروشگاه هنوز پیکربندی نشده است."
     },
     "kitchen": {
       "new": "جدید",
@@ -3026,9 +3043,9 @@
       "done": "تمام"
     },
     "fulfillment": {
-      "dine_in": "سرو در محل",
+      "dine_in": "سرو در محل / بیرون‌بر",
       "pickup": "تحویل حضوری",
-      "delivery": "پیک"
+      "delivery": "ارسال با پیک"
     },
     "close": "بستن",
     "scroll_to_menu": "مشاهده منیو",
