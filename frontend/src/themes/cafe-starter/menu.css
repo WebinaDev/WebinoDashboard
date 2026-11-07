@@ -841,6 +841,30 @@ html[data-cafe-scheme="dark"] .sf-main:has(.cafe-shell[data-skin="cafe-mash-dona
 
 /* Cafe checkout */
 .cafe-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.cafe-coupon-chooser { display: grid; gap: 0.45rem; }
+.cafe-coupon-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+.cafe-coupon-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border: 1px solid var(--c-line);
+  border-radius: 14px;
+  padding: 0.65rem 0.8rem;
+  background: var(--c-card);
+  color: var(--c-ink);
+}
+.cafe-coupon-card.is-applied { border-color: var(--c-ok, #16a34a); }
+.cafe-coupon-card.is-disabled { opacity: 0.55; }
+.cafe-coupon-card__main { display: grid; gap: 0.2rem; min-width: 0; }
+.cafe-coupon-card__code {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.cafe-coupon-card__desc,
+.cafe-coupon-card__save { font-size: 0.8rem; color: var(--c-muted); }
+.cafe-coupon-card__save { color: var(--c-ok, #16a34a); }
 .cafe-hint { font-size: 0.8rem; color: var(--c-muted); }
 .cafe-ok-note { color: var(--c-ok); font-size: 0.9rem; font-weight: 700; }
 .cafe-map { display: grid; gap: 0.4rem; }

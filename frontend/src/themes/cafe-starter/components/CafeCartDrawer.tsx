@@ -13,7 +13,13 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import type { ShopCurrencyDisplay } from "@/lib/format"
 import { toLocaleDigits } from "@/lib/locale"
 import { cn } from "@/lib/utils"
-import { previewCoupon, readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
+import {
+  fetchAvailableCoupons,
+  previewCoupon,
+  readStoredCoupon,
+  storeCoupon,
+  type AvailableCoupon,
+} from "@/builder/storefront/coupon"
 import { quietApi } from "@/builder/storefront/session"
 
 import { useGuestCart, type CartLine } from "../lib/cart"
@@ -91,6 +97,7 @@ export function CafeCartDrawer({
   const [couponCode, setCouponCode] = useState("")
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponBusy, setCouponBusy] = useState(false)
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([])
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const idemKey = useRef<string>("")
@@ -148,6 +155,23 @@ export function CafeCartDrawer({
       setCouponCode(stored)
     }
   }, [open])
+
+  useEffect(() => {
+    if (!open || subtotal <= 0) {
+      setAvailableCoupons([])
+      return
+    }
+    let alive = true
+    const timer = window.setTimeout(() => {
+      void fetchAvailableCoupons(subtotal).then((rows) => {
+        if (alive) setAvailableCoupons(rows)
+      })
+    }, 250)
+    return () => {
+      alive = false
+      window.clearTimeout(timer)
+    }
+  }, [open, subtotal])
 
   useEffect(() => {
     if (!couponCode || subtotal <= 0) {
@@ -324,10 +348,11 @@ export function CafeCartDrawer({
     checkout.mutate()
   }
 
-  async function applyCoupon() {
-    const code = couponInput.trim()
+  async function applyCoupon(codeOverride?: string) {
+    const code = (codeOverride ?? couponInput).trim()
     if (!code) return
     setCouponBusy(true)
+    setCouponInput(code)
     const res = await previewCoupon(code, subtotal)
     setCouponBusy(false)
     if (!res.ok) {
@@ -340,6 +365,13 @@ export function CafeCartDrawer({
     setCouponDiscount(Math.min(res.data.discount_minor, subtotal))
     storeCoupon(res.data.code)
     setError(null)
+  }
+
+  function clearCoupon() {
+    setCouponCode("")
+    setCouponInput("")
+    setCouponDiscount(0)
+    storeCoupon(null)
   }
 
   const packagingFee = totals?.packaging_minor ?? 0
@@ -709,6 +741,49 @@ export function CafeCartDrawer({
 
               <input className="cafe-field" value={form.note} onChange={set("note")} placeholder={t("note")} aria-label={t("note")} />
 
+              {availableCoupons.length > 0 ? (
+                <div className="cafe-coupon-chooser" aria-label={t("coupons_available")}>
+                  <p className="cafe-hint">{t("coupons_available")}</p>
+                  <ul className="cafe-coupon-list">
+                    {availableCoupons.map((c) => {
+                      const applied = couponCode.toUpperCase() === c.code.toUpperCase()
+                      return (
+                        <li key={c.code} className={cn("cafe-coupon-card", applied && "is-applied", !c.eligible && "is-disabled")}>
+                          <div className="cafe-coupon-card__main">
+                            <code className="cafe-coupon-card__code">{c.code}</code>
+                            <span className="cafe-coupon-card__desc">
+                              {c.type === "percent"
+                                ? t("coupon_percent", { amount: toLocaleDigits(String(c.amount), lang) })
+                                : c.description || t("coupon")}
+                            </span>
+                            {c.eligible && c.discount_minor > 0 ? (
+                              <span className="cafe-coupon-card__save">
+                                {t("coupon_save")} <Price amount={c.discount_minor} />
+                              </span>
+                            ) : null}
+                            {!c.eligible && c.reason ? <span className="cafe-error">{c.reason}</span> : null}
+                          </div>
+                          {applied ? (
+                            <button type="button" className="cafe-chip" disabled={couponBusy} onClick={clearCoupon}>
+                              {t("coupon_remove")}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="cafe-chip"
+                              disabled={couponBusy || !c.eligible}
+                              onClick={() => void applyCoupon(c.code)}
+                            >
+                              {t("coupon_apply")}
+                            </button>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+
               <div className="cafe-field-row">
                 <input
                   className="cafe-field"
@@ -719,16 +794,7 @@ export function CafeCartDrawer({
                   autoComplete="off"
                 />
                 {couponCode ? (
-                  <button
-                    type="button"
-                    className="cafe-chip"
-                    onClick={() => {
-                      setCouponCode("")
-                      setCouponInput("")
-                      setCouponDiscount(0)
-                      storeCoupon(null)
-                    }}
-                  >
+                  <button type="button" className="cafe-chip" onClick={clearCoupon}>
                     {t("coupon_remove")}
                   </button>
                 ) : (
