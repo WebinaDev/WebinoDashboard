@@ -305,6 +305,26 @@
   padding: 0.75rem 0.9rem;
 }
 
+/* Full address needs a real tap/type target — default textarea rows collapse on mobile. */
+textarea.cafe-field,
+.cafe-field--address {
+  min-height: 7rem;
+  line-height: 1.55;
+  resize: vertical;
+  field-sizing: fixed;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.cafe-address-block {
+  display: grid;
+  gap: 0.55rem;
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
+
 .cafe-primary-btn {
   background: var(--cafe-accent);
   border-color: transparent;
@@ -867,7 +887,15 @@ html[data-cafe-scheme="dark"] .sf-main:has(.cafe-shell[data-skin="cafe-mash-dona
 .cafe-coupon-card__save { color: var(--c-ok, #16a34a); }
 .cafe-hint { font-size: 0.8rem; color: var(--c-muted); }
 .cafe-ok-note { color: var(--c-ok); font-size: 0.9rem; font-weight: 700; }
-.cafe-map { display: grid; gap: 0.4rem; }
+.cafe-map {
+  display: grid;
+  gap: 0.4rem;
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 14px;
+}
 .cafe-map-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .cafe-map .cafe-chip,
 .cafe-pickup-info .cafe-chip {

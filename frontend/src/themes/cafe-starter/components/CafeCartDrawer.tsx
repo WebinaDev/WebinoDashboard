@@ -681,39 +681,41 @@ export function CafeCartDrawer({
                       ))}
                     </select>
                   ) : null}
-                  <textarea
-                    className="cafe-field"
-                    rows={2}
-                    value={form.address}
-                    onChange={set("address")}
-                    placeholder={t("address")}
-                    aria-label={t("address")}
-                    autoComplete="street-address"
-                  />
-                  {fe("address")}
-                  <div className="cafe-field-row">
-                    <input className="cafe-field" value={form.plaque} onChange={set("plaque")} placeholder={t("plaque")} aria-label={t("plaque")} />
-                    <input className="cafe-field" value={form.unit} onChange={set("unit")} placeholder={t("unit")} aria-label={t("unit")} />
+                  <div className="cafe-address-block">
+                    <textarea
+                      className="cafe-field cafe-field--address"
+                      rows={4}
+                      value={form.address}
+                      onChange={set("address")}
+                      placeholder={t("address")}
+                      aria-label={t("address")}
+                      autoComplete="street-address"
+                    />
+                    {fe("address")}
+                    <div className="cafe-field-row">
+                      <input className="cafe-field" value={form.plaque} onChange={set("plaque")} placeholder={t("plaque")} aria-label={t("plaque")} />
+                      <input className="cafe-field" value={form.unit} onChange={set("unit")} placeholder={t("unit")} aria-label={t("unit")} />
+                    </div>
+                    {fe("plaque")}
+                    <input
+                      className="cafe-field"
+                      value={form.postal}
+                      onChange={set("postal")}
+                      placeholder={t("postal_optional")}
+                      aria-label={t("postal_optional")}
+                      inputMode="numeric"
+                      dir="ltr"
+                    />
+                    {fe("postal_code")}
+                    <MapPinPicker
+                      value={pin}
+                      onChange={setPin}
+                      center={ordering?.cafe_location ?? null}
+                      radiusKm={ordering?.delivery_radius_km ?? 0}
+                      labels={{ locate: t("my_location"), failed: t("map_failed"), hint: t("map_hint") }}
+                    />
+                    {fe("lat")}
                   </div>
-                  {fe("plaque")}
-                  <input
-                    className="cafe-field"
-                    value={form.postal}
-                    onChange={set("postal")}
-                    placeholder={t("postal_optional")}
-                    aria-label={t("postal_optional")}
-                    inputMode="numeric"
-                    dir="ltr"
-                  />
-                  {fe("postal_code")}
-                  <MapPinPicker
-                    value={pin}
-                    onChange={setPin}
-                    center={ordering?.cafe_location ?? null}
-                    radiusKm={ordering?.delivery_radius_km ?? 0}
-                    labels={{ locate: t("my_location"), failed: t("map_failed"), hint: t("map_hint") }}
-                  />
-                  {fe("lat")}
                 </>
               ) : null}
 
