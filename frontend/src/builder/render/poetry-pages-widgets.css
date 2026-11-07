@@ -40,6 +40,16 @@
 
 /* 1) nav */
 .akx-navwrap { padding: 18px 16px 0; position: relative; z-index: 5; }
+/* Beat magazine/theme `.sf-shell header` chrome so the capsule floats (no white bar/border). */
+.sf-shell header.akx-navwrap,
+.sf-shell .akx-navwrap {
+  background: transparent;
+  color: inherit;
+  border-bottom: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
 .akx-nav { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 22px; padding: 8px 10px 8px 18px; border-radius: 999px; background: var(--akx-nav, rgba(255,255,255,.92)); box-shadow: 0 10px 30px rgba(90,15,23,.08); backdrop-filter: blur(8px); }
 .akx-brand { display: flex; align-items: center; gap: 8px; flex: none; }
 .akx-brand img { height: var(--akx-logo-h, 64px); max-height: none; width: auto; max-width: none; object-fit: contain; display: block; }
@@ -215,6 +225,12 @@
 
 /* 9) footer */
 .akx-foot { background: var(--akx-fbg, #1a0507); color: var(--akx-ftx, #d8c3bd); padding: 26px max(16px, calc((100% - 1180px) / 2)) 18px; }
+/* Beat magazine/theme `.sf-shell footer` so builder bg + pattern stay visible. */
+.sf-shell footer.akx-foot,
+.sf-shell .akx-foot {
+  background: var(--akx-fbg, #1a0507);
+  color: var(--akx-ftx, #d8c3bd);
+}
 .akx-foot-in { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 .akx-foot-brand { display: flex; align-items: center; gap: 8px; }
 .akx-foot-brand img { width: 40px; height: 40px; object-fit: contain; }
