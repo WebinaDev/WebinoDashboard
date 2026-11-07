@@ -55,6 +55,41 @@ class PaymentCallbackController extends Controller
             'nextpay' => $this->handleViaDriver($request, $row, 'nextpay', 'nextpay_trans_id', 'trans_id'),
             'payping' => $this->handleViaDriver($request, $row, 'payping', 'payping_code', 'refid'),
             'payir' => $this->handleViaDriver($request, $row, 'payir', 'payir_token', 'token'),
+            'vandar' => $this->handleViaDriver($request, $row, 'vandar', 'vandar_token', 'token'),
+            'aghayepardakht' => $this->handleViaDriver($request, $row, 'aghayepardakht', 'aghayepardakht_transid', 'transid'),
+            'bitpay' => $this->handleViaDriver($request, $row, 'bitpay', 'bitpay_id_get', 'id_get'),
+            // SEP returns ResNum (our order key) plus RefNum (verify receipt); match on ResNum.
+            'saman' => $this->handleViaDriver($request, $row, 'saman', 'saman_res_num', 'ResNum'),
+            'sadad' => $this->handleViaDriver($request, $row, 'sadad', 'sadad_token', 'token'),
+            'parsian' => $this->handleViaDriver($request, $row, 'parsian', 'parsian_token', 'Token'),
+            'mellat' => $this->handleViaDriver($request, $row, 'mellat', 'mellat_ref_id', 'RefId'),
+            'stripe' => $this->handleViaDriver($request, $row, 'stripe', 'stripe_session_id', 'session_id'),
+            'paypal' => $this->handleViaDriver($request, $row, 'paypal', 'paypal_order_id', 'token'),
+            'nowpayments' => $this->handleViaDriver($request, $row, 'nowpayments', 'nowpayments_id', 'payment_id'),
+            'cryptomus' => $this->handleViaDriver($request, $row, 'cryptomus', 'cryptomus_uuid', 'uuid'),
+            'coingate' => $this->handleViaDriver($request, $row, 'coingate', 'coingate_id', 'id'),
+            'shepa' => $this->handleViaDriver($request, $row, 'shepa', 'shepa_token', 'token'),
+            'paystar' => $this->handleViaDriver($request, $row, 'paystar', 'paystar_ref_num', 'ref_num'),
+            'jibit' => $this->handleViaDriver($request, $row, 'jibit', 'jibit_purchase_id', 'purchaseId'),
+            'parspal' => $this->handleViaDriver($request, $row, 'parspal', 'parspal_payment_id', 'payment_id'),
+            'payfa' => $this->handleViaDriver($request, $row, 'payfa', 'payfa_payment_id', 'paymentId'),
+            'easypay' => $this->handleViaDriver($request, $row, 'easypay', 'easypay_token', 'token'),
+            'zarinplus' => $this->handleViaDriver($request, $row, 'zarinplus', 'zarinplus_authority', 'authority'),
+            'toman' => $this->handleViaDriver($request, $row, 'toman', 'toman_uuid', 'uuid'),
+            'tara' => $this->handleViaDriver($request, $row, 'tara', 'tara_token', 'token'),
+            'asanpardakht' => $this->handleViaDriver($request, $row, 'asanpardakht', 'asanpardakht_invoice', 'invoice'),
+            'pasargad' => $this->handleViaDriver($request, $row, 'pasargad', 'pasargad_invoice', 'invoiceId'),
+            'sepehr' => $this->handleViaDriver($request, $row, 'sepehr', 'sepehr_token', 'token'),
+            'saderat' => $this->handleViaDriver($request, $row, 'saderat', 'sepehr_token', 'token'),
+            'samankish' => $this->handleViaDriver($request, $row, 'samankish', 'saman_res_num', 'ResNum'),
+            'irankish' => $this->handleViaDriver($request, $row, 'irankish', 'irankish_token', 'token'),
+            'omidpay' => $this->handleViaDriver($request, $row, 'omidpay', 'omidpay_token', 'token'),
+            'iran_wallet' => $this->handleViaDriver($request, $row, 'iran_wallet', 'iran_wallet_token', 'token'),
+            'perfect_money' => $this->handleViaDriver($request, $row, 'perfect_money', 'perfect_money_payment_id', 'PAYMENT_ID'),
+            'payeer' => $this->handleViaDriver($request, $row, 'payeer', 'payeer_order_id', 'm_orderid'),
+            'coinpayments' => $this->handleViaDriver($request, $row, 'coinpayments', 'coinpayments_txn_id', 'txn_id'),
+            'binance_pay' => $this->handleViaDriver($request, $row, 'binance_pay', 'binance_merchant_trade_no', 'merchantTradeNo'),
+            'ircryptopay' => $this->handleViaDriver($request, $row, 'ircryptopay', 'ircryptopay_id', 'id'),
             'digipay' => $this->handleDigipay($request, $row),
             'snapppay' => $this->handleBnpl($request, $row, 'snapppay', true),
             'torobpay' => $this->handleBnpl($request, $row, 'torobpay', false),
@@ -85,11 +120,18 @@ class PaymentCallbackController extends Controller
                 ->where('provider', $provider)
                 ->latest()
                 ->first();
-        if ($intent === null && $provider === 'payping') {
+        // Providers that may omit the original authority/token on return (or send a
+        // different receipt id) still resolve to the latest intent for this order.
+        if ($intent === null && in_array($provider, [
+            'payping', 'saman', 'samankish', 'mellat', 'stripe', 'paypal', 'nowpayments', 'cryptomus', 'coingate',
+            'shepa', 'paystar', 'jibit', 'parspal', 'payfa', 'easypay', 'zarinplus', 'toman', 'tara',
+            'asanpardakht', 'pasargad', 'sepehr', 'saderat', 'irankish', 'omidpay', 'iran_wallet',
+            'perfect_money', 'payeer', 'coinpayments', 'binance_pay', 'ircryptopay',
+        ], true)) {
             $intent = PaymentIntent::query()
                 ->where('tenant_id', $order->tenant_id)
                 ->where('order_id', $order->id)
-                ->where('provider', 'payping')
+                ->where('provider', $provider)
                 ->latest()
                 ->first();
         }

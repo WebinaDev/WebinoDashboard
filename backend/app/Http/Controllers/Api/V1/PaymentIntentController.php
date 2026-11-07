@@ -38,7 +38,7 @@ class PaymentIntentController extends Controller
     {
         $data = $request->validate([
             'order_id' => ['required', 'integer'],
-            'provider' => ['required', 'string', 'in:digipay,zarinpal,zibal,snapppay,torobpay,bale_pay,basalam_pay'],
+            'provider' => ['required', 'string', 'max:64'],
             'mode' => ['nullable', 'string', 'in:cash,installment'],
         ]);
 
@@ -46,8 +46,14 @@ class PaymentIntentController extends Controller
         $order = Order::query()->findOrFail($data['order_id']);
         abort_if($order->tenant_id !== $user->tenant_id, 403);
 
+        $allowed = app(PaymentGatewaySettingsService::class)->liveCommerceGatewayIds();
+        $provider = str_replace('-', '_', strtolower($data['provider']));
+        if (! in_array($provider, $allowed, true) && ! in_array($provider, ['bale_pay', 'basalam_pay'], true)) {
+            return response()->json(['message' => 'Unsupported payment provider'], 422);
+        }
+
         try {
-            $intent = $checkout->createIntent($order, $data['provider'], $data['mode'] ?? null);
+            $intent = $checkout->createIntent($order, $provider, $data['mode'] ?? null);
         } catch (\DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
@@ -57,7 +63,7 @@ class PaymentIntentController extends Controller
         }
 
         $order->update([
-            'payment_provider' => $data['provider'],
+            'payment_provider' => $provider,
             'status' => 'awaiting_gateway',
         ]);
 

@@ -259,7 +259,7 @@ return [
 
         'tara' => [
             'category' => 'bnpl',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'تارا',
             'label_en' => 'Tara',
             'supports' => ['installment'],
@@ -270,10 +270,10 @@ return [
                 'title' => 'تارا',
                 'username' => '',
                 'password' => '',
-                'base_url' => 'https://api.tara.org.ir',
+                'base_url' => 'https://pay.tara360.ir/pay',
             ]),
             'fields' => [
-                $field('base_url'),
+                $field('base_url', 'text', false, 'مثلاً https://pay.tara360.ir/pay'),
                 $field('username'),
                 $field('password', 'password', true),
                 $field('installment_enabled', 'switch'),
@@ -333,7 +333,7 @@ return [
 
         'zarinplus' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'زرین‌پلاس',
             'label_en' => 'Zarin Plus',
             'supports' => ['cash'],
@@ -344,10 +344,12 @@ return [
                 'title' => 'زرین‌پلاس',
                 'merchant_id' => '',
                 'access_token' => '',
+                'gateway_slug' => 'zarinplus',
             ]),
             'fields' => [
                 $field('merchant_id', 'password', true),
                 $field('access_token', 'password', true),
+                $field('gateway_slug'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -358,7 +360,7 @@ return [
 
         'parspal' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پارس‌پال',
             'label_en' => 'ParsPal',
             'supports' => ['cash'],
@@ -438,7 +440,7 @@ return [
 
         'payfa' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پی‌فا',
             'label_en' => 'PayFa',
             'supports' => ['cash'],
@@ -458,7 +460,7 @@ return [
 
         'vandar' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'وندار',
             'label_en' => 'Vandar',
             'supports' => ['cash'],
@@ -483,7 +485,7 @@ return [
 
         'bitpay' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'بیت‌پی',
             'label_en' => 'BitPay.ir',
             'supports' => ['cash'],
@@ -523,7 +525,7 @@ return [
 
         'jibit' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'جیبیت',
             'label_en' => 'Jibit',
             'supports' => ['cash'],
@@ -550,16 +552,27 @@ return [
 
         'toman' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'تومان',
             'label_en' => 'Toman',
             'supports' => ['cash'],
             'checkout' => true,
-            'docs_url' => 'https://toman.ir',
-            'required' => ['api_key'],
-            'defaults' => array_merge($commonCash, ['title' => 'تومان', 'api_key' => '']),
+            'docs_url' => 'https://docs.tomanpay.net',
+            'required' => [],
+            'defaults' => array_merge($commonCash, [
+                'title' => 'تومان',
+                'api_key' => '',
+                'client_id' => '',
+                'client_secret' => '',
+                'username' => '',
+                'password' => '',
+            ]),
             'fields' => [
-                $field('api_key', 'password', true),
+                $field('api_key', 'password', true, 'Bearer مستقیم (یا OAuth زیر فیلدهای زیر)'),
+                $field('client_id'),
+                $field('client_secret', 'password', true),
+                $field('username'),
+                $field('password', 'password', true),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -595,16 +608,17 @@ return [
 
         'paystar' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پی‌استار',
             'label_en' => 'PayStar',
             'supports' => ['cash'],
             'checkout' => true,
             'docs_url' => 'https://docs.paystar.ir',
             'required' => ['api_key'],
-            'defaults' => array_merge($commonCash, ['title' => 'پی‌استار', 'api_key' => '']),
+            'defaults' => array_merge($commonCash, ['title' => 'پی‌استار', 'api_key' => '', 'sign_key' => '']),
             'fields' => [
                 $field('api_key', 'password', true),
+                $field('sign_key', 'password', true, 'کلید امضای HMAC'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -615,7 +629,7 @@ return [
 
         'aghayepardakht' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'آقای پرداخت',
             'label_en' => 'Aghaye Pardakht',
             'supports' => ['cash'],
@@ -635,7 +649,7 @@ return [
 
         'shepa' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'شپا',
             'label_en' => 'Shepa',
             'supports' => ['cash'],
@@ -655,7 +669,7 @@ return [
 
         'easypay' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'ایزی‌پی',
             'label_en' => 'EasyPay',
             'supports' => ['cash'],
@@ -676,7 +690,7 @@ return [
         /* ── Direct PSP / banks ──────────────────────────────────── */
         'parsian' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پارسیان',
             'label_en' => 'Parsian (PEC)',
             'supports' => ['cash'],
@@ -701,7 +715,7 @@ return [
 
         'saman' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'سامان',
             'label_en' => 'Saman (SEP)',
             'supports' => ['cash'],
@@ -721,7 +735,7 @@ return [
 
         'mellat' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'ملت',
             'label_en' => 'Mellat (Behpardakht)',
             'supports' => ['cash'],
@@ -748,7 +762,7 @@ return [
 
         'sadad' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'سداد',
             'label_en' => 'Sadad (Melli)',
             'supports' => ['cash'],
@@ -775,7 +789,7 @@ return [
 
         'asanpardakht' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'آسان‌پرداخت',
             'label_en' => 'Asan Pardakht',
             'supports' => ['cash'],
@@ -802,23 +816,27 @@ return [
 
         'pasargad' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پاسارگاد',
             'label_en' => 'Pasargad (PEP)',
             'supports' => ['cash'],
             'checkout' => true,
             'docs_url' => 'https://www.pep.co.ir',
-            'required' => ['merchant_code', 'terminal_code', 'private_key'],
+            'required' => ['merchant_code', 'terminal_code'],
             'defaults' => array_merge($commonCash, [
                 'title' => 'پاسارگاد',
                 'merchant_code' => '',
                 'terminal_code' => '',
+                'username' => '',
+                'password' => '',
                 'private_key' => '',
             ]),
             'fields' => [
                 $field('merchant_code'),
                 $field('terminal_code'),
-                $field('private_key', 'textarea', true),
+                $field('username', 'text', false, 'Dorsa1 — یا همان کد پذیرنده'),
+                $field('password', 'password', true, 'رمز Dorsa1 (یا کلید خصوصی قدیمی)'),
+                $field('private_key', 'textarea', true, 'اختیاری — جایگزین password برای API قدیمی'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -829,7 +847,7 @@ return [
 
         'sepehr' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'سپهر',
             'label_en' => 'Sepehr',
             'supports' => ['cash'],
@@ -849,7 +867,7 @@ return [
 
         'samankish' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'سامان کیش',
             'label_en' => 'Saman Kish',
             'supports' => ['cash'],
@@ -874,7 +892,7 @@ return [
 
         'irankish' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'ایران کیش',
             'label_en' => 'Iran Kish',
             'supports' => ['cash'],
@@ -903,7 +921,7 @@ return [
 
         'saderat' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'صادرات',
             'label_en' => 'Saderat (Sepehr)',
             'supports' => ['cash'],
@@ -923,7 +941,7 @@ return [
 
         'omidpay' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'امیدپی',
             'label_en' => 'OmidPay',
             'supports' => ['cash'],
@@ -1010,21 +1028,21 @@ return [
 
         'iran_wallet' => [
             'category' => 'other',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'کیف پول ایران',
             'label_en' => 'Iran Wallet',
             'supports' => ['cash'],
             'checkout' => true,
-            'docs_url' => 'https://www.iranicard.ir',
-            'required' => ['merchant_id', 'api_key'],
+            'docs_url' => 'https://cpg.walleta.ir',
+            'required' => ['merchant_id'],
             'defaults' => array_merge($commonCash, [
                 'title' => 'کیف پول ایران',
                 'merchant_id' => '',
-                'api_key' => '',
+                'national_code' => '',
             ]),
             'fields' => [
                 $field('merchant_id'),
-                $field('api_key', 'password', true),
+                $field('national_code', 'text', false, 'کد ملی پیش‌فرض پرداخت‌کننده (اختیاری)'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('title'),
@@ -1097,7 +1115,7 @@ return [
         /* ── Foreign + crypto ────────────────────────────────────── */
         'stripe' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'استرایپ',
             'label_en' => 'Stripe',
             'supports' => ['cash'],
@@ -1110,12 +1128,14 @@ return [
                 'secret_key' => '',
                 'webhook_secret' => '',
                 'currency' => 'usd',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('publishable_key'),
                 $field('secret_key', 'password', true),
                 $field('webhook_secret', 'password', true),
                 $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1126,7 +1146,7 @@ return [
 
         'paypal' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پی‌پال',
             'label_en' => 'PayPal',
             'supports' => ['cash'],
@@ -1138,11 +1158,13 @@ return [
                 'client_id' => '',
                 'client_secret' => '',
                 'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('client_id'),
                 $field('client_secret', 'password', true),
                 $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1153,7 +1175,7 @@ return [
 
         'nowpayments' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'NOWPayments',
             'label_en' => 'NOWPayments',
             'supports' => ['cash'],
@@ -1165,11 +1187,15 @@ return [
                 'api_key' => '',
                 'ipn_secret' => '',
                 'pay_currency' => '',
+                'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('api_key', 'password', true),
                 $field('ipn_secret', 'password', true),
                 $field('pay_currency', 'text', false, 'Leave empty for customer choice'),
+                $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1180,7 +1206,7 @@ return [
 
         'cryptomus' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'Cryptomus',
             'label_en' => 'Cryptomus',
             'supports' => ['cash'],
@@ -1191,10 +1217,14 @@ return [
                 'title' => 'Cryptomus',
                 'merchant_id' => '',
                 'api_key' => '',
+                'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('merchant_id'),
                 $field('api_key', 'password', true),
+                $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1205,7 +1235,7 @@ return [
 
         'coinpayments' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'CoinPayments',
             'label_en' => 'CoinPayments',
             'supports' => ['cash'],
@@ -1218,12 +1248,16 @@ return [
                 'private_key' => '',
                 'merchant_id' => '',
                 'ipn_secret' => '',
+                'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('merchant_id'),
                 $field('public_key'),
                 $field('private_key', 'password', true),
                 $field('ipn_secret', 'password', true),
+                $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1234,7 +1268,7 @@ return [
 
         'binance_pay' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'Binance Pay',
             'label_en' => 'Binance Pay',
             'supports' => ['cash'],
@@ -1246,11 +1280,15 @@ return [
                 'api_key' => '',
                 'secret_key' => '',
                 'merchant_id' => '',
+                'currency' => 'USDT',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('merchant_id'),
                 $field('api_key', 'password', true),
                 $field('secret_key', 'password', true),
+                $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1261,7 +1299,7 @@ return [
 
         'perfect_money' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پرفکت‌مانی',
             'label_en' => 'Perfect Money',
             'supports' => ['cash'],
@@ -1274,12 +1312,14 @@ return [
                 'passphrase' => '',
                 'alternate_passphrase' => '',
                 'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('payee_account'),
                 $field('passphrase', 'password', true),
                 $field('alternate_passphrase', 'password', true),
                 $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1290,7 +1330,7 @@ return [
 
         'payeer' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پی‌یر',
             'label_en' => 'Payeer',
             'supports' => ['cash'],
@@ -1302,11 +1342,13 @@ return [
                 'merchant_id' => '',
                 'secret_key' => '',
                 'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('merchant_id'),
                 $field('secret_key', 'password', true),
                 $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1317,7 +1359,7 @@ return [
 
         'coingate' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'CoinGate',
             'label_en' => 'CoinGate',
             'supports' => ['cash'],
@@ -1328,10 +1370,12 @@ return [
                 'title' => 'CoinGate',
                 'api_token' => '',
                 'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('api_token', 'password', true),
                 $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1342,7 +1386,7 @@ return [
 
         'ircryptopay' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'آی‌آر کریپتو پی',
             'label_en' => 'IRCrypto Pay',
             'supports' => ['cash'],

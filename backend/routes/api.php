@@ -68,6 +68,7 @@ use App\Http\Controllers\Api\V1\ModuleInstallController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
+use App\Http\Controllers\Api\V1\PaymentFormBridgeController;
 use App\Http\Controllers\Api\V1\PaymentGatewaySettingsController;
 use App\Http\Controllers\Api\V1\PaymentIntentController;
 use App\Http\Controllers\Api\V1\PaymentWebhookController;
@@ -181,6 +182,7 @@ Route::prefix('v1')->group(function () {
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+    Route::get('/payments/bridge/{intent}', [PaymentFormBridgeController::class, 'show'])->whereNumber('intent');
     Route::get('/payments/callback/{provider}/{order}', [PaymentCallbackController::class, 'handle'])
         ->whereNumber('order');
 

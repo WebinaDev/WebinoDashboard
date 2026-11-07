@@ -623,8 +623,9 @@ class PaymentGatewaySettingsService
             $status = (string) ($meta['status'] ?? 'scaffold');
             $local = ! empty($meta['local']);
             $comingSoon = $status === 'scaffold';
-            // Scaffolds stay available for credential storage + toggle; checkout refuses charge.
-            $available = $local || $id === 'cod' || $id === 'bale_pay' || $configured || $comingSoon;
+            // Live + scaffold gateways stay available in the hub for credential storage / toggle.
+            // Checkout still requires enabled + configured (+ live driver) before charging.
+            $available = true;
             $items[] = [
                 'id' => $id,
                 'title_key' => $id,

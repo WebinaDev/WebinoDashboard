@@ -40,7 +40,13 @@ class PaymentWebhookController extends Controller
             ?? $request->query('order')
             ?? 0
         );
-        $intentId = (string) ($request->input('payment_id') ?? $request->input('invoice_id') ?? '');
+        $intentId = (string) (
+            $request->input('payment_id')
+            ?? $request->input('invoice_id')
+            ?? $request->input('uuid')
+            ?? $request->input('id')
+            ?? ''
+        );
 
         $intent = null;
         if ($orderId > 0) {
@@ -57,7 +63,19 @@ class PaymentWebhookController extends Controller
                     $q->where('meta->provider_ref', $intentId)
                         ->orWhere('meta->idpay_id', $intentId)
                         ->orWhere('meta->nowpayments_id', $intentId)
-                        ->orWhere('meta->cryptomus_uuid', $intentId);
+                        ->orWhere('meta->cryptomus_uuid', $intentId)
+                        ->orWhere('meta->coingate_id', $intentId)
+                        ->orWhere('meta->stripe_session_id', $intentId)
+                        ->orWhere('meta->paypal_order_id', $intentId)
+                        ->orWhere('meta->coinpayments_txn_id', $intentId)
+                        ->orWhere('meta->binance_merchant_trade_no', $intentId)
+                        ->orWhere('meta->ircryptopay_id', $intentId)
+                        ->orWhere('meta->perfect_money_payment_id', $intentId)
+                        ->orWhere('meta->payeer_order_id', $intentId)
+                        ->orWhere('meta->shepa_token', $intentId)
+                        ->orWhere('meta->jibit_purchase_id', $intentId)
+                        ->orWhere('meta->toman_uuid', $intentId)
+                        ->orWhere('meta->paystar_ref_num', $intentId);
                 })
                 ->latest()
                 ->first();
@@ -91,10 +109,14 @@ class PaymentWebhookController extends Controller
 
         $settings = $this->gateways->getRaw((int) $order->tenant_id, $provider);
         $amountRial = (int) data_get($intent->meta, 'amount_rial', 0);
+        $payload = $request->all();
+        // Crypto IPNs (e.g. CoinPayments) sign the raw body; preserve for driver HMAC checks.
+        $payload['_raw_body'] = $request->getContent();
+        $payload['_hmac'] = (string) ($request->header('HMAC') ?? $request->header('X-Signature') ?? '');
         $result = $driver->verify(
             $settings,
             $amountRial,
-            $request->all(),
+            $payload,
             is_array($intent->meta) ? $intent->meta : []
         );
         if (! ($result['ok'] ?? false)) {

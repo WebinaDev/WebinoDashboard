@@ -52,7 +52,7 @@ class TenantBillingController extends Controller
         $data = $request->validate([
             'bill_id' => ['required', 'string', 'max:64'],
             'mode' => ['required', 'string', 'in:cash,installment'],
-            'gateway' => ['required', 'string', 'in:zarinpal,digipay,snapppay,torobpay'],
+            'gateway' => ['required', 'string', 'max:64'],
         ]);
 
         $tenant = $this->tenant($request);

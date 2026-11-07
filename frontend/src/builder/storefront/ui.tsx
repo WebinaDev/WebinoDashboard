@@ -604,7 +604,7 @@ function DefaultStorefrontCart() {
 }
 
 type Gateway = {
-  id: "zarinpal" | "digipay" | "snapppay" | "torobpay" | "bale_pay" | "basalam_pay"
+  id: string
   title?: string
   cash_enabled?: boolean
   installment_enabled?: boolean
@@ -623,7 +623,7 @@ function labelForGateway(id: string, tCheckout: (key: "pay_zarinpal" | "pay_digi
   if (id === "torobpay") return tCheckout("pay_torobpay")
   if (id === "bale_pay") return t("pay_bale")
   if (id === "basalam_pay") return t("pay_basalam")
-  return tCheckout("pay_zarinpal")
+  return id
 }
 
 function DefaultStorefrontCheckout() {
@@ -750,7 +750,7 @@ function DefaultStorefrontCheckout() {
     }
   }
 
-  async function pay(provider: Gateway["id"]) {
+  async function pay(provider: string) {
     if (!orderId) return
     setError("")
     try {
