@@ -13,11 +13,10 @@ import { api } from "@/lib/api"
 import { toLocaleDigits } from "@/lib/locale"
 import { gatewayBrandSrc } from "@/lib/checkout-brands"
 
-type Provider = "zarinpal" | "digipay" | "snapppay" | "torobpay"
 type PayMode = "cash" | "installment"
 
 type CheckoutGateway = {
-  id: Provider
+  id: string
   title: string
   cash_enabled: boolean
   installment_enabled: boolean
@@ -92,7 +91,7 @@ export default function CheckoutPage() {
     setIntentUrl(null)
   }
 
-  async function pay(provider: Provider) {
+  async function pay(provider: string) {
     if (!orderId) {
       return
     }
@@ -207,7 +206,7 @@ export default function CheckoutPage() {
                 </p>
               ) : null}
               <Button type="button" variant="secondary" disabled={!orderId} onClick={() => void pay(gateway.id)}>
-                {t(`pay_${gateway.id}`)}
+                {gateway.title || gateway.id}
               </Button>
             </div>
           )

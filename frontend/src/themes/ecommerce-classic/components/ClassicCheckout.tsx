@@ -26,7 +26,7 @@ import { useClassicText } from "../lib/texts"
 import { optImg } from "@/lib/image-url"
 
 type Gateway = {
-  id: "zarinpal" | "zibal" | "digipay" | "snapppay" | "torobpay" | "bale_pay" | "basalam_pay" | "cod" | "cheque" | "c2c" | "wallet"
+  id: string
   title?: string
   cash_enabled: boolean
   installment_enabled: boolean
@@ -57,7 +57,6 @@ function labelForGateway(
   t: (key: "pay_bale" | "pay_basalam") => string,
 ) {
   if (id === "zarinpal" || id === "digipay" || id === "snapppay" || id === "torobpay") return tCheckout(`pay_${id}` as "pay_zarinpal")
-  if (id === "zibal") return "زیبال"
   if (id === "bale_pay") return t("pay_bale")
   if (id === "basalam_pay") return t("pay_basalam")
   if (id === "cod") return "پرداخت در محل"
@@ -558,7 +557,7 @@ export function ClassicCheckout() {
     }
   }
 
-  async function pay(provider: Gateway["id"]) {
+  async function pay(provider: string) {
     setSelectedPay(provider)
     if (!orderId) return
     setError("")
