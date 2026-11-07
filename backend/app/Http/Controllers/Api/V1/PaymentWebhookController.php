@@ -40,7 +40,13 @@ class PaymentWebhookController extends Controller
             ?? $request->query('order')
             ?? 0
         );
-        $intentId = (string) ($request->input('payment_id') ?? $request->input('invoice_id') ?? '');
+        $intentId = (string) (
+            $request->input('payment_id')
+            ?? $request->input('invoice_id')
+            ?? $request->input('uuid')
+            ?? $request->input('id')
+            ?? ''
+        );
 
         $intent = null;
         if ($orderId > 0) {
@@ -57,7 +63,10 @@ class PaymentWebhookController extends Controller
                     $q->where('meta->provider_ref', $intentId)
                         ->orWhere('meta->idpay_id', $intentId)
                         ->orWhere('meta->nowpayments_id', $intentId)
-                        ->orWhere('meta->cryptomus_uuid', $intentId);
+                        ->orWhere('meta->cryptomus_uuid', $intentId)
+                        ->orWhere('meta->coingate_id', $intentId)
+                        ->orWhere('meta->stripe_session_id', $intentId)
+                        ->orWhere('meta->paypal_order_id', $intentId);
                 })
                 ->latest()
                 ->first();

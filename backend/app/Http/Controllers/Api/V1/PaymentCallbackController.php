@@ -55,6 +55,19 @@ class PaymentCallbackController extends Controller
             'nextpay' => $this->handleViaDriver($request, $row, 'nextpay', 'nextpay_trans_id', 'trans_id'),
             'payping' => $this->handleViaDriver($request, $row, 'payping', 'payping_code', 'refid'),
             'payir' => $this->handleViaDriver($request, $row, 'payir', 'payir_token', 'token'),
+            'vandar' => $this->handleViaDriver($request, $row, 'vandar', 'vandar_token', 'token'),
+            'aghayepardakht' => $this->handleViaDriver($request, $row, 'aghayepardakht', 'aghayepardakht_transid', 'transid'),
+            'bitpay' => $this->handleViaDriver($request, $row, 'bitpay', 'bitpay_id_get', 'id_get'),
+            // SEP returns ResNum (our order key) plus RefNum (verify receipt); match on ResNum.
+            'saman' => $this->handleViaDriver($request, $row, 'saman', 'saman_res_num', 'ResNum'),
+            'sadad' => $this->handleViaDriver($request, $row, 'sadad', 'sadad_token', 'token'),
+            'parsian' => $this->handleViaDriver($request, $row, 'parsian', 'parsian_token', 'Token'),
+            'mellat' => $this->handleViaDriver($request, $row, 'mellat', 'mellat_ref_id', 'RefId'),
+            'stripe' => $this->handleViaDriver($request, $row, 'stripe', 'stripe_session_id', 'session_id'),
+            'paypal' => $this->handleViaDriver($request, $row, 'paypal', 'paypal_order_id', 'token'),
+            'nowpayments' => $this->handleViaDriver($request, $row, 'nowpayments', 'nowpayments_id', 'payment_id'),
+            'cryptomus' => $this->handleViaDriver($request, $row, 'cryptomus', 'cryptomus_uuid', 'uuid'),
+            'coingate' => $this->handleViaDriver($request, $row, 'coingate', 'coingate_id', 'id'),
             'digipay' => $this->handleDigipay($request, $row),
             'snapppay' => $this->handleBnpl($request, $row, 'snapppay', true),
             'torobpay' => $this->handleBnpl($request, $row, 'torobpay', false),
@@ -85,11 +98,13 @@ class PaymentCallbackController extends Controller
                 ->where('provider', $provider)
                 ->latest()
                 ->first();
-        if ($intent === null && $provider === 'payping') {
+        // Providers that may omit the original authority/token on return (or send a
+        // different receipt id) still resolve to the latest intent for this order.
+        if ($intent === null && in_array($provider, ['payping', 'saman', 'mellat', 'stripe', 'paypal', 'nowpayments', 'cryptomus', 'coingate'], true)) {
             $intent = PaymentIntent::query()
                 ->where('tenant_id', $order->tenant_id)
                 ->where('order_id', $order->id)
-                ->where('provider', 'payping')
+                ->where('provider', $provider)
                 ->latest()
                 ->first();
         }

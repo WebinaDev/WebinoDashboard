@@ -8,7 +8,10 @@ The admin **Payments hub** is at `/dashboard/settings/shop/payments` (alias `/sh
 
 - Hub toggles enable/disable; each provider has a settings page at `/dashboard/settings/shop/{slug}` driven by catalog field schemas.
 - `status: live` gateways have request/verify drivers (or dedicated clients for Digipay / Snapp / Torob). `status: scaffold` store credentials and refuse checkout with «به‌زودی» until a real driver lands.
-- Live cash IPG drivers today: Zarinpal, Zibal, IDPay, NextPay, PayPing, Pay.ir. Live BNPL/UPG: Digipay, Snapp Pay, Torob Pay. Local: wallet, C2C, COD, Bale Pay, Basalam Pay.
+- Live cash IPG drivers: Zarinpal, Zibal, IDPay, NextPay, PayPing, Pay.ir, Vandar, Aghayepardakht, BitPay.ir, Saman (SEP), Sadad, Parsian, Mellat.
+- Live FX / crypto: Stripe Checkout, PayPal Orders v2, NOWPayments, Cryptomus, CoinGate (require `rial_per_unit` when currency is not IRR/IRT).
+- Live BNPL/UPG: Digipay, Snapp Pay, Torob Pay. Local: wallet, C2C, COD, Bale Pay, Basalam Pay.
+- Still `scaffold` (no reliable public merchant docs for a full driver, or incomplete API surface): Paystar, Shepa, Jibit, Toman, Tara, Zarinplus, Parspal, Payfa, EasyPay, Iran Wallet, Asan Pardakht, Pasargad, Sepehr, Saman Kish, Iran Kish, Saderat, Omidpay, Perfect Money, Payeer, Binance Pay, CoinPayments, IRCrypto Pay.
 - Credentials are stored in module settings. The API masks secrets (`has_*` flags).
 - Checkout lists a gateway only when it is enabled, configured, live, and allowed for نقدی or اقساطی.
 - POS online tenders map to hub gateway ids; disabling a gateway prunes it from `PosSettings` mappings.
@@ -19,7 +22,7 @@ Callbacks: `GET /api/v1/payments/callback/{provider}/{order}`.
 Webhooks / IPN (FX & crypto pattern): `POST /api/v1/payments/webhook/{provider}`.
 
 - Zarinpal `Authority` must equal `payment_intents.meta.zarinpal_authority` for that order. Verify uses the amount stored on the intent.
-- Zibal / IDPay / NextPay / PayPing / Pay.ir verify through `GatewayDriverRegistry` drivers.
+- Registry-backed cash/FX drivers verify through `GatewayDriverRegistry` (`handleViaDriver` + optional webhook).
 - Snapp Pay and Torob Pay `paymentToken` must equal the token stored when the intent was created. Snapp Pay is settled after verify. Torob Pay is settled when `settle_enabled` is on.
 - Digipay verify uses the stored `providerId` and the returned tracking code. A reported amount that does not match the intent is rejected.
 - A bare GET, or another order's authority, does not change the order. Failure is recorded only when the unguessable `nonce` on the callback URL is present, so a leaked StartPay link cannot burn the order.

@@ -458,7 +458,7 @@ return [
 
         'vandar' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'وندار',
             'label_en' => 'Vandar',
             'supports' => ['cash'],
@@ -483,7 +483,7 @@ return [
 
         'bitpay' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'بیت‌پی',
             'label_en' => 'BitPay.ir',
             'supports' => ['cash'],
@@ -615,7 +615,7 @@ return [
 
         'aghayepardakht' => [
             'category' => 'aggregator',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'آقای پرداخت',
             'label_en' => 'Aghaye Pardakht',
             'supports' => ['cash'],
@@ -676,7 +676,7 @@ return [
         /* ── Direct PSP / banks ──────────────────────────────────── */
         'parsian' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پارسیان',
             'label_en' => 'Parsian (PEC)',
             'supports' => ['cash'],
@@ -701,7 +701,7 @@ return [
 
         'saman' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'سامان',
             'label_en' => 'Saman (SEP)',
             'supports' => ['cash'],
@@ -721,7 +721,7 @@ return [
 
         'mellat' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'ملت',
             'label_en' => 'Mellat (Behpardakht)',
             'supports' => ['cash'],
@@ -748,7 +748,7 @@ return [
 
         'sadad' => [
             'category' => 'psp',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'سداد',
             'label_en' => 'Sadad (Melli)',
             'supports' => ['cash'],
@@ -1097,7 +1097,7 @@ return [
         /* ── Foreign + crypto ────────────────────────────────────── */
         'stripe' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'استرایپ',
             'label_en' => 'Stripe',
             'supports' => ['cash'],
@@ -1110,12 +1110,14 @@ return [
                 'secret_key' => '',
                 'webhook_secret' => '',
                 'currency' => 'usd',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('publishable_key'),
                 $field('secret_key', 'password', true),
                 $field('webhook_secret', 'password', true),
                 $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1126,7 +1128,7 @@ return [
 
         'paypal' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'پی‌پال',
             'label_en' => 'PayPal',
             'supports' => ['cash'],
@@ -1138,11 +1140,13 @@ return [
                 'client_id' => '',
                 'client_secret' => '',
                 'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('client_id'),
                 $field('client_secret', 'password', true),
                 $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1153,7 +1157,7 @@ return [
 
         'nowpayments' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'NOWPayments',
             'label_en' => 'NOWPayments',
             'supports' => ['cash'],
@@ -1165,11 +1169,15 @@ return [
                 'api_key' => '',
                 'ipn_secret' => '',
                 'pay_currency' => '',
+                'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('api_key', 'password', true),
                 $field('ipn_secret', 'password', true),
                 $field('pay_currency', 'text', false, 'Leave empty for customer choice'),
+                $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1180,7 +1188,7 @@ return [
 
         'cryptomus' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'Cryptomus',
             'label_en' => 'Cryptomus',
             'supports' => ['cash'],
@@ -1191,10 +1199,14 @@ return [
                 'title' => 'Cryptomus',
                 'merchant_id' => '',
                 'api_key' => '',
+                'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('merchant_id'),
                 $field('api_key', 'password', true),
+                $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),
@@ -1317,7 +1329,7 @@ return [
 
         'coingate' => [
             'category' => 'fx_crypto',
-            'status' => 'scaffold',
+            'status' => 'live',
             'label_fa' => 'CoinGate',
             'label_en' => 'CoinGate',
             'supports' => ['cash'],
@@ -1328,10 +1340,12 @@ return [
                 'title' => 'CoinGate',
                 'api_token' => '',
                 'currency' => 'USD',
+                'rial_per_unit' => 0,
             ]),
             'fields' => [
                 $field('api_token', 'password', true),
                 $field('currency'),
+                $field('rial_per_unit', 'number', false, 'ریال به ازای ۱ واحد ارز'),
                 $field('sandbox', 'switch'),
                 $field('cash_enabled', 'switch'),
                 $field('fee_percent', 'number'),

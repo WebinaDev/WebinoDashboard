@@ -38,6 +38,18 @@ class GatewayDriverRegistry
             new NextpayDriver,
             new PaypingDriver,
             new PayirDriver,
+            new VandarDriver,
+            new AghayepardakhtDriver,
+            new BitpayDriver,
+            new SamanDriver,
+            new SadadDriver,
+            new ParsianDriver,
+            new MellatDriver,
+            new StripeDriver,
+            new PaypalDriver,
+            new NowpaymentsDriver,
+            new CryptomusDriver,
+            new CoingateDriver,
         ];
     }
 
