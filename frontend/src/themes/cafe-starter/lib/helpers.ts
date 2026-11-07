@@ -1,36 +1,39 @@
-import { formatShopPrice, type ShopCurrencyDisplay } from "@/lib/format"
+import type { ShopCurrencyDisplay } from "@/lib/format"
 import { toLocaleDigits } from "@/lib/locale"
 
 export type ViewMode = "grid" | "list" | "cover"
 
-const CURRENCY_WORDS: Record<string, { fa: string; en: string }> = {
-  IRT: { fa: "تومان", en: "Toman" },
-  IRR: { fa: "ریال", en: "Rial" },
-}
+const IRANIAN = new Set(["IRT", "IRR", "TOMAN", "IRHT", "IRHR"])
 
 /**
- * Menu price. `price_minor` is stored in Rial; Toman shops show amount / 10. Iranian currencies print as a word after the
- * number ("۸۵,۰۰۰ تومان") instead of the raw ISO code the generic shop formatter emits.
+ * Digits-only cafe amount (no «تومان» / «ریال» word). Pair with `<CafeMoney>` / CurrencyMark for the glyph.
+ * `price_minor` is stored in Rial; Toman shops show amount / 10.
  */
+export function formatCafeAmount(
+  amount: number,
+  currency: string | null | undefined,
+  display: ShopCurrencyDisplay | null | undefined,
+  locale: string,
+) {
+  const stored = (currency || "").toUpperCase()
+  const code = (display?.currency || (!stored || IRANIAN.has(stored) ? "IRT" : stored)).toUpperCase()
+  const lang = locale === "fa" ? "fa" : "en"
+  const major = code === "IRR" ? amount : amount / 10
+  const sep = display?.thousand_separator ?? ","
+  const grouped = Math.round(Math.max(0, major))
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, sep)
+  return toLocaleDigits(grouped, lang)
+}
+
+/** @deprecated Prefer `<CafeMoney>` — kept for string-only slots (aria, analytics). Digits only. */
 export function money(
   amount: number,
   currency: string,
   display: ShopCurrencyDisplay | null | undefined,
   locale: string,
 ) {
-  // Product rows carry the storage unit (IRR by default); the shop display setting decides Toman vs Rial, Toman when unset.
-  const stored = (currency || "").toUpperCase()
-  const code = (display?.currency || (!stored || CURRENCY_WORDS[stored] ? "IRT" : stored)).toUpperCase()
-  const lang = locale === "fa" ? "fa" : "en"
-  const word = CURRENCY_WORDS[code]
-  if (!word) {
-    return toLocaleDigits(formatShopPrice(amount / 10, { ...display, currency: code }, code), lang)
-  }
-  const major = code === "IRR" ? amount : amount / 10
-  const grouped = Math.round(major)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, display?.thousand_separator ?? ",")
-  return `${toLocaleDigits(grouped, lang)} ${word[lang]}`
+  return formatCafeAmount(amount, currency, display, locale)
 }
 
 export function digits(value: string | number, locale: string) {

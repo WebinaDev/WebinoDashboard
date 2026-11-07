@@ -30,6 +30,8 @@ return [
     'cafe_modifier_required' => 'Choose the required extras for this item.',
     'cafe_modifier_invalid' => 'That extra is not available for this item.',
     'cafe_fulfillment' => 'That service type is not available.',
+    'cafe_login_required' => 'Sign in to place your order.',
+    'cafe_online_payment_required' => 'Only online store gateways are accepted. Pay-at-location is disabled.',
     'insufficient_stock' => 'Not enough stock for this product',
     'banner_limit' => 'Maximum 3 banners allowed',
     'event_full' => 'Event is fully booked',

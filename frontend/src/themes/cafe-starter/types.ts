@@ -238,6 +238,7 @@ export type CatalogPayload = {
     thousand_separator?: string
     decimal_separator?: string
     price_decimals?: number
+    currency_symbol?: string | null
   }
   query?: string | null
   branch?: string | null

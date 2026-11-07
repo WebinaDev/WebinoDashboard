@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 
 import CataloguePage from "@/kernel/pages/CataloguePage"
+import CafeCartCheckoutPage from "@/kernel/pages/CafeCartCheckoutPage"
 import { getSiteTypeSlug } from "@/kernel/cafe-catalogue-data"
 import type { ResolvedSiteRoute } from "@/kernel/types"
 import { StorefrontBody, StorefrontDocument, activeThemeSlug, loadPublishedPage } from "@/builder/public-document"
@@ -47,12 +48,19 @@ export default async function Page({
   route: ResolvedSiteRoute
   searchParams?: Record<string, string | undefined>
 }) {
-  // Cafe sites have one cart: the server-side guest cart (commerce orders, stock, shop payment
-  // gateways) shown in the menu drawer. The shop cart/checkout pages only knew the signed-in
-  // `/api/v1/cart`, so guests saw an empty or stuck "loading" cart without their cafe items.
+  // Cafe sites use the guest cafe cart (menu drawer + dedicated /cart|/checkout pages). The
+  // ecommerce cart shells only talk to signed-in `/api/v1/cart`, so guests saw an empty page.
+  // Note: redirect() inside the Suspense boundary in renderSitePage does not become an HTTP
+  // redirect — render the cafe cart page here instead of relying on ?cart=open alone.
   if (["cart", "checkout", "product/:slug"].includes(route.path) && (await getSiteTypeSlug().catch(() => null)) === "cafe") {
     if (route.path === "product/:slug" && route.params?.slug) redirect(`/catalogue/${encodeURIComponent(route.params.slug)}`)
-    redirect("/menu?cart=open")
+    return (
+      <CafeCartCheckoutPage
+        mode={route.path === "checkout" ? "checkout" : "cart"}
+        tableNumber={searchParams?.table}
+        branchSlug={searchParams?.branch}
+      />
+    )
   }
   const classic = (await activeThemeSlug().catch(() => null)) === "ecommerce-classic"
   if (route.path === "product/:slug") {
