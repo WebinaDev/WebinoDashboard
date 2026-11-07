@@ -56,6 +56,7 @@ export type PoemListRow = {
   status: string
   view_count: number
   occasion?: PoetryTerm | null
+  flags?: PoetryFlags
 }
 
 export const emptyPoem = (): PoemForm => ({

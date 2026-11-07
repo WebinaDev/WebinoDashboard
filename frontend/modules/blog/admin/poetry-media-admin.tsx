@@ -168,6 +168,7 @@ export function PoetryMediaAdmin({ kind }: { kind: "audio" | "video" }) {
       duration: r.duration ?? "",
       sort: r.sort ?? 0,
       status: r.status,
+      is_premium: !!r.is_premium,
     })
 
   const pageTitle = kind === "audio" ? t("audio_title") : t("video_title")
@@ -185,6 +186,14 @@ export function PoetryMediaAdmin({ kind }: { kind: "audio" | "video" }) {
         description={subtitle}
         actions={
           <div className="poem-toolbar">
+            <div className="poem-toolbar__status" role="group" aria-label={t("access_type")}>
+              <button type="button" data-on={!f.is_premium} onClick={() => set("is_premium", false)}>
+                {t("access_free")}
+              </button>
+              <button type="button" data-on={!!f.is_premium} onClick={() => set("is_premium", true)}>
+                {t("access_premium")}
+              </button>
+            </div>
             <div className="poem-toolbar__status" role="group" aria-label={t("status")}>
               <button type="button" data-on={!isPublished} onClick={() => set("status", "draft")}>
                 {t("status_draft")}
@@ -285,6 +294,30 @@ export function PoetryMediaAdmin({ kind }: { kind: "audio" | "video" }) {
             </section>
 
             <aside className="poem-side" aria-label={t("media_meta")}>
+              <SidePanel title={t("panel_access")} defaultOpen>
+                <p className="text-muted-foreground text-xs leading-relaxed">{t("media_access_hint")}</p>
+                <div className="poem-toolbar__status poem-access" role="radiogroup" aria-label={t("access_type")}>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!f.is_premium}
+                    data-on={!f.is_premium}
+                    onClick={() => set("is_premium", false)}
+                  >
+                    {t("access_free")}
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!!f.is_premium}
+                    data-on={!!f.is_premium}
+                    onClick={() => set("is_premium", true)}
+                  >
+                    {t("access_premium")}
+                  </button>
+                </div>
+              </SidePanel>
+
               <SidePanel title={t("panel_media_link")} defaultOpen>
                 <label className="poem-field">
                   <span>{t("related_poem")}</span>
@@ -472,6 +505,11 @@ export function PoetryMediaAdmin({ kind }: { kind: "audio" | "video" }) {
                           </span>
                         )}
                         <span className="font-medium">{r.title}</span>
+                        {r.is_premium ? (
+                          <span className="poem-badge" data-tone="premium">
+                            {t("access_premium")}
+                          </span>
+                        ) : null}
                       </div>
                     </td>
                     <td>

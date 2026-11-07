@@ -88,10 +88,25 @@ class PublicPoetryController extends Controller
         }
         $request->query('sort') === 'popular' ? $q->orderByDesc('play_count') : $q->orderBy('sort')->orderByDesc('id');
         $items = $q->limit(min(60, max(1, (int) $request->query('limit', 24))))->get();
-        $public = ['id', 'title', 'kind', 'url', 'external_url', 'embed_url', 'cover', 'reciter', 'duration', 'occasion', 'poem'];
+        $member = app(\App\Services\Membership\MembershipService::class)->isActive($request->user());
+        $public = ['id', 'title', 'kind', 'url', 'external_url', 'embed_url', 'cover', 'reciter', 'duration', 'occasion', 'poem', 'is_premium', 'premium_locked'];
 
-        return response()->json(['data' => $items->map(fn ($m) => array_intersect_key(PoetryPresenter::media($m), array_flip($public)))
-            ->filter(fn ($r) => $r['url'] || $r['external_url'])->values()->all()]);
+        return response()->json(['data' => $items->map(function ($m) use ($member, $public) {
+            $row = PoetryPresenter::media($m);
+            $poemPremium = (bool) data_get($m->poem?->flags, 'is_premium');
+            $premium = (bool) $m->is_premium || $poemPremium;
+            $locked = $premium && ! $member;
+            $row['is_premium'] = $premium;
+            $row['premium_locked'] = $locked;
+            if ($locked) {
+                $row['url'] = null;
+                $row['external_url'] = null;
+                $row['embed_url'] = null;
+                $row['file_url'] = null;
+            }
+
+            return array_intersect_key($row, array_flip($public));
+        })->filter(fn ($r) => $r['premium_locked'] || $r['url'] || $r['external_url'])->values()->all()]);
     }
 
     public function text(string $slug, Request $request)

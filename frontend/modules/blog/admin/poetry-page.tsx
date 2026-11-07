@@ -178,7 +178,16 @@ function PoemList({
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-b">
-                <td className="p-2">{r.title}</td>
+                <td className="p-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>{r.title}</span>
+                    {r.flags?.is_premium ? (
+                      <span className="poem-badge" data-tone="premium">
+                        {t("access_premium")}
+                      </span>
+                    ) : null}
+                  </div>
+                </td>
                 <td>{r.occasion?.name ?? "—"}</td>
                 <td>{r.status === "published" ? t("status_published") : t("status_draft")}</td>
                 <td>{r.view_count.toLocaleString("fa-IR")}</td>

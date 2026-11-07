@@ -84,7 +84,7 @@ class PoetryPresenter
             'occasion' => $m->relationLoaded('occasion') ? self::term($m->occasion) : null,
             'poem' => $m->relationLoaded('poem') && $m->poem ? ['id' => $m->poem->id, 'slug' => $m->poem->slug, 'title' => $m->poem->title] : null,
             'media_id' => $m->media_id, 'file_url' => $m->file_url, 'occasion_id' => $m->occasion_id, 'poem_id' => $m->poem_id,
-            'sort' => (int) $m->sort, 'status' => $m->status, 'play_count' => (int) $m->play_count,
+            'sort' => (int) $m->sort, 'status' => $m->status, 'is_premium' => (bool) $m->is_premium, 'play_count' => (int) $m->play_count,
         ];
     }
 

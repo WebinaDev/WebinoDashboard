@@ -325,6 +325,16 @@
   box-shadow: var(--shadow-soft);
 }
 
+.poem-access {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.poem-access button {
+  width: 100%;
+  text-align: center;
+}
+
 .poem-list-shell {
   border: 1px solid var(--poem-rule);
   border-radius: 14px;
@@ -424,6 +434,12 @@
   border-color: color-mix(in oklch, var(--poem-accent) 40%, var(--poem-rule));
   background: color-mix(in oklch, var(--poem-accent) 12%, transparent);
   color: var(--poem-ink);
+}
+
+.poem-badge[data-tone="premium"] {
+  border-color: color-mix(in oklch, var(--poem-accent) 55%, var(--poem-rule));
+  background: color-mix(in oklch, var(--poem-accent) 18%, transparent);
+  color: var(--poem-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
