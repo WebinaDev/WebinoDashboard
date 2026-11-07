@@ -109,10 +109,14 @@ class PaymentWebhookController extends Controller
 
         $settings = $this->gateways->getRaw((int) $order->tenant_id, $provider);
         $amountRial = (int) data_get($intent->meta, 'amount_rial', 0);
+        $payload = $request->all();
+        // Crypto IPNs (e.g. CoinPayments) sign the raw body; preserve for driver HMAC checks.
+        $payload['_raw_body'] = $request->getContent();
+        $payload['_hmac'] = (string) ($request->header('HMAC') ?? $request->header('X-Signature') ?? '');
         $result = $driver->verify(
             $settings,
             $amountRial,
-            $request->all(),
+            $payload,
             is_array($intent->meta) ? $intent->meta : []
         );
         if (! ($result['ok'] ?? false)) {

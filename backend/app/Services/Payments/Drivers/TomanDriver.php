@@ -60,13 +60,12 @@ class TomanDriver implements GatewayDriverInterface
             ->post($base.'/payments/'.$uuid.'/verify')
             ->json();
         $status = strtolower((string) data_get($response, 'status', data_get($response, 'state', '')));
-        if (! in_array($status, ['verified', 'paid', 'success', 'successful', ''], true) && empty($response['uuid']) && empty($response['id'])) {
-            // If verify endpoint returns the payment object without explicit status, accept 2xx shape with matching amount.
-            if ((int) data_get($response, 'amount', 0) <= 0 && empty($response['tracker_id'])) {
-                return ['ok' => false, 'message' => 'تأیید تومن ناموفق بود.', 'meta' => is_array($response) ? $response : []];
-            }
-        }
         $paid = (int) data_get($response, 'amount', 0);
+        $ok = in_array($status, ['verified', 'paid', 'success', 'successful'], true)
+            || ($status === '' && $paid > 0 && filled(data_get($response, 'uuid', data_get($response, 'id'))));
+        if (! $ok) {
+            return ['ok' => false, 'message' => 'تأیید تومن ناموفق بود.', 'meta' => is_array($response) ? $response : []];
+        }
         if ($paid > 0 && $paid !== $amountRial) {
             return ['ok' => false, 'message' => 'مبلغ تأییدشده با سفارش هم‌خوانی ندارد.'];
         }

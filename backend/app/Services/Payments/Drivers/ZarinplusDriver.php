@@ -63,9 +63,9 @@ class ZarinplusDriver implements GatewayDriverInterface
             'amount' => $amountRial,
         ])->json();
         $code = (int) data_get($response, 'data.code', data_get($response, 'code', 0));
+        // Docs: first successful verify returns data.code=200 (status true).
         $ok = filter_var(data_get($response, 'status'), FILTER_VALIDATE_BOOLEAN) && in_array($code, [200, 0], true);
-        // Docs: first successful verify returns data.code=200.
-        if (! $ok && $code !== 200 && ! filter_var(data_get($response, 'status'), FILTER_VALIDATE_BOOLEAN)) {
+        if (! $ok) {
             return ['ok' => false, 'message' => 'تأیید زرین‌پلاس ناموفق بود.', 'meta' => is_array($response) ? $response : []];
         }
 

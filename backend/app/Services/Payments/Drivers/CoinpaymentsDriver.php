@@ -72,14 +72,10 @@ class CoinpaymentsDriver implements GatewayDriverInterface
         if (($callback['coinpayments_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت CoinPayments لغو شد.'];
         }
-        // IPN: status >= 100 means complete.
-        $status = (int) ($callback['status'] ?? -1);
         $txn = (string) ($callback['txn_id'] ?? $intentMeta['coinpayments_txn_id'] ?? '');
-        if ($status >= 100 && $txn !== '') {
-            if (! $this->validIpn($config, $callback)) {
-                return ['ok' => false, 'message' => 'امضای IPN کوین‌پیمنتس نامعتبر است.'];
-            }
-
+        // IPN shortcut only when HMAC over the raw body validates.
+        $status = (int) ($callback['status'] ?? -1);
+        if ($status >= 100 && $txn !== '' && $this->validIpn($config, $callback)) {
             return ['ok' => true, 'message' => 'verified', 'ref_id' => $txn, 'meta' => $callback];
         }
         if ($txn === '') {
@@ -131,15 +127,17 @@ class CoinpaymentsDriver implements GatewayDriverInterface
     private function validIpn(array $config, array $callback): bool
     {
         $secret = (string) ($config['ipn_secret'] ?? '');
-        if ($secret === '') {
-            return true;
+        $hmac = (string) ($callback['_hmac'] ?? '');
+        $raw = (string) ($callback['_raw_body'] ?? '');
+        if ($secret === '' || $hmac === '' || $raw === '') {
+            return false;
         }
         $merchant = (string) ($callback['merchant'] ?? '');
         if ($merchant !== '' && $merchant !== (string) ($config['merchant_id'] ?? '')) {
             return false;
         }
-        // CoinPayments IPN HMAC is over raw body; when we only have parsed array, compare merchant id.
+        $expected = hash_hmac('sha512', $raw, $secret);
 
-        return true;
+        return hash_equals($expected, $hmac);
     }
 }

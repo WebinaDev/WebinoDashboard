@@ -75,14 +75,16 @@ class EasypayDriver implements GatewayDriverInterface
         $ok = filter_var(data_get($response, 'success', data_get($response, 'ok')), FILTER_VALIDATE_BOOLEAN)
             || in_array($status, ['ok', 'success', 'paid', 'verified', '1', '100'], true)
             || (int) data_get($response, 'code', 0) === 100;
-        if (! $ok && empty(data_get($response, 'ref_id')) && empty(data_get($response, 'data.ref_id'))) {
+        $ref = (string) data_get($response, 'ref_id', data_get($response, 'data.ref_id', ''));
+        // Do not treat a bare ref_id as success when the provider reports failure.
+        if (! $ok || $ref === '') {
             return ['ok' => false, 'message' => 'تأیید ایزی‌پی ناموفق بود.', 'meta' => is_array($response) ? $response : []];
         }
 
         return [
             'ok' => true,
             'message' => 'verified',
-            'ref_id' => (string) data_get($response, 'ref_id', data_get($response, 'data.ref_id', $token)),
+            'ref_id' => $ref,
             'meta' => is_array($response) ? $response : [],
         ];
     }

@@ -73,16 +73,7 @@ class BinancePayDriver implements GatewayDriverInterface
         if (($callback['binance_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت Binance Pay لغو شد.'];
         }
-        // Webhook bizStatus == PAY_SUCCESS
-        $biz = strtoupper((string) ($callback['bizStatus'] ?? $callback['status'] ?? ''));
-        if (in_array($biz, ['PAY_SUCCESS', 'SUCCESS', 'PAID'], true)) {
-            return [
-                'ok' => true,
-                'message' => 'verified',
-                'ref_id' => (string) ($callback['merchantTradeNo'] ?? $intentMeta['binance_merchant_trade_no'] ?? ''),
-                'meta' => $callback,
-            ];
-        }
+        // Never trust browser/webhook status alone — always confirm via signed order query.
         $merchantTradeNo = (string) ($intentMeta['binance_merchant_trade_no'] ?? $callback['merchantTradeNo'] ?? '');
         if ($merchantTradeNo === '') {
             return ['ok' => false, 'message' => 'شناسه سفارش Binance Pay یافت نشد.'];

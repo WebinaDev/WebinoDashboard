@@ -69,9 +69,16 @@ class PayeerDriver implements GatewayDriverInterface
         if (($callback['payeer_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت پی‌یر لغو شد.'];
         }
+        // Browser success_url alone is not proof of payment — require signed IPN/status payload.
         $mStatus = strtoupper((string) ($callback['m_status'] ?? ''));
-        if ($mStatus !== '' && $mStatus !== 'SUCCESS') {
-            return ['ok' => false, 'message' => 'پرداخت پی‌یر ناموفق بود.'];
+        $mSign = (string) ($callback['m_sign'] ?? '');
+        if ($mStatus !== 'SUCCESS' || $mSign === '') {
+            return ['ok' => false, 'message' => 'بازگشت پی‌یر بدون تأیید امضاشده کافی نیست.'];
+        }
+        $orderId = (string) ($callback['m_orderid'] ?? '');
+        $expectedOrder = (string) ($intentMeta['payeer_order_id'] ?? '');
+        if ($orderId === '' || ($expectedOrder !== '' && $orderId !== $expectedOrder)) {
+            return ['ok' => false, 'message' => 'شناسه سفارش پی‌یر هم‌خوانی ندارد.'];
         }
         $signParams = [
             (string) ($callback['m_operation_id'] ?? ''),
@@ -79,30 +86,26 @@ class PayeerDriver implements GatewayDriverInterface
             (string) ($callback['m_operation_date'] ?? ''),
             (string) ($callback['m_operation_pay_date'] ?? ''),
             (string) ($callback['m_shop'] ?? ''),
-            (string) ($callback['m_orderid'] ?? ''),
+            $orderId,
             (string) ($callback['m_amount'] ?? ''),
             (string) ($callback['m_curr'] ?? ''),
             (string) ($callback['m_desc'] ?? ''),
-            (string) ($callback['m_status'] ?? ''),
+            $mStatus,
             (string) ($config['secret_key'] ?? ''),
         ];
-        if (($callback['m_sign'] ?? '') !== '') {
-            $expected = strtoupper(hash('sha256', implode(':', $signParams)));
-            if (! hash_equals($expected, strtoupper((string) $callback['m_sign']))) {
-                return ['ok' => false, 'message' => 'امضای پی‌یر نامعتبر است.'];
-            }
-        } elseif ($mStatus === '') {
-            // Browser return without IPN fields — accept when order id matches intent.
-            $orderId = (string) ($callback['m_orderid'] ?? $intentMeta['payeer_order_id'] ?? '');
-            if ($orderId === '' || $orderId !== (string) ($intentMeta['payeer_order_id'] ?? $orderId)) {
-                return ['ok' => false, 'message' => 'بازگشت پی‌یر بدون داده تأیید کافی نیست.'];
-            }
+        $expected = strtoupper(hash('sha256', implode(':', $signParams)));
+        if (! hash_equals($expected, strtoupper($mSign))) {
+            return ['ok' => false, 'message' => 'امضای پی‌یر نامعتبر است.'];
+        }
+        $shop = (string) ($callback['m_shop'] ?? '');
+        if ($shop !== '' && $shop !== (string) ($config['merchant_id'] ?? '')) {
+            return ['ok' => false, 'message' => 'فروشگاه پی‌یر هم‌خوانی ندارد.'];
         }
 
         return [
             'ok' => true,
             'message' => 'verified',
-            'ref_id' => (string) ($callback['m_operation_id'] ?? $callback['m_orderid'] ?? $intentMeta['payeer_order_id'] ?? ''),
+            'ref_id' => (string) ($callback['m_operation_id'] ?? $orderId),
             'meta' => $callback,
         ];
     }

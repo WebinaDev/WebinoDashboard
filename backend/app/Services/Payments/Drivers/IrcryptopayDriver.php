@@ -102,11 +102,13 @@ class IrcryptopayDriver implements GatewayDriverInterface
     {
         $secret = (string) ($config['webhook_secret'] ?? '');
         $sign = (string) ($callback['signature'] ?? $callback['sign'] ?? '');
+        // Webhook path must present a signature when a secret is configured;
+        // if neither is set, reject status-only claims and force API poll.
         if ($secret === '' || $sign === '') {
-            return true;
+            return false;
         }
         $payload = $callback;
-        unset($payload['signature'], $payload['sign']);
+        unset($payload['signature'], $payload['sign'], $payload['_raw_body'], $payload['_hmac']);
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $expected = hash_hmac('sha256', (string) $body, $secret);
 

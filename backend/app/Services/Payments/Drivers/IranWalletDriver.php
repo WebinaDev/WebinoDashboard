@@ -75,15 +75,24 @@ class IranWalletDriver implements GatewayDriverInterface
             'invoice_reference' => (string) ($intentMeta['invoice_reference'] ?? ''),
             'invoice_amount' => $amountToman,
         ]);
-        if (! $response->successful()) {
-            return ['ok' => false, 'message' => 'تأیید کیف‌پول ایران ناموفق بود.', 'meta' => $response->json() ?: []];
+        $body = $response->json() ?: [];
+        $status = strtolower((string) data_get($body, 'status', data_get($body, 'content.status', '')));
+        $ok = $response->successful() && (
+            filter_var(data_get($body, 'success', data_get($body, 'ok')), FILTER_VALIDATE_BOOLEAN)
+            || in_array($status, ['ok', 'success', 'paid', 'verified', '1'], true)
+            || (int) data_get($body, 'code', data_get($body, 'status_code', 0)) === 200
+            || filled(data_get($body, 'content.paid_at'))
+            || filled(data_get($body, 'paid_at'))
+        );
+        if (! $ok) {
+            return ['ok' => false, 'message' => 'تأیید کیف‌پول ایران ناموفق بود.', 'meta' => $body];
         }
 
         return [
             'ok' => true,
             'message' => 'verified',
-            'ref_id' => $token,
-            'meta' => $response->json() ?: [],
+            'ref_id' => (string) data_get($body, 'content.invoice_reference', data_get($body, 'invoice_reference', $token)),
+            'meta' => $body,
         ];
     }
 
