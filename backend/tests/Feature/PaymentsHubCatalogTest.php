@@ -43,8 +43,9 @@ class PaymentsHubCatalogTest extends TestCase
     {
         $catalog = app(PaymentGatewayCatalog::class);
         $res = $this->getJson('/api/v1/payments/hub')->assertOk();
-        $items = collect($res->json('items'));
-        $cats = collect($res->json('categories'))->pluck('id');
+        $payload = $res->json('data') ?? $res->json();
+        $items = collect($payload['items'] ?? []);
+        $cats = collect($payload['categories'] ?? [])->pluck('id');
 
         $this->assertTrue($cats->contains('bnpl'));
         $this->assertTrue($cats->contains('aggregator'));
@@ -58,35 +59,41 @@ class PaymentsHubCatalogTest extends TestCase
 
         $this->assertTrue($items->firstWhere('id', 'zarinpal')['status'] === 'live');
         $this->assertTrue($items->firstWhere('id', 'idpay')['status'] === 'live');
-        $this->assertTrue($items->firstWhere('id', 'tara')['status'] === 'scaffold');
-        $this->assertTrue($items->firstWhere('id', 'stripe')['status'] === 'scaffold');
+        $this->assertTrue($items->firstWhere('id', 'tara')['status'] === 'live');
+        $this->assertTrue($items->firstWhere('id', 'stripe')['status'] === 'live');
+        $this->assertTrue($items->firstWhere('id', 'paystar')['status'] === 'live');
+        $this->assertTrue($items->firstWhere('id', 'shepa')['status'] === 'live');
         $this->assertTrue($items->contains(fn ($row) => ($row['id'] ?? '') === 'perfect_money'));
         $this->assertTrue($items->contains(fn ($row) => ($row['id'] ?? '') === 'ircryptopay'));
+        $scaffoldLeft = $items->filter(fn ($row) => ($row['status'] ?? '') === 'scaffold')->pluck('id')->all();
+        $this->assertSame([], $scaffoldLeft);
     }
 
-    public function test_scaffold_toggle_and_settings_round_trip(): void
+    public function test_tara_toggle_and_settings_round_trip(): void
     {
         $this->postJson('/api/v1/payments/hub/tara/toggle', ['enabled' => true])->assertOk();
         $this->assertTrue(app(PaymentGatewaySettingsService::class)->isEnabled($this->tenant->id, 'tara'));
 
-        $this->postJson('/api/v1/payments/gateways/tara', [
+        $saved = $this->postJson('/api/v1/payments/gateways/tara', [
             'enabled' => true,
             'settings' => [
                 'username' => 'u1',
                 'password' => 'p1',
                 'sandbox' => true,
             ],
-        ])->assertOk()->assertJsonPath('settings.has_password', true);
+        ])->assertOk();
+        $this->assertTrue((bool) data_get($saved->json(), 'data.settings.has_password', data_get($saved->json(), 'settings.has_password')));
 
         $test = $this->postJson('/api/v1/payments/gateways/tara/test')->assertOk();
-        $this->assertTrue((bool) data_get($test->json(), 'data.ok'));
+        $this->assertTrue((bool) data_get($test->json(), 'data.ok', data_get($test->json(), 'ok')));
     }
 
     public function test_idpay_driver_request_and_registry_live(): void
     {
         $registry = app(GatewayDriverRegistry::class);
         $this->assertSame('live', $registry->get('idpay')?->status());
-        $this->assertSame('scaffold', $registry->get('stripe')?->status());
+        $this->assertSame('live', $registry->get('stripe')?->status());
+        $this->assertSame('live', $registry->get('coinpayments')?->status());
 
         Http::fake([
             'api.idpay.ir/*' => Http::response(['id' => 'pay_1', 'link' => 'https://idpay.ir/p/pay_1'], 200),

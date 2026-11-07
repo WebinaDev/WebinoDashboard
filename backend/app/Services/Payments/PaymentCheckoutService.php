@@ -120,25 +120,32 @@ class PaymentCheckoutService
             throw new \RuntimeException((string) ($result['message'] ?? 'Gateway request failed'));
         }
 
+        $meta = $this->withExtra(array_merge(
+            ['stub' => false, 'amount_rial' => $amountRial],
+            is_array($result['meta'] ?? null) ? $result['meta'] : [],
+        ));
+        $redirect = (string) $result['redirect_url'];
         $intent = PaymentIntent::query()->create([
             'tenant_id' => $order->tenant_id,
             'order_id' => $order->id,
             'provider' => $provider,
             'status' => 'created',
-            'redirect_url' => (string) $result['redirect_url'],
-            'meta' => $this->withExtra(array_merge(
-                ['stub' => false, 'amount_rial' => $amountRial],
-                is_array($result['meta'] ?? null) ? $result['meta'] : [],
-            )),
+            'redirect_url' => $redirect,
+            'meta' => $meta,
         ]);
+        if ($redirect === 'form-bridge' || ! empty($meta['form_action'])) {
+            $nonce = (string) ($meta['state'] ?? '');
+            $redirect = url('/api/v1/payments/bridge/'.$intent->id.($nonce !== '' ? '?nonce='.urlencode($nonce) : ''));
+            $intent->update(['redirect_url' => $redirect, 'meta' => array_merge($meta, ['bridge' => true])]);
+        }
 
         $order->update([
             'payment_provider' => $provider,
-            'payment_url' => (string) $result['redirect_url'],
+            'payment_url' => $redirect,
             'status' => 'awaiting_gateway',
         ]);
 
-        return $intent;
+        return $intent->fresh() ?? $intent;
     }
 
     /**

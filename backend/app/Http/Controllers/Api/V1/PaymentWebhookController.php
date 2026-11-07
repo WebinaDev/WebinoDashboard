@@ -66,7 +66,16 @@ class PaymentWebhookController extends Controller
                         ->orWhere('meta->cryptomus_uuid', $intentId)
                         ->orWhere('meta->coingate_id', $intentId)
                         ->orWhere('meta->stripe_session_id', $intentId)
-                        ->orWhere('meta->paypal_order_id', $intentId);
+                        ->orWhere('meta->paypal_order_id', $intentId)
+                        ->orWhere('meta->coinpayments_txn_id', $intentId)
+                        ->orWhere('meta->binance_merchant_trade_no', $intentId)
+                        ->orWhere('meta->ircryptopay_id', $intentId)
+                        ->orWhere('meta->perfect_money_payment_id', $intentId)
+                        ->orWhere('meta->payeer_order_id', $intentId)
+                        ->orWhere('meta->shepa_token', $intentId)
+                        ->orWhere('meta->jibit_purchase_id', $intentId)
+                        ->orWhere('meta->toman_uuid', $intentId)
+                        ->orWhere('meta->paystar_ref_num', $intentId);
                 })
                 ->latest()
                 ->first();

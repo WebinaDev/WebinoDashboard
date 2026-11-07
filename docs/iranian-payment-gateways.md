@@ -8,10 +8,10 @@ The admin **Payments hub** is at `/dashboard/settings/shop/payments` (alias `/sh
 
 - Hub toggles enable/disable; each provider has a settings page at `/dashboard/settings/shop/{slug}` driven by catalog field schemas.
 - `status: live` gateways have request/verify drivers (or dedicated clients for Digipay / Snapp / Torob). `status: scaffold` store credentials and refuse checkout with «به‌زودی» until a real driver lands.
-- Live cash IPG drivers: Zarinpal, Zibal, IDPay, NextPay, PayPing, Pay.ir, Vandar, Aghayepardakht, BitPay.ir, Saman (SEP), Sadad, Parsian, Mellat.
-- Live FX / crypto: Stripe Checkout, PayPal Orders v2, NOWPayments, Cryptomus, CoinGate (require `rial_per_unit` when currency is not IRR/IRT).
-- Live BNPL/UPG: Digipay, Snapp Pay, Torob Pay. Local: wallet, C2C, COD, Bale Pay, Basalam Pay.
-- Still `scaffold` (no reliable public merchant docs for a full driver, or incomplete API surface): Paystar, Shepa, Jibit, Toman, Tara, Zarinplus, Parspal, Payfa, EasyPay, Iran Wallet, Asan Pardakht, Pasargad, Sepehr, Saman Kish, Iran Kish, Saderat, Omidpay, Perfect Money, Payeer, Binance Pay, CoinPayments, IRCrypto Pay.
+- Live cash IPG drivers: Zarinpal, Zibal, IDPay, NextPay, PayPing, Pay.ir, Vandar, Aghayepardakht, BitPay.ir, Paystar, Shepa, Jibit, Toman, Zarinplus, Parspal, Payfa, EasyPay, Iran Wallet, Saman (SEP), Sadad, Parsian, Mellat, Asan Pardakht, Pasargad, Sepehr, Saman Kish, Iran Kish, Saderat, Omidpay.
+- Live FX / crypto: Stripe Checkout, PayPal Orders v2, NOWPayments, Cryptomus, CoinGate, Perfect Money, Payeer, Binance Pay, CoinPayments, IRCrypto Pay (require `rial_per_unit` when currency is not IRR/IRT).
+- Live BNPL/UPG: Digipay, Snapp Pay, Torob Pay, Tara. Local: wallet, C2C, COD, Bale Pay, Basalam Pay.
+- Catalog has no remaining `scaffold` payment gateways; POST bank pages use the payment form bridge (`GET /api/v1/payments/bridge/{intent}`).
 - Credentials are stored in module settings. The API masks secrets (`has_*` flags).
 - Checkout lists a gateway only when it is enabled, configured, live, and allowed for نقدی or اقساطی.
 - POS online tenders map to hub gateway ids; disabling a gateway prunes it from `PosSettings` mappings.

@@ -7,12 +7,16 @@ use App\Services\Payments\Drivers\BitpayDriver;
 use App\Services\Payments\Drivers\CoingateDriver;
 use App\Services\Payments\Drivers\CryptomusDriver;
 use App\Services\Payments\Drivers\GatewayDriverRegistry;
+use App\Services\Payments\Drivers\JibitDriver;
 use App\Services\Payments\Drivers\MellatDriver;
 use App\Services\Payments\Drivers\NowpaymentsDriver;
 use App\Services\Payments\Drivers\ParsianDriver;
 use App\Services\Payments\Drivers\PaypalDriver;
+use App\Services\Payments\Drivers\PaystarDriver;
+use App\Services\Payments\Drivers\PerfectMoneyDriver;
 use App\Services\Payments\Drivers\SadadDriver;
 use App\Services\Payments\Drivers\SamanDriver;
+use App\Services\Payments\Drivers\ShepaDriver;
 use App\Services\Payments\Drivers\StripeDriver;
 use App\Services\Payments\Drivers\VandarDriver;
 use App\Services\Payments\PaymentGatewayCatalog;
@@ -28,14 +32,18 @@ class PaymentGatewayDriversTest extends TestCase
         foreach ([
             'vandar', 'aghayepardakht', 'bitpay', 'saman', 'sadad', 'parsian', 'mellat',
             'stripe', 'paypal', 'nowpayments', 'cryptomus', 'coingate',
+            'shepa', 'paystar', 'jibit', 'parspal', 'payfa', 'easypay', 'zarinplus', 'toman', 'tara',
+            'asanpardakht', 'pasargad', 'sepehr', 'saderat', 'samankish', 'irankish', 'omidpay',
+            'iran_wallet', 'perfect_money', 'payeer', 'coinpayments', 'binance_pay', 'ircryptopay',
         ] as $code) {
             $this->assertTrue($registry->has($code), $code);
             $this->assertSame('live', $registry->get($code)?->status(), $code);
             $this->assertFalse($catalog->isScaffold($code), $code);
         }
-        $this->assertTrue($catalog->isScaffold('paystar'));
-        $this->assertTrue($catalog->isScaffold('shepa'));
-        $this->assertTrue($catalog->isScaffold('asanpardakht'));
+        $this->assertSame([], array_values(array_filter(
+            $catalog->ids(),
+            fn (string $id) => $catalog->isScaffold($id)
+        )));
     }
 
     public function test_vandar_request_and_verify(): void
@@ -273,5 +281,105 @@ class PaymentGatewayDriversTest extends TestCase
         $this->assertTrue($req2['ok']);
         $ver2 = $cg->verify(['api_token' => 't', 'sandbox' => false], 400000, ['id' => '55'], $req2['meta']);
         $this->assertTrue($ver2['ok']);
+    }
+
+    public function test_shepa_and_paystar_flows(): void
+    {
+        Http::fake([
+            'sandbox.shepa.com/api/v1/token' => Http::response([
+                'success' => true,
+                'result' => ['token' => 'SH1', 'url' => 'https://sandbox.shepa.com/v1/SH1'],
+            ]),
+            'sandbox.shepa.com/api/v1/verify' => Http::response([
+                'success' => true,
+                'result' => ['refid' => 'RSH'],
+            ]),
+            'core.paystar.ir/api/pardakht/create' => Http::response([
+                'status' => 1,
+                'data' => ['token' => 'PST', 'ref_num' => 'REF9'],
+            ]),
+            'core.paystar.ir/api/pardakht/verify' => Http::response(['status' => 1]),
+        ]);
+        $shepa = new ShepaDriver;
+        $req = $shepa->request(['api_key' => 'k', 'sandbox' => true], 10000, 'https://cb.test', 'd');
+        $this->assertTrue($req['ok']);
+        $this->assertSame('SH1', $req['authority']);
+        $ver = $shepa->verify(['api_key' => 'k', 'sandbox' => true], 10000, ['status' => 'success', 'token' => 'SH1'], $req['meta']);
+        $this->assertTrue($ver['ok']);
+        $this->assertSame('RSH', $ver['ref_id']);
+
+        $paystar = new PaystarDriver;
+        $req2 = $paystar->request(['api_key' => 'gw', 'sign_key' => 'sk'], 20000, 'https://cb.test', 'd', ['order_id' => '42']);
+        $this->assertTrue($req2['ok']);
+        $this->assertSame('REF9', $req2['authority']);
+        $ver2 = $paystar->verify(
+            ['api_key' => 'gw', 'sign_key' => 'sk'],
+            20000,
+            ['status' => 1, 'ref_num' => 'REF9', 'card_number' => '6037-****', 'tracking_code' => 'TR1'],
+            $req2['meta']
+        );
+        $this->assertTrue($ver2['ok']);
+        $this->assertSame('TR1', $ver2['ref_id']);
+    }
+
+    public function test_jibit_token_purchase_and_perfect_money_form_bridge(): void
+    {
+        Http::fake([
+            'napi.jibit.ir/ppg/v3/tokens' => Http::response(['accessToken' => 'jt']),
+            'napi.jibit.ir/ppg/v3/purchases' => Http::response([
+                'purchaseId' => 'JP1',
+                'pspSwitchingUrl' => 'https://jibit.ir/pay/JP1',
+            ]),
+            'napi.jibit.ir/ppg/v3/purchases/JP1/verify' => Http::response([
+                'status' => 'SUCCESSFUL',
+                'pspReferenceNumber' => 'PR1',
+            ]),
+        ]);
+        $jibit = new JibitDriver;
+        $req = $jibit->request(['api_key' => 'a', 'secret_key' => 's'], 15000, 'https://cb.test', 'd', ['order_id' => '9']);
+        $this->assertTrue($req['ok']);
+        $this->assertSame('JP1', $req['authority']);
+        $ver = $jibit->verify(['api_key' => 'a', 'secret_key' => 's'], 15000, ['status' => 'SUCCESSFUL', 'purchaseId' => 'JP1'], $req['meta']);
+        $this->assertTrue($ver['ok']);
+        $this->assertSame('PR1', $ver['ref_id']);
+
+        $pm = new PerfectMoneyDriver;
+        $missing = $pm->request(['payee_account' => 'U1', 'passphrase' => 'p', 'currency' => 'USD', 'rial_per_unit' => 0], 100000, 'https://cb.test', 'd');
+        $this->assertFalse($missing['ok']);
+        $req2 = $pm->request([
+            'payee_account' => 'U123',
+            'passphrase' => 'secret',
+            'currency' => 'USD',
+            'rial_per_unit' => 500000,
+            'title' => 'Shop',
+        ], 500000, 'https://shop.test/api/v1/payments/callback/perfect_money/1', 'Order', ['order_id' => '77']);
+        $this->assertTrue($req2['ok']);
+        $this->assertSame('form-bridge', $req2['redirect_url']);
+        $this->assertSame('https://perfectmoney.com/api/step1.asp', $req2['meta']['form_action']);
+        $this->assertSame('77', $req2['meta']['form_fields']['PAYMENT_ID']);
+
+        $pass = strtoupper(md5('secret'));
+        $callback = [
+            'PAYMENT_ID' => '77',
+            'PAYEE_ACCOUNT' => 'U123',
+            'PAYMENT_AMOUNT' => '1.00',
+            'PAYMENT_UNITS' => 'USD',
+            'PAYMENT_BATCH_NUM' => 'B9',
+            'PAYER_ACCOUNT' => 'U999',
+            'TIMESTAMPGMT' => '1700000000',
+        ];
+        $callback['V2_HASH'] = strtoupper(md5(implode(':', [
+            $callback['PAYMENT_ID'],
+            $callback['PAYEE_ACCOUNT'],
+            $callback['PAYMENT_AMOUNT'],
+            $callback['PAYMENT_UNITS'],
+            $callback['PAYMENT_BATCH_NUM'],
+            $callback['PAYER_ACCOUNT'],
+            $pass,
+            $callback['TIMESTAMPGMT'],
+        ])));
+        $ver2 = $pm->verify(['payee_account' => 'U123', 'passphrase' => 'secret'], 500000, $callback, $req2['meta']);
+        $this->assertTrue($ver2['ok']);
+        $this->assertSame('B9', $ver2['ref_id']);
     }
 }
