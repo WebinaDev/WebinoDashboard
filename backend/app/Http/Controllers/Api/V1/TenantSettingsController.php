@@ -359,6 +359,7 @@ class TenantSettingsController extends Controller
                 'admin_email' => '',
                 'timezone' => 'Asia/Tehran',
                 'enamad_file' => '',
+                'enamad_html' => '',
             ],
             'site.membership' => \App\Services\Membership\MembershipService::defaults(),
             'site.privacy' => [
@@ -436,6 +437,7 @@ class TenantSettingsController extends Controller
             'admin_email' => (string) ($stored['admin_email'] ?? ''),
             'timezone' => (string) ($stored['timezone'] ?? 'Asia/Tehran'),
             'enamad_file' => \App\Support\EnamadFile::normalize($stored['enamad_file'] ?? ''),
+            'enamad_html' => \App\Support\EnamadFile::sanitizeHtml((string) ($stored['enamad_html'] ?? '')),
         ];
     }
 
@@ -454,6 +456,9 @@ class TenantSettingsController extends Controller
             'enamad_file' => array_key_exists('enamad_file', $input)
                 ? \App\Support\EnamadFile::normalize($input['enamad_file'])
                 : \App\Support\EnamadFile::normalize($previous['enamad_file'] ?? ''),
+            'enamad_html' => array_key_exists('enamad_html', $input)
+                ? \App\Support\EnamadFile::sanitizeHtml((string) $input['enamad_html'])
+                : \App\Support\EnamadFile::sanitizeHtml((string) ($previous['enamad_html'] ?? '')),
         ];
         $settings->put($tenantId, 'settings', 'site.general', $clean);
         $tenant = \App\Models\Tenant::query()->find($tenantId);

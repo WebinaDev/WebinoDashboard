@@ -28,4 +28,24 @@ final class EnamadFile
 
         return response('', 200, $headers + ['Cache-Control' => 'public, max-age=60']);
     }
+
+    /**
+     * Keep only the eNamad/Samandehi-style anchor+img markup admins paste into settings.
+     * Strips scripts, handlers, and non-http(s) URLs. Caps length for storage.
+     */
+    public static function sanitizeHtml(string $raw): string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return '';
+        }
+        $raw = mb_substr($raw, 0, 4000);
+        $allowed = '<a><img><span><div>';
+        $html = strip_tags($raw, $allowed);
+        // Drop inline event handlers and javascript: URLs.
+        $html = preg_replace('/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? '';
+        $html = preg_replace('/\s(href|src)\s*=\s*("|\')\s*javascript:[^"\']*\2/i', '', $html) ?? '';
+
+        return trim($html);
+    }
 }

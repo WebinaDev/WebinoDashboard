@@ -40,6 +40,9 @@ class PublicSiteController extends Controller
             'account_creation' => true,
         ]);
         $shopGeneral = ShopSettings::getGeneral((int) $tenant->id);
+        $siteGeneral = $settings->get((int) $tenant->id, 'settings', 'site.general', [
+            'enamad_html' => '',
+        ]);
         $currency = \App\Support\Currency::normalize((string) ($tenant->default_currency ?? 'IRT'), 'IRT');
         $guestCheckout = ! empty($privacy['guest_checkout']) || ! empty($shopGeneral['guest_checkout']);
 
@@ -79,6 +82,7 @@ class PublicSiteController extends Controller
                     'register_enabled' => (bool) ($otp['otp_register_enabled'] ?? false),
                     'length' => (int) ($otp['otp_length'] ?? 5),
                 ],
+                'enamad_html' => \App\Support\EnamadFile::sanitizeHtml((string) ($siteGeneral['enamad_html'] ?? '')),
             ],
         ])->header('Cache-Control', 'public, max-age=60, s-maxage=120');
     }

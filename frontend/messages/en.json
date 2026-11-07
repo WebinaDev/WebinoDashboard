@@ -2524,7 +2524,9 @@
       "timezone": "Timezone",
       "enamad_file": "eNamad verification file",
       "enamad_hint": "Enter the eNamad number only. An empty public text file is published at the site root, for example 4534534.txt.",
-      "enamad_public": "Public address: /{file}"
+      "enamad_public": "Public address: /{file}",
+      "enamad_html": "eNamad footer badge (HTML)",
+      "enamad_html_hint": "Paste the eNamad embed code. It appears in the site footer and can also be edited on the footer template."
     },
     "site_membership": {
       "title": "Premium membership",

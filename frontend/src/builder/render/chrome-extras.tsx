@@ -177,11 +177,27 @@ export function splitSeals(raw: unknown): string[] {
 }
 
 export function TrustSealSlider({ p }: { p: P }) {
-  const codes = splitSeals(p.trustSeals)
+  const [siteHtml, setSiteHtml] = useState("")
+  const fromProps = String(p.trustSeals ?? "").trim()
+  const codes = splitSeals(fromProps || siteHtml)
   const ready = useAfterLoad()
   const track = useRef<HTMLDivElement | null>(null)
   const [safe, setSafe] = useState<string[]>([])
-  useEffect(() => { if (ready) setSafe(codes.map(sanitizeSealHtml).filter(Boolean)) }, [ready, String(p.trustSeals ?? "")]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (fromProps) return
+    let off = false
+    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    fetch(`${base}/api/v1/public/tenant`, { headers: { Accept: "application/json" }, credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (off) return
+        const html = typeof j?.data?.enamad_html === "string" ? j.data.enamad_html.trim() : ""
+        if (html) setSiteHtml(html)
+      })
+      .catch(() => {})
+    return () => { off = true }
+  }, [fromProps])
+  useEffect(() => { if (ready) setSafe(codes.map(sanitizeSealHtml).filter(Boolean)) }, [ready, fromProps, siteHtml]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const el = track.current
     if (!el || safe.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
