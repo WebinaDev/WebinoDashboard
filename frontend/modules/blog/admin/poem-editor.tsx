@@ -129,6 +129,22 @@ export function PoemEditor({ initial, terms, onDone, onError, save }: Props) {
         <p className="text-muted-foreground max-w-xl text-sm">{t("editor_hint")}</p>
         <TooltipProvider delayDuration={200}>
           <div className="poem-toolbar">
+            <div className="poem-toolbar__status" role="group" aria-label={t("access_type")}>
+              <button
+                type="button"
+                data-on={!f.flags.is_premium}
+                onClick={() => set("flags", { ...f.flags, is_premium: false })}
+              >
+                {t("access_free")}
+              </button>
+              <button
+                type="button"
+                data-on={!!f.flags.is_premium}
+                onClick={() => set("flags", { ...f.flags, is_premium: true })}
+              >
+                {t("access_premium")}
+              </button>
+            </div>
             <div className="poem-toolbar__status" role="group" aria-label={t("status")}>
               <button
                 type="button"
@@ -325,6 +341,30 @@ export function PoemEditor({ initial, terms, onDone, onError, save }: Props) {
         </section>
 
         <aside className="poem-side" aria-label={t("meta_aside")}>
+          <SidePanel title={t("panel_access")} defaultOpen>
+            <p className="text-muted-foreground text-xs leading-relaxed">{t("access_hint")}</p>
+            <div className="poem-toolbar__status poem-access" role="radiogroup" aria-label={t("access_type")}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!f.flags.is_premium}
+                data-on={!f.flags.is_premium}
+                onClick={() => set("flags", { ...f.flags, is_premium: false })}
+              >
+                {t("access_free")}
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!!f.flags.is_premium}
+                data-on={!!f.flags.is_premium}
+                onClick={() => set("flags", { ...f.flags, is_premium: true })}
+              >
+                {t("access_premium")}
+              </button>
+            </div>
+          </SidePanel>
+
           <SidePanel title={t("panel_identity")} defaultOpen>
             <label className="poem-field">
               <span>{t("slug")}</span>
@@ -404,6 +444,7 @@ export function PoemEditor({ initial, terms, onDone, onError, save }: Props) {
                 ["is_new", "flag_is_new"],
                 ["not_performed", "flag_not_performed"],
                 ["rewritten", "flag_rewritten"],
+                ["is_short", "flag_is_short"],
               ] as const
             ).map(([key, labelKey]) => (
               <label key={key} className="poem-check">

@@ -2,6 +2,7 @@ export type SettingsArea = "site" | "shop"
 
 export type SettingsUnitId =
   | "site-general"
+  | "site-membership"
   | "site-security"
   | "site-ai"
   | "site-analytics"
@@ -54,6 +55,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         route: "/dashboard/settings/site/general",
       },
       {
+        id: "membership",
+        titleFa: "اشتراک ویژه",
+        titleEn: "Premium membership",
+        route: "/dashboard/settings/site/membership",
+      },
+      {
         id: "privacy",
         titleFa: "حریم خصوصی",
         titleEn: "Privacy",
@@ -76,12 +83,6 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "استایل (Style)",
         titleEn: "Style",
         route: "/dashboard/settings/site/style",
-      },
-      {
-        id: "highlights",
-        titleFa: "هایلایت‌ها",
-        titleEn: "Highlights",
-        route: "/dashboard/settings/site/highlights",
       },
       {
         id: "system-logs",
@@ -286,12 +287,6 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "دیدگاه‌ها",
         titleEn: "Reviews",
         route: "/dashboard/settings/shop/reviews",
-      },
-      {
-        id: "stories",
-        titleFa: "هایلایت‌ها",
-        titleEn: "Highlights",
-        route: "/dashboard/settings/shop/stories",
       },
       {
         id: "maps",

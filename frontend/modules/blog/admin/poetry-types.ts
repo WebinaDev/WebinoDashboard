@@ -23,6 +23,8 @@ export type PoetryFlags = {
   is_new?: boolean
   not_performed?: boolean
   rewritten?: boolean
+  is_premium?: boolean
+  is_short?: boolean
 }
 
 export type PoetryLink = { label?: string; url: string }
@@ -54,6 +56,7 @@ export type PoemListRow = {
   status: string
   view_count: number
   occasion?: PoetryTerm | null
+  flags?: PoetryFlags
 }
 
 export const emptyPoem = (): PoemForm => ({

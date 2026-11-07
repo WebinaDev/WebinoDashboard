@@ -33,7 +33,7 @@ const CAROUSEL_FIELDS: FieldDef[] = [
 ]
 
 export const POETRY_WIDGET_TYPES = [
-  "poetry-hero", "story-strip", "poem-list", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
+  "poetry-hero", "story-strip", "poem-list", "short-poem-list", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
 ] as const
 
 const DECOR_FRAMES = [{ value: "rose-arch", label: "محراب گل‌سرخی" }, { value: "arch", label: "محرابی ساده" }, { value: "none", label: "بدون قاب" }]
@@ -88,6 +88,12 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "title", label: "عنوان بخش" },
       { kind: "number", key: "count", label: "تعداد اشعار (خودکار)", min: 1, max: 24 },
       { kind: "select", key: "sort", label: "ترتیب (خودکار)", options: [{ value: "", label: "تازه‌ترین" }, { value: "popular", label: "پربازدیدترین" }] },
+      { kind: "select", key: "flag", label: "فیلتر پرچم", options: [
+        { value: "", label: "همه اشعار" },
+        { value: "is_short", label: "اشعار کوتاه" },
+        { value: "is_premium", label: "اشعار ویژه" },
+        { value: "is_new", label: "جدید" },
+      ] },
       { kind: "link", key: "detailHref", label: "صفحه شعر" },
       { kind: "repeater", key: "items", label: "اشعار دستی (خالی = خودکار از ماژول شعر)", fields: [
         { key: "title", label: "عنوان", kind: "text" }, { key: "tag", label: "مناسبت", kind: "text" },
@@ -97,7 +103,19 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "moreLabel", label: "متن «همه اشعار»" }, { kind: "link", key: "moreHref", label: "پیوند همه اشعار" },
       tone, pattern, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("poem-list", { title: "آخرین اشعار", count: 6, sort: "", detailHref: "/poem?poem={slug}", items: "", readLabel: "خواندن شعر", downloadLabel: "دانلود صوت", moreLabel: "همه اشعار", moreHref: "/poems", tone: "light" }),
+    create: () => node("poem-list", { title: "آخرین اشعار", count: 6, sort: "", flag: "", detailHref: "/poem?poem={slug}", items: "", readLabel: "خواندن شعر", downloadLabel: "دانلود صوت", moreLabel: "همه اشعار", moreHref: "/poems", tone: "glass" }),
+  },
+  {
+    type: "short-poem-list", label: "اشعار کوتاه", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "number", key: "count", label: "تعداد", min: 1, max: 24 },
+      { kind: "select", key: "sort", label: "ترتیب", options: [{ value: "", label: "تازه‌ترین" }, { value: "popular", label: "پربازدیدترین" }] },
+      { kind: "link", key: "detailHref", label: "صفحه شعر" },
+      { kind: "text", key: "moreLabel", label: "متن «همه»" }, { kind: "link", key: "moreHref", label: "پیوند همه اشعار کوتاه" },
+      tone, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("short-poem-list", { title: "اشعار کوتاه", count: 6, sort: "", flag: "is_short", detailHref: "/poem?poem={slug}", moreLabel: "همه اشعار کوتاه", moreHref: "/poems?flag=is_short", tone: "glass" }),
   },
   {
     type: "book-banner", label: "بنر کتاب + «خبرم کن»", category: "content",

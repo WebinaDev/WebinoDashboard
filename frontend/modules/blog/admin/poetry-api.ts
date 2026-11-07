@@ -59,6 +59,7 @@ export type PoetryMediaRow = {
   duration?: string | null
   sort: number
   status: "draft" | "published"
+  is_premium?: boolean
 }
 
 export type PoetryMediaForm = {
@@ -75,6 +76,7 @@ export type PoetryMediaForm = {
   duration: string
   sort: number
   status: "draft" | "published"
+  is_premium: boolean
 }
 
 export const emptyPoetryMedia = (kind: "audio" | "video"): PoetryMediaForm => ({
@@ -90,4 +92,5 @@ export const emptyPoetryMedia = (kind: "audio" | "video"): PoetryMediaForm => ({
   duration: "",
   sort: 0,
   status: "published",
+  is_premium: false,
 })

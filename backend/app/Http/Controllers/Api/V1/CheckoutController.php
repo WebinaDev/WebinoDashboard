@@ -141,9 +141,14 @@ class CheckoutController extends Controller
             }
             if ($applied) {
                 $discount = $applied['discount_minor'];
-                $coupon = $applied['coupon'];
-                $couponId = $coupon->id;
-                $couponCode = $coupon->code;
+                $coupon = $applied['coupon'] ?? null;
+                if ($coupon) {
+                    $couponId = $coupon->id;
+                    $couponCode = $coupon->code;
+                } elseif (($applied['source'] ?? null) === 'membership') {
+                    $couponId = null;
+                    $couponCode = 'MEMBERSHIP';
+                }
             }
 
             $stateCode = $checkoutMeta['shipping_state_code'] ?? null;

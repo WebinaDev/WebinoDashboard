@@ -353,6 +353,7 @@ export const WIDGET_CATALOG: Record<string, CatalogEntry> = {
   "poetry-page-hero": { category: "poetry", icon: "ScrollText" },
   "poetry-nav": { category: "poetry", icon: "PillBottle" },
   "poem-list": { category: "poetry", icon: "ListMusic" },
+  "short-poem-list": { category: "poetry", icon: "ListMusic" },
   "poem-archive": { category: "poetry", icon: "Library" },
   "poem-search": { category: "poetry", icon: "SearchCheck" },
   "poem-detail": { category: "poetry", icon: "BookOpenText" },

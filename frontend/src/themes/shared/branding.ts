@@ -202,6 +202,9 @@ function magazineAtmosphereCss(branding?: Partial<SiteBranding> | null): string 
   const footer = p.footer ?? PARISMA_PALETTE.footer!
   const footerFg = isLightHex(footer) ? navy : "#ffffff"
   const headerFg = isLightHex(header) ? navy : "#ffffff"
+  // Only theme/default chrome — never paint builder widgets that render as
+  // native <header>/<footer> (poetry-nav, poetry-site-footer, wpz/wbx chrome).
+  // Bare `header`/`footer` selectors previously forced a white bar over those designs.
   return `.sf-shell{
   ${font ? `font-family:${font};` : ""}
   background:
@@ -209,14 +212,14 @@ function magazineAtmosphereCss(branding?: Partial<SiteBranding> | null): string 
     radial-gradient(ellipse 55% 40% at 0% 100%, ${navy}14, transparent 50%),
     ${p.bg};
 }
-.sf-shell header,
+.sf-shell header:not(.akx):not(.wpz):not(.wbx-foot):not([class*="akx-"]):not([class*="wpz-"]),
 .sf-shell [data-site-header]{
   background: color-mix(in srgb, ${header} 92%, transparent);
   color: ${headerFg};
   backdrop-filter: blur(14px) saturate(1.15);
   border-bottom: 1px solid ${p.border};
 }
-.sf-shell footer,
+.sf-shell footer:not(.akx):not(.wpz):not(.wbx-foot):not([class*="akx-"]):not([class*="wpz-"]),
 .sf-shell [data-site-footer]{
   background: ${footer};
   color: ${footerFg};

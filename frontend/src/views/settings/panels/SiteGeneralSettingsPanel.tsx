@@ -14,6 +14,7 @@ type Payload = {
   admin_email?: string
   timezone?: string
   enamad_file?: string
+  enamad_html?: string
 }
 
 function enamadCode(raw: string): string {
@@ -87,6 +88,18 @@ export function SiteGeneralSettingsPanel() {
                 {t("enamad_public", { file: `${enamadCode(draft.enamad_file ?? "")}.txt` })}
               </p>
             ) : null}
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="enamad-html">{t("enamad_html")}</Label>
+            <textarea
+              id="enamad-html"
+              dir="ltr"
+              className="border-input bg-background min-h-28 w-full rounded-md border px-3 py-2 font-mono text-xs"
+              placeholder="<a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=…'>"
+              value={draft.enamad_html ?? ""}
+              onChange={(e) => setDraft({ ...draft, enamad_html: e.target.value })}
+            />
+            <p className="text-muted-foreground text-xs">{t("enamad_html_hint")}</p>
           </div>
         </CardContent>
       </Card>

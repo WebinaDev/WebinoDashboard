@@ -1648,8 +1648,13 @@
   background: conic-gradient(from 210deg, #c9a24a, #b4101e, #5a0f17, #c9a24a);
   box-shadow: 0 6px 14px -6px rgba(180, 16, 30, 0.4);
 }
+/* Poetry sites sit on burgundy/dark grounds — labels must stay light (never near-black). */
+.sfc-stories--poetry .sfc-stories__heading,
 .sfc-stories--poetry .sfc-story__label {
-  color: #2a0a0d;
+  color: #f3e6c8;
+}
+.sfc-stories--poetry .sfc-story--card .sfc-story__label {
+  color: #fff;
 }
 
 /* Magazine / poetry highlights: rectangular product-like cards in a carousel (not Instagram rings). */

@@ -77,6 +77,7 @@ class PoetryMediaAdminController extends Controller
             'duration' => ['nullable', 'string', 'max:16'],
             'sort' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'status' => ['nullable', Rule::in(['draft', 'published'])],
+            'is_premium' => ['nullable', 'boolean'],
         ]);
         // Cross-tenant ids are rejected (PoetryTerm/PoetryPoem are tenant-scoped; media_assets checked explicitly).
         if (! empty($data['occasion_id']) && ! PoetryTerm::query()->where('kind', 'occasion')->whereKey($data['occasion_id'])->exists()) {

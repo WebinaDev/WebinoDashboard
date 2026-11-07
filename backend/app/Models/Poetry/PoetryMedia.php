@@ -13,9 +13,9 @@ class PoetryMedia extends Model
 
     public const KINDS = ['audio', 'video'];
 
-    protected $fillable = ['tenant_id', 'title', 'kind', 'media_id', 'file_url', 'external_url', 'cover', 'occasion_id', 'poem_id', 'reciter', 'duration', 'sort', 'status'];
+    protected $fillable = ['tenant_id', 'title', 'kind', 'media_id', 'file_url', 'external_url', 'cover', 'occasion_id', 'poem_id', 'reciter', 'duration', 'sort', 'status', 'is_premium'];
 
-    protected $casts = ['sort' => 'integer', 'play_count' => 'integer', 'media_id' => 'integer', 'poem_id' => 'integer', 'occasion_id' => 'integer'];
+    protected $casts = ['sort' => 'integer', 'play_count' => 'integer', 'media_id' => 'integer', 'poem_id' => 'integer', 'occasion_id' => 'integer', 'is_premium' => 'boolean'];
 
     protected static function booted(): void
     {

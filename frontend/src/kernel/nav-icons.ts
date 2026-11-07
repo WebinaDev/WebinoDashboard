@@ -114,6 +114,7 @@ const PATH_ICONS: Record<string, LucideIcon> = {
   c2c: CreditCard,
   wallet: Wallet,
   "ai-content": Sparkles,
+  highlights: Sparkles,
   "bots/bale": Bot,
   "bots/telegram": Bot,
   "bots/eitaa": Bot,

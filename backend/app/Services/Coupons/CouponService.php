@@ -91,6 +91,30 @@ class CouponService
             }
         }
 
+        $membership = app(\App\Services\Membership\MembershipService::class);
+        if ($userId) {
+            $user = \App\Models\User::query()->find($userId);
+            if ($user && $membership->isActive($user)) {
+                $percent = $membership->productDiscountPercent((int) $user->tenant_id);
+                if ($percent > 0) {
+                    $discount = (int) floor($subtotalMinor * $percent / 100);
+                    $score = [$discount, 0];
+                    if ($bestScore === null || ($score <=> $bestScore) > 0) {
+                        $best = [
+                            'discount_minor' => $discount,
+                            'coupon' => null,
+                            'free_shipping' => false,
+                            'shipping_percent' => 0,
+                            'individual_use' => false,
+                            'source' => 'membership',
+                            'label' => 'تخفیف اشتراک ویژه',
+                        ];
+                        $bestScore = $score;
+                    }
+                }
+            }
+        }
+
         return $best;
     }
 

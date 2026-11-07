@@ -26,9 +26,11 @@
 .wbx-account-menu a:hover { background: rgba(0,0,0,.05); }
 
 .wbx-foot { position: relative; isolation: isolate; }
-.wbx-foot.wbx-has-pattern::before, .wbx-foot.wbx-has-overlay::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+/* Pattern/overlay above the footer's own background; content raised above both. */
+.wbx-foot.wbx-has-pattern::before, .wbx-foot.wbx-has-overlay::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .wbx-foot.wbx-has-pattern::before { background-image: var(--wbx-pat); background-repeat: var(--wbx-pat-rep, repeat); background-size: var(--wbx-pat-size, 240px); background-position: var(--wbx-pat-pos, center); opacity: var(--wbx-pat-op, .12); }
 .wbx-foot.wbx-has-overlay::after { background: var(--wbx-ov); opacity: var(--wbx-ov-op, .6); }
+.wbx-foot > * { position: relative; z-index: 1; }
 .wbx-foot.wbx-bleed { width: 100vw !important; max-width: 100vw !important; margin-inline: calc(50% - 50vw) !important; border-radius: 0 !important; box-sizing: border-box; }
 html:has(.wbx-bleed), body:has(.wbx-bleed) { overflow-x: clip; }
 .wbx-foot :is(.akx-copy, .wpz-copy) { background: var(--wbx-copy-bg, transparent); }

@@ -54,12 +54,23 @@ class PublicPoetryController extends Controller
         return response()->json(['data' => $items->map(fn ($p) => PoetryPresenter::card($p))->all()]);
     }
 
-    public function show(string $slug): JsonResponse
+    public function show(string $slug, Request $request): JsonResponse
     {
         $poem = $this->find($slug);
         DB::table('poetry_poems')->where('id', $poem->id)->increment('view_count');
         $poem->view_count++;
         $data = PoetryPresenter::full($poem);
+        $premium = (bool) data_get($poem->flags, 'is_premium');
+        $member = app(\App\Services\Membership\MembershipService::class)->isActive($request->user());
+        $data['is_premium'] = $premium;
+        $data['premium_locked'] = $premium && ! $member;
+        if ($data['premium_locked']) {
+            $data['stanzas'] = [];
+            $data['sequence'] = [];
+            $data['media'] = [];
+            $data['external_links'] = [];
+            $data['excerpt'] = $data['excerpt'] ?: 'این شعر ویژه اعضای اشتراک است.';
+        }
         $data['related'] = $this->related($poem)->map(fn ($p) => PoetryPresenter::card($p))->all();
 
         return response()->json(['data' => $data]);
@@ -77,15 +88,34 @@ class PublicPoetryController extends Controller
         }
         $request->query('sort') === 'popular' ? $q->orderByDesc('play_count') : $q->orderBy('sort')->orderByDesc('id');
         $items = $q->limit(min(60, max(1, (int) $request->query('limit', 24))))->get();
-        $public = ['id', 'title', 'kind', 'url', 'external_url', 'embed_url', 'cover', 'reciter', 'duration', 'occasion', 'poem'];
+        $member = app(\App\Services\Membership\MembershipService::class)->isActive($request->user());
+        $public = ['id', 'title', 'kind', 'url', 'external_url', 'embed_url', 'cover', 'reciter', 'duration', 'occasion', 'poem', 'is_premium', 'premium_locked'];
 
-        return response()->json(['data' => $items->map(fn ($m) => array_intersect_key(PoetryPresenter::media($m), array_flip($public)))
-            ->filter(fn ($r) => $r['url'] || $r['external_url'])->values()->all()]);
+        return response()->json(['data' => $items->map(function ($m) use ($member, $public) {
+            $row = PoetryPresenter::media($m);
+            $poemPremium = (bool) data_get($m->poem?->flags, 'is_premium');
+            $premium = (bool) $m->is_premium || $poemPremium;
+            $locked = $premium && ! $member;
+            $row['is_premium'] = $premium;
+            $row['premium_locked'] = $locked;
+            if ($locked) {
+                $row['url'] = null;
+                $row['external_url'] = null;
+                $row['embed_url'] = null;
+                $row['file_url'] = null;
+            }
+
+            return array_intersect_key($row, array_flip($public));
+        })->filter(fn ($r) => $r['premium_locked'] || $r['url'] || $r['external_url'])->values()->all()]);
     }
 
-    public function text(string $slug)
+    public function text(string $slug, Request $request)
     {
         $poem = $this->find($slug);
+        if ((bool) data_get($poem->flags, 'is_premium')
+            && ! app(\App\Services\Membership\MembershipService::class)->isActive($request->user())) {
+            abort(403, 'این شعر ویژه اعضای اشتراک است.');
+        }
         $name = (Str::slug($poem->slug) ?: 'poem').'.txt';
 
         return response(PoetryText::plain($poem), 200, [
@@ -127,7 +157,7 @@ class PublicPoetryController extends Controller
                 ->orWhereRaw($txt('external_links')." NOT IN ('[]','null')")
                 ->orWhereHas('mediaItems', fn ($m) => $m->published()->playable()));
         }
-        if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten'], true)) {
+        if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten', 'is_premium', 'is_short'], true)) {
             $q->where('flags->'.$flag, true);
         }
         foreach (['figure', 'style'] as $kind) {
