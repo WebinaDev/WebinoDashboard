@@ -22,10 +22,16 @@ function planKeys(w: WidgetNode, keys: Set<string>) {
   const p = w.props ?? {}
   const poetry = (path: string) => keys.add(`/v1/public/poetry/${path}`)
   switch (w.type) {
-    case "poem-list": {
+    case "poem-list":
+    case "short-poem-list": {
       if (parseRows(p.items, ["title"]).some((r) => r.title)) return
       const count = Math.min(24, Math.max(1, propNum(p, "count", 6)))
-      const qs = new URLSearchParams({ per_page: String(count), ...(propStr(p, "sort") === "popular" ? { sort: "popular" } : {}) })
+      const flag = w.type === "short-poem-list" ? "is_short" : propStr(p, "flag")
+      const qs = new URLSearchParams({
+        per_page: String(count),
+        ...(propStr(p, "sort") === "popular" ? { sort: "popular" } : {}),
+        ...(flag ? { flag } : {}),
+      })
       poetry(`poems?${qs}`)
       return
     }

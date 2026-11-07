@@ -404,6 +404,8 @@ export function PoemEditor({ initial, terms, onDone, onError, save }: Props) {
                 ["is_new", "flag_is_new"],
                 ["not_performed", "flag_not_performed"],
                 ["rewritten", "flag_rewritten"],
+                ["is_premium", "flag_is_premium"],
+                ["is_short", "flag_is_short"],
               ] as const
             ).map(([key, labelKey]) => (
               <label key={key} className="poem-check">

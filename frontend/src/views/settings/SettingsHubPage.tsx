@@ -7,6 +7,7 @@ import { SettingsModulesChrome } from "@/components/settings/SettingsModulesChro
 import { defaultSettingsPath } from "@/lib/settings-nav"
 import { SecuritySettingsPanel } from "@/views/settings/panels/SecuritySettingsPanel"
 import { SiteGeneralSettingsPanel } from "@/views/settings/panels/SiteGeneralSettingsPanel"
+import { MembershipSettingsPanel } from "@/views/settings/panels/MembershipSettingsPanel"
 import { SitePrivacySettingsPanel } from "@/views/settings/panels/SitePrivacySettingsPanel"
 import { BrandStyleSettingsPanel } from "@/views/settings/panels/BrandStyleSettingsPanel"
 import { MenusSettingsPanel } from "@/views/settings/panels/MenusSettingsPanel"
@@ -56,6 +57,7 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   const path = pathname.replace(/\/$/, "")
 
   if (path.endsWith("/site/general")) return <SiteGeneralSettingsPanel />
+  if (path.endsWith("/site/membership")) return <MembershipSettingsPanel />
   if (path.endsWith("/site/privacy")) return <SitePrivacySettingsPanel />
   if (path.endsWith("/site/style")) return <BrandStyleSettingsPanel />
   if (path.endsWith("/site/menus")) return <MenusSettingsPanel />

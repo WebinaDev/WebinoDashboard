@@ -220,3 +220,50 @@ html:has(.wpz-mfw), html:has(.akx-mfw) { overflow-x: clip; }
 .wpz-product .wpz-btn-primary { margin-top: auto; width: calc(100% - 8px); max-width: none; padding: 8px 12px; font-size: .82rem; border-radius: 12px; }
 .wpz-carousel-track { padding-block: 6px 18px; align-items: stretch; }
 .wpz-occasion { border-radius: var(--ak-card-radius); }
+
+/* ── Glassmorphism (Ali Khabari phase) ── */
+.glass-box {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.glass-box:hover {
+  border-color: rgba(212, 170, 105, 0.55);
+  box-shadow:
+    0 8px 35px rgba(0, 0, 0, 0.4),
+    0 0 18px rgba(212, 170, 105, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(100, 70, 65, 0.30),
+    rgba(25, 15, 20, 0.65)
+  );
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(214, 175, 120, 0.28);
+  border-radius: 24px;
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13);
+}
+.wpz-poem-box {
+  padding: 1.1rem 1.15rem 1rem;
+}
+.wpz-tag-premium {
+  background: rgba(212, 170, 105, 0.22);
+  color: #e8c98a;
+  border: 1px solid rgba(212, 170, 105, 0.45);
+}
+.wpz-product.glass-card,
+.wpz-occasion.glass-card {
+  border-radius: 24px;
+}

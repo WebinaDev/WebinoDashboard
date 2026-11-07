@@ -29,7 +29,16 @@ type P = Record<string, unknown>
 type Term = { id: number; kind: string; slug: string; name: string; count?: number }
 type Card = { id: number; slug: string; title: string; excerpt?: string | null; occasion?: Term | null; meter?: Term | null; figures: Term[]; styles: Term[]; style_label?: string | null; pen_name?: string | null; composed_label?: string | null; view_count: number; has_media?: boolean; flags?: Record<string, boolean> | null; published_at?: string | null }
 type Block = { type: "title" | "stanza" | "refrain"; layout?: "couplet" | "single"; repeat?: number; lines: string[] }
-type Poem = Card & { melody_credit?: string | null; sequence: Block[]; media: { id: number; url: string; kind: string }[]; external_links: { label?: string; url: string }[]; related: Card[] }
+type Poem = Card & {
+  melody_credit?: string | null
+  sequence: Block[]
+  media: { id: number; url: string; kind: string }[]
+  external_links: { label?: string; url: string }[]
+  related: Card[]
+  is_premium?: boolean
+  premium_locked?: boolean
+  excerpt?: string | null
+}
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
 const fa = (v: string | number) => String(v).replace(/\d/g, (d) => FA[Number(d)])
@@ -421,8 +430,9 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
   // No file and no link → no player box at all (no placeholder play button / note).
   const links = poem.external_links.filter((l) => safeLink(l.url, "") !== "")
   const embed = links.map((l) => aparatEmbed(l.url)).find(Boolean) ?? ""
-  const hasMedia = !!(audio?.url || video?.url || links.length)
-  const tools = propBool(p, "showTools", true)
+  const locked = Boolean(poem.premium_locked)
+  const hasMedia = !locked && !!(audio?.url || video?.url || links.length)
+  const tools = propBool(p, "showTools", true) && !locked
   const blocks = poem.sequence.filter((b) => b.type !== "title")
   const copy = async () => { try { await navigator.clipboard.writeText(plain(poem)); flash("متن کپی شد") } catch { flash("کپی ممکن نشد") } }
   const share = async () => {
@@ -440,7 +450,15 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
       <article className="akx-paper" style={{ fontSize: `${18 + size * 2}px` }}>
         {propStr(p, "heading") ? <div className="akx-bism">{propStr(p, "heading")}</div> : null}
         {propBool(p, "showSubtitle", true) && sub ? <div className="akx-sub">{sub}</div> : null}
-        {blocks.map((b, i) => {
+        {locked ? (
+          <div className="akx-premium-lock glass-box" style={{ padding: "1.25rem", margin: "1rem 0", textAlign: "center" }}>
+            <p style={{ margin: 0 }}>{poem.excerpt || "این شعر ویژه اعضای اشتراک است."}</p>
+            <Link href="/membership" className="wpz-btn wpz-btn-primary" style={{ display: "inline-flex", marginTop: "0.85rem" }}>
+              عضویت ویژه
+            </Link>
+          </div>
+        ) : null}
+        {!locked && blocks.map((b, i) => {
           const prevRef = i > 0 && blocks[i - 1].type === "refrain"
           if (b.type === "refrain") return <div key={i} className="akx-br">{b.lines.map((l, j) => <span key={j}>{l}</span>)}</div>
           return (

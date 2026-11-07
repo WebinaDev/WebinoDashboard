@@ -25,6 +25,9 @@ class PoetryAdminController extends Controller
         if (in_array($request->query('status'), ['draft', 'published'], true)) {
             $q->where('status', $request->query('status'));
         }
+        if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten', 'is_premium', 'is_short'], true)) {
+            $q->where('flags->'.$flag, true);
+        }
         $page = $q->paginate(30);
 
         return response()->json(['data' => collect($page->items())->map(fn ($p) => PoetryPresenter::card($p) + ['status' => $p->status])->all(),
@@ -135,7 +138,12 @@ class PoetryAdminController extends Controller
             'term_ids' => ['nullable', 'array'], 'term_ids.*' => ['integer', Rule::exists('poetry_terms', 'id')->where('tenant_id', PoetryScope::id())->whereIn('kind', ['figure', 'style'])],
             'style_label' => ['nullable', 'string', 'max:160'], 'pen_name' => ['nullable', 'string', 'max:80'],
             'composed_label' => ['nullable', 'string', 'max:80'], 'melody_credit' => ['nullable', 'string', 'max:255'],
-            'flags' => ['nullable', 'array'], 'flags.is_new' => ['boolean'], 'flags.not_performed' => ['boolean'], 'flags.rewritten' => ['boolean'],
+            'flags' => ['nullable', 'array'],
+            'flags.is_new' => ['boolean'],
+            'flags.not_performed' => ['boolean'],
+            'flags.rewritten' => ['boolean'],
+            'flags.is_premium' => ['boolean'],
+            'flags.is_short' => ['boolean'],
             'refrain_after_each' => ['boolean'],
             'media_ids' => ['nullable', 'array'], 'media_ids.*' => ['integer'],
             'external_links' => ['nullable', 'array', 'max:10'], 'external_links.*.label' => ['nullable', 'string', 'max:80'],

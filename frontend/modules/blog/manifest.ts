@@ -77,6 +77,17 @@ export const blogManifest: ModuleManifest = {
       capability: "content.manage",
     },
     {
+      path: "poetry/short",
+      submodule: "poetry",
+      page: "poetry-short",
+      labelKey: "nav.poetry_short",
+      section: "content",
+      order: 12,
+      navGroup: "poetry",
+      navOrder: 4,
+      capability: "content.manage",
+    },
+    {
       path: "highlights",
       submodule: "highlights",
       page: "highlights",

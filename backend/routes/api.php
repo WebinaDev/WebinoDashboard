@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\V1\PublicGuestCartController;
 use App\Http\Controllers\Api\V1\PublicShopCheckoutController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\MembershipController;
 use App\Http\Controllers\Api\V1\BuilderController;
 use App\Http\Controllers\Api\V1\BuilderGlobalsController;
 use App\Http\Controllers\Api\V1\CmsController;
@@ -290,7 +291,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/poems/{slug}/text', [PublicPoetryController::class, 'text']);
             Route::get('/figures/{slug}', [PublicPoetryController::class, 'figure']);
             Route::get('/media', [PublicPoetryController::class, 'media']);
+            Route::post('/media/{media}/download', [MembershipController::class, 'downloadMedia'])
+                ->whereNumber('media')
+                ->middleware('throttle:60,1');
         });
+
+        Route::get('/membership', [MembershipController::class, 'show']);
+        Route::post('/membership/purchase', [MembershipController::class, 'purchase'])
+            ->middleware(['auth:sanctum', 'throttle:checkout']);
 
         Route::middleware('public.module:profile')->group(function () {
             Route::get('/resume', [PublicResumeController::class, 'show']);
@@ -561,6 +569,7 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware('can:settings.manage')->group(function () {
+                Route::post('/membership/grant', [MembershipController::class, 'grant']);
                 Route::get('/shop/newsletter-subscribers', [PublicStorefrontController::class, 'adminSubscribers']);
                 Route::delete('/shop/newsletter-subscribers/{id}', [PublicStorefrontController::class, 'adminDeleteSubscriber'])->whereNumber('id');
                 Route::get('/shop/polls', [PollController::class, 'adminIndex']);

@@ -27,8 +27,9 @@ const inp = "w-full rounded-md border border-input bg-background px-3 py-2 text-
 const btn = "rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-muted disabled:opacity-50"
 const primary = "rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
 
-export default function PoetryAdminPage(_props: { route?: ResolvedAdminRoute }) {
+export default function PoetryAdminPage(props: { route?: ResolvedAdminRoute; flag?: "is_short" | "is_premium" }) {
   const t = useTranslations("poetry_admin")
+  const flag = props.flag
   const [tab, setTab] = useState<"poems" | "import">("poems")
   const [terms, setTerms] = useState<PoetryTerm[]>([])
   const [editing, setEditing] = useState<PoemForm | null>(null)
@@ -48,10 +49,10 @@ export default function PoetryAdminPage(_props: { route?: ResolvedAdminRoute }) 
   return (
     <PageShell
       eyebrow={editing ? t("eyebrow") : undefined}
-      title={editing ? (editing.id ? t("edit_poem") : t("new_poem")) : t("page_title")}
-      description={editing ? undefined : t("poems_subtitle")}
+      title={editing ? (editing.id ? t("edit_poem") : t("new_poem")) : flag === "is_short" ? t("short_page_title") : t("page_title")}
+      description={editing ? undefined : flag === "is_short" ? t("short_poems_subtitle") : t("poems_subtitle")}
       actions={
-        editing ? null : (
+        editing || flag ? null : (
           <div className="flex gap-1">
             {(["poems", "import"] as const).map((x) => (
               <Button
@@ -82,19 +83,21 @@ export default function PoetryAdminPage(_props: { route?: ResolvedAdminRoute }) 
             }}
             onError={(m) => toast.error(m)}
             save={async (body) => {
-              if (body.id) await poetryApi.put(`/v1/poetry/poems/${body.id}`, body)
-              else await poetryApi.post("/v1/poetry/poems", body)
+              const payload = flag === "is_short" ? { ...body, flags: { ...body.flags, is_short: true } } : body
+              if (payload.id) await poetryApi.put(`/v1/poetry/poems/${payload.id}`, payload)
+              else await poetryApi.post("/v1/poetry/poems", payload)
             }}
           />
-        ) : tab === "poems" ? (
+        ) : tab === "poems" || flag ? (
           <PoemList
+            flag={flag}
             onEdit={(id) =>
               poetryApi
                 .get(`/v1/poetry/poems/${id}`)
                 .then((r) => setEditing(poemFromApi(r.data.data as Record<string, unknown>)))
                 .catch((e) => toast.error(poetryError(e)))
             }
-            onNew={() => setEditing(emptyPoem())}
+            onNew={() => setEditing({ ...emptyPoem(), flags: flag === "is_short" ? { is_short: true } : {} })}
             onError={(m) => toast.error(m)}
           />
         ) : (
@@ -109,10 +112,12 @@ function PoemList({
   onEdit,
   onNew,
   onError,
+  flag,
 }: {
   onEdit: (id: number) => void
   onNew: () => void
   onError: (m: string) => void
+  flag?: "is_short" | "is_premium"
 }) {
   const t = useTranslations("poetry_admin")
   const [rows, setRows] = useState<PoemListRow[] | null | "error">(null)
@@ -120,13 +125,13 @@ function PoemList({
   const load = useCallback(
     () =>
       poetryApi
-        .get("/v1/poetry/poems", { params: { q: q || undefined, per_page: 50 } })
+        .get("/v1/poetry/poems", { params: { q: q || undefined, per_page: 50, flag: flag || undefined } })
         .then((r) => setRows(Array.isArray(r.data.data) ? r.data.data : []))
         .catch((e) => {
           setRows("error")
           onError(poetryError(e))
         }),
-    [q, onError],
+    [q, onError, flag],
   )
   useEffect(() => {
     const timer = setTimeout(load, 300)

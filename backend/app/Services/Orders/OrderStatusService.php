@@ -50,6 +50,10 @@ final class OrderStatusService
                         app(AcademyEnrollmentService::class)->enrollFromPaidOrder($locked->fresh() ?? $locked);
                     } catch (\Throwable) {
                     }
+                    try {
+                        \App\Http\Controllers\Api\V1\MembershipController::grantFromPaidOrder($locked->fresh() ?? $locked);
+                    } catch (\Throwable) {
+                    }
                 });
             }
             $order->setRawAttributes($locked->getAttributes(), true);

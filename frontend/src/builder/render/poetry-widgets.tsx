@@ -155,21 +155,31 @@ function PoetryHeroOverlay({ p, img, couplet }: { p: Record<string, unknown>; im
 }
 
 /** 2) latest poems: number, title, occasion tag, play with duration, item menu. */
-type LiveRow = { title: string; tag: string; audio: string; duration: string; href: string; image?: string }
-
-function useLatestPoems(count: number, sort: string, detailHref: string): LiveRow[] {
-  const qs = new URLSearchParams({ per_page: String(count), ...(sort === "popular" ? { sort } : {}) })
+function useLatestPoems(count: number, sort: string, detailHref: string, flag = ""): LiveRow[] {
+  const qs = new URLSearchParams({
+    per_page: String(count),
+    ...(sort === "popular" ? { sort } : {}),
+    ...(flag ? { flag } : {}),
+  })
   const pre = (useBuilderRuntime() as { prefetch?: Record<string, unknown> }).prefetch
   const seedRaw = count && pre ? pre[`/v1/public/poetry/poems?${qs}`] : undefined
-  const toRows = (data: { id?: number | string; slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null }[]): LiveRow[] =>
-    data.map((c) => ({ title: c.title, tag: c.occasion?.name ?? "", audio: "", duration: "", href: poemHref(detailHref, c), image: c.image || c.cover || "" }))
+  const toRows = (data: { id?: number | string; slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null; flags?: Record<string, boolean> | null }[]): LiveRow[] =>
+    data.map((c) => ({
+      title: c.title,
+      tag: c.occasion?.name ?? (c.flags?.is_short ? "کوتاه" : ""),
+      audio: "",
+      duration: "",
+      href: poemHref(detailHref, c),
+      image: c.image || c.cover || "",
+      premium: Boolean(c.flags?.is_premium),
+    }))
   const seed = Array.isArray(seedRaw) ? toRows(seedRaw) : null
   const [rows, setRows] = useState<LiveRow[]>(() => seed ?? [])
   useEffect(() => {
     if (!count || seed) return
     let off = false
     fetch(apiV1(`public/poetry/poems?${qs}`), { headers: { Accept: "application/json" }, credentials: "include" })
-      .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: { slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null }[] }>)
+      .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: { slug: string; title: string; occasion?: { name?: string } | null; image?: string | null; cover?: string | null; flags?: Record<string, boolean> | null }[] }>)
       .then((j) => {
         if (off) return
         setRows(toRows(j.data ?? []))
@@ -177,15 +187,22 @@ function useLatestPoems(count: number, sort: string, detailHref: string): LiveRo
       .catch(() => !off && setRows([]))
     return () => { off = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, sort, detailHref])
+  }, [count, sort, detailHref, flag])
   return seed ?? rows
 }
 
-export function PoemListWidget({ widget }: { widget: WidgetNode }) {
+type LiveRow = { title: string; tag: string; audio: string; duration: string; href: string; image?: string; premium?: boolean }
+
+function PoemListBody({ widget, forcedFlag }: { widget: WidgetNode; forcedFlag?: string }) {
   const p = widget.props
+  const flag = forcedFlag || propStr(p, "flag")
   const manual = parseRows(p.items, ["title", "tag", "audio", "duration", "href", "image"]).filter((r) => r.title)
-  // Live by default: latest published poems from the poetry module; manual rows win only when set.
-  const live = useLatestPoems(manual.length ? 0 : Math.min(24, Math.max(1, propNum(p, "count", 6))), propStr(p, "sort"), propStr(p, "detailHref", DEFAULT_POEM_HREF))
+  const live = useLatestPoems(
+    manual.length ? 0 : Math.min(24, Math.max(1, propNum(p, "count", 6))),
+    propStr(p, "sort"),
+    propStr(p, "detailHref", DEFAULT_POEM_HREF),
+    flag,
+  )
   const rows = manual.length ? manual : live
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [playing, setPlaying] = useState<number | null>(null)
@@ -198,43 +215,54 @@ export function PoemListWidget({ widget }: { widget: WidgetNode }) {
     void a.play().then(() => setPlaying(i)).catch(() => setPlaying(null))
   }
   return (
-    <section className={shell(p, "wpz-section", "light")} style={sectionBg(p)} dir="rtl">
-      {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
-      {!rows.length ? <p className="wpz-empty">هنوز شعری منتشر نشده است.</p> : (
-        <ol className="wpz-poems">
-          {rows.map((r, i) => (
-            <li key={i} className="wpz-poem">
-              {r.image ? <img src={r.image} alt="" className="wpz-poem-thumb" loading="lazy" /> : null}
-              <span className="wpz-num">{faNum(String(i + 1).padStart(2, "0"))}</span>
-              <div className="wpz-poem-main">
-                <Link href={safeHref(r.href, "/poems")} className="wpz-poem-title wpz-stretch">{r.title}</Link>
-                {r.tag ? <span className="wpz-tag">{r.tag}</span> : null}
-              </div>
-              {r.audio ? (
-                <button type="button" className="wpz-play" onClick={() => toggle(i, safeHref(r.audio, ""))} aria-label={playing === i ? "توقف" : "پخش"} aria-pressed={playing === i}>
-                  {playing === i ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  {r.duration ? <span className="wpz-dur">{faNum(r.duration)}</span> : null}
-                </button>
-              ) : r.duration ? <span className="wpz-dur">{faNum(r.duration)}</span> : null}
-              <div className="wpz-menu-wrap">
-                <button type="button" className="wpz-icon-btn" aria-label="گزینه‌ها" aria-expanded={menu === i} onClick={() => setMenu(menu === i ? null : i)}>
-                  <MoreVertical className="h-4 w-4" />
-                </button>
-                {menu === i ? (
-                  <div className="wpz-menu" role="menu">
-                    <Link role="menuitem" href={safeHref(r.href, "/poems")}>{propStr(p, "readLabel", "خواندن شعر")}</Link>
-                    {r.audio ? <a role="menuitem" href={safeHref(r.audio)} download>{propStr(p, "downloadLabel", "دانلود صوت")}</a> : null}
-                  </div>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-      <audio ref={audioRef} onEnded={() => setPlaying(null)} preload="none" />
-      {propStr(p, "moreLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "moreHref"), "/blog")}>{propStr(p, "moreLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
+    <section className={shell(p, "wpz-section wpz-poem-panel", "glass")} style={sectionBg(p)} dir="rtl">
+      <div className="glass-box wpz-poem-box">
+        {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
+        {!rows.length ? <p className="wpz-empty">هنوز شعری منتشر نشده است.</p> : (
+          <ol className="wpz-poems">
+            {rows.map((r, i) => (
+              <li key={i} className="wpz-poem">
+                {r.image ? <img src={r.image} alt="" className="wpz-poem-thumb" loading="lazy" /> : null}
+                <span className="wpz-num">{faNum(String(i + 1).padStart(2, "0"))}</span>
+                <div className="wpz-poem-main">
+                  <Link href={safeHref(r.href, "/poems")} className="wpz-poem-title wpz-stretch">{r.title}</Link>
+                  {r.tag ? <span className="wpz-tag">{r.tag}</span> : null}
+                  {r.premium ? <span className="wpz-tag wpz-tag-premium">ویژه</span> : null}
+                </div>
+                {r.audio ? (
+                  <button type="button" className="wpz-play" onClick={() => toggle(i, safeHref(r.audio, ""))} aria-label={playing === i ? "توقف" : "پخش"} aria-pressed={playing === i}>
+                    {playing === i ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    {r.duration ? <span className="wpz-dur">{faNum(r.duration)}</span> : null}
+                  </button>
+                ) : r.duration ? <span className="wpz-dur">{faNum(r.duration)}</span> : null}
+                <div className="wpz-menu-wrap">
+                  <button type="button" className="wpz-icon-btn" aria-label="گزینه‌ها" aria-expanded={menu === i} onClick={() => setMenu(menu === i ? null : i)}>
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  {menu === i ? (
+                    <div className="wpz-menu" role="menu">
+                      <Link role="menuitem" href={safeHref(r.href, "/poems")}>{propStr(p, "readLabel", "خواندن شعر")}</Link>
+                      {r.audio ? <a role="menuitem" href={safeHref(r.audio)} download>{propStr(p, "downloadLabel", "دانلود صوت")}</a> : null}
+                    </div>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        <audio ref={audioRef} onEnded={() => setPlaying(null)} preload="none" />
+        {propStr(p, "moreLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "moreHref"), "/poems")}>{propStr(p, "moreLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
+      </div>
     </section>
   )
+}
+
+export function PoemListWidget({ widget }: { widget: WidgetNode }) {
+  return <PoemListBody widget={widget} />
+}
+
+export function ShortPoemListWidget({ widget }: { widget: WidgetNode }) {
+  return <PoemListBody widget={widget} forcedFlag="is_short" />
 }
 
 /** 3) book banner with notify-me newsletter signup. */
@@ -382,9 +410,9 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
         {propStr(p, "moreLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "moreHref"), "/shop")}>{propStr(p, "moreLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
       </div>
       <ShopTrack grid3={grid3} carousel={carousel} opts={opts} label={propStr(p, "title")}>
-        {loading ? Array.from({ length: Math.min(count, 6) }, (_, i) => <div key={i} className="wpz-product wpz-skel" aria-hidden />) : null}
+        {loading ? Array.from({ length: Math.min(count, 6) }, (_, i) => <div key={i} className="wpz-product glass-card wpz-skel" aria-hidden />) : null}
         {rows.map((r, i) => (
-          <article key={i} className="wpz-product">
+          <article key={i} className="wpz-product glass-card">
             <Link href={safeHref(r.href, "/shop")} className={`wpz-product-media ${frameClass(p, "rounded")}`}>
               {r.image ? <img {...optImg(r.image, "(max-width: 760px) 80vw, 300px")} alt={r.title} className="wpz-product-img" loading="lazy" decoding="async" /> : <span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span>}
             </Link>
@@ -394,7 +422,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
           </article>
         ))}
         {!rows.length && !loading && editor ? (
-          <article className="wpz-product wpz-placeholder">
+          <article className="wpz-product glass-card wpz-placeholder">
             <span className="wpz-product-media wpz-frame-rounded"><span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span></span>
             <h3 className="wpz-product-title">قاب نمونه</h3>
             <p className="wpz-price">{propStr(p, "priceLabel", "قیمت (از مشتری)")}</p>

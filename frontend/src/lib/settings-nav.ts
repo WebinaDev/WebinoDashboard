@@ -2,6 +2,7 @@ export type SettingsArea = "site" | "shop"
 
 export type SettingsUnitId =
   | "site-general"
+  | "site-membership"
   | "site-security"
   | "site-ai"
   | "site-analytics"
@@ -52,6 +53,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "عمومی",
         titleEn: "General",
         route: "/dashboard/settings/site/general",
+      },
+      {
+        id: "membership",
+        titleFa: "اشتراک ویژه",
+        titleEn: "Premium membership",
+        route: "/dashboard/settings/site/membership",
       },
       {
         id: "privacy",

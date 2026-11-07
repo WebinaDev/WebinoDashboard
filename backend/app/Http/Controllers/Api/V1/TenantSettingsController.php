@@ -25,7 +25,7 @@ class TenantSettingsController extends Controller
     private const AREAS = ['site', 'shop'];
 
     private const SECTIONS = [
-        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard', 'notifications', 'general', 'privacy', 'style', 'system-logs', 'license', 'instagram'],
+        'site' => ['security', 'ai', 'analytics', 'sms', 'pwa', 'dashboard', 'notifications', 'general', 'membership', 'privacy', 'style', 'system-logs', 'license', 'instagram'],
         'shop' => [
             'general',
             'products',
@@ -360,6 +360,7 @@ class TenantSettingsController extends Controller
                 'timezone' => 'Asia/Tehran',
                 'enamad_file' => '',
             ],
+            'site.membership' => \App\Services\Membership\MembershipService::defaults(),
             'site.privacy' => [
                 'guest_checkout' => false,
                 'account_creation' => true,

@@ -54,12 +54,23 @@ class PublicPoetryController extends Controller
         return response()->json(['data' => $items->map(fn ($p) => PoetryPresenter::card($p))->all()]);
     }
 
-    public function show(string $slug): JsonResponse
+    public function show(string $slug, Request $request): JsonResponse
     {
         $poem = $this->find($slug);
         DB::table('poetry_poems')->where('id', $poem->id)->increment('view_count');
         $poem->view_count++;
         $data = PoetryPresenter::full($poem);
+        $premium = (bool) data_get($poem->flags, 'is_premium');
+        $member = app(\App\Services\Membership\MembershipService::class)->isActive($request->user());
+        $data['is_premium'] = $premium;
+        $data['premium_locked'] = $premium && ! $member;
+        if ($data['premium_locked']) {
+            $data['stanzas'] = [];
+            $data['sequence'] = [];
+            $data['media'] = [];
+            $data['external_links'] = [];
+            $data['excerpt'] = $data['excerpt'] ?: 'این شعر ویژه اعضای اشتراک است.';
+        }
         $data['related'] = $this->related($poem)->map(fn ($p) => PoetryPresenter::card($p))->all();
 
         return response()->json(['data' => $data]);
@@ -83,9 +94,13 @@ class PublicPoetryController extends Controller
             ->filter(fn ($r) => $r['url'] || $r['external_url'])->values()->all()]);
     }
 
-    public function text(string $slug)
+    public function text(string $slug, Request $request)
     {
         $poem = $this->find($slug);
+        if ((bool) data_get($poem->flags, 'is_premium')
+            && ! app(\App\Services\Membership\MembershipService::class)->isActive($request->user())) {
+            abort(403, 'این شعر ویژه اعضای اشتراک است.');
+        }
         $name = (Str::slug($poem->slug) ?: 'poem').'.txt';
 
         return response(PoetryText::plain($poem), 200, [
@@ -127,7 +142,7 @@ class PublicPoetryController extends Controller
                 ->orWhereRaw($txt('external_links')." NOT IN ('[]','null')")
                 ->orWhereHas('mediaItems', fn ($m) => $m->published()->playable()));
         }
-        if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten'], true)) {
+        if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten', 'is_premium', 'is_short'], true)) {
             $q->where('flags->'.$flag, true);
         }
         foreach (['figure', 'style'] as $kind) {
