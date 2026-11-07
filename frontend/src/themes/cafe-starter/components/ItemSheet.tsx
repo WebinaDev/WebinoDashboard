@@ -89,8 +89,10 @@ export function ItemPanel({
   showMore?: boolean
 }) {
   const [qty, setQty] = useState(1)
-  const [variant, setVariant] = useState<number | null>(null)
-  const [selected, setSelected] = useState<Record<number, number[]>>({})
+  const [variant, setVariant] = useState<number | null>(
+    () => item.variants?.find((v) => v.is_default)?.id ?? item.variants?.[0]?.id ?? null,
+  )
+  const [selected, setSelected] = useState<Record<number, number[]>>(() => defaultSelections(item))
   const [added, setAdded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const add = useAddToCart(ctrl.tableNumber, ctrl.branchSlug)
@@ -254,6 +256,8 @@ export function ItemPanel({
               </>
             ) : blocked ? (
               item.is_sold_out ? t(ctrl.skin === "cafe-super" ? "stock_gone" : "badge_sold_out") : t("orders_paused")
+            ) : missing ? (
+              t("select_cta")
             ) : (
               <>
                 <span>{t("add_to_cart")}</span>
