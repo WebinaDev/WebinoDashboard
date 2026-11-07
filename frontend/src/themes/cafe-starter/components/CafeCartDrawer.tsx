@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { ShoppingBag } from "lucide-react"
+import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
@@ -336,7 +337,7 @@ export function CafeCartDrawer({
           <div className="cafe-cart-empty">
             <ShoppingBag className="size-8 opacity-40" />
             <p>{t("empty")}</p>
-            {isPage ? <a className="cafe-primary-btn" href="/menu">{t("back_to_menu")}</a> : null}
+            {isPage ? <Link className="cafe-primary-btn" href="/menu">{t("back_to_menu")}</Link> : null}
           </div>
         ) : (
           <ul className="cafe-cart-lines">
