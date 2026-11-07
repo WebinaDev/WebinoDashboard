@@ -234,12 +234,34 @@ class CafeOrdering
     {
         $menu = $this->menu($tenantId);
         $out = [];
-        if ((bool) ($menu['pay_online_enabled'] ?? true)) {
-            foreach (app(\App\Services\Payments\PaymentGatewaySettingsService::class)->checkoutGateways($tenantId, 'cash') as $gw) {
-                $out[] = ['id' => (string) $gw['id'], 'title' => (string) $gw['title'], 'type' => 'online'];
+        $hasCashLike = false;
+        $allowOnline = (bool) ($menu['pay_online_enabled'] ?? true);
+        $allowCash = (bool) ($menu['pay_cash_enabled'] ?? true);
+
+        foreach (app(\App\Services\Payments\PaymentGatewaySettingsService::class)->checkoutGateways($tenantId, 'cash') as $gw) {
+            $id = (string) ($gw['id'] ?? '');
+            if ($id === '') {
+                continue;
             }
+            $kind = (string) ($gw['kind'] ?? '');
+            // Offline / COD tenders are "pay at counter or on delivery" — never treat as IPG.
+            $offline = $kind === 'offline' || in_array($id, ['cod', 'cash', 'card_on_delivery'], true);
+            if ($offline) {
+                if (! $allowCash) {
+                    continue;
+                }
+                $out[] = ['id' => $id, 'title' => (string) ($gw['title'] ?? ''), 'type' => 'cash'];
+                $hasCashLike = true;
+
+                continue;
+            }
+            if (! $allowOnline) {
+                continue;
+            }
+            $out[] = ['id' => $id, 'title' => (string) ($gw['title'] ?? ''), 'type' => 'online'];
         }
-        if ((bool) ($menu['pay_cash_enabled'] ?? true)) {
+
+        if ($allowCash && ! $hasCashLike) {
             $out[] = ['id' => 'cash', 'title' => '', 'type' => 'cash'];
         }
 

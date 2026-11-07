@@ -551,7 +551,15 @@
       "no_pickup_slots": "No pickup times are left within opening hours.",
       "pay_refund_pending": "Your payment was confirmed, but an item ran out before confirmation. The order was not placed and your money will be refunded.",
       "delivery_time": "Delivery time",
-      "delivery_asap": "As soon as possible"
+      "delivery_asap": "As soon as possible",
+      "cart_page_title": "Cart",
+      "checkout_page_title": "Checkout",
+      "page_hint": "Choose fulfillment, your details, and payment here.",
+      "back_to_menu": "Back to menu",
+      "continue_shopping": "Keep ordering from the menu",
+      "go_checkout": "Continue to checkout",
+      "qty_inc": "Increase quantity",
+      "qty_dec": "Decrease quantity"
     },
     "kitchen": {
       "new": "New",

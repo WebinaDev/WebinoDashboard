@@ -88,7 +88,8 @@ class PublicGuestCartController extends Controller
 
         $data = $request->validate([
             'product_id' => ['required', 'integer'],
-            'quantity' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'quantity' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'mode' => ['nullable', 'string', 'in:add,set'],
             'guest_token' => ['nullable', 'string', 'max:64'],
             'table_number' => ['nullable', 'string', 'max:32'],
             'branch_slug' => ['nullable', 'string', 'max:255'],
@@ -96,6 +97,15 @@ class PublicGuestCartController extends Controller
             'option_ids.*' => ['integer'],
             'variant_id' => ['nullable', 'integer'],
         ]);
+
+        $mode = ($data['mode'] ?? 'add') === 'set' ? 'set' : 'add';
+        $qty = array_key_exists('quantity', $data) ? (int) $data['quantity'] : 1;
+        if ($mode === 'add' && $qty < 1) {
+            return response()->json([
+                'message' => __('validation.min.numeric', ['attribute' => 'quantity', 'min' => 1]),
+                'errors' => ['quantity' => [__('validation.min.numeric', ['attribute' => 'quantity', 'min' => 1])]],
+            ], 422);
+        }
 
         $product = Product::query()->find($data['product_id']);
         if (
@@ -114,14 +124,26 @@ class PublicGuestCartController extends Controller
 
         $priced = $ordering->priceLine($product, $data['option_ids'] ?? [], isset($data['variant_id']) ? (int) $data['variant_id'] : null);
         $cart = $this->resolveCart($request, $data, true);
-        $qty = $data['quantity'] ?? 1;
 
         $line = CartItem::query()->firstOrNew([
             'cart_id' => $cart->id,
             'product_id' => $product->id,
             'line_key' => $priced['line_key'],
         ]);
-        $line->quantity = ($line->exists ? $line->quantity : 0) + $qty;
+
+        if ($mode === 'set') {
+            if ($qty <= 0) {
+                if ($line->exists) {
+                    $line->delete();
+                }
+                $cart->load(['items.product']);
+
+                return response()->json(['data' => $cart]);
+            }
+            $line->quantity = $qty;
+        } else {
+            $line->quantity = ($line->exists ? $line->quantity : 0) + $qty;
+        }
         $line->meta = [
             'selections' => $priced['selections'],
             'variant_id' => $priced['variant_id'],
@@ -147,10 +169,27 @@ class PublicGuestCartController extends Controller
 
         $status = $ordering->publicStatus($tid);
         $fulfillment = (string) $request->input('fulfillment', 'dine_in');
-        $methods = array_column($status['payment_methods'], 'id');
-        if (! $request->filled('payment_method') && in_array('cash', $methods, true)) {
-            // Older clients (and table QR flows) without a picker pay at the counter.
-            $request->merge(['payment_method' => 'cash']);
+        $methodRows = is_array($status['payment_methods'] ?? null) ? $status['payment_methods'] : [];
+        $methods = array_values(array_filter(array_map(
+            static fn ($row) => is_array($row) ? (string) ($row['id'] ?? '') : '',
+            $methodRows
+        )));
+        $firstCashId = null;
+        foreach ($methodRows as $row) {
+            if (is_array($row) && ($row['type'] ?? '') === 'cash' && ! empty($row['id'])) {
+                $firstCashId = (string) $row['id'];
+                break;
+            }
+        }
+        if (! $request->filled('payment_method')) {
+            // Prefer a cash/offline tender (COD, pay at counter); fall back to the first enabled method.
+            $default = $firstCashId ?? ($methods[0] ?? null);
+            if ($default !== null) {
+                $request->merge(['payment_method' => $default]);
+            }
+        } elseif ($request->input('payment_method') === 'cash' && $firstCashId && ! in_array('cash', $methods, true)) {
+            // Older clients always posted `cash`; when only COD (or another offline tender) is enabled, accept it.
+            $request->merge(['payment_method' => $firstCashId]);
         }
         if (! $request->filled('fulfillment')) {
             $request->merge(['fulfillment' => 'dine_in']);
@@ -255,7 +294,15 @@ class PublicGuestCartController extends Controller
                 }
             }
 
-            $online = $meta['payment_method'] !== 'cash';
+            // Only real IPG tenders wait for redirect/capture. COD / cash go straight to the kitchen.
+            $methodType = 'cash';
+            foreach ($methodRows as $row) {
+                if (is_array($row) && (string) ($row['id'] ?? '') === (string) $meta['payment_method']) {
+                    $methodType = (string) ($row['type'] ?? 'cash');
+                    break;
+                }
+            }
+            $online = $methodType === 'online';
 
             $order = DB::transaction(function () use ($lines, $tid, $meta, $cart, $ordering, $fulfillment, $phone, $token, $online, $pickupAt, $request) {
                 app(OrderStock::class)->assertLinesAvailable($lines);

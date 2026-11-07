@@ -519,7 +519,7 @@
   display: grid;
   grid-template-columns: minmax(0,1fr) auto auto;
   gap: 0.55rem;
-  align-items: start;
+  align-items: center;
   font-size: 0.92rem;
 }
 
@@ -527,6 +527,80 @@
 .cafe-cart-line-meta,
 .cafe-cart-line-qty { color: var(--c-muted); font-size: 0.78rem; }
 .cafe-cart-line-price { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.cafe-cart-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--c-line);
+  border-radius: 999px;
+  padding: 0.15rem;
+  background: var(--c-chip);
+}
+.cafe-cart-qty button {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--cafe-accent) 12%, transparent);
+}
+.cafe-cart-qty span {
+  min-width: 1.4rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.cafe-cart-body.is-page {
+  max-width: 42rem;
+  margin-inline: auto;
+  width: 100%;
+  padding: 0;
+  overflow: visible;
+}
+
+.cafe-cart-page {
+  padding: 1.25rem 1rem 3rem;
+}
+.cafe-cart-page-frame {
+  max-width: 44rem;
+  margin-inline: auto;
+  display: grid;
+  gap: 1.25rem;
+}
+.cafe-cart-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.cafe-cart-page-head h1 {
+  margin: 0.15rem 0 0.35rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 900;
+}
+.cafe-cart-page-kicker {
+  margin: 0;
+  color: var(--c-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.cafe-cart-page-back {
+  text-decoration: none;
+}
+.cafe-cart-page-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  color: var(--c-muted);
+  font-size: 0.9rem;
+}
+.cafe-cart-page-foot a {
+  color: var(--cafe-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
 
 .cafe-cart-sum {
   display: grid;

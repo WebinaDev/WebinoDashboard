@@ -13,7 +13,7 @@ import type { ShopCurrencyDisplay } from "@/lib/format"
 import { toLocaleDigits } from "@/lib/locale"
 import { cn } from "@/lib/utils"
 
-import { useGuestCart } from "../lib/cart"
+import { useGuestCart, type CartLine } from "../lib/cart"
 import { money } from "../lib/helpers"
 import type { CafeOrderingStatus, CafeVenuePayload } from "../types"
 import { CafeSheet } from "./CafeSheet"
@@ -27,6 +27,7 @@ export function CafeCartDrawer({
   currency,
   currencyDisplay,
   variant = "icon",
+  mode = "drawer",
   skin,
   scheme,
   className,
@@ -37,6 +38,8 @@ export function CafeCartDrawer({
   currency?: string
   currencyDisplay?: ShopCurrencyDisplay | null
   variant?: CartTriggerVariant
+  /** Full /cart|/checkout page (no sheet). Drawer stays the menu quick-order UI. */
+  mode?: "drawer" | "page"
   skin?: string
   scheme?: string
   className?: string
@@ -45,7 +48,8 @@ export function CafeCartDrawer({
   const tMenu = useTranslations("cafe_starter")
   const locale = useLocale()
   const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
+  const isPage = mode === "page"
+  const [open, setOpen] = useState(isPage)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [receipt, setReceipt] = useState<CafeOrderReceipt | null>(null)
@@ -98,16 +102,24 @@ export function CafeCartDrawer({
   }, [open, fulfillment])
 
   // Back from the payment gateway: ?order=…&payment=success|failed
+  // Menu deep-link ?cart=open (and legacy /cart|/checkout when the drawer is mounted) opens the sheet.
   useEffect(() => {
+    if (isPage) {
+      setOpen(true)
+      const qs = new URLSearchParams(window.location.search)
+      const p = qs.get("payment")
+      if (qs.get("order") && (p === "success" || p === "failed" || p === "refund_pending")) setReturnNotice(p)
+      return
+    }
+    const path = window.location.pathname.replace(/\/+$/, "") || "/"
     const qs = new URLSearchParams(window.location.search)
     const p = qs.get("payment")
-    // /cart and /checkout on cafe sites land here (?cart=open) so there is a single cart.
-    if (qs.get("cart") === "open") setOpen(true)
+    if (qs.get("cart") === "open" || path === "/cart" || path === "/checkout") setOpen(true)
     if (qs.get("order") && (p === "success" || p === "failed" || p === "refund_pending")) {
       setReturnNotice(p)
       setOpen(true)
     }
-  }, [])
+  }, [isPage])
 
   const venue = useQuery({
     queryKey: ["cafe-venue-pickup"],
@@ -201,6 +213,27 @@ export function CafeCartDrawer({
     onError: (e: Error) => setError(getApiErrorMessage(e)),
   })
 
+  const setQty = useMutation({
+    mutationFn: (input: { productId: number; quantity: number; optionIds: number[]; variantId: number | null }) =>
+      api("/api/v1/public/cafe/cart/items", {
+        method: "POST",
+        json: {
+          product_id: input.productId,
+          quantity: input.quantity,
+          mode: "set",
+          guest_token: token,
+          table_number: tableNumber || undefined,
+          branch_slug: branchSlug || undefined,
+          option_ids: input.optionIds,
+          variant_id: input.variantId,
+        },
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["guest-cart"] })
+    },
+    onError: (e: Error) => setError(getApiErrorMessage(e)),
+  })
+
   function submit() {
     const errs = validate()
     setFieldErrors(errs)
@@ -252,25 +285,14 @@ export function CafeCartDrawer({
       </button>
     )
 
-  return (
-    <CafeSheet
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next)
-        if (!next) {
-          setReceipt(null)
-          setReturnNotice(null)
-        }
-      }}
-      title={t("title")}
-      description={tableNumber ? t("table", { number: toLocaleDigits(tableNumber, lang) }) : undefined}
-      closeLabel={tMenu("close")}
-      placement="side"
-      skin={skin}
-      scheme={scheme}
-      trigger={trigger}
-    >
-      <div className="cafe-cart-body">
+  function lineOptionIds(line: CartLine): number[] {
+    const sels = line.meta?.selections
+    if (!Array.isArray(sels)) return []
+    return sels.map((s) => Number(s.option_id ?? 0)).filter((n) => n > 0)
+  }
+
+  const body = (
+      <div className={cn("cafe-cart-body", isPage && "is-page")}>
         {returnNotice ? (
           <p className={returnNotice === "success" ? "cafe-ok-note" : "cafe-error"}>
             {returnNotice === "success" ? t("pay_success") : returnNotice === "refund_pending" ? t("pay_refund_pending") : t("pay_failed")}
@@ -314,25 +336,53 @@ export function CafeCartDrawer({
           <div className="cafe-cart-empty">
             <ShoppingBag className="size-8 opacity-40" />
             <p>{t("empty")}</p>
+            {isPage ? <a className="cafe-primary-btn" href="/menu">{t("back_to_menu")}</a> : null}
           </div>
         ) : (
           <ul className="cafe-cart-lines">
-            {cart.items.map((line) => (
-              <li key={line.id}>
-                <div className="min-w-0">
-                  <p className="cafe-cart-line-name">{line.product?.name}</p>
-                  {line.meta?.selections?.length ? (
-                    <p className="cafe-cart-line-meta">
-                      {line.meta.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en) || s.name_fa).join("، ")}
-                    </p>
-                  ) : null}
-                </div>
-                <span className="cafe-cart-line-qty">×{toLocaleDigits(String(line.quantity), lang)}</span>
-                <span className="cafe-cart-line-price">
-                  {price(line.quantity * (line.meta?.unit_minor ?? line.product?.price_minor ?? 0))}
-                </span>
-              </li>
-            ))}
+            {cart.items.map((line) => {
+              const productId = line.product?.id
+              const optionIds = lineOptionIds(line)
+                  const variantId = line.meta?.variant_id ?? null
+              return (
+                <li key={line.id}>
+                  <div className="min-w-0">
+                    <p className="cafe-cart-line-name">{line.product?.name}</p>
+                    {line.meta?.selections?.length ? (
+                      <p className="cafe-cart-line-meta">
+                        {line.meta.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en) || s.name_fa).join("، ")}
+                      </p>
+                    ) : null}
+                  </div>
+                  {productId ? (
+                    <div className="cafe-cart-qty" role="group" aria-label={tMenu("qty")}>
+                      <button
+                        type="button"
+                        disabled={setQty.isPending}
+                        aria-label={t("qty_dec")}
+                        onClick={() => setQty.mutate({ productId, quantity: Math.max(0, line.quantity - 1), optionIds, variantId })}
+                      >
+                        −
+                      </button>
+                      <span>{toLocaleDigits(String(line.quantity), lang)}</span>
+                      <button
+                        type="button"
+                        disabled={setQty.isPending || line.quantity >= 50}
+                        aria-label={t("qty_inc")}
+                        onClick={() => setQty.mutate({ productId, quantity: line.quantity + 1, optionIds, variantId })}
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="cafe-cart-line-qty">×{toLocaleDigits(String(line.quantity), lang)}</span>
+                  )}
+                  <span className="cafe-cart-line-price">
+                    {price(line.quantity * (line.meta?.unit_minor ?? line.product?.price_minor ?? 0))}
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         )}
 
@@ -450,7 +500,7 @@ export function CafeCartDrawer({
                   <input type="radio" name="cafe-pay" value={m.id} checked={activeMethod === m.id} onChange={() => setMethod(m.id)} />
                   <span>
                     {m.type === "cash"
-                      ? t(fulfillment === "delivery" ? "pay_cash_delivery" : "pay_cash_counter")
+                      ? m.title || t(fulfillment === "delivery" ? "pay_cash_delivery" : "pay_cash_counter")
                       : t("pay_online", { name: m.title || m.id })}
                   </span>
                 </label>
@@ -494,6 +544,29 @@ export function CafeCartDrawer({
           </>
         ) : null}
       </div>
+  )
+
+  if (isPage) return body
+
+  return (
+    <CafeSheet
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) {
+          setReceipt(null)
+          setReturnNotice(null)
+        }
+      }}
+      title={t("title")}
+      description={tableNumber ? t("table", { number: toLocaleDigits(tableNumber, lang) }) : undefined}
+      closeLabel={tMenu("close")}
+      placement="side"
+      skin={skin}
+      scheme={scheme}
+      trigger={trigger}
+    >
+      {body}
     </CafeSheet>
   )
 }

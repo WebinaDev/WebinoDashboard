@@ -136,7 +136,10 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->add($p, 'tok-gw-1');
 
         $methods = $this->getJson('/api/v1/public/cafe/venue', $this->h)->assertOk()->json('data.ordering.payment_methods');
-        $this->assertSame(['cash'], array_column($methods, 'id'));
+        $ids = array_column($methods, 'id');
+        // Default cash tender may be the generic `cash` row or an enabled offline COD gateway.
+        $this->assertNotEmpty(array_intersect($ids, ['cash', 'cod']));
+        $this->assertSame(['cash'], array_values(array_unique(array_column($methods, 'type'))));
 
         $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-gw-1', ['payment_method' => 'zarinpal']), $this->h)
             ->assertStatus(422)->assertJsonValidationErrors(['payment_method']);
@@ -144,6 +147,31 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->menu(['pay_cash_enabled' => false]);
         $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-gw-1'), $this->h)
             ->assertStatus(422)->assertJsonValidationErrors(['payment_method']);
+    }
+
+    public function test_offline_cod_gateway_is_cash_and_skips_ipg_pending(): void
+    {
+        // Mimic production cafebluedez: COD enabled as an offline checkout tender.
+        app(\App\Services\Payments\PaymentGatewaySettingsService::class)->setGatewayEnabled($this->tenant->id, 'cod', true);
+
+        $methods = $this->getJson('/api/v1/public/cafe/venue', $this->h)->assertOk()->json('data.ordering.payment_methods');
+        $cod = collect($methods)->firstWhere('id', 'cod');
+        $this->assertNotNull($cod);
+        $this->assertSame('cash', $cod['type']);
+        // COD already covers pay-at-counter; do not also emit a blank "cash" row.
+        $this->assertFalse(collect($methods)->contains(fn ($m) => ($m['id'] ?? '') === 'cash'));
+
+        $p = $this->product('Cookie', 40000);
+        $this->add($p, 'tok-cod-1');
+        $order = $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-cod-1', [
+            'payment_method' => 'cod',
+            'idempotency_key' => 'cod-key-1',
+        ]), $this->h)->assertCreated()->json('data');
+
+        $row = Order::query()->findOrFail($order['id']);
+        $this->assertSame('processing', $row->status);
+        $this->assertSame('cash', $row->payment_tender);
+        $this->assertArrayNotHasKey('payment', $order);
     }
 
     public function test_pending_online_order_returns_to_cafe_menu_after_failed_callback_and_stays_off_kitchen(): void
