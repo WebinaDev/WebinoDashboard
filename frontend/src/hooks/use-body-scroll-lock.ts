@@ -30,7 +30,13 @@ export function useBodyScrollLock(locked: boolean, allowSelector = ".cafe-sheet"
       return false
     }
 
+    const insideSheet = (target: EventTarget | null) =>
+      target instanceof Element && Boolean(target.closest(allowSelector))
+
     const onWheel = (e: WheelEvent) => {
+      // Never cancel gestures that start inside the sheet chrome (add bar, steppers,
+      // non-overflowing panels) — preventDefault on those kills the subsequent click.
+      if (insideSheet(e.target)) return
       if (!canScrollInside(e.target, e.deltaY)) e.preventDefault()
     }
     let lastY = 0
@@ -38,6 +44,7 @@ export function useBodyScrollLock(locked: boolean, allowSelector = ".cafe-sheet"
       lastY = e.touches[0]?.clientY ?? 0
     }
     const onTouchMove = (e: TouchEvent) => {
+      if (insideSheet(e.target)) return
       const y = e.touches[0]?.clientY ?? 0
       const deltaY = lastY - y
       lastY = y

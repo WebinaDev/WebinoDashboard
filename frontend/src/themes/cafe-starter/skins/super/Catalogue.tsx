@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import type { CatalogItem } from "../../types"
 import { useAddToCart } from "../../lib/cart"
 import { offPercent, useCatalogueController, type CatalogueController } from "../../lib/useCatalogueController"
-import { digits, initialOf, localizedField } from "../../lib/helpers"
+import { digits, initialOf, localizedField, money } from "../../lib/helpers"
 import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps } from "../shared"
 import "./super.css"
 
@@ -130,7 +130,16 @@ function SupCard({ item, ctrl }: { item: CatalogItem; ctrl: CatalogueController 
   const was = ctrl.wasOf(item)
   const needsChoice = (item.modifiers ?? []).some((m) => m.is_required || m.min_select > 0) || (item.variants?.length ?? 0) > 1
   const blocked = item.is_sold_out || !item.is_available || ctrl.ordering?.accepting_orders === false
-  const saved = off > 0 ? ctrl.moneyOf(item.price_minor - item.discounted_price_minor) : null
+  // Digits-only for next-intl params (ReactNode is not a TranslationValue).
+  const saved =
+    off > 0
+      ? money(
+          item.price_minor - item.discounted_price_minor,
+          item.currency,
+          ctrl.currencyDisplay,
+          ctrl.locale,
+        )
+      : null
 
   function quickAdd(event: React.MouseEvent) {
     event.preventDefault()

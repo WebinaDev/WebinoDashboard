@@ -16,6 +16,8 @@ class CafeCartFeesAndHoursTest extends TestCase
 
     private \App\Models\Tenant $tenant;
 
+    private User $customer;
+
     private array $h;
 
     protected function setUp(): void
@@ -31,13 +33,21 @@ class CafeCartFeesAndHoursTest extends TestCase
             'core.dashboard' => true,
         ]);
         $this->h = ['X-Tenant-Domain' => $this->tenant->domain];
+        $this->customer = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'customer']);
+        Carbon::setTestNow(Carbon::parse('2026-06-01 10:00', 'Asia/Tehran'));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     private function menu(array $overrides): void
     {
         app(ModuleSettingsService::class)->put($this->tenant->id, 'cafe', 'menu', array_merge(
             ModuleSettingsService::cafeMenuDefaults(),
-            ['block_orders_when_closed' => false],
+            ['block_orders_when_closed' => false, 'pay_cash_enabled' => true, 'fulfillment_pickup' => true],
             $overrides,
         ));
     }
@@ -120,9 +130,10 @@ class CafeCartFeesAndHoursTest extends TestCase
         $this->assertSame(10000, $pickup['packaging_minor']);
         $this->assertSame(0, $pickup['service_minor']);
 
+        $this->actingAs($this->customer, 'sanctum');
         $order = $this->postJson('/api/v1/public/cafe/checkout', [
             'guest_token' => $token, 'fulfillment' => 'delivery', 'payment_method' => 'cash',
-            'customer_name' => 'علی رضایی', 'customer_phone' => '۰۹۱۲۱۲۳۴۵۶۷',
+            'customer_name' => 'علی رضایی', 'customer_phone' => '۰۹۱۲۱۲۳۴۵۶۷', 'pickup_time' => '10:30',
             'address' => 'تهران، خیابان ولیعصر، کوچه یاس', 'plaque' => '۱۲', 'lat' => 35.7, 'lng' => 51.4,
         ], $this->h)
             ->assertCreated()->json('data');

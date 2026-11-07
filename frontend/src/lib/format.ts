@@ -15,6 +15,8 @@ export type ShopCurrencyDisplay = {
   thousand_separator?: string
   decimal_separator?: string
   price_decimals?: number
+  /** Dashboard glyph id (toman-1, rial-1, …) — cafe prices render this instead of the word «تومان». */
+  currency_symbol?: string | null
 }
 
 /**

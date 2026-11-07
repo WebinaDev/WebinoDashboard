@@ -551,7 +551,35 @@
       "no_pickup_slots": "No pickup times are left within opening hours.",
       "pay_refund_pending": "Your payment was confirmed, but an item ran out before confirmation. The order was not placed and your money will be refunded.",
       "delivery_time": "Delivery time",
-      "delivery_asap": "As soon as possible"
+      "delivery_asap": "As soon as possible",
+      "cart_page_title": "Cart",
+      "checkout_page_title": "Checkout",
+      "page_hint": "Choose fulfillment, your details, and payment here.",
+      "back_to_menu": "Back to menu",
+      "continue_shopping": "Keep ordering from the menu",
+      "go_checkout": "Continue to checkout",
+      "qty_inc": "Increase quantity",
+      "qty_dec": "Decrease quantity",
+      "first_name": "First name",
+      "last_name": "Last name",
+      "coupon": "Coupon code",
+      "coupon_apply": "Apply",
+      "coupon_remove": "Remove",
+      "coupon_ok": "Coupon applied",
+      "coupon_bad": "Invalid coupon",
+      "coupons_available": "Available coupons",
+      "coupon_percent": "{amount}% off",
+      "coupon_save": "You save",
+      "discount": "Discount",
+      "login_required": "Sign in to place your order",
+      "login_cta": "Sign in",
+      "venue_address": "Pickup address",
+      "order_time": "Time",
+      "err_first_name": "Enter your first name.",
+      "err_last_name": "Enter your last name.",
+      "err_time": "Choose a time.",
+      "checkout_pay_label": "Pay online",
+      "no_online_gateway": "No store payment gateway is configured yet."
     },
     "kitchen": {
       "new": "New",
@@ -562,9 +590,9 @@
       "done": "Done"
     },
     "fulfillment": {
-      "dine_in": "Dine in",
+      "dine_in": "Dine-in / takeaway",
       "pickup": "Pickup",
-      "delivery": "Delivery"
+      "delivery": "Courier delivery"
     },
     "close": "Close",
     "scroll_to_menu": "View menu",

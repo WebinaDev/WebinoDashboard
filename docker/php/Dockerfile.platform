@@ -1,8 +1,8 @@
 # Production backend image for multi-site platform (code baked in).
 #
-# Base is php:cli (not frankenphp): Docker Hub / dunglas pulls 403 on many IR IPs,
-# and a copied frankenphp binary lacks libwatcher (Octane exit 127). Same approach
-# as WebinoERP docker/php/Dockerfile.platform — artisan serve is the runtime.
+# Base is php-fpm + nginx via webino-web (not frankenphp / not php:cli):
+# Docker Hub / dunglas frankenphp pulls 403 on many IR IPs, and a cli-only
+# base lacks /usr/local/etc/php-fpm.d so CMD webino-web crash-loops.
 #
 # PHP_IMAGE / COMPOSER_IMAGE can be overridden for IR Hub mirrors:
 #   hub.hamdocker.ir/library/php:8.3-cli-bookworm

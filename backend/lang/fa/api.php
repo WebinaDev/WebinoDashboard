@@ -30,6 +30,8 @@ return [
     'cafe_modifier_required' => 'افزودنی‌های الزامی این آیتم را انتخاب کنید.',
     'cafe_modifier_invalid' => 'این افزودنی برای آیتم معتبر نیست.',
     'cafe_fulfillment' => 'این روش سرو در دسترس نیست.',
+    'cafe_login_required' => 'برای ثبت سفارش وارد حساب کاربری شوید.',
+    'cafe_online_payment_required' => 'پرداخت فقط از طریق درگاه فروشگاه ممکن است. پرداخت در محل فعال نیست.',
     'insufficient_stock' => 'موجودی این کالا کافی نیست',
     'banner_limit' => 'حداکثر ۳ بنر مجاز است',
     'event_full' => 'ظرفیت رویداد تکمیل شده است',

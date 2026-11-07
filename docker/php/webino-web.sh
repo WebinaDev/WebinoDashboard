@@ -21,6 +21,14 @@ START=$(int "${PHP_FPM_START_SERVERS:-}" $(( (MIN_SPARE + MAX_SPARE) / 2 )))
 MAX_REQUESTS=$(int "${PHP_FPM_MAX_REQUESTS:-}" 500)
 
 D=/usr/local/etc/php-fpm.d
+if ! command -v php-fpm >/dev/null 2>&1; then
+  echo "[webino] fatal: php-fpm not found — rebuild webino-backend from php:8.3-fpm-bookworm (not php:cli)" >&2
+  exit 1
+fi
+if [ ! -d "$D" ]; then
+  echo "[webino] fatal: missing ${D} — image base is not php-fpm" >&2
+  exit 1
+fi
 # Strip pool sizing from the image's stock pool files (www.conf ships pm.max_children = 5) so only ours applies.
 for f in "$D"/*.conf; do
   [ -f "$f" ] && sed -i -E '/^[[:space:]]*(pm|pm\.[a-z_]+)[[:space:]]*=/d' "$f"

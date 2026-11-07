@@ -8,7 +8,11 @@ import { api } from "@/lib/api"
 export type CartLine = {
   id: number
   quantity: number
-  meta?: { unit_minor?: number; selections?: { name_fa?: string; name_en?: string }[] } | null
+  meta?: {
+    unit_minor?: number
+    variant_id?: number | null
+    selections?: { option_id?: number; name_fa?: string; name_en?: string }[]
+  } | null
   product?: { id: number; name: string; price_minor: number; currency: string; image_url?: string | null }
 }
 

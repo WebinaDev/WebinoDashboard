@@ -9,10 +9,12 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\Cafe\CafeOrdering;
+use App\Services\Coupons\CouponService;
 use App\Services\Orders\OrderStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PublicGuestCartController extends Controller
 {
@@ -88,7 +90,8 @@ class PublicGuestCartController extends Controller
 
         $data = $request->validate([
             'product_id' => ['required', 'integer'],
-            'quantity' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'quantity' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'mode' => ['nullable', 'string', 'in:add,set'],
             'guest_token' => ['nullable', 'string', 'max:64'],
             'table_number' => ['nullable', 'string', 'max:32'],
             'branch_slug' => ['nullable', 'string', 'max:255'],
@@ -96,6 +99,15 @@ class PublicGuestCartController extends Controller
             'option_ids.*' => ['integer'],
             'variant_id' => ['nullable', 'integer'],
         ]);
+
+        $mode = ($data['mode'] ?? 'add') === 'set' ? 'set' : 'add';
+        $qty = array_key_exists('quantity', $data) ? (int) $data['quantity'] : 1;
+        if ($mode === 'add' && $qty < 1) {
+            return response()->json([
+                'message' => __('validation.min.numeric', ['attribute' => 'quantity', 'min' => 1]),
+                'errors' => ['quantity' => [__('validation.min.numeric', ['attribute' => 'quantity', 'min' => 1])]],
+            ], 422);
+        }
 
         $product = Product::query()->find($data['product_id']);
         if (
@@ -114,14 +126,26 @@ class PublicGuestCartController extends Controller
 
         $priced = $ordering->priceLine($product, $data['option_ids'] ?? [], isset($data['variant_id']) ? (int) $data['variant_id'] : null);
         $cart = $this->resolveCart($request, $data, true);
-        $qty = $data['quantity'] ?? 1;
 
         $line = CartItem::query()->firstOrNew([
             'cart_id' => $cart->id,
             'product_id' => $product->id,
             'line_key' => $priced['line_key'],
         ]);
-        $line->quantity = ($line->exists ? $line->quantity : 0) + $qty;
+
+        if ($mode === 'set') {
+            if ($qty <= 0) {
+                if ($line->exists) {
+                    $line->delete();
+                }
+                $cart->load(['items.product']);
+
+                return response()->json(['data' => $cart]);
+            }
+            $line->quantity = $qty;
+        } else {
+            $line->quantity = ($line->exists ? $line->quantity : 0) + $qty;
+        }
         $line->meta = [
             'selections' => $priced['selections'],
             'variant_id' => $priced['variant_id'],
@@ -134,10 +158,19 @@ class PublicGuestCartController extends Controller
         return response()->json(['data' => $cart]);
     }
 
-    public function checkout(Request $request, CafeOrdering $ordering): \Illuminate\Http\JsonResponse
+    public function checkout(Request $request, CafeOrdering $ordering, CouponService $coupons): \Illuminate\Http\JsonResponse
     {
         $tid = $this->publicTenantId($request);
         $ordering->assertAccepting($tid);
+
+        // Dine-in and delivery both require a store account (same auth as shop checkout).
+        $user = $request->user('sanctum');
+        if (! $user || (int) $user->tenant_id !== $tid) {
+            return response()->json([
+                'message' => __('api.cafe_login_required'),
+                'errors' => ['auth' => [__('api.cafe_login_required')]],
+            ], 401);
+        }
 
         // Normalise Persian/Arabic digits before validation.
         $request->merge(array_map(
@@ -145,12 +178,41 @@ class PublicGuestCartController extends Controller
             $request->only(['customer_phone', 'postal_code', 'plaque', 'unit', 'table_number', 'pickup_time'])
         ));
 
+        // Allow first/last name from the shop-style form; merge into customer_name.
+        $first = trim((string) $request->input('customer_first_name', ''));
+        $last = trim((string) $request->input('customer_last_name', ''));
+        if ($first !== '' || $last !== '') {
+            $request->merge(['customer_name' => trim($first.' '.$last)]);
+        }
+
         $status = $ordering->publicStatus($tid);
         $fulfillment = (string) $request->input('fulfillment', 'dine_in');
-        $methods = array_column($status['payment_methods'], 'id');
-        if (! $request->filled('payment_method') && in_array('cash', $methods, true)) {
-            // Older clients (and table QR flows) without a picker pay at the counter.
-            $request->merge(['payment_method' => 'cash']);
+        $methodRows = is_array($status['payment_methods'] ?? null) ? $status['payment_methods'] : [];
+        $methods = array_values(array_filter(array_map(
+            static fn ($row) => is_array($row) ? (string) ($row['id'] ?? '') : '',
+            $methodRows
+        )));
+        $firstOnlineId = null;
+        $firstCashId = null;
+        foreach ($methodRows as $row) {
+            if (! is_array($row) || empty($row['id'])) {
+                continue;
+            }
+            if (($row['type'] ?? '') === 'online' && $firstOnlineId === null) {
+                $firstOnlineId = (string) $row['id'];
+            }
+            if (($row['type'] ?? '') === 'cash' && $firstCashId === null) {
+                $firstCashId = (string) $row['id'];
+            }
+        }
+        if (! $request->filled('payment_method')) {
+            // Shop sync: prefer live IPG; cash/COD only when cafe still allows it.
+            $default = $firstOnlineId ?? $firstCashId ?? ($methods[0] ?? null);
+            if ($default !== null) {
+                $request->merge(['payment_method' => $default]);
+            }
+        } elseif ($request->input('payment_method') === 'cash' && $firstCashId && ! in_array('cash', $methods, true)) {
+            $request->merge(['payment_method' => $firstCashId]);
         }
         if (! $request->filled('fulfillment')) {
             $request->merge(['fulfillment' => 'dine_in']);
@@ -159,15 +221,20 @@ class PublicGuestCartController extends Controller
             $request->merge(['idempotency_key' => 'auto-'.Str::random(24)]);
         }
 
+        $needsTime = in_array($fulfillment, ['pickup', 'dine_in', 'delivery'], true);
         $meta = $request->validate([
             'idempotency_key' => ['required', 'string', 'min:8', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/'],
             'guest_token' => ['nullable', 'string', 'max:64'],
             'branch_slug' => ['nullable', 'string', 'max:255'],
             'fulfillment' => ['required', 'string', 'in:dine_in,pickup,delivery'],
             'payment_method' => ['required', 'string', 'in:'.implode(',', $methods ?: ['none'])],
-            'customer_name' => [$fulfillment === 'dine_in' ? 'nullable' : 'required', 'string', 'min:2', 'max:120'],
-            'customer_phone' => [$fulfillment === 'dine_in' ? 'nullable' : 'required', 'string', 'regex:/^(\+98|0098|0)?9\d{9}$/'],
+            'customer_name' => ['required', 'string', 'min:2', 'max:120'],
+            'customer_first_name' => ['nullable', 'string', 'max:60'],
+            'customer_last_name' => ['nullable', 'string', 'max:60'],
+            'customer_phone' => ['required', 'string', 'regex:/^(\+98|0098|0)?9\d{9}$/'],
             'customer_note' => ['nullable', 'string', 'max:500'],
+            'coupon_code' => ['nullable', 'string', 'max:64'],
+            'coupon_password' => ['nullable', 'string', 'max:191'],
             'table_number' => [$fulfillment === 'dine_in' && $status['dine_in_require_table'] && ! $this->cartHasTable($request) ? 'required' : 'nullable', 'string', 'max:32'],
             'address' => [$fulfillment === 'delivery' ? 'required' : 'nullable', 'string', 'min:10', 'max:500'],
             'plaque' => [$fulfillment === 'delivery' ? 'required' : 'nullable', 'string', 'max:32'],
@@ -175,7 +242,7 @@ class PublicGuestCartController extends Controller
             'postal_code' => ['nullable', 'string', 'regex:/^\d{10}$/'],
             'lat' => [$fulfillment === 'delivery' && $status['delivery_require_pin'] ? 'required' : 'nullable', 'numeric', 'between:24,40'],
             'lng' => [$fulfillment === 'delivery' && $status['delivery_require_pin'] ? 'required' : 'nullable', 'numeric', 'between:44,64'],
-            'pickup_time' => [$fulfillment === 'pickup' ? 'required' : 'nullable', 'string', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'pickup_time' => [$needsTime ? 'required' : 'nullable', 'string', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
         ], [
             'customer_phone.regex' => __('api.cafe_phone_invalid'),
             'postal_code.regex' => __('api.cafe_postal_invalid'),
@@ -214,10 +281,8 @@ class PublicGuestCartController extends Controller
         }
 
         $pickupAt = null;
-        // Pickup needs a slot; delivery may pick one (empty = as soon as possible). Either way only
-        // offered slots inside opening hours are accepted.
-        if ($fulfillment === 'pickup' || ($fulfillment === 'delivery' && ! empty($meta['pickup_time']))) {
-            // Only offered slots are accepted: after prep time and inside opening hours.
+        // Dine-in / pickup / delivery all require a slot from the shop hours calendar.
+        if ($needsTime && ! empty($meta['pickup_time'])) {
             $slot = collect($ordering->pickupSlots($tid))->firstWhere('time', $meta['pickup_time']);
             if (! $slot) {
                 return response()->json([
@@ -255,14 +320,24 @@ class PublicGuestCartController extends Controller
                 }
             }
 
-            $online = $meta['payment_method'] !== 'cash';
+            // Only real IPG tenders wait for redirect/capture. COD / cash go straight to the kitchen.
+            $methodType = 'cash';
+            foreach ($methodRows as $row) {
+                if (is_array($row) && (string) ($row['id'] ?? '') === (string) $meta['payment_method']) {
+                    $methodType = (string) ($row['type'] ?? 'cash');
+                    break;
+                }
+            }
+            $online = $methodType === 'online';
 
-            $order = DB::transaction(function () use ($lines, $tid, $meta, $cart, $ordering, $fulfillment, $phone, $token, $online, $pickupAt, $request) {
+            $order = DB::transaction(function () use ($lines, $tid, $meta, $cart, $ordering, $fulfillment, $phone, $token, $online, $pickupAt, $request, $coupons, $user) {
                 app(OrderStock::class)->assertLinesAvailable($lines);
 
                 $pricedLines = [];
                 $quoteLines = [];
+                $couponLines = [];
                 $itemCount = 0;
+                $subtotalBeforeCoupon = 0;
                 foreach ($lines as $line) {
                     $stored = is_array($line->meta) ? $line->meta : [];
                     $optionIds = array_map(
@@ -275,14 +350,60 @@ class PublicGuestCartController extends Controller
                         isset($stored['variant_id']) ? (int) $stored['variant_id'] : null
                     );
                     $taxable = \App\Services\Orders\OrderTax::productTaxable($line->product);
+                    $lineAmount = $line->quantity * $priced['unit_minor'];
                     $pricedLines[] = [$line, $priced, $taxable];
-                    $quoteLines[] = ['amount' => $line->quantity * $priced['unit_minor'], 'taxable' => $taxable];
+                    $quoteLines[] = ['amount' => $lineAmount, 'taxable' => $taxable];
+                    $couponLines[] = [
+                        'product_id' => $line->product_id,
+                        'unit_price_minor' => $priced['unit_minor'],
+                        'quantity' => $line->quantity,
+                    ];
                     $itemCount += (int) $line->quantity;
+                    $subtotalBeforeCoupon += $lineAmount;
                 }
 
-                $quote = $ordering->quote($tid, $fulfillment, $quoteLines, $itemCount);
+                // Same CouponService path as authenticated shop CheckoutController.
+                $discount = 0;
+                $coupon = null;
+                $applied = null;
+                if (! empty($meta['coupon_code'])) {
+                    try {
+                        $applied = $coupons->apply(
+                            $tid,
+                            (string) $meta['coupon_code'],
+                            $subtotalBeforeCoupon,
+                            $couponLines,
+                            $user->id,
+                            'site',
+                            [],
+                            $meta['coupon_password'] ?? null
+                        );
+                    } catch (ValidationException $e) {
+                        throw $e;
+                    }
+                } else {
+                    $applied = $coupons->bestAutoApply($tid, $subtotalBeforeCoupon, $couponLines, $user->id, 'site');
+                }
+                if ($applied) {
+                    $discount = (int) $applied['discount_minor'];
+                    $coupon = $applied['coupon'];
+                }
+
+                $quote = $ordering->quote($tid, $fulfillment, $quoteLines, $itemCount, $discount);
+                if ($applied && ($applied['free_shipping'] ?? false) && ($quote['delivery_minor'] ?? 0) > 0) {
+                    $before = (int) $quote['delivery_minor'];
+                    $after = $coupons->shippingAfter($applied, $before);
+                    $delta = $before - $after;
+                    if ($delta > 0) {
+                        $quote['delivery_minor'] = $after;
+                        $quote['fees_minor'] = max(0, (int) $quote['fees_minor'] - $delta);
+                        $quote['total_minor'] = $quote['fees_minor'];
+                        $quote['grand_total_minor'] = max(0, (int) $quote['grand_total_minor'] - $delta);
+                    }
+                }
+
                 $metaOrder = [
-                    'source' => 'guest_table',
+                    'source' => 'cafe_shop',
                     'guest_token' => is_string($token) ? $token : $cart->guest_token,
                     'idempotency_key' => $meta['idempotency_key'],
                     'fulfillment' => $fulfillment,
@@ -303,6 +424,9 @@ class PublicGuestCartController extends Controller
                         'show' => $quote['show_vat'],
                         'amount_minor' => $quote['tax_minor'],
                     ],
+                    'coupon_code' => $coupon?->code,
+                    'coupon_id' => $coupon?->id,
+                    'discount_minor' => $discount,
                 ];
                 if ($quote['tax_lines'] !== []) {
                     $metaOrder['tax_lines'] = $quote['tax_lines'];
@@ -333,11 +457,11 @@ class PublicGuestCartController extends Controller
 
                 $order = Order::query()->create([
                     'tenant_id' => $tid,
-                    'user_id' => $request->user('sanctum')?->tenant_id === $tid ? $request->user('sanctum')->id : null,
+                    'user_id' => $user->id,
                     // Online orders wait for verified payment; cash orders go straight to the kitchen.
                     'status' => $online ? 'pending_payment' : 'processing',
                     'subtotal_minor' => $quote['subtotal_minor'],
-                    'discount_minor' => 0,
+                    'discount_minor' => $discount,
                     'shipping_minor' => $quote['fees_minor'],
                     'tax_minor' => $quote['tax_minor'],
                     'total_minor' => $quote['grand_total_minor'],
@@ -349,6 +473,8 @@ class PublicGuestCartController extends Controller
                     'table_number' => $fulfillment === 'dine_in' ? ($meta['table_number'] ?? $cart->table_number) : null,
                     'branch_slug' => $meta['branch_slug'] ?? $cart->branch_slug,
                     'payment_tender' => $online ? null : 'cash',
+                    'coupon_code' => $coupon?->code,
+                    'coupon_id' => $coupon?->id,
                     'meta' => $metaOrder,
                 ]);
 
@@ -362,6 +488,10 @@ class PublicGuestCartController extends Controller
                         'unit_price_minor' => $priced['unit_minor'],
                         'meta' => ['selections' => $priced['selections'], 'vat_applicable' => $taxable],
                     ]);
+                }
+
+                if ($coupon) {
+                    $coupons->hold($coupon, $order, $discount, $user->id);
                 }
 
                 app(\App\Services\Orders\OrderLifecycle::class)->sync($order->fresh(), null);
@@ -471,6 +601,8 @@ class PublicGuestCartController extends Controller
             'payment_method' => $meta['payment_method'] ?? null,
             'pay_token' => in_array($order->status, ['pending_payment', 'payment_failed', 'awaiting_gateway'], true) ? ($meta['pay_token'] ?? null) : null,
             'subtotal_minor' => (int) $order->subtotal_minor,
+            'discount_minor' => (int) $order->discount_minor,
+            'coupon_code' => $order->coupon_code ?? ($meta['coupon_code'] ?? null),
             'fees' => $meta['fees'] ?? null,
             'shipping_minor' => (int) $order->shipping_minor,
             'tax_minor' => (int) $order->tax_minor,
