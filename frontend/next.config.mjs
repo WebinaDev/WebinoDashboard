@@ -66,6 +66,11 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        // eNamad verification: https://site/4534534.txt is an empty public file.
+        source: "/:code(\\d{1,64}).txt",
+        destination: "/enamad-file/:code",
+      },
+      {
         source: "/api/:path*",
         destination: `${apiProxyTarget}/api/:path*`,
       },

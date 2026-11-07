@@ -358,6 +358,7 @@ class TenantSettingsController extends Controller
                 'tagline' => '',
                 'admin_email' => '',
                 'timezone' => 'Asia/Tehran',
+                'enamad_file' => '',
             ],
             'site.privacy' => [
                 'guest_checkout' => false,
@@ -433,6 +434,7 @@ class TenantSettingsController extends Controller
             'tagline' => (string) ($stored['tagline'] ?? ''),
             'admin_email' => (string) ($stored['admin_email'] ?? ''),
             'timezone' => (string) ($stored['timezone'] ?? 'Asia/Tehran'),
+            'enamad_file' => \App\Support\EnamadFile::normalize($stored['enamad_file'] ?? ''),
         ];
     }
 
@@ -442,11 +444,15 @@ class TenantSettingsController extends Controller
      */
     private function saveSiteGeneral(int $tenantId, ModuleSettingsService $settings, array $input): array
     {
+        $previous = $settings->get($tenantId, 'settings', 'site.general', $this->defaultsFor('site.general'));
         $clean = [
             'site_title' => mb_substr(trim((string) ($input['site_title'] ?? '')), 0, 255),
             'tagline' => mb_substr(trim((string) ($input['tagline'] ?? '')), 0, 255),
             'admin_email' => mb_substr(trim((string) ($input['admin_email'] ?? '')), 0, 255),
             'timezone' => mb_substr(trim((string) ($input['timezone'] ?? 'Asia/Tehran')), 0, 64) ?: 'Asia/Tehran',
+            'enamad_file' => array_key_exists('enamad_file', $input)
+                ? \App\Support\EnamadFile::normalize($input['enamad_file'])
+                : \App\Support\EnamadFile::normalize($previous['enamad_file'] ?? ''),
         ];
         $settings->put($tenantId, 'settings', 'site.general', $clean);
         $tenant = \App\Models\Tenant::query()->find($tenantId);

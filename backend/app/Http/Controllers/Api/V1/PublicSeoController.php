@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CmsPage;
 use App\Models\Product;
+use App\Services\Modules\ModuleSettingsService;
 use App\Services\Payments\BnplBadgeService;
 use App\Services\Seo\SeoMetaBuilder;
+use App\Support\EnamadFile;
 use App\Services\Seo\SeoRedirectService;
 use App\Services\Seo\SitemapBuilder;
 use Illuminate\Http\Request;
@@ -146,5 +148,14 @@ class PublicSeoController extends Controller
                 ),
             ],
         ])->header('Cache-Control', 'public, max-age=30, s-maxage=60');
+    }
+
+    /** Empty body when the code matches the tenant's eNamad file. */
+    public function enamadFile(Request $request, string $code, ModuleSettingsService $settings): Response
+    {
+        $tenant = $this->publicTenant($request);
+        $stored = $settings->get((int) $tenant->id, 'settings', 'site.general', []);
+
+        return EnamadFile::response((string) ($stored['enamad_file'] ?? ''), $code);
     }
 }

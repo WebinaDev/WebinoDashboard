@@ -13,6 +13,12 @@ type Payload = {
   tagline?: string
   admin_email?: string
   timezone?: string
+  enamad_file?: string
+}
+
+function enamadCode(raw: string): string {
+  const value = raw.trim().toLowerCase().replace(/\.txt$/, "")
+  return /^[0-9]{1,64}$/.test(value) ? value : ""
 }
 
 export function SiteGeneralSettingsPanel() {
@@ -64,6 +70,23 @@ export function SiteGeneralSettingsPanel() {
               value={draft.timezone ?? "Asia/Tehran"}
               onChange={(e) => setDraft({ ...draft, timezone: e.target.value })}
             />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="enamad-file">{t("enamad_file")}</Label>
+            <Input
+              id="enamad-file"
+              dir="ltr"
+              inputMode="numeric"
+              placeholder="4534534"
+              value={draft.enamad_file ?? ""}
+              onChange={(e) => setDraft({ ...draft, enamad_file: e.target.value })}
+            />
+            <p className="text-muted-foreground text-xs">{t("enamad_hint")}</p>
+            {enamadCode(draft.enamad_file ?? "") ? (
+              <p className="text-xs" dir="ltr">
+                {t("enamad_public", { file: `${enamadCode(draft.enamad_file ?? "")}.txt` })}
+              </p>
+            ) : null}
           </div>
         </CardContent>
       </Card>

@@ -248,6 +248,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/payments/installment-badges', [PublicSeoController::class, 'installmentBadges']);
         Route::get('/seo/sitemap/{kind?}', [PublicSeoController::class, 'sitemap'])->where('kind', 'index|pages|products|posts|news|video');
         Route::get('/seo/robots', [PublicSeoController::class, 'robots']);
+        Route::get('/enamad/{code}', [PublicSeoController::class, 'enamadFile'])->where('code', '[0-9]{1,64}');
         Route::post('/analytics/hit', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');
         // Alias without "analytics" in the path (adblock bypass).
         Route::post('/metrics/collect', [PublicAnalyticsController::class, 'hit'])->middleware('throttle:180,1');

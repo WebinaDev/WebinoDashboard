@@ -2519,7 +2519,10 @@
       "site_title": "Site title",
       "tagline": "Tagline",
       "admin_email": "Admin email",
-      "timezone": "Timezone"
+      "timezone": "Timezone",
+      "enamad_file": "eNamad verification file",
+      "enamad_hint": "Enter the eNamad number only. An empty public text file is published at the site root, for example 4534534.txt.",
+      "enamad_public": "Public address: /{file}"
     },
     "site_privacy": {
       "title": "Privacy & accounts",
