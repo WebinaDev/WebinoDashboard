@@ -559,14 +559,17 @@ Route::prefix('v1')->group(function () {
                 Route::post('/setup/import-demo', [SetupController::class, 'importDemo']);
             });
 
-            Route::middleware('can:settings.manage')->group(function () {
-                Route::get('/shop/newsletter-subscribers', [PublicStorefrontController::class, 'adminSubscribers']);
-                Route::delete('/shop/newsletter-subscribers/{id}', [PublicStorefrontController::class, 'adminDeleteSubscriber'])->whereNumber('id');
+            Route::middleware('can:content.manage,settings.manage')->group(function () {
                 Route::get('/shop/product-stories', [ProductStoryController::class, 'adminIndex']);
                 Route::post('/shop/product-stories', [ProductStoryController::class, 'adminStore']);
                 Route::patch('/shop/product-stories/{story}', [ProductStoryController::class, 'adminUpdate'])->whereNumber('story');
                 Route::delete('/shop/product-stories/{story}', [ProductStoryController::class, 'adminDestroy'])->whereNumber('story');
                 Route::post('/shop/product-stories/upload', [ProductStoryController::class, 'adminUploadMedia']);
+            });
+
+            Route::middleware('can:settings.manage')->group(function () {
+                Route::get('/shop/newsletter-subscribers', [PublicStorefrontController::class, 'adminSubscribers']);
+                Route::delete('/shop/newsletter-subscribers/{id}', [PublicStorefrontController::class, 'adminDeleteSubscriber'])->whereNumber('id');
                 Route::get('/shop/polls', [PollController::class, 'adminIndex']);
                 Route::post('/shop/polls', [PollController::class, 'adminStore']);
                 Route::patch('/shop/polls/{poll}', [PollController::class, 'adminUpdate'])->whereNumber('poll');

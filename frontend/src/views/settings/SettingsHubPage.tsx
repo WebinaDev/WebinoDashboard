@@ -1,6 +1,5 @@
 "use client"
 
-import { ShopStoriesSettingsPanel } from "@/views/settings/panels/ShopStoriesSettingsPanel"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect } from "react"
 
@@ -71,7 +70,6 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/site/pwa")) return <PwaSettingsPanel />
   if (path.endsWith("/site/instagram")) return <InstagramSettingsPanel />
   if (path.endsWith("/site/dashboard")) return <DashboardSiteSettingsPanel />
-  if (path.endsWith("/site/highlights") || path.endsWith("/shop/stories")) return <ShopStoriesSettingsPanel />
   if (path.endsWith("/shop/general")) return <ShopGeneralSettingsPanel />
   if (path.endsWith("/shop/products")) return <ShopProductsSettingsPanel />
   if (path.endsWith("/shop/downloads")) return <ShopDownloadsSettingsPanel />
@@ -147,10 +145,19 @@ export default function SettingsHubPage() {
 
   useEffect(() => {
     const path = pathname.replace(/\/$/, "")
+    if (path.endsWith("/settings/site/highlights") || path.endsWith("/settings/shop/stories")) {
+      router.replace("/dashboard/highlights")
+      return
+    }
     if (path === "/dashboard/settings" || path.endsWith("/settings")) {
       router.replace(defaultSettingsPath())
     }
   }, [pathname, router])
+
+  const path = pathname.replace(/\/$/, "")
+  if (path.endsWith("/settings/site/highlights") || path.endsWith("/settings/shop/stories")) {
+    return null
+  }
 
   return (
     <SettingsModulesChrome>

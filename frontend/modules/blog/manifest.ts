@@ -77,6 +77,15 @@ export const blogManifest: ModuleManifest = {
       capability: "content.manage",
     },
     {
+      path: "highlights",
+      submodule: "highlights",
+      page: "highlights",
+      labelKey: "nav.highlights",
+      section: "content",
+      order: 13,
+      capability: "content.manage,settings.manage",
+    },
+    {
       path: "blog/new",
       submodule: "posts",
       page: "post-editor",

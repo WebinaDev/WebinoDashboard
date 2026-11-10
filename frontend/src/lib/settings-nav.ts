@@ -78,12 +78,6 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         route: "/dashboard/settings/site/style",
       },
       {
-        id: "highlights",
-        titleFa: "هایلایت‌ها",
-        titleEn: "Highlights",
-        route: "/dashboard/settings/site/highlights",
-      },
-      {
         id: "system-logs",
         titleFa: "لاگ سیستم",
         titleEn: "System logs",
@@ -286,12 +280,6 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleFa: "دیدگاه‌ها",
         titleEn: "Reviews",
         route: "/dashboard/settings/shop/reviews",
-      },
-      {
-        id: "stories",
-        titleFa: "هایلایت‌ها",
-        titleEn: "Highlights",
-        route: "/dashboard/settings/shop/stories",
       },
       {
         id: "maps",

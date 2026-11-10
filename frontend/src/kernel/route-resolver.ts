@@ -80,6 +80,20 @@ export function isSubmoduleEnabled(
     return enabled("cafe", "item") || enabled("cafe", "menu")
   }
 
+  // Highlights live with content (poetry sites and shops), not in settings.
+  if (moduleSlug === "blog" && submoduleSlug === "highlights") {
+    return (
+      enabled("blog", "poetry") ||
+      activations.some(
+        (a) =>
+          a.module_slug === "poetry" &&
+          a.enabled &&
+          (ignoreLicense || a.licensed !== false),
+      ) ||
+      enabled("commerce", "catalog")
+    )
+  }
+
   // Poetry is ERP opt-in only. Never imply it from blog.posts or resume — that made
   // «شعر و ادبیات» appear on every storefront/resume site. Require blog.poetry or any
   // enabled poetry.* activation (seeded when the poetry addon is licensed).
