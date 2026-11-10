@@ -14,11 +14,11 @@ class PoetryPresenter
         return $t ? ['id' => $t->id, 'kind' => $t->kind, 'slug' => $t->slug, 'name' => $t->name, 'description' => $t->description, 'image' => $t->image] : null;
     }
 
-    public static function card(PoetryPoem $p): array
+    public static function card(PoetryPoem $p, bool $withText = false): array
     {
         $terms = $p->relationLoaded('terms') ? $p->terms : collect();
 
-        return [
+        $row = [
             'id' => $p->id, 'slug' => $p->slug, 'title' => $p->title, 'excerpt' => $p->excerpt,
             'occasion' => self::term($p->occasion), 'meter' => self::term($p->meter), 'style_label' => $p->style_label,
             'figures' => $terms->where('kind', 'figure')->values()->map(fn ($t) => self::term($t))->all(),
@@ -27,6 +27,21 @@ class PoetryPresenter
             'view_count' => $p->view_count, 'published_at' => $p->published_at?->toIso8601String(),
             'has_media' => ! empty($p->media_ids) || ! empty($p->external_links) || (bool) $p->getAttribute('media_items_exists'),
         ];
+        if ($withText && $p->relationLoaded('stanzas')) {
+            $row['stanzas'] = $p->stanzas->map(fn ($s) => ['id' => $s->id, 'type' => $s->type, 'layout' => $s->layout, 'repeat' => $s->repeat, 'note' => $s->note, 'lines' => $s->lines])->all();
+            $lines = [];
+            foreach (PoetryText::sequence($p) as $s) {
+                foreach ((array) ($s['lines'] ?? []) as $line) {
+                    $line = trim((string) $line);
+                    if ($line !== '') {
+                        $lines[] = $line;
+                    }
+                }
+            }
+            $row['lines'] = $lines;
+        }
+
+        return $row;
     }
 
     public static function full(PoetryPoem $p): array

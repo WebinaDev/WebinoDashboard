@@ -3,7 +3,7 @@ import { test } from "node:test"
 
 import { POETRY_WIDGET_TYPES, POETRY_WIDGETS } from "./registry-poetry.ts"
 
-test("poetry widgets: ten types with Persian labels (includes story-strip highlights)", () => {
+test("poetry widgets: types with Persian labels (includes story-strip and poem-carousel)", () => {
   assert.deepEqual(POETRY_WIDGETS.map((w) => w.type), [...POETRY_WIDGET_TYPES])
   assert.ok(POETRY_WIDGET_TYPES.includes("story-strip"))
   for (const w of POETRY_WIDGETS) {
@@ -39,4 +39,20 @@ test("poetry widgets expose section background + occasion/shop layout fields", (
   const shop = POETRY_WIDGETS.find((w) => w.type === "shop-showcase")!.create()
   assert.equal(shop.props.count, 6)
   assert.equal(shop.props.source, "catalog")
+})
+
+test("poem-carousel is registered with glass tone and full-text fields", () => {
+  assert.ok(POETRY_WIDGET_TYPES.includes("poem-carousel"))
+  const def = POETRY_WIDGETS.find((w) => w.type === "poem-carousel")
+  assert.ok(def)
+  const keys = def.fields.map((f) => ("key" in f ? f.key : ""))
+  for (const k of ["title", "filter", "style", "count", "showTitle", "showTag", "items", "layout", "slidesDesktop", "slidesMobile", "tone", "moreHref"]) {
+    assert.ok(keys.includes(k), k)
+  }
+  const node = def.create()
+  assert.equal(node.props.filter, "short")
+  assert.equal(node.props.tone, "glass")
+  assert.equal(node.props.slidesDesktop, 2)
+  assert.equal(node.props.slidesMobile, 1)
+  assert.equal(node.props.showTitle, true)
 })

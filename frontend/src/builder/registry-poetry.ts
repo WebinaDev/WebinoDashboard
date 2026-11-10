@@ -33,7 +33,7 @@ const CAROUSEL_FIELDS: FieldDef[] = [
 ]
 
 export const POETRY_WIDGET_TYPES = [
-  "poetry-hero", "story-strip", "poem-list", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
+  "poetry-hero", "story-strip", "poem-list", "poem-carousel", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
 ] as const
 
 const DECOR_FRAMES = [{ value: "rose-arch", label: "محراب گل‌سرخی" }, { value: "arch", label: "محرابی ساده" }, { value: "none", label: "بدون قاب" }]
@@ -99,6 +99,33 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       tone, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("poem-list", { title: "آخرین اشعار", count: 6, sort: "", detailHref: "/poem?poem={slug}", items: "", readLabel: "خواندن شعر", downloadLabel: "دانلود صوت", moreLabel: "همه اشعار", moreHref: "/poems", tone: "light" }),
+  },
+  {
+    type: "poem-carousel", label: "کروسل اشعار کوتاه (متن کامل)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "select", key: "filter", label: "منبع اشعار", options: [
+        { value: "short", label: "اشعار کوتاه" },
+        { value: "style", label: "سبک (نامک، مثلاً دوبیتی یا رباعی)" },
+        { value: "all", label: "همه اشعار منتشرشده" },
+      ] },
+      { kind: "text", key: "style", label: "نامک سبک (خالی در حالت سبک = همه سبک‌ها؛ چند نامک با ویرگول)" },
+      { kind: "number", key: "count", label: "تعداد اشعار (خودکار)", min: 1, max: 24 },
+      { kind: "select", key: "sort", label: "ترتیب (خودکار)", options: [{ value: "", label: "تازه‌ترین" }, { value: "popular", label: "پربازدیدترین" }] },
+      { kind: "link", key: "detailHref", label: "صفحه شعر" },
+      { kind: "switch", key: "showTitle", label: "نمایش عنوان شعر روی کارت" },
+      { kind: "switch", key: "showTag", label: "نمایش سبک روی کارت" },
+      { kind: "repeater", key: "items", label: "اشعار دستی (خالی = خودکار از ماژول شعر)", fields: [
+        { key: "title", label: "عنوان", kind: "text" },
+        { key: "lines", label: "متن کامل (هر مصراع یک خط)", kind: "textarea" },
+        { key: "href", label: "پیوند", kind: "url" },
+        { key: "tag", label: "سبک (مثلاً دوبیتی)", kind: "text" },
+      ] },
+      { kind: "text", key: "moreLabel", label: "متن «همه اشعار»" }, { kind: "link", key: "moreHref", label: "پیوند همه اشعار" },
+      ...CAROUSEL_FIELDS,
+      tone, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("poem-carousel", { title: "اشعار کوتاه", filter: "short", style: "", count: 8, sort: "", detailHref: "/poem?poem={slug}", showTitle: true, showTag: true, items: "", moreLabel: "همه اشعار", moreHref: "/poems", layout: "carousel", slidesDesktop: 2, slidesMobile: 1, autoplay: false, autoplayInterval: 5, tone: "glass" }),
   },
   {
     type: "book-banner", label: "بنر کتاب + «خبرم کن»", category: "content",

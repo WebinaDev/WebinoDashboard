@@ -220,3 +220,32 @@ html:has(.wpz-mfw), html:has(.akx-mfw) { overflow-x: clip; }
 .wpz-product .wpz-btn-primary { margin-top: auto; width: calc(100% - 8px); max-width: none; padding: 8px 12px; font-size: .82rem; border-radius: 12px; }
 .wpz-carousel-track { padding-block: 6px 18px; align-items: stretch; }
 .wpz-occasion { border-radius: var(--ak-card-radius); }
+
+/* ── poem-carousel: full-text verse cards (no clamp, height grows) ── */
+.wpz-verse-card {
+  display: flex; flex-direction: column; height: 100%; min-width: 0;
+  border-radius: var(--ak-card-radius, 16px);
+  background: color-mix(in srgb, #fff 78%, transparent);
+  box-shadow: 0 8px 22px rgba(74,7,16,.08);
+  border: 1px solid rgba(255,255,255,.7);
+}
+.wpz-dark .wpz-verse-card { background: color-mix(in srgb, #000 28%, transparent); border-color: rgba(255,255,255,.12); }
+.wpz-glass .wpz-verse-card { background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.wpz-verse-body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; padding: 22px 18px 26px; text-align: center; color: inherit; text-decoration: none; border-radius: inherit; }
+.wpz-verse-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--wpz-crimson-deep); line-height: 1.5; }
+.wpz-dark .wpz-verse-title, .wpz-on-dark .wpz-verse-title { color: var(--wpz-cream); }
+.wpz-verse-tag { font-size: .75rem; font-weight: 700; color: var(--wpz-gold); letter-spacing: 0; }
+.wpz-verse { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0; width: 100%; }
+.wpz-misra { display: block; width: 100%; font-size: clamp(0.92rem, 1.35vw, 1.08rem); line-height: 2.05; font-weight: 600; color: var(--wpz-ink); text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wpz-misra-end { margin-block-end: 0.7em; }
+.wpz-misra-end:last-child { margin-block-end: 0; }
+.wpz-dark .wpz-misra, .wpz-on-dark .wpz-misra { color: var(--wpz-cream); }
+.wpz-poem-grid { align-items: stretch; }
+.wpz-poem-track { padding-inline: 22px; }
+.wpz-poem-track .wpz-carousel-track { align-items: stretch; }
+.wpz-poem-track .wpz-carousel-prev { inset-inline-start: 0; }
+.wpz-poem-track .wpz-carousel-next { inset-inline-end: 0; }
+@media (max-width: 760px) {
+  .wpz-poem-track { padding-inline: 0; padding-bottom: 52px; }
+  .wpz-poem-track .wpz-carousel-btn { top: auto; bottom: 4px; translate: 0 0; }
+}

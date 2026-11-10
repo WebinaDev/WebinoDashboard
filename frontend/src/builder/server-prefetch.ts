@@ -1,5 +1,6 @@
 import { apiServer } from "@/lib/api-server"
 import { mediaPath, usesLiveMedia } from "./poetry-media"
+import { poemCarouselQuery } from "./poem-carousel"
 import { parseRows, propBool, propNum, propStr } from "./props"
 import { CAFE_CATEGORIES_KEY, CAFE_VENUE_KEY, cafeMenuCount, cafeMenuKey } from "./cafe-keys"
 import type { BuilderDocument, SectionNode, WidgetNode } from "./types"
@@ -27,6 +28,11 @@ function planKeys(w: WidgetNode, keys: Set<string>) {
       const count = Math.min(24, Math.max(1, propNum(p, "count", 6)))
       const qs = new URLSearchParams({ per_page: String(count), ...(propStr(p, "sort") === "popular" ? { sort: "popular" } : {}) })
       poetry(`poems?${qs}`)
+      return
+    }
+    case "poem-carousel": {
+      if (parseRows(p.items, ["title", "lines"]).some((r) => r.title || r.lines)) return
+      poetry(`poems?${poemCarouselQuery(p)}`)
       return
     }
     case "poem-archive": {

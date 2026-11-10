@@ -154,6 +154,7 @@ const ClassicTrustStrip = dynamic(() => import("@/themes/ecommerce-classic/compo
 
 const PoetryHeroWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryHeroWidget))
 const PoemListWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoemListWidget))
+const PoemCarouselWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoemCarouselWidget))
 const BookBannerWidget = dynamic(() => import("./poetry-widgets").then((m) => m.BookBannerWidget))
 const OccasionCardsWidget = dynamic(() => import("./poetry-widgets").then((m) => m.OccasionCardsWidget))
 const MediaCardsWidget = dynamic(() => import("./poetry-widgets").then((m) => m.MediaCardsWidget))
@@ -408,6 +409,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <PoetryHeroWidget widget={widget} />
     case "poem-list":
       return <PoemListWidget widget={widget} />
+    case "poem-carousel":
+      return <PoemCarouselWidget widget={widget} />
     case "book-banner":
       return <BookBannerWidget widget={widget} />
     case "occasion-cards":

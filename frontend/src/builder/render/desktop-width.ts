@@ -2,7 +2,7 @@ import type { SectionNode, WidgetNode } from "../types"
 
 /** Poetry homepage section widgets that accept `desktopWidth` (full | half | wide | narrow). */
 export const DESKTOP_WIDTH_TYPES = new Set([
-  "poetry-hero", "poem-list", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block",
+  "poetry-hero", "poem-list", "poem-carousel", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block",
 ])
 export type DesktopWidth = "full" | "half" | "wide" | "narrow"
 

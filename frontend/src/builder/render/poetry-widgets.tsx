@@ -22,6 +22,7 @@ import { aboutClass, heroIsFull, heroIsOverlay, shopNarrowStyle, shopTrackClass 
 import { optImg } from "@/lib/image-url"
 import { sectionIsDark } from "./contrast"
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
+import { manualPoemRows, poemCarouselQuery, verseLines } from "../poem-carousel"
 import { WpzCarousel, clampSpv, type CarouselOpts } from "./wpz-carousel"
 import { HeroSlider, heroSlides } from "./poetry-hero-slider"
 import { FooterExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
@@ -29,6 +30,7 @@ import { BuilderPrice, PriceOrText } from "../money"
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
 export const faNum = (v: string | number) => String(v).replace(/\d/g, (d) => FA[Number(d)])
+const inDashboard = () => typeof window !== "undefined" && /^\/dashboard(\/|$)/.test(window.location.pathname)
 
 export function safeHref(href: string, fallback = "#"): string {
   const v = (href || "").trim()
@@ -237,6 +239,83 @@ export function PoemListWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
+type PoemCard = { title: string; lines: string[]; href: string; tag: string }
+
+function usePoemCarousel(count: number, qs: string, detailHref: string): PoemCard[] {
+  const pre = (useBuilderRuntime() as { prefetch?: Record<string, unknown> }).prefetch
+  const seedRaw = count ? pre?.[`/v1/public/poetry/poems?${qs}`] : undefined
+  const toRows = (data: { slug?: string; id?: number | string; title?: string; excerpt?: string; lines?: unknown; stanzas?: Array<{ lines?: unknown }>; styles?: Array<{ name?: string; slug?: string }> | null }[]): PoemCard[] =>
+    data.map((c) => ({
+      title: c.title ?? "",
+      lines: verseLines(c),
+      href: poemHref(detailHref, c),
+      tag: (c.styles ?? []).map((s) => s?.name).find(Boolean) || "",
+    })).filter((r) => r.lines.length || r.title)
+  const seed = Array.isArray(seedRaw) ? toRows(seedRaw) : null
+  const [rows, setRows] = useState<PoemCard[]>(() => seed ?? [])
+  useEffect(() => {
+    if (!count || seed) return
+    let off = false
+    fetch(apiV1(`public/poetry/poems?${qs}`), { headers: { Accept: "application/json" }, credentials: "include" })
+      .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: Parameters<typeof toRows>[0] }>)
+      .then((j) => { if (!off) setRows(toRows(j.data ?? [])) })
+      .catch(() => { if (!off) setRows([]) })
+    return () => { off = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, qs, detailHref])
+  return seed ?? rows
+}
+
+/** Full-text poem cards (no clamp). Live source defaults to short poems (flags.is_short). */
+export function PoemCarouselWidget({ widget }: { widget: WidgetNode }) {
+  const p = widget.props
+  const manual = manualPoemRows(p.items)
+  const qs = poemCarouselQuery(p)
+  const live = usePoemCarousel(manual.length ? 0 : Math.min(24, Math.max(1, propNum(p, "count", 8))), qs, propStr(p, "detailHref", DEFAULT_POEM_HREF))
+  const rows = manual.length ? manual : live
+  const showTitle = propBool(p, "showTitle", true)
+  const showTag = propBool(p, "showTag", true)
+  const { carousel, opts } = carouselOpts(p, 3)
+  const grid3 = propStr(p, "layout", "carousel") === "grid3"
+  const editor = inDashboard()
+  if (!rows.length && !editor) return null
+  return (
+    <section className={shell(p, "wpz-section wpz-poem-carousel", "glass")} style={sectionBg(p)} dir="rtl">
+      <div className="wpz-head">
+        {propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}
+        {propStr(p, "moreLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "moreHref"), "/poems")}>{propStr(p, "moreLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
+      </div>
+      {!rows.length && editor ? <p className="wpz-empty">هنوز شعر کوتاهی منتشر نشده است. پس از افزودن شعر با پرچم کوتاه یا سبک انتخابی، این‌جا نمایش داده می‌شود.</p> : null}
+      {rows.length ? (
+        !carousel ? (
+          <div className={`wpz-grid wpz-poem-grid ${grid3 ? "wpz-grid3" : ""}`}>
+            {rows.map((r, i) => <PoemVerseCard key={r.href || i} row={r} showTitle={showTitle} showTag={showTag} />)}
+          </div>
+        ) : (
+          <WpzCarousel opts={opts} label={propStr(p, "title")} className="wpz-poem-track">
+            {rows.map((r, i) => <PoemVerseCard key={r.href || i} row={r} showTitle={showTitle} showTag={showTag} />)}
+          </WpzCarousel>
+        )
+      ) : null}
+    </section>
+  )
+}
+
+function PoemVerseCard({ row, showTitle, showTag }: { row: PoemCard; showTitle: boolean; showTag: boolean }) {
+  const inner = (
+    <>
+      {showTitle && row.title ? <h3 className="wpz-verse-title">{row.title}</h3> : null}
+      {showTag && row.tag ? <span className="wpz-verse-tag">{row.tag}</span> : null}
+      <p className="wpz-verse">
+        {row.lines.map((line, i) => <span key={i} className={i % 2 === 1 ? "wpz-misra wpz-misra-end" : "wpz-misra"}>{line}</span>)}
+      </p>
+    </>
+  )
+  const href = safeHref(row.href, "")
+  if (href && href !== "#") return <article className="wpz-verse-card"><Link href={href} className="wpz-verse-body">{inner}</Link></article>
+  return <article className="wpz-verse-card"><div className="wpz-verse-body">{inner}</div></article>
+}
+
 /** 3) book banner with notify-me newsletter signup. */
 export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
@@ -306,7 +385,6 @@ function OccasionTrack({ carousel, opts, label, ratio, height = 0, children }: {
 }
 
 const RATIOS: Record<string, string> = { "4/5": "4 / 5", "3/4": "3 / 4", "2/3": "2 / 3", "1/1": "1 / 1", "16/10": "16 / 10" }
-const inDashboard = () => typeof window !== "undefined" && /^\/dashboard(\/|$)/.test(window.location.pathname)
 
 /** 5) audio/video media cards: standalone poetry media (default) or manual rows; only items with a file/link. */
 export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {

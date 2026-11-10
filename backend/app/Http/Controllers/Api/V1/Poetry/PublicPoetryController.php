@@ -40,9 +40,10 @@ class PublicPoetryController extends Controller
         $sort = $request->query('sort');
         $sort === 'popular' ? $q->orderByDesc('view_count') : $q->orderByDesc('published_at')->orderByDesc('id');
         $page = $q->paginate(min(48, max(1, (int) $request->query('per_page', 12))));
+        $withText = $request->boolean('with_text');
 
         return response()->json([
-            'data' => collect($page->items())->map(fn ($p) => PoetryPresenter::card($p))->all(),
+            'data' => collect($page->items())->map(fn ($p) => PoetryPresenter::card($p, $withText))->all(),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total()],
         ]);
     }
@@ -127,13 +128,19 @@ class PublicPoetryController extends Controller
                 ->orWhereRaw($txt('external_links')." NOT IN ('[]','null')")
                 ->orWhereHas('mediaItems', fn ($m) => $m->published()->playable()));
         }
-        if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten'], true)) {
+        if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten', 'is_short'], true)) {
             $q->where('flags->'.$flag, true);
         }
         foreach (['figure', 'style'] as $kind) {
             if ($slug = $request->query($kind)) {
-                $q->whereHas('terms', fn ($w) => $w->where('kind', $kind)->where('slug', $slug));
+                $slugs = array_values(array_filter(array_map('trim', explode(',', (string) $slug))));
+                if ($slugs) {
+                    $q->whereHas('terms', fn ($w) => $w->where('kind', $kind)->whereIn('slug', $slugs));
+                }
             }
+        }
+        if ($request->boolean('with_text')) {
+            $q->with('stanzas');
         }
 
         return $q;

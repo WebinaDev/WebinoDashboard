@@ -169,4 +169,31 @@ TXT;
         $this->assertSame('یا حسین یا حسین', $r['title']);
         $this->assertStringNotContainsString('ali_khabari', json_encode($r, JSON_UNESCAPED_UNICODE));
     }
+
+    public function test_public_index_filters_short_poems_and_includes_text(): void
+    {
+        $this->actingAs($this->user, 'sanctum');
+        $this->postJson('/api/v1/poetry/poems', [
+            'title' => 'جانفدا', 'status' => 'published',
+            'flags' => ['is_short' => true],
+            'term_ids' => [$this->term('style', 'noheh')],
+            'stanzas' => [['type' => 'stanza', 'layout' => 'single', 'lines' => ['مصرع یک', 'مصرع دو', 'مصرع سه', 'مصرع چهار']]],
+        ])->assertCreated();
+        $this->postJson('/api/v1/poetry/poems', [
+            'title' => 'نوحه بلند', 'status' => 'published',
+            'stanzas' => [['type' => 'stanza', 'lines' => ['بند یک', 'بند دو']]],
+        ])->assertCreated();
+
+        $short = $this->getJson('/api/v1/public/poetry/poems?flag=is_short&with_text=1')->assertOk();
+        $short->assertJsonPath('meta.total', 1);
+        $this->assertSame('جانفدا', $short->json('data.0.title'));
+        $this->assertSame(['مصرع یک', 'مصرع دو', 'مصرع سه', 'مصرع چهار'], $short->json('data.0.lines'));
+        $this->assertNotEmpty($short->json('data.0.stanzas'));
+
+        $plain = $this->getJson('/api/v1/public/poetry/poems?flag=is_short')->assertOk();
+        $this->assertArrayNotHasKey('lines', $plain->json('data.0'));
+
+        $this->getJson('/api/v1/public/poetry/poems?style=noheh')->assertJsonPath('meta.total', 1);
+        $this->getJson('/api/v1/public/poetry/poems?style=noheh,zamineh')->assertJsonPath('meta.total', 1);
+    }
 }

@@ -135,7 +135,7 @@ class PoetryAdminController extends Controller
             'term_ids' => ['nullable', 'array'], 'term_ids.*' => ['integer', Rule::exists('poetry_terms', 'id')->where('tenant_id', PoetryScope::id())->whereIn('kind', ['figure', 'style'])],
             'style_label' => ['nullable', 'string', 'max:160'], 'pen_name' => ['nullable', 'string', 'max:80'],
             'composed_label' => ['nullable', 'string', 'max:80'], 'melody_credit' => ['nullable', 'string', 'max:255'],
-            'flags' => ['nullable', 'array'], 'flags.is_new' => ['boolean'], 'flags.not_performed' => ['boolean'], 'flags.rewritten' => ['boolean'],
+            'flags' => ['nullable', 'array'], 'flags.is_new' => ['boolean'], 'flags.not_performed' => ['boolean'], 'flags.rewritten' => ['boolean'], 'flags.is_short' => ['boolean'],
             'refrain_after_each' => ['boolean'],
             'media_ids' => ['nullable', 'array'], 'media_ids.*' => ['integer'],
             'external_links' => ['nullable', 'array', 'max:10'], 'external_links.*.label' => ['nullable', 'string', 'max:80'],
