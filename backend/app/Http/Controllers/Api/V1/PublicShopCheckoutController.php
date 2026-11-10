@@ -71,13 +71,14 @@ class PublicShopCheckoutController extends Controller
             'items' => ['nullable', 'array', 'max:100'],
             'items.*.product_id' => ['required_with:items', 'integer', 'min:1'],
             'items.*.quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
+            'items.*.variant_id' => ['nullable', 'integer', 'min:1'],
         ]);
         $subtotal = (int) ($data['cart_subtotal_minor'] ?? 0);
         $lines = $this->resolveProductLines($tid, $data['items'] ?? []);
         if ($lines !== null && $subtotal <= 0) {
             $subtotal = 0;
             foreach ($lines as $line) {
-                $subtotal += (int) $line->product->price_minor * (int) $line->quantity;
+                $subtotal += $line->product->storefrontPriceMinor($line->variant) * (int) $line->quantity;
             }
         }
         $rates = $this->shipping->quote(
@@ -99,6 +100,15 @@ class PublicShopCheckoutController extends Controller
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.product_id' => ['required', 'integer', 'min:1'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'items.*.variant_id' => ['nullable', 'integer', 'min:1'],
+            'coupon_code' => ['nullable', 'string', 'max:64'],
+            'coupon_password' => ['nullable', 'string', 'max:191'],
+            'gift_card_code' => ['nullable', 'string', 'max:40'],
+            'delivery_date' => ['nullable', 'date_format:Y-m-d'],
+            'delivery_slot' => ['nullable', 'string', 'max:40'],
+            'shipping_plaque' => ['nullable', 'string', 'max:32'],
+            'shipping_unit' => ['nullable', 'string', 'max:32'],
+            'terms_accepted' => ['nullable', 'boolean'],
             'shipping_address' => ['nullable', 'string', 'max:2000'],
             'customer_phone' => ['required', 'string', 'max:32'],
             'customer_note' => ['nullable', 'string', 'max:500'],
@@ -134,20 +144,38 @@ class PublicShopCheckoutController extends Controller
 
             $subtotal = 0;
             $unitPrices = [];
+            $linePayload = [];
             foreach ($lines as $line) {
                 $product = $line->product;
                 if (! $product || $product->status !== 'publish' || $product->is_hidden || ! $product->is_available || $product->is_sold_out) {
                     throw ValidationException::withMessages(['cart' => 'cart_not_for_sale']);
                 }
-                $unit = $types->unitPrice($product, $purchaseType, $months);
-                $unitPrices[$line->product_id] = $unit;
+                if ($line->product_variant_id && ! $line->variant) {
+                    throw ValidationException::withMessages(['cart' => 'cart_not_for_sale']);
+                }
+                $unit = $types->unitPrice($product, $purchaseType, $months, $line->variant);
+                $unitPrices[$line->id] = $unit;
                 $subtotal += $line->quantity * $unit;
+                $linePayload[] = ['product_id' => $line->product_id, 'product_variant_id' => $line->product_variant_id, 'unit_price_minor' => $unit, 'quantity' => $line->quantity];
+            }
+
+            // Coupon (typed code, else the best automatic offer), same rules as signed-in checkout.
+            $discount = 0;
+            $applied = null;
+            $coupons = app(\App\Services\Coupons\CouponService::class);
+            if (! empty($data['coupon_code'])) {
+                $applied = $coupons->apply($tid, $data['coupon_code'], $subtotal, $linePayload, null, 'site', [], $data['coupon_password'] ?? null);
+            } else {
+                $applied = $coupons->bestAutoApply($tid, $subtotal, $linePayload, null, 'site');
+            }
+            if ($applied) {
+                $discount = (int) $applied['discount_minor'];
             }
 
             $stateCode = $data['shipping_state_code'] ?? null;
             $postcode = $data['shipping_postcode'] ?? null;
             $city = $data['shipping_city'] ?? null;
-            $rates = $this->shipping->quote($tid, $stateCode, $postcode, $subtotal, $city, $lines);
+            $rates = $this->shipping->quote($tid, $stateCode, $postcode, max(0, $subtotal - $discount), $city, $lines);
             $picked = null;
             if (! empty($data['shipping_instance_id'])) {
                 foreach ($rates as $rate) {
@@ -207,12 +235,21 @@ class PublicShopCheckoutController extends Controller
             }
 
             $methodId = (string) ($picked['method_id'] ?? '');
-            $freeRule = in_array($methodId, ['free_shipping', 'local_pickup'], true);
+            $freeRule = in_array($methodId, ['free_shipping', 'local_pickup'], true)
+                || ! empty($applied['free_shipping']) || (int) ($applied['shipping_percent'] ?? 0) >= 100;
             if ($picked && $shippingMinor <= 0 && ! $freeRule) {
                 throw ValidationException::withMessages(['shipping_minor' => 'هزینه ارسال نامعتبر است.']);
             }
+            if ($applied) {
+                $before = $shippingMinor;
+                $shippingMinor = $coupons->shippingAfter($applied, $shippingMinor);
+                if ($before !== $shippingMinor) {
+                    $shippingMeta['coupon_shipping_discount_minor'] = $before - $shippingMinor;
+                }
+            }
+            \App\Services\Checkout\CheckoutFields::enforce($tid, $data, $picked, $shippingMeta);
 
-            $tax = OrderTax::compute($tid, $subtotal, $shippingMinor);
+            $tax = OrderTax::compute($tid, max(0, $subtotal - $discount), $shippingMinor);
             if ($tax['lines'] !== []) {
                 $shippingMeta['tax_lines'] = $tax['lines'];
                 $shippingMeta['prices_include_tax'] = $tax['added_minor'] === 0;
@@ -231,10 +268,12 @@ class PublicShopCheckoutController extends Controller
                 'user_id' => null,
                 'status' => 'pending_payment',
                 'subtotal_minor' => $subtotal,
-                'discount_minor' => 0,
+                'discount_minor' => $discount,
                 'shipping_minor' => $shippingMinor,
                 'tax_minor' => $tax['tax_minor'],
-                'total_minor' => max(0, $subtotal + $shippingMinor + $tax['added_minor']),
+                'total_minor' => max(0, $subtotal - $discount + $shippingMinor + $tax['added_minor']),
+                'coupon_code' => $applied ? $applied['coupon']->code : null,
+                'coupon_id' => $applied ? $applied['coupon']->id : null,
                 'currency' => $lines->first()->product->currency ?? 'IRT',
                 'shipping_address' => $shippingAddress,
                 'customer_phone' => $phone,
@@ -247,8 +286,11 @@ class PublicShopCheckoutController extends Controller
                 OrderItem::query()->create([
                     'order_id' => $order->id,
                     'product_id' => $line->product_id,
+                    'product_variant_id' => $line->product_variant_id,
+                    'product_name' => $line->variant ? trim($line->product->name.' - '.$line->variant->name) : $line->product->name,
+                    'sku' => $line->variant?->sku ?: $line->product->sku,
                     'quantity' => $line->quantity,
-                    'unit_price_minor' => $unitPrices[$line->product_id],
+                    'unit_price_minor' => $unitPrices[$line->id],
                     'purchase_type' => $purchaseType,
                     'meta' => $months ? ['wfcp_installment_months' => $months] : null,
                     'requires_login' => false,
@@ -256,6 +298,10 @@ class PublicShopCheckoutController extends Controller
             }
 
             app(OrderStock::class)->sync($order, null, (string) $order->status);
+            if ($applied) {
+                $coupons->hold($applied['coupon'], $order, $discount, null);
+            }
+            CheckoutController::applyGiftCard($order, $data['gift_card_code'] ?? null, null);
 
             // Drop the temporary guest cart lines used for pricing/stock checks.
             $cartId = $lines->first()?->cart_id;
@@ -271,10 +317,16 @@ class PublicShopCheckoutController extends Controller
                 'id' => $order->id,
                 'number' => $order->number,
                 'status' => $order->status,
+                'subtotal_minor' => $order->subtotal_minor,
+                'discount_minor' => $order->discount_minor,
+                'shipping_minor' => $order->shipping_minor,
                 'total_minor' => $order->total_minor,
+                'gift_card_minor' => (int) (($order->meta ?? [])['gift_card']['amount_minor'] ?? 0),
                 'currency' => $order->currency,
                 'pay_token' => $payToken,
                 'guest_token' => $guestToken,
+                // Online payment for guests: POST /public/orders/{id}/pay/intent with token=pay_token.
+                'pay_intent_url' => '/api/v1/public/orders/'.$order->id.'/pay/intent',
             ],
         ], 201);
     }
@@ -352,41 +404,62 @@ class PublicShopCheckoutController extends Controller
         if ($items === []) {
             return null;
         }
-        $qtyById = [];
+        $qtyByKey = [];
         foreach ($items as $row) {
             $pid = (int) ($row['product_id'] ?? 0);
+            $vid = (int) ($row['variant_id'] ?? $row['product_variant_id'] ?? 0);
             $qty = max(1, min(999, (int) ($row['quantity'] ?? 1)));
             if ($pid <= 0) {
                 continue;
             }
-            $qtyById[$pid] = ($qtyById[$pid] ?? 0) + $qty;
+            $key = $pid.':'.$vid;
+            $qtyByKey[$key] = ($qtyByKey[$key] ?? 0) + $qty;
         }
-        if ($qtyById === []) {
+        if ($qtyByKey === []) {
             return null;
         }
+        $pids = array_unique(array_map(fn ($k) => (int) explode(':', $k)[0], array_keys($qtyByKey)));
         $products = Product::query()
             ->where('tenant_id', $tenantId)
-            ->whereIn('id', array_keys($qtyById))
+            ->whereIn('id', $pids)
             ->get()
             ->keyBy('id');
+        $variants = \App\Models\ProductVariant::query()->whereIn('product_id', $pids)->get();
         $token = $guestToken ?: ('guest-shop:'.Str::random(24));
         $cart = Cart::query()->firstOrCreate(
             ['tenant_id' => $tenantId, 'user_id' => null, 'guest_token' => $token],
         );
         CartItem::query()->where('cart_id', $cart->id)->delete();
         $lines = collect();
-        foreach ($qtyById as $pid => $qty) {
+        foreach ($qtyByKey as $key => $qty) {
+            [$pid, $vid] = array_map('intval', explode(':', $key));
             $product = $products->get($pid);
             if (! $product) {
                 continue;
+            }
+            $own = $variants->where('product_id', $pid);
+            $variant = null;
+            if ($vid > 0) {
+                $variant = $own->firstWhere('id', $vid);
+                if (! $variant) {
+                    throw ValidationException::withMessages(['items' => 'این گزینه برای این محصول وجود ندارد.']);
+                }
+            } elseif ($own->isNotEmpty()) {
+                $variant = $own->firstWhere('is_default', true);
+                if (! $variant) {
+                    throw ValidationException::withMessages(['items' => 'لطفا یکی از گزینه‌های محصول را انتخاب کنید.']);
+                }
             }
             $line = new CartItem;
             $line->forceFill([
                 'cart_id' => $cart->id,
                 'product_id' => $pid,
+                'product_variant_id' => $variant?->id,
+                'line_key' => $variant ? 'v'.$variant->id : 'base',
                 'quantity' => $qty,
             ])->save();
             $line->setRelation('product', $product);
+            $line->setRelation('variant', $variant);
             $lines->push($line);
         }
 

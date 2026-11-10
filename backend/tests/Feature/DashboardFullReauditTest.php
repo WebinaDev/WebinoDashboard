@@ -200,7 +200,8 @@ class DashboardFullReauditTest extends TestCase
         ])->assertStatus(422);
         $this->assertSame(0, Order::query()->where('user_id', $this->customer->id)->count());
 
-        $this->postJson('/api/v1/cart/items', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+        // Adding past the stock is refused at the cart, not only at checkout.
+        $this->postJson('/api/v1/cart/items', ['product_id' => $product->id, 'quantity' => 1])->assertStatus(422);
         $this->postJson('/api/v1/checkout', ['shipping_instance_id' => 99999, 'shipping_minor' => 0])->assertStatus(422);
 
         \App\Models\CartItem::query()->where('product_id', $product->id)->update(['quantity' => 2]);

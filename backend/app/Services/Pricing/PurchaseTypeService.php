@@ -6,6 +6,7 @@ use App\Kernel\ModuleAliasMap;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\TenantModule;
 use App\Models\TenantSubmoduleActivation;
 use Illuminate\Support\Collection;
@@ -103,13 +104,17 @@ class PurchaseTypeService
         ]);
     }
 
-    public function unitPrice(Product $product, string $type, ?int $months = null): int
+    /**
+     * Charged unit price. With the pricing module off (or the pricing submodule inactive) every
+     * product has one price: the storefront price (sale or regular), whatever type is asked.
+     */
+    public function unitPrice(Product $product, string $type, ?int $months = null, ?ProductVariant $variant = null): int
     {
         if (! $this->active()) {
-            return $product->storefrontPriceMinor();
+            return $product->storefrontPriceMinor($variant);
         }
 
-        return $this->calc->unitPrice($product, null, $type, (int) $months);
+        return $this->calc->unitPrice($product, $variant, $type, (int) $months);
     }
 
     /**
@@ -125,13 +130,24 @@ class PurchaseTypeService
             if (! $line->product) {
                 continue;
             }
-            $unit = $this->unitPrice($line->product, $type, $months);
+            $variant = $line->product_variant_id ? $line->variant : null;
+            $unit = $this->unitPrice($line->product, $type, $months, $variant);
+            $regular = $line->product->regularPriceMinor($variant);
             $subtotal += $unit * $line->quantity;
-            $rows[] = ['id' => $line->id, 'product_id' => $line->product_id, 'unit_price_minor' => $unit, 'line_total_minor' => $unit * $line->quantity];
+            $rows[] = [
+                'id' => $line->id,
+                'product_id' => $line->product_id,
+                'product_variant_id' => $line->product_variant_id,
+                'unit_price_minor' => $unit,
+                'regular_price_minor' => max($regular, $unit),
+                'on_sale' => $regular > $unit,
+                'line_total_minor' => $unit * $line->quantity,
+            ];
         }
 
         return [
             'active' => $this->active(),
+            'single_price' => ! $this->active(),
             'purchase_type' => $type,
             'installment_months' => $months,
             'installment_monthly_minor' => $months ? (int) round($subtotal / $months) : null,

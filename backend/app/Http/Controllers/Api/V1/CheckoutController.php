@@ -51,6 +51,10 @@ class CheckoutController extends Controller
             'shipping_plaque' => ['nullable', 'string', 'max:32'],
             'shipping_unit' => ['nullable', 'string', 'max:32'],
             'save_address' => ['nullable', 'boolean'],
+            'gift_card_code' => ['nullable', 'string', 'max:40'],
+            'delivery_date' => ['nullable', 'date_format:Y-m-d'],
+            'delivery_slot' => ['nullable', 'string', 'max:40'],
+            'terms_accepted' => ['nullable', 'boolean'],
         ]);
         $nationalMode = (string) (app(\App\Services\Shop\StorefrontAppearanceService::class)
             ->get((int) $request->user()->tenant_id)['commerce']['checkout_national_id'] ?? 'hidden');
@@ -83,7 +87,9 @@ class CheckoutController extends Controller
             return response()->json(['message' => __('api.cart_empty')], 422);
         }
 
-        $lines = CartItem::query()->where('cart_id', $cart->id)->with('product')->get();
+        // Saved-for-later lines stay in the cart but are not bought.
+        $lines = CartItem::query()->where('cart_id', $cart->id)->with(['product', 'variant'])->get()
+            ->reject(fn (CartItem $l) => ! empty($l->meta['save_for_later']))->values();
         if ($lines->isEmpty()) {
             return response()->json(['message' => __('api.cart_empty')], 422);
         }
@@ -104,11 +110,15 @@ class CheckoutController extends Controller
                         'cart' => 'cart_not_for_sale',
                     ]);
                 }
-                $unit = $types->unitPrice($product, $purchaseType, $months);
+                if ($line->product_variant_id && ! $line->variant) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['cart' => 'cart_not_for_sale']);
+                }
+                $unit = $types->unitPrice($product, $purchaseType, $months, $line->variant);
                 $unitPrices[$line->id] = $unit;
                 $subtotal += $line->quantity * $unit;
                 $linePayload[] = [
                     'product_id' => $line->product_id,
+                    'product_variant_id' => $line->product_variant_id,
                     'unit_price_minor' => $unit,
                     'quantity' => $line->quantity,
                 ];
@@ -264,6 +274,12 @@ class CheckoutController extends Controller
             if ($district !== '') {
                 $shippingMeta['shipping_district'] = $district;
             }
+            \App\Services\Checkout\CheckoutFields::enforce(
+                (int) $user->tenant_id,
+                $checkoutMeta + ['customer_phone' => $user->phone, 'recipient_name' => $user->name],
+                $picked,
+                $shippingMeta
+            );
 
             if (! empty($checkoutMeta['torob_clid'])) {
                 $shippingMeta['torob_clid'] = $checkoutMeta['torob_clid'];
@@ -331,6 +347,9 @@ class CheckoutController extends Controller
                 OrderItem::query()->create([
                     'order_id' => $order->id,
                     'product_id' => $line->product_id,
+                    'product_variant_id' => $line->product_variant_id,
+                    'product_name' => $line->variant ? trim($line->product->name.' - '.$line->variant->name) : $line->product->name,
+                    'sku' => $line->variant?->sku ?: $line->product->sku,
                     'quantity' => $line->quantity,
                     'unit_price_minor' => $unitPrices[$line->id],
                     'purchase_type' => $purchaseType,
@@ -346,6 +365,8 @@ class CheckoutController extends Controller
             if ($coupon) {
                 $this->coupons->hold($coupon, $order, $discount, $user->id);
             }
+
+            $this->applyGiftCard($order, $checkoutMeta['gift_card_code'] ?? null, $user->id);
 
             if (($checkoutMeta['payment_method'] ?? null) === 'wallet') {
                 $meta = is_array($order->meta) ? $order->meta : [];
@@ -409,5 +430,37 @@ class CheckoutController extends Controller
         });
 
         return response()->json(['data' => $order], 201);
+    }
+
+    /**
+     * Take what the gift card covers off the order total. A fully covered order is paid now.
+     */
+    public static function applyGiftCard(Order $order, ?string $code, ?int $userId): void
+    {
+        if (trim((string) $code) === '' || (int) $order->total_minor < 1) {
+            return;
+        }
+        $service = app(\App\Services\GiftCards\GiftCardService::class);
+        $preview = $service->preview((int) $order->tenant_id, $code, (int) $order->total_minor);
+        $taken = $service->redeem($preview['card'], $order, $preview['applied_minor'], $userId);
+        if ($taken < 1) {
+            return;
+        }
+        $meta = is_array($order->meta) ? $order->meta : [];
+        $meta['gift_card'] = [
+            'id' => $preview['card']->id,
+            'code' => $preview['card']->maskedCode(),
+            'amount_minor' => $taken,
+        ];
+        $meta['total_before_gift_card_minor'] = (int) $order->total_minor;
+        $order->meta = $meta;
+        $order->total_minor = (int) $order->total_minor - $taken;
+        $order->save();
+        if ((int) $order->total_minor === 0) {
+            $order->payment_provider = 'gift_card';
+            $order->payment_tender = 'gift_card';
+            $order->status = 'paid';
+            $order->save();
+        }
     }
 }

@@ -370,7 +370,8 @@ class PublicOrderPaymentController extends Controller
     {
         $tid = $this->publicTenantId($request);
         $row = Order::query()->where('tenant_id', $tid)->whereKey($order)->firstOrFail();
-        abort_unless($row->is_pay_link, 404);
+        // Guest shop orders pay through the same token-guarded endpoints as pay links.
+        abort_unless($row->is_pay_link || ! empty(($row->meta ?? [])['guest_checkout']), 404);
 
         return $row->load(['items']);
     }

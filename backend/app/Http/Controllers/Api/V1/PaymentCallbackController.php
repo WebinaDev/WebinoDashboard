@@ -385,18 +385,26 @@ class PaymentCallbackController extends Controller
             ->where('tenant_id', $order->tenant_id)
             ->where('order_id', $order->id)
             ->where('provider', $provider)
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(8)
             ->get();
 
+        // A retried payment can reuse the authority; prefer the intent whose callback nonce matches.
+        $nonce = (string) request()->query('nonce', '');
+        $first = null;
         foreach ($rows as $row) {
             $stored = (string) data_get($row->meta, $metaKey, '');
             if ($stored !== '' && hash_equals($stored, $presented)) {
-                return $row;
+                $state = (string) data_get($row->meta, 'state', '');
+                if ($nonce !== '' && $state !== '' && hash_equals($state, $nonce)) {
+                    return $row;
+                }
+                $first ??= $row;
             }
         }
 
-        return null;
+        return $first;
     }
 
 

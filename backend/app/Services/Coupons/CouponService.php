@@ -39,7 +39,7 @@ class CouponService
             ->first();
 
         if (! $coupon) {
-            throw ValidationException::withMessages(['coupon_code' => 'Invalid coupon']);
+            throw ValidationException::withMessages(['coupon_code' => 'کد تخفیف معتبر نیست.']);
         }
 
         $others = array_values(array_diff(array_map(fn ($c) => strtoupper(trim((string) $c)), $otherCodes), [$coupon->code, '']));
@@ -50,7 +50,7 @@ class CouponService
                 ->where('individual_use', true)
                 ->exists();
             if ($blocked) {
-                throw ValidationException::withMessages(['coupon_code' => 'Coupon cannot be combined with other coupons']);
+                throw ValidationException::withMessages(['coupon_code' => 'این کد تخفیف با کدهای دیگر قابل استفاده نیست.']);
             }
         }
 
@@ -117,11 +117,11 @@ class CouponService
     public function evaluate(Coupon $coupon, int $subtotalMinor, array $lines = [], ?int $userId = null, string $channel = 'site', ?string $password = null): array
     {
         if ($coupon->scheduled_at && $coupon->scheduled_at->isFuture()) {
-            throw ValidationException::withMessages(['coupon_code' => 'Coupon is not active yet']);
+            throw ValidationException::withMessages(['coupon_code' => 'این کد تخفیف هنوز فعال نشده است.']);
         }
 
         if ($coupon->expires_at && $coupon->expires_at->isPast()) {
-            throw ValidationException::withMessages(['coupon_code' => 'Coupon expired']);
+            throw ValidationException::withMessages(['coupon_code' => 'مهلت استفاده از این کد تخفیف تمام شده است.']);
         }
 
         if ((string) $coupon->visibility === 'password') {
@@ -133,14 +133,14 @@ class CouponService
                     : hash_equals($expected, $given)
             );
             if (! $matches) {
-                throw ValidationException::withMessages(['coupon_password' => 'Coupon password is required']);
+                throw ValidationException::withMessages(['coupon_password' => 'رمز کد تخفیف را وارد کنید.']);
             }
         }
 
         $reserved = CouponRedemption::query()->where('coupon_id', $coupon->id)->count();
         $usedCount = max((int) $coupon->usage_count, $reserved);
         if ($coupon->usage_limit !== null && $usedCount >= $coupon->usage_limit) {
-            throw ValidationException::withMessages(['coupon_code' => 'Coupon usage limit reached']);
+            throw ValidationException::withMessages(['coupon_code' => 'ظرفیت استفاده از این کد تخفیف تکمیل شده است.']);
         }
 
         if ($userId && $coupon->usage_limit_per_user !== null) {
@@ -149,26 +149,26 @@ class CouponService
                 ->where('user_id', $userId)
                 ->count();
             if ($used >= $coupon->usage_limit_per_user) {
-                throw ValidationException::withMessages(['coupon_code' => 'Per-user limit reached']);
+                throw ValidationException::withMessages(['coupon_code' => 'شما قبلا از این کد تخفیف استفاده کرده‌اید.']);
             }
         }
 
         if ($coupon->min_spend_minor !== null && $subtotalMinor < $coupon->min_spend_minor) {
-            throw ValidationException::withMessages(['coupon_code' => 'Below minimum spend']);
+            throw ValidationException::withMessages(['coupon_code' => 'مبلغ سبد خرید کمتر از حداقل لازم برای این کد تخفیف است.']);
         }
         if ($coupon->max_spend_minor !== null && $subtotalMinor > $coupon->max_spend_minor) {
-            throw ValidationException::withMessages(['coupon_code' => 'Above maximum spend']);
+            throw ValidationException::withMessages(['coupon_code' => 'مبلغ سبد خرید بیشتر از سقف مجاز این کد تخفیف است.']);
         }
 
         $r = $coupon->restrictions ?? [];
         $channels = $r['channels'] ?? null;
         if (is_array($channels) && count($channels) > 0 && ! in_array($channel, $channels, true)) {
-            throw ValidationException::withMessages(['coupon_code' => 'Coupon not valid for this channel']);
+            throw ValidationException::withMessages(['coupon_code' => 'این کد تخفیف در این بخش فروش معتبر نیست.']);
         }
 
         $userIds = $this->ids($r['user_ids'] ?? []);
         if ($userIds !== [] && (! $userId || ! in_array($userId, $userIds, true))) {
-            throw ValidationException::withMessages(['coupon_code' => 'Coupon not allowed for user']);
+            throw ValidationException::withMessages(['coupon_code' => 'این کد تخفیف برای حساب شما معتبر نیست.']);
         }
 
         $emails = array_values(array_filter(array_map(fn ($e) => strtolower(trim((string) $e)), (array) ($r['emails'] ?? []))));
@@ -176,7 +176,7 @@ class CouponService
             $email = $userId ? strtolower(trim((string) User::query()->whereKey($userId)->value('email'))) : '';
             $allowed = $email !== '' && collect($emails)->contains(fn ($pattern) => Str::is($pattern, $email));
             if (! $allowed) {
-                throw ValidationException::withMessages(['coupon_code' => 'Coupon not allowed for this email']);
+                throw ValidationException::withMessages(['coupon_code' => 'این کد تخفیف برای ایمیل شما معتبر نیست.']);
             }
         }
 
@@ -223,7 +223,7 @@ class CouponService
             $locked = Coupon::query()->whereKey($coupon->id)->lockForUpdate()->firstOrFail();
             $active = CouponRedemption::query()->where('coupon_id', $locked->id)->count();
             if ($locked->usage_limit !== null && $active >= $locked->usage_limit) {
-                throw ValidationException::withMessages(['coupon_code' => 'Coupon usage limit reached']);
+                throw ValidationException::withMessages(['coupon_code' => 'ظرفیت استفاده از این کد تخفیف تکمیل شده است.']);
             }
             if ($userId && $locked->usage_limit_per_user !== null) {
                 $used = CouponRedemption::query()
@@ -231,7 +231,7 @@ class CouponService
                     ->where('user_id', $userId)
                     ->count();
                 if ($used >= $locked->usage_limit_per_user) {
-                    throw ValidationException::withMessages(['coupon_code' => 'Per-user limit reached']);
+                    throw ValidationException::withMessages(['coupon_code' => 'شما قبلا از این کد تخفیف استفاده کرده‌اید.']);
                 }
             }
             CouponRedemption::query()->create([
@@ -269,7 +269,7 @@ class CouponService
             if (! CouponRedemption::query()->where('order_id', $fresh->id)->exists()) {
                 $active = CouponRedemption::query()->where('coupon_id', $coupon->id)->count();
                 if ($coupon->usage_limit !== null && $active >= $coupon->usage_limit) {
-                    throw ValidationException::withMessages(['coupon_code' => 'Coupon usage limit reached']);
+                    throw ValidationException::withMessages(['coupon_code' => 'ظرفیت استفاده از این کد تخفیف تکمیل شده است.']);
                 }
                 CouponRedemption::query()->create([
                     'tenant_id' => $coupon->tenant_id,
@@ -355,7 +355,7 @@ class CouponService
         };
 
         if (! $ok) {
-            throw ValidationException::withMessages(['coupon_code' => 'Coupon conditions not met']);
+            throw ValidationException::withMessages(['coupon_code' => 'شرایط استفاده از این کد تخفیف برقرار نیست.']);
         }
     }
 
@@ -403,7 +403,7 @@ class CouponService
         }
 
         if (! $matched) {
-            throw ValidationException::withMessages(['coupon_code' => 'Coupon not applicable to cart items']);
+            throw ValidationException::withMessages(['coupon_code' => 'این کد تخفیف شامل کالاهای سبد شما نمی‌شود.']);
         }
 
         return $eligible;
@@ -432,7 +432,7 @@ class CouponService
             $products->get((int) ($l['product_id'] ?? 0)), $productIds, $categoryIds, $brandIds, (bool) $coupon->exclude_sale
         ) && (int) ($l['quantity'] ?? 0) > 0));
 
-        $fail = fn () => throw ValidationException::withMessages(['coupon_code' => 'Offer conditions not met']);
+        $fail = fn () => throw ValidationException::withMessages(['coupon_code' => 'شرایط این پیشنهاد برقرار نیست.']);
 
         if ($coupon->type === 'bogo') {
             $buy = max(1, (int) ($cfg['buy'] ?? 1));

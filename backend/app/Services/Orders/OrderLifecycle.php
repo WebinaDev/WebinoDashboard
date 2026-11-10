@@ -32,6 +32,8 @@ final class OrderLifecycle
         $order->refresh();
         $this->wallet->sync($order, $from, $to);
         $order->refresh();
+        app(\App\Services\GiftCards\GiftCardService::class)->syncOrder($order, $from, $to);
+        $order->refresh();
         $this->syncAccounting($order, $from);
     }
 

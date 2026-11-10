@@ -173,7 +173,7 @@ class CheckoutPurchaseFlowTest extends TestCase
                 'state_code' => 'IR:TE',
                 'city' => 'تهران',
                 'cart_subtotal_minor' => 300000,
-            ], $this->h)->json('rates');
+            ], $this->h)->json('data.rates');
 
         $this->assertNotEmpty($rates);
         $instanceId = (int) ($rates[0]['instance_id'] ?? 1);
@@ -192,7 +192,7 @@ class CheckoutPurchaseFlowTest extends TestCase
 
         $options = $this->getJson('/api/v1/payments/checkout-options?order_id='.$order['id'], $this->h)
             ->assertOk()
-            ->json('gateways');
+            ->json('data.gateways');
         $ids = collect($options)->pluck('id')->all();
         $this->assertContains('cod', $ids);
         $this->assertContains('zarinpal', $ids);
@@ -311,7 +311,7 @@ class CheckoutPurchaseFlowTest extends TestCase
     {
         $list = $this->getJson('/api/v1/payments/checkout-options?mode=cash', $this->h)
             ->assertOk()
-            ->json('gateways');
+            ->json('data.gateways');
         $ids = collect($list)->pluck('id')->all();
         $this->assertContains('cod', $ids);
         $this->assertContains('zarinpal', $ids);

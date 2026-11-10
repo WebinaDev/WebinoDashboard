@@ -46,6 +46,12 @@ class StaffRouteGateTest extends TestCase
         'api/v1/checkout',
         'api/v1/payments/checkout-options',
         'api/v1/payments/intent',
+        'api/v1/payments/offline',
+        'api/v1/cart/lines/{line}',
+        'api/v1/public/academy/{slug}/enroll',
+        'api/v1/checkout/config',
+        'api/v1/checkout/session',
+        'api/v1/checkout/steps/{step}',
     ];
 
     private const SHARED_PREFIXES = ['api/v1/auth/2fa/', 'api/v1/account/'];

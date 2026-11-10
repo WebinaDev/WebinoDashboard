@@ -110,12 +110,12 @@ class GuestShopCheckoutTest extends TestCase
             'city' => 'تهران',
             'cart_subtotal_minor' => 100000,
             'items' => [['product_id' => $this->product->id, 'quantity' => 1]],
-        ])->assertOk()->json('rates');
+        ])->assertOk()->json('data.rates');
         $this->assertCount(2, $quote);
         $this->assertSame(220000, (int) $quote[0]['cost_minor']);
         $this->assertSame(85000, (int) $quote[1]['cost_minor']);
 
-        $opts = $this->withHeaders($this->h)->getJson('/api/v1/public/shop/checkout-options?mode=cash')->assertOk()->json('gateways');
+        $opts = $this->withHeaders($this->h)->getJson('/api/v1/public/shop/checkout-options?mode=cash')->assertOk()->json('data.gateways');
         $this->assertTrue(collect($opts)->contains(fn ($g) => ($g['id'] ?? '') === 'cod'));
 
         $created = $this->withHeaders($this->h)->postJson('/api/v1/public/shop/checkout', [

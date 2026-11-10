@@ -361,6 +361,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/catalog/items/{slug}/linked', [PublicCatalogController::class, 'linked']);
             Route::get('/catalog/categories/tree', [PublicStorefrontController::class, 'categoryTree']);
             Route::post('/coupons/preview', [PublicStorefrontController::class, 'previewCoupon'])->middleware('throttle:20,1');
+            Route::post('/coupons/available', [PublicStorefrontController::class, 'availableCoupons'])->middleware('throttle:30,1');
+            Route::post('/gift-cards/balance', [\App\Http\Controllers\Api\V1\GiftCardController::class, 'publicBalance'])->middleware('throttle:10,1');
             Route::get('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicIndex']);
             Route::get('/catalog/items/{slug}/questions', [ProductQuestionController::class, 'publicIndex']);
             Route::post('/catalog/items/{slug}/reviews', [ProductReviewController::class, 'publicStore'])->middleware('throttle:public-writes');
@@ -446,6 +448,8 @@ Route::prefix('v1')->group(function () {
             Route::put('/cart/purchase-type', [CartController::class, 'setPurchaseType']);
             Route::put('/cart/items/{product}', [CartController::class, 'setQuantity']);
             Route::delete('/cart/items/{product}', [CartController::class, 'removeItem']);
+            Route::put('/cart/lines/{line}', [CartController::class, 'setLineQuantity'])->whereNumber('line');
+            Route::delete('/cart/lines/{line}', [CartController::class, 'removeLine'])->whereNumber('line');
             Route::get('/cart/saved-for-later', [CartController::class, 'savedForLater']);
             Route::post('/cart/items/{product}/save-for-later', [CartController::class, 'saveForLater']);
             Route::post('/cart/items/{product}/move-to-cart', [CartController::class, 'moveToCart']);
@@ -455,6 +459,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout');
             Route::get('/payments/checkout-options', [PaymentIntentController::class, 'options']);
             Route::post('/payments/intent', [PaymentIntentController::class, 'store']);
+            Route::post('/payments/offline', [PaymentIntentController::class, 'confirmOffline'])->middleware('throttle:checkout');
         });
 
         Route::get('/account/tickets', [SupportTicketController::class, 'accountIndex']);
@@ -943,6 +948,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/payment-gateways', [OrderController::class, 'paymentGateways']);
                 Route::post('/pos/orders', [OrderController::class, 'store']);
                 Route::get('/pos/orders/{order}/print', [OrderDocumentController::class, 'print'])->whereNumber('order');
+                Route::post('/pos/orders/{order}/pay-link-sms', [\App\Http\Controllers\Api\V1\PosPayLinkSmsController::class, 'send'])->whereNumber('order');
             });
 
             Route::middleware(['module:c2c', 'can:settings.manage,commerce.*'])->group(function () {
@@ -1064,6 +1070,13 @@ Route::prefix('v1')->group(function () {
                 Route::put('/marketing/coupons/{coupon}', [CouponController::class, 'update'])->whereNumber('coupon');
                 Route::patch('/marketing/coupons/{coupon}', [CouponController::class, 'update'])->whereNumber('coupon');
                 Route::delete('/marketing/coupons/{coupon}', [CouponController::class, 'destroy'])->whereNumber('coupon');
+                Route::get('/marketing/gift-cards', [\App\Http\Controllers\Api\V1\GiftCardController::class, 'index']);
+                Route::post('/marketing/gift-cards', [\App\Http\Controllers\Api\V1\GiftCardController::class, 'store']);
+                Route::get('/marketing/gift-cards/generate-code', [\App\Http\Controllers\Api\V1\GiftCardController::class, 'generateCode']);
+                Route::get('/marketing/gift-cards/{card}', [\App\Http\Controllers\Api\V1\GiftCardController::class, 'show'])->whereNumber('card');
+                Route::put('/marketing/gift-cards/{card}', [\App\Http\Controllers\Api\V1\GiftCardController::class, 'update'])->whereNumber('card');
+                Route::post('/marketing/gift-cards/{card}/adjust', [\App\Http\Controllers\Api\V1\GiftCardController::class, 'adjust'])->whereNumber('card');
+                Route::delete('/marketing/gift-cards/{card}', [\App\Http\Controllers\Api\V1\GiftCardController::class, 'destroy'])->whereNumber('card');
             });
 
             foreach (['bale' => 'bots_bale', 'telegram' => 'bots_telegram'] as $provider => $moduleSlug) {
