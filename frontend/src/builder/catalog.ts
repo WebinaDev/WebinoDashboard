@@ -8,6 +8,8 @@ export type ShopVariant = {
   inStock: boolean
   /** Colour/image swatch from the variant's attribute term (variation swatches). */
   swatch?: { color: string | null; image: string | null; label: string; showLabel: boolean }
+  /** Attribute values of this variant (axis key + label + chosen term), for the per-attribute picker. */
+  options?: Array<{ key: string; label: string; value: string }>
 }
 
 export type ShopInstallment = {
@@ -398,6 +400,28 @@ function mapFaqs(raw: unknown): Array<{ question: string; answer: string }> {
     .filter((row) => row.question && row.answer)
 }
 
+/** attribute_values: list of {attribute_id, attribute_name, term_id, term_name} or a {name: value} map (WP import). */
+function mapVariantOptions(raw: unknown): Array<{ key: string; label: string; value: string }> {
+  const out: Array<{ key: string; label: string; value: string }> = []
+  if (Array.isArray(raw)) {
+    for (const row of raw) {
+      if (!row || typeof row !== "object") continue
+      const r = row as ApiRecord
+      const label = str(r.attribute_name) || str(r.name) || str(r.attribute)
+      const value = str(r.term_name) || str(r.value) || str(r.option)
+      const key = r.attribute_id != null ? `a${num(r.attribute_id)}` : label
+      if (key && value) out.push({ key, label: label || "ویژگی", value })
+    }
+  } else if (raw && typeof raw === "object") {
+    for (const [k, v] of Object.entries(raw as ApiRecord)) {
+      const value = typeof v === "string" || typeof v === "number" ? String(v).trim() : ""
+      const label = k.replace(/^attribute_/, "").replace(/^pa_/, "").replace(/[-_]+/g, " ").trim()
+      if (label && value) out.push({ key: label, label, value })
+    }
+  }
+  return out
+}
+
 function mapVariant(raw: ApiRecord): ShopVariant | null {
   const id = num(raw.id)
   const name = str(raw.name)
@@ -415,6 +439,7 @@ function mapVariant(raw: ApiRecord): ShopVariant | null {
     image: str(raw.image_url) || null,
     stock,
     inStock,
+    options: mapVariantOptions(raw.attribute_values),
     ...(raw.swatch && typeof raw.swatch === "object"
       ? {
           swatch: {

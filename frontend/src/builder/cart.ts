@@ -6,6 +6,16 @@ export type CartLine = {
   tone: string
   image?: string | null
   productId?: number
+  /** Chosen product variant (size, colour...): lines are unique per product + variant. */
+  variantId?: number | null
+  variantName?: string | null
+  /** Regular price before a sale (struck through when higher than `price`). */
+  compare?: number
+}
+
+/** Stable key of a local line (product slug + variant). */
+export function cartLineKey(line: Pick<CartLine, "slug" | "variantId">): string {
+  return line.variantId ? `${line.slug}#v${line.variantId}` : line.slug
 }
 
 const KEY = "webino.storefront.cart"
@@ -73,15 +83,17 @@ export function subscribeCart(listener: () => void): () => void {
 
 export function addToCart(line: Omit<CartLine, "qty">, qty = 1) {
   const lines = read()
-  const found = lines.find((item) => item.slug === line.slug)
+  const key = cartLineKey(line)
+  const found = lines.find((item) => cartLineKey(item) === key)
   if (found) found.qty += qty
   else lines.push({ ...line, qty })
   write(lines)
 }
 
-export function setQty(slug: string, qty: number) {
+/** `key` is a product slug or a `cartLineKey` (slug#v<variant>). */
+export function setQty(key: string, qty: number) {
   const lines = read()
-    .map((line) => (line.slug === slug ? { ...line, qty } : line))
+    .map((line) => (cartLineKey(line) === key || (line.slug === key && !line.variantId) ? { ...line, qty } : line))
     .filter((line) => line.qty > 0)
   write(lines)
 }

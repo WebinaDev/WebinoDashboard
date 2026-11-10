@@ -4,8 +4,8 @@ import { OptImg } from "@/components/perf/OptImg"
 import Link from "next/link"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 
-import { cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "@/builder/cart"
-import { removeServerItem, setServerQty, useServerCart } from "@/builder/storefront/actions"
+import { cartLineKey, cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "@/builder/cart"
+import { removeServerLine, serverLinePrice, setServerLineQty, useGuestCheckoutAllowed, useServerCart } from "@/builder/storefront/actions"
 import { previewCoupon, readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
 
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
@@ -15,6 +15,7 @@ import { ClassicAmount, useDigits } from "./parts"
 import { ClassicCouponChooser } from "./ClassicCouponChooser"
 import { useClassicText } from "../lib/texts"
 import { optImg } from "@/lib/image-url"
+import "@/builder/storefront/stepped-checkout.css"
 
 const STEPS: { label: string; icon: ReactNode }[] = [
   { label: "سبد خرید", icon: <IconBag size={18} /> },
@@ -98,7 +99,7 @@ function Countdown() {
   )
 }
 
-type Line = { key: string; name: string; image?: string | null; price: number; qty: number; href?: string; onQty: (qty: number) => void; onRemove?: () => void }
+type Line = { key: string; name: string; variant?: string | null; image?: string | null; price: number; regular?: number; qty: number; href?: string; onQty: (qty: number) => void; onRemove?: () => void }
 
 
 function FreeShippingBar({ total, threshold }: { total: number; threshold: number }) {
@@ -149,32 +150,43 @@ export function ClassicCart() {
   }, [])
   const local = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot)
   const { cart, auth } = useServerCart()
+  const guestAllowed = useGuestCheckoutAllowed()
   const pricing = cart?.pricing
+  // Guests go straight to checkout when the store allows guest orders; otherwise via login.
+  const checkoutHref = auth === "auth" || guestAllowed ? "/checkout" : `/login?next=${encodeURIComponent("/checkout")}`
 
   const lines: Line[] =
     auth === "auth"
-      ? (cart?.items ?? []).map((line) => ({
-          key: String(line.id),
-          name: line.product.name,
-          image: line.product.cover_image_url || line.product.image_url,
-          price: pricing?.lines?.find((row) => row.id === line.id)?.unit_price_minor ?? line.product.price_minor,
-          qty: line.quantity,
-          href: line.product.slug ? `/product/${line.product.slug}` : undefined,
-          onQty: (qty: number) => void setServerQty(line.product.id, qty),
-          onRemove: () => void removeServerItem(line.product.id),
-        }))
+      ? (cart?.items ?? []).map((line) => {
+          const { price, regular } = serverLinePrice(cart, line)
+          return {
+            key: String(line.id),
+            name: line.product.name,
+            variant: line.variant?.name ?? null,
+            image: line.variant?.image_url || line.product.cover_image_url || line.product.image_url,
+            price,
+            regular,
+            qty: line.quantity,
+            href: line.product.slug ? `/product/${line.product.slug}` : undefined,
+            onQty: (qty: number) => void setServerLineQty(line.id, qty),
+            onRemove: () => void removeServerLine(line.id),
+          }
+        })
       : local.map((line) => ({
-          key: line.slug,
+          key: cartLineKey(line),
           name: line.name,
+          variant: line.variantName ?? null,
           image: line.image,
           price: line.price,
+          regular: line.compare && line.compare > line.price ? line.compare : 0,
           qty: line.qty,
           href: `/product/${line.slug}`,
-          onQty: (qty: number) => setQty(line.slug, qty),
-          onRemove: () => setQty(line.slug, 0),
+          onQty: (qty: number) => setQty(cartLineKey(line), qty),
+          onRemove: () => setQty(cartLineKey(line), 0),
         }))
   const count = lines.reduce((sum, l) => sum + l.qty, 0)
   const total = auth === "auth" && pricing?.subtotal_minor != null ? pricing.subtotal_minor : lines.reduce((sum, l) => sum + l.price * l.qty, 0)
+  const savings = lines.reduce((sum, l) => sum + (l.regular && l.regular > l.price ? (l.regular - l.price) * l.qty : 0), 0)
   const discount = applied ? Math.min(applied.discount, total) : 0
   const payable = Math.max(0, total - discount)
 
@@ -259,7 +271,13 @@ export function ClassicCart() {
                     ) : (
                       <span className="sfc-cart-line__name">{line.name}</span>
                     )}
-                    <ClassicAmount value={line.price} className="sfc-cart-line__price" />
+                    {line.variant ? <span className="sfc-cart-line__variant">{line.variant}</span> : null}
+                    <span className="sfc-cart-line__prices">
+                      {line.regular && line.regular > line.price ? (
+                        <del className="sfc-price__old" aria-label="قیمت قبل از تخفیف">{digits(line.regular)}</del>
+                      ) : null}
+                      <ClassicAmount value={line.price} className="sfc-cart-line__price" />
+                    </span>
                   </div>
                   <div className="sfc-cart-line__controls">
                     <div className="sfc-stepper sfc-stepper--sm">
@@ -316,6 +334,12 @@ export function ClassicCart() {
                 <span>قیمت کالاها ({digits(count)})</span>
                 <ClassicAmount value={total} />
               </div>
+              {savings > 0 ? (
+                <div className="sfc-summary__row sfc-summary__row--discount">
+                  <span>سود شما از تخفیف کالاها</span>
+                  <ClassicAmount value={savings} />
+                </div>
+              ) : null}
               {pricing?.purchase_type === "installment" && pricing.installment_monthly_minor ? (
                 <div className="sfc-summary__row">
                   <span>{digits(pricing.installment_months ?? 0)} قسط ماهانه</span>
@@ -335,10 +359,10 @@ export function ClassicCart() {
                 <ClassicAmount value={payable} />
               </div>
               <Link
-                href={auth === "auth" ? "/checkout" : `/login?next=${encodeURIComponent("/checkout")}`}
+                href={checkoutHref}
                 className="sfc-btn sfc-btn--block sfc-btn--lg sfc-cart__checkout-cta"
               >
-                {auth === "auth" ? "ادامه فرایند خرید" : "ورود و ادامه خرید"}
+                {auth === "auth" || guestAllowed ? "ادامه فرایند خرید" : "ورود و ادامه خرید"}
               </Link>
             </div>
             {stickySummary ? (
@@ -348,7 +372,7 @@ export function ClassicCart() {
                   <ClassicAmount value={payable} />
                 </div>
                 <Link
-                  href={auth === "auth" ? "/checkout" : `/login?next=${encodeURIComponent("/checkout")}`}
+                  href={checkoutHref}
                   className="sfc-btn sfc-btn--sm"
                 >
                   تسویه

@@ -5,7 +5,7 @@ import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { InstallmentBadges } from "../../../../modules/commerce/components/payments/InstallmentBadges"
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
@@ -17,6 +17,7 @@ import { quietApi } from "@/builder/storefront/session"
 import { LowerPriceReportForm, PriceDropAlertForm, ProductReviewsPanel, StockAlertForm } from "@/builder/storefront/storefront-chrome"
 import { ProductPriceHistory } from "@/builder/storefront/storefront-extras"
 import { useCatalog } from "@/builder/storefront/use-catalog"
+import { VariantPicker, useVariantSelection } from "@/builder/storefront/variant-picker"
 import { useProductSeed } from "@/builder/storefront/product-seed"
 import { sanitizeBuilderHtml } from "@/builder/render/sanitize-html"
 
@@ -39,7 +40,7 @@ import {
   IconTruck,
 } from "./icons"
 import { promoStatsForProduct } from "@/themes/ecommerce-classic/lib/classic-chrome"
-import { ClassicAmount, ClassicRating, rememberViewedProduct, useDigits } from "./parts"
+import { ClassicAmount, ClassicRating, rememberViewedProduct, useDigits, useMoneyText } from "./parts"
 import { useClassicText } from "../lib/texts"
 import { optImg } from "@/lib/image-url"
 
@@ -148,6 +149,7 @@ function Stepper({ qty, max, onChange }: { qty: number; max: number; onChange: (
 export function ClassicProduct({ slug, editing }: { slug?: string; editing: boolean }) {
   const tx = useClassicText()
   const digits = useDigits()
+  const moneyText = useMoneyText()
   const theme = useClassicThemeSettings()
   const commerce = theme.commerce ?? {}
   const showShare = commerce.product_share !== false
@@ -173,7 +175,6 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   const [qty, setQty] = useState(1)
   const [image, setImage] = useState(0)
   const [lightbox, setLightbox] = useState(false)
-  const [variantId, setVariantId] = useState<number | null>(null)
   const [tab, setTab] = useState<"desc" | "spec" | "faq">("desc")
   const [liked, setLiked] = useState(false)
   const [atcOpen, setAtcOpen] = useState(false)
@@ -215,12 +216,11 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
     if (product.id) trackAnalyticsEvent("product_view", { productId: product.id })
   }, [editing, product?.id, product?.slug, product?.categorySlug])
 
-  // Variable products: pre-select first in-stock model so ATC works without an extra tap.
-  useEffect(() => {
-    if (!product?.variants?.length || variantId != null) return
-    const first = product.variants.find((item) => item.inStock) ?? null
-    if (first) setVariantId(first.id)
-  }, [product, variantId])
+  // Variable products: per-attribute picker, pre-selects the first in-stock combination.
+  const variantList = useMemo(() => product?.variants ?? [], [product])
+  const selection = useVariantSelection(variantList, (v) => {
+    if (v?.image) setImage(0)
+  })
 
   const galleryLen = product
     ? (product.images.length ? product.images.length : product.image ? 1 : 0)
@@ -243,7 +243,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
     return <p className="sfc-container sfc-empty-note">{tx("product.not_found")}</p>
   }
 
-  const variant = product.variants.find((item) => item.id === variantId) ?? null
+  const variant = selection.variant
   const gallery = product.images.length ? product.images : product.image ? [product.image] : []
   const activeImage = variant?.image || gallery[image] || product.image
   const blocked = !product.inStock || (variant ? !variant.inStock : false)
@@ -268,7 +268,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
       return
     }
     trackAnalyticsEvent("add_to_cart", { productId: product.id })
-    void addShopItem(product, qty).then((result) => {
+    void addShopItem(product, qty, variant?.id ?? null).then((result) => {
       if (result === "error") {
         setAtcError("افزودن به سبد ناموفق بود. لطفاً دوباره تلاش کنید.")
         setAtcItem(null)
@@ -285,7 +285,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
       setAtcItem({
         name: label,
         image: activeImage || product.image,
-        priceLabel: `${digits(price)} تومان`,
+        priceLabel: moneyText(price),
         quantity: qty,
       })
       setAtcOpen(true)
@@ -454,39 +454,13 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
 
               {product.variants.length ? (
                 <div className="sfc-pdp__variants">
-                  <span className="sfc-divider-title">{tx("product.select_model")}</span>
-                  <div className="sfc-pdp__variant-list">
-                    {product.variants.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        disabled={!item.inStock}
-                        onClick={() => setVariantId(item.id)}
-                        className={variantId === item.id ? "is-active" : ""}
-                        title={item.name}
-                        aria-label={item.name}
-                      >
-                        {item.swatch ? (
-                          <span
-                            aria-hidden
-                            style={{
-                              display: "inline-block",
-                              width: 18,
-                              height: 18,
-                              borderRadius: "50%",
-                              border: "1px solid rgba(0,0,0,.15)",
-                              verticalAlign: "middle",
-                              marginInlineEnd: item.swatch.showLabel ? 6 : 0,
-                              background: item.swatch.image
-                                ? `center / cover no-repeat url(${JSON.stringify(item.swatch.image)})`
-                                : (item.swatch.color ?? undefined),
-                            }}
-                          />
-                        ) : null}
-                        {!item.swatch || item.swatch.showLabel ? item.name : null}
-                      </button>
-                    ))}
-                  </div>
+                  <VariantPicker
+                    variants={product.variants}
+                    selection={selection}
+                    title={tx("product.select_model")}
+                    listClass="sfc-pdp__variant-list"
+                    titleClass="sfc-divider-title"
+                  />
                 </div>
               ) : null}
 
@@ -718,6 +692,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
             .filter(Boolean)
             .join(" ")}
         >
+          {off > 0 ? <del className="sfc-price__old">{digits(compare ?? 0)}</del> : null}
           <ClassicAmount value={price} className="sfc-buy__now" />
           <button type="button" disabled={editing || blocked} onClick={add} className="sfc-btn">
             {tx("product.add_to_cart")}
