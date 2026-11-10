@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { gatewayBrandSrc, shippingBrandSrc } from "@/lib/checkout-brands"
 import { useGatewayLabel } from "@/lib/gateway-label"
+import { MapPinPicker } from "@/components/MapPinPickerLazy"
 
 import { cartLineKey, cartServerSnapshot, cartSnapshot, clearCart, subscribeCart } from "../cart"
 import { BuilderPrice, formatAmountDigits, useBuilderCurrency } from "../money"
@@ -337,7 +338,7 @@ export function SteppedCheckout({ skin = "default", config, auth }: { skin?: Ste
   function payloadValues(v: Values): Values {
     const out: Values = {}
     for (const [k, val] of Object.entries(v)) {
-      if (val === "" || val === undefined) continue
+      if (val === "" || val === undefined || (val === null && (k === "shipping_lat" || k === "shipping_lng"))) continue
       out[k] = typeof val === "string" && /(phone|postcode|national_id|plaque|unit)/.test(k) ? latinDigits(val) : val
     }
     out.shipping_address = composedAddress(v) || undefined
@@ -562,8 +563,34 @@ export function SteppedCheckout({ skin = "default", config, auth }: { skin?: Ste
       )
     } else if (f.type === "textarea") {
       control = <textarea {...common} className="wsc-input" rows={3} value={v} onChange={(e) => set(f.key, e.target.value)} />
-    } else if (f.type === "map") {
-      return null
+    } else if (f.type === "map" || f.key === "location") {
+      const lat = Number(values.shipping_lat)
+      const lng = Number(values.shipping_lng)
+      const pin = Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0) && values.shipping_lat != null ? { lat, lng } : null
+      return (
+        <div key={f.key} className="wsc-field wsc-field--wide">
+          <span className="wsc-label">
+            {f.label}
+            {f.required ? <span className="wsc-req" aria-hidden="true"> *</span> : null}
+          </span>
+          <MapPinPicker
+            value={pin}
+            onChange={(p) => {
+              set("shipping_lat", Number(p.lat.toFixed(6)))
+              set("shipping_lng", Number(p.lng.toFixed(6)))
+              set("location", "")
+            }}
+            labels={{ locate: "موقعیت فعلی من", failed: "نقشه بارگذاری نشد. نشانی را کامل بنویسید.", hint: "نشانگر را روی محل تحویل بکشید یا روی نقشه بزنید." }}
+          />
+          {pin ? (
+            <button type="button" className="wsc-link" onClick={() => { set("shipping_lat", null); set("shipping_lng", null) }}>
+              حذف موقعیت
+            </button>
+          ) : null}
+          {err("location")}
+          {err("shipping_lat")}
+        </div>
+      )
     } else {
       const list = f.key === "shipping_district" ? districts[str(values.shipping_city)] ?? [] : []
       control = (
