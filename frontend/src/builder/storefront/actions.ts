@@ -70,7 +70,7 @@ export function useServerCart() {
 export type AddShopResult = "server" | "local" | "error"
 
 /** Add to the signed-in server cart when possible; otherwise the guest localStorage cart. */
-export async function addShopItem(product: ShopProduct, qty = 1): Promise<AddShopResult> {
+export async function addShopItem(product: ShopProduct, qty = 1, variantId?: number | null): Promise<AddShopResult> {
   const safeQty = Math.max(1, Math.min(99, Math.round(qty)))
   const localLine = {
     slug: product.slug,
@@ -83,7 +83,7 @@ export async function addShopItem(product: ShopProduct, qty = 1): Promise<AddSho
   if (product.id) {
     const res = await quietApi<ServerCart>("/api/v1/cart/items", {
       method: "POST",
-      json: { product_id: product.id, quantity: safeQty },
+      json: { product_id: product.id, quantity: safeQty, ...(variantId ? { variant_id: variantId } : {}) },
     })
     if (res.ok) {
       notifyCart()
@@ -96,8 +96,8 @@ export async function addShopItem(product: ShopProduct, qty = 1): Promise<AddSho
   return "local"
 }
 
-export async function setServerQty(productId: number, quantity: number) {
-  const res = await quietApi<ServerCart>(`/api/v1/cart/items/${productId}`, {
+export async function setServerQty(productId: number, quantity: number, variantId?: number | null) {
+  const res = await quietApi<ServerCart>(`/api/v1/cart/items/${productId}${variantId ? `?variant_id=${variantId}` : ""}`, {
     method: "PUT",
     json: { quantity: Math.max(0, Math.min(999, Math.round(quantity))) },
   })

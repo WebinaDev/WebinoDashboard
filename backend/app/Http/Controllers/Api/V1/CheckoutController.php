@@ -56,6 +56,20 @@ class CheckoutController extends Controller
             'delivery_slot' => ['nullable', 'string', 'max:40'],
             'terms_accepted' => ['nullable', 'boolean'],
         ]);
+        // Values saved by the stepped checkout (POST /checkout/steps/{step}) fill anything not sent now.
+        $savedSteps = (array) (\App\Models\Cart::query()->where([
+            'tenant_id' => $request->user()->tenant_id,
+            'user_id' => $request->user()->id,
+        ])->value('meta')['checkout'] ?? []);
+        foreach ($savedSteps as $k => $v) {
+            if ($k === 'payment_method' && ! in_array($v, ['wallet', 'cheque'], true)) {
+                continue;
+            }
+            if (! array_key_exists($k, $checkoutMeta) || $checkoutMeta[$k] === null || $checkoutMeta[$k] === '') {
+                $checkoutMeta[$k] = $v;
+            }
+        }
+        unset($checkoutMeta['mode']);
         $nationalMode = (string) (app(\App\Services\Shop\StorefrontAppearanceService::class)
             ->get((int) $request->user()->tenant_id)['commerce']['checkout_national_id'] ?? 'hidden');
         $nationalId = \App\Support\IranNationalId::normalize($checkoutMeta['customer_national_id'] ?? null);

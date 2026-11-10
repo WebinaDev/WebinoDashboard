@@ -252,8 +252,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       ) : (
         <CategoryWidget widget={widget} />
       )
-    case "story-strip":
-      return (
+    case "story-strip": {
+      const strip = (
         <ClassicStoryStrip
           title={propStr(widget.props, "title", "")}
           limit={propNum(widget.props, "limit", 0)}
@@ -263,6 +263,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
             : {})}
         />
       )
+      return propStr(widget.props, "tone", "") === "glass" ? <div className="wb-story-glass wpz-light wpz-glass">{strip}</div> : strip
+    }
     case "category-tiles":
       return <ClassicCategoryTiles tilesText={propStr(widget.props, "tiles", "")} />
     case "promo-trio":
@@ -1044,7 +1046,7 @@ function DealBar({ widget }: { widget: WidgetNode }) {
         <Link key={product.slug} href={`/product/${product.slug}`} className="flex items-center justify-between rounded-2xl bg-white/15 px-4 py-3">
           <div>
             <div className="text-sm font-bold">{product.name}</div>
-            <div className="text-xs">{money(product.price)}</div>
+            <div className="text-xs">{money(product.price, product.compare)}</div>
           </div>
           <span className="rounded-full bg-card px-2 py-1 text-[11px] font-bold text-primary">ویژه</span>
         </Link>

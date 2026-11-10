@@ -265,7 +265,7 @@ export function AddToCartBoxWidget({ productSlug, editing = false }: { productSl
   const [atcItem, setAtcItem] = useState<CartAddedPayload | null>(null)
   const [atcError, setAtcError] = useState<string | null>(null)
   if (!product) return null
-  const money = <BuilderPrice amount={product.price} />
+  const money = <BuilderPrice amount={product.price} original={product.compare} />
   return (
     <div className="mx-auto max-w-md px-4 py-4">
       <div className="sf-atc-box sf-card p-5">

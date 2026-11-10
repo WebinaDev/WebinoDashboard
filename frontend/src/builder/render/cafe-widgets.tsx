@@ -70,7 +70,7 @@ function Head({ title, subtitle }: { title: string; subtitle: string }) {
 
 
 /** priceMinor: live catalog amount in `currency` units (IRR by default); price: manual text in store currency. */
-type MenuRow = { title: string; price: string; priceMinor?: number; currency?: string; desc: string; category: string; image: string; href: string }
+type MenuRow = { title: string; price: string; priceMinor?: number; originalMinor?: number; currency?: string; desc: string; category: string; image: string; href: string }
 type CatRow = { title: string; href: string; image: string; slug?: string }
 type GalleryRow = { url: string; caption: string }
 type HoursDay = { day: string; open: string; close: string; closed?: boolean }
@@ -132,6 +132,7 @@ function menuRowsFrom(json: unknown, count: number): MenuRow[] {
     title: String(p.name || ""),
     price: "",
     priceMinor: Number(p.discounted_price_minor) || Number(p.price_minor) || 0,
+    originalMinor: Number(p.discounted_price_minor) > 0 && Number(p.price_minor) > Number(p.discounted_price_minor) ? Number(p.price_minor) : 0,
     currency: String(p.currency || "IRR"),
     desc: String(p.short_description || p.description || ""),
     category: String(p.category?.name || ""),
@@ -289,7 +290,7 @@ export function CafeMenuBoardWidget({ widget }: { widget: WidgetNode }) {
               <div className="wcx-card-body">
                 <h3>{r.title}</h3>
                 {r.desc ? <p>{r.desc}</p> : null}
-                {r.priceMinor ? <div className="wcx-price"><BuilderPrice amount={r.priceMinor} from={r.currency} /></div> : r.price ? <div className="wcx-price"><PriceOrText value={r.price} /></div> : null}
+                {r.priceMinor ? <div className="wcx-price"><BuilderPrice amount={r.priceMinor} original={r.originalMinor} from={r.currency} /></div> : r.price ? <div className="wcx-price"><PriceOrText value={r.price} /></div> : null}
               </div>
             </article>
           ))}
@@ -302,7 +303,7 @@ export function CafeMenuBoardWidget({ widget }: { widget: WidgetNode }) {
                 <strong>{r.title}</strong>
                 {r.desc ? <em>{r.desc}</em> : null}
               </div>
-              {r.priceMinor ? <div className="wcx-price"><BuilderPrice amount={r.priceMinor} from={r.currency} /></div> : r.price ? <div className="wcx-price"><PriceOrText value={r.price} /></div> : null}
+              {r.priceMinor ? <div className="wcx-price"><BuilderPrice amount={r.priceMinor} original={r.originalMinor} from={r.currency} /></div> : r.price ? <div className="wcx-price"><PriceOrText value={r.price} /></div> : null}
             </div>
           ))}
         </div>

@@ -1049,7 +1049,7 @@
     "required_address": "آدرس الزامی است.",
     "required_postcode": "کد پستی الزامی است.",
     "choose_offline": "پرداخت با {gateway}",
-    "offline_selected": "پرداخت آفلاین — {gateway}",
+    "offline_selected": "پرداخت آفلاین: {gateway}",
     "offline_no_instructions": "طبق دستورالعمل فروشگاه پرداخت کنید و سپس تأیید کنید.",
     "offline_iban": "شبا",
     "offline_deadline": "لطفاً ظرف {hours} ساعت پرداخت را انجام دهید.",

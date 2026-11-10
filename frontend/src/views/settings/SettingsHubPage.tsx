@@ -20,6 +20,8 @@ import { SmsSettingsPanel } from "@/views/settings/panels/SmsSettingsPanel"
 import { SeoSettingsPanel } from "@/views/settings/panels/SeoSettingsPanel"
 import { PerformanceSettingsPanel } from "@/views/settings/panels/PerformanceSettingsPanel"
 import { StorefrontAppearancePanel } from "@/views/settings/panels/StorefrontAppearancePanel"
+import { CheckoutFlowPanel } from "@/views/settings/panels/CheckoutFlowPanel"
+import { GiftCardsPanel } from "@/views/settings/panels/GiftCardsPanel"
 import { ProductNotificationsPanel } from "@/views/settings/panels/ProductNotificationsPanel"
 import { NewsletterSubscribersPanel } from "@/views/settings/panels/NewsletterSubscribersPanel"
 import { NotificationsSettingsPanel } from "@/views/settings/panels/NotificationsSettingsPanel"
@@ -79,6 +81,8 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
   if (path.endsWith("/shop/maps")) return <ShopMapsSettingsPanel />
   if (path.endsWith("/shop/loyalty")) return <ShopLoyaltySettingsPanel />
   if (path.endsWith("/shop/storefront-appearance")) return <StorefrontAppearancePanel />
+  if (path.endsWith("/shop/checkout-flow")) return <CheckoutFlowPanel />
+  if (path.endsWith("/shop/gift-cards")) return <GiftCardsPanel />
   if (path.endsWith("/shop/product-notifications")) return <ProductNotificationsPanel />
   if (path.endsWith("/shop/newsletter")) return <NewsletterSubscribersPanel />
   if (path.endsWith("/shop/theme-optimizer") || path.endsWith("/site/performance")) return <PerformanceSettingsPanel />
@@ -121,6 +125,8 @@ function SettingsPanelRouter({ pathname }: { pathname: string }) {
       "pricing",
       "shipping",
       "storefront-appearance",
+      "checkout-flow",
+      "gift-cards",
       "theme-optimizer",
       "product-notifications",
       "newsletter",

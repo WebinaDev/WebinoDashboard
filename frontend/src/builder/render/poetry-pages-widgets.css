@@ -329,3 +329,11 @@
 .akx .akx-grid3.akx-media-grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: var(--wb-gap, 16px); }
 @media (max-width: 760px) { .akx .akx-grid3.akx-media-grid3 { grid-template-columns: minmax(0, 1fr) !important; } }
 .akx :is(.akx-grid3, .akx-grid4, .akx-grid-shop) { gap: var(--wb-gap, 16px); }
+
+/* tone: glass — translucent white surface with background blur (matches .wpz-light.wpz-glass). */
+.akx.akx-glass {
+  --akx-sec: rgba(255,255,255,.58); --akx-card: rgba(255,255,255,.66); --akx-cream: rgba(255,255,255,.5);
+  background: rgba(255,255,255,.58); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.6); border-radius: 24px;
+}
+.akx.akx-glass :is(.akx-paper, .akx-card, .akx-pd, .akx-side) { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }

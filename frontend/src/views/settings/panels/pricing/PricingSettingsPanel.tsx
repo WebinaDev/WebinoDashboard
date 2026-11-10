@@ -121,7 +121,7 @@ function useSection(section: string) {
 
   const set = (key: string, value: unknown) => setDraft((d) => (d ? { ...d, [key]: value } : d))
 
-  return { draft, set, setDraft, save: () => draft && save.mutate(draft), pending: save.isPending, loading: q.isLoading }
+  return { draft, set, setDraft, save: () => draft && save.mutate(draft), saveWith: (d: Section) => save.mutate(d), pending: save.isPending, loading: q.isLoading }
 }
 
 function formatNum(n: number | undefined | null, locale: string) {
@@ -828,6 +828,45 @@ function AdvancedTab() {
   )
 }
 
+/** Tabs that only matter while the layered pricing module is on (off = one unit price everywhere). */
+const LAYERED_TABS: readonly string[] = ["credit", "installment", "wholesale", "reference", "marketplaces"]
+
+/** Prominent on/off for the whole pricing module; off means every product has a single unit price. */
+function PricingModuleToggle() {
+  const locale = useLocale()
+  const fa = locale !== "en"
+  const { draft, setDraft, saveWith, pending } = useSection("general")
+  if (!draft) return null
+  const on = draft.enabled !== false
+  return (
+    <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4", on ? "bg-primary/5" : "bg-muted")}>
+      <div>
+        <p className="font-semibold">{fa ? "ماژول قیمت‌گذاری چندلایه" : "Layered pricing module"}</p>
+        <p className="text-muted-foreground text-xs">
+          {on
+            ? fa
+              ? "روشن: نقدی، اعتباری، اقساطی و عمده با قیمت جدا محاسبه می‌شوند."
+              : "On: cash, credit, installment and wholesale prices are calculated separately."
+            : fa
+              ? "خاموش: هر محصول فقط یک قیمت واحد دارد؛ در سایت، سبد خرید، API و ابزارک‌ها."
+              : "Off: every product has one unit price in the store, cart, API and widgets."}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <Switch
+          checked={on}
+          disabled={pending}
+          onCheckedChange={(v) => {
+            const next = { ...draft, enabled: v }
+            setDraft(next)
+            saveWith(next)
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export function PricingSettingsPanel({ tab }: { tab?: string }) {
   const t = useTranslations("pricing_settings")
   const active: TabKey = useMemo(() => {
@@ -835,6 +874,8 @@ export function PricingSettingsPanel({ tab }: { tab?: string }) {
     return (TABS as readonly string[]).includes(key) ? (key as TabKey) : "dashboard"
   }, [tab])
   const q = usePricingSettings()
+  const moduleOn = (q.data?.general as Section | undefined)?.enabled !== false
+  const visibleTabs = TABS.filter((key) => moduleOn || !LAYERED_TABS.includes(key))
 
   return (
     <div className="space-y-4">
@@ -842,8 +883,9 @@ export function PricingSettingsPanel({ tab }: { tab?: string }) {
         <h2 className="text-lg font-semibold">{t("title")}</h2>
         <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
       </div>
+      <PricingModuleToggle />
       <nav className="flex flex-wrap gap-1 border-b pb-2" aria-label="pricing-tabs">
-        {TABS.map((key) => (
+        {visibleTabs.map((key) => (
           <Link
             key={key}
             href={key === "dashboard" ? PRICING_SETTINGS_BASE : `${PRICING_SETTINGS_BASE}/${key}`}

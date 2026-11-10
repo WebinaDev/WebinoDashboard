@@ -433,6 +433,18 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleEn: "Pricing",
         route: "/dashboard/settings/shop/pricing",
       },
+      {
+        id: "checkout-flow",
+        titleFa: "مراحل سبد و پرداخت",
+        titleEn: "Checkout steps",
+        route: "/dashboard/settings/shop/checkout-flow",
+      },
+      {
+        id: "gift-cards",
+        titleFa: "کارت هدیه",
+        titleEn: "Gift cards",
+        route: "/dashboard/settings/shop/gift-cards",
+      },
     ],
   },
   {

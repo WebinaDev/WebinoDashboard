@@ -79,6 +79,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "number", key: "limit", label: "تعداد (۰ = همه)", min: 0, max: 48 },
       { kind: "select", key: "variant", label: "پالت", options: [{ value: "poetry", label: "شعر (زرشکی/طلایی)" }, { value: "", label: "فروشگاهی (پیش‌فرض)" }] },
       { kind: "select", key: "layout", label: "نمایش", options: [{ value: "carousel", label: "کروسل کارت (مثل محصولات)" }, { value: "rings", label: "حلقه‌های دایره‌ای" }] },
+      { kind: "select", key: "tone", label: "زمینه", options: [{ value: "", label: "پیش‌فرض" }, { value: "glass", label: "شیشه‌ای (سفید نیمه‌شفاف با محو پس‌زمینه)" }] },
     ],
     create: () => node("story-strip", { title: "هایلایت‌ها", limit: 0, variant: "poetry", layout: "carousel" }),
   },

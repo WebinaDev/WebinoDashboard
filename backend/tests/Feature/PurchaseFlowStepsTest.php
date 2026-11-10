@@ -231,4 +231,84 @@ class PurchaseFlowStepsTest extends TestCase
         $this->assertSame(240000, (int) $order['items'][0]['unit_price_minor']);
         $this->assertSame('cash', $order['items'][0]['purchase_type']);
     }
+
+    public function test_stepped_checkout_validates_each_step_and_recalculates_totals(): void
+    {
+        $admin = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+        $saved = $this->putJson('/api/v1/shop/checkout-flow', ['data' => [
+            'steps' => [['key' => 'delivery_time', 'enabled' => true, 'label' => 'زمان ارسال — تحویل']],
+            'fields' => ['address' => [['key' => 'customer_national_id', 'enabled' => false]]],
+            'delivery_time' => ['mode' => 'methods', 'shipping_methods' => [2], 'closed_weekdays' => []],
+        ]], $this->h)->assertOk()->json('data.settings');
+        $dt = collect($saved['steps'])->firstWhere('key', 'delivery_time');
+        $this->assertTrue($dt['enabled']);
+        $this->assertStringNotContainsString('—', $dt['label']);
+
+        $this->actingAs($this->user, 'sanctum');
+        $cfg = $this->getJson('/api/v1/checkout/config', $this->h)->assertOk()->json('data');
+        $this->assertSame(['address', 'delivery_time', 'shipping', 'payment'], array_column($cfg['steps'], 'key'));
+        $this->assertNotEmpty($cfg['delivery_time']['days']);
+        $this->assertTrue(collect($cfg['gateways'])->contains('id', 'cod'));
+        $this->assertFalse(collect($cfg['fields']['address'])->contains('key', 'customer_national_id'));
+
+        $p = $this->product(['price_minor' => 100000]);
+        $this->postJson('/api/v1/cart/items', ['product_id' => $p->id, 'quantity' => 2], $this->h)->assertOk();
+
+        $this->postJson('/api/v1/checkout/steps/address', ['customer_phone' => '09121234567'], $this->h)
+            ->assertStatus(422)->assertJsonValidationErrors(['recipient_name', 'address_line']);
+        $addr = $this->postJson('/api/v1/checkout/steps/address', [
+            'recipient_name' => 'علی', 'customer_phone' => '09121234567', 'shipping_state_code' => 'IR:THR',
+            'shipping_city' => 'تهران', 'address_line' => 'خیابان یک', 'shipping_postcode' => '1234567890',
+        ], $this->h)->assertOk()->json('data');
+        $this->assertSame(200000, $addr['totals']['subtotal_minor']);
+        $this->assertCount(2, $addr['totals']['shipping_rates']);
+        $this->assertTrue(collect($addr['totals']['shipping_rates'])->firstWhere('instance_id', 2)['delivery_time_required']);
+
+        $this->postJson('/api/v1/checkout/steps/shipping', ['shipping_instance_id' => 999], $this->h)->assertStatus(422);
+        $ship = $this->postJson('/api/v1/checkout/steps/shipping', ['shipping_instance_id' => 1], $this->h)->assertOk()->json('data');
+        $this->assertSame(50000, $ship['totals']['shipping_minor']);
+        $this->assertSame('payment', $ship['next_step']);
+        $this->assertFalse($ship['totals']['delivery_time_required'], 'delivery time does not apply to method 1');
+
+        $ship = $this->postJson('/api/v1/checkout/steps/shipping', ['shipping_instance_id' => 2], $this->h)->assertOk()->json('data');
+        $this->assertTrue($ship['totals']['delivery_time_required']);
+        $this->assertSame('delivery_time', $addr['next_step']);
+        $this->postJson('/api/v1/checkout/steps/delivery_time', [], $this->h)->assertStatus(422)->assertJsonValidationErrors(['delivery_date']);
+        $day = $cfg['delivery_time']['days'][0];
+        $this->postJson('/api/v1/checkout/steps/delivery_time', ['delivery_date' => $day['date'], 'delivery_slot' => $day['slots'][0]['id']], $this->h)->assertOk();
+
+        $card = app(GiftCardService::class)->issue($this->tenant->id, ['amount_minor' => 30000]);
+        $this->postJson('/api/v1/checkout/steps/payment', ['gift_card_code' => 'NOPE-NOPE'], $this->h)->assertStatus(422)->assertJsonValidationErrors(['gift_card_code']);
+        $pay = $this->postJson('/api/v1/checkout/steps/payment', ['payment_gateway' => 'cod', 'gift_card_code' => $card->code], $this->h)->assertOk()->json('data');
+        $this->assertSame(280000, $pay['totals']['total_before_gift_card_minor']);
+        $this->assertSame(30000, $pay['totals']['gift_card_minor']);
+        $this->assertSame(250000, $pay['totals']['total_minor']);
+        $this->assertNull($pay['next_step']);
+
+        $session = $this->getJson('/api/v1/checkout/session', $this->h)->assertOk()->json('data');
+        $this->assertSame(2, $session['values']['shipping_instance_id']);
+
+        // Order creation falls back to the saved step values.
+        $order = $this->postJson('/api/v1/checkout', [], $this->h)->assertCreated()->json('data');
+        $this->assertSame(250000, (int) $order['total_minor']);
+        $this->assertSame($day['date'], $order['meta']['delivery_time']['date']);
+    }
+
+    public function test_guest_stepped_checkout_and_config(): void
+    {
+        \App\Services\Shop\ShopSettings::saveGeneral($this->tenant->id, array_merge(\App\Services\Shop\ShopSettings::getGeneral($this->tenant->id), ['guest_checkout' => true]));
+        auth()->forgetGuards();
+        $this->app['auth']->guard('sanctum')->forgetUser();
+        $p = $this->product(['price_minor' => 100000]);
+        $v = $this->variant($p, ['price_minor' => 150000]);
+        $this->getJson('/api/v1/public/shop/checkout-config', $this->h)->assertOk()->assertJsonPath('data.guest_checkout', true);
+        $res = $this->postJson('/api/v1/public/shop/checkout/steps/shipping', [
+            'items' => [['product_id' => $p->id, 'variant_id' => $v->id, 'quantity' => 1]],
+            'values' => ['shipping_state_code' => 'IR:THR', 'shipping_city' => 'تهران'],
+            'shipping_instance_id' => 1,
+        ], $this->h)->assertOk()->json('data.totals');
+        $this->assertSame(150000, $res['subtotal_minor']);
+        $this->assertSame(200000, $res['total_minor']);
+    }
 }

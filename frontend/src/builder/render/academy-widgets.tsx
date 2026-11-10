@@ -2,6 +2,7 @@
 
 /* Premium academy widgets — tones: blush (Sanaz/Gatabi), ocean (English Bridge), light, ink. */
 
+import { PriceOrText } from "../money"
 import Link from "next/link"
 import { useEffect, useState, type CSSProperties } from "react"
 
@@ -118,7 +119,7 @@ function useAcademyCourses(enabled: boolean, count: number) {
             title: String(c.title || ""),
             level: String(c.level || ""),
             meta: "",
-            price: typeof c.price_minor === "number" && c.price_minor > 0 ? `${Math.round(c.price_minor / 10).toLocaleString("fa-IR")} تومان` : "",
+            price: typeof c.price_minor === "number" && c.price_minor > 0 ? String(Math.round(c.price_minor / 10)) : "",
             image: String(c.cover_url || ""),
             href: c.slug ? `/academy/${c.slug}` : "/academy",
             badge: "",
@@ -263,7 +264,7 @@ export function CourseGridWidget({ widget }: { widget: WidgetNode }) {
                     {c.badge ? <span className="wax-chip-accent">{c.badge}</span> : null}
                   </div>
                   {c.desc ? <p className="wax-course-desc">{c.desc}</p> : null}
-                  {c.price ? <div className="wax-price">{c.price}</div> : null}
+                  {c.price ? <div className="wax-price"><PriceOrText value={c.price} from="IRT" /></div> : null}
                 </div>
               </Link>
             )

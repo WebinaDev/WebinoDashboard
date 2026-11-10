@@ -43,7 +43,7 @@ return [
 
     'categories' => [
         'bnpl' => ['label_fa' => 'اعتباری (BNPL)', 'label_en' => 'Credit / BNPL', 'order' => 10],
-        'aggregator' => ['label_fa' => 'نقدی — پرداختیار', 'label_en' => 'Cash — Aggregators', 'order' => 20],
+        'aggregator' => ['label_fa' => 'نقدی: پرداختیار', 'label_en' => 'Cash: Aggregators', 'order' => 20],
         'psp' => ['label_fa' => 'درگاه مستقیم (بانک/PSP)', 'label_en' => 'Direct bank / PSP', 'order' => 30],
         'other' => ['label_fa' => 'سایر', 'label_en' => 'Other methods', 'order' => 40],
         'fx_crypto' => ['label_fa' => 'ارزی و کریپتو', 'label_en' => 'Foreign & crypto', 'order' => 50],

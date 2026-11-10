@@ -26,6 +26,7 @@ export const PHOTO_MODES = [
   { value: "logo", label: "لوگو (بدون عکس)" },
   { value: "arabesque", label: "نقش اسلیمی (بدون عکس)" },
 ]
+const TONE: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "", label: "پیش‌فرض" }, { value: "glass", label: "شیشه‌ای (سفید نیمه‌شفاف با محو پس‌زمینه)" }] }
 const photoMode = (key = "photoMode", label = "حالت تصویر"): FieldDef => ({ kind: "select", key, label, options: PHOTO_MODES })
 const logo: FieldDef = { kind: "media", key: "logo", label: "لوگو (خالی = لوگوی سایت)", accept: "image" }
 const CHECKOUT: FieldDef = { kind: "select", key: "checkoutMode", label: "دکمه خرید", options: [
@@ -66,6 +67,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
   {
     type: "poetry-page-hero", label: "سربرگ صفحه (مسیر + عنوان دورنگ)", category: "content",
     fields: [
+      TONE,
       { kind: "repeater", key: "crumbs", label: "مسیر (breadcrumb)", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] },
       { kind: "text", key: "title", label: "عنوان (بخش تیره)" }, { kind: "text", key: "highlight", label: "عنوان (بخش زرشکی)" },
       { kind: "switch", key: "fromPoem", label: "عنوان از شعر جاری (?poem=)" },
@@ -79,6 +81,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
   {
     type: "poem-archive", label: "آرشیو اشعار (فیلتر کناری + کارت)", category: "content",
     fields: [
+      TONE,
       { kind: "link", key: "detailHref", label: "صفحه شعر" }, { kind: "number", key: "perPage", label: "تعداد در صفحه", min: 3, max: 48 },
       { kind: "switch", key: "showSidebar", label: "فیلترهای کناری" }, { kind: "switch", key: "showCounts", label: "نمایش تعداد" },
       { kind: "text", key: "figureTitle", label: "عنوان: شخصیت" }, { kind: "text", key: "styleTitle", label: "عنوان: سبک" },
@@ -93,6 +96,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
   {
     type: "poem-single", label: "متن شعر (کاغذی + مشخصات + مرتبط)", category: "content",
     fields: [
+      TONE,
       { kind: "text", key: "slug", label: "نامک شعر (خالی = ?poem=)" },
       { kind: "text", key: "heading", label: "سرلوحه" }, { kind: "switch", key: "showSubtitle", label: "زیرعنوان (سبک + شخصیت)" },
       { kind: "text", key: "separator", label: "جداکننده بندها" }, { kind: "text", key: "signPrefix", label: "پیش از امضا" }, { kind: "text", key: "signNote", label: "یادداشت امضا" },
@@ -107,6 +111,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
   {
     type: "media-archive", label: "صوت و ویدیو (ویژه + پرشنونده + شبکه)", category: "content",
     fields: [
+      TONE,
       { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "ویژه و پرشنونده و شبکه (پیش‌فرض)" }, { value: "grid3", label: "شبکه ساده سه‌ستونی" }] },
       { kind: "select", key: "source", label: "منبع", options: [{ value: "live", label: "صوت و ویدیوی ثبت‌شده در اشعار (پیش‌فرض)" }, { value: "manual", label: "ردیف‌های دستی زیر" }] },
       { kind: "repeater", key: "items", label: "اجراها (فقط در منبع دستی)", fields: [
@@ -126,6 +131,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
   {
     type: "poetry-shop", label: "فروشگاه قاب‌ها (فیلتر + مرتب‌سازی)", category: "commerce",
     fields: [
+      TONE,
       { kind: "select", key: "source", label: "منبع محصولات", options: [{ value: "catalog", label: "محصولات فروشگاه (در نبود: فهرست دستی)" }, { value: "manual", label: "فقط فهرست دستی" }] },
       { kind: "repeater", key: "items", label: "محصولات دستی", fields: [
         { key: "title", label: "نام", kind: "text" }, { key: "image", label: "تصویر", kind: "media" }, { key: "price", label: "قیمت (تومان)", kind: "text" },
@@ -149,6 +155,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
   {
     type: "poetry-product", label: "صفحه محصول قاب (گالری + گزینه‌ها)", category: "commerce",
     fields: [
+      TONE,
       { kind: "text", key: "slug", label: "نامک (خالی = از نشانی صفحه)" },
       { kind: "text", key: "name", label: "نام (دستی/پیش‌فرض)" }, { kind: "text", key: "category", label: "دسته" }, { kind: "text", key: "price", label: "قیمت (تومان)" },
       { kind: "textarea", key: "description", label: "توضیحات" },
@@ -166,6 +173,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
   {
     type: "poet-profile", label: "درباره شاعر (بدون عکس + داستان + گاه‌شمار)", category: "content",
     fields: [
+      TONE,
       photoMode(), { kind: "media", key: "image", label: "عکس (فقط در حالت عکس)", accept: "image" }, logo,
       { kind: "text", key: "name", label: "نام" }, { kind: "textarea", key: "info", label: "مشخصات (هر خط یک سطر)" }, SOCIALS,
       { kind: "text", key: "storyTitle", label: "عنوان داستان" },

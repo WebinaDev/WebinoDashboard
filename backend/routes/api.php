@@ -403,6 +403,8 @@ Route::prefix('v1')->group(function () {
         // Guest shop checkout (enabled only when tenant guest_checkout is on).
         Route::middleware('public.module:catalog')->group(function () {
             Route::get('/shop/checkout-options', [PublicShopCheckoutController::class, 'options']);
+            Route::get('/shop/checkout-config', [\App\Http\Controllers\Api\V1\CheckoutStepsController::class, 'guestConfig']);
+            Route::post('/shop/checkout/steps/{step}', [\App\Http\Controllers\Api\V1\CheckoutStepsController::class, 'guestStep'])->middleware('throttle:60,1');
             Route::get('/shop/shipping/regions', [PublicShopCheckoutController::class, 'regions']);
             Route::post('/shop/shipping/quote', [PublicShopCheckoutController::class, 'quote'])->middleware('throttle:60,1');
             Route::post('/shop/checkout', [PublicShopCheckoutController::class, 'store'])->middleware('throttle:checkout');
@@ -457,6 +459,9 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('module:checkout')->group(function () {
             Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout');
+            Route::get('/checkout/config', [\App\Http\Controllers\Api\V1\CheckoutStepsController::class, 'config']);
+            Route::get('/checkout/session', [\App\Http\Controllers\Api\V1\CheckoutStepsController::class, 'session']);
+            Route::post('/checkout/steps/{step}', [\App\Http\Controllers\Api\V1\CheckoutStepsController::class, 'step'])->middleware('throttle:60,1');
             Route::get('/payments/checkout-options', [PaymentIntentController::class, 'options']);
             Route::post('/payments/intent', [PaymentIntentController::class, 'store']);
             Route::post('/payments/offline', [PaymentIntentController::class, 'confirmOffline'])->middleware('throttle:checkout');
@@ -574,6 +579,8 @@ Route::prefix('v1')->group(function () {
                 Route::put('/integrations/google-oauth', [GoogleOAuthController::class, 'settingsUpdate']);
                 Route::get('/shop/theme-optimizer', [ShopExtrasAdminController::class, 'themeOptimizerShow']);
                 Route::put('/shop/theme-optimizer', [ShopExtrasAdminController::class, 'themeOptimizerUpdate']);
+                Route::get('/shop/checkout-flow', [\App\Http\Controllers\Api\V1\CheckoutStepsController::class, 'adminShow']);
+                Route::put('/shop/checkout-flow', [\App\Http\Controllers\Api\V1\CheckoutStepsController::class, 'adminUpdate']);
                 Route::get('/shop/storefront-appearance', [ShopExtrasAdminController::class, 'storefrontAppearanceShow']);
                 Route::put('/shop/storefront-appearance', [ShopExtrasAdminController::class, 'storefrontAppearanceUpdate']);
                 Route::get('/shop/product-notifications', [ShopExtrasAdminController::class, 'productNotificationsShow']);

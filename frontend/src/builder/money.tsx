@@ -86,29 +86,54 @@ export function formatMoneyPlain(amount: number, cur: BuilderCurrency, from?: st
 
 export function BuilderPrice({
   amount,
+  original,
   from,
   className,
 }: {
   /** Amount in `from` units (defaults to the store currency, i.e. no conversion). Strings may carry Persian digits. */
   amount: number | string | null | undefined
+  /** Price before discount: rendered struck through when it is higher than `amount`. */
+  original?: number | string | null
   from?: string | null
   className?: string
 }) {
   const cur = useBuilderCurrency()
   const n = convertAmount(parseAmount(amount), from, cur.currency)
   if (!(n > 0)) return null
-  return (
+  const o = convertAmount(parseAmount(original), from, cur.currency)
+  const price = (
     <span className={["wb-price", className].filter(Boolean).join(" ")} dir="ltr" style={{ display: "inline-flex", alignItems: "baseline", gap: "0.25em", whiteSpace: "nowrap" }}>
       <CurrencyMark symbol={cur.symbol} alt={currencyLabel(cur.currency, "fa")} />
       <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatAmountDigits(n, cur.thousandSeparator)}</span>
     </span>
   )
+  if (!(o > n)) return price
+  return (
+    <span className="wb-price-group" style={{ display: "inline-flex", alignItems: "baseline", gap: "0.5em", flexWrap: "wrap" }}>
+      <s className="wb-price-original" aria-label="قیمت قبل از تخفیف" style={{ opacity: 0.55, fontSize: "0.85em", whiteSpace: "nowrap" }} dir="ltr">
+        {formatAmountDigits(o, cur.thousandSeparator)}
+      </s>
+      {price}
+    </span>
+  )
+}
+
+/** Sale price and the regular price it replaces, from any API product/line shape. */
+export function salePair(p: Record<string, unknown> | null | undefined): { amount: number; original: number } {
+  if (!p) return { amount: 0, original: 0 }
+  const num = (v: unknown) => parseAmount(v as string | number | null | undefined)
+  const amount =
+    num(p.unit_price_minor) || num(p.sale_price_minor) || num(p.discounted_price_minor) || num(p.final_price_minor) || num(p.price_minor) || num(p.price)
+  const original = num(p.regular_price_minor) || num(p.compare_at_price_minor) || num(p.original_price_minor) || num(p.price_minor)
+  return { amount, original: original > amount ? original : 0 }
 }
 
 /** `money(amount)` for JSX (glyph) and `money.text(amount)` for string-only slots. */
 export function useBuilderMoney(from?: string | null) {
   const cur = useBuilderCurrency()
-  const money = (amount: number | string | null | undefined): ReactNode => <BuilderPrice amount={amount} from={from} />
+  const money = (amount: number | string | null | undefined, original?: number | string | null): ReactNode => (
+    <BuilderPrice amount={amount} original={original} from={from} />
+  )
   money.text = (amount: number | string | null | undefined) => formatMoneyPlain(parseAmount(amount), cur, from)
   money.currency = cur
   return money

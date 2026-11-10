@@ -51,7 +51,9 @@ const isExternal = (h: string) => /^https?:/i.test(h)
 
 /** Colour fields → CSS variables. */
 /** mobileFullWidth (default on): edge-to-edge on phones. */
-export const akxMfw = (p: P) => (propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "")
+/** Mobile full-width flag plus the shared `tone: glass` surface (same classes as the poetry widgets). */
+export const akxMfw = (p: P) =>
+  [propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "", propStr(p, "tone") === "glass" ? "akx-glass wpz-light wpz-glass" : ""].filter(Boolean).join(" ")
 
 /** transparent / fully see-through colours (transparent, #rgba with 00 alpha, rgba(...,0)) */
 export function isClearColor(v: string): boolean {
@@ -614,7 +616,7 @@ export function useCatalog(enabled: boolean, query: string): { items: ShopProduc
 function PriceLine({ p, it }: { p: P; it: Item }) {
   const text = propStr(p, "priceText", "قیمت (از مشتری)")
   if (propStr(p, "priceMode", "auto") === "text" || !it.price) return <em>{text}</em>
-  return <>{it.old ? <s><BuilderPrice amount={it.old} /></s> : null}<em><BuilderPrice amount={it.price} /></em></>
+  return <em><BuilderPrice amount={it.price} original={it.old} /></em>
 }
 
 function BuyButton({ p, it, qty = 1, big = false, option = "" }: { p: P; it: Item; qty?: number; big?: boolean; option?: string }) {

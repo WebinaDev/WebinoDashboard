@@ -380,6 +380,18 @@ class PublicShopCheckoutController extends Controller
         ]);
     }
 
+    /** Guest-checkout tenant (403 when guest checkout is off); used by the stepped checkout API. */
+    public function guestTenant(Request $request): int
+    {
+        return $this->requireGuestCheckout($request);
+    }
+
+    /** @return \Illuminate\Support\Collection<int, CartItem>|null */
+    public function guestLines(int $tenantId, array $items, ?string $guestToken = null): ?\Illuminate\Support\Collection
+    {
+        return $this->resolveProductLines($tenantId, $items, $guestToken);
+    }
+
     protected function requireGuestCheckout(Request $request): int
     {
         $tid = $this->publicTenantId($request);

@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
 import { WebinaCredit } from "@/components/brand/WebinaCredit"
 import { formatDate } from "@/lib/locale"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
-import { ClassicAmount, ClassicPrice, ClassicRating } from "@/themes/ecommerce-classic/components/parts"
+import { ClassicAmount, ClassicRating } from "@/themes/ecommerce-classic/components/parts"
 import { ClassicSortTabs } from "@/themes/ecommerce-classic/components/ClassicArchive"
 import { cartServerSnapshot, cartSnapshot, subscribeCart } from "../cart"
 import { mapApiProduct, type ShopProduct } from "../catalog"
@@ -29,7 +29,7 @@ import { useBuilderRuntime } from "./runtime"
 import { ProductQueryWidget, splitRows } from "./extra-widgets"
 import { sanitizeBuilderHtml, stripWpShortcodes } from "./sanitize-html"
 import { Img } from "./img"
-import { useBuilderCurrency } from "../money"
+import { BuilderPrice, useBuilderCurrency } from "../money"
 import { currencyLabel } from "@/lib/currencies"
 
 function Placeholder({ label }: { label: string }) {
@@ -86,7 +86,11 @@ export function ProductPartWidget({ widget, editing }: { widget: WidgetNode; edi
       return <Tag className="text-xl font-extrabold text-foreground md:text-2xl">{product.name}</Tag>
     }
     case "product-price":
-      return <ClassicPrice price={product.price} compare={product.compare} size={propStr(widget.props, "size", "lg") === "md" ? "md" : "lg"} />
+      return (
+        <div className={propStr(widget.props, "size", "lg") === "md" ? "text-lg font-extrabold text-foreground" : "text-2xl font-extrabold text-foreground"}>
+          <BuilderPrice amount={product.price} original={product.compare} />
+        </div>
+      )
     case "product-rating":
       return product.rating ? <ClassicRating value={product.rating} /> : null
     case "product-stock": {

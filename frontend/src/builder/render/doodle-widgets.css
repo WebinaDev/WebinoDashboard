@@ -298,3 +298,6 @@
   border: 2.5px solid #2b2230; font-weight: 900;
   box-shadow: 3px 3px 0 #3aa6b9;
 }
+
+/* story-strip tone: glass */
+.wb-story-glass { background: rgba(255,255,255,.58); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.6); border-radius: 24px; }
