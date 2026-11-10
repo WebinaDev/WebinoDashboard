@@ -50,8 +50,8 @@ final class AnalyticsRollup
             ->selectRaw('COUNT(*) as views')
             ->selectRaw('COUNT(DISTINCT visitor_hash) as visitors')
             ->selectRaw("COUNT(DISTINCT CASE WHEN session_id != '' THEN session_id END) as sessions")
-            ->selectRaw('SUM(CASE WHEN is_bounce = 1 AND is_exit = 1 THEN 1 ELSE 0 END) as bounces')
-            ->selectRaw('SUM(CASE WHEN is_exit = 1 THEN duration_ms ELSE 0 END) as duration_sum_ms')
+            ->selectRaw('SUM(CASE WHEN is_bounce = ? AND is_exit = ? THEN 1 ELSE 0 END) as bounces', [true, true])
+            ->selectRaw('SUM(CASE WHEN is_exit = ? THEN duration_ms ELSE 0 END) as duration_sum_ms', [true])
             ->first();
 
         DB::table('analytics_daily_totals')->updateOrInsert(

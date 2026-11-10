@@ -130,9 +130,9 @@ class AnalyticsAndShopReportsTest extends TestCase
             'utm_medium' => '',
             'utm_campaign' => '',
             'session_id' => 's2',
-            'duration_ms' => 0,
-            'is_exit' => false,
-            'is_bounce' => false,
+            'duration_ms' => 1500,
+            'is_exit' => true,
+            'is_bounce' => true,
         ]);
 
         app(AnalyticsRollup::class)->rollupDay($this->tenant->id, $day);
@@ -144,6 +144,8 @@ class AnalyticsAndShopReportsTest extends TestCase
         $this->assertNotNull($row);
         $this->assertSame(2, (int) $row->views);
         $this->assertSame(2, (int) $row->visitors);
+        $this->assertSame(1, (int) $row->bounces);
+        $this->assertSame(1500, (int) $row->duration_sum_ms);
 
         $this->getJson('/api/v1/analytics/overview')->assertOk()
             ->assertJsonPath('data.source', 'native');
