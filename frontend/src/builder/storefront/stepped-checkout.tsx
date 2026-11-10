@@ -38,6 +38,9 @@ export type FlowGateway = {
   cash_enabled?: boolean
   installment_enabled?: boolean
   fee_percent?: number
+  fee_fixed_minor?: number
+  /** Fee on the current payable amount (percent + fixed). */
+  fee_amount_minor?: number
   fee_payer?: string
 }
 
@@ -100,6 +103,7 @@ export type Totals = {
   gift_card_minor: number
   total_minor: number
   delivery_time_required: boolean
+  gateways?: FlowGateway[]
 }
 
 type Values = Record<string, unknown>
@@ -193,22 +197,17 @@ function str(v: unknown): string {
   return v == null ? "" : String(v)
 }
 
-/** Step order: delivery time scoped to shipping methods can only be decided after shipping. */
+/** Step order exactly as the backend sends it (methods mode: shipping before delivery time). */
 export function orderedSteps(cfg: FlowConfig): StepKey[] {
-  const keys = [...cfg.steps].filter((s) => s.enabled).sort((a, b) => a.order - b.order).map((s) => s.key)
-  if (cfg.delivery_time.mode === "methods" && keys.includes("delivery_time") && keys.includes("shipping")) {
-    const rest: StepKey[] = keys.filter((k) => k !== "delivery_time")
-    rest.splice(rest.indexOf("shipping") + 1, 0, "delivery_time")
-    return rest
-  }
-  return keys
+  return cfg.steps.filter((s) => s.enabled).map((s) => s.key)
 }
 
 function stepVisible(cfg: FlowConfig, step: StepKey, totals: Totals | null): boolean {
   if (step !== "delivery_time") return true
   if (!cfg.delivery_time.days.length) return false
   if (cfg.delivery_time.mode === "all") return true
-  return Boolean(totals?.delivery_time_required)
+  // Methods mode: shown until a shipping method is chosen, then only when that method needs it.
+  return !totals?.shipping || Boolean(totals.delivery_time_required)
 }
 
 /** Loads the checkout flow config for a signed-in shopper or a guest (403 when guests are off). */
@@ -350,18 +349,21 @@ export function SteppedCheckout({ skin = "default", config, auth }: { skin?: Ste
   }
 
   function nextAfter(step: StepKey, fresh: Totals | null, serverNext: string | null | undefined): StepKey | null {
+    // Backend next_step decides (it skips delivery time when the chosen method does not need it).
+    if (serverNext && steps.includes(serverNext as StepKey)) return serverNext as StepKey
+    if (serverNext === null) return null
     const i = steps.indexOf(step)
     for (let j = i + 1; j < steps.length; j++) {
       if (stepVisible(config, steps[j], fresh)) return steps[j]
     }
-    return (serverNext && steps.includes(serverNext as StepKey) ? (serverNext as StepKey) : null) ?? null
+    return null
   }
 
-  async function postStep(step: StepKey, v: Values) {
-    const body = payloadValues(v)
+  async function postStep(step: StepKey, v: Values, preview = false) {
+    const body: Values = { ...payloadValues(v), ...(preview ? { preview: true } : {}) }
     const path = isGuest ? `/api/v1/public/shop/checkout/steps/${step}` : `/api/v1/checkout/steps/${step}`
     const json = isGuest ? { ...body, items: guestItems, values: body, guest_token: guestToken() } : body
-    return call<{ values?: Values; next_step?: string | null; totals?: Totals }>(path, "POST", json)
+    return call<{ values?: Values; next_step?: string | null; totals?: Totals; preview?: boolean; errors?: Record<string, string> }>(path, "POST", json)
   }
 
   async function submit(step: StepKey) {
@@ -398,23 +400,26 @@ export function SteppedCheckout({ skin = "default", config, auth }: { skin?: Ste
     if (i > 0) setCurrent(visibleSteps[i - 1])
   }
 
-  /** Re-quote with a coupon or gift card code: payment step without asking for terms yet. */
+  /** Re-quote with a coupon or gift card code: payment step preview (saves nothing, always 200). */
   async function applyCode(key: "coupon_code" | "gift_card_code", code: string) {
     const next = { ...values, [key]: code.trim() }
     setValues(next)
     setBusy(true)
-    const res = await postStep("payment", { ...next, terms_accepted: next.terms_accepted ?? false })
+    const res = await postStep("payment", next, true)
     setBusy(false)
-    if (res.ok) {
-      if (res.data.totals) setTotals(res.data.totals)
-      setErrors((prev) => ({ ...prev, [key]: "" }))
-      if (key === "coupon_code") storeCoupon(code.trim() || null)
+    if (!res.ok) {
+      setErrors((prev) => ({ ...prev, [key]: res.errors[key] || res.message || "بررسی کد ناموفق بود." }))
       return
     }
-    // Terms not ticked yet is fine here; any error on the code itself is shown under the field.
-    const own = res.errors[key]
-    setErrors((prev) => ({ ...prev, [key]: own ?? (res.errors.terms_accepted ? "" : res.message) }))
-    if (!own && res.errors.terms_accepted) setMessage("مبلغ نهایی با کد واردشده پس از پذیرش قوانین محاسبه می‌شود.")
+    const fresh = res.data.totals
+    if (fresh) setTotals((prev) => (prev ? { ...prev, ...fresh } : fresh))
+    const errs = res.data.errors ?? {}
+    setErrors((prev) => ({
+      ...prev,
+      coupon_code: str(errs.coupon_code) || (next.coupon_code ? str(fresh?.coupon_error) : ""),
+      gift_card_code: str(errs.gift_card_code) || (next.gift_card_code ? str(fresh?.gift_card_error) : ""),
+    }))
+    if (key === "coupon_code") storeCoupon(!errs.coupon_code && code.trim() ? code.trim() : null)
   }
 
   async function checkGiftBalance(code: string) {
@@ -434,8 +439,8 @@ export function SteppedCheckout({ skin = "default", config, auth }: { skin?: Ste
 
   const purchaseMode = totals?.purchase_type === "installment" ? "installment" : "cash"
   const gateways = useMemo(
-    () => config.gateways.filter((g) => (purchaseMode === "installment" ? g.installment_enabled : g.cash_enabled !== false)).filter((g) => !(isGuest && g.id === "wallet")),
-    [config.gateways, purchaseMode, isGuest],
+    () => (totals?.gateways?.length ? totals.gateways : config.gateways).filter((g) => (purchaseMode === "installment" ? g.installment_enabled : g.cash_enabled !== false)).filter((g) => !(isGuest && g.id === "wallet")),
+    [config.gateways, totals?.gateways, purchaseMode, isGuest],
   )
   const pickedGateway = str(values.payment_gateway)
   useEffect(() => {
@@ -742,8 +747,13 @@ export function SteppedCheckout({ skin = "default", config, auth }: { skin?: Ste
         <input type="radio" name="payment_gateway" checked={on} onChange={() => set("payment_gateway", g.id)} />
         <img src={gatewayBrandSrc(g.id, g.logo_url)} alt="" width={36} height={36} loading="lazy" className="wsc-option__logo" />
         <span className="wsc-option__title">{label}</span>
-        {g.fee_percent && g.fee_percent > 0 && g.fee_payer === "customer" ? (
-          <span className="wsc-option__price">کارمزد {faDigits(g.fee_percent)}٪</span>
+        {g.fee_payer === "customer" && (g.fee_amount_minor ?? 0) > 0 ? (
+          <span className="wsc-option__price">
+            کارمزد <BuilderPrice amount={g.fee_amount_minor} />
+            {g.fee_percent && g.fee_percent > 0 ? <> ({faDigits(g.fee_percent)}٪)</> : null}
+          </span>
+        ) : g.fee_payer === "customer" && (g.fee_percent ?? 0) > 0 ? (
+          <span className="wsc-option__price">کارمزد {faDigits(g.fee_percent ?? 0)}٪</span>
         ) : null}
       </label>
     )
