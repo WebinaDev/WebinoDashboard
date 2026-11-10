@@ -20,6 +20,8 @@ import { ClassicCouponChooser } from "./ClassicCouponChooser"
 import { ClassicCheckoutSteps } from "./ClassicCart"
 import { ClassicTrustStrip } from "./ClassicProduct"
 import { gatewayBrandSrc, shippingBrandSrc } from "@/lib/checkout-brands"
+import { useGatewayLabel } from "@/lib/gateway-label"
+import { SteppedCheckoutGate } from "@/builder/storefront/stepped-checkout"
 import { IconBadge, IconCard, IconCheck, IconShield, IconTruck } from "./icons"
 import { ClassicAmount, useDigits } from "./parts"
 import { useClassicText } from "../lib/texts"
@@ -28,6 +30,7 @@ import { optImg } from "@/lib/image-url"
 type Gateway = {
   id: string
   title?: string
+  logo_url?: string | null
   cash_enabled: boolean
   installment_enabled: boolean
   kind?: "online" | "offline"
@@ -51,21 +54,6 @@ type SavedAddress = {
 
 type Rate = { instance_id: number; title: string; cost_minor: number; method_id?: string; service?: string }
 
-function labelForGateway(
-  id: string,
-  tCheckout: (key: "pay_zarinpal" | "pay_digipay" | "pay_snapppay" | "pay_torobpay") => string,
-  t: (key: "pay_bale" | "pay_basalam") => string,
-) {
-  if (id === "zarinpal" || id === "digipay" || id === "snapppay" || id === "torobpay") return tCheckout(`pay_${id}` as "pay_zarinpal")
-  if (id === "bale_pay") return t("pay_bale")
-  if (id === "basalam_pay") return t("pay_basalam")
-  if (id === "cod") return "پرداخت در محل"
-  if (id === "cheque") return "پرداخت با چک"
-  if (id === "c2c") return "کارت به کارت"
-  if (id === "wallet") return "کیف پول"
-  return id
-}
-
 const CHECKOUT_FIELDS = ["recipient", "national_id", "state", "city", "postcode", "phone", "address", "coupon", "note"] as const
 type CheckoutField = (typeof CHECKOUT_FIELDS)[number]
 
@@ -86,8 +74,28 @@ export function isValidIranNationalId(value: string): boolean {
   return rem < 2 ? check === rem : check === 11 - rem
 }
 
+/** Stepped checkout (commerce.checkout_flow) by default; the single-page form when the store turns steps off. */
 export function ClassicCheckout() {
   const tx = useClassicText()
+  return (
+    <SteppedCheckoutGate
+      skin="classic"
+      legacy={<ClassicCheckoutLegacy />}
+      loading={
+        <div className="sfc-checkout sfc-container">
+          <ClassicCheckoutSteps active={1} />
+          <div className="sfc-box sfc-checkout__empty">
+            <span className="sfc-empty-note">{tx("header.loading")}</span>
+          </div>
+        </div>
+      }
+    />
+  )
+}
+
+function ClassicCheckoutLegacy() {
+  const tx = useClassicText()
+  const gatewayLabel = useGatewayLabel()
   const theme = useClassicThemeSettings()
   const commerce = theme.commerce ?? {}
   const showCoupon = commerce.checkout_coupon !== false
@@ -149,6 +157,7 @@ export function ClassicCheckout() {
         .map((line) => ({
           id: Number(line.productId),
           quantity: line.qty,
+          variantId: line.variantId ?? null,
           product: {
             id: Number(line.productId),
             name: line.name,
@@ -399,7 +408,7 @@ export function ClassicCheckout() {
           cart_subtotal_minor: pricing?.subtotal_minor ?? subtotal,
           ...(isGuestSession
             ? {
-                items: guestLines.map((line) => ({ product_id: line.product.id, quantity: line.quantity })),
+                items: guestLines.map((line) => ({ product_id: line.product.id, quantity: line.quantity, ...(line.variantId ? { variant_id: line.variantId } : {}) })),
               }
             : {}),
         },
@@ -447,7 +456,18 @@ export function ClassicCheckout() {
       return
     }
     if (isGuestSession) {
-      setError("درگاه آنلاین هنوز برای خرید مهمان فعال نشده؛ از پرداخت در محل استفاده کنید یا وارد شوید.")
+      const token = tokenOverride ?? payToken
+      const res = await api<{ redirect_url?: string | null; data?: { redirect_url?: string | null } }>(
+        `/api/v1/public/orders/${orderKey}/pay/intent`,
+        { method: "POST", json: { provider, token, mode } },
+      )
+      const guestUrl = res.redirect_url ?? res.data?.redirect_url ?? null
+      if (guestUrl && (guestUrl.startsWith("http") || guestUrl.startsWith("/"))) {
+        clearCart()
+        window.location.assign(guestUrl)
+        return
+      }
+      setError(t("pay_missing"))
       return
     }
     const intent = await api<{ redirect_url: string | null; data?: { redirect_url?: string | null } }>(
@@ -495,10 +515,11 @@ export function ClassicCheckout() {
           {
             method: "POST",
             json: {
-              items: guestLines.map((line) => ({ product_id: line.product.id, quantity: line.quantity })),
+              items: guestLines.map((line) => ({ product_id: line.product.id, quantity: line.quantity, ...(line.variantId ? { variant_id: line.variantId } : {}) })),
               shipping_address: shippingAddress || null,
               customer_phone: phone || null,
               customer_note: note || null,
+              coupon_code: showCoupon ? coupon || null : null,
               shipping_instance_id: rateId,
               shipping_state_code: stateCode || null,
               shipping_postcode: postcode || null,
@@ -909,17 +930,17 @@ export function ClassicCheckout() {
                             onChange={() => setSelectedPay(gateway.id)}
                           />
                           <span className="sfc-pay-method__icon sfc-brand-card__logo" aria-hidden="true">
-                            <img src={gatewayBrandSrc(gateway.id)} alt="" width={40} height={40} loading="lazy" decoding="async" />
+                            <img src={gatewayBrandSrc(gateway.id, gateway.logo_url)} alt="" width={40} height={40} loading="lazy" decoding="async" />
                           </span>
                           <span className="sfc-pay-method__body">
-                            <strong>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</strong>
+                            <strong>{gatewayLabel(gateway.id, gateway.title)}</strong>
                             {gateway.quote && gateway.quote.fee_percent > 0 ? (
                               <em>
                                 {tCheckout("fee_line", {
                                   percent: toLocaleDigits(gateway.quote.fee_percent, locale),
                                 })}
                                 {" · "}
-                                {formatNumber(gateway.quote.charge_minor, normalizeUiLocale(locale))} تومان
+                                <ClassicAmount value={gateway.quote.charge_minor} />
                               </em>
                             ) : (
                               <em>{offline ? (gateway.id === "cod" ? "پرداخت هنگام تحویل" : "بدون درگاه آنلاین") : tx("checkout.gateway_ready")}</em>
@@ -955,10 +976,10 @@ export function ClassicCheckout() {
                       className={`sfc-pay-method sfc-brand-card ${offline ? "is-offline" : ""}`}
                     >
                       <span className="sfc-pay-method__icon sfc-brand-card__logo" aria-hidden="true">
-                        <img src={gatewayBrandSrc(gateway.id)} alt="" width={40} height={40} loading="lazy" decoding="async" />
+                        <img src={gatewayBrandSrc(gateway.id, gateway.logo_url)} alt="" width={40} height={40} loading="lazy" decoding="async" />
                       </span>
                       <span className="sfc-pay-method__body">
-                        <strong>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</strong>
+                        <strong>{gatewayLabel(gateway.id, gateway.title)}</strong>
                       </span>
                     </button>
                   )

@@ -12,6 +12,7 @@ import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { api } from "@/lib/api"
 import { toLocaleDigits } from "@/lib/locale"
 import { gatewayBrandSrc } from "@/lib/checkout-brands"
+import { useGatewayLabel } from "@/lib/gateway-label"
 
 type PayMode = "cash" | "installment"
 
@@ -29,6 +30,7 @@ type CartPricing = { active: boolean; purchase_type: string; allowed_gateways: s
 
 export default function CheckoutPage() {
   const t = useTranslations("checkout")
+  const gatewayLabel = useGatewayLabel()
   const tPricing = useTranslations("pricing_storefront")
   const tTypes = useTranslations("pricing_settings.types")
   const locale = useLocale()
@@ -182,7 +184,7 @@ export default function CheckoutPage() {
             <div key={gateway.id} className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3">
               <div className="flex items-center gap-3">
                 <img src={gatewayBrandSrc(gateway.id)} alt="" width={40} height={40} className="size-10 rounded-lg object-contain" loading="lazy" />
-                <span className="font-medium">{gateway.title || gateway.id}</span>
+                <span className="font-medium">{gatewayLabel(gateway.id, gateway.title)}</span>
               </div>
               {percent > 0 && quote ? (
                 <div className="text-muted-foreground mb-2 space-y-1 text-xs">
