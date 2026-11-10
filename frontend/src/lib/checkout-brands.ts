@@ -3,7 +3,20 @@
  * Served from /checkout-brands/* so every storefront theme can reuse them.
  */
 
+import { GATEWAY_CATEGORIES } from "./payment-gateway-ids"
+
 const BASE = "/checkout-brands"
+
+/** Category fallback marks when a gateway has no dedicated logo file. */
+const CATEGORY_FILES: Record<string, string> = {
+  psp: "bank.svg",
+  aggregator: "card.svg",
+  bnpl: "bnpl.svg",
+  fx_crypto: "crypto.svg",
+  other: "card.svg",
+}
+
+const FX_IDS = new Set(["stripe", "paypal", "perfect_money", "payeer"])
 
 const GATEWAY_FILES: Record<string, string> = {
   zarinpal: "zarinpal.svg",
@@ -27,10 +40,15 @@ const SHIPPING_FILES: Array<{ test: RegExp; file: string }> = [
   { test: /ماکس|max/i, file: "shipping.svg" },
 ]
 
-export function gatewayBrandSrc(id: string | null | undefined): string {
+export function gatewayBrandSrc(id: string | null | undefined, logoUrl?: string | null): string {
+  const custom = (logoUrl ?? "").trim()
+  if (custom && (custom.startsWith("/") || /^https?:\/\//.test(custom))) return custom
   const key = String(id || "").toLowerCase().trim()
-  const file = GATEWAY_FILES[key] || "card.svg"
-  return `${BASE}/${file}`
+  if (GATEWAY_FILES[key]) return `${BASE}/${GATEWAY_FILES[key]}`
+  if (key === "iran_wallet") return `${BASE}/wallet.svg`
+  if (FX_IDS.has(key)) return `${BASE}/fx.svg`
+  const category = GATEWAY_CATEGORIES[key] ?? "other"
+  return `${BASE}/${CATEGORY_FILES[category] ?? "card.svg"}`
 }
 
 export function shippingBrandSrc(input: {

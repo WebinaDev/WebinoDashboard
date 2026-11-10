@@ -495,6 +495,17 @@ class PaymentGatewaySettingsService
      *
      * @return list<array<string, mixed>>
      */
+    /** Optional merchant-uploaded logo for a gateway (absolute or site-relative URL only). */
+    protected function logoUrl(array $raw): ?string
+    {
+        $url = trim((string) ($raw['logo_url'] ?? $raw['logo'] ?? ''));
+        if ($url === '' || ! (str_starts_with($url, '/') || preg_match('#^https?://#i', $url))) {
+            return null;
+        }
+
+        return $url;
+    }
+
     public function checkoutGateways(int $tenantId, ?string $mode = null): array
     {
         $out = [];
@@ -528,6 +539,10 @@ class PaymentGatewaySettingsService
             $out[] = [
                 'id' => $id,
                 'title' => $title,
+                'title_key' => $id,
+                'label_en' => (string) ($this->catalog->get($id)['label_en'] ?? $id),
+                'category' => (string) ($this->catalog->get($id)['category'] ?? 'other'),
+                'logo_url' => $this->logoUrl($raw),
                 'cash_enabled' => $cash,
                 'installment_enabled' => $installment,
                 'fee_percent' => $this->feePercent($raw),
@@ -554,6 +569,10 @@ class PaymentGatewaySettingsService
                 $out[] = [
                     'id' => $id,
                     'title' => $title !== '' ? $title : $fallbackTitle,
+                    'title_key' => $id,
+                    'label_en' => (string) ($this->catalog->get($id)['label_en'] ?? $id),
+                    'category' => 'other',
+                    'logo_url' => $this->logoUrl($raw),
                     'cash_enabled' => true,
                     'installment_enabled' => false,
                     'fee_percent' => 0.0,

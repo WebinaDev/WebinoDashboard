@@ -48,7 +48,14 @@ class PricingController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $gateways = collect(app(PaymentGatewaySettingsService::class)->hubItems($tid))
-            ->map(fn (array $g) => ['id' => $g['id'], 'title_key' => $g['title_key'], 'enabled' => $g['enabled']])
+            ->map(fn (array $g) => [
+                'id' => $g['id'],
+                'title_key' => $g['title_key'],
+                'label_fa' => $g['label_fa'] ?? $g['id'],
+                'label_en' => $g['label_en'] ?? $g['id'],
+                'category' => $g['category'] ?? 'other',
+                'enabled' => $g['enabled'],
+            ])
             ->values();
         $platforms = collect(MarketplacePlatforms::CATALOG)
             ->filter(fn (array $p) => ($p['status'] ?? MarketplacePlatforms::LIVE) === MarketplacePlatforms::LIVE)

@@ -28,6 +28,7 @@ import { PageShell } from "@/components/PageShell"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { useGatewayLabel } from "@/lib/gateway-label"
 import { localizeNumber } from "@/lib/digits"
 import { statusBadgeVariant, useEnumLabel } from "@/lib/enum-labels"
 import { formatDisplayDateTime } from "@/lib/format-date"
@@ -172,6 +173,7 @@ type OrderAccountingPayload = {
 
 export default function OrderDetailPageClient({ route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("orders_admin")
+  const gatewayLabel = useGatewayLabel()
   const tAcc = useTranslations("accounting_portal")
   const tCommon = useTranslations("common")
   const locale = useLocale()
@@ -417,7 +419,7 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                     <Badge variant="outline">
                       {order.sales_channel === "basalam" || /basalam/i.test(String(order.payment_provider || ""))
                         ? marketplaceLabel("basalam", locale)
-                        : order.payment_provider || enumLabel("payment_tender", order.payment_tender)}
+                        : order.payment_provider ? gatewayLabel(order.payment_provider) : enumLabel("payment_tender", order.payment_tender)}
                     </Badge>
                   ) : null}
                 </div>
@@ -1038,7 +1040,7 @@ export default function OrderDetailPageClient({ route }: { route: ResolvedAdminR
                     <dd>
                       {order.sales_channel === "basalam" || /basalam/i.test(String(order.payment_provider || ""))
                         ? marketplaceLabel("basalam", locale)
-                        : order.payment_provider || tCommon("em_dash")}
+                        : order.payment_provider ? gatewayLabel(order.payment_provider) : tCommon("none")}
                     </dd>
                   </div>
                   <div>

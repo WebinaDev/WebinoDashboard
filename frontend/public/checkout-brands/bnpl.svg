@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Installment payment">
+  <rect width="96" height="96" rx="20" fill="#7C3AED"/>
+  <rect x="20" y="28" width="56" height="44" rx="8" fill="#fff"/>
+  <rect x="20" y="28" width="56" height="11" rx="5" fill="#C4B5FD"/>
+  <circle cx="34" cy="52" r="4" fill="#7C3AED"/><circle cx="48" cy="52" r="4" fill="#7C3AED"/><circle cx="62" cy="52" r="4" fill="#DDD6FE"/>
+  <circle cx="34" cy="63" r="4" fill="#DDD6FE"/>
+</svg>

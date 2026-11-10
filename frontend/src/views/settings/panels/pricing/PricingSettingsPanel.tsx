@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { cn } from "@/lib/utils"
+import { useGatewayLabel } from "@/lib/gateway-label"
 import { MarketplacePricingCard } from "@/views/settings/panels/marketplace/MarketplacePricingCard"
 import { selectClass } from "@/views/settings/panels/marketplace/MarketplaceShared"
 import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
@@ -211,7 +212,7 @@ function RoundingFields({ draft, set }: { draft: Section; set: (k: string, v: un
 
 function GatewayPicker({ value, onChange }: { value: unknown; onChange: (ids: string[]) => void }) {
   const t = useTranslations("pricing_settings")
-  const tPay = useTranslations("payments_hub")
+  const gatewayLabel = useGatewayLabel()
   const meta = usePricingMeta()
   const selected = Array.isArray(value) ? (value as string[]) : []
   const toggle = (id: string, on: boolean) =>
@@ -225,7 +226,7 @@ function GatewayPicker({ value, onChange }: { value: unknown; onChange: (ids: st
         {(meta.data?.gateways ?? []).map((g) => (
           <label key={g.id} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
             <Checkbox checked={selected.includes(g.id)} onCheckedChange={(v) => toggle(g.id, v === true)} />
-            <span>{tPay(g.title_key)}</span>
+            <span>{gatewayLabel(g.id)}</span>
             {!g.enabled ? <Badge variant="outline">{t("gateway_disabled")}</Badge> : null}
           </label>
         ))}
