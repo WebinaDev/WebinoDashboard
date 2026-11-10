@@ -10,6 +10,7 @@ use App\Models\AcademyQuiz;
 use App\Models\AcademyQuizQuestion;
 use App\Models\AcademyReview;
 use App\Models\DashboardModule;
+use App\Models\MediaAsset;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -74,7 +75,16 @@ class AcademyLmsFullTest extends TestCase
         ])
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.0.slug', 'spoken');
+            ->assertJsonPath('data.0.slug', 'spoken')
+            ->assertJsonPath('data.0.cover_url', null)
+            ->assertJsonPath('data.0.price_minor', 0)
+            ->assertJsonPath('data.0.sale_price_minor', null)
+            ->assertJsonPath('data.0.regular', true)
+            ->assertJsonPath('data.0.on_sale', false)
+            ->assertJsonPath('data.0.level', null)
+            ->assertJsonPath('data.0.level_label', null)
+            ->assertJsonPath('data.0.lessons_count', 0)
+            ->assertJsonPath('data.0.currency_display.currency', 'IRT');
     }
 
     public function test_admin_can_build_curriculum_with_quiz_and_assignment(): void
@@ -365,5 +375,185 @@ class AcademyLmsFullTest extends TestCase
 
         $this->assertSame(5.0, (float) $course->fresh()->rating_avg);
         $this->assertSame(1, (int) $course->fresh()->rating_count);
+    }
+
+    public function test_list_rows_include_absolute_cover_price_level_and_currency(): void
+    {
+        $tid = $this->admin->tenant_id;
+        $media = MediaAsset::query()->create([
+            'tenant_id' => $tid,
+            'path' => 'academy/covers/spoken.jpg',
+            'disk' => 'local',
+            'mime' => 'image/jpeg',
+        ]);
+        $product = Product::query()->create([
+            'tenant_id' => $tid,
+            'name' => 'آیلتس محصول',
+            'slug' => 'ielts-product',
+            'status' => 'publish',
+            'price_minor' => 2000000,
+            'sale_price_minor' => 1500000,
+            'cover_image_url' => '/storage/products/ielts-fallback.jpg',
+            'stock' => 10,
+            'manage_stock' => false,
+        ]);
+
+        $withMedia = AcademyCourse::query()->create([
+            'tenant_id' => $tid,
+            'slug' => 'spoken-media',
+            'title' => 'مکالمه با کاور',
+            'published' => true,
+            'sort_order' => 1,
+            'is_free' => true,
+            'cover_url' => (string) $media->id,
+            'level' => 'beginner',
+            'duration_minutes' => 90,
+            'students_count' => 7,
+        ]);
+        AcademyLesson::query()->create([
+            'course_id' => $withMedia->id, 'slug' => 'one', 'title' => '۱',
+            'type' => 'text', 'published' => true, 'sort_order' => 1,
+        ]);
+        AcademyLesson::query()->create([
+            'course_id' => $withMedia->id, 'slug' => 'two', 'title' => '۲',
+            'type' => 'text', 'published' => true, 'sort_order' => 2,
+        ]);
+        AcademyLesson::query()->create([
+            'course_id' => $withMedia->id, 'slug' => 'draft', 'title' => 'پیش‌نویس',
+            'type' => 'text', 'published' => false, 'sort_order' => 3,
+        ]);
+
+        AcademyCourse::query()->create([
+            'tenant_id' => $tid,
+            'slug' => 'ielts-paid',
+            'title' => 'آیلتس',
+            'published' => true,
+            'sort_order' => 2,
+            'is_free' => false,
+            'cover_url' => 'academy/covers/ielts.jpg',
+            'level' => 'advanced',
+            'product_id' => $product->id,
+            // price comes from the linked product
+        ]);
+
+        AcademyCourse::query()->create([
+            'tenant_id' => $tid,
+            'slug' => 'cdn-cover',
+            'title' => 'کاور مطلق',
+            'published' => true,
+            'sort_order' => 3,
+            'is_free' => false,
+            'price_minor' => 800000,
+            'cover_url' => 'https://cdn.example.com/courses/toefl.jpg',
+            'level' => 'متوسط',
+        ]);
+
+        $public = $this->getJson('/api/v1/public/academy?per_page=12', [
+            'X-Tenant-Domain' => 'acad-lms.test',
+        ])->assertOk();
+        $rows = collect($public->json('data'));
+        $this->assertCount(3, $rows);
+
+        $spoken = $rows->firstWhere('slug', 'spoken-media');
+        $this->assertSame('https://acad-lms.test/storage/academy/covers/spoken.jpg', $spoken['cover_url']);
+        $this->assertSame(0, $spoken['price_minor']);
+        $this->assertNull($spoken['sale_price_minor']);
+        $this->assertTrue($spoken['regular']);
+        $this->assertFalse($spoken['on_sale']);
+        $this->assertSame('beginner', $spoken['level']);
+        $this->assertSame('مقدماتی', $spoken['level_label']);
+        $this->assertSame(90, $spoken['duration_minutes']);
+        $this->assertSame(7, $spoken['students_count']);
+        $this->assertSame(2, $spoken['lessons_count']);
+        $this->assertSame('IRT', $spoken['currency_display']['currency']);
+        $this->assertSame('rial-1', $spoken['currency_display']['currency_symbol']);
+        $this->assertArrayHasKey('thousand_separator', $spoken['currency_display']);
+
+        $ielts = $rows->firstWhere('slug', 'ielts-paid');
+        $this->assertSame('https://acad-lms.test/storage/academy/covers/ielts.jpg', $ielts['cover_url']);
+        $this->assertSame(2000000, $ielts['price_minor']);
+        $this->assertSame(1500000, $ielts['sale_price_minor']);
+        $this->assertFalse($ielts['regular']);
+        $this->assertTrue($ielts['on_sale']);
+        $this->assertSame('advanced', $ielts['level']);
+        $this->assertSame('پیشرفته', $ielts['level_label']);
+
+        $cdn = $rows->firstWhere('slug', 'cdn-cover');
+        $this->assertSame('https://cdn.example.com/courses/toefl.jpg', $cdn['cover_url']);
+        $this->assertSame(800000, $cdn['price_minor']);
+        $this->assertNull($cdn['sale_price_minor']);
+        $this->assertTrue($cdn['regular']);
+        $this->assertFalse($cdn['on_sale']);
+        $this->assertSame('متوسط', $cdn['level']);
+        $this->assertSame('متوسط', $cdn['level_label']);
+
+        $admin = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/v1/academy/courses')
+            ->assertOk();
+        $adminRows = collect($admin->json('data'));
+        if ($adminRows->isEmpty() || ! isset($adminRows[0]['slug'])) {
+            $adminRows = collect($admin->json('data.data'));
+        }
+        $adminSpoken = $adminRows->firstWhere('slug', 'spoken-media');
+        $this->assertNotNull($adminSpoken);
+        $this->assertSame('https://acad-lms.test/storage/academy/covers/spoken.jpg', $adminSpoken['cover_url']);
+        $this->assertSame('مقدماتی', $adminSpoken['level_label']);
+        $this->assertSame(3, $adminSpoken['lessons_count']);
+        $this->assertTrue($adminSpoken['regular']);
+        $this->assertArrayHasKey('currency_display', $adminSpoken);
+        $adminIelts = $adminRows->firstWhere('slug', 'ielts-paid');
+        $this->assertTrue($adminIelts['on_sale']);
+        $this->assertSame(1500000, $adminIelts['sale_price_minor']);
+
+        app(AcademyEnrollmentService::class)->enrollFree($withMedia, $this->student);
+        $mine = $this->actingAs($this->student, 'sanctum')
+            ->getJson('/api/v1/account/academy/my-courses')
+            ->assertOk();
+        $enrollments = collect($mine->json('data'));
+        if ($enrollments->isEmpty() || ! isset($enrollments[0]['course'])) {
+            $enrollments = collect($mine->json('data.data'));
+        }
+        $course = $enrollments->pluck('course')->first();
+        $this->assertIsArray($course);
+        $this->assertSame('spoken-media', $course['slug']);
+        $this->assertSame('https://acad-lms.test/storage/academy/covers/spoken.jpg', $course['cover_url']);
+        $this->assertSame('beginner', $course['level']);
+        $this->assertSame('مقدماتی', $course['level_label']);
+        $this->assertSame(3, $course['lessons_count']);
+        $this->assertArrayHasKey('currency_display', $course);
+    }
+
+    public function test_list_cover_stays_null_when_missing_and_product_fallback_fills_it(): void
+    {
+        $tid = $this->admin->tenant_id;
+        $product = Product::query()->create([
+            'tenant_id' => $tid,
+            'name' => 'با کاور محصول',
+            'slug' => 'with-product-cover',
+            'status' => 'publish',
+            'price_minor' => 500000,
+            'cover_image_url' => 'products/course-cover.jpg',
+            'stock' => 1,
+            'manage_stock' => false,
+        ]);
+        AcademyCourse::query()->create([
+            'tenant_id' => $tid,
+            'slug' => 'from-product',
+            'title' => 'از محصول',
+            'published' => true,
+            'is_free' => false,
+            'product_id' => $product->id,
+        ]);
+
+        $row = $this->getJson('/api/v1/public/academy', [
+            'X-Tenant-Domain' => 'acad-lms.test',
+        ])->assertOk()->json('data.0');
+
+        $this->assertSame('https://acad-lms.test/storage/products/course-cover.jpg', $row['cover_url']);
+        $this->assertSame(500000, $row['price_minor']);
+        $this->assertFalse($row['on_sale']);
+        $this->assertTrue($row['regular']);
+        $this->assertNull($row['level']);
+        $this->assertNull($row['level_label']);
     }
 }

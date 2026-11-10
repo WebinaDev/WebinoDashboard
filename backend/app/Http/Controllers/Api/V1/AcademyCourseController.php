@@ -9,21 +9,25 @@ use App\Models\AcademyLesson;
 use App\Models\AcademyQuiz;
 use App\Models\AcademyQuizQuestion;
 use App\Models\AcademySection;
+use App\Services\Academy\AcademyCoursePresenter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AcademyCourseController extends Controller
 {
-    public function index(Request $request): \Illuminate\Http\JsonResponse
+    public function index(Request $request, AcademyCoursePresenter $presenter): JsonResponse
     {
         $rows = AcademyCourse::query()->where('tenant_id', $request->user()->tenant_id)
+            ->with(['product'])
             ->withCount(['lessons', 'enrollments', 'sections'])->orderBy('sort_order')->paginate(20);
+        $rows->setCollection($rows->getCollection()->map(fn (AcademyCourse $c) => $presenter->enrich($c)));
 
         return response()->json($rows);
     }
 
-    public function store(Request $request): \Illuminate\Http\JsonResponse
+    public function store(Request $request): JsonResponse
     {
         $data = $this->validatedCourse($request);
         $row = AcademyCourse::query()->create([
@@ -35,7 +39,7 @@ class AcademyCourseController extends Controller
         return response()->json(['data' => $row], 201);
     }
 
-    public function show(Request $request, int $course): \Illuminate\Http\JsonResponse
+    public function show(Request $request, int $course): JsonResponse
     {
         $row = AcademyCourse::query()->where('tenant_id', $request->user()->tenant_id)
             ->with(['sections.lessons.quiz.questions', 'sections.lessons.assignment', 'lessons.quiz.questions', 'lessons.assignment'])
@@ -44,7 +48,7 @@ class AcademyCourseController extends Controller
         return response()->json(['data' => $row]);
     }
 
-    public function update(Request $request, int $course): \Illuminate\Http\JsonResponse
+    public function update(Request $request, int $course): JsonResponse
     {
         $row = $this->course($request, $course);
         $row->update($this->validatedCourse($request, false));
@@ -52,14 +56,14 @@ class AcademyCourseController extends Controller
         return response()->json(['data' => $row->fresh(['sections', 'lessons'])]);
     }
 
-    public function destroy(Request $request, int $course): \Illuminate\Http\JsonResponse
+    public function destroy(Request $request, int $course): JsonResponse
     {
         AcademyCourse::query()->where('tenant_id', $request->user()->tenant_id)->where('id', $course)->delete();
 
         return response()->json(null, 204);
     }
 
-    public function storeSection(Request $request, int $course): \Illuminate\Http\JsonResponse
+    public function storeSection(Request $request, int $course): JsonResponse
     {
         $parent = $this->course($request, $course);
         $data = $request->validate(['title' => 'required|string|max:255', 'description' => 'nullable|string', 'sort_order' => 'integer']);
@@ -67,7 +71,7 @@ class AcademyCourseController extends Controller
         return response()->json(['data' => $parent->sections()->create($data)], 201);
     }
 
-    public function updateSection(Request $request, int $course, int $section): \Illuminate\Http\JsonResponse
+    public function updateSection(Request $request, int $course, int $section): JsonResponse
     {
         $parent = $this->course($request, $course);
         $row = AcademySection::query()->where('course_id', $parent->id)->findOrFail($section);
@@ -76,7 +80,7 @@ class AcademyCourseController extends Controller
         return response()->json(['data' => $row]);
     }
 
-    public function destroySection(Request $request, int $course, int $section): \Illuminate\Http\JsonResponse
+    public function destroySection(Request $request, int $course, int $section): JsonResponse
     {
         $parent = $this->course($request, $course);
         AcademySection::query()->where('course_id', $parent->id)->where('id', $section)->delete();
@@ -84,7 +88,7 @@ class AcademyCourseController extends Controller
         return response()->json(null, 204);
     }
 
-    public function storeLesson(Request $request, int $course): \Illuminate\Http\JsonResponse
+    public function storeLesson(Request $request, int $course): JsonResponse
     {
         $parent = $this->course($request, $course);
         $data = $this->validatedLesson($request);
@@ -94,7 +98,7 @@ class AcademyCourseController extends Controller
         return response()->json(['data' => $lesson->fresh(['quiz.questions', 'assignment'])], 201);
     }
 
-    public function updateLesson(Request $request, int $course, int $lesson): \Illuminate\Http\JsonResponse
+    public function updateLesson(Request $request, int $course, int $lesson): JsonResponse
     {
         $parent = $this->course($request, $course);
         $row = AcademyLesson::query()->where('course_id', $parent->id)->findOrFail($lesson);
@@ -104,7 +108,7 @@ class AcademyCourseController extends Controller
         return response()->json(['data' => $row->fresh(['quiz.questions', 'assignment'])]);
     }
 
-    public function destroyLesson(Request $request, int $course, int $lesson): \Illuminate\Http\JsonResponse
+    public function destroyLesson(Request $request, int $course, int $lesson): JsonResponse
     {
         $parent = $this->course($request, $course);
         AcademyLesson::query()->where('course_id', $parent->id)->where('id', $lesson)->delete();
@@ -112,7 +116,7 @@ class AcademyCourseController extends Controller
         return response()->json(null, 204);
     }
 
-    public function uploadLessonFile(Request $request, int $course, int $lesson): \Illuminate\Http\JsonResponse
+    public function uploadLessonFile(Request $request, int $course, int $lesson): JsonResponse
     {
         $parent = $this->course($request, $course);
         $row = AcademyLesson::query()->where('course_id', $parent->id)->findOrFail($lesson);

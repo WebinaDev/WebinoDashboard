@@ -37,3 +37,22 @@ Set `academy_courses.product_id` to a shop product (or order item meta `academy_
 
 ## Reuse existing modules
 Coupons/wallet/SMS OTP/tickets/protected product downloads stay on existing shop/support endpoints; tickets can carry course context in form_values/tags.
+
+## Course list / index rows
+
+`GET /public/academy`, `GET /academy/courses`, and `GET /account/academy/my-courses` (nested `course`) share the same card fields. Existing keys are unchanged; new keys are additive and null-safe.
+
+| Field | Notes |
+|---|---|
+| `cover_url` | Absolute URL. Resolves a stored http(s) URL, `/storage` or public-disk path, or a media asset id. Falls back to the linked product cover/image. `null` when none of these exist (never an empty string). |
+| `price_minor` | Regular price in minor units. From the course, or the linked product when the course price is empty. `0` for free courses with no price. |
+| `sale_price_minor` | Sale price in minor units when the linked product is currently on sale; otherwise `null`. |
+| `regular` / `on_sale` | Booleans. `on_sale` is true only when `sale_price_minor` applies; otherwise `regular` is true. |
+| `currency_display` | Same object as the public catalog / builder money helper: `currency`, `currency_position`, `thousand_separator`, `decimal_separator`, `price_decimals`, `currency_symbol`. |
+| `level` | Stored level string, or `null`. |
+| `level_label` | Persian label for known levels (`beginner` → `مقدماتی`, `intermediate` → `متوسط`, `advanced` → `پیشرفته`). Passes through already-Persian or unknown values. `null` when `level` is empty. |
+| `duration_minutes` | Stored duration, or `null`. |
+| `lessons_count` | Count of lessons (published only on public list/detail). |
+| `students_count` | Enrollment counter already stored on the course. |
+
+Public list `data` remains an array of cards with the same `meta` pagination object.

@@ -9,21 +9,27 @@ use App\Models\AcademyLesson;
 use App\Models\AcademyReview;
 use App\Services\Academy\AcademyAccessService;
 use App\Services\Academy\AcademyCertificateService;
+use App\Services\Academy\AcademyCoursePresenter;
 use App\Services\Academy\AcademyEnrollmentService;
 use App\Services\Academy\AcademyReviewService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
 
 class PublicAcademyController extends Controller
 {
     use ResolvesPublicTenant;
 
-    public function index(Request $request): \Illuminate\Http\JsonResponse
+    public function index(Request $request, AcademyCoursePresenter $presenter): JsonResponse
     {
         $tid = $this->publicTenantId($request);
         $perPage = max(1, min(48, (int) $request->query('per_page', 12)));
-        $paginator = AcademyCourse::query()->where('tenant_id', $tid)->published()->orderBy('sort_order')->paginate($perPage);
-        $items = collect($paginator->items())->map(fn (AcademyCourse $c) => $this->courseCard($c))->values();
+        $paginator = AcademyCourse::query()->where('tenant_id', $tid)->published()
+            ->with(['product:id,price_minor,sale_price_minor,sale_starts_at,sale_ends_at,cover_image_url,image_url'])
+            ->withCount(['lessons as lessons_count' => fn ($q) => $q->where('published', true)])
+            ->orderBy('sort_order')->paginate($perPage);
+        $items = collect($paginator->items())->map(fn (AcademyCourse $c) => $presenter->card($c, true))->values();
 
         return response()->json([
             'data' => $items,
@@ -36,11 +42,11 @@ class PublicAcademyController extends Controller
         ]);
     }
 
-    public function show(Request $request, string $slug, AcademyAccessService $access, AcademyEnrollmentService $enrollments): \Illuminate\Http\JsonResponse
+    public function show(Request $request, string $slug, AcademyAccessService $access, AcademyEnrollmentService $enrollments, AcademyCoursePresenter $presenter): JsonResponse
     {
         $tid = $this->publicTenantId($request);
         $course = AcademyCourse::query()->where('tenant_id', $tid)->where('slug', $slug)->published()
-            ->with(['sections', 'lessons' => fn ($q) => $q->where('published', true)->orderBy('sort_order'), 'lessons.quiz', 'lessons.assignment'])
+            ->with(['product', 'sections', 'lessons' => fn ($q) => $q->where('published', true)->orderBy('sort_order'), 'lessons.quiz', 'lessons.assignment'])
             ->first();
         if (! $course) {
             return response()->json(['message' => 'academy.course_not_found'], 404);
@@ -65,7 +71,7 @@ class PublicAcademyController extends Controller
         $reviews = AcademyReview::query()->where('course_id', $course->id)->where('status', AcademyReview::STATUS_APPROVED)
             ->orderByDesc('id')->limit(20)->get(['id', 'rating', 'body', 'author_name', 'created_at']);
 
-        return response()->json(['data' => array_merge($this->courseCard($course), [
+        return response()->json(['data' => array_merge($presenter->card($course, true), [
             'description' => $course->description,
             'instructor' => [
                 'name' => $course->instructor_name,
@@ -89,7 +95,7 @@ class PublicAcademyController extends Controller
         ])]);
     }
 
-    public function enrollFree(Request $request, string $slug, AcademyEnrollmentService $enrollments): \Illuminate\Http\JsonResponse
+    public function enrollFree(Request $request, string $slug, AcademyEnrollmentService $enrollments): JsonResponse
     {
         $user = $request->user('sanctum');
         if (! $user) {
@@ -100,7 +106,7 @@ class PublicAcademyController extends Controller
         return response()->json(['data' => $enrollments->enrollFree($course, $user)], 201);
     }
 
-    public function storeReview(Request $request, string $slug, AcademyReviewService $reviews): \Illuminate\Http\JsonResponse
+    public function storeReview(Request $request, string $slug, AcademyReviewService $reviews): JsonResponse
     {
         $course = AcademyCourse::query()->where('tenant_id', $this->publicTenantId($request))->where('slug', $slug)->published()->firstOrFail();
         $data = $request->validate([
@@ -112,7 +118,7 @@ class PublicAcademyController extends Controller
         return response()->json(['data' => $reviews->submit($course, $request->user('sanctum'), (int) $data['rating'], $data['body'] ?? null, $data['author_name'] ?? null)], 201);
     }
 
-    public function verifyCertificate(Request $request, string $serial, AcademyCertificateService $certs): \Illuminate\Http\JsonResponse
+    public function verifyCertificate(Request $request, string $serial, AcademyCertificateService $certs): JsonResponse
     {
         $cert = $certs->verifyBySerial($serial, $this->publicTenantId($request));
         if (! $cert) {
@@ -128,7 +134,7 @@ class PublicAcademyController extends Controller
         ]]);
     }
 
-    public function downloadCertificate(Request $request, string $serial, AcademyCertificateService $certs): \Symfony\Component\HttpFoundation\Response
+    public function downloadCertificate(Request $request, string $serial, AcademyCertificateService $certs): Response
     {
         $cert = $certs->verifyBySerial($serial, $this->publicTenantId($request));
         if (! $cert || ! $cert->pdf_path) {
@@ -141,16 +147,5 @@ class PublicAcademyController extends Controller
         $ext = str_ends_with((string) $cert->pdf_path, '.html') ? 'html' : 'pdf';
 
         return Storage::disk('public')->download($cert->pdf_path, $cert->serial.'.'.$ext);
-    }
-
-    private function courseCard(AcademyCourse $c): array
-    {
-        return [
-            'id' => $c->id, 'slug' => $c->slug, 'title' => $c->title, 'description' => $c->description,
-            'cover_url' => $c->cover_url, 'published' => (bool) $c->published, 'sort_order' => $c->sort_order,
-            'is_free' => (bool) $c->is_free, 'price_minor' => $c->price_minor, 'level' => $c->level,
-            'product_id' => $c->product_id, 'rating_avg' => $c->rating_avg, 'rating_count' => (int) $c->rating_count,
-            'students_count' => (int) $c->students_count, 'duration_minutes' => $c->duration_minutes,
-        ];
     }
 }
