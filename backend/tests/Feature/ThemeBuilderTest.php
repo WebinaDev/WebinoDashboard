@@ -141,7 +141,7 @@ class ThemeBuilderTest extends TestCase
             ],
         ])->assertOk()
             ->assertJsonPath('data.settings.colors.primary', '#112233')
-            ->assertJsonPath('data.settings.colors.secondary', '#0C2D63')
+            ->assertJsonPath('data.settings.colors.secondary', '#021959')
             ->assertJsonPath('data.has_published', false);
 
         $this->getJson('/api/v1/public/builder/globals', $host)->assertNotFound();
@@ -161,4 +161,129 @@ class ThemeBuilderTest extends TestCase
         $this->getJson('/api/v1/public/builder/globals', $host)
             ->assertJsonPath('data.settings.colors.primary', '#112233');
     }
+
+    public function test_empty_globals_use_catalog_not_blush(): void
+    {
+        $tenant = $this->createTenant(['domain' => 'localhost', 'slug' => 'globals-catalog']);
+        $this->enableSubmodule($tenant->id, 'cms', 'pages');
+        $admin = \App\Models\User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+
+        $this->getJson('/api/v1/builder/globals')
+            ->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#e775ae')
+            ->assertJsonPath('data.settings.colors.accent', '#dc5f9d')
+            ->assertJsonPath('data.settings.colors.secondary', '#021959');
+        $this->assertNotEquals('#e16ba6', strtolower((string) $this->getJson('/api/v1/builder/globals')->json('data.settings.colors.primary')));
+    }
+
+    public function test_empty_and_seed_globals_derive_from_tenant_brand(): void
+    {
+        $tenant = $this->createTenant([
+            'domain' => 'localhost',
+            'slug' => 'globals-brand',
+            'branding' => ['palette' => [
+                'primary' => '#1B6BC4',
+                'secondary' => '#0D3D7A',
+                'accent' => '#5BA8E8',
+                'bg' => '#EEF4FB',
+                'surface' => '#FFFFFF',
+                'text' => '#0D2B4A',
+                'muted' => '#5A7390',
+                'border' => '#D7E6F7',
+            ]],
+        ]);
+        $this->enableSubmodule($tenant->id, 'cms', 'pages');
+        $admin = \App\Models\User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'admin']);
+        $this->actingAs($admin, 'sanctum');
+
+        $this->getJson('/api/v1/builder/globals')
+            ->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#1b6bc4')
+            ->assertJsonPath('data.settings.colors.accent', '#5ba8e8')
+            ->assertJsonPath('data.settings.colors.background', '#eef4fb')
+            ->assertJsonPath('data.settings.forms.focusColor', '#5ba8e8');
+
+        $seed = [
+            'primary' => '#E16BA6',
+            'secondary' => '#0C2D63',
+            'text' => '#0C2D63',
+            'accent' => '#e16ba6',
+            'background' => '#F5F8FB',
+            'surface' => '#FFFFFF',
+            'border' => '#E6EEF6',
+            'muted' => '#5C6B82',
+        ];
+        $this->putJson('/api/v1/builder/globals', ['settings' => ['colors' => $seed]])
+            ->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#1b6bc4')
+            ->assertJsonPath('data.settings.colors.secondary', '#0d3d7a');
+
+        $this->putJson('/api/v1/builder/globals', ['settings' => [
+            'colors' => ['primary' => '#112233', 'accent' => '#445566'],
+        ]])->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#112233')
+            ->assertJsonPath('data.settings.colors.accent', '#445566')
+            ->assertJsonPath('data.settings.colors.secondary', '#021959');
+    }
+
+    public function test_public_globals_derive_seed_without_writing(): void
+    {
+        $tenant = $this->createTenant([
+            'domain' => 'localhost',
+            'slug' => 'globals-public-seed',
+            'branding' => ['palette' => [
+                'primary' => '#7A9B76',
+                'secondary' => '#B45A3C',
+                'accent' => '#C9A66B',
+                'bg' => '#2A1A14',
+                'surface' => '#3A241C',
+                'text' => '#FFF8F0',
+                'muted' => '#E2C7B0',
+                'border' => '#5A3D30',
+            ]],
+        ]);
+        $this->enableSubmodule($tenant->id, 'cms', 'pages');
+        $published = ['customCode' => [], 'colors' => []];
+        \App\Models\BuilderGlobal::query()->create([
+            'tenant_id' => $tenant->id,
+            'draft' => $published,
+            'published' => $published,
+        ]);
+
+        $this->getJson('/api/v1/public/builder/globals', ['HTTP_HOST' => 'localhost'])
+            ->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#7a9b76')
+            ->assertJsonPath('data.settings.colors.accent', '#c9a66b');
+
+        $row = \App\Models\BuilderGlobal::query()->where('tenant_id', $tenant->id)->first();
+        $this->assertSame([], $row?->published['colors'] ?? null);
+        $this->assertSame([], $row?->draft['colors'] ?? null);
+    }
+
+    public function test_appearance_fills_globals_when_palette_is_empty(): void
+    {
+        $tenant = $this->createTenant(['domain' => 'localhost', 'slug' => 'globals-appearance']);
+        $this->enableSubmodule($tenant->id, 'cms', 'pages');
+        $admin = \App\Models\User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'admin']);
+        app(\App\Services\Shop\StorefrontAppearanceService::class)->save($tenant->id, [
+            'primary_color' => '#1A8AAA',
+            'accent_color' => '#2BB0C7',
+            'secondary_color' => '#0B1F33',
+        ]);
+        // save() may sync branding palette; clear it to force the appearance path.
+        $tenant->refresh();
+        $branding = is_array($tenant->branding) ? $tenant->branding : [];
+        $branding['palette'] = [];
+        $tenant->branding = $branding;
+        $tenant->save();
+
+        $this->actingAs($admin, 'sanctum');
+        $this->getJson('/api/v1/builder/globals')
+            ->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#1a8aaa')
+            ->assertJsonPath('data.settings.colors.accent', '#2bb0c7')
+            ->assertJsonPath('data.settings.colors.secondary', '#0b1f33');
+    }
 }
+

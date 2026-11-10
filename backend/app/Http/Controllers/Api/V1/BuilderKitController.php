@@ -63,7 +63,7 @@ class BuilderKitController extends Controller
 
         DB::transaction(function () use ($kit, $parts, $tid, $request, &$counts) {
             if (in_array('globals', $parts, true) && is_array($kit['globals'] ?? null)) {
-                BuilderGlobal::query()->updateOrCreate(['tenant_id' => $tid], ['draft' => app(BuilderGlobalsNormalizer::class)->normalize($kit['globals'])]);
+                BuilderGlobal::query()->updateOrCreate(['tenant_id' => $tid], ['draft' => app(BuilderGlobalsNormalizer::class)->normalizeForTenant($kit['globals'], $tid)]);
                 $counts['globals'] = 1;
             }
             if (in_array('templates', $parts, true)) {

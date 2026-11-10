@@ -2,7 +2,7 @@ import { cache, Suspense, type ReactNode } from "react"
 
 import { apiServer, apiServerStrict } from "@/lib/api-server"
 import { hoistDataUrls } from "@/lib/inline-media"
-import { applyBrandFonts, asGlobals, type BuilderGlobals } from "./globals"
+import { applyBrandColors, applyBrandFonts, asGlobals, type BuilderGlobals } from "./globals"
 import { DocumentView } from "./render/DocumentView"
 import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
@@ -49,7 +49,14 @@ export function loadPublishedTemplate(kind: "header" | "footer"): Promise<Builde
 }
 
 type PublicTenantBrand = {
-  branding?: { font?: string | null; font_body?: string | null; font_heading?: string | null; font_ui?: string | null } | null
+  branding?: {
+    font?: string | null
+    font_body?: string | null
+    font_heading?: string | null
+    font_ui?: string | null
+    palette?: Record<string, string | null | undefined> | null
+    appearance?: Record<string, string | boolean | null | undefined> | null
+  } | null
 }
 
 const loadPublicTenantBrand = cache(async (): Promise<PublicTenantBrand | null> => {
@@ -63,7 +70,8 @@ export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | nul
     loadPublicTenantBrand(),
   ])
   // Typography follows the font chosen in the dashboard settings, not a separate builder-only pick.
-  return res?.data?.settings ? applyBrandFonts(asGlobals(hoistDataUrls(res.data.settings)), tenant?.branding) : null
+  const settings = res?.data?.settings ? hoistDataUrls(res.data.settings) : null
+  return settings ? applyBrandFonts(applyBrandColors(asGlobals(settings), tenant?.branding, settings), tenant?.branding) : null
 })
 
 export const loadResolvedTemplate = cache(async (kind: string, query: ThemeQuery): Promise<BuilderDocument | null> => {

@@ -15,13 +15,15 @@ class BuilderGlobalsController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        $row = BuilderGlobal::query()->where('tenant_id', $request->user()->tenant_id)->first();
+        $tid = (int) $request->user()->tenant_id;
+        $row = BuilderGlobal::query()->where('tenant_id', $tid)->first();
         $normalizer = app(BuilderGlobalsNormalizer::class);
+        $source = is_array($row?->draft) ? $row->draft : (is_array($row?->published) ? $row->published : []);
 
         return response()->json(['data' => [
             'has_draft' => is_array($row?->draft),
             'has_published' => is_array($row?->published),
-            'settings' => $normalizer->normalize(is_array($row?->draft) ? $row->draft : (is_array($row?->published) ? $row->published : [])),
+            'settings' => $normalizer->normalizeForTenant($source, $tid),
         ]]);
     }
 
@@ -29,7 +31,7 @@ class BuilderGlobalsController extends Controller
     {
         \App\Services\Builder\BuilderAccess::authorize($request, 'design');
         $data = $request->validate(['settings' => 'required|array']);
-        $settings = app(BuilderGlobalsNormalizer::class)->normalize($data['settings']);
+        $settings = app(BuilderGlobalsNormalizer::class)->normalizeForTenant($data['settings'], (int) $request->user()->tenant_id);
         $json = json_encode($settings);
         abort_if($json === false || strlen($json) > 2000000, 422, 'settings too large');
         $row = BuilderGlobal::query()->updateOrCreate(
@@ -61,11 +63,12 @@ class BuilderGlobalsController extends Controller
 
     public function publicShow(Request $request): JsonResponse
     {
-        $row = BuilderGlobal::query()->where('tenant_id', $this->publicTenantId($request))->first();
+        $tid = $this->publicTenantId($request);
+        $row = BuilderGlobal::query()->where('tenant_id', $tid)->first();
         abort_unless($row && is_array($row->published), 404);
 
         return response()->json(['data' => [
-            'settings' => $row->published,
+            'settings' => app(BuilderGlobalsNormalizer::class)->normalizeForTenant($row->published, $tid),
         ]]);
     }
 }

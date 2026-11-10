@@ -14,25 +14,16 @@ class BuilderGlobalsNormalizer
             'color' => $color,
         ]);
 
+        $c = $this->catalogColors();
+        $hoverPrimary = $this->shade($c['primary'], 0.12);
+        $hoverSecondary = $this->shade($c['secondary'], 0.12);
+
         return [
-            'colors' => [
-                'primary' => '#E16BA6',
-                'secondary' => '#0C2D63',
-                'text' => '#0C2D63',
-                'accent' => '#E16BA6',
-                'background' => '#F5F8FB',
-                'surface' => '#FFFFFF',
-                'border' => '#E6EEF6',
-                'muted' => '#5C6B82',
+            'colors' => array_merge($c, [
                 'success' => '#1F8A70',
                 'danger' => '#C2414A',
-            ],
-            'palette' => [
-                ['id' => 'blush', 'name' => 'سرخابی', 'value' => '#E16BA6'],
-                ['id' => 'navy', 'name' => 'سرمه‌ای', 'value' => '#0C2D63'],
-                ['id' => 'mist', 'name' => 'مه', 'value' => '#F5F8FB'],
-                ['id' => 'ink', 'name' => 'مرکب', 'value' => '#101820'],
-            ],
+            ]),
+            'palette' => $this->catalogPalette($c),
             'fonts' => [
                 'body' => 'Yekan Bakh, Vazirmatn, Tahoma, sans-serif',
                 'heading' => 'Yekan Bakh, Vazirmatn, Tahoma, sans-serif',
@@ -47,7 +38,7 @@ class BuilderGlobalsNormalizer
                 'h6' => $type('1rem', '600', '1.45'),
                 'body' => $type('0.95rem', '400', '1.75'),
                 'small' => $type('0.8rem', '400', '1.5'),
-                'link' => $type('0.95rem', '600', '1.5', '#E16BA6'),
+                'link' => $type('0.95rem', '600', '1.5', $c['accent']),
             ],
             'buttons' => [
                 'radius' => '999px',
@@ -56,10 +47,10 @@ class BuilderGlobalsNormalizer
                 'fontSize' => '0.875rem',
                 'fontWeight' => '600',
                 'variants' => [
-                    'primary' => $this->variant('#E16BA6', '#FFFFFF', '#d45b98', '#FFFFFF'),
-                    'secondary' => $this->variant('#0C2D63', '#FFFFFF', '#16386f', '#FFFFFF'),
-                    'outline' => $this->variant('transparent', '#0C2D63', '#F5F8FB', '#0C2D63', '#E6EEF6'),
-                    'ghost' => $this->variant('transparent', '#0C2D63', '#F5F8FB', '#E16BA6', 'transparent'),
+                    'primary' => $this->variant($c['primary'], '#FFFFFF', $hoverPrimary, '#FFFFFF'),
+                    'secondary' => $this->variant($c['secondary'], '#FFFFFF', $hoverSecondary, '#FFFFFF'),
+                    'outline' => $this->variant('transparent', $c['secondary'], $c['background'], $c['secondary'], $c['border']),
+                    'ghost' => $this->variant('transparent', $c['secondary'], $c['background'], $c['accent'], 'transparent'),
                 ],
             ],
             'images' => [
@@ -70,10 +61,10 @@ class BuilderGlobalsNormalizer
             ],
             'forms' => [
                 'radius' => '12px',
-                'labelColor' => '#0C2D63',
-                'fieldBackground' => '#FFFFFF',
-                'borderColor' => '#E6EEF6',
-                'focusColor' => '#E16BA6',
+                'labelColor' => $c['text'],
+                'fieldBackground' => $c['surface'],
+                'borderColor' => $c['border'],
+                'focusColor' => $c['accent'],
                 'errorColor' => '#C2414A',
                 'padding' => '0.65rem 0.75rem',
             ],
@@ -81,7 +72,7 @@ class BuilderGlobalsNormalizer
                 'containerWidth' => '72rem',
                 'sectionGap' => '1.5rem',
                 'columnGap' => '1rem',
-                'background' => '#F5F8FB',
+                'background' => $c['background'],
                 'contentPadding' => '1rem',
             ],
             'lightbox' => [
@@ -101,13 +92,39 @@ class BuilderGlobalsNormalizer
         ];
     }
 
+
     /**
+     * Apply tenant brand / appearance when the request is scoped to a site.
+     *
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    public function normalize(array $input): array
+    public function normalizeForTenant(array $input, int $tenantId): array
     {
-        $base = $this->defaults();
+        $tenant = \App\Models\Tenant::query()->find($tenantId);
+        $branding = is_array($tenant?->branding) ? $tenant->branding : [];
+        $palette = is_array($branding['palette'] ?? null) ? $branding['palette'] : [];
+        $appearance = [];
+        try {
+            $appearance = app(\App\Services\Shop\StorefrontAppearanceService::class)->publicPayload($tenantId);
+        } catch (\Throwable) {
+            $appearance = [];
+        }
+
+        return $this->normalize($input, $palette, $appearance);
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>|null  $brandPalette
+     * @param  array<string, mixed>|null  $appearance
+     * @return array<string, mixed>
+     */
+    public function normalize(array $input, ?array $brandPalette = null, ?array $appearance = null): array
+    {
+        $stock = $this->defaults();
+        $base = $stock;
+        $catalog = $this->catalogColors();
         $colors = is_array($input['colors'] ?? null) ? $input['colors'] : [];
         foreach ($base['colors'] as $key => $fallback) {
             $base['colors'][$key] = $this->color($colors[$key] ?? null, $fallback);
@@ -122,7 +139,7 @@ class BuilderGlobalsNormalizer
                 $palette[] = [
                     'id' => $this->token($swatch['id'] ?? ('swatch-'.($index + 1)), 'swatch-'.($index + 1)),
                     'name' => mb_substr(trim((string) ($swatch['name'] ?? 'رنگ')), 0, 40) ?: 'رنگ',
-                    'value' => $this->color($swatch['value'] ?? null, '#E16BA6'),
+                    'value' => $this->color($swatch['value'] ?? null, $catalog['primary']),
                 ];
             }
             if ($palette !== []) {
@@ -144,7 +161,7 @@ class BuilderGlobalsNormalizer
                 'lineHeight' => $this->leading($incoming['lineHeight'] ?? null, $fallback['lineHeight']),
             ];
             if ($role === 'link') {
-                $base['typography'][$role]['color'] = $this->color($incoming['color'] ?? null, $fallback['color'] ?? '#E16BA6');
+                $base['typography'][$role]['color'] = $this->color($incoming['color'] ?? null, $fallback['color'] ?? $catalog['accent']);
             }
         }
 
@@ -223,6 +240,16 @@ class BuilderGlobalsNormalizer
         $base['breakpoints'] = ['tablet' => $tablet, 'mobile' => $mobile];
 
         $this->designSystem($input, $base);
+
+        if ($this->colorsAreUnsetOrSeed(is_array($input['colors'] ?? null) ? $input['colors'] : [])) {
+            $base = $this->paintWithBrand(
+                $base,
+                $brandPalette,
+                $appearance,
+                $stock,
+                is_array($input['palette'] ?? null) ? $input['palette'] : null,
+            );
+        }
 
         return $base;
     }
@@ -353,6 +380,286 @@ class BuilderGlobalsNormalizer
                 'exclude' => $slug($q['exclude'] ?? ''),
             ];
         }
+    }
+
+
+
+    /** @return array<string, string> */
+    public function catalogColors(): array
+    {
+        $palette = \App\Kernel\ThemeCatalog::defaultPalette();
+
+        return [
+            'primary' => $palette['primary'],
+            'secondary' => $palette['secondary'],
+            'text' => $palette['text'],
+            'accent' => $palette['accent'],
+            'background' => $palette['bg'],
+            'surface' => $palette['surface'],
+            'border' => $palette['border'],
+            'muted' => $palette['muted'],
+        ];
+    }
+
+    /**
+     * Historical blush seed shipped by earlier builder defaults. Used only to detect untouched values.
+     *
+     * @var array<string, string>
+     */
+    public const SEED_COLORS = [
+        'primary' => '#E16BA6',
+        'secondary' => '#0C2D63',
+        'text' => '#0C2D63',
+        'accent' => '#E16BA6',
+        'background' => '#F5F8FB',
+        'surface' => '#FFFFFF',
+        'border' => '#E6EEF6',
+        'muted' => '#5C6B82',
+    ];
+
+    /**
+     * @param  array<string, string>  $colors
+     * @return list<array{id: string, name: string, value: string}>
+     */
+    public function catalogPalette(array $colors): array
+    {
+        return [
+            ['id' => 'primary', 'name' => 'اصلی', 'value' => $colors['primary']],
+            ['id' => 'secondary', 'name' => 'ثانویه', 'value' => $colors['secondary']],
+            ['id' => 'background', 'name' => 'پس‌زمینه', 'value' => $colors['background']],
+            ['id' => 'text', 'name' => 'متن', 'value' => $colors['text']],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $palette
+     * @param  array<string, mixed>|null  $appearance
+     * @return array<string, string>
+     */
+    public function resolveBrandColors(?array $palette, ?array $appearance = null): array
+    {
+        $defaults = $this->catalogColors();
+        $p = is_array($palette) ? $palette : [];
+        $a = is_array($appearance) ? $appearance : [];
+        $pick = function (array $keys, string $fallback) use ($p, $a): string {
+            foreach ($keys as $key) {
+                $hex = $this->canonicalHex($p[$key] ?? null) ?? $this->canonicalHex($a[$key] ?? null);
+                if ($hex !== null) {
+                    return $hex;
+                }
+            }
+
+            return $fallback;
+        };
+
+        return [
+            'primary' => $pick(['primary', 'primary_color'], $defaults['primary']),
+            'secondary' => $pick(['secondary', 'secondary_color', 'navy', 'navy_color', 'ink'], $defaults['secondary']),
+            'text' => $pick(['text', 'text1_color', 'foreground', 'ink'], $defaults['text']),
+            'accent' => $pick(['accent', 'accent_color'], $defaults['accent']),
+            'background' => $pick(['bg', 'background', 'paper'], $defaults['background']),
+            'surface' => $pick(['surface', 'surface_color', 'paper'], $defaults['surface']),
+            'border' => $pick(['border', 'border_color'], $defaults['border']),
+            'muted' => $pick(['muted', 'text2_color'], $defaults['muted']),
+        ];
+    }
+
+    /** @param  array<string, mixed>  $colors */
+    public function colorsAreUnsetOrSeed(array $colors): bool
+    {
+        foreach (array_keys(self::SEED_COLORS) as $key) {
+            $raw = trim((string) ($colors[$key] ?? ''));
+            if ($raw === '') {
+                continue;
+            }
+            if (! $this->hexEqual($raw, self::SEED_COLORS[$key])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $base
+     * @param  array<string, mixed>|null  $palette
+     * @param  array<string, mixed>|null  $appearance
+     * @param  array<string, mixed>  $stock
+     * @param  array<int, mixed>|null  $incomingPalette
+     * @return array<string, mixed>
+     */
+    private function paintWithBrand(array $base, ?array $palette, ?array $appearance, array $stock, ?array $incomingPalette): array
+    {
+        $resolved = $this->resolveBrandColors($palette, $appearance);
+        foreach ($resolved as $key => $value) {
+            $base['colors'][$key] = $value;
+        }
+
+        $replacePalette = $incomingPalette === null || $incomingPalette === []
+            || $this->paletteIsSeed($incomingPalette)
+            || $this->paletteMatches($base['palette'] ?? [], $stock['palette'] ?? []);
+        if ($replacePalette) {
+            $base['palette'] = $this->catalogPalette($resolved);
+        }
+
+        $c = $base['colors'];
+        $hoverP = $this->shade($c['primary'], 0.12);
+        $hoverS = $this->shade($c['secondary'], 0.12);
+
+        if ($this->isStockOrSeedColor((string) ($base['typography']['link']['color'] ?? ''), (string) ($stock['typography']['link']['color'] ?? ''))) {
+            $base['typography']['link']['color'] = $c['accent'];
+        }
+
+        $desired = [
+            'primary' => $this->variant($c['primary'], '#FFFFFF', $hoverP, '#FFFFFF'),
+            'secondary' => $this->variant($c['secondary'], '#FFFFFF', $hoverS, '#FFFFFF'),
+            'outline' => $this->variant('transparent', $c['secondary'], $c['background'], $c['secondary'], $c['border']),
+            'ghost' => $this->variant('transparent', $c['secondary'], $c['background'], $c['accent'], 'transparent'),
+        ];
+        foreach ($desired as $name => $variant) {
+            foreach ($variant as $field => $value) {
+                $current = (string) ($base['buttons']['variants'][$name][$field] ?? '');
+                $stockVal = (string) ($stock['buttons']['variants'][$name][$field] ?? '');
+                if ($this->isStockOrSeedColor($current, $stockVal)) {
+                    $base['buttons']['variants'][$name][$field] = $value;
+                }
+            }
+        }
+
+        $formMap = [
+            'labelColor' => $c['text'],
+            'fieldBackground' => $c['surface'],
+            'borderColor' => $c['border'],
+            'focusColor' => $c['accent'],
+        ];
+        foreach ($formMap as $key => $value) {
+            if ($this->isStockOrSeedColor((string) ($base['forms'][$key] ?? ''), (string) ($stock['forms'][$key] ?? ''))) {
+                $base['forms'][$key] = $value;
+            }
+        }
+
+        if ($this->isStockOrSeedColor((string) ($base['layout']['background'] ?? ''), (string) ($stock['layout']['background'] ?? ''))) {
+            $base['layout']['background'] = $c['background'];
+        }
+
+        return $base;
+    }
+
+    /** @param  array<int, mixed>  $palette */
+    private function paletteIsSeed(array $palette): bool
+    {
+        if ($palette === []) {
+            return true;
+        }
+        $hasBlushId = false;
+        foreach ($palette as $swatch) {
+            if (! is_array($swatch)) {
+                continue;
+            }
+            $id = strtolower((string) ($swatch['id'] ?? ''));
+            if ($id === 'blush') {
+                $hasBlushId = true;
+            }
+            $value = (string) ($swatch['value'] ?? '');
+            if ($value !== '' && ! $this->isSeedHex($value) && ! $this->hexEqual($value, '#101820')) {
+                return false;
+            }
+        }
+
+        return $hasBlushId;
+    }
+
+    /** @param  array<int, mixed>  $a */
+    /** @param  array<int, mixed>  $b */
+    private function paletteMatches(array $a, array $b): bool
+    {
+        if (count($a) !== count($b)) {
+            return false;
+        }
+        foreach ($a as $i => $swatch) {
+            if (! is_array($swatch) || ! is_array($b[$i] ?? null)) {
+                return false;
+            }
+            if ((string) ($swatch['id'] ?? '') !== (string) ($b[$i]['id'] ?? '')) {
+                return false;
+            }
+            if (! $this->hexEqual($swatch['value'] ?? '', $b[$i]['value'] ?? '')) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function isStockOrSeedColor(string $current, string $stock): bool
+    {
+        if ($current === 'transparent' && $stock === 'transparent') {
+            return true;
+        }
+
+        return $this->hexEqual($current, $stock) || $this->isSeedHex($current);
+    }
+
+    private function isSeedHex(string $value): bool
+    {
+        foreach (array_values(self::SEED_COLORS) as $seed) {
+            if ($this->hexEqual($value, $seed)) {
+                return true;
+            }
+        }
+        foreach (['#101820', '#d45b98', '#16386f'] as $seed) {
+            if ($this->hexEqual($value, $seed)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hexEqual(mixed $a, mixed $b): bool
+    {
+        $left = $this->canonicalHex($a);
+        $right = $this->canonicalHex($b);
+
+        return $left !== null && $left === $right;
+    }
+
+    private function canonicalHex(mixed $value): ?string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+        if (! str_starts_with($raw, '#')) {
+            if (preg_match('/^[0-9a-fA-F]{3,8}$/', $raw)) {
+                $raw = '#'.$raw;
+            } else {
+                return null;
+            }
+        }
+        if (preg_match('/^#([0-9a-fA-F]{3})$/', $raw, $match)) {
+            $s = strtolower($match[1]);
+
+            return '#'.$s[0].$s[0].$s[1].$s[1].$s[2].$s[2];
+        }
+        if (preg_match('/^#([0-9a-fA-F]{6})$/', $raw, $match)) {
+            return '#'.strtolower($match[1]);
+        }
+
+        return null;
+    }
+
+    public function shade(string $hex, float $factor): string
+    {
+        $normalized = $this->canonicalHex($hex);
+        if ($normalized === null) {
+            return $hex;
+        }
+        $r = max(0, min(255, (int) round(hexdec(substr($normalized, 1, 2)) * (1 - $factor))));
+        $g = max(0, min(255, (int) round(hexdec(substr($normalized, 3, 2)) * (1 - $factor))));
+        $b = max(0, min(255, (int) round(hexdec(substr($normalized, 5, 2)) * (1 - $factor))));
+
+        return sprintf('#%02x%02x%02x', $r, $g, $b);
     }
 
 
