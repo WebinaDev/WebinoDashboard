@@ -39,7 +39,8 @@ class PublicShopCheckoutController extends Controller
         $tid = $this->requireGuestCheckout($request);
         $mode = $request->query('mode');
         $mode = is_string($mode) && in_array($mode, ['cash', 'installment'], true) ? $mode : 'cash';
-        $rows = $this->gateways->checkoutGateways($tid, $mode);
+        $base = $request->query('total_minor');
+        $rows = $this->gateways->checkoutGateways($tid, $mode, is_numeric($base) ? max(0, (int) $base) : 0);
 
         return response()->json(['gateways' => $rows, 'guest_checkout' => true]);
     }
@@ -96,6 +97,8 @@ class PublicShopCheckoutController extends Controller
     public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $this->requireGuestCheckout($request);
+        $phoneRequired = \App\Services\Checkout\CheckoutFields::addressFieldRequired($tid, 'customer_phone', true);
+        $nameRequired = \App\Services\Checkout\CheckoutFields::addressFieldRequired($tid, 'recipient_name', true);
         $data = $request->validate([
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.product_id' => ['required', 'integer', 'min:1'],
@@ -110,9 +113,9 @@ class PublicShopCheckoutController extends Controller
             'shipping_unit' => ['nullable', 'string', 'max:32'],
             'terms_accepted' => ['nullable', 'boolean'],
             'shipping_address' => ['nullable', 'string', 'max:2000'],
-            'customer_phone' => ['required', 'string', 'max:32'],
+            'customer_phone' => [$phoneRequired ? 'required' : 'nullable', 'string', 'max:32'],
             'customer_note' => ['nullable', 'string', 'max:500'],
-            'recipient_name' => ['required', 'string', 'max:255'],
+            'recipient_name' => [$nameRequired ? 'required' : 'nullable', 'string', 'max:255'],
             'shipping_instance_id' => ['nullable', 'integer', 'min:1'],
             'shipping_state_code' => ['nullable', 'string', 'max:32'],
             'shipping_postcode' => ['nullable', 'string', 'max:20'],
@@ -124,8 +127,12 @@ class PublicShopCheckoutController extends Controller
             'guest_token' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $phone = $this->normalizePhone($data['customer_phone']);
-        if ($phone === '') {
+        $phoneRaw = trim((string) ($data['customer_phone'] ?? ''));
+        $phone = $phoneRaw !== '' ? $this->normalizePhone($phoneRaw) : '';
+        if ($phoneRequired && $phone === '') {
+            throw ValidationException::withMessages(['customer_phone' => $phoneRaw === '' ? 'لطفا «شماره موبایل» را وارد کنید.' : 'شماره موبایل معتبر نیست.']);
+        }
+        if ($phoneRaw !== '' && $phone === '') {
             throw ValidationException::withMessages(['customer_phone' => 'شماره موبایل معتبر نیست.']);
         }
 
@@ -276,8 +283,8 @@ class PublicShopCheckoutController extends Controller
                 'coupon_id' => $applied ? $applied['coupon']->id : null,
                 'currency' => $lines->first()->product->currency ?? 'IRT',
                 'shipping_address' => $shippingAddress,
-                'customer_phone' => $phone,
-                'customer_name' => trim((string) $data['recipient_name']),
+                'customer_phone' => $phone !== '' ? $phone : null,
+                'customer_name' => trim((string) ($data['recipient_name'] ?? '')) ?: null,
                 'customer_note' => $data['customer_note'] ?? null,
                 'meta' => $shippingMeta,
             ]);

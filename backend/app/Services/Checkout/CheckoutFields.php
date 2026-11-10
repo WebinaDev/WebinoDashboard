@@ -95,6 +95,22 @@ class CheckoutFields
     }
 
     /**
+     * Whether an address field must be present on the final checkout request.
+     * When the merchant has not saved checkout-flow settings, guest checkout keeps
+     * requiring recipient_name and customer_phone; signed-in checkout does not.
+     */
+    public static function addressFieldRequired(int $tenantId, string $key, bool $legacyGuest = false): bool
+    {
+        if (! self::configured($tenantId)) {
+            return $legacyGuest && in_array($key, ['recipient_name', 'customer_phone'], true);
+        }
+        $cfg = app(CheckoutFlowSettings::class)->get($tenantId);
+        $f = CheckoutFlowSettings::field($cfg, 'address', $key);
+
+        return $f !== null && $f['enabled'] && $f['required'];
+    }
+
+    /**
      * Final order check (all steps). Adds the chosen delivery window to order meta.
      *
      * @param  array<string, mixed>  $data

@@ -460,7 +460,7 @@ class PaymentGatewaySettingsService
 
     /**
      * @param  array<string, mixed>  $settings
-     * @return array{fee_percent: float, fee_payer: string, fee_minor: int, base_minor: int, charge_minor: int}
+     * @return array{fee_percent: float, fee_payer: string, fee_fixed_minor: int, fee_minor: int, fee_amount_minor: int, base_minor: int, charge_minor: int}
      */
     public function feeQuote(array $settings, int $baseMinor): array
     {
@@ -470,12 +470,15 @@ class PaymentGatewaySettingsService
         if (! in_array($payer, ['merchant', 'customer'], true)) {
             $payer = 'merchant';
         }
-        $fee = (int) round($baseMinor * $percent / 100);
+        $fixed = max(0, (int) ($settings['fee_fixed_minor'] ?? $settings['fixed_fee_minor'] ?? 0));
+        $fee = (int) round($baseMinor * $percent / 100) + $fixed;
 
         return [
             'fee_percent' => $percent,
             'fee_payer' => $payer,
+            'fee_fixed_minor' => $fixed,
             'fee_minor' => $fee,
+            'fee_amount_minor' => $fee,
             'base_minor' => $baseMinor,
             'charge_minor' => $payer === 'customer' ? $baseMinor + $fee : $baseMinor,
         ];
@@ -506,9 +509,10 @@ class PaymentGatewaySettingsService
         return $url;
     }
 
-    public function checkoutGateways(int $tenantId, ?string $mode = null): array
+    public function checkoutGateways(int $tenantId, ?string $mode = null, int $baseMinor = 0): array
     {
         $out = [];
+        $baseMinor = max(0, $baseMinor);
         foreach ($this->liveCommerceGatewayIds() as $id) {
             if (! $this->isEnabled($tenantId, $id) || ! $this->configured($tenantId, $id)) {
                 continue;
@@ -536,6 +540,7 @@ class PaymentGatewaySettingsService
             if ($title === '') {
                 $title = (string) ($this->catalog->get($id)['label_fa'] ?? $id);
             }
+            $fee = $this->feeQuote($raw, $baseMinor);
             $out[] = [
                 'id' => $id,
                 'title' => $title,
@@ -545,8 +550,10 @@ class PaymentGatewaySettingsService
                 'logo_url' => $this->logoUrl($raw),
                 'cash_enabled' => $cash,
                 'installment_enabled' => $installment,
-                'fee_percent' => $this->feePercent($raw),
-                'fee_payer' => (string) ($raw['fee_payer'] ?? 'merchant'),
+                'fee_percent' => $fee['fee_percent'],
+                'fee_payer' => $fee['fee_payer'],
+                'fee_fixed_minor' => $fee['fee_fixed_minor'],
+                'fee_amount_minor' => $fee['fee_amount_minor'],
                 'sandbox' => $this->isSandbox($id, $raw),
                 'status' => 'live',
             ];
@@ -566,6 +573,7 @@ class PaymentGatewaySettingsService
                 }
                 $raw = $this->getRaw($tenantId, $id);
                 $title = (string) ($raw['title'] ?? '');
+                $fee = $this->feeQuote($raw, $baseMinor);
                 $out[] = [
                     'id' => $id,
                     'title' => $title !== '' ? $title : $fallbackTitle,
@@ -575,8 +583,10 @@ class PaymentGatewaySettingsService
                     'logo_url' => $this->logoUrl($raw),
                     'cash_enabled' => true,
                     'installment_enabled' => false,
-                    'fee_percent' => 0.0,
-                    'fee_payer' => 'merchant',
+                    'fee_percent' => $fee['fee_percent'],
+                    'fee_payer' => $fee['fee_payer'],
+                    'fee_fixed_minor' => $fee['fee_fixed_minor'],
+                    'fee_amount_minor' => $fee['fee_amount_minor'],
                     'sandbox' => false,
                     'kind' => 'offline',
                 ];

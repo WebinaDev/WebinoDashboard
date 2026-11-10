@@ -6,6 +6,7 @@ use App\Models\CartItem;
 use App\Services\Coupons\CouponService;
 use App\Services\GiftCards\GiftCardService;
 use App\Services\Orders\OrderTax;
+use App\Services\Payments\PaymentGatewaySettingsService;
 use App\Services\Pricing\PurchaseTypeService;
 use App\Services\Shipping\ShippingZonesService;
 use Illuminate\Support\Collection;
@@ -123,7 +124,13 @@ class CheckoutQuote
             }
         }
         $giftMinor = (int) ($gift['applied_minor'] ?? 0);
+        $payable = max(0, $beforeGift - $giftMinor);
         $cfg = app(CheckoutFlowSettings::class)->get($tenantId);
+        $mode = $type === 'installment' ? 'installment' : 'cash';
+        $gateways = CheckoutFlowSettings::applyGatewayLayout(
+            $cfg,
+            app(PaymentGatewaySettingsService::class)->checkoutGateways($tenantId, $mode, $payable)
+        );
 
         return [
             'purchase_type' => $type,
@@ -160,8 +167,9 @@ class CheckoutQuote
             'gift_card' => $gift,
             'gift_card_error' => $giftError,
             'gift_card_minor' => $giftMinor,
-            'total_minor' => max(0, $beforeGift - $giftMinor),
+            'total_minor' => $payable,
             'delivery_time_required' => CheckoutFlowSettings::deliveryTimeApplies($cfg, $picked),
+            'gateways' => $gateways,
         ];
     }
 }

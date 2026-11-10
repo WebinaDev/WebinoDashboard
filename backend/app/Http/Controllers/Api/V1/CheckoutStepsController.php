@@ -64,7 +64,9 @@ class CheckoutStepsController extends Controller
 
     public function config(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->configPayload((int) $request->user()->tenant_id, $request->query('mode'))]);
+        $user = $request->user();
+
+        return response()->json(['data' => $this->configPayload((int) $user->tenant_id, $request->query('mode'), $this->feeBase($request, (int) $user->tenant_id, $user))]);
     }
 
     public function session(Request $request): JsonResponse
@@ -92,23 +94,20 @@ class CheckoutStepsController extends Controller
             return response()->json(['message' => __('api.cart_empty')], 422);
         }
         $cfg = $this->flow->get($tid);
+        $preview = $this->isPreview($request, $step);
         $input = $this->stepInput($request, $cfg, $step);
         $values = array_merge((array) ($cart->meta['checkout'] ?? []), $input);
 
-        $totals = $this->validateAndQuote($tid, $cfg, $step, $values, $lines, (int) $user->id);
+        [$totals, $errors] = $this->validateAndQuote($tid, $cfg, $step, $values, $lines, (int) $user->id, $preview);
 
-        $meta = (array) ($cart->meta ?? []);
-        $meta['checkout'] = $values;
-        $meta['checkout_steps'] = array_values(array_unique(array_merge((array) ($meta['checkout_steps'] ?? []), [$step])));
-        $cart->forceFill(['meta' => $meta])->save();
+        if (! $preview) {
+            $meta = (array) ($cart->meta ?? []);
+            $meta['checkout'] = $values;
+            $meta['checkout_steps'] = array_values(array_unique(array_merge((array) ($meta['checkout_steps'] ?? []), [$step])));
+            $cart->forceFill(['meta' => $meta])->save();
+        }
 
-        return response()->json(['data' => [
-            'step' => $step,
-            'valid' => true,
-            'values' => $values,
-            'next_step' => $this->nextStep($cfg, $step, $totals),
-            'totals' => $totals,
-        ]]);
+        return $this->stepResponse($step, $values, $totals, $cfg, $preview, $errors);
     }
 
     // ---------- guest ----------
@@ -117,7 +116,7 @@ class CheckoutStepsController extends Controller
     {
         $tid = app(PublicShopCheckoutController::class)->guestTenant($request);
 
-        return response()->json(['data' => $this->configPayload($tid, $request->query('mode')) + ['guest_checkout' => true]]);
+        return response()->json(['data' => $this->configPayload($tid, $request->query('mode'), $this->feeBase($request, $tid, null)) + ['guest_checkout' => true]]);
     }
 
     public function guestStep(Request $request, string $step): JsonResponse
@@ -132,44 +131,29 @@ class CheckoutStepsController extends Controller
             'items.*.variant_id' => ['nullable', 'integer', 'min:1'],
             'values' => ['nullable', 'array'],
             'guest_token' => ['nullable', 'string', 'max:64'],
+            'preview' => ['nullable', 'boolean'],
         ]);
         $lines = $controller->guestLines($tid, (array) $request->input('items'), $request->input('guest_token') ? 'guest-shop:'.$request->input('guest_token') : null);
         if (! $lines) {
             return response()->json(['message' => __('api.cart_empty')], 422);
         }
         $cfg = $this->flow->get($tid);
+        $preview = $this->isPreview($request, $step);
         // Guests have no server cart: earlier steps' values come back in "values".
         $values = array_merge((array) $request->input('values', []), $this->stepInput($request, $cfg, $step));
-        $totals = $this->validateAndQuote($tid, $cfg, $step, $values, $lines, null);
+        [$totals, $errors] = $this->validateAndQuote($tid, $cfg, $step, $values, $lines, null, $preview);
 
-        return response()->json(['data' => [
-            'step' => $step,
-            'valid' => true,
-            'values' => $values,
-            'next_step' => $this->nextStep($cfg, $step, $totals),
-            'totals' => $totals,
-        ]]);
+        return $this->stepResponse($step, $values, $totals, $cfg, $preview, $errors);
     }
 
     // ---------- helpers ----------
 
     /** @return array<string, mixed> */
-    protected function configPayload(int $tid, mixed $mode): array
+    protected function configPayload(int $tid, mixed $mode, int $baseMinor = 0): array
     {
         $cfg = $this->flow->get($tid);
         $mode = is_string($mode) && in_array($mode, ['cash', 'installment'], true) ? $mode : null;
-        $rows = $this->gateways->checkoutGateways($tid, $mode);
-        $hidden = array_map('strval', (array) ($cfg['payment']['hidden_gateways'] ?? []));
-        $order = array_values(array_map('strval', (array) ($cfg['payment']['gateway_order'] ?? [])));
-        $rows = array_values(array_filter($rows, fn ($r) => ! in_array((string) $r['id'], $hidden, true)));
-        if ($order !== []) {
-            usort($rows, function ($a, $b) use ($order) {
-                $ia = array_search((string) $a['id'], $order, true);
-                $ib = array_search((string) $b['id'], $order, true);
-
-                return ($ia === false ? PHP_INT_MAX : $ia) <=> ($ib === false ? PHP_INT_MAX : $ib);
-            });
-        }
+        $rows = CheckoutFlowSettings::applyGatewayLayout($cfg, $this->gateways->checkoutGateways($tid, $mode, $baseMinor));
         $types = PurchaseTypeService::forTenant($tid);
 
         return CheckoutFlowSettings::publicPayload($cfg) + [
@@ -203,8 +187,10 @@ class CheckoutStepsController extends Controller
         return $out;
     }
 
-    /** @return array<string, mixed> */
-    protected function validateAndQuote(int $tid, array $cfg, string $step, array $values, Collection $lines, ?int $userId): array
+    /**
+     * @return array{0: array<string, mixed>, 1: array<string, string>}
+     */
+    protected function validateAndQuote(int $tid, array $cfg, string $step, array $values, Collection $lines, ?int $userId, bool $preview = false): array
     {
         $totals = $this->quote->compute($tid, $lines, $values, $userId);
         $rate = null;
@@ -220,6 +206,9 @@ class CheckoutStepsController extends Controller
             }
         }
         if ($step === 'payment') {
+            if ($preview) {
+                unset($errors['terms_accepted']);
+            }
             if (! empty($values['coupon_code']) && $totals['coupon_error']) {
                 $errors['coupon_code'] = (string) $totals['coupon_error'];
             }
@@ -227,25 +216,71 @@ class CheckoutStepsController extends Controller
                 $errors['gift_card_code'] = (string) $totals['gift_card_error'];
             }
         }
-        if ($errors !== []) {
+        if ($errors !== [] && ! $preview) {
             throw ValidationException::withMessages($errors);
         }
 
-        return $totals;
+        return [$totals, $errors];
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     * @param  array<string, mixed>  $totals
+     * @param  array<string, mixed>  $cfg
+     * @param  array<string, string>  $errors
+     */
+    protected function stepResponse(string $step, array $values, array $totals, array $cfg, bool $preview, array $errors): \Illuminate\Http\JsonResponse
+    {
+        $payload = [
+            'step' => $step,
+            'valid' => $errors === [],
+            'values' => $values,
+            'next_step' => $this->nextStep($cfg, $step, $totals),
+            'totals' => $totals,
+        ];
+        if ($preview) {
+            $payload['preview'] = true;
+            $payload['errors'] = (object) $errors;
+        }
+
+        return response()->json(['data' => $payload]);
+    }
+
+    protected function isPreview(Request $request, string $step): bool
+    {
+        if ($step !== 'payment') {
+            return false;
+        }
+        $v = $request->input('preview', $request->query('preview'));
+
+        return $v === true || $v === 1 || $v === '1' || $v === 'true';
+    }
+
+    /** Payable amount used to compute per-gateway fee_amount_minor (query total_minor, else current cart/session total). */
+    protected function feeBase(Request $request, int $tid, mixed $user): int
+    {
+        $q = $request->query('total_minor');
+        if (is_numeric($q)) {
+            return max(0, (int) $q);
+        }
+        if ($user) {
+            $cart = $this->userCart($user);
+            $lines = $cart ? $this->cartLines($cart) : collect();
+            if ($lines->isNotEmpty()) {
+                $saved = (array) ($cart->meta['checkout'] ?? []);
+
+                return (int) $this->quote->compute($tid, $lines, $saved, (int) $user->id)['total_minor'];
+            }
+        }
+
+        return 0;
     }
 
     protected function nextStep(array $cfg, string $step, array $totals): ?string
     {
-        $steps = array_values(array_filter($cfg['steps'], fn ($s) => $s['enabled']));
-        usort($steps, fn ($a, $b) => $a['order'] <=> $b['order']);
-        $keys = array_column($steps, 'key');
+        $keys = CheckoutFlowSettings::stepKeys($cfg, is_array($totals['shipping'] ?? null) ? $totals['shipping'] : null, ($totals['shipping'] ?? null) !== null);
         $i = array_search($step, $keys, true);
         for ($j = ($i === false ? -1 : $i) + 1; $j < count($keys); $j++) {
-            // Delivery time is skipped when it does not apply to the picked shipping method.
-            if ($keys[$j] === 'delivery_time' && $totals['shipping'] !== null && ! $totals['delivery_time_required']) {
-                continue;
-            }
-
             return $keys[$j];
         }
 

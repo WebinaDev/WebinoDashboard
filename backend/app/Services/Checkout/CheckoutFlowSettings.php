@@ -8,9 +8,11 @@ use Carbon\CarbonImmutable;
 /**
  * Stepped cart and checkout configuration (admin: shop settings, checkout flow).
  *
- * Steps: address -> delivery_time -> shipping -> payment. Every step field has
- * enabled / required / label / order. Delivery time can be off, on for all shipping
- * methods, or on only for listed shipping methods (instance ids or method ids).
+ * Steps (default / mode=all): address -> delivery_time -> shipping -> payment.
+ * When delivery_time.mode is "methods", storefront order is address -> shipping ->
+ * delivery_time (only if the chosen method requires it) -> payment.
+ * Every step field has enabled / required / label / order. Delivery time can be off,
+ * on for all shipping methods, or on only for listed shipping methods (instance ids or method ids).
  */
 class CheckoutFlowSettings
 {
@@ -337,6 +339,59 @@ class CheckoutFlowSettings
     }
 
     /**
+     * Enabled step keys in the order the storefront should follow.
+     * When delivery time is limited to certain shipping methods, shipping comes
+     * before delivery_time. Once a method is chosen that does not need a slot,
+     * delivery_time is omitted.
+     *
+     * @param  array<string, mixed>  $cfg
+     * @param  array<string, mixed>|null  $rate  picked shipping rate (instance_id / method_id)
+     * @return list<string>
+     */
+    public static function stepKeys(array $cfg, ?array $rate = null, bool $shippingChosen = false): array
+    {
+        $steps = array_values(array_filter($cfg['steps'], fn ($s) => $s['enabled']));
+        usort($steps, fn ($a, $b) => $a['order'] <=> $b['order']);
+        $keys = array_column($steps, 'key');
+        if (($cfg['delivery_time']['mode'] ?? 'all') === 'methods'
+            && in_array('delivery_time', $keys, true)
+            && in_array('shipping', $keys, true)) {
+            $keys = array_values(array_filter($keys, fn ($k) => $k !== 'delivery_time'));
+            $i = array_search('shipping', $keys, true);
+            array_splice($keys, $i === false ? count($keys) : $i + 1, 0, ['delivery_time']);
+            if ($shippingChosen && ! self::deliveryTimeApplies($cfg, $rate)) {
+                $keys = array_values(array_filter($keys, fn ($k) => $k !== 'delivery_time'));
+            }
+        }
+
+        return array_values($keys);
+    }
+
+    /**
+     * Hide and reorder checkout gateways from payment layout settings.
+     *
+     * @param  array<string, mixed>  $cfg
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    public static function applyGatewayLayout(array $cfg, array $rows): array
+    {
+        $hidden = array_map('strval', (array) ($cfg['payment']['hidden_gateways'] ?? []));
+        $order = array_values(array_map('strval', (array) ($cfg['payment']['gateway_order'] ?? [])));
+        $rows = array_values(array_filter($rows, fn ($r) => ! in_array((string) $r['id'], $hidden, true)));
+        if ($order !== []) {
+            usort($rows, function ($a, $b) use ($order) {
+                $ia = array_search((string) $a['id'], $order, true);
+                $ib = array_search((string) $b['id'], $order, true);
+
+                return ($ia === false ? PHP_INT_MAX : $ia) <=> ($ib === false ? PHP_INT_MAX : $ib);
+            });
+        }
+
+        return $rows;
+    }
+
+    /**
      * Public payload for storefront pages (no admin-only keys).
      *
      * @param  array<string, mixed>  $cfg
@@ -348,10 +403,20 @@ class CheckoutFlowSettings
         foreach (self::STEPS as $step) {
             $fields[$step] = array_values(array_filter($cfg['fields'][$step], fn ($f) => $f['enabled']));
         }
+        $byKey = [];
+        foreach ($cfg['steps'] as $s) {
+            $byKey[$s['key']] = $s;
+        }
+        $steps = [];
+        foreach (self::stepKeys($cfg) as $key) {
+            if (isset($byKey[$key])) {
+                $steps[] = $byKey[$key];
+            }
+        }
 
         return [
             'stepped' => $cfg['stepped'],
-            'steps' => array_values(array_filter($cfg['steps'], fn ($s) => $s['enabled'])),
+            'steps' => $steps,
             'fields' => $fields,
             'delivery_time' => [
                 'mode' => $cfg['delivery_time']['mode'],
