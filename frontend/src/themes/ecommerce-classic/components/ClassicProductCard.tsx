@@ -12,7 +12,7 @@ import { productCardSrcSet, toneClass, type ShopProduct } from "@/builder/catalo
 
 import { IconHeart } from "./icons"
 import { promoStatsForProduct } from "@/themes/ecommerce-classic/lib/classic-chrome"
-import { ClassicPrice, ClassicRating, useDigits } from "./parts"
+import { ClassicPrice, ClassicRating, useDigits, useMoneyText } from "./parts"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 import { useClassicText } from "../lib/texts"
 
@@ -30,6 +30,7 @@ export function ClassicProductCard({
 }) {
   const tx = useClassicText()
   const digits = useDigits()
+  const moneyText = useMoneyText()
   const theme = useClassicThemeSettings()
   const commerce = theme.commerce ?? {}
   const showRating = commerce.show_rating !== false
@@ -146,7 +147,7 @@ export function ClassicProductCard({
                     setAtcItem({
                       name: product.name,
                       image: product.image,
-                      priceLabel: `${digits(product.price)} تومان`,
+                      priceLabel: moneyText(product.price),
                       quantity: 1,
                     })
                     setAtcOpen(true)

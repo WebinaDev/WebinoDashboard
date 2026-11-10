@@ -6,6 +6,8 @@ import { useLocale } from "next-intl"
 import type { ReactNode } from "react"
 
 import { CurrencyMark } from "@/components/CurrencyMark"
+import { useBuilderCurrency } from "@/builder/money"
+import { currencyLabel } from "@/lib/currencies"
 import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
@@ -29,15 +31,23 @@ export function useDigits() {
   return (value: number) => formatNumber(Math.max(0, Math.round(value)), normalizeUiLocale(locale))
 }
 
-/** Toman amount + glyph (currentColor mask) — classic price atom. */
+/** Amount + the tenant currency glyph (currentColor mask): classic price atom. */
 export function ClassicAmount({ value, className }: { value: number; className?: string }) {
   const digits = useDigits()
+  const cur = useBuilderCurrency()
   return (
     <span className={`sfc-amount ${className ?? ""}`}>
       <bdi>{digits(value)}</bdi>
-      <CurrencyMark symbol="toman-1" className="sfc-amount__glyph" alt="تومان" />
+      <CurrencyMark symbol={cur.symbol} className="sfc-amount__glyph" alt={currencyLabel(cur.currency, "fa")} />
     </span>
   )
+}
+
+/** Plain-text amount + tenant currency label, for string-only slots (modals, aria). */
+export function useMoneyText() {
+  const digits = useDigits()
+  const cur = useBuilderCurrency()
+  return (value: number) => `${digits(value)} ${currencyLabel(cur.currency, "fa")}`
 }
 
 export function ClassicPrice({ price, compare, size = "md" }: { price: number; compare?: number; size?: "md" | "lg" }) {

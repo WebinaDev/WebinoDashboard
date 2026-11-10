@@ -9,6 +9,8 @@ import { useEffect, useState, type ReactNode } from "react"
 import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { useCatalog } from "./use-catalog"
 import { quietApi } from "./session"
+import { useBuilderCurrency } from "../money"
+import { currencyLabel } from "@/lib/currencies"
 import type { ShopProduct } from "../catalog"
 
 export function StorefrontBreadcrumbs({ items }: { items: { label: string; href?: string }[] }) {
@@ -518,6 +520,7 @@ export function PriceDropAlertForm({ slug }: { slug: string }) {
 
 /** «قیمت بهتری سراغ دارید؟» — lower_price report with competitor URL/price. */
 export function LowerPriceReportForm({ slug }: { slug: string }) {
+  const cur = useBuilderCurrency()
   const [url, setUrl] = useState("")
   const [price, setPrice] = useState("")
   const [note, setNote] = useState("")
@@ -546,7 +549,7 @@ export function LowerPriceReportForm({ slug }: { slug: string }) {
         <input className="sf-field h-10" dir="ltr" type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
       </label>
       <label className="grid gap-1">
-        <span>قیمت (تومان، اختیاری)</span>
+        <span>قیمت ({currencyLabel(cur.currency, "fa")}، اختیاری)</span>
         <input className="sf-field h-10" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} />
       </label>
       <button type="submit" disabled={busy} className="justify-self-start rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground disabled:opacity-60">
