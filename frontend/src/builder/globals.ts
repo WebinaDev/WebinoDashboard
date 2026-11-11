@@ -471,4 +471,4 @@ export {
   resolveBrandGlobalColors,
   colorsAreUnsetOrSeed,
   applyBrandColors,
-} from "./globals-brand.ts"
+} from "./globals-brand"
