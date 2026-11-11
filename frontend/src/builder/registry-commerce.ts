@@ -16,6 +16,10 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     category: "commerce",
     fields: [
       { kind: "text", key: "eyebrow", label: "برچسب اسلاید اول" },
+      { kind: "select", key: "variant", label: "چیدمان", options: [
+        { value: "overlay", label: "بنر روی تصویر" },
+        { value: "cinematic", label: "پنل سینمایی" },
+      ] },
       { kind: "switch", key: "imageOnly", label: "فقط عکس" },
       { kind: "repeater", key: "slides", label: "اسلایدها", fields: [
         { key: "title", label: "عنوان", kind: "text" },
@@ -27,7 +31,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
         { key: "mobileImage", label: "عکس موبایل", kind: "media" },
       ] },
     ],
-    create: () => node("hero-slider", { imageOnly: false, slides: "" }),
+    create: () => node("hero-slider", { imageOnly: false, slides: "", variant: "overlay" }),
   },
   {
     type: "category-grid",

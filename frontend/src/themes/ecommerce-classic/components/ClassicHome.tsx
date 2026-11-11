@@ -514,16 +514,156 @@ function HeroSlidePicture({
   )
 }
 
+type HeroSlide = {
+  title: string
+  kicker: string
+  href: string
+  image: string
+  sub: string
+  cta: string
+  mobileImage: string
+}
+
+/**
+ * Cinematic hero: a navy instrument panel with a signal-amber rail, a copy column
+ * and a masked product photo. Opt-in through the `hero-slider` widget variant so
+ * other classic storefronts keep the original overlay banner.
+ */
+export function ClassicCinematicHero({
+  slidesText,
+  eyebrow,
+  height,
+}: {
+  slidesText?: string
+  eyebrow?: string
+  height?: number
+}) {
+  const tx = useClassicText()
+  const digits = useDigits()
+  const parsed = lines(slidesText ?? "").map(([title, kicker, href, image, sub, cta, mobileImage]) => ({
+    title: title || "",
+    kicker: kicker || "",
+    href: href || "/shop",
+    image: image || "",
+    sub: sub || "",
+    cta: cta || "",
+    mobileImage: mobileImage || "",
+  }))
+  const slides: HeroSlide[] = parsed.length
+    ? parsed
+    : HERO_DEFAULTS.map((s) => ({ ...s, image: "", cta: "", mobileImage: "" }))
+  const count = slides.length
+  const [index, setIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const go = useCallback((next: number) => setIndex(((next % count) + count) % count), [count])
+
+  useEffect(() => {
+    if (count < 2 || paused) return
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    if (reduce) return
+    const timer = window.setInterval(() => setIndex((i) => (i + 1) % count), 7000)
+    return () => window.clearInterval(timer)
+  }, [count, paused])
+
+  return (
+    <section
+      className="sfc-hero sfc-hero--cine"
+      style={height ? { minHeight: height } : undefined}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
+      <div className="sfc-hero__panel">
+        <span className="sfc-hero__grid" aria-hidden="true" />
+        <span className="sfc-hero__halo" aria-hidden="true" />
+        <span className="sfc-hero__rail" aria-hidden="true" />
+        {slides.map((s, i) => {
+          const active = i === index
+          return (
+            <Link
+              key={(s.title || s.image || "slide") + i}
+              href={s.href}
+              className={`sfc-hero__slide sfc-hero__slide--cine${active ? " is-active" : ""}`}
+              aria-hidden={!active}
+              tabIndex={active ? 0 : -1}
+            >
+              <span className="sfc-hero__copy sfc-hero__copy--cine">
+                <span className="sfc-hero__kicker">
+                  <i aria-hidden="true" />
+                  {s.kicker || eyebrow || "JAHAN PARTO"}
+                </span>
+                <strong className="sfc-hero__title">{s.title}</strong>
+                {s.sub ? <span className="sfc-hero__sub">{s.sub}</span> : null}
+                <span className="sfc-hero__cta">
+                  {s.cta || tx("home.cta_view_products")}
+                  <IconChevronLeft size={14} />
+                </span>
+              </span>
+              <span className="sfc-hero__media" aria-hidden={!s.image}>
+                {s.image ? (
+                  <HeroSlidePicture
+                    image={s.image}
+                    mobileImage={s.mobileImage || undefined}
+                    alt={s.title || s.kicker || ""}
+                    priority={i === 0}
+                  />
+                ) : (
+                  <span className="sfc-hero__fallback" />
+                )}
+              </span>
+            </Link>
+          )
+        })}
+        <div className="sfc-hero__controls">
+          <button type="button" className="sfc-hero__arrow" aria-label="اسلاید قبلی" onClick={() => go(index - 1)}>
+            <IconChevronRight size={16} />
+          </button>
+          <div className="sfc-hero__dots" role="tablist">
+            {slides.map((s, i) => (
+              <button
+                key={(s.title || s.image || "dot") + i}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                aria-label={s.title || `اسلاید ${i + 1}`}
+                className={i === index ? "is-active" : ""}
+                onClick={() => setIndex(i)}
+              />
+            ))}
+          </div>
+          <button type="button" className="sfc-hero__arrow" aria-label="اسلاید بعدی" onClick={() => go(index + 1)}>
+            <IconChevronLeft size={16} />
+          </button>
+          <span className="sfc-hero__count">
+            {digits(index + 1)}
+            <i aria-hidden="true">/</i>
+            {digits(count)}
+          </span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function ClassicHero({
   slidesText,
   height,
   imageOnly = false,
+  variant,
+  eyebrow,
 }: {
   slidesText?: string
   height?: number
   imageOnly?: boolean
+  variant?: string
+  eyebrow?: string
 }) {
+  // Hooks must run before any early return (rules-of-hooks).
   const tx = useClassicText()
+  if (variant === "cinematic" && !imageOnly) {
+    return <ClassicCinematicHero slidesText={slidesText} eyebrow={eyebrow} height={height} />
+  }
   const parsed = lines(slidesText ?? "").map(([title, kicker, href, image, sub, cta, mobileImage]) => ({
     title: title || "",
     kicker: kicker || "",

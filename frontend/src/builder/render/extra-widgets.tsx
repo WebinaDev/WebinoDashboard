@@ -421,9 +421,11 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
     ? layout === "grid"
       ? "wbx-quotes-doodle grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
       : "wbx-quotes-doodle flex snap-x snap-mandatory scroll-smooth gap-3.5 overflow-x-auto pb-2"
-    : layout === "slider"
-      ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
-      : "flex snap-x gap-3 overflow-x-auto pb-2"
+    : layout === "grid"
+      ? "grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
+      : layout === "slider"
+        ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
+        : "flex snap-x gap-3 overflow-x-auto pb-2"
 
   return (
     <section dir="rtl">
@@ -436,7 +438,7 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
           const avatar = row.avatar_url || row.image || ""
           const stars = Math.max(0, Math.min(5, Number(row.rating) || 0))
           return (
-            <figure key={row.id ?? i} className={doodle ? (layout === "grid" ? "wbx-quote-doodle" : "wbx-quote-doodle w-72 shrink-0 snap-start sm:w-80") : "w-72 shrink-0 snap-start rounded-2xl border border-border bg-card p-5"}>
+            <figure key={row.id ?? i} className={doodle ? (layout === "grid" ? "wbx-quote-doodle" : "wbx-quote-doodle w-72 shrink-0 snap-start sm:w-80") : layout === "grid" ? "rounded-2xl border border-border bg-card p-5" : "w-72 shrink-0 snap-start rounded-2xl border border-border bg-card p-5"}>
               {stars ? (
                 <div className="mb-2 flex gap-0.5 text-[var(--sfc-rating,#f9bc00)]" aria-label={`${stars} / 5`}>
                   {Array.from({ length: stars }).map((_, k) => (

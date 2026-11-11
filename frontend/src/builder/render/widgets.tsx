@@ -2,6 +2,7 @@
 
 import { useBuilderMoney } from "../money"
 import "./doodle-widgets.css"
+import "./hero-widget.css"
 
 import { useMenuTree } from "@/lib/nav-menus"
 import DOMPurify from "dompurify"
@@ -20,7 +21,7 @@ import {
 } from "../catalog"
 import { useCatalog } from "../storefront/use-catalog"
 import { fillDocumentTokens } from "../theme/tokens"
-import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
+import { propBool, propNum, propStr, parseLinks, linkAttrs, parseRows } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { splitRows } from "./split-rows"
@@ -239,9 +240,11 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
         <ClassicHero
           slidesText={propStr(widget.props, "slides", "")}
           imageOnly={propBool(widget.props, "imageOnly", false)}
+          variant={propStr(widget.props, "variant", "")}
+          eyebrow={propStr(widget.props, "eyebrow", "")}
         />
       ) : (
-        <HeroWidget />
+        <HeroWidget widget={widget} />
       )
     case "category-grid":
       return classic ? (
@@ -286,7 +289,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <CountdownWidget widget={widget} />
     case "trust-badges": {
       const badgeItems = splitRows(propStr(widget.props, "items", "")).map(([title, text, icon]) => ({ title, text: text ?? "", icon: icon || "badge" }))
-      return classic ? <ClassicTrustStrip items={badgeItems} /> : <TrustWidget />
+      return classic ? <ClassicTrustStrip items={badgeItems} /> : <TrustWidget items={badgeItems} />
     }
     case "newsletter":
       return <NewsletterWidget widget={widget} />
@@ -802,79 +805,135 @@ function MenuWidget({ widget }: { widget: WidgetNode }) {
 
 
 
-const SLIDES = [
-  {
-    kicker: "مجموعه بهار ویبینو",
-    title: "درخشش آرام، هر روز",
-    text: "مراقبت پوست با بافت سبک و بسته‌بندی مینیمال",
-    cta: "مشاهده مجموعه",
-    href: "/shop",
-    tone: "pink",
-  },
-  {
-    kicker: "ارسال امروز",
-    title: "زیبایی که می‌ماند",
-    text: "منتخب ویبینو با ضمانت اصالت کالا",
-    cta: "خرید تازه‌ها",
-    href: "/shop?sort=new",
-    tone: "navy",
-  },
-  {
-    kicker: "مراقبت مو",
-    title: "درخشش بدون سنگینی",
-    text: "روغن و سرم‌های خانه کَلم",
-    cta: "دسته مو",
-    href: "/shop?category=hair",
-    tone: "lilac",
-  },
-]
+type HeroSlide = { title: string; kicker: string; href: string; image: string; sub: string; cta: string; mobileImage: string }
 
-function HeroWidget() {
+const HERO_KEYS = ["title", "kicker", "href", "image", "sub", "cta", "mobileImage"]
+
+function heroSlideRows(props: Record<string, unknown>): HeroSlide[] {
+  return (parseRows(props.slides, HERO_KEYS) as unknown as HeroSlide[])
+    .filter((row) => (row.title || "").trim() || (row.image || "").trim())
+}
+
+/** Storefront hero: prop-driven slides, layered imagery, staggered reveal, autoplay + dots. */
+function HeroWidget({ widget }: { widget: WidgetNode }) {
+  const slides = heroSlideRows(widget.props)
+  const fallback: HeroSlide[] = [{ title: propStr(widget.props, "title", ""), kicker: "", href: "/shop", image: "", sub: "", cta: "", mobileImage: "" }]
+  const items = slides.length ? slides : fallback
+  const n = items.length
   const [index, setIndex] = useState(0)
-  const slide = SLIDES[index] ?? SLIDES[0]
+  const [hold, setHold] = useState(false)
+  const auto = propBool(widget.props, "sliderAutoplay", true) && n > 1
+  const interval = Math.max(3, Math.min(30, propNum(widget.props, "sliderInterval", 7))) * 1000
+  const height = Math.max(320, Math.min(900, propNum(widget.props, "sliderHeight", 560)))
+  const heightMobile = propNum(widget.props, "sliderHeightMobile", 460)
+  const eyebrow = propStr(widget.props, "eyebrow", "")
+  const overlay = Math.max(0, Math.min(100, propNum(widget.props, "overlay", 0)))
+
+  const go = (i: number) => setIndex(((i % n) + n) % n)
+  useEffect(() => {
+    if (!auto || hold) return
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const timer = window.setInterval(() => { if (!document.hidden) setIndex((i) => (i + 1) % n) }, interval)
+    return () => window.clearInterval(timer)
+  }, [auto, hold, interval, n])
+  useEffect(() => {
+    if (index > n - 1) setIndex(0)
+  }, [index, n])
+
+  const safeHref = (v: string) => (/^(https?:|mailto:|tel:|\/|#)/i.test((v || "").trim()) ? v.trim() : "/shop")
+
   return (
-    <div className="sf-hero relative overflow-hidden rounded-[28px] px-6 py-10 md:px-12 md:py-16">
-      <div className="pointer-events-none absolute -start-10 top-8 size-40 rounded-full bg-white/20" />
-      <div className="pointer-events-none absolute end-10 bottom-0 h-48 w-36 rounded-t-full bg-white/15" />
-      <p className="relative text-sm font-medium text-white/90">{slide.kicker}</p>
-      <h2 className="relative mt-3 max-w-xl text-3xl font-bold leading-tight md:text-5xl">{slide.title}</h2>
-      <p className="relative mt-3 max-w-md text-sm text-white/90 md:text-base">{slide.text}</p>
-      <Link href={slide.href} className="relative mt-6 inline-flex rounded-full bg-card px-5 py-2.5 text-sm font-bold text-foreground">
-        {slide.cta}
-      </Link>
-      <div className="relative mt-8 flex gap-2">
-        {SLIDES.map((item, i) => (
-          <button key={item.title} type="button" aria-label={item.title} onClick={() => setIndex(i)} className={`h-2 rounded-full ${i === index ? "w-8 bg-card" : "w-2 bg-white/50"}`} />
-        ))}
-      </div>
-      <button type="button" aria-label="بعدی" className="absolute start-3 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-white/25" onClick={() => setIndex((i) => (i + 1) % SLIDES.length)}>
-        ‹
-      </button>
-      <button type="button" aria-label="قبلی" className="absolute end-3 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-white/25" onClick={() => setIndex((i) => (i + SLIDES.length - 1) % SLIDES.length)}>
-        ›
-      </button>
+    <div
+      className="mh-hero"
+      style={{ ["--mh-h" as string]: `${height}px`, ["--mh-hm" as string]: `${Math.max(320, Math.min(900, heightMobile))}px` }}
+      onMouseEnter={() => setHold(true)}
+      onMouseLeave={() => setHold(false)}
+      onFocus={() => setHold(true)}
+      onBlur={() => setHold(false)}
+      role="region"
+      aria-roledescription="carousel"
+      aria-label={propStr(widget.props, "title", "اسلایدر")}
+    >
+      {items.map((slide, i) => (
+        <div key={i} className={`mh-hero-slide${i === index ? " is-on" : ""}`} aria-hidden={i !== index}>
+          {slide.image ? (
+            <div className="mh-hero-media">
+              <Img src={slide.image} alt={slide.title} priority={i === 0} sizes="100vw" />
+            </div>
+          ) : null}
+          <div className="mh-hero-scrim" />
+          {overlay > 0 ? <div className="mh-hero-scrim" style={{ background: `rgba(20,25,48,${overlay / 100})` }} /> : null}
+          <div className="mh-hero-grain" />
+          <div className="mh-hero-ring" />
+          <div className="mh-hero-body">
+            {slide.kicker || (i === 0 && eyebrow) ? (
+              <span className="mh-hero-kicker">{slide.kicker || eyebrow}</span>
+            ) : null}
+            {slide.title ? (i === 0 ? <h1 className="mh-hero-title">{slide.title}</h1> : <h2 className="mh-hero-title">{slide.title}</h2>) : null}
+            {slide.sub ? <p className="mh-hero-text">{slide.sub}</p> : null}
+            <div className="mh-hero-actions">
+              {slide.cta ? <Link className="mh-hero-btn is-primary" href={safeHref(slide.href)} tabIndex={i === index ? 0 : -1}>{slide.cta}</Link> : null}
+              {propStr(widget.props, "secondaryCta", "") ? (
+                <Link className="mh-hero-btn is-ghost" href={safeHref(propStr(widget.props, "secondaryHref", "/shop"))} tabIndex={i === index ? 0 : -1}>
+                  {propStr(widget.props, "secondaryCta", "")}
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ))}
+      {n > 1 ? (
+        <div className="mh-hero-dots">
+          {items.map((slide, i) => (
+            <button key={i} type="button" aria-label={slide.title || `اسلاید ${i + 1}`} aria-current={i === index} className={i === index ? "is-on" : ""} onClick={() => go(i)} />
+          ))}
+        </div>
+      ) : null}
+      {n > 1 && propBool(widget.props, "sliderArrows", true) ? (
+        <>
+          <button type="button" className="mh-hero-arrow is-prev" aria-label="اسلاید قبلی" onClick={() => go(index - 1)}>›</button>
+          <button type="button" className="mh-hero-arrow is-next" aria-label="اسلاید بعدی" onClick={() => go(index + 1)}>‹</button>
+        </>
+      ) : null}
     </div>
   )
 }
 
+/** Category discovery: real categories with their images, hover zoom, RTL-friendly grid. */
 function CategoryWidget({ widget }: { widget: WidgetNode }) {
   const catalog = useCatalog(8)
   const variant = propStr(widget.props, "variant", "popular")
   const title = propStr(widget.props, "title", "دسته‌ها")
-  const items = catalog.categories.slice(0, 6)
+  const limit = propNum(widget.props, "limit", 0) || 6
+  const items = catalog.categories.slice(0, Math.max(1, Math.min(12, limit)))
+  if (!items.length) return null
+  const cols = variant === "strip" ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" : "grid-cols-2 lg:grid-cols-3"
   return (
     <section>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-foreground">{title}</h2>
-        <Link href="/shop" className="text-xs font-semibold text-primary">مشاهده همه</Link>
-      </div>
-      <div className={variant === "strip" ? "grid grid-cols-2 gap-3 md:grid-cols-6" : "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"}>
-        {items.map((item, index) => (
-          <Link key={item.slug} href={`/shop?category=${item.slug}`} className={`flex flex-col items-center gap-3 rounded-3xl p-4 text-center ${index === 2 && variant !== "strip" ? "bg-primary text-white" : "bg-card text-foreground"} border border-border`}>
-            <span className={`grid size-16 place-items-center rounded-2xl text-xs font-bold ${index === 2 && variant !== "strip" ? "bg-white/20" : "bg-muted"}`}>
-              {item.name.slice(0, 1)}
+      {title ? (
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <h2 className="text-xl font-bold text-foreground md:text-2xl">{title}</h2>
+          <Link href="/shop" className="text-xs font-semibold text-primary hover:underline">مشاهده همه</Link>
+        </div>
+      ) : null}
+      <div className={`grid gap-3 md:gap-4 ${cols}`}>
+        {items.map((item) => (
+          <Link
+            key={item.slug}
+            href={`/shop?category=${encodeURIComponent(item.slug)}`}
+            className="group relative isolate flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-[26px] border border-border bg-muted p-4 text-white transition-transform duration-300 hover:-translate-y-1"
+          >
+            {item.image ? (
+              <Img src={item.image} alt={item.name} sizes="(max-width: 768px) 50vw, 33vw" className="absolute inset-0 -z-10 size-full object-cover transition-transform duration-700 group-hover:scale-110" />
+            ) : (
+              <span className="absolute inset-0 -z-10 bg-gradient-to-br from-primary to-foreground/80" />
+            )}
+            <span className="absolute inset-0 -z-10 bg-gradient-to-t from-[#141930]/92 via-[#141930]/30 to-transparent" />
+            <span className="text-base font-bold drop-shadow-sm md:text-lg">{item.name}</span>
+            <span className="mt-1 inline-flex items-center gap-1 text-xs text-white/80">
+              دیدن محصولات
+              <span aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">←</span>
             </span>
-            <span className="text-sm font-semibold">{item.name}</span>
           </Link>
         ))}
       </div>
@@ -1094,20 +1153,30 @@ function CountdownWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
-function TrustWidget() {
-  const items = [
-    { icon: <Truck className="size-5" />, title: "ارسال سریع", text: "بسته‌بندی امن به سراسر کشور" },
-    { icon: <ShieldCheck className="size-5" />, title: "ضمانت اصالت", text: "کالای خانه‌های ویبینو" },
-    { icon: <Sparkles className="size-5" />, title: "مشاوره پوست", text: "انتخاب شوینده مناسب" },
-  ]
+const TRUST_ICONS: Record<string, ReactNode> = {
+  truck: <Truck className="size-5" />,
+  shield: <ShieldCheck className="size-5" />,
+  sparkles: <Sparkles className="size-5" />,
+  star: <Star className="size-5" />,
+  heart: <Heart className="size-5" />,
+}
+
+type TrustItem = { icon: string; title: string; text: string }
+
+/** Trust strip driven by the widget's `items` rows (title|text|icon). */
+function TrustWidget({ items }: { items: TrustItem[] }) {
+  const rows = items.filter((item) => item.title)
+  if (!rows.length) return null
   return (
-    <div className="grid gap-3 md:grid-cols-3">
-      {items.map((item) => (
-        <div key={item.title} className="flex items-center gap-3 rounded-3xl bg-card p-4">
-          <span className="grid size-11 place-items-center rounded-2xl bg-muted text-primary">{item.icon}</span>
-          <div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {rows.map((item) => (
+        <div key={item.title} className="flex items-center gap-3 rounded-3xl border border-border bg-card p-4">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-muted text-primary">
+            {TRUST_ICONS[item.icon] ?? <Sparkles className="size-5" />}
+          </span>
+          <div className="min-w-0">
             <div className="font-bold text-foreground">{item.title}</div>
-            <div className="text-xs text-foreground/70">{item.text}</div>
+            {item.text ? <div className="text-xs leading-5 text-foreground/70">{item.text}</div> : null}
           </div>
         </div>
       ))}

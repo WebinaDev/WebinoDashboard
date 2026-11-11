@@ -268,6 +268,21 @@ export function storefrontStyleCss(
   const fontWeight = Number(typo.font_weight ?? 400)
   const rating = hex(typo.rating_color, "#f9bc00")
 
+  // Chrome that must stay readable on whatever footer colour the brand picked.
+  // The classic footer markup was written for a white footer; a dark navy footer
+  // (the common case for industrial / fashion brands) needs light text tokens.
+  const footerHex = p.footer ?? PARISMA_PALETTE.footer!
+  const footerIsDark = !isLightHex(footerHex)
+  const footerFg = footerIsDark ? "#ffffff" : navy
+  const footerLink = footerIsDark ? "rgba(255,255,255,0.78)" : navy
+  const footerMuted = footerIsDark ? "rgba(255,255,255,0.55)" : p.muted
+  const footerRule = footerIsDark ? "rgba(255,255,255,0.12)" : p.border
+  const footerSurface = footerIsDark ? "rgba(255,255,255,0.05)" : p.surface
+  // Sale / discount accents follow the brand so a warm palette never ships a stray crimson.
+  const sale = p.primary
+  const saleFg = isLightHex(sale) ? "#111827" : "#ffffff"
+  const primaryFg = isLightHex(pink) ? "#111827" : "#ffffff"
+
   const light = `${scope}{
   --sfc-pink:${pink};
   --sfc-pink-hover:${pinkHover};
@@ -288,8 +303,14 @@ export function storefrontStyleCss(
   --sfc-border-3:${p.border};
   --sfc-rule:${p.border};
   --sfc-header-bg:${p.header};
-  --sfc-footer-bg:${p.footer ?? PARISMA_PALETTE.footer};
-  --sfc-footer-fg:${(p.footer ?? "#ffffff").toLowerCase() === "#ffffff" || (p.footer ?? "").toLowerCase() === "#fff" ? navy : "#ffffff"};
+  --sfc-footer-bg:${footerHex};
+  --sfc-footer-fg:${footerFg};
+  --sfc-footer-link:${footerLink};
+  --sfc-footer-muted:${footerMuted};
+  --sfc-footer-rule:${footerRule};
+  --sfc-footer-surface:${footerSurface};
+  --sfc-sale:${sale};
+  --sfc-sale-fg:${saleFg};
   --sfc-topbar-bg:${navy};
   --sfc-topbar-fg:#ffffff;
   --sfc-logo-h:${logoH}px;
@@ -303,7 +324,7 @@ export function storefrontStyleCss(
   --sf-navy-soft:${p.border};
   --sf-search-bg:${p.surface};
   --color-primary:${pink};
-  --color-primary-foreground:#ffffff;
+  --color-primary-foreground:${primaryFg};
   --color-ring:${pink};
   --color-foreground:${p.text};
   --color-card-foreground:${p.text};
@@ -346,6 +367,11 @@ ${within(".sfc-header__logo img")}{
   --sfc-pink-glow:${pink}66;
   --sfc-pink-soft:${pink}2e;
   ${footerIsLight ? "" : `--sfc-footer-bg:${p.footer};`}
+  --sfc-footer-fg:#ffffff;
+  --sfc-footer-link:rgba(255,255,255,0.78);
+  --sfc-footer-muted:rgba(255,255,255,0.55);
+  --sfc-footer-rule:rgba(255,255,255,0.12);
+  --sfc-footer-surface:rgba(255,255,255,0.05);
   --sfc-topbar-bg:${navy};
   --wb-color-background:var(--sfc-bg);
   --wb-color-surface:var(--sfc-surface);
