@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\CafeQrController;
 use App\Http\Controllers\Api\V1\AllergenController;
 use App\Http\Controllers\Api\V1\MenuController;
 use App\Http\Controllers\Api\V1\MenuBannerController;
+use App\Http\Controllers\Api\V1\NavMenuController;
 use App\Http\Controllers\Api\V1\ProductModifierController;
 use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\PublicPortfolioController;
@@ -223,6 +224,7 @@ Route::prefix('v1')->group(function () {
         require __DIR__.'/marketplace_public.php';
 
         Route::get('/tenant', [PublicSiteController::class, 'tenant']);
+        Route::get('/nav-menus', [NavMenuController::class, 'publicIndex']);
         Route::get('/home', [PublicSiteController::class, 'home']);
         Route::get('/site-status', [PublicSiteController::class, 'siteStatus']);
         Route::get('/geo/states', [GeoController::class, 'states']);
@@ -1119,6 +1121,8 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::middleware(['module:cms', 'can:content.manage,content.*'])->group(function () {
+                Route::get('/nav-menus/from-categories', [NavMenuController::class, 'fromCategories']);
+                Route::apiResource('nav-menus', NavMenuController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
                 Route::get('/cms/pages', [CmsController::class, 'pages']);
                 Route::post('/cms/pages', [CmsController::class, 'store']);
                 Route::get('/cms/pages/{page}', [CmsController::class, 'show'])->whereNumber('page');
