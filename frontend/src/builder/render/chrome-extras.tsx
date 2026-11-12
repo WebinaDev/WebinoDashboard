@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import type { CSSProperties } from "react"
 import type React from "react"
 
-import { useAfterLoad } from "@/components/perf/AfterLoadHtml"
+import { sanitizeSealHtml, splitSeals } from "./seal-html"
 import { cartCount, subscribeCart } from "../cart"
 import { parseRows, propBool, propNum, propStr } from "../props"
 import { useServerCart } from "../storefront/actions"
@@ -146,45 +146,28 @@ function FooterNewsletter({ p }: { p: P }) {
   )
 }
 
-/* ───────── footer: trust seal slider (admin embed codes, sanitized, after page load) ───────── */
-const ALLOWED_TAGS = new Set(["A", "IMG", "SPAN", "DIV", "PICTURE", "SOURCE"])
-const ALLOWED_ATTRS = new Set(["href", "src", "srcset", "alt", "title", "width", "height", "target", "rel", "referrerpolicy", "id", "code", "class"])
-
-/** Keep only links and images (no scripts, iframes, inline handlers or javascript: URLs). */
-export function sanitizeSealHtml(html: string): string {
-  if (typeof DOMParser === "undefined") return ""
-  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html")
-  const root = doc.body.firstElementChild
-  if (!root) return ""
-  const walk = (el: Element) => {
-    for (const child of Array.from(el.children)) {
-      if (!ALLOWED_TAGS.has(child.tagName)) { child.remove(); continue }
-      for (const a of Array.from(child.attributes)) {
-        const n = a.name.toLowerCase()
-        if (!ALLOWED_ATTRS.has(n) || ((n === "href" || n === "src" || n === "srcset") && !/^\s*(https?:|\/)/i.test(a.value))) child.removeAttribute(a.name)
-      }
-      if (child.tagName === "A") { child.setAttribute("target", "_blank"); child.setAttribute("rel", "noopener noreferrer") }
-      if (child.tagName === "IMG") { child.setAttribute("loading", "lazy"); if (!child.getAttribute("referrerpolicy")) child.setAttribute("referrerpolicy", "origin") }
-      walk(child)
-    }
-  }
-  walk(root)
-  return root.innerHTML
-}
-
-export function splitSeals(raw: unknown): string[] {
-  return String(raw ?? "").split(/^\s*###\s*$/m).map((s) => s.trim()).filter(Boolean)
-}
+/* ───────── footer: trust seal slider (admin embed codes, sanitized on the server) ───────── */
+export { sanitizeSealHtml, splitSeals } from "./seal-html"
 
 export function TrustSealSlider({ p }: { p: P }) {
-  const codes = splitSeals(p.trustSeals)
-  const ready = useAfterLoad()
+  const codes = splitSeals(p.trustSeals).map(sanitizeSealHtml).filter(Boolean)
   const track = useRef<HTMLDivElement | null>(null)
-  const [safe, setSafe] = useState<string[]>([])
-  useEffect(() => { if (ready) setSafe(codes.map(sanitizeSealHtml).filter(Boolean)) }, [ready, String(p.trustSeals ?? "")]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [alive, setAlive] = useState(true)
   useEffect(() => {
     const el = track.current
-    if (!el || safe.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    if (!el) return
+    const onErr = (e: Event) => {
+      const node = e.target as HTMLElement | null
+      if (!node || node.tagName !== "IMG") return
+      node.closest(".wbx-seal")?.remove()
+      if (!el.querySelector(".wbx-seal")) setAlive(false)
+    }
+    el.addEventListener("error", onErr, true)
+    return () => el.removeEventListener("error", onErr, true)
+  }, [codes.join("\0")])
+  useEffect(() => {
+    const el = track.current
+    if (!el || codes.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
     const t = window.setInterval(() => {
       if (document.hidden || el.scrollWidth <= el.clientWidth + 4) return
       const step = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 120
@@ -192,13 +175,13 @@ export function TrustSealSlider({ p }: { p: P }) {
       el.scrollTo({ left: end ? 0 : el.scrollLeft - step - 12, behavior: "smooth" })
     }, 3500)
     return () => window.clearInterval(t)
-  }, [safe.length])
-  if (!codes.length) return null
+  }, [codes.length])
+  if (!codes.length || !alive) return null
   return (
     <div className="wbx-seals" dir="rtl">
       {propStr(p, "trustSealsTitle") ? <b className="wbx-col-title">{propStr(p, "trustSealsTitle")}</b> : null}
       <div className="wbx-seal-track" ref={track} role="list" aria-label={propStr(p, "trustSealsTitle", "نمادهای اعتماد")}>
-        {ready ? safe.map((h, i) => <div key={i} role="listitem" className="wbx-seal" dangerouslySetInnerHTML={{ __html: h }} />) : codes.map((_, i) => <div key={i} className="wbx-seal" aria-hidden />)}
+        {codes.map((h, i) => <div key={i} role="listitem" className="wbx-seal" dangerouslySetInnerHTML={{ __html: h }} />)}
       </div>
     </div>
   )

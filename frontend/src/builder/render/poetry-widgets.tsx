@@ -5,7 +5,7 @@
  * `frame` (arch|rounded|square) and `pattern` (bool) where relevant. Repeaters use the shared
  * `a|b|c` per-line format so they edit with the same RepeaterInput as other widgets. */
 
-import { ArrowLeft, BookOpen, Flame, Moon, MoreVertical, Music, Pause, Play, Quote, ShoppingBag, Star, Video } from "lucide-react"
+import { ArrowLeft, BookOpen, Flame, Moon, MoreVertical, Music, Pause, Play, Quote, Star, Video } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import type { CSSProperties } from "react"
@@ -435,7 +435,7 @@ export function MediaCardsWidget({ widget }: { widget: WidgetNode }) {
                 {open === i && r.src ? (isVideo ? <video src={r.src} controls autoPlay playsInline /> : <audio src={r.src} controls autoPlay />)
                   : open === i && r.embed ? <iframe src={r.embed} title={r.title} allowFullScreen style={{ width: "100%", height: "100%", border: 0 }} /> : (
                   <>
-                    {r.cover ? <img loading="lazy" decoding="async" {...optImg(r.cover)} alt={r.title || propStr(p, "title")} /> : null}
+                    {r.cover ? <img loading="lazy" decoding="async" {...optImg(r.cover)} alt={r.title || propStr(p, "title")} /> : <PhotoSlot mode={propStr(p, "coverMode", "arabesque")} logo={propStr(p, "logo")} alt={r.title || propStr(p, "title")} />}
                     {r.locked ? <PremiumVeil p={p} compact /> : (
                       <button type="button" className="wpz-media-play" aria-label={`پخش ${r.title || "رسانه"}`} onClick={play}>
                         <Play className="h-6 w-6" />
@@ -496,7 +496,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
         {rows.map((r, i) => (
           <article key={i} className="wpz-product">
             <Link href={safeHref(r.href, "/shop")} className={`wpz-product-media ${frameClass(p, "rounded")}`}>
-              {r.image ? <img {...optImg(r.image, "(max-width: 760px) 80vw, 300px")} alt={r.title} className="wpz-product-img" loading="lazy" decoding="async" /> : <span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span>}
+              {r.image ? <img {...optImg(r.image, "(max-width: 760px) 80vw, 300px")} alt={r.title} className="wpz-product-img" loading="lazy" decoding="async" /> : <span className="wpz-product-img wpz-img-empty"><PhotoSlot mode={propStr(p, "imageMode", "arabesque")} logo={propStr(p, "logo")} alt={r.title} /></span>}
             </Link>
             <h3 className="wpz-product-title">{r.title}</h3>
             <p className="wpz-price">{r.price && r.old ? <BuilderPrice amount={r.price} original={r.old} /> : r.price ? <PriceOrText value={r.price} /> : propStr(p, "priceLabel")}</p>
@@ -505,7 +505,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
         ))}
         {!rows.length && !loading && editor ? (
           <article className="wpz-product wpz-placeholder">
-            <span className="wpz-product-media wpz-frame-rounded"><span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span></span>
+            <span className="wpz-product-media wpz-frame-rounded"><span className="wpz-product-img wpz-img-empty"><PhotoSlot mode="arabesque" alt="قاب نمونه" /></span></span>
             <h3 className="wpz-product-title">قاب نمونه</h3>
             <p className="wpz-price">{propStr(p, "priceLabel", "قیمت (از مشتری)")}</p>
             <small className="wpz-empty">محصولی در فروشگاه نیست؛ پس از افزودن محصول، این‌جا خودکار نمایش داده می‌شود.</small>
