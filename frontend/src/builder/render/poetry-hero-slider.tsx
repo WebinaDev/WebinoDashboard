@@ -18,6 +18,7 @@ export function heroSlides(p: P): HeroSlide[] {
   return (parseRows(p.slides, KEYS) as unknown as HeroSlide[]).filter((s) => s.image.trim() || s.title.trim())
 }
 
+const fa2 = (v: number) => String(v).padStart(2, "0").replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
 const href = (v: string) => (/^(https?:|mailto:|tel:|\/|#)/i.test((v || "").trim()) ? v.trim() : "#")
 
 export function HeroSlider({ p, slides, eyebrow }: { p: P; slides: HeroSlide[]; eyebrow: string }) {
@@ -54,7 +55,7 @@ export function HeroSlider({ p, slides, eyebrow }: { p: P; slides: HeroSlide[]; 
       onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocus={() => setHold(true)} onBlur={() => setHold(false)}>
       <div className="wpz-hs-track" ref={track}>
         {slides.map((s, i) => (
-          <div key={i} className="wpz-hs-slide" role="group" aria-roledescription="slide" aria-label={`${i + 1} از ${n}`} aria-hidden={i !== idx}>
+          <div key={i} className={`wpz-hs-slide ${i === idx ? "is-on" : ""}`} role="group" aria-roledescription="slide" aria-label={`${i + 1} از ${n}`} aria-hidden={i !== idx}>
             {s.image ? <img className="wpz-hs-img" {...optImg(s.image, "100vw", i === 0)} alt="" loading={i === 0 ? "eager" : "lazy"} fetchPriority={i === 0 ? "high" : undefined} decoding="async" /> : null}
             <div className="wpz-hs-body">
               {eyebrow && i === 0 ? <span className="wpz-eyebrow">{eyebrow}</span> : null}
@@ -68,12 +69,16 @@ export function HeroSlider({ p, slides, eyebrow }: { p: P; slides: HeroSlide[]; 
           </div>
         ))}
       </div>
-      {n > 1 && propBool(p, "sliderArrows", true) ? <>
-        <button type="button" className="wpz-hs-arrow wpz-hs-prev" aria-label="اسلاید قبلی" onClick={() => go(idx - 1)}><ChevronRight size={22} aria-hidden /></button>
-        <button type="button" className="wpz-hs-arrow wpz-hs-next" aria-label="اسلاید بعدی" onClick={() => go(idx + 1)}><ChevronLeft size={22} aria-hidden /></button>
-      </> : null}
+      {/* Controls sit together at the top corner (counter + prev/next) on every breakpoint, never over the text or under the slide. */}
+      {n > 1 && propBool(p, "sliderArrows", true) ? (
+        <div className="wpz-hs-ctrl">
+          <span className="wpz-hs-count" aria-live="polite"><b>{fa2(idx + 1)}</b><i aria-hidden>/</i>{fa2(n)}</span>
+          <button type="button" className="wpz-hs-arrow wpz-hs-prev" aria-label="اسلاید قبلی" onClick={() => go(idx - 1)}><ChevronRight size={20} aria-hidden /></button>
+          <button type="button" className="wpz-hs-arrow wpz-hs-next" aria-label="اسلاید بعدی" onClick={() => go(idx + 1)}><ChevronLeft size={20} aria-hidden /></button>
+        </div>
+      ) : null}
       {n > 1 && propBool(p, "sliderDots", true) ? (
-        <div className="wpz-hs-dots">{slides.map((_, i) => <button key={i} type="button" aria-label={`اسلاید ${i + 1}`} aria-current={i === idx} className={i === idx ? "is-on" : ""} onClick={() => go(i)} />)}</div>
+        <div className="wpz-hs-dots">{slides.map((_, i) => <button key={i} type="button" aria-label={`اسلاید ${i + 1}`} aria-current={i === idx} className={i === idx ? "is-on" : ""} onClick={() => go(i)} style={i === idx && auto && !hold ? ({ ["--wpz-hs-iv" as string]: `${interval}ms` } as CSSProperties) : undefined}><span /></button>)}</div>
       ) : null}
     </div>
   )

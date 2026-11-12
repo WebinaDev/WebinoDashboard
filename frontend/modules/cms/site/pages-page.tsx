@@ -58,7 +58,18 @@ function hasOwnDocument(doc: unknown): boolean {
 
 const PLAIN_WIDGETS = new Set(["heading", "text", "spacer", "divider", "paragraph", "rich-text", "richtext"])
 
-export default async function Page({ route }: { route: ResolvedSiteRoute }) {
+/** Only short, plain query values reach widgets (e.g. ?poem=<slug>, ?occasion=<slug>) so SSR can render them. */
+function widgetQuery(sp: Record<string, string | undefined> | undefined): Record<string, string> | undefined {
+  if (!sp) return undefined
+  const out: Record<string, string> = {}
+  for (const k of ["poem", "occasion", "book", "q", "page"]) {
+    const v = sp[k]
+    if (typeof v === "string" && v.length <= 200) out[k] = v
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+export default async function Page({ route, searchParams }: { route: ResolvedSiteRoute; searchParams?: Record<string, string | undefined> }) {
   const t = await getServerTranslations("site")
   const slug = route.params?.slug
   if (!slug) {
@@ -115,10 +126,10 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
   }
 
   if (isDocument(page.builder_published) && page.builder_published.sections.length) {
-    const original = <StorefrontDocument document={page.builder_published} runtime={{ siteName: page.title, lang: page.lang }} />
+    const original = <StorefrontDocument document={page.builder_published} runtime={{ siteName: page.title, lang: page.lang, query: widgetQuery(searchParams) }} />
     const variant = page.ab?.variant?.document
     if (page.ab && isDocument(variant)) {
-      return <AbSwitch testId={page.ab.id} split={page.ab.split} a={original} b={<StorefrontDocument document={variant} runtime={{ siteName: page.title, lang: page.lang }} />} />
+      return <AbSwitch testId={page.ab.id} split={page.ab.split} a={original} b={<StorefrontDocument document={variant} runtime={{ siteName: page.title, lang: page.lang, query: widgetQuery(searchParams) }} />} />
     }
     return original
   }

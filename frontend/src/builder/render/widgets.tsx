@@ -163,6 +163,11 @@ const ShopShowcaseWidget = dynamic(() => import("./poetry-widgets").then((m) => 
 const PoetAboutWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetAboutWidget))
 const QuoteBlockWidget = dynamic(() => import("./poetry-widgets").then((m) => m.QuoteBlockWidget))
 const PoetryFooterWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryFooterWidget))
+const StoryHighlightsWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.StoryHighlightsWidget))
+const AudioPlaylistWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.AudioPlaylistWidget))
+const VideoGalleryWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.VideoGalleryWidget))
+const OccasionGridWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.OccasionGridWidget))
+const MediaSplitWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.MediaSplitWidget))
 const ResumeStoryPage = dynamic(() => import("./resume-pages").then((m) => m.ResumeStoryPage))
 const ResumeVitalityPage = dynamic(() => import("./resume-pages-2").then((m) => m.ResumeVitalityPage))
 const ResumeJournalPage = dynamic(() => import("./resume-pages-2").then((m) => m.ResumeJournalPage))
@@ -428,6 +433,14 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <QuoteBlockWidget widget={widget} />
     case "poetry-footer":
       return <PoetryFooterWidget widget={widget} />
+    case "story-highlights":
+      return <StoryHighlightsWidget widget={widget} />
+    case "audio-playlist":
+      return <AudioPlaylistWidget widget={widget} />
+    case "video-gallery":
+      return <VideoGalleryWidget widget={widget} />
+    case "occasion-grid":
+      return <OccasionGridWidget widget={widget} />
     case "resume.hero": case "resume.about": case "resume.contacts": case "resume.experience": case "resume.education": case "resume.honors":
     case "resume.publications": case "resume.certifications": case "resume.skills": case "resume.languages": case "resume.portfolio": case "resume.stats":
     case "resume.testimonials": case "resume.volunteering": case "resume.courses": case "resume.contact_cta": case "resume.lang_switch": case "resume.download_pdf":
@@ -461,7 +474,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "poem-single":
       return <PoemSingleWidget widget={widget} />
     case "media-archive":
-      return <MediaArchiveWidget widget={widget} />
+      return widget.props?.mediaLayout === "split" ? <MediaSplitWidget widget={widget} /> : <MediaArchiveWidget widget={widget} />
     case "poetry-shop":
       return <PoetryShopWidget widget={widget} />
     case "poetry-product":

@@ -19,7 +19,7 @@ function walk(sections: SectionNode[], out: WidgetNode[]) {
   }
 }
 
-function planKeys(w: WidgetNode, keys: Set<string>) {
+function planKeys(w: WidgetNode, keys: Set<string>, query?: Record<string, string>) {
   const p = w.props ?? {}
   const poetry = (path: string) => keys.add(`/v1/public/poetry/${path}`)
   switch (w.type) {
@@ -55,8 +55,36 @@ function planKeys(w: WidgetNode, keys: Set<string>) {
       return
     }
     case "media-archive":
-      if (usesLiveMedia(p.source)) poetry(mediaPath(60))
+      if (!usesLiveMedia(p.source)) return
+      if (propStr(p, "mediaLayout") === "split") { poetry(mediaPath(60, "audio")); poetry(mediaPath(60, "video")) } else poetry(mediaPath(60))
       return
+    case "story-highlights": {
+      const src = propStr(p, "source", "auto")
+      if (src === "auto" || src === "highlights") poetry("highlights")
+      if (src === "stories") keys.add("/v1/public/product-stories")
+      if (propBool(p, "bookCard", true)) poetry("books")
+      return
+    }
+    case "audio-playlist":
+      if (usesLiveMedia(p.source)) poetry(mediaPath(Math.min(60, Math.max(1, propNum(p, "count", 30))), "audio"))
+      return
+    case "video-gallery":
+      if (usesLiveMedia(p.source)) poetry(mediaPath(Math.min(60, Math.max(1, propNum(p, "count", 24))), "video"))
+      return
+    case "occasion-grid": {
+      const slug = query?.occasion?.trim()
+      if (slug && propBool(p, "inlineDetail", true)) poetry(`occasions/${encodeURIComponent(slug)}`)
+      else poetry("occasions")
+      return
+    }
+    case "poetry-nav":
+      if (propBool(p, "occasionsMenu", false)) poetry("occasions")
+      return
+    case "poem-single": {
+      const slug = propStr(p, "slug") || query?.poem?.trim() || ""
+      if (slug) poetry(`poems/${encodeURIComponent(slug)}`)
+      return
+    }
     case "media-cards":
       if (usesLiveMedia(p.source)) poetry(mediaPath(Math.min(24, Math.max(1, propNum(p, "count", 8)))))
       return
@@ -83,11 +111,11 @@ function planKeys(w: WidgetNode, keys: Set<string>) {
   }
 }
 
-export async function prefetchForDocuments(docs: (BuilderDocument | null | undefined)[]): Promise<PrefetchMap | undefined> {
+export async function prefetchForDocuments(docs: (BuilderDocument | null | undefined)[], query?: Record<string, string>): Promise<PrefetchMap | undefined> {
   const widgets: WidgetNode[] = []
   for (const d of docs) if (d) walk(d.sections ?? [], widgets)
   const keys = new Set<string>()
-  for (const w of widgets) planKeys(w, keys)
+  for (const w of widgets) planKeys(w, keys, query)
   if (!keys.size) return undefined
   const out: PrefetchMap = {}
   await Promise.all([...keys].map(async (key) => {

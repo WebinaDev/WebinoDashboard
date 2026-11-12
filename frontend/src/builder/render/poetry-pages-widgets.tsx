@@ -8,7 +8,7 @@
 
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import Link from "next/link"
-import { BookOpen, Check, ChevronLeft, ChevronRight, Copy, Home, Menu, Music, Printer, Search, Share2, ShoppingBag, SlidersHorizontal, User, X } from "lucide-react"
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Home, Menu, Music, Printer, Search, Share2, ShoppingBag, SlidersHorizontal, User, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import type { CSSProperties, ReactNode } from "react"
@@ -23,13 +23,16 @@ import { useBuilderRuntime } from "./runtime"
 import "./poetry-pages-widgets.css"
 import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import { optImg } from "@/lib/image-url"
+import { WebinaCredit } from "@/components/brand/WebinaCredit"
+import { sectionIsDark } from "./contrast"
+import { JSON_HEADERS, PremiumBadge, PremiumVeil, hasLocked, loadMembership } from "./poetry-membership"
 import { BuilderPrice } from "../money"
 
 type P = Record<string, unknown>
 type Term = { id: number; kind: string; slug: string; name: string; count?: number }
-type Card = { id: number; slug: string; title: string; excerpt?: string | null; occasion?: Term | null; meter?: Term | null; figures: Term[]; styles: Term[]; style_label?: string | null; pen_name?: string | null; composed_label?: string | null; view_count: number; has_media?: boolean; flags?: Record<string, boolean> | null; published_at?: string | null }
+type Card = { id: number; slug: string; title: string; excerpt?: string | null; occasion?: Term | null; meter?: Term | null; figures: Term[]; styles: Term[]; style_label?: string | null; pen_name?: string | null; composed_label?: string | null; view_count: number; has_media?: boolean; flags?: Record<string, boolean> | null; published_at?: string | null; is_premium?: boolean; locked?: boolean; line_count?: number }
 type Block = { type: "title" | "stanza" | "refrain"; layout?: "couplet" | "single"; repeat?: number; lines: string[] }
-type Poem = Card & { melody_credit?: string | null; sequence: Block[]; media: { id: number; url: string; kind: string }[]; external_links: { label?: string; url: string }[]; related: Card[] }
+type Poem = Card & { title: string; melody_credit?: string | null; sequence: Block[]; media: { id: number; url: string; kind: string }[]; external_links: { label?: string; url: string }[]; related: Card[] }
 
 const FA = "۰۱۲۳۴۵۶۷۸۹"
 const fa = (v: string | number) => String(v).replace(/\d/g, (d) => FA[Number(d)])
@@ -53,7 +56,11 @@ const isExternal = (h: string) => /^https?:/i.test(h)
 /** mobileFullWidth (default on): edge-to-edge on phones. */
 /** Mobile full-width flag plus the shared `tone: glass` surface (same classes as the poetry widgets). */
 export const akxMfw = (p: P) =>
-  [propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "", propStr(p, "tone") === "glass" ? "akx-glass wpz-light wpz-glass" : ""].filter(Boolean).join(" ")
+  [
+    propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "", propStr(p, "tone") === "glass" ? "akx-glass wpz-light wpz-glass" : "",
+    // Dark section background (e.g. the wine gradient): light text tokens + dark-glass cards so nothing reads dark-on-dark.
+    sectionIsDark({ bgColor: propStr(p, "sectionBg") }) ? "akx-on-dark" : "",
+  ].filter(Boolean).join(" ")
 
 /** transparent / fully see-through colours (transparent, #rgba with 00 alpha, rgba(...,0)) */
 export function isClearColor(v: string): boolean {
@@ -79,7 +86,9 @@ export function akxVars(p: P, extra: Record<string, string> = {}): CSSProperties
 }
 
 function useQuery(name: string): [string, (v: string) => void] {
-  const [v, setV] = useState("")
+  // Seeded from the server request (runtime.query) so ?poem= etc. render in the SSR HTML too.
+  const rt = useBuilderRuntime()
+  const [v, setV] = useState(rt.query?.[name] ?? "")
   useEffect(() => { setV(new URLSearchParams(window.location.search).get(name) ?? "") }, [name])
   return [v, setV]
 }
@@ -95,18 +104,24 @@ export function usePoetryJson<T>(path: string | null): { data: T | null; meta: R
   const key = path ? `/v1/public/poetry/${path}` : null
   const seeded = key && pre && key in pre ? { data: pre[key] as T, meta: (pre[`${key}::meta`] as Record<string, number>) ?? null } : null
   const [state, setState] = useState<{ data: T | null; meta: Record<string, number> | null; loading: boolean }>(() => (seeded ? { ...seeded, loading: false } : { data: null, meta: null, loading: !!path }))
+  const [fresh, setFresh] = useState(false)
   useEffect(() => {
-    if (!path || seeded) return
+    if (!path) return
     let cancelled = false
+    const run = () => {
+      fetch(apiV1(`public/poetry/${path}`), { headers: JSON_HEADERS, credentials: "include" })
+        .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: unknown; meta?: Record<string, number> }>)
+        .then((j) => { if (!cancelled) { setState({ data: (j.data ?? null) as T, meta: j.meta ?? null, loading: false }); setFresh(true) } })
+        .catch(() => !cancelled && setState({ data: null, meta: null, loading: false }))
+    }
+    // SSR data is anonymous: premium rows come back locked. A signed-in premium member refetches with the session.
+    if (seeded) { setFresh(false); if (hasLocked(seeded.data)) void loadMembership().then((m) => { if (m.isMember && !cancelled) run() }); return () => { cancelled = true } }
     setState((s) => ({ ...s, loading: true }))
-    fetch(apiV1(`public/poetry/${path}`), { headers: { Accept: "application/json" }, credentials: "include" })
-      .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: unknown; meta?: Record<string, number> }>)
-      .then((j) => !cancelled && setState({ data: (j.data ?? null) as T, meta: j.meta ?? null, loading: false }))
-      .catch(() => !cancelled && setState({ data: null, meta: null, loading: false }))
+    run()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path])
-  return seeded ? { ...seeded, loading: false } : state
+  return seeded && !fresh ? { ...seeded, loading: false } : state
 }
 
 /* ───────────── shared: photo slot (photo | logo | arabesque) ───────────── */
@@ -202,6 +217,35 @@ function FilterSide({ label, children }: { label: string; children: ReactNode })
 }
 
 /* ───────────── 1) nav ───────────── */
+type NavLink = Record<string, string>
+type NavNode = { link: NavLink; children: NavLink[] }
+type LiveOccasion = { slug: string; name: string; poems_count?: number; media_count?: number }
+/**
+ * Menu rows `label|href|parent`: a row whose `parent` equals another row's label becomes its dropdown item.
+ * `occasionsMenu` fills the link that points at /occasions with the live occasions (GET /v1/public/poetry/occasions).
+ */
+function useNavTree(p: P): NavNode[] {
+  const rows = parseRows(p.links, ["label", "href", "parent"]).filter((l) => l.label)
+  const occOn = propBool(p, "occasionsMenu", false)
+  const { data } = usePoetryJson<LiveOccasion[]>(occOn ? "occasions" : null)
+  const top: NavNode[] = []
+  for (const r of rows) {
+    const parent = (r.parent || "").trim()
+    const host = parent ? top.find((t) => t.link.label === parent) : undefined
+    if (host) host.children.push(r)
+    else top.push({ link: r, children: [] })
+  }
+  if (occOn && Array.isArray(data)) {
+    const host = top.find((t) => /^\/occasions(\?|$)/.test(t.link.href || ""))
+    const tpl = propStr(p, "occasionHref", "/occasions?occasion={slug}")
+    if (host && !host.children.length) {
+      host.children = data.filter((o) => (o.poems_count ?? 0) + (o.media_count ?? 0) > 0).slice(0, 12)
+        .map((o) => ({ label: o.name, href: tpl.replace("{slug}", encodeURIComponent(o.slug)) }))
+    }
+  }
+  return top
+}
+
 export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const rt = useBuilderRuntime()
@@ -218,7 +262,8 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
     window.addEventListener("keydown", k)
     return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", k) }
   }, [menu])
-  const links = parseRows(p.links, ["label", "href"]).filter((l) => l.label)
+  const tree = useNavTree(p)
+  const links = tree.map((t) => t.link)
   const logo = propStr(p, "logo") || rt.logoUrl || ""
   const logoOnly = propBool(p, "logoOnly", false)
   const px = (k: string, d: number) => `${Math.max(24, Math.min(160, propNum(p, k, d)))}px`
@@ -232,16 +277,24 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
     return path === href || path.startsWith(`${href}/`) || (href === "/poems" && path.startsWith("/poem"))
   }
   return (
-    <header className={`akx akx-navwrap ${akxMfw(p)} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
-      <div data-capsule={capsuleClear ? "clear" : undefined} className={`akx-nav ${propBool(p, "searchWide", false) ? "akx-search-wide" : ""} ${capsuleClear ? "akx-nav-clear" : ""} ${!capsuleClear && propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
+    <header className={`akx akx-navwrap ${propBool(p, "mobileFullWidth", true) ? "akx-mfw" : ""} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
+      <div data-capsule={capsuleClear ? "clear" : undefined} className={`akx-nav ${propStr(p, "tone") === "glass" ? "akx-nav-glass" : ""} ${propBool(p, "searchWide", false) ? "akx-search-wide" : ""} ${capsuleClear ? "akx-nav-clear" : ""} ${!capsuleClear && propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
         <Link href="/" className="akx-brand">
           {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo, undefined, true)} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
           {logoOnly && logo ? null : <b>{propStr(p, "brand", rt.siteName ?? "")}</b>}
         </Link>
         <nav className="akx-links" aria-label="منوی اصلی">
-          {links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")} className={active(l.href) ? "is-on" : ""}>{l.label}</Link>)}
+          {tree.map((t, i) => t.children.length ? (
+            <div key={i} className={`akx-dd ${active(t.link.href) || t.children.some((c) => active(c.href)) ? "is-on" : ""}`}>
+              <Link href={safeLink(t.link.href, "/")} className={active(t.link.href) ? "is-on" : ""} aria-haspopup="true">{t.link.label}<ChevronDown size={14} aria-hidden /></Link>
+              <div className="akx-dd-menu" role="menu">
+                {t.children.map((c, j) => <Link key={j} role="menuitem" href={safeLink(c.href, "/")} className={active(c.href) ? "is-on" : ""}>{c.label}</Link>)}
+              </div>
+            </div>
+          ) : <Link key={i} href={safeLink(t.link.href, "/")} className={active(t.link.href) ? "is-on" : ""}>{t.link.label}</Link>)}
         </nav>
         {propBool(p, "showSearch", true) ? <SearchBox placeholder={propStr(p, "searchPlaceholder")} action={propStr(p, "searchHref", "/poems")} /> : null}
+        {propStr(p, "ctaLabel") ? <Link href={safeLink(propStr(p, "ctaHref", "/subscribe"), "/subscribe")} className="akx-nav-cta">{propStr(p, "ctaLabel")}</Link> : null}
         <NavExtras p={p} />
         <button type="button" className="akx-burger" aria-label="باز کردن منو" aria-expanded={menu} onClick={() => setMenu(true)}><Menu size={22} aria-hidden /></button>
       </div>
@@ -254,11 +307,21 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
         </div>
         {propBool(p, "showSearch", true) ? <SearchBox placeholder={propStr(p, "searchPlaceholder")} action={propStr(p, "searchHref", "/poems")} /> : null}
         <nav aria-label="منوی موبایل">
-          {links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")} className={active(l.href) ? "is-on" : ""} onClick={() => setMenu(false)} tabIndex={menu ? 0 : -1}>{l.label}<ChevronLeft size={16} aria-hidden /></Link>)}
+          {tree.map((t, i) => (
+            <div key={i} className="akx-drawer-item">
+              <Link href={safeLink(t.link.href, "/")} className={active(t.link.href) ? "is-on" : ""} onClick={() => setMenu(false)} tabIndex={menu ? 0 : -1}>{t.link.label}<ChevronLeft size={16} aria-hidden /></Link>
+              {t.children.length ? <div className="akx-drawer-sub">{t.children.map((c, j) => <Link key={j} href={safeLink(c.href, "/")} className={active(c.href) ? "is-on" : ""} onClick={() => setMenu(false)} tabIndex={menu ? 0 : -1}>{c.label}</Link>)}</div> : null}
+            </div>
+          ))}
         </nav>
+        {propStr(p, "ctaLabel") ? <Link href={safeLink(propStr(p, "ctaHref", "/subscribe"), "/subscribe")} className="akx-nav-cta akx-drawer-cta" onClick={() => setMenu(false)} tabIndex={menu ? 0 : -1}>{propStr(p, "ctaLabel")}</Link> : null}
       </div>
       </div>, document.body) : null}
-      {propBool(p, "bottomBar", false) ? <NavTabBar items={parseRows(p.bottomItems, ["label", "href", "icon"]).filter((l) => l.label)} fallback={links} active={active} /> : null}
+      {/* Fixed bottom bar lives on <body>: inside the sticky, backdrop-filtered header a position:fixed child would be trapped at the top. */}
+      {mounted && propBool(p, "bottomBar", false) ? createPortal(
+        <div className={`akx akx-tabbar-root ${propStr(p, "tone") === "glass" ? "akx-tabbar-glass" : ""}`} dir="rtl" style={navVars}>
+          <NavTabBar items={parseRows(p.bottomItems, ["label", "href", "icon"]).filter((l) => l.label)} fallback={links} active={active} />
+        </div>, document.body) : null}
     </header>
   )
 }
@@ -320,9 +383,9 @@ function PoemCardItem({ c, href, newLabel }: { c: Card; href: string; newLabel: 
     <article className="akx-pc">
       {meta ? <div className="akx-k">{meta}</div> : null}
       <h3><Link href={link} className="akx-stretch">{c.title}</Link></h3>
-      {c.excerpt ? <p className="akx-v">{c.excerpt}</p> : null}
+      {c.locked ? <p className="akx-v akx-v-locked" aria-label="متن ویژه اعضا"><span aria-hidden>{"ـــــ ـــــــ ــــ ـــــــــ ـــــ"}</span></p> : c.excerpt ? <p className="akx-v">{c.excerpt}</p> : null}
       <div className="akx-pc-foot">
-        <div>{tag ? <span className="akx-tag">{tag}</span> : null}{c.flags?.is_new && newLabel ? <span className="akx-tag2">{newLabel}</span> : null}</div>
+        <div>{c.is_premium || c.locked ? <PremiumBadge /> : null}{tag ? <span className="akx-tag">{tag}</span> : null}{c.flags?.is_new && newLabel ? <span className="akx-tag2">{newLabel}</span> : null}</div>
         {c.has_media ? <Link href={`${link}#media`} aria-label="پخش"><Play /></Link> : null}
       </div>
     </article>
@@ -442,6 +505,14 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
       <article className="akx-paper" style={{ fontSize: `${18 + size * 2}px` }}>
         {propStr(p, "heading") ? <div className="akx-bism">{propStr(p, "heading")}</div> : null}
         {propBool(p, "showSubtitle", true) && sub ? <div className="akx-sub">{sub}</div> : null}
+        {poem.locked ? (
+          <div className="akx-locked">
+            <h2 className="akx-locked-title">{poem.title}</h2>
+            <PremiumVeil p={p} note={poem.line_count ? `این شعر ${fa(poem.line_count)} مصراع دارد و ویژه اعضای اشتراک است.` : "این شعر ویژه اعضای اشتراک است."}>
+              {Array.from({ length: Math.min(8, Math.max(4, Math.ceil((poem.line_count || 8) / 2))) }, (_, i) => <div key={i} className="akx-bayt"><span>ـــــــ ــــــ ـــــــــ ــــ</span><span>ــــــ ـــــــــ ــــ ـــــــ</span></div>)}
+            </PremiumVeil>
+          </div>
+        ) : null}
         {blocks.map((b, i) => {
           const prevRef = i > 0 && blocks[i - 1].type === "refrain"
           if (b.type === "refrain") return <div key={i} className="akx-br">{b.lines.map((l, j) => <span key={j}>{l}</span>)}</div>
@@ -454,7 +525,7 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
         })}
         {poem.melody_credit ? <div className="akx-sub">{poem.melody_credit}</div> : null}
         <div className="akx-sign">{propStr(p, "signPrefix", "✍")} <b>{poem.pen_name || ""}</b>{propStr(p, "signNote") ? ` · ${propStr(p, "signNote")}` : ""}{poem.composed_label ? ` · ${poem.composed_label}` : ""}</div>
-        {tools ? (
+        {tools && !poem.locked ? (
           <div className="akx-tools">
             <button type="button" onClick={copy}><Copy size={16} aria-hidden />کپی متن</button>
             <button type="button" onClick={() => window.print()}><Printer size={16} aria-hidden />چاپ</button>
@@ -545,7 +616,12 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
           </div>
         ) : null}
         <div className="akx-feat" id={`akx-feat-${widget.id}`}>
-          {cur && playing && cur.src ? (cur.kind === "video" ? <video src={cur.src} poster={cur.cover || undefined} controls autoPlay /> : (
+          {cur?.locked ? (
+            <div className="akx-feat-cover akx-feat-locked">
+              <PhotoSlot mode={cur.cover ? "photo" : cm} src={cur.cover} logo={propStr(p, "logo")} alt={cur.title} />
+              <PremiumVeil p={p} note={cur.title} />
+            </div>
+          ) : cur && playing && cur.src ? (cur.kind === "video" ? <video src={cur.src} poster={cur.cover || undefined} controls autoPlay /> : (
             <div className="akx-feat-audio"><PhotoSlot mode={cur.cover ? "photo" : cm} src={cur.cover} logo={propStr(p, "logo")} /><audio src={cur.src} controls autoPlay /></div>
           )) : cur && playing && cur.embed ? <iframe src={cur.embed} title={cur.title} allowFullScreen style={{ width: "100%", aspectRatio: "16 / 9", border: 0 }} /> : cur ? (
             <button type="button" className="akx-feat-cover" onClick={() => (cur.src || cur.embed ? setPlaying(true) : openLink(cur))} aria-label={`پخش ${cur.title}`}>
@@ -566,7 +642,7 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
               <PhotoSlot mode={it.cover ? "photo" : cm} src={it.cover} logo={propStr(p, "logo")} alt={it.title} />
               <span className="akx-badge">{kindLabel(it.kind)}</span>
               {it.duration ? <span className="akx-dur">{fa(it.duration)}</span> : null}
-              <span className="akx-mc-play"><Play size={34} light /></span>
+              {it.locked ? <span className="akx-mc-lock"><PremiumBadge /></span> : <span className="akx-mc-play"><Play size={34} light /></span>}
             </div>
             <b>{it.title}</b>
             <small>{[it.poem && `شعر مرتبط: ${it.poem}`, it.reciter].filter(Boolean).join(" · ")}</small>
@@ -817,7 +893,12 @@ export function PoetrySiteFooterWidget({ widget }: { widget: WidgetNode }) {
         <div className="akx-foot-soc">{socials.map((s, i) => <a key={i} href={safeLink(s.href)} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_LABELS[s.network] ?? s.network}>{s.label || SOCIAL_SHORT[s.network] || s.network}</a>)}</div>
       </div>
       <FooterExtras p={p} />
-      {propStr(p, "copyright") ? <p className="akx-copy">{propStr(p, "copyright")}</p> : null}
+      {propStr(p, "copyright") || propBool(p, "showCredit", true) ? (
+        <div className="akx-copy akx-copy-row">
+          {propStr(p, "copyright") ? <p>{propStr(p, "copyright")}</p> : <span />}
+          {propBool(p, "showCredit", true) ? <span className="akx-credit"><WebinaCredit /></span> : null}
+        </div>
+      ) : null}
     </footer>
   )
 }

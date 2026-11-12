@@ -202,6 +202,8 @@ export type RuntimeContext = {
   collectionItem?: import("./dynamic").DynamicItem | null
   /** Server-fetched widget data (see server-prefetch.ts), keyed like the client hooks. */
   prefetch?: Record<string, unknown>
+  /** Whitelisted URL query of the current request (e.g. `poem`, `occasion`) so widgets that read ?x= render on the server too. */
+  query?: Record<string, string>
 }
 
 export type EditorApi = {

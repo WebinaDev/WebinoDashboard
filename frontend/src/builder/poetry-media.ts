@@ -7,8 +7,10 @@ export type LiveMedia = {
   id: number; title: string; kind: string; url: string | null; external_url: string | null; embed_url: string | null
   cover: string | null; reciter?: string | null; duration?: string | null
   occasion?: { name: string; slug: string } | null; poem?: { slug: string; title: string } | null
+  /** Membership gating (backend may omit these; absent = free). Locked rows carry no file URL. */
+  is_premium?: boolean | null; locked?: boolean | null; premium_locked?: boolean | null
 }
-export type MediaEntry = { title: string; cover: string; kind: "audio" | "video"; src: string; link: string; embed: string; duration: string; tag: string; poem: string; poemSlug: string; reciter: string }
+export type MediaEntry = { title: string; cover: string; kind: "audio" | "video"; src: string; link: string; embed: string; duration: string; tag: string; poem: string; poemSlug: string; reciter: string; id?: number; premium?: boolean; locked?: boolean }
 
 const FILE_RE = /\.(mp3|m4a|aac|ogg|oga|wav|opus|mp4|webm|mov|m3u8)(\?|#|$)/i
 const VIDEO_RE = /\.(mp4|webm|mov|m3u8)(\?|#|$)/i
@@ -22,8 +24,10 @@ export function aparatEmbed(url: string): string {
 export function fromLive(m: LiveMedia): MediaEntry | null {
   const src = m.url && okUrl(m.url) ? m.url : ""
   const link = m.external_url && /^https?:\/\//i.test(m.external_url) ? m.external_url : ""
-  if (!src && !link) return null
+  const locked = !!(m.locked ?? m.premium_locked)
+  if (!src && !link && !locked) return null
   return {
+    id: m.id, premium: !!m.is_premium || locked, locked,
     title: m.title || "", cover: m.cover && okUrl(m.cover) ? m.cover : "", kind: m.kind === "video" ? "video" : "audio", src, link,
     embed: m.embed_url && /^https:\/\/www\.aparat\.com\//.test(m.embed_url) ? m.embed_url : aparatEmbed(link),
     duration: m.duration || "", tag: m.occasion?.name || "", poem: m.poem?.title || "", poemSlug: m.poem?.slug || "", reciter: m.reciter || "",

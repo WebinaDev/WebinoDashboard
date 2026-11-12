@@ -52,7 +52,10 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
     type: "poetry-nav", label: "منوی کپسولی (لوگو + جستجو)", category: "chrome",
     fields: [
       logo, { kind: "text", key: "brand", label: "نام" },
-      { kind: "repeater", key: "links", label: "پیوندها", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] },
+      { kind: "repeater", key: "links", label: "پیوندها (والد = برچسب پیوند بالادستی برای زیرمنو)", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }, { key: "parent", label: "والد (اختیاری)", kind: "text" }] },
+      { kind: "select", key: "tone", label: "سبک کپسول", options: [{ value: "", label: "پیش‌فرض" }, { value: "glass", label: "شیشه‌ای واقعی (رنگ کپسول + محو پس‌زمینه)" }] },
+      { kind: "switch", key: "occasionsMenu", label: "زیرمنوی خودکار مناسبت‌ها (روی پیوند /occasions)" }, { kind: "text", key: "occasionHref", label: "پیوند هر مناسبت در زیرمنو ({slug})" },
+      { kind: "text", key: "ctaLabel", label: "دکمه ویژه (مثلاً اشتراک ویژه؛ خالی = بدون دکمه)" }, { kind: "link", key: "ctaHref", label: "پیوند دکمه ویژه" },
       { kind: "switch", key: "showSearch", label: "نمایش جستجو" }, { kind: "switch", key: "searchWide", label: "جستجوی پهن وسط هدر" },
       { kind: "switch", key: "bottomBar", label: "نوار تب پایین در موبایل" },
       { kind: "repeater", key: "bottomItems", label: "تب‌های نوار پایین (خالی = پیوندهای منو)", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }, { key: "icon", label: "آیکن", kind: "select", options: [{ value: "home", label: "خانه" }, { value: "book", label: "کتاب" }, { value: "music", label: "صوت" }, { value: "shop", label: "فروشگاه" }, { value: "user", label: "شاعر" }, { value: "search", label: "جستجو" }] }] },
@@ -112,7 +115,9 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
     type: "media-archive", label: "صوت و ویدیو (ویژه + پرشنونده + شبکه)", category: "content",
     fields: [
       TONE,
-      { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "ویژه و پرشنونده و شبکه (پیش‌فرض)" }, { value: "grid3", label: "شبکه ساده سه‌ستونی" }] },
+      { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "ویژه و پرشنونده و شبکه (پیش‌فرض)" }, { value: "grid3", label: "شبکه ساده سه‌ستونی" }, { value: "split", label: "جدا: پلی‌لیست صوتی + گالری ویدیو" }] },
+      { kind: "text", key: "audioTitle", label: "عنوان بخش صوت (چیدمان جدا)" }, { kind: "text", key: "videoTitle", label: "عنوان بخش ویدیو (چیدمان جدا)" },
+      { kind: "text", key: "premiumLabel", label: "برچسب دکمه اشتراک ویژه" }, { kind: "link", key: "premiumHref", label: "صفحه اشتراک ویژه" },
       { kind: "select", key: "source", label: "منبع", options: [{ value: "live", label: "صوت و ویدیوی ثبت‌شده در اشعار (پیش‌فرض)" }, { value: "manual", label: "ردیف‌های دستی زیر" }] },
       { kind: "repeater", key: "items", label: "اجراها (فقط در منبع دستی)", fields: [
         { key: "title", label: "عنوان", kind: "text" }, { key: "cover", label: "کاور", kind: "media" },
@@ -188,7 +193,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "media", key: "logo", label: "لوگوی سفید", accept: "image" }, { kind: "text", key: "brand", label: "نام" },
       { kind: "repeater", key: "links", label: "پیوندها", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] },
-      SOCIALS, { kind: "text", key: "copyright", label: "کپی‌رایت" },
+      SOCIALS, { kind: "text", key: "copyright", label: "کپی‌رایت" }, { kind: "switch", key: "showCredit", label: "نشان طراحی وبینا" },
       { kind: "color", key: "bg", label: "رنگ زمینه" }, { kind: "color", key: "text", label: "رنگ متن" }, ...colors,
     ],
     create: () => node("poetry-site-footer", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, socials: AKX_SOCIALS_DEFAULT, copyright: "", bg: "#1a0507", text: "#d8c3bd", ...C }),

@@ -13,7 +13,11 @@ export function clampSpv(v: number, def: number): number {
   return Number.isFinite(v) && v > 0 ? Math.min(8, Math.max(1, v)) : def
 }
 
-export function WpzCarousel({ opts, label, className = "", children }: { opts: CarouselOpts; label?: string; className?: string; children: ReactNode }) {
+/**
+ * `head` (title / "more" link): rendered as the carousel header with the prev/next arrows grouped beside it
+ * at the top (desktop and mobile), never floating over or under the cards.
+ */
+export function WpzCarousel({ opts, label, className = "", head, children }: { opts: CarouselOpts; label?: string; className?: string; head?: ReactNode; children: ReactNode }) {
   const track = useRef<HTMLDivElement>(null)
   const paused = useRef(false)
 
@@ -51,11 +55,22 @@ export function WpzCarousel({ opts, label, className = "", children }: { opts: C
   const pause = (v: boolean) => () => { paused.current = v }
 
   return (
-    <div className={`wpz-carousel ${className}`} style={style} role="region" aria-roledescription="carousel" aria-label={label}
+    <div className={`wpz-carousel ${head !== undefined ? "wpz-carousel-hd" : ""} ${className}`} style={style} role="region" aria-roledescription="carousel" aria-label={label}
       onMouseEnter={pause(true)} onMouseLeave={pause(false)} onFocus={pause(true)} onBlur={pause(false)} onTouchStart={pause(true)}>
+      {head !== undefined ? (
+        <div className="wpz-chead">
+          <div className="wpz-chead-main">{head}</div>
+          <div className="wpz-carrows">
+            <button type="button" className="wpz-carrow" aria-label="قبلی" onClick={() => step(-1)}><ChevronRight className="h-5 w-5" aria-hidden /></button>
+            <button type="button" className="wpz-carrow" aria-label="بعدی" onClick={() => step(1)}><ChevronLeft className="h-5 w-5" aria-hidden /></button>
+          </div>
+        </div>
+      ) : null}
       <div ref={track} className="wpz-carousel-track" role="list">{children}</div>
-      <button type="button" className="wpz-carousel-btn wpz-carousel-prev" aria-label="قبلی" onClick={() => step(-1)}><ChevronRight className="h-5 w-5" aria-hidden /></button>
-      <button type="button" className="wpz-carousel-btn wpz-carousel-next" aria-label="بعدی" onClick={() => step(1)}><ChevronLeft className="h-5 w-5" aria-hidden /></button>
+      {head === undefined ? <>
+        <button type="button" className="wpz-carousel-btn wpz-carousel-prev" aria-label="قبلی" onClick={() => step(-1)}><ChevronRight className="h-5 w-5" aria-hidden /></button>
+        <button type="button" className="wpz-carousel-btn wpz-carousel-next" aria-label="بعدی" onClick={() => step(1)}><ChevronLeft className="h-5 w-5" aria-hidden /></button>
+      </> : null}
     </div>
   )
 }

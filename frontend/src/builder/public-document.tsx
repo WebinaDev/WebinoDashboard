@@ -120,7 +120,7 @@ export async function StorefrontDocument({
   const [loop, themeSlug, prefetch] = await Promise.all([
     runtime?.loopDocument ?? loadResolvedTemplate("loop_item", query),
     runtime?.themeSlug ?? activeThemeSlug(),
-    prefetchForDocuments([document]),
+    prefetchForDocuments([document], runtime?.query),
   ])
   return (
     <PublishedDocument

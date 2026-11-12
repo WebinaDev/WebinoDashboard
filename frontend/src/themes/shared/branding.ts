@@ -209,15 +209,16 @@ function magazineAtmosphereCss(branding?: Partial<SiteBranding> | null): string 
     radial-gradient(ellipse 55% 40% at 0% 100%, ${navy}14, transparent 50%),
     ${p.bg};
 }
-.sf-shell header,
-.sf-shell [data-site-header]{
+/* Builder poetry chrome (.akx-navwrap / .akx-foot) paints its own glass capsule and footer: keep the atmosphere off it. */
+.sf-shell header:not(.akx-navwrap),
+.sf-shell [data-site-header]:not(:has(.akx-navwrap)){
   background: color-mix(in srgb, ${header} 92%, transparent);
   color: ${headerFg};
   backdrop-filter: blur(14px) saturate(1.15);
   border-bottom: 1px solid ${p.border};
 }
-.sf-shell footer,
-.sf-shell [data-site-footer]{
+.sf-shell footer:not(.akx-foot),
+.sf-shell [data-site-footer]:not(:has(.akx-foot)){
   background: ${footer};
   color: ${footerFg};
 }
