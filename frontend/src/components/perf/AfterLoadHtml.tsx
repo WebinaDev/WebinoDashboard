@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react"
 
+import { hasZibalSeal } from "@/builder/render/seal-html"
+import { hasZibalRoot, ZibalTrustScript } from "@/builder/render/zibal-trust-script"
+
 /**
  * Third-party trust seals (trustseal.enamad.ir, samandehi, ...) are slow or unreachable from
  * outside Iran and used to hold the page "loading" (GTmetrix timeouts, TBT). Render the
@@ -28,8 +31,13 @@ export function useAfterLoad(delay = 300): boolean {
 export function AfterLoadHtml({ html, className, minHeight = 80 }: { html: string; className?: string; minHeight?: number }) {
   const ready = useAfterLoad()
   if (!html) return null
+  const zibal = hasZibalSeal(html)
+  const markup = zibal && !hasZibalRoot(html) ? `<div id="zibal">${html}</div>` : html
   return ready ? (
-    <div className={className} dangerouslySetInnerHTML={{ __html: html }} />
+    <>
+      <div className={className} dangerouslySetInnerHTML={{ __html: markup }} />
+      <ZibalTrustScript html={html} />
+    </>
   ) : (
     <div className={className} style={{ minHeight }} aria-hidden="true" />
   )

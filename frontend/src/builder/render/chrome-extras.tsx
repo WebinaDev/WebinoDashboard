@@ -9,7 +9,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import type { CSSProperties } from "react"
 import type React from "react"
 
-import { sanitizeSealHtml, splitSeals } from "./seal-html"
+import { hasZibalSeal, sanitizeSealHtml, splitSeals } from "./seal-html"
+import { hasZibalRoot, ZibalTrustScript } from "./zibal-trust-script"
 import { cartCount, subscribeCart } from "../cart"
 import { parseRows, propBool, propNum, propStr } from "../props"
 import { useServerCart } from "../storefront/actions"
@@ -159,6 +160,8 @@ export function TrustSealSlider({ p }: { p: P }) {
     const onErr = (e: Event) => {
       const node = e.target as HTMLElement | null
       if (!node || node.tagName !== "IMG") return
+      // Zibal's script fills #zibal; a temporary/broken img must not remove the slot.
+      if (node.closest("#zibal") || /zibal\.ir/i.test(node.getAttribute("src") || "")) return
       node.closest(".wbx-seal")?.remove()
       if (!el.querySelector(".wbx-seal")) setAlive(false)
     }
@@ -181,8 +184,13 @@ export function TrustSealSlider({ p }: { p: P }) {
     <div className="wbx-seals" dir="rtl">
       {propStr(p, "trustSealsTitle") ? <b className="wbx-col-title">{propStr(p, "trustSealsTitle")}</b> : null}
       <div className="wbx-seal-track" ref={track} role="list" aria-label={propStr(p, "trustSealsTitle", "نمادهای اعتماد")}>
-        {codes.map((h, i) => <div key={i} role="listitem" className="wbx-seal" dangerouslySetInnerHTML={{ __html: h }} />)}
+        {codes.map((h, i) => {
+          const zibal = hasZibalSeal(h)
+          const inner = zibal && !hasZibalRoot(h) ? `<div id="zibal">${h}</div>` : h
+          return <div key={i} role="listitem" className="wbx-seal" dangerouslySetInnerHTML={{ __html: inner }} />
+        })}
       </div>
+      <ZibalTrustScript html={codes.join("\n")} />
     </div>
   )
 }

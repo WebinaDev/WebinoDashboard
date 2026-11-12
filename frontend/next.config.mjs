@@ -51,6 +51,8 @@ const nextConfig = {
         source: "/:path*",
         headers: [
           { key: "X-Powered-By", value: "Webina Dashboard" },
+          // script-src lists Zibal explicitly; https: keeps existing third-party scripts working.
+          { key: "Content-Security-Policy", value: "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://zibal.ir https://www.zibal.ir https:; object-src 'none'; base-uri 'self'" },
         ],
       },
       {

@@ -85,3 +85,8 @@ export function sanitizeSealHtml(html: string): string {
 export function splitSeals(raw: unknown): string[] {
   return String(raw ?? "").split(/^\s*###\s*$/m).map((s) => s.trim()).filter(Boolean)
 }
+
+/** True when the footer seal markup is a Zibal badge (SiteBuilder pastes the image/link HTML). */
+export function hasZibalSeal(html: string): boolean {
+  return /zibal\.ir/i.test(html) || /\bid\s*=\s*["']zibal["']/i.test(html)
+}
