@@ -288,7 +288,10 @@ Route::prefix('v1')->group(function () {
 
         // Poetry public API is scoped by tenant host; keep available for Ali and any tenant
         // that has poetry content even when the ERP poetry addon is not selected.
-        Route::prefix('poetry')->middleware(\App\Http\Middleware\PoetryTenantScope::class)->group(function () {
+        Route::prefix('poetry')->middleware([
+            \App\Http\Middleware\PoetryTenantScope::class,
+            \App\Http\Middleware\OptionalPublicAuth::class,
+        ])->group(function () {
             Route::get('/terms', [PublicPoetryController::class, 'terms']);
             Route::get('/poems', [PublicPoetryController::class, 'index']);
             Route::get('/popular', [PublicPoetryController::class, 'popular']);

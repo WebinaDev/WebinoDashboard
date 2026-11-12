@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ApiResponseFormatter
 {
     /**
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -58,17 +58,12 @@ class ApiResponseFormatter
             $json->headers->setCookie($cookie);
         }
         // Keep diagnostic/cache hints set by inner middleware (X-Public-Cache HIT/MISS, rate-limit counters).
-        foreach (['X-Public-Cache', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'] as $h) {
+        // Also copy Cache-Control and Vary: public poetry (and similar) vary by user, and a fresh
+        // json() envelope would otherwise drop them and allow shared caches to store unlocked content.
+        foreach (['X-Public-Cache', 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After', 'Cache-Control', 'Vary'] as $h) {
             if ($response->headers->has($h)) {
                 $json->headers->set($h, (string) $response->headers->get($h));
             }
-        }
-        // Keep throttling hints and explicit no-store (never widen caching here).
-        if ($response->headers->has('Retry-After')) {
-            $json->headers->set('Retry-After', $response->headers->get('Retry-After'));
-        }
-        if (str_contains((string) $response->headers->get('Cache-Control'), 'no-store')) {
-            $json->headers->set('Cache-Control', 'no-store');
         }
 
         return $json;

@@ -6,6 +6,8 @@ use App\Models\Membership\MembershipDownload;
 use App\Models\Membership\MembershipGrant;
 use App\Models\Membership\MembershipPlan;
 use App\Models\Order;
+use App\Models\Poetry\PoetryBook;
+use App\Models\Poetry\PoetryHighlight;
 use App\Models\Poetry\PoetryMedia;
 use App\Models\Poetry\PoetryPoem;
 use App\Models\Product;
@@ -21,9 +23,9 @@ use App\Services\Poetry\PoetryScope;
 use App\Services\Poetry\PoetryTaxonomy;
 use App\Services\Shipping\ShippingZonesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -340,5 +342,121 @@ class MembershipPremiumTest extends TestCase
         $found = $this->getJson('/api/v1/public/support/kb?search='.urlencode('بانکی'), $this->h)->assertOk()->json('data.items');
         $this->assertSame(['q2'], array_column($found, 'slug'));
         $this->assertSame('pay', $found[0]['category_slug']);
+    }
+
+    public function test_guest_sees_premium_poetry_locked(): void
+    {
+        $this->seedLockedPoetry();
+
+        $res = $this->getJson('/api/v1/public/poetry/poems/vip', $this->h)->assertOk();
+        $show = $res->json('data');
+        $this->assertTrue($show['locked']);
+        $this->assertSame([], $show['stanzas']);
+        $this->assertCacheVaries($res, fullAccess: false);
+
+        $media = collect($this->getJson('/api/v1/public/poetry/media', $this->h)->assertOk()->json('data'))->keyBy('title');
+        $this->assertTrue($media['ویدیو ویژه']['locked']);
+        $this->assertNull($media['ویدیو ویژه']['url']);
+
+        $this->getJson('/api/v1/public/poetry/poems/vip/text', $this->h)->assertForbidden()->assertJsonPath('data.code', 'premium_required');
+        $this->getJson('/api/v1/public/poetry/books/vip-book', $this->h)->assertOk()->assertJsonPath('data.locked', true);
+        $highlights = collect($this->getJson('/api/v1/public/poetry/highlights', $this->h)->assertOk()->json('data'))->keyBy('title');
+        $this->assertTrue($highlights['هایلایت ویژه']['locked']);
+        $this->assertNull($highlights['هایلایت ویژه']['url']);
+    }
+
+    public function test_premium_member_via_bearer_sees_poetry_unlocked(): void
+    {
+        $this->seedLockedPoetry();
+        app(MembershipService::class)->grant($this->customer, 1, 'month');
+        $token = $this->customer->fresh()->createToken('spa')->plainTextToken;
+
+        $res = $this->withToken($token)->getJson('/api/v1/public/poetry/poems/vip', $this->h)->assertOk();
+        $show = $res->json('data');
+        $this->assertFalse($show['locked']);
+        $this->assertSame(['سه', 'چهار'], $show['stanzas'][0]['lines']);
+        $this->assertCacheVaries($res, fullAccess: true);
+
+        $media = collect($this->withToken($token)->getJson('/api/v1/public/poetry/media', $this->h)->json('data'))->keyBy('title');
+        $this->assertFalse($media['ویدیو ویژه']['locked']);
+        $this->assertSame('/storage/v.mp4', $media['ویدیو ویژه']['url']);
+        $this->withToken($token)->getJson('/api/v1/public/poetry/poems/vip/text', $this->h)->assertOk();
+        $this->withToken($token)->getJson('/api/v1/public/poetry/books/vip-book', $this->h)->assertOk()->assertJsonPath('data.locked', false);
+        $highlights = collect($this->withToken($token)->getJson('/api/v1/public/poetry/highlights', $this->h)->json('data'))->keyBy('title');
+        $this->assertFalse($highlights['هایلایت ویژه']['locked']);
+        $this->assertSame('/storage/h.jpg', $highlights['هایلایت ویژه']['url']);
+    }
+
+    public function test_premium_member_via_auth_cookie_sees_poetry_unlocked(): void
+    {
+        $this->seedLockedPoetry();
+        app(MembershipService::class)->grant($this->customer, 1, 'month');
+        $token = $this->customer->fresh()->createToken('spa')->plainTextToken;
+
+        $res = $this->withCredentials()
+            ->withUnencryptedCookie(config('auth.cookie_name', 'webino_auth_token'), $token)
+            ->getJson('/api/v1/public/poetry/poems/vip', $this->h)->assertOk();
+        $show = $res->json('data');
+        $this->assertFalse($show['locked']);
+        $this->assertSame(['سه', 'چهار'], $show['stanzas'][0]['lines']);
+        $this->assertCacheVaries($res, fullAccess: true);
+
+        $media = collect($this->withCredentials()->withUnencryptedCookie(config('auth.cookie_name', 'webino_auth_token'), $token)
+            ->getJson('/api/v1/public/poetry/media', $this->h)->json('data'))->keyBy('title');
+        $this->assertFalse($media['ویدیو ویژه']['locked']);
+        $this->assertSame('/storage/v.mp4', $media['ویدیو ویژه']['url']);
+        $this->withCredentials()->withUnencryptedCookie(config('auth.cookie_name', 'webino_auth_token'), $token)
+            ->getJson('/api/v1/public/poetry/poems/vip/text', $this->h)->assertOk();
+        $this->withCredentials()->withUnencryptedCookie(config('auth.cookie_name', 'webino_auth_token'), $token)
+            ->getJson('/api/v1/public/poetry/books/vip-book', $this->h)->assertOk()->assertJsonPath('data.locked', false);
+        $highlights = collect($this->withCredentials()->withUnencryptedCookie(config('auth.cookie_name', 'webino_auth_token'), $token)
+            ->getJson('/api/v1/public/poetry/highlights', $this->h)->json('data'))->keyBy('title');
+        $this->assertFalse($highlights['هایلایت ویژه']['locked']);
+        $this->assertSame('/storage/h.jpg', $highlights['هایلایت ویژه']['url']);
+    }
+
+    public function test_non_premium_logged_in_user_sees_poetry_locked(): void
+    {
+        $this->seedLockedPoetry();
+        $regular = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => 'customer']);
+        $token = $regular->createToken('spa')->plainTextToken;
+
+        $res = $this->withToken($token)->getJson('/api/v1/public/poetry/poems/vip', $this->h)
+            ->assertOk()->assertJsonPath('data.locked', true)->assertJsonPath('data.stanzas', []);
+        $this->assertCacheVaries($res, fullAccess: false);
+        $this->withToken($token)->getJson('/api/v1/public/poetry/poems/vip/text', $this->h)->assertForbidden();
+
+        $this->flushHeaders();
+        $this->withCredentials()->withUnencryptedCookie(config('auth.cookie_name', 'webino_auth_token'), $token)
+            ->getJson('/api/v1/public/poetry/poems/vip', $this->h)
+            ->assertOk()->assertJsonPath('data.locked', true);
+        $media = collect($this->withCredentials()->withUnencryptedCookie(config('auth.cookie_name', 'webino_auth_token'), $token)
+            ->getJson('/api/v1/public/poetry/media', $this->h)->json('data'))->keyBy('title');
+        $this->assertTrue($media['ویدیو ویژه']['locked']);
+        $this->assertNull($media['ویدیو ویژه']['url']);
+    }
+
+    protected function seedLockedPoetry(): void
+    {
+        $vip = PoetryPoem::query()->create(['slug' => 'vip', 'title' => 'ویژه', 'excerpt' => 'رمز', 'status' => 'published', 'is_premium' => true]);
+        $vip->stanzas()->create(['position' => 0, 'type' => 'stanza', 'lines' => ['سه', 'چهار']]);
+        PoetryMedia::query()->create(['title' => 'ویدیو ویژه', 'kind' => 'video', 'file_url' => '/storage/v.mp4', 'is_premium' => true]);
+        PoetryBook::query()->create(['slug' => 'vip-book', 'title' => 'کتاب ویژه', 'status' => 'published', 'is_premium' => true]);
+        PoetryHighlight::query()->create(['title' => 'هایلایت ویژه', 'kind' => 'image', 'file_url' => '/storage/h.jpg', 'is_premium' => true, 'status' => 'published']);
+    }
+
+    protected function assertCacheVaries(TestResponse $res, bool $fullAccess): void
+    {
+        $vary = strtolower((string) $res->headers->get('Vary'));
+        $this->assertStringContainsString('authorization', $vary);
+        $this->assertStringContainsString('cookie', $vary);
+        $this->assertStringContainsString('x-tenant-domain', $vary);
+        $cache = strtolower((string) $res->headers->get('Cache-Control'));
+        $this->assertStringContainsString('private', $cache);
+        if ($fullAccess) {
+            $this->assertStringContainsString('no-store', $cache);
+        } else {
+            $this->assertStringContainsString('no-cache', $cache);
+        }
     }
 }
