@@ -5,9 +5,10 @@ namespace App\Support;
 /**
  * Unified Iranian / display currency math.
  *
- * Canonical storage for ERP shop & payment settlement: integer IRR (rial).
- * Display unit is chosen in settings (IRT/IRR/IRHT/USD/EUR/GBP) and must
- * never be sent blindly to Iranian PSPs — use {@see toGatewayRial()}.
+ * Store amounts (products, orders, plans, gift cards, shipping, coupons)
+ * are in the store display currency (default IRT / toman). IRR is only the
+ * settlement unit for gateways whose API requires rials — convert exactly
+ * once with {@see toGatewayApiAmount()} / {@see toGatewayRial()}.
  *
  * Iranian fixed factors (parity with Dashboard + wfcp/basalam):
  *   IRR=1, IRT/تومان=10, IRHR=1000, IRHT/هزارتومان=10000
@@ -153,12 +154,89 @@ final class Currency
     }
 
     /**
-     * Amount Iranian PSPs expect (Zarinpal/IDPay/Digipay/SnappPay docs: IRR rials).
-     * Always returns integer rials ≥ 1 when $amount > 0.
+     * Convert a store-currency amount into integer rials.
+     * Null / empty $fromCurrency is treated as IRT (store default), never IRR.
      */
     public static function toGatewayRial(float|int $amount, ?string $fromCurrency, ?float $fxRialPerUnit = null): int
     {
-        return max(0, self::toRialInt($amount, $fromCurrency ?? self::BASE, $fxRialPerUnit));
+        return max(0, self::toRialInt($amount, $fromCurrency ?? 'IRT', $fxRialPerUnit));
+    }
+
+    /**
+     * Unit each Iranian (or dual) PSP API expects.
+     * IRT_OR_IRR: send IRT when the store is toman-based so the PSP page stays in toman.
+     *
+     * @var array<string, 'IRR'|'IRT'|'IRT_OR_IRR'>
+     */
+    public const API_UNITS = [
+        'zibal' => 'IRR',
+        'idpay' => 'IRR',
+        'payir' => 'IRR',
+        'sadad' => 'IRR',
+        'mellat' => 'IRR',
+        'saman' => 'IRR',
+        'parsian' => 'IRR',
+        'pasargad' => 'IRR',
+        'irankish' => 'IRR',
+        'sepehr' => 'IRR',
+        'saderat' => 'IRR',
+        'samankish' => 'IRR',
+        'omidpay' => 'IRR',
+        'paystar' => 'IRR',
+        'vandar' => 'IRR',
+        'shepa' => 'IRR',
+        'payfa' => 'IRR',
+        'zarinplus' => 'IRR',
+        'jibit' => 'IRR',
+        'tara' => 'IRR',
+        'toman' => 'IRR',
+        'digipay' => 'IRR',
+        'snapppay' => 'IRR',
+        'torobpay' => 'IRR',
+        'bale_pay' => 'IRR',
+        'asanpardakht' => 'IRR',
+        'nextpay' => 'IRT',
+        'payping' => 'IRT',
+        'aghayepardakht' => 'IRT',
+        'bitpay' => 'IRT',
+        'easypay' => 'IRT',
+        'parspal' => 'IRT',
+        'iran_wallet' => 'IRT',
+        'zarinpal' => 'IRT_OR_IRR',
+    ];
+
+    /** API unit for $provider: IRR or IRT. Dual gateways follow the store currency. */
+    public static function apiUnitFor(string $provider, ?string $storeCurrency = 'IRT'): string
+    {
+        $unit = self::API_UNITS[str_replace('-', '_', strtolower($provider))] ?? 'IRR';
+        if ($unit === 'IRT_OR_IRR') {
+            return self::isToman($storeCurrency) ? 'IRT' : 'IRR';
+        }
+
+        return $unit;
+    }
+
+    /** Convert already-settled rials into the unit a gateway API wants. */
+    public static function fromRialToGateway(int $rial, string $gatewayUnit): int
+    {
+        $unit = strtoupper($gatewayUnit);
+        if (in_array($unit, ['IRT', 'TOMAN'], true)) {
+            return max(0, (int) round($rial / 10));
+        }
+
+        return max(0, $rial);
+    }
+
+    /**
+     * Convert a store-currency amount to the unit $provider's API expects.
+     * Multiplies by 10 only for IRR APIs when the store is toman-based.
+     */
+    public static function toGatewayApiAmount(float|int $amount, ?string $storeCurrency, string $provider, ?float $fxRialPerUnit = null): int
+    {
+        $rial = self::toGatewayRial($amount, $storeCurrency, $fxRialPerUnit);
+        $unit = self::apiUnitFor($provider, $storeCurrency);
+
+        return self::fromRialToGateway($rial, $unit);
     }
 
     public static function label(?string $currency, string $locale = 'fa'): string

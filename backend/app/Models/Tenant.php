@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tenant extends Model
 {
+    protected $attributes = [
+        'default_currency' => 'IRT',
+        'default_locale' => 'fa',
+    ];
+
     protected $fillable = [
         'name',
         'slug',

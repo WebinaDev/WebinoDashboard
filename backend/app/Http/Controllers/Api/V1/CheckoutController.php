@@ -361,7 +361,7 @@ class CheckoutController extends Controller
                 'shipping_minor' => $shippingMinor,
                 'tax_minor' => $tax['tax_minor'],
                 'total_minor' => max(0, $subtotal - $discount + $shippingMinor + $tax['added_minor']),
-                'currency' => $lines->first()->product->currency,
+                'currency' => \App\Services\Shop\StoreCurrency::code((int) $request->user()->tenant_id),
                 'shipping_address' => $shippingAddress,
                 'customer_phone' => $checkoutMeta['customer_phone'] ?? null,
                 'customer_note' => $checkoutMeta['customer_note'] ?? null,

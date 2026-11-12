@@ -341,7 +341,7 @@ class PublicGuestCartController extends Controller
                     'shipping_minor' => $quote['fees_minor'],
                     'tax_minor' => $quote['tax_minor'],
                     'total_minor' => $quote['grand_total_minor'],
-                    'currency' => $lines->first()->product->currency,
+                    'currency' => \App\Services\Shop\StoreCurrency::code($tid),
                     'customer_name' => $meta['customer_name'] ?? null,
                     'customer_phone' => $phone,
                     'customer_note' => $meta['customer_note'] ?? null,

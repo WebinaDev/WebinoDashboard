@@ -133,7 +133,7 @@ function menuRowsFrom(json: unknown, count: number): MenuRow[] {
     price: "",
     priceMinor: Number(p.discounted_price_minor) || Number(p.price_minor) || 0,
     originalMinor: Number(p.discounted_price_minor) > 0 && Number(p.price_minor) > Number(p.discounted_price_minor) ? Number(p.price_minor) : 0,
-    currency: String(p.currency || "IRR"),
+    currency: String(p.currency || "IRT"),
     desc: String(p.short_description || p.description || ""),
     category: String(p.category?.name || ""),
     image: String(p.image_url || ""),

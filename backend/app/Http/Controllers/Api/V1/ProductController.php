@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductTag;
 use App\Services\Pricing\PricingCalculator;
+use App\Services\Shop\StoreCurrency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -610,7 +611,7 @@ class ProductController extends Controller
         }
 
         if (! $partial) {
-            $out['currency'] = $out['currency'] ?? 'IRR';
+            $out['currency'] = $out['currency'] ?? StoreCurrency::code($tid);
             $out['stock'] = $out['stock'] ?? 0;
             $out['price_minor'] = $out['price_minor'] ?? 0;
             $out['is_available'] = $out['is_available'] ?? true;

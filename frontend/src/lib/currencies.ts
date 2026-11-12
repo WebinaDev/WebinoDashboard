@@ -37,7 +37,7 @@ export const CURRENCY_SYMBOL_FILES: Record<CurrencySymbolId, string> = {
 export const TOMAN_SYMBOLS: CurrencySymbolId[] = ["default", "toman-1", "toman-2"]
 export const RIAL_SYMBOLS: CurrencySymbolId[] = ["rial-1", "rial-2"]
 
-export const DEFAULT_CURRENCY_SYMBOL: CurrencySymbolId = "default"
+export const DEFAULT_CURRENCY_SYMBOL: CurrencySymbolId = "toman-1"
 
 /** Iranian currency → rial factors (same table as backend App\Support\Currency). */
 export const RIAL_FACTORS: Record<string, number> = {
@@ -132,10 +132,10 @@ export const fromRial = (rial: number, code: string | null | undefined, fxRialPe
 /** Amount Iranian gateways expect (IRR rials). */
 export function toGatewayRial(
   amount: number,
-  fromCurrency: string | null | undefined = BASE_CURRENCY,
+  fromCurrency: string | null | undefined = DEFAULT_STORE_CURRENCY,
   fxRialPerUnit?: number | null
 ): number {
-  const code = normalizeStoreCurrency(fromCurrency ?? BASE_CURRENCY)
+  const code = normalizeStoreCurrency(fromCurrency ?? DEFAULT_STORE_CURRENCY)
   if (code === BASE_CURRENCY) return Math.max(0, Math.round(amount))
   return Math.max(0, Math.round(toRial(amount, code, fxRialPerUnit)))
 }

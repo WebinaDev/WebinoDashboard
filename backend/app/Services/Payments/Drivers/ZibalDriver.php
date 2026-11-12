@@ -2,6 +2,7 @@
 
 namespace App\Services\Payments\Drivers;
 
+use App\Support\Currency;
 use Illuminate\Support\Facades\Http;
 
 class ZibalDriver implements GatewayDriverInterface
@@ -22,8 +23,8 @@ class ZibalDriver implements GatewayDriverInterface
         if ($merchant === '') {
             return ['ok' => false, 'message' => 'کد پذیرنده زیبال خالی است.'];
         }
-        $currency = strtoupper((string) ($meta['currency'] ?? 'IRR'));
-        $amount = $currency === 'IRT' ? (int) max(1, round($amountRial / 10)) : $amountRial;
+        // Zibal docs: amount is always in rial. Do not divide when the store is IRT.
+        $amount = max(1, Currency::fromRialToGateway($amountRial, Currency::apiUnitFor('zibal')));
         $response = Http::timeout(30)->acceptJson()->asJson()->post('https://gateway.zibal.ir/v1/request', [
             'merchant' => $merchant,
             'amount' => $amount,
@@ -45,7 +46,7 @@ class ZibalDriver implements GatewayDriverInterface
             'meta' => [
                 'zibal_track_id' => $trackId,
                 'amount_rial' => $amountRial,
-                'currency' => $currency,
+                'currency' => 'IRR',
             ],
         ];
     }

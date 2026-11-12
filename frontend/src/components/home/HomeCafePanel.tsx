@@ -95,7 +95,7 @@ function StatTile({
 export function HomeCafePanel({ cafe, locale }: HomeCafePanelProps) {
   const t = useTranslations("home.cafe")
   const lng = normalizeUiLocale(locale)
-  const currency = cafe.currency || "IRR"
+  const currency = cafe.currency || "IRT"
 
   return (
     <section className="space-y-4">

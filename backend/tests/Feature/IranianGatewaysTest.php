@@ -275,4 +275,83 @@ class IranianGatewaysTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.payment.status', 'pending');
     }
+
+    public function test_toman_store_sends_rial_to_zibal_and_toman_to_zarinpal(): void
+    {
+        $gateways = app(PaymentGatewaySettingsService::class);
+        foreach (['zibal', 'zarinpal'] as $id) {
+            $gateways->setGatewayEnabled($this->tenant->id, $id, true);
+        }
+        $gateways->save($this->tenant->id, 'zibal', [
+            'merchant_id' => 'zibal-merchant',
+            'sandbox' => false,
+            'cash_enabled' => true,
+            'fee_percent' => 0,
+            'fee_payer' => 'merchant',
+        ]);
+        $gateways->save($this->tenant->id, 'zarinpal', [
+            'merchant_id' => 'merchant-1',
+            'sandbox' => true,
+            'cash_enabled' => true,
+            'fee_percent' => 0,
+            'fee_payer' => 'merchant',
+        ]);
+
+        // Reproduce alikhabari: amounts entered in toman, but product/order stamped IRR.
+        $product = Product::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Frame',
+            'slug' => 'frame',
+            'price_minor' => 10000,
+            'currency' => 'IRR',
+            'status' => 'publish',
+        ]);
+        $order = Order::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'status' => 'pending_payment',
+            'subtotal_minor' => 10000,
+            'shipping_minor' => 0,
+            'discount_minor' => 0,
+            'total_minor' => 10000,
+            'currency' => 'IRR',
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'product_name' => 'Frame',
+            'quantity' => 1,
+            'unit_price_minor' => 10000,
+        ]);
+
+        Http::fake([
+            'gateway.zibal.ir/v1/request' => Http::response(['result' => 100, 'trackId' => 'ZB-1']),
+            'sandbox.zarinpal.com/pg/v4/payment/request.json' => Http::response(['data' => ['code' => 100, 'authority' => 'AUTH-1']]),
+        ]);
+
+        $this->postJson('/api/v1/payments/intent', [
+            'order_id' => $order->id,
+            'provider' => 'zibal',
+            'mode' => 'cash',
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'gateway.zibal.ir/v1/request')
+                && (int) $request['amount'] === 100000;
+        });
+
+        $order->update(['status' => 'pending_payment']);
+
+        $this->postJson('/api/v1/payments/intent', [
+            'order_id' => $order->id,
+            'provider' => 'zarinpal',
+            'mode' => 'cash',
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'payment/request.json')
+                && (int) $request['amount'] === 10000
+                && ($request['currency'] ?? null) === 'IRT';
+        });
+    }
+
 }

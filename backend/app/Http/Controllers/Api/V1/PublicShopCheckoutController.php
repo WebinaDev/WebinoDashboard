@@ -281,7 +281,7 @@ class PublicShopCheckoutController extends Controller
                 'total_minor' => max(0, $subtotal - $discount + $shippingMinor + $tax['added_minor']),
                 'coupon_code' => $applied ? $applied['coupon']->code : null,
                 'coupon_id' => $applied ? $applied['coupon']->id : null,
-                'currency' => $lines->first()->product->currency ?? 'IRT',
+                'currency' => \App\Services\Shop\StoreCurrency::code($tid),
                 'shipping_address' => $shippingAddress,
                 'customer_phone' => $phone !== '' ? $phone : null,
                 'customer_name' => trim((string) ($data['recipient_name'] ?? '')) ?: null,

@@ -2,6 +2,7 @@
 
 namespace App\Services\Payments\Drivers;
 
+use App\Support\Currency;
 use Illuminate\Support\Facades\Http;
 
 class ZarinpalDriver implements GatewayDriverInterface
@@ -26,11 +27,8 @@ class ZarinpalDriver implements GatewayDriverInterface
         $requestUrl = $sandbox
             ? 'https://sandbox.zarinpal.com/pg/v4/payment/request.json'
             : 'https://payment.zarinpal.com/pg/v4/payment/request.json';
-        $currency = strtoupper((string) ($meta['currency'] ?? 'IRR'));
-        if (! in_array($currency, ['IRT', 'IRR'], true)) {
-            $currency = 'IRR';
-        }
-        $amount = $currency === 'IRT' ? (int) max(1, round($amountRial / 10)) : $amountRial;
+        $currency = Currency::apiUnitFor('zarinpal', (string) ($meta['currency'] ?? 'IRT'));
+        $amount = max(1, Currency::fromRialToGateway($amountRial, $currency));
         $response = Http::timeout(30)->acceptJson()->asJson()->post($requestUrl, [
             'merchant_id' => $merchantId,
             'amount' => $amount,
@@ -77,8 +75,8 @@ class ZarinpalDriver implements GatewayDriverInterface
         $verifyUrl = $sandbox
             ? 'https://sandbox.zarinpal.com/pg/v4/payment/verify.json'
             : 'https://payment.zarinpal.com/pg/v4/payment/verify.json';
-        $currency = strtoupper((string) ($intentMeta['currency'] ?? 'IRR'));
-        $amount = $currency === 'IRT' ? (int) max(1, round($amountRial / 10)) : $amountRial;
+        $currency = Currency::apiUnitFor('zarinpal', (string) ($intentMeta['currency'] ?? 'IRT'));
+        $amount = max(1, Currency::fromRialToGateway($amountRial, $currency));
         $authority = (string) ($callback['Authority'] ?? $callback['authority'] ?? $intentMeta['zarinpal_authority'] ?? '');
         $response = Http::timeout(30)->acceptJson()->asJson()->post($verifyUrl, [
             'merchant_id' => (string) ($config['merchant_id'] ?? ''),

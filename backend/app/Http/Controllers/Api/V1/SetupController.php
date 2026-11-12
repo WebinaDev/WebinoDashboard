@@ -132,7 +132,7 @@ class SetupController extends Controller
             return $id;
         }
 
-        return $code === 'IRR' ? 'rial-1' : 'default';
+        return $code === 'IRR' ? 'rial-1' : 'toman-1';
     }
 
     public function updateCrm(Request $request): \Illuminate\Http\JsonResponse

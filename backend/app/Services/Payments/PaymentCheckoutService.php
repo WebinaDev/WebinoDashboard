@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\PaymentIntent;
 use App\Models\Tenant;
 use App\Services\Marketplace\Basalam\BasalamPay;
+use App\Services\Shop\StoreCurrency;
 use App\Services\Payments\Drivers\GatewayDriverRegistry;
 use App\Services\Pricing\PurchaseTypeService;
 use Illuminate\Support\Facades\Http;
@@ -355,14 +356,8 @@ class PaymentCheckoutService
 
     protected function storeCurrencyCode(Order $order): string
     {
-        $code = Currency::normalize((string) ($order->currency ?: ''), 'IRT');
-        if (in_array($code, Currency::DISPLAY_CODES, true)) {
-            return $code;
-        }
-        $tenant = Tenant::query()->find($order->tenant_id);
-        $fromTenant = Currency::normalize((string) ($tenant?->default_currency ?? 'IRT'), 'IRT');
-
-        return in_array($fromTenant, Currency::DISPLAY_CODES, true) ? $fromTenant : 'IRT';
+        // Shop / tenant display currency, not the (often wrong) order/product stamp.
+        return StoreCurrency::code((int) $order->tenant_id);
     }
 
     /**
