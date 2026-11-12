@@ -113,11 +113,11 @@ class CafeCartFeesAndHoursTest extends TestCase
         // Dine-in: no packaging, 10% service.
         $dine = $this->getJson('/api/v1/public/cafe/cart?guest_token='.$token.'&fulfillment=dine_in', $this->h)->assertOk()->json('data.totals');
         $this->assertSame(0, $dine['packaging_minor']);
-        $this->assertSame(20000, $dine['service_minor']);
+        $this->assertSame(2000, $dine['service_minor']);
 
         // Pickup: packaging per item (2 x 5000), no service.
         $pickup = $this->getJson('/api/v1/public/cafe/cart?guest_token='.$token.'&fulfillment=pickup', $this->h)->assertOk()->json('data.totals');
-        $this->assertSame(10000, $pickup['packaging_minor']);
+        $this->assertSame(1000, $pickup['packaging_minor']);
         $this->assertSame(0, $pickup['service_minor']);
 
         $order = $this->postJson('/api/v1/public/cafe/checkout', [
@@ -126,8 +126,8 @@ class CafeCartFeesAndHoursTest extends TestCase
             'address' => 'تهران، خیابان ولیعصر، کوچه یاس', 'plaque' => '۱۲', 'lat' => 35.7, 'lng' => 51.4,
         ], $this->h)
             ->assertCreated()->json('data');
-        $this->assertSame(10000 + 20000, (int) $order['shipping_minor']);
-        $this->assertSame(200000 + 30000, (int) $order['total_minor']);
+        $this->assertSame(1000 + 2000, (int) $order['shipping_minor']);
+        $this->assertSame(20000 + 3000, (int) $order['total_minor']);
     }
 
     public function test_dashboard_todos_are_saved_per_user(): void

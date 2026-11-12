@@ -139,3 +139,18 @@ export function toGatewayRial(
   if (code === BASE_CURRENCY) return Math.max(0, Math.round(amount))
   return Math.max(0, Math.round(toRial(amount, code, fxRialPerUnit)))
 }
+
+/** Convert an amount from one store/row currency into another (IRT store shows IRR rows / 10). */
+export function convertAmount(
+  amount: number,
+  from: string | null | undefined,
+  to: string | null | undefined,
+  fxRialPerUnit?: number | null
+): number {
+  const dst = normalizeStoreCurrency(to)
+  // A missing stamp is already in the destination (store) unit — do not convert.
+  const src = from == null || String(from).trim() === "" ? dst : normalizeStoreCurrency(from)
+  if (!Number.isFinite(amount)) return 0
+  if (src === dst) return Math.round(amount)
+  return Math.round(fromRial(toRial(amount, src, fxRialPerUnit), dst, fxRialPerUnit))
+}

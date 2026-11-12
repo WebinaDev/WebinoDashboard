@@ -111,13 +111,19 @@ class GiftCardService
         if ((int) $card->balance_minor < 1) {
             throw ValidationException::withMessages(['gift_card_code' => 'موجودی این کارت هدیه تمام شده است.']);
         }
-        $applied = max(0, min((int) $card->balance_minor, $payableMinor));
+        $store = \App\Services\Shop\StoreCurrency::code($tenantId);
+        $cardCurrency = \App\Services\Shop\StoreCurrency::resolve($card->currency, $tenantId);
+        $balanceStore = \App\Support\Currency::convert((int) $card->balance_minor, $cardCurrency, $store);
+        if ($balanceStore < 1) {
+            throw ValidationException::withMessages(['gift_card_code' => 'موجودی این کارت هدیه تمام شده است.']);
+        }
+        $applied = max(0, min($balanceStore, $payableMinor));
 
         return [
             'card' => $card,
             'applied_minor' => $applied,
-            'balance_minor' => (int) $card->balance_minor,
-            'remaining_minor' => (int) $card->balance_minor - $applied,
+            'balance_minor' => $balanceStore,
+            'remaining_minor' => $balanceStore - $applied,
         ];
     }
 
@@ -135,7 +141,11 @@ class GiftCardService
             if (! $locked->isUsable()) {
                 throw ValidationException::withMessages(['gift_card_code' => 'این کارت هدیه قابل استفاده نیست.']);
             }
-            $take = max(0, min((int) $locked->balance_minor, $amountMinor));
+            $store = \App\Services\Shop\StoreCurrency::code((int) $locked->tenant_id);
+            $cardCurrency = \App\Services\Shop\StoreCurrency::resolve($locked->currency, (int) $locked->tenant_id);
+            $takeStore = max(0, min(\App\Support\Currency::convert((int) $locked->balance_minor, $cardCurrency, $store), $amountMinor));
+            $take = \App\Support\Currency::convert($takeStore, $store, $cardCurrency);
+            $take = max(0, min((int) $locked->balance_minor, $take));
             if ($take < 1) {
                 return 0;
             }
@@ -152,7 +162,7 @@ class GiftCardService
                 'note' => 'سفارش '.($order->number ?: $order->id),
             ]);
 
-            return $take;
+            return $takeStore;
         });
     }
 

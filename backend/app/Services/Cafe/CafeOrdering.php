@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductModifierOption;
 use App\Models\ProductVariant;
 use App\Services\Modules\ModuleSettingsService;
+use App\Services\Shop\StoreCurrency;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
@@ -150,6 +151,33 @@ class CafeOrdering
         ];
     }
 
+
+    /**
+     * Cafe menu fees are unstamped. Honor menu.currency when set; otherwise use the
+     * dominant published product stamp so IRR cafe catalogs (bluecafe etc.) keep
+     * delivery/packaging in the same unit as their items.
+     */
+    private function feeCurrency(int $tenantId): ?string
+    {
+        $menu = $this->menu($tenantId);
+        $explicit = strtoupper(trim((string) ($menu['currency'] ?? '')));
+        if ($explicit !== '') {
+            return $explicit;
+        }
+
+        $codes = Product::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'publish')
+            ->whereNotNull('currency')
+            ->where('currency', '!=', '')
+            ->select('currency')
+            ->groupBy('currency')
+            ->orderByRaw('count(*) desc')
+            ->pluck('currency');
+
+        return $codes->isNotEmpty() ? (string) $codes->first() : StoreCurrency::code($tenantId);
+    }
+
     /** Packaging + delivery + service fee, following the menu settings. */
     public function shippingMinor(int $tenantId, string $fulfillment, int $subtotal, int $itemCount = 1): int
     {
@@ -165,9 +193,10 @@ class CafeOrdering
     {
         $status = $this->publicStatus($tenantId);
 
+        $feeCurrency = $this->feeCurrency($tenantId);
         $packaging = 0;
         if (! empty($status['packaging_applies'][$fulfillment])) {
-            $packaging = (int) $status['packaging_fee_minor'];
+            $packaging = StoreCurrency::toStore((int) $status['packaging_fee_minor'], $feeCurrency, $tenantId);
             if ($status['packaging_fee_mode'] === 'per_item') {
                 $packaging *= max(0, $itemCount);
             }
@@ -175,8 +204,8 @@ class CafeOrdering
 
         $delivery = 0;
         if ($fulfillment === 'delivery') {
-            $threshold = (int) $status['free_delivery_threshold_minor'];
-            $delivery = ($threshold > 0 && $subtotal >= $threshold) ? 0 : (int) $status['delivery_fee_minor'];
+            $threshold = StoreCurrency::toStore((int) $status['free_delivery_threshold_minor'], $feeCurrency, $tenantId);
+            $delivery = ($threshold > 0 && $subtotal >= $threshold) ? 0 : StoreCurrency::toStore((int) $status['delivery_fee_minor'], $feeCurrency, $tenantId);
         }
 
         $service = 0;

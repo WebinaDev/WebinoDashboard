@@ -127,7 +127,11 @@ class CheckoutController extends Controller
                 if ($line->product_variant_id && ! $line->variant) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['cart' => 'cart_not_for_sale']);
                 }
-                $unit = $types->unitPrice($product, $purchaseType, $months, $line->variant);
+                $unit = \App\Services\Shop\StoreCurrency::toStore(
+                    $types->unitPrice($product, $purchaseType, $months, $line->variant),
+                    $product->currency,
+                    (int) $user->tenant_id
+                );
                 $unitPrices[$line->id] = $unit;
                 $subtotal += $line->quantity * $unit;
                 $linePayload[] = [
@@ -361,7 +365,7 @@ class CheckoutController extends Controller
                 'shipping_minor' => $shippingMinor,
                 'tax_minor' => $tax['tax_minor'],
                 'total_minor' => max(0, $subtotal - $discount + $shippingMinor + $tax['added_minor']),
-                'currency' => \App\Services\Shop\StoreCurrency::code((int) $request->user()->tenant_id),
+                'currency' => \App\Services\Shop\StoreCurrency::code((int) $user->tenant_id),
                 'shipping_address' => $shippingAddress,
                 'customer_phone' => $checkoutMeta['customer_phone'] ?? null,
                 'customer_note' => $checkoutMeta['customer_note'] ?? null,

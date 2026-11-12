@@ -131,8 +131,17 @@ class PurchaseTypeService
                 continue;
             }
             $variant = $line->product_variant_id ? $line->variant : null;
-            $unit = $this->unitPrice($line->product, $type, $months, $variant);
-            $regular = $line->product->regularPriceMinor($variant);
+            $tid = (int) ($line->product->tenant_id ?? 0);
+            $unit = \App\Services\Shop\StoreCurrency::toStore(
+                $this->unitPrice($line->product, $type, $months, $variant),
+                $line->product->currency,
+                $tid
+            );
+            $regular = \App\Services\Shop\StoreCurrency::toStore(
+                $line->product->regularPriceMinor($variant),
+                $line->product->currency,
+                $tid
+            );
             $subtotal += $unit * $line->quantity;
             $rows[] = [
                 'id' => $line->id,

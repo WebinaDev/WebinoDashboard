@@ -113,6 +113,7 @@ class PublicGuestCartController extends Controller
         }
 
         $priced = $ordering->priceLine($product, $data['option_ids'] ?? [], isset($data['variant_id']) ? (int) $data['variant_id'] : null);
+        $priced['unit_minor'] = \App\Services\Shop\StoreCurrency::toStore($priced['unit_minor'], $product->currency, $tid);
         $cart = $this->resolveCart($request, $data, true);
         $qty = $data['quantity'] ?? 1;
 
@@ -273,6 +274,11 @@ class PublicGuestCartController extends Controller
                         $line->product,
                         array_values(array_filter($optionIds)),
                         isset($stored['variant_id']) ? (int) $stored['variant_id'] : null
+                    );
+                    $priced['unit_minor'] = \App\Services\Shop\StoreCurrency::toStore(
+                        $priced['unit_minor'],
+                        $line->product->currency,
+                        $tid
                     );
                     $taxable = \App\Services\Orders\OrderTax::productTaxable($line->product);
                     $pricedLines[] = [$line, $priced, $taxable];

@@ -343,20 +343,23 @@ class PaymentCheckoutService
     protected function amountInRials(Order $order, ?int $chargeMinor = null): int
     {
         $minor = $chargeMinor ?? (int) $order->total_minor;
-        $currency = $this->storeCurrencyCode($order);
-        // Store amounts are in minor units of the store display currency.
-        // Iranian PSPs settle in IRR (rial) — never send display toman/hezar as rial.
+        // Order totals are snapshotted in order.currency (row stamp). Do not
+        // reinterpret them as the live store display currency.
+        $currency = $this->amountCurrency($order);
         try {
             return max(1, Currency::toGatewayRial($minor, $currency));
         } catch (\InvalidArgumentException) {
-            // Foreign display without FX: refuse silent wrong units; treat as IRT.
             return max(1, Currency::toGatewayRial($minor, 'IRT'));
         }
     }
 
+    protected function amountCurrency(Order $order): string
+    {
+        return StoreCurrency::resolve($order->currency, (int) $order->tenant_id);
+    }
+
     protected function storeCurrencyCode(Order $order): string
     {
-        // Shop / tenant display currency, not the (often wrong) order/product stamp.
         return StoreCurrency::code((int) $order->tenant_id);
     }
 
@@ -369,7 +372,7 @@ class PaymentCheckoutService
         foreach ($order->items ?? [] as $line) {
             $qty = max(1, (int) ($line->quantity ?? 1));
             $unit = (int) ($line->unit_price_minor ?? 0);
-            $currency = $this->storeCurrencyCode($order);
+            $currency = $this->amountCurrency($order);
             try {
                 $unitRial = Currency::toGatewayRial($unit, $currency);
             } catch (\InvalidArgumentException) {

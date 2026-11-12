@@ -1,3 +1,5 @@
+import { convertAmount, normalizeStoreCurrency } from "@/lib/currencies"
+
 export type ShopVariant = {
   id: number
   name: string
@@ -323,10 +325,16 @@ function mapAttributeRows(raw: unknown): Array<{ label: string; value: string; s
   return out
 }
 
-export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
+export function mapApiProduct(raw: ApiRecord, index: number, storeCurrency?: string | null): ShopProduct {
   const category = raw.category && typeof raw.category === "object" ? (raw.category as ApiRecord) : null
-  const price = num(raw.discounted_price_minor) || num(raw.price_minor)
-  const compare = num(raw.price_minor)
+  const display = raw.currency_display && typeof raw.currency_display === "object"
+    ? (raw.currency_display as ApiRecord).currency
+    : null
+  const store = normalizeStoreCurrency(storeCurrency ?? (typeof display === "string" ? display : null))
+  const from = normalizeStoreCurrency(typeof raw.currency === "string" && raw.currency ? raw.currency : store)
+  const toStore = (n: number) => convertAmount(n, from, store)
+  const price = toStore(num(raw.discounted_price_minor) || num(raw.price_minor))
+  const compare = toStore(num(raw.price_minor))
   // Only the decorative tone comes from the sample set; real fields never fall back to sample data.
   const sample = SAMPLE_PRODUCTS[index % SAMPLE_PRODUCTS.length]
   const brands = Array.isArray(raw.brands) ? raw.brands : []
@@ -340,7 +348,7 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
   if (cover && !images.includes(cover)) images.unshift(cover)
   const variants = (Array.isArray(raw.variants) ? raw.variants : [])
     .filter((item): item is ApiRecord => !!item && typeof item === "object")
-    .map(mapVariant)
+    .map((item) => mapVariant(item, store, from))
     .filter((item): item is ShopVariant => item !== null)
   const pricing = raw.pricing && typeof raw.pricing === "object" ? (raw.pricing as ApiRecord) : null
   const types = pricing?.types && typeof pricing.types === "object" ? (pricing.types as ApiRecord) : null
@@ -349,8 +357,8 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
         .filter((item): item is ApiRecord => !!item && typeof item === "object")
         .map((item) => ({
           months: num(item.months),
-          monthly: num(item.monthly_minor),
-          total: num(item.total_minor),
+          monthly: toStore(num(item.monthly_minor)),
+          total: toStore(num(item.total_minor)),
         }))
         .filter((item) => item.months > 0 && item.monthly > 0)
     : []
@@ -361,7 +369,7 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     name: str(raw.name),
     price,
     compare: compare > price ? compare : undefined,
-    cashPrice: types && num(types.cash) > 0 ? num(types.cash) : undefined,
+    cashPrice: types && num(types.cash) > 0 ? toStore(num(types.cash)) : undefined,
     tone: sample.tone,
     category: str(category?.name),
     categorySlug: str(category?.slug),
@@ -422,12 +430,13 @@ function mapVariantOptions(raw: unknown): Array<{ key: string; label: string; va
   return out
 }
 
-function mapVariant(raw: ApiRecord): ShopVariant | null {
+function mapVariant(raw: ApiRecord, storeCurrency: string = "IRT", fromCurrency?: string): ShopVariant | null {
   const id = num(raw.id)
   const name = str(raw.name)
   if (!id || !name) return null
-  const price = num(raw.sale_price_minor) || num(raw.price_minor)
-  const compare = num(raw.price_minor)
+  const from = fromCurrency || storeCurrency
+  const price = convertAmount(num(raw.sale_price_minor) || num(raw.price_minor), from, storeCurrency)
+  const compare = convertAmount(num(raw.price_minor), from, storeCurrency)
   const stock = raw.stock == null ? null : num(raw.stock)
   const status = str(raw.stock_status)
   const inStock = status !== "outofstock" && (stock == null || stock > 0 || raw.manage_stock === false)

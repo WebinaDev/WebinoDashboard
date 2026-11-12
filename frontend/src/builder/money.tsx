@@ -7,11 +7,13 @@ import { createContext, createElement, useContext, useEffect, useState, type Rea
 import { CurrencyMark } from "@/components/CurrencyMark"
 import {
   currencyLabel,
+  convertAmount,
   normalizeCurrencySymbol,
   normalizeStoreCurrency,
-  rialFactor,
   type StoreCurrencyCode,
 } from "@/lib/currencies"
+
+export { convertAmount }
 
 import { resolveBuilderCurrency, type BuilderCurrency, type PublicTenantCurrency } from "./currency-config"
 
@@ -60,14 +62,6 @@ export function parseAmount(raw: string | number | null | undefined): number {
   const latin = raw.replace(/[۰-۹]/g, (d) => String(FA.indexOf(d))).replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
   const n = Number(latin.replace(/[^\d]/g, ""))
   return Number.isFinite(n) && n > 0 ? n : 0
-}
-
-/** Converts between Iranian units (IRR, IRT, ...) via RIAL_FACTORS; foreign codes pass through. */
-export function convertAmount(amount: number, from: string | null | undefined, to: string): number {
-  if (!from) return amount
-  const f = rialFactor(from)
-  const t = rialFactor(to)
-  return f === t ? amount : (amount * f) / t
 }
 
 export function formatAmountDigits(amount: number, thousandSeparator = ","): string {
@@ -119,13 +113,14 @@ export function BuilderPrice({
 }
 
 /** Sale price and the regular price it replaces, from any API product/line shape. */
-export function salePair(p: Record<string, unknown> | null | undefined): { amount: number; original: number } {
+export function salePair(p: Record<string, unknown> | null | undefined): { amount: number; original: number; from?: string } {
   if (!p) return { amount: 0, original: 0 }
   const num = (v: unknown) => parseAmount(v as string | number | null | undefined)
   const amount =
     num(p.unit_price_minor) || num(p.sale_price_minor) || num(p.discounted_price_minor) || num(p.final_price_minor) || num(p.price_minor) || num(p.price)
   const original = num(p.regular_price_minor) || num(p.compare_at_price_minor) || num(p.original_price_minor) || num(p.price_minor)
-  return { amount, original: original > amount ? original : 0 }
+  const from = typeof p.currency === "string" && p.currency.trim() ? p.currency : undefined
+  return { amount, original: original > amount ? original : 0, from }
 }
 
 /** `money(amount)` for JSX (glyph) and `money.text(amount)` for string-only slots. */

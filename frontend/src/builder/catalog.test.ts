@@ -39,3 +39,20 @@ test("mapApiBrand drops incomplete rows", () => {
   assert.equal(mapApiBrand({ name: "نورا" }), null)
   assert.deepEqual(mapApiBrand({ name: "نورا", slug: "nora" }), { name: "نورا", slug: "nora" })
 })
+
+test("mapApiProduct converts IRR row amounts into an IRT store", () => {
+  const product = mapApiProduct(
+    {
+      id: 1,
+      slug: "espresso",
+      name: "اسپرسو",
+      price_minor: 850000,
+      currency: "IRR",
+      currency_display: { currency: "IRT" },
+      is_available: true,
+    },
+    0,
+    "IRT",
+  )
+  assert.equal(product.price, 85000)
+})

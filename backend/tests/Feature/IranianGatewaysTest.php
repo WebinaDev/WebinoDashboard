@@ -297,13 +297,13 @@ class IranianGatewaysTest extends TestCase
             'fee_payer' => 'merchant',
         ]);
 
-        // Reproduce alikhabari: amounts entered in toman, but product/order stamped IRR.
+        // Ali after relabel: IRT row on an IRT store. Zibal always wants rial; Zarinpal stays IRT.
         $product = Product::query()->create([
             'tenant_id' => $this->tenant->id,
             'name' => 'Frame',
             'slug' => 'frame',
             'price_minor' => 10000,
-            'currency' => 'IRR',
+            'currency' => 'IRT',
             'status' => 'publish',
         ]);
         $order = Order::query()->create([
@@ -314,7 +314,7 @@ class IranianGatewaysTest extends TestCase
             'shipping_minor' => 0,
             'discount_minor' => 0,
             'total_minor' => 10000,
-            'currency' => 'IRR',
+            'currency' => 'IRT',
         ]);
         $order->items()->create([
             'product_id' => $product->id,

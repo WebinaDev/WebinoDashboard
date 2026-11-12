@@ -228,13 +228,28 @@ final class Currency
     }
 
     /**
-     * Convert a store-currency amount to the unit $provider's API expects.
-     * Multiplies by 10 only for IRR APIs when the store is toman-based.
+     * Convert $amount in $fromCurrency into $toCurrency (Iranian units, or FX when given).
      */
-    public static function toGatewayApiAmount(float|int $amount, ?string $storeCurrency, string $provider, ?float $fxRialPerUnit = null): int
+    public static function convert(float|int $amount, ?string $fromCurrency, ?string $toCurrency, ?float $fxRialPerUnit = null): int
     {
-        $rial = self::toGatewayRial($amount, $storeCurrency, $fxRialPerUnit);
-        $unit = self::apiUnitFor($provider, $storeCurrency);
+        $from = self::normalize($fromCurrency ?? 'IRT', 'IRT');
+        $to = self::normalize($toCurrency ?? 'IRT', 'IRT');
+        if ($from === $to) {
+            return (int) round((float) $amount);
+        }
+
+        return (int) round(self::fromRial(self::toRial($amount, $from, $fxRialPerUnit), $to, $fxRialPerUnit));
+    }
+
+    /**
+     * Convert an amount in $amountCurrency to the unit $provider's API expects.
+     * Dual gateways (Zarinpal) follow $storeCurrency so the PSP page stays in toman
+     * on IRT stores even when the row itself is stamped IRR.
+     */
+    public static function toGatewayApiAmount(float|int $amount, ?string $amountCurrency, string $provider, ?string $storeCurrency = null, ?float $fxRialPerUnit = null): int
+    {
+        $rial = self::toGatewayRial($amount, $amountCurrency, $fxRialPerUnit);
+        $unit = self::apiUnitFor($provider, $storeCurrency ?? $amountCurrency);
 
         return self::fromRialToGateway($rial, $unit);
     }

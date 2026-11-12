@@ -1,4 +1,5 @@
 import { formatShopPrice, type ShopCurrencyDisplay } from "@/lib/format"
+import { convertAmount, normalizeStoreCurrency } from "@/lib/currencies"
 import { toLocaleDigits } from "@/lib/locale"
 
 export type ViewMode = "grid" | "list" | "cover"
@@ -9,8 +10,8 @@ const CURRENCY_WORDS: Record<string, { fa: string; en: string }> = {
 }
 
 /**
- * Menu price. `price_minor` is stored in Rial; Toman shops show amount / 10. Iranian currencies print as a word after the
- * number ("۸۵,۰۰۰ تومان") instead of the raw ISO code the generic shop formatter emits.
+ * Menu price. Amounts are interpreted in the row currency (`currency`) and shown in the shop display unit.
+ * An IRT store shows an 850,000 IRR espresso as 85,000 تومان; an IRT row is left as-is.
  */
 export function money(
   amount: number,
@@ -18,15 +19,13 @@ export function money(
   display: ShopCurrencyDisplay | null | undefined,
   locale: string,
 ) {
-  // Product rows carry the storage unit (IRR by default); the shop display setting decides Toman vs Rial, Toman when unset.
-  const stored = (currency || "").toUpperCase()
-  const code = (display?.currency || (!stored || CURRENCY_WORDS[stored] ? "IRT" : stored)).toUpperCase()
+  const code = normalizeStoreCurrency(display?.currency || "IRT")
+  const major = convertAmount(amount, currency, code)
   const lang = locale === "fa" ? "fa" : "en"
   const word = CURRENCY_WORDS[code]
   if (!word) {
-    return toLocaleDigits(formatShopPrice(amount / 10, { ...display, currency: code }, code), lang)
+    return toLocaleDigits(formatShopPrice(major, { ...display, currency: code }, code), lang)
   }
-  const major = code === "IRR" ? amount : amount / 10
   const grouped = Math.round(major)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, display?.thousand_separator ?? ",")

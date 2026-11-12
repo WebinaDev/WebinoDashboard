@@ -43,4 +43,33 @@ class CurrencyGatewayAmountTest extends TestCase
         $this->assertSame(10000, Currency::toGatewayApiAmount(10000, 'IRR', 'zarinpal'));
         $this->assertSame(1000, Currency::toGatewayApiAmount(10000, 'IRR', 'nextpay'));
     }
+
+    public function test_irr_row_on_irt_store_is_not_multiplied_again(): void
+    {
+        // bluecafe: 850,000 IRR espresso on an IRT store.
+        $this->assertSame(85000, Currency::convert(850000, 'IRR', 'IRT'));
+        $this->assertSame(850000, Currency::toGatewayApiAmount(850000, 'IRR', 'zibal', 'IRT'));
+        $this->assertSame(85000, Currency::toGatewayApiAmount(850000, 'IRR', 'zarinpal', 'IRT'));
+        $this->assertSame(850000, Currency::toGatewayApiAmount(850000, 'IRR', 'idpay', 'IRT'));
+        $this->assertSame(85000, Currency::toGatewayApiAmount(850000, 'IRR', 'nextpay', 'IRT'));
+    }
+
+    public function test_mixed_irr_and_irt_rows_sum_in_canonical_rial(): void
+    {
+        // mars-style mixed cart: 850,000 IRR + 10,000 IRT.
+        $rial = Currency::toGatewayRial(850000, 'IRR') + Currency::toGatewayRial(10000, 'IRT');
+        $this->assertSame(950000, $rial);
+        $this->assertSame(95000, Currency::convert(850000, 'IRR', 'IRT') + Currency::convert(10000, 'IRT', 'IRT'));
+        $this->assertSame(950000, Currency::toGatewayApiAmount(95000, 'IRT', 'zibal', 'IRT'));
+        $this->assertSame(95000, Currency::toGatewayApiAmount(95000, 'IRT', 'zarinpal', 'IRT'));
+    }
+
+    public function test_erp_rial_storage_on_irt_display(): void
+    {
+        // webina.dev: 39,000,000 IRR stored, show 3,900,000 toman, charge 39,000,000 rial.
+        $this->assertSame(3900000, Currency::convert(39000000, 'IRR', 'IRT'));
+        $this->assertSame(39000000, Currency::toGatewayApiAmount(39000000, 'IRR', 'zibal', 'IRT'));
+        $this->assertSame(3900000, Currency::toGatewayApiAmount(39000000, 'IRR', 'zarinpal', 'IRT'));
+    }
+
 }

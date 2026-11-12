@@ -44,8 +44,10 @@ class CheckoutQuote
                 continue;
             }
             $variant = $line->product_variant_id ? $line->variant : null;
-            $unit = $types->unitPrice($line->product, $type, $months, $variant);
-            $regular = max($unit, $line->product->regularPriceMinor($variant));
+            $rawUnit = $types->unitPrice($line->product, $type, $months, $variant);
+            $rawRegular = max($rawUnit, $line->product->regularPriceMinor($variant));
+            $unit = \App\Services\Shop\StoreCurrency::toStore($rawUnit, $line->product->currency, $tenantId);
+            $regular = \App\Services\Shop\StoreCurrency::toStore($rawRegular, $line->product->currency, $tenantId);
             $subtotal += $unit * $line->quantity;
             $regularTotal += $regular * $line->quantity;
             $payload[] = ['product_id' => $line->product_id, 'product_variant_id' => $line->product_variant_id, 'unit_price_minor' => $unit, 'quantity' => $line->quantity];
@@ -142,7 +144,7 @@ class CheckoutQuote
             'purchase_type' => $type,
             'installment_months' => $months,
             'single_price' => ! $types->active(),
-            'currency' => $lines->first()?->product?->currency ?? 'IRT',
+            'currency' => \App\Services\Shop\StoreCurrency::code($tenantId),
             'lines' => $rows,
             'items_count' => array_sum(array_column($rows, 'quantity')),
             'regular_subtotal_minor' => $regularTotal,

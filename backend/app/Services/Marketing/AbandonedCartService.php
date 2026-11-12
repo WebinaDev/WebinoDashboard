@@ -253,7 +253,9 @@ final class AbandonedCartService
                 'user' => $c->user_id ? User::query()->whereKey($c->user_id)->first(['id', 'name', 'phone']) : null,
                 'channel' => ! empty($c->meta['bot_provider']) ? $c->meta['bot_provider'] : 'site',
                 'items' => $lines->count(),
-                'subtotal_minor' => (int) $lines->sum(fn ($l) => $l->product->storefrontPriceMinor() * $l->quantity),
+                'subtotal_minor' => (int) $lines->sum(fn ($l) => $l->product
+                    ? \App\Services\Shop\StoreCurrency::toStore($l->product->storefrontPriceMinor(), $l->product->currency, (int) $l->product->tenant_id) * $l->quantity
+                    : 0),
                 'last_activity' => self::lastActivity($c)?->toIso8601String(),
                 'recovery_stage' => (int) ($c->meta['recovery_stage'] ?? 0),
                 'recovery_last_at' => $c->meta['recovery_last_at'] ?? null,

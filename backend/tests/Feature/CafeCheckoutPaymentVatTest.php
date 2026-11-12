@@ -115,7 +115,7 @@ class CafeCheckoutPaymentVatTest extends TestCase
 
         $this->assertSame($first['id'], $second['id']);
         $this->assertSame(1, Order::query()->where('tenant_id', $this->tenant->id)->count());
-        $this->assertSame(240000, (int) $first['subtotal_minor']);
+        $this->assertSame(24000, (int) $first['subtotal_minor']);
     }
 
     public function test_delivery_zone_is_enforced(): void
@@ -136,7 +136,10 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->add($p, 'tok-gw-1');
 
         $methods = $this->getJson('/api/v1/public/cafe/venue', $this->h)->assertOk()->json('data.ordering.payment_methods');
-        $this->assertSame(['cash'], array_column($methods, 'id'));
+        $ids = array_column($methods, 'id');
+        $this->assertContains('cash', $ids);
+        $this->assertNotContains('zarinpal', $ids);
+
 
         $this->postJson('/api/v1/public/cafe/checkout', $this->delivery('tok-gw-1', ['payment_method' => 'zarinpal']), $this->h)
             ->assertStatus(422)->assertJsonValidationErrors(['payment_method']);
@@ -188,23 +191,23 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->add($water, $token);
 
         $totals = $this->getJson('/api/v1/public/cafe/cart?guest_token='.$token.'&fulfillment=dine_in', $this->h)->assertOk()->json('data.totals');
-        $this->assertSame(10000, $totals['tax_minor']);
+        $this->assertSame(1000, $totals['tax_minor']);
         $this->assertTrue($totals['show_vat']);
-        $this->assertSame(170000 + 10000, $totals['grand_total_minor']);
+        $this->assertSame(17000 + 1000, $totals['grand_total_minor']);
 
         $order = $this->postJson('/api/v1/public/cafe/checkout', [
             'guest_token' => $token, 'fulfillment' => 'dine_in', 'table_number' => '5', 'payment_method' => 'cash', 'idempotency_key' => 'vat-key-123',
         ], $this->h)->assertCreated()->json('data');
-        $this->assertSame(10000, (int) $order['tax_minor']);
-        $this->assertSame(180000, (int) $order['total_minor']);
+        $this->assertSame(1000, (int) $order['tax_minor']);
+        $this->assertSame(18000, (int) $order['total_minor']);
         $this->assertSame(10.0, (float) $order['vat']['rate']);
 
         // Inclusive prices: VAT is extracted, total unchanged.
         ShopSettings::saveTax($this->tenant->id, ['enabled' => true, 'rate_percent' => 10, 'prices_include_tax' => true]);
         $this->add($coffee, 'tok-vat-2');
         $inc = $this->getJson('/api/v1/public/cafe/cart?guest_token=tok-vat-2', $this->h)->json('data.totals');
-        $this->assertSame(9091, $inc['tax_minor']);
-        $this->assertSame(100000, $inc['grand_total_minor']);
+        $this->assertSame(909, $inc['tax_minor']);
+        $this->assertSame(10000, $inc['grand_total_minor']);
     }
 
     private function hours(array $days, array $closed = []): void
@@ -263,7 +266,7 @@ class CafeCheckoutPaymentVatTest extends TestCase
         $this->add($coffee, 'tok-hide-vat');
         $totals = $this->getJson('/api/v1/public/cafe/cart?guest_token=tok-hide-vat&fulfillment=dine_in', $this->h)->assertOk()->json('data.totals');
         $this->assertFalse($totals['show_vat']);
-        $this->assertSame(10000, $totals['tax_minor']);
+        $this->assertSame(1000, $totals['tax_minor']);
 
         $order = $this->postJson('/api/v1/public/cafe/checkout', [
             'guest_token' => 'tok-hide-vat', 'fulfillment' => 'dine_in', 'table_number' => '2', 'payment_method' => 'cash', 'idempotency_key' => 'hide-vat-key-1',

@@ -92,14 +92,15 @@ type CatalogPayload = {
   archive?: ShopArchiveSettings | null
 }
 
-export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; facets?: CatalogFacets | null; archive?: ShopArchiveSettings | null; pagination?: { total?: number } } } | null): CatalogPayload | null {
+export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; facets?: CatalogFacets | null; archive?: ShopArchiveSettings | null; pagination?: { total?: number }; currency_display?: { currency?: string | null } | null } } | null): CatalogPayload | null {
       if (!json?.data) return null
       const items = Array.isArray(json.data.items) ? json.data.items : []
       const categories = Array.isArray(json.data.categories) ? json.data.categories : []
       const brands = Array.isArray(json.data.brands) ? json.data.brands : []
+      const storeCurrency = json.data.currency_display?.currency
       const products = items
         .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
-        .map((item, index) => mapApiProduct(item, index))
+        .map((item, index) => mapApiProduct(item, index, storeCurrency))
       const mappedCategories = categories
         .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
         .map((item, index) => mapApiCategory(item, index))

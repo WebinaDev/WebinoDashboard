@@ -79,7 +79,11 @@ class PublicShopCheckoutController extends Controller
         if ($lines !== null && $subtotal <= 0) {
             $subtotal = 0;
             foreach ($lines as $line) {
-                $subtotal += $line->product->storefrontPriceMinor($line->variant) * (int) $line->quantity;
+                $subtotal += \App\Services\Shop\StoreCurrency::toStore(
+                    $line->product->storefrontPriceMinor($line->variant),
+                    $line->product->currency,
+                    $tid
+                ) * (int) $line->quantity;
             }
         }
         $rates = $this->shipping->quote(
@@ -160,7 +164,11 @@ class PublicShopCheckoutController extends Controller
                 if ($line->product_variant_id && ! $line->variant) {
                     throw ValidationException::withMessages(['cart' => 'cart_not_for_sale']);
                 }
-                $unit = $types->unitPrice($product, $purchaseType, $months, $line->variant);
+                $unit = \App\Services\Shop\StoreCurrency::toStore(
+                    $types->unitPrice($product, $purchaseType, $months, $line->variant),
+                    $product->currency,
+                    $tid
+                );
                 $unitPrices[$line->id] = $unit;
                 $subtotal += $line->quantity * $unit;
                 $linePayload[] = ['product_id' => $line->product_id, 'product_variant_id' => $line->product_variant_id, 'unit_price_minor' => $unit, 'quantity' => $line->quantity];
