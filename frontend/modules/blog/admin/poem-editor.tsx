@@ -404,6 +404,7 @@ export function PoemEditor({ initial, terms, onDone, onError, save }: Props) {
                 ["is_new", "flag_is_new"],
                 ["not_performed", "flag_not_performed"],
                 ["rewritten", "flag_rewritten"],
+                ["is_short", "flag_is_short"],
               ] as const
             ).map(([key, labelKey]) => (
               <label key={key} className="poem-check">
@@ -423,6 +424,11 @@ export function PoemEditor({ initial, terms, onDone, onError, save }: Props) {
               />
               {t("refrain_auto")}
             </label>
+            <label className="poem-check">
+              <input type="checkbox" checked={f.is_premium} onChange={(e) => set("is_premium", e.target.checked)} />
+              {t("premium")}
+            </label>
+            <p className="poem-hint">{t("premium_hint")}</p>
           </SidePanel>
 
           <SidePanel title={t("panel_media")}>

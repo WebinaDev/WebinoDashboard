@@ -46,6 +46,8 @@ class PublicCatalogController extends Controller
         $productsQuery = Product::query()
             ->where('tenant_id', $tid)
             ->catalogListing($this->showOutOfStock($tid))
+            // «hidden» catalog visibility (membership plans): buyable by id, not listed.
+            ->where(fn ($q) => $q->whereNull('catalog_visibility')->orWhere('catalog_visibility', '!=', 'hidden'))
             ->with([
                 'category',
                 'brands' => fn ($q) => $q->select('brands.id', 'brands.name', 'brands.slug'),

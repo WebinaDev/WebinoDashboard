@@ -287,6 +287,14 @@ class CartController extends Controller
         $payload = $cart->toArray();
         $payload['items'] = $activeItems->values()->all();
         $payload['pricing'] = $types->quote($activeItems);
+        // Premium member discount preview (the order applies the same rule at checkout).
+        $memberLines = array_map(fn ($r) => ['product_id' => (int) $r['product_id'], 'unit_price_minor' => (int) $r['unit_price_minor'],
+            'quantity' => (int) round(((int) $r['line_total_minor']) / max(1, (int) $r['unit_price_minor']))], $payload['pricing']['lines'] ?? []);
+        $member = app(\App\Services\Membership\MembershipService::class)->shopDiscount((int) $cart->tenant_id, (int) $cart->user_id, $memberLines);
+        $payload['membership_discount'] = $member ? $member + [
+            'label' => __('membership.discount_line', ['percent' => rtrim(rtrim(number_format((float) $member['percent'], 2, '.', ''), '0'), '.')]),
+        ] : null;
+        $payload['requires_shipping'] = ! \App\Services\Membership\MembershipService::virtualOnly($activeItems);
 
         return response()->json(['data' => $payload]);
     }

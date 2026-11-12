@@ -34,6 +34,7 @@ class User extends Authenticatable
             'addresses' => 'array',
             'wishlist' => 'array',
             'ui_preferences' => 'array',
+            'premium_until' => 'datetime',
         ];
     }
 

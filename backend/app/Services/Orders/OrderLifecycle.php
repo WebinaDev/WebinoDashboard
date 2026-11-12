@@ -35,6 +35,7 @@ final class OrderLifecycle
         app(\App\Services\GiftCards\GiftCardService::class)->syncOrder($order, $from, $to);
         $order->refresh();
         $this->syncAccounting($order, $from);
+        app(\App\Services\Membership\MembershipService::class)->syncOrder($order, $from, $to);
     }
 
     private function syncAccounting(Order $order, ?string $from): void

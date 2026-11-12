@@ -445,6 +445,12 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleEn: "Gift cards",
         route: "/dashboard/settings/shop/gift-cards",
       },
+      {
+        id: "membership",
+        titleFa: "اشتراک ویژه",
+        titleEn: "Premium membership",
+        route: "/dashboard/settings/shop/membership",
+      },
     ],
   },
   {

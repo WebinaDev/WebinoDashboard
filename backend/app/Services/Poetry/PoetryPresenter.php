@@ -26,6 +26,7 @@ class PoetryPresenter
             'pen_name' => $p->pen_name, 'composed_label' => $p->composed_label, 'flags' => $p->flags ?? (object) [],
             'view_count' => $p->view_count, 'published_at' => $p->published_at?->toIso8601String(),
             'has_media' => ! empty($p->media_ids) || ! empty($p->external_links) || (bool) $p->getAttribute('media_items_exists'),
+            'is_premium' => (bool) $p->is_premium,
         ];
         if ($withText && $p->relationLoaded('stanzas')) {
             $row['stanzas'] = $p->stanzas->map(fn ($s) => ['id' => $s->id, 'type' => $s->type, 'layout' => $s->layout, 'repeat' => $s->repeat, 'note' => $s->note, 'lines' => $s->lines])->all();
@@ -44,7 +45,8 @@ class PoetryPresenter
         return $row;
     }
 
-    public static function full(PoetryPoem $p): array
+    /** @param  bool  $premiumMedia  false: leave premium standalone media out (visitor without membership) */
+    public static function full(PoetryPoem $p, bool $premiumMedia = true): array
     {
         $media = [];
         $ids = array_values(array_filter(array_map('intval', (array) ($p->media_ids ?? []))));
@@ -57,7 +59,8 @@ class PoetryPresenter
         // Standalone media items linked to this poem (published + playable) join the legacy list.
         $links = array_values(array_filter((array) ($p->external_links ?? []), fn ($l) => is_array($l) && self::safeUrl($l['url'] ?? '')));
         $seen = array_flip(array_merge(array_column($media, 'url'), array_column($links, 'url')));
-        foreach (PoetryMedia::query()->published()->playable()->with('asset')->where('poem_id', $p->id)->orderBy('sort')->orderBy('id')->get() as $m) {
+        foreach (PoetryMedia::query()->published()->playable()->with('asset')->where('poem_id', $p->id)
+            ->when(! $premiumMedia, fn ($q) => $q->where('is_premium', false))->orderBy('sort')->orderBy('id')->get() as $m) {
             $row = self::media($m);
             if ($row['url'] && ! isset($seen[$row['url']])) {
                 $media[] = ['id' => $m->id, 'url' => $row['url'], 'mime' => null, 'alt' => $m->title, 'kind' => $m->kind];
@@ -100,7 +103,49 @@ class PoetryPresenter
             'poem' => $m->relationLoaded('poem') && $m->poem ? ['id' => $m->poem->id, 'slug' => $m->poem->slug, 'title' => $m->poem->title] : null,
             'media_id' => $m->media_id, 'file_url' => $m->file_url, 'occasion_id' => $m->occasion_id, 'poem_id' => $m->poem_id,
             'sort' => (int) $m->sort, 'status' => $m->status, 'play_count' => (int) $m->play_count,
+            'is_premium' => (bool) $m->is_premium,
         ];
+    }
+
+    /**
+     * Visitor without premium access: keep title and meta, drop the text (the storefront blurs a placeholder).
+     *
+     * @param  array<string, mixed>  $row  card() or full() output
+     */
+    public static function lockPoem(array $row, bool $fullAccess): array
+    {
+        $locked = ! empty($row['is_premium']) && ! $fullAccess;
+        $row['locked'] = $locked;
+        if (! $locked) {
+            return $row;
+        }
+        $count = 0;
+        foreach ((array) ($row['stanzas'] ?? []) as $s) {
+            $count += count((array) ($s['lines'] ?? []));
+        }
+        $row['line_count'] = $count ?: count((array) ($row['lines'] ?? []));
+        $row['excerpt'] = null;
+        foreach (['stanzas', 'sequence', 'lines', 'media', 'external_links'] as $k) {
+            if (array_key_exists($k, $row)) {
+                $row[$k] = [];
+            }
+        }
+
+        return $row;
+    }
+
+    /** Visitor without premium access: keep title and meta, drop every playable link. */
+    public static function lockMedia(array $row, bool $fullAccess): array
+    {
+        $locked = ! empty($row['is_premium']) && ! $fullAccess;
+        $row['locked'] = $locked;
+        if ($locked) {
+            $row['url'] = null;
+            $row['external_url'] = null;
+            $row['embed_url'] = null;
+        }
+
+        return $row;
     }
 
     /** Aparat watch links → official iframe embed; others (Eitaa/Telegram posts) have no embed → null. */

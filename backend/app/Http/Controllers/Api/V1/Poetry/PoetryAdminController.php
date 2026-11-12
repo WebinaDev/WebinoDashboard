@@ -25,6 +25,9 @@ class PoetryAdminController extends Controller
         if (in_array($request->query('status'), ['draft', 'published'], true)) {
             $q->where('status', $request->query('status'));
         }
+        if ($request->has('premium')) {
+            $q->where('is_premium', $request->boolean('premium'));
+        }
         $page = $q->paginate(30);
 
         return response()->json(['data' => collect($page->items())->map(fn ($p) => PoetryPresenter::card($p) + ['status' => $p->status])->all(),
@@ -136,7 +139,7 @@ class PoetryAdminController extends Controller
             'style_label' => ['nullable', 'string', 'max:160'], 'pen_name' => ['nullable', 'string', 'max:80'],
             'composed_label' => ['nullable', 'string', 'max:80'], 'melody_credit' => ['nullable', 'string', 'max:255'],
             'flags' => ['nullable', 'array'], 'flags.is_new' => ['boolean'], 'flags.not_performed' => ['boolean'], 'flags.rewritten' => ['boolean'], 'flags.is_short' => ['boolean'],
-            'refrain_after_each' => ['boolean'],
+            'refrain_after_each' => ['boolean'], 'is_premium' => ['boolean'],
             'media_ids' => ['nullable', 'array'], 'media_ids.*' => ['integer'],
             'external_links' => ['nullable', 'array', 'max:10'], 'external_links.*.label' => ['nullable', 'string', 'max:80'],
             'external_links.*.url' => ['required', 'string', 'max:512', 'regex:#^https?://#i'],

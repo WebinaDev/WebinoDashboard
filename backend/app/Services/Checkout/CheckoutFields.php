@@ -121,8 +121,13 @@ class CheckoutFields
     {
         $cfg = app(CheckoutFlowSettings::class)->get($tenantId);
         $strict = self::configured($tenantId);
+        $virtual = ! empty($data['_virtual']);
         $errors = [];
         foreach (CheckoutFlowSettings::STEPS as $step) {
+            // Virtual-only carts (membership plans) skip the postal address, shipping and delivery time.
+            if ($virtual && $step !== 'payment') {
+                continue;
+            }
             if ($step !== 'payment' && ! CheckoutFlowSettings::stepEnabled($cfg, $step)) {
                 continue;
             }

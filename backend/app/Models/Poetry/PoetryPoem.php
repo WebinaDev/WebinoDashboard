@@ -11,10 +11,10 @@ class PoetryPoem extends Model
     protected $table = 'poetry_poems';
 
     protected $fillable = ['tenant_id', 'slug', 'title', 'excerpt', 'occasion_id', 'meter_id', 'style_label', 'pen_name', 'composed_label', 'melody_credit', 'flags',
-        'refrain_after_each', 'media_ids', 'external_links', 'seo', 'status', 'published_at'];
+        'refrain_after_each', 'media_ids', 'external_links', 'seo', 'status', 'published_at', 'is_premium'];
 
     protected $casts = ['flags' => 'array', 'media_ids' => 'array', 'external_links' => 'array', 'seo' => 'array',
-        'refrain_after_each' => 'boolean', 'published_at' => 'datetime', 'view_count' => 'integer'];
+        'refrain_after_each' => 'boolean', 'published_at' => 'datetime', 'view_count' => 'integer', 'is_premium' => 'boolean'];
 
     protected $hidden = ['search_text'];
 

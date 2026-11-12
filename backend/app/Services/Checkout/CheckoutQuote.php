@@ -5,6 +5,7 @@ namespace App\Services\Checkout;
 use App\Models\CartItem;
 use App\Services\Coupons\CouponService;
 use App\Services\GiftCards\GiftCardService;
+use App\Services\Membership\MembershipService;
 use App\Services\Orders\OrderTax;
 use App\Services\Payments\PaymentGatewaySettingsService;
 use App\Services\Pricing\PurchaseTypeService;
@@ -77,13 +78,18 @@ class CheckoutQuote
         if ($applied) {
             $discount = (int) $applied['discount_minor'];
         }
+        $couponDiscount = $discount;
+        $member = app(MembershipService::class)->shopDiscount($tenantId, $userId, $payload);
+        $memberMinor = min((int) ($member['discount_minor'] ?? 0), max(0, $subtotal - $couponDiscount));
+        $discount = $couponDiscount + $memberMinor;
         $afterDiscount = max(0, $subtotal - $discount);
+        $virtual = MembershipService::virtualOnly($lines);
 
         $addr = is_array($data['shipping_address'] ?? null) ? $data['shipping_address'] : [];
         $state = $data['shipping_state_code'] ?? $addr['state_code'] ?? $addr['state'] ?? null;
         $city = $data['shipping_city'] ?? $addr['city'] ?? null;
         $postcode = $data['shipping_postcode'] ?? $addr['postcode'] ?? null;
-        $rates = $this->shipping->quote($tenantId, is_string($state) ? $state : null, is_string($postcode) ? $postcode : null, $afterDiscount, is_string($city) ? $city : null, $lines);
+        $rates = $virtual ? [] : $this->shipping->quote($tenantId, is_string($state) ? $state : null, is_string($postcode) ? $postcode : null, $afterDiscount, is_string($city) ? $city : null, $lines);
         $picked = null;
         if (! empty($data['shipping_instance_id'])) {
             $picked = collect($rates)->firstWhere('instance_id', (int) $data['shipping_instance_id']);
@@ -150,7 +156,14 @@ class CheckoutQuote
                 'auto' => $code === '',
             ] : null,
             'coupon_error' => $couponError,
+            'coupon_discount_minor' => $couponDiscount,
+            'membership_discount' => $memberMinor > 0 ? [
+                'percent' => $member['percent'],
+                'discount_minor' => $memberMinor,
+                'label' => __('membership.discount_line', ['percent' => rtrim(rtrim(number_format((float) $member['percent'], 2, '.', ''), '0'), '.')]),
+            ] : null,
             'discount_minor' => $discount,
+            'requires_shipping' => ! $virtual,
             'shipping_rates' => array_map(fn ($r) => [
                 'instance_id' => $r['instance_id'],
                 'method_id' => $r['method_id'],

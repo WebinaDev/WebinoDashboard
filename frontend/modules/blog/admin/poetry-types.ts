@@ -23,6 +23,7 @@ export type PoetryFlags = {
   is_new?: boolean
   not_performed?: boolean
   rewritten?: boolean
+  is_short?: boolean
 }
 
 export type PoetryLink = { label?: string; url: string }
@@ -41,6 +42,7 @@ export type PoemForm = {
   melody_credit?: string
   flags: PoetryFlags
   refrain_after_each: boolean
+  is_premium: boolean
   term_ids: number[]
   media_ids: number[]
   external_links: PoetryLink[]
@@ -61,6 +63,7 @@ export const emptyPoem = (): PoemForm => ({
   status: "draft",
   flags: {},
   refrain_after_each: true,
+  is_premium: false,
   term_ids: [],
   media_ids: [],
   external_links: [],
@@ -88,6 +91,7 @@ export function poemFromApi(d: Record<string, unknown>): PoemForm {
     melody_credit: (d.melody_credit as string) ?? "",
     flags,
     refrain_after_each: (d.refrain_after_each as boolean) ?? true,
+    is_premium: !!d.is_premium,
     term_ids: (d.term_ids as number[]) ?? [],
     media_ids: (d.media_ids as number[]) ?? [],
     external_links: (d.external_links as PoetryLink[]) ?? [],

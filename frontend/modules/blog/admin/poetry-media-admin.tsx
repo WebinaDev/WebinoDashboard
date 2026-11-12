@@ -168,6 +168,7 @@ export function PoetryMediaAdmin({ kind }: { kind: "audio" | "video" }) {
       duration: r.duration ?? "",
       sort: r.sort ?? 0,
       status: r.status,
+      is_premium: !!r.is_premium,
     })
 
   const pageTitle = kind === "audio" ? t("audio_title") : t("video_title")
@@ -347,6 +348,11 @@ export function PoetryMediaAdmin({ kind }: { kind: "audio" | "video" }) {
                     onChange={(e) => set("sort", Number(e.target.value) || 0)}
                   />
                 </label>
+                <label className="poem-check">
+                  <input type="checkbox" checked={f.is_premium} onChange={(e) => set("is_premium", e.target.checked)} />
+                  {t("premium")}
+                </label>
+                <p className="poem-hint">{t("premium_hint")}</p>
               </SidePanel>
             </aside>
           </div>

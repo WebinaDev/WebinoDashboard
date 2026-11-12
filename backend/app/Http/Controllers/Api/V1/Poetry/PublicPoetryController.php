@@ -11,7 +11,9 @@ use App\Models\Poetry\PoetryMedia;
 use App\Models\Poetry\PoetryPoem;
 use App\Models\Poetry\PoetryTerm;
 use App\Services\Poetry\PoetryPresenter;
+use App\Services\Poetry\PoetryScope;
 use App\Services\Poetry\PoetryText;
+use App\Services\Membership\MembershipService;
 
 class PublicPoetryController extends Controller
 {
@@ -43,16 +45,27 @@ class PublicPoetryController extends Controller
         $withText = $request->boolean('with_text');
 
         return response()->json([
-            'data' => collect($page->items())->map(fn ($p) => PoetryPresenter::card($p, $withText))->all(),
+            'data' => collect($page->items())->map(fn ($p) => PoetryPresenter::lockPoem(PoetryPresenter::card($p, $withText), $this->full()))->all(),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total()],
         ]);
+    }
+
+    /** Premium content opens for members, staff (when allowed) and every visitor when membership is off. */
+    private function full(): bool
+    {
+        $req = request();
+        if (! $req->attributes->has('poetry_full_access')) {
+            $req->attributes->set('poetry_full_access', app(MembershipService::class)->hasFullAccess((int) PoetryScope::id(), auth('sanctum')->user()));
+        }
+
+        return (bool) $req->attributes->get('poetry_full_access');
     }
 
     public function popular(Request $request): JsonResponse
     {
         $items = PoetryPoem::query()->published()->with(['terms', 'occasion', 'meter'])->orderByDesc('view_count')->limit(min(24, max(1, (int) $request->query('limit', 8))))->get();
 
-        return response()->json(['data' => $items->map(fn ($p) => PoetryPresenter::card($p))->all()]);
+        return response()->json(['data' => $items->map(fn ($p) => PoetryPresenter::lockPoem(PoetryPresenter::card($p), $this->full()))->all()]);
     }
 
     public function show(string $slug): JsonResponse
@@ -60,8 +73,8 @@ class PublicPoetryController extends Controller
         $poem = $this->find($slug);
         DB::table('poetry_poems')->where('id', $poem->id)->increment('view_count');
         $poem->view_count++;
-        $data = PoetryPresenter::full($poem);
-        $data['related'] = $this->related($poem)->map(fn ($p) => PoetryPresenter::card($p))->all();
+        $data = PoetryPresenter::lockPoem(PoetryPresenter::full($poem, $this->full()), $this->full());
+        $data['related'] = $this->related($poem)->map(fn ($p) => PoetryPresenter::lockPoem(PoetryPresenter::card($p), $this->full()))->all();
 
         return response()->json(['data' => $data]);
     }
@@ -76,17 +89,24 @@ class PublicPoetryController extends Controller
         if ($occ = $request->query('occasion')) {
             $q->whereHas('occasion', fn ($w) => $w->where('slug', $occ));
         }
+        if ($request->has('premium')) {
+            $q->where('is_premium', $request->boolean('premium'));
+        }
         $request->query('sort') === 'popular' ? $q->orderByDesc('play_count') : $q->orderBy('sort')->orderByDesc('id');
         $items = $q->limit(min(60, max(1, (int) $request->query('limit', 24))))->get();
-        $public = ['id', 'title', 'kind', 'url', 'external_url', 'embed_url', 'cover', 'reciter', 'duration', 'occasion', 'poem'];
+        $public = ['id', 'title', 'kind', 'url', 'external_url', 'embed_url', 'cover', 'reciter', 'duration', 'occasion', 'poem', 'is_premium'];
+        $full = $this->full();
 
         return response()->json(['data' => $items->map(fn ($m) => array_intersect_key(PoetryPresenter::media($m), array_flip($public)))
-            ->filter(fn ($r) => $r['url'] || $r['external_url'])->values()->all()]);
+            ->filter(fn ($r) => $r['url'] || $r['external_url'])->map(fn ($r) => PoetryPresenter::lockMedia($r, $full))->values()->all()]);
     }
 
     public function text(string $slug)
     {
         $poem = $this->find($slug);
+        if ($poem->is_premium && ! $this->full()) {
+            return response()->json(['message' => __('membership.premium_required'), 'data' => ['code' => 'premium_required']], 403);
+        }
         $name = (Str::slug($poem->slug) ?: 'poem').'.txt';
 
         return response(PoetryText::plain($poem), 200, [
@@ -102,7 +122,7 @@ class PublicPoetryController extends Controller
         $page = $this->filtered($request)->orderByDesc('published_at')->orderByDesc('id')->paginate(min(48, max(1, (int) $request->query('per_page', 12))));
 
         return response()->json([
-            'data' => ['figure' => PoetryPresenter::term($term), 'poems' => collect($page->items())->map(fn ($p) => PoetryPresenter::card($p))->all()],
+            'data' => ['figure' => PoetryPresenter::term($term), 'poems' => collect($page->items())->map(fn ($p) => PoetryPresenter::lockPoem(PoetryPresenter::card($p), $this->full()))->all()],
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total()],
         ]);
     }
@@ -127,6 +147,9 @@ class PublicPoetryController extends Controller
             $q->where(fn ($w) => $w->whereRaw($txt('media_ids')." NOT IN ('[]','null')")
                 ->orWhereRaw($txt('external_links')." NOT IN ('[]','null')")
                 ->orWhereHas('mediaItems', fn ($m) => $m->published()->playable()));
+        }
+        if ($request->has('premium')) {
+            $q->where('is_premium', $request->boolean('premium'));
         }
         if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten', 'is_short'], true)) {
             $q->where('flags->'.$flag, true);

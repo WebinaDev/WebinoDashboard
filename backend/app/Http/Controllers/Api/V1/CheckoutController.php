@@ -169,6 +169,12 @@ class CheckoutController extends Controller
                 $couponId = $coupon->id;
                 $couponCode = $coupon->code;
             }
+            // Premium members: percent off shop products (plans excluded), shown as its own line.
+            $couponDiscount = (int) $discount;
+            $member = app(\App\Services\Membership\MembershipService::class)->shopDiscount((int) $user->tenant_id, (int) $user->id, $linePayload);
+            $memberMinor = min((int) ($member['discount_minor'] ?? 0), max(0, $subtotal - $couponDiscount));
+            $discount = $couponDiscount + $memberMinor;
+            $virtual = \App\Services\Membership\MembershipService::virtualOnly($lines);
 
             $stateCode = $checkoutMeta['shipping_state_code'] ?? null;
             $postcode = $checkoutMeta['shipping_postcode'] ?? null;
@@ -181,7 +187,7 @@ class CheckoutController extends Controller
 
             $shippingMinor = 0;
             $shippingMeta = [];
-            $rates = $this->shipping->quote(
+            $rates = $virtual ? [] : $this->shipping->quote(
                 (int) $user->tenant_id,
                 is_string($stateCode) ? $stateCode : null,
                 is_string($postcode) ? $postcode : null,
@@ -205,7 +211,7 @@ class CheckoutController extends Controller
                 }
             } elseif ($rates !== []) {
                 $picked = $rates[0];
-            } elseif ($this->shipping->hasConfiguredMethods((int) $user->tenant_id)) {
+            } elseif (! $virtual && $this->shipping->hasConfiguredMethods((int) $user->tenant_id)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'shipping_instance_id' => 'Choose a shipping method from the quoted rates.',
                 ]);
@@ -239,7 +245,7 @@ class CheckoutController extends Controller
                 if (is_string($city) && $city !== '') {
                     $shippingMeta['shipping_city'] = $city;
                 }
-            } elseif (isset($checkoutMeta['shipping_minor'])) {
+            } elseif (! $virtual && isset($checkoutMeta['shipping_minor'])) {
                 $shippingMinor = (int) $checkoutMeta['shipping_minor'];
             }
 
@@ -274,7 +280,7 @@ class CheckoutController extends Controller
                 : (bool) (\App\Services\Shipping\ShippingZonesService::sanitizeProfessionalPackaging(
                     $this->shipping->getConfig((int) $user->tenant_id)['global']['professional_packaging'] ?? []
                 )['default_selected']);
-            $proPack = $this->shipping->professionalPackagingFee((int) $user->tenant_id, $proOpt);
+            $proPack = $virtual ? 0 : $this->shipping->professionalPackagingFee((int) $user->tenant_id, $proOpt);
             if ($proPack > 0) {
                 $carton = $this->shipping->cartonReplacedByProfessional((int) $user->tenant_id, $proOpt, (int) ($shippingMeta['packaging_minor'] ?? 0));
                 if ($carton > 0) {
@@ -290,11 +296,18 @@ class CheckoutController extends Controller
             }
             \App\Services\Checkout\CheckoutFields::enforce(
                 (int) $user->tenant_id,
-                $checkoutMeta + ['customer_phone' => $user->phone, 'recipient_name' => $user->name],
+                $checkoutMeta + ['customer_phone' => $user->phone, 'recipient_name' => $user->name, '_virtual' => $virtual],
                 $picked,
                 $shippingMeta
             );
 
+            if ($memberMinor > 0) {
+                $shippingMeta['membership_discount'] = ['percent' => $member['percent'], 'discount_minor' => $memberMinor];
+                $shippingMeta['coupon_discount_minor'] = $couponDiscount;
+            }
+            if ($virtual) {
+                $shippingMeta['virtual'] = true;
+            }
             if (! empty($checkoutMeta['torob_clid'])) {
                 $shippingMeta['torob_clid'] = $checkoutMeta['torob_clid'];
             }
@@ -377,7 +390,7 @@ class CheckoutController extends Controller
             $order->refresh();
 
             if ($coupon) {
-                $this->coupons->hold($coupon, $order, $discount, $user->id);
+                $this->coupons->hold($coupon, $order, $couponDiscount, $user->id);
             }
 
             $this->applyGiftCard($order, $checkoutMeta['gift_card_code'] ?? null, $user->id);

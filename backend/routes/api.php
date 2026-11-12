@@ -237,6 +237,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/support/chat/poll', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'publicPoll']);
         Route::get('/support/chat/stream', [\App\Http\Controllers\Api\V1\SupportLiveChatController::class, 'publicStream']);
         Route::get('/support/kb', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'publicIndex']);
+        Route::get('/support/kb/categories', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'publicCategories']);
+        Route::get('/membership', [\App\Http\Controllers\Api\V1\Membership\PublicMembershipController::class, 'index']);
         Route::get('/support/kb/{slug}', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'publicShow']);
         Route::post('/support/kb/{slug}/feedback', [\App\Http\Controllers\Api\V1\SupportKnowledgeController::class, 'publicFeedback'])->middleware('throttle:public-writes');
         Route::get('/support/csat/{token}', [\App\Http\Controllers\Api\V1\SupportCsatController::class, 'publicShow']);
@@ -294,6 +296,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/poems/{slug}/text', [PublicPoetryController::class, 'text']);
             Route::get('/figures/{slug}', [PublicPoetryController::class, 'figure']);
             Route::get('/media', [PublicPoetryController::class, 'media']);
+            Route::get('/books', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'books']);
+            Route::get('/books/{slug}', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'book']);
+            Route::get('/highlights', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'highlights']);
+            Route::get('/occasions', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'occasions']);
+            Route::get('/occasions/{slug}', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'occasion']);
         });
 
         Route::middleware('public.module:profile')->group(function () {
@@ -484,6 +491,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/account/announcements/read', [ErpAnnouncementController::class, 'markAllRead']);
         Route::post('/account/announcements/{announcement}/read', [ErpAnnouncementController::class, 'markRead'])
             ->where('announcement', '[A-Za-z0-9_-]+');
+
+        Route::get('/account/membership', [\App\Http\Controllers\Api\V1\Membership\PublicMembershipController::class, 'me']);
+        Route::get('/account/membership/media/{media}/download', [\App\Http\Controllers\Api\V1\Membership\PublicMembershipController::class, 'download'])
+            ->whereNumber('media')->middleware([\App\Http\Middleware\PoetryTenantScope::class, 'throttle:30,1']);
 
         Route::prefix('account')->group(function () {
             Route::get('/overview', [AccountPortalController::class, 'overview']);
@@ -1247,6 +1258,18 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::delete('/media/terms/{id}', [MediaTermController::class, 'destroy'])->whereNumber('id');
             });
 
+            Route::prefix('membership')->middleware('can:settings.manage,commerce.*')->group(function () {
+                Route::get('/plans', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'plans']);
+                Route::post('/plans', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'storePlan']);
+                Route::put('/plans/{plan}', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'updatePlan'])->whereNumber('plan');
+                Route::delete('/plans/{plan}', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'destroyPlan'])->whereNumber('plan');
+                Route::get('/settings', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'showSettings']);
+                Route::put('/settings', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'updateSettings']);
+                Route::get('/members', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'members']);
+                Route::get('/members/{user}', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'memberGrants'])->whereNumber('user');
+                Route::post('/members/{user}/grants', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'grant'])->whereNumber('user');
+                Route::post('/grants/{grant}/revoke', [\App\Http\Controllers\Api\V1\Membership\MembershipAdminController::class, 'revoke'])->whereNumber('grant');
+            });
             Route::prefix('poetry')->middleware(['can:content.manage,content.*', \App\Http\Middleware\PoetryTenantScope::class])->group(function () {
                 Route::get('/poems', [PoetryAdminController::class, 'index']);
                 Route::post('/poems', [PoetryAdminController::class, 'store']);
@@ -1262,6 +1285,15 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::post('/terms', [PoetryAdminController::class, 'storeTerm']);
                 Route::put('/terms/{term}', [PoetryAdminController::class, 'updateTerm'])->whereNumber('term');
                 Route::delete('/terms/{term}', [PoetryAdminController::class, 'destroyTerm'])->whereNumber('term');
+                Route::get('/books', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'adminBooks']);
+                Route::post('/books', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'storeBook']);
+                Route::get('/books/{book}', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'adminBook'])->whereNumber('book');
+                Route::put('/books/{book}', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'updateBook'])->whereNumber('book');
+                Route::delete('/books/{book}', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'destroyBook'])->whereNumber('book');
+                Route::get('/highlights', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'adminHighlights']);
+                Route::post('/highlights', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'storeHighlight']);
+                Route::put('/highlights/{highlight}', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'updateHighlight'])->whereNumber('highlight');
+                Route::delete('/highlights/{highlight}', [\App\Http\Controllers\Api\V1\Poetry\PoetryCollectionsController::class, 'destroyHighlight'])->whereNumber('highlight');
             });
 
             Route::middleware(['module:magazine', 'can:content.manage,content.*'])->group(function () {

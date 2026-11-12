@@ -197,7 +197,8 @@ class CheckoutStepsController extends Controller
         if (! empty($values['shipping_instance_id'])) {
             $rate = collect($totals['shipping_rates'])->firstWhere('instance_id', (int) $values['shipping_instance_id']);
         }
-        $errors = CheckoutFields::errors($cfg, $step, $values, $rate, true);
+        $virtual = ! ($totals['requires_shipping'] ?? true);
+        $errors = ($virtual && $step !== 'payment') ? [] : CheckoutFields::errors($cfg, $step, $values, $rate, true);
         if ($step === 'shipping') {
             if (! empty($values['shipping_instance_id']) && ! $rate) {
                 $errors['shipping_instance_id'] = 'این روش ارسال برای آدرس شما در دسترس نیست.';

@@ -154,8 +154,9 @@ class SupportKnowledgeController extends Controller
 
     public function publicIndex(Request $request): JsonResponse
     {
-        $tid = (int) $request->attributes->get('tenant_id');
+        $tid = (int) ($request->attributes->get('public_tenant_id') ?: $request->attributes->get('tenant_id'));
         $widget = $request->boolean('widget');
+        $withBody = $request->boolean('with_body');
         $q = SupportKbArticle::query()
             ->where('tenant_id', $tid)
             ->where('is_published', true)
@@ -163,28 +164,39 @@ class SupportKnowledgeController extends Controller
         if ($widget) {
             $q->where('show_in_widget', true);
         }
-        if ($search = trim((string) $request->query('search', ''))) {
-            $q->where(function ($qq) use ($search) {
-                $qq->where('title_fa', 'like', '%'.$search.'%')
-                    ->orWhere('title_en', 'like', '%'.$search.'%')
-                    ->orWhere('excerpt_fa', 'like', '%'.$search.'%');
-            });
-        }
-        $rows = $q->orderByDesc('published_at')->limit($widget ? 8 : 50)->get();
         $cats = SupportKbCategory::query()
             ->where('tenant_id', $tid)
             ->where('is_public', true)
             ->orderBy('sort_order')
+            ->orderBy('id')
             ->get();
+        if (($key = trim((string) $request->query('category', ''))) !== '') {
+            $cat = $cats->first(fn (SupportKbCategory $c) => $c->slug === $key || (ctype_digit($key) && (int) $c->id === (int) $key));
+            if (! $cat) {
+                abort(404);
+            }
+            // A hub category also lists the questions of its sub-categories.
+            $q->whereIn('category_id', $this->withDescendants($cats, (int) $cat->id));
+        }
+        if ($search = trim((string) $request->query('search', $request->query('q', '')))) {
+            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], mb_substr($search, 0, 120)).'%';
+            $q->where(function ($qq) use ($like) {
+                $qq->where('title_fa', 'like', $like)
+                    ->orWhere('title_en', 'like', $like)
+                    ->orWhere('excerpt_fa', 'like', $like)
+                    ->orWhere('body_fa', 'like', $like)
+                    ->orWhere('body_en', 'like', $like);
+            });
+        }
+        $limit = $widget ? 8 : min(200, max(1, (int) $request->query('limit', 50)));
+        $rows = $request->query('sort') === 'popular'
+            ? $q->orderByDesc('view_count')->limit($limit)->get()
+            : $q->orderByDesc('published_at')->orderByDesc('id')->limit($limit)->get();
+        $bySlug = $cats->keyBy('id');
 
         return response()->json([
             'data' => [
-                'categories' => $cats->map(fn (SupportKbCategory $c) => [
-                    'id' => $c->id,
-                    'name_fa' => $c->name_fa,
-                    'name_en' => $c->name_en,
-                    'slug' => $c->slug,
-                ])->all(),
+                'categories' => $cats->map(fn (SupportKbCategory $c) => $this->publicCategory($c))->all(),
                 'items' => $rows->map(fn (SupportKbArticle $a) => [
                     'id' => $a->id,
                     'slug' => $a->slug,
@@ -193,15 +205,59 @@ class SupportKnowledgeController extends Controller
                     'excerpt_fa' => $a->excerpt_fa,
                     'excerpt_en' => $a->excerpt_en,
                     'category_id' => $a->category_id,
+                    'category_slug' => $bySlug[$a->category_id]->slug ?? null,
                     'tags' => $a->tags ?? [],
-                ])->all(),
+                ] + ($withBody ? ['body_fa' => $a->body_fa, 'body_en' => $a->body_en] : []))->all(),
             ],
         ]);
     }
 
+    /** FAQ hub: public categories (with parent for nesting) and published question counts including sub-categories. */
+    public function publicCategories(Request $request): JsonResponse
+    {
+        $tid = (int) ($request->attributes->get('public_tenant_id') ?: $request->attributes->get('tenant_id'));
+        $cats = SupportKbCategory::query()->where('tenant_id', $tid)->where('is_public', true)->orderBy('sort_order')->orderBy('id')->get();
+        $counts = SupportKbArticle::query()->where('tenant_id', $tid)->where('is_published', true)->where('is_public', true)
+            ->whereNotNull('category_id')->selectRaw('category_id, count(*) as c')->groupBy('category_id')->pluck('c', 'category_id');
+
+        return response()->json(['data' => $cats->map(fn (SupportKbCategory $c) => $this->publicCategory($c) + [
+            'articles_count' => (int) collect($this->withDescendants($cats, (int) $c->id))->sum(fn ($id) => (int) ($counts[$id] ?? 0)),
+        ])->all()]);
+    }
+
+    /** @return array<string, mixed> */
+    private function publicCategory(SupportKbCategory $c): array
+    {
+        return [
+            'id' => $c->id,
+            'parent_id' => $c->parent_id,
+            'name_fa' => $c->name_fa,
+            'name_en' => $c->name_en,
+            'slug' => $c->slug,
+            'description_fa' => $c->description_fa,
+            'description_en' => $c->description_en,
+            'sort_order' => (int) $c->sort_order,
+        ];
+    }
+
+    /** @return array<int, int> */
+    private function withDescendants($cats, int $rootId): array
+    {
+        $ids = [$rootId];
+        for ($i = 0; $i < count($ids) && $i < 500; $i++) {
+            foreach ($cats as $c) {
+                if ((int) $c->parent_id === $ids[$i] && ! in_array((int) $c->id, $ids, true)) {
+                    $ids[] = (int) $c->id;
+                }
+            }
+        }
+
+        return $ids;
+    }
+
     public function publicShow(Request $request, string $slug): JsonResponse
     {
-        $tid = (int) $request->attributes->get('tenant_id');
+        $tid = (int) ($request->attributes->get('public_tenant_id') ?: $request->attributes->get('tenant_id'));
         $row = SupportKbArticle::query()
             ->where('tenant_id', $tid)
             ->where('slug', $slug)
@@ -229,7 +285,7 @@ class SupportKnowledgeController extends Controller
 
     public function publicFeedback(Request $request, string $slug): JsonResponse
     {
-        $tid = (int) $request->attributes->get('tenant_id');
+        $tid = (int) ($request->attributes->get('public_tenant_id') ?: $request->attributes->get('tenant_id'));
         $row = SupportKbArticle::query()
             ->where('tenant_id', $tid)
             ->where('slug', $slug)
