@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
+import { JSON_HEADERS, hasLocked, loadMembership } from "./poetry-membership"
 import "./poetry-module-widgets.css"
 import { optImg } from "@/lib/image-url"
 
@@ -17,7 +18,7 @@ type Card = { id: number; slug: string; title: string; excerpt?: string | null; 
 type Block = { type: "title" | "stanza" | "refrain"; layout?: "couplet" | "single"; repeat?: number; lines: string[]; note?: string | null; auto?: boolean }
 type Poem = Card & { melody_credit?: string | null; flags?: Record<string, boolean>; sequence: Block[]; media: { id: number; url: string; kind: string; mime?: string }[]; external_links: { label?: string; url: string }[]; related: Card[] }
 
-const api = (path: string) => `${(process.env.NEXT_PUBLIC_API_URL?.trim() ?? "").replace(/\/+$/, "").replace(/\/api$/, "")}/api/v1/public/poetry/${path}`
+const api = (path: string) => `/api/v1/public/poetry/${path}`
 export const fa = (n: number | string) => String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
 const str = (p: Record<string, unknown>, k: string, f = "") => (typeof p[k] === "string" ? (p[k] as string) : f)
 const bool = (p: Record<string, unknown>, k: string, f = true) => (typeof p[k] === "boolean" ? (p[k] as boolean) : f)
@@ -28,18 +29,24 @@ function useJson<T>(path: string | null): { data: T | null; meta: Record<string,
   const key = path ? `/v1/public/poetry/${path}` : null
   const seeded = key && pre && key in pre ? { data: pre[key] as T, meta: (pre[`${key}::meta`] as Record<string, number>) ?? null } : null
   const [state, setState] = useState<{ data: T | null; meta: Record<string, number> | null; loading: boolean }>(() => (seeded ? { ...seeded, loading: false } : { data: null, meta: null, loading: !!path }))
+  const [fresh, setFresh] = useState(false)
   useEffect(() => {
-    if (!path || seeded) return
+    if (!path) return
     let cancelled = false
+    const run = () => {
+      fetch(api(path), { headers: JSON_HEADERS, credentials: "include" })
+        .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: unknown; meta?: Record<string, number> }>)
+        .then((j) => { if (!cancelled) { setState({ data: (j.data ?? null) as T, meta: j.meta ?? null, loading: false }); setFresh(true) } })
+        .catch(() => !cancelled && setState({ data: null, meta: null, loading: false }))
+    }
+    // [...slug]/page.tsx ISR caches the anonymous (locked) body. A signed-in member refetches same-origin with the session cookie.
+    if (seeded) { setFresh(false); if (hasLocked(seeded.data)) void loadMembership().then((m) => { if (m.isMember && !cancelled) run() }); return () => { cancelled = true } }
     setState((s) => ({ ...s, loading: true }))
-    fetch(api(path), { headers: { Accept: "application/json" } })
-      .then((r) => (r.ok ? r.json() : {}) as Promise<{ data?: unknown; meta?: Record<string, number> }>)
-      .then((j) => !cancelled && setState({ data: (j.data ?? null) as T, meta: j.meta ?? null, loading: false }))
-      .catch(() => !cancelled && setState({ data: null, meta: null, loading: false }))
+    run()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path])
-  return seeded ? { ...seeded, loading: false } : state
+  return seeded && !fresh ? { ...seeded, loading: false } : state
 }
 
 function useQueryParam(name: string): string {

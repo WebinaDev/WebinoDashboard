@@ -38,10 +38,13 @@ const FA = "۰۱۲۳۴۵۶۷۸۹"
 const fa = (v: string | number) => String(v).replace(/\d/g, (d) => FA[Number(d)])
 const toEn = (v: string) => v.replace(/[۰-۹]/g, (d) => String(FA.indexOf(d))).replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
 
-/** `NEXT_PUBLIC_API_URL` may be "", "/api", an origin, or origin + /api; always resolve to …/api/v1. */
+/** Client calls go through the same-origin `/api` rewrite so the SameSite=Lax session cookie is sent.
+ *  `NEXT_PUBLIC_API_URL` may be "", "/api", or a backend origin — never use a cross-site host in the browser. */
 export function apiV1(path: string): string {
+  const suffix = `/api/v1/${path.replace(/^\/+/, "")}`
+  if (typeof window !== "undefined") return suffix
   const raw = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
-  return `${raw}/api/v1/${path.replace(/^\/+/, "")}`
+  return `${raw}${suffix}`
 }
 
 export function safeLink(href: string, fallback = "#"): string {

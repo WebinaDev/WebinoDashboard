@@ -14,8 +14,10 @@ import "./poetry-premium.css"
 
 type P = Record<string, unknown>
 function apiV1(path: string): string {
+  const suffix = `/api/v1/${path.replace(/^\/+/, "")}`
+  if (typeof window !== "undefined") return suffix
   const raw = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
-  return `${raw}/api/v1/${path.replace(/^\/+/, "")}`
+  return `${raw}${suffix}`
 }
 const safe = (h: string, fb: string) => { const v = (h || "").trim(); return v && /^(https?:|\/|#|\?)/i.test(v) ? v : fb }
 
