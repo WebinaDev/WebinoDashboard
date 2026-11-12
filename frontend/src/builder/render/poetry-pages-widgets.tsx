@@ -386,7 +386,7 @@ function PoemCardItem({ c, href, newLabel }: { c: Card; href: string; newLabel: 
     <article className="akx-pc">
       {meta ? <div className="akx-k">{meta}</div> : null}
       <h3><Link href={link} className="akx-stretch">{c.title}</Link></h3>
-      {c.locked ? <p className="akx-v akx-v-locked" aria-label="متن ویژه اعضا"><span aria-hidden>{"ـــــ ـــــــ ــــ ـــــــــ ـــــ"}</span></p> : c.excerpt ? <p className="akx-v">{c.excerpt}</p> : null}
+      {c.locked ? <div className="akx-v akx-v-locked" aria-label="متن ویژه اعضا"><PremiumVeil p={{}} compact /></div> : c.excerpt ? <p className="akx-v">{c.excerpt}</p> : null}
       <div className="akx-pc-foot">
         <div>{c.is_premium || c.locked ? <PremiumBadge /> : null}{tag ? <span className="akx-tag">{tag}</span> : null}{c.flags?.is_new && newLabel ? <span className="akx-tag2">{newLabel}</span> : null}</div>
         {c.has_media ? <Link href={`${link}#media`} aria-label="پخش"><Play /></Link> : null}
@@ -622,7 +622,8 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
           {cur?.locked ? (
             <div className="akx-feat-cover akx-feat-locked">
               <PhotoSlot mode={cur.cover ? "photo" : cm} src={cur.cover} logo={propStr(p, "logo")} alt={cur.title} />
-              <PremiumVeil p={p} note={cur.title} />
+              <PremiumVeil p={p} />
+              <span className="akx-feat-cap"><b>{cur.title}</b>{[cur.poem, cur.reciter].filter(Boolean).join(" · ")}</span>
             </div>
           ) : cur && playing && cur.src ? (cur.kind === "video" ? <video src={cur.src} poster={cur.cover || undefined} controls autoPlay /> : (
             <div className="akx-feat-audio"><PhotoSlot mode={cur.cover ? "photo" : cm} src={cur.cover} logo={propStr(p, "logo")} /><audio src={cur.src} controls autoPlay /></div>

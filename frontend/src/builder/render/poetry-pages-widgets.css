@@ -407,6 +407,8 @@ header.akx.akx-navwrap .akx-nav.akx-nav-glass .akx-links a.is-on, header.akx.akx
 .akx-v-locked span { filter: blur(4px); user-select: none; opacity: .6; }
 .akx-feat-locked { position: relative; display: block; }
 .akx-feat-locked .wpv-veil { position: absolute; inset: 0; min-height: 0; }
+.akx-feat-locked .akx-feat-cap { position: relative; z-index: 2; }
+.akx-v-locked { position: relative; min-height: 88px; }
 .akx-mc-lock { position: absolute; top: 10px; inset-inline-start: 10px; z-index: 2; }
 
 /* ── footer: Webina credit (parisma/cafebluedez 1:1 component) on a light chip so its own colours stay legible ── */

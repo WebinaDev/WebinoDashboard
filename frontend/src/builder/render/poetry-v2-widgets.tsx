@@ -129,10 +129,12 @@ function StoryCard({ s, logo, label, p }: { s: Story; logo: string; label: strin
   if (s.locked) {
     return (
       <article className="wpv-st wpv-st-locked" role="listitem">
-        {cover ?? <PhotoSlot mode="arabesque" className="wpv-st-media" />}
-        <span className="wpv-st-shade" aria-hidden />
+        <div className="wpv-st-lockbody">
+          {cover ?? <PhotoSlot mode="arabesque" className="wpv-st-media" />}
+          <span className="wpv-st-shade" aria-hidden />
+          <PremiumVeil p={p} compact />
+        </div>
         {head}
-        <PremiumVeil p={p} compact />
       </article>
     )
   }

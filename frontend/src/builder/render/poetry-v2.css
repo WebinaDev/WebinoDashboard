@@ -46,6 +46,8 @@ a.wpv-st:hover, .wpv-st:not(.is-playing):hover { transform: translateY(-3px); }
 .wpv-st.is-playing video { object-fit: contain; z-index: 4; }
 .wpv-st-shade { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(0,0,0,.5), transparent 34%, transparent 55%, rgba(0,0,0,.6)); pointer-events: none; }
 .wpv-st-head { position: absolute; inset: 0 0 auto; z-index: 2; padding: 10px 12px; }
+.wpv-st-lockbody { position: absolute; inset: 0; }
+.wpv-st-locked .wpv-st-head { z-index: 4; }
 .wpv-st-bars { display: flex; gap: 4px; margin-bottom: 9px; }
 .wpv-st-bars i { flex: 1; height: 3px; border-radius: 9px; background: rgba(255,255,255,.45); }
 .wpv-st-bars i:first-child { background: #fff; }
