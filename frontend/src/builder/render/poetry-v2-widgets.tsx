@@ -1,7 +1,7 @@
 "use client"
 
 /* Generic poetry/content widgets (generic, config-driven, RTL, Persian digits, glass tone).
- *  - story-highlights : 16:9 Instagram-story style carousel; videos play inline only after a tap (no autoplay);
+ *  - story-highlights : 9:16 (vertical) Instagram-story style carousel; videos play inline only after a tap (no autoplay);
  *                       optional leading "all poems in the book" card.
  *  - audio-playlist   : music-player style playlist (play/pause, prev/next, seek, volume, shuffle, repeat, download).
  *  - video-gallery    : clean video player + playlist.
@@ -125,7 +125,7 @@ function StoryCard({ s, logo, label, p }: { s: Story; logo: string; label: strin
       </div>
     </div>
   )
-  const cover = s.cover ? <img className="wpv-st-media" {...optImg(s.cover, "(max-width: 760px) 90vw, 420px")} alt="" loading="lazy" decoding="async" /> : null
+  const cover = s.cover ? <img className="wpv-st-media" {...optImg(s.cover, "(max-width: 760px) 45vw, 240px")} alt="" loading="lazy" decoding="async" /> : null
   if (s.locked) {
     return (
       <article className="wpv-st wpv-st-locked" role="listitem">
@@ -236,13 +236,15 @@ export function StoryHighlightsWidget({ widget }: { widget: WidgetNode }) {
   const sub = propStr(p, "bookSubtitle") || book?.subtitle || (total ? `${fa(total)} شعر` : "")
   return (
     <section className={v2Shell(p, "wpv-hl")} dir="rtl" style={v2Style(p)}>
-      <Track p={p} head={propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null} label={propStr(p, "title") || "هایلایت‌ها"} spvD={Math.max(1, Math.min(5, propNum(p, "slidesDesktop", 3)))} spvM={Math.max(1, Math.min(3, propNum(p, "slidesMobile", 1.15)))}>
+      <Track p={p} head={propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null} label={propStr(p, "title") || "هایلایت‌ها"} spvD={Math.max(1, Math.min(8, propNum(p, "slidesDesktop", 5)))} spvM={Math.max(1, Math.min(4, propNum(p, "slidesMobile", 2.4)))}>
         {bookOn ? (
           <Link href={bookHref} className="wpv-st wpv-st-book" role="listitem">
-            {bookCover ? <img className="wpv-st-media" {...optImg(bookCover, "(max-width: 760px) 90vw, 420px")} alt="" loading="lazy" decoding="async" /> : <PhotoSlot mode="logo" logo={logo} className="wpv-st-media" />}
+            {bookCover
+              ? <img className="wpv-st-media" {...optImg(bookCover, "(max-width: 760px) 45vw, 240px")} alt="" loading="lazy" decoding="async" />
+              : <PhotoSlot mode="arabesque" className="wpv-st-media" />}
             <span className="wpv-st-shade" aria-hidden />
             <div className="wpv-book-body">
-              <span className="wpv-book-ic"><BookOpen size={22} aria-hidden /></span>
+              <span className="wpv-book-ic">{logo && !bookCover ? <img {...optImg(logo, "46px", true)} alt="" /> : <BookOpen size={22} aria-hidden />}</span>
               <b>{propStr(p, "bookTitle") || book?.title || "مجموعه همه اشعار در کتاب"}</b>
               {sub ? <small>{sub}</small> : null}
               <span className="wpv-st-go">{propStr(p, "bookLabel") || book?.cta_label || "مشاهده همه اشعار"}<ArrowLeft size={14} aria-hidden /></span>

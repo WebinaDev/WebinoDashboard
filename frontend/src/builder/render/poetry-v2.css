@@ -29,8 +29,13 @@
   .wpv-track-wrap { --wpv-gap: 10px; }
 }
 
-/* ── story highlights (16:9) ── */
-.wpv-st { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; color: #fff !important; background: linear-gradient(150deg, var(--wpz-crimson), var(--wpz-crimson-deep)); box-shadow: 0 12px 28px rgba(60,8,14,.22);
+/* ── story highlights (9:16 vertical, Instagram story) ── */
+/* Cap width so a saved landscape slides count (e.g. 1.15) cannot make a 9:16 card viewport-tall. */
+.wpv-hl .wpv-track > * { flex-basis: min(calc((100% - (var(--wpv-spv) - 1) * var(--wpv-gap)) / var(--wpv-spv)), 240px); }
+@media (max-width: 760px) {
+  .wpv-hl .wpv-track > * { flex-basis: min(calc((100% - (var(--wpv-spv-m) - 1) * var(--wpv-gap)) / var(--wpv-spv-m)), 168px); }
+}
+.wpv-st { position: relative; display: block; aspect-ratio: 9 / 16; border-radius: 22px; overflow: hidden; color: #fff !important; background: linear-gradient(150deg, var(--wpz-crimson), var(--wpz-crimson-deep)); box-shadow: 0 12px 28px rgba(60,8,14,.22);
   outline: 2px solid transparent; outline-offset: 2px; transition: transform .25s, outline-color .25s; isolation: isolate; }
 .wpv-st::before { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 2px; pointer-events: none;
   background: linear-gradient(135deg, #f9ce34, #ee2a7b 55%, #6228d7); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
@@ -59,11 +64,17 @@ a.wpv-st:hover, .wpv-st:not(.is-playing):hover { transform: translateY(-3px); }
 .wpv-st-book { background: radial-gradient(120% 120% at 80% 0%, #7a1220, var(--wpz-crimson-deep)); }
 .wpv-st-book::before { background: linear-gradient(135deg, #f3dc9c, #c9a45c 55%, #8a6a2a); }
 .wpv-st-book .wpv-st-media { opacity: .55; }
-.wpv-book-body { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; justify-items: center; gap: 4px; padding: 16px; text-align: center; }
-.wpv-book-body b { color: #fff; font-size: clamp(1rem, 1.6vw, 1.2rem); font-weight: 900; }
-.wpv-book-body small { color: #f3dc9c; font-weight: 700; }
-.wpv-book-body .wpv-st-go { position: static; margin-top: 8px; }
-.wpv-book-ic { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 999px; margin-bottom: 4px; color: #3b2607; background: linear-gradient(135deg, #f3dc9c, #c9a45c); }
+/* Fallback logo/letter stays in the upper half; title + «۲۵ شعر» sit on the lower wash so they never overlap. */
+.wpv-st-book .akx-slot { place-items: start center; padding-top: 16%; }
+.wpv-st-book .akx-slot-logoimg { width: 44%; max-height: 22%; }
+.wpv-st-book .akx-slot-mono { font-size: clamp(36px, 20cqw, 56px); line-height: 1; margin-top: 0; }
+.wpv-book-body { position: absolute; inset: 0; z-index: 2; display: grid; place-content: end center; justify-items: center; gap: 6px; padding: 18px 12px 16px; text-align: center;
+  background: linear-gradient(180deg, transparent 42%, rgba(0,0,0,.55) 78%); }
+.wpv-book-body b { color: #fff; font-size: clamp(.92rem, 4.6cqw, 1.1rem); font-weight: 900; line-height: 1.35; text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+.wpv-book-body small { color: #f3dc9c; font-weight: 700; line-height: 1.3; }
+.wpv-book-body .wpv-st-go { position: static; margin-top: 6px; }
+.wpv-book-ic { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 999px; margin-bottom: 2px; color: #3b2607; background: linear-gradient(135deg, #f3dc9c, #c9a45c); overflow: hidden; }
+.wpv-book-ic img { width: 28px; height: 28px; object-fit: contain; }
 
 /* ── audio playlist ── */
 .wpv-ap-skel { min-height: 320px; border-radius: 20px; background: linear-gradient(90deg, rgba(255,255,255,.2), rgba(255,255,255,.45), rgba(255,255,255,.2)); background-size: 200% 100%; animation: wpz-sh 1.2s infinite linear; }

@@ -237,7 +237,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
     create: () => node("poetry-footer", { brand: "", text: "", links: "خانه|/\nاشعار|/poems\nفروشگاه|/shop\nتماس|/contact", socials: "", copyright: "", pattern: true }),
   },
   {
-    type: "story-highlights", label: "هایلایت‌های ۱۶:۹ (سبک استوری اینستاگرام)", category: "content",
+    type: "story-highlights", label: "هایلایت‌های ۹:۱۶ (سبک استوری اینستاگرام، عمودی)", category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان بخش (خالی = بدون عنوان)" },
       { kind: "select", key: "source", label: "منبع", options: [{ value: "auto", label: "خودکار: هایلایت‌های اشعار، در نبودشان استوری‌های فروشگاه (پیش‌فرض)" }, { value: "highlights", label: "فقط هایلایت‌های اشعار (پیشخوان › اشعار › هایلایت‌ها)" }, { value: "stories", label: "استوری‌های فروشگاه" }, { value: "manual", label: "ردیف‌های دستی زیر" }] },
@@ -251,12 +251,12 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "bookTitle", label: "عنوان کارت کتاب" }, { kind: "text", key: "bookSubtitle", label: "زیرعنوان کارت کتاب (خالی = تعداد اشعار)" },
       { kind: "text", key: "bookSlug", label: "نامک کتاب (خالی = اولین کتاب منتشرشده)" },
       { kind: "media", key: "bookCover", label: "تصویر کارت کتاب (خالی = جلد کتاب یا لوگو)", accept: "image" }, { kind: "text", key: "bookHref", label: "پیوند کارت کتاب ({slug} = نامک کتاب؛ خالی = پیوند خرید کتاب یا /poems)" }, { kind: "text", key: "bookLabel", label: "برچسب دکمه کارت کتاب" },
-      { kind: "number", key: "slidesDesktop", label: "تعداد کارت در دسکتاپ", min: 1, max: 5 },
-      { kind: "slider", key: "slidesMobile", label: "تعداد کارت در موبایل", min: 1, max: 3, step: 0.05 },
+      { kind: "number", key: "slidesDesktop", label: "تعداد کارت در دسکتاپ", min: 1, max: 8 },
+      { kind: "slider", key: "slidesMobile", label: "تعداد کارت در موبایل", min: 1, max: 4, step: 0.05 },
       { kind: "switch", key: "arrows", label: "دکمه‌های قبلی/بعدی" }, LOGO,
       tone, ...V2_COLOR_FIELDS, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("story-highlights", { title: "", source: "auto", items: "", limit: 0, bookCard: true, bookTitle: "مجموعه همه اشعار در کتاب", bookSubtitle: "", bookSlug: "", bookCover: "", bookHref: "", bookLabel: "مشاهده همه اشعار", slidesDesktop: 3, slidesMobile: 1.15, arrows: true, tone: "glass" }),
+    create: () => node("story-highlights", { title: "", source: "auto", items: "", limit: 0, bookCard: true, bookTitle: "مجموعه همه اشعار در کتاب", bookSubtitle: "", bookSlug: "", bookCover: "", bookHref: "", bookLabel: "مشاهده همه اشعار", slidesDesktop: 5, slidesMobile: 2.4, arrows: true, tone: "glass" }),
   },
   {
     type: "audio-playlist", label: "پلی‌لیست صوتی (پخش‌کننده موسیقی)", category: "content",
