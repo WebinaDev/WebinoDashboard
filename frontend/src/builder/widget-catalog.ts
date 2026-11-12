@@ -263,6 +263,7 @@ export const WIDGET_CATALOG: Record<string, CatalogEntry> = {
   "story-strip": { category: "marketing", icon: "CircleDashed" },
   "social-icons": { category: "marketing", icon: "Share2" },
   "share-buttons": { category: "marketing", icon: "Forward" },
+  "faq-categorized": { category: "content", icon: "CircleHelp" },
   "form": { category: "forms", icon: "ClipboardList" },
   "newsletter": { category: "forms", icon: "MailPlus" },
   "login-form": { category: "forms", icon: "LogIn" },

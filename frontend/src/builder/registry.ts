@@ -10,6 +10,7 @@ import { COMMERCE_PLUGIN } from "./registry-commerce"
 import { ACADEMY_WIDGETS } from "./registry-academy"
 import { CAFE_WIDGETS } from "./registry-cafe"
 import { CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
+import { GLASS_TONE_FIELDS } from "./registry-glass"
 import { BUTTON_DOODLE_FIELDS, BUTTON_DOODLE_TONE, IMAGE_BLOB_FIELDS } from "./doodle-registry"
 import { POETRY_WIDGETS } from "./registry-poetry"
 import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
@@ -399,6 +400,7 @@ const CORE_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "textarea", key: "plans", label: "نام|قیمت|ویژگی‌ها با ; |پیوند|ویژه (1) در هر خط" },
       { kind: "text", key: "cta", label: "متن دکمه" },
+      ...GLASS_TONE_FIELDS,
     ],
     create: () => node("pricing-table", { plans: "", cta: "انتخاب" }),
   },
@@ -727,6 +729,24 @@ const CORE_WIDGETS: WidgetDef[] = [
     category: "parts",
     fields: [],
     create: () => node("post-content", {}),
+  },
+  {
+    type: "faq-categorized",
+    label: "سوالات متداول دسته‌بندی‌شده",
+    category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "select", key: "source", label: "منبع", options: [
+        { value: "live", label: "دانشنامه پشتیبانی" },
+        { value: "manual", label: "دستی" },
+      ] },
+      { kind: "text", key: "categories", label: "دسته‌ها (با ویرگول، برای حالت دستی)" },
+      { kind: "textarea", key: "items", label: "دسته|سؤال|جواب در هر خط" },
+      { kind: "text", key: "allLabel", label: "برچسب همه" },
+      { kind: "text", key: "emptyText", label: "متن خالی" },
+      ...GLASS_TONE_FIELDS,
+    ],
+    create: () => node("faq-categorized", { title: "سؤالات متداول", source: "live", categories: "", items: "", allLabel: "همه", emptyText: "هنوز پرسشی ثبت نشده است." }),
   },
   ...CONTENT_WIDGETS,
   ...GAP_WIDGETS,

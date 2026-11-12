@@ -1,6 +1,7 @@
 "use client"
 
 import "./doodle-widgets.css"
+import { glassClass, glassStyle } from "./glass-tone"
 
 /* Additional page-builder widgets (product query carousel, banner grid, tabs, FAQ accordion,
  * icon box/list, testimonials, brand slider, gallery/carousel, announcement, map, counters,
@@ -767,15 +768,16 @@ export function ShareButtonsWidget({ widget }: { widget: WidgetNode }) {
 export function PricingWidget({ widget }: { widget: WidgetNode }) {
   const rows = splitRows(propStr(widget.props, "plans", "")).filter(([name]) => name)
   const cta = propStr(widget.props, "cta", "انتخاب")
+  const isGlass = propStr(widget.props, "tone") === "glass"
   if (!rows.length) return null
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className={glassClass(widget.props, "grid gap-3 md:grid-cols-3")} style={glassStyle(widget.props)}>
       {rows.map(([name, price, features, href, featured], i) => {
         const hot = featured === "1" || featured === "true"
         return (
-          <div key={i} className={`flex flex-col rounded-2xl border bg-card p-5 ${hot ? "border-primary shadow-lg" : "border-border"}`}>
-            <strong className="text-base font-extrabold text-foreground">{name}</strong>
-            {price ? <span className="mt-2 text-2xl font-black text-primary">{price}</span> : null}
+          <div key={i} className={`wb-glass-card flex flex-col rounded-2xl border bg-card p-5 ${hot ? "border-primary shadow-lg" : "border-border"}`}>
+            <strong className="text-base font-extrabold">{name}</strong>
+            {price ? <span className="mt-2 text-2xl font-black text-primary" style={isGlass ? { color: "var(--wb-glass-accent)" } : undefined}>{price}</span> : null}
             <ul className="mt-4 flex-1 space-y-2 text-sm text-foreground/75">
               {(features ?? "")
                 .split(";")

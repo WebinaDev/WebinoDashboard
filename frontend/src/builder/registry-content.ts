@@ -8,6 +8,7 @@ import { uid } from "./ids"
 import { createSection } from "./tree"
 import { ICON_OPTIONS } from "./render/icon-options"
 import { doodleWidgets, withDoodleContentFields } from "./doodle-registry"
+import { GLASS_TONE_FIELDS } from "./registry-glass"
 import type { WidgetDef } from "./types"
 
 const sharedForm = sharedFormWidget({ formKeyLabel: "شناسه فرم (برای تنظیم اقدام‌ها)", fieldsLabel: "فیلدها" })
@@ -15,6 +16,7 @@ const sharedForm = sharedFormWidget({ formKeyLabel: "شناسه فرم (برای
 /** Shared form; Dashboard adapter keeps its own defaults (email field, phone/email toggles on). */
 export const FORM_WIDGET: WidgetDef = {
   ...sharedForm,
+  fields: [...(Array.isArray(sharedForm.fields) ? sharedForm.fields : []), ...GLASS_TONE_FIELDS],
   create: () => ({
     id: uid("w"),
     type: "form",

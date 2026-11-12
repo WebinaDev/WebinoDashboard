@@ -118,6 +118,7 @@ const ImageGalleryWidget = dynamic(() => import("./extra-widgets").then((m) => m
 const LoginCtaWidget = dynamic(() => import("./extra-widgets").then((m) => m.LoginCtaWidget))
 const MapWidget = dynamic(() => import("./extra-widgets").then((m) => m.MapWidget))
 const PricingWidget = dynamic(() => import("./extra-widgets").then((m) => m.PricingWidget))
+const FaqCategorizedWidget = dynamic(() => import("./faq-categorized-widget").then((m) => m.FaqCategorizedWidget))
 const ProductQueryWidget = dynamic(() => import("./extra-widgets").then((m) => m.ProductQueryWidget))
 const SearchBoxWidget = dynamic(() => import("./extra-widgets").then((m) => m.SearchBoxWidget))
 const ShareButtonsWidget = dynamic(() => import("./extra-widgets").then((m) => m.ShareButtonsWidget))
@@ -405,6 +406,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <ShareButtonsWidget widget={widget} />
     case "pricing-table":
       return <PricingWidget widget={widget} />
+    case "faq-categorized":
+      return <FaqCategorizedWidget widget={widget} />
     case "blog-posts":
       return <BlogPostsWidget widget={widget} />
     case "loop-grid":

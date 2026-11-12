@@ -9,6 +9,7 @@ import { checkFormUpload, FORM_UPLOAD_ACCEPT, publicFormEndpoints } from "@webin
 import { isVisible, missingOnStep, withComputed, parseFormFields, stepCount, visiblePayload, type FormField } from "../forms"
 import { parseRows, propStr } from "../props"
 import type { WidgetNode } from "../types"
+import { glassClass, glassStyle } from "./glass-tone"
 
 /** Shared upload rule (10 MB, docs/images/zip) and endpoint shape from `@webina/ui/builder`; Dashboard prefix. */
 const FILE_ACCEPT = FORM_UPLOAD_ACCEPT
@@ -165,7 +166,7 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchor, fields.length])
 
-  if (done) return <p id={anchor || undefined} className="wb-form-success wb-type-body rounded-2xl bg-muted p-5 text-foreground" role="status">{success}</p>
+  if (done) return <p id={anchor || undefined} className={glassClass(widget.props, "wb-form-success wb-type-body rounded-2xl bg-muted p-5 text-foreground")} style={glassStyle(widget.props)} role="status">{success}</p>
   const set = (name: string, value: string) => {
     if (started.current === null) started.current = Date.now()
     setValues((current) => ({ ...current, [name]: value }))
@@ -180,7 +181,8 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
   return (
     <form
       id={anchor || undefined}
-      className="wb-form relative grid gap-3 rounded-3xl border border-border bg-card p-5 shadow-sm"
+      className={glassClass(widget.props, "wb-form relative grid gap-3 rounded-3xl border border-border bg-card p-5 shadow-sm")}
+      style={glassStyle(widget.props)}
       noValidate
       onSubmit={(event) => {
         event.preventDefault()
