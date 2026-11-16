@@ -8,7 +8,7 @@ import type { CatalogItem } from "../../types"
 import { useAddToCart } from "../../lib/cart"
 import { offPercent, useCatalogueController, type CatalogueController } from "../../lib/useCatalogueController"
 import { digits, initialOf, localizedField } from "../../lib/helpers"
-import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps } from "../shared"
+import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps, DishOfDayRail } from "../shared"
 import "./super.css"
 
 type Props = Parameters<typeof useCatalogueController>[0]
@@ -22,7 +22,7 @@ export function SuperCatalogue(props: Props) {
   const loose = ctrl.filteredItems.filter((i) => !i.category)
 
   return (
-    <CafeShell ctrl={ctrl}>
+    <CafeShell ctrl={ctrl} statusChip>
       <div className="cafe-frame sup-frame">
         <header className="sup-head">
           <div className="sup-head-shapes" aria-hidden="true">
@@ -78,6 +78,8 @@ export function SuperCatalogue(props: Props) {
         ) : null}
 
         {ctrl.ordering?.accepting_orders === false ? <p className="cafe-notice">{ctrl.t("orders_paused")}</p> : null}
+
+        <DishOfDayRail ctrl={ctrl} />
 
         {ctrl.discounted.length > 0 && !ctrl.activeCategory && !ctrl.query ? (
           <section className="sup-section sup-offers">

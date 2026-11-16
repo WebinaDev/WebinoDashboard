@@ -1,5 +1,6 @@
 /* Shared cafe digital-menu chrome. Per-skin layout CSS lives next to each Catalogue. */
 @import "./skins/tokens.css";
+@import "./components/guest.css";
 
 .cafe-shell,
 .cafe-sheet {

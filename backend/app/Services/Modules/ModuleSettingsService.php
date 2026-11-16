@@ -87,6 +87,17 @@ final class ModuleSettingsService
             'fulfillment_dine_in' => true,
             'fulfillment_pickup' => true,
             'fulfillment_delivery' => false,
+            // Delivery zones: per-radius fees that override the flat delivery fee.
+            'delivery_zones' => [],
+            // Ordering by phone OTP (delivery contact + «سفارش‌های من»).
+            'guest_otp_required' => false,
+            'guest_otp_template' => null,
+            'guest_otp_log_fallback' => false,
+            // Kitchen service (plate charge) and allergen warning text.
+            'kitchen_service_enabled' => false,
+            'kitchen_service_fee_minor' => 0,
+            'allergen_note_fa' => null,
+            'allergen_note_en' => null,
         ];
     }
 

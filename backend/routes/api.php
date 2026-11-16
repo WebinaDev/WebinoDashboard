@@ -38,6 +38,9 @@ use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\PublicPortfolioController;
 use App\Http\Controllers\Api\V1\PublicReservationController;
 use App\Http\Controllers\Api\V1\PublicCafeEngagementController;
+use App\Http\Controllers\Api\V1\PublicCafeGuestController;
+use App\Http\Controllers\Api\V1\PublicCafePdfController;
+use App\Http\Controllers\Api\V1\PublicCafeQuoteController;
 use App\Http\Controllers\Api\V1\PublicGuestCartController;
 use App\Http\Controllers\Api\V1\PublicShopCheckoutController;
 use App\Http\Controllers\Api\V1\CategoryController;
@@ -410,6 +413,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/cafe/table', [PublicGuestCartController::class, 'table']);
             Route::post('/cafe/checkout', [PublicGuestCartController::class, 'checkout'])->middleware('throttle:public-writes');
             Route::post('/cafe/orders/{order}/pay', [PublicGuestCartController::class, 'pay'])->whereNumber('order')->middleware('throttle:public-writes');
+            // Guest identity (OTP), order history and «سفارش دوباره».
+            Route::get('/cafe/guest', [PublicCafeGuestController::class, 'state']);
+            Route::post('/cafe/guest/otp', [PublicCafeGuestController::class, 'sendOtp'])->middleware('throttle:6,1');
+            Route::post('/cafe/guest/verify', [PublicCafeGuestController::class, 'verifyOtp'])->middleware('throttle:10,1');
+            Route::get('/cafe/guest/orders', [PublicCafeGuestController::class, 'orders']);
+            Route::post('/cafe/guest/orders/{order}/reorder', [PublicCafeGuestController::class, 'reorder'])->whereNumber('order')->middleware('throttle:public-writes');
+            Route::post('/cafe/quote', [PublicCafeQuoteController::class, 'delivery']);
+            // Printable menu (the QR page links here; no dashboard session needed).
+            Route::get('/cafe/menu-pdf', [PublicCafePdfController::class, 'menu'])->middleware('throttle:30,1');
         });
 
         // Guest shop checkout (enabled only when tenant guest_checkout is on).
@@ -769,6 +781,7 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/modifiers/{modifier}', [ProductModifierController::class, 'update'])->whereNumber('modifier');
                 Route::delete('/modifiers/{modifier}', [ProductModifierController::class, 'destroy'])->whereNumber('modifier');
                 Route::put('/products/{product}/allergens', [ProductModifierController::class, 'syncAllergens'])->whereNumber('product');
+                Route::put('/products/{product}/gallery-views', [ProductModifierController::class, 'syncGalleryViews'])->whereNumber('product');
                 Route::put('/products/{product}/media', [ProductModifierController::class, 'syncMedia'])->whereNumber('product');
                 Route::get('/product-catalog/sources', [ProductCatalogController::class, 'sources']);
                 Route::get('/product-catalog/search', [ProductCatalogController::class, 'search']);
@@ -898,6 +911,8 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/cafe/menu-settings', [CafeSettingsController::class, 'updateMenu']);
                 Route::post('/cafe/bulk-price', [CafeSettingsController::class, 'bulkPrice']);
                 Route::get('/cafe/kitchen-orders', [CafeKitchenController::class, 'index']);
+
+                Route::get('/cafe/kitchen-orders/live', [CafeKitchenController::class, 'live']);
                 Route::patch('/cafe/kitchen-orders/{order}', [CafeKitchenController::class, 'update'])->whereNumber('order');
                 Route::get('/cafe/engagement-settings', [CafeSettingsController::class, 'showEngagement']);
                 Route::patch('/cafe/engagement-settings', [CafeSettingsController::class, 'updateEngagement']);

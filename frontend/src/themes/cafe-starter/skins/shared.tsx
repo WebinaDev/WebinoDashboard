@@ -2,10 +2,12 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
 import { Cake, Coffee, Croissant, CupSoda, Grid2x2, LayoutTemplate, List, Moon, Soup, Sun, Utensils, Wine } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CafeCartDrawer } from "../components/CafeCartDrawer"
+import { ClipboardList, FileDown } from "lucide-react"
+import { peekGuestToken } from "../lib/cart"
 import { ItemSheet } from "../components/ItemSheet"
 import { PhoneGateDialog } from "../components/PhoneGateDialog"
 import type { CatalogItem, MenuBanner } from "../types"
@@ -21,15 +23,19 @@ import {
 } from "../lib/helpers"
 import { offPercent, type CatalogueController } from "../lib/useCatalogueController"
 import { useReveal } from "../lib/useScrollSpy"
+import { GuestOrdersSheet } from "../components/GuestOrdersSheet"
 
 export function CafeShell({
   ctrl,
   children,
   className,
+  statusChip = false,
 }: {
   ctrl: CatalogueController
   children: ReactNode
   className?: string
+  /** Render the open/closes-soon/next-open chip above the menu contents. */
+  statusChip?: boolean
 }) {
   const style = ctrl.accent
     ? ({
@@ -51,9 +57,168 @@ export function CafeShell({
       style={style}
     >
       <PhoneGateDialog engagement={ctrl.catalog.engagement} skin={ctrl.skin} scheme={ctrl.scheme} />
+      {statusChip ? (
+        <div className="cafe-status-bar">
+          <OpenStatusChip ctrl={ctrl} />
+        </div>
+      ) : null}
       {children}
       <ItemSheet ctrl={ctrl} item={ctrl.picked} onClose={() => ctrl.setPicked(null)} />
     </div>
+  )
+}
+
+/**
+ * «سفارش‌های من» button: appears only once this browser has an order to show, so a
+ * first-time guest is not asked to prove a phone number before ordering anything.
+ */
+/**
+ * Open-state chip for the menu header. «بسته می‌شود تا …» warns a guest who is still
+ * browsing, and when the cafe is shut it says when it opens next instead of a bare «تعطیل».
+ */
+export function OpenStatusChip({ ctrl, className }: { ctrl: CatalogueController; className?: string }) {
+  const ordering = ctrl.ordering
+  if (!ordering) return null
+  const today = ordering.today
+  const closed = ordering.is_open === false || today?.closed === true
+
+  if (closed) {
+    return (
+      <span className={cn("cafe-status-chip is-closed", className)}>
+        <span className="cafe-status-dot" aria-hidden="true" />
+        {ctrl.t("status_closed")}
+        {today?.next_open ? (
+          <span className="cafe-status-extra">
+            ·{" "}
+            {ctrl.t("opens_next", {
+              day: relativeDay(ctrl.locale, today.next_open.day, today.next_open.date, ctrl.t),
+              at: digits(today.next_open.at, ctrl.locale),
+            })}
+          </span>
+        ) : null}
+      </span>
+    )
+  }
+
+  return (
+    <span className={cn("cafe-status-chip", today?.closes_soon && "is-soon", className)}>
+      <span className="cafe-status-dot" aria-hidden="true" />
+      {ctrl.t("status_open")}
+      {today?.closes_soon && today.today_close ? (
+        <span className="cafe-status-extra">
+          · {ctrl.t("closes_in", { at: digits(today.today_close, ctrl.locale) })}
+        </span>
+      ) : null}
+    </span>
+  )
+}
+
+/**
+ * «امروز»/«فردا» read far better than a weekday name when the cafe reopens within a day.
+ * Comparison is done on the cafe's own Y-m-d string, so no timezone maths is needed.
+ */
+function relativeDay(
+  locale: string,
+  day: string,
+  date: string | undefined,
+  t: (key: string) => string,
+): string {
+  if (date) {
+    const today = new Date()
+    const iso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    if (date === iso(today)) return t("today")
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    if (date === iso(tomorrow)) return t("tomorrow")
+  }
+  return weekdayLabel(locale, day)
+}
+
+function weekdayLabel(locale: string, day: string): string {
+  const index = WEEKDAY_INDEX[day.toLowerCase()]
+  return index == null ? day : new Intl.DateTimeFormat(locale === "fa" ? "fa-IR" : "en-US", { weekday: "long" }).format(new Date(2024, 0, 7 + index))
+}
+
+const WEEKDAY_INDEX: Record<string, number> = {
+  saturday: 6,
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  sat: 6,
+  sun: 0,
+  mon: 1,
+  tue: 2,
+  wed: 3,
+  thu: 4,
+  fri: 5,
+}
+
+export function OrdersButton({ ctrl, label }: { ctrl: CatalogueController; label: string }) {
+  const [open, setOpen] = useState(false)
+  // Null on the server: the button appears after hydration, so markup never mismatches.
+  const [hasGuest, setHasGuest] = useState<boolean | null>(null)
+  useEffect(() => {
+    setHasGuest(peekGuestToken() !== "")
+  }, [])
+  if (hasGuest !== true) return null
+
+  return (
+    <>
+      <button type="button" className="cafe-icon-btn cafe-orders-btn" onClick={() => setOpen(true)} aria-label={label} title={label}>
+        <ClipboardList className="size-4" aria-hidden="true" />
+      </button>
+      <GuestOrdersSheet
+        open={open}
+        onOpenChange={setOpen}
+        skin={ctrl.skin}
+        scheme={ctrl.scheme}
+        locale={ctrl.locale}
+        currency={ctrl.catalog.items[0]?.currency}
+        currencyDisplay={ctrl.currencyDisplay}
+        orderingStatus={ctrl.ordering?.accepting_orders === false ? "closed" : "open"}
+      />
+    </>
+  )
+}
+
+
+/**
+ * «غذای روز» rail: today's featured dish, shown above the full list on every skin so a
+ * regular can find the day's plate without scrolling. Hidden when the cafe marks none.
+ */
+export function DishOfDayRail({ ctrl }: { ctrl: CatalogueController }) {
+  if (ctrl.dishOfDay.length === 0) return null
+  return (
+    <section className="cafe-dish-day" aria-label={ctrl.t("dish_of_day")}>
+      <header className="cafe-dish-day-head">
+        <span className="cafe-dish-day-badge" aria-hidden="true">
+          <Utensils className="size-4" />
+        </span>
+        <div>
+          <h2>{ctrl.t("dish_of_day")}</h2>
+          <p>{ctrl.t("dish_of_day_hint")}</p>
+        </div>
+      </header>
+      <div className="cafe-dish-day-row">
+        {ctrl.dishOfDay.slice(0, 6).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="cafe-dish-day-card"
+            onClick={() => ctrl.setPicked(item)}
+            aria-label={item.name}
+          >
+            <ItemMedia item={item} className="cafe-dish-day-media" />
+            <span className="cafe-dish-day-name">{item.name}</span>
+            <span className="cafe-dish-day-price">{ctrl.priceOf(item)}</span>
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -61,19 +226,45 @@ export function SchemeCartTools({
   ctrl,
   extra,
   cart = "icon",
+  orders = true,
 }: {
   ctrl: CatalogueController
   extra?: ReactNode
   cart?: "icon" | "pill" | "none"
+  /** Show «سفارش‌های من» next to the theme toggle. */
+  orders?: boolean
 }) {
   return (
     <div className="cafe-tool-cluster">
       <button type="button" className="cafe-icon-btn" onClick={ctrl.toggleScheme} aria-label={ctrl.t("toggle_theme")}>
         {ctrl.scheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
       </button>
+      {orders ? <OrdersButton ctrl={ctrl} label={ctrl.t("my_orders")} /> : null}
+      <MenuPdfButton ctrl={ctrl} label={ctrl.t("menu_pdf")} />
       {cart !== "none" ? <CartButton ctrl={ctrl} variant={cart} /> : null}
       {extra}
     </div>
+  )
+}
+
+/**
+ * «منوی PDF»: the same public printable menu the QR poster links to, opened in a new tab
+ * so a guest can keep or print it without losing the cart.
+ */
+export function MenuPdfButton({ ctrl, label }: { ctrl: CatalogueController; label: string }) {
+  const [href, setHref] = useState("")
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const params = new URLSearchParams({ inline: "1" })
+    if (ctrl.locale === "en") params.set("lang", "en")
+    const query = params.toString()
+    setHref(`${base.replace(/\/$/, "")}/api/v1/cafe/menu-pdf${query ? `?${query}` : ""}`)
+  }, [ctrl.locale])
+  if (!href) return null
+  return (
+    <a className="cafe-icon-btn" href={href} target="_blank" rel="noreferrer" aria-label={label} title={label} download>
+      <FileDown className="size-4" aria-hidden="true" />
+    </a>
   )
 }
 

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import type { CatalogItem } from "../../types"
 import { useCatalogueController, type CatalogueController } from "../../lib/useCatalogueController"
 import { digits, initialOf, keepQuery, localizedField } from "../../lib/helpers"
-import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps, soldLabel } from "../shared"
+import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps, soldLabel, DishOfDayRail } from "../shared"
 import "./kerase.css"
 
 type Props = Parameters<typeof useCatalogueController>[0]
@@ -28,7 +28,7 @@ export function KeraseCatalogue(props: Props) {
   const picks = ctrl.featured.slice(0, 6)
 
   return (
-    <CafeShell ctrl={ctrl}>
+    <CafeShell ctrl={ctrl} statusChip>
       <div className="cafe-frame ker-frame">
         <header className="ker-top">
           <SchemeCartTools ctrl={ctrl} cart="none" />
@@ -68,6 +68,8 @@ export function KeraseCatalogue(props: Props) {
             />
           </label>
         ) : null}
+
+        <DishOfDayRail ctrl={ctrl} />
 
         {ctrl.menu.show_category_bar && ctrl.catalog.categories.length > 0 ? (
           <nav className="ker-bubbles" aria-label={ctrl.t("categories_heading")}>

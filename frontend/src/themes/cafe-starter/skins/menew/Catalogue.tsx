@@ -17,6 +17,7 @@ import {
   ViewModeSwitch,
   pickProps,
   soldLabel,
+  DishOfDayRail,
 } from "../shared"
 import "./menew.css"
 
@@ -43,7 +44,7 @@ export function MenewCatalogue(props: Props) {
   }
 
   return (
-    <CafeShell ctrl={ctrl}>
+    <CafeShell ctrl={ctrl} statusChip>
       <div className="me-frame">
         <header className={cn("me-chrome", heroGone && "is-solid")}>
           <Link href="/about" className="me-about">
@@ -69,6 +70,8 @@ export function MenewCatalogue(props: Props) {
             </button>
           </div>
         </section>
+
+        <DishOfDayRail ctrl={ctrl} />
 
         <section id="me-stage" className="me-stage">
           <div className="me-stage-tools">

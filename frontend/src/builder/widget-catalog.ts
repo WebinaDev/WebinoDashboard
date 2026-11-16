@@ -176,7 +176,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-export type CatalogCategoryId = "layout" | "basic" | "media" | "interactive" | "marketing" | "forms" | "chrome" | "shop" | "product" | "checkout" | "blog" | "resume" | "poetry" | "cafe" | "academy" | "other"
+export type CatalogCategoryId = "layout" | "basic" | "content" | "media" | "interactive" | "marketing" | "forms" | "chrome" | "shop" | "product" | "checkout" | "blog" | "resume" | "poetry" | "cafe" | "academy" | "other"
 
 export type CatalogCategory = { id: CatalogCategoryId; label: string; labelEn: string; icon: string }
 export type CatalogEntry = { category: CatalogCategoryId; icon: string }
@@ -184,6 +184,7 @@ export type CatalogEntry = { category: CatalogCategoryId; icon: string }
 export const WIDGET_CATALOG_CATEGORIES: CatalogCategory[] = [
   { id: "layout", label: "چیدمان", labelEn: "Layout", icon: "LayoutTemplate" },
   { id: "basic", label: "متن و پایه", labelEn: "Text & basics", icon: "Type" },
+  { id: "content", label: "محتوای متنی", labelEn: "Content", icon: "Pilcrow" },
   { id: "media", label: "تصویر و رسانه", labelEn: "Media", icon: "Image" },
   { id: "interactive", label: "تعاملی", labelEn: "Interactive", icon: "MousePointerClick" },
   { id: "marketing", label: "بازاریابی و لندینگ", labelEn: "Marketing", icon: "Megaphone" },

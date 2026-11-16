@@ -2,8 +2,9 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
-import { Check, Flame, Minus, Plus } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useTranslations } from "next-intl"
+import { Utensils, Check, ChevronLeft, ChevronRight, Flame, Minus, Plus, ShieldAlert, Sparkles, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
@@ -13,6 +14,7 @@ import { digits, keepQuery, localizedField, money, placeholderFor } from "../lib
 import type { ShopCurrencyDisplay } from "@/lib/format"
 import type { CafeOrderingStatus, CatalogItem } from "../types"
 import { CafeSheet } from "./CafeSheet"
+import { Item3DViewer } from "./Item3DViewer"
 
 /** Where each skin shows item details: Super a side panel; others bottom on phone, centered on md+ (CSS). */
 export function sheetPlacement(skin: string): "bottom" | "side" | "center" {
@@ -92,6 +94,11 @@ export function ItemPanel({
   const [selected, setSelected] = useState<Record<number, number[]>>({})
   const [added, setAdded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mediaIndex, setMediaIndex] = useState(0)
+  const [addons, setAddons] = useState<string[]>([])
+  const [addonDraft, setAddonDraft] = useState("")
+  const addonInput = useRef<HTMLInputElement>(null)
+  const tMedia = useTranslations("cafe_starter.media")
   const add = useAddToCart(ctrl.tableNumber, ctrl.branchSlug)
 
   useEffect(() => {
@@ -100,6 +107,9 @@ export function ItemPanel({
     setError(null)
     setVariant(item.variants?.find((v) => v.is_default)?.id ?? item.variants?.[0]?.id ?? null)
     setSelected(defaultSelections(item))
+    setMediaIndex(0)
+    setAddons([])
+    setAddonDraft("")
     trackAnalyticsEvent("product_view", { productId: item.id })
   }, [item])
 
@@ -140,7 +150,13 @@ export function ItemPanel({
   function submit() {
     setError(null)
     add.mutate(
-      { productId: item.id, quantity: qty, optionIds: Object.values(selected).flat(), variantId: variant },
+      {
+        productId: item.id,
+        quantity: qty,
+        optionIds: Object.values(selected).flat(),
+        variantId: variant,
+        addons,
+      },
       {
         onSuccess: () => {
           setAdded(true)
@@ -154,17 +170,38 @@ export function ItemPanel({
 
   return (
       <div className="cafe-item-layout">
-        <div className="cafe-item-hero" style={image ? undefined : { backgroundImage: placeholderFor(item.slug || item.name) }}>
-          {item.video_url ? (
-            <video src={item.video_url} autoPlay muted loop playsInline className="h-full w-full object-cover" />
-          ) : image ? (
-            <Image src={image} alt={item.name} fill className="object-cover" unoptimized />
-          ) : null}
+        <MediaStage
+          item={item}
+          image={image}
+          index={mediaIndex}
+          onIndex={setMediaIndex}
+          labels={{
+            video: t("has_video"),
+            photo: t("photo_count"),
+            three_d: t("view_in_3d"),
+            drag: t("drag_3d"),
+            ar: t("view_in_ar"),
+            loading: t("loading_3d"),
+          }}
+        />
+        <div className="cafe-item-hero-badges" aria-hidden={item.price_minor <= item.discounted_price_minor}>
           {item.price_minor > item.discounted_price_minor ? (
             <span className="cafe-item-off">
               {t("discount_percent", {
                 percent: digits(item.discount_percent || Math.round((1 - item.discounted_price_minor / item.price_minor) * 100), locale),
               })}
+            </span>
+          ) : null}
+          {item.has_service ? (
+            <span className="cafe-item-service">
+              <Sparkles className="size-3" aria-hidden="true" />
+              {localizedField(locale, item.service_label_fa, item.service_label_en) ?? t("service_badge")}
+            </span>
+          ) : null}
+          {ctrl.ordering?.weekday && (item.daily_dish ?? []).includes(ctrl.ordering.weekday) ? (
+            <span className="cafe-item-daily">
+              <Utensils className="size-3" aria-hidden="true" />
+              {t("dish_of_day")}
             </span>
           ) : null}
         </div>
@@ -183,9 +220,21 @@ export function ItemPanel({
                 </span>
               ) : null}
               {item.allergens?.map((a) => (
-                <span key={a.id}>{localizedField(locale, a.name_fa, a.name_en)}</span>
+                <span key={a.id} className="cafe-allergen">
+                  {localizedField(locale, a.name_fa, a.name_en)}
+                </span>
               ))}
             </div>
+            {item.allergens?.length ? (
+              <p className="cafe-allergen-note">
+                <ShieldAlert className="size-3.5 shrink-0" aria-hidden="true" />
+                {localizedField(
+                  locale,
+                  ctrl.ordering?.allergen_note?.fa,
+                  ctrl.ordering?.allergen_note?.en,
+                ) || t("allergen_warning")}
+              </p>
+            ) : null}
             {item.description ? <p className="cafe-item-desc">{item.description}</p> : null}
           </div>
 
@@ -222,6 +271,85 @@ export function ItemPanel({
               </div>
             </fieldset>
           ))}
+
+          <fieldset className="cafe-mod cafe-addons">
+            <legend>
+              {t("addons_title")}
+              <em className="cafe-addons-optional">{t("addons_optional")}</em>
+            </legend>
+            <p className="cafe-hint">{t("addons_hint")}</p>
+            {(item.modifiers ?? []).some((m) => m.options.some((o) => o.is_addon)) ? (
+              <div className="cafe-mod-options">
+                {(item.modifiers ?? [])
+                  .flatMap((m) => m.options.filter((o) => o.is_addon))
+                  .map((opt) => {
+                    const label = localizedField(locale, opt.name_fa, opt.name_en) ?? opt.name_fa
+                    const on = addons.includes(label)
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        data-on={on ? "true" : "false"}
+                        onClick={() =>
+                          setAddons((list) => (on ? list.filter((x) => x !== label) : [...list, label].slice(0, 6)))
+                        }
+                      >
+                        <span>{label}</span>
+                        {on ? <Check className="size-3.5" aria-hidden="true" /> : <Plus className="size-3.5" aria-hidden="true" />}
+                      </button>
+                    )
+                  })}
+              </div>
+            ) : null}
+            {addons.length ? (
+              <ul className="cafe-addon-picked">
+                {addons.map((label) => (
+                  <li key={label}>
+                    {label}
+                    <button
+                      type="button"
+                      aria-label={t("addon_remove", { name: label })}
+                      onClick={() => setAddons((list) => list.filter((x) => x !== label))}
+                    >
+                      <X className="size-3" aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="cafe-addon-row">
+              <input
+                ref={addonInput}
+                className="cafe-field"
+                value={addonDraft}
+                maxLength={60}
+                placeholder={t("addon_placeholder")}
+                aria-label={t("addons_title")}
+                onChange={(e) => setAddonDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return
+                  e.preventDefault()
+                  const label = addonDraft.trim()
+                  if (label === "") return
+                  setAddons((list) => (list.includes(label) ? list : [...list, label].slice(0, 6)))
+                  setAddonDraft("")
+                }}
+              />
+              <button
+                type="button"
+                className="cafe-chip"
+                disabled={addonDraft.trim() === ""}
+                onClick={() => {
+                  const label = addonDraft.trim()
+                  if (label === "") return
+                  setAddons((list) => (list.includes(label) ? list : [...list, label].slice(0, 6)))
+                  setAddonDraft("")
+                }}
+              >
+                <Plus className="size-3.5" aria-hidden="true" /> {t("addon_add")}
+              </button>
+            </div>
+          </fieldset>
 
           {showMore ? (
             <Link className="cafe-item-more" href={`/catalogue/${item.slug}${keepQuery(ctrl.qs)}`}>
@@ -263,4 +391,94 @@ export function ItemPanel({
         {error ? <p className="cafe-error px-5 pb-3">{error}</p> : null}
       </div>
   )
+}
+
+type MediaSlide =
+  | { kind: "image"; url: string }
+  | { kind: "video"; url: string }
+  | { kind: "view"; view: NonNullable<CatalogItem["gallery_views"]>[number] }
+
+/**
+ * The item's hero: photos, the kitchen video and 3D recordings share one swipeable stage.
+ * Slides come from what staff actually uploaded, so a photo-only item looks unchanged.
+ */
+function MediaStage({
+  item,
+  image,
+  index,
+  onIndex,
+  labels,
+}: {
+  item: CatalogItem
+  image: string | null | undefined
+  index: number
+  onIndex: (index: number) => void
+  labels: { video: string; photo: string; three_d: string; drag: string; ar: string; loading: string }
+}) {
+  const slides: MediaSlide[] = []
+  for (const view of item.gallery_views ?? []) slides.push({ kind: "view", view })
+  if (item.video_url) slides.push({ kind: "video", url: item.video_url })
+  if (image) slides.push({ kind: "image", url: image })
+  for (const media of item.media ?? []) {
+    if (media.type === "video") slides.push({ kind: "video", url: media.url })
+    else slides.push({ kind: "image", url: media.url })
+  }
+
+  const active = Math.min(index, Math.max(0, slides.length - 1))
+  const slide = slides[active]
+  const kindLabel = (row: MediaSlide) =>
+    row.kind === "view" ? (row.view.type === "spin360" ? labels.three_d : labels.ar) : row.kind === "video" ? labels.video : labels.photo
+
+  const stage = (
+    <div className="cafe-item-hero">
+      {slide?.kind === "view" ? (
+        <Item3DViewer
+          view={slide.view}
+          title={item.name}
+          labels={{ drag: labels.drag, ar: labels.ar, loading: labels.loading }}
+          className="cafe-item-3d"
+        />
+      ) : slide?.kind === "video" ? (
+        <video src={slide.url} autoPlay muted loop playsInline controls className="h-full w-full object-cover" />
+      ) : slide?.kind === "image" ? (
+        <Image src={slide.url} alt={item.name} fill className="object-cover" unoptimized />
+      ) : null}
+      {slides.length > 1 ? (
+        <>
+          <button
+            type="button"
+            className="cafe-media-nav is-prev"
+            aria-label={labels.photo}
+            onClick={() => onIndex((active - 1 + slides.length) % slides.length)}
+          >
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="cafe-media-nav is-next"
+            aria-label={labels.photo}
+            onClick={() => onIndex((active + 1) % slides.length)}
+          >
+            <ChevronLeft className="size-4" aria-hidden="true" />
+          </button>
+          <div className="cafe-media-dots" role="tablist" aria-label={item.name}>
+            {slides.map((row, i) => (
+              <button
+                key={`${row.kind}-${i}`}
+                type="button"
+                role="tab"
+                aria-selected={i === active}
+                aria-label={kindLabel(row)}
+                data-kind={row.kind}
+                data-on={i === active ? "true" : "false"}
+                onClick={() => onIndex(i)}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
+  )
+
+  return stage
 }

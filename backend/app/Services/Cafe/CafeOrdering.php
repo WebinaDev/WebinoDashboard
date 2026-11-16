@@ -75,7 +75,50 @@ class CafeOrdering
                 ? (int) $menu['max_orders_per_day']
                 : null,
             'timezone' => $this->timezone($hours),
+            'delivery_zones' => $this->deliveryZones($menu),
+            'guest_otp_required' => (bool) ($menu['guest_otp_required'] ?? false),
+            'kitchen_service_enabled' => (bool) ($menu['kitchen_service_enabled'] ?? false),
+            'allergen_note' => [
+                'fa' => $menu['allergen_note_fa'] ?? null,
+                'en' => $menu['allergen_note_en'] ?? null,
+            ],
+            'pickup_address' => $this->pickupAddress($tenantId),
+            'today' => $this->today($hours, $now),
+            'weekday' => strtolower($now->format('l')),
         ];
+    }
+
+    /**
+     * «غذای روز» — the weekday key and the ids of items promoted for it. The guest menu
+     * highlights them; nothing is charged or hidden, so a cafe can change its dish by
+     * editing the product, with no menu rebuild.
+     *
+     * @return array{weekday: string, date: string, product_ids: list<int>}
+     */
+    public function dishOfDay(int $tenantId, array $productIds = []): array
+    {
+        $hours = $this->hours($tenantId);
+        $now = Carbon::now($this->timezone($hours));
+        $weekday = strtolower($now->format('l'));
+        $ids = array_values(array_map('intval', $productIds));
+        if ($ids === []) {
+            return ['weekday' => $weekday, 'date' => $now->toDateString(), 'product_ids' => []];
+        }
+
+        $matches = \App\Models\Product::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $ids)
+            ->where('is_hidden', false)
+            ->where('is_available', true)
+            ->where('is_sold_out', false)
+            ->get(['id', 'daily_dish'])
+            ->filter(fn ($product) => in_array($weekday, (array) ($product->daily_dish ?? []), true))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        return ['weekday' => $weekday, 'date' => $now->toDateString(), 'product_ids' => $matches];
     }
 
     public function assertAccepting(int $tenantId): void
@@ -90,6 +133,69 @@ class CafeOrdering
             'message' => __($key),
             'errors' => ['code' => [$status['reason'] ?? 'closed']],
         ], 422));
+    }
+
+    /**
+     * Named add-ons («افزودنی محصول» without a price): the guest types what the kitchen should
+     * note — «شیر بادام», «بدون شکر», «سرو جدا». Stored as selections with a zero price so the
+     * kitchen ticket and the order record read exactly like a paid modifier line.
+     *
+     * @param  list<string>  $labels
+     * @return list<array{option_id: int|null, modifier_id: int|null, name_fa: string, name_en: string, price_minor: int, addon: bool}>
+     */
+    public function addonSelections(Product $product, array $labels): array
+    {
+        $allowed = self::addonOptionIdsStatic($product);
+        $out = [];
+        foreach (array_slice($labels, 0, 6) as $label) {
+            $label = trim((string) $label);
+            if ($label === '' || mb_strlen($label) > 60) {
+                continue;
+            }
+            // A label that matches an add-on option keeps its id so the dashboard can report
+            // the most requested extras; a free-text note stays text.
+            $optionId = null;
+            $modifierId = null;
+            if ($product->relationLoaded('modifiers')) {
+                foreach ($product->modifiers as $modifier) {
+                    foreach ($modifier->options as $option) {
+                        if ($option->is_addon && in_array((string) $option->name_fa, [$label], true)) {
+                            $optionId = (int) $option->id;
+                            $modifierId = (int) $modifier->id;
+                            break 2;
+                        }
+                    }
+                }
+            }
+            $out[] = [
+                'option_id' => $optionId,
+                'modifier_id' => $modifierId,
+                'name_fa' => $label,
+                'name_en' => $label,
+                'price_minor' => 0,
+                'addon' => true,
+            ];
+        }
+
+        return $out;
+    }
+
+    /** @return list<int> */
+    private static function addonOptionIdsStatic(Product $product): array
+    {
+        $ids = [];
+        if (! $product->relationLoaded('modifiers')) {
+            return $ids;
+        }
+        foreach ($product->modifiers as $modifier) {
+            foreach ($modifier->options as $option) {
+                if ($option->is_addon) {
+                    $ids[] = (int) $option->id;
+                }
+            }
+        }
+
+        return $ids;
     }
 
     /**
@@ -115,7 +221,7 @@ class CafeOrdering
             abort(response()->json(['message' => __('api.cafe_modifier_invalid')], 422));
         }
 
-        $byModifier = $options->groupBy('modifier_id');
+        $byModifier = $options->reject(fn ($o) => (bool) ($o->is_addon ?? false))->groupBy('modifier_id');
         foreach ($product->modifiers()->get() as $mod) {
             $count = $byModifier->get($mod->id, collect())->count();
             $min = $mod->is_required ? max(1, (int) $mod->min_select) : (int) $mod->min_select;
@@ -134,7 +240,8 @@ class CafeOrdering
         }
 
         $base = $product->storefrontPriceMinor($variant);
-        $extra = (int) $options->sum('price_minor');
+        // Add-ons are named extras: a free add-on option never changes the price.
+        $extra = (int) $options->reject(fn ($o) => (bool) ($o->is_addon ?? false))->sum('price_minor');
         $key = ($variant ? 'v'.$variant->id : 'base').($optionIds !== [] ? '-'.implode('.', $optionIds) : '');
 
         return [
@@ -185,11 +292,68 @@ class CafeOrdering
     }
 
     /**
+     * Distance-banded delivery fees. An empty list keeps the flat fee/radius behaviour.
+     *
+     * @param  array<string, mixed>  $menu
+     * @return list<array{min_km: float, max_km: float, fee_minor: int, label_fa: string|null, label_en: string|null}>
+     */
+    private function deliveryZones(array $menu): array
+    {
+        $raw = is_array($menu['delivery_zones'] ?? null) ? $menu['delivery_zones'] : [];
+        $out = [];
+        foreach ($raw as $zone) {
+            if (! is_array($zone) || ! is_numeric($zone['min_km'] ?? null) || ! is_numeric($zone['max_km'] ?? null)) {
+                continue;
+            }
+            $min = max(0, (float) $zone['min_km']);
+            $max = max($min, (float) $zone['max_km']);
+            $out[] = [
+                'min_km' => $min,
+                'max_km' => $max,
+                'fee_minor' => max(0, (int) ($zone['fee_minor'] ?? 0)),
+                'label_fa' => isset($zone['label_fa']) ? (string) $zone['label_fa'] : null,
+                'label_en' => isset($zone['label_en']) ? (string) $zone['label_en'] : null,
+            ];
+        }
+        usort($out, fn ($a, $b) => $a['min_km'] <=> $b['min_km']);
+
+        return $out;
+    }
+
+    /** Fee for a delivery at this distance; null when no zone covers it (out of range). */
+    public function zoneFee(int $tenantId, float $km): ?int
+    {
+        $zones = $this->deliveryZones($this->menu($tenantId));
+        if ($zones === []) {
+            return null;
+        }
+        foreach ($zones as $zone) {
+            if ($km >= $zone['min_km'] && $km < $zone['max_km']) {
+                return (int) $zone['fee_minor'];
+            }
+            // The outermost band is inclusive on its far edge so its top value means "up to".
+            if (abs($km - $zone['max_km']) < 0.0001) {
+                return (int) $zone['fee_minor'];
+            }
+        }
+
+        return null;
+    }
+
+    /** Outermost band in km, used as the delivery radius when zones are configured. */
+    public function zonesMaxKm(int $tenantId): float
+    {
+        $zones = $this->deliveryZones($this->menu($tenantId));
+
+        return $zones === [] ? 0.0 : (float) max(array_column($zones, 'max_km'));
+    }
+
+    /**
      * Fee breakdown for a guest order, read from the saved menu settings.
      *
      * @return array{packaging_minor: int, delivery_minor: int, service_minor: int, total_minor: int}
      */
-    public function fees(int $tenantId, string $fulfillment, int $subtotal, int $itemCount = 1): array
+    public function fees(int $tenantId, string $fulfillment, int $subtotal, int $itemCount = 1, ?float $distanceKm = null): array
     {
         $status = $this->publicStatus($tenantId);
 
@@ -205,13 +369,24 @@ class CafeOrdering
         $delivery = 0;
         if ($fulfillment === 'delivery') {
             $threshold = StoreCurrency::toStore((int) $status['free_delivery_threshold_minor'], $feeCurrency, $tenantId);
-            $delivery = ($threshold > 0 && $subtotal >= $threshold) ? 0 : StoreCurrency::toStore((int) $status['delivery_fee_minor'], $feeCurrency, $tenantId);
+            $free = $threshold > 0 && $subtotal >= $threshold;
+            $zoneFee = $distanceKm !== null ? $this->zoneFee($tenantId, max(0, $distanceKm)) : null;
+            if (! $free) {
+                $delivery = $zoneFee !== null
+                    ? StoreCurrency::toStore($zoneFee, $feeCurrency, $tenantId)
+                    : StoreCurrency::toStore((int) $status['delivery_fee_minor'], $feeCurrency, $tenantId);
+            }
         }
 
+        // Service fee: a percentage when set, otherwise a flat per-guest plate charge for a
+        // served table (kitchen service). Percentage wins so existing cafés keep billing as before.
         $service = 0;
         $percent = (float) $status['service_fee_percent'];
         if ($percent > 0 && (! $status['service_fee_dine_in_only'] || $fulfillment === 'dine_in')) {
             $service = (int) round(max(0, $subtotal) * $percent / 100);
+        } elseif (! empty($status['kitchen_service_enabled']) && $fulfillment === 'dine_in') {
+            $menu = $this->menu($tenantId);
+            $service = StoreCurrency::toStore(max(0, (int) ($menu['kitchen_service_fee_minor'] ?? 0)), $feeCurrency, $tenantId);
         }
 
         return [
@@ -229,13 +404,13 @@ class CafeOrdering
      * @param  list<array{amount: int, taxable: bool}>  $lines
      * @return array<string, mixed>
      */
-    public function quote(int $tenantId, string $fulfillment, array $lines, int $itemCount): array
+    public function quote(int $tenantId, string $fulfillment, array $lines, int $itemCount, ?float $distanceKm = null): array
     {
         $subtotal = 0;
         foreach ($lines as $line) {
             $subtotal += max(0, (int) $line['amount']);
         }
-        $fees = $this->fees($tenantId, $fulfillment, $subtotal, $itemCount);
+        $fees = $this->fees($tenantId, $fulfillment, $subtotal, $itemCount, $distanceKm);
         $tax = \App\Services\Orders\OrderTax::computeLines($tenantId, $lines, $fees['total_minor']);
         $rate = (float) ($tax['lines'][0]['rate'] ?? 0);
 
@@ -435,6 +610,103 @@ class CafeOrdering
         ];
 
         return $map[$value] ?? null;
+    }
+
+    /** Where a pickup guest collects the order (venue address, then the first active branch). */
+    public function pickupAddress(int $tenantId): ?string
+    {
+        $venue = $this->settings->get($tenantId, 'cafe', 'venue', ModuleSettingsService::cafeVenueDefaults());
+        $address = trim((string) ($venue['address_fa'] ?? ''));
+        if ($address !== '') {
+            return $address;
+        }
+
+        $branch = \App\Models\CafeBranch::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->first();
+        $branchAddress = trim((string) ($branch?->address_fa ?? ''));
+
+        return $branchAddress !== '' ? $branchAddress : null;
+    }
+
+    /**
+     * Today's service window for the storefront header: the clock range, whether the kitchen
+     * is open right now, and when it next opens (so «بسته است» can say «بازگشایی ۸:۳۰»).
+     *
+     * @param  array<string, mixed>  $hours
+     * @return array{today_open: string|null, today_close: string|null, closed: bool, closes_soon: bool, next_open: array{day: string, at: string}|null}
+     */
+    private function today(array $hours, CarbonInterface $now): array
+    {
+        $tz = $this->timezone($hours);
+        $local = Carbon::parse($now)->timezone($tz);
+        $key = strtolower($local->format('l'));
+        $days = is_array($hours['days'] ?? null) ? $hours['days'] : [];
+
+        $row = null;
+        foreach ($days as $day) {
+            if (is_array($day) && self::dayKey((string) ($day['day'] ?? '')) === $key) {
+                $row = $day;
+                break;
+            }
+        }
+
+        $closedToday = $row === null || ! empty($row['closed'])
+            || in_array($local->toDateString(), is_array($hours['closed_dates'] ?? null) ? $hours['closed_dates'] : [], true);
+        $open = $closedToday ? null : ($row['open'] ?? null);
+        $close = $closedToday ? null : ($row['close'] ?? null);
+        $isOpen = self::openAt($hours, $local)['is_open'];
+        $closesSoon = false;
+        if ($isOpen === true && is_string($close) && ($mins = self::clockMinutes($close)) !== null) {
+            $nowMins = ((int) $local->format('H')) * 60 + (int) $local->format('i');
+            $left = $mins - $nowMins;
+            if ($left < 0) {
+                $left += 24 * 60;
+            }
+            $closesSoon = $left <= 45;
+        }
+
+        return [
+            'today_open' => $open !== null ? self::normalizeClock((string) $open) : null,
+            'today_close' => $close !== null ? self::normalizeClock((string) $close) : null,
+            'closed' => $isOpen === false,
+            'closes_soon' => $closesSoon,
+            'next_open' => $isOpen === true ? null : $this->nextOpening($hours, $local),
+        ];
+    }
+
+    /**
+     * First opening moment in the next 7 days, as a clock plus a localized day name so the
+     * storefront can print «فردا ۹:۰۰» without shipping a Jalali calendar to the server.
+     *
+     * @param  array<string, mixed>  $hours
+     * @return array{day: string, at: string}|null
+     */
+    public function nextOpening(array $hours, ?CarbonInterface $now = null): ?array
+    {
+        $tz = $this->timezone($hours);
+        $cursor = Carbon::parse($now ?? Carbon::now())->timezone($tz)->copy()->addMinute();
+        $days = is_array($hours['days'] ?? null) ? $hours['days'] : [];
+        $closedDates = is_array($hours['closed_dates'] ?? null) ? $hours['closed_dates'] : [];
+
+        for ($i = 0; $i < 7 * 24 * 60; $i += 15) {
+            if (in_array($cursor->toDateString(), $closedDates, true)) {
+                $cursor->addDay()->setTime(0, 0);
+                continue;
+            }
+            if (self::openAt($hours, $cursor)['is_open'] === true) {
+                return [
+                    'day' => strtolower($cursor->format('l')),
+                    'at' => $cursor->format('H:i'),
+                    'date' => $cursor->toDateString(),
+                ];
+            }
+            $cursor->addMinutes(15);
+        }
+
+        return null;
     }
 
     /** @param  array<string, mixed>  $menu */

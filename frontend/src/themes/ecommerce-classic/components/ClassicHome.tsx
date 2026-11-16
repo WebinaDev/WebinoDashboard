@@ -659,11 +659,8 @@ export function ClassicHero({
   variant?: string
   eyebrow?: string
 }) {
-  // Hooks must run before any early return (rules-of-hooks).
+  // Hooks must run before any early return (rules-of-hooks), so slides are derived first.
   const tx = useClassicText()
-  if (variant === "cinematic" && !imageOnly) {
-    return <ClassicCinematicHero slidesText={slidesText} eyebrow={eyebrow} height={height} />
-  }
   const parsed = lines(slidesText ?? "").map(([title, kicker, href, image, sub, cta, mobileImage]) => ({
     title: title || "",
     kicker: kicker || "",
@@ -683,6 +680,9 @@ export function ClassicHero({
     const timer = window.setInterval(() => setIndex((i) => (i + 1) % count), 6000)
     return () => window.clearInterval(timer)
   }, [count])
+  if (variant === "cinematic" && !imageOnly) {
+    return <ClassicCinematicHero slidesText={slidesText} eyebrow={eyebrow} height={height} />
+  }
   const slide = slides[index] ?? slides[0]
   return (
     <section className={`sfc-hero${imageOnly ? " sfc-hero--image-only" : ""}`} style={height ? { minHeight: height } : undefined}>

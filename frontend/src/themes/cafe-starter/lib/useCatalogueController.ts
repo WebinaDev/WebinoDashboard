@@ -137,6 +137,11 @@ export function useCatalogueController({
   }, [catalog.items, activeCategory, query])
 
   const featured = filteredItems.filter((i) => i.is_featured)
+  // «غذای روز»: items the cafe marked as today's dish, kept in catalog order for the rail.
+  const weekdayKey = ordering?.weekday
+  const dishOfDay = weekdayKey
+    ? catalog.items.filter((item) => !item.is_sold_out && item.is_available && (item.daily_dish ?? []).includes(weekdayKey))
+    : []
   const discounted = filteredItems.filter((i) => offPercent(i) > 0)
   const newest = menu.show_new_badge ? filteredItems.filter((i) => i.is_new) : []
   const qs = { table: tableNumber, branch: branchSlug ?? null, menu: menuSlug }
@@ -192,6 +197,7 @@ export function useCatalogueController({
     logoText,
     filteredItems,
     featured,
+    dishOfDay,
     discounted,
     newest,
     qs,

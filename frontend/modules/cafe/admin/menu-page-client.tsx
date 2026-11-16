@@ -75,6 +75,11 @@ type Product = {
   sort_order?: number
   discount_percent?: number
   category?: Category | null
+  has_service?: boolean
+  service_label_fa?: string | null
+  service_label_en?: string | null
+  daily_dish?: string[] | null
+  gallery_views?: { id: number; type: "model3d" | "spin360"; url: string; poster_url?: string | null; frames?: number }[]
 }
 
 type MenuRecord = CafeMenuListItem & {
@@ -112,6 +117,13 @@ const menuDefaults: CafeMenuSettings = {
   fulfillment_dine_in: true,
   fulfillment_pickup: true,
   fulfillment_delivery: false,
+  delivery_zones: [],
+  guest_otp_required: false,
+  guest_otp_template: "",
+  kitchen_service_enabled: false,
+  kitchen_service_fee_minor: 0,
+  allergen_note_fa: "",
+  allergen_note_en: "",
 }
 
 const engagementDefaults: CafeEngagementSettings = {
@@ -121,6 +133,17 @@ const engagementDefaults: CafeEngagementSettings = {
   share_whatsapp_enabled: true,
   share_telegram_enabled: true,
 }
+
+// Week starts on Saturday in Iran, so the «غذای روز» picker does too.
+const WEEKDAYS = [
+  { key: "saturday", label: "day_sat" },
+  { key: "sunday", label: "day_sun" },
+  { key: "monday", label: "day_mon" },
+  { key: "tuesday", label: "day_tue" },
+  { key: "wednesday", label: "day_wed" },
+  { key: "thursday", label: "day_thu" },
+  { key: "friday", label: "day_fri" },
+] as const
 
 const emptyProduct = {
   name: "",
@@ -143,6 +166,11 @@ const emptyProduct = {
   spice_level: 0,
   sort_order: 0,
   discount_percent: 0,
+  has_service: false,
+  service_label_fa: "",
+  service_label_en: "",
+  daily_dish: [] as string[],
+  views: [] as { type: "model3d" | "spin360"; url: string; poster_url: string; frames: number }[],
 }
 
 export default function MenuPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
@@ -261,11 +289,32 @@ export default function MenuPageClient({ route: _route }: { route: ResolvedAdmin
         spice_level: Number(productForm.spice_level),
         sort_order: Number(productForm.sort_order),
         discount_percent: Number(productForm.discount_percent),
+        has_service: productForm.has_service,
+        service_label_fa: productForm.service_label_fa || null,
+        service_label_en: productForm.service_label_en || null,
+        daily_dish: productForm.daily_dish,
       }
-      if (editingProduct) {
-        return api<Product>(`/api/v1/products/${editingProduct.id}`, { method: "PATCH", json: payload })
-      }
-      return api<Product>("/api/v1/products", { method: "POST", json: payload })
+      const saved = editingProduct
+        ? api<Product>(`/api/v1/products/${editingProduct.id}`, { method: "PATCH", json: payload })
+        : api<Product>("/api/v1/products", { method: "POST", json: payload })
+
+      // 3D recordings live in their own table: save them right after the product exists.
+      return saved.then(async (product) => {
+        const views = productForm.views.filter((view) => view.url.trim() !== "")
+        await api(`/api/v1/products/${product.id}/gallery-views`, {
+          method: "PUT",
+          json: {
+            views: views.map((view, index) => ({
+              type: view.type,
+              url: view.url.trim(),
+              poster_url: view.poster_url || null,
+              frames: view.type === "spin360" ? Number(view.frames) || 0 : 0,
+              sort_order: index,
+            })),
+          },
+        })
+        return product
+      })
     },
     onSuccess: async () => {
       setEditingProduct(null)
@@ -454,6 +503,16 @@ export default function MenuPageClient({ route: _route }: { route: ResolvedAdmin
       spice_level: product.spice_level ?? 0,
       sort_order: product.sort_order ?? 0,
       discount_percent: product.discount_percent ?? 0,
+      has_service: product.has_service ?? false,
+      service_label_fa: product.service_label_fa ?? "",
+      service_label_en: product.service_label_en ?? "",
+      daily_dish: product.daily_dish ?? [],
+      views: (product.gallery_views ?? []).map((view) => ({
+        type: view.type,
+        url: view.url,
+        poster_url: view.poster_url ?? "",
+        frames: view.frames ?? 24,
+      })),
     })
   }
 
@@ -823,6 +882,184 @@ export default function MenuPageClient({ route: _route }: { route: ResolvedAdmin
                 />
                 {t("fulfillment_delivery")}
               </label>
+              <div className="space-y-2 rounded-lg border p-3 sm:col-span-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{t("zones_heading")}</p>
+                    <p className="text-muted-foreground text-xs">{t("zones_hint")}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setSettingsForm({
+                        ...settingsValues,
+                        delivery_zones: [
+                          ...(settingsValues.delivery_zones ?? []),
+                          { min_km: 0, max_km: 3, fee_minor: 0, label_fa: "", label_en: "" },
+                        ],
+                      })
+                    }
+                  >
+                    <Plus className="size-4" /> {t("zones_add")}
+                  </Button>
+                </div>
+                {(settingsValues.delivery_zones ?? []).length === 0 ? (
+                  <p className="text-muted-foreground text-xs">{t("zones_empty")}</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {(settingsValues.delivery_zones ?? []).map((zone, index) => (
+                      <li
+                        key={index}
+                        className="grid grid-cols-2 gap-2 rounded-md border p-2 sm:grid-cols-[repeat(3,minmax(0,1fr))_1fr_auto]"
+                      >
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t("zone_min_km")}</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.5"
+                            value={zone.min_km}
+                            onChange={(e) =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).map((row, i) =>
+                                  i === index ? { ...row, min_km: Number(e.target.value) } : row,
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t("zone_max_km")}</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.5"
+                            value={zone.max_km}
+                            onChange={(e) =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).map((row, i) =>
+                                  i === index ? { ...row, max_km: Number(e.target.value) } : row,
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t("zone_fee_minor")}</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={zone.fee_minor}
+                            onChange={(e) =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).map((row, i) =>
+                                  i === index ? { ...row, fee_minor: Number(e.target.value) } : row,
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t("zone_label_fa")}</Label>
+                          <Input
+                            value={zone.label_fa ?? ""}
+                            onChange={(e) =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).map((row, i) =>
+                                  i === index ? { ...row, label_fa: e.target.value } : row,
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            aria-label={tCommon("delete")}
+                            onClick={() =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).filter((_, i) => i !== index),
+                              })
+                            }
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3 sm:col-span-2">
+                <p className="text-sm font-medium">{t("otp_heading")}</p>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={Boolean(settingsValues.guest_otp_required)}
+                    onCheckedChange={(v) => setSettingsForm({ ...settingsValues, guest_otp_required: Boolean(v) })}
+                  />
+                  {t("guest_otp_required")}
+                </label>
+                <div className="space-y-1.5">
+                  <Label>{t("guest_otp_template")}</Label>
+                  <Input
+                    dir="ltr"
+                    value={settingsValues.guest_otp_template ?? ""}
+                    onChange={(e) => setSettingsForm({ ...settingsValues, guest_otp_template: e.target.value })}
+                  />
+                  <p className="text-muted-foreground text-xs">{t("guest_otp_template_hint")}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3 sm:col-span-2">
+                <p className="text-sm font-medium">{t("service_heading")}</p>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={Boolean(settingsValues.kitchen_service_enabled)}
+                    onCheckedChange={(v) => setSettingsForm({ ...settingsValues, kitchen_service_enabled: Boolean(v) })}
+                  />
+                  {t("kitchen_service_enabled")}
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>{t("kitchen_service_fee_minor")}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={settingsValues.kitchen_service_fee_minor ?? 0}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsValues, kitchen_service_fee_minor: Math.max(0, Number(e.target.value) || 0) })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t("allergen_note_fa")}</Label>
+                    <Input
+                      value={settingsValues.allergen_note_fa ?? ""}
+                      onChange={(e) => setSettingsForm({ ...settingsValues, allergen_note_fa: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("allergen_note_en")}</Label>
+                  <Input
+                    dir="ltr"
+                    value={settingsValues.allergen_note_en ?? ""}
+                    onChange={(e) => setSettingsForm({ ...settingsValues, allergen_note_en: e.target.value })}
+                  />
+                </div>
+                <p className="text-muted-foreground text-xs">{t("service_hint")}</p>
+              </div>
+
               <div className="space-y-2 sm:col-span-2">
                 <Label>{t("payment_heading")}</Label>
                 <div className="flex flex-wrap gap-4">
@@ -1102,15 +1339,159 @@ export default function MenuPageClient({ route: _route }: { route: ResolvedAdmin
                     </select>
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>{t("spice_level")}</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={5}
-                    value={productForm.spice_level}
-                    onChange={(e) => setProductForm((f) => ({ ...f, spice_level: Number(e.target.value) }))}
-                  />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>{t("spice_level")}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={5}
+                      value={productForm.spice_level}
+                      onChange={(e) => setProductForm((f) => ({ ...f, spice_level: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t("service_label_fa")}</Label>
+                    <Input
+                      value={productForm.service_label_fa}
+                      placeholder={t("service_label_placeholder")}
+                      onChange={(e) => setProductForm((f) => ({ ...f, service_label_fa: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={productForm.has_service}
+                      onCheckedChange={(v) => setProductForm((f) => ({ ...f, has_service: Boolean(v) }))}
+                    />
+                    {t("has_service")}
+                  </label>
+                </div>
+                {productForm.has_service ? (
+                  <div className="space-y-1.5">
+                    <Label>{t("service_label_en")}</Label>
+                    <Input
+                      dir="ltr"
+                      value={productForm.service_label_en}
+                      onChange={(e) => setProductForm((f) => ({ ...f, service_label_en: e.target.value }))}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="space-y-2 rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{t("daily_dish_heading")}</p>
+                    <p className="text-muted-foreground text-xs">{t("daily_dish_hint")}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {WEEKDAYS.map((day) => {
+                      const active = productForm.daily_dish.includes(day.key)
+                      return (
+                        <button
+                          key={day.key}
+                          type="button"
+                          aria-pressed={active}
+                          className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                            active ? "border-primary bg-primary/10 font-semibold" : "hover:bg-muted"
+                          }`}
+                          onClick={() =>
+                            setProductForm((f) => ({
+                              ...f,
+                              daily_dish: active
+                                ? f.daily_dish.filter((row) => row !== day.key)
+                                : [...f.daily_dish, day.key],
+                            }))
+                          }
+                        >
+                          {t(day.label)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded-lg border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">{t("views_heading")}</p>
+                      <p className="text-muted-foreground text-xs">{t("views_hint")}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setProductForm((f) => ({
+                          ...f,
+                          views: [...f.views, { type: "model3d", url: "", poster_url: "", frames: 24 }],
+                        }))
+                      }
+                    >
+                      <Plus className="size-4" /> {t("views_add")}
+                    </Button>
+                  </div>
+                  {productForm.views.length === 0 ? (
+                    <p className="text-muted-foreground text-xs">{t("views_empty")}</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {productForm.views.map((view, index) => (
+                        <li key={index} className="grid gap-2 rounded-md border p-2 sm:grid-cols-[130px_1fr_auto]">
+                          <select
+                            className={cafeSelectClass}
+                            value={view.type}
+                            onChange={(e) =>
+                              setProductForm((f) => ({
+                                ...f,
+                                views: f.views.map((row, i) =>
+                                  i === index ? { ...row, type: e.target.value as "model3d" | "spin360" } : row,
+                                ),
+                              }))
+                            }
+                          >
+                            <option value="model3d">{t("view_type_model")}</option>
+                            <option value="spin360">{t("view_type_spin")}</option>
+                          </select>
+                          <Input
+                            dir="ltr"
+                            value={view.url}
+                            placeholder={view.type === "spin360" ? "/spin/latte" : "https://cdn.example.com/latte.glb"}
+                            onChange={(e) =>
+                              setProductForm((f) => ({
+                                ...f,
+                                views: f.views.map((row, i) => (i === index ? { ...row, url: e.target.value } : row)),
+                              }))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            aria-label={tCommon("delete")}
+                            onClick={() => setProductForm((f) => ({ ...f, views: f.views.filter((_, i) => i !== index) }))}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                          {view.type === "spin360" ? (
+                            <Input
+                              className="sm:col-start-2"
+                              type="number"
+                              min={2}
+                              max={72}
+                              value={view.frames}
+                              aria-label={t("view_frames")}
+                              onChange={(e) =>
+                                setProductForm((f) => ({
+                                  ...f,
+                                  views: f.views.map((row, i) => (i === index ? { ...row, frames: Number(e.target.value) } : row)),
+                                }))
+                              }
+                            />
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-4">
                   <label className="flex items-center gap-2 text-sm">

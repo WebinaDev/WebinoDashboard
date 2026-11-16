@@ -18,7 +18,7 @@ class ProductController extends Controller
         $tid = $request->user()->tenant_id;
         $q = Product::query()
             ->where('tenant_id', $tid)
-            ->with(['category', 'categories', 'brands', 'tags', 'variants', 'media', 'marketplaceMaps']);
+            ->with(['category', 'categories', 'brands', 'tags', 'variants', 'media', 'marketplaceMaps', 'galleryViews']);
 
         $this->applyIndexFilters($request, $q, true);
 
@@ -113,6 +113,7 @@ class ProductController extends Controller
         $product->load([
             'category', 'categories', 'brands', 'tags', 'variants', 'media',
             'allergens', 'modifiers.options', 'marketplaceMaps', 'coffeeProfile', 'attributes',
+            'galleryViews',
         ]);
 
         $permalinkBase = $this->permalinkBase($request);
@@ -480,6 +481,17 @@ class ProductController extends Controller
             $row['calculated'] = null;
         }
 
+        $row['gallery_views'] = $product->relationLoaded('galleryViews')
+            ? $product->galleryViews->map(fn ($view) => [
+                'id' => $view->id,
+                'type' => $view->type,
+                'url' => $view->url,
+                'poster_url' => $view->poster_url,
+                'frames' => (int) $view->frames,
+                'sort_order' => (int) $view->sort_order,
+            ])->values()->all()
+            : [];
+
         if ($product->relationLoaded('marketplaceMaps')) {
             $row['marketplace_platforms'] = $product->marketplaceMaps
                 ->groupBy('platform')
@@ -522,6 +534,11 @@ class ProductController extends Controller
             'cover_image_url' => ['nullable', 'string', 'max:2048'],
             'video_url' => ['nullable', 'string', 'max:2048'],
             'video_cover_url' => ['nullable', 'string', 'max:2048'],
+            'has_service' => ['nullable', 'boolean'],
+            'service_label_fa' => ['nullable', 'string', 'max:120'],
+            'service_label_en' => ['nullable', 'string', 'max:120'],
+            'daily_dish' => ['nullable', 'array', 'max:7'],
+            'daily_dish.*' => ['string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
             'sku' => ['nullable', 'string', 'max:255'],
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', $tid)],
             'category_ids' => ['nullable', 'array'],
@@ -591,6 +608,7 @@ class ProductController extends Controller
             'labels', 'custom_labels', 'initial_stock_quantity', 'ai_review_summary', 'faqs',
             'purchase_price_minor', 'lock_price', 'reference_url', 'reference_source',
             'wholesale_rule', 'platform_prices', 'related_ids', 'upsell_ids', 'cross_sell_ids',
+            'has_service', 'service_label_fa', 'service_label_en', 'daily_dish',
         ];
 
         $out = [];
