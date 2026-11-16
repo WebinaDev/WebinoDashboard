@@ -31,6 +31,7 @@ return [
     'cafe_modifier_invalid' => 'That extra is not available for this item.',
     'cafe_fulfillment' => 'That service type is not available.',
     'cafe_otp_sent' => 'We sent the verification code to your phone.',
+    'cafe_price_locked' => 'This item has a locked price. Unlock it before applying a suggested price.',
     'cafe_otp_invalid' => 'That verification code is not correct.',
     'cafe_otp_expired' => 'The verification code expired. Request a new one.',
     'cafe_otp_attempts' => 'Too many wrong attempts. Request a new code.',

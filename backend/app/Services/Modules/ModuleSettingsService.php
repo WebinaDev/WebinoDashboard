@@ -98,6 +98,17 @@ final class ModuleSettingsService
             'kitchen_service_fee_minor' => 0,
             'allergen_note_fa' => null,
             'allergen_note_en' => null,
+            // Menu pricing assumptions: the starting values on the «پیشنهاد قیمت» page.
+            // Kept per tenant because waste, commission and VAT differ by city and contract.
+            'pricing' => [
+                'waste_percent' => 7,
+                'target_profit_percent' => 22,
+                'platform_commission_percent' => 18,
+                'vat_percent' => 10,
+                'default_packaging_minor' => 0,
+                'round_enabled' => true,
+                'round_to' => 1000,
+            ],
         ];
     }
 

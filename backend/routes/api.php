@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\CafeSettingsController;
 use App\Http\Controllers\Api\V1\CafeEngagementInboxController;
 use App\Http\Controllers\Api\V1\CafeTableController;
 use App\Http\Controllers\Api\V1\CafeKitchenController;
+use App\Http\Controllers\Api\V1\CafePriceCalculatorController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
 use App\Http\Controllers\Api\V1\CafeQrController;
@@ -910,6 +911,13 @@ Route::prefix('v1')->group(function () {
                 Route::get('/cafe/menu-settings', [CafeSettingsController::class, 'showMenu']);
                 Route::patch('/cafe/menu-settings', [CafeSettingsController::class, 'updateMenu']);
                 Route::post('/cafe/bulk-price', [CafeSettingsController::class, 'bulkPrice']);
+                // «پیشنهاد قیمت آیتم‌ها»: live calculation, saved cost sheets, applying a price.
+                Route::get('/cafe/pricing', [CafePriceCalculatorController::class, 'index']);
+                Route::post('/cafe/pricing/calculate', [CafePriceCalculatorController::class, 'calculate']);
+                Route::post('/cafe/pricing/allocate', [CafePriceCalculatorController::class, 'allocate']);
+                Route::post('/cafe/pricing/reverse', [CafePriceCalculatorController::class, 'reverse']);
+                Route::post('/cafe/pricing', [CafePriceCalculatorController::class, 'store']);
+                Route::delete('/cafe/pricing/{sheet}', [CafePriceCalculatorController::class, 'destroy'])->whereNumber('sheet');
                 Route::get('/cafe/kitchen-orders', [CafeKitchenController::class, 'index']);
 
                 Route::get('/cafe/kitchen-orders/live', [CafeKitchenController::class, 'live']);

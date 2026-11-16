@@ -71,6 +71,15 @@ class CafeSettingsController extends Controller
             'kitchen_service_fee_minor' => ['nullable', 'integer', 'min:0'],
             'allergen_note_fa' => ['nullable', 'string', 'max:300'],
             'allergen_note_en' => ['nullable', 'string', 'max:300'],
+            // «پیشنهاد قیمت» assumptions, editable from the pricing page.
+            'pricing' => ['nullable', 'array'],
+            'pricing.waste_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'pricing.target_profit_percent' => ['nullable', 'numeric', 'min:0', 'max:99'],
+            'pricing.platform_commission_percent' => ['nullable', 'numeric', 'min:0', 'max:60'],
+            'pricing.vat_percent' => ['nullable', 'numeric', 'min:0', 'max:50'],
+            'pricing.default_packaging_minor' => ['nullable', 'integer', 'min:0'],
+            'pricing.round_enabled' => ['nullable', 'boolean'],
+            'pricing.round_to' => ['nullable', 'integer', 'in:1,10,100,500,1000,5000,10000'],
         ]);
 
         $tenantId = $request->user()->tenant_id;

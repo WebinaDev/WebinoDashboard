@@ -72,6 +72,32 @@ return new class extends Migration
             });
         }
 
+        if (! Schema::hasTable('cafe_price_sheets')) {
+            // «پیشنهاد قیمت»: one saved cost sheet per product, so the calculator can reopen
+            // an item later and the menu price can be traced back to its ingredients.
+            Schema::create('cafe_price_sheets', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
+                $table->string('name')->nullable();
+                $table->unsignedBigInteger('ingredient_cost_minor')->default(0);
+                $table->unsignedBigInteger('packaging_cost_minor')->default(0);
+                $table->unsignedBigInteger('labour_cost_minor')->default(0);
+                $table->unsignedBigInteger('fixed_cost_minor')->default(0);
+                $table->decimal('waste_percent', 5, 2)->default(7);
+                $table->decimal('target_profit_percent', 5, 2)->default(22);
+                $table->decimal('platform_commission_percent', 5, 2)->default(18);
+                $table->decimal('vat_percent', 5, 2)->default(10);
+                $table->unsignedBigInteger('suggested_dine_in_minor')->nullable();
+                $table->unsignedBigInteger('suggested_delivery_minor')->nullable();
+                $table->unsignedBigInteger('applied_price_minor')->nullable();
+                $table->json('breakdown')->nullable();
+                $table->timestamps();
+                $table->unique(['tenant_id', 'product_id']);
+                $table->index(['tenant_id', 'updated_at']);
+            });
+        }
+
         if (! Schema::hasColumn('carts', 'guest_phone')) {
             Schema::table('carts', function (Blueprint $table) {
                 $table->string('guest_phone', 32)->nullable();
@@ -140,6 +166,7 @@ return new class extends Migration
             }
         });
 
+        Schema::dropIfExists('cafe_price_sheets');
         Schema::dropIfExists('product_gallery_views');
         Schema::dropIfExists('product_modifier_option_products');
         Schema::dropIfExists('cafe_guest_otps');
