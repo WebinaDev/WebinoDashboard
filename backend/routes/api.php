@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\BuildPipelineController;
 use App\Http\Controllers\Api\V1\CoreUpdateController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CafeSettingsController;
+use App\Http\Controllers\Api\V1\CafeShiftController;
 use App\Http\Controllers\Api\V1\CafeEngagementInboxController;
 use App\Http\Controllers\Api\V1\CafeTableController;
 use App\Http\Controllers\Api\V1\CafeKitchenController;
@@ -922,6 +923,18 @@ Route::prefix('v1')->group(function () {
 
                 Route::get('/cafe/kitchen-orders/live', [CafeKitchenController::class, 'live']);
                 Route::patch('/cafe/kitchen-orders/{order}', [CafeKitchenController::class, 'update'])->whereNumber('order');
+                // Cashier till: open a shift, move cash, close the drawer, audit history.
+                // Cashiers use pos.use; the read-only audit views also accept the
+                // reporting capabilities a manager/accountant already holds.
+                Route::middleware('can:pos.use,orders.*,reports.shop,accounting.manage')->group(function () {
+                    Route::get('/cafe/pos/shift', [CafeShiftController::class, 'current']);
+                    Route::post('/cafe/pos/shift/open', [CafeShiftController::class, 'open']);
+                    Route::get('/cafe/pos/shifts', [CafeShiftController::class, 'index']);
+                    Route::get('/cafe/pos/shifts/{shift}', [CafeShiftController::class, 'show'])->whereNumber('shift');
+                    Route::post('/cafe/pos/shifts/{shift}/close', [CafeShiftController::class, 'close'])->whereNumber('shift');
+                    Route::post('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'storeMovement'])->whereNumber('shift');
+                    Route::get('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'movements'])->whereNumber('shift');
+                });
                 Route::get('/cafe/engagement-settings', [CafeSettingsController::class, 'showEngagement']);
                 Route::patch('/cafe/engagement-settings', [CafeSettingsController::class, 'updateEngagement']);
                 Route::get('/cafe/feedback', [CafeEngagementInboxController::class, 'feedback']);

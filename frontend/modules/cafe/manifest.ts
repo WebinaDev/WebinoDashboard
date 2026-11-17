@@ -17,6 +17,9 @@ export const cafeManifest: ModuleManifest = {
     { path: "kitchen", submodule: "menu", page: "kitchen", labelKey: "nav.kitchen", section: "cafe", order: 31, capability: "catalog.*" },
     { path: "inbox", submodule: "engagement", page: "inbox", labelKey: "nav.inbox", section: "cafe", order: 32, capability: "catalog.*" },
     { path: "pricing", submodule: "menu", page: "pricing", labelKey: "nav.pricing", section: "cafe", order: 33, capability: "catalog.*" },
+    // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
+    // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
+    { path: "pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },
