@@ -17,6 +17,15 @@ export const cafeManifest: ModuleManifest = {
     { path: "kitchen", submodule: "menu", page: "kitchen", labelKey: "nav.kitchen", section: "cafe", order: 31, capability: "catalog.*" },
     { path: "inbox", submodule: "engagement", page: "inbox", labelKey: "nav.inbox", section: "cafe", order: 32, capability: "catalog.*" },
     { path: "pricing", submodule: "menu", page: "pricing", labelKey: "nav.pricing", section: "cafe", order: 33, capability: "catalog.*" },
+    // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
+    // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
+    { path: "pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use" },
+    // Waiter floor board: live per-table state and seat/clean/reserve transitions.
+    { path: "floor", submodule: "menu", page: "floor", labelKey: "nav.cafe_floor", section: "cafe", order: 35, capability: "orders.own" },
+    // Courier run sheet: drivers claim a delivery and carry it to the door.
+    { path: "deliveries", submodule: "menu", page: "deliveries", labelKey: "nav.cafe_deliveries", section: "cafe", order: 36, capability: "orders.own" },
+    // Manager KPI board: read-only rollup gated on the reporting capability.
+    { path: "manager", submodule: "menu", page: "manager", labelKey: "nav.cafe_manager", section: "cafe", order: 37, capability: "reports.shop" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },

@@ -23,9 +23,13 @@ use App\Http\Controllers\Api\V1\BuildPipelineController;
 use App\Http\Controllers\Api\V1\CoreUpdateController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CafeSettingsController;
+use App\Http\Controllers\Api\V1\CafeShiftController;
 use App\Http\Controllers\Api\V1\CafeEngagementInboxController;
 use App\Http\Controllers\Api\V1\CafeTableController;
 use App\Http\Controllers\Api\V1\CafeKitchenController;
+use App\Http\Controllers\Api\V1\CafeFloorController;
+use App\Http\Controllers\Api\V1\CafeDeliveryController;
+use App\Http\Controllers\Api\V1\CafeManagerController;
 use App\Http\Controllers\Api\V1\CafePriceCalculatorController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
@@ -922,6 +926,20 @@ Route::prefix('v1')->group(function () {
 
                 Route::get('/cafe/kitchen-orders/live', [CafeKitchenController::class, 'live']);
                 Route::patch('/cafe/kitchen-orders/{order}', [CafeKitchenController::class, 'update'])->whereNumber('order');
+                // Cashier till. Reads and writes are split on purpose: the accountant holds
+                // accounting.manage and must be able to audit a drawer without being able to
+                // open, close, or move cash in one. Only a cashier or manager may write.
+                Route::middleware('can:pos.use,orders.*,reports.shop,accounting.manage')->group(function () {
+                    Route::get('/cafe/pos/shift', [CafeShiftController::class, 'current']);
+                    Route::get('/cafe/pos/shifts', [CafeShiftController::class, 'index']);
+                    Route::get('/cafe/pos/shifts/{shift}', [CafeShiftController::class, 'show'])->whereNumber('shift');
+                    Route::get('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'movements'])->whereNumber('shift');
+                });
+                Route::middleware('can:pos.use,orders.*')->group(function () {
+                    Route::post('/cafe/pos/shift/open', [CafeShiftController::class, 'open']);
+                    Route::post('/cafe/pos/shifts/{shift}/close', [CafeShiftController::class, 'close'])->whereNumber('shift');
+                    Route::post('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'storeMovement'])->whereNumber('shift');
+                });
                 Route::get('/cafe/engagement-settings', [CafeSettingsController::class, 'showEngagement']);
                 Route::patch('/cafe/engagement-settings', [CafeSettingsController::class, 'updateEngagement']);
                 Route::get('/cafe/feedback', [CafeEngagementInboxController::class, 'feedback']);
@@ -938,6 +956,29 @@ Route::prefix('v1')->group(function () {
                 Route::post('/cafe/tables', [CafeTableController::class, 'store']);
                 Route::patch('/cafe/tables/{table}', [CafeTableController::class, 'update'])->whereNumber('table');
                 Route::delete('/cafe/tables/{table}', [CafeTableController::class, 'destroy'])->whereNumber('table');
+            });
+
+            // --- POS operations -------------------------------------------------
+            // Waiter floor board, courier run sheet, and the manager KPI rollup each carry
+            // their own gate. They must not inherit the catalog/commerce requirement of the
+            // tables CRUD above: a waiter or driver holds orders.own, not catalog.*.
+            Route::middleware(['module:cafe_menu', 'can:orders.own,orders.*,catalog.*,pos.use'])->group(function () {
+                Route::get('/cafe/floor', [CafeFloorController::class, 'index']);
+                Route::patch('/cafe/floor/{table}', [CafeFloorController::class, 'updateStatus'])->whereNumber('table');
+                Route::post('/cafe/floor/{table}/free', [CafeFloorController::class, 'free'])->whereNumber('table');
+            });
+
+            Route::middleware(['module:cafe_menu', 'can:orders.own,orders.*'])->group(function () {
+                Route::get('/cafe/deliveries', [CafeDeliveryController::class, 'index']);
+                Route::post('/cafe/deliveries/{order}/claim', [CafeDeliveryController::class, 'claim'])->whereNumber('order');
+                Route::post('/cafe/deliveries/{order}/pick-up', [CafeDeliveryController::class, 'pickUp'])->whereNumber('order');
+                Route::post('/cafe/deliveries/{order}/deliver', [CafeDeliveryController::class, 'deliver'])->whereNumber('order');
+                Route::post('/cafe/deliveries/{order}/fail', [CafeDeliveryController::class, 'fail'])->whereNumber('order');
+                Route::post('/cafe/deliveries/{order}/release', [CafeDeliveryController::class, 'release'])->whereNumber('order');
+            });
+
+            Route::middleware(['module:cafe_menu', 'can:reports.shop,reports.*,orders.*'])->group(function () {
+                Route::get('/cafe/manager/overview', [CafeManagerController::class, 'overview']);
             });
 
             Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {
