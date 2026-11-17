@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\V1\CafeShiftController;
 use App\Http\Controllers\Api\V1\CafeEngagementInboxController;
 use App\Http\Controllers\Api\V1\CafeTableController;
 use App\Http\Controllers\Api\V1\CafeKitchenController;
+use App\Http\Controllers\Api\V1\CafeFloorController;
 use App\Http\Controllers\Api\V1\CafePriceCalculatorController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
@@ -951,6 +952,11 @@ Route::prefix('v1')->group(function () {
                 Route::post('/cafe/tables', [CafeTableController::class, 'store']);
                 Route::patch('/cafe/tables/{table}', [CafeTableController::class, 'update'])->whereNumber('table');
                 Route::delete('/cafe/tables/{table}', [CafeTableController::class, 'destroy'])->whereNumber('table');
+                // Waiter floor board: live table state derived from open orders, plus manual
+                // seat / clean / reserve / free transitions.
+                Route::get('/cafe/floor', [CafeFloorController::class, 'index']);
+                Route::patch('/cafe/floor/{table}', [CafeFloorController::class, 'updateStatus'])->whereNumber('table');
+                Route::post('/cafe/floor/{table}/free', [CafeFloorController::class, 'free'])->whereNumber('table');
             });
 
             Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {

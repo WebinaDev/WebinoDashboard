@@ -22,6 +22,7 @@ return [
     'cafe_order_not_payable' => 'This order cannot be paid.',
     'cafe_gateway_unavailable' => 'This payment gateway is not available.',
     'cafe_gateway_error' => 'Could not reach the payment gateway. Please try again.',
+    'cafe_table_reservation_name_required' => 'Enter the guest name to reserve a table.',
     'cafe_shift_already_open' => 'You already have an open shift; close it first.',
     'cafe_shift_already_closed' => 'This shift has already been closed.',
     'cafe_shift_closed_immutable' => 'A closed shift cannot be changed.',

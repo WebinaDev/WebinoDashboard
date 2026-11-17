@@ -22,6 +22,7 @@ return [
     'cafe_order_not_payable' => 'این سفارش قابل پرداخت نیست.',
     'cafe_gateway_unavailable' => 'این درگاه پرداخت در دسترس نیست.',
     'cafe_gateway_error' => 'اتصال به درگاه پرداخت انجام نشد. دوباره تلاش کنید.',
+    'cafe_table_reservation_name_required' => 'برای رزرو میز، نام رزروکننده را وارد کنید.',
     'cafe_shift_already_open' => 'یک شیفت باز برای شما وجود دارد؛ اول آن را ببندید.',
     'cafe_shift_already_closed' => 'این شیفت قبلاً بسته شده است.',
     'cafe_shift_closed_immutable' => 'شیفت بسته‌شده قابل تغییر نیست.',
