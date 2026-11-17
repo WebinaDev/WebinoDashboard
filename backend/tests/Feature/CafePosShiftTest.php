@@ -37,6 +37,8 @@ class CafePosShiftTest extends TestCase
 
         // The shift routes are gated on pos.use; 'staff' holds no capabilities unless granted.
         RoleCapability::query()->firstOrCreate(['role' => 'staff', 'capability' => 'pos.use']);
+        // The accountant audits drawers but must never be able to move cash.
+        RoleCapability::query()->firstOrCreate(['role' => 'accountant', 'capability' => 'accounting.manage']);
     }
 
     private function cashier(): User
@@ -245,5 +247,47 @@ class CafePosShiftTest extends TestCase
         // But the live recompute reflects reality for anyone asking now.
         $live = $service->computeTotals($reloaded);
         $this->assertSame(0, $live['expected_cash_minor']);
+    }
+
+    public function test_an_accountant_can_audit_but_never_move_cash(): void
+    {
+        $cashier = $this->cashier();
+        $accountant = User::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'role' => 'accountant',
+        ]);
+
+        $shift = app(CafeShiftService::class)->openShift($cashier, ['opening_float_minor' => 100_000]);
+
+        // Read: the whole audit surface is open to them.
+        $this->actingAs($accountant, 'sanctum')
+            ->getJson('/api/v1/cafe/pos/shifts', $this->h)
+            ->assertOk();
+
+        $this->actingAs($accountant, 'sanctum')
+            ->getJson("/api/v1/cafe/pos/shifts/{$shift->id}", $this->h)
+            ->assertOk()
+            ->assertJsonPath('data.id', $shift->id);
+
+        // Write: every mutation is refused, so the till stays the cashier's alone.
+        $this->actingAs($accountant, 'sanctum')
+            ->postJson('/api/v1/cafe/pos/shift/open', ['opening_float_minor' => 0], $this->h)
+            ->assertForbidden();
+
+        $this->actingAs($accountant, 'sanctum')
+            ->postJson("/api/v1/cafe/pos/shifts/{$shift->id}/close", ['counted_cash_minor' => 0], $this->h)
+            ->assertForbidden();
+
+        $this->actingAs($accountant, 'sanctum')
+            ->postJson("/api/v1/cafe/pos/shifts/{$shift->id}/movements", [
+                'type' => 'cash_in',
+                'amount_minor' => 5_000,
+            ], $this->h)
+            ->assertForbidden();
+
+        // The shift is untouched by all of that.
+        $fresh = $shift->fresh();
+        $this->assertSame(CafeShift::STATUS_OPEN, $fresh->status);
+        $this->assertSame(0, $fresh->movements()->count());
     }
 }

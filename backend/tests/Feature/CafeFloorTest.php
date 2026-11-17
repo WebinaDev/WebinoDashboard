@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CafeTable;
 use App\Models\Order;
+use App\Models\RoleCapability;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -32,6 +33,9 @@ class CafeFloorTest extends TestCase
             'cafe.menu' => true,
         ]);
         $this->h = ['X-Tenant-Domain' => $this->tenant->domain];
+
+        // A waiter holds orders.own; the floor board is gated on that, not on catalog.*.
+        RoleCapability::query()->firstOrCreate(['role' => 'staff', 'capability' => 'orders.own']);
     }
 
     private function user(string $role = 'admin'): User
@@ -225,5 +229,23 @@ class CafeFloorTest extends TestCase
         $this->actingAs($this->user(), 'sanctum')
             ->patchJson("/api/v1/cafe/floor/{$foreign->id}", ['status' => CafeTable::STATUS_SEATED], $this->h)
             ->assertForbidden();
+    }
+
+    public function test_a_waiter_with_only_orders_own_can_work_the_floor(): void
+    {
+        // The board must not require catalog.*: a waiter account carries orders.own only.
+        $waiter = User::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'role' => 'staff',
+        ]);
+        $table = $this->table('E1', 4);
+
+        $this->actingAs($waiter, 'sanctum')
+            ->getJson('/api/v1/cafe/floor', $this->h)
+            ->assertOk();
+
+        $this->actingAs($waiter, 'sanctum')
+            ->patchJson("/api/v1/cafe/floor/{$table->id}", ['status' => CafeTable::STATUS_SEATED], $this->h)
+            ->assertOk();
     }
 }
