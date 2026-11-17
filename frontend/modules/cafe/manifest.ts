@@ -19,13 +19,13 @@ export const cafeManifest: ModuleManifest = {
     { path: "pricing", submodule: "menu", page: "pricing", labelKey: "nav.pricing", section: "cafe", order: 33, capability: "catalog.*" },
     // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
     // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
-    { path: "pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use" },
+    { path: "pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use", menuKey: "pos" },
     // Waiter floor board: live per-table state and seat/clean/reserve transitions.
-    { path: "floor", submodule: "menu", page: "floor", labelKey: "nav.cafe_floor", section: "cafe", order: 35, capability: "orders.own" },
+    { path: "floor", submodule: "menu", page: "floor", labelKey: "nav.cafe_floor", section: "cafe", order: 35, capability: "orders.own", menuKey: "pos" },
     // Courier run sheet: drivers claim a delivery and carry it to the door.
-    { path: "deliveries", submodule: "menu", page: "deliveries", labelKey: "nav.cafe_deliveries", section: "cafe", order: 36, capability: "orders.own" },
+    { path: "deliveries", submodule: "menu", page: "deliveries", labelKey: "nav.cafe_deliveries", section: "cafe", order: 36, capability: "orders.own", menuKey: "pos" },
     // Manager KPI board: read-only rollup gated on the reporting capability.
-    { path: "manager", submodule: "menu", page: "manager", labelKey: "nav.cafe_manager", section: "cafe", order: 37, capability: "reports.shop" },
+    { path: "manager", submodule: "menu", page: "manager", labelKey: "nav.cafe_manager", section: "cafe", order: 37, capability: "reports.shop", menuKey: "pos" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },
