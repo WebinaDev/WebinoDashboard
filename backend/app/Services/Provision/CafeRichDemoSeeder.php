@@ -252,6 +252,8 @@ class CafeRichDemoSeeder
                 'is_sold_out' => false,
                 'is_new' => in_array('new', $item['tags'] ?? [], true),
                 'is_featured' => in_array('featured', $item['tags'] ?? [], true),
+                // «غذای روز»: demo items can be tagged e.g. ['daily' => ['saturday','monday']].
+                'daily_dish' => is_array($item['daily'] ?? null) ? array_values($item['daily']) : [],
                 'calories' => $item['kcal'] ?? null,
                 'spice_level' => $item['spice'] ?? 0,
                 'sort_order' => $order++,
@@ -486,12 +488,12 @@ class CafeRichDemoSeeder
             ['slug' => 'avocado-egg-toast', 'cat' => 'breakfast', 'name' => 'تست آووکادو و تخم‌مرغ', 'en' => 'Avocado egg toast', 'price' => 245000, 'desc' => 'نان ساوردو، آووکادوی له‌شده با لیمو، تخم‌مرغ عسلی و پولبیبر.', 'mods' => 'breakfast', 'kcal' => 520, 'allergens' => ['egg', 'gluten'], 'spice' => 1, 'tags' => ['new']],
             ['slug' => 'pancake', 'cat' => 'breakfast', 'name' => 'پنکیک بلوبری', 'en' => 'Blueberry pancakes', 'price' => 225000, 'sale' => 199000, 'desc' => 'سه پنکیک پفکی با بلوبری، موز، کره و شیره‌ی افرا.', 'kcal' => 610, 'allergens' => ['dairy', 'gluten', 'egg']],
             ['slug' => 'french-toast', 'cat' => 'breakfast', 'name' => 'فرنچ تست', 'en' => 'French toast', 'price' => 210000, 'desc' => 'نان بریوش آغشته به تخم‌مرغ و دارچین، با میوه‌ی فصل و عسل.', 'kcal' => 560, 'allergens' => ['dairy', 'gluten', 'egg']],
-            ['slug' => 'healthy-plate', 'cat' => 'breakfast', 'name' => 'بشقاب صبحانه سلامت', 'en' => 'Healthy breakfast plate', 'price' => 265000, 'desc' => 'تخم‌مرغ آب‌پز، آووکادو، سالاد سبز، پنیر فتا و نان چاودار.', 'mods' => 'breakfast', 'kcal' => 450, 'allergens' => ['egg', 'dairy', 'gluten']],
+            ['slug' => 'healthy-plate', 'cat' => 'breakfast', 'name' => 'بشقاب صبحانه سلامت', 'en' => 'Healthy breakfast plate', 'price' => 265000, 'desc' => 'تخم‌مرغ آب‌پز، آووکادو، سالاد سبز، پنیر فتا و نان چاودار.', 'mods' => 'breakfast', 'kcal' => 450, 'allergens' => ['egg', 'dairy', 'gluten'], 'daily' => ['saturday', 'monday', 'wednesday']],
 
             ['slug' => 'club-sandwich', 'cat' => 'sandwich', 'name' => 'کلاب ساندویچ', 'en' => 'Club sandwich', 'price' => 295000, 'sale' => 250000, 'desc' => 'سه طبقه نان تست با مرغ گریل، بیکن بوقلمون، تخم‌مرغ، کاهو و گوجه.', 'mods' => 'sandwich', 'kcal' => 690, 'allergens' => ['egg', 'gluten'], 'tags' => ['featured']],
             ['slug' => 'chicken-panini', 'cat' => 'sandwich', 'name' => 'پنینی مرغ و پستو', 'en' => 'Chicken pesto panini', 'price' => 255000, 'desc' => 'سینه‌ی مرغ گریل، سس پستوی ریحان، موتزارلا و گوجه‌ی خشک.', 'mods' => 'sandwich', 'kcal' => 610, 'allergens' => ['dairy', 'gluten', 'nuts']],
             ['slug' => 'turkey-sandwich', 'cat' => 'sandwich', 'name' => 'ساندویچ بوقلمون', 'en' => 'Turkey sandwich', 'price' => 245000, 'desc' => 'ژامبون بوقلمون، پنیر گودا، کاهو و سس عسل‌خردل روی نان چاودار.', 'mods' => 'sandwich', 'kcal' => 540, 'allergens' => ['dairy', 'gluten']],
-            ['slug' => 'italian-baguette', 'cat' => 'sandwich', 'name' => 'باگت ایتالیایی', 'en' => 'Italian baguette', 'price' => 275000, 'desc' => 'باگت تازه با سالامی، پروولونه، روکولا و سس سیر کبابی.', 'mods' => 'sandwich', 'kcal' => 650, 'allergens' => ['dairy', 'gluten'], 'spice' => 1],
+            ['slug' => 'italian-baguette', 'cat' => 'sandwich', 'name' => 'باگت ایتالیایی', 'en' => 'Italian baguette', 'price' => 275000, 'desc' => 'باگت تازه با سالامی، پروولونه، روکولا و سس سیر کبابی.', 'mods' => 'sandwich', 'kcal' => 650, 'allergens' => ['dairy', 'gluten'], 'spice' => 1, 'daily' => ['sunday', 'tuesday', 'thursday', 'friday']],
             ['slug' => 'roast-beef', 'cat' => 'sandwich', 'name' => 'ساندویچ رست بیف', 'en' => 'Roast beef sandwich', 'price' => 345000, 'desc' => 'رست بیف آرام‌پز، پیاز کاراملی، پنیر چدار و سس هورسرادیش.', 'mods' => 'sandwich', 'kcal' => 720, 'allergens' => ['dairy', 'gluten'], 'spice' => 2, 'tags' => ['new']],
             ['slug' => 'cafe-burger', 'cat' => 'sandwich', 'name' => 'برگر مخصوص کافه', 'en' => 'House burger', 'price' => 365000, 'desc' => '۱۸۰ گرم گوشت گوساله، چدار ذوب‌شده، پیاز کاراملی و سس مخصوص در نان بریوش.', 'mods' => 'sandwich', 'kcal' => 850, 'allergens' => ['dairy', 'gluten', 'egg'], 'spice' => 1, 'tags' => ['featured']],
         ];

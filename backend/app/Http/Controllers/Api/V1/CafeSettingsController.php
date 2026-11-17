@@ -58,6 +58,28 @@ class CafeSettingsController extends Controller
             'fulfillment_dine_in' => ['nullable', 'boolean'],
             'fulfillment_pickup' => ['nullable', 'boolean'],
             'fulfillment_delivery' => ['nullable', 'boolean'],
+            'delivery_zones' => ['nullable', 'array', 'max:20'],
+            'delivery_zones.*.min_km' => ['required_with:delivery_zones', 'numeric', 'min:0', 'max:200'],
+            'delivery_zones.*.max_km' => ['required_with:delivery_zones', 'numeric', 'min:0', 'max:200'],
+            'delivery_zones.*.fee_minor' => ['required_with:delivery_zones', 'integer', 'min:0'],
+            'delivery_zones.*.label_fa' => ['nullable', 'string', 'max:120'],
+            'delivery_zones.*.label_en' => ['nullable', 'string', 'max:120'],
+            'guest_otp_required' => ['nullable', 'boolean'],
+            'guest_otp_template' => ['nullable', 'string', 'max:200'],
+            'guest_otp_log_fallback' => ['nullable', 'boolean'],
+            'kitchen_service_enabled' => ['nullable', 'boolean'],
+            'kitchen_service_fee_minor' => ['nullable', 'integer', 'min:0'],
+            'allergen_note_fa' => ['nullable', 'string', 'max:300'],
+            'allergen_note_en' => ['nullable', 'string', 'max:300'],
+            // «پیشنهاد قیمت» assumptions, editable from the pricing page.
+            'pricing' => ['nullable', 'array'],
+            'pricing.waste_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'pricing.target_profit_percent' => ['nullable', 'numeric', 'min:0', 'max:99'],
+            'pricing.platform_commission_percent' => ['nullable', 'numeric', 'min:0', 'max:60'],
+            'pricing.vat_percent' => ['nullable', 'numeric', 'min:0', 'max:50'],
+            'pricing.default_packaging_minor' => ['nullable', 'integer', 'min:0'],
+            'pricing.round_enabled' => ['nullable', 'boolean'],
+            'pricing.round_to' => ['nullable', 'integer', 'in:1,10,100,500,1000,5000,10000'],
         ]);
 
         $tenantId = $request->user()->tenant_id;

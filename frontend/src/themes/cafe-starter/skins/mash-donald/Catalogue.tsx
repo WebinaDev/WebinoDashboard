@@ -7,7 +7,7 @@ import type { CatalogItem } from "../../types"
 import { offPercent, useCatalogueController, type CatalogueController } from "../../lib/useCatalogueController"
 import { useScrollSpy } from "../../lib/useScrollSpy"
 import { digits, initialOf, localizedField } from "../../lib/helpers"
-import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps, soldLabel } from "../shared"
+import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps, soldLabel, DishOfDayRail } from "../shared"
 import "./mash.css"
 
 type Props = Parameters<typeof useCatalogueController>[0]
@@ -31,7 +31,7 @@ export function MashCatalogue(props: Props) {
   const loose = ctrl.filteredItems.filter((i) => !i.category)
 
   return (
-    <CafeShell ctrl={ctrl}>
+    <CafeShell ctrl={ctrl} statusChip>
       <div className="cafe-frame mash-frame">
         <header className="mash-top">
           <span className="mash-brand">
@@ -94,7 +94,9 @@ export function MashCatalogue(props: Props) {
         {ctrl.ordering?.accepting_orders === false ? <p className="cafe-notice">{ctrl.t("orders_paused")}</p> : null}
 
         <div className="mash-body">
-          {ctrl.menu.show_category_bar && groups.length > 0 ? (
+          <DishOfDayRail ctrl={ctrl} />
+
+        {ctrl.menu.show_category_bar && groups.length > 0 ? (
             <nav className="mash-rail" ref={spy.navRef as unknown as React.RefObject<HTMLElement>} aria-label={ctrl.t("categories_heading")}>
               {groups.map(({ cat }) => (
                 <button

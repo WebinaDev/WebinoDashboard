@@ -40,6 +40,7 @@ class ProductModifierController extends Controller
             'options.*.name_en' => ['required_with:options', 'string', 'max:255'],
             'options.*.price_minor' => ['nullable', 'integer', 'min:0'],
             'options.*.is_default' => ['nullable', 'boolean'],
+            'options.*.is_addon' => ['nullable', 'boolean'],
             'options.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -61,6 +62,7 @@ class ProductModifierController extends Controller
                 'name_en' => $opt['name_en'],
                 'price_minor' => $opt['price_minor'] ?? 0,
                 'is_default' => $opt['is_default'] ?? false,
+                'is_addon' => $opt['is_addon'] ?? false,
                 'sort_order' => $opt['sort_order'] ?? $idx,
             ]);
         }
@@ -79,9 +81,40 @@ class ProductModifierController extends Controller
             'max_select' => ['sometimes', 'integer', 'min:1'],
             'is_required' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'options' => ['sometimes', 'array'],
+            'options.*.id' => ['required', 'integer'],
+            'options.*.name_fa' => ['required', 'string', 'max:255'],
+            'options.*.name_en' => ['required', 'string', 'max:255'],
+            'options.*.price_minor' => ['nullable', 'integer', 'min:0'],
+            'options.*.is_default' => ['nullable', 'boolean'],
+            'options.*.is_addon' => ['nullable', 'boolean'],
+            'options.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $modifier->update($data);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($modifier, $data) {
+            $rows = $data['options'] ?? null;
+            unset($data['options']);
+            $modifier->update($data);
+            if (! is_array($rows)) {
+                return;
+            }
+            $keep = [];
+            foreach ($rows as $idx => $opt) {
+                $keep[] = $modifier->options()->updateOrCreate(
+                    ['id' => (int) $opt['id']],
+                    [
+                        'name_fa' => $opt['name_fa'],
+                        'name_en' => $opt['name_en'],
+                        'price_minor' => $opt['price_minor'] ?? 0,
+                        'is_default' => $opt['is_default'] ?? false,
+                        // «افزودنی» rows are named extras: offered unselected and free of charge.
+                        'is_addon' => $opt['is_addon'] ?? false,
+                        'sort_order' => $opt['sort_order'] ?? $idx,
+                    ],
+                )->id;
+            }
+            $modifier->options()->whereNotIn('id', $keep)->delete();
+        });
 
         return response()->json(['data' => $modifier->fresh()->load('options')]);
     }
@@ -133,5 +166,38 @@ class ProductModifierController extends Controller
         }
 
         return response()->json(['data' => $product->load('media')]);
+    }
+
+    /**
+     * Replace an item's 3D recordings: glTF models (`model3d`) for the AR/3D viewer and
+     * 360° turntable frames (`spin360`). Stored per item so a new scan never touches photos.
+     */
+    public function syncGalleryViews(Request $request, Product $product): \Illuminate\Http\JsonResponse
+    {
+        abort_if($request->user()->tenant_id !== $product->tenant_id, 403);
+
+        $data = $request->validate([
+            'views' => ['required', 'array', 'max:4'],
+            'views.*.type' => ['required', 'string', 'in:model3d,spin360'],
+            'views.*.url' => ['required', 'string', 'max:2048'],
+            'views.*.poster_url' => ['nullable', 'string', 'max:2048'],
+            'views.*.frames' => ['nullable', 'integer', 'min:0', 'max:72'],
+            'views.*.sort_order' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        \App\Models\ProductGalleryView::query()->where('product_id', $product->id)->delete();
+        foreach ($data['views'] as $idx => $row) {
+            \App\Models\ProductGalleryView::query()->create([
+                'tenant_id' => $product->tenant_id,
+                'product_id' => $product->id,
+                'type' => $row['type'],
+                'url' => $row['url'],
+                'poster_url' => $row['poster_url'] ?? null,
+                'frames' => $row['type'] === 'spin360' ? (int) ($row['frames'] ?? 0) : 0,
+                'sort_order' => $row['sort_order'] ?? $idx,
+            ]);
+        }
+
+        return response()->json(['data' => $product->load('galleryViews')]);
     }
 }

@@ -25,6 +25,10 @@ class Product extends Model
         'image_url',
         'cover_image_url',
         'video_url',
+        'has_service',
+        'service_label_fa',
+        'service_label_en',
+        'daily_dish',
         'video_cover_url',
         'sku',
         'price_minor',
@@ -107,6 +111,7 @@ class Product extends Model
             'lock_price' => 'boolean',
             'calories' => 'integer',
             'spice_level' => 'integer',
+            'daily_dish' => 'array',
             'sort_order' => 'integer',
             'discount_percent' => 'integer',
             'shipping_time' => 'integer',
@@ -311,6 +316,11 @@ class Product extends Model
     public function allergens(): BelongsToMany
     {
         return $this->belongsToMany(Allergen::class, 'product_allergen');
+    }
+
+    public function galleryViews(): HasMany
+    {
+        return $this->hasMany(ProductGalleryView::class)->orderBy('sort_order');
     }
 
     public function modifiers(): HasMany

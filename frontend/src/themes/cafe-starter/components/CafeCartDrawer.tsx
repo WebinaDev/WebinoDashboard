@@ -15,8 +15,10 @@ import { cn } from "@/lib/utils"
 
 import { useGuestCart } from "../lib/cart"
 import { money } from "../lib/helpers"
+import { useDeliveryQuote, useGuestState, trackerStep } from "../lib/guest"
 import type { CafeOrderingStatus, CafeVenuePayload } from "../types"
 import { CafeSheet } from "./CafeSheet"
+import { OtpSheet } from "./OtpSheet"
 
 export type CartTriggerVariant = "icon" | "bar" | "pill"
 
@@ -71,7 +73,22 @@ export function CafeCartDrawer({
     pickupTime: "",
   })
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null)
+  const [otpOpen, setOtpOpen] = useState(false)
+  const [track, setTrack] = useState<{ number: string | number; kitchen: string; status: string } | null>(null)
+  const guest = useGuestState(open)
+  const verified = Boolean(guest.data?.verified)
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  useEffect(() => {
+    const phone = guest.data?.phone
+    if (!phone) return
+    setForm((f) => (f.phone.trim() === "" ? { ...f, phone } : f))
+  }, [guest.data?.phone])
+
+  // Zone-aware delivery price for the picked pin: the same server quote the order uses.
+  const quote = useDeliveryQuote(
+    open && fulfillment === "delivery" && pin ? { lat: pin.lat, lng: pin.lng, subtotal, items: count } : null,
+  )
 
   // One key per checkout attempt so double taps / retries never create two orders.
   const idemKey = useRef<string>("")
@@ -130,6 +147,7 @@ export function CafeCartDrawer({
     const phone = toAscii(form.phone).replace(/\s|-/g, "")
     const needContact = fulfillment !== "dine_in"
     if (needContact && form.name.trim().length < 2) errs.customer_name = t("err_name")
+    if (ordering?.guest_otp_required && needContact && !verified) errs.customer_phone = t("err_otp")
     if ((needContact || phone) && !/^(\+98|0098|0)?9\d{9}$/.test(phone)) errs.customer_phone = t("err_phone")
     if (fulfillment === "dine_in" && ordering?.dine_in_require_table !== false && !form.table.trim()) errs.table_number = t("err_table")
     if (fulfillment === "delivery") {
@@ -163,6 +181,7 @@ export function CafeCartDrawer({
           lat: fulfillment === "delivery" ? pin?.lat : undefined,
           lng: fulfillment === "delivery" ? pin?.lng : undefined,
           pickup_time: fulfillment === "pickup" || fulfillment === "delivery" ? form.pickupTime || undefined : undefined,
+          delivery_window: fulfillment === "delivery" && form.pickupTime ? t("delivery_time") + " " + form.pickupTime : undefined,
         },
       }),
     onSuccess: async (order) => {
@@ -175,6 +194,9 @@ export function CafeCartDrawer({
       }
       if (order.payment && !order.payment.ok) setError(order.payment.message ?? t("pay_failed"))
       setReceipt(order)
+      setTrack(null)
+      // Let the guest watch the kitchen: the tracker sheet opens on the fresh order.
+      window.setTimeout(() => setTrack({ number: order.number, kitchen: "new", status: order.status }), 400)
     },
     onError: (e: Error) => {
       const body = (e as ApiError).body as { errors?: Record<string, string[] | string> } | undefined
@@ -364,6 +386,24 @@ export function CafeCartDrawer({
               </>
             )}
 
+            {fulfillment !== "dine_in" && ordering?.guest_otp_required ? (
+              <div className="cafe-otp-inline" data-verified={verified ? "true" : "false"}>
+                <p className="cafe-hint">
+                  {verified ? t("otp_verified", { phone: toLocaleDigits(guest.data?.masked ?? "", lang) }) : t("otp_needed")}
+                </p>
+                {!verified ? (
+                  <button
+                    type="button"
+                    className="cafe-chip"
+                    disabled={!form.phone}
+                    onClick={() => setOtpOpen(true)}
+                  >
+                    {t("otp_cta")}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
             {fulfillment === "delivery" ? (
               <>
                 {saved.length ? (
@@ -409,6 +449,19 @@ export function CafeCartDrawer({
                   labels={{ locate: t("my_location"), failed: t("map_failed"), hint: t("map_hint") }}
                 />
                 {fe("lat")}
+                {quote.data ? (
+                  <p className={quote.data.in_zone ? "cafe-hint cafe-zone" : "cafe-error cafe-zone"}>
+                    {quote.data.in_zone
+                      ? t("zone_ok", {
+                          km: toLocaleDigits(String(quote.data.distance_km ?? 0), lang),
+                          fee: price(quote.data.fees.delivery_minor),
+                        })
+                      : t("zone_out", {
+                          km: toLocaleDigits(String(quote.data.distance_km ?? 0), lang),
+                          radius: toLocaleDigits(String(quote.data.radius_km ?? 0), lang),
+                        })}
+                  </p>
+                ) : null}
                 <select className="cafe-field" value={form.pickupTime} onChange={set("pickupTime")} aria-label={t("delivery_time")}>
                   <option value="">{t("delivery_asap")}</option>
                   {slots.map((s) => (
@@ -480,10 +533,17 @@ export function CafeCartDrawer({
             <button
               type="button"
               className="cafe-primary-btn"
-              disabled={checkout.isPending || ordering?.accepting_orders === false || methods.length === 0}
+              disabled={
+                checkout.isPending
+                || ordering?.accepting_orders === false
+                || methods.length === 0
+                || (fulfillment === "delivery" && quote.data?.in_zone === false)
+              }
               onClick={submit}
             >
-              {ordering?.accepting_orders === false
+              {fulfillment === "delivery" && quote.data?.in_zone === false
+                ? t("zone_blocked")
+                : ordering?.accepting_orders === false
                 ? tMenu("orders_paused")
                 : checkout.isPending
                   ? t("sending")
@@ -494,6 +554,42 @@ export function CafeCartDrawer({
           </>
         ) : null}
       </div>
+      {track ? (
+        <div className="cafe-live-track" data-kitchen={track.kitchen}>
+          <p className="cafe-live-track-title">
+            <span className="cafe-live-dot" aria-hidden="true" />
+            {t("order_number", { number: toLocaleDigits(String(track.number), lang) })}
+          </p>
+          <ol className="cafe-tracker">
+            {[t("track_new"), t("track_preparing"), t("track_ready"), t("track_done")].map((label, index) => {
+              const step = trackerStep(track.kitchen, track.status)
+              return (
+                <li
+                  key={label}
+                  data-state={index < step ? "done" : index === step ? "now" : "todo"}
+                  aria-current={index === step ? "step" : undefined}
+                >
+                  <span className="cafe-tracker-dot" aria-hidden="true" />
+                  <span className="cafe-tracker-label">{label}</span>
+                </li>
+              )
+            })}
+          </ol>
+          <button type="button" className="cafe-chip" onClick={() => setTrack(null)}>
+            {tMenu("close")}
+          </button>
+        </div>
+      ) : null}
+
+      <OtpSheet
+        open={otpOpen}
+        onOpenChange={setOtpOpen}
+        phone={form.phone}
+        skin={skin}
+        scheme={scheme}
+        locale={lang}
+        onVerified={(phone) => setForm((f) => ({ ...f, phone }))}
+      />
     </CafeSheet>
   )
 }

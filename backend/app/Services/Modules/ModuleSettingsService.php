@@ -87,6 +87,28 @@ final class ModuleSettingsService
             'fulfillment_dine_in' => true,
             'fulfillment_pickup' => true,
             'fulfillment_delivery' => false,
+            // Delivery zones: per-radius fees that override the flat delivery fee.
+            'delivery_zones' => [],
+            // Ordering by phone OTP (delivery contact + «سفارش‌های من»).
+            'guest_otp_required' => false,
+            'guest_otp_template' => null,
+            'guest_otp_log_fallback' => false,
+            // Kitchen service (plate charge) and allergen warning text.
+            'kitchen_service_enabled' => false,
+            'kitchen_service_fee_minor' => 0,
+            'allergen_note_fa' => null,
+            'allergen_note_en' => null,
+            // Menu pricing assumptions: the starting values on the «پیشنهاد قیمت» page.
+            // Kept per tenant because waste, commission and VAT differ by city and contract.
+            'pricing' => [
+                'waste_percent' => 7,
+                'target_profit_percent' => 22,
+                'platform_commission_percent' => 18,
+                'vat_percent' => 10,
+                'default_packaging_minor' => 0,
+                'round_enabled' => true,
+                'round_to' => 1000,
+            ],
         ];
     }
 

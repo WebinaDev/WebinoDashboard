@@ -40,6 +40,8 @@ export type CatalogModifierOption = {
   name_en: string
   price_minor: number
   is_default?: boolean
+  /** A named extra: offered unselected and never priced (e.g. «شیر بادام»). */
+  is_addon?: boolean
   sort_order?: number
 }
 
@@ -74,11 +76,27 @@ export type CatalogItem = {
   spice_level?: number
   menu_id?: number | null
   likes_count?: number
+  /** Kitchen service note printed with the item («سرو در قوری»). */
+  has_service?: boolean
+  service_label_fa?: string | null
+  service_label_en?: string | null
+  /** «غذای روز»: lowercase weekday keys this item is the featured dish on. */
+  daily_dish?: string[]
+  /** 3D recordings: a glTF model for the AR viewer or a 360° turntable set. */
+  gallery_views?: CatalogGalleryView[]
   category?: CatalogCategory | null
   variants?: CatalogVariant[]
   media?: CatalogMedia[]
   allergens?: CatalogAllergen[]
   modifiers?: CatalogModifier[]
+}
+
+export type CatalogGalleryView = {
+  id: number
+  type: "model3d" | "spin360"
+  url: string
+  poster_url?: string | null
+  frames?: number
 }
 
 export type MenuBanner = {
@@ -156,12 +174,42 @@ export type CafeMenuSettings = {
   fulfillment_dine_in?: boolean
   fulfillment_pickup?: boolean
   fulfillment_delivery?: boolean
+  delivery_zones?: CafeDeliveryZone[]
+  guest_otp_required?: boolean | null
+  guest_otp_template?: string | null
+  guest_otp_log_fallback?: boolean | null
+  kitchen_service_enabled?: boolean | null
+  kitchen_service_fee_minor?: number | null
+  allergen_note_fa?: string | null
+  allergen_note_en?: string | null
+}
+
+export type CafeDeliveryZone = {
+  min_km: number
+  max_km: number
+  fee_minor: number
+  label_fa?: string | null
+  label_en?: string | null
 }
 
 export type CafeOrderingStatus = {
   is_open: boolean | null
   reason?: string | null
   accepting_orders: boolean
+  delivery_zones?: CafeDeliveryZone[]
+  guest_otp_required?: boolean
+  kitchen_service_enabled?: boolean
+  /** Cafe-local weekday key (`monday`…), matching `CatalogItem.daily_dish`. */
+  weekday?: string
+  allergen_note?: { fa?: string | null; en?: string | null }
+  pickup_address?: string | null
+  today?: {
+    today_open: string | null
+    today_close: string | null
+    closed: boolean
+    closes_soon: boolean
+    next_open: { day: string; at: string; date?: string } | null
+  }
   prep_minutes: number
   packaging_fee_minor: number
   delivery_fee_minor: number

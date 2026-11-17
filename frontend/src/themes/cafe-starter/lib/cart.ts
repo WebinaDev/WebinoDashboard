@@ -8,7 +8,11 @@ import { api } from "@/lib/api"
 export type CartLine = {
   id: number
   quantity: number
-  meta?: { unit_minor?: number; selections?: { name_fa?: string; name_en?: string }[] } | null
+  meta?: {
+    unit_minor?: number
+    selections?: { name_fa?: string; name_en?: string; addon?: boolean }[]
+    addons?: { name_fa?: string; name_en?: string; addon?: boolean }[]
+  } | null
   product?: { id: number; name: string; price_minor: number; currency: string; image_url?: string | null }
 }
 
@@ -46,6 +50,12 @@ export function getGuestToken(): string {
   return token
 }
 
+/** Read the token without minting one — safe in render before any order exists. */
+export function peekGuestToken(): string {
+  if (typeof window === "undefined") return ""
+  return localStorage.getItem(TOKEN_KEY) ?? ""
+}
+
 export function useGuestCart(tableNumber?: string | null, branchSlug?: string | null, fulfillment?: string | null) {
   const [token, setToken] = useState("")
   useEffect(() => {
@@ -69,7 +79,14 @@ export function useGuestCart(tableNumber?: string | null, branchSlug?: string | 
 export function useAddToCart(tableNumber?: string | null, branchSlug?: string | null) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (input: { productId: number; quantity: number; optionIds: number[]; variantId: number | null }) => {
+    mutationFn: (input: {
+      productId: number
+      quantity: number
+      optionIds: number[]
+      variantId: number | null
+      /** Named extras the kitchen should note; they never change the price. */
+      addons?: string[]
+    }) => {
       const token = getGuestToken()
       return api<GuestCart>("/api/v1/public/cafe/cart/items", {
         method: "POST",
@@ -80,6 +97,7 @@ export function useAddToCart(tableNumber?: string | null, branchSlug?: string | 
           table_number: tableNumber,
           branch_slug: branchSlug,
           option_ids: input.optionIds,
+          addons: input.addons ?? [],
           variant_id: input.variantId,
         },
       })

@@ -31,11 +31,58 @@ class CafeKitchenController extends Controller
         return response()->json(['data' => $orders]);
     }
 
+    /**
+     * Live board feed for long-lived dashboards and the guest tracker.
+     *
+     * Smart clients send the newest `since` they already hold; only orders created or touched
+     * after it come back, so a 5-second poll costs a few bytes instead of the whole board.
+     */
+    public function live(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tid = $request->user()->tenant_id;
+        $since = $request->query('since');
+        $sinceAt = is_string($since) && $since !== '' ? \Carbon\Carbon::parse($since) : null;
+
+        $orders = Order::query()
+            ->where('tenant_id', $tid)
+            ->where(function ($q) {
+                $q->whereNotNull('table_number')
+                    ->orWhere('meta->source', 'guest_table');
+            })
+            ->where(function ($q) use ($sinceAt) {
+                if ($sinceAt) {
+                    $q->where('updated_at', '>=', $sinceAt);
+                } else {
+                    $q->where('created_at', '>=', now()->subHours(18));
+                }
+            })
+            ->with(['items.product:id,name'])
+            ->latest('updated_at')
+            ->limit(120)
+            ->get();
+
+        return response()->json([
+            'data' => $orders->map(fn (Order $order) => $this->present($order))->values(),
+            'meta' => [
+                'server_time' => now()->toIso8601String(),
+                'since' => $sinceAt?->toIso8601String(),
+            ],
+        ])->header('Cache-Control', 'no-store');
+    }
+
     public function update(Request $request, Order $order): \Illuminate\Http\JsonResponse
     {
         abort_if((int) $request->user()->tenant_id !== (int) $order->tenant_id, 403);
         $data = $request->validate([
             'kitchen_status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)],
+            // Custom statuses: a free label, emoji and accent colour the board and the guest
+            // tracker show. Stored on the order so two orders may carry different wording.
+            'custom_status' => ['nullable', 'array'],
+            'custom_status.label_fa' => ['required_with:custom_status', 'string', 'max:40'],
+            'custom_status.label_en' => ['nullable', 'string', 'max:40'],
+            'custom_status.emoji' => ['nullable', 'string', 'max:8'],
+            'custom_status.color' => ['nullable', 'string', 'max:9', 'regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'custom_status.show_to_guest' => ['nullable', 'boolean'],
         ]);
         if (in_array((string) $order->status, ['pending_payment', 'awaiting_gateway', 'payment_failed', 'on_hold', 'cancelled', 'failed', 'refunded'], true)) {
             return response()->json(['message' => __('api.cafe_kitchen_order_not_payable')], 422);
@@ -45,6 +92,20 @@ class CafeKitchenController extends Controller
             $meta = is_array($order->meta) ? $order->meta : [];
             $meta['kitchen_status'] = $data['kitchen_status'];
             $meta['kitchen_updated_at'] = now()->toIso8601String();
+            if (array_key_exists('custom_status', $data)) {
+                $custom = $data['custom_status'];
+                if (is_array($custom) && trim((string) ($custom['label_fa'] ?? '')) !== '') {
+                    $meta['custom_status'] = [
+                        'label_fa' => trim((string) $custom['label_fa']),
+                        'label_en' => trim((string) ($custom['label_en'] ?? '')) ?: null,
+                        'emoji' => $custom['emoji'] ?? null,
+                        'color' => $custom['color'] ?? null,
+                        'show_to_guest' => (bool) ($custom['show_to_guest'] ?? true),
+                    ];
+                } else {
+                    unset($meta['custom_status']);
+                }
+            }
             $order->meta = $meta;
             $order->save();
 
@@ -72,6 +133,9 @@ class CafeKitchenController extends Controller
             'number' => $order->number ?? $order->id,
             'status' => $order->status,
             'kitchen_status' => $meta['kitchen_status'] ?? 'new',
+            'custom_status' => $meta['custom_status'] ?? null,
+            'kitchen_updated_at' => $meta['kitchen_updated_at'] ?? null,
+            'paid' => in_array((string) $order->status, ['paid', 'processing', 'completed'], true),
             'fulfillment' => $meta['fulfillment'] ?? 'dine_in',
             'table_number' => $order->table_number,
             'branch_slug' => $order->branch_slug,

@@ -15,7 +15,7 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 
 import { CafeSection } from "./cafe-admin-ui"
 
-type Option = { name_fa: string; name_en: string; price_minor: number }
+type Option = { id?: number; name_fa: string; name_en: string; price_minor: number; is_addon?: boolean }
 type Modifier = {
   id: number
   name_fa: string
@@ -47,7 +47,13 @@ export function ModifierEditor({ productId }: { productId: number }) {
         .split("\n")
         .map((row) => row.split(",").map((part) => part.trim()))
         .filter((parts) => parts[0] && parts[1])
-        .map(([name_fa, name_en, price]) => ({ name_fa, name_en, price_minor: Number(price || 0) }))
+        .map(([name_fa, name_en, price, addon]) => ({
+          name_fa,
+          name_en,
+          price_minor: Number(price || 0),
+          // 4th column "addon" marks a named extra: free, unselected, and printed on the ticket.
+          is_addon: (addon ?? "").toLowerCase() === "addon" || addon === "افزودنی",
+        }))
       return api(`/api/v1/products/${productId}/modifiers`, {
         method: "POST",
         json: {
@@ -66,6 +72,31 @@ export function ModifierEditor({ productId }: { productId: number }) {
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
+
+  // Add-on flag toggles are saved per modifier so prices/names are never re-sent stale.
+  const [savingAddon, setSavingAddon] = useState<number | null>(null)
+  async function toggleAddon(mod: Modifier, optionId: number, isAddon: boolean) {
+    setSavingAddon(optionId)
+    try {
+      await api(`/api/v1/modifiers/${mod.id}`, {
+        method: "PATCH",
+        json: {
+          options: (mod.options ?? []).map((option) => ({
+            id: (option as Option).id,
+            name_fa: option.name_fa,
+            name_en: option.name_en,
+            price_minor: option.price_minor,
+            is_addon: (option as Option).id === optionId ? isAddon : Boolean((option as Option).is_addon),
+          })),
+        },
+      })
+      await queryClient.invalidateQueries({ queryKey: ["modifiers", productId] })
+    } catch (e) {
+      toast.error(getApiErrorMessage(e as Error))
+    } finally {
+      setSavingAddon(null)
+    }
+  }
 
   const syncAllergens = useMutation({
     mutationFn: () => api(`/api/v1/products/${productId}/allergens`, { method: "PUT", json: { allergen_ids: picked } }),
@@ -107,10 +138,9 @@ export function ModifierEditor({ productId }: { productId: number }) {
       {modifiers.length > 0 ? (
         <ul className="space-y-2 text-sm">
           {modifiers.map((mod) => (
-            <li key={mod.id} className="flex items-center justify-between rounded-lg border p-2">
-              <span>
-                {mod.name_fa} · {mod.options?.map((o) => o.name_fa).join("، ")}
-              </span>
+            <li key={mod.id} className="rounded-lg border p-2">
+              <div className="flex items-center justify-between gap-2">
+                <span>{mod.name_fa}</span>
               <Button
                 size="icon"
                 variant="ghost"
@@ -128,6 +158,29 @@ export function ModifierEditor({ productId }: { productId: number }) {
               >
                 <Trash2 className="size-4" />
               </Button>
+              </div>
+              <ul className="mt-1.5 flex flex-wrap gap-2">
+                {(mod.options ?? []).map((option, index) => (
+                  <li key={`${mod.id}-${option.id ?? index}`}>
+                    <label
+                      className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
+                        option.is_addon ? "border-primary/60 bg-primary/5" : ""
+                      }`}
+                    >
+                      {option.id ? (
+                        <Checkbox
+                          checked={Boolean(option.is_addon)}
+                          disabled={savingAddon !== null}
+                          aria-label={t("option_addon")}
+                          onCheckedChange={(v) => toggleAddon(mod, option.id as number, Boolean(v))}
+                        />
+                      ) : null}
+                      {option.name_fa}
+                      {option.price_minor > 0 ? <span className="text-muted-foreground">+</span> : null}
+                    </label>
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>

@@ -13,6 +13,7 @@ class ProductModifierOption extends Model
         'name_en',
         'price_minor',
         'is_default',
+        'is_addon',
         'sort_order',
     ];
 
@@ -21,6 +22,7 @@ class ProductModifierOption extends Model
         return [
             'price_minor' => 'integer',
             'is_default' => 'boolean',
+            'is_addon' => 'boolean',
             'sort_order' => 'integer',
         ];
     }

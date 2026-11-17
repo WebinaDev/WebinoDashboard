@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\Cafe\CafeGuestAuth;
 use App\Services\Cafe\CafeOrdering;
 use App\Services\Orders\OrderStock;
 use Illuminate\Http\Request;
@@ -47,8 +48,12 @@ class PublicGuestCartController extends Controller
             $count += (int) $line->quantity;
         }
 
+        $distance = $request->filled('lat') && $request->filled('lng')
+            ? $this->distanceFor($this->publicTenantId($request), $ordering, (float) $request->query('lat'), (float) $request->query('lng'))
+            : null;
+
         return response()->json(['data' => array_merge($cart->toArray(), [
-            'totals' => $ordering->quote($this->publicTenantId($request), $fulfillment, $lines, $count),
+            'totals' => $ordering->quote($this->publicTenantId($request), $fulfillment, $lines, $count, $distance),
         ])]);
     }
 
@@ -69,10 +74,18 @@ class PublicGuestCartController extends Controller
         }
         $meta = is_array($order->meta) ? $order->meta : [];
 
+        $custom = is_array($meta['custom_status'] ?? null) ? $meta['custom_status'] : null;
+        if (is_array($custom) && empty($custom['show_to_guest'])) {
+            $custom = null;
+        }
+
         return response()->json(['data' => [
             'id' => $order->id,
             'number' => $order->number ?? $order->id,
+            'status' => $order->status,
             'kitchen_status' => $meta['kitchen_status'] ?? 'new',
+            'kitchen_updated_at' => $meta['kitchen_updated_at'] ?? null,
+            'custom_status' => $custom,
             'fulfillment' => $meta['fulfillment'] ?? null,
             'total_minor' => $order->total_minor,
             'currency' => $order->currency,
@@ -94,6 +107,9 @@ class PublicGuestCartController extends Controller
             'branch_slug' => ['nullable', 'string', 'max:255'],
             'option_ids' => ['nullable', 'array', 'max:30'],
             'option_ids.*' => ['integer'],
+            // Free-text extras the kitchen should note («شیر بادام», «بدون شکر»).
+            'addons' => ['nullable', 'array', 'max:6'],
+            'addons.*' => ['string', 'max:60'],
             'variant_id' => ['nullable', 'integer'],
         ]);
 
@@ -123,8 +139,10 @@ class PublicGuestCartController extends Controller
             'line_key' => $priced['line_key'],
         ]);
         $line->quantity = ($line->exists ? $line->quantity : 0) + $qty;
+        $addons = $ordering->addonSelections($product, $data['addons'] ?? []);
         $line->meta = [
             'selections' => $priced['selections'],
+            'addons' => $addons,
             'variant_id' => $priced['variant_id'],
             'unit_minor' => $priced['unit_minor'],
         ];
@@ -177,6 +195,7 @@ class PublicGuestCartController extends Controller
             'lat' => [$fulfillment === 'delivery' && $status['delivery_require_pin'] ? 'required' : 'nullable', 'numeric', 'between:24,40'],
             'lng' => [$fulfillment === 'delivery' && $status['delivery_require_pin'] ? 'required' : 'nullable', 'numeric', 'between:44,64'],
             'pickup_time' => [$fulfillment === 'pickup' ? 'required' : 'nullable', 'string', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'delivery_window' => ['nullable', 'string', 'max:80'],
         ], [
             'customer_phone.regex' => __('api.cafe_phone_invalid'),
             'postal_code.regex' => __('api.cafe_postal_invalid'),
@@ -206,7 +225,9 @@ class PublicGuestCartController extends Controller
 
         if ($fulfillment === 'delivery' && $status['delivery_radius_km'] > 0 && $status['cafe_location'] && isset($meta['lat'], $meta['lng'])) {
             $km = CafeOrdering::distanceKm($status['cafe_location']['lat'], $status['cafe_location']['lng'], (float) $meta['lat'], (float) $meta['lng']);
-            if ($km > $status['delivery_radius_km']) {
+            // Zones may reach further than the flat radius; the outermost band wins there.
+            $radius = max((float) $status['delivery_radius_km'], $ordering->zonesMaxKm($tid));
+            if ($km > $radius) {
                 return response()->json([
                     'message' => __('api.cafe_out_of_zone'),
                     'errors' => ['lat' => [__('api.cafe_out_of_zone')]],
@@ -229,8 +250,31 @@ class PublicGuestCartController extends Controller
             $pickupAt = \Carbon\Carbon::parse($slot['at']);
         }
 
-        $phone = isset($meta['customer_phone']) ? '0'.substr(preg_replace('/\D/', '', $meta['customer_phone']), -10) : null;
+        // A guest who verified with an OTP can order without retyping the phone, and every
+        // order carries that proven number so «سفارش‌های من» finds it again.
+        $guestAuth = app(CafeGuestAuth::class);
+        $verifiedPhone = $guestAuth->verifiedPhone($tid, is_string($meta['guest_token'] ?? null) ? $meta['guest_token'] : null);
+        if ($verifiedPhone === null && ! empty($status['guest_otp_required']) && $fulfillment !== 'dine_in') {
+            return response()->json([
+                'message' => __('api.cafe_otp_required'),
+                'errors' => ['customer_phone' => [__('api.cafe_otp_required')]],
+            ], 422);
+        }
+        $rawPhone = $meta['customer_phone'] ?? null;
+        if (($rawPhone === null || $rawPhone === '') && $verifiedPhone !== null) {
+            $rawPhone = $verifiedPhone;
+        }
+        $phone = $rawPhone !== null ? '0'.substr(preg_replace('/\D/', '', (string) $rawPhone), -10) : null;
         $token = $meta['guest_token'] ?? null;
+        $distanceKm = null;
+        if ($fulfillment === 'delivery' && $status['cafe_location'] && isset($meta['lat'], $meta['lng'])) {
+            $distanceKm = CafeOrdering::distanceKm(
+                (float) $status['cafe_location']['lat'],
+                (float) $status['cafe_location']['lng'],
+                (float) $meta['lat'],
+                (float) $meta['lng'],
+            );
+        }
 
         // Idempotent: same key on the same tenant returns the order already created.
         $lock = \Illuminate\Support\Facades\Cache::lock('cafe-checkout:'.$tid.':'.$meta['idempotency_key'], 15);
@@ -258,7 +302,7 @@ class PublicGuestCartController extends Controller
 
             $online = $meta['payment_method'] !== 'cash';
 
-            $order = DB::transaction(function () use ($lines, $tid, $meta, $cart, $ordering, $fulfillment, $phone, $token, $online, $pickupAt, $request) {
+            $order = DB::transaction(function () use ($lines, $tid, $meta, $cart, $ordering, $fulfillment, $phone, $token, $online, $pickupAt, $request, $distanceKm) {
                 app(OrderStock::class)->assertLinesAvailable($lines);
 
                 $pricedLines = [];
@@ -286,7 +330,7 @@ class PublicGuestCartController extends Controller
                     $itemCount += (int) $line->quantity;
                 }
 
-                $quote = $ordering->quote($tid, $fulfillment, $quoteLines, $itemCount);
+                $quote = $ordering->quote($tid, $fulfillment, $quoteLines, $itemCount, $distanceKm);
                 $metaOrder = [
                     'source' => 'guest_table',
                     'guest_token' => is_string($token) ? $token : $cart->guest_token,
@@ -315,6 +359,9 @@ class PublicGuestCartController extends Controller
                     $metaOrder['prices_include_tax'] = $quote['vat_inclusive'];
                 }
                 if ($fulfillment === 'delivery') {
+                    if (! empty($meta['delivery_window'])) {
+                        $metaOrder['delivery_window'] = (string) $meta['delivery_window'];
+                    }
                     $metaOrder['delivery'] = [
                         'address' => $meta['address'] ?? null,
                         'plaque' => $meta['plaque'] ?? null,
@@ -354,6 +401,7 @@ class PublicGuestCartController extends Controller
                     'shipping_address' => $address,
                     'table_number' => $fulfillment === 'dine_in' ? ($meta['table_number'] ?? $cart->table_number) : null,
                     'branch_slug' => $meta['branch_slug'] ?? $cart->branch_slug,
+                    'delivery_window' => $fulfillment === 'delivery' && ! empty($meta['delivery_window']) ? (string) $meta['delivery_window'] : null,
                     'payment_tender' => $online ? null : 'cash',
                     'meta' => $metaOrder,
                 ]);
@@ -366,7 +414,10 @@ class PublicGuestCartController extends Controller
                         'product_name' => $line->product->name,
                         'quantity' => $line->quantity,
                         'unit_price_minor' => $priced['unit_minor'],
-                        'meta' => ['selections' => $priced['selections'], 'vat_applicable' => $taxable],
+                        'meta' => [
+                            'selections' => array_merge($priced['selections'], is_array(is_array($line->meta) ? ($line->meta['addons'] ?? []) : null) ? ($line->meta['addons'] ?? []) : []),
+                            'vat_applicable' => $taxable,
+                        ],
                     ]);
                 }
 
@@ -523,5 +574,21 @@ class PublicGuestCartController extends Controller
         }
 
         return $cart;
+    }
+
+    /** Straight-line km from the cafe to a guest pin, or null when either side is unknown. */
+    private function distanceFor(int $tenantId, CafeOrdering $ordering, float $lat, float $lng): ?float
+    {
+        $status = $ordering->publicStatus($tenantId);
+        if (! $status['cafe_location']) {
+            return null;
+        }
+
+        return CafeOrdering::distanceKm(
+            (float) $status['cafe_location']['lat'],
+            (float) $status['cafe_location']['lng'],
+            $lat,
+            $lng,
+        );
     }
 }

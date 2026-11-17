@@ -9,7 +9,7 @@ import { offPercent, useCatalogueController, type CatalogueController } from "..
 import { useScrollSpy } from "../../lib/useScrollSpy"
 import { digits, localizedField } from "../../lib/helpers"
 import { WebinaCredit } from "@/components/brand/WebinaCredit"
-import { CafeShell, CartButton, EmptyMenu, ItemMedia, SchemeCartTools, pickProps, soldLabel } from "../shared"
+import { CafeShell, CartButton, DishOfDayRail, EmptyMenu, ItemMedia, SchemeCartTools, pickProps, soldLabel } from "../shared"
 import "./signature.css"
 
 type Props = Parameters<typeof useCatalogueController>[0]
@@ -42,7 +42,7 @@ export function SignatureCatalogue(props: Props) {
   const name = ctrl.venueName || ctrl.t("catalogue_title")
 
   return (
-    <CafeShell ctrl={ctrl} className={cn(ready && "is-ready")}>
+    <CafeShell ctrl={ctrl} statusChip className={cn(ready && "is-ready")}>
       <section className="sig-hero">
         <div className="sig-hero-media" style={ctrl.heroImage ? { backgroundImage: `url(${ctrl.heroImage})` } : undefined} />
         <div className="sig-hero-grain" aria-hidden="true" />
@@ -150,6 +150,8 @@ export function SignatureCatalogue(props: Props) {
         </nav>
 
         {ctrl.ordering?.accepting_orders === false ? <p className="cafe-notice">{ctrl.t("orders_paused")}</p> : null}
+
+        <DishOfDayRail ctrl={ctrl} />
 
         {picks.length > 0 && !ctrl.query ? (
           <section className="sig-picks">

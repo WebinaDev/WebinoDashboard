@@ -54,6 +54,7 @@ class PublicCatalogController extends Controller
                 'variants' => fn ($q) => $q->orderBy('sort_order'),
                 'media' => fn ($q) => $q->orderBy('sort_order'),
                 'allergens',
+                'galleryViews',
                 'modifiers' => fn ($q) => $q->with(['options' => fn ($oq) => $oq->orderBy('sort_order')])->orderBy('sort_order'),
             ])
             ->orderBy('sort_order')
@@ -309,6 +310,7 @@ class PublicCatalogController extends Controller
                 'variants' => fn ($q) => $q->orderBy('sort_order'),
                 'media' => fn ($q) => $q->orderBy('sort_order'),
                 'allergens',
+                'galleryViews',
                 'modifiers' => fn ($q) => $q->with(['options' => fn ($oq) => $oq->orderBy('sort_order')])->orderBy('sort_order'),
                 'attributes' => fn ($q) => $q->orderBy('product_attribute_product.position')->orderBy('name'),
             ])

@@ -17,6 +17,7 @@ import {
   SchemeCartTools,
   pickProps,
   soldLabel,
+  DishOfDayRail,
 } from "../shared"
 import "./reyhoon.css"
 
@@ -37,7 +38,7 @@ export function ReyhoonCatalogue(props: Props) {
       : null
 
   return (
-    <CafeShell ctrl={ctrl}>
+    <CafeShell ctrl={ctrl} statusChip>
       <div className="cafe-frame rey-frame">
         <header className="rey-topbar">
           <Link href="/login?next=/dashboard" className="rey-login">
@@ -72,6 +73,8 @@ export function ReyhoonCatalogue(props: Props) {
         </section>
 
         <BannerStrip banners={ctrl.banners} locale={ctrl.locale} t={ctrl.t} />
+
+        <DishOfDayRail ctrl={ctrl} />
 
         {ctrl.menu.show_search ? (
           <div className="rey-search">
