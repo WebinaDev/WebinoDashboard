@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\CafeTableController;
 use App\Http\Controllers\Api\V1\CafeKitchenController;
 use App\Http\Controllers\Api\V1\CafeFloorController;
 use App\Http\Controllers\Api\V1\CafeDeliveryController;
+use App\Http\Controllers\Api\V1\CafeManagerController;
 use App\Http\Controllers\Api\V1\CafePriceCalculatorController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
@@ -958,6 +959,10 @@ Route::prefix('v1')->group(function () {
                 Route::get('/cafe/floor', [CafeFloorController::class, 'index']);
                 Route::patch('/cafe/floor/{table}', [CafeFloorController::class, 'updateStatus'])->whereNumber('table');
                 Route::post('/cafe/floor/{table}/free', [CafeFloorController::class, 'free'])->whereNumber('table');
+                // Manager KPI board. Read-only; gated on the reporting capability managers hold.
+                Route::middleware('can:reports.shop,orders.*')->group(function () {
+                    Route::get('/cafe/manager/overview', [CafeManagerController::class, 'overview']);
+                });
                 // Courier run sheet: drivers claim a delivery and move it to the door.
                 Route::get('/cafe/deliveries', [CafeDeliveryController::class, 'index']);
                 Route::post('/cafe/deliveries/{order}/claim', [CafeDeliveryController::class, 'claim'])->whereNumber('order');

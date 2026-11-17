@@ -24,6 +24,8 @@ export const cafeManifest: ModuleManifest = {
     { path: "floor", submodule: "menu", page: "floor", labelKey: "nav.cafe_floor", section: "cafe", order: 35, capability: "orders.own" },
     // Courier run sheet: drivers claim a delivery and carry it to the door.
     { path: "deliveries", submodule: "menu", page: "deliveries", labelKey: "nav.cafe_deliveries", section: "cafe", order: 36, capability: "orders.own" },
+    // Manager KPI board: read-only rollup gated on the reporting capability.
+    { path: "manager", submodule: "menu", page: "manager", labelKey: "nav.cafe_manager", section: "cafe", order: 37, capability: "reports.shop" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },
