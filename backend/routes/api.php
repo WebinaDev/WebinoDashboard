@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\CafeEngagementInboxController;
 use App\Http\Controllers\Api\V1\CafeTableController;
 use App\Http\Controllers\Api\V1\CafeKitchenController;
 use App\Http\Controllers\Api\V1\CafeFloorController;
+use App\Http\Controllers\Api\V1\CafeDeliveryController;
 use App\Http\Controllers\Api\V1\CafePriceCalculatorController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
@@ -957,6 +958,13 @@ Route::prefix('v1')->group(function () {
                 Route::get('/cafe/floor', [CafeFloorController::class, 'index']);
                 Route::patch('/cafe/floor/{table}', [CafeFloorController::class, 'updateStatus'])->whereNumber('table');
                 Route::post('/cafe/floor/{table}/free', [CafeFloorController::class, 'free'])->whereNumber('table');
+                // Courier run sheet: drivers claim a delivery and move it to the door.
+                Route::get('/cafe/deliveries', [CafeDeliveryController::class, 'index']);
+                Route::post('/cafe/deliveries/{order}/claim', [CafeDeliveryController::class, 'claim'])->whereNumber('order');
+                Route::post('/cafe/deliveries/{order}/pick-up', [CafeDeliveryController::class, 'pickUp'])->whereNumber('order');
+                Route::post('/cafe/deliveries/{order}/deliver', [CafeDeliveryController::class, 'deliver'])->whereNumber('order');
+                Route::post('/cafe/deliveries/{order}/fail', [CafeDeliveryController::class, 'fail'])->whereNumber('order');
+                Route::post('/cafe/deliveries/{order}/release', [CafeDeliveryController::class, 'release'])->whereNumber('order');
             });
 
             Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {

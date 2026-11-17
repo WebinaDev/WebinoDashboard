@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CafeShift;
 use App\Models\Order;
+use App\Models\RoleCapability;
 use App\Models\User;
 use App\Services\Cafe\CafeShiftService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,6 +34,9 @@ class CafePosShiftTest extends TestCase
             'cafe.menu' => true,
         ]);
         $this->h = ['X-Tenant-Domain' => $this->tenant->domain];
+
+        // The shift routes are gated on pos.use; 'staff' holds no capabilities unless granted.
+        RoleCapability::query()->firstOrCreate(['role' => 'staff', 'capability' => 'pos.use']);
     }
 
     private function cashier(): User

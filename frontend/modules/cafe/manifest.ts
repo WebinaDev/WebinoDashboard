@@ -22,6 +22,8 @@ export const cafeManifest: ModuleManifest = {
     { path: "pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use" },
     // Waiter floor board: live per-table state and seat/clean/reserve transitions.
     { path: "floor", submodule: "menu", page: "floor", labelKey: "nav.cafe_floor", section: "cafe", order: 35, capability: "orders.own" },
+    // Courier run sheet: drivers claim a delivery and carry it to the door.
+    { path: "deliveries", submodule: "menu", page: "deliveries", labelKey: "nav.cafe_deliveries", section: "cafe", order: 36, capability: "orders.own" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },

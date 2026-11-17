@@ -100,6 +100,12 @@ class Order extends Model
         'c2c_receipt_url',
         'c2c_decided_by',
         'c2c_decided_at',
+        'delivery_status',
+        'delivery_driver_id',
+        'delivery_claimed_at',
+        'delivery_picked_up_at',
+        'delivery_completed_at',
+        'delivery_failure_reason',
     ];
 
     protected function casts(): array
@@ -118,6 +124,10 @@ class Order extends Model
             'is_pay_link' => 'boolean',
             'printed_at' => 'datetime',
             'c2c_decided_at' => 'datetime',
+            'delivery_claimed_at' => 'datetime',
+            'delivery_picked_up_at' => 'datetime',
+            'delivery_completed_at' => 'datetime',
+            'delivery_driver_id' => 'integer',
         ];
     }
 
