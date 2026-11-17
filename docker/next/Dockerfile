@@ -1,13 +1,36 @@
 # Build context: WebinoDashboard repo root.
 # @webina/ui comes from the public GitHub tag (see frontend/package.json), not a vendored packages/ folder.
 # NODE_IMAGE can be overridden for IR Hub mirrors (e.g. hub.hamdocker.ir/library/node:22-alpine).
+#
+# APK mirror handling: dl-cdn.alpinelinux.org is Fastly-hosted and is frequently TLS-blocked
+# from Iranian networks, which fails the deps stage at `apk add` before npm ever runs
+# (Dockerfile.platform takes COMPOSER_MIRROR for the same class of problem). Rather than
+# requiring every caller to know about a new flag, the install retries against
+# APK_FALLBACK_MIRROR when the stock CDN is unreachable. APK_MIRROR forces a mirror up front;
+# set APK_FALLBACK_MIRROR= to disable the retry.
 # FROM-related ARGs MUST be declared before the first FROM (BuildKit global scope).
 ARG NODE_IMAGE=node:22-alpine
 
 FROM ${NODE_IMAGE} AS deps
+ARG APK_MIRROR=
+ARG APK_FALLBACK_MIRROR=https://mirrors.aliyun.com/alpine
 WORKDIR /src
 # git needed so npm can install git+https://github.com/WebinaDev/webina-ui.git#v0.1.0
-RUN apk add --no-cache git ca-certificates
+# `[s]*` keeps the pattern BRE-portable (BusyBox sed has no `\?`) and matches http:// and https://.
+RUN set -eux; \
+    if [ -n "${APK_MIRROR}" ]; then \
+      sed -i "s|http[s]*://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories; \
+    fi; \
+    if ! apk add --no-cache git ca-certificates; then \
+      if [ -z "${APK_FALLBACK_MIRROR}" ]; then \
+        echo "apk add failed and APK_FALLBACK_MIRROR is disabled" >&2; \
+        exit 1; \
+      fi; \
+      echo "apk add failed against the stock Alpine CDN; retrying via ${APK_FALLBACK_MIRROR}" >&2; \
+      sed -i "s|http[s]*://dl-cdn.alpinelinux.org/alpine|${APK_FALLBACK_MIRROR}|g" /etc/apk/repositories; \
+      cat /etc/apk/repositories; \
+      apk add --no-cache git ca-certificates; \
+    fi
 COPY frontend/package.json frontend/package-lock.json ./frontend/
 WORKDIR /src/frontend
 # Fall back to npm install when package.json and the lockfile drifted (ci is strict).
