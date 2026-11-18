@@ -56,7 +56,11 @@ export function loadPublicNavMenus(force = false): Promise<PublicNavMenus> {
   if (cache && !force) return Promise.resolve(cache)
   if (inflight && !force) return inflight
   inflight = quietApi<{ data?: PublicNavMenus }>("/api/v1/public/nav-menus").then((r) => {
-    const raw = r.ok ? r.data.data : undefined
+    // quietApi already unwraps the `{success, data}` envelope, so the payload is
+    // `{menus, locations}`. Reading `.data.data` here silently returned undefined
+    // and every storefront fell back to hardcoded links instead of ERP menus.
+    const payload = r.ok ? (r.data as PublicNavMenus | { data?: PublicNavMenus } | undefined) : undefined
+    const raw = payload && "menus" in payload ? payload : payload?.data
     cache = { menus: raw?.menus && !Array.isArray(raw.menus) ? raw.menus : {}, locations: raw?.locations && !Array.isArray(raw.locations) ? raw.locations : {} }
     inflight = null
     listeners.forEach((l) => l(cache!))
