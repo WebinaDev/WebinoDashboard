@@ -970,7 +970,7 @@ export function ClassicHeader({
                   onClick={() => (cartOpen ? setCartOpen(false) : openCart())}
                 >
                   <span className="sfc-cart-btn__title">{tx("header.cart_label")}</span>
-                  <span className="sfc-cart-btn__count">{count > 0 ? digits(count) : ":)"}</span>
+                  <span className="sfc-cart-btn__count">{digits(count)}</span>
                 </button>
                 {cartOpen ? (
                   <MiniCartPanel

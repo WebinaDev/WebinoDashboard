@@ -242,7 +242,7 @@
 }
 
 .sfc-price__old del {
-  color: #bdc3d7;
+  color: var(--sfc-muted, #707a88);
   font-size: 11px;
   font-weight: 600;
 }
@@ -288,12 +288,12 @@
   border: 0;
   border-radius: 11px;
   background: var(--sfc-pink);
-  color: #fff;
+  color: var(--color-primary-foreground, #101a2d);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
   padding: 12px 14px;
-  box-shadow: 2px 0 4px 0 rgba(231, 117, 174, 0.3);
+  box-shadow: 2px 0 4px 0 var(--sfc-pink-glow, rgba(16, 26, 45, 0.18));
   transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s;
   cursor: pointer;
   white-space: nowrap;
@@ -695,7 +695,7 @@
   border: 0;
   border-radius: var(--sfc-radius);
   background: var(--sfc-pink);
-  color: #fff;
+  color: var(--color-primary-foreground, #101a2d);
   font: inherit;
   cursor: pointer;
   box-shadow: -8px 0 11px -6px var(--sfc-pink-glow);
@@ -899,8 +899,8 @@
 
 .sfc-mini-cart__btn--checkout {
   flex: 1 1 60%;
-  background: var(--sfc-red, #f04055);
-  color: #fff;
+  background: var(--sfc-pink);
+  color: var(--color-primary-foreground, #101a2d);
   box-shadow: 7px 7px 13px -3px rgba(21, 22, 24, 0.24);
 }
 
@@ -965,7 +965,7 @@
   margin-top: 4px;
   border-top: 1px solid var(--sfc-border-2, #eef2f9);
   border-radius: 0 0 12px 12px;
-  color: var(--sfc-red, #f04055);
+  color: var(--sfc-muted, #707a88);
 }
 
 .sfc-header__nav {
@@ -1389,7 +1389,7 @@
 .sfc-card__label {
   border-radius: 6px;
   background: var(--sfc-pink);
-  color: #fff;
+  color: var(--color-primary-foreground, #101a2d);
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
@@ -1397,7 +1397,8 @@
 }
 
 .sfc-card__label--muted {
-  background: #8592ad;
+  background: color-mix(in srgb, var(--sfc-navy, #101a2d) 68%, #fff);
+  color: #fff;
 }
 
 .sfc-card__image {
@@ -2990,7 +2991,7 @@
   gap: 6px;
   font-size: 11px;
   font-weight: 700;
-  color: rgba(2, 25, 89, 0.5);
+  color: var(--sfc-muted, #707a88);
 }
 
 .sfc-crumbs__item {
@@ -4258,7 +4259,7 @@
 
 .sfc-steps li.is-done + li::before,
 .sfc-steps li.is-active::before {
-  background: linear-gradient(90deg, #ff5a6e, #e80645);
+  background: linear-gradient(90deg, var(--sfc-pink-hover, #ffc531), var(--sfc-pink));
 }
 
 .sfc-steps__icon {
@@ -4272,14 +4273,14 @@
 }
 
 .sfc-steps li.is-active .sfc-steps__icon {
-  background: linear-gradient(135deg, #ff5a6e, #e80645);
-  color: #fff;
-  box-shadow: 0 8px 16px -6px rgba(232, 6, 69, 0.55);
+  background: linear-gradient(135deg, var(--sfc-pink-hover, #ffc531), var(--sfc-pink));
+  color: var(--color-primary-foreground, #101a2d);
+  box-shadow: 0 8px 16px -6px var(--sfc-pink-glow, rgba(16, 26, 45, 0.35));
 }
 
 .sfc-steps li.is-done .sfc-steps__icon {
-  background: #ffe7ea;
-  color: var(--sfc-red-2);
+  background: var(--sfc-pink-soft, #fdf1dc);
+  color: var(--sfc-navy, #101a2d);
 }
 
 .sfc-steps__label {
@@ -4659,9 +4660,11 @@
   height: 48px;
   flex-shrink: 0;
   border-radius: 14px;
-  background: #fff;
-  color: var(--sfc-pink, #e775ae);
-  box-shadow: 0 4px 12px -8px rgba(2, 25, 89, 0.25);
+  /* The footer can be navy or white; the badge must stay readable on both. */
+  border: 1px solid color-mix(in srgb, var(--sfc-pink, #f4ae00) 42%, transparent);
+  background: var(--sfc-footer-surface, color-mix(in srgb, var(--sfc-pink, #f4ae00) 12%, #fff));
+  color: var(--sfc-footer-fg, var(--sfc-navy, #101a2d));
+  box-shadow: 0 4px 12px -8px rgba(16, 26, 45, 0.25);
 }
 
 .sfc-footer__service-icon img {
@@ -7672,4 +7675,454 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
 .sfc-stories--poetry.sfc-stories--carousel .sfc-story--card { box-shadow: 0 8px 24px rgba(74, 7, 16, 0.12); }
 @media (max-width: 767px) {
   .sfc-story--card { flex-basis: calc((100% - 14px) / 2.2); width: calc((100% - 14px) / 2.2); }
+}
+
+/* ============================================================== hero rebuild
+ * The seed banner assumed a full-bleed section with a fixed aspect-ratio frame:
+ * hidden slides kept `min-height: 180px` on tablets (≈360px of dead space), the
+ * 16/9 frame clipped a 321px phone slide, and the arrows sat at `left: 4px` in a
+ * wrapper that started at x = -7 — half of each arrow was off the page.
+ * Everything below is scoped to `.sfc-hero`.
+ */
+
+/* `wb-full-bleed` sizes to 100vw, which includes the scrollbar gutter, so the
+ * banner (and its arrows) sat ~7px outside the column every other block uses. */
+section.wb-full-bleed:has(.sfc-hero) {
+  width: 100% !important;
+  max-width: var(--wb-container, 1530px) !important;
+  margin-inline: auto !important;
+}
+
+/* Legacy overlay banner: brand scrim, neutral shadow, brand arrow hover. */
+.sfc-hero__copy--over {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sfc-navy) 72%, transparent), transparent 72%);
+}
+
+.sfc-hero__title {
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+}
+
+.sfc-hero .sfc-hero__nav {
+  box-shadow: 0 6px 14px -4px rgba(16, 26, 45, 0.28);
+}
+
+.sfc-hero .sfc-hero__nav:hover {
+  color: var(--sfc-pink);
+}
+
+/* Keep the arrows inside the banner gutters instead of half off the section. */
+.sfc-hero .sfc-hero__nav--next {
+  left: calc(var(--sfc-gutter) + 10px);
+  right: auto;
+}
+
+.sfc-hero .sfc-hero__nav--prev {
+  right: calc(var(--sfc-gutter) + 10px);
+  left: auto;
+}
+
+/* Tablet: only the active slide may take layout height. */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .sfc-hero__frame {
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+  .sfc-hero__slide,
+  .sfc-hero__slide.is-active {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+    height: 0;
+    opacity: 0;
+    visibility: hidden;
+    overflow: hidden;
+  }
+  .sfc-hero__slide.is-active {
+    position: relative;
+    inset: auto;
+    height: auto;
+    min-height: 240px;
+    opacity: 1;
+    visibility: visible;
+    overflow: visible;
+  }
+}
+
+/* Phone: stack the copy above a 176px cover photo instead of clipping it inside 16/9. */
+@media (max-width: 767px) {
+  .sfc-hero__frame {
+    aspect-ratio: auto;
+    border-radius: 15px;
+    background: var(--sfc-navy);
+  }
+  .sfc-hero__slide,
+  .sfc-hero__slide.is-active {
+    position: absolute;
+    inset: 0;
+    height: 0;
+    min-height: 0;
+    overflow: hidden;
+    padding-inline: 0;
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .sfc-hero__slide.is-active {
+    position: relative;
+    inset: auto;
+    height: auto;
+    overflow: visible;
+  }
+  .sfc-hero__img,
+  .sfc-hero__slide--image-only .sfc-hero__img {
+    width: 100%;
+    height: 176px;
+    max-height: 176px;
+    object-fit: cover;
+  }
+  .sfc-hero__copy {
+    max-width: none;
+    padding: 18px 18px 20px;
+  }
+  .sfc-hero__copy--over {
+    background: none;
+  }
+  .sfc-hero__dots {
+    top: auto;
+    bottom: 10px;
+  }
+  /* The arrows used to be hidden on phones, which left the banner without paging. */
+  .sfc-hero__nav {
+    display: grid;
+    top: auto;
+    bottom: 8px;
+    margin-top: 0;
+  }
+  .sfc-hero .sfc-hero__nav--next {
+    left: 10px;
+  }
+  .sfc-hero .sfc-hero__nav--prev {
+    right: 10px;
+  }
+}
+
+/* ---------------------------------------------------- cinematic hero variant
+ * Opt-in through the `hero-slider` widget (variant = cinematic). A navy
+ * instrument panel with a signal rail, grid field, copy column, masked product
+ * photo and a control bar. The default overlay banner is untouched.
+ */
+.sfc-hero--cine .sfc-hero__panel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 430px;
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 90% at 88% 0%, color-mix(in srgb, var(--sfc-pink) 18%, transparent), transparent 62%),
+    linear-gradient(150deg, color-mix(in srgb, var(--sfc-navy) 94%, #000) 0%, var(--sfc-navy) 55%, color-mix(in srgb, var(--sfc-navy) 88%, #000) 100%);
+}
+
+.sfc-hero--cine .sfc-hero__grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(120% 100% at 72% 0%, #000 18%, transparent 74%);
+  mask-image: radial-gradient(120% 100% at 72% 0%, #000 18%, transparent 74%);
+}
+
+.sfc-hero--cine .sfc-hero__halo {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  inset-inline-start: 32%;
+  top: -310px;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--sfc-pink) 42%, transparent);
+  box-shadow:
+    0 0 0 46px color-mix(in srgb, var(--sfc-pink) 9%, transparent),
+    0 0 0 104px color-mix(in srgb, var(--sfc-pink) 5%, transparent);
+}
+
+.sfc-hero--cine .sfc-hero__rail {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  z-index: 4;
+  background: linear-gradient(90deg, transparent, var(--sfc-pink) 16%, var(--sfc-pink) 84%, transparent);
+  opacity: 0.9;
+}
+
+.sfc-hero--cine .sfc-hero__slide,
+.sfc-hero--cine .sfc-hero__slide.is-active {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+  align-items: stretch;
+  flex-direction: row;
+  padding: 0;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.7s ease, visibility 0.7s;
+}
+
+.sfc-hero--cine .sfc-hero__slide.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sfc-hero--cine .sfc-hero__copy--cine {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  max-width: none;
+  padding: 54px 5% 78px 4%;
+  background: none;
+  color: #fff;
+}
+
+.sfc-hero--cine .sfc-hero__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--sfc-pink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  opacity: 1;
+}
+
+.sfc-hero--cine .sfc-hero__kicker i {
+  width: 26px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sfc-pink);
+}
+
+.sfc-hero--cine .sfc-hero__title {
+  color: #fff;
+  font-size: clamp(26px, 3.3vw, 46px);
+  font-weight: 900;
+  line-height: 1.44;
+  letter-spacing: -0.4px;
+  text-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.sfc-hero--cine .sfc-hero__sub {
+  direction: rtl;
+  text-align: start;
+  max-width: 46ch;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: clamp(12px, 1.05vw, 14.5px);
+  font-weight: 400;
+  line-height: 2.05;
+  letter-spacing: 0;
+  opacity: 1;
+}
+
+.sfc-hero--cine .sfc-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: var(--sfc-pink);
+  color: var(--sfc-sale-fg, #101a2d);
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 14px 28px -16px var(--sfc-pink-glow);
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.sfc-hero--cine .sfc-hero__slide:hover .sfc-hero__cta {
+  transform: translateY(-2px);
+  background: var(--sfc-pink-hover);
+  box-shadow: 0 20px 34px -16px var(--sfc-pink-glow);
+}
+
+.sfc-hero--cine .sfc-hero__media {
+  position: relative;
+  display: block;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.sfc-hero--cine .sfc-hero__media picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sfc-hero--cine .sfc-hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  /* The tenant art is cut-out product photography, so it must not be cropped. */
+  object-fit: contain;
+  object-position: center;
+  padding: 18px 6% 18px 0;
+  filter: drop-shadow(0 26px 35px rgba(5, 10, 19, 0.5));
+  -webkit-mask-image: linear-gradient(to left, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to left, #000 78%, transparent 100%);
+}
+
+.sfc-hero--cine .sfc-hero__fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 60% 40%, color-mix(in srgb, var(--sfc-pink) 22%, transparent), transparent 62%),
+    var(--sfc-navy);
+}
+
+.sfc-hero--cine .sfc-hero__controls {
+  position: absolute;
+  z-index: 5;
+  inset-inline-start: 5%;
+  bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sfc-hero--cine .sfc-hero__arrow {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.sfc-hero--cine .sfc-hero__arrow:hover {
+  background: var(--sfc-pink);
+  border-color: var(--sfc-pink);
+  color: var(--sfc-sale-fg, #101a2d);
+}
+
+.sfc-hero--cine .sfc-hero__dots {
+  position: static;
+  inset: auto;
+  transform: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sfc-hero--cine .sfc-hero__dots button {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.sfc-hero--cine .sfc-hero__dots button.is-active {
+  width: 26px;
+  background: var(--sfc-pink);
+}
+
+.sfc-hero--cine .sfc-hero__count {
+  margin-inline-start: 6px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.sfc-hero--cine .sfc-hero__count i {
+  margin: 0 4px;
+  font-style: normal;
+  opacity: 0.5;
+}
+
+@media (max-width: 1023px) {
+  .sfc-hero--cine .sfc-hero__panel {
+    min-height: 400px;
+  }
+  .sfc-hero--cine .sfc-hero__copy--cine {
+    padding: 42px 5% 72px 4%;
+  }
+  .sfc-hero--cine .sfc-hero__title {
+    font-size: clamp(22px, 3.6vw, 32px);
+  }
+}
+
+@media (max-width: 767px) {
+  .sfc-hero--cine .sfc-hero__panel {
+    min-height: 0;
+    border-radius: 16px;
+  }
+  .sfc-hero--cine .sfc-hero__slide {
+    position: absolute;
+    inset: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+  .sfc-hero--cine .sfc-hero__slide.is-active {
+    position: relative;
+    inset: auto;
+  }
+  .sfc-hero--cine .sfc-hero__copy--cine {
+    order: 1;
+    gap: 12px;
+    padding: 26px 18px 16px;
+  }
+  .sfc-hero--cine .sfc-hero__title {
+    font-size: clamp(21px, 6vw, 27px);
+    line-height: 1.5;
+  }
+  .sfc-hero--cine .sfc-hero__sub {
+    font-size: 12.5px;
+    line-height: 1.95;
+  }
+  .sfc-hero--cine .sfc-hero__cta {
+    padding: 11px 16px;
+    font-size: 12px;
+  }
+  .sfc-hero--cine .sfc-hero__media {
+    order: 2;
+    height: 176px;
+    min-height: 176px;
+  }
+  .sfc-hero--cine .sfc-hero__img {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .sfc-hero--cine .sfc-hero__controls {
+    position: static;
+    inset: auto;
+    justify-content: center;
+    padding: 0 0 14px;
+  }
+  .sfc-hero--cine .sfc-hero__grid {
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 70%);
+    mask-image: linear-gradient(180deg, #000 0%, transparent 70%);
+  }
+  .sfc-hero--cine .sfc-hero__halo {
+    top: -300px;
+    inset-inline-start: auto;
+    inset-inline-end: -140px;
+    width: 380px;
+    height: 380px;
+  }
 }

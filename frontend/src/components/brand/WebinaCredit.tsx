@@ -7,10 +7,10 @@ export const WEBINA_CREDIT_NAME = "توسعه کسب و کار وبینا"
 export const WEBINA_CREDIT_LOGO = "/brand/webina-fav.png"
 
 /**
- * Markup and styles mirror parisma.ir exactly:
- * a right-aligned column (11px/600, #4d5e8a title + #1d2b51 linked name),
- * followed by the 35x35 Webina favicon with 7px radius, gap 13px.
- * Styles are inline so cafe/shop skins cannot restyle it.
+ * Markup mirrors parisma.ir: a right-aligned column (11px/600 title + linked
+ * name) followed by the 35x35 Webina favicon with 7px radius, gap 13px.
+ * Colours come from the storefront footer tokens so the credit stays readable
+ * on a dark footer; the parisma greys remain the fallback for other skins.
  */
 export function WebinaCredit({ className }: { className?: string }) {
   return (
@@ -20,7 +20,7 @@ export function WebinaCredit({ className }: { className?: string }) {
       style={{ display: "flex", gap: 13, alignItems: "center", justifyContent: "flex-end", fontWeight: 600, lineHeight: 1.6 }}
     >
       <span className="footer-content__company-name" style={{ display: "flex", flexDirection: "column", alignItems: "end" }}>
-        <span className="footer-content__company-name-developer" style={{ color: "#4d5e8a", fontSize: 11, fontWeight: 600 }}>
+        <span className="footer-content__company-name-developer" style={{ color: "var(--sfc-footer-muted, #4d5e8a)", fontSize: 11, fontWeight: 600 }}>
           {WEBINA_CREDIT_TITLE}
         </span>
         <a
@@ -28,7 +28,7 @@ export function WebinaCredit({ className }: { className?: string }) {
           target="_blank"
           rel="nofollow noreferrer"
           className="footer-content__company-name-brand"
-          style={{ color: "#1d2b51", fontSize: 11, fontWeight: 600, textDecoration: "none" }}
+          style={{ color: "var(--sfc-footer-fg, #1d2b51)", fontSize: 11, fontWeight: 600, textDecoration: "none" }}
         >
           {WEBINA_CREDIT_NAME}
         </a>

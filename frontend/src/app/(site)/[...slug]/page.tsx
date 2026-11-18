@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { redirect } from "next/navigation"
 
 import { loadCatalogSeed } from "@/builder/storefront/catalog-seed"
 import { CatalogSeedProvider } from "@/builder/storefront/use-catalog"
@@ -120,6 +121,10 @@ const originOf = (canonical?: string) => (canonical ? canonical.replace(/^(https
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const raw = (await params).slug ?? []
   const segments = await storeSegments(raw)
+  // `/product` on its own is a bare shell (breadcrumbs only): keep it out of the index.
+  if (segments.length === 1 && segments[0] === "product") {
+    return { title: "محصول", robots: { index: false, follow: true } }
+  }
   const taxonomy = TAXONOMY_ROUTE[segments[0]]
   if (taxonomy && segments[1] && segments.length === 2) {
     const slug = decodeURIComponent(segments[1])
@@ -232,6 +237,8 @@ export default async function SiteCatchAllPage({ params, searchParams }: Props) 
   const raw = (await params).slug ?? []
   const segments = await storeSegments(raw)
   const sp = searchParams ? await searchParams : {}
+  // `/product` without a slug has no content of its own — send shoppers to the shop.
+  if (segments.length === 1 && segments[0] === "product") redirect("/shop")
   const taxonomy = TAXONOMY_ROUTE[segments[0]]
   if (taxonomy && segments[1] && segments.length === 2) {
     const slug = decodeURIComponent(segments[1])

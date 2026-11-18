@@ -294,6 +294,15 @@ export function storefrontStyleCss(
   --sfc-ink-2:${navy};
   --sfc-muted:${p.muted};
   --sfc-text-3:${p.text3 ?? PARISMA_PALETTE.text3};
+  /* The seed storefront shipped three fixed greys (#879cbb / #a2b0c5) that
+     fail contrast on white and read pink next to a warm brand. Follow the
+     brand muted instead. */
+  --sfc-muted-2:${p.muted};
+  --sfc-muted-3:${p.muted};
+  /* Out-of-stock dots, story badges and similar alerts were hardcoded crimson. */
+  --sfc-red:${navy};
+  --sfc-red-2:${navy};
+  --color-destructive:#dc2626;
   --sfc-bg:${p.bg};
   --sfc-card:${p.bg};
   --sfc-surface:${p.surface};
@@ -347,6 +356,17 @@ export function storefrontStyleCss(
   line-height:var(--sfc-line-height);
   ${fontStack ? `font-family:${fontStack};` : ""}
   ${Number.isFinite(fontWeight) && fontWeight >= 100 && fontWeight <= 900 ? `font-weight:${Math.round(fontWeight / 100) * 100};` : ""}
+}
+/* Primary-filled controls: the seed theme hardcoded white text and a fixed
+   --color-primary-foreground of #fff, which is unreadable on a light brand
+   colour (1.9:1 on amber). A scoped rule beats the seed one whatever the
+   stylesheet order is. */
+${within(".sfc-btn")},
+${within(".sfc-cart-btn")},
+${within(".sfc-card__label")},
+${within(".sfc-btn--lg")},
+${within(".sfc-checkout__submit")}{
+  color:var(--color-primary-foreground);
 }
 ${within(".sfc-header__logo img")}{
   height:var(--sfc-logo-h);
