@@ -107,15 +107,20 @@ export async function addShopItem(product: ShopProduct, qty = 1, variantId?: num
     ...(variant ? { variantId: variant.id, variantName: variant.name } : {}),
   }
   if (product.id) {
-    const res = await quietApi<ServerCart>("/api/v1/cart/items", {
-      method: "POST",
-      json: { product_id: product.id, quantity: safeQty, ...(variantId ? { variant_id: variantId } : {}) },
-    })
+    const body = { product_id: product.id, quantity: safeQty, ...(variantId ? { variant_id: variantId } : {}) }
+    let res = await quietApi<ServerCart>("/api/v1/cart/items", { method: "POST", json: body })
+    // A dropped request or a restarting backend must not dead-end the customer: retry once,
+    // then keep the line in the local cart so the checkout flow still works.
+    if (!res.ok && (res.status === 0 || res.status >= 500)) {
+      await new Promise((resolve) => setTimeout(resolve, 350))
+      res = await quietApi<ServerCart>("/api/v1/cart/items", { method: "POST", json: body })
+    }
     if (res.ok) {
       notifyCart()
       return "server"
     }
-    if (res.status !== 401 && res.status !== 403) return "error"
+    const transient = res.status === 0 || res.status >= 500
+    if (!transient && res.status !== 401 && res.status !== 403) return "error"
   }
   addToCart(localLine, safeQty)
   notifyCart()

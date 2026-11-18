@@ -7,7 +7,7 @@ import { NavHeaderItem, NavItemLink } from "@/themes/ecommerce-classic/component
 import { InstallmentBadges } from "../../../modules/commerce/components/payments/InstallmentBadges"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 
-import { Moon, Search, ShoppingBag, Sun, UserRound } from "lucide-react"
+import { ArrowLeft, Minus, Moon, Plus, Search, ShieldCheck, ShoppingBag, Sun, Trash2, Truck, UserRound } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -127,7 +127,9 @@ function DefaultStoreProductCard({ product }: { product: ShopProduct }) {
         <button
           type="button"
           disabled={!product.inStock}
-          className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+          className="sf-add-icon"
+          aria-label={tCart("add_to_cart")}
+          title={tCart("add_to_cart")}
           onClick={() => {
             // Variable products: the customer picks size/colour on the product page first.
             if (product.variants.length > 0) {
@@ -154,7 +156,8 @@ function DefaultStoreProductCard({ product }: { product: ShopProduct }) {
             })
           }}
         >
-          {tCart("add_to_cart")}
+          <ShoppingBag className="size-4" aria-hidden />
+          <span className="sf-sr-only">{tCart("add_to_cart")}</span>
         </button>
       </div>
       {note ? <p className="mt-2 text-xs text-destructive">{note}</p> : null}
@@ -510,6 +513,100 @@ function QtyControl({ qty, onChange }: { qty: number; onChange: (qty: number) =>
   )
 }
 
+function CartQtyStepper({ value, onChange, label }: { value: number; onChange: (next: number) => void; label: string }) {
+  const locale = useLocale()
+  return (
+    <div className="sf-qty" role="group" aria-label={label}>
+      <button type="button" onClick={() => onChange(value + 1)} aria-label="زیاد کردن" disabled={value >= 99}>
+        <Plus className="size-3.5" aria-hidden />
+      </button>
+      <span aria-live="polite">{toLocaleDigits(String(value), locale)}</span>
+      <button type="button" onClick={() => onChange(value - 1)} aria-label="کم کردن" disabled={value <= 1}>
+        <Minus className="size-3.5" aria-hidden />
+      </button>
+    </div>
+  )
+}
+
+function CartEmptyState() {
+  return (
+    <div className="sf-cart-empty">
+      <span className="sf-cart-empty__icon" aria-hidden>
+        <ShoppingBag className="size-8" />
+      </span>
+      <h2>سبد خرید شما خالی است</h2>
+      <p>یک بازی خوب انتخاب کن؛ میز منتظر توست.</p>
+      <Link href="/shop" className="sf-cart-empty__cta">
+        رفتن به فروشگاه
+      </Link>
+    </div>
+  )
+}
+
+function CartSummary({
+  itemsTotal,
+  discount,
+  total,
+  checkoutHref,
+  checkoutLabel,
+  onClear,
+  note,
+}: {
+  itemsTotal: number
+  discount: number
+  total: number
+  checkoutHref: string
+  checkoutLabel: string
+  onClear?: () => void
+  note?: string
+}) {
+  const money = useMoney()
+  return (
+    <aside className="sf-cart-summary">
+      <h3 className="sf-cart-summary__title">خلاصه سفارش</h3>
+      <dl className="sf-cart-summary__rows">
+        <div>
+          <dt>قیمت کالاها</dt>
+          <dd>{money(itemsTotal)}</dd>
+        </div>
+        {discount > 0 ? (
+          <div className="is-discount">
+            <dt>تخفیف کالاها</dt>
+            <dd>{money(discount)}</dd>
+          </div>
+        ) : null}
+        <div className="is-total">
+          <dt>جمع سبد خرید</dt>
+          <dd>{money(total)}</dd>
+        </div>
+      </dl>
+      {note ? <p className="sf-cart-summary__note">{note}</p> : null}
+      <Link href={checkoutHref} className="sf-cart-summary__cta">
+        {checkoutLabel}
+        <ArrowLeft className="size-4" aria-hidden />
+      </Link>
+      <Link href="/shop" className="sf-cart-summary__back">
+        ادامه خرید
+      </Link>
+      <ul className="sf-cart-summary__trust">
+        <li>
+          <ShieldCheck className="size-4" aria-hidden />
+          ضمانت اصالت کالا
+        </li>
+        <li>
+          <Truck className="size-4" aria-hidden />
+          ارسال به سراسر ایران
+        </li>
+      </ul>
+      {onClear ? (
+        <button type="button" className="sf-cart-summary__clear" onClick={onClear}>
+          خالی کردن سبد
+        </button>
+      ) : null}
+    </aside>
+  )
+}
+
 function DefaultStorefrontCart() {
   const money = useMoney()
   const t = useTranslations("storefront")
@@ -518,6 +615,8 @@ function DefaultStorefrontCart() {
   const local = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot)
   const { cart, auth } = useServerCart()
   const guestAllowed = useGuestCheckoutAllowed()
+  // Optimistic quantities so the stepper feels instant while the server round-trip runs.
+  const [pendingQty, setPendingQty] = useState<Record<string, number>>({})
   const lines = cart?.items ?? []
   const pricing = cart?.pricing
 
@@ -526,109 +625,184 @@ function DefaultStorefrontCart() {
   }
 
   if (auth === "auth") {
-    if (!lines.length) {
-      return (
-        <div className="sf-card p-8 text-center">
-          <h2 className="text-xl font-bold">{tCart("empty")}</h2>
-          <Link href="/shop" className="mt-4 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">
-            {t("continue_shop")}
-          </Link>
-        </div>
-      )
-    }
+    if (!lines.length) return <CartEmptyState />
     const total = pricing?.subtotal_minor ?? lines.reduce((sum, line) => sum + line.product.price_minor * line.quantity, 0)
+    const discount = lines.reduce((sum, line) => {
+      const { price, regular } = serverLinePrice(cart, line)
+      return sum + (regular > price ? (regular - price) * line.quantity : 0)
+    }, 0)
+    const itemsTotal = total + discount
+    const count = lines.reduce((sum, line) => sum + line.quantity, 0)
     return (
-      <div className="sf-cart grid gap-4 lg:grid-cols-[1fr_280px]">
-        <div className="grid gap-3">
-          {lines.map((line) => (
-            <div key={line.id} className="sf-card flex items-center gap-3 p-3">
-              <div className="size-20 overflow-hidden rounded-2xl bg-muted">
-                {line.product.cover_image_url || line.product.image_url ? (
-                  <img src={line.product.cover_image_url || line.product.image_url || ""} alt="" className="h-full w-full object-cover" />
-                ) : null}
-              </div>
-              <div className="flex-1">
-                <div className="font-bold">{line.product.name}</div>
-                {line.variant?.name ? <div className="text-xs text-muted-foreground">{line.variant.name}</div> : null}
-                <div className="text-sm">{money(serverLinePrice(cart, line).price, serverLinePrice(cart, line).regular || null)}</div>
-              </div>
-              <input
-                className="sf-field h-10 w-16 text-center"
-                type="number"
-                min={0}
-                value={line.quantity}
-                aria-label={tCart("quantity")}
-                onChange={(event) => void setServerLineQty(line.id, Number(event.target.value))}
-              />
-              <button type="button" className="text-xs text-muted-foreground underline" onClick={() => void removeServerLine(line.id)}>
-                حذف
-              </button>
-            </div>
-          ))}
+      <div className="sf-cart-page">
+        <header className="sf-cart-head">
+          <h1>سبد خرید</h1>
+          <span>{toLocaleDigits(String(count), locale)} کالا</span>
+        </header>
+        <div className="sf-cart-layout">
+          <div className="sf-cart-lines">
+            {lines.map((line) => {
+              const { price, regular } = serverLinePrice(cart, line)
+              const qty = pendingQty[`s${line.id}`] ?? line.quantity
+              const image = line.product.cover_image_url || line.product.image_url
+              return (
+                <article key={line.id} className="sf-cart-line">
+                  <Link href={line.product.slug ? `/product/${line.product.slug}` : "/shop"} className="sf-cart-line__media">
+                    {image ? <img src={image} alt={line.product.name} loading="lazy" /> : <span className="sf-cart-line__ph" aria-hidden />}
+                  </Link>
+                  <div className="sf-cart-line__body">
+                    <Link href={line.product.slug ? `/product/${line.product.slug}` : "/shop"} className="sf-cart-line__name">
+                      {line.product.name}
+                    </Link>
+                    {line.variant?.name ? <p className="sf-cart-line__variant">{line.variant.name}</p> : null}
+                    <ul className="sf-cart-line__chips">
+                      <li>
+                        <ShieldCheck className="size-3.5" aria-hidden />
+                        اصالت کالا
+                      </li>
+                      <li>
+                        <Truck className="size-3.5" aria-hidden />
+                        ارسال مارس
+                      </li>
+                    </ul>
+                    <div className="sf-cart-line__price">
+                      {money(price, regular || null)}
+                    </div>
+                  </div>
+                  <div className="sf-cart-line__side">
+                    <CartQtyStepper
+                      value={qty}
+                      label={tCart("quantity")}
+                      onChange={(next) => {
+                        const clamped = Math.max(1, Math.min(99, next))
+                        setPendingQty((prev) => ({ ...prev, [`s${line.id}`]: clamped }))
+                        void setServerLineQty(line.id, clamped).then(() => {
+                          setPendingQty((prev) => {
+                            const copy = { ...prev }
+                            delete copy[`s${line.id}`]
+                            return copy
+                          })
+                        })
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="sf-cart-line__remove"
+                      aria-label={`حذف ${line.product.name}`}
+                      onClick={() => void removeServerLine(line.id)}
+                    >
+                      <Trash2 className="size-4" aria-hidden />
+                      <span>حذف</span>
+                    </button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+          <CartSummary
+            itemsTotal={itemsTotal}
+            discount={discount}
+            total={total}
+            checkoutHref="/checkout"
+            checkoutLabel="ثبت سفارش"
+            note={pricing?.purchase_type === "installment" && pricing.installment_monthly_minor
+              ? t("installment_row", {
+                  months: digits(pricing.installment_months ?? 0, locale),
+                  amount: money.text(pricing.installment_monthly_minor),
+                })
+              : undefined}
+          />
         </div>
-        <aside className="sf-card h-fit bg-primary p-5 text-primary-foreground">
-          <div className="text-sm opacity-80">{t("subtotal")}</div>
-          <div className="mt-1 text-2xl font-bold">{money(total)}</div>
-          {pricing?.purchase_type === "installment" && pricing.installment_monthly_minor ? (
-            <p className="mt-2 text-xs opacity-90">{t("installment_row", { months: digits(pricing.installment_months ?? 0, locale), amount: money.text(pricing.installment_monthly_minor) })}</p>
-          ) : null}
-          <Link href="/checkout" className="mt-4 block rounded-full bg-card py-2.5 text-center text-sm font-bold text-foreground">
-            {t("checkout")}
-          </Link>
-        </aside>
+        <div className="sf-cart-mobilebar">
+          <div>
+            <span>جمع سبد</span>
+            <strong>{money(total)}</strong>
+          </div>
+          <Link href="/checkout">ثبت سفارش</Link>
+        </div>
       </div>
     )
   }
 
   const total = local.reduce((sum, line) => sum + line.price * line.qty, 0)
-  if (!local.length) {
-    return (
-      <div className="sf-card p-8 text-center">
-        <h2 className="text-xl font-bold">{tCart("empty")}</h2>
-        <Link href="/shop" className="mt-4 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">
-          {t("continue_shop")}
-        </Link>
-      </div>
-    )
-  }
+  if (!local.length) return <CartEmptyState />
+  const discount = local.reduce((sum, line) => sum + (line.compare && line.compare > line.price ? (line.compare - line.price) * line.qty : 0), 0)
+  const count = local.reduce((sum, line) => sum + line.qty, 0)
+  const checkoutHref = guestAllowed ? "/checkout" : `/login?next=${encodeURIComponent("/checkout")}`
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-      <div className="grid gap-3">
-        <p className="text-sm text-muted-foreground">{t("guest_note")}</p>
-        {local.map((line) => (
-          <div key={cartLineKey(line)} className="sf-card flex items-center gap-3 p-3">
-            <div className="size-20 overflow-hidden rounded-2xl bg-muted">
-              {line.image ? <img src={line.image} alt="" className="h-full w-full object-cover" /> : null}
-            </div>
-            <div className="flex-1">
-              <div className="font-bold">{line.name}</div>
-              {line.variantName ? <div className="text-xs text-muted-foreground">{line.variantName}</div> : null}
-              <div className="text-sm">{money(line.price, line.compare || null)}</div>
-            </div>
-            <input
-              className="sf-field h-10 w-16 text-center"
-              type="number"
-              min={0}
-              value={line.qty}
-              aria-label={tCart("quantity")}
-              onChange={(event) => setQty(cartLineKey(line), Number(event.target.value))}
-            />
-          </div>
-        ))}
+    <div className="sf-cart-page">
+      <header className="sf-cart-head">
+        <h1>سبد خرید</h1>
+        <span>{toLocaleDigits(String(count), locale)} کالا</span>
+      </header>
+      <div className="sf-cart-layout">
+        <div className="sf-cart-lines">
+          <p className="sf-cart-guestnote">{t("guest_note")}</p>
+          {local.map((line) => {
+            const key = cartLineKey(line)
+            const qty = pendingQty[`l${key}`] ?? line.qty
+            return (
+              <article key={key} className="sf-cart-line">
+                <Link href={`/product/${line.slug}`} className="sf-cart-line__media">
+                  {line.image ? <img src={line.image} alt={line.name} loading="lazy" /> : <span className="sf-cart-line__ph" aria-hidden />}
+                </Link>
+                <div className="sf-cart-line__body">
+                  <Link href={`/product/${line.slug}`} className="sf-cart-line__name">
+                    {line.name}
+                  </Link>
+                  {line.variantName ? <p className="sf-cart-line__variant">{line.variantName}</p> : null}
+                  <ul className="sf-cart-line__chips">
+                    <li>
+                      <ShieldCheck className="size-3.5" aria-hidden />
+                      اصالت کالا
+                    </li>
+                    <li>
+                      <Truck className="size-3.5" aria-hidden />
+                      ارسال مارس
+                    </li>
+                  </ul>
+                  <div className="sf-cart-line__price">{money(line.price, line.compare || null)}</div>
+                </div>
+                <div className="sf-cart-line__side">
+                  <CartQtyStepper
+                    value={qty}
+                    label={tCart("quantity")}
+                    onChange={(next) => {
+                      const clamped = Math.max(1, Math.min(99, next))
+                      setPendingQty((prev) => ({ ...prev, [`l${key}`]: clamped }))
+                      setQty(key, clamped)
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="sf-cart-line__remove"
+                    aria-label={`حذف ${line.name}`}
+                    onClick={() => setQty(key, 0)}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                    <span>حذف</span>
+                  </button>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+        <CartSummary
+          itemsTotal={total + discount}
+          discount={discount}
+          total={total}
+          checkoutHref={checkoutHref}
+          checkoutLabel={guestAllowed ? "ثبت سفارش" : t("login_checkout")}
+          onClear={() => clearCart()}
+        />
       </div>
-      <aside className="sf-card h-fit bg-primary p-5 text-primary-foreground">
-        <div className="text-sm opacity-80">{t("subtotal")}</div>
-        <div className="mt-1 text-2xl font-bold">{money(total)}</div>
-        <Link
-          href={guestAllowed ? "/checkout" : `/login?next=${encodeURIComponent("/checkout")}`}
-          className="mt-4 block rounded-full bg-card py-2.5 text-center text-sm font-bold text-foreground"
-        >
-          {guestAllowed ? t("checkout") : t("login_checkout")}
-        </Link>
-        <button type="button" className="mt-2 w-full text-xs opacity-80" onClick={() => clearCart()}>
-          {t("clear_cart")}
-        </button>
-      </aside>
+      <div className="sf-cart-mobilebar">
+        <div>
+          <span>جمع سبد</span>
+          <strong>{money(total)}</strong>
+        </div>
+        <Link href={checkoutHref}>{guestAllowed ? "ثبت سفارش" : "ورود و ادامه"}</Link>
+      </div>
     </div>
   )
 }

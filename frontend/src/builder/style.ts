@@ -163,6 +163,16 @@ function placeDecl(style: StyleProps | undefined): string {
   return cssDecl({ gridColumn: gridPlace(style.gridColumnSpan), gridRow: gridPlace(style.gridRowSpan) })
 }
 
+/**
+ * A node that sets its own text colour must also flip the content-widget ink token,
+ * otherwise headings inside a dark section keep the fixed dark ink and turn invisible.
+ */
+function inkVars(style: StyleProps | undefined): string {
+  const color = safeValue(style?.color)
+  if (!color) return ""
+  return `--wbx-ink:${color};--wb-color-text:${color}`
+}
+
 function layoutDecl(style: StyleProps | undefined): string {
   if (!style) return ""
   const css = cssDecl(layoutToCss(style))
@@ -200,7 +210,7 @@ function pushSpans(rules: string[], section: SectionNode) {
 function pushNode(rules: string[], id: string, style: ResponsiveStyle | undefined) {
   if (!style) return
   const cls = safeClass(id)
-  const base = decl(style.base)
+  const base = [decl(style.base), inkVars(style.base)].filter(Boolean).join(";")
   const tablet = decl(style.tablet)
   const mobile = decl(style.mobile)
   if (base) rules.push(`.${cls}{${base}}`)
