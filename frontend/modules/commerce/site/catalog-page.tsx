@@ -13,6 +13,7 @@ import {
   classicShopDocument,
   storeCartDocument,
   storeProductDocument,
+  storeShopDocument,
 } from "@/builder/templates/classic"
 import { ProductStoriesStrip } from "@/builder/storefront/storefront-extras"
 import { ArchiveScopeProvider, type ArchiveScope } from "@/builder/storefront/archive-scope"
@@ -89,7 +90,7 @@ export default async function Page({
   const [built, seed] = await Promise.all([
     StorefrontBody({
       slug: "shop",
-      fallback: classicShopDocument(),
+      fallback: classic ? classicShopDocument() : storeShopDocument(),
       runtime: { categorySlug },
     }),
     loadCatalogSeed(searchParams, scope),

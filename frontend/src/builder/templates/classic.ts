@@ -95,6 +95,28 @@ export function classicCartDocument(): BuilderDocument {
   ])
 }
 
+/**
+ * Shared (non-classic) shop archive fallback. Modern themes compose the same real widgets the
+ * editor ships (breadcrumbs, category strip, filter panel, product grid) instead of dropping to
+ * the cafe menu catalogue.
+ */
+export function storeShopDocument(): BuilderDocument {
+  return doc([
+    sec("sec_shop_bc", [col("col_shop_bc", 12, [w("w_shop_bc", "breadcrumbs", { trail: "خانه|/\nفروشگاه|/shop" })])], true),
+    sec("sec_shop_head", [
+      col("col_shop_head", 12, [
+        w("w_shop_title", "heading", { text: "فروشگاه", tag: "h1" }),
+        w("w_shop_intro", "text", { text: "بازی‌های کارتی، تخته‌بعدی و لوازم؛ برای هر جمع و هر شب." }),
+      ]),
+    ]),
+    sec("sec_shop_cats", [col("col_shop_cats", 12, [w("w_shop_cats", "category-grid", { title: "خرید بر اساس دسته", variant: "strip", limit: 6 })])]),
+    sec("sec_shop_grid", [
+      col("col_filters", 3, [w("w_filters", "filter-panel")], 12),
+      col("col_grid", 9, [w("w_grid", "product-grid", { title: "", limit: 12, source: "all", showSort: true, layout: "grid" })], 12),
+    ]),
+  ])
+}
+
 /** Shared (non-classic) product page fallback — other ecommerce themes keep this layout. */
 export function storeProductDocument(): BuilderDocument {
   return doc([

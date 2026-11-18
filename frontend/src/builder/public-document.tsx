@@ -140,7 +140,10 @@ export async function resolveStorefrontDocument(
   if (published) return published
   if (!themeFallback) return null
   const theme = await activeThemeSlug()
-  return theme === "ecommerce-classic" ? themeFallback : null
+  // Cafe themes replace the store archive with the menu catalogue; every other theme keeps the
+  // document fallback (previously non-classic themes returned null and /shop rendered the cafe
+  // catalogue on plain e-commerce sites).
+  return theme && theme.startsWith("cafe") ? null : themeFallback
 }
 
 export async function StorefrontBody({

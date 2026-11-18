@@ -2,7 +2,7 @@ import type { ResolvedSiteRoute } from "@/kernel/types"
 import CataloguePage from "@/kernel/pages/CataloguePage"
 import { getSiteTypeSlug } from "@/kernel/cafe-catalogue-data"
 import { StorefrontBody, activeThemeSlug } from "@/builder/public-document"
-import { classicShopDocument } from "@/builder/templates/classic"
+import { classicShopDocument, storeShopDocument } from "@/builder/templates/classic"
 import { ThemeSlot } from "@/builder/theme/ThemeSlot"
 import { getServerTranslations } from "@/lib/server-translations"
 
@@ -23,7 +23,7 @@ export default async function Page({
   const t = await getServerTranslations("theme_builder")
   const term = searchParams?.q || searchParams?.s || ""
   if (await isStore()) {
-    const built = await StorefrontBody({ slug: "shop", fallback: classicShopDocument() })
+    const built = await StorefrontBody({ slug: "shop", fallback: (await activeThemeSlug().catch(() => null)) === "ecommerce-classic" ? classicShopDocument() : storeShopDocument() })
     return (
       <ThemeSlot kind="search" context={{ search: true }} tokens={{ title: term || t("search_fallback_title") }}>
         {term ? (
