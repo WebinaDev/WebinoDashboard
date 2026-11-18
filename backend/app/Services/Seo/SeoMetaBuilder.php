@@ -194,6 +194,14 @@ final class SeoMetaBuilder
         $raw = is_array($page->seo ?? null) ? $page->seo : [];
         if (! empty($raw['canonical']) && is_string($raw['canonical']) && str_starts_with($raw['canonical'], 'https://')) {
             $meta['canonical'] = $raw['canonical'];
+        } elseif ((string) $page->slug === 'home') {
+            // The CMS "home" page is served at the site root, so its canonical must be
+            // the root URL. Without this the storefront advertised /home, splitting the
+            // homepage into two indexable URLs.
+            $meta['canonical'] = rtrim((string) preg_replace('#/home$#', '', (string) $meta['canonical']), '/').'/';
+            if (isset($meta['og']['url'])) {
+                $meta['og']['url'] = $meta['canonical'];
+            }
         }
         $meta['lang'] = $page->lang;
         // Page override can only turn breadcrumbs off; sitewide disable wins.

@@ -3,6 +3,7 @@ import { fetchPublicItem, fetchPublicList } from "@/kernel/public-content"
 import { ThemeSlot } from "@/builder/theme/ThemeSlot"
 import { activeThemeSlug } from "@/builder/public-document"
 import { getServerTranslations, resolveServerLocale } from "@/lib/server-translations"
+import { formatDate, normalizeUiLocale } from "@/lib/locale"
 import { ClassicBlogArchive, ClassicBlogSingle } from "@/themes/ecommerce-classic/components/ClassicBlog"
 import { SiteContentDetail } from "@/themes/shared/content/SiteContentDetail"
 import { SiteContentGrid } from "@/themes/shared/content/SiteContentGrid"
@@ -103,7 +104,7 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
       >
         <SiteContentDetail
           title={post.title}
-          subtitle={post.published_at}
+          subtitle={post.published_at ? formatDate(post.published_at, normalizeUiLocale(locale)) : null}
           body={post.body ?? post.excerpt}
           imageUrl={post.cover_url}
           backHref="/blog"
@@ -132,7 +133,7 @@ export default async function Page({ route }: { route: ResolvedSiteRoute }) {
           title: p.title,
           excerpt: p.excerpt,
           imageUrl: p.cover_url,
-          meta: p.published_at,
+          meta: p.published_at ? formatDate(p.published_at, normalizeUiLocale(locale)) : null,
         }))}
       />
     </ThemeSlot>

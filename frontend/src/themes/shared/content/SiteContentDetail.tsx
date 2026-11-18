@@ -2,6 +2,10 @@ import Link from "next/link"
 import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
+import { sanitizeBuilderHtml } from "@/builder/render/sanitize-html"
+
+/** Post/page bodies arrive as HTML from the editor; older rows are plain text. */
+const HTML_BODY = /<\/?[a-z][a-z0-9]*(\s[^<>]*)?>/i
 
 type Props = {
   title: string
@@ -42,9 +46,16 @@ export function SiteContentDetail({
         </div>
       ) : null}
       {body ? (
-        <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none whitespace-pre-wrap text-sm leading-7">
-          {body}
-        </div>
+        HTML_BODY.test(body) ? (
+          <div
+            className="prose prose-neutral dark:prose-invert mt-8 max-w-none text-sm leading-7"
+            dangerouslySetInnerHTML={{ __html: sanitizeBuilderHtml(body) }}
+          />
+        ) : (
+          <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none whitespace-pre-wrap text-sm leading-7">
+            {body}
+          </div>
+        )
       ) : null}
       {children}
     </article>

@@ -276,6 +276,12 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
     trackAnalyticsEvent("product_view", { productId: product.id })
   }, [editing, product?.id])
   const variantList = useMemo(() => product?.variants ?? [], [product])
+  // Item endpoint ships the merchant's attribute rows (players, playtime, …) — the «مشخصات» tab
+  // used to render variants only, so stores with plain products showed an empty tab.
+  const specRows = useMemo(
+    () => (product?.attributes ?? []).filter((row) => row.label && row.value),
+    [product],
+  )
   const selection = useVariantSelection(variantList)
   const variant = selection.variant
   const gallery = product?.images.length ? product.images : product?.image ? [product.image] : []
@@ -425,15 +431,29 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
         </div>
         <div className="py-4 text-sm leading-7 text-foreground/80">
           {tab === "spec" ? (
-            product.variants.length ? (
-              <ul className="grid gap-2">
-                {product.variants.map((item) => (
-                  <li key={item.id} className="flex justify-between gap-3 border-b border-border py-1">
-                    <span>{item.name}</span>
-                    <span>{item.inStock ? t("stock_in") : t("stock_out")}</span>
-                  </li>
-                ))}
-              </ul>
+            specRows.length || product.variants.length ? (
+              <div className="grid gap-4">
+                {specRows.length ? (
+                  <dl className="sf-spec grid gap-x-6 gap-y-0 sm:grid-cols-2">
+                    {specRows.map((row) => (
+                      <div key={row.label} className="flex items-baseline justify-between gap-3 border-b border-border py-2">
+                        <dt className="text-xs font-semibold text-muted-foreground">{row.label}</dt>
+                        <dd className="text-sm font-medium text-foreground">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : null}
+                {product.variants.length ? (
+                  <ul className="grid gap-2">
+                    {product.variants.map((item) => (
+                      <li key={item.id} className="flex justify-between gap-3 border-b border-border py-1">
+                        <span>{item.name}</span>
+                        <span>{item.inStock ? t("stock_in") : t("stock_out")}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             ) : (
               t("spec_empty")
             )

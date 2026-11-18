@@ -10,7 +10,7 @@ export async function SiteFooter({ siteName }: SiteChromeProps) {
           <Link href="/shop" className="hover:text-zinc-900">
             فروشگاه
           </Link>
-          <Link href="/pages/about" className="hover:text-zinc-900">
+          <Link href="/about" className="hover:text-zinc-900">
             درباره
           </Link>
         </div>

@@ -10,7 +10,7 @@ export async function SiteFooter({ siteName }: SiteChromeProps) {
       <div className="container mx-auto flex flex-col gap-4 px-4 py-10 text-sm md:flex-row md:items-center md:justify-between">
         <p className="opacity-80">© {new Date().getFullYear()} {siteName}</p>
         <div className="flex flex-wrap gap-4">
-          <Link href="/pages/about" className="hover:underline">
+          <Link href="/about" className="hover:underline">
             {t("about")}
           </Link>
           <Link href="/shop" className="hover:underline">

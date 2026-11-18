@@ -1,4 +1,5 @@
 import type { ResolvedSiteRoute } from "@/kernel/types"
+import { notFound } from "next/navigation"
 import { fetchPublicItem } from "@/kernel/public-content"
 import { getServerTranslations } from "@/lib/server-translations"
 import { StorefrontDocument } from "@/builder/public-document"
@@ -89,14 +90,8 @@ export default async function Page({ route, searchParams }: { route: ResolvedSit
     return <ClassicContactPage title="تماس با ما" fallback={{ phones: [], emails: [] }} />
   }
   if (!page) {
-    return (
-      <SiteEmptyState
-        title={t("pages_missing")}
-        description={t("empty_default")}
-        actionHref="/"
-        actionLabel={t("back_home")}
-      />
-    )
+    // Real 404 instead of a 200 soft-404 shell so search engines drop the URL.
+    notFound()
   }
 
   // Native FAQ / contact templates for the classic storefront (imported WP pages render as empty shells).

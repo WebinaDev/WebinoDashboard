@@ -13,7 +13,7 @@ export async function SiteFooter({ siteName }: SiteChromeProps) {
           <p className="mt-2 opacity-80">قالب دمو فروشگاه وبینو با ظاهر پررنگ و متمایز.</p>
         </div>
         <div className="flex flex-wrap items-end justify-start gap-4 md:justify-end">
-          <Link href="/pages/about" className="font-bold underline-offset-4 hover:underline">
+          <Link href="/about" className="font-bold underline-offset-4 hover:underline">
             {t("about")}
           </Link>
           <Link href="/shop" className="font-bold underline-offset-4 hover:underline">
