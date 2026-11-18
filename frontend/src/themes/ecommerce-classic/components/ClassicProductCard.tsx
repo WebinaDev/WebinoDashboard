@@ -10,7 +10,7 @@ import { CartAddedModal, type CartAddedPayload } from "@/builder/storefront/cart
 import { quietApi } from "@/builder/storefront/session"
 import { productCardSrcSet, toneClass, type ShopProduct } from "@/builder/catalog"
 
-import { IconHeart } from "./icons"
+import { IconBag, IconCheck, IconChevronLeft, IconHeart } from "./icons"
 import { promoStatsForProduct } from "@/themes/ecommerce-classic/lib/classic-chrome"
 import { ClassicPrice, ClassicRating, useDigits, useMoneyText } from "./parts"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
@@ -120,14 +120,16 @@ export function ClassicProductCard({
           </div>
           {showCardAtc ? (
             variable || !product.inStock ? (
-              <Link href={href} className="sfc-btn sfc-btn--card">
-                {tx("card.view_product")}
+              <Link href={href} className="sfc-card__atc" aria-label={tx("card.view_product")} title={tx("card.view_product")}>
+                <IconChevronLeft size={19} />
               </Link>
             ) : (
               <button
                 type="button"
-                className="sfc-btn sfc-btn--card"
+                className={`sfc-card__atc${state === "done" ? " is-done" : state === "error" ? " is-error" : ""}`}
                 disabled={state === "busy"}
+                aria-label="افزودن به سبد خرید"
+                title={state === "done" ? "افزوده شد" : state === "error" ? "خطا، دوباره تلاش کنید" : "افزودن به سبد خرید"}
                 onClick={() => {
                   setState("busy")
                   void addShopItem(product).then((result) => {
@@ -154,7 +156,7 @@ export function ClassicProductCard({
                   })
                 }}
               >
-                {state === "done" ? "افزوده شد" : state === "error" ? "خطا، دوباره" : "افزودن به سبد"}
+                {state === "done" ? <IconCheck size={19} /> : <IconBag size={19} />}
               </button>
             )
           ) : null}

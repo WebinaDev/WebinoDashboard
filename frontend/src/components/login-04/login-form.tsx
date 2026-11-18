@@ -66,8 +66,9 @@ function redirectAfterLogin(result: LoginResult, next: string | null) {
 export function LoginForm({
   className,
   preferOtp = false,
+  nextPath,
   ...props
-}: ComponentPropsWithoutRef<"div"> & { preferOtp?: boolean }) {
+}: ComponentPropsWithoutRef<"div"> & { preferOtp?: boolean; nextPath?: string }) {
   const t = useTranslations("auth")
   const searchParams = useSearchParams()
   const { setAuthenticated } = useAuth()
@@ -82,6 +83,8 @@ export function LoginForm({
   const [pending, setPending] = useState(false)
   const [panelPending, setPanelPending] = useState(false)
   const [tenant, setTenant] = useState<PublicTenant | null>(null)
+  // Explicit caller target (e.g. inline checkout sign-in) wins over the query string.
+  const nextTarget = safeNextPath(searchParams.get("next")) ?? safeNextPath(nextPath ?? null)
 
   useEffect(() => {
     void api<{ data?: PublicTenant } | PublicTenant>("/api/v1/public/tenant")
@@ -108,7 +111,7 @@ export function LoginForm({
         })
         if (cancelled) return
         setAuthenticated(true)
-        redirectAfterLogin(result, safeNextPath(searchParams.get("next")))
+        redirectAfterLogin(result, nextTarget)
       } catch (err) {
         if (cancelled) return
         setError(getApiErrorMessage(err) || t("errors_invalid"))
@@ -119,7 +122,7 @@ export function LoginForm({
     return () => {
       cancelled = true
     }
-  }, [searchParams, setAuthenticated, t])
+  }, [nextTarget, searchParams, setAuthenticated, t])
 
   async function onPasswordSubmit(e: FormEvent) {
     e.preventDefault()
@@ -131,7 +134,7 @@ export function LoginForm({
         json: { email, password },
       })
       setAuthenticated(true)
-      redirectAfterLogin(result, safeNextPath(searchParams.get("next")))
+      redirectAfterLogin(result, nextTarget)
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError(t("errors_throttled"))
@@ -174,7 +177,7 @@ export function LoginForm({
         json: { identifier, code, purpose: "login", remember },
       })
       setAuthenticated(true)
-      redirectAfterLogin(result, safeNextPath(searchParams.get("next")))
+      redirectAfterLogin(result, nextTarget)
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError(t("errors_throttled"))
@@ -260,11 +263,13 @@ export function LoginForm({
             {mode === "password" ? (
               <form className="flex flex-col gap-4" onSubmit={(e) => void onPasswordSubmit(e)}>
                 <div className="grid gap-2">
-                  <Label htmlFor="email">{t("email")}</Label>
+                  <Label htmlFor="email">{t("identifier")}</Label>
                   <Input
                     id="email"
-                    type="email"
-                    autoComplete="email"
+                    type="text"
+                    inputMode="email"
+                    autoComplete="username"
+                    placeholder={t("identifier_placeholder")}
                     value={email}
                     onChange={(ev) => setEmail(ev.target.value)}
                     required

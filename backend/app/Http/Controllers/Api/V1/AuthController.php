@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Auth\OtpIdentifier;
 use App\Services\Security\CaptchaService;
 use App\Services\Security\LoginAttemptService;
 use App\Services\Tenant\TenantResolver;
@@ -22,7 +23,9 @@ class AuthController extends Controller
     public function login(Request $request, LoginAttemptService $attempts): \Illuminate\Http\JsonResponse
     {
         $data = $request->validate([
-            'email' => ['required', 'email'],
+            // Accepts an email *or* a mobile number: storefront shoppers sign up with
+            // a phone number and could not use the password form at all before.
+            'email' => ['required', 'string', 'max:190'],
             'password' => ['required', 'string'],
             'otp' => ['nullable', 'string'],
             'recovery_code' => ['nullable', 'string'],
@@ -56,8 +59,13 @@ class AuthController extends Controller
         }
 
         /** @var User|null $user */
+        $parsed = OtpIdentifier::parse($email);
         $user = User::query()
-            ->where('email', $data['email'])
+            ->when(
+                $parsed['email'] !== '',
+                fn ($q) => $q->where('email', $parsed['email']),
+                fn ($q) => $q->where('phone', $parsed['phone'])
+            )
             ->when($tenant, fn ($q) => $q->where('tenant_id', $tenant->id))
             ->first();
 

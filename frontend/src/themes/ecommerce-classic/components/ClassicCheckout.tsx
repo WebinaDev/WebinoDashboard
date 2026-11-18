@@ -3,7 +3,7 @@ import { OptImg } from "@/components/perf/OptImg"
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useState, useSyncExternalStore, Fragment } from "react"
+import { Suspense, useEffect, useMemo, useState, useSyncExternalStore, Fragment } from "react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
@@ -16,6 +16,7 @@ import { cartSnapshot, cartServerSnapshot, clearCart, subscribeCart } from "@/bu
 import { quietApi } from "@/builder/storefront/session"
 import { readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
 import { ClassicCouponChooser } from "./ClassicCouponChooser"
+import { LoginForm } from "@/components/login-04/login-form"
 
 import { ClassicCheckoutSteps } from "./ClassicCart"
 import { ClassicTrustStrip } from "./ClassicProduct"
@@ -378,19 +379,23 @@ function ClassicCheckoutLegacy() {
           <h2>{guestCheckout ? "ورود یا ادامه به‌عنوان مهمان" : tx("checkout.login_title")}</h2>
           <p>
             {guestCheckout
-              ? "می‌توانید وارد شوید یا بدون ثبت‌نام سفارش را ثبت کنید."
+              ? "با شماره موبایل و کد پیامکی یا رمز عبور وارد شوید، یا بدون ثبت‌نام سفارش را نهایی کنید."
               : tx("checkout.login_text")}
           </p>
-          <div className="sfc-checkout__guest-actions" style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "center" }}>
-            <Link href={`/login?next=${encodeURIComponent("/checkout")}`} className="sfc-btn sfc-btn--lg">
-              {tx("checkout.login_button")}
-            </Link>
-            {guestCheckout ? (
+          {/* Sign in right here: the old step bounced the shopper to /login and back, which
+              dropped the checkout state and looked like a broken extra step. */}
+          <div className="sfc-checkout__auth">
+            <Suspense fallback={null}>
+              <LoginForm nextPath="/checkout" preferOtp />
+            </Suspense>
+          </div>
+          {guestCheckout ? (
+            <div className="sfc-checkout__guest-actions">
               <button type="button" className="sfc-btn sfc-btn--lg sfc-btn--ghost" onClick={() => setGuestMode(true)}>
                 ادامه به‌عنوان مهمان
               </button>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </div>
     )

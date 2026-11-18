@@ -8566,7 +8566,21 @@
     "save_menu_acl": "Save menu access",
     "capabilities_saved": "Capabilities saved",
     "menu_acl_saved": "Menu access saved",
-    "admin_all_caps": "The admin role has all capabilities and cannot be edited."
+    "admin_all_caps": "The admin role has all capabilities and cannot be edited.",
+    "employee_access_heading": "Individual employee access",
+    "employee_access_help": "Overrides apply only to this site and employee. Explicit denies take precedence over role grants.",
+    "employee": "Employee",
+    "select_employee": "Select an employee",
+    "select_employee_help": "Choose an employee to review and change their access.",
+    "employee_active": "Active",
+    "employee_inactive": "Inactive",
+    "capability": "Capability",
+    "override": "Individual rule",
+    "inherit_role": "Use role",
+    "explicit_allow": "Allow",
+    "explicit_deny": "Deny",
+    "save_employee_access": "Save employee access",
+    "employee_access_saved": "Employee access updated."
   },
   "license": {
     "title": "License",

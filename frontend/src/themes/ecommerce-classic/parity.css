@@ -1483,6 +1483,49 @@
   order: -1;
 }
 
+/* Compact cart action: a single icon button that sits beside the price, so the
+ * price keeps the full width of the card and every grid (home slider, shop,
+ * archives, related products) shares one card rhythm. */
+.sfc-card__atc {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: var(--color-primary, var(--sfc-pink));
+  color: var(--color-primary-foreground, #101a2d);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary, var(--sfc-pink)) 26%, transparent);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  cursor: pointer;
+}
+
+.sfc-card__atc:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 22px color-mix(in srgb, var(--color-primary, var(--sfc-pink)) 34%, transparent);
+}
+
+.sfc-card__atc:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.sfc-card__atc:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.sfc-card__atc.is-done {
+  background: var(--sfc-success, #1f8a70);
+  color: #fff;
+  box-shadow: 0 8px 18px color-mix(in srgb, #1f8a70 30%, transparent);
+}
+
+.sfc-card__atc.is-error {
+  background: var(--sfc-danger, #c2414a);
+  color: #fff;
+}
+
 .sfc-card__price {
   min-height: 47.5px;
   display: flex;
@@ -1538,12 +1581,17 @@
     display: none;
   }
   .sfc-card__actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
   }
   .sfc-card__actions .sfc-btn {
     order: 0;
-    width: 100%;
+    width: auto;
+  }
+  .sfc-card__atc {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
   }
   .sfc-card__price {
     justify-content: flex-end;
@@ -6624,6 +6672,33 @@ html:has(.sf-shell.sf-skin-classic[data-sf-scheme="dark"]) body {
   border-radius: 18px;
   background: color-mix(in srgb, var(--sfc-primary, #e775ae) 14%, #fff);
   color: var(--sfc-primary, #e775ae);
+}
+
+/* Inline sign-in inside checkout: the OTP/password form replaces the old
+ * "go to /login and come back" hop. */
+.sfc-checkout__auth {
+  max-width: 460px;
+  margin: 1.25rem auto 0;
+  text-align: start;
+}
+
+.sfc-checkout__auth [data-slot="card"],
+.sfc-checkout__auth .card {
+  border: 1px solid var(--sfc-border, #e8edf3);
+  box-shadow: none;
+}
+
+.sfc-checkout__auth input,
+.sfc-checkout__auth button {
+  max-width: 100%;
+}
+
+.sfc-checkout__guest-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1rem;
 }
 .sfc-flash {
   margin: 0 0 1rem;

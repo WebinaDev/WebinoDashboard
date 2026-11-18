@@ -218,11 +218,7 @@ export function ClassicCart() {
       {showFreeShip && freeShipThreshold > 0 ? (
         <FreeShippingBar total={total} threshold={freeShipThreshold} />
       ) : null}
-      <div className="sfc-cart__headline">
-        <h1>
-          سبد خرید <span className="sfc-pill">{digits(count)}</span>
-        </h1>
-      </div>
+      {/* The step bar already carries the page title; the old H1 repeated it verbatim. */}
       {showCoupon && lines.length ? (
         <ClassicCouponChooser
           subtotal={total}

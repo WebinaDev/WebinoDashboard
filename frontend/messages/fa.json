@@ -8566,7 +8566,21 @@
     "save_menu_acl": "ذخیره دسترسی منو",
     "capabilities_saved": "قابلیت‌ها ذخیره شد",
     "menu_acl_saved": "دسترسی منو ذخیره شد",
-    "admin_all_caps": "نقش مدیر همهٔ قابلیت‌ها را دارد و قابل ویرایش نیست."
+    "admin_all_caps": "نقش مدیر همهٔ قابلیت‌ها را دارد و قابل ویرایش نیست.",
+    "employee_access_heading": "دسترسی اختصاصی کارکنان",
+    "employee_access_help": "این استثنا فقط برای همین کارمند در همین سایت اعمال می‌شود. منع صریح بر مجوز نقش اولویت دارد.",
+    "employee": "کارمند",
+    "select_employee": "انتخاب کارمند",
+    "select_employee_help": "برای مشاهده و تغییر دسترسی، یک کارمند انتخاب کنید.",
+    "employee_active": "فعال",
+    "employee_inactive": "غیرفعال",
+    "capability": "قابلیت",
+    "override": "قاعده اختصاصی",
+    "inherit_role": "پیروی از نقش",
+    "explicit_allow": "مجاز",
+    "explicit_deny": "ممنوع",
+    "save_employee_access": "ذخیره دسترسی کارمند",
+    "employee_access_saved": "دسترسی کارمند به‌روز شد."
   },
   "license": {
     "title": "لایسنس",
