@@ -66,22 +66,27 @@ return new class extends Migration
         // Live table state for the floor plan. CafeTable itself stays the physical inventory
         // (code/label/seats); these columns are the ephemeral "what is happening now" layer.
         if (Schema::hasTable('cafe_tables')) {
-            if (! Schema::hasColumn('cafe_tables', 'status')) {
-                // free | seated | ordered | reserved | preparing | ready | cleaning
-                $table->string('status', 16)->default('free')->after('is_active');
-            }
-            if (! Schema::hasColumn('cafe_tables', 'status_changed_at')) {
-                $table->timestamp('status_changed_at')->nullable()->after('status');
-            }
-            if (! Schema::hasColumn('cafe_tables', 'active_order_id')) {
-                $table->unsignedBigInteger('active_order_id')->nullable()->after('status_changed_at');
-            }
-            if (! Schema::hasColumn('cafe_tables', 'reservation_name')) {
-                $table->string('reservation_name', 120)->nullable()->after('active_order_id');
-            }
-            if (! Schema::hasColumn('cafe_tables', 'reserved_for_at')) {
-                $table->timestamp('reserved_for_at')->nullable()->after('reservation_name');
-            }
+            // Columns must be added inside Schema::table(): the previous version called
+            // $table->string() on an undefined variable, which aborted the migration (and
+            // therefore the container boot) on every tenant that already had cafe_tables.
+            Schema::table('cafe_tables', function (Blueprint $table) {
+                if (! Schema::hasColumn('cafe_tables', 'status')) {
+                    // free | seated | ordered | reserved | preparing | ready | cleaning
+                    $table->string('status', 16)->default('free')->after('is_active');
+                }
+                if (! Schema::hasColumn('cafe_tables', 'status_changed_at')) {
+                    $table->timestamp('status_changed_at')->nullable()->after('status');
+                }
+                if (! Schema::hasColumn('cafe_tables', 'active_order_id')) {
+                    $table->unsignedBigInteger('active_order_id')->nullable()->after('status_changed_at');
+                }
+                if (! Schema::hasColumn('cafe_tables', 'reservation_name')) {
+                    $table->string('reservation_name', 120)->nullable()->after('active_order_id');
+                }
+                if (! Schema::hasColumn('cafe_tables', 'reserved_for_at')) {
+                    $table->timestamp('reserved_for_at')->nullable()->after('reservation_name');
+                }
+            });
         }
     }
 

@@ -49,7 +49,10 @@ export function DocumentView({ document: rawDocument, mode = "view", device = "d
   const nodeCss = mode === "view" ? viewCss(document, activeGlobals.breakpoints) : ""
   // Component (symbol) node CSS is shared by every instance; editor mode needs it too (instances render without inline styles).
   const symbolCss = componentsCss(document.sections, activeGlobals)
-  const css = [globalsCss(activeGlobals), symbolCss, nodeCss, importedCss(document)].filter(Boolean).join("\n")
+  // Only emit the global token block when the caller actually resolved site globals.
+  // Falling back to DEFAULT_GLOBALS here re-declared stock (blush) tokens *after* the
+  // site's own globals block, so published buttons rendered pink on branded tenants.
+  const css = [globals ? globalsCss(activeGlobals) : "", symbolCss, nodeCss, importedCss(document)].filter(Boolean).join("\n")
   const canvasRef = useRef<HTMLDivElement>(null)
   useCanvasMotion(canvasRef, mode === "view")
   useCanvasInteractions(canvasRef, mode === "view")
