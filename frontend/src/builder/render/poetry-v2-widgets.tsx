@@ -194,9 +194,9 @@ function Track({ p, label, head, children, spvD, spvM }: { p: P; label: string; 
           <div className="wpz-chead-main">{head}</div>
           {arrows ? (
             <div className="wpz-carrows">
-              {/* RTL: previous lives on the inline start (right) and points that way. */}
-              <button type="button" className="wpz-carrow" aria-label="قبلی" disabled={edge.start} onClick={() => step(-1)}><ChevronLeft size={18} aria-hidden /></button>
-              <button type="button" className="wpz-carrow" aria-label="بعدی" disabled={edge.end} onClick={() => step(1)}><ChevronRight size={18} aria-hidden /></button>
+              {/* RTL: previous lives on the inline start (right) and points that way; next points to the inline end. */}
+              <button type="button" className="wpz-carrow" aria-label="قبلی" disabled={edge.start} onClick={() => step(-1)}><ChevronRight size={18} aria-hidden /></button>
+              <button type="button" className="wpz-carrow" aria-label="بعدی" disabled={edge.end} onClick={() => step(1)}><ChevronLeft size={18} aria-hidden /></button>
             </div>
           ) : null}
         </div>
