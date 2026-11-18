@@ -274,7 +274,11 @@ export function PoemCarouselWidget({ widget }: { widget: WidgetNode }) {
   const manual = manualPoemRows(p.items)
   const qs = poemCarouselQuery(p)
   const live = usePoemCarousel(manual.length ? 0 : Math.min(24, Math.max(1, propNum(p, "count", 8))), qs, propStr(p, "detailHref", DEFAULT_POEM_HREF))
-  const rows = manual.length ? manual : live
+  const all: PoemCard[] = manual.length
+    ? manual.map((r) => ({ ...r, locked: false, premium: false, lineCount: r.lines.length }))
+    : live
+  // Premium-only rails keep the real locked poems: title/tag stay readable, only the verse is veiled.
+  const rows = propBool(p, "premiumOnly", false) ? all.filter((r) => r.premium) : all
   const showTitle = propBool(p, "showTitle", true)
   const showTag = propBool(p, "showTag", true)
   const companion = propStr(p, "companion") === "latest"

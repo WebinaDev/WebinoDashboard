@@ -2,7 +2,9 @@ import { parseRows, propNum, propStr } from "./props"
 
 /** Query string for /v1/public/poetry/poems used by poem-carousel (prefetch key must match the hook). */
 export function poemCarouselQuery(p: Record<string, unknown>): string {
-  const count = Math.min(24, Math.max(1, propNum(p, "count", 8)))
+  // Premium-only cards are filtered from a wider page, so keep the fetched page big enough.
+  const wants = Math.min(24, Math.max(1, propNum(p, "count", 8)))
+  const count = propStr(p, "premiumOnly", "") === "true" || p.premiumOnly === true ? 24 : wants
   const qs = new URLSearchParams({ per_page: String(count), with_text: "1" })
   const filter = propStr(p, "filter", "short")
   if (filter === "short") qs.set("flag", "is_short")

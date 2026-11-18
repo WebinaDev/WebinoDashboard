@@ -97,6 +97,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "title", label: "عنوان بخش" },
       { kind: "number", key: "count", label: "تعداد اشعار (خودکار)", min: 1, max: 24 },
+      { kind: "switch", key: "premiumOnly", label: "فقط اشعار ویژه (قفل‌دار)" },
       { kind: "select", key: "sort", label: "ترتیب (خودکار)", options: [{ value: "", label: "تازه‌ترین" }, { value: "popular", label: "پربازدیدترین" }] },
       { kind: "link", key: "detailHref", label: "صفحه شعر" },
       { kind: "repeater", key: "items", label: "اشعار دستی (خالی = خودکار از ماژول شعر)", fields: [
@@ -291,9 +292,12 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       ] },
       { kind: "text", key: "premiumLabel", label: "برچسب دکمه اشتراک ویژه" }, { kind: "link", key: "premiumHref", label: "صفحه اشتراک ویژه" },
       { kind: "text", key: "emptyText", label: "متن نبود ویدیو" }, { kind: "switch", key: "hideWhenEmpty", label: "پنهان وقتی ویدیویی نیست" }, LOGO,
+      { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "stage", label: "پخش‌کننده + فهرست (پیش‌فرض)" }, { value: "carousel", label: "کروسل کارت‌های ۱۶:۹" }] },
+      { kind: "number", key: "slidesDesktop", label: "تعداد کارت در دسکتاپ (کروسل)", min: 1, max: 6 },
+      { kind: "number", key: "slidesMobile", label: "تعداد کارت در موبایل (کروسل)", min: 1, max: 4 },
       tone, ...V2_COLOR_FIELDS, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("video-gallery", { title: "ویدیوها", source: "live", count: 24, items: "", premiumLabel: "خرید اشتراک ویژه", premiumHref: "/subscribe", hideWhenEmpty: false, tone: "glass" }),
+    create: () => node("video-gallery", { title: "ویدیوها", source: "live", count: 24, items: "", premiumLabel: "خرید اشتراک ویژه", premiumHref: "/subscribe", hideWhenEmpty: false, layout: "stage", slidesDesktop: 3, slidesMobile: 1.2, tone: "glass" }),
   },
   {
     type: "occasion-grid", label: "شبکه مناسبت‌ها (برای صفحه مناسبت‌ها)", category: "content",

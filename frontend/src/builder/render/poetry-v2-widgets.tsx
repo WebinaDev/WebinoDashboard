@@ -194,8 +194,9 @@ function Track({ p, label, head, children, spvD, spvM }: { p: P; label: string; 
           <div className="wpz-chead-main">{head}</div>
           {arrows ? (
             <div className="wpz-carrows">
-              <button type="button" className="wpz-carrow" aria-label="قبلی" disabled={edge.start} onClick={() => step(-1)}><ChevronRight size={18} aria-hidden /></button>
-              <button type="button" className="wpz-carrow" aria-label="بعدی" disabled={edge.end} onClick={() => step(1)}><ChevronLeft size={18} aria-hidden /></button>
+              {/* RTL: previous lives on the inline start (right) and points that way. */}
+              <button type="button" className="wpz-carrow" aria-label="قبلی" disabled={edge.start} onClick={() => step(-1)}><ChevronLeft size={18} aria-hidden /></button>
+              <button type="button" className="wpz-carrow" aria-label="بعدی" disabled={edge.end} onClick={() => step(1)}><ChevronRight size={18} aria-hidden /></button>
             </div>
           ) : null}
         </div>
@@ -449,10 +450,12 @@ export function VideoGallery({ p, id, embedded = false, entries }: { p: P; id: s
   const { items, loading } = useMediaEntries(p, "video", Math.min(60, Math.max(1, propNum(p, "count", 24))), entries)
   const [cur, setCur] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [openCard, setOpenCard] = useState<number | null>(null)
   const ref = useRef<HTMLVideoElement>(null)
   useEffect(() => { if (playing) void ref.current?.play().catch(() => undefined) }, [playing, cur])
   const v = items[cur]
   const locked = v ? mediaLocked(v) : false
+  const carousel = propStr(p, "layout", "stage") === "carousel"
   if (!items.length) {
     if (loading) return null
     const empty = <p className="wpv-empty"><Film size={20} aria-hidden />{propStr(p, "emptyText", "هنوز ویدیویی منتشر نشده است.")}</p>
@@ -460,7 +463,42 @@ export function VideoGallery({ p, id, embedded = false, entries }: { p: P; id: s
     return propBool(p, "hideWhenEmpty", false) && !inDashboard() ? null : <section className={v2Shell(p, "wpv-vg")} dir="rtl" style={v2Style(p)}>{propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}{empty}</section>
   }
   const pick = (i: number) => { setCur(i); setPlaying(!mediaLocked(items[i])) }
+  const carouselBody = (
+    <Track p={p} label={propStr(p, "title", "ویدیوها")} spvD={propNum(p, "slidesDesktop", 3)} spvM={propNum(p, "slidesMobile", 1.2)}>
+      {items.map((m, i) => {
+        const lk = mediaLocked(m)
+        const open = openCard === i
+        const playCard = () => {
+          if (lk) { window.location.assign(safe(propStr(p, "premiumHref", "/subscribe"), "/subscribe")); return }
+          if (m.src || m.embed) { setOpenCard(open ? null : i); return }
+          if (m.link) window.open(m.link, "_blank", "noopener")
+        }
+        return (
+          <article key={`${m.id ?? i}`} className="wpv-vc">
+            <div className="wpv-vc-media">
+              {open && m.src ? <video src={m.src} poster={m.cover || undefined} controls autoPlay playsInline />
+                : open && m.embed ? <iframe src={m.embed} title={m.title} allowFullScreen loading="lazy" />
+                : (
+                  <button type="button" className="wpv-vc-cover" onClick={playCard} aria-label={`پخش ${m.title}`}>
+                    {m.cover ? <img {...optImg(m.cover, "(max-width: 760px) 100vw, 420px")} alt="" loading="lazy" decoding="async" /> : <PhotoSlot mode="arabesque" />}
+                    <span className="wpv-vc-shade" aria-hidden />
+                    {lk ? <PremiumVeil p={p} compact /> : <span className="wpv-vc-play"><Play size={22} aria-hidden /></span>}
+                    {m.duration ? <span className="wpv-vg-dur">{fa(m.duration)}</span> : null}
+                  </button>
+                )}
+            </div>
+            <div className="wpv-vc-body">
+              <b>{m.title}</b>
+              {m.reciter ? <small>{m.reciter}</small> : null}
+              {m.premium ? <PremiumBadge /> : null}
+            </div>
+          </article>
+        )
+      })}
+    </Track>
+  )
   const body = (
+    carousel ? carouselBody : (
     <div className={`wpv-vg-grid ${items.length > 1 ? "" : "wpv-vg-solo"}`}>
       <div className="wpv-vg-stage">
         <div className="wpv-vg-screen">
@@ -490,6 +528,7 @@ export function VideoGallery({ p, id, embedded = false, entries }: { p: P; id: s
         </ol>
       ) : null}
     </div>
+    )
   )
   if (embedded) return <div className="wpv-block wpv-vg" id={`wpv-vg-${id}`}>{body}</div>
   return (

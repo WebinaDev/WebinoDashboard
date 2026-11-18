@@ -61,8 +61,9 @@ export function WpzCarousel({ opts, label, className = "", head, children }: { o
         <div className="wpz-chead">
           <div className="wpz-chead-main">{head}</div>
           <div className="wpz-carrows">
-            <button type="button" className="wpz-carrow" aria-label="قبلی" onClick={() => step(-1)}><ChevronRight className="h-5 w-5" aria-hidden /></button>
-            <button type="button" className="wpz-carrow" aria-label="بعدی" onClick={() => step(1)}><ChevronLeft className="h-5 w-5" aria-hidden /></button>
+            {/* RTL: the previous control sits on the inline start (right) and points toward it. */}
+            <button type="button" className="wpz-carrow" aria-label="قبلی" onClick={() => step(-1)}><ChevronLeft className="h-5 w-5" aria-hidden /></button>
+            <button type="button" className="wpz-carrow" aria-label="بعدی" onClick={() => step(1)}><ChevronRight className="h-5 w-5" aria-hidden /></button>
           </div>
         </div>
       ) : null}
