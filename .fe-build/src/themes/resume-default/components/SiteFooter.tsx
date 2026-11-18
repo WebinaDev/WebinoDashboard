@@ -1,0 +1,23 @@
+import Link from "next/link"
+import { getServerTranslations } from "@/lib/server-translations"
+import type { SiteChromeProps } from "@/themes/shared/types"
+
+export async function SiteFooter({ siteName }: SiteChromeProps) {
+  const t = await getServerTranslations("site.footer")
+
+  return (
+    <footer className="border-t border-border bg-[var(--sf-footer-bg,var(--color-card))] text-foreground">
+      <div className="container mx-auto flex flex-col gap-4 px-4 py-8 text-sm md:flex-row md:items-center md:justify-between">
+        <p className="text-muted-foreground">© {new Date().getFullYear()} {siteName}</p>
+        <div className="flex flex-wrap gap-4">
+          <Link href="/about" className="hover:underline">
+            {t("about")}
+          </Link>
+          <Link href="/consultation" className="hover:underline">
+            {t("contact")}
+          </Link>
+        </div>
+      </div>
+    </footer>
+  )
+}

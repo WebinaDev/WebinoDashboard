@@ -6,11 +6,18 @@
 .sf-shell {
   --sf-content-gap: 1.25rem;
   --sf-header-gap: 0.75rem;
+  /* Page gutter + content cap for every skin. The classic skin overrides both with its
+     own denser values; the other skins had neither token, so the shared section-width
+     rules in parity.css resolved to `calc()` on an empty variable and every section
+     stretched edge to edge. */
+  --sfc-container: 1320px;
+  --sfc-gutter: 16px;
 }
 
 @media (min-width: 768px) {
   .sf-shell {
     --sf-content-gap: 1.75rem;
+    --sfc-gutter: 24px;
   }
 }
 

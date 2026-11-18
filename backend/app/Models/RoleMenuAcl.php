@@ -9,6 +9,7 @@ class RoleMenuAcl extends Model
     protected $table = 'role_menu_acl';
 
     protected $fillable = [
+        'tenant_id',
         'role',
         'menu_key',
         'allowed',

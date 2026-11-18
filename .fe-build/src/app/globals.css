@@ -1,0 +1,101 @@
+@import "tailwindcss";
+@source "../../node_modules/@webina/ui/dist/nav-menus";
+@import "tw-animate-css";
+
+@import "../themes.css";
+@import "../builder/storefront.css";
+@import "../themes/ecommerce-classic/classic-theme.css";
+@import "../themes/storefront-skins.css";
+@import "../themes/ecommerce-classic/parity.css";
+
+/* next/font registers a hashed family (e.g. "yekanBakh"); pin --font-yekan to the literal self-hosted face. html:root beats the next/font class. */
+html:root { --font-yekan: "Yekan Bakh"; }
+/* Self-hosted Yekan Bakh under its literal family name, so builder/tenant font stacks ("Yekan Bakh, ...") resolve without next/font hashing or any CDN. */
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Thin.woff2") format("woff2"); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Light.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-SemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-ExtraBold.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Black.woff2") format("woff2"); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-ExtraBlack.woff2") format("woff2"); font-weight: 950; font-style: normal; font-display: swap; }
+
+
+@custom-variant dark (&:is(.dark *));
+
+/* Fonts only — colors come from local themes.css @theme OKLCH (--color-*). */
+@theme inline {
+  --font-sans: var(--font-yekan), var(--wd-font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  /* Use CSS vars (not @apply *‑border) so theme tokens from imported
+     themes.css resolve under Docker/PostCSS without
+     "unknown utility class border-border". */
+  * {
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklch, var(--color-ring) 50%, transparent);
+  }
+
+  html {
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
+    --wd-font-body: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
+    --wd-font-heading: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
+    --wd-font-ui: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
+  }
+
+  html,
+  body {
+    @apply font-sans antialiased;
+    height: 100%;
+  }
+
+  html[lang="fa"],
+  html[lang="fa"] body {
+    font-family: var(--wd-font-body);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--wd-font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--wd-font-heading);
+  }
+
+  button,
+  input,
+  select,
+  textarea,
+  [data-slot="sidebar"],
+  [data-slot="sidebar-menu-button"] {
+    font-family: var(--wd-font-ui);
+  }
+
+  /* Radix dropdown/select locks scroll and adds padding — keep layout still. */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+    padding-inline: 0 !important;
+    margin-right: 0 !important;
+    margin-inline: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
+/* CLS: while the streamed page body has not been revealed yet (main holds only Suspense <template> markers),
+   reserve a full viewport so the already-painted footer does not jump down when content lands. */
+main.sf-main:not(:has(> :not(template))) { min-height: 100svh; }

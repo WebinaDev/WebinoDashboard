@@ -1,0 +1,436 @@
+/* Poem + poetry media editors — literary polish on dashboard theme tokens (dark/light). */
+@import url("https://fonts.bunny.net/css?family=amiri:400,700&display=swap");
+
+.poem-desk {
+  --poem-ink: var(--color-foreground);
+  --poem-ink-soft: var(--color-muted-foreground);
+  --poem-rule: var(--color-border);
+  --poem-accent: var(--color-primary);
+  --poem-surface: var(--color-card);
+  --poem-surface-fg: var(--color-card-foreground);
+  --poem-input: var(--color-background);
+  --poem-muted: var(--color-muted);
+  --poem-serif: "Amiri", "Noto Naskh Arabic", "Scheherazade New", "Traditional Arabic", Georgia,
+    "Times New Roman", serif;
+  --poem-ui: var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif;
+  position: relative;
+  color: var(--poem-ink);
+  font-family: var(--poem-ui);
+}
+
+.poem-desk__layout {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .poem-desk__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+    gap: 1.5rem;
+  }
+
+  .poem-desk__layout--media {
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 340px);
+  }
+}
+
+.poem-manuscript {
+  position: relative;
+  border: 1px solid var(--poem-rule);
+  border-radius: 14px;
+  background: var(--poem-surface);
+  color: var(--poem-surface-fg);
+  padding: clamp(1.25rem, 3vw, 2.25rem) clamp(1rem, 3.5vw, 2.75rem);
+  box-shadow: var(--shadow-soft);
+}
+
+.poem-manuscript__rule {
+  height: 1px;
+  margin: 1.25rem 0 1.5rem;
+  background: linear-gradient(
+    to left,
+    transparent,
+    var(--poem-rule) 12%,
+    var(--poem-rule) 88%,
+    transparent
+  );
+}
+
+.poem-title-input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--poem-ink);
+  font-family: var(--poem-serif);
+  font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  outline: none;
+  resize: none;
+  field-sizing: content;
+  min-height: 2.4em;
+}
+
+.poem-title-input::placeholder {
+  color: color-mix(in oklch, var(--poem-ink-soft) 85%, transparent);
+  font-weight: 400;
+}
+
+.poem-byline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.poem-byline input {
+  border: 0;
+  border-bottom: 1px dashed var(--poem-rule);
+  background: transparent;
+  color: var(--poem-ink-soft);
+  font-family: var(--poem-serif);
+  font-size: 0.95rem;
+  padding: 0.2rem 0.1rem;
+  min-width: 7rem;
+  outline: none;
+}
+
+.poem-byline input:focus {
+  border-bottom-color: var(--poem-accent);
+  color: var(--poem-ink);
+}
+
+.poem-stanza {
+  position: relative;
+  margin-block: 1.1rem;
+  padding: 0.85rem 0.15rem 0.35rem;
+  border-top: 1px solid transparent;
+  transition: background 160ms ease;
+}
+
+.poem-stanza:hover {
+  background: color-mix(in oklch, var(--poem-accent) 8%, transparent);
+  border-radius: 8px;
+}
+
+.poem-stanza__chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  opacity: 0.7;
+  transition: opacity 160ms ease;
+}
+
+.poem-stanza:hover .poem-stanza__chrome,
+.poem-stanza:focus-within .poem-stanza__chrome {
+  opacity: 1;
+}
+
+.poem-stanza__chrome select,
+.poem-stanza__chrome input[type="number"] {
+  height: 1.85rem;
+  border: 1px solid var(--poem-rule);
+  border-radius: 6px;
+  background: var(--poem-input);
+  font-size: 0.75rem;
+  padding-inline: 0.4rem;
+  color: var(--poem-ink);
+}
+
+.poem-stanza__lines {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--poem-ink);
+  font-family: var(--poem-serif);
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  line-height: 2.15;
+  letter-spacing: 0.015em;
+  text-align: center;
+  outline: none;
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+.poem-stanza__lines::placeholder {
+  color: color-mix(in oklch, var(--poem-ink-soft) 80%, transparent);
+}
+
+.poem-stanza--refrain .poem-stanza__lines {
+  font-style: italic;
+  color: color-mix(in oklch, var(--poem-ink) 88%, var(--poem-accent));
+}
+
+.poem-stanza--title .poem-stanza__lines {
+  font-weight: 700;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  line-height: 1.9;
+}
+
+.poem-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--poem-rule);
+}
+
+.poem-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.poem-side__panel {
+  border: 1px solid var(--poem-rule);
+  border-radius: 12px;
+  background: var(--poem-surface);
+  color: var(--poem-surface-fg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+
+.poem-side__trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--poem-ink);
+  background: color-mix(in oklch, var(--poem-muted) 55%, transparent);
+  border: 0;
+  cursor: pointer;
+}
+
+.poem-side__trigger svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  opacity: 0.55;
+  transition: transform 180ms ease;
+}
+
+.poem-side__panel[data-open="true"] .poem-side__trigger svg {
+  transform: rotate(180deg);
+}
+
+.poem-side__body {
+  padding: 0 0.9rem 0.95rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.poem-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.poem-field > span {
+  font-size: 0.75rem;
+  color: var(--poem-ink-soft);
+}
+
+.poem-field input,
+.poem-field select,
+.poem-field textarea {
+  width: 100%;
+  border: 1px solid var(--poem-rule);
+  border-radius: 8px;
+  background: var(--poem-input);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.875rem;
+  color: var(--poem-ink);
+  outline: none;
+}
+
+.poem-field input:focus,
+.poem-field select:focus,
+.poem-field textarea:focus {
+  border-color: color-mix(in oklch, var(--poem-accent) 55%, var(--poem-rule));
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--poem-accent) 16%, transparent);
+}
+
+.poem-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.poem-chip {
+  border: 1px solid var(--poem-rule);
+  border-radius: 8px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  background: transparent;
+  color: var(--poem-ink-soft);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.poem-chip[data-on="true"] {
+  border-color: color-mix(in oklch, var(--poem-accent) 45%, var(--poem-rule));
+  background: color-mix(in oklch, var(--poem-accent) 14%, var(--poem-surface));
+  color: var(--poem-ink);
+}
+
+.poem-check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--poem-ink-soft);
+}
+
+.poem-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.poem-toolbar__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--poem-rule);
+  border-radius: 8px;
+  padding: 0.15rem;
+  background: var(--poem-muted);
+}
+
+.poem-toolbar__status button {
+  border: 0;
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  background: transparent;
+  color: var(--poem-ink-soft);
+  cursor: pointer;
+}
+
+.poem-toolbar__status button[data-on="true"] {
+  background: var(--poem-surface);
+  color: var(--poem-ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+}
+
+.poem-list-shell {
+  border: 1px solid var(--poem-rule);
+  border-radius: 14px;
+  background: var(--poem-surface);
+  color: var(--poem-surface-fg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+
+.poem-list-shell table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.poem-list-shell th {
+  font-weight: 600;
+  color: var(--poem-ink-soft);
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--poem-rule);
+  text-align: start;
+  background: color-mix(in oklch, var(--poem-muted) 70%, transparent);
+}
+
+.poem-list-shell td {
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--poem-rule) 70%, transparent);
+  vertical-align: middle;
+  color: var(--poem-ink);
+}
+
+.poem-list-shell tr:last-child td {
+  border-bottom: 0;
+}
+
+.poem-list-shell tbody tr {
+  transition: background 140ms ease;
+}
+
+.poem-list-shell tbody tr:hover {
+  background: color-mix(in oklch, var(--poem-accent) 7%, transparent);
+}
+
+.poem-media-preview {
+  border: 1px dashed var(--poem-rule);
+  border-radius: 12px;
+  background: color-mix(in oklch, var(--poem-muted) 55%, var(--poem-surface));
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.poem-media-preview audio,
+.poem-media-preview video {
+  width: 100%;
+  max-height: 14rem;
+  border-radius: 8px;
+}
+
+.poem-media-thumb {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--poem-rule);
+  background: var(--poem-muted);
+}
+
+.poem-media-thumb--placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--poem-ink-soft);
+  font-size: 0.7rem;
+}
+
+.poem-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.poem-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid var(--poem-rule);
+  color: var(--poem-ink-soft);
+  background: transparent;
+}
+
+.poem-badge[data-tone="ok"] {
+  border-color: color-mix(in oklch, var(--poem-accent) 40%, var(--poem-rule));
+  background: color-mix(in oklch, var(--poem-accent) 12%, transparent);
+  color: var(--poem-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poem-stanza,
+  .poem-chip,
+  .poem-side__trigger svg,
+  .poem-list-shell tbody tr {
+    transition: none;
+  }
+}

@@ -1485,6 +1485,8 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
 
             Route::middleware(['module:rbac', 'can:rbac.manage'])->group(function () {
                 Route::get('/roles', [RoleController::class, 'index']);
+                Route::get('/roles/users', [RoleController::class, 'users']);
+                Route::put('/roles/users/{user}/capabilities', [RoleController::class, 'updateUserCapabilities'])->whereNumber('user');
                 Route::put('/roles', [RoleController::class, 'update']);
                 Route::put('/roles/capabilities', [RoleController::class, 'updateCapabilities']);
                 Route::get('/roles/menu-acl', [RoleController::class, 'menuAclIndex']);

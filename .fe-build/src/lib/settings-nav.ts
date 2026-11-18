@@ -1,0 +1,588 @@
+export type SettingsArea = "site" | "shop"
+
+export type SettingsUnitId =
+  | "site-general"
+  | "site-security"
+  | "site-ai"
+  | "site-analytics"
+  | "site-sms"
+  | "site-notifications"
+  | "site-pwa"
+  | "site-instagram"
+  | "site-dashboard"
+  | "site-themes"
+  | "site-menus"
+  | "site-theme-builder"
+  | "shop-general"
+  | "shop-accounting"
+  | "shop-bots"
+  | "shop-marketplace"
+  | "shop-pricing"
+  | "shop-shipping"
+  | "shop-storefront"
+  | "shop-payments"
+  | "shop-invoices"
+  | "shop-advanced"
+
+export type SettingsSectionDef = {
+  id: string
+  titleFa: string
+  titleEn: string
+  route: string
+}
+
+export type SettingsUnitDef = {
+  id: SettingsUnitId
+  area: SettingsArea
+  titleFa: string
+  titleEn: string
+  sections: SettingsSectionDef[]
+}
+
+/** Card strip order matches WordPress hub + user-specified module order. */
+export const SETTINGS_UNITS: SettingsUnitDef[] = [
+  {
+    id: "site-general",
+    area: "site",
+    titleFa: "عمومی سایت",
+    titleEn: "Site general",
+    sections: [
+      {
+        id: "general",
+        titleFa: "عمومی",
+        titleEn: "General",
+        route: "/dashboard/settings/site/general",
+      },
+      {
+        id: "privacy",
+        titleFa: "حریم خصوصی",
+        titleEn: "Privacy",
+        route: "/dashboard/settings/site/privacy",
+      },
+      {
+        id: "license",
+        titleFa: "لایسنس",
+        titleEn: "License",
+        route: "/dashboard/license",
+      },
+      {
+        id: "wordpress-import",
+        titleFa: "درون‌ریزی وردپرس",
+        titleEn: "WordPress import",
+        route: "/dashboard/import/wordpress",
+      },
+      {
+        id: "style",
+        titleFa: "استایل (Style)",
+        titleEn: "Style",
+        route: "/dashboard/settings/site/style",
+      },
+      {
+        id: "highlights",
+        titleFa: "هایلایت‌ها",
+        titleEn: "Highlights",
+        route: "/dashboard/settings/site/highlights",
+      },
+      {
+        id: "system-logs",
+        titleFa: "لاگ سیستم",
+        titleEn: "System logs",
+        route: "/dashboard/settings/site/system-logs",
+      },
+    ],
+  },
+  {
+    id: "site-security",
+    area: "site",
+    titleFa: "امنیت",
+    titleEn: "Security",
+    sections: [
+      {
+        id: "security",
+        titleFa: "امنیت",
+        titleEn: "Security",
+        route: "/dashboard/settings/site/security",
+      },
+    ],
+  },
+  {
+    id: "site-ai",
+    area: "site",
+    titleFa: "محتوای هوش مصنوعی",
+    titleEn: "AI content",
+    sections: [
+      {
+        id: "ai",
+        titleFa: "تنظیمات AI",
+        titleEn: "AI settings",
+        route: "/dashboard/settings/site/ai",
+      },
+    ],
+  },
+  {
+    id: "site-analytics",
+    area: "site",
+    titleFa: "آمار",
+    titleEn: "Analytics",
+    sections: [
+      {
+        id: "analytics",
+        titleFa: "آمار و ردیابی",
+        titleEn: "Analytics",
+        route: "/dashboard/settings/site/analytics",
+      },
+      {
+        id: "seo",
+        titleFa: "سئوی سایت",
+        titleEn: "Site SEO",
+        route: "/dashboard/settings/site/seo",
+      },
+      {
+        id: "performance",
+        titleFa: "عملکرد و بهینه‌سازی",
+        titleEn: "Performance & optimization",
+        route: "/dashboard/settings/site/performance",
+      },
+    ],
+  },
+  {
+    id: "site-sms",
+    area: "site",
+    titleFa: "پنل پیامکی",
+    titleEn: "SMS panel",
+    sections: [
+      {
+        id: "sms",
+        titleFa: "پیامک سایت",
+        titleEn: "Site SMS",
+        route: "/dashboard/settings/site/sms",
+      },
+    ],
+  },
+  {
+    id: "site-notifications",
+    area: "site",
+    titleFa: "اعلان‌ها",
+    titleEn: "Notifications",
+    sections: [
+      {
+        id: "notifications",
+        titleFa: "اعلان‌ها و ایمیل",
+        titleEn: "Notifications & email",
+        route: "/dashboard/settings/site/notifications",
+      },
+    ],
+  },
+  {
+    id: "site-pwa",
+    area: "site",
+    titleFa: "PWA",
+    titleEn: "PWA",
+    sections: [
+      {
+        id: "pwa",
+        titleFa: "اپ پیش‌رونده",
+        titleEn: "Progressive Web App",
+        route: "/dashboard/settings/site/pwa",
+      },
+    ],
+  },
+  {
+    id: "site-instagram",
+    area: "site",
+    titleFa: "اینستاگرام",
+    titleEn: "Instagram",
+    sections: [
+      {
+        id: "instagram",
+        titleFa: "فید زنده",
+        titleEn: "Live feed",
+        route: "/dashboard/settings/site/instagram",
+      },
+    ],
+  },
+  {
+    id: "site-dashboard",
+    area: "site",
+    titleFa: "داشبورد",
+    titleEn: "Dashboard",
+    sections: [
+      {
+        id: "dashboard",
+        titleFa: "به‌روزرسانی و ساخت",
+        titleEn: "Updates & build",
+        route: "/dashboard/settings/site/dashboard",
+      },
+    ],
+  },
+  {
+    id: "site-themes",
+    area: "site",
+    titleFa: "قالب‌ها",
+    titleEn: "Templates",
+    sections: [
+      {
+        id: "templates",
+        titleFa: "قالب‌ها و تم پیش‌فرض",
+        titleEn: "Templates & default theme",
+        route: "/dashboard/settings/site/templates",
+      },
+    ],
+  },
+  {
+    id: "site-menus",
+    area: "site",
+    titleFa: "منوها",
+    titleEn: "Menus",
+    sections: [
+      {
+        id: "menus",
+        titleFa: "منوهای ناوبری",
+        titleEn: "Navigation menus",
+        route: "/dashboard/settings/site/menus",
+      },
+    ],
+  },
+  {
+    id: "site-theme-builder",
+    area: "site",
+    titleFa: "پوسته‌ساز",
+    titleEn: "Theme builder",
+    sections: [
+      {
+        id: "theme",
+        titleFa: "پوسته‌ساز",
+        titleEn: "Theme builder",
+        route: "/dashboard/settings/site/theme",
+      },
+    ],
+  },
+  {
+    id: "shop-general",
+    area: "shop",
+    titleFa: "تنظیمات عمومی",
+    titleEn: "General",
+    sections: [
+      {
+        id: "general",
+        titleFa: "عمومی",
+        titleEn: "General",
+        route: "/dashboard/settings/shop/general",
+      },
+      {
+        id: "products",
+        titleFa: "محصولات / موجودی",
+        titleEn: "Products / Inventory",
+        route: "/dashboard/settings/shop/products",
+      },
+      {
+        id: "downloads",
+        titleFa: "دانلودها",
+        titleEn: "Downloads",
+        route: "/dashboard/settings/shop/downloads",
+      },
+      {
+        id: "reviews",
+        titleFa: "دیدگاه‌ها",
+        titleEn: "Reviews",
+        route: "/dashboard/settings/shop/reviews",
+      },
+      {
+        id: "stories",
+        titleFa: "هایلایت‌ها",
+        titleEn: "Highlights",
+        route: "/dashboard/settings/shop/stories",
+      },
+      {
+        id: "maps",
+        titleFa: "نقشه",
+        titleEn: "Map",
+        route: "/dashboard/settings/shop/maps",
+      },
+      {
+        id: "loyalty",
+        titleFa: "باشگاه مشتریان",
+        titleEn: "Loyalty",
+        route: "/dashboard/settings/shop/loyalty",
+      },
+      {
+        id: "archive",
+        titleFa: "بایگانی و فیلتر",
+        titleEn: "Archive & filters",
+        route: "/dashboard/settings/shop/archive",
+      },
+    ],
+  },
+  {
+    id: "shop-accounting",
+    area: "shop",
+    titleFa: "حسابداری",
+    titleEn: "Accounting",
+    sections: [
+      {
+        id: "tax",
+        titleFa: "مالیات",
+        titleEn: "Tax",
+        route: "/dashboard/settings/shop/accounting/tax",
+      },
+      {
+        id: "modian",
+        titleFa: "مودیان",
+        titleEn: "Tax authority",
+        route: "/dashboard/settings/shop/accounting/modian",
+      },
+    ],
+  },
+  {
+    id: "shop-bots",
+    area: "shop",
+    titleFa: "ربات‌ها",
+    titleEn: "Bots",
+    sections: [
+      {
+        id: "bale",
+        titleFa: "بله",
+        titleEn: "Bale",
+        route: "/dashboard/settings/shop/bots/bale",
+      },
+      {
+        id: "telegram",
+        titleFa: "تلگرام",
+        titleEn: "Telegram",
+        route: "/dashboard/settings/shop/bots/telegram",
+      },
+    ],
+  },
+  {
+    id: "shop-marketplace",
+    area: "shop",
+    titleFa: "مارکت‌ها",
+    titleEn: "Marketplaces",
+    sections: [
+      {
+        id: "marketplace",
+        titleFa: "همه مارکت‌ها",
+        titleEn: "All marketplaces",
+        route: "/dashboard/settings/shop/marketplace",
+      },
+      {
+        id: "marketplace-basalam",
+        titleFa: "باسلام",
+        titleEn: "Basalam",
+        route: "/dashboard/settings/shop/marketplace/basalam",
+      },
+      {
+        id: "marketplace-digikala",
+        titleFa: "دیجی‌کالا",
+        titleEn: "Digikala",
+        route: "/dashboard/settings/shop/marketplace/digikala",
+      },
+      {
+        id: "marketplace-snappshop",
+        titleFa: "اسنپ‌شاپ",
+        titleEn: "SnappShop",
+        route: "/dashboard/settings/shop/marketplace/snappshop",
+      },
+      {
+        id: "marketplace-tapsishop",
+        titleFa: "تپسی‌شاپ",
+        titleEn: "TapsiShop",
+        route: "/dashboard/settings/shop/marketplace/tapsishop",
+      },
+      {
+        id: "marketplace-technolife",
+        titleFa: "تکنولایف",
+        titleEn: "Technolife",
+        route: "/dashboard/settings/shop/marketplace/technolife",
+      },
+      {
+        id: "marketplace-emalls",
+        titleFa: "ایمالز",
+        titleEn: "Emalls",
+        route: "/dashboard/settings/shop/marketplace/emalls",
+      },
+      {
+        id: "marketplace-torob",
+        titleFa: "ترب",
+        titleEn: "Torob",
+        route: "/dashboard/settings/shop/marketplace/torob",
+      },
+      {
+        id: "marketplace-zarehbin",
+        titleFa: "ذره‌بین",
+        titleEn: "Zarehbin",
+        route: "/dashboard/settings/shop/marketplace/zarehbin",
+      },
+      {
+        id: "marketplace-snapppay-search",
+        titleFa: "جستجوی اسنپ‌پی",
+        titleEn: "SnappPay Search",
+        route: "/dashboard/settings/shop/marketplace/snapppay-search",
+      },
+    ],
+  },
+  {
+    id: "shop-pricing",
+    area: "shop",
+    titleFa: "قیمت‌گذاری",
+    titleEn: "Pricing",
+    sections: [
+      {
+        id: "pricing",
+        titleFa: "قیمت‌گذاری",
+        titleEn: "Pricing",
+        route: "/dashboard/settings/shop/pricing",
+      },
+      {
+        id: "checkout-flow",
+        titleFa: "مراحل سبد و پرداخت",
+        titleEn: "Checkout steps",
+        route: "/dashboard/settings/shop/checkout-flow",
+      },
+      {
+        id: "gift-cards",
+        titleFa: "کارت هدیه",
+        titleEn: "Gift cards",
+        route: "/dashboard/settings/shop/gift-cards",
+      },
+      {
+        id: "membership",
+        titleFa: "اشتراک ویژه",
+        titleEn: "Premium membership",
+        route: "/dashboard/settings/shop/membership",
+      },
+    ],
+  },
+  {
+    id: "shop-shipping",
+    area: "shop",
+    titleFa: "حمل و نقل",
+    titleEn: "Shipping",
+    sections: [
+      {
+        id: "shipping-hub",
+        titleFa: "مرکز حمل‌ونقل",
+        titleEn: "Shipping hub",
+        route: "/dashboard/settings/shop/shipping/hub",
+      },
+      {
+        id: "zones",
+        titleFa: "مناطق ارسال",
+        titleEn: "Zones",
+        route: "/dashboard/settings/shop/shipping/zones",
+      },
+      {
+        id: "tapin",
+        titleFa: "تاپین",
+        titleEn: "Tapin",
+        route: "/dashboard/settings/shop/shipping/tapin",
+      },
+    ],
+  },
+  {
+    id: "shop-storefront",
+    area: "shop",
+    titleFa: "ویترین و قالب",
+    titleEn: "Storefront & theme",
+    sections: [
+      {
+        id: "storefront-appearance",
+        titleFa: "تنظیمات قالب",
+        titleEn: "Classic theme settings",
+        route: "/dashboard/settings/shop/storefront-appearance",
+      },
+      {
+        id: "theme-optimizer",
+        titleFa: "بهینه‌ساز و عملکرد",
+        titleEn: "Performance & optimizer",
+        route: "/dashboard/settings/shop/theme-optimizer",
+      },
+      {
+        id: "product-notifications",
+        titleFa: "اعلان محصولات",
+        titleEn: "Product notifications",
+        route: "/dashboard/settings/shop/product-notifications",
+      },
+      {
+        id: "newsletter",
+        titleFa: "مشترکان خبرنامه",
+        titleEn: "Newsletter subscribers",
+        route: "/dashboard/settings/shop/newsletter",
+      },
+    ],
+  },
+  {
+    id: "shop-payments",
+    area: "shop",
+    titleFa: "درگاه پرداخت",
+    titleEn: "Payments",
+    sections: [
+      {
+        id: "payments",
+        titleFa: "مرکز درگاه‌ها",
+        titleEn: "Payments hub",
+        route: "/dashboard/settings/shop/payments",
+      },
+      {
+        id: "gateways",
+        titleFa: "درگاه‌های پرداخت",
+        titleEn: "Payment gateways",
+        route: "/dashboard/settings/shop/gateways",
+      },
+    ],
+  },
+  {
+    id: "shop-invoices",
+    area: "shop",
+    titleFa: "فاکتورها",
+    titleEn: "Invoices",
+    sections: [
+      {
+        id: "invoices",
+        titleFa: "فاکتورها",
+        titleEn: "Invoices",
+        route: "/dashboard/settings/shop/invoices",
+      },
+    ],
+  },
+  {
+    id: "shop-advanced",
+    area: "shop",
+    titleFa: "پیشرفته",
+    titleEn: "Advanced",
+    sections: [
+      {
+        id: "advanced",
+        titleFa: "پیشرفته",
+        titleEn: "Advanced",
+        route: "/dashboard/settings/shop/advanced",
+      },
+    ],
+  },
+]
+
+function matchesRoute(path: string, route: string): boolean {
+  return path === route || path.startsWith(route + "/")
+}
+
+export function findUnitByPath(pathname: string): SettingsUnitDef | undefined {
+  const path = pathname.replace(/\/$/, "")
+  return SETTINGS_UNITS.find((u) =>
+    u.sections.some((s) => matchesRoute(path, s.route))
+  )
+}
+
+export function activeSectionForPath(
+  unit: SettingsUnitDef,
+  pathname: string
+): SettingsSectionDef | undefined {
+  const path = pathname.replace(/\/$/, "")
+  const matches = unit.sections.filter((s) => matchesRoute(path, s.route))
+  return (
+    matches.sort((a, b) => b.route.length - a.route.length)[0] ?? unit.sections[0]
+  )
+}
+
+export function defaultSettingsPath(): string {
+  return SETTINGS_UNITS[0]?.sections[0]?.route ?? "/dashboard/settings/site/security"
+}

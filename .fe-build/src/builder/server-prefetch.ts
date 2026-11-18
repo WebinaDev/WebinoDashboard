@@ -1,0 +1,134 @@
+import { apiServer } from "@/lib/api-server"
+import { mediaPath, usesLiveMedia } from "./poetry-media"
+import { poemCarouselQuery } from "./poem-carousel"
+import { parseRows, propBool, propNum, propStr } from "./props"
+import { CAFE_CATEGORIES_KEY, CAFE_VENUE_KEY, cafeMenuCount, cafeMenuKey } from "./cafe-keys"
+import type { BuilderDocument, SectionNode, WidgetNode } from "./types"
+
+/**
+ * SSR data for data-driven widgets. Keys match the client hooks exactly
+ * (`/v1/public/poetry/<path>` for useJson/useLatestPoems, `catalog::<query>` for useCatalog),
+ * so the first render is complete in the HTML and the browser only fetches on filter/pagination.
+ */
+export type PrefetchMap = Record<string, unknown>
+
+function walk(sections: SectionNode[], out: WidgetNode[]) {
+  for (const s of sections) for (const c of s.columns) for (const w of c.widgets) {
+    out.push(w)
+    if (w.children) walk(w.children, out)
+  }
+}
+
+function planKeys(w: WidgetNode, keys: Set<string>, query?: Record<string, string>) {
+  const p = w.props ?? {}
+  const poetry = (path: string) => keys.add(`/v1/public/poetry/${path}`)
+  switch (w.type) {
+    case "poem-list": {
+      if (parseRows(p.items, ["title"]).some((r) => r.title)) return
+      const count = Math.min(24, Math.max(1, propNum(p, "count", 6)))
+      const qs = new URLSearchParams({ per_page: String(count), ...(propStr(p, "sort") === "popular" ? { sort: "popular" } : {}) })
+      poetry(`poems?${qs}`)
+      return
+    }
+    case "poem-carousel": {
+      if (parseRows(p.items, ["title", "lines"]).some((r) => r.title || r.lines)) return
+      poetry(`poems?${poemCarouselQuery(p)}`)
+      return
+    }
+    case "poem-archive": {
+      const perPage = Math.min(48, propNum(p, "perPage", 12))
+      if (propBool(p, "showSidebar", true)) poetry("terms")
+      poetry(`poems?${new URLSearchParams({ per_page: String(perPage), page: "1" })}`)
+      return
+    }
+    case "poem-search": {
+      const n = typeof p.perPage === "number" && p.perPage > 0 ? Math.min(50, p.perPage) : 12
+      if (typeof p.showFilters === "boolean" ? p.showFilters : true) poetry("terms")
+      poetry(`poems?${new URLSearchParams({ page: "1", per_page: String(n) })}`)
+      return
+    }
+    case "shop-showcase": {
+      if (propStr(p, "source", "catalog") === "manual" || parseRows(p.items, ["title"]).some((r) => r.title)) return
+      const count = Math.min(24, Math.max(1, propNum(p, "count", 6)))
+      const category = propStr(p, "category").trim()
+      keys.add(`catalog::per_page=${Math.max(count, 24)}&sort=newest${category ? `&category=${encodeURIComponent(category)}` : ""}`)
+      return
+    }
+    case "media-archive":
+      if (!usesLiveMedia(p.source)) return
+      if (propStr(p, "mediaLayout") === "split") { poetry(mediaPath(60, "audio")); poetry(mediaPath(60, "video")) } else poetry(mediaPath(60))
+      return
+    case "story-highlights": {
+      const src = propStr(p, "source", "auto")
+      if (src === "auto" || src === "highlights") poetry("highlights")
+      if (src === "stories") keys.add("/v1/public/product-stories")
+      if (propBool(p, "bookCard", true)) poetry("books")
+      return
+    }
+    case "audio-playlist":
+      if (usesLiveMedia(p.source)) poetry(mediaPath(Math.min(60, Math.max(1, propNum(p, "count", 30))), "audio"))
+      return
+    case "video-gallery":
+      if (usesLiveMedia(p.source)) poetry(mediaPath(Math.min(60, Math.max(1, propNum(p, "count", 24))), "video"))
+      return
+    case "occasion-grid": {
+      const slug = query?.occasion?.trim()
+      if (slug && propBool(p, "inlineDetail", true)) poetry(`occasions/${encodeURIComponent(slug)}`)
+      else poetry("occasions")
+      return
+    }
+    case "poetry-nav":
+      if (propBool(p, "occasionsMenu", false)) poetry("occasions")
+      return
+    case "poem-single": {
+      const slug = propStr(p, "slug") || query?.poem?.trim() || ""
+      if (slug) poetry(`poems/${encodeURIComponent(slug)}`)
+      return
+    }
+    case "media-cards":
+      if (usesLiveMedia(p.source)) poetry(mediaPath(Math.min(24, Math.max(1, propNum(p, "count", 8)))))
+      return
+    case "poetry-shop":
+      if (propStr(p, "source", "catalog") === "manual") return
+      keys.add("catalog::per_page=60&sort=newest")
+      return
+    case "poetry-product":
+      keys.add("catalog::per_page=60&sort=newest")
+      return
+    case "cafe-menu-board":
+      if (propStr(p, "source", "live") === "live") keys.add(cafeMenuKey(cafeMenuCount(propNum(p, "count", 12)), propStr(p, "category")))
+      return
+    case "cafe-category-strip":
+      if (propStr(p, "source", "live") === "live") keys.add(CAFE_CATEGORIES_KEY)
+      return
+    case "cafe-hours":
+    case "cafe-gallery":
+      if (propStr(p, "source", "live") === "live") keys.add(CAFE_VENUE_KEY)
+      return
+    case "cafe-story":
+      if (propStr(p, "source", "venue") === "venue") keys.add(CAFE_VENUE_KEY)
+      return
+  }
+}
+
+export async function prefetchForDocuments(docs: (BuilderDocument | null | undefined)[], query?: Record<string, string>): Promise<PrefetchMap | undefined> {
+  const widgets: WidgetNode[] = []
+  for (const d of docs) if (d) walk(d.sections ?? [], widgets)
+  const keys = new Set<string>()
+  for (const w of widgets) planKeys(w, keys, query)
+  if (!keys.size) return undefined
+  const out: PrefetchMap = {}
+  await Promise.all([...keys].map(async (key) => {
+    if (key.startsWith("catalog::")) {
+      const res = await apiServer<unknown>(`/api/v1/public/catalog?${key.slice(9)}`, { revalidate: 60, tags: ["catalog"] })
+      if (res) out[key] = res
+      return
+    }
+    const res = await apiServer<{ data?: unknown; meta?: unknown }>(`/api${key}`, { revalidate: 60, tags: [key.startsWith("/v1/public/cafe") ? "cafe" : "poetry"] })
+    if (res && "data" in res) {
+      out[key] = res.data ?? null
+      if (res.meta) out[`${key}::meta`] = res.meta
+    }
+  }))
+  return Object.keys(out).length ? out : undefined
+}

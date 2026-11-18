@@ -1,0 +1,27 @@
+import { chromium } from "playwright"
+const b=await chromium.launch({executablePath:"/usr/bin/google-chrome",args:["--no-sandbox","--disable-dev-shm-usage"]})
+const ctx=await b.newContext({viewport:{width:1440,height:1100}})
+const p=await ctx.newPage()
+const bad=[]
+p.on("response",r=>{ if(r.status()>=400) bad.push(`${r.status()} ${r.request().method()} ${r.url().slice(0,100)}`) })
+// add to cart first
+await p.goto("https://marsbgc.ir/product/catan",{waitUntil:"networkidle",timeout:45000})
+await p.waitForTimeout(1200)
+await p.locator("button",{hasText:"افزودن به سبد"}).first().click()
+await p.waitForTimeout(1500)
+// login
+await p.goto("https://marsbgc.ir/login",{waitUntil:"networkidle",timeout:45000})
+await p.waitForTimeout(1200)
+const inputs = await p.evaluate(()=>[...document.querySelectorAll("input")].map(i=>({name:i.name,type:i.type,ph:i.placeholder})))
+console.log("LOGIN_INPUTS:", JSON.stringify(inputs))
+await p.fill('input[type="email"], input[name="email"], input[name="identifier"]', "qa-checkout@marsbgc.ir")
+await p.fill('input[type="password"]', "QaTest!2026")
+await p.locator('button[type="submit"], form button').first().click()
+await p.waitForTimeout(4000)
+console.log("AFTER_LOGIN:", p.url())
+await p.goto("https://marsbgc.ir/checkout",{waitUntil:"networkidle",timeout:45000})
+await p.waitForTimeout(2500)
+const co = await p.evaluate(()=>({ url:location.pathname, txt:document.body.innerText.replace(/\s+/g," ").slice(0,700) }))
+console.log("CHECKOUT:", JSON.stringify(co))
+console.log("BAD:", JSON.stringify([...new Set(bad)].slice(0,8)))
+await b.close()

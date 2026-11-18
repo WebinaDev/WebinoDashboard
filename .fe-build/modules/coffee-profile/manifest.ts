@@ -1,0 +1,20 @@
+import type { ModuleManifest } from "@/kernel/types"
+
+export const coffeeProfileManifest: ModuleManifest = {
+  slug: "coffee-profile",
+  nameFa: "پروفایل قهوه",
+  nameEn: "Coffee Profile",
+  siteTypes: ["coffee"],
+  submodules: ["profile"],
+  adminNav: { section: "commerce", order: 24 },
+  adminRoutes: [
+    {
+      path: "coffee/settings",
+      submodule: "profile",
+      labelKey: "nav.coffee_profile",
+      section: "commerce",
+      order: 24,
+    },
+  ],
+  siteRoutes: [],
+}

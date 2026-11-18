@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Shipping">
+  <rect width="96" height="96" rx="20" fill="#334155"/>
+  <path d="M22 56h34l12-14h16v28H22z" fill="#fff"/>
+  <circle cx="34" cy="72" r="7" fill="#0F172A"/>
+  <circle cx="70" cy="72" r="7" fill="#0F172A"/>
+  <rect x="28" y="30" width="24" height="20" rx="3" fill="#94A3B8"/>
+</svg>

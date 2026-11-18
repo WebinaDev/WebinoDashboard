@@ -42,7 +42,7 @@ class BootstrapController extends Controller
                     'phone' => $user->phone,
                     'role' => $user->role,
                     'ui_preferences' => $user->ui_preferences,
-                    'capabilities' => $this->capabilitiesFor($user->role),
+                    'capabilities' => app(\App\Support\CapabilityChecker::class)->capabilitiesForUser($user),
                 ],
                 'tenant' => $tenant ? [
                     'id' => $tenant->id,
@@ -67,21 +67,27 @@ class BootstrapController extends Controller
                     'register_enabled' => (bool) ($sms['otp_register_enabled'] ?? false),
                     'length' => (int) ($sms['otp_length'] ?? 5),
                 ],
-                'menu_acl' => $this->menuAclFor($user->role),
+                'menu_acl' => $this->menuAclFor($user->role, (int) $user->tenant_id),
             ],
         ]);
     }
 
     /** @return list<array{menu_key: string, allowed: bool}> */
-    private function menuAclFor(?string $role): array
+    private function menuAclFor(?string $role, int $tenantId): array
     {
         $role = (string) $role;
         if ($role === '' || ! Schema::hasTable('role_menu_acl')) {
             return [];
         }
 
-        return DB::table('role_menu_acl')
-            ->where('role', $role)
+        $configured = Schema::hasTable('tenant_role_access_settings')
+            ? DB::table('tenant_role_access_settings')->where('tenant_id', $tenantId)->where('role', $role)->value('menu_acl_configured')
+            : false;
+        $query = DB::table('role_menu_acl')->where('role', $role);
+        if ($configured) $query->where('tenant_id', $tenantId);
+        elseif (Schema::hasColumn('role_menu_acl', 'tenant_id')) $query->whereNull('tenant_id');
+
+        return $query
             ->orderBy('menu_key')
             ->get(['menu_key', 'allowed'])
             ->map(fn ($row) => [
@@ -93,24 +99,4 @@ class BootstrapController extends Controller
     }
 
     /** @return list<string> */
-    private function capabilitiesFor(?string $role): array
-    {
-        $role = (string) $role;
-        if ($role === 'admin') {
-            return ['*'];
-        }
-
-        if (! Schema::hasTable('role_capabilities')) {
-            return in_array($role, ['staff', 'shop_manager', 'seller', 'accountant', 'author', 'editor'], true)
-                ? ['*']
-                : [];
-        }
-
-        return DB::table('role_capabilities')
-            ->where('role', $role)
-            ->pluck('capability')
-            ->map(fn ($c) => (string) $c)
-            ->values()
-            ->all();
-    }
 }

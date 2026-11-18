@@ -1,0 +1,201 @@
+"use client"
+
+/* Shared header/footer extras (settings in ../registry-chrome-extras.ts), used by site-header,
+ * poetry-nav, site-footer, poetry-footer and poetry-site-footer. Everything is opt-in. */
+
+import { ShoppingBag, User } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import type { CSSProperties } from "react"
+import type React from "react"
+
+import { hasZibalSeal, sanitizeSealHtml, splitSeals } from "./seal-html"
+import { hasZibalRoot, ZibalTrustScript } from "./zibal-trust-script"
+import { cartCount, subscribeCart } from "../cart"
+import { parseRows, propBool, propNum, propStr } from "../props"
+import { useServerCart } from "../storefront/actions"
+import { quietApi } from "../storefront/session"
+import { hideOnClass } from "@webina/ui/builder"
+import "@webina/ui/styles/hide-on.css"
+import "./chrome-extras.css"
+import "./cafe-light-chrome.css"
+
+type P = Record<string, unknown>
+const CSS_SAFE = /^[#a-z0-9(),.\s%-]+$/i
+const href = (v: string, fb = "#") => (/^(https?:|mailto:|tel:|\/|#)/i.test((v || "").trim()) ? v.trim() : fb)
+const fa = (n: number) => String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
+
+/* ───────── nav: cart badge + login / account ───────── */
+/** Per-breakpoint visibility for header cart/account: "" (always), "mobile" (≤767px), "tablet" (≤1024px). */
+const hideCls = hideOnClass
+export function navExtrasOn(p: P) { return propBool(p, "showCart", false) || propBool(p, "showAccount", false) }
+
+export function NavExtras({ p }: { p: P }) {
+  if (!navExtrasOn(p)) return null
+  return <NavExtrasInner p={p} />
+}
+
+function NavExtrasInner({ p }: { p: P }) {
+  const local = useSyncExternalStore(subscribeCart, cartCount, () => 0)
+  const { cart, auth } = useServerCart()
+  const server = (cart?.items ?? []).reduce((s, l) => s + l.quantity, 0)
+  const count = auth === "auth" ? server : local
+  const links = parseRows(p.accountLinks, ["label", "href"]).filter((l) => l.label)
+  const logout = async () => {
+    await quietApi("/api/v1/auth/logout", { method: "POST" })
+    window.location.href = "/"
+  }
+  const menu = links.length ? links : [{ label: "حساب کاربری", href: "/account" }]
+  return (
+    <div className="wbx-nav-extras">
+      {propBool(p, "showCart", false) ? (
+        <Link href={href(propStr(p, "cartHref", "/cart"), "/cart")} className={`wbx-cart ${hideCls(propStr(p, "cartHideOn"))}`} aria-label={`سبد خرید، ${fa(count)} کالا`}>
+          <ShoppingBag size={20} aria-hidden />
+          {count > 0 ? <span className="wbx-badge">{fa(count > 99 ? 99 : count)}</span> : null}
+        </Link>
+      ) : null}
+      {propBool(p, "showAccount", false) ? (auth === "auth" ? (
+        <details className={`wbx-account ${hideCls(propStr(p, "accountHideOn"))}`}>
+          <summary aria-label="حساب کاربری"><User size={20} aria-hidden /></summary>
+          <div className="wbx-account-menu" role="menu">{menu.map((l, i) => <Link key={i} role="menuitem" href={href(l.href, "/account")}>{l.label}</Link>)}
+            {propBool(p, "showLogout", true) ? <button type="button" role="menuitem" className="wbx-logout" onClick={() => void logout()}>{propStr(p, "logoutLabel", "خروج")}</button> : null}</div>
+        </details>
+      ) : (
+        <Link href={href(propStr(p, "loginHref", "/login"), "/login")} className={`wbx-login ${hideCls(propStr(p, "accountHideOn"))}`}>{propStr(p, "loginLabel", "ورود")}</Link>
+      )) : null}
+    </div>
+  )
+}
+
+/* ───────── footer: background pattern, overlay, full bleed ───────── */
+export function footerExtraClass(p: P): string {
+  const c: string[] = ["wbx-foot"]
+  if (propStr(p, "footerPattern")) c.push("wbx-has-pattern")
+  if (propStr(p, "footerOverlay")) c.push("wbx-has-overlay")
+  if (propBool(p, "footerFullBleed", false)) c.push("wbx-bleed")
+  return c.join(" ")
+}
+
+export function footerExtraStyle(p: P): CSSProperties {
+  const v: Record<string, string> = {}
+  const img = propStr(p, "footerPattern").replace(/["\\()]/g, "")
+  if (img && /^(https?:\/\/|\/)/.test(img)) {
+    v["--wbx-pat"] = `url("${img}")`
+    const rep = propStr(p, "footerPatternRepeat", "repeat")
+    v["--wbx-pat-rep"] = ["repeat", "repeat-x", "repeat-y", "no-repeat"].includes(rep) ? rep : "repeat"
+    const size = propStr(p, "footerPatternSize", "240px")
+    v["--wbx-pat-size"] = /^(auto|cover|contain|\d{1,4}px)$/.test(size) ? size : "240px"
+    const pos = propStr(p, "footerPatternPosition", "center")
+    v["--wbx-pat-pos"] = ["center", "top", "bottom", "right", "left"].includes(pos) ? pos : "center"
+    v["--wbx-pat-op"] = String(Math.max(0, Math.min(100, propNum(p, "footerPatternOpacity", 12))) / 100)
+  }
+  const ov = propStr(p, "footerOverlay")
+  if (ov && CSS_SAFE.test(ov)) {
+    v["--wbx-ov"] = ov
+    v["--wbx-ov-op"] = String(Math.max(0, Math.min(100, propNum(p, "footerOverlayOpacity", 60))) / 100)
+  }
+  const cb = propStr(p, "copyrightBg")
+  if (cb && CSS_SAFE.test(cb)) v["--wbx-copy-bg"] = cb
+  return v as CSSProperties
+}
+
+/* ───────── footer: extra columns (occasions, contact, newsletter) ───────── */
+export function FooterExtraColumns({ p }: { p: P }) {
+  const occ = parseRows(p.footerOccasions, ["label", "href"]).filter((l) => l.label)
+  const phone = propStr(p, "footerPhone"), email = propStr(p, "footerEmail"), addr = propStr(p, "footerAddress")
+  const news = propBool(p, "footerNewsletter", false)
+  const about = propStr(p, "footerAbout").trim()
+  if (!about && !occ.length && !phone && !email && !addr && !news) return null
+  return (
+    <div className="wbx-foot-cols" dir="rtl">
+      {about ? <div className="wbx-about"><b className="wbx-col-title">{propStr(p, "footerAboutTitle", "درباره ما")}</b>{about.split(/\n\s*\n|\n/).map((t, i) => <p key={i}>{t}</p>)}{propStr(p, "footerAboutLinkLabel") ? <Link href={href(propStr(p, "footerAboutLinkHref", "/about"), "/about")} className="wbx-about-more">{propStr(p, "footerAboutLinkLabel")}</Link> : null}</div> : null}
+      {occ.length ? <div><b className="wbx-col-title">{propStr(p, "footerOccasionsTitle", "مناسبت‌ها")}</b><ul>{occ.map((l, i) => <li key={i}><Link href={href(l.href, "/")}>{l.label}</Link></li>)}</ul></div> : null}
+      {phone || email || addr ? <div><b className="wbx-col-title">{propStr(p, "footerContactTitle", "تماس")}</b><ul>
+        {phone ? <li><a href={`tel:${phone.replace(/[^\d+]/g, "")}`} dir="ltr">{phone}</a></li> : null}
+        {email ? <li><a href={`mailto:${email}`} dir="ltr">{email}</a></li> : null}
+        {addr ? <li>{addr}</li> : null}
+      </ul></div> : null}
+      {news ? <FooterNewsletter p={p} /> : null}
+    </div>
+  )
+}
+
+function FooterNewsletter({ p }: { p: P }) {
+  const [v, setV] = useState("")
+  const [st, setSt] = useState<"idle" | "sending" | "done" | "error">("idle")
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const x = v.trim()
+    if (!x) return
+    setSt("sending")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/v1/public/newsletter/subscribe`, {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(x.includes("@") ? { email: x, source: "footer" } : { phone: x, source: "footer" }),
+    }).then((r) => setSt(r.ok ? "done" : "error")).catch(() => setSt("error"))
+  }
+  const ph = propStr(p, "footerNewsletterPlaceholder", "ایمیل یا شماره موبایل")
+  return (
+    <div className="wbx-news">
+      <b className="wbx-col-title">{propStr(p, "footerNewsletterTitle", "خبرنامه")}</b>
+      {propStr(p, "footerNewsletterText") ? <p>{propStr(p, "footerNewsletterText")}</p> : null}
+      <form onSubmit={submit} noValidate>
+        <input dir="ltr" value={v} onChange={(e) => setV(e.target.value)} placeholder={ph} aria-label={ph} />
+        <button type="submit" disabled={st === "sending"}>{propStr(p, "footerNewsletterButton", "عضویت")}</button>
+      </form>
+      <small aria-live="polite">{st === "done" ? "عضویت شما ثبت شد." : st === "error" ? "ثبت انجام نشد؛ دوباره تلاش کنید." : ""}</small>
+    </div>
+  )
+}
+
+/* ───────── footer: trust seal slider (admin embed codes, sanitized on the server) ───────── */
+export { sanitizeSealHtml, splitSeals } from "./seal-html"
+
+export function TrustSealSlider({ p }: { p: P }) {
+  const codes = splitSeals(p.trustSeals).map(sanitizeSealHtml).filter(Boolean)
+  const track = useRef<HTMLDivElement | null>(null)
+  const [alive, setAlive] = useState(true)
+  useEffect(() => {
+    const el = track.current
+    if (!el) return
+    const onErr = (e: Event) => {
+      const node = e.target as HTMLElement | null
+      if (!node || node.tagName !== "IMG") return
+      // Zibal's script fills #zibal; a temporary/broken img must not remove the slot.
+      if (node.closest("#zibal") || /zibal\.ir/i.test(node.getAttribute("src") || "")) return
+      node.closest(".wbx-seal")?.remove()
+      if (!el.querySelector(".wbx-seal")) setAlive(false)
+    }
+    el.addEventListener("error", onErr, true)
+    return () => el.removeEventListener("error", onErr, true)
+  }, [codes.join("\0")])
+  useEffect(() => {
+    const el = track.current
+    if (!el || codes.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const t = window.setInterval(() => {
+      if (document.hidden || el.scrollWidth <= el.clientWidth + 4) return
+      const step = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 120
+      const end = Math.abs(el.scrollLeft) + el.clientWidth >= el.scrollWidth - 4
+      el.scrollTo({ left: end ? 0 : el.scrollLeft - step - 12, behavior: "smooth" })
+    }, 3500)
+    return () => window.clearInterval(t)
+  }, [codes.length])
+  if (!codes.length || !alive) return null
+  return (
+    <div className="wbx-seals" dir="rtl">
+      {propStr(p, "trustSealsTitle") ? <b className="wbx-col-title">{propStr(p, "trustSealsTitle")}</b> : null}
+      <div className="wbx-seal-track" ref={track} role="list" aria-label={propStr(p, "trustSealsTitle", "نمادهای اعتماد")}>
+        {codes.map((h, i) => {
+          const zibal = hasZibalSeal(h)
+          const inner = zibal && !hasZibalRoot(h) ? `<div id="zibal">${h}</div>` : h
+          return <div key={i} role="listitem" className="wbx-seal" dangerouslySetInnerHTML={{ __html: inner }} />
+        })}
+      </div>
+      <ZibalTrustScript html={codes.join("\n")} />
+    </div>
+  )
+}
+
+/** Extras block placed inside any footer just above its copyright bar. */
+export function FooterExtras({ p }: { p: P }) {
+  return <><FooterExtraColumns p={p} /><TrustSealSlider p={p} /></>
+}

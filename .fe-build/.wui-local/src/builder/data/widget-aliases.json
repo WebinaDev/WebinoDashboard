@@ -1,0 +1,8 @@
+{
+  "$comment": "Legacy builder widget type -> current type. Shared by WebinoERP and WebinoDashboard. Never delete widget types; only add aliases.",
+  "version": 1,
+  "aliases": {
+    "checkout-stub": "checkout",
+    "account-stub": "account"
+  }
+}

@@ -1,0 +1,2076 @@
+"use client"
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslations } from "next-intl"
+import { Pencil, Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+
+import { useConfirm } from "@/components/ConfirmDialog"
+import { MediaPickerField } from "@/components/content/MediaPickerField"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { MapPinPicker } from "@/components/MapPinPickerLazy"
+import { useDraftSettings } from "@/views/settings/use-tenant-settings"
+import type { ResolvedAdminRoute } from "@/kernel/types"
+import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
+import {
+  CafeAdminShell,
+  CafeAdvancedSection,
+  CafeEmptyState,
+  CafeSection,
+  CafeTabBar,
+  cafeSelectClass,
+} from "./cafe-admin-ui"
+import { ModifierEditor } from "./modifier-editor"
+import type {
+  CafeEngagementSettings,
+  CafeMenuListItem,
+  CafeMenuSettings,
+  MenuBanner as BaseMenuBanner,
+} from "@/themes/cafe-starter/types"
+
+type MenuBanner = BaseMenuBanner & { menu_id?: number | null }
+
+type Tab = "settings" | "items" | "menus" | "banners" | "engagement"
+
+type Category = {
+  id: number
+  name: string
+  slug: string
+  description?: string | null
+  icon_url?: string | null
+  image_url?: string | null
+  sort_order?: number
+  vat_applicable?: boolean
+}
+
+type Product = {
+  id: number
+  name: string
+  slug?: string | null
+  description?: string | null
+  image_url?: string | null
+  cover_image_url?: string | null
+  video_url?: string | null
+  sku?: string | null
+  category_id?: number | null
+  menu_id?: number | null
+  price_minor: number
+  currency: string
+  stock?: number
+  is_available?: boolean
+  is_hidden?: boolean
+  is_new?: boolean
+  is_featured?: boolean
+  is_sold_out?: boolean
+  vat_applicable?: boolean | null
+  calories?: number | null
+  spice_level?: number
+  sort_order?: number
+  discount_percent?: number
+  category?: Category | null
+  has_service?: boolean
+  service_label_fa?: string | null
+  service_label_en?: string | null
+  daily_dish?: string[] | null
+  gallery_views?: { id: number; type: "model3d" | "spin360"; url: string; poster_url?: string | null; frames?: number }[]
+}
+
+type MenuRecord = CafeMenuListItem & {
+  is_active?: boolean
+  sort_order?: number
+  schedule?: unknown
+}
+
+const menuDefaults: CafeMenuSettings = {
+  default_view: "grid",
+  show_search: true,
+  show_category_bar: true,
+  show_new_badge: true,
+  header_cta_label_fa: "",
+  header_cta_label_en: "",
+  header_cta_url: "",
+  placeholder_logo_text_fa: "",
+  placeholder_logo_text_en: "",
+  accent_color: "#c46b3a",
+  seasonal_theme: "none",
+  font_preset: "sans",
+  teaser_video_url: "",
+  packaging_fee_minor: 0,
+  packaging_fee_mode: "per_order",
+  packaging_dine_in: false,
+  packaging_pickup: true,
+  packaging_delivery: true,
+  service_fee_percent: 0,
+  service_fee_dine_in_only: true,
+  delivery_fee_minor: 0,
+  free_delivery_threshold_minor: 0,
+  prep_minutes: 20,
+  max_orders_per_day: null,
+  block_orders_when_closed: true,
+  fulfillment_dine_in: true,
+  fulfillment_pickup: true,
+  fulfillment_delivery: false,
+  delivery_zones: [],
+  guest_otp_required: false,
+  guest_otp_template: "",
+  kitchen_service_enabled: false,
+  kitchen_service_fee_minor: 0,
+  allergen_note_fa: "",
+  allergen_note_en: "",
+}
+
+const engagementDefaults: CafeEngagementSettings = {
+  phone_gate_enabled: false,
+  likes_enabled: true,
+  feedback_enabled: true,
+  share_whatsapp_enabled: true,
+  share_telegram_enabled: true,
+}
+
+// Week starts on Saturday in Iran, so the «غذای روز» picker does too.
+const WEEKDAYS = [
+  { key: "saturday", label: "day_sat" },
+  { key: "sunday", label: "day_sun" },
+  { key: "monday", label: "day_mon" },
+  { key: "tuesday", label: "day_tue" },
+  { key: "wednesday", label: "day_wed" },
+  { key: "thursday", label: "day_thu" },
+  { key: "friday", label: "day_fri" },
+] as const
+
+const emptyProduct = {
+  name: "",
+  description: "",
+  image_url: "",
+  cover_image_url: "",
+  video_url: "",
+  sku: "",
+  category_id: "" as string | number,
+  menu_id: "" as string | number,
+  price_minor: 0,
+  stock: 0,
+  is_available: true,
+  is_hidden: false,
+  is_new: false,
+  is_featured: false,
+  is_sold_out: false,
+  vat_mode: "inherit" as "inherit" | "yes" | "no",
+  calories: "" as string | number,
+  spice_level: 0,
+  sort_order: 0,
+  discount_percent: 0,
+  has_service: false,
+  service_label_fa: "",
+  service_label_en: "",
+  daily_dish: [] as string[],
+  views: [] as { type: "model3d" | "spin360"; url: string; poster_url: string; frames: number }[],
+}
+
+export default function MenuPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
+  const t = useTranslations("cafe_admin.menu")
+  const tCatalog = useTranslations("catalog")
+  const tCommon = useTranslations("common")
+  const queryClient = useQueryClient()
+
+  const [tab, setTab] = useState<Tab>("settings")
+
+  const { data: menuSettings, isLoading: loadingSettings } = useQuery({
+    queryKey: ["cafe-menu-settings"],
+    queryFn: () => api<CafeMenuSettings>("/api/v1/cafe/menu-settings"),
+  })
+
+  const [settingsForm, setSettingsForm] = useState<CafeMenuSettings | null>(null)
+  const settingsValues = settingsForm ?? menuSettings ?? menuDefaults
+
+  const saveSettings = useMutation({
+    mutationFn: () =>
+      api<CafeMenuSettings>("/api/v1/cafe/menu-settings", {
+        method: "PATCH",
+        json: settingsValues,
+      }),
+    onSuccess: async () => {
+      toast.success(t("saved"))
+      await queryClient.invalidateQueries({ queryKey: ["cafe-menu-settings"] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const { data: categories = [], isLoading: loadingCategories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api<Category[]>("/api/v1/categories"),
+    enabled: tab === "items",
+  })
+
+  const { data: products = [], isLoading: loadingProducts } = useQuery({
+    queryKey: ["products"],
+    queryFn: () => api<Product[]>("/api/v1/products"),
+    enabled: tab === "items",
+  })
+
+  const { data: menus = [], isLoading: loadingMenus } = useQuery({
+    queryKey: ["menus"],
+    queryFn: () => api<MenuRecord[]>("/api/v1/menus"),
+    enabled: tab === "items" || tab === "menus" || tab === "banners",
+  })
+
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [productForm, setProductForm] = useState(emptyProduct)
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    description: "",
+    icon_url: "",
+    image_url: "",
+    display_mode: "grid",
+    sort_order: 0,
+  })
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [bulkSoldOut, setBulkSoldOut] = useState(false)
+  const [bulkAvailable, setBulkAvailable] = useState(true)
+  const [bulkMenuId, setBulkMenuId] = useState("")
+  const [bulkPercent, setBulkPercent] = useState("")
+
+  const toggleCategoryVat = useMutation({
+    mutationFn: (v: { id: number; vat_applicable: boolean }) =>
+      api<Category>(`/api/v1/categories/${v.id}`, { method: "PATCH", json: { vat_applicable: v.vat_applicable } }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["categories"] })
+    },
+  })
+
+  const saveCategory = useMutation({
+    mutationFn: () =>
+      api<Category>("/api/v1/categories", {
+        method: "POST",
+        json: {
+          name: categoryForm.name,
+          description: categoryForm.description || null,
+          icon_url: categoryForm.icon_url || null,
+          image_url: categoryForm.image_url || null,
+          display_mode: categoryForm.display_mode,
+          sort_order: categoryForm.sort_order,
+        },
+      }),
+    onSuccess: async () => {
+      setCategoryForm({ name: "", description: "", icon_url: "", image_url: "", display_mode: "grid", sort_order: 0 })
+      await queryClient.invalidateQueries({ queryKey: ["categories"] })
+      toast.success(tCatalog("category_saved"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const saveProduct = useMutation({
+    mutationFn: () => {
+      const payload = {
+        name: productForm.name,
+        description: productForm.description || null,
+        image_url: productForm.image_url || null,
+        cover_image_url: productForm.cover_image_url || null,
+        video_url: productForm.video_url || null,
+        sku: productForm.sku || null,
+        category_id: productForm.category_id ? Number(productForm.category_id) : null,
+        menu_id: productForm.menu_id ? Number(productForm.menu_id) : null,
+        price_minor: Number(productForm.price_minor),
+        stock: Number(productForm.stock),
+        is_available: productForm.is_available,
+        is_hidden: productForm.is_hidden,
+        is_new: productForm.is_new,
+        is_featured: productForm.is_featured,
+        is_sold_out: productForm.is_sold_out,
+        vat_applicable: productForm.vat_mode === "inherit" ? null : productForm.vat_mode === "yes",
+        calories: productForm.calories !== "" ? Number(productForm.calories) : null,
+        spice_level: Number(productForm.spice_level),
+        sort_order: Number(productForm.sort_order),
+        discount_percent: Number(productForm.discount_percent),
+        has_service: productForm.has_service,
+        service_label_fa: productForm.service_label_fa || null,
+        service_label_en: productForm.service_label_en || null,
+        daily_dish: productForm.daily_dish,
+      }
+      const saved = editingProduct
+        ? api<Product>(`/api/v1/products/${editingProduct.id}`, { method: "PATCH", json: payload })
+        : api<Product>("/api/v1/products", { method: "POST", json: payload })
+
+      // 3D recordings live in their own table: save them right after the product exists.
+      return saved.then(async (product) => {
+        const views = productForm.views.filter((view) => view.url.trim() !== "")
+        await api(`/api/v1/products/${product.id}/gallery-views`, {
+          method: "PUT",
+          json: {
+            views: views.map((view, index) => ({
+              type: view.type,
+              url: view.url.trim(),
+              poster_url: view.poster_url || null,
+              frames: view.type === "spin360" ? Number(view.frames) || 0 : 0,
+              sort_order: index,
+            })),
+          },
+        })
+        return product
+      })
+    },
+    onSuccess: async () => {
+      setEditingProduct(null)
+      setProductForm(emptyProduct)
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      toast.success(tCatalog("product_saved"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const deleteProduct = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/products/${id}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    },
+  })
+
+  const deleteCategory = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/categories/${id}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["categories"] })
+    },
+  })
+
+  const bulkUpdate = useMutation({
+    mutationFn: () =>
+      api<Product[]>("/api/v1/products/bulk", {
+        method: "PATCH",
+        json: {
+          product_ids: selectedIds,
+          is_sold_out: bulkSoldOut,
+          is_available: bulkAvailable,
+          ...(bulkMenuId ? { menu_id: Number(bulkMenuId) } : {}),
+        },
+      }),
+    onSuccess: async () => {
+      setSelectedIds([])
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      toast.success(t("bulk_applied"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const [menuForm, setMenuForm] = useState({
+    name: "",
+    slug: "",
+    menu_type: "cafe",
+    locale: "",
+    description: "",
+    is_active: true,
+    sort_order: 0,
+  })
+  const [editingMenu, setEditingMenu] = useState<MenuRecord | null>(null)
+
+  const saveMenu = useMutation({
+    mutationFn: () => {
+      const payload = {
+        name: menuForm.name,
+        slug: menuForm.slug || undefined,
+        menu_type: menuForm.menu_type || "cafe",
+        locale: menuForm.locale || null,
+        description: menuForm.description || null,
+        is_active: menuForm.is_active,
+        sort_order: Number(menuForm.sort_order),
+      }
+      if (editingMenu) {
+        return api<MenuRecord>(`/api/v1/menus/${editingMenu.id}`, { method: "PATCH", json: payload })
+      }
+      return api<MenuRecord>("/api/v1/menus", { method: "POST", json: payload })
+    },
+    onSuccess: async () => {
+      setEditingMenu(null)
+      setMenuForm({ name: "", slug: "", menu_type: "cafe", locale: "", description: "", is_active: true, sort_order: 0 })
+      await queryClient.invalidateQueries({ queryKey: ["menus"] })
+      toast.success(t("menu_saved"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const deleteMenu = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/menus/${id}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["menus"] })
+    },
+  })
+
+  const { data: banners = [], isLoading: loadingBanners } = useQuery({
+    queryKey: ["menu-banners"],
+    queryFn: () => api<MenuBanner[]>("/api/v1/menu-banners"),
+    enabled: tab === "banners",
+  })
+
+  const [bannerForm, setBannerForm] = useState({
+    title_fa: "",
+    title_en: "",
+    image_url: "",
+    link_url: "",
+    menu_id: "" as string | number,
+    sort_order: 0,
+    is_active: true,
+  })
+  const [editingBanner, setEditingBanner] = useState<MenuBanner | null>(null)
+
+  const saveBanner = useMutation({
+    mutationFn: () => {
+      const payload = {
+        title_fa: bannerForm.title_fa || null,
+        title_en: bannerForm.title_en || null,
+        image_url: bannerForm.image_url,
+        link_url: bannerForm.link_url || null,
+        menu_id: bannerForm.menu_id ? Number(bannerForm.menu_id) : null,
+        sort_order: Number(bannerForm.sort_order),
+        is_active: bannerForm.is_active,
+      }
+      if (editingBanner) {
+        return api<MenuBanner>(`/api/v1/menu-banners/${editingBanner.id}`, { method: "PATCH", json: payload })
+      }
+      return api<MenuBanner>("/api/v1/menu-banners", { method: "POST", json: payload })
+    },
+    onSuccess: async () => {
+      setEditingBanner(null)
+      setBannerForm({
+        title_fa: "",
+        title_en: "",
+        image_url: "",
+        link_url: "",
+        menu_id: "",
+        sort_order: 0,
+        is_active: true,
+      })
+      await queryClient.invalidateQueries({ queryKey: ["menu-banners"] })
+      toast.success(t("banner_saved"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const deleteBanner = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/menu-banners/${id}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["menu-banners"] })
+    },
+  })
+
+  const { data: engagementData, isLoading: loadingEngagement } = useQuery({
+    queryKey: ["cafe-engagement-settings"],
+    queryFn: () => api<CafeEngagementSettings>("/api/v1/cafe/engagement-settings"),
+    enabled: tab === "engagement",
+  })
+
+  const [engagementForm, setEngagementForm] = useState<CafeEngagementSettings | null>(null)
+  const engagementValues = engagementForm ?? engagementData ?? engagementDefaults
+
+  const saveEngagement = useMutation({
+    mutationFn: () =>
+      api<CafeEngagementSettings>("/api/v1/cafe/engagement-settings", {
+        method: "PATCH",
+        json: engagementValues,
+      }),
+    onSuccess: async () => {
+      toast.success(t("engagement_saved"))
+      await queryClient.invalidateQueries({ queryKey: ["cafe-engagement-settings"] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  function startEditProduct(product: Product) {
+    setEditingProduct(product)
+    setProductForm({
+      name: product.name,
+      description: product.description ?? "",
+      image_url: product.image_url ?? "",
+      cover_image_url: product.cover_image_url ?? "",
+      video_url: product.video_url ?? "",
+      sku: product.sku ?? "",
+      category_id: product.category_id ?? "",
+      menu_id: product.menu_id ?? "",
+      price_minor: product.price_minor,
+      stock: product.stock ?? 0,
+      is_available: product.is_available ?? true,
+      is_hidden: product.is_hidden ?? false,
+      is_new: product.is_new ?? false,
+      is_featured: product.is_featured ?? false,
+      is_sold_out: product.is_sold_out ?? false,
+      vat_mode: (product.vat_applicable == null ? "inherit" : product.vat_applicable ? "yes" : "no") as "inherit" | "yes" | "no",
+      calories: product.calories ?? "",
+      spice_level: product.spice_level ?? 0,
+      sort_order: product.sort_order ?? 0,
+      discount_percent: product.discount_percent ?? 0,
+      has_service: product.has_service ?? false,
+      service_label_fa: product.service_label_fa ?? "",
+      service_label_en: product.service_label_en ?? "",
+      daily_dish: product.daily_dish ?? [],
+      views: (product.gallery_views ?? []).map((view) => ({
+        type: view.type,
+        url: view.url,
+        poster_url: view.poster_url ?? "",
+        frames: view.frames ?? 24,
+      })),
+    })
+  }
+
+  function startEditMenu(menu: MenuRecord) {
+    setEditingMenu(menu)
+    setMenuForm({
+      description: menu.description ?? "",
+      name: menu.name,
+      slug: menu.slug,
+      menu_type: menu.menu_type ?? "cafe",
+      locale: menu.locale ?? "",
+      is_active: menu.is_active ?? true,
+      sort_order: menu.sort_order ?? 0,
+    })
+  }
+
+  function startEditBanner(banner: MenuBanner) {
+    setEditingBanner(banner)
+    setBannerForm({
+      title_fa: banner.title_fa ?? "",
+      title_en: banner.title_en ?? "",
+      image_url: banner.image_url,
+      link_url: banner.link_url ?? "",
+      menu_id: banner.menu_id ?? "",
+      sort_order: banner.sort_order ?? 0,
+      is_active: banner.is_active ?? true,
+    })
+  }
+
+  function toggleProduct(id: number) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const tabs: Tab[] = ["settings", "items", "menus", "banners", "engagement"]
+  const isLoading =
+    (tab === "settings" && loadingSettings) ||
+    (tab === "items" && (loadingCategories || loadingProducts)) ||
+    (tab === "menus" && loadingMenus) ||
+    (tab === "banners" && loadingBanners) ||
+    (tab === "engagement" && loadingEngagement)
+
+  return (
+    <CafeAdminShell
+      title={t("title")}
+      description={t("description")}
+      actions={
+        tab === "settings" ? (
+          <Button onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending || isLoading}>
+            {tCommon("save")}
+          </Button>
+        ) : tab === "engagement" ? (
+          <Button onClick={() => saveEngagement.mutate()} disabled={saveEngagement.isPending || isLoading}>
+            {tCommon("save")}
+          </Button>
+        ) : undefined
+      }
+    >
+      <CafeTabBar
+        tabs={tabs}
+        active={tab}
+        onChange={(key) => setTab(key as Tab)}
+        labelFor={(key) => t(`tab_${key}`)}
+      />
+
+      {isLoading ? <p className="text-muted-foreground text-sm">{tCommon("loading")}</p> : null}
+
+      {tab === "settings" ? (
+        <>
+          <CafeSection title={t("display_heading")} description={t("display_hint")}>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>{t("default_view")}</Label>
+                <select
+                  className={cafeSelectClass}
+                  value={settingsValues.default_view}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      default_view: e.target.value as "grid" | "list" | "cover",
+                    })
+                  }
+                >
+                  <option value="grid">{t("view_grid")}</option>
+                  <option value="list">{t("view_list")}</option>
+                  <option value="cover">{t("view_cover")}</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.show_search}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, show_search: Boolean(v) })}
+                />
+                {t("show_search")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.show_category_bar}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, show_category_bar: Boolean(v) })}
+                />
+                {t("show_category_bar")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.show_new_badge}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, show_new_badge: Boolean(v) })}
+                />
+                {t("show_new_badge")}
+              </label>
+            </div>
+          </CafeSection>
+
+          <CafeSection title={t("cta_heading")} description={t("cta_hint")}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{t("cta_label_fa")}</Label>
+                <Input
+                  value={settingsValues.header_cta_label_fa ?? ""}
+                  onChange={(e) => setSettingsForm({ ...settingsValues, header_cta_label_fa: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("cta_label_en")}</Label>
+                <Input
+                  value={settingsValues.header_cta_label_en ?? ""}
+                  onChange={(e) => setSettingsForm({ ...settingsValues, header_cta_label_en: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>{t("cta_url")}</Label>
+                <Input
+                  value={settingsValues.header_cta_url ?? ""}
+                  onChange={(e) => setSettingsForm({ ...settingsValues, header_cta_url: e.target.value })}
+                />
+              </div>
+            </div>
+          </CafeSection>
+
+          <CafeAdvancedSection
+            title={t("brand_heading")}
+            description={t("brand_hint")}
+            showLabel={t("show_advanced")}
+            hideLabel={t("hide_advanced")}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{t("accent_color")}</Label>
+                <Input
+                  value={settingsValues.accent_color ?? ""}
+                  onChange={(e) => setSettingsForm({ ...settingsValues, accent_color: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("seasonal_theme")}</Label>
+                <select
+                  className={cafeSelectClass}
+                  value={settingsValues.seasonal_theme ?? "none"}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      seasonal_theme: e.target.value as CafeMenuSettings["seasonal_theme"],
+                    })
+                  }
+                >
+                  <option value="none">{t("season_none")}</option>
+                  <option value="nowruz">{t("season_nowruz")}</option>
+                  <option value="yalda">{t("season_yalda")}</option>
+                  <option value="ramadan">{t("season_ramadan")}</option>
+                  <option value="summer">{t("season_summer")}</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("font_preset")}</Label>
+                <select
+                  className={cafeSelectClass}
+                  value={settingsValues.font_preset ?? "sans"}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      font_preset: e.target.value as CafeMenuSettings["font_preset"],
+                    })
+                  }
+                >
+                  <option value="sans">{t("font_sans")}</option>
+                  <option value="serif">{t("font_serif")}</option>
+                  <option value="display">{t("font_display")}</option>
+                </select>
+              </div>
+              <MediaPickerField
+                label={t("teaser_video_url")}
+                accept="video"
+                imageUrl={settingsValues.teaser_video_url ?? ""}
+                onPick={(item) => setSettingsForm({ ...settingsValues, teaser_video_url: item.url })}
+                onClear={() => setSettingsForm({ ...settingsValues, teaser_video_url: "" })}
+              />
+            </div>
+          </CafeAdvancedSection>
+
+          <CafeAdvancedSection
+            title={t("fees_heading")}
+            description={t("fees_hint")}
+            showLabel={t("show_advanced")}
+            hideLabel={t("hide_advanced")}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{t("packaging_fee_minor")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={settingsValues.packaging_fee_minor ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      packaging_fee_minor: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("packaging_fee_mode")}</Label>
+                <select
+                  className={cafeSelectClass}
+                  value={settingsValues.packaging_fee_mode ?? "per_order"}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      packaging_fee_mode: e.target.value === "per_item" ? "per_item" : "per_order",
+                    })
+                  }
+                >
+                  <option value="per_order">{t("packaging_per_order")}</option>
+                  <option value="per_item">{t("packaging_per_item")}</option>
+                </select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t("packaging_applies")}</Label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={Boolean(settingsValues.packaging_dine_in)}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_dine_in: Boolean(v) })}
+                    />
+                    {t("fulfillment_dine_in")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={settingsValues.packaging_pickup !== false}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_pickup: Boolean(v) })}
+                    />
+                    {t("fulfillment_pickup")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={settingsValues.packaging_delivery !== false}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, packaging_delivery: Boolean(v) })}
+                    />
+                    {t("fulfillment_delivery")}
+                  </label>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("service_fee_percent")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.5"
+                  value={settingsValues.service_fee_percent ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      service_fee_percent: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                    })
+                  }
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.service_fee_dine_in_only !== false}
+                  onCheckedChange={(v) =>
+                    setSettingsForm({ ...settingsValues, service_fee_dine_in_only: Boolean(v) })
+                  }
+                />
+                {t("service_fee_dine_in_only")}
+              </label>
+              <div className="space-y-1.5">
+                <Label>{t("delivery_fee_minor")}</Label>
+                <Input
+                  type="number"
+                  value={settingsValues.delivery_fee_minor ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({ ...settingsValues, delivery_fee_minor: Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("free_delivery_threshold_minor")}</Label>
+                <Input
+                  type="number"
+                  value={settingsValues.free_delivery_threshold_minor ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      free_delivery_threshold_minor: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("prep_minutes")}</Label>
+                <Input
+                  type="number"
+                  value={settingsValues.prep_minutes ?? 20}
+                  onChange={(e) => setSettingsForm({ ...settingsValues, prep_minutes: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("max_orders_per_day")}</Label>
+                <Input
+                  type="number"
+                  value={settingsValues.max_orders_per_day ?? ""}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      max_orders_per_day: e.target.value === "" ? null : Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                <Checkbox
+                  checked={settingsValues.block_orders_when_closed !== false}
+                  onCheckedChange={(v) =>
+                    setSettingsForm({ ...settingsValues, block_orders_when_closed: Boolean(v) })
+                  }
+                />
+                {t("block_orders_when_closed")}
+              </label>
+            </div>
+          </CafeAdvancedSection>
+
+          <CafeAdvancedSection
+            title={t("fulfillment_ops_heading")}
+            description={t("fulfillment_ops_hint")}
+            showLabel={t("show_advanced")}
+            hideLabel={t("hide_advanced")}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.fulfillment_dine_in !== false}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_dine_in: Boolean(v) })}
+                />
+                {t("fulfillment_dine_in")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.fulfillment_pickup !== false}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_pickup: Boolean(v) })}
+                />
+                {t("fulfillment_pickup")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={Boolean(settingsValues.fulfillment_delivery)}
+                  onCheckedChange={(v) => setSettingsForm({ ...settingsValues, fulfillment_delivery: Boolean(v) })}
+                />
+                {t("fulfillment_delivery")}
+              </label>
+              <div className="space-y-2 rounded-lg border p-3 sm:col-span-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{t("zones_heading")}</p>
+                    <p className="text-muted-foreground text-xs">{t("zones_hint")}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setSettingsForm({
+                        ...settingsValues,
+                        delivery_zones: [
+                          ...(settingsValues.delivery_zones ?? []),
+                          { min_km: 0, max_km: 3, fee_minor: 0, label_fa: "", label_en: "" },
+                        ],
+                      })
+                    }
+                  >
+                    <Plus className="size-4" /> {t("zones_add")}
+                  </Button>
+                </div>
+                {(settingsValues.delivery_zones ?? []).length === 0 ? (
+                  <p className="text-muted-foreground text-xs">{t("zones_empty")}</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {(settingsValues.delivery_zones ?? []).map((zone, index) => (
+                      <li
+                        key={index}
+                        className="grid grid-cols-2 gap-2 rounded-md border p-2 sm:grid-cols-[repeat(3,minmax(0,1fr))_1fr_auto]"
+                      >
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t("zone_min_km")}</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.5"
+                            value={zone.min_km}
+                            onChange={(e) =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).map((row, i) =>
+                                  i === index ? { ...row, min_km: Number(e.target.value) } : row,
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t("zone_max_km")}</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.5"
+                            value={zone.max_km}
+                            onChange={(e) =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).map((row, i) =>
+                                  i === index ? { ...row, max_km: Number(e.target.value) } : row,
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t("zone_fee_minor")}</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={zone.fee_minor}
+                            onChange={(e) =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).map((row, i) =>
+                                  i === index ? { ...row, fee_minor: Number(e.target.value) } : row,
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t("zone_label_fa")}</Label>
+                          <Input
+                            value={zone.label_fa ?? ""}
+                            onChange={(e) =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).map((row, i) =>
+                                  i === index ? { ...row, label_fa: e.target.value } : row,
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            aria-label={tCommon("delete")}
+                            onClick={() =>
+                              setSettingsForm({
+                                ...settingsValues,
+                                delivery_zones: (settingsValues.delivery_zones ?? []).filter((_, i) => i !== index),
+                              })
+                            }
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3 sm:col-span-2">
+                <p className="text-sm font-medium">{t("otp_heading")}</p>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={Boolean(settingsValues.guest_otp_required)}
+                    onCheckedChange={(v) => setSettingsForm({ ...settingsValues, guest_otp_required: Boolean(v) })}
+                  />
+                  {t("guest_otp_required")}
+                </label>
+                <div className="space-y-1.5">
+                  <Label>{t("guest_otp_template")}</Label>
+                  <Input
+                    dir="ltr"
+                    value={settingsValues.guest_otp_template ?? ""}
+                    onChange={(e) => setSettingsForm({ ...settingsValues, guest_otp_template: e.target.value })}
+                  />
+                  <p className="text-muted-foreground text-xs">{t("guest_otp_template_hint")}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3 sm:col-span-2">
+                <p className="text-sm font-medium">{t("service_heading")}</p>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={Boolean(settingsValues.kitchen_service_enabled)}
+                    onCheckedChange={(v) => setSettingsForm({ ...settingsValues, kitchen_service_enabled: Boolean(v) })}
+                  />
+                  {t("kitchen_service_enabled")}
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>{t("kitchen_service_fee_minor")}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={settingsValues.kitchen_service_fee_minor ?? 0}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsValues, kitchen_service_fee_minor: Math.max(0, Number(e.target.value) || 0) })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t("allergen_note_fa")}</Label>
+                    <Input
+                      value={settingsValues.allergen_note_fa ?? ""}
+                      onChange={(e) => setSettingsForm({ ...settingsValues, allergen_note_fa: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("allergen_note_en")}</Label>
+                  <Input
+                    dir="ltr"
+                    value={settingsValues.allergen_note_en ?? ""}
+                    onChange={(e) => setSettingsForm({ ...settingsValues, allergen_note_en: e.target.value })}
+                  />
+                </div>
+                <p className="text-muted-foreground text-xs">{t("service_hint")}</p>
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t("payment_heading")}</Label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={settingsValues.pay_online_enabled !== false}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, pay_online_enabled: Boolean(v) })}
+                    />
+                    {t("pay_online_enabled")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={settingsValues.pay_cash_enabled !== false}
+                      onCheckedChange={(v) => setSettingsForm({ ...settingsValues, pay_cash_enabled: Boolean(v) })}
+                    />
+                    {t("pay_cash_enabled")}
+                  </label>
+                </div>
+                <p className="text-muted-foreground text-xs">{t("payment_hint")}</p>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.dine_in_require_table !== false}
+                  onCheckedChange={(v) =>
+                    setSettingsForm({ ...settingsValues, dine_in_require_table: Boolean(v) })
+                  }
+                />
+                {t("dine_in_require_table")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={settingsValues.delivery_require_pin !== false}
+                  onCheckedChange={(v) =>
+                    setSettingsForm({ ...settingsValues, delivery_require_pin: Boolean(v) })
+                  }
+                />
+                {t("delivery_require_pin")}
+              </label>
+              <div className="space-y-1.5">
+                <Label>{t("pickup_slot_minutes")}</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  max={120}
+                  value={settingsValues.pickup_slot_minutes ?? 15}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      pickup_slot_minutes: Math.min(120, Math.max(5, Number(e.target.value) || 15)),
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </CafeAdvancedSection>
+
+          <CafeAdvancedSection
+            title={t("location_heading")}
+            description={t("location_hint")}
+            showLabel={t("show_advanced")}
+            hideLabel={t("hide_advanced")}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{t("delivery_radius_km")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={settingsValues.delivery_radius_km ?? 0}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      delivery_radius_km: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t("cafe_location")}</Label>
+                <MapPinPicker
+                  value={
+                    settingsValues.cafe_lat != null && settingsValues.cafe_lng != null
+                      ? { lat: Number(settingsValues.cafe_lat), lng: Number(settingsValues.cafe_lng) }
+                      : null
+                  }
+                  onChange={(p) =>
+                    setSettingsForm({
+                      ...settingsValues,
+                      cafe_lat: Number(p.lat.toFixed(6)),
+                      cafe_lng: Number(p.lng.toFixed(6)),
+                    })
+                  }
+                  radiusKm={settingsValues.delivery_radius_km ?? 0}
+                  center={
+                    settingsValues.cafe_lat != null && settingsValues.cafe_lng != null
+                      ? { lat: Number(settingsValues.cafe_lat), lng: Number(settingsValues.cafe_lng) }
+                      : null
+                  }
+                  labels={{ hint: t("cafe_location_hint"), locate: t("my_location"), failed: t("map_failed") }}
+                />
+              </div>
+            </div>
+          </CafeAdvancedSection>
+
+          <CafeVatCard />
+        </>
+      ) : null}
+
+      {tab === "items" ? (
+        <>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <CafeSection title={tCatalog("categories_heading")}>
+              <div className="grid gap-3">
+                <div className="space-y-1.5">
+                  <Label>{tCatalog("name")}</Label>
+                  <Input
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{tCatalog("description")}</Label>
+                  <Textarea
+                    value={categoryForm.description}
+                    onChange={(e) => setCategoryForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("default_view")}</Label>
+                  <select
+                    className={cafeSelectClass}
+                    value={categoryForm.display_mode}
+                    onChange={(e) => setCategoryForm((f) => ({ ...f, display_mode: e.target.value }))}
+                  >
+                    <option value="grid">{t("view_grid")}</option>
+                    <option value="list">{t("view_list")}</option>
+                    <option value="cover">{t("view_cover")}</option>
+                  </select>
+                </div>
+                <MediaPickerField
+                  label={tCatalog("image_url")}
+                  imageUrl={categoryForm.image_url}
+                  onPick={(item) => setCategoryForm((f) => ({ ...f, image_url: item.url }))}
+                  onClear={() => setCategoryForm((f) => ({ ...f, image_url: "" }))}
+                />
+                <MediaPickerField
+                  label={tCatalog("icon_url")}
+                  imageUrl={categoryForm.icon_url}
+                  onPick={(item) => setCategoryForm((f) => ({ ...f, icon_url: item.url }))}
+                  onClear={() => setCategoryForm((f) => ({ ...f, icon_url: "" }))}
+                />
+                <Button onClick={() => saveCategory.mutate()} disabled={!categoryForm.name || saveCategory.isPending}>
+                  <Plus className="me-2 size-4" />
+                  {tCatalog("add_category")}
+                </Button>
+              </div>
+              {categories.length === 0 ? (
+                <CafeEmptyState message={t("categories_empty")} />
+              ) : (
+                <ul className="space-y-2">
+                  {categories.map((cat) => (
+                    <li key={cat.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+                      <div>
+                        <p className="font-medium">{cat.name}</p>
+                        <p className="text-muted-foreground text-xs">{cat.slug}</p>
+                      </div>
+                      <label className="ms-auto me-2 flex items-center gap-2 text-xs">
+                        <Checkbox
+                          checked={cat.vat_applicable !== false}
+                          onCheckedChange={(v) =>
+                            toggleCategoryVat.mutate({ id: cat.id, vat_applicable: Boolean(v) })
+                          }
+                        />
+                        {t("vat_subject")}
+                      </label>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        title={t("delete_action")}
+                        aria-label={t("delete_action")}
+                        onClick={() => confirm({ onConfirm: () => deleteCategory.mutateAsync(cat.id) })}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CafeSection>
+
+            <CafeSection title={editingProduct ? tCatalog("edit_product") : tCatalog("new_product")}>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>{tCatalog("name")}</Label>
+                  <Input
+                    value={productForm.name}
+                    onChange={(e) => setProductForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{tCatalog("description")}</Label>
+                  <Textarea
+                    value={productForm.description}
+                    onChange={(e) => setProductForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>{tCatalog("price")}</Label>
+                    <Input
+                      type="number"
+                      value={productForm.price_minor}
+                      onChange={(e) => setProductForm((f) => ({ ...f, price_minor: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t("calories")}</Label>
+                    <Input
+                      type="number"
+                      value={productForm.calories}
+                      onChange={(e) => setProductForm((f) => ({ ...f, calories: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <MediaPickerField
+                    label={t("cover_image_url")}
+                    imageUrl={productForm.cover_image_url}
+                    onPick={(item) => setProductForm((f) => ({ ...f, cover_image_url: item.url }))}
+                    onClear={() => setProductForm((f) => ({ ...f, cover_image_url: "" }))}
+                  />
+                  <MediaPickerField
+                    label={t("video_url")}
+                    accept="video"
+                    imageUrl={productForm.video_url}
+                    onPick={(item) => setProductForm((f) => ({ ...f, video_url: item.url }))}
+                    onClear={() => setProductForm((f) => ({ ...f, video_url: "" }))}
+                  />
+                </div>
+                <MediaPickerField
+                  label={tCatalog("image_url")}
+                  imageUrl={productForm.image_url}
+                  onPick={(item) => setProductForm((f) => ({ ...f, image_url: item.url }))}
+                  onClear={() => setProductForm((f) => ({ ...f, image_url: "" }))}
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>{tCatalog("category")}</Label>
+                    <select
+                      className={cafeSelectClass}
+                      value={productForm.category_id}
+                      onChange={(e) => setProductForm((f) => ({ ...f, category_id: e.target.value }))}
+                    >
+                      <option value="">{tCatalog("no_category")}</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t("menu_id")}</Label>
+                    <select
+                      className={cafeSelectClass}
+                      value={productForm.menu_id}
+                      onChange={(e) => setProductForm((f) => ({ ...f, menu_id: e.target.value }))}
+                    >
+                      <option value="">{t("no_menu")}</option>
+                      {menus.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>{t("spice_level")}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={5}
+                      value={productForm.spice_level}
+                      onChange={(e) => setProductForm((f) => ({ ...f, spice_level: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t("service_label_fa")}</Label>
+                    <Input
+                      value={productForm.service_label_fa}
+                      placeholder={t("service_label_placeholder")}
+                      onChange={(e) => setProductForm((f) => ({ ...f, service_label_fa: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={productForm.has_service}
+                      onCheckedChange={(v) => setProductForm((f) => ({ ...f, has_service: Boolean(v) }))}
+                    />
+                    {t("has_service")}
+                  </label>
+                </div>
+                {productForm.has_service ? (
+                  <div className="space-y-1.5">
+                    <Label>{t("service_label_en")}</Label>
+                    <Input
+                      dir="ltr"
+                      value={productForm.service_label_en}
+                      onChange={(e) => setProductForm((f) => ({ ...f, service_label_en: e.target.value }))}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="space-y-2 rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{t("daily_dish_heading")}</p>
+                    <p className="text-muted-foreground text-xs">{t("daily_dish_hint")}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {WEEKDAYS.map((day) => {
+                      const active = productForm.daily_dish.includes(day.key)
+                      return (
+                        <button
+                          key={day.key}
+                          type="button"
+                          aria-pressed={active}
+                          className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                            active ? "border-primary bg-primary/10 font-semibold" : "hover:bg-muted"
+                          }`}
+                          onClick={() =>
+                            setProductForm((f) => ({
+                              ...f,
+                              daily_dish: active
+                                ? f.daily_dish.filter((row) => row !== day.key)
+                                : [...f.daily_dish, day.key],
+                            }))
+                          }
+                        >
+                          {t(day.label)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded-lg border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">{t("views_heading")}</p>
+                      <p className="text-muted-foreground text-xs">{t("views_hint")}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setProductForm((f) => ({
+                          ...f,
+                          views: [...f.views, { type: "model3d", url: "", poster_url: "", frames: 24 }],
+                        }))
+                      }
+                    >
+                      <Plus className="size-4" /> {t("views_add")}
+                    </Button>
+                  </div>
+                  {productForm.views.length === 0 ? (
+                    <p className="text-muted-foreground text-xs">{t("views_empty")}</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {productForm.views.map((view, index) => (
+                        <li key={index} className="grid gap-2 rounded-md border p-2 sm:grid-cols-[130px_1fr_auto]">
+                          <select
+                            className={cafeSelectClass}
+                            value={view.type}
+                            onChange={(e) =>
+                              setProductForm((f) => ({
+                                ...f,
+                                views: f.views.map((row, i) =>
+                                  i === index ? { ...row, type: e.target.value as "model3d" | "spin360" } : row,
+                                ),
+                              }))
+                            }
+                          >
+                            <option value="model3d">{t("view_type_model")}</option>
+                            <option value="spin360">{t("view_type_spin")}</option>
+                          </select>
+                          <Input
+                            dir="ltr"
+                            value={view.url}
+                            placeholder={view.type === "spin360" ? "/spin/latte" : "https://cdn.example.com/latte.glb"}
+                            onChange={(e) =>
+                              setProductForm((f) => ({
+                                ...f,
+                                views: f.views.map((row, i) => (i === index ? { ...row, url: e.target.value } : row)),
+                              }))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            aria-label={tCommon("delete")}
+                            onClick={() => setProductForm((f) => ({ ...f, views: f.views.filter((_, i) => i !== index) }))}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                          {view.type === "spin360" ? (
+                            <Input
+                              className="sm:col-start-2"
+                              type="number"
+                              min={2}
+                              max={72}
+                              value={view.frames}
+                              aria-label={t("view_frames")}
+                              onChange={(e) =>
+                                setProductForm((f) => ({
+                                  ...f,
+                                  views: f.views.map((row, i) => (i === index ? { ...row, frames: Number(e.target.value) } : row)),
+                                }))
+                              }
+                            />
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={productForm.is_available}
+                      onCheckedChange={(v) => setProductForm((f) => ({ ...f, is_available: Boolean(v) }))}
+                    />
+                    {tCatalog("available")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={productForm.is_featured}
+                      onCheckedChange={(v) => setProductForm((f) => ({ ...f, is_featured: Boolean(v) }))}
+                    />
+                    {t("is_featured")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={productForm.is_sold_out}
+                      onCheckedChange={(v) => setProductForm((f) => ({ ...f, is_sold_out: Boolean(v) }))}
+                    />
+                    {t("is_sold_out")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    {t("vat_subject")}
+                    <select
+                      className={`${cafeSelectClass} h-8 w-auto`}
+                      value={productForm.vat_mode}
+                      onChange={(e) =>
+                        setProductForm((f) => ({
+                          ...f,
+                          vat_mode: e.target.value as "inherit" | "yes" | "no",
+                        }))
+                      }
+                    >
+                      <option value="inherit">{t("vat_inherit")}</option>
+                      <option value="yes">{t("vat_yes")}</option>
+                      <option value="no">{t("vat_no")}</option>
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={productForm.is_new}
+                      onCheckedChange={(v) => setProductForm((f) => ({ ...f, is_new: Boolean(v) }))}
+                    />
+                    {tCatalog("new_badge")}
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => saveProduct.mutate()} disabled={!productForm.name || saveProduct.isPending}>
+                    {tCatalog("save")}
+                  </Button>
+                  {editingProduct ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setEditingProduct(null)
+                        setProductForm(emptyProduct)
+                      }}
+                    >
+                      {tCatalog("cancel_edit")}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </CafeSection>
+          </div>
+
+          {editingProduct ? <ModifierEditor productId={editingProduct.id} /> : null}
+
+          {selectedIds.length > 0 ? (
+            <CafeSection title={t("bulk_heading")}>
+              <div className="flex flex-wrap items-end gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={bulkSoldOut} onCheckedChange={(v) => setBulkSoldOut(Boolean(v))} />
+                  {t("is_sold_out")}
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={bulkAvailable} onCheckedChange={(v) => setBulkAvailable(Boolean(v))} />
+                  {tCatalog("available")}
+                </label>
+                <div className="space-y-1.5">
+                  <Label>{t("menu_id")}</Label>
+                  <select
+                    className={`${cafeSelectClass} w-auto min-w-[10rem]`}
+                    value={bulkMenuId}
+                    onChange={(e) => setBulkMenuId(e.target.value)}
+                  >
+                    <option value="">{t("bulk_no_menu")}</option>
+                    {menus.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("bulk_percent")}</Label>
+                  <Input
+                    type="number"
+                    value={bulkPercent}
+                    onChange={(e) => setBulkPercent(e.target.value)}
+                    className="w-28"
+                  />
+                </div>
+                <Button onClick={() => bulkUpdate.mutate()} disabled={bulkUpdate.isPending}>
+                  {t("bulk_apply")} ({selectedIds.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={bulkUpdate.isPending || bulkPercent === ""}
+                  onClick={() =>
+                    api("/api/v1/cafe/bulk-price", {
+                      method: "POST",
+                      json: { product_ids: selectedIds, percent: Number(bulkPercent) },
+                    })
+                      .then(async () => {
+                        toast.success(t("bulk_applied"))
+                        await queryClient.invalidateQueries({ queryKey: ["products"] })
+                      })
+                      .catch((e: Error) => toast.error(getApiErrorMessage(e)))
+                  }
+                >
+                  {t("bulk_price")}
+                </Button>
+              </div>
+            </CafeSection>
+          ) : null}
+
+          <CafeSection title={tCatalog("products_heading")}>
+            {products.length === 0 ? (
+              <CafeEmptyState message={tCatalog("empty")} />
+            ) : (
+              <div className="space-y-2">
+                {products.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedIds.includes(product.id)}
+                        onCheckedChange={() => toggleProduct(product.id)}
+                      />
+                      {product.image_url || product.cover_image_url ? (
+                        <div className="bg-muted size-12 shrink-0 overflow-hidden rounded-md">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={product.image_url || product.cover_image_url || ""}
+                            alt=""
+                            className="size-full object-cover"
+                          />
+                        </div>
+                      ) : null}
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {product.category?.name ?? tCatalog("no_category")} · {product.price_minor}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {product.is_featured ? <Badge>{t("is_featured")}</Badge> : null}
+                          {product.is_sold_out ? <Badge variant="outline">{t("is_sold_out")}</Badge> : null}
+                          {!product.is_available ? (
+                            <Badge variant="secondary">{tCatalog("unavailable")}</Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="size-8"
+                        title={tCatalog("edit_product")}
+                        aria-label={tCatalog("edit_product")}
+                        onClick={() => startEditProduct(product)}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        title={t("delete_action")}
+                        aria-label={t("delete_action")}
+                        onClick={() => confirm({ onConfirm: () => deleteProduct.mutateAsync(product.id) })}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CafeSection>
+        </>
+      ) : null}
+
+      {tab === "menus" ? (
+        <>
+          <CafeSection title={editingMenu ? t("edit_menu") : t("add_menu")}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{tCatalog("name")}</Label>
+                <Input value={menuForm.name} onChange={(e) => setMenuForm((f) => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("menu_slug")}</Label>
+                <Input value={menuForm.slug} onChange={(e) => setMenuForm((f) => ({ ...f, slug: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("menu_type")}</Label>
+                <Input
+                  value={menuForm.menu_type}
+                  onChange={(e) => setMenuForm((f) => ({ ...f, menu_type: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("menu_locale")}</Label>
+                <Input
+                  value={menuForm.locale}
+                  onChange={(e) => setMenuForm((f) => ({ ...f, locale: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>{t("menu_description")}</Label>
+                <Input
+                  value={menuForm.description}
+                  onChange={(e) => setMenuForm((f) => ({ ...f, description: e.target.value }))}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                <Checkbox
+                  checked={menuForm.is_active}
+                  onCheckedChange={(v) => setMenuForm((f) => ({ ...f, is_active: Boolean(v) }))}
+                />
+                {t("menu_active")}
+              </label>
+              <div className="flex gap-2 sm:col-span-2">
+                <Button onClick={() => saveMenu.mutate()} disabled={!menuForm.name || saveMenu.isPending}>
+                  {tCatalog("save")}
+                </Button>
+                {editingMenu ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingMenu(null)
+                      setMenuForm({
+                        name: "",
+                        slug: "",
+                        menu_type: "cafe",
+                        locale: "",
+                        description: "",
+                        is_active: true,
+                        sort_order: 0,
+                      })
+                    }}
+                  >
+                    {tCatalog("cancel_edit")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </CafeSection>
+
+          <CafeSection title={t("menus_heading")}>
+            {menus.length === 0 ? (
+              <CafeEmptyState message={t("menus_empty")} />
+            ) : (
+              <ul className="space-y-2">
+                {menus.map((menu) => (
+                  <li key={menu.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+                    <div>
+                      <p className="font-medium">{menu.name}</p>
+                      <p className="text-muted-foreground text-xs">{menu.slug}</p>
+                      {!menu.is_active ? <Badge variant="secondary">{t("menu_inactive")}</Badge> : null}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="size-8"
+                        title={t("edit_menu")}
+                        aria-label={t("edit_menu")}
+                        onClick={() => startEditMenu(menu)}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        title={t("delete_action")}
+                        aria-label={t("delete_action")}
+                        onClick={() => confirm({ onConfirm: () => deleteMenu.mutateAsync(menu.id) })}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CafeSection>
+        </>
+      ) : null}
+
+      {tab === "banners" ? (
+        <>
+          <p className="text-muted-foreground text-sm">{t("banner_limit_hint")}</p>
+          <CafeSection title={editingBanner ? t("edit_banner") : t("add_banner")}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{t("banner_title_fa")}</Label>
+                <Input
+                  value={bannerForm.title_fa}
+                  onChange={(e) => setBannerForm((f) => ({ ...f, title_fa: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("banner_title_en")}</Label>
+                <Input
+                  value={bannerForm.title_en}
+                  onChange={(e) => setBannerForm((f) => ({ ...f, title_en: e.target.value }))}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <MediaPickerField
+                  label={tCatalog("image_url")}
+                  imageUrl={bannerForm.image_url}
+                  onPick={(item) => setBannerForm((f) => ({ ...f, image_url: item.url }))}
+                  onClear={() => setBannerForm((f) => ({ ...f, image_url: "" }))}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>{t("banner_link")}</Label>
+                <Input
+                  value={bannerForm.link_url}
+                  onChange={(e) => setBannerForm((f) => ({ ...f, link_url: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("menu_id")}</Label>
+                <select
+                  className={cafeSelectClass}
+                  value={bannerForm.menu_id}
+                  onChange={(e) => setBannerForm((f) => ({ ...f, menu_id: e.target.value }))}
+                >
+                  <option value="">{t("no_menu")}</option>
+                  {menus.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={bannerForm.is_active}
+                  onCheckedChange={(v) => setBannerForm((f) => ({ ...f, is_active: Boolean(v) }))}
+                />
+                {t("menu_active")}
+              </label>
+              <div className="flex gap-2 sm:col-span-2">
+                <Button
+                  onClick={() => saveBanner.mutate()}
+                  disabled={!bannerForm.image_url || saveBanner.isPending || (!editingBanner && banners.length >= 3)}
+                >
+                  {tCatalog("save")}
+                </Button>
+                {editingBanner ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingBanner(null)
+                      setBannerForm({
+                        title_fa: "",
+                        title_en: "",
+                        image_url: "",
+                        link_url: "",
+                        menu_id: "",
+                        sort_order: 0,
+                        is_active: true,
+                      })
+                    }}
+                  >
+                    {tCatalog("cancel_edit")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </CafeSection>
+
+          <CafeSection title={t("banners_heading")}>
+            {banners.length === 0 ? (
+              <CafeEmptyState message={t("banners_empty")} />
+            ) : (
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {banners.map((banner) => (
+                  <li key={banner.id} className="overflow-hidden rounded-lg border">
+                    <div className="bg-muted aspect-[16/9] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={banner.image_url} alt={banner.title_fa || banner.title_en || ""} className="size-full object-cover" />
+                    </div>
+                    <div className="flex items-start justify-between gap-2 p-3">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {banner.title_fa || banner.title_en || "—"}
+                        </p>
+                        {!banner.is_active ? (
+                          <Badge variant="secondary" className="mt-1">
+                            {t("menu_inactive")}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="size-8"
+                          title={t("edit_banner")}
+                          aria-label={t("edit_banner")}
+                          onClick={() => startEditBanner(banner)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8"
+                          title={t("delete_action")}
+                          aria-label={t("delete_action")}
+                          onClick={() => confirm({ onConfirm: () => deleteBanner.mutateAsync(banner.id) })}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CafeSection>
+        </>
+      ) : null}
+
+      {tab === "engagement" ? (
+        <CafeSection title={t("engagement_heading")}>
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.phone_gate_enabled)}
+                onCheckedChange={(v) =>
+                  setEngagementForm({ ...engagementValues, phone_gate_enabled: Boolean(v) })
+                }
+              />
+              {t("engagement_phone_gate")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.likes_enabled)}
+                onCheckedChange={(v) => setEngagementForm({ ...engagementValues, likes_enabled: Boolean(v) })}
+              />
+              {t("engagement_likes")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.feedback_enabled)}
+                onCheckedChange={(v) => setEngagementForm({ ...engagementValues, feedback_enabled: Boolean(v) })}
+              />
+              {t("engagement_feedback")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.share_whatsapp_enabled)}
+                onCheckedChange={(v) =>
+                  setEngagementForm({ ...engagementValues, share_whatsapp_enabled: Boolean(v) })
+                }
+              />
+              {t("engagement_whatsapp")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(engagementValues.share_telegram_enabled)}
+                onCheckedChange={(v) =>
+                  setEngagementForm({ ...engagementValues, share_telegram_enabled: Boolean(v) })
+                }
+              />
+              {t("engagement_telegram")}
+            </label>
+          </div>
+        </CafeSection>
+      ) : null}
+      {confirmDialog}
+    </CafeAdminShell>
+  )
+}
+
+/** VAT (ارزش افزوده) on the cafe invoice. Reuses the store tax settings (shop.accounting.tax). */
+function CafeVatCard() {
+  const t = useTranslations("cafe_admin.menu")
+  const tCommon = useTranslations("common")
+  const { loading, draft, setDraft, persist, pending, saved, error } = useDraftSettings<{
+    enabled?: boolean
+    rate_percent?: number
+    prices_include_tax?: boolean
+    shipping_taxable?: boolean
+    show_on_invoice?: boolean
+  }>("shop", "accounting", "tax")
+
+  return (
+    <CafeAdvancedSection
+      title={t("vat_heading")}
+      description={t("vat_section_hint")}
+      showLabel={t("show_advanced")}
+      hideLabel={t("hide_advanced")}
+    >
+      {loading || !draft ? (
+        <p className="text-muted-foreground text-sm">{tCommon("loading")}</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={Boolean(draft.enabled)}
+              onCheckedChange={(v) => setDraft({ ...draft, enabled: Boolean(v) })}
+            />
+            {t("vat_enabled")}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={draft.show_on_invoice !== false}
+              onCheckedChange={(v) => setDraft({ ...draft, show_on_invoice: Boolean(v) })}
+            />
+            {t("vat_show_on_invoice")}
+          </label>
+          <div className="space-y-1.5">
+            <Label>{t("vat_rate")}</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step="0.5"
+              value={draft.rate_percent ?? 10}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  rate_percent: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                })
+              }
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("vat_prices")}</Label>
+            <select
+              className={cafeSelectClass}
+              value={draft.prices_include_tax ? "incl" : "excl"}
+              onChange={(e) => setDraft({ ...draft, prices_include_tax: e.target.value === "incl" })}
+            >
+              <option value="excl">{t("vat_exclusive")}</option>
+              <option value="incl">{t("vat_inclusive")}</option>
+            </select>
+          </div>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <Checkbox
+              checked={Boolean(draft.shipping_taxable)}
+              onCheckedChange={(v) => setDraft({ ...draft, shipping_taxable: Boolean(v) })}
+            />
+            {t("vat_on_fees")}
+          </label>
+          <p className="text-muted-foreground text-xs sm:col-span-2">{t("vat_hint")}</p>
+          <div className="flex items-center gap-3 sm:col-span-2">
+            <Button onClick={() => void persist()} disabled={pending}>
+              {tCommon("save")}
+            </Button>
+            {saved ? <span className="text-sm text-green-600">{t("vat_saved")}</span> : null}
+            {error ? <span className="text-destructive text-sm">{error}</span> : null}
+          </div>
+        </div>
+      )}
+    </CafeAdvancedSection>
+  )
+}

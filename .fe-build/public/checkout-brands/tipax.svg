@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Tipax">
+  <rect width="96" height="96" rx="20" fill="#E31C23"/>
+  <path d="M24 34h48v10H54v28H42V44H24z" fill="#fff"/>
+  <path d="M60 58h12v14H60z" fill="#0033A0"/>
+</svg>

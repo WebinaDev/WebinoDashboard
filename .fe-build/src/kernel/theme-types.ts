@@ -1,0 +1,271 @@
+export type SiteThemeManifest = {
+  slug: string
+  nameFa: string
+  nameEn: string
+  siteTypes: string[]
+  isDemo: boolean
+  preview: string
+  sortOrder: number
+}
+
+export type SiteBrandFont = "yekan-bakh" | "system" | "vazirmatn" | "iran-sans"
+
+export type SiteBrandPalette = {
+  primary: string
+  secondary: string
+  accent: string
+  bg: string
+  surface: string
+  text: string
+  muted: string
+  text3?: string
+  navy?: string
+  header?: string
+  footer?: string
+  border?: string
+}
+
+export type StorefrontAppearanceColors = {
+  primary_color?: string
+  secondary_color?: string
+  accent_color?: string
+  text1_color?: string
+  text2_color?: string
+  text3_color?: string
+  navy_color?: string
+  surface_color?: string
+  header_bg?: string
+  footer_bg?: string
+  border_color?: string
+}
+
+export type ClassicThemeLink = { label?: string; href?: string; icon?: string; image?: string; title?: string; text?: string; links?: ClassicThemeLink[] }
+
+export type ClassicThemeSettings = StorefrontAppearanceColors & {
+  header_style?: string
+  mega_menu?: boolean
+  dark_mode_default?: boolean
+  show_top_bar?: boolean
+  top_bar_text?: string
+  product_card_style?: string
+  pdp_gallery_style?: string
+  sticky_add_to_cart?: boolean
+  show_installment_badge?: boolean
+  footer_columns?: number
+  typography?: {
+    font_family?: string
+    font_size?: number
+    font_weight?: number
+    line_height?: number
+    /** Star/rating colour (hex). */
+    rating_color?: string
+  }
+  general?: {
+    logo_height_desktop?: number
+    logo_height_mobile?: number
+    logo_404_url?: string
+    bg_404?: string
+    login_image_url?: string
+    loading_icon_url?: string
+    mobile_bottom_menu_enabled?: boolean
+    mobile_bottom_menu?: ClassicThemeLink[]
+  }
+  header?: {
+    ajax_search?: boolean
+    ajax_search_mobile?: boolean
+    search_placeholder?: string
+    /** Popular keyword chips shown when search is focused and empty */
+    popular_search_keywords?: (string | { label?: string; title?: string })[]
+    search_banner_image?: string
+    search_banner_link?: string
+    voice_search?: boolean
+    quick_voice_search?: boolean
+    /** Path prefixes where voice mic is hidden (newline/comma list or string[]). */
+    voice_excluded_paths?: string | string[]
+    search_title_only?: boolean
+    search_sku?: boolean
+    deals_enabled?: boolean
+    deals_title?: string
+    deals_subtitle?: string
+    deals_link?: string
+    deals_timer_end?: string
+    deals_timer_title?: string
+    mega_menu?: boolean
+    mega_menu_title?: string
+    sticky_desktop?: boolean
+    banner_enabled?: boolean
+    banner_type?: string
+    banner_link?: string
+    banner_image_desktop?: string
+    banner_image_mobile?: string
+    banner_text?: string
+    banner_bg?: string
+    banner_text_color?: string
+  }
+  footer?: {
+    about?: string
+    footer_logo?: string
+    trust_title?: string
+    trust_text?: string
+    enamad_html?: string
+    samandehi_html?: string
+    ecommerce_badge_html?: string
+    footer_links?: ClassicThemeLink[]
+    brands_title?: string
+    brand_links?: ClassicThemeLink[]
+    bestsellers_title?: string
+    bestsellers_limit?: number
+    show_recently_viewed?: boolean
+    recently_viewed_title?: string
+    /** Service row above footer board: title, text, icon key or image URL */
+    service_badges?: ClassicThemeLink[]
+    copyright_years?: string
+    /** @deprecated free-text copyright removed; kept for legacy merge only */
+    copyright?: string
+    copyright_sub?: string
+    contact_title?: string
+    contact_tagline_1?: string
+    contact_tagline_2?: string
+    support_phone?: string
+    support_email_title?: string
+    support_email?: string
+    support_hours?: string
+    /** Contact page map: iframe src (Neshan/Balad/OSM/Google embed). */
+    map_embed?: string
+    address_title?: string
+    address?: string
+    social_title?: string
+    social_instagram?: string
+    social_telegram?: string
+    social_twitter?: string
+    social_whatsapp?: string
+    social_facebook?: string
+    social_igap?: string
+    social_rubika?: string
+    social_soroush?: string
+    social_bale?: string
+    social_eitaa?: string
+    /** Feature / payment badges: title, image, href */
+    payment_methods?: ClassicThemeLink[]
+    show_developer_credit?: boolean
+    developer_title?: string
+    developer_name?: string
+    developer_link?: string
+    developer_logo?: string
+  }
+  commerce?: {
+    ajax_add_to_cart?: boolean
+    product_share?: boolean
+    gallery_lightbox?: boolean
+    gallery_thumbs?: string
+    important_attrs_count?: number
+    features?: ClassicThemeLink[]
+    shipping_text_enabled?: boolean
+    shipping_text?: string
+    installment_enabled?: boolean
+    installment_title?: string
+    installment_text?: string
+    installment_link?: string
+    installment_image?: string
+    card_installment_enabled?: boolean
+    card_installment_text?: string
+    card_installment_image?: string
+    sticky_cart_mobile?: boolean
+    sticky_cart_desktop?: boolean
+    /** bottom | left | right */
+    sticky_cart_side?: string
+    card_add_to_cart?: boolean
+    compare_enabled?: boolean
+    show_rating?: boolean
+    fake_stats_enabled?: boolean
+    fake_stats_factor?: number
+    /** 1–10 range width for promotional stats */
+    fake_stats_sensitivity?: number
+    /** Cart / checkout chrome (parisma-style) */
+    cart_coupon?: boolean
+    cart_sticky_summary?: boolean
+    cart_deals_countdown?: boolean
+    free_shipping_bar_enabled?: boolean
+    free_shipping_threshold?: number
+    checkout_coupon?: boolean
+    checkout_shipping_quote?: boolean
+    checkout_trust_badges?: boolean
+    /** @deprecated placeholder gateway cards were removed from the storefront */
+    checkout_payment_placeholders?: boolean
+    checkout_sticky_summary?: boolean
+    checkout_require_phone?: boolean
+    checkout_show_recipient?: boolean
+    checkout_show_postcode?: boolean
+    checkout_require_postcode?: boolean
+    checkout_show_note?: boolean
+    checkout_national_id?: "hidden" | "optional" | "required"
+    checkout_field_order?: string
+    product_faq_tab?: boolean
+    product_spec_tab?: boolean
+    wishlist_enabled?: boolean
+    order_tracking_enabled?: boolean
+  }
+  archive?: {
+    sidebar_enabled?: boolean
+    category_slider?: boolean
+    product_columns?: number
+    products_per_page?: number
+    default_sort?: string
+    filters_open_default?: boolean
+  }
+  home?: {
+    /** Build the story strip from products when no stories are published (off by default). */
+    stories_from_products?: boolean
+    stories_count?: number
+    amazing_limit?: number
+    /** Home offer carousels auto-advance (default on). */
+    amazing_autoplay?: boolean
+    amazing_autoplay_seconds?: number
+    promo_limit?: number
+    icon_categories_limit?: number
+    brands_limit?: number
+    blog_limit?: number
+    taste_groups?: number
+  }
+  /** Editable storefront copy: texts[group][key] (see themes/ecommerce-classic/lib/texts.ts). */
+  texts?: Record<string, Record<string, string>>
+}
+
+export type SiteBranding = {
+  logo_url: string | null
+  logo_dark_url: string | null
+  favicon_url: string | null
+  logo_id?: number | null
+  logo_dark_id?: number | null
+  favicon_id?: number | null
+  accent: "zinc" | "slate" | "blue" | "green" | "rose" | "orange"
+  font: SiteBrandFont
+  font_body?: SiteBrandFont
+  font_heading?: SiteBrandFont
+  font_ui?: SiteBrandFont
+  palette?: Partial<SiteBrandPalette> | null
+  appearance?: ClassicThemeSettings | null
+}
+
+export type SiteThemeCatalogItem = {
+  slug: string
+  name_fa: string
+  name_en: string
+  site_types: string[]
+  is_demo: boolean
+  is_default?: boolean
+  is_suggested?: boolean
+  preview: string
+  sort_order: number
+}
+
+export type ThemeCatalogResponse = {
+  site_type_slug: string | null
+  active_theme_slug: string | null
+  default_theme_slug?: string | null
+  suggested_theme_slug?: string | null
+  branding: SiteBranding
+  themes: SiteThemeCatalogItem[]
+  accents: SiteBranding["accent"][]
+  fonts: SiteBranding["font"][]
+}

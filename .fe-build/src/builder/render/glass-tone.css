@@ -1,0 +1,24 @@
+/* Generic glass surface for content widgets. Colour tokens are overridable per widget. */
+.wb-tone-glass {
+  --wb-glass-bg: rgba(255, 255, 255, 0.62);
+  --wb-glass-border: rgba(255, 255, 255, 0.7);
+  --wb-glass-text: var(--color-foreground, #1a1012);
+  --wb-glass-accent: var(--color-primary, #b4101e);
+  --wb-glass-muted: color-mix(in srgb, var(--wb-glass-text) 72%, transparent);
+  --wb-glass-card: color-mix(in srgb, var(--wb-glass-bg) 70%, #fff);
+  background: var(--wb-glass-bg);
+  color: var(--wb-glass-text);
+  border: 1px solid var(--wb-glass-border);
+  border-radius: 24px;
+  padding: 1.25rem 1.4rem;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.wb-tone-glass .wb-glass-cta,
+.wb-tone-glass a { color: var(--wb-glass-accent); }
+.wb-tone-glass .wb-glass-muted { color: var(--wb-glass-muted); }
+.wb-tone-glass .wb-glass-card {
+  background: var(--wb-glass-card);
+  border: 1px solid var(--wb-glass-border);
+  color: inherit;
+}

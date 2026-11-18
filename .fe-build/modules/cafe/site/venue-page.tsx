@@ -1,0 +1,18 @@
+import { notFound } from "next/navigation"
+
+import { fetchAboutData } from "@/kernel/cafe-catalogue-data"
+import { preferBuilderPage } from "@/kernel/prefer-builder-page"
+import { AboutView } from "@/themes/cafe-starter/views/AboutView"
+import type { ResolvedSiteRoute } from "@/kernel/types"
+
+export const dynamic = "force-dynamic"
+
+export default async function Page(_props: { route: ResolvedSiteRoute }) {
+  const venue = await fetchAboutData()
+
+  if (!venue || venue.venue.mini_site_enabled === false) {
+    notFound()
+  }
+
+  return preferBuilderPage("about", <AboutView venue={venue} />)
+}

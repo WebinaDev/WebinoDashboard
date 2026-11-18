@@ -8246,3 +8246,12 @@ section.wb-full-bleed:has(.sfc-hero) {
   max-width: none;
   padding-inline: 0;
 }
+
+/* Keep the cart icon on the price row even on the narrowest two-column grids. */
+.sfc-card__actions {
+  flex-wrap: nowrap;
+}
+.sfc-card__actions .sfc-card__price {
+  min-width: 0;
+  flex: 1 1 auto;
+}

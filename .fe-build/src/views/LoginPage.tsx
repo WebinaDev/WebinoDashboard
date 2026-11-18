@@ -1,0 +1,68 @@
+"use client"
+
+import { useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useTranslations } from "next-intl"
+
+import { LoginForm } from "@/components/login-04/login-form"
+import { api } from "@/lib/api"
+import type { ClassicThemeSettings } from "@/kernel/theme-types"
+import { ClassicLogin } from "@/themes/ecommerce-classic/components/ClassicLogin"
+
+type PublicTenant = {
+  name?: string
+  store_display_name?: string | null
+  active_theme_slug?: string | null
+  branding?: { logo_url?: string | null; appearance?: ClassicThemeSettings | null } | null
+}
+
+/** Storefront customers come from shop pages; staff go to the dashboard. */
+function isStorefrontNext(next: string | null): boolean {
+  if (!next) return false
+  return !next.startsWith("/dashboard") && !next.startsWith("/setup") && !next.startsWith("/admin")
+}
+
+export default function LoginPage() {
+  const t = useTranslations("common")
+  const params = useSearchParams()
+  const next = params.get("next")
+  const [tenant, setTenant] = useState<PublicTenant | null>(null)
+
+  useEffect(() => {
+    let cancel = false
+    void api<{ data?: PublicTenant } | PublicTenant>("/api/v1/public/tenant")
+      .then((r) => {
+        if (cancel) return
+        const body = (r && typeof r === "object" && "data" in r ? r.data : r) as PublicTenant
+        setTenant(body ?? null)
+      })
+      .catch(() => {
+        if (!cancel) setTenant(null)
+      })
+    return () => {
+      cancel = true
+    }
+  }, [])
+
+  const classic = tenant?.active_theme_slug === "ecommerce-classic" && isStorefrontNext(next)
+
+  if (!classic) {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+        <div className="flex w-full flex-col items-center gap-6">
+          <p className="text-muted-foreground text-sm font-medium">{t("appName")}</p>
+          <LoginForm />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <ClassicLogin
+      appearance={tenant?.branding?.appearance ?? {}}
+      siteName={tenant?.store_display_name || tenant?.name || ""}
+      logo={tenant?.branding?.logo_url || ""}
+      next={next}
+    />
+  )
+}

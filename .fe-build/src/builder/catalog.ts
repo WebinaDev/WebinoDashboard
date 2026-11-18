@@ -1,0 +1,519 @@
+import { convertAmount, normalizeStoreCurrency } from "@/lib/currencies"
+
+export type ShopVariant = {
+  id: number
+  name: string
+  price: number
+  compare?: number
+  image?: string | null
+  stock: number | null
+  inStock: boolean
+  /** Colour/image swatch from the variant's attribute term (variation swatches). */
+  swatch?: { color: string | null; image: string | null; label: string; showLabel: boolean }
+  /** Attribute values of this variant (axis key + label + chosen term), for the per-attribute picker. */
+  options?: Array<{ key: string; label: string; value: string }>
+}
+
+export type ShopInstallment = {
+  months: number
+  monthly: number
+  total: number
+}
+
+export type ShopBrand = {
+  slug: string
+  name: string
+}
+
+export type ShopProduct = {
+  id?: number
+  slug: string
+  name: string
+  price: number
+  compare?: number
+  cashPrice?: number
+  tone: string
+  category: string
+  categorySlug: string
+  brand: string
+  brandSlug: string
+  image?: string | null
+  /** ~800px WebP card size of `image` (listings srcset); null when not generated. */
+  imageCard?: string | null
+  images: string[]
+  description: string
+  /** Plain short blurb for clamps/cards; full HTML stays in description. */
+  shortDescription?: string
+  live: boolean
+  inStock: boolean
+  isNew?: boolean
+  variants: ShopVariant[]
+  installments: ShopInstallment[]
+  faqs: Array<{ question: string; answer: string }>
+  priceUpdatedAt?: string | null
+  /** Average review score (0–5) when the API exposes it. */
+  rating?: number
+  /** Simple-product stock count when managed; null = unmanaged. */
+  stock?: number | null
+  /** ISO end of a timed sale («شگفت‌انگیز» countdown); null = open-ended. */
+  saleEndsAt?: string | null
+  /** Category-specific return policy text (inherited from parent categories); null = use the global text. */
+  returnNotice?: string | null
+  /** Product code (SKU) — item endpoint only. */
+  sku?: string | null
+  /** Latin model name shown under the title — item endpoint only. */
+  englishName?: string | null
+  /** Visible attribute rows for the «توضیحات تکمیلی» tab (item endpoint). */
+  attributes?: Array<{ label: string; value: string; slug?: string }>
+}
+
+export type ShopCategory = {
+  slug: string
+  name: string
+  tone: string
+  /** Present when the public catalog exposes hierarchy. */
+  id?: number
+  parentId?: number | null
+  image?: string | null
+  /** Term description (HTML from WP import) — shown under the archive grid with a «show more» toggle. */
+  description?: string | null
+  children?: ShopCategory[]
+}
+
+export const SAMPLE_CATEGORIES: ShopCategory[] = [
+  {
+    slug: "skin",
+    name: "مراقبت پوست",
+    tone: "pink",
+    children: [
+      { slug: "sunscreen", name: "کرم ضد آفتاب", tone: "pink" },
+      { slug: "serum", name: "سرم پوست", tone: "pink" },
+      { slug: "moisturizer", name: "مرطوب‌کننده", tone: "pink" },
+      { slug: "eye-cream", name: "کرم دور چشم", tone: "pink" },
+      {
+        slug: "repair",
+        name: "ترمیم‌کننده",
+        tone: "pink",
+        children: [
+          { slug: "repair-gel", name: "ژل ترمیم", tone: "pink" },
+          { slug: "repair-cream", name: "کرم ترمیم", tone: "pink" },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "hair",
+    name: "مراقبت مو",
+    tone: "lilac",
+    children: [
+      { slug: "shampoo", name: "شامپو", tone: "lilac" },
+      { slug: "conditioner", name: "نرم‌کننده", tone: "lilac" },
+      { slug: "hair-oil", name: "روغن مو", tone: "lilac" },
+      { slug: "hair-mask", name: "ماسک مو", tone: "lilac" },
+    ],
+  },
+  {
+    slug: "wash",
+    name: "شوینده",
+    tone: "sky",
+    children: [
+      { slug: "face-wash", name: "شوینده صورت", tone: "sky" },
+      { slug: "makeup-remover", name: "پاک‌کننده آرایش", tone: "sky" },
+      { slug: "toner", name: "تونر", tone: "sky" },
+    ],
+  },
+  {
+    slug: "makeup",
+    name: "آرایش",
+    tone: "rose",
+    children: [
+      { slug: "lip", name: "آرایش لب", tone: "coral", children: [
+        { slug: "lipstick", name: "رژ لب", tone: "coral" },
+        { slug: "lipgloss", name: "لیپ‌گلاس", tone: "coral" },
+      ]},
+      { slug: "eye", name: "آرایش چشم", tone: "navy", children: [
+        { slug: "mascara", name: "ریمل", tone: "navy" },
+        { slug: "eyeliner", name: "خط چشم", tone: "navy" },
+      ]},
+      { slug: "face-makeup", name: "آرایش صورت", tone: "rose" },
+      { slug: "tools", name: "ابزار آرایشی", tone: "rose" },
+    ],
+  },
+]
+
+/** Build a rooted tree from a flat/nested category list that may carry parentId.
+ * Uses the real product-category hierarchy only — never invents sibling groupings
+ * or promotes products into fake sub-items for the mega menu.
+ */
+export function buildCategoryTree(categories: ShopCategory[]): ShopCategory[] {
+  if (!categories.length) return []
+
+  // Prefer API-nested children when the payload already carried a tree.
+  const withKids = categories.filter((c) => Array.isArray(c.children) && (c.children?.length ?? 0) > 0)
+  const nestedRoots = categories.filter(
+    (c) => (c.parentId == null || c.parentId === undefined) && Array.isArray(c.children),
+  )
+  if (nestedRoots.length && withKids.length) {
+    return nestedRoots.map((c) => ({ ...c, children: c.children ?? [] }))
+  }
+  if (withKids.length === categories.length) {
+    return categories.map((c) => ({ ...c, children: c.children ?? [] }))
+  }
+
+  const byId = new Map<number, ShopCategory & { children: ShopCategory[] }>()
+  const roots: Array<ShopCategory & { children: ShopCategory[] }> = []
+  const flat = categories.map((c) => ({
+    ...c,
+    children: Array.isArray(c.children) ? [...c.children] : ([] as ShopCategory[]),
+  }))
+
+  for (const c of flat) {
+    if (typeof c.id === "number") byId.set(c.id, c)
+  }
+
+  const claimed = new Set<string>()
+  for (const c of flat) {
+    const parent = typeof c.parentId === "number" ? byId.get(c.parentId) : undefined
+    if (parent && parent !== c) {
+      parent.children.push(c)
+      claimed.add(c.slug)
+    }
+  }
+
+  for (const c of flat) {
+    if (claimed.has(c.slug)) continue
+    if (c.parentId == null || c.parentId === undefined || !byId.has(c.parentId)) {
+      roots.push(c)
+    }
+  }
+
+  if (roots.length) return roots
+
+  // No parent links at all: flat list of roots with empty children (honest tree).
+  return flat.map((c) => ({ ...c, children: c.children ?? [] }))
+}
+
+
+function product(partial: Omit<ShopProduct, "images" | "variants" | "installments" | "faqs" | "inStock" | "live" | "brandSlug"> & Partial<ShopProduct>): ShopProduct {
+  return {
+    ...partial,
+    images: partial.images ?? [],
+    variants: partial.variants ?? [],
+    installments: partial.installments ?? [],
+    faqs: partial.faqs ?? [],
+    inStock: partial.inStock ?? true,
+    live: partial.live ?? false,
+    brandSlug: partial.brandSlug || partial.brand,
+  }
+}
+
+export const SAMPLE_PRODUCTS: ShopProduct[] = [
+  product({
+    slug: "lumen-serum",
+    name: "سرم درخشان لومِن",
+    price: 1860000,
+    compare: 2140000,
+    tone: "rose",
+    category: "مراقبت پوست",
+    categorySlug: "skin",
+    brand: "لومِن",
+    description: "بافت سبک برای پوست خسته شهر. چند قطره قبل از مرطوب‌کننده کافی است.",
+  }),
+  product({
+    slug: "nora-balm",
+    name: "بالم لب نورا",
+    price: 640000,
+    tone: "pink",
+    category: "آرایش لب",
+    categorySlug: "lip",
+    brand: "نورا",
+    description: "رنگ ملایم و مراقبت روزانه، بدون چسبندگی.",
+  }),
+  product({
+    slug: "atris-wash",
+    name: "ژل شستشوی آتریس",
+    price: 890000,
+    tone: "mint",
+    category: "شوینده",
+    categorySlug: "wash",
+    brand: "آتریس",
+    description: "شوینده ملایم که سد پوست را خشک نمی‌کند.",
+  }),
+  product({
+    slug: "viva-cream",
+    name: "کرم سبک ویوا",
+    price: 1250000,
+    compare: 1490000,
+    tone: "lilac",
+    category: "مراقبت پوست",
+    categorySlug: "skin",
+    brand: "ویوا",
+    description: "مرطوب‌کننده روز با جذب سریع برای زیر آرایش.",
+  }),
+  product({
+    slug: "kelm-oil",
+    name: "روغن مو کَلم",
+    price: 980000,
+    tone: "gold",
+    category: "مراقبت مو",
+    categorySlug: "hair",
+    brand: "کَلم",
+    description: "چند قطره روی طول مو، درخشش بدون سنگینی.",
+  }),
+  product({
+    slug: "webino-mist",
+    name: "مه پاش ویبینو",
+    price: 540000,
+    tone: "sky",
+    category: "مراقبت پوست",
+    categorySlug: "skin",
+    brand: "ویبینو",
+    description: "آب‌رسانی وسط روز، مناسب کیف کوچک.",
+  }),
+]
+
+export const SAMPLE_BRANDS = ["لومِن", "نورا", "آتریس", "ویوا", "کَلم", "ویبینو"]
+
+export function formatPrice(amount: number, currencyLabel?: string): string {
+  const formatted = new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(amount)))
+  return currencyLabel ? `${formatted} ${currencyLabel}` : formatted
+}
+
+export function toneClass(tone: string): string {
+  switch (tone) {
+    case "navy":
+      return "from-[#0C2D63] to-[#3d6ea8]"
+    case "lilac":
+      return "from-[#d9c7f5] to-[#f7f1ff]"
+    case "mint":
+      return "from-[#c9f0df] to-[#f3fbf7]"
+    case "gold":
+      return "from-[#f3ddb0] to-[#fff8ea]"
+    case "sky":
+      return "from-[#d5e7f8] to-[#f5f8fb]"
+    case "coral":
+      return "from-[#ffc1c8] to-[#fff1f3]"
+    case "rose":
+      return "from-[#f7c1dc] to-[#fff5fa]"
+    default:
+      return "from-[#f3b4d4] to-[#fff0f7]"
+  }
+}
+
+type ApiRecord = Record<string, unknown>
+
+function num(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0
+}
+
+function str(value: unknown): string {
+  return typeof value === "string" ? value : ""
+}
+
+
+function mapAttributeRows(raw: unknown): Array<{ label: string; value: string; slug?: string }> {
+  if (!Array.isArray(raw)) return []
+  const out: Array<{ label: string; value: string; slug?: string }> = []
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue
+    const r = row as Record<string, unknown>
+    const label = String(r.label ?? r.name ?? "").trim()
+    const value = String(r.value ?? r.terms_text ?? "").trim()
+    if (!label || !value) continue
+    out.push({ label, value, slug: r.slug ? String(r.slug) : undefined })
+  }
+  return out
+}
+
+export function mapApiProduct(raw: ApiRecord, index: number, storeCurrency?: string | null): ShopProduct {
+  const category = raw.category && typeof raw.category === "object" ? (raw.category as ApiRecord) : null
+  const display = raw.currency_display && typeof raw.currency_display === "object"
+    ? (raw.currency_display as ApiRecord).currency
+    : null
+  const store = normalizeStoreCurrency(storeCurrency ?? (typeof display === "string" ? display : null))
+  const from = normalizeStoreCurrency(typeof raw.currency === "string" && raw.currency ? raw.currency : store)
+  const toStore = (n: number) => convertAmount(n, from, store)
+  const price = toStore(num(raw.discounted_price_minor) || num(raw.price_minor))
+  const compare = toStore(num(raw.price_minor))
+  // Only the decorative tone comes from the sample set; real fields never fall back to sample data.
+  const sample = SAMPLE_PRODUCTS[index % SAMPLE_PRODUCTS.length]
+  const brands = Array.isArray(raw.brands) ? raw.brands : []
+  const firstBrand = brands.find((item): item is ApiRecord => !!item && typeof item === "object")
+  const media = Array.isArray(raw.media) ? raw.media : []
+  const images = media
+    .filter((item): item is ApiRecord => !!item && typeof item === "object")
+    .map((item) => str(item.url))
+    .filter(Boolean)
+  const cover = str(raw.cover_image_url) || str(raw.image_url)
+  if (cover && !images.includes(cover)) images.unshift(cover)
+  const variants = (Array.isArray(raw.variants) ? raw.variants : [])
+    .filter((item): item is ApiRecord => !!item && typeof item === "object")
+    .map((item) => mapVariant(item, store, from))
+    .filter((item): item is ShopVariant => item !== null)
+  const pricing = raw.pricing && typeof raw.pricing === "object" ? (raw.pricing as ApiRecord) : null
+  const types = pricing?.types && typeof pricing.types === "object" ? (pricing.types as ApiRecord) : null
+  const installments = Array.isArray(pricing?.installments)
+    ? pricing.installments
+        .filter((item): item is ApiRecord => !!item && typeof item === "object")
+        .map((item) => ({
+          months: num(item.months),
+          monthly: toStore(num(item.monthly_minor)),
+          total: toStore(num(item.total_minor)),
+        }))
+        .filter((item) => item.months > 0 && item.monthly > 0)
+    : []
+  const soldOut = raw.is_sold_out === true || raw.is_available === false
+  return {
+    id: num(raw.id) || undefined,
+    slug: str(raw.slug) || String(raw.id ?? index),
+    name: str(raw.name),
+    price,
+    compare: compare > price ? compare : undefined,
+    cashPrice: types && num(types.cash) > 0 ? toStore(num(types.cash)) : undefined,
+    tone: sample.tone,
+    category: str(category?.name),
+    categorySlug: str(category?.slug),
+    brand: str(firstBrand?.name) || str(raw.brand_name),
+    brandSlug: str(firstBrand?.slug),
+    image: images[0] || null,
+    imageCard: images[0] && images[0] === cover ? str(raw.image_card_url) || null : null,
+    images,
+    description: str(raw.description),
+    shortDescription: plainText(str(raw.short_description) || str(raw.description)).slice(0, 280),
+    live: true,
+    inStock: !soldOut,
+    isNew: raw.is_new === true,
+    variants,
+    installments,
+    faqs: mapFaqs(raw.faqs),
+    priceUpdatedAt: str(raw.price_updated_at) || null,
+    rating: num(raw.average_rating) || num(raw.rating_average) || num(raw.rating) || undefined,
+    stock: raw.stock == null ? null : num(raw.stock),
+    saleEndsAt: str(raw.sale_ends_at) || null,
+    returnNotice: str(raw.return_notice) || null,
+    sku: str(raw.sku) || null,
+    englishName: str(raw.english_name) || null,
+    attributes: mapAttributeRows(raw.attributes),
+  }
+}
+
+function mapFaqs(raw: unknown): Array<{ question: string; answer: string }> {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((row): row is Record<string, unknown> => !!row && typeof row === "object")
+    .map((row) => ({
+      question: str(row.question) || str(row.q),
+      answer: str(row.answer) || str(row.a),
+    }))
+    .filter((row) => row.question && row.answer)
+}
+
+/** attribute_values: list of {attribute_id, attribute_name, term_id, term_name} or a {name: value} map (WP import). */
+function mapVariantOptions(raw: unknown): Array<{ key: string; label: string; value: string }> {
+  const out: Array<{ key: string; label: string; value: string }> = []
+  if (Array.isArray(raw)) {
+    for (const row of raw) {
+      if (!row || typeof row !== "object") continue
+      const r = row as ApiRecord
+      const label = str(r.attribute_name) || str(r.name) || str(r.attribute)
+      const value = str(r.term_name) || str(r.value) || str(r.option)
+      const key = r.attribute_id != null ? `a${num(r.attribute_id)}` : label
+      if (key && value) out.push({ key, label: label || "ویژگی", value })
+    }
+  } else if (raw && typeof raw === "object") {
+    for (const [k, v] of Object.entries(raw as ApiRecord)) {
+      const value = typeof v === "string" || typeof v === "number" ? String(v).trim() : ""
+      const label = k.replace(/^attribute_/, "").replace(/^pa_/, "").replace(/[-_]+/g, " ").trim()
+      if (label && value) out.push({ key: label, label, value })
+    }
+  }
+  return out
+}
+
+function mapVariant(raw: ApiRecord, storeCurrency: string = "IRT", fromCurrency?: string): ShopVariant | null {
+  const id = num(raw.id)
+  const name = str(raw.name)
+  if (!id || !name) return null
+  const from = fromCurrency || storeCurrency
+  const price = convertAmount(num(raw.sale_price_minor) || num(raw.price_minor), from, storeCurrency)
+  const compare = convertAmount(num(raw.price_minor), from, storeCurrency)
+  const stock = raw.stock == null ? null : num(raw.stock)
+  const status = str(raw.stock_status)
+  const inStock = status !== "outofstock" && (stock == null || stock > 0 || raw.manage_stock === false)
+  return {
+    id,
+    name,
+    price: price || compare,
+    compare: compare > price ? compare : undefined,
+    image: str(raw.image_url) || null,
+    stock,
+    inStock,
+    options: mapVariantOptions(raw.attribute_values),
+    ...(raw.swatch && typeof raw.swatch === "object"
+      ? {
+          swatch: {
+            color: str((raw.swatch as ApiRecord).color) || null,
+            image: str((raw.swatch as ApiRecord).image) || null,
+            label: str((raw.swatch as ApiRecord).label),
+            showLabel: (raw.swatch as ApiRecord).show_label !== false,
+          },
+        }
+      : {}),
+  }
+}
+
+function plainText(value: string): string {
+  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+}
+
+export function mapApiBrand(raw: ApiRecord): ShopBrand | null {
+  const name = str(raw.name)
+  const slug = str(raw.slug)
+  if (!name || !slug) return null
+  return { name, slug }
+}
+
+export function mapApiCategory(raw: ApiRecord, index: number): ShopCategory | null {
+  const name = str(raw.name)
+  const slug = str(raw.slug)
+  if (!name || !slug) return null
+  const id = num(raw.id)
+  const parentRaw = raw.parent_id
+  const parentId =
+    parentRaw === null || parentRaw === undefined || parentRaw === ""
+      ? null
+      : typeof parentRaw === "number"
+        ? parentRaw
+        : Number(parentRaw) || null
+  const image =
+    str(raw.image_url) ||
+    str(raw.icon_url) ||
+    str(raw.cover_image_url) ||
+    str(raw.thumbnail_url) ||
+    null
+  const nested = Array.isArray(raw.children)
+    ? raw.children
+        .filter((item): item is ApiRecord => !!item && typeof item === "object")
+        .map((item, i) => mapApiCategory(item, i))
+        .filter((item): item is ShopCategory => item !== null)
+    : undefined
+  return {
+    description: str(raw.description) || null,
+    slug,
+    name,
+    tone: SAMPLE_CATEGORIES[index % SAMPLE_CATEGORIES.length].tone,
+    id: id || undefined,
+    parentId,
+    image: image || null,
+    children: nested?.length ? nested : undefined,
+  }
+}
+
+/** srcset/sizes for product cards: ~800px card + full-size hero, so listings download the small one. */
+export function productCardSrcSet(product: Pick<ShopProduct, "image" | "imageCard">): { srcSet?: string; sizes?: string } {
+  if (!product.image || !product.imageCard || product.imageCard === product.image) return {}
+  return {
+    srcSet: `${product.imageCard} 800w, ${product.image} 1600w`,
+    sizes: "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px",
+  }
+}

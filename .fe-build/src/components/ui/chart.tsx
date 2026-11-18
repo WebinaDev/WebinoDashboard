@@ -1,0 +1,159 @@
+"use client"
+
+import * as React from "react"
+import * as RechartsPrimitive from "recharts"
+
+import { useLocale } from "next-intl"
+
+import { formatSeriesKey } from "../../../modules/analytics/components/reports/format"
+import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
+import { cn } from "@/lib/utils"
+
+export type ChartConfig = Record<
+  string,
+  {
+    label?: React.ReactNode
+    icon?: React.ComponentType
+    color?: string
+  }
+>
+
+const ChartContext = React.createContext<{ config: ChartConfig } | null>(null)
+
+function useChart() {
+  const context = React.useContext(ChartContext)
+  if (!context) {
+    throw new Error("useChart must be used within a <ChartContainer />")
+  }
+  return context
+}
+
+function ChartContainer({
+  id,
+  className,
+  children,
+  config,
+  ...props
+}: React.ComponentProps<"div"> & {
+  config: ChartConfig
+  children: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["children"]
+}) {
+  const uniqueId = React.useId()
+  const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
+
+  return (
+    <ChartContext.Provider value={{ config }}>
+      <div
+        data-chart={chartId}
+        className={cn(
+          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+          className,
+        )}
+        {...props}
+      >
+        <ChartStyle id={chartId} config={config} />
+        <RechartsPrimitive.ResponsiveContainer>{children}</RechartsPrimitive.ResponsiveContainer>
+      </div>
+    </ChartContext.Provider>
+  )
+}
+
+function ChartStyle({ id, config }: { id: string; config: ChartConfig }) {
+  const colorConfig = Object.entries(config).filter(([, c]) => c.color)
+  if (!colorConfig.length) return null
+  return (
+    <style
+      dangerouslySetInnerHTML={{
+        __html: `[data-chart=${id}] {\n${colorConfig
+          .map(([key, item]) => {
+            const color = typeof item.color === "string" && /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20})$/.test(item.color) ? item.color : "transparent"
+            const token = key.replace(/[^a-zA-Z0-9_-]/g, "")
+            return `  --color-${token}: ${color};`
+          })
+          .join("\n")}\n}`,
+      }}
+    />
+  )
+}
+
+const ChartTooltip = RechartsPrimitive.Tooltip
+
+function ChartTooltipContent({
+  active,
+  payload,
+  className,
+  label,
+}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
+  React.ComponentProps<"div"> & {
+    active?: boolean
+    payload?: Array<{ name?: string; value?: number | string; color?: string; dataKey?: string }>
+    label?: string
+  }) {
+  const { config } = useChart()
+  const locale = normalizeUiLocale(useLocale())
+  if (!active || !payload?.length) return null
+  const heading = label ? formatSeriesKey(String(label), locale, String(label)) : ""
+  return (
+    <div className={cn("grid min-w-[8rem] gap-1.5 rounded-lg border bg-background px-2.5 py-1.5 text-xs shadow-soft", className)}>
+      {heading ? <div className="font-medium">{heading}</div> : null}
+      {payload.map((item) => {
+        const key = String(item.dataKey ?? item.name ?? "value")
+        const itemConfig = config[key]
+        const numeric = typeof item.value === "number" ? item.value : Number(item.value)
+        const shown = Number.isFinite(numeric)
+          ? formatNumber(numeric, locale)
+          : toLocaleDigits(String(item.value ?? ""), locale)
+        return (
+          <div key={key} className="flex items-center gap-2">
+            <span
+              className="h-2 w-2 shrink-0 rounded-[2px]"
+              style={{ background: item.color ?? itemConfig?.color ?? "var(--color-primary)" }}
+            />
+            <span className="text-muted-foreground">{itemConfig?.label ?? item.name}</span>
+            <span className="ms-auto font-mono font-medium tabular-nums text-foreground">
+              {shown}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const ChartLegend = RechartsPrimitive.Legend
+
+function ChartLegendContent({
+  className,
+  payload,
+}: React.ComponentProps<"div"> & {
+  payload?: Array<{ value?: string; color?: string; dataKey?: string }>
+}) {
+  const { config } = useChart()
+  if (!payload?.length) return null
+  return (
+    <div className={cn("flex flex-wrap items-center justify-center gap-4", className)}>
+      {payload.map((item) => {
+        const key = String(item.dataKey ?? item.value ?? "")
+        const itemConfig = config[key]
+        return (
+          <div key={key} className="flex items-center gap-1.5">
+            <span
+              className="h-2 w-2 shrink-0 rounded-[2px]"
+              style={{ background: item.color ?? itemConfig?.color }}
+            />
+            <span>{itemConfig?.label ?? item.value}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+}

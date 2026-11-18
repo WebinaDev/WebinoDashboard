@@ -1,0 +1,357 @@
+/* Poetry / Muharram blog widgets (alikhabari.ir design). Renderers: render/poetry-widgets.tsx. */
+import { uid } from "./ids"
+import type { FieldDef, WidgetDef, WidgetNode } from "./types"
+
+function node(type: string, props: Record<string, unknown>): WidgetNode {
+  return { id: uid("w"), type, props }
+}
+
+const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }, { value: "blush", label: "صورتی روشن" }, { value: "glass", label: "شیشه‌ای (سفید نیمه‌شفاف با محو پس‌زمینه)" }] }
+/** Shared section background: image + colour/gradient overlay (e.g. dark crimson) with opacity 0–100. */
+export const SECTION_BG_FIELDS: FieldDef[] = [
+  { kind: "media", key: "bgImage", label: "تصویر پس‌زمینه بخش", accept: "image" },
+  { kind: "color", key: "bgOverlay", label: "رنگ/گرادیان روکش (مثلاً زرشکی تیره)" },
+  { kind: "slider", key: "bgOverlayOpacity", label: "شفافیت روکش", min: 0, max: 100, step: 5, unit: "%" },
+]
+/** Optional colour overrides for the glass widgets (empty = site theme tokens). */
+export const V2_COLOR_FIELDS: FieldDef[] = [
+  { kind: "color", key: "accentColor", label: "رنگ تأکید (دکمه‌ها و نوار پیشرفت)" },
+  { kind: "color", key: "highlightColor", label: "رنگ برجسته (عنوان‌ها و آیکن‌ها)" },
+  { kind: "color", key: "textColor", label: "رنگ متن" },
+  { kind: "color", key: "glassBg", label: "رنگ پس‌زمینه کارت شیشه‌ای" },
+  { kind: "color", key: "glassBorder", label: "رنگ حاشیه کارت شیشه‌ای" },
+]
+const RATIO_OPTS = [{ value: "4/5", label: "عمودی ۴:۵" }, { value: "3/4", label: "عمودی ۳:۴" }, { value: "2/3", label: "عمودی ۲:۳" }, { value: "1/1", label: "مربع" }, { value: "16/10", label: "افقی" }]
+const frame: FieldDef = { kind: "select", key: "frame", label: "قاب تصویر", options: [{ value: "arch", label: "محرابی (طاق)" }, { value: "rounded", label: "گرد" }, { value: "square", label: "ساده" }] }
+const pattern: FieldDef = { kind: "switch", key: "pattern", label: "پس‌زمینه نقش اسلیمی" }
+const SOCIALS: FieldDef = { kind: "repeater", key: "socials", label: "شبکه‌های اجتماعی", fields: [
+  { key: "network", label: "شبکه", kind: "select", options: [{ value: "eitaa", label: "ایتا" }, { value: "telegram", label: "تلگرام" }, { value: "instagram", label: "اینستاگرام" }, { value: "bale", label: "بله" }, { value: "youtube", label: "یوتیوب" }, { value: "aparat", label: "آپارات" }] },
+  { key: "href", label: "نشانی", kind: "url" },
+] }
+const PHOTO_MODE: FieldDef = { kind: "select", key: "photoMode", label: "حالت تصویر", options: [{ value: "photo", label: "عکس" }, { value: "logo", label: "لوگو (بدون عکس)" }, { value: "arabesque", label: "نقش اسلیمی (بدون عکس)" }] }
+const LOGO: FieldDef = { kind: "media", key: "logo", label: "لوگو برای حالت بدون عکس (خالی = لوگوی سایت)", accept: "image" }
+const ICONS = [{ value: "flame", label: "شعله" }, { value: "moon", label: "ماه" }, { value: "star", label: "ستاره" }, { value: "book", label: "کتاب" }, { value: "music", label: "صوت" }, { value: "video", label: "ویدیو" }]
+
+const CAROUSEL_FIELDS: FieldDef[] = [
+  { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "carousel", label: "اسلایدر (کاروسل)" }, { value: "grid", label: "شبکه (چند ردیف)" }, { value: "grid3", label: "ساده سه‌ستونی" }] },
+  { kind: "number", key: "slidesDesktop", label: "تعداد اسلاید در دسکتاپ", min: 1, max: 8 },
+  { kind: "slider", key: "slidesMobile", label: "تعداد اسلاید در موبایل", min: 1, max: 3, step: 0.1 },
+  { kind: "switch", key: "autoplay", label: "پخش خودکار" },
+  { kind: "number", key: "autoplayInterval", label: "فاصله پخش خودکار (ثانیه)", min: 2, max: 30 },
+]
+
+export const POETRY_WIDGET_TYPES = [
+  "poetry-hero", "story-strip", "poem-list", "poem-carousel", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
+  "story-highlights", "audio-playlist", "video-gallery", "occasion-grid",
+] as const
+
+const DECOR_FRAMES = [{ value: "rose-arch", label: "محراب گل‌سرخی" }, { value: "arch", label: "محرابی ساده" }, { value: "none", label: "بدون قاب" }]
+
+export const POETRY_WIDGETS: WidgetDef[] = [
+  {
+    type: "poetry-hero", label: "هیرو شعر (تصویر کناری + بیت عمودی)", category: "content",
+    fields: [
+      { kind: "text", key: "eyebrow", label: "برچسب بالا" },
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "text", label: "متن" },
+      { kind: "text", key: "primaryLabel", label: "دکمه اصلی" }, { kind: "link", key: "primaryHref", label: "پیوند دکمه اصلی" },
+      { kind: "text", key: "secondaryLabel", label: "دکمه دوم" }, { kind: "link", key: "secondaryHref", label: "پیوند دکمه دوم" },
+      { kind: "media", key: "image", label: "تصویر", accept: "image" }, { kind: "text", key: "imageAlt", label: "متن جایگزین تصویر" }, { ...PHOTO_MODE, options: [...(PHOTO_MODE as { options: { value: string; label: string }[] }).options, { value: "none", label: "بدون تصویر و بیت" }] } as FieldDef, LOGO,
+      { kind: "textarea", key: "couplet", label: "بیت عمودی (هر مصراع یک خط)" },
+      { kind: "select", key: "heroLayout", label: "چیدمان هیرو", options: [{ value: "split", label: "تصویر کنار متن (پیش‌فرض)" }, { value: "overlay", label: "تصویر پشت متن + تزئین دو طرف" }, { value: "fullwidth", label: "تمام‌عرض: عکس کامل، متن سمت راست، بدون قاب" }] },
+      { kind: "repeater", key: "slides", label: "اسلایدها (خالی = همان تصویر تکی)", fields: [
+        { key: "image", label: "تصویر", kind: "media" }, { key: "title", label: "عنوان", kind: "text" }, { key: "text", label: "متن", kind: "text" },
+        { key: "primaryLabel", label: "دکمه اصلی", kind: "text" }, { key: "primaryHref", label: "پیوند دکمه اصلی", kind: "url" },
+        { key: "secondaryLabel", label: "دکمه دوم", kind: "text" }, { key: "secondaryHref", label: "پیوند دکمه دوم", kind: "url" },
+      ] },
+      { kind: "switch", key: "sliderAutoplay", label: "پخش خودکار اسلایدها" },
+      { kind: "number", key: "sliderInterval", label: "فاصله پخش خودکار اسلایدها (ثانیه)", min: 2, max: 30 },
+      { kind: "switch", key: "sliderDots", label: "نقطه‌های اسلایدر" },
+      { kind: "switch", key: "sliderArrows", label: "فلش‌های اسلایدر" },
+      { kind: "number", key: "sliderHeight", label: "ارتفاع اسلایدر در دسکتاپ (px)", min: 280, max: 900 },
+      { kind: "number", key: "sliderHeightMobile", label: "ارتفاع اسلایدر در موبایل (px، ۰ یعنی خودکار)", min: 0, max: 900 },
+      { kind: "number", key: "heroHeightMobile", label: "ارتفاع هیرو در موبایل (px، ۰ یعنی خودکار)", min: 0, max: 900 },
+      { kind: "media", key: "decorLeft", label: "تصویر تزئینی چپ (مثلاً محراب گل‌دار)", accept: "image" },
+      { kind: "select", key: "decorLeftFrame", label: "قاب تصویر چپ", options: DECOR_FRAMES },
+      { kind: "media", key: "decorRight", label: "تصویر تزئینی راست (مثلاً حرم)", accept: "image" },
+      { kind: "select", key: "decorRightFrame", label: "قاب تصویر راست", options: DECOR_FRAMES },
+      { kind: "number", key: "heroVeil", label: "روشنی پرده روی تصویر پس‌زمینه (۰ تا ۱۰۰)", min: 0, max: 100 },
+      tone, frame, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/poems", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", photoMode: "photo", logo: "", tone: "light", frame: "arch", pattern: true }),
+  },
+  {
+    /** Reuses shop ProductStory API + ClassicStoryStrip; poetry defaults to rectangular carousel cards. */
+    type: "story-strip", label: "هایلایت‌ها (استوری)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "number", key: "limit", label: "تعداد (۰ = همه)", min: 0, max: 48 },
+      { kind: "select", key: "variant", label: "پالت", options: [{ value: "poetry", label: "شعر (زرشکی/طلایی)" }, { value: "", label: "فروشگاهی (پیش‌فرض)" }] },
+      { kind: "select", key: "layout", label: "نمایش", options: [{ value: "carousel", label: "کروسل کارت (مثل محصولات)" }, { value: "rings", label: "حلقه‌های دایره‌ای" }] },
+      { kind: "select", key: "tone", label: "زمینه", options: [{ value: "", label: "پیش‌فرض" }, { value: "glass", label: "شیشه‌ای (سفید نیمه‌شفاف با محو پس‌زمینه)" }] },
+    ],
+    create: () => node("story-strip", { title: "هایلایت‌ها", limit: 0, variant: "poetry", layout: "carousel" }),
+  },
+  {
+    type: "poem-list", label: "فهرست آخرین اشعار (با پخش صوت)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "number", key: "count", label: "تعداد اشعار (خودکار)", min: 1, max: 24 },
+      { kind: "switch", key: "premiumOnly", label: "فقط اشعار ویژه (قفل‌دار)" },
+      { kind: "select", key: "sort", label: "ترتیب (خودکار)", options: [{ value: "", label: "تازه‌ترین" }, { value: "popular", label: "پربازدیدترین" }] },
+      { kind: "link", key: "detailHref", label: "صفحه شعر" },
+      { kind: "repeater", key: "items", label: "اشعار دستی (خالی = خودکار از ماژول شعر)", fields: [
+        { key: "title", label: "عنوان", kind: "text" }, { key: "tag", label: "مناسبت", kind: "text" },
+        { key: "audio", label: "فایل صوتی", kind: "media" }, { key: "duration", label: "مدت (۰۴:۳۲)", kind: "text" }, { key: "href", label: "پیوند", kind: "url" }, { key: "image", label: "تصویر (اختیاری)", kind: "media" },
+      ] },
+      { kind: "text", key: "readLabel", label: "منو: خواندن" }, { kind: "text", key: "downloadLabel", label: "منو: دانلود" },
+      { kind: "text", key: "moreLabel", label: "متن «همه اشعار»" }, { kind: "link", key: "moreHref", label: "پیوند همه اشعار" },
+      tone, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("poem-list", { title: "آخرین اشعار", count: 6, sort: "", detailHref: "/poem?poem={slug}", items: "", readLabel: "خواندن شعر", downloadLabel: "دانلود صوت", moreLabel: "همه اشعار", moreHref: "/poems", tone: "light" }),
+  },
+  {
+    type: "poem-carousel", label: "کروسل اشعار کوتاه (متن کامل)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "select", key: "filter", label: "منبع اشعار", options: [
+        { value: "short", label: "اشعار کوتاه" },
+        { value: "style", label: "سبک (نامک، مثلاً دوبیتی یا رباعی)" },
+        { value: "all", label: "همه اشعار منتشرشده" },
+      ] },
+      { kind: "text", key: "style", label: "نامک سبک (خالی در حالت سبک = همه سبک‌ها؛ چند نامک با ویرگول)" },
+      { kind: "number", key: "count", label: "تعداد اشعار (خودکار)", min: 1, max: 24 },
+      { kind: "select", key: "sort", label: "ترتیب (خودکار)", options: [{ value: "", label: "تازه‌ترین" }, { value: "popular", label: "پربازدیدترین" }] },
+      { kind: "link", key: "detailHref", label: "صفحه شعر" },
+      { kind: "switch", key: "showTitle", label: "نمایش عنوان شعر روی کارت" },
+      { kind: "switch", key: "showTag", label: "نمایش سبک روی کارت" },
+      { kind: "repeater", key: "items", label: "اشعار دستی (خالی = خودکار از ماژول شعر)", fields: [
+        { key: "title", label: "عنوان", kind: "text" },
+        { key: "lines", label: "متن کامل (هر مصراع یک خط)", kind: "textarea" },
+        { key: "href", label: "پیوند", kind: "url" },
+        { key: "tag", label: "سبک (مثلاً دوبیتی)", kind: "text" },
+      ] },
+      { kind: "text", key: "moreLabel", label: "متن «همه اشعار»" }, { kind: "link", key: "moreHref", label: "پیوند همه اشعار" },
+      { kind: "text", key: "readLabel", label: "متن دکمه خواندن کامل" },
+      { kind: "select", key: "companion", label: "کنار کروسل", options: [{ value: "", label: "هیچ" }, { value: "latest", label: "فهرست تازه‌ترین اشعار (در همین بخش)" }] },
+      { kind: "text", key: "companionTitle", label: "عنوان فهرست کناری" }, { kind: "number", key: "companionCount", label: "تعداد فهرست کناری", min: 3, max: 12 },
+      { kind: "text", key: "companionMoreLabel", label: "متن «همه» فهرست کناری" }, { kind: "link", key: "companionMoreHref", label: "پیوند «همه» فهرست کناری" },
+      { kind: "select", key: "companionSide", label: "جای فهرست کناری", options: [{ value: "end", label: "سمت چپ (پیش‌فرض)" }, { value: "start", label: "سمت راست" }] },
+      { kind: "number", key: "companionSlides", label: "تعداد کارت در دسکتاپ کنار فهرست", min: 1, max: 3 },
+      { kind: "text", key: "premiumLabel", label: "برچسب دکمه اشتراک ویژه (شعر قفل)" }, { kind: "link", key: "premiumHref", label: "صفحه اشتراک ویژه" },
+      ...CAROUSEL_FIELDS,
+      tone, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("poem-carousel", { title: "اشعار کوتاه", filter: "short", style: "", count: 8, sort: "", detailHref: "/poem?poem={slug}", showTitle: true, showTag: true, items: "", moreLabel: "همه اشعار", moreHref: "/poems", layout: "carousel", slidesDesktop: 2, slidesMobile: 1, autoplay: false, autoplayInterval: 5, tone: "glass" }),
+  },
+  {
+    type: "book-banner", label: "بنر کتاب + «خبرم کن»", category: "content",
+    fields: [
+      { kind: "media", key: "image", label: "جلد کتاب", accept: "image" }, PHOTO_MODE, LOGO,
+      { kind: "text", key: "eyebrow", label: "برچسب" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "متن" },
+      { kind: "switch", key: "showNotifyInput", label: "نمایش فیلد شماره یا ایمیل" }, { kind: "text", key: "placeholder", label: "متن راهنمای ورودی" }, { kind: "text", key: "buttonLabel", label: "متن دکمه" }, { kind: "text", key: "success", label: "پیام موفقیت" },
+      tone, frame, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("book-banner", { title: "کتاب تازه به‌زودی", text: "", eyebrow: "به‌زودی", buttonLabel: "خبرم کن", photoMode: "photo", logo: "", tone: "dark", frame: "rounded", pattern: true }),
+  },
+  {
+    type: "occasion-cards", label: "کارت‌های مناسبت (اسلایدر)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "repeater", key: "items", label: "مناسبت‌ها", fields: [
+        { key: "title", label: "عنوان", kind: "text" }, { key: "image", label: "تصویر زمینه", kind: "media" },
+        { key: "icon", label: "آیکن", kind: "select", options: ICONS }, { key: "href", label: "پیوند", kind: "url" }, { key: "subtitle", label: "زیرعنوان", kind: "text" },
+      ] },
+      ...CAROUSEL_FIELDS,
+      { kind: "select", key: "cardRatio", label: "نسبت کارت", options: RATIO_OPTS },
+      { kind: "number", key: "cardHeight", label: "ارتفاع کارت (px، ۰ یعنی از روی نسبت)", min: 0, max: 600 },
+      tone, frame, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("occasion-cards", { title: "مناسبت‌ها", items: "محرم||flame|/poems?occasion=muharram\nفاطمیه||moon|/poems?occasion=fatemiyeh\nماه رمضان||star|/poems?occasion=ramadan\nمدح و مناجات||book|/poems?occasion=madh", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, cardRatio: "4/5", tone: "light", frame: "rounded" }),
+  },
+  {
+    type: "media-cards", label: "کارت‌های صوت و تصویر", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "select", key: "source", label: "منبع", options: [{ value: "live", label: "صوت و ویدیوی ثبت‌شده در اشعار (پیش‌فرض)" }, { value: "manual", label: "ردیف‌های دستی زیر" }] }, { kind: "number", key: "count", label: "تعداد (خودکار)", min: 1, max: 24 },
+      { kind: "repeater", key: "items", label: "رسانه‌ها (فقط در منبع دستی؛ ردیف بدون فایل/پیوند نمایش داده نمی‌شود)", fields: [
+        { key: "title", label: "عنوان", kind: "text" }, { key: "cover", label: "کاور", kind: "media" }, { key: "reciter", label: "مداح/قاری", kind: "text" },
+        { key: "duration", label: "مدت", kind: "text" }, { key: "src", label: "فایل", kind: "media" },
+        { key: "kind", label: "نوع", kind: "select", options: [{ value: "audio", label: "صوت" }, { value: "video", label: "ویدیو" }] },
+      ] },
+      { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "خودکار (پیش‌فرض)" }, { value: "grid3", label: "ساده سه‌ستونی" }] },
+      tone, frame, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("media-cards", { title: "صوت و تصویر", source: "live", count: 8, items: "", tone: "light", frame: "rounded" }),
+  },
+  {
+    type: "shop-showcase", label: "ویترین فروشگاه (قیمت تومان)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "repeater", key: "items", label: "محصولات", fields: [
+        { key: "title", label: "نام", kind: "text" }, { key: "image", label: "تصویر", kind: "media" },
+        { key: "price", label: "قیمت (تومان)", kind: "text" }, { key: "href", label: "پیوند", kind: "url" },
+      ] },
+      { kind: "select", key: "source", label: "منبع محصولات", options: [{ value: "catalog", label: "محصولات واقعی فروشگاه" }, { value: "manual", label: "فقط فهرست دستی" }] },
+      { kind: "number", key: "count", label: "تعداد محصول", min: 1, max: 24 },
+      { kind: "text", key: "category", label: "دسته (نامک، خالی = همه)" },
+      { kind: "select", key: "imageRatio", label: "نسبت تصویر محصول", options: RATIO_OPTS },
+      { kind: "text", key: "moreLabel", label: "متن «مشاهده همه»" }, { kind: "link", key: "moreHref", label: "پیوند مشاهده همه" },
+      { kind: "text", key: "buttonLabel", label: "متن دکمه" }, { kind: "text", key: "priceLabel", label: "متن جایگزین قیمت (درگاه خاموش)" },
+      ...CAROUSEL_FIELDS,
+      { kind: "number", key: "slidesNarrow", label: "تعداد کارت وقتی ستون باریک است (نصف‌عرض؛ ۰ = خاموش)", min: 0, max: 4 },
+      { kind: "switch", key: "compactCards", label: "کارت فشرده (عنوان دوخطی، دکمه کوچک)" },
+      { kind: "select", key: "imageFit", label: "نمایش تصویر محصول", options: [{ value: "cover", label: "پرکردن قاب (پیش‌فرض)" }, { value: "contain", label: "کامل (بدون برش)" }] },
+      tone, frame, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("shop-showcase", { title: "فروشگاه قاب‌های مذهبی", items: "", source: "catalog", count: 6, category: "", imageRatio: "1/1", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, moreLabel: "مشاهده همه", moreHref: "/shop", buttonLabel: "مشاهده محصول", priceLabel: "قیمت (از مشتری)", tone: "light", frame: "rounded" }),
+  },
+  {
+    type: "poet-about", label: "درباره شاعر", category: "content",
+    fields: [
+      PHOTO_MODE, { kind: "media", key: "image", label: "تصویر (فقط در حالت عکس)", accept: "image" }, LOGO,
+      { kind: "text", key: "eyebrow", label: "برچسب" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "متن" },
+      SOCIALS, { kind: "text", key: "linkLabel", label: "متن «بیشتر بخوانید»" }, { kind: "link", key: "linkHref", label: "پیوند" },
+      { kind: "select", key: "aboutLayout", label: "چیدمان", options: [{ value: "auto", label: "خودکار (پیش‌فرض)" }, { value: "horizontal", label: "افقی: تصویر چپ، متن راست" }, { value: "compact", label: "باریک با نقل‌قول کنار" }] },
+      { kind: "textarea", key: "sideQuote", label: "نقل‌قول کنار (چیدمان باریک، هر مصراع یک خط)" }, { kind: "text", key: "sideQuoteAuthor", label: "گوینده نقل‌قول کنار" },
+      { kind: "select", key: "card", label: "کارت", options: [{ value: "none", label: "بدون کارت" }, { value: "light", label: "کارت روشن" }] },
+      tone, frame, pattern, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("poet-about", { eyebrow: "درباره شاعر", title: "", text: "", linkLabel: "بیشتر بخوانید", linkHref: "/about", photoMode: "logo", logo: "", tone: "light", frame: "arch" }),
+  },
+  {
+    type: "quote-block", label: "نقل‌قول (گیومه بزرگ)", category: "content",
+    fields: [{ kind: "textarea", key: "text", label: "متن (هر مصراع یک خط)" }, { kind: "text", key: "author", label: "گوینده" }, tone, pattern, ...SECTION_BG_FIELDS],
+    create: () => node("quote-block", { text: "", author: "", tone: "dark", pattern: true }),
+  },
+  {
+    type: "poetry-footer", label: "پاورقی زرشکی", category: "chrome",
+    fields: [
+      { kind: "media", key: "logo", label: "لوگو", accept: "image" }, { kind: "text", key: "brand", label: "نام" }, { kind: "textarea", key: "text", label: "توضیح" },
+      { kind: "repeater", key: "links", label: "پیوندها", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }] },
+      { kind: "repeater", key: "socials", label: "شبکه‌های اجتماعی", fields: [
+        { key: "network", label: "شبکه", kind: "select", options: [{ value: "instagram", label: "اینستاگرام" }, { value: "telegram", label: "تلگرام" }, { value: "bale", label: "بله" }, { value: "eitaa", label: "ایتا" }, { value: "youtube", label: "یوتیوب" }, { value: "aparat", label: "آپارات" }] },
+        { key: "href", label: "نشانی", kind: "url" },
+      ] },
+      { kind: "text", key: "copyright", label: "کپی‌رایت" }, pattern,
+    ],
+    create: () => node("poetry-footer", { brand: "", text: "", links: "خانه|/\nاشعار|/poems\nفروشگاه|/shop\nتماس|/contact", socials: "", copyright: "", pattern: true }),
+  },
+  {
+    type: "story-highlights", label: "هایلایت‌های ۹:۱۶ (سبک استوری اینستاگرام، عمودی)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش (خالی = بدون عنوان)" },
+      { kind: "select", key: "source", label: "منبع", options: [{ value: "auto", label: "خودکار: هایلایت‌های اشعار، در نبودشان استوری‌های فروشگاه (پیش‌فرض)" }, { value: "highlights", label: "فقط هایلایت‌های اشعار (پیشخوان › اشعار › هایلایت‌ها)" }, { value: "stories", label: "استوری‌های فروشگاه" }, { value: "manual", label: "ردیف‌های دستی زیر" }] },
+      { kind: "repeater", key: "items", label: "هایلایت‌ها (فقط منبع دستی)", fields: [
+        { key: "title", label: "عنوان", kind: "text" }, { key: "subtitle", label: "زیرعنوان", kind: "text" }, { key: "cover", label: "کاور", kind: "media" },
+        { key: "video", label: "ویدیو (فقط با لمس دکمه پخش، بدون پخش خودکار)", kind: "media" }, { key: "href", label: "پیوند (برای هایلایت بدون ویدیو)", kind: "url" },
+      ] },
+      { kind: "number", key: "limit", label: "حداکثر تعداد (۰ = همه)", min: 0, max: 30 },
+      { kind: "text", key: "openLabel", label: "برچسب دکمه پیوند" },
+      { kind: "switch", key: "bookCard", label: "کارت «مجموعه همه اشعار در کتاب» در ابتدا" },
+      { kind: "text", key: "bookTitle", label: "عنوان کارت کتاب" }, { kind: "text", key: "bookSubtitle", label: "زیرعنوان کارت کتاب (خالی = تعداد اشعار)" },
+      { kind: "text", key: "bookSlug", label: "نامک کتاب (خالی = اولین کتاب منتشرشده)" },
+      { kind: "media", key: "bookCover", label: "تصویر کارت کتاب (خالی = جلد کتاب یا لوگو)", accept: "image" }, { kind: "text", key: "bookHref", label: "پیوند کارت کتاب ({slug} = نامک کتاب؛ خالی = پیوند خرید کتاب یا /poems)" }, { kind: "text", key: "bookLabel", label: "برچسب دکمه کارت کتاب" },
+      { kind: "number", key: "slidesDesktop", label: "تعداد کارت در دسکتاپ", min: 1, max: 8 },
+      { kind: "slider", key: "slidesMobile", label: "تعداد کارت در موبایل", min: 1, max: 4, step: 0.05 },
+      { kind: "switch", key: "arrows", label: "دکمه‌های قبلی/بعدی" }, LOGO,
+      tone, ...V2_COLOR_FIELDS, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("story-highlights", { title: "", source: "auto", items: "", limit: 0, bookCard: true, bookTitle: "مجموعه همه اشعار در کتاب", bookSubtitle: "", bookSlug: "", bookCover: "", bookHref: "", bookLabel: "مشاهده همه اشعار", slidesDesktop: 5, slidesMobile: 2.4, arrows: true, tone: "glass" }),
+  },
+  {
+    type: "audio-playlist", label: "پلی‌لیست صوتی (پخش‌کننده موسیقی)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "select", key: "source", label: "منبع", options: [{ value: "live", label: "صوت‌های ثبت‌شده (پیش‌فرض)" }, { value: "manual", label: "ردیف‌های دستی زیر" }] },
+      { kind: "number", key: "count", label: "تعداد (خودکار)", min: 1, max: 60 },
+      { kind: "text", key: "occasion", label: "فقط یک مناسبت (نام مناسبت؛ خالی = همه)" },
+      { kind: "repeater", key: "items", label: "صوت‌ها (فقط منبع دستی)", fields: [
+        { key: "title", label: "عنوان", kind: "text" }, { key: "src", label: "فایل", kind: "media" }, { key: "cover", label: "کاور", kind: "media" },
+        { key: "reciter", label: "مداح/قاری", kind: "text" }, { key: "duration", label: "مدت", kind: "text" },
+      ] },
+      { kind: "switch", key: "showDownload", label: "دکمه دانلود (طبق سهم دانلود کاربر)" }, { kind: "link", key: "loginHref", label: "صفحه ورود (برای دانلود)" }, { kind: "text", key: "downloadLabel", label: "برچسب دانلود" },
+      { kind: "textarea", key: "limitText", label: "پیام پایان سهم دانلود رایگان" },
+      { kind: "text", key: "premiumLabel", label: "برچسب دکمه اشتراک ویژه" }, { kind: "link", key: "premiumHref", label: "صفحه اشتراک ویژه" },
+      { kind: "text", key: "moreLabel", label: "برچسب «همه»" }, { kind: "link", key: "moreHref", label: "پیوند «همه»" },
+      { kind: "text", key: "emptyText", label: "متن نبود صوت" }, { kind: "switch", key: "hideWhenEmpty", label: "پنهان وقتی صوتی نیست" }, LOGO,
+      tone, ...V2_COLOR_FIELDS, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("audio-playlist", { title: "پلی‌لیست صوتی", source: "live", count: 30, occasion: "", items: "", showDownload: true, downloadLabel: "دانلود", premiumLabel: "خرید اشتراک ویژه", premiumHref: "/subscribe", moreLabel: "", moreHref: "/media", tone: "glass" }),
+  },
+  {
+    type: "video-gallery", label: "گالری ویدیو (پخش‌کننده + فهرست)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" },
+      { kind: "select", key: "source", label: "منبع", options: [{ value: "live", label: "ویدیوهای ثبت‌شده (پیش‌فرض)" }, { value: "manual", label: "ردیف‌های دستی زیر" }] },
+      { kind: "number", key: "count", label: "تعداد (خودکار)", min: 1, max: 60 },
+      { kind: "text", key: "occasion", label: "فقط یک مناسبت (خالی = همه)" },
+      { kind: "repeater", key: "items", label: "ویدیوها (فقط منبع دستی؛ فایل mp4 یا پیوند آپارات)", fields: [
+        { key: "title", label: "عنوان", kind: "text" }, { key: "src", label: "فایل/پیوند", kind: "media" }, { key: "cover", label: "کاور", kind: "media" },
+        { key: "reciter", label: "مداح/قاری", kind: "text" }, { key: "duration", label: "مدت", kind: "text" },
+      ] },
+      { kind: "text", key: "premiumLabel", label: "برچسب دکمه اشتراک ویژه" }, { kind: "link", key: "premiumHref", label: "صفحه اشتراک ویژه" },
+      { kind: "text", key: "emptyText", label: "متن نبود ویدیو" }, { kind: "switch", key: "hideWhenEmpty", label: "پنهان وقتی ویدیویی نیست" }, LOGO,
+      { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "stage", label: "پخش‌کننده + فهرست (پیش‌فرض)" }, { value: "carousel", label: "کروسل کارت‌های ۱۶:۹" }] },
+      { kind: "number", key: "slidesDesktop", label: "تعداد کارت در دسکتاپ (کروسل)", min: 1, max: 6 },
+      { kind: "number", key: "slidesMobile", label: "تعداد کارت در موبایل (کروسل)", min: 1, max: 4 },
+      tone, ...V2_COLOR_FIELDS, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("video-gallery", { title: "ویدیوها", source: "live", count: 24, items: "", premiumLabel: "خرید اشتراک ویژه", premiumHref: "/subscribe", hideWhenEmpty: false, layout: "stage", slidesDesktop: 3, slidesMobile: 1.2, tone: "glass" }),
+  },
+  {
+    type: "occasion-grid", label: "شبکه مناسبت‌ها (برای صفحه مناسبت‌ها)", category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان بخش" }, { kind: "textarea", key: "text", label: "توضیح" },
+      { kind: "number", key: "columns", label: "ستون در دسکتاپ", min: 2, max: 5 },
+      { kind: "switch", key: "showEmpty", label: "نمایش مناسبت‌های بدون شعر" },
+      { kind: "text", key: "detailHref", label: "پیوند هر مناسبت ({slug} جایگزین می‌شود)" },
+      { kind: "switch", key: "inlineDetail", label: "نمایش صفحه مناسبت در همین صفحه با ?occasion=" },
+      { kind: "link", key: "backHref", label: "پیوند «همه مناسبت‌ها»" }, { kind: "text", key: "poemHref", label: "پیوند شعر ({slug})" },
+      { kind: "text", key: "emptyText", label: "متن نبود مناسبت" },
+      { kind: "text", key: "premiumLabel", label: "برچسب دکمه اشتراک ویژه" }, { kind: "link", key: "premiumHref", label: "صفحه اشتراک ویژه" },
+      tone, ...V2_COLOR_FIELDS, ...SECTION_BG_FIELDS,
+    ],
+    create: () => node("occasion-grid", { title: "مناسبت‌ها", text: "", columns: 4, showEmpty: false, detailHref: "/occasions?occasion={slug}", inlineDetail: true, backHref: "/occasions", poemHref: "/poem?poem={slug}", tone: "glass" }),
+  },
+]
+
+/** every widget here gets `mobileFullWidth` (edge-to-edge on phones, default on). */
+export const MOBILE_FULL_WIDTH_FIELD: FieldDef = { kind: "switch", key: "mobileFullWidth", label: "تمام‌عرض در موبایل" }
+export const MOBILE_PADDING_Y_FIELD: FieldDef = { kind: "number", key: "mobilePaddingY", label: "فاصله بالا/پایین در موبایل (px)", min: 0, max: 160 }
+export const MOBILE_GAP_FIELD: FieldDef = { kind: "number", key: "mobileGap", label: "فاصله تا بخش بعد در موبایل (px)", min: 0, max: 160 }
+for (const d of POETRY_WIDGETS) if (!d.fields.some((f) => "key" in f && f.key === "mobileFullWidth")) {
+  d.fields.push(MOBILE_FULL_WIDTH_FIELD)
+  if (d.category !== "chrome") d.fields.push(MOBILE_PADDING_Y_FIELD, MOBILE_GAP_FIELD)
+  const make = d.create
+  const chrome = d.category === "chrome"
+  d.create = () => {
+    const n = make()
+    if (n.props.mobileFullWidth === undefined) n.props.mobileFullWidth = true
+    if (!chrome && n.props.mobilePaddingY === undefined) n.props.mobilePaddingY = 44
+    if (!chrome && n.props.mobileGap === undefined) n.props.mobileGap = 28
+    return n
+  }
+}
+
+/**
+ * `desktopWidth` (section widgets except footer): full (default) | half (50%) | wide (60%) | narrow (40%).
+ * On desktop (>=992px) adjacent non-full widgets/sections share one row (24px gap, equal height),
+ * e.g. half+half or wide+narrow. Phones/tablets always stack full width (mobileFullWidth etc. unchanged).
+ */
+export const DESKTOP_WIDTH_FIELD: FieldDef = {
+  kind: "select", key: "desktopWidth", label: "عرض در دسکتاپ (بخش‌های غیرتمام‌عرضِ پشت‌سرهم کنار هم می‌نشینند)",
+  options: [
+    { value: "full", label: "تمام‌عرض" },
+    { value: "half", label: "نصف (۵۰٪)" },
+    { value: "wide", label: "پهن (۶۰٪) — کنار «باریک»" },
+    { value: "narrow", label: "باریک (۴۰٪) — کنار «پهن»" },
+  ],
+}
+/** `fullBleed` (default off): with desktopWidth=full, the widget breaks out of the boxed wrapper to the viewport edges. */
+export const FULL_BLEED_FIELD: FieldDef = { kind: "switch", key: "fullBleed", label: "تمام‌عرض تا لبه صفحه (فقط با عرض «تمام‌عرض»)" }
+for (const d of POETRY_WIDGETS) if (d.type !== "poetry-footer" && !d.fields.some((f) => "key" in f && f.key === "desktopWidth")) {
+  d.fields.push(DESKTOP_WIDTH_FIELD, FULL_BLEED_FIELD)
+  const make = d.create
+  d.create = () => { const n = make(); if (n.props.desktopWidth === undefined) n.props.desktopWidth = "full"; return n }
+}

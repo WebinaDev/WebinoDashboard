@@ -24,6 +24,9 @@ type RolesPayload = {
 }
 
 type MenuAclEntry = { menu_key: string; allowed: boolean }
+type EmployeeRow = { id: number; name: string; email: string; role: string; is_active: boolean }
+type UserOverride = { user_id: number; capability: string; effect: "allow" | "deny" }
+type EmployeeAccessPayload = { users: EmployeeRow[]; overrides: Record<string, UserOverride[]>; available_capabilities: string[] }
 
 const selectClass = "border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
 
@@ -74,6 +77,8 @@ export default function RbacPage() {
   const [menuEntries, setMenuEntries] = useState<Record<string, boolean>>({})
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
+  const [selectedEmployee, setSelectedEmployee] = useState("")
+  const [employeeOverrides, setEmployeeOverrides] = useState<Record<string, "allow" | "deny">>({})
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-roles"],
@@ -101,9 +106,30 @@ export default function RbacPage() {
     },
   })
 
+  const employeeAccessQ = useQuery({
+    queryKey: ["rbac-employee-access"],
+    queryFn: async () => {
+      const body = await api<EmployeeAccessPayload | { data: EmployeeAccessPayload }>("/api/v1/roles/users")
+      if (body && typeof body === "object" && "users" in body) return body as EmployeeAccessPayload
+      if (body && typeof body === "object" && "data" in body) return (body as { data: EmployeeAccessPayload }).data
+      return { users: [], overrides: {}, available_capabilities: [] }
+    },
+  })
+
   const roles = useMemo(() => data?.roles ?? [], [data?.roles])
   const permissions = useMemo(() => data?.permissions ?? {}, [data?.permissions])
   const availableCaps = data?.available_capabilities ?? []
+  const employeeAccess = employeeAccessQ.data
+  const employee = employeeAccess?.users.find((row) => String(row.id) === selectedEmployee)
+  const employeeCaps = employeeAccess?.available_capabilities ?? availableCaps
+
+  useEffect(() => {
+    const current = (employeeAccess?.overrides?.[selectedEmployee] ?? []).reduce<Record<string, "allow" | "deny">>((map, item) => {
+      map[item.capability] = item.effect
+      return map
+    }, {})
+    setEmployeeOverrides(current)
+  }, [employeeAccess, selectedEmployee])
 
   useEffect(() => {
     const caps = permissions[editRole] ?? roles.find((r) => r.name === editRole)?.capabilities ?? []
@@ -128,6 +154,7 @@ export default function RbacPage() {
       setError(null)
       setUserId("")
       await queryClient.invalidateQueries({ queryKey: ["admin-roles"] })
+      await queryClient.invalidateQueries({ queryKey: ["rbac-employee-access"] })
     },
     onError: (e: Error) => {
       setOk(null)
@@ -172,6 +199,22 @@ export default function RbacPage() {
     },
   })
 
+  const saveEmployeeOverrides = useMutation({
+    mutationFn: () => api(`/api/v1/roles/users/${Number(selectedEmployee)}/capabilities`, {
+      method: "PUT",
+      json: { overrides: Object.entries(employeeOverrides).map(([capability, effect]) => ({ capability, effect })) },
+    }),
+    onSuccess: async () => {
+      setOk(t("employee_access_saved"))
+      setError(null)
+      await queryClient.invalidateQueries({ queryKey: ["rbac-employee-access"] })
+    },
+    onError: (e: Error) => {
+      setOk(null)
+      setError(getApiErrorMessage(e))
+    },
+  })
+
   const statItems = useMemo(
     () => roles.map((r) => ({ id: r.name, label: r.name, value: r.users_count })),
     [roles],
@@ -192,8 +235,11 @@ export default function RbacPage() {
 
       <div className="grid gap-3 rounded-lg border border-border bg-card/40 p-4 md:grid-cols-3">
         <div>
-          <Label>{t("user_id")}</Label>
-          <Input className="mt-1" type="number" value={userId} onChange={(e) => setUserId(e.target.value)} />
+          <Label>{t("employee")}</Label>
+          <select className={`${selectClass} mt-1`} value={userId} onChange={(e) => setUserId(e.target.value)}>
+            <option value="">{t("select_employee")}</option>
+            {(employeeAccess?.users ?? []).filter((row) => row.role !== "admin").map((row) => <option key={row.id} value={row.id}>{row.name} · {row.email}</option>)}
+          </select>
         </div>
         <div>
           <Label>{t("role")}</Label>
@@ -272,6 +318,47 @@ export default function RbacPage() {
               {t("save_menu_acl")}
             </Button>
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/40">
+        <div className="border-b px-4 py-3">
+          <h2 className="text-sm font-medium">{t("employee_access_heading")}</h2>
+          <p className="text-muted-foreground mt-1 text-xs">{t("employee_access_help")}</p>
+        </div>
+        <div className="space-y-4 p-4">
+          <div className="max-w-xl">
+            <Label htmlFor="rbac-employee">{t("employee")}</Label>
+            <select id="rbac-employee" className={`${selectClass} mt-1`} value={selectedEmployee} onChange={(event) => setSelectedEmployee(event.target.value)}>
+              <option value="">{t("select_employee")}</option>
+              {(employeeAccess?.users ?? []).filter((row) => row.role !== "admin").map((row) => (
+                <option key={row.id} value={row.id}>{row.name} · {row.email} · {t(`roles.${row.role}`, { defaultValue: row.role })}</option>
+              ))}
+            </select>
+          </div>
+          {employee ? <>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">{employee.name}</span><Badge variant="outline">{t(`roles.${employee.role}`, { defaultValue: employee.role })}</Badge>
+              <Badge variant={employee.is_active ? "secondary" : "destructive"}>{employee.is_active ? t("employee_active") : t("employee_inactive")}</Badge>
+            </div>
+            <div className="max-h-[28rem] overflow-auto rounded-md border">
+              <div className="grid grid-cols-[minmax(0,1fr)_9rem] gap-2 border-b bg-muted/40 px-3 py-2 text-xs font-medium"><span>{t("capability")}</span><span>{t("override")}</span></div>
+              {employeeCaps.map((capability) => <div key={capability} className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-2 border-b px-3 py-2 last:border-0">
+                <code className="break-all text-xs">{capability}</code>
+                <select aria-label={`${t("override")} ${capability}`} className={selectClass} value={employeeOverrides[capability] ?? "inherit"} onChange={(event) => setEmployeeOverrides((current) => {
+                  const next = { ...current }
+                  if (event.target.value === "inherit") delete next[capability]
+                  else next[capability] = event.target.value as "allow" | "deny"
+                  return next
+                })}>
+                  <option value="inherit">{t("inherit_role")}</option>
+                  <option value="allow">{t("explicit_allow")}</option>
+                  <option value="deny">{t("explicit_deny")}</option>
+                </select>
+              </div>)}
+            </div>
+            <Button size="sm" disabled={saveEmployeeOverrides.isPending} onClick={() => saveEmployeeOverrides.mutate()}>{t("save_employee_access")}</Button>
+          </> : <p className="text-muted-foreground text-sm">{t("select_employee_help")}</p>}
         </div>
       </div>
 

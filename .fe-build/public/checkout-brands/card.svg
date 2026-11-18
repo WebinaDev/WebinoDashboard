@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Online payment">
+  <rect width="96" height="96" rx="20" fill="#0F766E"/>
+  <rect x="18" y="30" width="60" height="38" rx="8" fill="#fff"/>
+  <rect x="18" y="38" width="60" height="10" fill="#115E59"/>
+  <rect x="28" y="54" width="22" height="7" rx="2" fill="#99F6E4"/>
+</svg>

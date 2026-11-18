@@ -1,0 +1,1357 @@
+"use client"
+
+import { useBuilderMoney } from "../money"
+import "./doodle-widgets.css"
+import "./hero-widget.css"
+
+import { useMenuTree } from "@/lib/nav-menus"
+import DOMPurify from "dompurify"
+import { Heart, ShieldCheck, Sparkles, Star, Truck } from "lucide-react"
+import dynamic from "next/dynamic"
+import Link from "next/link"
+import { useLocale, useTranslations } from "next-intl"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+
+import { embedVideoSrc, sanitizeBuilderHtml } from "./sanitize-html"
+import {
+  toneClass,
+  type ShopProduct,
+} from "../catalog"
+import { useCatalog } from "../storefront/use-catalog"
+import { fillDocumentTokens } from "../theme/tokens"
+import { propBool, propNum, propStr, parseLinks, linkAttrs, parseRows } from "../props"
+import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
+import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
+import { splitRows } from "./split-rows"
+
+import { Img } from "./img"
+
+const AccountDashboardWidget = dynamic(() => import("./classic-widgets").then((m) => m.AccountDashboardWidget))
+const AddToCartBoxWidget = dynamic(() => import("./classic-widgets").then((m) => m.AddToCartBoxWidget))
+const AmazingHeaderWidget = dynamic(() => import("./classic-widgets").then((m) => m.AmazingHeaderWidget))
+const AmazingOffersBlockWidget = dynamic(() => import("./classic-widgets").then((m) => m.AmazingOffersBlockWidget))
+const BlogSliderWidget = dynamic(() => import("./classic-widgets").then((m) => m.BlogSliderWidget))
+const BlogTocWidget = dynamic(() => import("./classic-widgets").then((m) => m.BlogTocWidget))
+const BreadcrumbsWidget = dynamic(() => import("./classic-widgets").then((m) => m.BreadcrumbsWidget))
+const MegaMenuWidget = dynamic(() => import("./classic-widgets").then((m) => m.MegaMenuWidget))
+const MostViewedWidget = dynamic(() => import("./classic-widgets").then((m) => m.MostViewedWidget))
+const PackageBlockWidget = dynamic(() => import("./classic-widgets").then((m) => m.PackageBlockWidget))
+const ProductGalleryWidget = dynamic(() => import("./classic-widgets").then((m) => m.ProductGalleryWidget))
+const ProductReviewsWidget = dynamic(() => import("./classic-widgets").then((m) => m.ProductReviewsWidget))
+const ProductQuestionsWidget = dynamic(() => import("./classic-widgets").then((m) => m.ProductQuestionsWidget))
+const TasteBoxWidget = dynamic(() => import("./classic-widgets").then((m) => m.TasteBoxWidget))
+const StoreFilters = dynamic(() => import("../storefront/ui").then((m) => m.StoreFilters))
+const StoreProductCard = dynamic(() => import("../storefront/ui").then((m) => m.StoreProductCard))
+const StorefrontAccount = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontAccount))
+const StorefrontCart = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontCart))
+const StorefrontCheckout = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontCheckout))
+const StorefrontFooter = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontFooter))
+const StorefrontHeader = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontHeader))
+const StorefrontProduct = dynamic(() => import("../storefront/ui").then((m) => m.StorefrontProduct))
+const BadgesWidget = dynamic(() => import("./content-widgets").then((m) => m.BadgesWidget))
+const ComparisonTableWidget = dynamic(() => import("./content-widgets").then((m) => m.ComparisonTableWidget))
+const CtaBannerWidget = dynamic(() => import("./content-widgets").then((m) => m.CtaBannerWidget))
+const CalloutWidget = dynamic(() => import("./content-widgets").then((m) => m.CalloutWidget))
+const IconCardsWidget = dynamic(() => import("./content-widgets").then((m) => m.IconCardsWidget))
+const BlobImageWidget = dynamic(() => import("./doodle-widgets").then((m) => m.BlobImageWidget))
+const TintCardsWidget = dynamic(() => import("./doodle-widgets").then((m) => m.TintCardsWidget))
+const CircleBadgesWidget = dynamic(() => import("./doodle-widgets").then((m) => m.CircleBadgesWidget))
+const SectionHeadingWidget = dynamic(() => import("./content-widgets").then((m) => m.SectionHeadingWidget))
+const StepsWidget = dynamic(() => import("./content-widgets").then((m) => m.StepsWidget))
+const FormWidget = dynamic(() => import("./form-widget").then((m) => m.FormWidget))
+const PopupWidget = dynamic(() => import("./popup-widget").then((m) => m.PopupWidget))
+const FlipBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.FlipBoxWidget))
+const HotspotWidget = dynamic(() => import("./pro-widgets").then((m) => m.HotspotWidget))
+const ImageBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.ImageBoxWidget))
+const LinkedProductsWidget = dynamic(() => import("./pro-widgets").then((m) => m.LinkedProductsWidget))
+const LoopGridWidget = dynamic(() => import("./pro-widgets").then((m) => m.LoopGridWidget))
+const MenuCartWidget = dynamic(() => import("./pro-widgets").then((m) => m.MenuCartWidget))
+const NavDropdownWidget = dynamic(() => import("./pro-widgets").then((m) => m.NavDropdownWidget))
+const PurchaseSummaryWidget = dynamic(() => import("./pro-widgets").then((m) => m.PurchaseSummaryWidget))
+const StateBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.StateBoxWidget))
+const TocWidget = dynamic(() => import("./pro-widgets").then((m) => m.TocWidget))
+const LoopFilterWidget = dynamic(() => import("./loop-filter").then((m) => m.LoopFilterWidget))
+const ArchiveFiltersWidget = dynamic(() => import("./archive-filters").then((m) => m.ArchiveFiltersWidget))
+const CafeTableBookingWidget = dynamic(() => import("./cafe-booking-widget").then((m) => m.CafeTableBookingWidget))
+const CafeHeroWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeHeroWidget))
+const CafeMenuBoardWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeMenuBoardWidget))
+const CafeHoursWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeHoursWidget))
+const CafeGalleryWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeGalleryWidget))
+const CafeStoryWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeStoryWidget))
+const CafeReserveCtaWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeReserveCtaWidget))
+const CafeCategoryStripWidget = dynamic(() => import("./cafe-widgets").then((m) => m.CafeCategoryStripWidget))
+const AcademyHeroWidget = dynamic(() => import("./academy-widgets").then((m) => m.AcademyHeroWidget))
+const CourseGridWidget = dynamic(() => import("./academy-widgets").then((m) => m.CourseGridWidget))
+const InstructorGridWidget = dynamic(() => import("./academy-widgets").then((m) => m.InstructorGridWidget))
+const CurriculumTimelineWidget = dynamic(() => import("./academy-widgets").then((m) => m.CurriculumTimelineWidget))
+const EnrollCtaWidget = dynamic(() => import("./academy-widgets").then((m) => m.EnrollCtaWidget))
+const AcademyStatsWidget = dynamic(() => import("./academy-widgets").then((m) => m.AcademyStatsWidget))
+const LogoCloudWidget = dynamic(() => import("./academy-widgets").then((m) => m.LogoCloudWidget))
+const AudioBlockWidget = dynamic(() => import("./gap-widgets").then((m) => m.AudioBlockWidget))
+const BeforeAfterWidget = dynamic(() => import("./gap-widgets").then((m) => m.BeforeAfterWidget))
+const LoginFormWidget = dynamic(() => import("./gap-widgets").then((m) => m.LoginFormWidget))
+const LottieWidget = dynamic(() => import("./gap-widgets").then((m) => m.LottieWidget))
+const OffCanvasWidget = dynamic(() => import("./gap-widgets").then((m) => m.OffCanvasWidget))
+const RegisterFormWidget = dynamic(() => import("./gap-widgets").then((m) => m.RegisterFormWidget))
+const SiteFooterWidget = dynamic(() => import("./gap-widgets").then((m) => m.SiteFooterWidget))
+const SiteHeaderWidget = dynamic(() => import("./gap-widgets").then((m) => m.SiteHeaderWidget))
+const TeamGridWidget = dynamic(() => import("./gap-widgets").then((m) => m.TeamGridWidget))
+const VideoEmbedWidget = dynamic(() => import("./gap-widgets").then((m) => m.VideoEmbedWidget))
+const ClassicArchiveGrid = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicArchive").then((m) => m.ClassicArchiveGrid))
+const ClassicNotFound = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicNotFound))
+const ClassicOrderTrack = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicOrderTrack))
+const ClassicComparePage = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicComparePage))
+const ClassicWishlist = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicWishlist))
+const AccordionWidget = dynamic(() => import("./extra-widgets").then((m) => m.AccordionWidget))
+const AnnouncementWidget = dynamic(() => import("./extra-widgets").then((m) => m.AnnouncementWidget))
+const BannerGridWidget = dynamic(() => import("./extra-widgets").then((m) => m.BannerGridWidget))
+const BlogPostsWidget = dynamic(() => import("./extra-widgets").then((m) => m.BlogPostsWidget))
+const BrandSliderWidget = dynamic(() => import("./extra-widgets").then((m) => m.BrandSliderWidget))
+const CategoryListWidget = dynamic(() => import("./extra-widgets").then((m) => m.CategoryListWidget))
+const CounterWidget = dynamic(() => import("./extra-widgets").then((m) => m.CounterWidget))
+const IconBoxWidget = dynamic(() => import("./extra-widgets").then((m) => m.IconBoxWidget))
+const IconListWidget = dynamic(() => import("./extra-widgets").then((m) => m.IconListWidget))
+const ImageCarouselWidget = dynamic(() => import("./extra-widgets").then((m) => m.ImageCarouselWidget))
+const ImageGalleryWidget = dynamic(() => import("./extra-widgets").then((m) => m.ImageGalleryWidget))
+const LoginCtaWidget = dynamic(() => import("./extra-widgets").then((m) => m.LoginCtaWidget))
+const MapWidget = dynamic(() => import("./extra-widgets").then((m) => m.MapWidget))
+const PricingWidget = dynamic(() => import("./extra-widgets").then((m) => m.PricingWidget))
+const FaqCategorizedWidget = dynamic(() => import("./faq-categorized-widget").then((m) => m.FaqCategorizedWidget))
+const ProductQueryWidget = dynamic(() => import("./extra-widgets").then((m) => m.ProductQueryWidget))
+const SearchBoxWidget = dynamic(() => import("./extra-widgets").then((m) => m.SearchBoxWidget))
+const ShareButtonsWidget = dynamic(() => import("./extra-widgets").then((m) => m.ShareButtonsWidget))
+const SocialIconsWidget = dynamic(() => import("./extra-widgets").then((m) => m.SocialIconsWidget))
+const TabsWidget = dynamic(() => import("./extra-widgets").then((m) => m.TabsWidget))
+const TestimonialsWidget = dynamic(() => import("./extra-widgets").then((m) => m.TestimonialsWidget))
+const WidgetIntro = dynamic(() => import("./extra-widgets").then((m) => m.WidgetIntro))
+const FeedWidget = dynamic(() => import("./extra-widgets").then((m) => m.FeedWidget))
+const ArchivePartWidget = dynamic(() => import("./part-widgets").then((m) => m.ArchivePartWidget))
+const CartCouponWidget = dynamic(() => import("./part-widgets").then((m) => m.CartCouponWidget))
+const CartTotalsWidget = dynamic(() => import("./part-widgets").then((m) => m.CartTotalsWidget))
+const FooterPartWidget = dynamic(() => import("./part-widgets").then((m) => m.FooterPartWidget))
+const FreeShippingBarWidget = dynamic(() => import("./part-widgets").then((m) => m.FreeShippingBarWidget))
+const HeaderPartWidget = dynamic(() => import("./part-widgets").then((m) => m.HeaderPartWidget))
+const InstallmentWidget = dynamic(() => import("./part-widgets").then((m) => m.InstallmentWidget))
+const PostPartWidget = dynamic(() => import("./part-widgets").then((m) => m.PostPartWidget))
+const PriceFilterWidget = dynamic(() => import("./part-widgets").then((m) => m.PriceFilterWidget))
+const ProductPartWidget = dynamic(() => import("./part-widgets").then((m) => m.ProductPartWidget))
+const RelatedProductsWidget = dynamic(() => import("./part-widgets").then((m) => m.RelatedProductsWidget))
+const ClassicBestSellers = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicBestSellers))
+const ClassicBrandGrid = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicBrandGrid))
+const ClassicCategoryTiles = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicCategoryTiles))
+const ClassicCustomerGuide = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicCustomerGuide))
+const ClassicHero = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicHero))
+const ClassicIconCategories = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicIconCategories))
+const ClassicProductRow = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicProductRow))
+const ClassicPromoTrio = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicPromoTrio))
+const ClassicRecentlyViewed = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicRecentlyViewed))
+const ClassicSpecialBanners = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicSpecialBanners))
+const ClassicStoryStrip = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicStoryStrip))
+const ClassicCollectionProducts = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHomeBlocks").then((m) => m.ClassicCollectionProducts))
+const ClassicPackageSide = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHomeBlocks").then((m) => m.ClassicPackageSide))
+const ClassicTasteBox = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicTasteBox))
+const ClassicTrustStrip = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicProduct").then((m) => m.ClassicTrustStrip))
+
+const PoetryHeroWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryHeroWidget))
+const PoemListWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoemListWidget))
+const PoemCarouselWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoemCarouselWidget))
+const BookBannerWidget = dynamic(() => import("./poetry-widgets").then((m) => m.BookBannerWidget))
+const OccasionCardsWidget = dynamic(() => import("./poetry-widgets").then((m) => m.OccasionCardsWidget))
+const MediaCardsWidget = dynamic(() => import("./poetry-widgets").then((m) => m.MediaCardsWidget))
+const ShopShowcaseWidget = dynamic(() => import("./poetry-widgets").then((m) => m.ShopShowcaseWidget))
+const PoetAboutWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetAboutWidget))
+const QuoteBlockWidget = dynamic(() => import("./poetry-widgets").then((m) => m.QuoteBlockWidget))
+const PoetryFooterWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryFooterWidget))
+const StoryHighlightsWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.StoryHighlightsWidget))
+const AudioPlaylistWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.AudioPlaylistWidget))
+const VideoGalleryWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.VideoGalleryWidget))
+const OccasionGridWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.OccasionGridWidget))
+const MediaSplitWidget = dynamic(() => import("./poetry-v2-widgets").then((m) => m.MediaSplitWidget))
+const ResumeStoryPage = dynamic(() => import("./resume-pages").then((m) => m.ResumeStoryPage))
+const ResumeVitalityPage = dynamic(() => import("./resume-pages-2").then((m) => m.ResumeVitalityPage))
+const ResumeJournalPage = dynamic(() => import("./resume-pages-2").then((m) => m.ResumeJournalPage))
+const ResumeTidePage = dynamic(() => import("./resume-pages-3").then((m) => m.ResumeTidePage))
+const ResumeFluentPage = dynamic(() => import("./resume-pages-4").then((m) => m.ResumeFluentPage))
+const ResumeDoodlePage = dynamic(() => import("./resume-pages-5").then((m) => m.ResumeDoodlePage))
+const ResumeOsPage = dynamic(() => import("./resume-pages").then((m) => m.ResumeOsPage))
+const ResumeWidget = dynamic(() => import("./resume-widgets").then((m) => m.ResumeWidget))
+const PoemDetailWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemDetailWidget))
+const PoetryFigureWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoetryFigureWidget))
+const PoemSearchWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemSearchWidget))
+const PoetryNavWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetryNavWidget))
+const PoetryPageHeroWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetryPageHeroWidget))
+const PoemArchiveWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoemArchiveWidget))
+const PoemSingleWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoemSingleWidget))
+const MediaArchiveWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.MediaArchiveWidget))
+const PoetryShopWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetryShopWidget))
+const PoetryProductWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetryProductWidget))
+const PoetProfileWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetProfileWidget))
+const PoetrySiteFooterWidget = dynamic(() => import("./poetry-pages-widgets").then((m) => m.PoetrySiteFooterWidget))
+
+const NAV = [
+  { label: "خانه", href: "/" },
+  { label: "فروشگاه", href: "/shop" },
+  { label: "تازه‌ها", href: "/shop?sort=new" },
+  { label: "مجله", href: "/blog" },
+  { label: "درباره", href: "/about" },
+]
+
+const useMoney = () => useBuilderMoney()
+
+function AbstractArt({ tone, label }: { tone: string; label: string }) {
+  return (
+    <div className={`relative grid h-full w-full place-items-center bg-gradient-to-br ${toneClass(tone)}`}>
+      <span className="absolute -start-6 top-6 size-24 rounded-full bg-white/40" />
+      <span className="absolute end-4 bottom-4 size-16 rounded-full bg-foreground/10" />
+      <span className="relative text-sm font-bold text-foreground/80">{label}</span>
+    </div>
+  )
+}
+
+export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: EditorApi }) {
+  const runtime = useBuilderRuntime()
+  const locale = useLocale()
+  const editing = Boolean(editor)
+  const classic = runtime.themeSlug === "ecommerce-classic"
+  const runtimeLocale = locale
+  switch (widget.type) {
+    case "heading":
+      return <HeadingWidget widget={widget} editor={editor} />
+    case "text":
+      return <TextWidget widget={widget} editor={editor} />
+    case "image":
+      return <ImageWidget widget={widget} />
+    case "button":
+      return <ButtonWidget widget={widget} />
+    case "spacer":
+      return <div style={{ height: propNum(widget.props, "size", 32) }} />
+    case "divider":
+      return <hr className="border-0 border-t" style={{ borderColor: propStr(widget.props, "color", "var(--color-border)") }} />
+    case "icon":
+      return <IconWidget widget={widget} />
+    case "video":
+      return <VideoWidget widget={widget} />
+    case "html":
+      return <HtmlWidget widget={widget} />
+    case "menu":
+      return <MenuWidget widget={widget} />
+    case "form":
+      return <FormWidget widget={widget} />
+    case "popup":
+      return <PopupWidget widget={widget} editing={editing} />
+    case "hero-slider":
+      return classic ? (
+        <ClassicHero
+          slidesText={propStr(widget.props, "slides", "")}
+          imageOnly={propBool(widget.props, "imageOnly", false)}
+          variant={propStr(widget.props, "variant", "")}
+          eyebrow={propStr(widget.props, "eyebrow", "")}
+        />
+      ) : (
+        <HeroWidget widget={widget} />
+      )
+    case "category-grid":
+      return classic ? (
+        <ClassicIconCategories
+          title={propStr(widget.props, "variant", "popular") === "strip" ? undefined : propStr(widget.props, "title", "دسته‌بندی‌های محبوب")}
+          variant={propStr(widget.props, "variant", "popular") === "strip" ? "archive" : "home"}
+          limit={propNum(widget.props, "limit", 0)}
+        />
+      ) : (
+        <CategoryWidget widget={widget} />
+      )
+    case "story-strip": {
+      const strip = (
+        <ClassicStoryStrip
+          title={propStr(widget.props, "title", "")}
+          limit={propNum(widget.props, "limit", 0)}
+          {...(propStr(widget.props, "variant", "") === "poetry" ? ({ variant: "poetry" } as Record<string, unknown>) : {})}
+          {...(propStr(widget.props, "layout", "") === "carousel" || propStr(widget.props, "layout", "") === "rings"
+            ? ({ layout: propStr(widget.props, "layout", "") } as Record<string, unknown>)
+            : {})}
+        />
+      )
+      return propStr(widget.props, "tone", "") === "glass" ? <div className="wb-story-glass wpz-light wpz-glass">{strip}</div> : strip
+    }
+    case "category-tiles":
+      return <ClassicCategoryTiles tilesText={propStr(widget.props, "tiles", "")} />
+    case "promo-trio":
+      return <ClassicPromoTrio itemsText={propStr(widget.props, "items", "")} />
+    case "best-sellers":
+      return <ClassicBestSellers title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 9)} />
+    case "recently-viewed":
+      return <ClassicRecentlyViewed title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} />
+    case "product-grid":
+      return <ProductGridWidget widget={widget} editing={editing} />
+    case "product-card":
+      return <SingleCard widget={widget} />
+    case "promo-banner":
+      return <PromoWidget widget={widget} />
+    case "deal-bar":
+      return <DealBar widget={widget} />
+    case "countdown":
+      return <CountdownWidget widget={widget} />
+    case "trust-badges": {
+      const badgeItems = splitRows(propStr(widget.props, "items", "")).map(([title, text, icon]) => ({ title, text: text ?? "", icon: icon || "badge" }))
+      return classic ? <ClassicTrustStrip items={badgeItems} /> : <TrustWidget items={badgeItems} />
+    }
+    case "newsletter":
+      return <NewsletterWidget widget={widget} />
+    case "brand-row":
+      return classic ? <ClassicBrandGrid title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} /> : <BrandRow widget={widget} />
+    case "blog-teasers":
+      return <BlogWidget widget={widget} />
+    case "filter-panel":
+      return <WidgetIntro widget={widget}><FilterWidget editing={editing} /></WidgetIntro>
+    case "product-detail":
+      return <WidgetIntro widget={widget}><ProductDetail editing={editing} slug={propStr(widget.props, "slug", "") || runtime.productSlug} /></WidgetIntro>
+    case "cart-lines":
+      return <WidgetIntro widget={widget}><CartWidget /></WidgetIntro>
+    case "checkout":
+    case "checkout-stub": // legacy alias
+      return <WidgetIntro widget={widget}><CheckoutWidget /></WidgetIntro>
+    case "account":
+    case "account-stub": // legacy alias
+      return <WidgetIntro widget={widget}><AccountWidget /></WidgetIntro>
+    case "amazing-offers":
+      return <AmazingOffersBlockWidget widget={widget} />
+    case "amazing-header":
+      return <AmazingHeaderWidget widget={widget} />
+    case "blog-slider":
+      return <BlogSliderWidget widget={widget} />
+    case "product-gallery":
+      return <WidgetIntro widget={widget}><ProductGalleryWidget productSlug={propStr(widget.props, "slug", "") || runtime.productSlug} editing={editing} /></WidgetIntro>
+    case "add-to-cart-box":
+      return <WidgetIntro widget={widget}><AddToCartBoxWidget productSlug={propStr(widget.props, "slug", "") || runtime.productSlug} editing={editing} /></WidgetIntro>
+    case "most-viewed":
+      return <MostViewedWidget widget={widget} />
+    case "taste-box":
+      return classic ? <ClassicTasteBox title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} /> : <TasteBoxWidget widget={widget} />
+    case "special-banners":
+      return <ClassicSpecialBanners title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 0)} />
+    case "customer-guide":
+      return <ClassicCustomerGuide title={propStr(widget.props, "title", "")} itemsText={propStr(widget.props, "items", "")} />
+    case "package-block":
+      return <PackageBlockWidget widget={widget} />
+    case "package-side":
+      return (
+        <ClassicPackageSide
+          title={propStr(widget.props, "title", "پکیج گیمرها")}
+          slugs={propStr(widget.props, "slugs", "")}
+          category={propStr(widget.props, "category", "")}
+          discountPercent={propNum(widget.props, "discount", 0)}
+          limit={propNum(widget.props, "limit", 4)}
+        />
+      )
+    case "collection-products":
+      return (
+        <ClassicCollectionProducts
+          title={propStr(widget.props, "title", "کالکشن ویژه")}
+          category={propStr(widget.props, "category", "")}
+          sort={propStr(widget.props, "sort", "newest")}
+          limit={propNum(widget.props, "limit", 10)}
+          banner={propStr(widget.props, "banner", "")}
+          bannerHref={propStr(widget.props, "bannerHref", "")}
+        />
+      )
+    case "blog-toc":
+      return <BlogTocWidget widget={widget} />
+    case "mega-menu":
+      return <MegaMenuWidget widget={widget} />
+    case "product-reviews":
+      return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} editing={editing} />
+    case "product-questions":
+      return <ProductQuestionsWidget widget={widget} productSlug={runtime.productSlug} />
+    case "account-dashboard":
+      return <WidgetIntro widget={widget}><AccountDashboardWidget /></WidgetIntro>
+    case "classic-not-found":
+      return <ClassicNotFound />
+    case "classic-order-track":
+      return <ClassicOrderTrack />
+    case "classic-compare":
+      return <ClassicComparePage />
+    case "classic-wishlist":
+      return <ClassicWishlist />
+    case "product-carousel":
+      return <ProductQueryWidget widget={widget} />
+    case "banner-grid":
+      return <BannerGridWidget widget={widget} />
+    case "tabs":
+      return <TabsWidget widget={widget} />
+    case "accordion":
+      return <AccordionWidget widget={widget} />
+    case "icon-box":
+      return <IconBoxWidget widget={widget} />
+    case "icon-list":
+      return <IconListWidget widget={widget} />
+    case "testimonials":
+      return <TestimonialsWidget widget={widget} />
+    case "brand-slider":
+      return <BrandSliderWidget widget={widget} />
+    case "image-gallery":
+      return <ImageGalleryWidget widget={widget} />
+    case "image-carousel":
+      return <ImageCarouselWidget widget={widget} />
+    case "announcement-bar":
+      return <AnnouncementWidget widget={widget} />
+    case "map":
+      return <MapWidget widget={widget} />
+    case "counter":
+      return <CounterWidget widget={widget} />
+    case "social-icons":
+      return <SocialIconsWidget widget={widget} />
+    case "share-buttons":
+      return <ShareButtonsWidget widget={widget} />
+    case "pricing-table":
+      return <PricingWidget widget={widget} />
+    case "faq-categorized":
+      return <FaqCategorizedWidget widget={widget} />
+    case "blog-posts":
+      return <BlogPostsWidget widget={widget} />
+    case "loop-grid":
+      return <LoopGridWidget widget={widget} editing={editing} />
+    case "loop-filter":
+      return <LoopFilterWidget widget={widget} editing={editing} />
+    case "archive-filters":
+      return <ArchiveFiltersWidget widget={widget} editing={editing} />
+    case "poetry-hero":
+      return <PoetryHeroWidget widget={widget} />
+    case "poem-list":
+      return <PoemListWidget widget={widget} />
+    case "poem-carousel":
+      return <PoemCarouselWidget widget={widget} />
+    case "book-banner":
+      return <BookBannerWidget widget={widget} />
+    case "occasion-cards":
+      return <OccasionCardsWidget widget={widget} />
+    case "media-cards":
+      return <MediaCardsWidget widget={widget} />
+    case "shop-showcase":
+      return <ShopShowcaseWidget widget={widget} />
+    case "poet-about":
+      return <PoetAboutWidget widget={widget} />
+    case "quote-block":
+      return <QuoteBlockWidget widget={widget} />
+    case "poetry-footer":
+      return <PoetryFooterWidget widget={widget} />
+    case "story-highlights":
+      return <StoryHighlightsWidget widget={widget} />
+    case "audio-playlist":
+      return <AudioPlaylistWidget widget={widget} />
+    case "video-gallery":
+      return <VideoGalleryWidget widget={widget} />
+    case "occasion-grid":
+      return <OccasionGridWidget widget={widget} />
+    case "resume.hero": case "resume.about": case "resume.contacts": case "resume.experience": case "resume.education": case "resume.honors":
+    case "resume.publications": case "resume.certifications": case "resume.skills": case "resume.languages": case "resume.portfolio": case "resume.stats":
+    case "resume.testimonials": case "resume.volunteering": case "resume.courses": case "resume.contact_cta": case "resume.lang_switch": case "resume.download_pdf":
+      return <ResumeWidget widget={widget} />
+    case "resume.page_story":
+      return <ResumeStoryPage widget={widget} />
+    case "resume.page_os":
+      return <ResumeOsPage widget={widget} />
+    case "resume.page_vitality":
+      return <ResumeVitalityPage widget={widget} />
+    case "resume.page_journal":
+      return <ResumeJournalPage widget={widget} />
+    case "resume.page_tide":
+      return <ResumeTidePage widget={widget} />
+    case "resume.page_fluent":
+      return <ResumeFluentPage widget={widget} />
+    case "resume.page_doodle":
+      return <ResumeDoodlePage widget={widget} />
+    case "poem-detail":
+      return <PoemDetailWidget widget={widget} />
+    case "poetry-figure":
+      return <PoetryFigureWidget widget={widget} />
+    case "poem-search":
+      return <PoemSearchWidget widget={widget} />
+    case "poetry-nav":
+      return <PoetryNavWidget widget={widget} />
+    case "poetry-page-hero":
+      return <PoetryPageHeroWidget widget={widget} />
+    case "poem-archive":
+      return <PoemArchiveWidget widget={widget} />
+    case "poem-single":
+      return <PoemSingleWidget widget={widget} />
+    case "media-archive":
+      return widget.props?.mediaLayout === "split" ? <MediaSplitWidget widget={widget} /> : <MediaArchiveWidget widget={widget} />
+    case "poetry-shop":
+      return <PoetryShopWidget widget={widget} />
+    case "poetry-product":
+      return <PoetryProductWidget widget={widget} />
+    case "poet-profile":
+      return <PoetProfileWidget widget={widget} />
+    case "poetry-site-footer":
+      return <PoetrySiteFooterWidget widget={widget} />
+    case "cafe-table-booking":
+      return <CafeTableBookingWidget widget={widget} editing={editing} />
+    case "cafe-hero":
+      return <CafeHeroWidget widget={widget} />
+    case "cafe-menu-board":
+      return <CafeMenuBoardWidget widget={widget} />
+    case "cafe-hours":
+      return <CafeHoursWidget widget={widget} />
+    case "cafe-gallery":
+      return <CafeGalleryWidget widget={widget} />
+    case "cafe-story":
+      return <CafeStoryWidget widget={widget} />
+    case "cafe-reserve-cta":
+      return <CafeReserveCtaWidget widget={widget} />
+    case "cafe-category-strip":
+      return <CafeCategoryStripWidget widget={widget} />
+    case "academy-hero":
+      return <AcademyHeroWidget widget={widget} />
+    case "course-grid":
+      return <CourseGridWidget widget={widget} />
+    case "instructor-grid":
+      return <InstructorGridWidget widget={widget} />
+    case "curriculum-timeline":
+      return <CurriculumTimelineWidget widget={widget} />
+    case "enroll-cta":
+      return <EnrollCtaWidget widget={widget} />
+    case "academy-stats":
+      return <AcademyStatsWidget widget={widget} />
+    case "logo-cloud":
+      return <LogoCloudWidget widget={widget} />
+    case "image-box":
+      return <ImageBoxWidget widget={widget} />
+    case "flip-box":
+      return <FlipBoxWidget widget={widget} />
+    case "toc":
+      return <TocWidget widget={widget} editing={editing} />
+    case "hotspot":
+      return <HotspotWidget widget={widget} />
+    case "nav-dropdown":
+      return <NavDropdownWidget widget={widget} />
+    case "state-box":
+      return <StateBoxWidget widget={widget} />
+    case "menu-cart":
+      return <MenuCartWidget widget={widget} />
+    case "linked-products":
+      return <LinkedProductsWidget widget={widget} editing={editing} />
+    case "purchase-summary":
+      return <PurchaseSummaryWidget editing={editing} />
+    case "search-box":
+      return <SearchBoxWidget widget={widget} />
+    case "category-list":
+      return <CategoryListWidget widget={widget} />
+    case "login-cta":
+      return <LoginCtaWidget widget={widget} />
+    case "feed":
+      return <FeedWidget widget={widget} />
+    case "installment-info":
+      return <InstallmentWidget widget={widget} editing={editing} />
+    case "price-filter":
+      return <PriceFilterWidget widget={widget} />
+    case "product-title":
+    case "product-price":
+    case "product-rating":
+    case "product-stock":
+    case "product-attributes":
+    case "product-description":
+    case "product-faq":
+      return <ProductPartWidget widget={widget} editing={editing} />
+    case "related-products":
+      return <RelatedProductsWidget widget={widget} editing={editing} />
+    case "archive-title":
+    case "archive-description":
+    case "archive-sort":
+    case "archive-count":
+    case "archive-subcategories":
+      return <ArchivePartWidget widget={widget} editing={editing} />
+    case "cart-totals":
+      return <CartTotalsWidget widget={widget} />
+    case "cart-coupon":
+      return <CartCouponWidget widget={widget} />
+    case "free-shipping-bar":
+      return <FreeShippingBarWidget widget={widget} />
+    case "site-logo":
+    case "nav-menu":
+    case "cart-button":
+    case "account-button":
+    case "wishlist-button":
+    case "phone-link":
+      return <HeaderPartWidget widget={widget} />
+    case "footer-links":
+    case "contact-info":
+    case "trust-seals":
+    case "copyright":
+      return <FooterPartWidget widget={widget} />
+    case "post-title":
+    case "post-cover":
+    case "post-meta":
+    case "post-content":
+      return <PostPartWidget widget={widget} editing={editing} locale={runtimeLocale} />
+    case "breadcrumbs":
+      return <BreadcrumbsWidget widget={widget} />
+    case "store-header":
+      return <StoreHeader widget={widget} siteName={runtime.siteName} logoUrl={runtime.logoUrl} />
+    case "store-footer":
+      return <StoreFooter widget={widget} siteName={runtime.siteName} />
+    case "section-heading":
+      return <SectionHeadingWidget widget={widget} />
+    case "steps":
+      return <StepsWidget widget={widget} />
+    case "icon-cards":
+      return <IconCardsWidget widget={widget} />
+    case "badges":
+      return <BadgesWidget widget={widget} />
+    case "cta-banner":
+      return <CtaBannerWidget widget={widget} />
+    case "blob-image":
+      return <BlobImageWidget widget={widget} />
+    case "tint-cards":
+      return <TintCardsWidget widget={widget} />
+    case "circle-badges":
+      return <CircleBadgesWidget widget={widget} />
+    case "callout":
+      return <CalloutWidget widget={widget} />
+    case "comparison-table":
+      return <ComparisonTableWidget widget={widget} />
+    case "team-grid":
+      return <TeamGridWidget widget={widget} />
+    case "video-embed":
+      return <VideoEmbedWidget widget={widget} />
+    case "audio-block":
+      return <AudioBlockWidget widget={widget} />
+    case "before-after":
+      return <BeforeAfterWidget widget={widget} />
+    case "lottie":
+      return <LottieWidget widget={widget} />
+    case "login-form":
+      return <LoginFormWidget widget={widget} editing={editing} />
+    case "register-form":
+      return <RegisterFormWidget widget={widget} editing={editing} />
+    case "off-canvas":
+      return <OffCanvasWidget widget={widget} editing={editing} />
+    case "site-header":
+      return <SiteHeaderWidget widget={widget} siteName={runtime.siteName} logoUrl={runtime.logoUrl} />
+    case "site-footer":
+      return <SiteFooterWidget widget={widget} siteName={runtime.siteName} />
+    case "container":
+    case "section":
+    case "columns":
+    case "flex-container":
+    case "grid-container":
+      return null
+    default:
+      return <p className="text-sm text-muted-foreground">ویجت {widget.type}</p>
+  }
+}
+
+function HeadingWidget({ widget, editor }: { widget: WidgetNode; editor?: EditorApi }) {
+  const tag = propStr(widget.props, "tag", "h2")
+  const text = propStr(widget.props, "text", "عنوان")
+  const selected = editor?.selectedId === widget.id
+  const scale = widget.style?.base?.fontSize || widget.style?.tablet?.fontSize || widget.style?.mobile?.fontSize
+  const level = tag === "h1" || tag === "h2" || tag === "h3" || tag === "h4" || tag === "h5" || tag === "h6" ? tag : "h2"
+  const className = scale ? "font-bold text-foreground" : `wb-type-${level} font-bold`
+  if (selected && editor) {
+    return (
+      <div
+        className={className}
+        contentEditable
+        suppressContentEditableWarning
+        onBlur={(event) => editor.onInline(widget.id, "text", event.currentTarget.textContent ?? "")}
+      >
+        {text}
+      </div>
+    )
+  }
+  const Tag = level
+  return <Tag className={className}>{text}</Tag>
+}
+
+function TextWidget({ widget, editor }: { widget: WidgetNode; editor?: EditorApi }) {
+  const text = propStr(widget.props, "text", "")
+  const selected = editor?.selectedId === widget.id
+  if (selected && editor) {
+    return (
+      <p
+        className="whitespace-pre-wrap text-sm leading-7 text-foreground/80"
+        contentEditable
+        suppressContentEditableWarning
+        onBlur={(event) => editor.onInline(widget.id, "text", event.currentTarget.textContent ?? "")}
+      >
+        {text}
+      </p>
+    )
+  }
+  return <p className="wb-type-body whitespace-pre-wrap text-foreground/80">{text}</p>
+}
+
+function ImageWidget({ widget }: { widget: WidgetNode }) {
+  const globals = useBuilderGlobals()
+  const [open, setOpen] = useState(false)
+  const src = propStr(widget.props, "src")
+  const alt = propStr(widget.props, "alt", "تصویر")
+  const frameStyle = propStr(widget.props, "frameStyle", "default")
+  if (frameStyle.startsWith("blob-")) {
+    const shape = frameStyle.slice("blob-".length) || "a"
+    const blobWidget = {
+      ...widget,
+      props: {
+        ...widget.props,
+        blobShape: shape === "round" ? "round" : shape,
+      },
+    }
+    return <BlobImageWidget widget={blobWidget} />
+  }
+  const lightbox = globals.images.lightbox && globals.lightbox.enabled
+  if (!src) {
+    return (
+      <div className="overflow-hidden" style={{ borderRadius: "var(--wb-img-radius)" }}>
+        <div className="aspect-[4/3]">
+          <AbstractArt tone="sky" label={alt} />
+        </div>
+      </div>
+    )
+  }
+  const image = (
+    <Img
+      src={src}
+      alt={alt}
+      loading={globals.images.lazy ? "lazy" : "eager"}
+      className="wb-img"
+    />
+  )
+  if (!lightbox) return image
+  return (
+    <>
+      <button type="button" className="block w-full" onClick={() => setOpen(true)} aria-label={alt}>
+        {image}
+      </button>
+      {open ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center p-6"
+          style={{ background: "var(--wb-lightbox-bg)" }}
+          onClick={() => setOpen(false)}
+        >
+          <Img src={src} alt={alt} className="max-h-[85vh] max-w-full rounded-2xl" />
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function ButtonWidget({ widget }: { widget: WidgetNode }) {
+  const tone = propStr(widget.props, "tone", "pink")
+  if (tone === "doodle") {
+    const fill = propStr(widget.props, "doodleFill", "solid")
+    const style = {
+      ["--wb-doodle-bg" as string]: propStr(widget.props, "doodleBg", "#e85d4c") || "#e85d4c",
+      ["--wb-doodle-fg" as string]: propStr(widget.props, "doodleColor", "#fff") || "#fff",
+      ["--wb-doodle-bc" as string]: propStr(widget.props, "doodleBorderColor", "#2b2230") || "#2b2230",
+      ["--wb-doodle-sc" as string]: propStr(widget.props, "doodleShadowColor", "#2b2230") || "#2b2230",
+    }
+    return (
+      <Link
+        href={propStr(widget.props, "href", "/shop")}
+        {...linkAttrs(widget.props, "href")}
+        className={`wb-btn-doodle${fill === "ghost" ? " is-ghost" : ""}`}
+        style={style}
+      >
+        {propStr(widget.props, "label", "ادامه")}
+      </Link>
+    )
+  }
+  const variant = tone === "navy" ? "secondary" : tone === "ghost" ? "ghost" : tone === "outline" ? "outline" : "primary"
+  return (
+    <Link href={propStr(widget.props, "href", "/shop")} {...linkAttrs(widget.props, "href")} className={`wb-btn wb-btn-${variant}`}>
+      {propStr(widget.props, "label", "ادامه")}
+    </Link>
+  )
+}
+
+function IconWidget({ widget }: { widget: WidgetNode }) {
+  const name = propStr(widget.props, "name", "spark")
+  const icon =
+    name === "truck" ? <Truck className="size-5" /> : name === "shield" ? <ShieldCheck className="size-5" /> : name === "heart" ? <Heart className="size-5" /> : name === "star" ? <Star className="size-5" /> : <Sparkles className="size-5" />
+  return (
+    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+      <span className="grid size-10 place-items-center rounded-2xl bg-muted text-primary">{icon}</span>
+      {propStr(widget.props, "label", "")}
+    </div>
+  )
+}
+
+function VideoWidget({ widget }: { widget: WidgetNode }) {
+  const t = useTranslations("builder")
+  const src = propStr(widget.props, "src")
+  const embed = embedVideoSrc(src)
+  if (!src) {
+    return <div className="grid aspect-video place-items-center rounded-2xl bg-primary text-sm text-white">{t("video")}</div>
+  }
+  if (embed) {
+    return <iframe title={t("video")} src={embed} className="aspect-video w-full rounded-2xl" allow="fullscreen" />
+  }
+  return <video src={src} controls className="aspect-video w-full rounded-2xl bg-black" />
+}
+
+function sanitizeHtml(html: string): string {
+  const stripped = sanitizeBuilderHtml(html)
+  if (typeof window === "undefined") return stripped
+  return DOMPurify.sanitize(stripped, {
+    ALLOWED_TAGS: ["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "blockquote", "span", "div", "img", "hr", "table", "thead", "tbody", "tr", "th", "td", "figure", "figcaption"],
+    ALLOWED_ATTR: ["href", "title", "target", "rel", "src", "alt", "class"],
+  })
+}
+
+function HtmlWidget({ widget }: { widget: WidgetNode }) {
+  const clean = sanitizeHtml(propStr(widget.props, "html"))
+  return <div className="prose prose-sm max-w-none text-foreground" dangerouslySetInnerHTML={{ __html: clean }} />
+}
+
+function MenuWidget({ widget }: { widget: WidgetNode }) {
+  const menuTree = useMenuTree(propStr(widget.props, "menu", ""))
+  const links = menuTree ?? parseLinks(widget.props.links, NAV)
+  return (
+    <nav className="flex flex-wrap gap-2">
+      {links.map((link) => (
+        <Link key={link.href + link.label} href={link.href} className="wb-type-link rounded-full px-3 py-1.5 hover:bg-muted">
+          {link.label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
+
+
+type HeroSlide = { title: string; kicker: string; href: string; image: string; sub: string; cta: string; mobileImage: string }
+
+const HERO_KEYS = ["title", "kicker", "href", "image", "sub", "cta", "mobileImage"]
+
+function heroSlideRows(props: Record<string, unknown>): HeroSlide[] {
+  return (parseRows(props.slides, HERO_KEYS) as unknown as HeroSlide[])
+    .filter((row) => (row.title || "").trim() || (row.image || "").trim())
+}
+
+/** Storefront hero: prop-driven slides, layered imagery, staggered reveal, autoplay + dots. */
+function HeroWidget({ widget }: { widget: WidgetNode }) {
+  const slides = heroSlideRows(widget.props)
+  const fallback: HeroSlide[] = [{ title: propStr(widget.props, "title", ""), kicker: "", href: "/shop", image: "", sub: "", cta: "", mobileImage: "" }]
+  const items = slides.length ? slides : fallback
+  const n = items.length
+  const [index, setIndex] = useState(0)
+  const [hold, setHold] = useState(false)
+  const auto = propBool(widget.props, "sliderAutoplay", true) && n > 1
+  const interval = Math.max(3, Math.min(30, propNum(widget.props, "sliderInterval", 7))) * 1000
+  const height = Math.max(320, Math.min(900, propNum(widget.props, "sliderHeight", 560)))
+  const heightMobile = propNum(widget.props, "sliderHeightMobile", 460)
+  const eyebrow = propStr(widget.props, "eyebrow", "")
+  const overlay = Math.max(0, Math.min(100, propNum(widget.props, "overlay", 0)))
+
+  const go = (i: number) => setIndex(((i % n) + n) % n)
+  useEffect(() => {
+    if (!auto || hold) return
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const timer = window.setInterval(() => { if (!document.hidden) setIndex((i) => (i + 1) % n) }, interval)
+    return () => window.clearInterval(timer)
+  }, [auto, hold, interval, n])
+  useEffect(() => {
+    if (index > n - 1) setIndex(0)
+  }, [index, n])
+
+  const safeHref = (v: string) => (/^(https?:|mailto:|tel:|\/|#)/i.test((v || "").trim()) ? v.trim() : "/shop")
+
+  return (
+    <div
+      className="mh-hero"
+      style={{ ["--mh-h" as string]: `${height}px`, ["--mh-hm" as string]: `${Math.max(320, Math.min(900, heightMobile))}px` }}
+      onMouseEnter={() => setHold(true)}
+      onMouseLeave={() => setHold(false)}
+      onFocus={() => setHold(true)}
+      onBlur={() => setHold(false)}
+      role="region"
+      aria-roledescription="carousel"
+      aria-label={propStr(widget.props, "title", "اسلایدر")}
+    >
+      {items.map((slide, i) => (
+        <div key={i} className={`mh-hero-slide${i === index ? " is-on" : ""}`} aria-hidden={i !== index}>
+          {slide.image ? (
+            <div className="mh-hero-media">
+              <Img src={slide.image} alt={slide.title} priority={i === 0} sizes="100vw" />
+            </div>
+          ) : null}
+          <div className="mh-hero-scrim" />
+          {overlay > 0 ? <div className="mh-hero-scrim" style={{ background: `rgba(20,25,48,${overlay / 100})` }} /> : null}
+          <div className="mh-hero-grain" />
+          <div className="mh-hero-ring" />
+          <div className="mh-hero-body">
+            {slide.kicker || (i === 0 && eyebrow) ? (
+              <span className="mh-hero-kicker">{slide.kicker || eyebrow}</span>
+            ) : null}
+            {slide.title ? (i === 0 ? <h1 className="mh-hero-title">{slide.title}</h1> : <h2 className="mh-hero-title">{slide.title}</h2>) : null}
+            {slide.sub ? <p className="mh-hero-text">{slide.sub}</p> : null}
+            <div className="mh-hero-actions">
+              {slide.cta ? <Link className="mh-hero-btn is-primary" href={safeHref(slide.href)} tabIndex={i === index ? 0 : -1}>{slide.cta}</Link> : null}
+              {propStr(widget.props, "secondaryCta", "") ? (
+                <Link className="mh-hero-btn is-ghost" href={safeHref(propStr(widget.props, "secondaryHref", "/shop"))} tabIndex={i === index ? 0 : -1}>
+                  {propStr(widget.props, "secondaryCta", "")}
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ))}
+      {n > 1 ? (
+        <div className="mh-hero-dots">
+          {items.map((slide, i) => (
+            <button key={i} type="button" aria-label={slide.title || `اسلاید ${i + 1}`} aria-current={i === index} className={i === index ? "is-on" : ""} onClick={() => go(i)} />
+          ))}
+        </div>
+      ) : null}
+      {n > 1 && propBool(widget.props, "sliderArrows", true) ? (
+        <>
+          <button type="button" className="mh-hero-arrow is-prev" aria-label="اسلاید قبلی" onClick={() => go(index - 1)}>›</button>
+          <button type="button" className="mh-hero-arrow is-next" aria-label="اسلاید بعدی" onClick={() => go(index + 1)}>‹</button>
+        </>
+      ) : null}
+    </div>
+  )
+}
+
+/** Category discovery: real categories with their images, hover zoom, RTL-friendly grid. */
+function CategoryWidget({ widget }: { widget: WidgetNode }) {
+  const catalog = useCatalog(8)
+  const variant = propStr(widget.props, "variant", "popular")
+  const title = propStr(widget.props, "title", "دسته‌ها")
+  const limit = propNum(widget.props, "limit", 0) || 6
+  const items = catalog.categories.slice(0, Math.max(1, Math.min(12, limit)))
+  if (!items.length) return null
+  const cols = variant === "strip" ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" : "grid-cols-2 lg:grid-cols-3"
+  return (
+    <section>
+      {title ? (
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <h2 className="text-xl font-bold text-foreground md:text-2xl">{title}</h2>
+          <Link href="/shop" className="text-xs font-semibold text-primary hover:underline">مشاهده همه</Link>
+        </div>
+      ) : null}
+      <div className={`grid gap-3 md:gap-4 ${cols}`}>
+        {items.map((item) => (
+          <Link
+            key={item.slug}
+            href={`/shop?category=${encodeURIComponent(item.slug)}`}
+            className="group relative isolate flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-[26px] border border-border bg-muted p-4 text-white transition-transform duration-300 hover:-translate-y-1"
+          >
+            {item.image ? (
+              <Img src={item.image} alt={item.name} sizes="(max-width: 768px) 50vw, 33vw" className="absolute inset-0 -z-10 size-full object-cover transition-transform duration-700 group-hover:scale-110" />
+            ) : (
+              <span className="absolute inset-0 -z-10 bg-gradient-to-br from-primary to-foreground/80" />
+            )}
+            <span className="absolute inset-0 -z-10 bg-gradient-to-t from-[#141930]/92 via-[#141930]/30 to-transparent" />
+            <span className="text-base font-bold drop-shadow-sm md:text-lg">{item.name}</span>
+            <span className="mt-1 inline-flex items-center gap-1 text-xs text-white/80">
+              دیدن محصولات
+              <span aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">←</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ProductCard({ product }: { product: ShopProduct }) {
+  return <StoreProductCard product={product} />
+}
+
+/** «پرفروش» (source=featured) uses real best-selling order data via the product query widget. */
+function ProductGridWidget({ widget, editing }: { widget: WidgetNode; editing: boolean }) {
+  if (propStr(widget.props, "source", "all") === "featured") {
+    return (
+      <ProductQueryWidget
+        widget={{ ...widget, props: { ...widget.props, sort: "best_selling", layout: propStr(widget.props, "layout", "slider"), limit: propNum(widget.props, "limit", 8) } }}
+      />
+    )
+  }
+  return <ProductGridInner widget={widget} editing={editing} />
+}
+
+function ProductGridInner({ widget, editing }: { widget: WidgetNode; editing: boolean }) {
+  const t = useTranslations("storefront")
+  const limit = propNum(widget.props, "limit", 8)
+  const source = propStr(widget.props, "source", "all")
+  const showSort = propBool(widget.props, "showSort")
+  const title = propStr(widget.props, "title", "")
+  const runtime = useBuilderRuntime()
+  const params = useSearchParams()
+  // Archive grid seeds SSR with per_page=48; fetch the same window so CatalogSeed matches.
+  const classic = runtime.themeSlug === "ecommerce-classic"
+  const catalog = useCatalog(classic && !runtime.loopDocument ? Math.max(limit, 48) : limit)
+  const sort = params.get("sort") ?? "new"
+  const category = params.get("category") || runtime.categorySlug || ""
+  const brand = params.get("brand") ?? ""
+  const products = useMemo(() => {
+    let rows = [...catalog.products]
+    if (source === "related" && runtime.productSlug) rows = rows.filter((item) => item.slug !== runtime.productSlug)
+    if (category) rows = rows.filter((item) => item.categorySlug === category || item.category === category)
+    if (brand) rows = rows.filter((item) => item.brandSlug === brand || item.brand === brand)
+    if (sort === "price") rows.sort((a, b) => a.price - b.price)
+    if (sort === "price_desc") rows.sort((a, b) => b.price - a.price)
+    return rows.slice(0, limit)
+  }, [brand, catalog.products, category, limit, runtime.productSlug, sort, source])
+
+  const layout = propStr(widget.props, "layout", showSort ? "grid" : "slider")
+  if (classic && !runtime.loopDocument) {
+    return layout === "grid" ? (
+      <ClassicArchiveGrid products={products} editing={editing} title={title} showSort={showSort} />
+    ) : (
+      <ClassicProductRow title={title || "محصولات"} products={products} href={propStr(widget.props, "href", "/shop")} {...linkAttrs(widget.props, "href")} />
+    )
+  }
+
+  return (
+    <section>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        {title ? <h2 className="text-xl font-bold text-foreground">{title}</h2> : <span />}
+        {showSort ? <SortTabs editing={editing} /> : null}
+      </div>
+      {products.length === 0 ? (
+        <p className="sf-card p-8 text-center text-sm">{t("empty_none")}</p>
+      ) : (
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+        {products.map((product) => (
+          runtime.loopDocument ? (
+            <LoopCard key={product.slug} product={product} template={runtime.loopDocument} />
+          ) : (
+            <ProductCard key={product.slug} product={product} />
+          )
+        ))}
+      </div>
+      )}
+    </section>
+  )
+}
+
+function LoopCard({ product, template }: { product: ShopProduct; template: BuilderDocument }) {
+  const money = useMoney()
+  const runtime = useBuilderRuntime()
+  const widgets = template.sections.flatMap((section) => section.columns.flatMap((column) => column.widgets))
+  if (widgets.length === 1 && widgets[0]?.type === "product-card") {
+    return <ProductCard product={product} />
+  }
+  const filled = fillDocumentTokens(widgets, {
+    name: product.name,
+    brand: product.brand,
+    price: money.text(product.price),
+    slug: product.slug,
+    href: `/product/${product.slug}`,
+  })
+  return (
+    <BuilderRuntimeProvider value={{ ...runtime, loopDocument: undefined, productSlug: product.slug }}>
+      <article className="flex flex-col gap-2 rounded-3xl border border-border bg-card p-3">
+        {filled.map((widget) => (
+          <WidgetBody key={widget.id} widget={widget} />
+        ))}
+      </article>
+    </BuilderRuntimeProvider>
+  )
+}
+
+function SortTabs({ editing }: { editing: boolean }) {
+  const t = useTranslations("storefront")
+  const router = useRouter()
+  const params = useSearchParams()
+  const current = params.get("sort") ?? "new"
+  const tabs = [
+    { id: "new", label: t("sort_new") },
+    { id: "featured", label: t("sort_featured") },
+    { id: "price", label: t("sort_price") },
+    { id: "price_desc", label: t("sort_price_desc") },
+  ]
+  return (
+    <div className="flex flex-wrap gap-2">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${current === tab.id ? "bg-primary text-white" : "bg-card text-foreground"}`}
+          onClick={() => {
+            if (editing) return
+            const next = new URLSearchParams(params.toString())
+            next.set("sort", tab.id)
+            router.replace(`?${next.toString()}`, { scroll: false })
+          }}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function SingleCard({ widget }: { widget: WidgetNode }) {
+  const slug = propStr(widget.props, "slug")
+  const catalog = useCatalog(6)
+  const product = slug ? catalog.products.find((item) => item.slug === slug) : catalog.products[0]
+  if (!product) return null
+  return <ProductCard product={product} />
+}
+
+function PromoWidget({ widget }: { widget: WidgetNode }) {
+  const tone = propStr(widget.props, "tone", "pink")
+  const bg = tone === "navy" ? "bg-primary text-white" : tone === "mist" ? "bg-card text-foreground" : "bg-primary text-white"
+  return (
+    <div className={`flex h-full flex-col justify-between rounded-[28px] p-6 ${bg}`}>
+      <div>
+        <h3 className="text-2xl font-bold">{propStr(widget.props, "title", "پیشنهاد")}</h3>
+        <p className="mt-2 text-sm opacity-90">{propStr(widget.props, "text", "")}</p>
+      </div>
+      <Link href={propStr(widget.props, "href", "/shop")} {...linkAttrs(widget.props, "href")} className="mt-6 inline-flex w-fit rounded-full bg-card px-4 py-2 text-sm font-bold text-foreground">
+        {propStr(widget.props, "cta", "بیشتر")}
+      </Link>
+    </div>
+  )
+}
+
+function DealBar({ widget }: { widget: WidgetNode }) {
+  const money = useMoney()
+  const catalog = useCatalog(3)
+  const deals = catalog.products.slice(0, 3)
+  return (
+    <div className="grid gap-3 rounded-[28px] bg-primary p-3 text-white md:grid-cols-4">
+      <div className="rounded-2xl bg-white/15 px-4 py-3">
+        <div className="text-xs opacity-80">پیشنهاد</div>
+        <div className="font-bold">{propStr(widget.props, "title", "پیشنهاد امروز")}</div>
+      </div>
+      {deals.map((product) => (
+        <Link key={product.slug} href={`/product/${product.slug}`} className="flex items-center justify-between rounded-2xl bg-white/15 px-4 py-3">
+          <div>
+            <div className="text-sm font-bold">{product.name}</div>
+            <div className="text-xs">{money(product.price, product.compare)}</div>
+          </div>
+          <span className="rounded-full bg-card px-2 py-1 text-[11px] font-bold text-primary">ویژه</span>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+function CountdownWidget({ widget }: { widget: WidgetNode }) {
+  const locale = useLocale()
+  const ends = propStr(widget.props, "ends")
+  const target = useMemo(() => {
+    const parsed = ends ? Date.parse(ends) : Number.NaN
+    return Number.isNaN(parsed) ? Date.now() + 1000 * 60 * 60 * 18 : parsed
+  }, [ends])
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const diff = Math.max(0, target - now)
+  const hours = Math.floor(diff / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+  const seconds = Math.floor((diff % 60000) / 1000)
+  const parts = [
+    { label: "ساعت", value: hours },
+    { label: "دقیقه", value: minutes },
+    { label: "ثانیه", value: seconds },
+  ]
+  return (
+    <div className="rounded-[28px] bg-primary p-6 text-white">
+      <h3 className="text-xl font-bold">{propStr(widget.props, "title", "زمان باقی‌مانده")}</h3>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {parts.map((part) => (
+          <div key={part.label} className="rounded-2xl bg-white/10 px-2 py-3 text-center">
+            <div className="text-2xl font-bold">{formatNumber(part.value, normalizeUiLocale(locale))}</div>
+            <div className="text-[11px] opacity-80">{part.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const TRUST_ICONS: Record<string, ReactNode> = {
+  truck: <Truck className="size-5" />,
+  shield: <ShieldCheck className="size-5" />,
+  sparkles: <Sparkles className="size-5" />,
+  star: <Star className="size-5" />,
+  heart: <Heart className="size-5" />,
+}
+
+type TrustItem = { icon: string; title: string; text: string }
+
+/** Trust strip driven by the widget's `items` rows (title|text|icon). */
+function TrustWidget({ items }: { items: TrustItem[] }) {
+  const rows = items.filter((item) => item.title)
+  if (!rows.length) return null
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {rows.map((item) => (
+        <div key={item.title} className="flex items-center gap-3 rounded-3xl border border-border bg-card p-4">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-muted text-primary">
+            {TRUST_ICONS[item.icon] ?? <Sparkles className="size-5" />}
+          </span>
+          <div className="min-w-0">
+            <div className="font-bold text-foreground">{item.title}</div>
+            {item.text ? <div className="text-xs leading-5 text-foreground/70">{item.text}</div> : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function NewsletterWidget({ widget }: { widget: WidgetNode }) {
+  const channel = propStr(widget.props, "channel", "email")
+  const [value, setValue] = useState("")
+  const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle")
+  const [error, setError] = useState("")
+  const placeholder = propStr(widget.props, "placeholder", "") || (channel === "phone" ? "شماره موبایل" : channel === "both" ? "ایمیل یا شماره موبایل" : "ایمیل")
+  const success = propStr(widget.props, "success", "") || "عضویت شما ثبت شد."
+  return (
+    <form
+      className="flex flex-col gap-3 rounded-[28px] bg-card p-6 md:flex-row md:items-end"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault()
+        const v = value.trim()
+        if (!v) return
+        const isEmail = v.includes("@")
+        if ((channel === "email" && !isEmail) || (channel === "phone" && isEmail)) {
+          setState("error")
+          setError(channel === "email" ? "لطفاً یک ایمیل معتبر وارد کنید." : "لطفاً یک شماره موبایل معتبر وارد کنید.")
+          return
+        }
+        setState("sending")
+        setError("")
+        const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+        fetch(`${base}/api/v1/public/newsletter/subscribe`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(isEmail ? { email: v, source: "builder" } : { phone: v, source: "builder" }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              setState("done")
+              setValue("")
+              return
+            }
+            const json = (await res.json().catch(() => null)) as { message?: string } | null
+            setState("error")
+            setError(res.status === 429 ? "تعداد درخواست‌ها زیاد است؛ کمی بعد دوباره تلاش کنید." : json?.message || "ثبت انجام نشد. ورودی را بررسی کنید.")
+          })
+          .catch(() => {
+            setState("error")
+            setError("ارتباط برقرار نشد. دوباره تلاش کنید.")
+          })
+      }}
+    >
+      <div className="flex-1">
+        <h3 className="text-xl font-bold text-foreground">{propStr(widget.props, "title", "خبرنامه")}</h3>
+        <p className="mt-1 text-sm text-foreground/70" aria-live="polite">
+          {state === "done" ? success : state === "error" ? <span className="text-destructive">{error}</span> : propStr(widget.props, "text", "")}
+        </p>
+      </div>
+      <input
+        required
+        type={channel === "email" ? "email" : channel === "phone" ? "tel" : "text"}
+        inputMode={channel === "phone" ? "tel" : channel === "email" ? "email" : "text"}
+        dir="ltr"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="h-11 rounded-full border border-border bg-background px-4 text-sm md:w-64"
+      />
+      <button type="submit" disabled={state === "sending"} className="h-11 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+        {state === "sending" ? "…" : propStr(widget.props, "button", "") || "عضویت"}
+      </button>
+    </form>
+  )
+}
+
+function BrandRow({ widget }: { widget: WidgetNode }) {
+  const catalog = useCatalog(6)
+  const brands = catalog.brands
+  if (!brands.length) return null
+  return (
+    <section>
+      <h2 className="mb-4 text-xl font-bold text-foreground">{propStr(widget.props, "title", "برندها")}</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {brands.slice(0, 6).map((brand) => (
+          <Link key={brand.slug} href={`/shop?brand=${encodeURIComponent(brand.slug)}`} className="grid h-20 place-items-center rounded-2xl border border-border bg-card text-sm font-bold text-foreground">
+            {brand.name}
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+const POSTS = [
+  { title: "روتین صبحگاهی برای پوست شهری", text: "سه گام کوتاه که قبل از آفتاب جواب می‌دهد.", minutes: "۶" },
+  { title: "شوینده را با نوع پوست جور کنید", text: "خشک، مختلط یا چرب؛ یک راهنمای ساده ویبینو.", minutes: "۸" },
+  { title: "درخشش مو بدون روغن اضافه", text: "کی و چقدر از روغن مو استفاده کنیم.", minutes: "۵" },
+]
+
+function BlogWidget({ widget }: { widget: WidgetNode }) {
+  return (
+    <section>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold text-foreground">{propStr(widget.props, "title", "مجله")}</h2>
+        <Link href="/blog" className="text-xs font-semibold text-primary">ادامه مجله</Link>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {POSTS.map((post) => (
+          <article key={post.title} className="overflow-hidden rounded-[28px] bg-card">
+            <div className="aspect-[16/9]">
+              <AbstractArt tone="sky" label="مجله" />
+            </div>
+            <div className="p-4">
+              <h3 className="font-bold text-foreground">{post.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-foreground/75">{post.text}</p>
+              <p className="mt-3 text-xs text-primary">{post.minutes} دقیقه مطالعه</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function FilterWidget({ editing }: { editing: boolean }) {
+  return <StoreFilters editing={editing} />
+}
+
+function ProductDetail({ slug, editing }: { slug?: string; editing: boolean }) {
+  return <StorefrontProduct slug={slug} editing={editing} />
+}
+
+function CartWidget() {
+  return <StorefrontCart />
+}
+
+function CheckoutWidget() {
+  return <StorefrontCheckout />
+}
+
+function AccountWidget() {
+  return <StorefrontAccount />
+}
+
+function StoreHeader({ widget, siteName, logoUrl }: { widget: WidgetNode; siteName?: string; logoUrl?: string | null }) {
+  return <StorefrontHeader widget={widget} siteName={siteName} logoUrl={logoUrl} />
+}
+
+function StoreFooter({ widget, siteName }: { widget: WidgetNode; siteName?: string }) {
+  return <StorefrontFooter widget={widget} siteName={siteName} />
+}
+
+export function widgetLabel(widget: WidgetNode): string {
+  const text = propStr(widget.props, "text") || propStr(widget.props, "title") || propStr(widget.props, "label")
+  return text || widget.type
+}
+
+export function Frame({ children }: { children: ReactNode }) {
+  return <>{children}</>
+}

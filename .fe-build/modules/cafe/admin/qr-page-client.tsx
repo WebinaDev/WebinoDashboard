@@ -1,0 +1,370 @@
+"use client"
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Pencil, Plus, Trash2 } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+
+import { useConfirm } from "@/components/ConfirmDialog"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import type { ResolvedAdminRoute } from "@/kernel/types"
+import { api } from "@/lib/api"
+import { getApiErrorMessage } from "@/lib/api-helpers"
+import type { CafeBranch, CafeMenuListItem } from "@/themes/cafe-starter/types"
+
+import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
+import { QrCodeView } from "./qr-code"
+import { TablesCard } from "./tables-card"
+
+type QrSettings = {
+  public_base_url?: string | null
+  default_table_prefix?: string | null
+}
+
+type QrResponse = {
+  url: string
+  type: "table" | "menu"
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
+
+const emptyBranch = {
+  name_fa: "",
+  name_en: "",
+  slug: "",
+  address_fa: "",
+  address_en: "",
+  phone: "",
+  is_active: true,
+  sort_order: 0,
+}
+
+export default function QrPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
+  const t = useTranslations("cafe_admin.qr")
+  const tCommon = useTranslations("common")
+  const queryClient = useQueryClient()
+
+  const [tableNumber, setTableNumber] = useState("")
+  const [menuSlug, setMenuSlug] = useState("")
+  const [branchSlug, setBranchSlug] = useState("")
+  const [qrResult, setQrResult] = useState<QrResponse | null>(null)
+  const [pdfMenuId, setPdfMenuId] = useState("")
+
+  const { data: settings, isLoading: loadingSettings } = useQuery({
+    queryKey: ["cafe-qr-settings"],
+    queryFn: () => api<QrSettings>("/api/v1/cafe/qr-settings"),
+  })
+
+  const [settingsForm, setSettingsForm] = useState<QrSettings | null>(null)
+  const settingsValues = settingsForm ?? settings ?? { public_base_url: "", default_table_prefix: "T" }
+  const [detectedOrigin, setDetectedOrigin] = useState("")
+  useEffect(() => {
+    setDetectedOrigin(window.location.origin)
+  }, [])
+
+  const saveSettings = useMutation({
+    mutationFn: () =>
+      api<QrSettings>("/api/v1/cafe/qr-settings", {
+        method: "PATCH",
+        json: settingsValues,
+      }),
+    onSuccess: async () => {
+      toast.success(t("saved"))
+      await queryClient.invalidateQueries({ queryKey: ["cafe-qr-settings"] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const generateQr = useMutation({
+    mutationFn: () => {
+      const params = new URLSearchParams()
+      if (tableNumber.trim()) params.set("table", tableNumber.trim())
+      if (menuSlug.trim()) params.set("menu", menuSlug.trim())
+      if (branchSlug.trim()) params.set("branch", branchSlug.trim())
+      if (typeof window !== "undefined") params.set("origin", window.location.origin)
+      const qs = params.toString()
+      return api<QrResponse>(`/api/v1/cafe/qr${qs ? `?${qs}` : ""}`)
+    },
+    onSuccess: (data) => setQrResult(data),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const { data: branches = [], isLoading: loadingBranches } = useQuery({
+    queryKey: ["cafe-branches"],
+    queryFn: () => api<CafeBranch[]>("/api/v1/cafe/branches"),
+  })
+
+  const { data: menus = [] } = useQuery({
+    queryKey: ["menus"],
+    queryFn: () => api<CafeMenuListItem[]>("/api/v1/menus"),
+  })
+
+  const [branchForm, setBranchForm] = useState(emptyBranch)
+  const [editingBranch, setEditingBranch] = useState<CafeBranch | null>(null)
+
+  const saveBranch = useMutation({
+    mutationFn: () => {
+      const payload = {
+        name_fa: branchForm.name_fa,
+        name_en: branchForm.name_en,
+        slug: branchForm.slug || undefined,
+        address_fa: branchForm.address_fa || null,
+        address_en: branchForm.address_en || null,
+        phone: branchForm.phone || null,
+        is_active: branchForm.is_active,
+        sort_order: Number(branchForm.sort_order),
+      }
+      if (editingBranch) {
+        return api<CafeBranch>(`/api/v1/cafe/branches/${editingBranch.id}`, { method: "PATCH", json: payload })
+      }
+      return api<CafeBranch>("/api/v1/cafe/branches", { method: "POST", json: payload })
+    },
+    onSuccess: async () => {
+      setEditingBranch(null)
+      setBranchForm(emptyBranch)
+      await queryClient.invalidateQueries({ queryKey: ["cafe-branches"] })
+      toast.success(t("branch_saved"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const deleteBranch = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/cafe/branches/${id}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["cafe-branches"] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  function startEditBranch(branch: CafeBranch) {
+    setEditingBranch(branch)
+    setBranchForm({
+      name_fa: branch.name_fa,
+      name_en: branch.name_en,
+      slug: branch.slug,
+      address_fa: branch.address_fa ?? "",
+      address_en: branch.address_en ?? "",
+      phone: branch.phone ?? "",
+      is_active: branch.is_active ?? true,
+      sort_order: 0,
+    })
+  }
+
+  const pdfHref =
+    pdfMenuId.trim() !== ""
+      ? `${API_BASE}/api/v1/cafe/menu-pdf?menu_id=${encodeURIComponent(pdfMenuId)}`
+      : `${API_BASE}/api/v1/cafe/menu-pdf`
+
+  return (
+    <CafeAdminShell title={t("title")} description={t("description")}>
+      {loadingSettings || loadingBranches ? <p className="text-muted-foreground text-sm">{tCommon("loading")}</p> : null}
+
+      <CafeSection title={t("settings_heading")} description={t("settings_hint")}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>{t("public_base_url")}</Label>
+            <Input
+              value={settingsValues.public_base_url ?? ""}
+              onChange={(e) => setSettingsForm({ ...settingsValues, public_base_url: e.target.value })}
+              placeholder={detectedOrigin || "https://cafe.example.com"}
+              dir="ltr"
+            />
+            <p className="text-muted-foreground text-xs">
+              {t("public_base_url_auto", { url: settingsValues.public_base_url?.trim() || detectedOrigin || "—" })}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("default_table_prefix")}</Label>
+            <Input
+              value={settingsValues.default_table_prefix ?? "T"}
+              onChange={(e) => setSettingsForm({ ...settingsValues, default_table_prefix: e.target.value })}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending}>
+              {tCommon("save")}
+            </Button>
+          </div>
+        </div>
+      </CafeSection>
+
+      <CafeSection title={t("generate_heading")} description={t("generate_hint")}>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label>{t("table_number")}</Label>
+            <Input value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} placeholder="12" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("menu_slug")}</Label>
+            <select className={cafeSelectClass} value={menuSlug} onChange={(e) => setMenuSlug(e.target.value)}>
+              <option value="">{t("menu_all")}</option>
+              {menus.map((m) => (
+                <option key={m.id} value={m.slug}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("branch_slug")}</Label>
+            <select className={cafeSelectClass} value={branchSlug} onChange={(e) => setBranchSlug(e.target.value)}>
+              <option value="">{t("branch_all")}</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.slug}>
+                  {b.name_fa || b.name_en}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="sm:col-span-3">
+            <Button onClick={() => generateQr.mutate()} disabled={generateQr.isPending}>
+              {t("generate")}
+            </Button>
+          </div>
+          {qrResult ? (
+            <div className="space-y-3 sm:col-span-3">
+              <p className="text-sm">
+                <span className="font-medium">{t("qr_url")}: </span>
+                <a href={qrResult.url} className="text-primary underline" target="_blank" rel="noreferrer" dir="ltr">
+                  {qrResult.url}
+                </a>
+              </p>
+              <QrCodeView url={qrResult.url} name={tableNumber.trim() ? `table-${tableNumber.trim()}` : "menu-qr"} size={300} />
+            </div>
+          ) : null}
+        </div>
+      </CafeSection>
+
+      <CafeSection title={t("pdf_heading")}>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1.5">
+            <Label>{t("pdf_menu")}</Label>
+            <select className={cafeSelectClass} value={pdfMenuId} onChange={(e) => setPdfMenuId(e.target.value)}>
+              <option value="">{t("menu_all")}</option>
+              {menus.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button asChild variant="outline">
+            <a href={`${pdfHref}${pdfHref.includes("?") ? "&" : "?"}style=color`} target="_blank" rel="noreferrer">
+              {t("pdf_color")}
+            </a>
+          </Button>
+          <Button asChild variant="outline">
+            <a href={`${pdfHref}${pdfHref.includes("?") ? "&" : "?"}style=simple`} target="_blank" rel="noreferrer">
+              {t("pdf_simple")}
+            </a>
+          </Button>
+        </div>
+      </CafeSection>
+
+      <TablesCard />
+
+      <CafeSection title={editingBranch ? t("edit_branch") : t("add_branch")}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>{t("name_fa")}</Label>
+            <Input value={branchForm.name_fa} onChange={(e) => setBranchForm((f) => ({ ...f, name_fa: e.target.value }))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("name_en")}</Label>
+            <Input value={branchForm.name_en} onChange={(e) => setBranchForm((f) => ({ ...f, name_en: e.target.value }))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("branch_slug")}</Label>
+            <Input value={branchForm.slug} onChange={(e) => setBranchForm((f) => ({ ...f, slug: e.target.value }))} dir="ltr" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("phone")}</Label>
+            <Input value={branchForm.phone} onChange={(e) => setBranchForm((f) => ({ ...f, phone: e.target.value }))} dir="ltr" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("address_fa")}</Label>
+            <Input value={branchForm.address_fa} onChange={(e) => setBranchForm((f) => ({ ...f, address_fa: e.target.value }))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("address_en")}</Label>
+            <Input value={branchForm.address_en} onChange={(e) => setBranchForm((f) => ({ ...f, address_en: e.target.value }))} />
+          </div>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <Checkbox
+              checked={branchForm.is_active}
+              onCheckedChange={(v) => setBranchForm((f) => ({ ...f, is_active: Boolean(v) }))}
+            />
+            {t("branch_active")}
+          </label>
+          <div className="flex gap-2 sm:col-span-2">
+            <Button
+              onClick={() => saveBranch.mutate()}
+              disabled={!branchForm.name_fa || !branchForm.name_en || saveBranch.isPending}
+            >
+              <Plus className="me-2 size-4" />
+              {tCommon("save")}
+            </Button>
+            {editingBranch ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditingBranch(null)
+                  setBranchForm(emptyBranch)
+                }}
+              >
+                {t("cancel_edit")}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </CafeSection>
+
+      <CafeSection title={t("branches_heading")}>
+        {branches.length === 0 ? (
+          <CafeEmptyState message={t("branches_empty")} />
+        ) : (
+          <div className="space-y-2">
+            {branches.map((branch) => (
+              <div key={branch.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium">{branch.name_fa || branch.name_en}</p>
+                  <p className="text-muted-foreground truncate text-xs" dir="ltr">
+                    {branch.slug}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-8"
+                    title={t("edit_action")}
+                    aria-label={t("edit_action")}
+                    onClick={() => startEditBranch(branch)}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-8"
+                    title={t("delete_action")}
+                    aria-label={t("delete_action")}
+                    onClick={() => confirm({ onConfirm: () => deleteBranch.mutateAsync(branch.id) })}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CafeSection>
+      {confirmDialog}
+    </CafeAdminShell>
+  )
+}
