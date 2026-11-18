@@ -175,9 +175,19 @@ function Track({ p, label, head, children, spvD, spvM }: { p: P; label: string; 
     const el = ref.current
     if (!el) return
     const pos = Math.abs(el.scrollLeft), max = el.scrollWidth - el.clientWidth
-    setEdge({ start: pos < 4, end: pos >= max - 4 })
+    const start = pos < 4, end = max <= 4 || pos >= max - 4
+    // Keep the previous object when nothing changed: a fresh object on every scroll event re-rendered the
+    // whole rail each frame and cancelled the smooth scroll started by the arrows.
+    setEdge((prev) => (prev.start === start && prev.end === end ? prev : { start, end }))
   }, [])
-  useEffect(() => { upd(); window.addEventListener("resize", upd); return () => window.removeEventListener("resize", upd) }, [upd, children])
+  useEffect(() => {
+    upd()
+    window.addEventListener("resize", upd)
+    const el = ref.current
+    const ro = el && typeof ResizeObserver !== "undefined" ? new ResizeObserver(upd) : null
+    if (el && ro) ro.observe(el)
+    return () => { window.removeEventListener("resize", upd); ro?.disconnect() }
+  }, [upd])
   const step = (dir: 1 | -1) => {
     const el = ref.current
     if (!el) return
