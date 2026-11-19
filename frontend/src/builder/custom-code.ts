@@ -28,3 +28,47 @@ export function splitCode(code: string): CodePart[] {
   if (rest) parts.push({ kind: "html", body: rest })
   return parts
 }
+
+/** Escape a sequence that would prematurely close a <style> element when the CSS is inlined in HTML. */
+export function escapeStyleText(css: string): string {
+  return css.replace(/<\/style/gi, "\\3C/style")
+}
+
+/**
+ * Custom CSS is often authored as a raw <style> block. If a length cap (or a bad paste) cuts the
+ * block before </style>, the rest of the page is parsed as CSS and disappears. Close any unclosed
+ * style tag and escape embedded </style sequences inside the CSS text.
+ */
+export function closeOpenStyleTags(html: string): string {
+  if (!html || !/<style\b/i.test(html)) return html
+  let out = ""
+  const openRe = /<style\b[^>]*>/gi
+  let last = 0
+  let match: RegExpExecArray | null
+  while ((match = openRe.exec(html))) {
+    out += html.slice(last, match.index + match[0].length)
+    const contentStart = match.index + match[0].length
+    const rest = html.slice(contentStart)
+    const nextOpen = /<style\b/i.exec(rest)
+    const region = nextOpen ? rest.slice(0, nextOpen.index) : rest
+    let closeIndex = -1
+    let closeLen = 0
+    const closeRe = /<\/style\s*>/gi
+    let close: RegExpExecArray | null
+    while ((close = closeRe.exec(region))) {
+      closeIndex = close.index
+      closeLen = close[0].length
+    }
+    if (closeIndex >= 0) {
+      out += escapeStyleText(region.slice(0, closeIndex)) + region.slice(closeIndex, closeIndex + closeLen)
+      last = contentStart + closeIndex + closeLen
+      openRe.lastIndex = last
+    } else {
+      out += escapeStyleText(rest) + "</style>"
+      last = html.length
+      break
+    }
+  }
+  out += html.slice(last)
+  return out
+}

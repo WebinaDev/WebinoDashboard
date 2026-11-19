@@ -342,7 +342,7 @@ class BuilderGlobalsNormalizer
                 'id' => $cid,
                 'name' => $name($c['name'] ?? $cid) ?: $cid,
                 'location' => ($c['location'] ?? '') === 'head' ? 'head' : 'body_end',
-                'code' => mb_substr($c['code'], 0, 20000),
+                'code' => mb_substr($c['code'], 0, 200000), // 200k: a site theme CSS can exceed the old 20k cap
                 'enabled' => ! empty($c['enabled']),
                 'paths' => implode("\n", array_slice($paths, 0, 30)),
             ];

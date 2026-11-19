@@ -1,4 +1,4 @@
-import { codeMatchesPath, splitCode } from "../custom-code"
+import { closeOpenStyleTags, codeMatchesPath, splitCode } from "../custom-code"
 import type { CustomCode } from "../globals"
 
 /**
@@ -19,7 +19,7 @@ export function CustomCodeSlot({ entries, location, path }: { entries: CustomCod
               <script key={`${entry.id}-${index}`} dangerouslySetInnerHTML={{ __html: part.body }} />
             )
           ) : (
-            <div key={`${entry.id}-${index}`} style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: part.body }} />
+            <div key={`${entry.id}-${index}`} style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: closeOpenStyleTags(part.body) }} />
           ),
         ),
       )}

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { codeMatchesPath, splitCode } from "./custom-code.ts"
+import { closeOpenStyleTags, codeMatchesPath, splitCode } from "./custom-code.ts"
 
 test("custom code path scope", () => {
   assert.equal(codeMatchesPath({ enabled: true, paths: "" }, "/x"), true)
@@ -17,4 +17,19 @@ test("split code into scripts and markup", () => {
   assert.equal(parts[1].kind === "script" && parts[1].src, "https://a.com/t.js")
   assert.equal(parts[2].kind === "script" && parts[2].body, "window.a=1")
   assert.equal(parts[3].kind === "script" && parts[3].src, undefined)
+})
+
+test("closeOpenStyleTags closes a truncated style block so later markup stays in the tree", () => {
+  const out = closeOpenStyleTags('<style id="ak-glass-theme">.nav{color:red')
+  assert.equal(out, '<style id="ak-glass-theme">.nav{color:red</style>')
+  const wrapped = closeOpenStyleTags('<style>.a{color:red}</style><main>ok</main>')
+  assert.equal(wrapped, '<style>.a{color:red}</style><main>ok</main>')
+  const two = closeOpenStyleTags('<style>.a{}</style><style>.b{')
+  assert.equal(two, '<style>.a{}</style><style>.b{</style>')
+})
+
+test("closeOpenStyleTags escapes an embedded </style sequence inside CSS", () => {
+  const out = closeOpenStyleTags('<style>.x::before{content:"</style>"}</style><p>after</p>')
+  assert.equal(out.includes('\\3C/style'), true, out)
+  assert.equal(out.endsWith("</style><p>after</p>"), true, out)
 })

@@ -108,7 +108,7 @@ export function CodeManagerPanel({ settings, onChange }: PanelProps) {
             <label className="flex items-center gap-1"><input type="checkbox" checked={entry.enabled} onChange={(e) => patch(index, { enabled: e.target.checked })} />{t("code_enabled")}</label>
             <Button type="button" size="sm" variant="outline" onClick={() => onChange({ ...settings, customCode: list.filter((_, i) => i !== index) })}>{t("remove")}</Button>
           </div>
-          <textarea aria-label={t("code_body")} dir="ltr" className="min-h-32 rounded-md border px-2 py-1 font-mono" value={entry.code} onChange={(e) => patch(index, { code: e.target.value.slice(0, 20000) })} />
+          <textarea aria-label={t("code_body")} dir="ltr" className="min-h-32 rounded-md border px-2 py-1 font-mono" value={entry.code} onChange={(e) => patch(index, { code: e.target.value.slice(0, 200_000) })} />
           <label className="grid gap-1">
             {t("code_paths")}
             <textarea dir="ltr" className="min-h-14 rounded-md border px-2 py-1 font-mono" placeholder={"/shop*\n/about"} value={entry.paths ?? ""} onChange={(e) => patch(index, { paths: e.target.value })} />
