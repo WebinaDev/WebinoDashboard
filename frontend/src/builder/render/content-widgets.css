@@ -1,9 +1,9 @@
 /* Content widgets (section heading, steps, icon cards, badges, CTA banner).
  * Accent follows the corporate brand on the Webina site and the builder primary elsewhere. */
 .wb-canvas {
-  --wbx-accent: var(--wb-color-primary, #0054ff);
-  --wbx-ink: var(--wb-color-text, #0c2d63);
-  --wbx-line: var(--wb-color-border, #e6eef6);
+  --wbx-accent: var(--wb-color-primary, var(--wb-color-accent, var(--color-primary)));
+  --wbx-ink: var(--wb-color-text, var(--color-foreground));
+  --wbx-line: var(--wb-color-border, var(--color-border, #e6eef6));
   --wbx-soft: color-mix(in srgb, var(--wbx-accent) 9%, transparent);
 }
 .webina-builder.wb-canvas {

@@ -2,10 +2,10 @@
 .wb-tone-glass {
   --wb-glass-bg: rgba(255, 255, 255, 0.62);
   --wb-glass-border: rgba(255, 255, 255, 0.7);
-  --wb-glass-text: var(--color-foreground, #1a1012);
-  --wb-glass-accent: var(--color-primary, #b4101e);
-  --wb-glass-muted: color-mix(in srgb, var(--wb-glass-text) 72%, transparent);
-  --wb-glass-card: color-mix(in srgb, var(--wb-glass-bg) 70%, #fff);
+  --wb-glass-text: var(--wb-color-text, var(--color-foreground, #1a1012));
+  --wb-glass-accent: var(--wb-color-accent, var(--wb-color-primary, var(--color-primary)));
+  --wb-glass-muted: var(--wb-color-muted, color-mix(in srgb, var(--wb-glass-text) 72%, transparent));
+  --wb-glass-card: color-mix(in srgb, var(--wb-glass-bg) 78%, var(--color-background, var(--wb-color-background, #fff)));
   background: var(--wb-glass-bg);
   color: var(--wb-glass-text);
   border: 1px solid var(--wb-glass-border);

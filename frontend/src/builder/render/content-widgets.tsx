@@ -41,7 +41,7 @@ export function SectionHeadingWidget({ widget }: { widget: WidgetNode }) {
   const eyebrowPill = eyebrowStyle === "pill"
   const eyebrowCss = eyebrowPill
     ? {
-        ["--wbx-eyebrow-bg" as string]: safeCssColor(propStr(widget.props, "eyebrowBg"), "#3aa6b9"),
+        ["--wbx-eyebrow-bg" as string]: safeCssColor(propStr(widget.props, "eyebrowBg"), "var(--wbx-accent)"),
         ["--wbx-eyebrow-fg" as string]: safeCssColor(propStr(widget.props, "eyebrowColor"), "#fff"),
         ["--wbx-eyebrow-bc" as string]: safeCssColor(propStr(widget.props, "eyebrowBorderColor"), "#2b2230"),
         ["--wbx-eyebrow-bw" as string]: `${Math.max(1, Math.min(5, Number(propStr(widget.props, "eyebrowBorderWidth", "2")) || 2))}px`,
@@ -108,7 +108,7 @@ export function IconCardsWidget({ widget }: { widget: WidgetNode }) {
         ["--wbx-doodle-bc" as string]: safeCssColor(propStr(widget.props, "borderColor"), "#2b2230"),
         ["--wbx-doodle-sx" as string]: `${Math.max(0, Math.min(16, Number(propStr(widget.props, "shadowX", "6")) || 6))}px`,
         ["--wbx-doodle-sy" as string]: `${Math.max(0, Math.min(16, Number(propStr(widget.props, "shadowY", "6")) || 6))}px`,
-        ["--wbx-doodle-sc" as string]: safeCssColor(propStr(widget.props, "shadowColor"), "#3aa6b9"),
+        ["--wbx-doodle-sc" as string]: safeCssColor(propStr(widget.props, "shadowColor"), "var(--wbx-accent)"),
         ["--wbx-doodle-radius" as string]: `${Math.max(8, Math.min(40, Number(propStr(widget.props, "radius", "24")) || 24))}px`,
       }
     : { ["--wbx-cols" as string]: columns }

@@ -57,3 +57,43 @@ export function sectionIsDark(input: { tone?: string; bgImage?: string; bgOverla
   } else if (input.bgOverlay && isDarkColor(input.bgOverlay) && op >= 60) return true
   return isDarkColor(input.bgColor)
 }
+
+export const AA_CONTRAST = 4.5
+export const LIGHT_INK = "#f7f4f0"
+export const DARK_INK = "#121212"
+
+/** WCAG contrast ratio of two colours (1..21), or null when a colour cannot be parsed. */
+export function contrastRatio(a: string | null | undefined, b: string | null | undefined): number | null {
+  const la = luminance(a)
+  const lb = luminance(b)
+  if (la == null || lb == null) return null
+  const light = Math.max(la, lb)
+  const dark = Math.min(la, lb)
+  return (light + 0.05) / (dark + 0.05)
+}
+
+/** Light or dark ink, whichever contrasts more with the background. */
+export function contrastingInk(background: string, light = LIGHT_INK, dark = DARK_INK): string {
+  const cl = contrastRatio(light, background) ?? 0
+  const cd = contrastRatio(dark, background) ?? 0
+  return cl >= cd ? light : dark
+}
+
+/**
+ * First candidate that meets WCAG AA against the background; otherwise a contrasting ink.
+ * Used so dark/glass surfaces never fall back to a navy/blue token that disappears on them.
+ */
+export function pickReadableColor(background: string, candidates: Array<string | null | undefined>, minRatio = AA_CONTRAST): string {
+  for (const color of candidates) {
+    if (!color || typeof color !== "string") continue
+    const ratio = contrastRatio(color, background)
+    if (ratio != null && ratio >= minRatio) return color
+  }
+  return contrastingInk(background)
+}
+
+/** Keep `color` when it already contrasts; otherwise pick from fallbacks. */
+export function ensureContrast(color: string | undefined, background: string, fallbacks: Array<string | null | undefined> = [], minRatio = AA_CONTRAST): string {
+  if (color && (contrastRatio(color, background) ?? 0) >= minRatio) return color
+  return pickReadableColor(background, fallbacks, minRatio)
+}

@@ -1,3 +1,4 @@
+import { storefrontColorAliasesCss } from "./storefront-tokens"
 import { safeToken, selectorRules } from "./style"
 import type { ResponsiveStyle, SectionNode } from "./types"
 
@@ -358,6 +359,7 @@ export function globalsCss(globals: BuilderGlobals): string {
     `--wb-lightbox-bg:${globals.lightbox.background}`,
     safeCustomVariables(globals.cssVariables),
     variablesCss(globals.variables),
+    storefrontColorAliasesCss(c, globals.forms),
   ].filter(Boolean).join(";")
 
   const typeRule = (tag: string) =>
@@ -385,7 +387,7 @@ export function globalsCss(globals: BuilderGlobals): string {
     `.wb-btn-ghost{background:var(--wb-btn-ghost-bg);color:var(--wb-btn-ghost-fg);border-color:var(--wb-btn-ghost-border)}`,
     `.wb-btn-ghost:hover{background:var(--wb-btn-ghost-hover-bg);color:var(--wb-btn-ghost-hover-fg)}`,
     `.wb-img{border-radius:var(--wb-img-radius);object-fit:var(--wb-img-fit);width:100%;height:auto}`,
-    `.wb-field{width:100%;border-radius:var(--wb-field-radius);background:var(--wb-field-bg);border:1px solid var(--wb-field-border);padding:var(--wb-field-pad)}`,
+    `.wb-field{width:100%;border-radius:var(--wb-field-radius);background:var(--wb-field-bg);border:1px solid var(--wb-field-border);padding:var(--wb-field-pad);color:var(--wb-color-text)}`,
     `.wb-field:focus{outline:2px solid var(--wb-field-focus);border-color:var(--wb-field-focus)}`,
     `.wb-label{color:var(--wb-label-color);font-size:var(--wb-small-size);font-weight:600}`,
     `.wb-form-error{color:var(--wb-error-color);font-size:var(--wb-small-size)}`,
