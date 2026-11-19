@@ -48,6 +48,47 @@ export function v2Style(p: P): CSSProperties {
   return v as CSSProperties
 }
 
+const VIDEO_ASPECT: Record<string, [string, string, string]> = {
+  "9/16": ["9 / 16", "9", "16"],
+  "16/9": ["16 / 9", "16", "9"],
+  "4/5": ["4 / 5", "4", "5"],
+  "1/1": ["1 / 1", "1", "1"],
+}
+export function aspectVars(ratio: string): CSSProperties {
+  const known = VIDEO_ASPECT[ratio]
+  const css = known?.[0] ?? (ratio.includes("/") ? ratio.replace("/", " / ") : "9 / 16")
+  const w = known?.[1] ?? ratio.split("/")[0]?.trim() ?? "9"
+  const h = known?.[2] ?? ratio.split("/")[1]?.trim() ?? "16"
+  return { ["--wpv-vg-ratio" as string]: css, ["--wpv-vg-w" as string]: w, ["--wpv-vg-h" as string]: h } as CSSProperties
+}
+export function ratioFromSize(width: number, height: number): string {
+  if (!(width > 0) || !(height > 0)) return "9/16"
+  return width < height ? "9/16" : width === height ? "1/1" : "16/9"
+}
+/** `aspect: auto` inspects the cover or file; otherwise honour the widget field (default auto → 9/16 until known). */
+export function useVideoAspect(p: P, cover?: string, src?: string): string {
+  const pref = propStr(p, "aspect", "auto")
+  const fixed = pref && pref !== "auto" ? pref : ""
+  const [ratio, setRatio] = useState(fixed || "9/16")
+  useEffect(() => {
+    if (fixed) { setRatio(fixed); return }
+    let off = false
+    const apply = (w: number, h: number) => { if (!off) setRatio(ratioFromSize(w, h)) }
+    if (cover) {
+      const img = new Image()
+      img.onload = () => apply(img.naturalWidth, img.naturalHeight)
+      img.src = cover
+    } else if (src) {
+      const v = document.createElement("video")
+      v.preload = "metadata"
+      v.onloadedmetadata = () => apply(v.videoWidth, v.videoHeight)
+      v.src = src
+    }
+    return () => { off = true }
+  }, [fixed, cover, src])
+  return ratio
+}
+
 /** mm:ss in Persian digits. */
 export function clock(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return fa("00:00")
@@ -466,6 +507,8 @@ export function VideoGallery({ p, id, embedded = false, entries }: { p: P; id: s
   const v = items[cur]
   const locked = v ? mediaLocked(v) : false
   const carousel = propStr(p, "layout", "stage") === "carousel"
+  const aspect = useVideoAspect(p, v?.cover, v?.src)
+  const skin = { ...v2Style(p), ...aspectVars(aspect) }
   if (!items.length) {
     if (loading) return null
     const empty = <p className="wpv-empty"><Film size={20} aria-hidden />{propStr(p, "emptyText", "هنوز ویدیویی منتشر نشده است.")}</p>
@@ -540,9 +583,9 @@ export function VideoGallery({ p, id, embedded = false, entries }: { p: P; id: s
     </div>
     )
   )
-  if (embedded) return <div className="wpv-block wpv-vg" id={`wpv-vg-${id}`}>{body}</div>
+  if (embedded) return <div className="wpv-block wpv-vg" id={`wpv-vg-${id}`} style={aspectVars(aspect)}>{body}</div>
   return (
-    <section className={v2Shell(p, "wpv-vg")} dir="rtl" style={v2Style(p)} id={`wpv-vg-${id}`}>
+    <section className={v2Shell(p, "wpv-vg")} dir="rtl" style={skin} id={`wpv-vg-${id}`}>
       <div className="wpz-head">{propStr(p, "title") ? <h2 className="wpz-h2">{propStr(p, "title")}</h2> : null}</div>
       {body}
     </section>

@@ -22,6 +22,7 @@ import { aboutClass, heroIsFull, heroIsOverlay, shopNarrowStyle, shopTrackClass 
 import { optImg } from "@/lib/image-url"
 import { PremiumBadge, PremiumVeil } from "./poetry-membership"
 import { sectionIsDark } from "./contrast"
+import { isDarkGlassTone } from "./glass-tone"
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import { manualPoemRows, poemCarouselQuery, verseLines } from "../poem-carousel"
 import { WpzCarousel, clampSpv, type CarouselOpts } from "./wpz-carousel"
@@ -47,11 +48,13 @@ function frameClass(p: Record<string, unknown>, def = "arch") {
 
 export function shell(p: Record<string, unknown>, extra: string, defTone = "light") {
   const t = propStr(p, "tone", defTone)
-  const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : t === "blush" ? "wpz-light wpz-blush" : t === "glass" ? "wpz-light wpz-glass" : "wpz-light"
+  const darkSection = sectionIsDark({ tone: t, bgImage: propStr(p, "bgImage"), bgOverlay: propStr(p, "bgOverlay"), bgOverlayOpacity: propNum(p, "bgOverlayOpacity", 70), bgColor: propStr(p, "bgColor") || propStr(p, "sectionBg") })
+  const glassDark = isDarkGlassTone(p, darkSection)
+  const tone = t === "dark" ? "wpz-dark" : t === "transparent" ? "wpz-clear" : t === "blush" ? "wpz-light wpz-blush" : glassDark ? "wpz-glass wpz-glass-dark" : t === "glass" ? "wpz-light wpz-glass" : "wpz-light"
   const bg = propStr(p, "bgImage") ? "wpz-has-bg" : ""
   const mfw = propBool(p, "mobileFullWidth", true) ? "wpz-mfw" : ""
-  // Dark tone, image+dark overlay, or a dark bg colour → light text tokens cascade from the section.
-  const dark = sectionIsDark({ tone: t, bgImage: propStr(p, "bgImage"), bgOverlay: propStr(p, "bgOverlay"), bgOverlayOpacity: propNum(p, "bgOverlayOpacity", 70), bgColor: propStr(p, "bgColor") || propStr(p, "sectionBg") })
+  // Dark tone, dark glass, image+dark overlay, or a dark bg colour → light text tokens cascade from the section.
+  const dark = darkSection || glassDark
   const bleed = propBool(p, "fullBleed", false) && propStr(p, "desktopWidth", "full") === "full" ? "wpz-bleed" : ""
   return `wpz ${tone} ${bleed} ${dark ? "wpz-on-dark" : ""} ${propBool(p, "pattern", false) ? "wpz-pattern" : ""} ${bg} ${mfw} ${extra}`
 }
@@ -383,9 +386,41 @@ export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
 }
 
 /** 4) occasion cards: photo background + dark crimson gradient, link per card; scroll-snap row on mobile. */
+function occasionHrefOf(p: Record<string, unknown>, slug: string): string {
+  const tpl = propStr(p, "occasionHref", "/poems?occasion={slug}")
+  return /\{slug\}/.test(tpl) ? tpl.replace(/\{slug\}/g, encodeURIComponent(slug)) : `${tpl}${tpl.includes("?") ? "&" : "?"}occasion=${encodeURIComponent(slug)}`
+}
+function hrefHasOccasion(href: string, slug: string): boolean {
+  try {
+    const u = href.includes("://") ? new URL(href) : new URL(href, "https://example.local")
+    return u.searchParams.get("occasion") === slug || u.pathname.split("/").includes(slug)
+  } catch {
+    return href.includes(slug)
+  }
+}
+export function filterOccasions<T extends { poems_count?: number; media_count?: number }>(list: T[] | null | undefined, showEmpty: boolean): T[] {
+  return (list ?? []).filter((o) => showEmpty || (o.poems_count ?? 0) + (o.media_count ?? 0) > 0)
+}
+
 export function OccasionCardsWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const rows = parseRows(p.items, ["title", "image", "icon", "href", "subtitle"]).filter((r) => r.title)
+  const showEmpty = propBool(p, "showEmpty", false)
+  const liveSource = propStr(p, "source", "manual") === "live"
+  const { data: live } = usePoetryJson<{ slug: string; name: string; image?: string | null; poems_count?: number; media_count?: number }[]>(showEmpty || liveSource ? "occasions" : null)
+  const manual = parseRows(p.items, ["title", "image", "icon", "href", "subtitle"]).filter((r) => r.title)
+  const toRow = (o: { slug: string; name: string; image?: string | null; poems_count?: number; media_count?: number }) => ({
+    title: o.name,
+    image: o.image || "",
+    icon: "star",
+    href: occasionHrefOf(p, o.slug),
+    subtitle: (o.poems_count ?? 0) + (o.media_count ?? 0) === 0 ? propStr(p, "emptyLabel", "") : "",
+  })
+  const alreadyListed = (slug: string, name: string) => manual.some((m) => m.title === name || hrefHasOccasion(m.href, slug))
+  const rows = liveSource
+    ? filterOccasions(live, showEmpty).map(toRow)
+    : showEmpty
+      ? [...manual, ...(live ?? []).filter((o) => (o.poems_count ?? 0) + (o.media_count ?? 0) === 0 && !alreadyListed(o.slug, o.name)).map(toRow)]
+      : manual
   const { carousel, opts } = carouselOpts(p, 4)
   const ratio = RATIOS[propStr(p, "cardRatio", "4/5")] ?? "4 / 5"
   return (

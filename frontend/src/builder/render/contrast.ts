@@ -49,7 +49,7 @@ export function isDarkColor(value: string | null | undefined): boolean {
  * dark crimson) with opacity ≥ 35%, or a solid bg/overlay colour is dark.
  */
 export function sectionIsDark(input: { tone?: string; bgImage?: string; bgOverlay?: string; bgOverlayOpacity?: number; bgColor?: string }): boolean {
-  if (input.tone === "dark") return true
+  if (input.tone === "dark" || input.tone === "glass-dark") return true
   const op = input.bgOverlayOpacity ?? 70
   if (input.bgImage) {
     if (!input.bgOverlay) return op >= 35

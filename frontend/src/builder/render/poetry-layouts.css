@@ -57,6 +57,13 @@ html:has(.wpz-bleed) body { overflow-x: clip; }
 
 /* glass tone: white 58% + backdrop blur */
 .wpz-light.wpz-glass { --wpz-cream: rgba(255,255,255,.58); background: rgba(255,255,255,.58); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.6); }
+.wpz-glass-dark {
+  --wpz-cream: #fff4ef; --wpz-ink: #fff4ef; --wpz-muted: #e2cfd4;
+  background: var(--wpz-gcard, rgba(53,18,31,.72)); color: var(--wpz-ink);
+  -webkit-backdrop-filter: var(--wpz-gblur, blur(18px) saturate(160%)); backdrop-filter: var(--wpz-gblur, blur(18px) saturate(160%));
+  border: 1px solid var(--wpz-gline, rgba(255,255,255,.16));
+}
+
 
 /* hero full-width / slides */
 .wpz-hero-full { padding: 0 !important; overflow: hidden; }

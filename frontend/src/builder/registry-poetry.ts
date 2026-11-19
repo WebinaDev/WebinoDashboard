@@ -6,7 +6,7 @@ function node(type: string, props: Record<string, unknown>): WidgetNode {
   return { id: uid("w"), type, props }
 }
 
-const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }, { value: "blush", label: "صورتی روشن" }, { value: "glass", label: "شیشه‌ای (سفید نیمه‌شفاف با محو پس‌زمینه)" }] }
+const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }, { value: "blush", label: "صورتی روشن" }, { value: "glass", label: "شیشه‌ای (نیمه‌شفاف با محو پس‌زمینه)" }, { value: "glass-dark", label: "شیشه‌ای تیره (متن روشن)" }] }
 /** Shared section background: image + colour/gradient overlay (e.g. dark crimson) with opacity 0–100. */
 export const SECTION_BG_FIELDS: FieldDef[] = [
   { kind: "media", key: "bgImage", label: "تصویر پس‌زمینه بخش", accept: "image" },
@@ -163,11 +163,15 @@ export const POETRY_WIDGETS: WidgetDef[] = [
         { key: "icon", label: "آیکن", kind: "select", options: ICONS }, { key: "href", label: "پیوند", kind: "url" }, { key: "subtitle", label: "زیرعنوان", kind: "text" },
       ] },
       ...CAROUSEL_FIELDS,
+      { kind: "select", key: "source", label: "منبع", options: [{ value: "manual", label: "ردیف‌های دستی (پیش‌فرض)" }, { value: "live", label: "مناسبت‌های ثبت‌شده" }] },
+      { kind: "switch", key: "showEmpty", label: "نمایش مناسبت‌های بدون شعر" },
+      { kind: "text", key: "occasionHref", label: "پیوند مناسبت‌های خودکار ({slug})" },
+      { kind: "text", key: "emptyLabel", label: "زیرعنوان مناسبت خالی (اختیاری)" },
       { kind: "select", key: "cardRatio", label: "نسبت کارت", options: RATIO_OPTS },
       { kind: "number", key: "cardHeight", label: "ارتفاع کارت (px، ۰ یعنی از روی نسبت)", min: 0, max: 600 },
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("occasion-cards", { title: "مناسبت‌ها", items: "محرم||flame|/poems?occasion=muharram\nفاطمیه||moon|/poems?occasion=fatemiyeh\nماه رمضان||star|/poems?occasion=ramadan\nمدح و مناجات||book|/poems?occasion=madh", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, cardRatio: "4/5", tone: "light", frame: "rounded" }),
+    create: () => node("occasion-cards", { title: "مناسبت‌ها", items: "محرم||flame|/poems?occasion=muharram\nفاطمیه||moon|/poems?occasion=fatemiyeh\nماه رمضان||star|/poems?occasion=ramadan\nمدح و مناجات||book|/poems?occasion=madh", source: "manual", showEmpty: false, occasionHref: "/poems?occasion={slug}", layout: "carousel", slidesDesktop: 4, slidesMobile: 1.3, autoplay: false, autoplayInterval: 5, cardRatio: "4/5", tone: "light", frame: "rounded" }),
   },
   {
     type: "media-cards", label: "کارت‌های صوت و تصویر", category: "content",
@@ -292,12 +296,13 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       ] },
       { kind: "text", key: "premiumLabel", label: "برچسب دکمه اشتراک ویژه" }, { kind: "link", key: "premiumHref", label: "صفحه اشتراک ویژه" },
       { kind: "text", key: "emptyText", label: "متن نبود ویدیو" }, { kind: "switch", key: "hideWhenEmpty", label: "پنهان وقتی ویدیویی نیست" }, LOGO,
-      { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "stage", label: "پخش‌کننده + فهرست (پیش‌فرض)" }, { value: "carousel", label: "کروسل کارت‌های ۱۶:۹" }] },
+      { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "stage", label: "پخش‌کننده + فهرست (پیش‌فرض)" }, { value: "carousel", label: "کروسل کارت‌ها" }] },
+      { kind: "select", key: "aspect", label: "نسبت ویدیو", options: [{ value: "auto", label: "خودکار (عمودی یا افقی از روی فایل)" }, { value: "9/16", label: "عمودی ۹:۱۶" }, { value: "16/9", label: "افقی ۱۶:۹" }, { value: "4/5", label: "عمودی ۴:۵" }, { value: "1/1", label: "مربع" }] },
       { kind: "number", key: "slidesDesktop", label: "تعداد کارت در دسکتاپ (کروسل)", min: 1, max: 6 },
       { kind: "number", key: "slidesMobile", label: "تعداد کارت در موبایل (کروسل)", min: 1, max: 4 },
       tone, ...V2_COLOR_FIELDS, ...SECTION_BG_FIELDS,
     ],
-    create: () => node("video-gallery", { title: "ویدیوها", source: "live", count: 24, items: "", premiumLabel: "خرید اشتراک ویژه", premiumHref: "/subscribe", hideWhenEmpty: false, layout: "stage", slidesDesktop: 3, slidesMobile: 1.2, tone: "glass" }),
+    create: () => node("video-gallery", { title: "ویدیوها", source: "live", count: 24, items: "", premiumLabel: "خرید اشتراک ویژه", premiumHref: "/subscribe", hideWhenEmpty: false, layout: "stage", aspect: "auto", slidesDesktop: 3, slidesMobile: 1.2, tone: "glass" }),
   },
   {
     type: "occasion-grid", label: "شبکه مناسبت‌ها (برای صفحه مناسبت‌ها)", category: "content",

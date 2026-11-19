@@ -25,6 +25,7 @@ import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./c
 import { optImg } from "@/lib/image-url"
 import { WebinaCredit } from "@/components/brand/WebinaCredit"
 import { sectionIsDark } from "./contrast"
+import { isDarkGlassTone } from "./glass-tone"
 import { JSON_HEADERS, PremiumBadge, PremiumVeil, hasLocked, loadMembership } from "./poetry-membership"
 import { BuilderPrice } from "../money"
 import { useProductSeed } from "../storefront/product-seed"
@@ -59,12 +60,18 @@ const isExternal = (h: string) => /^https?:/i.test(h)
 /** Colour fields → CSS variables. */
 /** mobileFullWidth (default on): edge-to-edge on phones. */
 /** Mobile full-width flag plus the shared `tone: glass` surface (same classes as the poetry widgets). */
-export const akxMfw = (p: P) =>
-  [
-    propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "", propStr(p, "tone") === "glass" ? "akx-glass wpz-light wpz-glass" : "",
+export const akxMfw = (p: P) => {
+  const t = propStr(p, "tone")
+  const darkSection = sectionIsDark({ tone: t, bgColor: propStr(p, "sectionBg") })
+  const glassDark = isDarkGlassTone(p, darkSection)
+  return [
+    propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "",
+    t === "glass" && !glassDark ? "akx-glass wpz-light wpz-glass" : "",
+    glassDark ? "akx-glass akx-glass-dark wpz-glass wpz-glass-dark" : "",
     // Dark section background (e.g. the wine gradient): light text tokens + dark-glass cards so nothing reads dark-on-dark.
-    sectionIsDark({ bgColor: propStr(p, "sectionBg") }) ? "akx-on-dark" : "",
+    darkSection || glassDark ? "akx-on-dark" : "",
   ].filter(Boolean).join(" ")
+}
 
 /** transparent / fully see-through colours (transparent, #rgba with 00 alpha, rgba(...,0)) */
 export function isClearColor(v: string): boolean {
@@ -243,7 +250,8 @@ function useNavTree(p: P): NavNode[] {
     const host = top.find((t) => /^\/occasions(\?|$)/.test(t.link.href || ""))
     const tpl = propStr(p, "occasionHref", "/occasions?occasion={slug}")
     if (host && !host.children.length) {
-      host.children = data.filter((o) => (o.poems_count ?? 0) + (o.media_count ?? 0) > 0).slice(0, 12)
+      const showEmpty = propBool(p, "showEmpty", false)
+      host.children = data.filter((o) => showEmpty || (o.poems_count ?? 0) + (o.media_count ?? 0) > 0).slice(0, 12)
         .map((o) => ({ label: o.name, href: tpl.replace("{slug}", encodeURIComponent(o.slug)) }))
     }
   }
@@ -502,7 +510,7 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
   const toggleFav = () => { const v = !fav; setFav(v); localStorage.setItem(`akx-fav:${poem.slug}`, v ? "1" : "0") }
   const specs: [string, string][] = [
     ["شخصیت", poem.figures.map((x) => x.name).join("، ")], ["مناسبت", poem.occasion?.name ?? ""], ["سبک", poem.style_label || poem.styles.map((x) => x.name).join("، ")],
-    ["وزن", poem.meter?.name || propStr(p, "meterFallback", "")], ["تاریخ سرایش", poem.composed_label ?? ""], ["بازدید", fa(poem.view_count)],
+    ["وزن", poem.meter?.name || propStr(p, "meterFallback", "")], ["تاریخ سرایش", poem.composed_label ? fa(poem.composed_label) : ""], ["بازدید", fa(poem.view_count)],
   ]
   return (
     <section className={`akx akx-sg ${akxMfw(p)} ${propBool(p, "showSidebar", true) ? "" : "akx-sg-solo"}`} dir="rtl" style={akxVars(p, { refrainBg: "--akx-ref" })}>
@@ -528,7 +536,7 @@ export function PoemSingleWidget({ widget }: { widget: WidgetNode }) {
           )
         })}
         {poem.melody_credit ? <div className="akx-sub">{poem.melody_credit}</div> : null}
-        <div className="akx-sign">{propStr(p, "signPrefix", "✍")} <b>{poem.pen_name || ""}</b>{propStr(p, "signNote") ? ` · ${propStr(p, "signNote")}` : ""}{poem.composed_label ? ` · ${poem.composed_label}` : ""}</div>
+        <div className="akx-sign">{propStr(p, "signPrefix", "✍")} <b>{poem.pen_name || ""}</b>{propStr(p, "signNote") ? ` · ${propStr(p, "signNote")}` : ""}{poem.composed_label ? ` · ${fa(poem.composed_label)}` : ""}</div>
         {tools && !poem.locked ? (
           <div className="akx-tools">
             <button type="button" onClick={copy}><Copy size={16} aria-hidden />کپی متن</button>
@@ -716,7 +724,10 @@ function BuyButton({ p, it, qty = 1, big = false, option = "", needsVariant = fa
     // shows a disabled button instead, so a slow/missed catalog lookup can't send shoppers away.
     // Card buttons on products with variants open the product page to pick one.
     const cls = `akx-b1 ${big ? "akx-b1-big" : ""}`
-    if (it.live && needsVariant && it.href) return <Link className={cls} href={safeLink(it.href, "#")}>{propStr(p, "chooseLabel", "انتخاب نوع")}</Link>
+    if (it.live && needsVariant && it.href) {
+      const choose = propStr(p, "chooseLabel", "انتخاب نوع")
+      return <Link className={`${cls} akx-b1-icon`} href={safeLink(it.href, "#")} aria-label={choose} title={choose}><ShoppingBag size={18} aria-hidden /></Link>
+    }
     if (!it.live || !(it.price > 0) || !it.inStock) {
       const off = it.live && !it.inStock ? propStr(p, "outLabel", "ناموجود").replace(/^●\s*/, "") : propStr(p, "cartLabel", "افزودن به سبد")
       return <button type="button" className={`${cls} akx-b1-off`} disabled aria-disabled="true">{off}</button>
@@ -733,15 +744,17 @@ const RATIO: Record<string, string> = { "4/5": "4 / 5", "3/4": "3 / 4", "2/3": "
 function ProductCard({ p, it }: { p: P; it: Item }) {
   const body = (
     <>
-      <div className="akx-pr-img" style={{ ["--akx-pr-ratio" as string]: RATIO[propStr(p, "imageRatio", "4/5")] ?? "4 / 5" } as CSSProperties}><PhotoSlot mode={it.image ? "photo" : propStr(p, "imageMode", "arabesque")} src={it.image} logo={propStr(p, "logo")} alt={it.title} /></div>
+      <div className="akx-pr-img" style={{ ["--akx-pr-ratio" as string]: RATIO[propStr(p, "imageRatio", "4/5")] ?? "4 / 5" } as CSSProperties}>
+        <PhotoSlot mode={it.image ? "photo" : propStr(p, "imageMode", "arabesque")} src={it.image} logo={propStr(p, "logo")} alt={it.title} />
+        {it.old && it.price && propStr(p, "discountLabel") ? <span className="akx-off">{propStr(p, "discountLabel")}</span> : null}
+        {it.demo && propStr(p, "demoLabel") ? <span className="akx-demo">{propStr(p, "demoLabel")}</span> : null}
+      </div>
       <b className="akx-pr-name">{it.title}</b>
       <div className="akx-price"><PriceLine p={p} it={it} /></div>
     </>
   )
   return (
     <article className="akx-pr">
-      {it.old && it.price && propStr(p, "discountLabel") ? <span className="akx-off">{propStr(p, "discountLabel")}</span> : null}
-      {it.demo && propStr(p, "demoLabel") ? <span className="akx-demo">{propStr(p, "demoLabel")}</span> : null}
       {it.href ? <Link href={safeLink(it.href, "#")} className="akx-pr-link">{body}</Link> : <div className="akx-pr-link">{body}</div>}
       <BuyButton p={p} it={it} needsVariant={it.options.length > 1} />
     </article>

@@ -56,3 +56,12 @@ test("poem-carousel is registered with glass tone and full-text fields", () => {
   assert.equal(node.props.slidesMobile, 1)
   assert.equal(node.props.showTitle, true)
 })
+
+test("occasion-cards and video-gallery expose showEmpty / aspect fields", () => {
+  const keys = (t: string) => POETRY_WIDGETS.find((w) => w.type === t)!.fields.map((f) => f.key)
+  for (const k of ["source", "showEmpty", "occasionHref"]) assert.ok(keys("occasion-cards").includes(k), k)
+  assert.equal(POETRY_WIDGETS.find((w) => w.type === "occasion-cards")!.create().props.showEmpty, false)
+  assert.ok(keys("occasion-grid").includes("showEmpty"))
+  assert.ok(keys("video-gallery").includes("aspect"))
+  assert.equal(POETRY_WIDGETS.find((w) => w.type === "video-gallery")!.create().props.aspect, "auto")
+})

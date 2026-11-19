@@ -15,6 +15,7 @@ import { WIcon } from "./extra-widgets"
 import "./content-widgets.css"
 import "./doodle-widgets.css"
 import { safeCssColor } from "./doodle-widgets"
+import { compareMark } from "./compare-table"
 
 function safeHref(href: string, fallback = "#"): string {
   const v = href.trim()
@@ -239,6 +240,16 @@ export function CtaBannerWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
+function CompareCell({ label, value }: { label: string; value: string }) {
+  const kind = compareMark(value)
+  return (
+    <td data-label={label} className={kind ? `wb-cmp-${kind}` : undefined}>
+      {kind ? <span className="wb-cmp-icon" aria-hidden>{kind === "yes" ? "✓" : "✕"}</span> : null}
+      <span className="wb-cmp-label">{value}</span>
+    </td>
+  )
+}
+
 export function ComparisonTableWidget({ widget }: { widget: WidgetNode }) {
   const rows = parseRows(widget.props.rows, ["a", "b"]).filter((row) => row.a || row.b)
   const colA = propStr(widget.props, "colA")
@@ -257,8 +268,8 @@ export function ComparisonTableWidget({ widget }: { widget: WidgetNode }) {
         <tbody>
           {rows.map((row, index) => (
             <tr key={index}>
-              <td data-label={colA}>{row.a}</td>
-              <td data-label={colB}>{row.b}</td>
+              <CompareCell label={colA} value={row.a} />
+              <CompareCell label={colB} value={row.b} />
             </tr>
           ))}
         </tbody>

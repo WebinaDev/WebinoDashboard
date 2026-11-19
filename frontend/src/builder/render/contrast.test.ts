@@ -18,6 +18,7 @@ test("sectionIsDark", () => {
   assert.ok(!sectionIsDark({ tone: "light", bgImage: "/a.jpg", bgOverlay: "#ffffff" }))
   assert.ok(sectionIsDark({ tone: "transparent", bgColor: "#1a0508" }))
   assert.ok(!sectionIsDark({ tone: "light" }))
+  assert.ok(sectionIsDark({ tone: "glass-dark" }))
 })
 
 test("contrastRatio and pickReadableColor prefer a gold accent over navy on dark maroon", () => {

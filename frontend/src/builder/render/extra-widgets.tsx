@@ -1,7 +1,8 @@
 "use client"
 
 import "./doodle-widgets.css"
-import { glassClass, glassStyle } from "./glass-tone"
+import { glassClass, glassStyle, isGlassTone } from "./glass-tone"
+import { contrastingInk } from "./contrast"
 
 /* Additional page-builder widgets (product query carousel, banner grid, tabs, FAQ accordion,
  * icon box/list, testimonials, brand slider, gallery/carousel, announcement, map, counters,
@@ -768,16 +769,23 @@ export function ShareButtonsWidget({ widget }: { widget: WidgetNode }) {
 export function PricingWidget({ widget }: { widget: WidgetNode }) {
   const rows = splitRows(propStr(widget.props, "plans", "")).filter(([name]) => name)
   const cta = propStr(widget.props, "cta", "انتخاب")
-  const isGlass = propStr(widget.props, "tone") === "glass"
+  const isGlass = isGlassTone(widget.props)
+  const accent = propStr(widget.props, "accentColor")
+  const ink = propStr(widget.props, "accentInk") || (accent ? contrastingInk(accent, "#fff4ef", "#35121f") : "")
+  const wrapStyle = {
+    ...(glassStyle(widget.props) ?? {}),
+    ...(accent ? { ["--wb-plan-accent" as string]: accent, ["--color-primary"]: accent, ["--wb-glass-accent"]: accent } : {}),
+    ...(ink ? { ["--wb-plan-ink" as string]: ink, ["--color-primary-foreground"]: ink } : {}),
+  }
   if (!rows.length) return null
   return (
-    <div className={glassClass(widget.props, "grid gap-3 md:grid-cols-3")} style={glassStyle(widget.props)}>
+    <div className={glassClass(widget.props, "grid gap-3 md:grid-cols-3")} style={wrapStyle}>
       {rows.map(([name, price, features, href, featured], i) => {
         const hot = featured === "1" || featured === "true"
         return (
           <div key={i} className={`wb-glass-card flex flex-col rounded-2xl border bg-card p-5 ${hot ? "border-primary shadow-lg" : "border-border"}`}>
             <strong className="text-base font-extrabold">{name}</strong>
-            {price ? <span className="mt-2 text-2xl font-black text-primary" style={isGlass ? { color: "var(--wb-glass-accent)" } : undefined}>{price}</span> : null}
+            {price ? <span className="mt-2 text-2xl font-black text-primary" style={{ color: "var(--wb-plan-accent, var(--wb-glass-accent, var(--wb-color-accent, var(--color-primary))))" }}>{price}</span> : null}
             <ul className="wb-copy-muted mt-4 flex-1 space-y-2 text-sm">
               {(features ?? "")
                 .split(";")
@@ -785,12 +793,16 @@ export function PricingWidget({ widget }: { widget: WidgetNode }) {
                 .filter(Boolean)
                 .map((f, k) => (
                   <li key={k} className="flex items-center gap-2">
-                    <BadgeCheck size={14} className={isGlass ? "wb-glass-cta" : undefined} style={isGlass ? undefined : { color: "var(--wb-color-accent, var(--color-primary))" }} /> {f}
+                    <BadgeCheck size={14} className={isGlass ? "wb-glass-cta" : undefined} style={{ color: "var(--wb-plan-accent, var(--wb-glass-accent, var(--wb-color-accent, var(--color-primary))))" }} /> {f}
                   </li>
                 ))}
             </ul>
             {href ? (
-              <Link href={safeHref(href)} className={`mt-5 rounded-full px-4 py-2.5 text-center text-sm font-bold ${hot ? "bg-primary text-primary-foreground" : "border border-border"}`}>
+              <Link
+                href={safeHref(href)}
+                className={`mt-5 rounded-full px-4 py-2.5 text-center text-sm font-bold ${hot ? "wb-plan-hot bg-primary text-primary-foreground" : "border border-border"}`}
+                style={hot ? { background: "var(--wb-plan-accent, var(--wb-color-accent, var(--color-primary)))", color: "var(--wb-plan-ink, var(--color-primary-foreground, #35121f))", borderColor: "transparent" } : undefined}
+              >
                 {cta}
               </Link>
             ) : null}

@@ -20,7 +20,7 @@ export function WebinaCredit({ className }: { className?: string }) {
       style={{ display: "flex", gap: 13, alignItems: "center", justifyContent: "flex-end", fontWeight: 600, lineHeight: 1.6 }}
     >
       <span className="footer-content__company-name" style={{ display: "flex", flexDirection: "column", alignItems: "end" }}>
-        <span className="footer-content__company-name-developer" style={{ color: "var(--sfc-footer-muted, #4d5e8a)", fontSize: 11, fontWeight: 600 }}>
+        <span className="footer-content__company-name-developer" style={{ color: "var(--sfc-footer-muted, var(--wb-color-muted, var(--akx-ink, currentColor)))", fontSize: 11, fontWeight: 600 }}>
           {WEBINA_CREDIT_TITLE}
         </span>
         <a
@@ -28,7 +28,7 @@ export function WebinaCredit({ className }: { className?: string }) {
           target="_blank"
           rel="nofollow noreferrer"
           className="footer-content__company-name-brand"
-          style={{ color: "var(--sfc-footer-fg, #1d2b51)", fontSize: 11, fontWeight: 600, textDecoration: "none" }}
+          style={{ color: "var(--sfc-footer-link, var(--wb-color-accent, var(--akx-gold, var(--color-primary, currentColor))))", fontSize: 11, fontWeight: 600, textDecoration: "none" }}
         >
           {WEBINA_CREDIT_NAME}
         </a>

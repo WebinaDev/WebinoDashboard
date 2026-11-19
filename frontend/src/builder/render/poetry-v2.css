@@ -146,8 +146,8 @@ a.wpv-st:hover, .wpv-st:not(.is-playing):hover { transform: translateY(-3px); }
 .wpv-vg-grid { display: grid; grid-template-columns: 1fr minmax(240px, 320px); gap: 18px; align-items: start; }
 .wpv-vg-solo { grid-template-columns: 1fr; }
 .wpv-vg-stage { display: grid; gap: 12px; }
-.wpv-vg-screen { position: relative; aspect-ratio: 16 / 9; border-radius: 20px; overflow: hidden; background: #0d0607; box-shadow: 0 22px 48px rgba(30,4,8,.3); }
-.wpv-vg-screen > :is(video, iframe) { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+.wpv-vg-screen { position: relative; aspect-ratio: var(--wpv-vg-ratio, 9 / 16); width: min(100%, calc(min(72vh, 640px) * var(--wpv-vg-w, 9) / var(--wpv-vg-h, 16))); max-height: min(72vh, 640px); margin-inline: auto; border-radius: 20px; overflow: hidden; background: #0d0607; box-shadow: 0 22px 48px rgba(30,4,8,.3); }
+.wpv-vg-screen > :is(video, iframe) { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; object-fit: contain; }
 .wpv-vg-screen .akx-slot, .wpv-vg-poster { position: absolute !important; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
 .wpv-vg-screen .wpv-veil { position: absolute; inset: 0; }
 .wpv-vg-cover { position: absolute !important; inset: 0; width: 100%; height: 100%; display: block; }
@@ -164,15 +164,15 @@ a.wpv-st:hover, .wpv-st:not(.is-playing):hover { transform: translateY(-3px); }
 .wpv-vg-item { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 14px; text-align: start; transition: background .2s; }
 .wpv-vg-item:hover { background: var(--wpv-soft) !important; }
 .wpv-vg-item.is-cur { background: rgba(255,255,255,.1) !important; box-shadow: inset 0 0 0 1px var(--wpv-line); }
-.wpv-vg-th { position: relative; flex: none; width: 112px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: #1a0a0c; color: #fff; }
+.wpv-vg-th { position: relative; flex: none; height: 96px; width: auto; aspect-ratio: var(--wpv-vg-ratio, 9 / 16); border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: #1a0a0c; color: #fff; }
 .wpv-vg-th > :is(img, .akx-slot) { position: absolute !important; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
 .wpv-vg-th > svg { position: relative; z-index: 1; fill: currentColor; filter: drop-shadow(0 1px 4px rgba(0,0,0,.6)); }
 .wpv-vg-th em { position: absolute; z-index: 1; bottom: 4px; left: 4px; padding: 0 5px; border-radius: 4px; font-style: normal; font-size: .68rem; background: rgba(0,0,0,.65); }
 .wpv-vg-it { min-width: 0; display: grid; gap: 2px; justify-items: start; }
-/* video-gallery `layout: carousel` — 16:9 (Instagram-story) poster cards in a snap rail. */
+/* video-gallery `layout: carousel` — poster cards in a snap rail (ratio from --wpv-vg-ratio). */
 .wpv-vc { display: grid; gap: 10px; align-content: start; }
-.wpv-vc-media { position: relative; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #0d0607; box-shadow: 0 14px 34px rgba(24,4,10,.28); }
-.wpv-vc-media > :is(video, iframe) { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+.wpv-vc-media { position: relative; aspect-ratio: var(--wpv-vg-ratio, 9 / 16); border-radius: 18px; overflow: hidden; background: #0d0607; box-shadow: 0 14px 34px rgba(24,4,10,.28); }
+.wpv-vc-media > :is(video, iframe) { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; object-fit: contain; }
 .wpv-vc-cover { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border: 0; padding: 0; cursor: pointer; }
 .wpv-vc-cover > :is(img, .akx-slot) { position: absolute !important; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
 .wpv-vc-shade { position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(0,0,0,.05) 25%, rgba(0,0,0,.5)); }
@@ -213,7 +213,16 @@ a.wpv-st:hover, .wpv-st:not(.is-playing):hover { transform: translateY(-3px); }
 
 /* ── occasion detail (?occasion=slug) ── */
 .wpv-occd { display: grid; gap: 22px; }
-.wpv-occd-hero { display: grid; grid-template-columns: minmax(160px, 260px) 1fr; gap: 20px; align-items: center; }
+.wpv-occd-hero {
+  display: grid; grid-template-columns: minmax(160px, 260px) 1fr; gap: 20px; align-items: center;
+  padding: 18px 20px; border-radius: 20px;
+  background: var(--wpv-card, rgba(53,18,31,.72)); border: 1px solid var(--wpv-line, rgba(255,255,255,.16));
+  color: var(--wpv-ink, #fff4ef);
+  -webkit-backdrop-filter: var(--wpz-gblur, blur(18px) saturate(160%)); backdrop-filter: var(--wpz-gblur, blur(18px) saturate(160%));
+}
+.wpv-occd-txt, .wpv-occd-txt .wpz-h2 { color: var(--wpv-ink, #fff4ef); }
+.wpv-occd-txt .wpv-lead, .wpv-occd-txt small { color: var(--wpv-muted, #e2cfd4); }
+
 .wpv-occd-img { position: relative; aspect-ratio: 4 / 5; border-radius: 18px; overflow: hidden; background: linear-gradient(150deg, var(--wpz-crimson), var(--wpz-crimson-deep)); box-shadow: 0 14px 30px rgba(60,8,14,.22); }
 .wpv-occd-img > :is(img, .akx-slot) { position: absolute !important; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
 .wpv-occd-txt { display: grid; gap: 6px; justify-items: start; }

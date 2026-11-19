@@ -658,3 +658,45 @@ body:has(.sf-classic) {
   html section:has(.wpz-mfw, .akx-mfw) > .wb-columns { padding-inline: 0; column-gap: 0; max-width: none; }
   html section:has(.wpz-mfw, .akx-mfw) > .wb-columns > div, html section:has(.wpz-mfw, .akx-mfw) .wb-col-body { padding-inline: 0; }
 }
+
+
+/* Comparison / HTML tables: aligned columns, readable headers, check/cross, horizontal scroll. */
+.wb-compare-wrap, .ak-compare, .prose .wb-compare-wrap, .prose .ak-compare {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-inline: auto;
+}
+.wb-site .prose table, .wb-canvas .prose table, .wb-compare-table, .ak-compare table, .wbx-compare {
+  width: 100%;
+  min-width: 28rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: color-mix(in srgb, var(--wb-color-surface, var(--akx-card, rgba(255,255,255,.06))) 100%, transparent);
+  color: var(--wb-color-text, var(--akx-ink, inherit));
+  border: 1px solid var(--wb-color-border, var(--akx-gold, rgba(212,170,105,.35)));
+  border-radius: 18px;
+  overflow: hidden;
+}
+.wb-site .prose :is(th, td), .wb-canvas .prose :is(th, td), .wb-compare-table :is(th, td), .ak-compare :is(th, td) {
+  padding: 12px 16px;
+  text-align: start;
+  vertical-align: middle;
+  border-color: color-mix(in srgb, var(--wb-color-border, rgba(255,255,255,.12)) 100%, transparent);
+  color: inherit;
+  line-height: 1.8;
+  white-space: nowrap;
+}
+.wb-site .prose th, .wb-canvas .prose th, .wb-compare-table th, .ak-compare th, .wbx-compare th {
+  background: color-mix(in srgb, var(--wb-color-accent, var(--akx-gold, #d4aa69)) 16%, transparent);
+  color: var(--wb-color-accent, var(--akx-gold, #d4aa69));
+  font-weight: 800;
+}
+.wb-site .prose tbody tr + tr td, .wb-canvas .prose tbody tr + tr td, .wb-compare-table tbody tr + tr td, .ak-compare tbody tr + tr td {
+  border-top: 1px solid color-mix(in srgb, var(--wb-color-border, rgba(255,255,255,.1)) 100%, transparent);
+}
+.wb-cmp-yes, .wb-cmp-no { white-space: nowrap; }
+.wb-cmp-icon { display: inline-grid; place-items: center; width: 1.35em; height: 1.35em; margin-inline-end: 8px; border-radius: 999px; font-size: .8rem; font-weight: 800; vertical-align: middle; }
+.wb-cmp-yes .wb-cmp-icon { background: color-mix(in srgb, var(--wb-color-accent, #d4aa69) 22%, transparent); color: var(--wb-color-accent, var(--akx-gold, #d4aa69)); }
+.wb-cmp-no .wb-cmp-icon { background: rgba(255,255,255,.08); color: var(--wb-color-muted, var(--akx-ink, #e2cfd4)); opacity: .85; }
+.wb-cmp-label { vertical-align: middle; }

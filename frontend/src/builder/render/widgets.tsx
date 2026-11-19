@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 import { embedVideoSrc, sanitizeBuilderHtml } from "./sanitize-html"
+import { decorateCompareHtml } from "./compare-table"
 import {
   toneClass,
   type ShopProduct,
@@ -806,7 +807,7 @@ function sanitizeHtml(html: string): string {
 }
 
 function HtmlWidget({ widget }: { widget: WidgetNode }) {
-  const clean = sanitizeHtml(propStr(widget.props, "html"))
+  const clean = decorateCompareHtml(sanitizeHtml(propStr(widget.props, "html")))
   return <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: clean }} />
 }
 

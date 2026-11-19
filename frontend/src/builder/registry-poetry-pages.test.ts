@@ -24,3 +24,11 @@ test("poet profile defaults to no photo; shop defaults to checkout off", () => {
 test("poetry module widgets registered", () => {
   assert.ok(POETRY_MODULE_WIDGETS.length >= 3)
 })
+
+test("poetry-nav exposes showEmpty for the occasions submenu", () => {
+  const def = POETRY_PAGE_WIDGETS.find((w) => w.type === "poetry-nav")
+  assert.ok(def)
+  const keys = def.fields.map((f) => f.key)
+  assert.ok(keys.includes("occasionsMenu"))
+  assert.ok(keys.includes("showEmpty"))
+})

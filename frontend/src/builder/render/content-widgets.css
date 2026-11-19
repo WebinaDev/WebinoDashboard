@@ -101,11 +101,10 @@
 .wbx-compare td + td, .wbx-compare th + th { border-inline-start: 1px solid var(--wbx-line); }
 .wbx-compare-hl-b th:nth-child(2), .wbx-compare-hl-a th:nth-child(1) { background: var(--wbx-accent); color: #fff; }
 .wbx-compare-hl-b td:nth-child(2), .wbx-compare-hl-a td:nth-child(1) { background: var(--wbx-soft); font-weight: 700; }
+.wbx-compare-wrap { -webkit-overflow-scrolling: touch; }
+.wbx-compare { min-width: 28rem; }
 @media (max-width: 640px) {
-  .wbx-compare thead { display: none; }
-  .wbx-compare tr { display: grid; border-bottom: 1px solid var(--wbx-line); }
-  .wbx-compare td { border: 0 !important; }
-  .wbx-compare td::before { content: attr(data-label); display: block; font-size: .8rem; font-weight: 800; opacity: .6; }
+  .wbx-compare th, .wbx-compare td { padding: 12px 14px; }
 }
 .webina-builder .wb-form-group { color: var(--wbx-ink); }
 .webina-builder .wb-form-success { border: 1px solid var(--wbx-line); background: var(--wbx-soft); color: var(--wbx-ink); font-weight: 700; line-height: 2; }

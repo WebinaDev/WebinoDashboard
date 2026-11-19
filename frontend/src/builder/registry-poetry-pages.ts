@@ -54,7 +54,9 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       logo, { kind: "text", key: "brand", label: "نام" },
       { kind: "repeater", key: "links", label: "پیوندها (والد = برچسب پیوند بالادستی برای زیرمنو)", fields: [{ key: "label", label: "برچسب", kind: "text" }, { key: "href", label: "نشانی", kind: "url" }, { key: "parent", label: "والد (اختیاری)", kind: "text" }] },
       { kind: "select", key: "tone", label: "سبک کپسول", options: [{ value: "", label: "پیش‌فرض" }, { value: "glass", label: "شیشه‌ای واقعی (رنگ کپسول + محو پس‌زمینه)" }] },
-      { kind: "switch", key: "occasionsMenu", label: "زیرمنوی خودکار مناسبت‌ها (روی پیوند /occasions)" }, { kind: "text", key: "occasionHref", label: "پیوند هر مناسبت در زیرمنو ({slug})" },
+      { kind: "switch", key: "occasionsMenu", label: "زیرمنوی خودکار مناسبت‌ها (روی پیوند /occasions)" },
+      { kind: "switch", key: "showEmpty", label: "نمایش مناسبت‌های بدون شعر در زیرمنو" },
+      { kind: "text", key: "occasionHref", label: "پیوند هر مناسبت در زیرمنو ({slug})" },
       { kind: "text", key: "ctaLabel", label: "دکمه ویژه (مثلاً اشتراک ویژه؛ خالی = بدون دکمه)" }, { kind: "link", key: "ctaHref", label: "پیوند دکمه ویژه" },
       { kind: "switch", key: "showSearch", label: "نمایش جستجو" }, { kind: "switch", key: "searchWide", label: "جستجوی پهن وسط هدر" },
       { kind: "switch", key: "bottomBar", label: "نوار تب پایین در موبایل" },
@@ -65,7 +67,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "color", key: "drawerBg", label: "زمینه منوی کشویی موبایل" }, { kind: "color", key: "drawerText", label: "رنگ متن منوی کشویی" },
       { kind: "color", key: "capsuleBg", label: "رنگ کپسول هدر (شفاف مجاز؛ خالی = رنگ قبلی)" }, { kind: "switch", key: "capsuleShadow", label: "سایه کپسول" }, { kind: "switch", key: "capsuleBorder", label: "حاشیه کپسول" }, { kind: "color", key: "searchBg", label: "رنگ جعبه جستجو" }, ...colors,
     ],
-    create: () => node("poetry-nav", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, showSearch: true, searchPlaceholder: "جستجوی شعر، مصرع یا مناسبت…", searchHref: "/poems", navBg: "rgba(255,255,255,.92)", capsuleBg: "", capsuleShadow: true, capsuleBorder: false, searchBg: "#f5ebe6", logoOnly: false, logoHeight: 64, logoHeightMobile: 48, drawerBg: "#4a0710", drawerText: "#ffffff", mobileFullWidth: true, ...C }),
+    create: () => node("poetry-nav", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, showSearch: true, searchPlaceholder: "جستجوی شعر، مصرع یا مناسبت…", searchHref: "/poems", navBg: "rgba(255,255,255,.92)", capsuleBg: "", capsuleShadow: true, capsuleBorder: false, searchBg: "#f5ebe6", logoOnly: false, logoHeight: 64, logoHeightMobile: 48, drawerBg: "#4a0710", drawerText: "#ffffff", mobileFullWidth: true, occasionsMenu: false, showEmpty: false, occasionHref: "/occasions?occasion={slug}", tone: "", ctaLabel: "", ctaHref: "", searchWide: false, bottomBar: false, bottomItems: "", ...C }),
   },
   {
     type: "poetry-page-hero", label: "سربرگ صفحه (مسیر + عنوان دورنگ)", category: "content",
@@ -117,6 +119,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       TONE,
       { kind: "select", key: "mediaLayout", label: "چیدمان", options: [{ value: "auto", label: "ویژه و پرشنونده و شبکه (پیش‌فرض)" }, { value: "grid3", label: "شبکه ساده سه‌ستونی" }, { value: "split", label: "جدا: پلی‌لیست صوتی + گالری ویدیو" }] },
       { kind: "text", key: "audioTitle", label: "عنوان بخش صوت (چیدمان جدا)" }, { kind: "text", key: "videoTitle", label: "عنوان بخش ویدیو (چیدمان جدا)" },
+      { kind: "select", key: "aspect", label: "نسبت ویدیو", options: [{ value: "auto", label: "خودکار (عمودی یا افقی از روی فایل)" }, { value: "9/16", label: "عمودی ۹:۱۶" }, { value: "16/9", label: "افقی ۱۶:۹" }, { value: "4/5", label: "عمودی ۴:۵" }, { value: "1/1", label: "مربع" }] },
       { kind: "text", key: "premiumLabel", label: "برچسب دکمه اشتراک ویژه" }, { kind: "link", key: "premiumHref", label: "صفحه اشتراک ویژه" },
       { kind: "select", key: "source", label: "منبع", options: [{ value: "live", label: "صوت و ویدیوی ثبت‌شده در اشعار (پیش‌فرض)" }, { value: "manual", label: "ردیف‌های دستی زیر" }] },
       { kind: "repeater", key: "items", label: "اجراها (فقط در منبع دستی)", fields: [
@@ -131,7 +134,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "audioLabel", label: "برچسب صوت" }, { kind: "text", key: "videoLabel", label: "برچسب ویدیو" },
       photoMode("coverMode", "حالت کاور در نبود تصویر"), logo, SEC, ...colors,
     ],
-    create: () => node("media-archive", { source: "live", logo: "", items: "", featured: 1, topTitle: "پرشنونده‌ترین‌ها", topCount: 4, filters: "همه,صوت,ویدیو,محرم,فاطمیه,اربعین", perPage: 8, audioLabel: "صوت", videoLabel: "ویدیو", coverMode: "arabesque", sectionBg: DARK, ...C }),
+    create: () => node("media-archive", { source: "live", logo: "", items: "", featured: 1, topTitle: "پرشنونده‌ترین‌ها", topCount: 4, filters: "همه,صوت,ویدیو,محرم,فاطمیه,اربعین", perPage: 8, audioLabel: "صوت", videoLabel: "ویدیو", coverMode: "arabesque", aspect: "auto", sectionBg: DARK, ...C }),
   },
   {
     type: "poetry-shop", label: "فروشگاه قاب‌ها (فیلتر + مرتب‌سازی)", category: "commerce",
