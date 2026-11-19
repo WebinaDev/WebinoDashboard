@@ -27,6 +27,7 @@ import { WebinaCredit } from "@/components/brand/WebinaCredit"
 import { sectionIsDark } from "./contrast"
 import { JSON_HEADERS, PremiumBadge, PremiumVeil, hasLocked, loadMembership } from "./poetry-membership"
 import { BuilderPrice } from "../money"
+import { useProductSeed } from "../storefront/product-seed"
 
 type P = Record<string, unknown>
 type Term = { id: number; kind: string; slug: string; name: string; count?: number }
@@ -659,11 +660,18 @@ export function MediaArchiveWidget({ widget }: { widget: WidgetNode }) {
 }
 
 /* ───────────── shop helpers ───────────── */
-type Item = { slug: string; title: string; image: string; images: string[]; price: number; old: number; href: string; category: string; categorySlug: string; size: string; demo: boolean; inStock: boolean; live: boolean; productId?: number; description: string; options: string[] }
+type Item = { slug: string; title: string; image: string; images: string[]; price: number; old: number; href: string; category: string; categorySlug: string; size: string; demo: boolean; inStock: boolean; live: boolean; productId?: number; variantId?: number; variantName?: string; description: string; options: string[] }
 /** SiteBuilder marks demo products with a `demo-` slug prefix or «(نمونه)»/[demo] in the name. */
 export const isDemoProduct = (slug: string, name: string) => /^demo-|-demo$/i.test(slug) || /\(نمونه\)|\[demo\]|«نمونه»/i.test(name)
 const cleanName = (n: string) => n.replace(/\s*(\(نمونه\)|\[demo\]|«نمونه»)\s*/gi, " ").trim()
 
+function normSlug(s: string): string {
+  let v = (s || "").trim()
+  for (let i = 0; i < 2 && /%[0-9a-f]{2}/i.test(v); i++) {
+    try { v = decodeURIComponent(v) } catch { break }
+  }
+  return v.normalize("NFC")
+}
 function fromProduct(x: ShopProduct): Item {
   return { slug: x.slug, title: cleanName(x.name), image: x.image || x.images[0] || "", images: x.images.length ? x.images : x.image ? [x.image] : [], price: x.price || 0, old: x.compare && x.compare > x.price ? x.compare : 0, href: `/product/${encodeURIComponent(x.slug)}`, category: x.category, categorySlug: x.categorySlug, size: "", demo: isDemoProduct(x.slug, x.name), inStock: x.inStock, live: true, productId: x.id, description: x.description, options: x.variants.map((v) => v.name).filter(Boolean) }
 }
@@ -699,12 +707,21 @@ function PriceLine({ p, it }: { p: P; it: Item }) {
   return <em><BuilderPrice amount={it.price} original={it.old} /></em>
 }
 
-function BuyButton({ p, it, qty = 1, big = false, option = "" }: { p: P; it: Item; qty?: number; big?: boolean; option?: string }) {
+function BuyButton({ p, it, qty = 1, big = false, option = "", needsVariant = false }: { p: P; it: Item; qty?: number; big?: boolean; option?: string; needsVariant?: boolean }) {
   const mode = propStr(p, "checkoutMode", "inquiry")
   const [done, setDone] = useState(false)
   if (mode === "none") return null
-  if (mode === "cart" && it.live && it.price > 0 && it.inStock) {
-    return <button type="button" className={`akx-b1 ${big ? "akx-b1-big" : ""}`} onClick={() => { addToCart({ slug: it.slug, name: option ? `${it.title} (${option})` : it.title, price: it.price, tone: "", image: it.image || null, productId: it.productId }, qty); setDone(true); window.setTimeout(() => setDone(false), 1600) }}>{done ? <><Check size={16} aria-hidden /> افزوده شد</> : propStr(p, "cartLabel", "افزودن به سبد")}</button>
+  if (mode === "cart") {
+    // Cart mode never falls back to the inquiry (Eitaa) link: a product that can't be bought yet
+    // shows a disabled button instead, so a slow/missed catalog lookup can't send shoppers away.
+    // Card buttons on products with variants open the product page to pick one.
+    const cls = `akx-b1 ${big ? "akx-b1-big" : ""}`
+    if (it.live && needsVariant && it.href) return <Link className={cls} href={safeLink(it.href, "#")}>{propStr(p, "chooseLabel", "انتخاب نوع")}</Link>
+    if (!it.live || !(it.price > 0) || !it.inStock) {
+      const off = it.live && !it.inStock ? propStr(p, "outLabel", "ناموجود").replace(/^●\s*/, "") : propStr(p, "cartLabel", "افزودن به سبد")
+      return <button type="button" className={`${cls} akx-b1-off`} disabled aria-disabled="true">{off}</button>
+    }
+    return <button type="button" className={cls} onClick={() => { addToCart({ slug: it.slug, name: option ? `${it.title} (${option})` : it.title, price: it.price, tone: "", image: it.image || null, productId: it.productId, ...(it.variantId ? { variantId: it.variantId, variantName: it.variantName ?? option } : {}) }, qty); setDone(true); window.setTimeout(() => setDone(false), 1600) }}>{done ? <><Check size={16} aria-hidden /> افزوده شد</> : propStr(p, "cartLabel", "افزودن به سبد")}</button>
   }
   const base = safeLink(propStr(p, "inquiryHref"), "")
   const label = propStr(p, "inquiryLabel", "استعلام و سفارش")
@@ -726,7 +743,7 @@ function ProductCard({ p, it }: { p: P; it: Item }) {
       {it.old && it.price && propStr(p, "discountLabel") ? <span className="akx-off">{propStr(p, "discountLabel")}</span> : null}
       {it.demo && propStr(p, "demoLabel") ? <span className="akx-demo">{propStr(p, "demoLabel")}</span> : null}
       {it.href ? <Link href={safeLink(it.href, "#")} className="akx-pr-link">{body}</Link> : <div className="akx-pr-link">{body}</div>}
-      <BuyButton p={p} it={it} />
+      <BuyButton p={p} it={it} needsVariant={it.options.length > 1} />
     </article>
   )
 }
@@ -799,9 +816,14 @@ export function PoetryProductWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const rt = useBuilderRuntime()
   const path = usePathname()
-  const slug = propStr(p, "slug") || rt.productSlug || (path.startsWith("/product/") ? decodeURIComponent(path.slice(9).split("/")[0]) : "")
+  const rawSlug = propStr(p, "slug") || rt.productSlug || (path.startsWith("/product/") ? path.slice(9).split("/")[0] : "")
+  // Route params arrive percent-encoded for non-ASCII (Persian) slugs; catalog slugs are decoded.
+  const slug = normSlug(rawSlug)
+  const seedRaw = useProductSeed(rt.productSlug)
+  const seedNorm = useProductSeed(slug)
+  const seeded = seedRaw ?? seedNorm
   const { items: catalog } = useCatalog(true, "per_page=60&sort=newest")
-  const live = catalog?.find((x) => x.slug === slug)
+  const live = (seeded && normSlug(seeded.slug) === slug ? seeded : null) ?? catalog?.find((x) => normSlug(x.slug) === slug)
   const shopItems = catalog?.map(fromProduct) ?? []
   const fallback: Item = { slug: slug || "manual", title: propStr(p, "name"), image: "", images: parseRows(p.images, ["src"]).map((r) => r.src).filter(Boolean), price: Number(toEn(propStr(p, "price")).replace(/[^\d]/g, "")) || 0, old: 0, href: "", category: propStr(p, "category"), categorySlug: "", size: "", demo: false, inStock: true, live: false, description: propStr(p, "description"), options: [] }
   fallback.image = fallback.images[0] ?? ""
@@ -809,18 +831,21 @@ export function PoetryProductWidget({ widget }: { widget: WidgetNode }) {
   if (live && !it.images.length) it.images = parseRows(p.images, ["src"]).map((r) => r.src).filter(Boolean)
   const [img, setImg] = useState(0)
   const opts = it.options.length ? it.options : propStr(p, "sizes").split(/[,،]/).map((s) => s.trim()).filter(Boolean)
-  const colors = propStr(p, "frameColors").split(/[,،]/).map((s) => s.trim()).filter(Boolean)
-  const [opt, setOpt] = useState(0)
+  // Demo colour chips only for manual/demo products: a live product's real choices are its variants.
+  const colors = (live && live.variants.length ? "" : propStr(p, "frameColors")).split(/[,،]/).map((s) => s.trim()).filter(Boolean)
+  const variants = live?.variants ?? []
+  const defaultOpt = Math.max(0, variants.findIndex((v) => v.inStock))
+  const [opt, setOpt] = useState(defaultOpt)
   const [col, setCol] = useState(0)
   const [qty, setQty] = useState(1)
   const [fav, setFav] = useState(false)
   useEffect(() => { setFav(localStorage.getItem(`akx-wish:${it.slug}`) === "1") }, [it.slug])
-  const variant = live?.variants[opt]
-  const priced: Item = variant ? { ...it, price: variant.price || it.price, old: variant.compare && variant.compare > variant.price ? variant.compare : it.old, inStock: variant.inStock } : it
-  const optionLabel = [opts[opt], colors[col]].filter(Boolean).join(" / ")
-  const related = shopItems.filter((x) => x.slug !== it.slug && (!it.categorySlug || x.categorySlug === it.categorySlug)).slice(0, 4)
+  const variant = variants[opt]
+  const priced: Item = variant ? { ...it, price: variant.price || it.price, old: variant.compare && variant.compare > variant.price ? variant.compare : 0, inStock: variant.inStock, variantId: variant.id, variantName: variant.name, image: variant.image || it.image } : it
+  const optionLabel = [variant ? variant.name : opts[opt], colors[col]].filter(Boolean).join(" / ")
+  const related = shopItems.filter((x) => normSlug(x.slug) !== normSlug(it.slug) && (!it.categorySlug || x.categorySlug === it.categorySlug)).slice(0, 4)
   const mode = propStr(p, "imageMode", "arabesque")
-  if (catalog === null && slug) return <section className={`akx akx-pdwrap ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}><div className="akx-pd akx-skel" style={{ minHeight: 480 }} /></section>
+  if (catalog === null && slug && !live) return <section className={`akx akx-pdwrap ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}><div className="akx-pd akx-skel" style={{ minHeight: 480 }} /></section>
   return (
     <section className={`akx akx-pdwrap ${akxMfw(p)}`} dir="rtl" style={akxVars(p)}>
       <div className="akx-pd">
@@ -833,7 +858,7 @@ export function PoetryProductWidget({ widget }: { widget: WidgetNode }) {
           <h2>{it.title}</h2>
           <div className="akx-pd-price"><PriceLine p={p} it={priced} /></div>
           {it.description ? <p className="akx-pd-desc">{it.description.replace(/<[^>]+>/g, " ").slice(0, 600)}</p> : null}
-          {opts.length ? <div className="akx-opt"><span>{propStr(p, "sizeLabel", "اندازه")}</span><div>{opts.map((o, i) => <button type="button" key={o} className={i === opt ? "is-on" : ""} aria-pressed={i === opt} onClick={() => setOpt(i)}>{o}</button>)}</div></div> : null}
+          {opts.length ? <div className="akx-opt"><span>{variants[0]?.options?.[0]?.label || propStr(p, "sizeLabel", "اندازه")}</span><div>{opts.map((o, i) => <button type="button" key={o} className={i === opt ? "is-on" : ""} aria-pressed={i === opt} onClick={() => setOpt(i)}>{o}</button>)}</div></div> : null}
           {colors.length ? <div className="akx-opt"><span>{propStr(p, "colorLabel", "رنگ قاب")}</span><div>{colors.map((o, i) => <button type="button" key={o} className={i === col ? "is-on" : ""} aria-pressed={i === col} onClick={() => setCol(i)}>{o}</button>)}</div></div> : null}
           <div className={`akx-stock ${priced.inStock ? "" : "is-out"}`}>{priced.inStock ? propStr(p, "stockLabel", "● موجود در انبار") : propStr(p, "outLabel", "● ناموجود")}</div>
           <div className="akx-buy">

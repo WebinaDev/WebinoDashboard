@@ -57,7 +57,8 @@ export default async function Page({
   }
   const classic = (await activeThemeSlug().catch(() => null)) === "ecommerce-classic"
   if (route.path === "product/:slug") {
-    const slug = route.params?.slug
+    // Route params keep percent-encoding for non-ASCII slugs; widgets compare against the decoded catalog slug.
+    const slug = route.params?.slug ? safeDecode(route.params.slug) : undefined
     const seed = await loadProductSeed(slug)
     // Soft-404 chrome with HTTP 200 was wrong for missing/draft SKUs — real 404.
     if (!seed) notFound()
