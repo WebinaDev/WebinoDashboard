@@ -1384,8 +1384,10 @@ export function StoreFilters({ editing }: { editing: boolean }) {
   return classic ? <ClassicFilters editing={editing} /> : <DefaultStoreFilters editing={editing} />
 }
 
-export function StorefrontProduct({ slug, editing }: { slug?: string; editing: boolean }) {
-  const classic = useIsClassicSkin()
+/** `layout`: "" = follow the theme · "classic" = full PDP (gallery+zoom, price chart, variants, tabs) on any theme · "simple" = shared default. */
+export function StorefrontProduct({ slug, editing, layout = "" }: { slug?: string; editing: boolean; layout?: string }) {
+  const themeClassic = useIsClassicSkin()
+  const classic = layout === "classic" ? true : layout === "simple" ? false : themeClassic
   return classic ? <ClassicProduct slug={slug} editing={editing} /> : <DefaultStorefrontProduct slug={slug} editing={editing} />
 }
 

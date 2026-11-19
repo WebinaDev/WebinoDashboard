@@ -1,5 +1,6 @@
 /* Dashboard-only builder plugin: Iranian commerce widgets (shop, cart, checkout, product, account).
  * Not part of `@webina/ui/builder`; registered on top of the shared core in `registry.ts`. */
+import { STORE_TONE_FIELDS } from "./registry-glass"
 import type { WidgetPlugin } from "@webina/ui/builder"
 
 import { uid } from "./ids"
@@ -64,8 +65,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
       { kind: "select", key: "layout", label: "چیدمان", options: [
         { value: "slider", label: "اسلایدر افقی" },
         { value: "grid", label: "شبکه" },
-      ] },
-    ],
+      ] }, ...STORE_TONE_FIELDS],
     create: () => node("product-grid", { title: "محصولات تازه", limit: 4, source: "new", showSort: false }),
   },
   {
@@ -173,8 +173,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" },
       { kind: "text", key: "title", label: "عنوان (اختیاری)" },
-      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
-    ],
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" }, { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "", label: "طبق قالب" }, { value: "classic", label: "کامل (گالری، نمودار قیمت، تب‌ها)" }, { value: "simple", label: "ساده" }] }, ...STORE_TONE_FIELDS],
     create: () => node("product-detail", {}),
   },
   {
@@ -183,8 +182,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     category: "commerce",
     fields: [
       { kind: "text", key: "title", label: "عنوان (اختیاری)" },
-      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
-    ],
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" }, ...STORE_TONE_FIELDS],
     create: () => node("cart-lines", {}),
   },
   {
@@ -229,22 +227,21 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
       { kind: "switch", key: "allowSubmit", label: "فرم ثبت دیدگاه" },
       { kind: "text", key: "submitLabel", label: "متن دکمه ثبت" },
       { kind: "text", key: "emptyText", label: "متن حالت خالی" },
-      { kind: "number", key: "limit", label: "حداکثر دیدگاه نمایشی (۰ = همه)", min: 0, max: 100 },
-    ],
+      { kind: "number", key: "limit", label: "حداکثر دیدگاه نمایشی (۰ = همه)", min: 0, max: 100 }, ...STORE_TONE_FIELDS],
     create: () => node("product-reviews", { title: "دیدگاه کاربران", showAverage: true, allowSubmit: true, submitLabel: "ثبت دیدگاه", emptyText: "ندارد", limit: 0 }),
   },
   {
     type: "product-questions",
     label: "پرسش و پاسخ محصول",
     category: "commerce",
-    fields: [{ kind: "text", key: "slug", label: "نامک (اختیاری)" }],
+    fields: [{ kind: "text", key: "slug", label: "نامک (اختیاری)" }, ...STORE_TONE_FIELDS],
     create: () => node("product-questions", {}),
   },
   {
     type: "breadcrumbs",
     label: "مسیر راهنما",
     category: "commerce",
-    fields: [{ kind: "textarea", key: "trail", label: "برچسب|نشانی در هر خط" }],
+    fields: [{ kind: "textarea", key: "trail", label: "برچسب|نشانی در هر خط" }, ...STORE_TONE_FIELDS],
     create: () => node("breadcrumbs", { trail: "خانه|/\nفروشگاه|/shop" }),
   },
   {
@@ -323,7 +320,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     type: "most-viewed",
     label: "پربازدیدترین",
     category: "commerce",
-    fields: [{ kind: "number", key: "limit", label: "تعداد", min: 1, max: 12 }],
+    fields: [{ kind: "number", key: "limit", label: "تعداد", min: 1, max: 12 }, ...STORE_TONE_FIELDS],
     create: () => node("most-viewed", { limit: 6 }),
   },
   {
@@ -358,8 +355,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" },
       { kind: "text", key: "title", label: "عنوان (اختیاری)" },
-      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
-    ],
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" }, ...STORE_TONE_FIELDS],
     create: () => node("product-gallery", {}),
   },
   {
@@ -369,8 +365,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" },
       { kind: "text", key: "title", label: "عنوان (اختیاری)" },
-      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" },
-    ],
+      { kind: "textarea", key: "intro", label: "توضیح بالای بخش (اختیاری)" }, ...STORE_TONE_FIELDS],
     create: () => node("add-to-cart-box", {}),
   },
   {
@@ -413,7 +408,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     type: "recently-viewed",
     label: "بازدیدهای اخیر",
     category: "commerce",
-    fields: [{ kind: "text", key: "title", label: "عنوان" }, { kind: "number", key: "limit", label: "تعداد (۰ = پیش‌فرض)", min: 0, max: 48 }],
+    fields: [{ kind: "text", key: "title", label: "عنوان" }, { kind: "number", key: "limit", label: "تعداد (۰ = پیش‌فرض)", min: 0, max: 48 }, ...STORE_TONE_FIELDS],
     create: () => node("recently-viewed", { title: "بازدیدهای اخیر شما" }),
   },
   {
@@ -629,7 +624,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
     type: "installment-info",
     label: "اطلاعات اقساط",
     category: "commerce",
-    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "توضیح" }, { kind: "media", key: "image", label: "تصویر (خالی = تنظیمات قالب)" }],
+    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "توضیح" }, { kind: "media", key: "image", label: "تصویر (خالی = تنظیمات قالب)" }, ...STORE_TONE_FIELDS],
     create: () => node("installment-info", { title: "خرید اقساطی" }),
   },
 ]

@@ -1,0 +1,102 @@
+/* Storefront widget tones (see store-tone.tsx). Only colour tokens + a few surface rules. */
+.wb-st {
+  --st-text: #fff4ef;
+  --st-accent: #d4aa69;
+  --st-accent-ink: #2a0d18;
+  --st-surface: rgba(255, 255, 255, 0.08);
+  --st-border: rgba(255, 255, 255, 0.18);
+  --st-muted: color-mix(in srgb, var(--st-text) 80%, transparent);
+  --st-faint: color-mix(in srgb, var(--st-text) 66%, transparent);
+  --st-field: rgba(0, 0, 0, 0.22);
+  color: var(--st-text);
+}
+.wb-st-glass {
+  --st-text: #1d1014;
+  --st-accent: var(--color-primary, #8f2f4b);
+  --st-accent-ink: #ffffff;
+  --st-surface: rgba(255, 255, 255, 0.62);
+  --st-border: rgba(255, 255, 255, 0.7);
+  --st-muted: color-mix(in srgb, var(--st-text) 78%, transparent);
+  --st-faint: color-mix(in srgb, var(--st-text) 70%, transparent);
+  --st-field: rgba(255, 255, 255, 0.75);
+}
+.wb-st-dark { --st-surface: color-mix(in srgb, var(--st-text) 7%, #140a0e); }
+
+.wb-st {
+  /* shared Tailwind tokens (default storefront components) */
+  --color-foreground: var(--st-text);
+  --color-card-foreground: var(--st-text);
+  --color-popover-foreground: var(--st-text);
+  --color-muted-foreground: var(--st-muted);
+  --color-background: var(--st-field);
+  --color-card: var(--st-surface);
+  --color-popover: var(--st-surface);
+  --color-muted: var(--st-surface);
+  --color-secondary: var(--st-surface);
+  --color-secondary-foreground: var(--st-text);
+  --color-accent: var(--st-surface);
+  --color-accent-foreground: var(--st-text);
+  --color-border: var(--st-border);
+  --color-input: var(--st-border);
+  --color-ring: var(--st-accent);
+  --color-primary: var(--st-accent);
+  --color-primary-foreground: var(--st-accent-ink);
+  /* classic storefront tokens (jahan-parto style PDP, cards, reviews) */
+  --sfc-pink: var(--st-accent);
+  --sfc-pink-hover: color-mix(in srgb, var(--st-accent) 86%, #fff);
+  --sfc-pink-soft: color-mix(in srgb, var(--st-accent) 16%, transparent);
+  --sfc-pink-glow: color-mix(in srgb, var(--st-accent) 45%, transparent);
+  --sfc-navy: var(--st-text);
+  --sfc-ink: var(--st-text);
+  --sfc-ink-2: var(--st-text);
+  --sfc-link: var(--st-accent);
+  --sfc-blue: var(--st-accent);
+  --sfc-muted: var(--st-muted);
+  --sfc-muted-2: var(--st-faint);
+  --sfc-muted-3: var(--st-faint);
+  --sfc-red: #ff8f9c;
+  --sfc-red-2: #ff8f9c;
+  --sfc-bg: transparent;
+  --sfc-card: var(--st-surface);
+  --sfc-surface: var(--st-surface);
+  --sfc-surface-2: var(--st-surface);
+  --sfc-surface-3: var(--st-surface);
+  --sfc-border: var(--st-border);
+  --sfc-border-2: var(--st-border);
+  --sfc-border-3: var(--st-border);
+  --sfc-rule: var(--st-border);
+  --sfc-shadow: none;
+  --sfc-shadow-soft: none;
+  --sfc-shadow-pop: 0 10px 30px -12px rgba(0, 0, 0, 0.5);
+  --sf-pink: var(--st-accent);
+  --sf-pink-soft: var(--sfc-pink-soft);
+  --sf-navy: var(--st-text);
+  --sf-navy-soft: var(--st-border);
+  --sf-search-bg: var(--st-field);
+}
+.wb-st-glass-dark > *, .wb-st-glass > * { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+
+/* Readable text everywhere inside the tone, incl. components with hard-coded light-theme ink. */
+.wb-st :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, th, td, label, summary, small, span, b, strong) { color: inherit; }
+.wb-st :is(p, li, dd, td, .sfc-pdp__desc) a { color: var(--st-accent); }
+.wb-st :is(.text-muted-foreground, [class*="__sub"], [class*="__meta"], [class*="-muted"]) { color: var(--st-muted) !important; }
+.wb-st :is(input, textarea, select) {
+  background: var(--st-field) !important;
+  color: var(--st-text) !important;
+  border-color: var(--st-border) !important;
+}
+.wb-st :is(input, textarea)::placeholder { color: var(--st-faint); opacity: 1; }
+.wb-st :is(button[type="submit"], .sf-btn--primary, .bg-primary, [class*="__add"], [class*="buy-btn"], [class*="__cta"]):not(:disabled) {
+  background: var(--st-accent) !important;
+  color: var(--st-accent-ink) !important;
+  border-color: var(--st-accent) !important;
+}
+.wb-st :is(button[type="submit"], .sf-btn--primary, .bg-primary) * { color: inherit; }
+.wb-st :is(.sfc-price__old, s, del) { color: var(--st-faint) !important; }
+.wb-st :is(.sfc-price__off, .sfc-pdp__off, [class*="discount-badge"]) { background: #b3122f; color: #fff !important; }
+.wb-st :is(.bg-white, .bg-background) { background: var(--st-field) !important; }
+.wb-st [role="radio"][aria-checked="false"] { color: var(--st-faint) !important; }
+.wb-st [role="radio"][aria-checked="true"] { color: var(--st-accent) !important; }
+.wb-st svg { color: currentColor; }
+/* Product photos stay on a neutral light matte so cut-out images keep their edges. */
+.wb-st :is(.sfc-pdp__image, .sfc-pdp__thumb, .sfc-pdp__thumbs button) { background: #fff; }

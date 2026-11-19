@@ -27,6 +27,7 @@ import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./
 import { splitRows } from "./split-rows"
 
 import { Img } from "./img"
+import { StoreTone } from "./store-tone"
 
 const AccountDashboardWidget = dynamic(() => import("./classic-widgets").then((m) => m.AccountDashboardWidget))
 const AddToCartBoxWidget = dynamic(() => import("./classic-widgets").then((m) => m.AddToCartBoxWidget))
@@ -211,6 +212,10 @@ function AbstractArt({ tone, label }: { tone: string; label: string }) {
 }
 
 export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: EditorApi }) {
+  return <StoreTone widget={widget}><WidgetBodyBase widget={widget} editor={editor} /></StoreTone>
+}
+
+function WidgetBodyBase({ widget, editor }: { widget: WidgetNode; editor?: EditorApi }) {
   const runtime = useBuilderRuntime()
   const locale = useLocale()
   const editing = Boolean(editor)
@@ -306,7 +311,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "filter-panel":
       return <WidgetIntro widget={widget}><FilterWidget editing={editing} /></WidgetIntro>
     case "product-detail":
-      return <WidgetIntro widget={widget}><ProductDetail editing={editing} slug={propStr(widget.props, "slug", "") || runtime.productSlug} /></WidgetIntro>
+      return <WidgetIntro widget={widget}><ProductDetail editing={editing} slug={propStr(widget.props, "slug", "") || runtime.productSlug} layout={propStr(widget.props, "layout", "")} /></WidgetIntro>
     case "cart-lines":
       return <WidgetIntro widget={widget}><CartWidget /></WidgetIntro>
     case "checkout":
@@ -1323,8 +1328,8 @@ function FilterWidget({ editing }: { editing: boolean }) {
   return <StoreFilters editing={editing} />
 }
 
-function ProductDetail({ slug, editing }: { slug?: string; editing: boolean }) {
-  return <StorefrontProduct slug={slug} editing={editing} />
+function ProductDetail({ slug, editing, layout }: { slug?: string; editing: boolean; layout?: string }) {
+  return <StorefrontProduct slug={slug} editing={editing} layout={layout} />
 }
 
 function CartWidget() {

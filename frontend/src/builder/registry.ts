@@ -10,7 +10,7 @@ import { COMMERCE_PLUGIN } from "./registry-commerce"
 import { ACADEMY_WIDGETS } from "./registry-academy"
 import { CAFE_WIDGETS } from "./registry-cafe"
 import { CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
-import { GLASS_TONE_FIELDS } from "./registry-glass"
+import { GLASS_TONE_FIELDS, STORE_TONE_FIELDS } from "./registry-glass"
 import { BUTTON_DOODLE_FIELDS, BUTTON_DOODLE_TONE, IMAGE_BLOB_FIELDS } from "./doodle-registry"
 import { POETRY_WIDGETS } from "./registry-poetry"
 import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
@@ -545,21 +545,21 @@ const CORE_WIDGETS: WidgetDef[] = [
     type: "product-stock",
     label: "موجودی محصول",
     category: "parts",
-    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }, { kind: "text", key: "inText", label: "متن موجود" }, { kind: "text", key: "outText", label: "متن ناموجود" }, { kind: "number", key: "lowAt", label: "هشدار موجودی کم از", min: 0, max: 100 }],
+    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }, { kind: "text", key: "inText", label: "متن موجود" }, { kind: "text", key: "outText", label: "متن ناموجود" }, { kind: "number", key: "lowAt", label: "هشدار موجودی کم از", min: 0, max: 100 }, ...STORE_TONE_FIELDS],
     create: () => node("product-stock", {}),
   },
   {
     type: "product-attributes",
     label: "ویژگی‌های محصول",
     category: "parts",
-    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }],
+    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }, ...STORE_TONE_FIELDS],
     create: () => node("product-attributes", {}),
   },
   {
     type: "product-description",
     label: "توضیحات محصول",
     category: "parts",
-    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }],
+    fields: [{ kind: "text", key: "slug", label: "نامک محصول (خالی = محصول همین صفحه)" }, ...STORE_TONE_FIELDS],
     create: () => node("product-description", {}),
   },
   {
