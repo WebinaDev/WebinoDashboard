@@ -1,5 +1,5 @@
-import type { BuilderGlobals } from "./globals.ts"
-import { contrastingInk, ensureContrast, isDarkColor, pickReadableColor } from "./render/contrast.ts"
+import type { BuilderGlobals } from "./globals"
+import { contrastingInk, ensureContrast, isDarkColor, pickReadableColor } from "./render/contrast"
 
 /**
  * Map builder brand colours onto the shadcn/Tailwind `--color-*` tokens used by
