@@ -778,19 +778,19 @@ export function PricingWidget({ widget }: { widget: WidgetNode }) {
           <div key={i} className={`wb-glass-card flex flex-col rounded-2xl border bg-card p-5 ${hot ? "border-primary shadow-lg" : "border-border"}`}>
             <strong className="text-base font-extrabold">{name}</strong>
             {price ? <span className="mt-2 text-2xl font-black text-primary" style={isGlass ? { color: "var(--wb-glass-accent)" } : undefined}>{price}</span> : null}
-            <ul className="mt-4 flex-1 space-y-2 text-sm text-foreground/75">
+            <ul className="wb-copy-muted mt-4 flex-1 space-y-2 text-sm">
               {(features ?? "")
                 .split(";")
                 .map((f) => f.trim())
                 .filter(Boolean)
                 .map((f, k) => (
                   <li key={k} className="flex items-center gap-2">
-                    <BadgeCheck size={14} className="text-primary" /> {f}
+                    <BadgeCheck size={14} className={isGlass ? "wb-glass-cta" : undefined} style={isGlass ? undefined : { color: "var(--wb-color-accent, var(--color-primary))" }} /> {f}
                   </li>
                 ))}
             </ul>
             {href ? (
-              <Link href={safeHref(href)} className={`mt-5 rounded-full px-4 py-2.5 text-center text-sm font-bold ${hot ? "bg-primary text-primary-foreground" : "border border-border text-foreground"}`}>
+              <Link href={safeHref(href)} className={`mt-5 rounded-full px-4 py-2.5 text-center text-sm font-bold ${hot ? "bg-primary text-primary-foreground" : "border border-border"}`}>
                 {cta}
               </Link>
             ) : null}

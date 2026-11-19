@@ -166,7 +166,7 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchor, fields.length])
 
-  if (done) return <p id={anchor || undefined} className={glassClass(widget.props, "wb-form-success wb-type-body rounded-2xl bg-muted p-5 text-foreground")} style={glassStyle(widget.props)} role="status">{success}</p>
+  if (done) return <p id={anchor || undefined} className={glassClass(widget.props, "wb-form-success wb-type-body rounded-2xl bg-muted p-5")} style={glassStyle(widget.props)} role="status">{success}</p>
   const set = (name: string, value: string) => {
     if (started.current === null) started.current = Date.now()
     setValues((current) => ({ ...current, [name]: value }))
@@ -236,13 +236,13 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
       }}
     >
       {title ? <h3 className="wb-type-h3">{title}</h3> : null}
-      {intro ? <p className="text-sm leading-7 text-foreground/70">{intro}</p> : null}
+      {intro ? <p className="wb-copy-muted text-sm leading-7">{intro}</p> : null}
       {steps > 1 ? (
         <div className="grid gap-2">
           <div className="flex gap-1" aria-hidden="true">
             {Array.from({ length: steps }, (_, index) => <span key={index} className={`h-1.5 flex-1 rounded-full ${index < step ? "bg-primary" : "bg-muted"}`} />)}
           </div>
-          <p className="wb-form-step text-xs font-bold text-foreground/70" aria-live="polite">
+          <p className="wb-form-step wb-copy-muted text-xs font-bold" aria-live="polite">
             مرحله {step} از {steps}
             {stepTitles[step - 1] ? `: ${stepTitles[step - 1]}` : reviewing ? ": بررسی نهایی" : ""}
           </p>
@@ -259,7 +259,7 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
               <dl className="grid gap-1 text-sm">
                 {fields.filter((field) => field.step === s && field.type !== "heading" && shown(field)).map((field) => (
                   <div key={field.name} className="flex flex-wrap gap-2">
-                    <dt className="text-foreground/60">{field.label}:</dt>
+                    <dt className="wb-copy-muted">{field.label}:</dt>
                     <dd className="font-semibold">{display(field) || "ندارد"}</dd>
                   </div>
                 ))}
@@ -316,7 +316,7 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
           {pending ? "…" : last ? propStr(widget.props, "submit", "ارسال") : "بعدی"}
         </button>
       </div>
-      {note ? <p className="whitespace-pre-line text-xs leading-6 text-foreground/60">{note}</p> : null}
+      {note ? <p className="wb-copy-muted whitespace-pre-line text-xs leading-6">{note}</p> : null}
     </form>
   )
 }

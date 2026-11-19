@@ -93,11 +93,11 @@
 .wbx-cards-stacked .wbx-card-button { flex-direction: column; }
 .wbx-card-button:focus-visible { outline: 2px solid var(--wbx-accent); outline-offset: 2px; }
 @media (min-width: 1024px) { .wbx-cards[style*="--wbx-cols: 5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-.wbx-compare-wrap { overflow-x: auto; border: 1px solid var(--wbx-line); border-radius: 24px; background: #fff; }
+.wbx-compare-wrap { overflow-x: auto; border: 1px solid var(--wbx-line, var(--wb-color-border)); border-radius: 24px; background: var(--wb-color-surface, var(--color-card)); color: var(--wbx-ink, var(--wb-color-text)); }
 .wbx-compare { width: 100%; border-collapse: collapse; text-align: start; }
-.wbx-compare th, .wbx-compare td { padding: 18px 22px; border-bottom: 1px solid var(--wbx-line); line-height: 1.9; color: var(--wbx-ink); vertical-align: top; }
+.wbx-compare th, .wbx-compare td { padding: 18px 22px; border-bottom: 1px solid var(--wbx-line, var(--wb-color-border)); line-height: 1.9; color: var(--wbx-ink, var(--wb-color-text)); vertical-align: top; }
 .wbx-compare tr:last-child td { border-bottom: 0; }
-.wbx-compare th { font-size: 1.05rem; font-weight: 900; background: #f7f9fc; }
+.wbx-compare th { font-size: 1.05rem; font-weight: 900; background: color-mix(in srgb, var(--wbx-ink, var(--wb-color-text)) 8%, transparent); color: var(--wbx-ink, var(--wb-color-text)); }
 .wbx-compare td + td, .wbx-compare th + th { border-inline-start: 1px solid var(--wbx-line); }
 .wbx-compare-hl-b th:nth-child(2), .wbx-compare-hl-a th:nth-child(1) { background: var(--wbx-accent); color: #fff; }
 .wbx-compare-hl-b td:nth-child(2), .wbx-compare-hl-a td:nth-child(1) { background: var(--wbx-soft); font-weight: 700; }

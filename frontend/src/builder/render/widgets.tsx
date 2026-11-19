@@ -671,7 +671,7 @@ function TextWidget({ widget, editor }: { widget: WidgetNode; editor?: EditorApi
   if (selected && editor) {
     return (
       <p
-        className="whitespace-pre-wrap text-sm leading-7 text-foreground/80"
+        className="wb-type-body whitespace-pre-wrap"
         contentEditable
         suppressContentEditableWarning
         onBlur={(event) => editor.onInline(widget.id, "text", event.currentTarget.textContent ?? "")}
@@ -680,7 +680,7 @@ function TextWidget({ widget, editor }: { widget: WidgetNode; editor?: EditorApi
       </p>
     )
   }
-  return <p className="wb-type-body whitespace-pre-wrap text-foreground/80">{text}</p>
+  return <p className="wb-type-body whitespace-pre-wrap">{text}</p>
 }
 
 function ImageWidget({ widget }: { widget: WidgetNode }) {
@@ -802,7 +802,7 @@ function sanitizeHtml(html: string): string {
 
 function HtmlWidget({ widget }: { widget: WidgetNode }) {
   const clean = sanitizeHtml(propStr(widget.props, "html"))
-  return <div className="prose prose-sm max-w-none text-foreground" dangerouslySetInnerHTML={{ __html: clean }} />
+  return <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: clean }} />
 }
 
 function MenuWidget({ widget }: { widget: WidgetNode }) {

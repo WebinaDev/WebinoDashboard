@@ -22,3 +22,8 @@
   border: 1px solid var(--wb-glass-border);
   color: inherit;
 }
+/* Tailwind semantic colours still used by some widgets; keep them on the glass ink/accent. */
+.wb-tone-glass :is([class*="text-foreground"], [class*="text-muted"]) { color: var(--wb-glass-muted, var(--wb-color-text)); }
+.wb-tone-glass .wb-copy-muted, .wb-tone-glass .wb-type-body { color: var(--wb-glass-muted, var(--wb-color-text)); }
+.wb-tone-glass .prose, .wb-tone-glass .prose :is(p,li,th,td,strong) { color: var(--wb-glass-text); }
+.wb-tone-glass .prose th { background: color-mix(in srgb, var(--wb-glass-text) 8%, transparent); }
