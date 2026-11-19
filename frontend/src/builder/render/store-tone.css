@@ -100,3 +100,5 @@
 .wb-st svg { color: currentColor; }
 /* Product photos stay on a neutral light matte so cut-out images keep their edges. */
 .wb-st :is(.sfc-pdp__image, .sfc-pdp__thumb, .sfc-pdp__thumbs button) { background: #fff; }
+.wb-st .sf-muted { background: var(--st-surface); color: var(--st-text); }
+#sfc-price-chart:empty { display: none; }
