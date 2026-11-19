@@ -95,8 +95,12 @@
 .wb-st :is(.sfc-price__old, s, del) { color: var(--st-faint) !important; }
 .wb-st :is(.sfc-price__off, .sfc-pdp__off, [class*="discount-badge"]) { background: #b3122f; color: #fff !important; }
 .wb-st :is(.bg-white, .bg-background) { background: var(--st-field) !important; }
-.wb-st [role="radio"][aria-checked="false"] { color: var(--st-faint) !important; }
-.wb-st [role="radio"][aria-checked="true"] { color: var(--st-accent) !important; }
+/* rating stars (review form) */
+.wb-st [role="radio"][aria-label*="ستاره"][aria-checked="false"] { color: var(--st-faint) !important; }
+.wb-st [role="radio"][aria-label*="ستاره"][aria-checked="true"] { color: var(--st-accent) !important; }
+/* variant chips: full-contrast label, accent ring when picked */
+.wb-st .wb-variant__list > button, .wb-st .sfc-pdp__variant-list > button { color: var(--st-text); background: var(--st-field); border-color: var(--st-border); }
+.wb-st .wb-variant__list > button.is-active, .wb-st .sfc-pdp__variant-list > button.is-active { border-color: var(--st-accent); box-shadow: inset 0 0 0 1px var(--st-accent); color: var(--st-text); }
 .wb-st svg { color: currentColor; }
 /* Product photos stay on a neutral light matte so cut-out images keep their edges. */
 .wb-st :is(.sfc-pdp__image, .sfc-pdp__thumb, .sfc-pdp__thumbs button) { background: #fff; }
