@@ -326,7 +326,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
       </div>
       <div className="sfc-container sfc-pdp__grid">
         <div className="sfc-pdp__main">
-          <header className="sfc-pdp__head">
+          <div className="sfc-pdp__head">
             <div className="sfc-pdp__tags">
               <Link href={product.categorySlug ? `/shop?category=${product.categorySlug}` : "/shop"} className="sfc-tag">
                 {product.category}
@@ -340,7 +340,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
             <p className="sfc-pdp__sub" dir={product.englishName ? "ltr" : undefined}>
               {product.englishName || product.brand}
             </p>
-          </header>
+          </div>
 
           <div className="sfc-pdp__body">
             <aside className="sfc-pdp__rail" aria-label="ابزارهای محصول">

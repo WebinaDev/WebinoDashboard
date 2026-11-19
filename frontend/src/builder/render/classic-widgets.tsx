@@ -312,7 +312,7 @@ export function ProductReviewsWidget({ widget, productSlug, editing = false }: {
   if (!slug) return editing ? <p className="mx-auto max-w-6xl rounded-xl border border-dashed p-4 text-sm text-foreground/60">دیدگاه‌ها در صفحه محصول نمایش داده می‌شوند (یا نامک محصول را وارد کنید).</p> : null
   const p = widget.props
   return (
-    <div className="mx-auto max-w-6xl px-4">
+    <div className="wb-store-wrap mx-auto max-w-6xl px-4">
       <ProductReviewsPanel
         slug={slug}
         options={{
@@ -334,7 +334,7 @@ export function ProductQuestionsWidget({ widget, productSlug }: { widget: Widget
   const slug = productSlug || propStr(widget.props, "slug", "")
   if (!slug) return null
   return (
-    <div className="mx-auto max-w-6xl px-4">
+    <div className="wb-store-wrap mx-auto max-w-6xl px-4">
       <ProductQuestionsPanel slug={slug} />
     </div>
   )

@@ -83,7 +83,7 @@ export function ProductPriceHistory({ slug }: { slug: string }) {
     fetch(`${base}/api/v1/public/catalog/items/${encodeURIComponent(slug)}/price-history`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        setPoints(Array.isArray(json?.data?.points) ? json.data.points : [])
+        setPoints(Array.isArray(json?.data?.points) ? json.data.points.filter((p: { price_minor?: number }) => Number(p?.price_minor) > 0) : [])
         setUpdatedAt(json?.data?.price_updated_at ?? null)
       })
   }, [slug])

@@ -106,3 +106,21 @@
 .wb-st :is(.sfc-pdp__image, .sfc-pdp__thumb, .sfc-pdp__thumbs button) { background: #fff; }
 .wb-st .sf-muted { background: var(--st-surface); color: var(--st-text); }
 #sfc-price-chart:empty { display: none; }
+/* Reviews / questions follow the storefront container (same width as the product detail). */
+.sf-classic .wb-store-wrap { max-width: calc(var(--sfc-container) + var(--sfc-gutter) * 2); padding-inline: var(--sfc-gutter); }
+/* Title, tags and cards: no light-theme ink or white panels inside a dark tone. */
+.wb-st .sfc-pdp__title, .wb-st .sfc-pdp__head { color: var(--st-text) !important; background: transparent !important; }
+.wb-st .sfc-pdp__sub { color: var(--st-muted) !important; }
+.wb-st .sfc-tag { background: var(--st-surface) !important; color: var(--st-text) !important; border: 1px solid var(--st-border); }
+.wb-st .sfc-tag--pink { background: var(--st-accent) !important; color: var(--st-accent-ink) !important; }
+.wb-st :is(.sf-card, .sfc-card, .sf-product-card, .sfc-row__nav, .sfc-trust__icon, .sfc-attr, .sfc-buy, .sf-review-card) {
+  background: var(--st-surface) !important;
+  color: var(--st-text);
+  border-color: var(--st-border) !important;
+}
+.wb-st :is(.sfc-card, .sf-card) :is(h2, h3, h4, a, b, strong, [class*="title"], [class*="name"]) { color: var(--st-text) !important; }
+.wb-st :is(.sfc-card, .sf-card) [class*="price"]:not(s):not(del) { color: var(--st-accent); }
+.wb-st :is(.sfc-card__img, .sfc-card__media, .sf-product-card img) { background: #fff; }
+.wb-st .sfc-row__nav { color: var(--st-text) !important; }
+.wb-st :is(.sfc-pdp__tabs button, [role="tab"]) { color: var(--st-muted); }
+.wb-st :is(.sfc-pdp__tabs button.is-active, [role="tab"][aria-selected="true"]) { color: var(--st-accent) !important; border-color: var(--st-accent) !important; }
