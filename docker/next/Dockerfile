@@ -1,6 +1,7 @@
 # Build context: WebinoDashboard repo root.
 # @webina/ui comes from the public GitHub tag (see frontend/package.json), not a vendored packages/ folder.
-# NODE_IMAGE can be overridden for IR Hub mirrors (e.g. hub.hamdocker.ir/library/node:22-alpine).
+# NODE_IMAGE can be overridden for IR Hub mirrors (e.g. hub.hamdocker.ir/library/node:24.22.3-alpine).
+# Pin is Node >= 24.15 so Next RSC streaming avoids the Node 22 TransformStream race.
 #
 # APK mirror handling: dl-cdn.alpinelinux.org is Fastly-hosted and is frequently TLS-blocked
 # from Iranian networks, which fails the deps stage at `apk add` before npm ever runs
@@ -9,7 +10,7 @@
 # APK_FALLBACK_MIRROR when the stock CDN is unreachable. APK_MIRROR forces a mirror up front;
 # set APK_FALLBACK_MIRROR= to disable the retry.
 # FROM-related ARGs MUST be declared before the first FROM (BuildKit global scope).
-ARG NODE_IMAGE=node:22-alpine
+ARG NODE_IMAGE=node:24.22.3-alpine
 
 FROM ${NODE_IMAGE} AS deps
 ARG APK_MIRROR=
