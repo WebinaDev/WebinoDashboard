@@ -25,7 +25,7 @@ type Props = {
  * Data, cart, modifiers, table QR, search and ordering live in the shared controller.
  */
 export function CatalogueView(props: Props) {
-  const skin = resolveCafeSkin(props.activeThemeSlug ?? props.venue?.tenant.active_theme_slug)
+  const skin = resolveCafeSkin(props.activeThemeSlug ?? props.venue?.tenant?.active_theme_slug ?? null)
   switch (skin) {
     case "cafe-mash-donald":
       return <MashCatalogue {...props} />

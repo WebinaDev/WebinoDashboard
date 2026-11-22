@@ -25,8 +25,10 @@ export const LEGACY_DASHBOARD_REDIRECTS = [
   { source: "/dashboard/marketing/bots/:provider", destination: "/dashboard/bots/:provider" },
   { source: "/dashboard/basalam", destination: "/dashboard/settings/shop/marketplace" },
   { source: "/dashboard/basalam/:path*", destination: "/dashboard/settings/shop/marketplace" },
+  // The bare path is a legacy alias for the campaign list. The old `ads/:path*` wildcard
+  // additionally swallowed `ads/new` and `ads/:adId`, which the marketing manifest still
+  // registers as reachable pages — so the SMS ad wizard and detail view could never open.
   { source: "/dashboard/marketing/sms/ads", destination: "/dashboard/marketing/sms/targeted" },
-  { source: "/dashboard/marketing/sms/ads/:path*", destination: "/dashboard/marketing/sms/targeted" },
   { source: "/dashboard/marketplace", destination: "/dashboard/modules/catalog" },
   { source: "/dashboard/marketplace/payment-callback", destination: "/dashboard/modules/payment-callback" },
   { source: "/dashboard/analytics", destination: "/dashboard/analytics/overview" },

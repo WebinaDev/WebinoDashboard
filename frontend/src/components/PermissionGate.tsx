@@ -46,6 +46,7 @@ export function useAuthUser() {
 }
 
 function capabilityMatches(granted: string, required: string): boolean {
+  if (typeof granted !== "string" || typeof required !== "string") return false
   if (granted === "*" || granted === required) return true
   if (granted.endsWith(".*")) {
     const prefix = granted.slice(0, -2)
@@ -55,10 +56,24 @@ function capabilityMatches(granted: string, required: string): boolean {
 }
 
 export function userHasCapability(capabilities: string[] | undefined, required: string): boolean {
-  if (!capabilities?.length) return false
-  if (capabilities.includes("*")) return true
+  // Defensive: the API is typed as `string[]`, but a misconfigured tenant can return a bare
+  // string (or an object). Calling `.some` on that throws a TypeError during render, which
+  // the route error boundary turns into "this page ran into an error" — a full blackout of
+  // every gated dashboard screen. Normalise instead of trusting the payload.
+  // Widen once: at runtime this may be a bare string even though the type says string[].
+  const raw = capabilities as unknown
+  const list: string[] = Array.isArray(raw)
+    ? (raw as string[])
+    : typeof raw === "string" && raw.trim() !== ""
+      ? [raw.trim()]
+      : []
+
+  if (list.length === 0) return false
+  if (list.includes("*")) return true
+  if (typeof required !== "string" || required.trim() === "") return false
+
   const requiredAny = required.split(",").map((part) => part.trim()).filter(Boolean)
-  return requiredAny.some((req) => capabilities.some((g) => capabilityMatches(g, req)))
+  return requiredAny.some((req) => list.some((g) => capabilityMatches(g, req)))
 }
 
 /**

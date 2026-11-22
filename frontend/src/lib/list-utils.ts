@@ -21,3 +21,20 @@ export function readListMeta(raw: unknown): Record<string, unknown> {
   }
   return {}
 }
+
+/**
+ * Coerce an API value to an array without trusting its shape.
+ *
+ * `const { data: rows = [] }` only guards `undefined`. A backend that answers with an error
+ * object, `{data: {...}}`, or a single record leaves `rows` non-array, and the first
+ * `rows.map(...)` during render throws `k.map is not a function` — which the route error
+ * boundary turns into a full-page failure. Use this at the query boundary instead.
+ */
+export function asArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+  if (value && typeof value === "object" && "data" in value) {
+    const inner = (value as { data: unknown }).data
+    if (Array.isArray(inner)) return inner as T[]
+  }
+  return []
+}

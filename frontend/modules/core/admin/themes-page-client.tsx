@@ -166,7 +166,7 @@ export default function ThemesPageClient({ route }: Props) {
         </div>
         <p className="text-muted-foreground max-w-2xl text-sm">{t("gallery_hint")}</p>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {data.themes.map((theme) => {
+          {(data.themes ?? []).map((theme) => {
             const isActive = theme.slug === activeSlug
             const isDefault = theme.is_default || theme.slug === defaultSlug
             const name = locale === "fa" ? theme.name_fa : theme.name_en

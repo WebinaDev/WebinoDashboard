@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
-import { api } from "@/lib/api"
+import { api, type ApiListPayload } from "@/lib/api"
+import { asArray } from "@/lib/list-utils"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import type { CafeBranch, CafeMenuListItem } from "@/themes/cafe-starter/types"
 
@@ -99,9 +100,11 @@ export default function QrPageClient({ route: _route }: { route: ResolvedAdminRo
     queryFn: () => api<CafeBranch[]>("/api/v1/cafe/branches"),
   })
 
+  // List endpoints answer the `{data, meta}` envelope, so unwrap before the pickers map it.
   const { data: menus = [] } = useQuery({
     queryKey: ["menus"],
-    queryFn: () => api<CafeMenuListItem[]>("/api/v1/menus"),
+    queryFn: async () =>
+      asArray<CafeMenuListItem>(await api<ApiListPayload<CafeMenuListItem[]>>("/api/v1/menus")),
   })
 
   const [branchForm, setBranchForm] = useState(emptyBranch)

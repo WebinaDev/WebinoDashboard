@@ -23,7 +23,21 @@ final class ModuleSettingsService
             return $row && is_array($row->payload) ? $row->payload : null;
         });
 
-        return is_array($payload) ? array_merge($defaults, $payload) : $defaults;
+        if (! is_array($payload)) {
+            return $defaults;
+        }
+
+        // A plain array_merge lets a stored `null` clobber a default `[]`, so a tenant that
+        // saved `{"images": null}` before a key existed hands the UI a null it will call
+        // `.length` on. Fill any null for a key whose default is an array.
+        $merged = array_merge($defaults, $payload);
+        foreach ($defaults as $key => $default) {
+            if (is_array($default) && array_key_exists($key, $merged) && $merged[$key] === null) {
+                $merged[$key] = $default;
+            }
+        }
+
+        return $merged;
     }
 
     public static function cacheKey(int $tenantId, string $moduleSlug, string $submoduleSlug): string

@@ -57,7 +57,11 @@ export function CafeCartDrawer({
   const { token, cart, count, subtotal, totals } = useGuestCart(tableNumber, branchSlug, fulfillment)
   const lang = locale === "fa" ? "fa" : "en"
 
-  const methods = ordering?.payment_methods ?? [{ id: "cash", title: "", type: "cash" as const }]
+  // Guard the shape: a settings payload that omits or nulls `payment_methods` must fall back
+  // to cash rather than throw "methods.some is not a function" mid-cart.
+  const methods = Array.isArray(ordering?.payment_methods) && ordering.payment_methods.length > 0
+    ? ordering.payment_methods
+    : [{ id: "cash", title: "", type: "cash" as const }]
   const [method, setMethod] = useState<string>("")
   const activeMethod = methods.some((m) => m.id === method) ? method : methods[0]?.id ?? "cash"
 

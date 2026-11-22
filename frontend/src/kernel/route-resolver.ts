@@ -199,8 +199,11 @@ export function resolveSiteRoute(
     for (const route of mod.siteRoutes) {
       const params = matchDynamicParams(route.path, path)
       if (route.path === path || params) {
+        // Several modules may claim the same public path (`/catalogue` exists in both cafe
+        // and commerce). A disabled claim must fall through to the next module instead of
+        // 404ing the path outright, otherwise enabling only one module hides the page.
         if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) {
-          return null
+          continue
         }
         return {
           ...route,

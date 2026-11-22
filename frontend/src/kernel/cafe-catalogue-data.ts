@@ -2,6 +2,38 @@ import { apiServer } from "@/lib/api-server"
 
 // Menu, prices, hours, fees, VAT and venue settings must show the moment staff save them, so these reads skip the Next data cache.
 
+/**
+ * A venue payload is trusted only when the shape the views index into actually exists.
+ *
+ * `apiServer` types are erased at runtime, so `data` may come back as `[]` (an unset
+ * module), `{}`, or null. Returning that unchecked made `venue.venue.mini_site_enabled`
+ * and `venue.tenant.active_theme_slug` throw from a server component — which Next renders
+ * as the generic "something went wrong" boundary instead of a page.
+ */
+function asVenuePayload(value: unknown): CafeVenuePayload | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const candidate = value as Partial<CafeVenuePayload>
+  if (!candidate.tenant || !candidate.venue) return null
+  return candidate as CafeVenuePayload
+}
+
+/**
+ * Normalise the catalogue envelope the same way as the venue payload.
+ *
+ * `categories` and `items` are declared required, but a public catalogue with no menus yet
+ * answers without them. `catalog.items.find(...)` then throws inside a server render and the
+ * whole page collapses to the error boundary.
+ */
+function asCatalogPayload(value: unknown): CatalogPayload | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const candidate = value as Partial<CatalogPayload>
+  return {
+    ...(candidate as CatalogPayload),
+    categories: Array.isArray(candidate.categories) ? candidate.categories : [],
+    items: Array.isArray(candidate.items) ? candidate.items : [],
+  }
+}
+
 import type { CafeEvent, CafeVenuePayload, CatalogItem, CatalogPayload } from "@/themes/cafe-starter/types"
 
 export async function fetchCatalogueData(query?: string, menu?: string, branch?: string): Promise<{
@@ -26,8 +58,8 @@ export async function fetchCatalogueData(query?: string, menu?: string, branch?:
   ])
 
   return {
-    catalog: catalogRes?.data ?? null,
-    venue: venueRes?.data ?? null,
+    catalog: asCatalogPayload(catalogRes?.data),
+    venue: asVenuePayload(venueRes?.data),
   }
 }
 
@@ -42,7 +74,7 @@ export async function fetchAboutData(): Promise<CafeVenuePayload | null> {
   const venueRes = await apiServer<{ data: CafeVenuePayload }>("/api/v1/public/cafe/venue", {
     revalidate: false,
   })
-  return venueRes?.data ?? null
+  return asVenuePayload(venueRes?.data)
 }
 
 export async function fetchCafeEvents(): Promise<CafeEvent[]> {

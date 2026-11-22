@@ -594,9 +594,9 @@ export default function PricingPriceChangerPageClient({ route: _route }: { route
                   locked: preview.locked,
                 })}
               </p>
-              {preview.sample.length > 0 ? (
+              {(preview.sample ?? []).length > 0 ? (
                 <ul className="text-muted-foreground mt-2 space-y-1">
-                  {preview.sample.map((p) => (
+                  {(preview.sample ?? []).map((p) => (
                     <li key={p.id}>
                       {p.name}
                       {p.sku ? ` · ${p.sku}` : ""} · <MoneyDisplay amount={p.price_minor} />

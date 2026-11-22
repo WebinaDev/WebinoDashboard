@@ -43,11 +43,13 @@ export default function ThemeBuilderPage(_props: { route: ResolvedAdminRoute }) 
   const [busy, setBusy] = useState(false)
 
   async function load() {
-    const data = await api<{ kinds: KindGroup[] }>("/api/v1/theme-builder")
-    setKinds(data.kinds)
-    const library = await api<{ presets: Preset[]; kits: Kit[] }>("/api/v1/theme-builder/library")
-    setPresets(library.presets)
-    setKits(library.kits)
+    // These endpoints gain fields over releases; a missing array must read as "empty",
+    // not as `undefined`, or `kinds.find(...)` throws and the page dies on first paint.
+    const data = await api<{ kinds?: KindGroup[] }>("/api/v1/theme-builder")
+    setKinds(Array.isArray(data?.kinds) ? data.kinds : [])
+    const library = await api<{ presets?: Preset[]; kits?: Kit[] }>("/api/v1/theme-builder/library")
+    setPresets(Array.isArray(library?.presets) ? library.presets : [])
+    setKits(Array.isArray(library?.kits) ? library.kits : [])
   }
 
   useEffect(() => {

@@ -25,40 +25,49 @@ function localized(locale: string, fa?: string | null, en?: string | null) {
   return value?.trim() ? value : null
 }
 
-export function AboutView({ venue }: Props) {
+export function AboutView({ venue: rawVenue }: Props) {
   const t = useTranslations("cafe_starter")
   const locale = useLocale()
-  const skin = resolveCafeSkin(venue.tenant.active_theme_slug)
+  // The venue payload is assembled from several module settings, so any one of them can be
+  // absent. Default every sub-object once here instead of guarding each dereference below —
+  // a missing `tenant` used to throw and blank the whole About page.
+  const tenant = rawVenue?.tenant ?? { name: "", active_theme_slug: null }
+  const settings = rawVenue?.venue ?? ({} as NonNullable<CafeVenuePayload["venue"]>)
+  const gallery = rawVenue?.gallery ?? ({} as NonNullable<CafeVenuePayload["gallery"]>)
+  const hours = rawVenue?.hours ?? ({} as NonNullable<CafeVenuePayload["hours"]>)
+  const venue = { ...rawVenue, tenant, venue: settings, gallery, hours }
+
+  const skin = resolveCafeSkin(tenant.active_theme_slug)
   const layout = cafeSkinLayout(skin)
   const scheme = useSkinScheme(skin)
 
-  const about = localized(locale, venue.venue.about_fa, venue.venue.about_en)
-  const address = localized(locale, venue.venue.address_fa, venue.venue.address_en)
-  const tagline = localized(locale, venue.venue.tagline_fa, venue.venue.tagline_en)
-  const images = [...(venue.gallery.images ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+  const about = localized(locale, settings.about_fa, settings.about_en)
+  const address = localized(locale, settings.address_fa, settings.address_en)
+  const tagline = localized(locale, settings.tagline_fa, settings.tagline_en)
+  const images = [...(gallery.images ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
   const cover = images[0]?.url ?? null
-  const days = [...(venue.hours.days ?? [])].sort(
+  const days = [...(hours.days ?? [])].sort(
     (a, b) => DAY_KEYS.indexOf(a.day as (typeof DAY_KEYS)[number]) - DAY_KEYS.indexOf(b.day as (typeof DAY_KEYS)[number]),
   )
   const dayLabel = (day: string) =>
     (DAY_KEYS as readonly string[]).includes(day) ? t(`days.${day as (typeof DAY_KEYS)[number]}`) : day
-  const location = venue.ordering?.cafe_location ?? null
+  const location = rawVenue?.ordering?.cafe_location ?? null
   // Exact pin from settings (cafe_lat/cafe_lng) beats a text search link.
   const mapHref = location
     ? `https://neshan.org/maps/@${location.lat},${location.lng},17z`
-    : venue.venue.map_url || null
-  const instagram = venue.venue.instagram
-    ? venue.venue.instagram.startsWith("http")
-      ? venue.venue.instagram
-      : `https://instagram.com/${venue.venue.instagram.replace(/^@/, "")}`
+    : settings.map_url || null
+  const instagram = settings.instagram
+    ? settings.instagram.startsWith("http")
+      ? settings.instagram
+      : `https://instagram.com/${settings.instagram.replace(/^@/, "")}`
     : null
 
   return (
     <div className="cafe-shell cafe-about" data-skin={skin} data-layout={layout} data-scheme={scheme}>
-      <section className="cafe-about-hero" style={cover ? undefined : { background: placeholderFor(venue.tenant.name) }}>
+      <section className="cafe-about-hero" style={cover ? undefined : { background: placeholderFor(tenant.name) }}>
         {cover ? <Image src={cover} alt="" fill priority className="cafe-about-hero-img" unoptimized /> : null}
         <div className="cafe-about-hero-copy">
-          <h1>{venue.tenant.name}</h1>
+          <h1>{tenant.name}</h1>
           {tagline ? <p>{tagline}</p> : null}
           <Link href="/catalogue" className="cafe-primary-btn">
             <UtensilsCrossed className="size-4" />

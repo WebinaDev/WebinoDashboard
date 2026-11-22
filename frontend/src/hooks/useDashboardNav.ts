@@ -39,10 +39,21 @@ export function useDashboardNav() {
   const authQ = useAuthUser()
   const bootstrapQ = useBootstrapQuery()
 
-  const { data: activations = [], isLoading } = useQuery({
+  const { data: activationsRaw, isLoading } = useQuery({
     queryKey: ["kernel-activations"],
     queryFn: () => api<TenantActivation[]>("/api/v1/kernel/activations"),
   })
+
+  // `= []` on the destructure only covers `undefined`. A backend hiccup can answer with an
+  // object (error envelope, `{activations: []}`), and buildAdminNav then throws
+  // "e.some is not a function" and takes the whole shell — and every dashboard page with
+  // it — down to the route error boundary. Normalise instead of trusting the shape.
+  const activations: TenantActivation[] = (() => {
+    if (Array.isArray(activationsRaw)) return activationsRaw
+    const nested = (activationsRaw as unknown as { activations?: unknown } | undefined)?.activations
+    if (Array.isArray(nested)) return nested as TenantActivation[]
+    return []
+  })()
 
   const capabilities = authQ.data?.capabilities ?? bootstrapQ.data?.user?.capabilities
   const roleAcl = bootstrapQ.data?.menu_acl

@@ -47,10 +47,12 @@ export default function CommerceInventoryPage() {
       low_stock_threshold: number
     }>("/api/v1/inventory/summary")
       .then((r) => {
-        setLow(r.low_stock_products)
-        setOutCount(r.out_of_stock_count)
-        setThreshold(r.low_stock_threshold)
-        setThresholdDraft(r.low_stock_threshold)
+        // The summary endpoint is optional-shaped: an older backend or a partial response
+        // omits these keys, and storing `undefined` made `low.length` throw during render.
+        setLow(Array.isArray(r?.low_stock_products) ? r.low_stock_products : [])
+        setOutCount(Number(r?.out_of_stock_count) || 0)
+        setThreshold(Number(r?.low_stock_threshold) || 0)
+        setThresholdDraft(Number(r?.low_stock_threshold) || 0)
       })
       .catch(() => {
         setLow([])
