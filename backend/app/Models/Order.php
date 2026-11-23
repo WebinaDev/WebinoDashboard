@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Audit\RecordsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use SoftDeletes;
+    use RecordsActivity, SoftDeletes;
+
+    /** Frozen payloads would bloat every row; the money fields beside them are audited. */
+    protected array $activityHidden = ['totals', 'meta'];
 
     public const STATUSES = [
         'pending_payment',

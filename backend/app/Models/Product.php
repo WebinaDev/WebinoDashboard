@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Audit\RecordsActivity;
 use App\Services\Media\ImageSizes;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +14,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
+    use RecordsActivity;
+
+    protected array $activityHidden = ['description', 'long_description'];
+
     protected $fillable = [
         'tenant_id',
         'vendor_store_id',

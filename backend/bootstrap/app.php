@@ -67,6 +67,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\RequireTwoFactor::class,
             \App\Http\Middleware\ThrottleApiToken::class,
             \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\AssignAuditBatch::class,
         ]);
         $middleware->alias([
             'module' => EnsureModuleEnabled::class,

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\Audit\RecordsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Reservation extends Model
 {
+    use RecordsActivity;
+
     protected $fillable = [
         'tenant_id',
         'branch_id',
