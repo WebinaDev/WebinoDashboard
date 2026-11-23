@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, Calculator, Check, Coins, Percent, Receipt, Sparkles, Trash2, TrendingUp, Users } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { useConfirm } from "@/components/ConfirmDialog"
@@ -16,7 +16,8 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api, type ApiListPayload } from "@/lib/api"
 import { asArray } from "@/lib/list-utils"
 import { getApiErrorMessage } from "@/lib/api-helpers"
-import { formatCurrency, toLocaleDigits } from "@/lib/locale"
+import { toLocaleDigits } from "@/lib/locale"
+import { MoneyText, formatMoneyText } from "@/components/currency/MoneyDisplay"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
 import {
@@ -136,7 +137,7 @@ export default function PricingPageClient({ route: _route }: { route: ResolvedAd
   const dineIn = useMemo(() => calculatePrice(input, rates), [input, rates])
   const delivery = useMemo(() => calculatePrice({ ...input, is_delivery: true }, rates), [input, rates])
 
-  const money = (value: number) => formatCurrency(value, locale, currency)
+  const money = (value: number) => <MoneyText amount={value} currency={currency} />
   // Persian UI uses the Persian decimal separator (٫), so 19.9 reads as ۱۹٫۹.
   const pct = (value: number) =>
     `${toLocaleDigits(value.toFixed(1).replace(/\.0$/, "").replace(".", locale === "fa" ? "٫" : "."), locale)}٪`
@@ -353,7 +354,7 @@ export default function PricingPageClient({ route: _route }: { route: ResolvedAd
               </p>
               <p className="mt-1 text-3xl font-black tracking-tight">{money(dineIn.prices.final)}</p>
               <p className="text-muted-foreground mt-1 text-xs">
-                {t("pre_vat_note", { amount: money(dineIn.prices.beforeVat) })}
+                {t("pre_vat_note", { amount: formatMoneyText(dineIn.prices.beforeVat, locale, currency) })}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <Stat label={t("full_cost")} value={money(dineIn.costs.full)} />
@@ -442,7 +443,7 @@ const TONE_CLASS: Record<string, string> = {
   bad: "text-rose-600 dark:text-rose-400",
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
+function Stat({ label, value, tone }: { label: string; value: ReactNode; tone?: string }) {
   const toneClass = (tone && TONE_CLASS[tone]) || ""
   return (
     <div className="rounded-lg border bg-background/70 px-2.5 py-1.5">
@@ -594,7 +595,7 @@ function ReversePanel({
 }: {
   rates: PricingRates
   input: PricingInput
-  money: (value: number) => string
+  money: (value: number) => ReactNode
 }) {
   const t = useTranslations("cafe_admin.pricing")
   const locale = useLocale()
@@ -626,7 +627,7 @@ function ReversePanel({
       </div>
       <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
         <Coins className="size-3.5" />
-        {t("food_cost_target_result", { amount: money(targetPrice) })}
+        {t("food_cost_target_result", { amount: formatMoneyText(targetPrice, locale) })}
       </p>
     </CafeSection>
   )
@@ -639,11 +640,11 @@ function Breakdown({
   pct,
 }: {
   result: PricingResult
-  money: (value: number) => string
+  money: (value: number) => ReactNode
   pct: (value: number) => string
 }) {
   const t = useTranslations("cafe_admin.pricing")
-  const rows: { label: string; value: string; icon?: React.ReactNode; strong?: boolean }[] = [
+  const rows: { label: string; value: ReactNode; icon?: React.ReactNode; strong?: boolean }[] = [
     { label: t("row_waste"), value: money(result.costs.waste), icon: <Percent className="size-3.5" /> },
     { label: t("row_base_cost"), value: money(result.costs.base) },
     { label: t("row_full_cost"), value: money(result.costs.full), strong: true },

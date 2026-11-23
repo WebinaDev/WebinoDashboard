@@ -72,3 +72,32 @@ export function MoneyDisplay({
     </span>
   )
 }
+
+/**
+ * Money as a single inline node, for call sites that build a string today.
+ *
+ * `formatCurrency(v, locale, "IRT")` renders the literal code "IRT" because ICU has no
+ * symbol for it — the storefront then shows Latin letters inside a Persian UI. This keeps
+ * the amount and the tenant's chosen SVG glyph together so the code never surfaces.
+ *
+ * A zero amount is a real amount: it renders as `0` with the glyph, never as a dash. The
+ * missing-value case is `null`/`undefined`, which the caller decides how to show.
+ */
+export function MoneyText({
+  amount,
+  currency,
+  symbol,
+  className,
+  fallback = null,
+}: {
+  amount: number | string | null | undefined
+  currency?: string | null
+  symbol?: string | null
+  className?: string
+  /** Rendered when the amount is absent (`null`/`undefined`/`""`). Zero is not absent. */
+  fallback?: ReactNode
+}) {
+  const isMissing = amount === null || amount === undefined || amount === ""
+  if (isMissing) return <>{fallback}</>
+  return <MoneyDisplay amount={amount} currency={currency} symbol={symbol} className={className} />
+}

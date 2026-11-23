@@ -16,7 +16,7 @@ final class SiteTypeProfiles
                 'theme' => 'ecommerce-starter',
                 'modules' => array_merge(self::coreModules(), [
                     'corporate' => ['testimonials'],
-                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory'],
+                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory', 'accounting'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'blog' => ['posts', 'categories'],
@@ -51,7 +51,7 @@ final class SiteTypeProfiles
                 'modules' => array_merge(self::coreModules(), [
                     'corporate' => ['testimonials'],
                     'cafe' => ['menu', 'reservations', 'hours', 'gallery', 'venue', 'qr', 'engagement'],
-                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'cart', 'checkout', 'orders', 'pos'],
+                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'cart', 'checkout', 'orders', 'pos', 'accounting'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'marketing' => ['coupons', 'bot-broadcast', 'bot-campaigns', 'sms'],
@@ -69,7 +69,7 @@ final class SiteTypeProfiles
                 'theme' => 'ecommerce-starter',
                 'modules' => array_merge(self::coreModules(), [
                     'corporate' => ['testimonials'],
-                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory'],
+                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory', 'accounting'],
                     'coffee-profile' => ['profile'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],

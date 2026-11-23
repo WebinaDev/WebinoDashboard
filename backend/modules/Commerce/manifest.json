@@ -20,7 +20,8 @@
     "c2c",
     "wallet",
     "pos",
-    "inventory"
+    "inventory",
+    "accounting"
   ],
   "admin_nav": {
     "section": "commerce",

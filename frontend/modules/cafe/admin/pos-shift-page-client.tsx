@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { useConfirm } from "@/components/ConfirmDialog"
@@ -22,7 +22,8 @@ import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatDisplayDateTime } from "@/lib/format-date"
-import { formatCurrency, toLocaleDigits } from "@/lib/locale"
+import { toLocaleDigits } from "@/lib/locale"
+import { MoneyText } from "@/components/currency/MoneyDisplay"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
 
@@ -88,8 +89,9 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
   const { confirm, dialog: confirmDialog } = useConfirm()
 
   const currency = "IRT"
-  const money = (value?: number | null) =>
-    value === null || value === undefined ? "-" : formatCurrency(value, locale, currency)
+  const money = (value?: number | null) => (
+    <MoneyText amount={value} currency={currency} fallback="-" />
+  )
 
   const [floatInput, setFloatInput] = useState("")
   const [countedInput, setCountedInput] = useState("")
@@ -287,7 +289,7 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
               <Stat label={t("discounts")} value={money(totals.discounts_minor ?? 0)} />
               <Stat label={t("tax")} value={money(totals.tax_minor ?? 0)} />
               <Stat label={t("opened_at")} value={formatDisplayDateTime(shift.opened_at, locale)} />
-              <Stat label={t("opening_float")} value={money(shift.opening_float_minor)} />
+              <Stat label={t("opening_float")} value={money(shift.opening_float_minor ?? 0)} />
             </div>
 
             {(totals.by_tender?.length ?? 0) > 0 ? (
@@ -494,7 +496,7 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
   )
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
   return (
     <div className="rounded-xl border p-3">
       <p className="text-muted-foreground text-xs">{label}</p>

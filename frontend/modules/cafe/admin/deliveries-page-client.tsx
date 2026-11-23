@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
-import { formatCurrency, toLocaleDigits } from "@/lib/locale"
+import { toLocaleDigits } from "@/lib/locale"
+import { MoneyText } from "@/components/currency/MoneyDisplay"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
 
@@ -95,8 +96,9 @@ export default function DeliveriesPageClient({ route }: { route: ResolvedAdminRo
     return all
   }, [queue.data, filter])
 
-  const money = (v?: number | null) =>
-    v === null || v === undefined ? "-" : formatCurrency(v, locale, "IRT")
+  const money = (v?: number | null) => (
+    <MoneyText amount={v} currency={"IRT"} fallback="-" />
+  )
 
   function submitFail() {
     if (!failTarget) return

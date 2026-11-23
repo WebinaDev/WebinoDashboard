@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/table"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
-import { formatCurrency, toLocaleDigits } from "@/lib/locale"
+import { toLocaleDigits } from "@/lib/locale"
+import { MoneyText } from "@/components/currency/MoneyDisplay"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
 
@@ -72,8 +73,9 @@ export default function ManagerPageClient({ route }: { route: ResolvedAdminRoute
 
   const [range, setRange] = useState<(typeof RANGES)[number]>("today")
 
-  const money = (v?: number | null) =>
-    v === null || v === undefined ? "-" : formatCurrency(v, locale, "IRT")
+  const money = (v?: number | null) => (
+    <MoneyText amount={v} currency={"IRT"} fallback="-" />
+  )
 
   const overview = useQuery({
     queryKey: ["cafe-manager", range],
@@ -121,11 +123,11 @@ export default function ManagerPageClient({ route }: { route: ResolvedAdminRoute
       }
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Kpi label={t("kpi_revenue")} value={money(d?.sales.revenue_minor)} emphasis />
+        <Kpi label={t("kpi_revenue")} value={money(d?.sales.revenue_minor ?? 0)} emphasis />
         <Kpi label={t("kpi_orders")} value={toLocaleDigits(d?.sales.orders ?? 0, locale)} />
-        <Kpi label={t("kpi_aov")} value={money(d?.sales.aov_minor)} />
-        <Kpi label={t("kpi_discounts")} value={money(d?.sales.discounts_minor)} />
-        <Kpi label={t("kpi_tax")} value={money(d?.sales.tax_minor)} />
+        <Kpi label={t("kpi_aov")} value={money(d?.sales.aov_minor ?? 0)} />
+        <Kpi label={t("kpi_discounts")} value={money(d?.sales.discounts_minor ?? 0)} />
+        <Kpi label={t("kpi_tax")} value={money(d?.sales.tax_minor ?? 0)} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -245,7 +247,7 @@ export default function ManagerPageClient({ route }: { route: ResolvedAdminRoute
   )
 }
 
-function Kpi({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
+function Kpi({ label, value, emphasis }: { label: string; value: ReactNode; emphasis?: boolean }) {
   return (
     <div className={`rounded-xl border p-4 ${emphasis ? "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : ""}`}>
       <p className="text-muted-foreground text-xs">{label}</p>
@@ -254,7 +256,7 @@ function Kpi({ label, value, emphasis }: { label: string; value: string; emphasi
   )
 }
 
-function Mini({ label, value }: { label: string; value: string }) {
+function Mini({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-xl border p-3">
       <p className="text-muted-foreground text-[11px]">{label}</p>

@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
-import { formatCurrency, toLocaleDigits } from "@/lib/locale"
+import { toLocaleDigits } from "@/lib/locale"
+import { MoneyText } from "@/components/currency/MoneyDisplay"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection } from "./cafe-admin-ui"
 
@@ -72,8 +73,9 @@ export default function FloorPageClient({ route }: { route: ResolvedAdminRoute }
   const queryClient = useQueryClient()
 
   const currency = "IRT"
-  const money = (v?: number | null) =>
-    v === null || v === undefined ? "-" : formatCurrency(v, locale, currency)
+  const money = (v?: number | null) => (
+    <MoneyText amount={v} currency={currency} fallback="-" />
+  )
 
   const [reserveTarget, setReserveTarget] = useState<FloorTable | null>(null)
   const [reserveName, setReserveName] = useState("")
