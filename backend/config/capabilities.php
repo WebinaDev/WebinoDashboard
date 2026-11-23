@@ -59,6 +59,10 @@ return [
     'kitchen.station' => 'kitchen.station',
     // Manage branches, stations, and the tenant-wide settings.
     'branches.manage' => 'branches.manage',
+    // Take payment on a sale (the settle dialog).
+    'pos.settle' => 'pos.settle',
+    // Ask for an edit to a paid invoice. Approving it is `accounting.approve`.
+    'orders.amend' => 'orders.amend',
 
     /** Wildcard granting all capabilities (admin only). */
     'all' => '*',
@@ -75,6 +79,7 @@ return [
         'accounting.manage',
         'accounting.approve',
         'pos.use',
+        'pos.settle',
         'pos.reconcile',
         'pos.cash',
         'pos.approve',
@@ -82,6 +87,7 @@ return [
         'orders.create',
         'orders.floor',
         'orders.void',
+        'orders.amend',
         'catalog.price',
         'kitchen.view',
         'kitchen.station',
@@ -158,9 +164,11 @@ return [
     'cafe_roles' => [
         'cashier' => [
             'pos.use',
+            'pos.settle',
             'orders.create',
             'orders.floor',
             'orders.own',
+            'orders.amend',
             'pos.reconcile',
             'pos.cash',
             'reports.shop',

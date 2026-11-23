@@ -28,6 +28,9 @@ export const cafeManifest: ModuleManifest = {
     // `homeFor`: a manager signing in should land straight on this board instead of the
     // generic overview, which then competes with it as a second "home".
     { path: "cafe/manager", submodule: "menu", page: "manager", labelKey: "nav.cafe_manager", section: "cafe", order: 37, capability: "reports.shop", menuKey: "pos", homeFor: true },
+    // The shift's home screen: prioritized queue + live table map. Every counter role
+    // opens this, so its gate accepts any of the operational capabilities.
+    { path: "cafe/workbench", submodule: "menu", page: "workbench", labelKey: "nav.cafe_workbench", section: "cafe", order: 24, capability: "pos.use,orders.create,orders.floor,kitchen.view,catalog.*", menuKey: "pos" },
     // Multi-branch switchboard: decide whether prices/stock are shared, add branches, and
     // see the sales that went past a branch's stock. `branches.manage` is the owner's and
     // the branch manager's, never a cashier's.

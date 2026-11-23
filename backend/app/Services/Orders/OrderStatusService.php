@@ -39,6 +39,12 @@ final class OrderStatusService
                 $to = 'on_hold';
                 $refund = true;
             }
+            // Stamp the moment money arrived. The paid-edit window is measured from here,
+            // and `updated_at` cannot stand in for it: any later touch would reset it.
+            if ($to === 'paid' && $from !== 'paid' && $locked->paid_at === null) {
+                $extra['paid_at'] = now();
+            }
+
             $locked->fill(array_merge($extra, ['status' => $to]));
             $locked->save();
             if ($refund) {
