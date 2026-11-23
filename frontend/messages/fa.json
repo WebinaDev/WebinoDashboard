@@ -3570,7 +3570,8 @@
       "custom_color": "رنگ",
       "custom_guest": "مشتری هم این وضعیت را ببیند",
       "custom_save": "ذخیره وضعیت",
-      "custom_clear": "حذف وضعیت"
+      "custom_clear": "حذف وضعیت",
+      "mark_ready": "علامت‌گذاری به‌عنوان آماده"
     },
     "inbox": {
       "title": "بازخورد مهمان‌ها",

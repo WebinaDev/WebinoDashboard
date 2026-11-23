@@ -1046,7 +1046,8 @@
       "custom_color": "Colour",
       "custom_guest": "Show this status to the guest",
       "custom_save": "Save status",
-      "custom_clear": "Clear status"
+      "custom_clear": "Clear status",
+      "mark_ready": "Mark as ready"
     },
     "inbox": {
       "title": "Guest feedback",

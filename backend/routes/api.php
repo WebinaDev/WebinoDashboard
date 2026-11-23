@@ -1016,6 +1016,12 @@ Route::prefix('v1')->group(function () {
             Route::middleware(['module:cafe_menu', 'can:kitchen.view,kitchen.station,catalog.*,pos.use'])->group(function () {
                 Route::get('/cafe/orders/{order}/prep', [CafeOperationsController::class, 'orderPrep'])->whereNumber('order');
                 Route::post('/cafe/orders/{order}/prep', [CafeOperationsController::class, 'itemPrep'])->whereNumber('order');
+                // The board's columns: read by every cook, edited by whoever manages stations.
+                Route::get('/cafe/kitchen-columns', [CafeOperationsController::class, 'kitchenColumns']);
+            });
+
+            Route::middleware(['module:cafe_menu', 'can:kitchen.station,catalog.*'])->group(function () {
+                Route::put('/cafe/kitchen-columns', [CafeOperationsController::class, 'kitchenColumnsUpdate']);
             });
 
             // Delivery areas carry money (a fee and a minimum), so they sit with the branch
