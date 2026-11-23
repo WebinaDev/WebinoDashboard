@@ -155,6 +155,69 @@ class Product extends Model
         return (int) ($variant?->price_minor ?: $this->price_minor);
     }
 
+    /**
+     * This branch's price for the item, falling back to the shared catalogue price.
+     *
+     * Branches share one catalogue (the owner's decision), so most items have no override
+     * row and this returns exactly what `storefrontPriceMinor()` would. When a branch does
+     * override, the override wins over both the product price and the variant price,
+     * because it was set deliberately for that counter.
+     */
+    public function branchPriceMinor(int $branchId, ?ProductVariant $variant = null): int
+    {
+        $override = $this->resolveBranchOverride($branchId, $variant);
+
+        if ($override !== null) {
+            $price = (int) ($override->price_minor ?? 0);
+            if ($price > 0) {
+                return $price;
+            }
+        }
+
+        return $this->regularPriceMinor($variant);
+    }
+
+    /** The branch's sale price, or null when it inherits the catalogue's sale. */
+    public function branchSalePriceMinor(int $branchId, ?ProductVariant $variant = null): ?int
+    {
+        $override = $this->resolveBranchOverride($branchId, $variant);
+        $sale = (int) ($override?->sale_price_minor ?? 0);
+
+        return $sale > 0 ? $sale : null;
+    }
+
+    /** Whether this branch currently sells the item at all (a branch can 86 one item). */
+    public function isAvailableAtBranch(int $branchId, ?ProductVariant $variant = null): bool
+    {
+        $override = $this->resolveBranchOverride($branchId, $variant);
+
+        return $override?->is_available ?? true;
+    }
+
+    /** Variant row first, then the product-level row — the same specificity order as pricing. */
+    private function resolveBranchOverride(int $branchId, ?ProductVariant $variant): ?\App\Models\BranchProductPrice
+    {
+        if ($branchId < 1) {
+            return null;
+        }
+
+        if (! $this->relationLoaded('branchPrices')) {
+            $this->load('branchPrices');
+        }
+
+        /** @var \Illuminate\Support\Collection<int, \App\Models\BranchProductPrice> $rows */
+        $rows = $this->branchPrices->where('branch_id', $branchId);
+
+        if ($variant !== null) {
+            $variantRow = $rows->firstWhere('product_variant_id', $variant->id);
+            if ($variantRow !== null) {
+                return $variantRow;
+            }
+        }
+
+        return $rows->firstWhere('product_variant_id', null);
+    }
+
     public function effectiveSalePriceMinor(?ProductVariant $variant = null, ?CarbonInterface $at = null): ?int
     {
         $sale = (int) (($variant ?? $this)->sale_price_minor ?? 0);
@@ -311,6 +374,12 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class)->orderBy('sort_order');
+    }
+
+    /** Per-branch price/availability overrides. Most items have none — the catalogue price applies. */
+    public function branchPrices(): HasMany
+    {
+        return $this->hasMany(BranchProductPrice::class);
     }
 
     public function media(): HasMany

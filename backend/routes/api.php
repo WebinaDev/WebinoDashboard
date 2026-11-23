@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\ImpersonationController;
 use App\Http\Controllers\Api\V1\OtpAuthController;
 use App\Http\Controllers\Api\V1\BlogCategoryController;
 use App\Http\Controllers\Api\V1\BlogPostController;
+use App\Http\Controllers\Api\V1\BranchOperationsController;
 use App\Http\Controllers\Api\V1\BootstrapController;
 use App\Http\Controllers\Api\V1\BuildPipelineController;
 use App\Http\Controllers\Api\V1\CoreUpdateController;
@@ -923,10 +924,6 @@ Route::prefix('v1')->group(function () {
                 Route::post('/cafe/pricing/reverse', [CafePriceCalculatorController::class, 'reverse']);
                 Route::post('/cafe/pricing', [CafePriceCalculatorController::class, 'store']);
                 Route::delete('/cafe/pricing/{sheet}', [CafePriceCalculatorController::class, 'destroy'])->whereNumber('sheet');
-                Route::get('/cafe/kitchen-orders', [CafeKitchenController::class, 'index']);
-
-                Route::get('/cafe/kitchen-orders/live', [CafeKitchenController::class, 'live']);
-                Route::patch('/cafe/kitchen-orders/{order}', [CafeKitchenController::class, 'update'])->whereNumber('order');
                 // Cashier till. Reads and writes are split on purpose: the accountant holds
                 // accounting.manage and must be able to audit a drawer without being able to
                 // open, close, or move cash in one. Only a cashier or manager may write.
@@ -952,11 +949,41 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/cafe/qr-settings', [CafeQrController::class, 'updateSettings']);
                 Route::get('/cafe/qr', [CafeQrController::class, 'menuQr']);
                 Route::get('/cafe/menu-pdf', [CafePdfController::class, 'menuPdf']);
-                Route::apiResource('cafe/branches', CafeBranchController::class)->only(['index', 'store', 'update', 'destroy']);
+
                 Route::get('/cafe/tables', [CafeTableController::class, 'index']);
                 Route::post('/cafe/tables', [CafeTableController::class, 'store']);
                 Route::patch('/cafe/tables/{table}', [CafeTableController::class, 'update'])->whereNumber('table');
                 Route::delete('/cafe/tables/{table}', [CafeTableController::class, 'destroy'])->whereNumber('table');
+            });
+
+            // Multi-branch operations. Reading stock and settings is open to anyone who can
+            // run the floor; changing them needs the branch-management capability.
+            Route::middleware(['module:cafe_menu', 'can:branches.manage,catalog.*'])->group(function () {
+                Route::apiResource('cafe/branches', CafeBranchController::class)->only(['index', 'store', 'update', 'destroy']);
+                // Multi-branch switchboard, per-branch stock, price overrides.
+                Route::get('/cafe/branch-settings', [BranchOperationsController::class, 'settingsShow']);
+                Route::put('/cafe/branch-settings', [BranchOperationsController::class, 'settingsUpdate']);
+                Route::get('/cafe/branch-stock', [BranchOperationsController::class, 'stockIndex']);
+                Route::post('/cafe/branch-stock/count', [BranchOperationsController::class, 'stockCount']);
+                Route::post('/cafe/branch-prices', [BranchOperationsController::class, 'priceOverride']);
+                Route::delete('/cafe/branch-prices/{override}', [BranchOperationsController::class, 'priceOverrideDestroy'])->whereNumber('override');
+                Route::get('/cafe/oversold-orders', [BranchOperationsController::class, 'oversoldIndex']);
+
+                // Kitchen stations: routing, membership, and the per-station KDS board.
+                Route::get('/cafe/stations', [BranchOperationsController::class, 'stationsIndex']);
+                Route::post('/cafe/stations', [BranchOperationsController::class, 'stationsStore']);
+                Route::patch('/cafe/stations/{station}', [BranchOperationsController::class, 'stationsUpdate'])->whereNumber('station');
+                Route::delete('/cafe/stations/{station}', [BranchOperationsController::class, 'stationsDestroy'])->whereNumber('station');
+                Route::post('/cafe/stations/{station}/assign', [BranchOperationsController::class, 'stationsAssign'])->whereNumber('station');
+                Route::delete('/cafe/stations/{station}/users/{user}', [BranchOperationsController::class, 'stationsUnassignUser'])->whereNumber('station')->whereNumber('user');
+            });
+
+            // The kitchen board is its own access path. A cook holds kitchen.view and
+            // nothing else, so it cannot live inside the catalog.* menu-management group.
+            Route::middleware(['module:cafe_menu', 'can:kitchen.view,kitchen.station,catalog.*,reports.shop,orders.*'])->group(function () {
+                Route::get('/cafe/kitchen-orders', [CafeKitchenController::class, 'index']);
+                Route::get('/cafe/kitchen-orders/live', [CafeKitchenController::class, 'live']);
+                Route::patch('/cafe/kitchen-orders/{order}', [CafeKitchenController::class, 'update'])->whereNumber('order');
             });
 
             // --- POS operations -------------------------------------------------

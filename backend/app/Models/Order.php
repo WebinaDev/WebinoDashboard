@@ -66,6 +66,8 @@ class Order extends Model
 
     protected $fillable = [
         'tenant_id',
+        'branch_id',
+        'stock_oversold_at',
         'user_id',
         'created_by',
         'number',
@@ -127,6 +129,7 @@ class Order extends Model
             'is_pos' => 'boolean',
             'is_pay_link' => 'boolean',
             'printed_at' => 'datetime',
+            'stock_oversold_at' => 'datetime',
             'c2c_decided_at' => 'datetime',
             'delivery_claimed_at' => 'datetime',
             'delivery_picked_up_at' => 'datetime',
@@ -143,6 +146,12 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** The branch that rang this sale up. Null on legacy rows and tenant-wide online orders. */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(CafeBranch::class, 'branch_id');
     }
 
     public function creator(): BelongsTo
