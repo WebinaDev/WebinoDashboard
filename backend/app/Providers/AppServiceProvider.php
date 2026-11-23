@@ -36,6 +36,20 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($this->app->runningInConsole()) {
+            \Illuminate\Support\Facades\Event::listen(\Illuminate\Console\Events\CommandStarting::class, function ($event): void {
+                if (! app()->environment('production')) {
+                    return;
+                }
+
+                $blocked = ['db:seed', 'db:wipe', 'migrate:fresh', 'migrate:refresh', 'migrate:reset', 'migrate:rollback'];
+                if (in_array($event->command, $blocked, true)
+                    || ($event->command === 'migrate' && $event->input->hasParameterOption('--seed'))) {
+                    throw new \RuntimeException(__('production.database_command_forbidden'));
+                }
+            });
+        }
+
         \App\Services\Builder\BuilderRevisions::register();
         \App\Support\PublicCache\PublicResponseCache::register();
         // Rate classes (WP shield rate-limit parity) — per-tenant tunable via site.security.rate.
