@@ -107,7 +107,7 @@ class ApiResponseFormatter
             unset($data['meta']);
         }
 
-        if (isset($content['data'])) {
+        if (array_key_exists('data', $content)) {
             $data = $content['data'];
         }
 

@@ -28,6 +28,10 @@ return new class extends Migration
             return;
         }
 
+        if (! Schema::hasTable('dashboard_modules') || ! DB::table('dashboard_modules')->where('slug', 'commerce')->exists()) {
+            return;
+        }
+
         $now = now();
 
         if (Schema::hasTable('submodules')) {
@@ -62,17 +66,16 @@ return new class extends Migration
                 ->all();
 
             foreach ($known as $siteType) {
-                DB::table('site_type_activations')->updateOrInsert(
-                    [
+                DB::table('site_type_activations')->insertOrIgnore(
+                    array_merge([
                         'site_type_slug' => $siteType,
                         'module_slug' => 'commerce',
                         'submodule_slug' => 'accounting',
-                    ],
-                    [
+                    ], [
                         'enabled_by_default' => true,
                         'updated_at' => $now,
                         'created_at' => $now,
-                    ]
+                    ])
                 );
             }
         }
@@ -82,18 +85,17 @@ return new class extends Migration
             ->pluck('id');
 
         foreach ($tenantIds as $tenantId) {
-            DB::table('tenant_submodule_activations')->updateOrInsert(
-                [
+            DB::table('tenant_submodule_activations')->insertOrIgnore(
+                array_merge([
                     'tenant_id' => $tenantId,
                     'module_slug' => 'commerce',
                     'submodule_slug' => 'accounting',
-                ],
-                [
-                    'enabled' => true,
-                    'licensed' => true,
+                ], [
+                    'enabled' => false,
+                    'licensed' => false,
                     'updated_at' => $now,
                     'created_at' => $now,
-                ]
+                ])
             );
         }
     }

@@ -23,7 +23,7 @@ class CapabilityChecker
             3600,
             function () use ($role, $tenantId): array {
                 $query = RoleCapability::query()->where('role', $role);
-                if ($tenantId !== null && $query->where('tenant_id', $tenantId)->exists()) {
+                if ($tenantId !== null && (clone $query)->where('tenant_id', $tenantId)->exists()) {
                     $query->where('tenant_id', $tenantId);
                 } else {
                     $query->whereNull('tenant_id');
