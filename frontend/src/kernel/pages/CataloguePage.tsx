@@ -36,7 +36,7 @@ export default async function CataloguePage({
       tableNumber={table?.code ?? null}
       branchSlug={branch}
       menuSlug={menuSlug}
-      activeThemeSlug={venue?.tenant.active_theme_slug}
+      activeThemeSlug={venue?.tenant?.active_theme_slug ?? null}
     />
   )
 }

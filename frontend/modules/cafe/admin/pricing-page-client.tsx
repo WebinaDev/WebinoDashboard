@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ResolvedAdminRoute } from "@/kernel/types"
-import { api } from "@/lib/api"
+import { api, type ApiListPayload } from "@/lib/api"
+import { asArray } from "@/lib/list-utils"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatCurrency, toLocaleDigits } from "@/lib/locale"
 
@@ -108,9 +109,11 @@ export default function PricingPageClient({ route: _route }: { route: ResolvedAd
   const values = form ?? blankForm(rates)
   const currency = data?.currency ?? "IRT"
 
+  // List endpoints answer the `{data, meta}` envelope, so unwrap before the picker maps it.
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
-    queryFn: () => api<Product[]>("/api/v1/products"),
+    queryFn: async () =>
+      asArray<Product>(await api<ApiListPayload<Product[]>>("/api/v1/products")),
   })
 
   // Everything below is computed locally so a keystroke never waits for the network; the

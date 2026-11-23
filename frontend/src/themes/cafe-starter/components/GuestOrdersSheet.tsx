@@ -59,7 +59,7 @@ export function GuestOrdersSheet({
   const [error, setError] = useState<string | null>(null)
 
   const list = useMemo(() => orders.data ?? [], [orders.data])
-  const anyLive = useMemo(() => list.some((row) => liveStatuses.has(row.kitchen_status)), [list])
+  const anyLive = useMemo(() => (Array.isArray(list) ? list : []).some((row) => liveStatuses.has(row.kitchen_status)), [list])
 
   // Live tracking: refresh while a kitchen ticket is still moving, then rest.
   useEffect(() => {

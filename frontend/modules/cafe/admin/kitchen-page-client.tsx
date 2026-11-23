@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { ResolvedAdminRoute } from "@/kernel/types"
-import { api } from "@/lib/api"
+import { api, type ApiListPayload } from "@/lib/api"
+import { asArray } from "@/lib/list-utils"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatDisplayDateTime } from "@/lib/format-date"
 
@@ -88,7 +89,12 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
     queryFn: async () => {
       const since = sinceRef.current
       const query = since ? `?since=${encodeURIComponent(since)}` : ""
-      const rows = await api<KitchenOrder[]>(`/api/v1/cafe/kitchen-orders/live${query}`)
+      // The live endpoint answers the list envelope (`{data, meta}`) because it reports
+      // `server_time` for clock-skew correction — so unwrap before iterating.
+      const payload = await api<ApiListPayload<KitchenOrder[]>>(
+        `/api/v1/cafe/kitchen-orders/live${query}`,
+      )
+      const rows = asArray<KitchenOrder>(payload)
       // One tick of overlap absorbs clock skew between browser and API without duplicates.
       sinceRef.current = new Date(Date.now() - 15_000).toISOString()
       if (!since) return rows

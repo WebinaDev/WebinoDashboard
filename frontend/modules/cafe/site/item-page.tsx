@@ -26,7 +26,7 @@ export default async function ItemPage({ route, searchParams }: Props) {
       item={item}
       tableNumber={table?.code ?? null}
       branchSlug={searchParams?.branch ?? table?.branch_slug ?? null}
-      activeThemeSlug={venue?.tenant.active_theme_slug}
+      activeThemeSlug={venue?.tenant?.active_theme_slug ?? null}
       ordering={venue?.ordering ?? null}
       showNewBadge={venue?.menu?.show_new_badge !== false}
     />

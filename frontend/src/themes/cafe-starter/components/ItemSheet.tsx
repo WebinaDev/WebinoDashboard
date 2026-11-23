@@ -98,7 +98,6 @@ export function ItemPanel({
   const [addons, setAddons] = useState<string[]>([])
   const [addonDraft, setAddonDraft] = useState("")
   const addonInput = useRef<HTMLInputElement>(null)
-  const tMedia = useTranslations("cafe_starter.media")
   const add = useAddToCart(ctrl.tableNumber, ctrl.branchSlug)
 
   useEffect(() => {

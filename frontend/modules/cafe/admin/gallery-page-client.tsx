@@ -29,7 +29,9 @@ export default function GalleryPageClient({ route: _route }: { route: ResolvedAd
   })
 
   const [form, setForm] = useState<CafeGallerySettings | null>(null)
-  const values = form ?? data ?? { images: [] }
+  // Data can be `{}` (tenant saved before this key existed), which is truthy and would
+  // bypass the fallback, so normalise the array once here instead of at every use.
+  const values: CafeGallerySettings = { images: form?.images ?? data?.images ?? [] }
 
   const save = useMutation({
     mutationFn: () => api<CafeGallerySettings>("/api/v1/cafe/gallery-settings", { method: "PATCH", json: values }),

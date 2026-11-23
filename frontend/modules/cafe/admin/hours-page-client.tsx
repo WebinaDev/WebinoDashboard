@@ -34,7 +34,13 @@ export default function HoursPageClient({ route: _route }: { route: ResolvedAdmi
   })
 
   const [form, setForm] = useState<CafeHoursSettings | null>(null)
-  const values: CafeHoursSettings = form ?? data ?? { timezone: "Asia/Tehran", days: [] }
+  // `data` may come back as `{}` or with a null `days`, both truthy enough to skip the
+  // fallback below and crash `values.days.find(...)` on the first render.
+  const values: CafeHoursSettings = {
+    timezone: form?.timezone ?? data?.timezone ?? "Asia/Tehran",
+    days: form?.days ?? data?.days ?? [],
+    closed_dates: form?.closed_dates ?? data?.closed_dates ?? [],
+  }
 
   const days: CafeHoursDay[] = DAY_KEYS.map((key) => {
     const found = values.days.find((row) => row.day === key || row.day === t(`days.${key}`))
