@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 import { useState, type ReactNode } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { ResolvedAdminRoute } from "@/kernel/types"
-import { api } from "@/lib/api"
+import { api, apiDownload } from "@/lib/api"
 import { toLocaleDigits } from "@/lib/locale"
 import { MoneyText } from "@/components/currency/MoneyDisplay"
 
@@ -72,6 +73,21 @@ export default function ManagerPageClient({ route }: { route: ResolvedAdminRoute
   const locale = useLocale()
 
   const [range, setRange] = useState<(typeof RANGES)[number]>("today")
+  const [exporting, setExporting] = useState(false)
+
+  async function runExport(format: "csv" | "xlsx") {
+    setExporting(true)
+    try {
+      await apiDownload(
+        `/api/v1/cafe/manager/export?range=${range}&format=${format}`,
+        `cafe-report-${range}.${format}`,
+      )
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const money = (v?: number | null) => (
     <MoneyText amount={v} currency={"IRT"} fallback="-" />
@@ -118,6 +134,21 @@ export default function ManagerPageClient({ route }: { route: ResolvedAdminRoute
           </select>
           <Button variant="outline" size="sm" onClick={() => void overview.refetch()} disabled={overview.isFetching}>
             {t("refresh")}
+          </Button>
+          {/* Excel first: it is what a manager actually takes to a meeting. */}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={exporting}
+            onClick={() => void runExport("xlsx")}
+          >
+            {t("export_xlsx")}
+          </Button>
+          <Button variant="outline" size="sm" disabled={exporting} onClick={() => void runExport("csv")}>
+            {t("export_csv")}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            {t("print")}
           </Button>
         </div>
       }

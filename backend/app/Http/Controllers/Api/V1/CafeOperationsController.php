@@ -337,6 +337,28 @@ class CafeOperationsController extends Controller
         return response()->json(['data' => $this->amendments->settle($amendment, $data['tender'], $request->user())]);
     }
 
+    /**
+     * Every amendment awaiting a decision, across all orders.
+     *
+     * The per-order history was the only way to read amendments, so a manager had to already
+     * know which order had a pending edit. This is the queue that makes the approval flow
+     * reachable without hunting.
+     */
+    public function amendmentsPending(Request $request): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+
+        $rows = OrderAmendment::query()
+            ->where('tenant_id', $tid)
+            ->whereIn('status', [OrderAmendments::STATUS_PENDING, OrderAmendments::STATUS_APPROVED])
+            ->with('order:id,number,total_minor,status,customer_name')
+            ->latest()
+            ->limit(100)
+            ->get();
+
+        return response()->json(['data' => $rows]);
+    }
+
     public function amendmentsIndex(Request $request, Order $order): JsonResponse
     {
         abort_if((int) $request->user()->tenant_id !== (int) $order->tenant_id, 403);

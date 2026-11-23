@@ -38,6 +38,12 @@ export const cafeManifest: ModuleManifest = {
     // see the sales that went past a branch's stock. `branches.manage` is the owner's and
     // the branch manager's, never a cashier's.
     { path: "cafe/branches", submodule: "menu", page: "branches", labelKey: "nav.cafe_branches", section: "cafe", order: 38, capability: "branches.manage", menuKey: "cafe_branches" },
+    // Amending a paid invoice: request a change, a manager approves, then the money moves.
+    // The service and its five routes existed with no screen, so the feature was curl-only.
+    { path: "cafe/amendments", submodule: "menu", page: "amendments", labelKey: "nav.cafe_amendments", section: "cafe", order: 41, capability: "pos.use,orders.*,accounting.manage", menuKey: "cafe_amendments" },
+    // Delivery areas: a fee and a minimum order per district. The table priced nothing until
+    // this screen existed — the till stored a zone id and charged the flat fee anyway.
+    { path: "cafe/delivery-zones", submodule: "menu", page: "delivery-zones", labelKey: "nav.cafe_delivery_zones", section: "cafe", order: 40, capability: "branches.manage", menuKey: "cafe_delivery_zones" },
     // Kitchen stations: which station prepares which item, and who works which station.
     { path: "cafe/stations", submodule: "menu", page: "stations", labelKey: "nav.cafe_stations", section: "cafe", order: 39, capability: "branches.manage", menuKey: "cafe_stations" },
   ],

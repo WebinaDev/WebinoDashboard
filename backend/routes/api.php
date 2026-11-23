@@ -1042,6 +1042,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/cafe/orders/{order}/amendments', [CafeOperationsController::class, 'amendmentRequest'])->whereNumber('order');
             });
             Route::middleware(['module:cafe_menu', 'can:accounting.approve,pos.approve,accounting.manage'])->group(function () {
+                // The approval queue: whoever may approve is exactly who needs to see it, and a
+                // cashier who may only *request* must not see other people's pending edits.
+                Route::get('/cafe/amendments/pending', [CafeOperationsController::class, 'amendmentsPending']);
                 Route::post('/cafe/amendments/{amendment}/approve', [CafeOperationsController::class, 'amendmentApprove'])->whereNumber('amendment');
                 Route::post('/cafe/amendments/{amendment}/reject', [CafeOperationsController::class, 'amendmentReject'])->whereNumber('amendment');
                 Route::post('/cafe/amendments/{amendment}/settle', [CafeOperationsController::class, 'amendmentSettle'])->whereNumber('amendment');
@@ -1074,6 +1077,8 @@ Route::prefix('v1')->group(function () {
 
             Route::middleware(['module:cafe_menu', 'can:reports.shop,reports.*,orders.*'])->group(function () {
                 Route::get('/cafe/manager/overview', [CafeManagerController::class, 'overview']);
+                // The same board as a spreadsheet, for comparing weeks in Excel and for printing.
+                Route::get('/cafe/manager/export', [CafeManagerController::class, 'export']);
             });
 
             Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {

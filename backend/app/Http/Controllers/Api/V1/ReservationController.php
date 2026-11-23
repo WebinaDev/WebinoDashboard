@@ -35,18 +35,72 @@ class ReservationController extends Controller
         ]);
     }
 
+    /**
+     * Advance a reservation through its life: pending → confirmed → seated → completed,
+     * with cancelled and no_show as the terminal branches.
+     *
+     * The foundation migration added `confirmed_at`, `declined_at`, `decline_reason`,
+     * `seated_at`, `no_show_at` and `table_id`, and nothing wrote them: a reservation could
+     * only be pending, confirmed or cancelled, so the host had no way to record that a guest
+     * actually arrived, and "no-show" — the number a restaurant needs to decide whether to
+     * keep taking online bookings — did not exist.
+     *
+     * Timestamps are set on the transition, not by the client, so they cannot disagree with
+     * the status they describe.
+     */
     public function updateReservation(Request $request, Reservation $reservation): \Illuminate\Http\JsonResponse
     {
         abort_if($request->user()->tenant_id !== $reservation->tenant_id, 403);
 
         $data = $request->validate([
-            'status' => ['required', 'string', 'in:pending,confirmed,cancelled'],
+            'status' => ['required', 'string', 'in:pending,confirmed,seated,completed,cancelled,no_show'],
             'notes' => ['sometimes', 'nullable', 'string'],
+            // Which table the party was given. Null clears it.
+            'table_id' => ['sometimes', 'nullable', 'integer', Rule::exists('cafe_tables', 'id')->where('tenant_id', $reservation->tenant_id)],
+            // Required for a decline so a later "why was I refused" has an answer.
+            'decline_reason' => ['sometimes', 'nullable', 'string', 'max:300'],
         ]);
 
-        $reservation->update($data);
+        $status = (string) $data['status'];
+        $current = (string) $reservation->status;
 
-        return response()->json(['data' => $reservation->fresh()->load('branch')]);
+        // Nothing but a fresh confirmation may move a cancelled booking back to life; doing so
+        // silently would resurrect a table someone else has since been given.
+        if (in_array($current, ['cancelled', 'no_show', 'completed'], true) && $status !== $current) {
+            return response()->json([
+                'message' => 'رزرو بسته‌شده را نمی‌توان دوباره باز کرد.',
+                'errors' => ['status' => ['closed']],
+            ], 422);
+        }
+
+        $patch = array_filter([
+            'status' => $status,
+            'notes' => $data['notes'] ?? null,
+            'table_id' => $data['table_id'] ?? null,
+        ], fn ($v) => $v !== null);
+
+        // Stamp the edge, once. Re-confirming an already-confirmed booking must not move the
+        // clock, because lead times are measured from it.
+        if ($status === 'confirmed' && $reservation->confirmed_at === null) {
+            $patch['confirmed_at'] = now();
+        }
+        if ($status === 'seated' && $reservation->seated_at === null) {
+            $patch['seated_at'] = now();
+        }
+        if ($status === 'no_show' && $reservation->no_show_at === null) {
+            $patch['no_show_at'] = now();
+        }
+        if ($status === 'cancelled' && $reservation->declined_at === null) {
+            $patch['declined_at'] = now();
+            $reason = trim((string) ($data['decline_reason'] ?? ''));
+            if ($reason !== '') {
+                $patch['decline_reason'] = $reason;
+            }
+        }
+
+        $reservation->update($patch);
+
+        return response()->json(['data' => $reservation->fresh()->load('branch', 'table')]);
     }
 
     public function storeEvent(Request $request): \Illuminate\Http\JsonResponse

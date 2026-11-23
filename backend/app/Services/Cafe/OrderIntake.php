@@ -188,6 +188,24 @@ final class OrderIntake
             ? max(0, (int) $payload['shipping_minor'])
             : (int) ($fees['total_minor'] ?? 0);
 
+        // A delivery zone overrides the flat fee. Quoting from `fees()` alone would show the
+        // till one price and then charge another when the order is saved, which is the kind of
+        // difference a cashier has to explain to a guest.
+        $zone = null;
+        if ($fulfillment === 'delivery' && ! (array_key_exists('shipping_minor', $payload) && $payload['shipping_minor'] !== null)) {
+            $zoneQuote = app(DeliveryZones::class)->quote(
+                $tenantId,
+                $branchId,
+                $this->nullableString($payload['delivery_address'] ?? null),
+                $discounted,
+            );
+
+            if (($zoneQuote['covered'] ?? false) === true) {
+                $shipping = (int) ($zoneQuote['fee_minor'] ?? 0);
+                $zone = $zoneQuote;
+            }
+        }
+
         return [
             // Strip the cost fields before the quote leaves the server: the till must never
             // learn a purchase price from a quote response.
@@ -200,6 +218,9 @@ final class OrderIntake
             'discount_minor' => $discount,
             'shipping_minor' => $shipping,
             'fees' => $fees,
+            // Present only for a covered delivery address, so the till can show the zone name,
+            // its minimum and whether the basket clears it.
+            'delivery_zone' => $zone,
             'total_minor' => max(0, $discounted + $shipping),
             'coupon_error' => $couponError,
         ];
@@ -292,7 +313,7 @@ final class OrderIntake
 
         [$discount, $discountType, $couponCode, $loyalty] = $this->resolveDiscount($tenantId, $payload, $subtotal, $actor);
 
-        $shipping = $this->shippingMinor($tenantId, $fulfillment, $payload, $subtotal, count($lines ?? []));
+        $shipping = $this->shippingMinor($tenantId, $fulfillment, $payload, $subtotal, count($lines ?? []), $branchId);
 
         $order = [
             'branch_id' => $branchId,
@@ -721,7 +742,7 @@ final class OrderIntake
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function shippingMinor(int $tenantId, string $fulfillment, array $payload, int $subtotal, int $itemCount): int
+    private function shippingMinor(int $tenantId, string $fulfillment, array $payload, int $subtotal, int $itemCount, ?int $branchId = null): int
     {
         // An explicit value is a manager waiving the delivery fee or adding a packaging
         // charge; the computed fee is only the default.
@@ -731,6 +752,29 @@ final class OrderIntake
 
         if ($fulfillment === 'dine_in') {
             return 0;
+        }
+
+        // A delivery zone carries its own fee and minimum, and it wins over the flat fee from
+        // menu settings. Before this the till stored `zone_id` and then priced the order from
+        // the flat fee anyway, so a shop that set up districts was charging everyone the same.
+        if ($fulfillment === 'delivery') {
+            $address = $this->nullableString($payload['delivery_address'] ?? null);
+            $zone = app(DeliveryZones::class)->resolve($tenantId, $branchId, $address);
+
+            if ($zone !== null) {
+                $enforce = app(OperationsSettings::class)->bool($tenantId, 'enforce_delivery_minimum');
+                $minimum = (int) $zone->minimum_order_minor;
+
+                // Below the zone minimum the shop has said it will not deliver. Refusing beats
+                // silently charging a fee for an order the kitchen will bounce.
+                if ($enforce && $minimum > 0 && $subtotal < $minimum) {
+                    throw ValidationException::withMessages([
+                        'delivery_address' => "حداقل سفارش برای این منطقه {$minimum} ریال است.",
+                    ]);
+                }
+
+                return max(0, (int) $zone->delivery_fee_minor);
+            }
         }
 
         return max(0, (int) $this->ordering->shippingMinor($tenantId, $fulfillment, $subtotal, max(1, $itemCount)));

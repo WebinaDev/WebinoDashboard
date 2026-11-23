@@ -78,6 +78,16 @@ final class OrderLifecycle
     private function syncAccounting(Order $order, ?string $from): void
     {
         try {
+            // A refund needs a reversing journal, not a new sale. It also has to run when the
+            // order reaches `refunded`, which is deliberately absent from SYNC_STATUSES so a
+            // refund never posts a second sale invoice.
+            if ($this->accounting->refundedMinor($order) > 0) {
+                $credit = $this->accounting->syncRefund($order);
+                if ($credit) {
+                    $this->maybePushHesabfa((int) $order->tenant_id, $credit->id);
+                }
+            }
+
             $invoice = $this->accounting->syncIfNeeded($order, $from);
             if (! $invoice) {
                 return;
