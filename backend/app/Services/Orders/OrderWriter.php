@@ -90,6 +90,9 @@ class OrderWriter
 
             $order = Order::query()->create([
                 'tenant_id' => $tenantId,
+                // The branch that rang this up. Falls back to the cashier's open shift, then
+                // to the tenant's only branch, so a single-branch shop never has to send it.
+                'branch_id' => $this->resolveBranchId($tenantId, $data, $actor),
                 'user_id' => $data['user_id'] ?? null,
                 'created_by' => $actor?->id,
                 'number' => $this->nextNumber($tenantId),
@@ -320,6 +323,45 @@ class OrderWriter
         }
 
         return $product->storefrontPriceMinor($variant);
+    }
+
+    /**
+     * Which branch this sale belongs to.
+     *
+     * Order of truth: an explicit `branch_id` from the till, then the cashier's open shift
+     * (they are physically standing at that drawer), then the tenant's only branch. A shop
+     * with two or more branches and no signal gets null rather than a guess — attributing a
+     * sale to the wrong branch is worse than leaving it unattributed.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function resolveBranchId(int $tenantId, array $data, ?User $actor): ?int
+    {
+        $explicit = $data['branch_id'] ?? null;
+        if ($explicit !== null && (int) $explicit > 0) {
+            return (int) $explicit;
+        }
+
+        if ($actor !== null && $actor->id !== null) {
+            $shiftBranch = \App\Models\CafeShift::query()
+                ->where('tenant_id', $tenantId)
+                ->where('user_id', $actor->id)
+                ->where('status', \App\Models\CafeShift::STATUS_OPEN)
+                ->whereNotNull('branch_id')
+                ->value('branch_id');
+
+            if ($shiftBranch !== null) {
+                return (int) $shiftBranch;
+            }
+        }
+
+        $branches = \App\Models\CafeBranch::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->limit(2)
+            ->pluck('id');
+
+        return $branches->count() === 1 ? (int) $branches->first() : null;
     }
 
     protected function nextNumber(int $tenantId): string

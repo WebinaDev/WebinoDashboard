@@ -87,6 +87,7 @@ export default function ActivityPageClient({ route }: { route: ResolvedAdminRout
   const activity = useQuery({
     queryKey: ["admin-activity", filters.toString()],
     queryFn: async () => {
+      // The activity endpoint returns a paginator, so `api()` hands back `{ data, meta }`.
       const res = await api<ActivityResponse>(`/api/v1/activity?${filters.toString()}`)
       return { rows: res?.data ?? [], meta: res?.meta ?? null }
     },

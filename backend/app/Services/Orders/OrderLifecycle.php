@@ -28,6 +28,10 @@ final class OrderLifecycle
         $to = (string) $order->status;
         $this->stock->sync($order, $from, $to);
         $order->refresh();
+        // Branch stock moves on the same edge as tenant stock, but it is allowed to go
+        // negative (an offline sale has already taken the money). Nothing here may throw.
+        $this->syncBranchStock($order, $from, $to);
+        $order->refresh();
         $this->coupons->syncOrder($order, $from, $to);
         $order->refresh();
         $this->wallet->sync($order, $from, $to);
@@ -36,6 +40,39 @@ final class OrderLifecycle
         $order->refresh();
         $this->syncAccounting($order, $from);
         app(\App\Services\Membership\MembershipService::class)->syncOrder($order, $from, $to);
+    }
+
+    /**
+     * Mirror the tenant-wide stock edge onto the order's branch.
+     *
+     * Deliberately tolerant: a failure here must never block a sale that already took
+     * money, and a negative result is recorded rather than raised.
+     */
+    private function syncBranchStock(Order $order, ?string $from, string $to): void
+    {
+        if ($order->branch_id === null) {
+            return;
+        }
+
+        $sales = \App\Services\Reports\OrderReports::salesStatuses();
+        $was = $from !== null && in_array($from, $sales, true);
+        $now = in_array($to, $sales, true);
+
+        if ($was === $now) {
+            return;
+        }
+
+        try {
+            // Going into a sale removes stock; coming back out returns it.
+            app(\App\Services\Orders\BranchStockService::class)
+                ->applyOrder($order, $now ? -1 : 1);
+        } catch (\Throwable $e) {
+            Log::warning('branch stock sync failed', [
+                'order_id' => $order->id,
+                'branch_id' => $order->branch_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function syncAccounting(Order $order, ?string $from): void

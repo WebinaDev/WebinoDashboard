@@ -28,6 +28,12 @@ export const cafeManifest: ModuleManifest = {
     // `homeFor`: a manager signing in should land straight on this board instead of the
     // generic overview, which then competes with it as a second "home".
     { path: "cafe/manager", submodule: "menu", page: "manager", labelKey: "nav.cafe_manager", section: "cafe", order: 37, capability: "reports.shop", menuKey: "pos", homeFor: true },
+    // Multi-branch switchboard: decide whether prices/stock are shared, add branches, and
+    // see the sales that went past a branch's stock. `branches.manage` is the owner's and
+    // the branch manager's, never a cashier's.
+    { path: "cafe/branches", submodule: "menu", page: "branches", labelKey: "nav.cafe_branches", section: "cafe", order: 38, capability: "branches.manage", menuKey: "cafe_branches" },
+    // Kitchen stations: which station prepares which item, and who works which station.
+    { path: "cafe/stations", submodule: "menu", page: "stations", labelKey: "nav.cafe_stations", section: "cafe", order: 39, capability: "branches.manage", menuKey: "cafe_stations" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },

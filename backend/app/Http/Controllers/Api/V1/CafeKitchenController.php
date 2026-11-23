@@ -4,15 +4,20 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\Cafe\KitchenStations;
 use Illuminate\Http\Request;
 
 class CafeKitchenController extends Controller
 {
     private const STATUSES = ['new', 'preparing', 'ready', 'served', 'out_for_delivery', 'done'];
 
+    public function __construct(private readonly KitchenStations $stations) {}
+
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
+        // Empty when this user is not pinned to a station (manager, admin): they see the whole board.
+        $mine = $this->stations->stationIdsFor($request->user());
         $orders = Order::query()
             ->where('tenant_id', $tid)
             ->where('created_at', '>=', now()->subHours(18))
@@ -22,11 +27,22 @@ class CafeKitchenController extends Controller
                 $q->whereNotNull('table_number')
                     ->orWhere('meta->source', 'guest_table');
             })
-            ->with(['items.product:id,name'])
+            ->with(['items.product:id,name,category_id'])
             ->latest()
             ->limit(80)
             ->get()
-            ->map(fn (Order $order) => $this->present($order));
+            ->filter(fn (Order $order): bool => $this->stations->orderTouchesStations(
+                (int) $tid,
+                $order,
+                $mine,
+            ))
+            ->map(function (Order $order) use ($tid, $mine): array {
+                // A cook reads only their own lines; the rest of the ticket is someone else's work.
+                $this->stations->filterItemsForStations((int) $tid, $order, $mine);
+
+                return $this->present($order);
+            })
+            ->values();
 
         return response()->json(['data' => $orders]);
     }
@@ -40,6 +56,7 @@ class CafeKitchenController extends Controller
     public function live(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;
+        $mine = $this->stations->stationIdsFor($request->user());
         $since = $request->query('since');
         $sinceAt = is_string($since) && $since !== '' ? \Carbon\Carbon::parse($since) : null;
 
@@ -56,13 +73,19 @@ class CafeKitchenController extends Controller
                     $q->where('created_at', '>=', now()->subHours(18));
                 }
             })
-            ->with(['items.product:id,name'])
+            ->with(['items.product:id,name,category_id'])
             ->latest('updated_at')
             ->limit(120)
-            ->get();
+            ->get()
+            ->filter(fn (Order $order): bool => $this->stations->orderTouchesStations((int) $tid, $order, $mine))
+            ->values();
 
         return response()->json([
-            'data' => $orders->map(fn (Order $order) => $this->present($order))->values(),
+            'data' => $orders->map(function (Order $order) use ($tid, $mine): array {
+                $this->stations->filterItemsForStations((int) $tid, $order, $mine);
+
+                return $this->present($order);
+            })->values(),
             'meta' => [
                 'server_time' => now()->toIso8601String(),
                 'since' => $sinceAt?->toIso8601String(),
