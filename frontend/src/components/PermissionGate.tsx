@@ -18,6 +18,14 @@ export type DashboardRole =
   | "accountant"
   | "author"
   | "editor"
+  // Café counter roles. They hold a dashboard and a till, so they belong with staff —
+  // leaving them out of this union is what made an owner sign-in fall through to the
+  // customer portal branch and see «دسترسی به این بخش ندارید» on their own dashboard.
+  | "cashier"
+  | "waiter"
+  | "cook"
+  | "branch_manager"
+  | "owner"
   | "customer"
   | "partner"
   | "subscriber"
@@ -30,6 +38,11 @@ export const STAFF_ROLES: DashboardRole[] = [
   "accountant",
   "author",
   "editor",
+  "cashier",
+  "waiter",
+  "cook",
+  "branch_manager",
+  "owner",
 ]
 
 type AuthUser = {

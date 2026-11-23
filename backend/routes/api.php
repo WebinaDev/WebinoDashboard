@@ -32,6 +32,8 @@ use App\Http\Controllers\Api\V1\CafeKitchenController;
 use App\Http\Controllers\Api\V1\CafeFloorController;
 use App\Http\Controllers\Api\V1\CafeDeliveryController;
 use App\Http\Controllers\Api\V1\CafeManagerController;
+use App\Http\Controllers\Api\V1\CafeOperationsController;
+use App\Http\Controllers\Api\V1\CafePosController;
 use App\Http\Controllers\Api\V1\CafePriceCalculatorController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
@@ -984,6 +986,65 @@ Route::prefix('v1')->group(function () {
                 Route::get('/cafe/kitchen-orders', [CafeKitchenController::class, 'index']);
                 Route::get('/cafe/kitchen-orders/live', [CafeKitchenController::class, 'live']);
                 Route::patch('/cafe/kitchen-orders/{order}', [CafeKitchenController::class, 'update'])->whereNumber('order');
+            });
+
+            // Daily operations: workbench queue + live floor map. A cashier, waiter and cook
+            // all open this page; the role filter decides which lanes they see.
+            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,orders.floor,kitchen.view,catalog.*'])->group(function () {
+                Route::get('/cafe/workbench', [CafeOperationsController::class, 'workbench']);
+            });
+
+            // The till: one bootstrap call for the whole screen, then order entry. A waiter
+            // holds `orders.create` but no `pos.use`, so both grants open these.
+            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,catalog.*'])->group(function () {
+                Route::get('/cafe/pos/bootstrap', [CafePosController::class, 'bootstrap']);
+                Route::get('/cafe/pos/guests', [CafePosController::class, 'guests']);
+                Route::post('/cafe/pos/quote', [CafePosController::class, 'quote']);
+                Route::post('/cafe/pos/orders', [CafePosController::class, 'store']);
+                Route::get('/cafe/pos/orders/{order}', [CafePosController::class, 'show'])->whereNumber('order');
+                Route::put('/cafe/pos/orders/{order}', [CafePosController::class, 'update'])->whereNumber('order');
+            });
+
+            // Split payment, void-with-reason, per-line KDS ticks.
+            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,catalog.*'])->group(function () {
+                Route::middleware('can:pos.use,orders.void,catalog.*')->group(function () {
+                    Route::post('/cafe/orders/{order}/settle', [CafeOperationsController::class, 'settle'])->whereNumber('order');
+                });
+                Route::post('/cafe/orders/{order}/cancel', [CafeOperationsController::class, 'cancel'])->whereNumber('order');
+            });
+
+            Route::middleware(['module:cafe_menu', 'can:kitchen.view,kitchen.station,catalog.*,pos.use'])->group(function () {
+                Route::get('/cafe/orders/{order}/prep', [CafeOperationsController::class, 'orderPrep'])->whereNumber('order');
+                Route::post('/cafe/orders/{order}/prep', [CafeOperationsController::class, 'itemPrep'])->whereNumber('order');
+            });
+
+            // Delivery areas carry money (a fee and a minimum), so they sit with the branch
+            // managers rather than with every till.
+            Route::middleware(['module:cafe_menu', 'can:branches.manage,catalog.*'])->group(function () {
+                Route::get('/cafe/delivery-zones', [CafeOperationsController::class, 'zonesIndex']);
+                Route::post('/cafe/delivery-zones', [CafeOperationsController::class, 'zonesStore']);
+                Route::patch('/cafe/delivery-zones/{zone}', [CafeOperationsController::class, 'zonesUpdate'])->whereNumber('zone');
+                Route::delete('/cafe/delivery-zones/{zone}', [CafeOperationsController::class, 'zonesDestroy'])->whereNumber('zone');
+            });
+            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,orders.*'])->group(function () {
+                Route::get('/cafe/delivery-quote', [CafeOperationsController::class, 'zonesQuote']);
+            });
+
+            // Amending a paid invoice: request is open to the till, approval is not.
+            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.*'])->group(function () {
+                Route::get('/cafe/orders/{order}/amendments', [CafeOperationsController::class, 'amendmentsIndex'])->whereNumber('order');
+                Route::post('/cafe/orders/{order}/amendments', [CafeOperationsController::class, 'amendmentRequest'])->whereNumber('order');
+            });
+            Route::middleware(['module:cafe_menu', 'can:accounting.approve,pos.approve,accounting.manage'])->group(function () {
+                Route::post('/cafe/amendments/{amendment}/approve', [CafeOperationsController::class, 'amendmentApprove'])->whereNumber('amendment');
+                Route::post('/cafe/amendments/{amendment}/reject', [CafeOperationsController::class, 'amendmentReject'])->whereNumber('amendment');
+                Route::post('/cafe/amendments/{amendment}/settle', [CafeOperationsController::class, 'amendmentSettle'])->whereNumber('amendment');
+            });
+
+            // Operational thresholds shared by the workbench, KDS and delivery.
+            Route::middleware(['module:cafe_menu', 'can:settings.manage,catalog.*'])->group(function () {
+                Route::get('/cafe/operations-settings', [CafeOperationsController::class, 'settingsShow']);
+                Route::put('/cafe/operations-settings', [CafeOperationsController::class, 'settingsUpdate']);
             });
 
             // --- POS operations -------------------------------------------------
