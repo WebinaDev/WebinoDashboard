@@ -175,6 +175,44 @@ class IranianGatewaysTest extends TestCase
         $this->assertSame('paid', $order->fresh()->status);
         $this->assertSame(99, (int) $order->fresh()->payment_ref);
         $this->assertSame(2, $product->fresh()->stock);
+
+        $this->get('/api/v1/payments/callback/zarinpal/'.$order->id.'?Authority=AUTH-OWN&Status=OK&nonce='.$nonce)
+            ->assertRedirect();
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertSame(2, $product->fresh()->stock);
+    }
+
+    public function test_zarinpal_callback_rejects_inexact_legacy_toman_amount(): void
+    {
+        $gateways = app(PaymentGatewaySettingsService::class);
+        $gateways->setGatewayEnabled($this->tenant->id, 'zarinpal', true);
+        $gateways->save($this->tenant->id, 'zarinpal', [
+            'merchant_id' => 'merchant-test',
+            'sandbox' => true,
+            'cash_enabled' => true,
+        ]);
+        $order = Order::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'status' => 'awaiting_gateway',
+            'subtotal_minor' => 10,
+            'total_minor' => 10,
+            'currency' => 'IRT',
+        ]);
+        PaymentIntent::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'order_id' => $order->id,
+            'provider' => 'zarinpal',
+            'status' => 'created',
+            'redirect_url' => 'https://example.local/payment',
+            'meta' => ['zarinpal_authority' => 'test-authority', 'amount_rial' => 101, 'currency' => 'IRT'],
+        ]);
+        Http::fake();
+
+        $this->get('/api/v1/payments/callback/zarinpal/'.$order->id.'?Authority=test-authority&Status=OK')->assertRedirect();
+
+        Http::assertNothingSent();
+        $this->assertSame('awaiting_gateway', $order->fresh()->status);
     }
 
     public function test_billing_uses_only_gateways_erp_marks_enabled(): void

@@ -238,8 +238,11 @@ class PaymentCallbackController extends Controller
         }
 
         $currency = strtoupper((string) (data_get($intent->meta, 'currency') ?: $order->currency ?: 'IRT'));
+        if (! in_array($currency, ['IRR', 'IRT'], true) || ($currency === 'IRT' && $amountRial % 10 !== 0)) {
+            return $this->finish(false, $order);
+        }
         $verifyAmount = $currency === 'IRT'
-            ? (int) max(1, round($amountRial / 10))
+            ? intdiv($amountRial, 10)
             : $amountRial;
         $sandbox = (bool) ($settings['sandbox'] ?? true);
         $verifyHost = $sandbox
