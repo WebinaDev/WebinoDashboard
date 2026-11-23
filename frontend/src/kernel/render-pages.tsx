@@ -6,7 +6,7 @@ import { AdminPageSkeleton } from "@/kernel/components/AdminPageSkeleton"
 import { SitePageSkeleton } from "@/kernel/components/SitePageSkeleton"
 import { isPortalPath } from "@/kernel/portal"
 import { loadAdminPage, loadSitePage } from "@/kernel/theme-loader"
-import { resolveAdminRoute, resolveSiteRoute } from "@/kernel/route-resolver"
+import { resolveAdminRoute, resolveHomeRoute, resolveSiteRoute } from "@/kernel/route-resolver"
 import { getPublicActivations } from "@/kernel/server-data"
 import { fetchPublicItem } from "@/kernel/public-content"
 import type { ResolvedSiteRoute } from "@/kernel/types"
@@ -43,7 +43,13 @@ async function assertContentExists(route: ResolvedSiteRoute): Promise<void> {
 }
 
 export async function renderAdminPage(segments: string[]) {
-  const route = resolveAdminRoute(segments)
+  // `/dashboard` may be claimed by a module (`homeFor`). Only the root consults
+  // activations, and only for that lookup — the route resolver itself stays pure so an
+  // empty activations payload can never 404 a dashboard page.
+  const route =
+    segments.length === 0
+      ? (resolveHomeRoute(await getPublicActivations()) ?? resolveAdminRoute(segments))
+      : resolveAdminRoute(segments)
 
   if (!route) {
     notFound()

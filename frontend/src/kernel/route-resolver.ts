@@ -126,6 +126,31 @@ export function isSubmoduleEnabled(
   return enabled(moduleSlug, submoduleSlug)
 }
 
+
+/**
+ * The activated route that claims `/dashboard` as the tenant's landing screen (`homeFor`).
+ *
+ * Kept out of {@see resolveAdminRoute} on purpose: that resolver must never consult
+ * activations, because an empty payload there once 404'd every dashboard page. Here the
+ * worst case is a null return, and the caller falls back to the generic overview.
+ *
+ * Manifest order decides ties: earlier modules win, matching the sidebar build order.
+ */
+export function resolveHomeRoute(activations: TenantActivation[]): ResolvedAdminRoute | null {
+  for (const mod of MODULE_MANIFESTS) {
+    for (const route of mod.adminRoutes) {
+      if (!route.homeFor) continue
+      if (!isSubmoduleEnabled(activations, mod.slug, route.submodule)) continue
+      return {
+        ...route,
+        moduleSlug: mod.slug,
+        fullPath: DASHBOARD_BASE,
+      }
+    }
+  }
+  return null
+}
+
 /**
  * Match a dashboard pathname to a manifest route.
  *

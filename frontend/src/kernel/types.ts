@@ -31,6 +31,12 @@ export type AdminRouteDef = {
   capability?: string
   /** Menu ACL key (defaults to first path segment). */
   menuKey?: string
+  /**
+   * Serves `/dashboard` itself as this tenant's landing screen, replacing the generic
+   * overview. A cafe tenant opens the manager board instead of two competing "home"
+   * pages; the generic overview falls back when no module claims the slot.
+   */
+  homeFor?: boolean
 }
 
 export type SiteRouteDef = {
