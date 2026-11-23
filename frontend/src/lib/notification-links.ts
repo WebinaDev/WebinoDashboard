@@ -1,6 +1,11 @@
 import { dashboardPath, isLegacyAdminPathname, legacyAdminToDashboardPath } from "@/kernel/paths"
 
-const STAFF_ROLES = ["admin", "staff", "shop_manager", "seller", "accountant", "author", "editor"]
+// Kept in step with `STAFF_ROLES` in PermissionGate: a café cashier or owner receives staff
+// notifications and must be routed to the dashboard, not the customer portal.
+const STAFF_ROLES = [
+  "admin", "staff", "shop_manager", "seller", "accountant", "author", "editor",
+  "cashier", "waiter", "cook", "branch_manager", "owner",
+]
 
 export function isStaffRole(role?: string | null): boolean {
   return Boolean(role && STAFF_ROLES.includes(role))

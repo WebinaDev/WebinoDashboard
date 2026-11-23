@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\CafeFloorController;
 use App\Http\Controllers\Api\V1\CafeDeliveryController;
 use App\Http\Controllers\Api\V1\CafeManagerController;
 use App\Http\Controllers\Api\V1\CafeOperationsController;
+use App\Http\Controllers\Api\V1\CafePosController;
 use App\Http\Controllers\Api\V1\CafePriceCalculatorController;
 use App\Http\Controllers\Api\V1\CafeBranchController;
 use App\Http\Controllers\Api\V1\CafePdfController;
@@ -991,6 +992,17 @@ Route::prefix('v1')->group(function () {
             // all open this page; the role filter decides which lanes they see.
             Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,orders.floor,kitchen.view,catalog.*'])->group(function () {
                 Route::get('/cafe/workbench', [CafeOperationsController::class, 'workbench']);
+            });
+
+            // The till: one bootstrap call for the whole screen, then order entry. A waiter
+            // holds `orders.create` but no `pos.use`, so both grants open these.
+            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,catalog.*'])->group(function () {
+                Route::get('/cafe/pos/bootstrap', [CafePosController::class, 'bootstrap']);
+                Route::get('/cafe/pos/guests', [CafePosController::class, 'guests']);
+                Route::post('/cafe/pos/quote', [CafePosController::class, 'quote']);
+                Route::post('/cafe/pos/orders', [CafePosController::class, 'store']);
+                Route::get('/cafe/pos/orders/{order}', [CafePosController::class, 'show'])->whereNumber('order');
+                Route::put('/cafe/pos/orders/{order}', [CafePosController::class, 'update'])->whereNumber('order');
             });
 
             // Split payment, void-with-reason, per-line KDS ticks.

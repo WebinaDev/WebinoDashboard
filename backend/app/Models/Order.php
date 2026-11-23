@@ -162,6 +162,17 @@ class Order extends Model
         return $this->hasMany(OrderAmendment::class);
     }
 
+    /*
+     * There is deliberately no `table()` relation here.
+     *
+     * Orders carry `table_number` — a *code*, not an id — because the guest QR flow and the
+     * floor board both work from codes, and a code is unique per tenant rather than globally.
+     * A `belongsTo` on the code cannot also constrain the tenant without a cross-table
+     * `whereColumn`, and that breaks the moment the relation is eager-loaded (`orders` is not
+     * in that query's FROM clause). Callers resolve the table from a tenant-scoped lookup
+     * instead: see `WorkbenchService::queue()` and `OrderIntake::resolveTable()`.
+     */
+
     /** The branch that rang this sale up. Null on legacy rows and tenant-wide online orders. */
     public function branch(): BelongsTo
     {

@@ -51,10 +51,20 @@ final class WorkbenchService
             ->when($branchId !== null, fn ($q) => $q->where('branch_id', $branchId))
             ->whereIn('status', ['paid', 'processing', 'prepared', 'ready', 'served'])
             ->where('created_at', '>=', $now->copy()->subHours(18))
-            ->with(['items.product:id,name,category_id', 'table:id,code,label', 'branch:id,name_fa'])
+            ->with(['items.product:id,name,category_id', 'branch:id,name_fa'])
             ->orderBy('created_at')
             ->limit(200)
             ->get();
+
+        // An order points at its table by *code* (`table_number`), not by id: the guest QR
+        // flow and the floor board both work from the code, and a code is unique per tenant
+        // while `table_id` was never added to `orders`. One lookup for the page beats a
+        // per-row query, and it keeps a deleted table from breaking the whole queue.
+        $tables = CafeTable::query()
+            ->where('tenant_id', $tenantId)
+            ->with('branch:id,name_fa')
+            ->get()
+            ->keyBy(fn (CafeTable $table): string => (string) $table->code);
 
         $items = [];
 
@@ -102,6 +112,9 @@ final class WorkbenchService
                 continue;
             }
 
+            $code = trim((string) ($order->table_number ?? ''));
+            $table = $code !== '' ? $tables->get($code) : null;
+
             $items[] = [
                 'kind' => $kinds[0],
                 'kinds' => array_values(array_unique($kinds)),
@@ -110,12 +123,14 @@ final class WorkbenchService
                 'number' => $order->number,
                 'status' => $order->status,
                 'kitchen_status' => $kitchen,
-                'table' => $order->table ? [
-                    'id' => $order->table->id,
-                    'code' => $order->table->code,
-                    'label' => $order->table->label,
-                ] : null,
-                'branch' => $order->branch?->name_fa,
+                // Present the code even when the table row is gone, so a delivery order taken
+                // before a table was retired still tells the cashier where it was.
+                'table' => $code === '' ? null : [
+                    'id' => $table?->id,
+                    'code' => $table?->code ?? $code,
+                    'label' => $table?->label,
+                ],
+                'branch' => $order->branch?->name_fa ?? $table?->branch?->name_fa,
                 'total_minor' => (int) $order->total_minor,
                 'unpaid' => $unpaid,
                 'age_minutes' => $ageMinutes,
