@@ -13,7 +13,8 @@
     "customers",
     "staff",
     "rbac",
-    "subscribers"
+    "subscribers",
+    "personnel"
   ],
   "admin_nav": {
     "section": "access",

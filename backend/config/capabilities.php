@@ -16,6 +16,7 @@ return [
     'reviews.moderate' => 'reviews.moderate',
     'settings.manage' => 'settings.manage',
     'reports.shop' => 'reports.shop',
+    'activity.view' => 'activity.view',
     'content.manage' => 'content.manage',
     'analytics.view' => 'analytics.view',
     'analytics.manage' => 'analytics.manage',
@@ -41,6 +42,7 @@ return [
         'reviews.moderate',
         'settings.manage',
         'reports.shop',
+        'activity.view',
         'content.manage',
         'account.portal',
         'partner.portal',
@@ -54,6 +56,7 @@ return [
         'analytics.manage',
         'analytics.*',
         'reports.*',
+        'activity.*',
         'support.*',
         'modules.*',
     ],
@@ -104,6 +107,7 @@ return [
         'api/v1/pos' => 'pos.use',
         'api/v1/product-reviews' => 'reviews.moderate',
         'api/v1/settings' => 'settings.manage',
+        'api/v1/activity' => 'activity.view',
     ],
 
 ];

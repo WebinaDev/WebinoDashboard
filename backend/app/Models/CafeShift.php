@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Audit\RecordsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,6 +16,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class CafeShift extends Model
 {
+    use RecordsActivity;
+
+    /** `totals` is a frozen snapshot; the shift's own money columns are audited. */
+    protected array $activityHidden = ['totals'];
+
     public const STATUS_OPEN = 'open';
 
     public const STATUS_CLOSED = 'closed';

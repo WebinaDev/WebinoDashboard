@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AccountingController;
 use App\Http\Controllers\Api\V1\AiContentController;
 use App\Http\Controllers\Api\V1\AiRecommendationController;
+use App\Http\Controllers\Api\V1\ActivityLogController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\ErpAnnouncementController;
@@ -1491,6 +1492,13 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::put('/roles/capabilities', [RoleController::class, 'updateCapabilities']);
                 Route::get('/roles/menu-acl', [RoleController::class, 'menuAclIndex']);
                 Route::put('/roles/menu-acl', [RoleController::class, 'menuAclUpdate']);
+            });
+
+            // Read-only trail: no write or delete route exists by design.
+            Route::middleware(['can:activity.view'])->group(function () {
+                Route::get('/activity', [ActivityLogController::class, 'index']);
+                Route::get('/activity/events', [ActivityLogController::class, 'events']);
+                Route::get('/activity/for-subject', [ActivityLogController::class, 'forSubject']);
             });
 
             Route::middleware(['module:team', 'can:content.manage,content.*'])->group(function () {

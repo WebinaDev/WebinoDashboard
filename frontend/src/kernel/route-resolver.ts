@@ -62,6 +62,17 @@ export function isSubmoduleEnabled(
     )
   }
 
+  // The activity log was added after tenants were provisioned, so no tenant has a
+  // `users.personnel` row yet. Whoever can audit staff/roles/permissions can also read
+  // the trail; the `activity.view` capability still decides who sees the menu entry.
+  if (moduleSlug === "users" && submoduleSlug === "personnel") {
+    return (
+      enabled("users", "personnel") ||
+      enabled("users", "rbac") ||
+      enabled("users", "staff")
+    )
+  }
+
   // Cafe (and older tenants) often lack users.* activation rows even though staff
   // must manage buyers. Treat commerce catalog/orders/pos as implying customers/staff.
   if (moduleSlug === "users" && (submoduleSlug === "customers" || submoduleSlug === "staff")) {

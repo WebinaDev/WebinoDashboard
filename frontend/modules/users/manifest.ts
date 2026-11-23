@@ -5,7 +5,7 @@ export const usersManifest: ModuleManifest = {
   nameFa: "کاربران",
   nameEn: "Users",
   siteTypes: ["ecommerce", "magazine", "corporate", "cafe", "blog"],
-  submodules: ["customers", "staff", "rbac", "subscribers", "tickets"],
+  submodules: ["customers", "staff", "rbac", "subscribers", "tickets", "personnel"],
   adminNav: { section: "users", order: 50 },
   adminRoutes: [
     {
@@ -109,6 +109,20 @@ export const usersManifest: ModuleManifest = {
       order: 53,
       navHidden: true,
       capability: "support.*",
+    },
+    {
+      // Read-only trail of who changed what. Sits beside RBAC because both answer
+      // "who can do this, and who actually did".
+      path: "activity",
+      submodule: "personnel",
+      page: "activity",
+      labelKey: "nav.activity",
+      section: "users",
+      order: 55,
+      navGroup: "users",
+      navOrder: 7,
+      capability: "activity.view",
+      menuKey: "activity",
     },
     {
       path: "support",

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Audit\RecordsActivity;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -19,6 +20,10 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+    use RecordsActivity;
+
+    /** Password and token material must never reach the trail; the recorder also redacts. */
+    protected array $activityHidden = ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'];
 
     protected function casts(): array
     {
