@@ -20,6 +20,7 @@ import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { formatDate } from "@/lib/locale/format-date"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { AccountCodingPanel } from "@/views/settings/panels/AccountCodingPanel"
 import { AccountingTaxPanel } from "@/views/settings/panels/AccountingSettingsPanels"
 
 type AccOverview = {
@@ -137,6 +138,7 @@ const LIVE_SECTIONS = new Set([
   "journals",
   "persons",
   "chart",
+  "coding",
   "invoices",
   "orders-sync",
   "moadian",
@@ -470,6 +472,7 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
     { path: "journals", label: tNav("accounting_journals") },
     { path: "persons", label: tNav("accounting_persons") },
     { path: "chart", label: tNav("accounting_chart") },
+    { path: "coding", label: tNav("accounting_coding") },
     { path: "ledger", label: tAcc("ledger_title") },
   ]
 
@@ -831,6 +834,10 @@ export default function AccountingPageClient({ route }: { route: ResolvedAdminRo
         <AccountingTaxPanel />
       </div>
     )
+  } else if (section === "coding") {
+    // Which account each sales-journal role posts to. Lives under accounting rather than the
+    // generic settings hub because it is edited by the same person who maintains the chart.
+    body = <AccountCodingPanel />
   } else if (section === "reports") {
     const breakdown = reportsQ.data?.moadian_breakdown ?? {}
     body = (

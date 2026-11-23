@@ -197,6 +197,7 @@
     "accounting_tax": "Tax",
     "accounting_tax_setup": "Tax setup",
     "accounting_chart": "Chart of accounts",
+    "accounting_coding": "Account coding",
     "accounting_journals": "Journals",
     "accounting_persons": "Persons",
     "accounting_products": "Accounting products",
@@ -2995,7 +2996,8 @@
       "national_id": "National ID",
       "api_key": "API key",
       "sandbox": "Sandbox",
-      "show_on_invoice": "Show the VAT line on invoices"
+      "show_on_invoice": "Show the VAT line on invoices",
+      "coding": "Account coding"
     },
     "bots": {
       "enabled": "Bot enabled",
@@ -3752,6 +3754,34 @@
       "remove_item": "Remove link",
       "new_menu": "New menu",
       "home": "Home"
+    },
+    "accounting_coding": {
+      "title": "Sales account coding",
+      "description": "Choose which ledger account each role in a sales journal posts to. Changes apply to future journals; already-posted journals are left untouched.",
+      "tenders_title": "Payment method accounts",
+      "tenders_description": "Each tender settles into its own account: cash into the drawer, card and terminal into the bank. Previously everything landed in receivables.",
+      "reset": "Default",
+      "reset_hint": "Restore this product's default account",
+      "roles": {
+        "sales": "Sales revenue",
+        "sales_returns": "Sales returns",
+        "ar": "Accounts receivable",
+        "cash": "Cash on hand",
+        "bank": "Bank",
+        "vat": "VAT payable",
+        "cogs": "Cost of goods sold",
+        "inventory": "Inventory",
+        "discount": "Sales discounts",
+        "shipping": "Shipping revenue"
+      },
+      "tenders": {
+        "cash": "Cash",
+        "card_to_card": "Card to card",
+        "pos_terminal": "Card terminal",
+        "online": "Online payment",
+        "wallet": "Wallet",
+        "other": "Other"
+      }
     }
   },
   "commerce_gateways": {

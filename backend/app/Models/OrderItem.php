@@ -8,6 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrderItem extends Model
 {
+    /**
+     * Purchase cost is commercial-in-confidence: it must never reach a storefront, a guest
+     * order history, or a till response. Hiding it at the model means a future endpoint that
+     * serialises items cannot leak it by accident.
+     */
+    protected $hidden = [
+        'unit_cost_minor',
+    ];
+
     protected $fillable = [
         'order_id',
         'product_id',
@@ -16,6 +25,10 @@ class OrderItem extends Model
         'sku',
         'quantity',
         'unit_price_minor',
+        // Cost captured at the moment of sale, so cost of goods is valued at what the goods
+        // actually cost that day rather than at today's supplier price.
+        'unit_cost_minor',
+        'modifier_delta_minor',
         'purchase_type',
         'meta',
         'download_count',
@@ -27,6 +40,8 @@ class OrderItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price_minor' => 'integer',
+            'unit_cost_minor' => 'integer',
+            'modifier_delta_minor' => 'integer',
             'meta' => 'array',
             'download_count' => 'integer',
             'requires_login' => 'boolean',

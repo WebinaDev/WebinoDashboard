@@ -1660,6 +1660,12 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::get('/accounting/accounts', [AccountingController::class, 'accountsIndex']);
                 Route::post('/accounting/accounts', [AccountingController::class, 'accountsStore']);
 
+                // Account coding: the role → code mapping the sales journal posts with. Kept in
+                // its own route group so an accountant can change the chart without a deploy.
+                Route::get('/accounting/coding', [AccountingController::class, 'codingShow']);
+                Route::put('/accounting/coding', [AccountingController::class, 'codingUpdate']);
+                Route::post('/accounting/coding/reset', [AccountingController::class, 'codingReset']);
+
                 Route::get('/accounting/invoices', [AccountingController::class, 'invoicesIndex']);
                 Route::get('/accounting/invoices/{invoice}', [AccountingController::class, 'invoiceShow'])->whereNumber('invoice');
                 Route::get('/accounting/orders-sync', [AccountingController::class, 'ordersSyncStatus']);

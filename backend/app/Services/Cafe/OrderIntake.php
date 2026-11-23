@@ -189,7 +189,13 @@ final class OrderIntake
             : (int) ($fees['total_minor'] ?? 0);
 
         return [
-            'lines' => $lines,
+            // Strip the cost fields before the quote leaves the server: the till must never
+            // learn a purchase price from a quote response.
+            'lines' => array_map(static function (array $line): array {
+                unset($line['unit_cost_minor'], $line['modifier_delta_minor']);
+
+                return $line;
+            }, $lines),
             'subtotal_minor' => $subtotal,
             'discount_minor' => $discount,
             'shipping_minor' => $shipping,
@@ -442,6 +448,10 @@ final class OrderIntake
                 'name' => (string) $product->name,
                 'quantity' => max(1, (int) ($raw['quantity'] ?? 1)),
                 'unit_price_minor' => $this->unitPrice($product, $variant, $branchId) + $modifiers['delta_minor'],
+                // Cost is snapshotted here, at the moment of sale: a supplier price change next
+                // week must not restate this order's cost of goods.
+                'unit_cost_minor' => $variant?->purchase_price_minor ?? $product->purchase_price_minor,
+                'modifier_delta_minor' => $modifiers['delta_minor'],
                 'note' => $this->nullableString($raw['note'] ?? null),
                 'modifiers' => $modifiers['selections'],
             ];
@@ -592,6 +602,8 @@ final class OrderIntake
                 'product_name' => $line['name'],
                 'quantity' => $line['quantity'],
                 'unit_price_minor' => $line['unit_price_minor'],
+                'unit_cost_minor' => $line['unit_cost_minor'] ?? null,
+                'modifier_delta_minor' => (int) ($line['modifier_delta_minor'] ?? 0),
                 'purchase_type' => 'cash',
                 'meta' => $line['note'] === null ? null : ['note' => $line['note']],
             ]);
