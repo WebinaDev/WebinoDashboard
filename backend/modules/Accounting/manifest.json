@@ -4,8 +4,8 @@
   "name_en": "Accounting",
   "distribution": "git",
   "site_types": [
-    "erp",
     "cafe",
+    "coffee",
     "ecommerce"
   ],
   "submodules": [
