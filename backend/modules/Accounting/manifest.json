@@ -1,0 +1,30 @@
+{
+  "slug": "accounting",
+  "name_fa": "حسابداری",
+  "name_en": "Accounting",
+  "distribution": "git",
+  "site_types": [
+    "erp",
+    "cafe",
+    "ecommerce"
+  ],
+  "submodules": [
+    "dashboard",
+    "persons",
+    "products",
+    "invoices",
+    "journals",
+    "ledger",
+    "reports",
+    "cash",
+    "checks",
+    "receipts",
+    "warehouses",
+    "settings"
+  ],
+  "admin_nav": {
+    "section": "accounting",
+    "order": 20
+  },
+  "public_routes": []
+}

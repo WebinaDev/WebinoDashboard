@@ -6,9 +6,21 @@ use App\Models\Tenant;
 use App\Models\TenantSubmoduleActivation;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Str;
+use Modules\Accounting\Entities\AccountingSetting;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // AccountingSetting memoises reads per tenant for the life of the process, which
+        // is what an Octane worker wants and the opposite of what a test suite wants: the
+        // same tenant id is reused across tests after a DB refresh, so a value read in one
+        // test would be served in the next. Flush per test.
+        AccountingSetting::flushMemo();
+    }
+
     protected function createTenant(array $overrides = []): Tenant
     {
         $slug = $overrides['slug'] ?? 'shop-'.Str::lower(Str::random(8));

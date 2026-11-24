@@ -52,6 +52,7 @@ final class SiteTypeProfiles
                     'corporate' => ['testimonials'],
                     'cafe' => ['menu', 'reservations', 'hours', 'gallery', 'venue', 'qr', 'engagement'],
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'cart', 'checkout', 'orders', 'pos', 'accounting'],
+                    'accounting' => ['dashboard', 'persons', 'products', 'invoices', 'journals', 'ledger', 'reports', 'cash', 'checks', 'receipts', 'warehouses', 'settings'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'marketing' => ['coupons', 'bot-broadcast', 'bot-campaigns', 'sms'],
@@ -70,6 +71,7 @@ final class SiteTypeProfiles
                 'modules' => array_merge(self::coreModules(), [
                     'corporate' => ['testimonials'],
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory', 'accounting'],
+                    'accounting' => ['dashboard', 'persons', 'products', 'invoices', 'journals', 'ledger', 'reports', 'cash', 'checks', 'receipts', 'warehouses', 'settings'],
                     'coffee-profile' => ['profile'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
