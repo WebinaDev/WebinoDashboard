@@ -9,6 +9,7 @@ use Modules\Accounting\Http\Controllers\BankReconciliationController;
 use Modules\Accounting\Http\Controllers\CashAccountController;
 use Modules\Accounting\Http\Controllers\ChartAccountController;
 use Modules\Accounting\Http\Controllers\CheckController;
+use Modules\Accounting\Http\Controllers\ExpenseController;
 use Modules\Accounting\Http\Controllers\FinancialReportsController;
 use Modules\Accounting\Http\Controllers\FiscalYearController;
 use Modules\Accounting\Http\Controllers\JournalController;
@@ -51,6 +52,19 @@ Route::post('/invoices/{id}/confirm', [AccInvoiceController::class, 'confirmInvo
 Route::post('/receipts/{id}/post', [ReceiptController::class, 'postReceipt'])->whereNumber('id');
 Route::post('/checks/{id}/set-status', [CheckController::class, 'setCheckStatus'])->whereNumber('id');
 Route::get('/ledger', [LedgerController::class, 'ledger']);
+
+// Expenses, supplier bills and party credit: the three things that previously could only be
+// expressed by hand-writing a journal.
+Route::get('/expenses', [ExpenseController::class, 'index']);
+Route::get('/expense-categories', [ExpenseController::class, 'categories']);
+Route::post('/expenses', [ExpenseController::class, 'store']);
+Route::get('/supplier-bills', [ExpenseController::class, 'bills']);
+Route::post('/supplier-bills', [ExpenseController::class, 'storeBill']);
+Route::post('/supplier-bills/{id}/pay', [ExpenseController::class, 'payBill'])->whereNumber('id');
+Route::get('/parties', [ExpenseController::class, 'parties']);
+Route::get('/parties/{id}/statement', [ExpenseController::class, 'statement'])->whereNumber('id');
+Route::patch('/parties/{id}', [ExpenseController::class, 'updateParty'])->whereNumber('id');
+
 Route::get('/reports', [FinancialReportsController::class, 'financialReports']);
 Route::get('/settings', [AccountingSettingsController::class, 'settings']);
 
