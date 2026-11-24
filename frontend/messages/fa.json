@@ -417,7 +417,8 @@
     "wallet_withdrawals": "برداشت‌های کیف پول",
     "wp_import": "درون‌ریزی وردپرس",
     "recipes": "رسپی و بهای تمام‌شده",
-    "settings_integrations": "چاپ و اتصال‌ها"
+    "settings_integrations": "چاپ و اتصال‌ها",
+    "menu_import": "ورود گروهی منو"
   },
   "dashboard": {
     "title": "نمای کلی",
@@ -4554,6 +4555,43 @@
       "revoked": "باطل‌شده",
       "key_revoked": "کلید باطل شد.",
       "target_ph": "نام صف چاپ در رایانه صندوق"
+    },
+    "menu_import": {
+      "title": "ورود گروهی منو",
+      "description": "فهرست قیمت را از اکسل وارد کنید؛ ستون‌ها را نگاشت کنید و پیش از ذخیره پیش‌نمایش ببینید.",
+      "file_title": "فایل",
+      "file_hint": "CSV یا TSV. فایل اکسل را با «ذخیره به‌عنوان CSV» ذخیره کنید.",
+      "choose_file": "انتخاب فایل",
+      "or_paste": "یا محتوا را اینجا بچسبانید",
+      "chars": "نویسه",
+      "preview": "پیش‌نمایش",
+      "parsing": "در حال خواندن…",
+      "recheck": "بررسی دوباره",
+      "map_title": "نگاشت ستون‌ها",
+      "map_hint": "هر فیلد ما به کدام ستون فایل شما وصل شود.",
+      "not_mapped": "— انتخاب نشده —",
+      "field_name": "نام",
+      "field_price_minor": "قیمت",
+      "field_sku": "کد کالا",
+      "field_category": "دسته",
+      "field_description": "توضیحات",
+      "field_cost_minor": "قیمت خرید",
+      "field_is_available": "موجود",
+      "valid_rows": "ردیف سالم",
+      "invalid_rows": "ردیف مشکل‌دار",
+      "errors_title": "ردیف‌هایی که وارد نمی‌شوند",
+      "errors_hint": "این ردیف‌ها ذخیره نمی‌شوند؛ بقیه وارد می‌شوند.",
+      "line": "سطر",
+      "sample_title": "پیش‌نمایش داده",
+      "sample_hint": "چند ردیف اول، همان‌طور که تفسیر شده است.",
+      "no_rows": "ردیفی برای نمایش نیست.",
+      "commit": "ورود به منو",
+      "importing": "در حال ورود…",
+      "committed": "ورود انجام شد.",
+      "result_title": "نتیجه ورود",
+      "created": "جدید",
+      "updated": "به‌روزشده",
+      "failed": "ناموفق"
     }
   },
   "themes": {

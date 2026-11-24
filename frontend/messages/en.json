@@ -417,7 +417,8 @@
     "wallet_withdrawals": "Wallet withdrawals",
     "wp_import": "WordPress import",
     "recipes": "Recipes and plate cost",
-    "settings_integrations": "Printing & integrations"
+    "settings_integrations": "Printing & integrations",
+    "menu_import": "Bulk menu import"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -2030,6 +2031,43 @@
       "revoked": "Revoked",
       "key_revoked": "Key revoked.",
       "target_ph": "Print queue name on the counter PC"
+    },
+    "menu_import": {
+      "title": "Bulk menu import",
+      "description": "Bring a price list in from a spreadsheet: map the columns and preview before saving.",
+      "file_title": "File",
+      "file_hint": "CSV or TSV. Save the Excel sheet as CSV first.",
+      "choose_file": "Choose file",
+      "or_paste": "Or paste the contents here",
+      "chars": "characters",
+      "preview": "Preview",
+      "parsing": "Reading…",
+      "recheck": "Re-check",
+      "map_title": "Column mapping",
+      "map_hint": "Which column of your sheet feeds each field.",
+      "not_mapped": "— not mapped —",
+      "field_name": "Name",
+      "field_price_minor": "Price",
+      "field_sku": "SKU",
+      "field_category": "Category",
+      "field_description": "Description",
+      "field_cost_minor": "Purchase price",
+      "field_is_available": "Available",
+      "valid_rows": "Valid rows",
+      "invalid_rows": "Rows with problems",
+      "errors_title": "Rows that will not be imported",
+      "errors_hint": "These rows are skipped; the rest still import.",
+      "line": "Line",
+      "sample_title": "Data preview",
+      "sample_hint": "The first few rows, as they were interpreted.",
+      "no_rows": "No rows to show.",
+      "commit": "Import into the menu",
+      "importing": "Importing…",
+      "committed": "Import finished.",
+      "result_title": "Import result",
+      "created": "Created",
+      "updated": "Updated",
+      "failed": "Failed"
     }
   },
   "themes": {

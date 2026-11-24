@@ -32,6 +32,9 @@ export const cafeManifest: ModuleManifest = {
     // Printing hardware and routing, receipt layout, QR scan analytics, webhooks and API keys.
     // One screen because they are the same job: connecting the shop to the outside world.
     { path: "cafe/settings-integrations", submodule: "menu", page: "settings-integrations", labelKey: "nav.settings_integrations", section: "cafe", order: 37, capability: "settings.manage,branches.manage,reports.shop" },
+    // A café already has its price list in a spreadsheet; retyping it one dish at a time is
+    // where a migration stops. Upload, map the columns, preview, then commit.
+    { path: "cafe/menu-import", submodule: "menu", page: "menu-import", labelKey: "nav.menu_import", section: "cafe", order: 38, capability: "catalog.*" },
     // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
     // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
     { path: "cafe/pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use", menuKey: "pos" },

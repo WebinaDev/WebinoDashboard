@@ -8,6 +8,7 @@ use Modules\Cafe\Http\Controllers\CafeEngagementInboxController;
 use Modules\Cafe\Http\Controllers\CafeFloorController;
 use Modules\Cafe\Http\Controllers\CafeIntegrationsController;
 use Modules\Cafe\Http\Controllers\CafeKitchenController;
+use Modules\Cafe\Http\Controllers\CafeMenuImportController;
 use Modules\Cafe\Http\Controllers\CafeManagerController;
 use Modules\Cafe\Http\Controllers\CafeOperationsController;
 use Modules\Cafe\Http\Controllers\CafePosController;
@@ -38,6 +39,9 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::get('/menu-settings', [CafeSettingsController::class, 'showMenu']);
                 Route::patch('/menu-settings', [CafeSettingsController::class, 'updateMenu']);
                 Route::post('/bulk-price', [CafeSettingsController::class, 'bulkPrice']);
+                // Price-list import: preview parses and reports, commit writes.
+                Route::post('/menu-import/preview', [CafeMenuImportController::class, 'preview']);
+                Route::post('/menu-import/commit', [CafeMenuImportController::class, 'commit']);
                 // «پیشنهاد قیمت آیتم‌ها»: live calculation, saved cost sheets, applying a price.
                 Route::get('/pricing', [CafePriceCalculatorController::class, 'index']);
                 Route::post('/pricing/calculate', [CafePriceCalculatorController::class, 'calculate']);
