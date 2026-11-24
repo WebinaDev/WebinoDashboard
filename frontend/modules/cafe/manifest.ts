@@ -24,6 +24,8 @@ export const cafeManifest: ModuleManifest = {
     // Recipes and plate cost. The menu's price is a guess until somebody knows what the dish
     // costs, so this sits next to pricing rather than inside it.
     { path: "cafe/recipes", submodule: "menu", page: "recipes", labelKey: "nav.recipes", section: "cafe", order: 34, capability: "catalog.*,accounting.manage" },
+    // Money reports: P&L with material cost, menu engineering, staff control, AR aging.
+    { path: "cafe/reports", submodule: "menu", page: "reports", labelKey: "nav.reports", section: "cafe", order: 35, capability: "reports.shop,accounting.manage,orders.*" },
     // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
     // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
     { path: "cafe/pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use", menuKey: "pos" },

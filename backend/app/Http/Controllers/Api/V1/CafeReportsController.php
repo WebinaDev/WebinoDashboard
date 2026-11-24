@@ -1,0 +1,165 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Services\Reports\CafeReports;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
+
+/**
+ * The owner's and the accountant's reports, with an export path for each.
+ *
+ * Every endpoint accepts `from`/`to`/`branch_id` and `format=csv`, because a report you cannot
+ * hand to an accountant is half a report. Defaults are the current month: a report that
+ * silently covers the last two years is a report that has never been read carefully.
+ */
+class CafeReportsController extends Controller
+{
+    public function __construct(private readonly CafeReports $reports) {}
+
+    public function profitAndLoss(Request $request): JsonResponse|Response
+    {
+        [$from, $to, $branchId] = $this->range($request);
+
+        $data = $this->reports->profitAndLoss($this->tenantId($request), $from, $to, $branchId);
+
+        if ($this->wantsCsv($request)) {
+            return $this->csv('profit-and-loss', [
+                'درآمد فروش' => $data['revenue']['gross_minor'],
+                'درآمد ارسال' => $data['revenue']['delivery_minor'],
+                'تخفیفات' => $data['revenue']['discounts_minor'],
+                'بهای مواد' => $data['cost_of_sales']['material_minor'],
+                'سود ناخالص' => $data['gross_profit_minor'],
+                'حقوق' => $data['payroll_minor'],
+                'هزینه‌های عملیاتی' => $data['expenses_minor'],
+                'سود عملیاتی' => $data['operating_profit_minor'],
+            ]);
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function menuEngineering(Request $request): JsonResponse|Response
+    {
+        [$from, $to, $branchId] = $this->range($request);
+
+        $data = $this->reports->menuEngineering($this->tenantId($request), $from, $to, $branchId);
+
+        if ($this->wantsCsv($request)) {
+            return $this->csvRows('menu-engineering', ['آیتم', 'تعداد فروش', 'درآمد', 'بهای مواد', 'حاشیه هر واحد', 'دسته'], array_map(
+                fn (array $row) => [$row['name'], $row['quantity'], $row['revenue_minor'], $row['cost_minor'], $row['margin_per_unit_minor'], $row['class']],
+                $data['items'],
+            ));
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function control(Request $request): JsonResponse|Response
+    {
+        [$from, $to, $branchId] = $this->range($request);
+
+        $data = $this->reports->control($this->tenantId($request), $from, $to, $branchId);
+
+        if ($this->wantsCsv($request)) {
+            return $this->csvRows('control', ['کاربر', 'سفارش‌ها', 'فروش', 'تخفیف', 'سفارش تخفیف‌دار', 'ابطال', 'استرداد', 'کسری صندوق', 'اضافه صندوق'], array_map(
+                fn (array $row) => [
+                    $row['name'], $row['orders'], $row['sales_minor'], $row['discounts_minor'],
+                    $row['discounted_orders'], $row['cancelled_orders'], $row['refunds_minor'],
+                    $row['short_minor'], $row['over_minor'],
+                ],
+                $data['staff'],
+            ));
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function aging(Request $request): JsonResponse|Response
+    {
+        $asOf = $request->filled('as_of') ? Carbon::parse((string) $request->input('as_of')) : now();
+
+        $data = $this->reports->receivableAging($this->tenantId($request), $asOf);
+
+        if ($this->wantsCsv($request)) {
+            return $this->csvRows('ar-aging', ['مشتری', 'مانده', 'قدیمی‌ترین روز'], array_map(
+                fn (array $row) => [$row['name'], $row['total_minor'], $row['oldest_days']],
+                $data['customers'],
+            ));
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    /** @return array{0: Carbon, 1: Carbon, 2: ?int} */
+    private function range(Request $request): array
+    {
+        $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'branch_id' => ['nullable', 'integer'],
+        ]);
+
+        $from = $request->filled('from')
+            ? Carbon::parse((string) $request->input('from'))->startOfDay()
+            : now()->startOfMonth();
+
+        $to = $request->filled('to')
+            ? Carbon::parse((string) $request->input('to'))->endOfDay()
+            : now()->endOfDay();
+
+        $branchId = $request->filled('branch_id') ? (int) $request->input('branch_id') : null;
+
+        return [$from, $to, $branchId];
+    }
+
+    private function tenantId(Request $request): int
+    {
+        return (int) $request->user()->tenant_id;
+    }
+
+    private function wantsCsv(Request $request): bool
+    {
+        return strtolower((string) $request->input('format', '')) === 'csv';
+    }
+
+    /** @param  array<string, int>  $rows */
+    private function csv(string $name, array $rows): Response
+    {
+        return $this->csvRows($name, ['عنوان', 'مبلغ'], array_map(null, array_keys($rows), array_values($rows)));
+    }
+
+    /**
+     * @param  list<string>  $headers
+     * @param  list<list<mixed>>  $rows
+     */
+    private function csvRows(string $name, array $headers, array $rows): Response
+    {
+        $lines = [implode(',', array_map([$this, 'quote'], $headers))];
+
+        foreach ($rows as $row) {
+            $lines[] = implode(',', array_map(fn ($cell) => $this->quote((string) $cell), $row));
+        }
+
+        // BOM so Excel opens Persian in UTF-8 instead of mojibake — the single most reported
+        // "the export is broken" complaint in this part of the world.
+        $body = "\xEF\xBB\xBF".implode("\r\n", $lines);
+
+        return response($body, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$name.'-'.now()->toDateString().'.csv"',
+        ]);
+    }
+
+    private function quote(string $value): string
+    {
+        if (strpbrk($value, ",\"\r\n") === false) {
+            return $value;
+        }
+
+        return '"'.str_replace('"', '""', $value).'"';
+    }
+}
