@@ -209,12 +209,42 @@ type Replacement = {
   };
 };
 
+type PayableRow = {
+  supplier_id: number;
+  name: string;
+  total_minor: number;
+  overdue_minor: number;
+  oldest_days: number;
+  bills: {
+    id: number;
+    number: string | null;
+    due_on: string | null;
+    outstanding_minor: number;
+    days_late: number;
+  }[];
+};
+
+type PayableAging = {
+  as_of: string;
+  buckets: {
+    current: number;
+    days_30: number;
+    days_60: number;
+    days_90: number;
+  };
+  total_minor: number;
+  overdue_minor: number;
+  undated_minor: number;
+  suppliers: PayableRow[];
+};
+
 type ReportKind =
   | "profit-loss"
   | "replacement-cost"
   | "menu-engineering"
   | "control"
   | "ar-aging"
+  | "payable-aging"
   | "service-kpis"
   | "period-comparison"
   | "vat";
@@ -232,6 +262,8 @@ const TABS: ReportKind[] = [
   "replacement-cost",
   "control",
   "ar-aging",
+  // What the shop owes, aged by due date: the half of a cash position that turns into calls.
+  "payable-aging",
 ];
 
 function isoDate(d: Date): string {
@@ -327,6 +359,18 @@ export default function ReportsPageClient({
     enabled: tab === "vat",
     queryFn: async () =>
       (await api<{ data: Vat }>(`/api/v1/reports/vat?${qs}`))?.data ?? null,
+    retry: false,
+  });
+
+  const payables = useQuery({
+    queryKey: ["cafe-report-payables", to],
+    enabled: tab === "payable-aging",
+    queryFn: async () =>
+      (
+        await api<{ data: PayableAging }>(
+          `/api/v1/reports/payable-aging?as_of=${to}`,
+        )
+      )?.data ?? null,
     retry: false,
   });
 
@@ -1079,6 +1123,92 @@ export default function ReportsPageClient({
                 </TableBody>
               </Table>
             </div>
+          </CafeSection>
+        )
+      ) : null}
+
+      {tab === "payable-aging" ? (
+        (payables.data?.suppliers?.length ?? 0) === 0 ? (
+          <CafeEmptyState message={t("no_payables")} />
+        ) : (
+          <CafeSection
+            title={t("payable_title")}
+            description={t("payable_hint")}
+          >
+            <div className="flex flex-wrap gap-3 text-sm">
+              <span>
+                {t("payable_total")}:{" "}
+                <span className="font-semibold tabular-nums">
+                  <MoneyText amount={payables.data?.total_minor ?? 0} />
+                </span>
+              </span>
+              <span>
+                {t("payable_overdue")}:{" "}
+                <span className="font-semibold tabular-nums text-rose-600">
+                  <MoneyText amount={payables.data?.overdue_minor ?? 0} />
+                </span>
+              </span>
+              {(payables.data?.undated_minor ?? 0) > 0 ? (
+                <span className="text-muted-foreground">
+                  {t("payable_undated")}:{" "}
+                  <MoneyText amount={payables.data?.undated_minor ?? 0} />
+                </span>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-4">
+              {(
+                [
+                  ["current", t("bucket_current")],
+                  ["days_30", t("bucket_30")],
+                  ["days_60", t("bucket_60")],
+                  ["days_90", t("bucket_90")],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key} className="rounded-lg border p-3">
+                  <p className="text-muted-foreground text-xs">{label}</p>
+                  <p className="font-semibold">
+                    <MoneyText amount={payables.data?.buckets[key] ?? 0} />
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("supplier")}</TableHead>
+                    <TableHead>{t("payable_total")}</TableHead>
+                    <TableHead>{t("payable_overdue")}</TableHead>
+                    <TableHead>{t("oldest_days")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payables.data!.suppliers.map((row) => (
+                    <TableRow key={row.supplier_id}>
+                      <TableCell>{row.name}</TableCell>
+                      <TableCell>
+                        <MoneyText amount={row.total_minor} />
+                      </TableCell>
+                      <TableCell
+                        className={
+                          row.overdue_minor > 0 ? "text-rose-600" : undefined
+                        }
+                      >
+                        <MoneyText amount={row.overdue_minor} />
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {toLocaleDigits(String(row.oldest_days), locale)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              {t("payable_footer")}
+            </p>
           </CafeSection>
         )
       ) : null}

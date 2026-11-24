@@ -126,6 +126,60 @@ class CafePosShiftTest extends TestCase
         $this->assertSame(100_000, $totals['expected_cash_minor']);
     }
 
+    /**
+     * A sale replayed from an offline till lands in the drawer it was taken at.
+     *
+     * The old arithmetic summed orders whose `created_at` fell between open and close. A sale
+     * taken at 21:40 on a dead connection and pushed at 09:10 the next morning fell outside
+     * every window: the cash was in the drawer, the count came up short, and nothing in the
+     * system could say why.
+     */
+    public function test_an_attributed_sale_arriving_after_the_shift_still_counts(): void
+    {
+        $cashier = $this->cashier();
+        $service = app(CafeShiftService::class);
+        $shift = $service->openShift($cashier, ['opening_float_minor' => 100_000]);
+
+        // Taken during the shift but recorded now, after it closed.
+        $late = $this->order($cashier, 70_000, 'cash', ['shift_id' => $shift->id]);
+        $shift->update(['closed_at' => now()->subHours(9)]);
+        $late->forceFill(['created_at' => now()])->save();
+
+        $totals = $service->computeTotals($shift->fresh());
+
+        $this->assertSame(70_000, $totals['cash_sales_minor'], 'attribution beats the timestamp window');
+        $this->assertSame(170_000, $totals['expected_cash_minor']);
+    }
+
+    /** A sale attributed to a *different* drawer must not inflate this one, however timed. */
+    public function test_a_sale_from_another_shift_is_not_counted(): void
+    {
+        $first = $this->cashier();
+        $second = $this->cashier();
+        $service = app(CafeShiftService::class);
+
+        $shiftA = $service->openShift($first, ['opening_float_minor' => 0]);
+        $shiftB = $service->openShift($second, ['opening_float_minor' => 0]);
+
+        $this->order($second, 90_000, 'cash', ['shift_id' => $shiftB->id]);
+
+        $this->assertSame(0, $service->computeTotals($shiftA)['cash_sales_minor']);
+        $this->assertSame(90_000, $service->computeTotals($shiftB)['cash_sales_minor']);
+    }
+
+    /** Orders recorded before the column existed keep being counted by their timestamp. */
+    public function test_an_unattributed_order_is_still_counted_by_its_window(): void
+    {
+        $cashier = $this->cashier();
+        $service = app(CafeShiftService::class);
+        $shift = $service->openShift($cashier, ['opening_float_minor' => 0]);
+
+        $this->order($cashier, 50_000, 'cash');
+
+        $this->assertNull(Order::query()->latest('id')->first()->shift_id);
+        $this->assertSame(50_000, $service->computeTotals($shift)['cash_sales_minor']);
+    }
+
     public function test_cash_movements_adjust_the_drawer(): void
     {
         $cashier = $this->cashier();

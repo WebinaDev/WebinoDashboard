@@ -5,6 +5,7 @@ namespace Modules\Accounting\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\Accounting\CashTransfer;
 use Modules\Accounting\Entities\AccCashAccount;
 use Modules\Accounting\Support\AccountingQuery;
 
@@ -47,6 +48,42 @@ class CashAccountController extends Controller
         });
 
         return response()->json(['data' => $page]);
+    }
+
+    /** The vocabulary the screens and reports agree on. */
+    public function types(): JsonResponse
+    {
+        return response()->json(['data' => collect(AccCashAccount::TYPES)->map(fn (string $type): array => [
+            'key' => $type,
+            'label' => AccCashAccount::TYPE_LABELS[$type] ?? $type,
+            'settled' => in_array($type, AccCashAccount::SETTLED_TYPES, true),
+        ])->all()]);
+    }
+
+    /**
+     * Move money between the shop's own accounts.
+     *
+     * Not revenue and not an expense: both sides are asset accounts, so the entry debits the
+     * destination and credits the source for the same amount and nothing in the P&L moves.
+     */
+    public function transfer(Request $request, CashTransfer $transfers): JsonResponse
+    {
+        $data = $request->validate([
+            'from_account_id' => ['required', 'integer', 'min:1'],
+            'to_account_id' => ['required', 'integer', 'min:1'],
+            'amount_minor' => ['required', 'numeric', 'gt:0'],
+            'note' => ['nullable', 'string', 'max:255'],
+            'document_date' => ['nullable', 'date'],
+            'branch_id' => ['nullable', 'integer'],
+        ]);
+
+        return response()->json(['data' => $transfers->transfer(
+            (int) $request->user()->tenant_id,
+            (int) $data['from_account_id'],
+            (int) $data['to_account_id'],
+            (float) $data['amount_minor'],
+            $data + ['created_by' => (int) $request->user()->id],
+        )], 201);
     }
 
     /**

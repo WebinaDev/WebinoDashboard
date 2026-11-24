@@ -93,6 +93,9 @@ class OrderWriter
                 // The branch that rang this up. Falls back to the cashier's open shift, then
                 // to the tenant's only branch, so a single-branch shop never has to send it.
                 'branch_id' => $this->resolveBranchId($tenantId, $data, $actor),
+                // The drawer, when the till knows it — a sale replayed from an offline queue
+                // names the shift it was taken in, which is not the shift open right now.
+                'shift_id' => isset($data['shift_id']) && (int) $data['shift_id'] > 0 ? (int) $data['shift_id'] : null,
                 'user_id' => $data['user_id'] ?? null,
                 'created_by' => $actor?->id,
                 'number' => $this->nextNumber($tenantId),

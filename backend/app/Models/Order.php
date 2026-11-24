@@ -67,6 +67,9 @@ class Order extends Model
     protected $fillable = [
         'tenant_id',
         'branch_id',
+        // The drawer this sale was taken at. Written once, at intake, so a sale replayed from
+        // an offline till still lands in the shift it happened in.
+        'shift_id',
         'stock_oversold_at',
         'paid_at',
         'user_id',

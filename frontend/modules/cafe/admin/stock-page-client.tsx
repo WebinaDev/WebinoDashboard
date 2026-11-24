@@ -79,6 +79,41 @@ type Suggestion = {
 
 type Warehouse = { id: number; name: string };
 
+type ProductionLine = {
+  component_id: number;
+  component_name: string;
+  quantity: number;
+  unit: string | null;
+  unit_cost_minor: number;
+  consumed_value_minor: number;
+  cost_known: boolean;
+};
+
+type ProductionRun = {
+  id: number;
+  status: "draft" | "completed" | "cancelled";
+  output: { id: number; name: string | null; unit: string | null };
+  produced_quantity: number;
+  input_value_minor: number;
+  output_unit_cost_minor: number;
+  batch_no: string | null;
+  lines: ProductionLine[];
+  cost_complete: boolean;
+};
+
+type ProductionSummary = {
+  id: number;
+  status: string;
+  output_name: string;
+  produced_quantity: number;
+  input_value_minor: number;
+  output_unit_cost_minor: number;
+  batch_no: string | null;
+  slot: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+};
+
 type WasteReport = {
   from: string;
   to: string;
@@ -111,6 +146,8 @@ const blankMove = {
   // batch and expiry support was reachable only by hand-written requests.
   batch_no: "",
   expires_on: "",
+  // Where on the shelf it went. Free text because every kitchen names its own places.
+  slot: "",
 };
 
 export default function StockPageClient({
@@ -241,6 +278,9 @@ export default function StockPageClient({
           note: moveForm.reason.trim() || null,
           batch_no: moveForm.batch_no.trim() || null,
           expires_on: moveForm.expires_on.trim() || null,
+          // Where it physically went: shelf B, fridge 2, the top of the dry store. Without it
+          // "we have 4 kg of butter" is true and useless at 8am when nobody can find it.
+          slot: moveForm.slot.trim() || null,
         },
       });
     },
@@ -309,6 +349,74 @@ export default function StockPageClient({
       setOpeningResult(res);
       await invalidate();
       toast.success(t("opening_done", { count: res.received }));
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  });
+
+  /* ---------------------------------------------------------- production --- */
+
+  // Making bread from flour: the inputs leave the shelf and the output lands on it, valued at
+  // what the inputs cost. A draft is free of side effects, so a wrong yield is caught before
+  // any stock moves.
+  const [runForm, setRunForm] = useState({
+    output_id: "",
+    produced_quantity: "",
+    recipe_yield: "1",
+    batch_no: "",
+    expires_on: "",
+    slot: "",
+    note: "",
+  });
+  const [run, setRun] = useState<ProductionRun | null>(null);
+
+  const runs = useQuery({
+    queryKey: ["cafe-stock-production"],
+    queryFn: async () => {
+      const res = await api<{ data: ProductionSummary[] }>(
+        "/api/v1/stock/production",
+      );
+      return res?.data ?? [];
+    },
+    retry: false,
+  });
+
+  const draftRun = useMutation({
+    mutationFn: () =>
+      api<{ data: ProductionRun }>("/api/v1/stock/production/draft", {
+        method: "POST",
+        json: {
+          output_id: Number(runForm.output_id),
+          produced_quantity: Number(runForm.produced_quantity),
+          recipe_yield: Number(runForm.recipe_yield) || 1,
+          batch_no: runForm.batch_no.trim() || null,
+          expires_on: runForm.expires_on.trim() || null,
+          // Where to put it once it exists — the same question the shelf asks about arrivals.
+          slot: runForm.slot.trim() || null,
+          note: runForm.note.trim() || null,
+        },
+      }),
+    onSuccess: (res) => setRun(res?.data ?? null),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  });
+
+  const completeRun = useMutation({
+    mutationFn: (id: number) =>
+      api<{ data: ProductionRun }>(`/api/v1/stock/production/${id}/complete`, {
+        method: "POST",
+      }),
+    onSuccess: async (res) => {
+      setRun(res?.data ?? null);
+      setRunForm({
+        output_id: "",
+        produced_quantity: "",
+        recipe_yield: "1",
+        batch_no: "",
+        expires_on: "",
+        slot: "",
+        note: "",
+      });
+      await invalidate();
+      toast.success(t("production_done"));
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   });
@@ -416,6 +524,19 @@ export default function StockPageClient({
                   value={moveForm.expires_on}
                   onChange={(e) =>
                     setMoveForm((f) => ({ ...f, expires_on: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="st-slot">{t("slot")}</Label>
+                {/* Free text, not a list: every kitchen names its own shelves, and a dropdown
+                    would be somebody else's shelf names. */}
+                <Input
+                  id="st-slot"
+                  value={moveForm.slot}
+                  placeholder={t("slot_placeholder")}
+                  onChange={(e) =>
+                    setMoveForm((f) => ({ ...f, slot: e.target.value }))
                   }
                 />
               </div>
@@ -769,6 +890,193 @@ export default function StockPageClient({
         )}
       </CafeSection>
 
+      <CafeSection
+        title={t("production_title")}
+        description={t("production_hint")}
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="pr-output">{t("production_output")}</Label>
+            <select
+              id="pr-output"
+              className={cafeSelectClass}
+              value={runForm.output_id}
+              onChange={(e) =>
+                setRunForm((f) => ({ ...f, output_id: e.target.value }))
+              }
+            >
+              <option value="">{t("choose_item")}</option>
+              {items.map((row) => (
+                <option
+                  key={`pr-${row.subject_id}`}
+                  value={String(row.subject_id)}
+                >
+                  {row.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pr-qty">{t("production_quantity")}</Label>
+            <Input
+              id="pr-qty"
+              type="number"
+              min={0}
+              step="0.001"
+              value={runForm.produced_quantity}
+              onChange={(e) =>
+                setRunForm((f) => ({ ...f, produced_quantity: e.target.value }))
+              }
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pr-yield">{t("production_yield")}</Label>
+            <Input
+              id="pr-yield"
+              type="number"
+              min={0}
+              step="0.001"
+              value={runForm.recipe_yield}
+              onChange={(e) =>
+                setRunForm((f) => ({ ...f, recipe_yield: e.target.value }))
+              }
+            />
+            <p className="text-muted-foreground text-xs">
+              {t("production_yield_hint")}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pr-batch">{t("batch")}</Label>
+            <Input
+              id="pr-batch"
+              dir="ltr"
+              value={runForm.batch_no}
+              onChange={(e) =>
+                setRunForm((f) => ({ ...f, batch_no: e.target.value }))
+              }
+              placeholder={t("batch_optional")}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="run-slot">{t("slot")}</Label>
+            <Input
+              id="run-slot"
+              value={runForm.slot}
+              placeholder={t("slot_placeholder")}
+              onChange={(e) =>
+                setRunForm((f) => ({ ...f, slot: e.target.value }))
+              }
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            disabled={
+              runForm.output_id === "" ||
+              Number(runForm.produced_quantity) <= 0 ||
+              draftRun.isPending
+            }
+            onClick={() => draftRun.mutate()}
+          >
+            {draftRun.isPending ? tCommon("saving") : t("production_draft")}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!run || run.status !== "draft" || completeRun.isPending}
+            onClick={() => run && completeRun.mutate(run.id)}
+          >
+            {completeRun.isPending ? tCommon("saving") : t("production_commit")}
+          </Button>
+        </div>
+
+        {run ? (
+          <div className="space-y-2 rounded-lg border p-3 text-sm">
+            <p className="font-medium">
+              {t("production_draft_note", {
+                output: run.output.name ?? "—",
+                quantity: toLocaleDigits(String(run.produced_quantity), locale),
+              })}
+            </p>
+            <ul className="space-y-1">
+              {run.lines.map((line) => (
+                <li
+                  key={line.component_id}
+                  className="flex items-center justify-between gap-2 text-xs"
+                >
+                  <span className="truncate">
+                    {line.component_name}
+                    {line.cost_known ? null : (
+                      <Badge variant="outline" className="ms-1">
+                        {t("production_uncosted")}
+                      </Badge>
+                    )}
+                  </span>
+                  <span className="text-muted-foreground shrink-0 tabular-nums">
+                    {toLocaleDigits(String(line.quantity), locale)}{" "}
+                    {line.unit ?? ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-muted-foreground text-xs">
+              {t("production_value")}{" "}
+              <MoneyText amount={run.input_value_minor} /> ·{" "}
+              {t("production_unit_cost")}{" "}
+              <MoneyText amount={Math.round(run.output_unit_cost_minor)} />
+            </p>
+            {run.cost_complete ? null : (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {t("production_incomplete")}
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {(runs.data ?? []).length === 0 ? null : (
+          <div className="overflow-x-auto rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("production_output")}</TableHead>
+                  <TableHead>{t("quantity")}</TableHead>
+                  <TableHead>{t("production_value_short")}</TableHead>
+                  <TableHead>{t("batch")}</TableHead>
+                  <TableHead>{t("slot")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(runs.data ?? []).map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>{row.output_name}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {toLocaleDigits(String(row.produced_quantity), locale)}
+                    </TableCell>
+                    <TableCell>
+                      <MoneyText amount={row.input_value_minor} />
+                    </TableCell>
+                    <TableCell dir="ltr">{row.batch_no ?? "—"}</TableCell>
+                    <TableCell>{row.slot ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          row.status === "completed" ? "default" : "secondary"
+                        }
+                      >
+                        {t(
+                          `production_status_${row.status}` as "production_status_draft",
+                        )}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CafeSection>
+
       <CafeSection title={t("expiring_title")} description={t("expiring_hint")}>
         {(expiring.data ?? []).length === 0 ? (
           <CafeEmptyState message={t("nothing_expiring")} />
@@ -781,6 +1089,7 @@ export default function StockPageClient({
                   <TableHead>{t("batch")}</TableHead>
                   <TableHead>{t("quantity")}</TableHead>
                   <TableHead>{t("expires_on")}</TableHead>
+                  <TableHead>{t("slot")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -806,6 +1115,8 @@ export default function StockPageClient({
                             })}
                       </Badge>
                     </TableCell>
+                    {/* Where to walk to reach the thing that is about to expire. */}
+                    <TableCell>{row.slot ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

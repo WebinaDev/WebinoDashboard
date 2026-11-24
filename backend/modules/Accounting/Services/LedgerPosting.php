@@ -190,7 +190,19 @@ final class LedgerPosting
      */
     private function accountFor(string $code): AccChartAccount
     {
-        $existing = AccChartAccount::query()->where('code', $code)->first();
+        // The chart is per tenant (`acc_chart_accounts` is unique on tenant_id+code), so this
+        // must say *whose* 1110 it means. Querying by code alone was harmless while both tenants
+        // happened to seed the same default chart — and wrong the moment one of them renamed or
+        // re-typed an account, because every shop after that posted to the first shop's line.
+        // The model's tenant scope handles it while a user is signed in; the explicit filter
+        // covers console and queue paths where Auth is empty and the scope is skipped.
+        $existing = AccChartAccount::query()
+            ->where('code', $code)
+            ->when(
+                AccChartAccount::currentTenantId() !== null,
+                fn ($q) => $q->where('tenant_id', AccChartAccount::currentTenantId()),
+            )
+            ->first();
         if ($existing !== null) {
             return $existing;
         }

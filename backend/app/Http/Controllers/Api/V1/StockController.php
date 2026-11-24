@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Services\Stock\Purchasing;
+use App\Services\Stock\Production;
 use App\Services\Stock\StockOpening;
 use App\Services\Stock\StockLedger;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +23,7 @@ class StockController extends Controller
         private readonly StockLedger $stock,
         private readonly Purchasing $purchasing,
         private readonly StockOpening $opening,
+        private readonly Production $production,
     ) {}
 
     /** Goods in (opening balance, an adjustment, or a delivery recorded by hand). */
@@ -168,6 +170,55 @@ class StockController extends Controller
                 'days' => $days,
                 'batches' => $this->stock->expiring((int) $request->user()->tenant_id, $days),
             ],
+        ]);
+    }
+
+    /* ------------------------------------------------------- production --- */
+
+    /** Recipe runs: what was made from what, and what it cost. */
+    public function productionIndex(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->production->recent(
+                (int) $request->user()->tenant_id,
+                (int) $request->query('limit', 25),
+            ),
+        ]);
+    }
+
+    /**
+     * Plan a run from the output's recipe. Writes a draft, touches no stock.
+     *
+     * A draft is deliberately free of side effects: it is the screen that lets somebody notice
+     * the recipe yields 12 and they made 40, before the flour has left the shelf.
+     */
+    public function productionDraft(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'output_id' => ['required', 'integer', 'min:1'],
+            'produced_quantity' => ['required', 'numeric', 'gt:0'],
+            'recipe_yield' => ['nullable', 'numeric', 'gt:0'],
+            'warehouse_id' => ['nullable', 'integer'],
+            'batch_no' => ['nullable', 'string', 'max:64'],
+            'expires_on' => ['nullable', 'date'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return response()->json([
+            'data' => $this->production->draft(
+                (int) $request->user()->tenant_id,
+                (int) $data['output_id'],
+                (float) $data['produced_quantity'],
+                $data + ['created_by' => (int) $request->user()->id],
+            ),
+        ], 201);
+    }
+
+    /** Commit a run: consume the inputs and receive the output, together or not at all. */
+    public function productionComplete(Request $request, int $id): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->production->complete((int) $request->user()->tenant_id, $id),
         ]);
     }
 

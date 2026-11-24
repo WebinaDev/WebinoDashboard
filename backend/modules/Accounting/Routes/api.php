@@ -8,6 +8,7 @@ use Modules\Accounting\Http\Controllers\AccountingWpActionController;
 use Modules\Accounting\Http\Controllers\BankReconciliationController;
 use Modules\Accounting\Http\Controllers\CashAccountController;
 use Modules\Accounting\Http\Controllers\ChartAccountController;
+use Modules\Accounting\Http\Controllers\ChequeBookController;
 use Modules\Accounting\Http\Controllers\CheckController;
 use Modules\Accounting\Http\Controllers\ExpenseController;
 use Modules\Accounting\Http\Controllers\FinancialReportsController;
@@ -36,6 +37,10 @@ Route::get('/persons', [PersonController::class, 'index']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/invoices', [AccInvoiceController::class, 'invoices']);
 Route::get('/cash-accounts', [CashAccountController::class, 'cashAccounts']);
+Route::get('/cash-account-types', [CashAccountController::class, 'types']);
+// Moving money between the shop's own accounts: the operation every shop performs weekly and
+// previously had to fake with two manual journals, where a wrong code turns a transfer into a sale.
+Route::post('/cash-accounts/transfer', [CashAccountController::class, 'transfer']);
 // The reconciliation engine had no caller for months. This is the caller.
 Route::post('/cash-accounts/reconcile', [BankReconciliationController::class, 'reconcile']);
 Route::get('/receipts', [ReceiptController::class, 'receipts']);
@@ -52,6 +57,13 @@ Route::post('/invoices/{id}/confirm', [AccInvoiceController::class, 'confirmInvo
 Route::post('/receipts/{id}/post', [ReceiptController::class, 'postReceipt'])->whereNumber('id');
 Route::post('/checks', [CheckController::class, 'store']);
 Route::post('/checks/{id}/set-status', [CheckController::class, 'setCheckStatus'])->whereNumber('id');
+
+// Cheque books: the printed serial range, which leaf was written on, and what is missing.
+Route::get('/cheque-books', [ChequeBookController::class, 'index']);
+Route::post('/cheque-books', [ChequeBookController::class, 'store']);
+Route::post('/cheque-books/{id}/issue', [ChequeBookController::class, 'issue'])->whereNumber('id');
+Route::post('/cheque-books/{id}/leaves/{leaf}/spoil', [ChequeBookController::class, 'spoil'])->whereNumber('id')->whereNumber('leaf');
+Route::get('/cheque-books/{id}/reconcile', [ChequeBookController::class, 'reconcile'])->whereNumber('id');
 Route::get('/ledger', [LedgerController::class, 'ledger']);
 
 // Expenses, supplier bills and party credit: the three things that previously could only be
@@ -78,6 +90,10 @@ Route::get('/treasury/cash-flow', [\App\Http\Controllers\Api\V1\TreasuryControll
 Route::get('/treasury/forecast', [\App\Http\Controllers\Api\V1\TreasuryController::class, 'forecast']);
 
 Route::get('/reports', [FinancialReportsController::class, 'financialReports']);
+// An accountant needs the file, not just the screen: month-end packs go to auditors and banks.
+Route::get('/reports/export', [FinancialReportsController::class, 'export']);
+// A print view, not a print button: the dashboard's dialog prints the sidebar too.
+Route::get('/reports/print', [FinancialReportsController::class, 'printable']);
 Route::get('/settings', [AccountingSettingsController::class, 'settings']);
 
 Route::get('/warehouses', [WarehouseReadController::class, 'warehouses']);

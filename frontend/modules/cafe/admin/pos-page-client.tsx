@@ -50,6 +50,12 @@ import {
   readQueue,
 } from "./offline-queue";
 import {
+  attributionFields,
+  forgetShift,
+  rememberShift,
+  shiftAgeMinutes,
+} from "./offline-shift";
+import {
   type CartLine,
   type CartModifier,
   type DiscountType,
@@ -95,6 +101,12 @@ type PosProduct = {
   category?: string | null;
   price_minor?: number;
   available: boolean;
+  /**
+   * Why the till cannot sell this right now: `sold_out`, `unavailable`, or `branch_off`.
+   * Null when it can. The server refuses the sale either way; this is so the cashier sees a
+   * reason instead of a dish that quietly disappeared from the grid.
+   */
+  unavailable_reason?: "sold_out" | "unavailable" | "branch_off" | null;
   variants: Variant[];
   modifiers: Modifier[];
 };
@@ -121,6 +133,12 @@ type Bootstrap = {
   fulfillment: Record<Fulfillment, boolean>;
   fees: PosFees;
   loyalty_enabled: boolean;
+  /** The cashier's open drawer, or null when the shop runs without shifts. */
+  shift?: {
+    id: number;
+    branch_id: number | null;
+    opened_at: string | null;
+  } | null;
   /** How the shop hands food over: a table, a pager, or neither. */
   service?: {
     mode: "table" | "pager" | "none";
@@ -250,6 +268,10 @@ export default function PosPageClient({
   // True when the last sale was captured locally because the network was down.
   const [queuedNotice, setQueuedNotice] = useState(false);
   const [queuedCount, setQueuedCount] = useState(0);
+  // Age of the drawer context this tab is holding, in minutes; null while it is fresh.
+  const [shiftStaleMinutes, setShiftStaleMinutes] = useState<number | null>(
+    null,
+  );
   const [saved, setSaved] = useState<SavedOrder | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -319,6 +341,23 @@ export default function PosPageClient({
   });
 
   const data = boot.data;
+
+  // Write the drawer down while there is still a network to ask. Offline, OrderIntake can no
+  // longer read the cashier's open shift, and a sale would land with no branch and no drawer.
+  useEffect(() => {
+    if (!boot.isSuccess) return;
+    const shift = data?.shift;
+    if (shift && shift.id) {
+      rememberShift({
+        shift_id: shift.id,
+        branch_id: shift.branch_id ?? null,
+        opened_at: shift.opened_at,
+      });
+    } else {
+      forgetShift();
+    }
+  }, [boot.isSuccess, data?.shift]);
+
   const tables = useMemo(() => data?.tables ?? [], [data]);
   const products = useMemo(() => data?.products ?? [], [data]);
 
@@ -398,7 +437,11 @@ export default function PosPageClient({
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return products.filter((p) => {
-      if (!p.available) return false;
+      // A `branch_off` item is not stocked here at all, so it does not belong on this counter's
+      // grid. A sold-out one does: the cashier needs to see that the kitchen has run out, and a
+      // dish that simply vanishes reads as a bug.
+      if (!p.available && p.unavailable_reason === "branch_off") return false;
+      if (!p.available && p.unavailable_reason == null) return false;
       if (category && p.category !== category) return false;
       if (!needle) return true;
       return (
@@ -619,9 +662,11 @@ export default function PosPageClient({
       // A new sale carries a client reference so a replay after a dropped connection returns
       // the order that already exists instead of charging the guest twice. Generated here,
       // before the request, because it has to be the same value on every retry.
+      // The drawer this sale was taken at. Online the server could work it out itself, but
+      // offline the shift is gone by the time the sale replays — so it travels with the sale.
       const body =
         method === "POST"
-          ? { ...payload, client_ref: newClientRef() }
+          ? { ...payload, client_ref: newClientRef(), ...attributionFields() }
           : payload;
 
       try {
@@ -701,6 +746,10 @@ export default function PosPageClient({
   // often how a cashier recovers) and whenever the browser reports it is back online.
   useEffect(() => {
     const flush = () => {
+      const age = shiftAgeMinutes();
+      // 120 minutes is past any normal shift gap and short enough that a tab woken from sleep
+      // gets told before the cashier starts selling into a dead drawer context.
+      setShiftStaleMinutes(age !== null && age > 120 ? age : null);
       setQueuedCount(readQueue().length);
       void drain((row) =>
         api(row.path, {
@@ -802,6 +851,17 @@ export default function PosPageClient({
           >
             {t("offline_retry")}
           </Button>
+        </div>
+      ) : null}
+
+      {/* A remembered shift older than a couple of hours means this tab has been offline (or
+          asleep) for a while. Sales are still attributable — they happened then — but the
+          cashier should know the drawer context is not live. */}
+      {shiftStaleMinutes !== null ? (
+        <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+          {t("offline_shift_stale", {
+            minutes: toLocaleDigits(String(shiftStaleMinutes), locale),
+          })}
         </div>
       ) : null}
 
@@ -1072,18 +1132,42 @@ export default function PosPageClient({
                       type="button"
                       data-testid="pos-product"
                       data-product-name={product.name}
+                      // Sold out is disabled, not removed: a greyed button with a label tells the
+                      // cashier what the kitchen knows, and stops the tap before the server does.
+                      disabled={!product.available}
+                      aria-disabled={!product.available}
+                      title={
+                        product.available
+                          ? undefined
+                          : t(
+                              `unavailable_${product.unavailable_reason ?? "unavailable"}`,
+                            )
+                      }
                       onClick={() => {
+                        if (!product.available) return;
                         if (needsChoice) setPickProduct(product);
                         else addLine(product, null, [], null);
                       }}
-                      className="hover:border-primary/60 hover:bg-muted/50 flex min-h-20 flex-col items-start justify-between gap-1 rounded-lg border p-2 text-start transition-colors"
+                      className={`flex min-h-20 flex-col items-start justify-between gap-1 rounded-lg border p-2 text-start transition-colors ${
+                        product.available
+                          ? "hover:border-primary/60 hover:bg-muted/50"
+                          : "cursor-not-allowed opacity-50"
+                      }`}
                     >
                       <span className="line-clamp-2 text-sm font-medium">
                         {product.name}
                       </span>
-                      <span className="text-muted-foreground text-xs">
-                        <MoneyText amount={product.price_minor ?? 0} />
-                      </span>
+                      {product.available ? (
+                        <span className="text-muted-foreground text-xs">
+                          <MoneyText amount={product.price_minor ?? 0} />
+                        </span>
+                      ) : (
+                        <Badge variant="destructive" className="text-[10px]">
+                          {t(
+                            `unavailable_${product.unavailable_reason ?? "unavailable"}`,
+                          )}
+                        </Badge>
+                      )}
                     </button>
                   );
                 })}
