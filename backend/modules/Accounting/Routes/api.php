@@ -71,6 +71,11 @@ Route::post('/fixed-assets', [ExpenseController::class, 'storeAsset']);
 Route::post('/fixed-assets/depreciate', [ExpenseController::class, 'depreciate']);
 Route::post('/fixed-assets/{id}/dispose', [ExpenseController::class, 'disposeAsset'])->whereNumber('id');
 
+// Treasury: where the money is now, where it went, and what is due out of the bank.
+Route::get('/treasury/accounts', [\App\Http\Controllers\Api\V1\TreasuryController::class, 'accounts']);
+Route::get('/treasury/cash-flow', [\App\Http\Controllers\Api\V1\TreasuryController::class, 'cashFlow']);
+Route::get('/treasury/forecast', [\App\Http\Controllers\Api\V1\TreasuryController::class, 'forecast']);
+
 Route::get('/reports', [FinancialReportsController::class, 'financialReports']);
 Route::get('/settings', [AccountingSettingsController::class, 'settings']);
 
