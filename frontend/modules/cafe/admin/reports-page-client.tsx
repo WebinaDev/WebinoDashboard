@@ -63,6 +63,17 @@ type MenuRow = {
   margin_per_unit_minor: number;
   margin_percent: number | null;
   class: "star" | "plough_horse" | "puzzle" | "dog";
+  /** False when one or more sold lines of this dish had no complete cost behind them. */
+  cost_known: boolean;
+  incomplete_lines: number;
+};
+
+type MenuSummary = {
+  mean_quantity: number;
+  mean_margin_per_unit_minor: number;
+  counts: { star: number; plough_horse: number; puzzle: number; dog: number };
+  uncosted_items: number;
+  uncosted_revenue_minor: number;
 };
 
 type ControlRow = {
@@ -262,7 +273,7 @@ export default function ReportsPageClient({
     enabled: tab === "menu-engineering",
     queryFn: async () =>
       (
-        await api<{ data: { items: MenuRow[] } }>(
+        await api<{ data: { items: MenuRow[]; summary: MenuSummary | null } }>(
           `/api/v1/reports/menu-engineering?${qs}`,
         )
       )?.data ?? null,
@@ -824,6 +835,18 @@ export default function ReportsPageClient({
           <CafeEmptyState message={t("no_sales")} />
         ) : (
           <CafeSection title={t("menu_title")} description={t("menu_hint")}>
+            {(menu.data?.summary?.uncosted_items ?? 0) > 0 ? (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950">
+                <p className="font-medium">
+                  {t("menu_uncosted_warning", {
+                    count: menu.data!.summary!.uncosted_items,
+                  })}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {t("menu_uncosted_hint")}
+                </p>
+              </div>
+            ) : null}
             <div className="overflow-x-auto rounded-lg border">
               <Table>
                 <TableHeader>
@@ -839,7 +862,14 @@ export default function ReportsPageClient({
                 <TableBody>
                   {menu.data!.items.map((row) => (
                     <TableRow key={row.product_id}>
-                      <TableCell>{row.name}</TableCell>
+                      <TableCell>
+                        {row.name}
+                        {row.cost_known ? null : (
+                          <Badge variant="outline" className="ms-2">
+                            {t("menu_uncosted_badge")}
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="tabular-nums">
                         {toLocaleDigits(String(row.quantity), locale)}
                       </TableCell>

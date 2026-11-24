@@ -279,7 +279,15 @@ final class CafeReports
                 DB::raw('SUM(oi.quantity) as qty'),
                 DB::raw('COALESCE(SUM(oi.total_minor),0) as revenue'),
                 DB::raw('COALESCE(SUM(c.total_cost_minor),0) as cost'),
-                DB::raw('SUM(CASE WHEN c.complete = 0 THEN 1 ELSE 0 END) as incomplete'),
+                // A line with no cost row at all is *also* uncosted: `SUM(... complete = 0)`
+                // over a left join skips it, because NULL is not 0. That counted the missing
+                // case as fine while counting the partial case as broken — exactly backwards.
+                DB::raw('SUM(CASE WHEN c.id IS NULL OR c.complete = 0 THEN 1 ELSE 0 END) as incomplete'),
+                // How much of the revenue is actually backed by a frozen cost. A dish where
+                // three of forty lines are uncosted is not the same problem as one where all
+                // forty are, and a bare count could not tell them apart.
+                DB::raw('COALESCE(SUM(CASE WHEN c.id IS NOT NULL AND c.complete = 1 THEN c.total_cost_minor ELSE 0 END),0) as costed_value'),
+                DB::raw('COALESCE(SUM(c.total_cost_minor),0) as cost_rows_value'),
             ])
             ->get();
 
@@ -302,11 +310,28 @@ final class CafeReports
                 'margin_per_unit_minor' => (int) round(($revenue - $cost) / $qty),
                 'margin_percent' => $revenue > 0 ? round((($revenue - $cost) / $revenue) * 100, 2) : null,
                 'incomplete_lines' => (int) $row->incomplete,
+                // True when every sold line of the dish carried a complete cost. The class
+                // below is a recommendation, and a recommendation built on a partial cost is
+                // only as good as the part that is missing.
+                'cost_known' => (int) $row->incomplete === 0,
             ];
         });
 
-        $meanQty = $prepared->avg('quantity') ?? 0;
-        $meanMargin = $prepared->avg('margin_per_unit_minor') ?? 0;
+        // The averages that decide the four quadrants are computed over **costed** dishes only.
+        //
+        // A dish with no cost row has a margin equal to its whole selling price, so including it
+        // dragged the mean up and pushed every correctly-costed dish below it — marking real
+        // earners as dogs because one recipe was missing. The uncosted dishes are still listed
+        // and still on the menu; they are just not allowed to set the line the others are
+        // measured against.
+        $comparable = $prepared->filter(fn (array $item): bool => $item['cost_known']);
+
+        if ($comparable->isEmpty()) {
+            $comparable = $prepared;
+        }
+
+        $meanQty = $comparable->avg('quantity') ?? 0;
+        $meanMargin = $comparable->avg('margin_per_unit_minor') ?? 0;
 
         $items = $prepared->map(function (array $item) use ($meanQty, $meanMargin): array {
             $popular = $item['quantity'] >= $meanQty;
@@ -325,6 +350,8 @@ final class CafeReports
 
         $counts = array_count_values(array_column($items, 'class'));
 
+        $uncosted = array_values(array_filter($items, fn (array $row): bool => ! $row['cost_known']));
+
         return [
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
@@ -338,6 +365,10 @@ final class CafeReports
                     'puzzle' => $counts['puzzle'] ?? 0,
                     'dog' => $counts['dog'] ?? 0,
                 ],
+                // Menus that look profitable because nobody costed them. Reported next to the
+                // quadrant counts so the counts are never read as the whole truth.
+                'uncosted_items' => count($uncosted),
+                'uncosted_revenue_minor' => array_sum(array_column($uncosted, 'revenue_minor')),
             ],
         ];
     }

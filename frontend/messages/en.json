@@ -1955,7 +1955,10 @@
       "replacement_delta": "Change",
       "replacement_margin_today": "Margin today",
       "replacement_uncosted": "incomplete cost",
-      "replacement_footer": "Replacement cost uses the current weighted average. A dish whose recipe is not fully costed is not compared: a partial number is worse than none."
+      "replacement_footer": "Replacement cost uses the current weighted average. A dish whose recipe is not fully costed is not compared: a partial number is worse than none.",
+      "menu_uncosted_badge": "incomplete cost",
+      "menu_uncosted_warning": "{count} sold items have no complete cost",
+      "menu_uncosted_hint": "The four quadrants are measured against the items whose cost is complete. An uncosted item shows a margin equal to its whole price — most likely a star that is not one."
     },
     "staff": {
       "title": "Staff & payroll",
