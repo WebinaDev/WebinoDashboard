@@ -319,4 +319,117 @@ class CafePrintingAndIntegrationsTest extends TestCase
 
         $this->assertSame(2, Order::query()->where('tenant_id', $this->tenant->id)->count());
     }
+
+    /** A delivered webhook is marked delivered and stamps the hook's last success. */
+    public function test_a_queued_delivery_is_sent_and_marked_delivered(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'https://example.test/*' => \Illuminate\Support\Facades\Http::response(['ok' => true], 200),
+        ]);
+
+        $hookId = (int) DB::table('cafe_webhooks')->insertGetId([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Orders',
+            'url' => 'https://example.test/hook',
+            'events' => null,
+            'secret' => 'shh',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(WebhookDispatcher::class)->queue($this->tenant->id, 'order.settled', ['order_id' => 7]);
+
+        $result = app(\App\Services\Webhooks\WebhookSender::class)->flush();
+
+        $this->assertSame(1, $result['sent']);
+
+        $delivery = DB::table('cafe_webhook_deliveries')->where('webhook_id', $hookId)->first();
+        $this->assertSame('delivered', $delivery->status);
+        $this->assertSame(200, (int) $delivery->response_status);
+
+        $this->assertNotNull(DB::table('cafe_webhooks')->where('id', $hookId)->value('last_success_at'));
+    }
+
+    /** The signature sent is an HMAC of exactly the body, so the receiver can verify it. */
+    public function test_the_delivered_signature_verifies_against_the_body(): void
+    {
+        $seen = null;
+
+        \Illuminate\Support\Facades\Http::fake(function ($request) use (&$seen) {
+            $seen = [
+                'signature' => $request->header('X-Webino-Signature')[0] ?? null,
+                'body' => $request->body(),
+            ];
+
+            return \Illuminate\Support\Facades\Http::response('', 200);
+        });
+
+        DB::table('cafe_webhooks')->insert([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Signed',
+            'url' => 'https://example.test/signed',
+            'events' => null,
+            'secret' => 'top-secret',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(WebhookDispatcher::class)->queue($this->tenant->id, 'order.created', ['order_id' => 9]);
+        app(\App\Services\Webhooks\WebhookSender::class)->flush();
+
+        $this->assertNotNull($seen);
+        $this->assertSame(hash_hmac('sha256', $seen['body'], 'top-secret'), $seen['signature']);
+    }
+
+    /** A 4xx is a refusal, not a transient failure: it is not left queued for a retry. */
+    public function test_a_client_error_is_not_retried(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'https://example.test/*' => \Illuminate\Support\Facades\Http::response('bad payload', 422),
+        ]);
+
+        DB::table('cafe_webhooks')->insert([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Broken',
+            'url' => 'https://example.test/broken',
+            'events' => null,
+            'secret' => 'k',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(WebhookDispatcher::class)->queue($this->tenant->id, 'order.created', ['order_id' => 1]);
+        app(\App\Services\Webhooks\WebhookSender::class)->flush();
+
+        $this->assertSame('failed', DB::table('cafe_webhook_deliveries')->value('status'));
+    }
+
+    /** A transport failure stays queued so the next run can try again. */
+    public function test_a_transport_failure_stays_queued_for_a_retry(): void
+    {
+        \Illuminate\Support\Facades\Http::fake(function () {
+            throw new \Illuminate\Http\Client\ConnectionException('connection refused');
+        });
+
+        DB::table('cafe_webhooks')->insert([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Down',
+            'url' => 'https://example.test/down',
+            'events' => null,
+            'secret' => 'k',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(WebhookDispatcher::class)->queue($this->tenant->id, 'order.created', ['order_id' => 1]);
+        app(\App\Services\Webhooks\WebhookSender::class)->flush();
+
+        $delivery = DB::table('cafe_webhook_deliveries')->first();
+        $this->assertSame('queued', $delivery->status);
+        $this->assertSame(1, (int) $delivery->attempts);
+    }
 }

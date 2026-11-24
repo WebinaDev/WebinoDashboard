@@ -199,5 +199,13 @@ Artisan::command('support:csat-tick', function () {
     $this->info("CSAT invitations sent: {$sent}");
 })->purpose('Send due post-resolve CSAT survey invitations');
 
+// Queued webhook deliveries. Without this the deliveries table fills up and every
+// integration the shop configured receives nothing.
+Artisan::command('webhooks:flush', function () {
+    $result = app(\App\Services\Webhooks\WebhookSender::class)->flush();
+    $this->info("Webhooks sent {$result['sent']}, failed {$result['failed']}.");
+})->purpose('Post queued webhook deliveries to their endpoints');
+
+Schedule::command('webhooks:flush')->everyMinute()->withoutOverlapping();
 Schedule::command('support:sla-tick')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('support:csat-tick')->everyFiveMinutes()->withoutOverlapping();
