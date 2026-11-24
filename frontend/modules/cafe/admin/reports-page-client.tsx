@@ -93,11 +93,53 @@ type Kpis = {
   }
 }
 
-type ReportKind = "profit-loss" | "menu-engineering" | "control" | "ar-aging" | "service-kpis"
+type CompareMetric = { key: string; label: string; current: number; previous: number; change_percent: number | null }
+
+type Compare = {
+  current: { from: string; to: string }
+  previous: { from: string; to: string }
+  days: number
+  metrics: CompareMetric[]
+  margin_points: {
+    gross: { current: number | null; previous: number | null; change: number | null }
+    operating: { current: number | null; previous: number | null; change: number | null }
+  }
+}
+
+type Vat = {
+  from: string
+  to: string
+  account_code: string
+  output_tax_minor: number
+  input_tax_minor: number
+  payable_minor: number
+  credit_carried_minor: number
+  taxed_sales: { orders: number; net_minor: number; tax_minor: number; effective_rate_percent: number | null }
+  tax_on_orders_minor: number
+  reconciles: boolean
+  difference_minor: number
+}
+
+type ReportKind =
+  | "profit-loss"
+  | "menu-engineering"
+  | "control"
+  | "ar-aging"
+  | "service-kpis"
+  | "period-comparison"
+  | "vat"
 
 // Service KPIs come first in the list: "how fast and how full" is the question asked every
 // morning, and the money reports answer the question asked at month end.
-const TABS: ReportKind[] = ["service-kpis", "profit-loss", "menu-engineering", "control", "ar-aging"]
+const TABS: ReportKind[] = [
+  "service-kpis",
+  "profit-loss",
+  "period-comparison",
+  "vat",
+  "menu-engineering",
+  "control",
+  "ar-aging",
+]
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10)
@@ -147,6 +189,20 @@ export default function ReportsPageClient({ route: _route }: { route: ResolvedAd
     queryKey: ["cafe-report-kpis", qs],
     enabled: tab === "service-kpis",
     queryFn: async () => (await api<{ data: Kpis }>(`/api/v1/reports/service-kpis?${qs}`))?.data ?? null,
+    retry: false,
+  })
+
+  const compare = useQuery({
+    queryKey: ["cafe-report-compare", qs],
+    enabled: tab === "period-comparison",
+    queryFn: async () => (await api<{ data: Compare }>(`/api/v1/reports/compare?${qs}`))?.data ?? null,
+    retry: false,
+  })
+
+  const vat = useQuery({
+    queryKey: ["cafe-report-vat", qs],
+    enabled: tab === "vat",
+    queryFn: async () => (await api<{ data: Vat }>(`/api/v1/reports/vat?${qs}`))?.data ?? null,
     retry: false,
   })
 
@@ -249,6 +305,121 @@ export default function ReportsPageClient({ route: _route }: { route: ResolvedAd
           ))}
         </div>
       </CafeSection>
+
+      {tab === "period-comparison" ? (
+        !compare.data ? (
+          <CafeEmptyState message={t("unavailable")} />
+        ) : (
+          <>
+            <CafeSection title={t("compare_title")} description={t("compare_hint")}>
+              <p className="text-muted-foreground text-xs">
+                {t("compare_window", {
+                  from: compare.data.current.from,
+                  to: compare.data.current.to,
+                  prev_from: compare.data.previous.from,
+                  prev_to: compare.data.previous.to,
+                  days: toLocaleDigits(String(compare.data.days), locale),
+                })}
+              </p>
+            </CafeSection>
+
+            <CafeSection title={t("compare_metrics")}>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {compare.data.metrics.map((metric) => {
+                  // Null means the previous period was empty: there is no honest percentage to
+                  // print, so the screen prints a dash rather than an infinity.
+                  const change = metric.change_percent
+                  const tone =
+                    change === null ? "" : change > 0 ? "text-emerald-600" : change < 0 ? "text-rose-600" : ""
+
+                  return (
+                    <div key={metric.key} className="rounded-xl border p-3">
+                      <p className="text-muted-foreground text-xs">{metric.label}</p>
+                      <p className="mt-1 text-lg font-semibold tabular-nums">
+                        <MoneyText amount={Math.round(metric.current)} />
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {t("compare_previous")}: <span className="tabular-nums"><MoneyText amount={Math.round(metric.previous)} /></span>
+                      </p>
+                      <p className={`text-xs font-medium tabular-nums ${tone}`}>
+                        {change === null ? "—" : `${change > 0 ? "+" : ""}${toLocaleDigits(String(change), locale)}٪`}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            </CafeSection>
+
+            <CafeSection title={t("compare_margins")} description={t("compare_margin_hint")}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Stat
+                  label={t("compare_gross_margin")}
+                  value={percent(compare.data.margin_points.gross.current)}
+                />
+                <Stat
+                  label={t("compare_operating_margin")}
+                  value={percent(compare.data.margin_points.operating.current)}
+                />
+              </div>
+              <p className="text-muted-foreground text-xs">
+                {t("compare_margin_change")}:{" "}
+                {compare.data.margin_points.gross.change === null
+                  ? "—"
+                  : `${toLocaleDigits(String(compare.data.margin_points.gross.change), locale)} ${t("points")}`}
+                {" · "}
+                {t("compare_operating_margin")}:{" "}
+                {compare.data.margin_points.operating.change === null
+                  ? "—"
+                  : `${toLocaleDigits(String(compare.data.margin_points.operating.change), locale)} ${t("points")}`}
+              </p>
+            </CafeSection>
+          </>
+        )
+      ) : null}
+
+      {tab === "vat" ? (
+        !vat.data ? (
+          <CafeEmptyState message={t("unavailable")} />
+        ) : (
+          <>
+            <CafeSection title={t("vat_title")} description={t("vat_hint")}>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Stat label={t("vat_output")} value={<MoneyText amount={vat.data.output_tax_minor} />} />
+                <Stat label={t("vat_input")} value={<MoneyText amount={vat.data.input_tax_minor} />} />
+                <Stat
+                  label={vat.data.payable_minor >= 0 ? t("vat_payable") : t("vat_credit")}
+                  value={<MoneyText amount={Math.abs(vat.data.payable_minor)} />}
+                />
+                <Stat label={t("vat_taxed_orders")} value={toLocaleDigits(String(vat.data.taxed_sales.orders), locale)} />
+              </div>
+            </CafeSection>
+
+            <CafeSection title={t("vat_sales_title")} description={t("vat_sales_hint")}>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Stat label={t("vat_net_sales")} value={<MoneyText amount={vat.data.taxed_sales.net_minor} />} />
+                <Stat label={t("vat_tax")} value={<MoneyText amount={vat.data.taxed_sales.tax_minor} />} />
+                <Stat label={t("vat_effective_rate")} value={percent(vat.data.taxed_sales.effective_rate_percent)} />
+              </div>
+            </CafeSection>
+
+            {/* The cross-check. Disagreeing means the journal was edited by hand or a sale
+                posted without tax; either way a person needs to see it, not have it hidden. */}
+            <CafeSection title={t("vat_check_title")} description={t("vat_check_hint")}>
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant={vat.data.reconciles ? "outline" : "destructive"}>
+                  {vat.data.reconciles ? t("vat_reconciles") : t("vat_differs")}
+                </Badge>
+                <p className="text-sm tabular-nums">
+                  {t("vat_on_orders")}: <MoneyText amount={vat.data.tax_on_orders_minor} />
+                </p>
+                <p className="text-sm tabular-nums">
+                  {t("vat_difference")}: <MoneyText amount={vat.data.difference_minor} />
+                </p>
+              </div>
+            </CafeSection>
+          </>
+        )
+      ) : null}
 
       {tab === "service-kpis" ? (
         !kpis.data ? (

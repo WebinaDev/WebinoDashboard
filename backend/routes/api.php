@@ -843,6 +843,10 @@ Route::prefix('v1')->group(function () {
                 Route::get('/reports/control', [CafeReportsController::class, 'control']);
                 Route::get('/reports/ar-aging', [CafeReportsController::class, 'aging']);
                 Route::get('/reports/service-kpis', [CafeReportsController::class, 'service']);
+                // A number without a direction is not a fact a manager can act on.
+                Route::get('/reports/compare', [CafeReportsController::class, 'compare']);
+                // Charged on sales, paid on purchases, due — the return, from the ledger.
+                Route::get('/reports/vat', [CafeReportsController::class, 'vat']);
             });
 
             // Recipes and stock costing. Reading the cost of a dish is a catalogue act;

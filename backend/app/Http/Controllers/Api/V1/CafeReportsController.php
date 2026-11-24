@@ -42,6 +42,65 @@ class CafeReportsController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    /**
+     * This period against the one before it.
+     *
+     * "1.2 billion rial" is not a fact a shop can act on; "up 9% on last week" is. The previous
+     * period is the same number of days immediately before the range, so a 31-day January is not
+     * compared with a 28-day February.
+     */
+    public function compare(Request $request): JsonResponse|Response
+    {
+        [$from, $to, $branchId] = $this->range($request);
+
+        $data = $this->reports->comparePeriods($this->tenantId($request), $from, $to, $branchId);
+
+        if ($this->wantsCsv($request)) {
+            return $this->csvRows(
+                'period-comparison',
+                ['شاخص', 'دوره جاری', 'دوره قبل', 'تغییر (٪)'],
+                array_map(
+                    fn (array $row) => [
+                        $row['label'],
+                        $row['current'],
+                        $row['previous'],
+                        $row['change_percent'] ?? '—',
+                    ],
+                    $data['metrics'],
+                ),
+            );
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * VAT for a period: charged on sales, paid on purchases, due.
+     *
+     * A shop that cannot produce this number has to reconstruct it from a shoebox at filing
+     * time. Both halves come from the same ledger, and the sales-side figure is reported
+     * separately as a cross-check rather than being silently preferred.
+     */
+    public function vat(Request $request): JsonResponse|Response
+    {
+        [$from, $to, $branchId] = $this->range($request);
+
+        $data = $this->reports->vatSummary($this->tenantId($request), $from, $to, $branchId);
+
+        if ($this->wantsCsv($request)) {
+            return $this->csv('vat', [
+                'مالیات فروش (بستانکار)' => $data['output_tax_minor'],
+                'مالیات خرید (بدهکار)' => $data['input_tax_minor'],
+                'قابل پرداخت' => $data['payable_minor'],
+                'اعتبار قابل انتقال' => $data['credit_carried_minor'],
+                'مالیات ثبت‌شده روی سفارش‌ها' => $data['tax_on_orders_minor'],
+                'اختلاف' => $data['difference_minor'],
+            ]);
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
     public function menuEngineering(Request $request): JsonResponse|Response
     {
         [$from, $to, $branchId] = $this->range($request);

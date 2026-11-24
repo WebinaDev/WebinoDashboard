@@ -555,6 +555,162 @@ final class CafeReports
         ];
     }
 
+    /**
+     * This period against the one before it, like for like.
+     *
+     * A number on its own — "1.2 billion rial of sales" — is not a fact a shop can act on. What
+     * a manager reads is direction: up or down, and by how much. The previous period is the same
+     * number of days immediately before the range, not "last month", because comparing 31 days
+     * with 28 is how a report lies without containing a single wrong figure.
+     *
+     * @return array<string, mixed>
+     */
+    public function comparePeriods(
+        int $tenantId,
+        Carbon $from,
+        Carbon $to,
+        ?int $branchId = null,
+    ): array {
+        // Inclusive day count: a 1-day range is one day, not zero.
+        $days = max(1, $from->copy()->startOfDay()->diffInDays($to->copy()->startOfDay()) + 1);
+
+        $previousTo = $from->copy()->startOfDay()->subSecond();
+        $previousFrom = $previousTo->copy()->subDays($days - 1)->startOfDay();
+
+        $current = $this->profitAndLoss($tenantId, $from, $to, $branchId);
+        $previous = $this->profitAndLoss($tenantId, $previousFrom, $previousTo, $branchId);
+
+        /**
+         * A percentage change from zero has no honest value: it is not "+100%", it is "there
+         * was nothing to compare with". Returning null makes the screen print a dash instead of
+         * an infinity sign, and keeps a brand-new shop from looking like a collapse.
+         */
+        $change = function (float|int $now, float|int $before): ?float {
+            if (abs($before) < 0.00005) {
+                return null;
+            }
+
+            return round((($now - $before) / abs($before)) * 100, 2);
+        };
+
+        $metric = fn (string $key, callable $pick, string $label): array => [
+            'key' => $key,
+            'label' => $label,
+            'current' => $pick($current),
+            'previous' => $pick($previous),
+            'change_percent' => $change((float) $pick($current), (float) $pick($previous)),
+        ];
+
+        return [
+            'current' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
+            'previous' => ['from' => $previousFrom->toDateString(), 'to' => $previousTo->toDateString()],
+            'days' => $days,
+            'metrics' => [
+                $metric('net_revenue', fn ($p) => $p['revenue']['net_minor'], 'درآمد خالص'),
+                $metric('orders', fn ($p) => $p['revenue']['orders'], 'تعداد سفارش'),
+                $metric('average_ticket', fn ($p) => $p['average_ticket_minor'], 'میانگین سبد'),
+                $metric('material_cost', fn ($p) => $p['cost_of_sales']['material_minor'], 'بهای مواد'),
+                $metric('gross_profit', fn ($p) => $p['gross_profit_minor'], 'سود ناخالص'),
+                $metric('operating_profit', fn ($p) => $p['operating_profit_minor'], 'سود عملیاتی'),
+            ],
+            // Margin points, not percent change: going from 32% to 28% is −4 points, and
+            // calling that "−12.5%" is the wrong unit for a conversation about margin.
+            'margin_points' => [
+                'gross' => [
+                    'current' => $current['gross_margin_percent'],
+                    'previous' => $previous['gross_margin_percent'],
+                    'change' => $current['gross_margin_percent'] === null || $previous['gross_margin_percent'] === null
+                        ? null
+                        : round($current['gross_margin_percent'] - $previous['gross_margin_percent'], 2),
+                ],
+                'operating' => [
+                    'current' => $current['operating_margin_percent'],
+                    'previous' => $previous['operating_margin_percent'],
+                    'change' => $current['operating_margin_percent'] === null || $previous['operating_margin_percent'] === null
+                        ? null
+                        : round($current['operating_margin_percent'] - $previous['operating_margin_percent'], 2),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * VAT for a period: what was charged on sales, what was paid on purchases, what is due.
+     *
+     * Both halves come from the same ledger, so the two cannot be computed on different
+     * populations and then argued about. Output VAT is the credit side of the tax account,
+     * input VAT its debit side; the difference is the return.
+     *
+     * The sales figure from the order rows is reported alongside as a cross-check. If the two
+     * disagree, the journal has been edited by hand or a sale posted without tax — either way it
+     * is something a person needs to see rather than a number to quietly pick one of.
+     *
+     * @return array<string, mixed>
+     */
+    public function vatSummary(int $tenantId, Carbon $from, Carbon $to, ?int $branchId = null): array
+    {
+        $roles = app(\App\Services\Accounting\AccountCoding::class)->get($tenantId)['roles'];
+        $vatCode = (string) ($roles['vat'] ?? '2101');
+
+        $lines = DB::table('acc_journal_lines as jl')
+            ->join('acc_journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
+            ->join('acc_chart_accounts as a', 'jl.account_id', '=', 'a.id')
+            ->where('je.tenant_id', $tenantId)
+            ->whereBetween('je.document_date', [$from, $to])
+            ->whereIn('je.status', ['posted', 'confirmed'])
+            ->where('a.code', $vatCode)
+            ->selectRaw('COALESCE(SUM(jl.credit),0) as output_vat')
+            ->selectRaw('COALESCE(SUM(jl.debit),0) as input_vat')
+            ->first();
+
+        $output = (int) round((float) ($lines->output_vat ?? 0));
+        $input = (int) round((float) ($lines->input_vat ?? 0));
+
+        // What the orders themselves say was charged, as an independent check.
+        $fromOrders = (int) round((float) DB::table('orders')
+            ->where('tenant_id', $tenantId)
+            ->when($branchId !== null, fn ($q) => $q->where('branch_id', $branchId))
+            ->whereBetween('created_at', [$from, $to])
+            ->whereIn('status', self::SOLD)
+            ->sum('tax_minor'));
+
+        // Sales split by rate is what a return actually asks for; a single rate still fits.
+        $byRate = DB::table('orders')
+            ->where('tenant_id', $tenantId)
+            ->when($branchId !== null, fn ($q) => $q->where('branch_id', $branchId))
+            ->whereBetween('created_at', [$from, $to])
+            ->whereIn('status', self::SOLD)
+            ->where('tax_minor', '>', 0)
+            ->selectRaw('COUNT(*) as orders')
+            ->selectRaw('COALESCE(SUM(total_minor - tax_minor),0) as net_sales')
+            ->selectRaw('COALESCE(SUM(tax_minor),0) as tax')
+            ->first();
+
+        return [
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'branch_id' => $branchId,
+            'account_code' => $vatCode,
+            'output_tax_minor' => $output,
+            'input_tax_minor' => $input,
+            'payable_minor' => $output - $input,
+            // A negative payable is a credit carried forward, which is a real outcome and not
+            // an error; the screen labels it rather than clamping it to zero.
+            'credit_carried_minor' => max(0, $input - $output),
+            'taxed_sales' => [
+                'orders' => (int) ($byRate->orders ?? 0),
+                'net_minor' => (int) round((float) ($byRate->net_sales ?? 0)),
+                'tax_minor' => (int) round((float) ($byRate->tax ?? 0)),
+                'effective_rate_percent' => (float) ($byRate->net_sales ?? 0) > 0
+                    ? round(((float) $byRate->tax / (float) $byRate->net_sales) * 100, 2)
+                    : null,
+            ],
+            'tax_on_orders_minor' => $fromOrders,
+            'reconciles' => abs($fromOrders - $output) <= 1,
+            'difference_minor' => $fromOrders - $output,
+        ];
+    }
+
     /** Operating expenses from the chart, grouped by account. */
     private function expenseLines(int $tenantId, Carbon $from, Carbon $to, ?int $branchId): array
     {
