@@ -7,7 +7,8 @@
  */
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
+import { register } from "node:module"
 import ts from "typescript"
 
 const frontend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -24,15 +25,29 @@ function walk(dir, exts, out = []) {
   return out
 }
 
-/** Manifests only import types, so each one transpiles to a standalone module. */
+/**
+ * Load a manifest and return its route-bearing exports.
+ *
+ * This used to import a `data:` URL, which only worked while every manifest was
+ * type-only. `bots/manifest.ts` imports real values from `./lib/platforms`, and a
+ * data: URL has no base, so the relative specifier could not resolve and the
+ * whole check died with ERR_UNSUPPORTED_RESOLVE_REQUEST — taking down a check
+ * that is about hrefs because of an import style.
+ *
+ * The fix is to register the same resolver hook the test suite uses
+ * (scripts/ts-resolve-hooks.mjs), which maps extensionless relative and `@/`
+ * imports onto .ts/.tsx. With it registered, the manifests load as themselves —
+ * no transpile step, no temp file, and the resolved route list is the real one.
+ */
 async function loadManifest(file) {
-  const source = fs.readFileSync(file, "utf8")
-  const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  })
-  const mod = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`)
+  const mod = await import(pathToFileURL(file).href)
   return Object.values(mod).filter((v) => v && Array.isArray(v.adminRoutes))
 }
+
+// The app uses bundler resolution (extensionless relative + `@/` imports), which
+// plain Node cannot do. Register the project's resolver hook before importing any
+// manifest, otherwise every manifest that imports a real value fails to load.
+register("./ts-resolve-hooks.mjs", pathToFileURL(`${path.dirname(fileURLToPath(import.meta.url))}/`))
 
 const registry = fs.readFileSync(path.join(frontend, "src/kernel/registry.ts"), "utf8")
 const manifestFiles = [...registry.matchAll(/from "\.\.\/\.\.\/modules\/([^/"]+)\/manifest"/g)].map((m) =>

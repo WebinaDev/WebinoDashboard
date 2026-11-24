@@ -477,6 +477,16 @@ export const SETTINGS_UNITS: SettingsUnitDef[] = [
         titleEn: "Tapin",
         route: "/dashboard/settings/shop/shipping/tapin",
       },
+      {
+        // Per-carrier setup. The page is reachable and renders
+        // ShippingCarrierSettingsPanel, but no section declared it, so the
+        // /dashboard/settings/... link the carrier catalog builds pointed at a
+        // route the nav did not know about.
+        id: "shipping-carrier",
+        titleFa: "پیکربندی شرکت حمل",
+        titleEn: "Carrier settings",
+        route: "/dashboard/settings/shop/shipping/carriers/:slug",
+      },
     ],
   },
   {
