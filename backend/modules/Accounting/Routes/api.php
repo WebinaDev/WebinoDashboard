@@ -8,6 +8,7 @@ use Modules\Accounting\Http\Controllers\AccountingWpActionController;
 use Modules\Accounting\Http\Controllers\BankReconciliationController;
 use Modules\Accounting\Http\Controllers\CashAccountController;
 use Modules\Accounting\Http\Controllers\ChartAccountController;
+use Modules\Accounting\Http\Controllers\ChequeBookController;
 use Modules\Accounting\Http\Controllers\CheckController;
 use Modules\Accounting\Http\Controllers\ExpenseController;
 use Modules\Accounting\Http\Controllers\FinancialReportsController;
@@ -56,6 +57,13 @@ Route::post('/invoices/{id}/confirm', [AccInvoiceController::class, 'confirmInvo
 Route::post('/receipts/{id}/post', [ReceiptController::class, 'postReceipt'])->whereNumber('id');
 Route::post('/checks', [CheckController::class, 'store']);
 Route::post('/checks/{id}/set-status', [CheckController::class, 'setCheckStatus'])->whereNumber('id');
+
+// Cheque books: the printed serial range, which leaf was written on, and what is missing.
+Route::get('/cheque-books', [ChequeBookController::class, 'index']);
+Route::post('/cheque-books', [ChequeBookController::class, 'store']);
+Route::post('/cheque-books/{id}/issue', [ChequeBookController::class, 'issue'])->whereNumber('id');
+Route::post('/cheque-books/{id}/leaves/{leaf}/spoil', [ChequeBookController::class, 'spoil'])->whereNumber('id')->whereNumber('leaf');
+Route::get('/cheque-books/{id}/reconcile', [ChequeBookController::class, 'reconcile'])->whereNumber('id');
 Route::get('/ledger', [LedgerController::class, 'ledger']);
 
 // Expenses, supplier bills and party credit: the three things that previously could only be
