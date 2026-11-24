@@ -29,6 +29,7 @@
 > | تست Playwright پوز و آشپزخانه | ✅ نوشته و typecheck شده (`frontend/e2e/cafe-{pos,kitchen}.spec.ts`) |
 > | تست نگهبان‌های نقش (آشپز/گارسون/صندوق‌دار/مدیر شعبه) | ✅ (`CafeRoleGuardsTest`) |
 > | اطمینان از وجود همه حساب‌های چارت که محصول به آن‌ها سند می‌زند | ✅ (`ChartCodingTest` + مایگریشن اصلاح نوع حساب) |
+> | سالن/فضا برای میزها + گروه‌بندی تابلوی سالن | ✅ (`cafe_tables.area`) |
 >
 > **باقی‌مانده‌های صادقانه:** (۱) تست‌های Playwright و PHPUnit در این محیط **اجرا نشده‌اند** —
 > بدون PHP/پایگاه‌دادهٔ زنده/مرورگر و بدون اعتبارنامهٔ یک استقرار؛ فقط از نظر نحو و typecheck
@@ -48,7 +49,7 @@
 | الزام | وضعیت | شاهد / شکاف |
 |---|---|---|
 | چندشعبه‌ای | ✅ | `cafe_branches`, `branch_stock`, `branch_product_prices`, `orders.branch_id`, فیلتر شعبه در workbench و پوز. **اما:** هیچ‌کدام از جداول `acc_*` و هیچ گزارش مالی، بُعد شعبه ندارد. کاربر هم به شعبه مقید نمی‌شود (بدون `branch_id` روی `users`/توکن). |
-| چندنقشی + دسترسی granular | ✅ (با یک ایراد) | `config/capabilities.php` + `cafe_roles` + مایگریشن seed. ایراد: صفحه `cafe/kitchen` در `frontend/modules/cafe/manifest.ts` با `capability: "catalog.*"` گیت شده، درحالی‌که آشپز فقط `kitchen.view/kitchen.station` دارد → **آشپز صفحه KDS را نمی‌بیند** (بک‌اند اجازه می‌دهد، فرانت نه). |
+| چندنقشی + دسترسی granular | ✅ | `config/capabilities.php` + `cafe_roles` + مایگریشن seed. صفحه `cafe/kitchen` در manifest با `capability: "kitchen.view,kitchen.station,catalog.*"` گیت شده، پس آشپز KDS خودش را می‌بیند. نگهبان‌های هر نقش از طریق API تست شده‌اند (`CafeRoleGuardsTest`). |
 | سند حسابداری خودکار برای هر عملیات | 🟡 | فروش: `OrderStatusObserver → OrderLifecycle → OrderAccountingSync` (با COGS از `AccountCoding`) ✅. بقیه: بستن شیفت، تعدیل/انتقال انبار، ثبت اختلاف ویرایش فاکتور (`OrderAmendments::settle`)، هزینه، خرید → **هیچ سندی تولید نمی‌شود**. `ReceiptController::postReceipt` هم سند را با کدهای ثابت ۱۱۱/۱۱۳ می‌زند و به نقشه حساب‌ها گوش نمی‌دهد. |
 | لاگ فعالیت برای همه عملیات حساس | 🟡 | `RecordsActivity` روی Order, Product, Reservation, CafeBranch, CafeShift, KitchenStation, StationProduct, OrderPayment, OrderAmendment, RoleCapability. **ندارد:** CafeTable، Menu، modifier ها، Coupon، CafePriceSheet، و **تمام Entity های ماژول Accounting**. |
 | UI تاچ‌فرست | 🟡 | کامپوننت‌های `CafeAdminShell/CafeSection` مثل‌همان و صفحات پوز/آشپزخانه/سالن موبایل‌محورند، ولی هیچ تست/چک‌لیست صریح تاچ و هیچ اندازه‌گیری عملکرد <۲ ثانیه وجود ندارد. |
@@ -191,7 +192,7 @@
 
 | مورد | وضعیت |
 |---|---|
-| فضاها و میزها با ظرفیت | 🟡 میز + seats + شعبه ✅؛ موجودیت «فضا/سالن» ❌ |
+| فضاها و میزها با ظرفیت | ✅ میز + seats + شعبه + **سالن** (`area`)؛ تابلوی سالن به تفکیک سالن گروه‌بندی می‌شود |
 | شیوه سرو (میز/پیجر/بدون نشانه) | ❌ |
 | ایستگاه آماده‌سازی | ✅ |
 | مسیریابی چاپ | ❌ |

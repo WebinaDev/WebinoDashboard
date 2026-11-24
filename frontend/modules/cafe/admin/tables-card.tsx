@@ -16,7 +16,15 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import { CafeEmptyState, CafeSection } from "./cafe-admin-ui"
 import { QrCodeView, printTableCards } from "./qr-code"
 
-type TableRow = { id: number; code: string; label?: string | null; seats: number; is_active: boolean }
+type TableRow = {
+  id: number
+  code: string
+  label?: string | null
+  /** The room the table stands in: `سالن اصلی`, `تراس`, `بار`. */
+  area?: string | null
+  seats: number
+  is_active: boolean
+}
 
 export function TablesCard() {
   const t = useTranslations("cafe_admin.qr")
@@ -24,6 +32,7 @@ export function TablesCard() {
   const queryClient = useQueryClient()
   const [code, setCode] = useState("")
   const [label, setLabel] = useState("")
+  const [area, setArea] = useState("")
   const [seats, setSeats] = useState(4)
   const [qr, setQr] = useState<{ code: string; url: string } | null>(null)
   const [printing, setPrinting] = useState(false)
@@ -54,10 +63,16 @@ export function TablesCard() {
   }
 
   const save = useMutation({
-    mutationFn: () => api("/api/v1/cafe/tables", { method: "POST", json: { code, label: label || null, seats } }),
+    mutationFn: () =>
+      api("/api/v1/cafe/tables", {
+        method: "POST",
+        json: { code, label: label || null, area: area.trim() || null, seats },
+      }),
     onSuccess: async () => {
       setCode("")
       setLabel("")
+      // The area is kept: adding ten tables to the terrace should not mean typing «تراس» ten
+      // times, and the typo that follows would split the terrace in two on the floor board.
       toast.success(t("add_table"))
       await queryClient.invalidateQueries({ queryKey: ["cafe-tables"] })
     },
@@ -83,7 +98,7 @@ export function TablesCard() {
         ) : null
       }
     >
-      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_6rem_auto]">
+      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_5rem_auto]">
         <div className="space-y-1.5">
           <Label>{t("table_code")}</Label>
           <Input value={code} onChange={(e) => setCode(e.target.value)} />
@@ -91,6 +106,22 @@ export function TablesCard() {
         <div className="space-y-1.5">
           <Label>{t("table_label")}</Label>
           <Input value={label} onChange={(e) => setLabel(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="table-area">{t("area")}</Label>
+          <Input
+            id="table-area"
+            value={area}
+            onChange={(e) => setArea(e.target.value)}
+            placeholder={t("area_hint")}
+            list="table-areas"
+          />
+          {/* Suggestions, not a fixed list: a shop names its own rooms. */}
+          <datalist id="table-areas">
+            {Array.from(new Set(tables.map((row) => row.area).filter((v): v is string => Boolean(v)))).map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
         </div>
         <div className="space-y-1.5">
           <Label>{t("seats")}</Label>
@@ -108,6 +139,7 @@ export function TablesCard() {
           {tables.map((table) => (
             <li key={table.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
               <span className="min-w-0 truncate">
+                {table.area ? <span className="text-muted-foreground">{table.area} · </span> : null}
                 {table.label || table.code} · {toLocaleDigits(String(table.seats), locale)}
                 {table.is_active ? null : <span className="text-muted-foreground"> · {t("table_inactive")}</span>}
               </span>

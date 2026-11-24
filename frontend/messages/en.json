@@ -955,7 +955,11 @@
       "generate_hint": "Create a QR for a table, menu, or branch.",
       "tables_empty": "No tables yet. Add a table to print QR cards.",
       "edit_action": "Edit",
-      "delete_action": "Delete"
+      "delete_action": "Delete",
+      "area": "Hall / area",
+      "area_hint": "e.g. Main hall, Terrace, Bar",
+      "all_areas": "All halls",
+      "area_empty": "No hall"
     },
     "reservations": {
       "title": "Reservations & events",
@@ -1330,7 +1334,8 @@
       "reserve_confirm": "Save reservation",
       "free_confirm_title": "Free this table?",
       "free_confirm_body": "The table status is cleared, but its open orders are untouched.",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "area_none": "No hall"
     },
     "deliveries": {
       "title": "Deliveries",

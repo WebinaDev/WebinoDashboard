@@ -3479,7 +3479,11 @@
       "generate_hint": "کیوآر برای میز، منو یا شعبه بسازید.",
       "tables_empty": "میزی ثبت نشده. برای چاپ کارت کیوآر، میز اضافه کنید.",
       "edit_action": "ویرایش",
-      "delete_action": "حذف"
+      "delete_action": "حذف",
+      "area": "سالن / فضا",
+      "area_hint": "مثلاً سالن اصلی، تراس، بار",
+      "all_areas": "همه سالن‌ها",
+      "area_empty": "بدون سالن"
     },
     "reservations": {
       "title": "رزرو و رویدادها",
@@ -3854,7 +3858,8 @@
       "reserve_confirm": "ثبت رزرو",
       "free_confirm_title": "میز آزاد شود؟",
       "free_confirm_body": "وضعیت میز پاک می‌شود، ولی سفارش‌های باز آن تغییری نمی‌کنند.",
-      "cancel": "انصراف"
+      "cancel": "انصراف",
+      "area_none": "بدون سالن"
     },
     "deliveries": {
       "title": "تحویل و پیک",

@@ -51,6 +51,9 @@ class CafeFloorService
             ->where('tenant_id', $tenantId)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->with('branch:id,name_fa,name_en,slug')
+            // Ordered by room first, so the board's grid follows the building rather than the
+            // alphabet: a waiter walks one hall at a time.
+            ->orderBy('area')
             ->orderBy('sort_order')
             ->orderBy('code')
             ->get();
@@ -114,6 +117,8 @@ class CafeFloorService
             'id' => $table->id,
             'code' => (string) $table->code,
             'label' => $table->label,
+            // Grouping the board by room is what makes a twenty-table floor readable.
+            'area' => $table->area,
             'seats' => (int) $table->seats,
             'is_active' => (bool) $table->is_active,
             'status' => $derived,

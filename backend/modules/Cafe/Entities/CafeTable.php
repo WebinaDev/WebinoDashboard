@@ -33,6 +33,8 @@ class CafeTable extends Model
         'branch_id',
         'code',
         'label',
+        // Which room: `سالن اصلی`, `تراس`, `بار`. A free label, because shops name their own.
+        'area',
         'seats',
         'is_active',
         'sort_order',

@@ -24,6 +24,8 @@ type FloorTable = {
   seats: number
   status: string
   stored_status: string
+  /** The room this table stands in; empty means the shop never split its floor. */
+  area?: string | null
   occupied: boolean
   open_orders: number
   open_total_minor: number
@@ -113,6 +115,21 @@ export default function FloorPageClient({ route }: { route: ResolvedAdminRoute }
   const rows = floor.data?.data ?? []
   const summary = floor.data?.meta?.summary
 
+  /**
+   * Group the board by room.
+   *
+   * A twenty-table café is not one room, and a waiter works one hall at a time. The server
+   * already returns the tables ordered by area, so this preserves that order rather than
+   * sorting again by name — the room whose tables are oldest should stay where the shop put it.
+   */
+  const areas = rows.reduce<{ area: string | null; tables: FloorTable[] }[]>((groups, table) => {
+    const name = table.area?.trim() || null
+    const existing = groups.find((group) => group.area === name)
+    if (existing) existing.tables.push(table)
+    else groups.push({ area: name, tables: [table] })
+    return groups
+  }, [])
+
   function changeStatus(table: FloorTable, status: string) {
     if (status === "reserved") {
       setReserveTarget(table)
@@ -188,8 +205,20 @@ export default function FloorPageClient({ route }: { route: ResolvedAdminRoute }
         ) : rows.length === 0 ? (
           <CafeEmptyState message={t("floor_empty")} />
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {rows.map((table) => (
+          <div className="space-y-5">
+            {areas.map((group) => (
+              <div key={group.area ?? "__none"} className="space-y-2">
+                {areas.length > 1 ? (
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold">{group.area ?? t("area_none")}</h3>
+                    <span className="text-muted-foreground text-xs">
+                      {toLocaleDigits(String(group.tables.length), locale)}
+                    </span>
+                    <span className="bg-border h-px flex-1" aria-hidden />
+                  </div>
+                ) : null}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {group.tables.map((table) => (
               <div
                 key={table.id}
                 className={`flex flex-col gap-2 rounded-xl border-2 p-3 ${STATUS_STYLE[table.status] ?? "border-border"}`}
@@ -247,6 +276,9 @@ export default function FloorPageClient({ route }: { route: ResolvedAdminRoute }
                       {t("set_free")}
                     </Button>
                   ) : null}
+                </div>
+                  </div>
+                ))}
                 </div>
               </div>
             ))}

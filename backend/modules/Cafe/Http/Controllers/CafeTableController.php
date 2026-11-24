@@ -15,6 +15,7 @@ class CafeTableController extends Controller
         $tables = CafeTable::query()
             ->where('tenant_id', $request->user()->tenant_id)
             ->with('branch:id,name_fa,name_en,slug')
+            ->orderBy('area')
             ->orderBy('sort_order')
             ->orderBy('code')
             ->get();
@@ -31,6 +32,7 @@ class CafeTableController extends Controller
             'branch_id' => $data['branch_id'] ?? null,
             'code' => $data['code'],
             'label' => $data['label'] ?? null,
+            'area' => $data['area'] ?? null,
             'seats' => $data['seats'] ?? 4,
             'is_active' => $data['is_active'] ?? true,
             'sort_order' => $data['sort_order'] ?? 0,
@@ -64,6 +66,7 @@ class CafeTableController extends Controller
         return $request->validate([
             'code' => [$req, 'string', 'max:32', Rule::unique('cafe_tables', 'code')->where('tenant_id', $tid)->ignore($request->route('table'))],
             'label' => ['nullable', 'string', 'max:255'],
+            'area' => ['nullable', 'string', 'max:60'],
             'seats' => ['nullable', 'integer', 'min:1', 'max:99'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
