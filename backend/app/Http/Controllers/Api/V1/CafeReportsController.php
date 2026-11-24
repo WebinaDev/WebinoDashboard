@@ -123,6 +123,37 @@ class CafeReportsController extends Controller
      * Historical margins are frozen at the moment of sale and stay true; this is the other
      * half of the question — would the dish still earn that if we cooked it now.
      */
+    /**
+     * What the shop owes suppliers, aged by due date.
+     *
+     * The mirror of the receivable report: a shop that knows what it is owed but not what it
+     * owes has half a cash position, and it is missing the half with due dates.
+     */
+    public function payableAging(Request $request): JsonResponse|Response
+    {
+        $asOf = $request->query('as_of') !== null
+            ? Carbon::parse((string) $request->query('as_of'))
+            : now();
+        $data = $this->reports->payableAging($this->tenantId($request), $asOf);
+
+        if ($this->wantsCsv($request)) {
+            return $this->csvRows('payable-aging', [
+                'تأمین‌کننده', 'مانده', 'دیرکرد', 'قدیمی‌ترین روز', 'فاکتورها',
+            ], array_map(
+                fn (array $row) => [
+                    $row['name'],
+                    $row['total_minor'],
+                    $row['overdue_minor'],
+                    $row['oldest_days'],
+                    count($row['bills']),
+                ],
+                $data['suppliers'],
+            ));
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
     public function replacementCost(Request $request): JsonResponse|Response
     {
         [$from, $to, $branchId] = $this->range($request);

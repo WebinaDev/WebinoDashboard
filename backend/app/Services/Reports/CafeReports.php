@@ -712,6 +712,122 @@ final class CafeReports
     }
 
     /**
+     * Accounts payable aging, per supplier — the mirror of the receivable report.
+     *
+     * A shop that knows what customers owe but not what it owes suppliers has half a cash
+     * position, and the half it is missing is the one with due dates that turn into phone calls.
+     * This reads `supplier_invoices` (the buying path's own document), not the ledger's control
+     * account, because a bill has a due date and a control balance does not.
+     *
+     * Buckets are by **due date**, not issue date: an invoice issued 45 days ago and due
+     * yesterday is one day late, and calling it "45 days" would send somebody chasing the wrong
+     * supplier. The `overdue` total is the number a manager acts on today.
+     *
+     * @return array<string, mixed>
+     */
+    public function payableAging(int $tenantId, ?Carbon $asOf = null): array
+    {
+        $asOf ??= now();
+
+        // No branch filter: `supplier_invoices` has no `branch_id`. A purchase is a tenant-level
+        // commitment — the supplier does not care which counter the flour went to — so the
+        // report is tenant-wide rather than pretending to a dimension the table does not carry.
+        $bills = DB::table('supplier_invoices as b')
+            ->leftJoin('acc_persons as p', 'b.supplier_id', '=', 'p.id')
+            ->where('b.tenant_id', $tenantId)
+            // A settled or cancelled bill is not a liability; leaving it in would inflate the
+            // total by everything the shop has ever bought.
+            ->whereNotIn('b.status', ['paid', 'cancelled', 'void'])
+            ->select([
+                'b.id',
+                'b.number',
+                'b.supplier_id',
+                'b.issued_on',
+                'b.due_on',
+                'b.total_minor',
+                'b.paid_minor',
+                'p.name as supplier_name',
+            ])
+            ->get();
+
+        $buckets = ['current' => 0, 'days_30' => 0, 'days_60' => 0, 'days_90' => 0];
+        $bySupplier = [];
+        $overdue = 0;
+        $undated = 0;
+
+        foreach ($bills as $bill) {
+            $outstanding = (float) $bill->total_minor - (float) $bill->paid_minor;
+
+            if ($outstanding <= 0) {
+                continue;
+            }
+
+            if ($bill->due_on === null) {
+                // A bill with no due date cannot be aged. It is counted separately rather than
+                // dropped, so "no due date" does not quietly hide money owed.
+                $undated += $outstanding;
+                $days = 0;
+                $bucket = 'current';
+            } else {
+                // Positive = late by this many days; negative = not due yet. `diffInDays` from
+                // the due date to now is negative when the due date is in the future, which is
+                // the opposite of the sign this report wants, so it is flipped once and clearly.
+                $days = (int) -Carbon::parse($bill->due_on)->diffInDays($asOf, false);
+
+                $bucket = match (true) {
+                    $days <= 0 => 'current',
+                    $days <= 30 => 'days_30',
+                    $days <= 60 => 'days_60',
+                    default => 'days_90',
+                };
+
+                if ($days > 0) {
+                    $overdue += $outstanding;
+                }
+            }
+
+            $buckets[$bucket] += $outstanding;
+
+            $supplierId = (int) ($bill->supplier_id ?? 0);
+            $bySupplier[$supplierId] ??= [
+                'supplier_id' => $supplierId,
+                'name' => $bill->supplier_name ?? '—',
+                'total_minor' => 0.0,
+                'overdue_minor' => 0.0,
+                'oldest_days' => 0,
+                'bills' => [],
+            ];
+
+            $bySupplier[$supplierId]['total_minor'] += $outstanding;
+            $bySupplier[$supplierId]['oldest_days'] = max($bySupplier[$supplierId]['oldest_days'], $days);
+
+            if ($days > 0) {
+                $bySupplier[$supplierId]['overdue_minor'] += $outstanding;
+            }
+
+            $bySupplier[$supplierId]['bills'][] = [
+                'id' => (int) $bill->id,
+                'number' => $bill->number,
+                'due_on' => $bill->due_on,
+                'outstanding_minor' => round($outstanding, 4),
+                'days_late' => max(0, $days),
+            ];
+        }
+
+        usort($bySupplier, fn ($a, $b) => $b['total_minor'] <=> $a['total_minor']);
+
+        return [
+            'as_of' => $asOf->toDateString(),
+            'buckets' => $buckets,
+            'total_minor' => array_sum($buckets),
+            'overdue_minor' => round($overdue, 4),
+            'undated_minor' => round($undated, 4),
+            'suppliers' => array_values($bySupplier),
+            'note' => 'bucketed_by_due_date',
+        ];
+    }
+
+    /**
      * This period against the one before it, like for like.
      *
      * A number on its own — "1.2 billion rial of sales" — is not a fact a shop can act on. What

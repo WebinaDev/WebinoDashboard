@@ -844,6 +844,9 @@ Route::prefix('v1')->group(function () {
                 Route::get('/reports/replacement-cost', [CafeReportsController::class, 'replacementCost']);
                 Route::get('/reports/control', [CafeReportsController::class, 'control']);
                 Route::get('/reports/ar-aging', [CafeReportsController::class, 'aging']);
+
+                // The payable side of the same question: money due out, aged by date.
+                Route::get('/reports/payable-aging', [CafeReportsController::class, 'payableAging']);
                 Route::get('/reports/service-kpis', [CafeReportsController::class, 'service']);
                 // A number without a direction is not a fact a manager can act on.
                 Route::get('/reports/compare', [CafeReportsController::class, 'compare']);
