@@ -841,6 +841,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/reports/menu-engineering', [CafeReportsController::class, 'menuEngineering']);
                 Route::get('/reports/control', [CafeReportsController::class, 'control']);
                 Route::get('/reports/ar-aging', [CafeReportsController::class, 'aging']);
+                Route::get('/reports/service-kpis', [CafeReportsController::class, 'service']);
             });
 
             // Recipes and stock costing. Reading the cost of a dish is a catalogue act;

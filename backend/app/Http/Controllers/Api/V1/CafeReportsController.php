@@ -94,6 +94,36 @@ class CafeReportsController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    /**
+     * Service KPIs: speed, dwell, turnover, occupancy and the break-even point.
+     *
+     * Exported as a flat sheet rather than nested JSON, because the point of the export is to
+     * be pasted into a board pack, and a board pack has one column per number.
+     */
+    public function service(Request $request): JsonResponse|Response
+    {
+        [$from, $to, $branchId] = $this->range($request);
+
+        $data = $this->reports->serviceKpis($this->tenantId($request), $from, $to, $branchId);
+
+        if ($this->wantsCsv($request)) {
+            return $this->csv('service-kpis', [
+                'سفارش‌ها' => $data['orders'],
+                'فروش' => $data['revenue_minor'],
+                'میانگین سبد' => $data['average_ticket_minor'],
+                'زمان سفارش تا آماده‌شدن (دقیقه)' => $data['service']['order_to_serve_minutes'] ?? '',
+                'مدت نشستن روی میز (دقیقه)' => $data['tables']['table_dwell_minutes'] ?? '',
+                'گردش میز' => $data['tables']['table_turnover'] ?? '',
+                'ضریب اشغال (٪)' => $data['tables']['occupancy_percent'] ?? '',
+                'نقطه سر‌به‌سر' => $data['break_even']['revenue_minor'] ?? '',
+                'هزینه ثابت' => $data['break_even']['fixed_cost_minor'],
+                'حاشیه مشارکت (٪)' => $data['break_even']['contribution_percent'] ?? '',
+            ]);
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
     /** @return array{0: Carbon, 1: Carbon, 2: ?int} */
     private function range(Request $request): array
     {

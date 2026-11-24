@@ -1733,7 +1733,9 @@
       "service_mode_none": "No seat service",
       "service_mode_table_hint": "Every dine-in order must name a table.",
       "service_mode_pager_hint": "Every dine-in order must name a pager; no table is asked for.",
-      "service_mode_none_hint": "There is no seat service; a dine-in order needs neither table nor pager."
+      "service_mode_none_hint": "There is no seat service; a dine-in order needs neither table nor pager.",
+      "service_day_minutes": "Service day length (minutes)",
+      "service_day_minutes_hint": "The denominator behind occupancy and table turnover in the reports. Zero means unknown ({min}–{max})."
     },
     "recipes": {
       "title": "Recipes and plate cost",
@@ -1847,7 +1849,29 @@
       "no_receivables": "No open receivables.",
       "customer": "Customer",
       "outstanding": "Outstanding",
-      "oldest_days": "Oldest (days)"
+      "oldest_days": "Oldest (days)",
+      "tab_service_kpis": "Service KPIs",
+      "minutes": "min",
+      "kpi_service_title": "Service speed",
+      "kpi_service_hint": "From the order being taken to each line being ready.",
+      "kpi_order_to_serve": "Average order to ready",
+      "kpi_slowest_line": "Slowest line",
+      "kpi_lines_measured": "Lines measured",
+      "kpi_average_ticket": "Average ticket",
+      "kpi_tables_title": "Tables",
+      "kpi_tables_hint": "Dwell time, turnover and occupancy.",
+      "kpi_dwell": "Table dwell",
+      "kpi_turnover": "Turns per day",
+      "kpi_occupancy": "Occupancy",
+      "kpi_sittings": "Sittings / active tables",
+      "kpi_no_service_day": "The service day length is not set; occupancy is left blank rather than shown as 0% until it is filled in under operations settings.",
+      "kpi_break_even_title": "Break-even",
+      "kpi_break_even_hint": "The sales that cover fixed cost at the current contribution margin.",
+      "kpi_break_even": "Sales needed",
+      "kpi_fixed_cost": "Fixed cost",
+      "kpi_contribution": "Contribution margin",
+      "kpi_orders": "Orders",
+      "kpi_break_even_incomplete": "Contribution margin cannot be computed (no sales, or incomplete material cost), so no break-even figure is shown."
     },
     "staff": {
       "title": "Staff & payroll",

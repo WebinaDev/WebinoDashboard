@@ -27,7 +27,10 @@ final class CafeReports
     /** Statuses that count as revenue. Mirrors OrderReports::salesStatuses(). */
     public const SOLD = ['paid', 'processing', 'completed', 'shipped'];
 
-    public function __construct(private readonly \App\Services\Catalog\RecipeCosting $costing) {}
+    public function __construct(
+        private readonly \App\Services\Catalog\RecipeCosting $costing,
+        private readonly \Modules\Cafe\Services\OperationsSettings $operations,
+    ) {}
 
     /**
      * Profit and loss with a real cost of goods.
@@ -319,6 +322,161 @@ final class CafeReports
                 'cancelled_orders' => array_sum(array_column($rows, 'cancelled_orders')),
                 'short_minor' => array_sum(array_column($rows, 'short_minor')),
                 'over_minor' => array_sum(array_column($rows, 'over_minor')),
+            ],
+        ];
+    }
+
+    /**
+     * The service KPIs: how fast, how full, how long, and what it takes to break even.
+     *
+     * These are the numbers a café is judged on and none of them existed:
+     *
+     *  - **Order to serve** — from the order being taken to its line being ticked ready.
+     *    Measured per line, because a ticket where two coffees came out in four minutes and a
+     *    pastry took twenty has a problem the ticket average hides.
+     *  - **Table dwell** — from the first order opened at a table to the last one settled.
+     *  - **Turnover** — how many sittings a table does per service day.
+     *  - **Occupancy** — occupied table-minutes over the minutes the room was open.
+     *  - **Break-even** — the sales needed to cover fixed cost at the current contribution
+     *    margin, reported with its inputs, because "break-even is X" with no visible
+     *    assumption is a number nobody can act on.
+     *
+     * A figure that cannot be computed from the data is `null`, never zero: a zero dwell time
+     * reads as excellent service, while an absent one reads as missing data, which is the truth.
+     *
+     * Times are computed in PHP rather than SQL because `orders.meta` is JSON and the two
+     * engines the product runs on (SQLite in tests, MySQL in production) disagree about how to
+     * reach into it. The query is bounded by the date range and by the columns it selects.
+     *
+     * @return array<string, mixed>
+     */
+    public function serviceKpis(int $tenantId, Carbon $from, Carbon $to, ?int $branchId = null): array
+    {
+        $orders = DB::table('orders')
+            ->where('tenant_id', $tenantId)
+            ->when($branchId !== null, fn ($q) => $q->where('branch_id', $branchId))
+            ->whereBetween('created_at', [$from, $to])
+            ->whereIn('status', self::SOLD)
+            ->whereNull('deleted_at')
+            ->get(['id', 'created_at', 'meta', 'total_minor']);
+
+        $sold = $orders->count();
+        $revenue = (int) round((float) $orders->sum('total_minor'));
+
+        // --- order to serve -----------------------------------------------------------
+        // A prep tick is the only real timestamp for "the kitchen finished this line".
+        $ready = DB::table('cafe_order_item_prep as p')
+            ->join('orders as o', 'p.order_id', '=', 'o.id')
+            ->where('p.tenant_id', $tenantId)
+            ->when($branchId !== null, fn ($q) => $q->where('o.branch_id', $branchId))
+            ->whereBetween('o.created_at', [$from, $to])
+            ->whereNull('o.deleted_at')
+            ->where('p.status', 'ready')
+            ->whereNotNull('p.marked_at')
+            ->get(['o.created_at', 'p.marked_at'])
+            ->map(fn ($row): int => (int) round(
+                (strtotime((string) $row->marked_at) - strtotime((string) $row->created_at)) / 60,
+            ))
+            ->filter(fn (int $minutes): bool => $minutes >= 0)
+            ->values();
+
+        // --- table dwell and turnover ---------------------------------------------------
+        // Dwell is per table per day: two sittings at the same table on the same day are two
+        // sittings, and averaging them as one hides the difference between a quick lunch and
+        // a table that never got cleared.
+        $sittings = [];
+
+        foreach ($orders as $order) {
+            $meta = is_array($order->meta) ? $order->meta : (json_decode((string) $order->meta, true) ?: []);
+            $table = trim((string) ($meta['table_code'] ?? ''));
+            if ($table === '') {
+                continue;
+            }
+
+            $day = substr((string) $order->created_at, 0, 10);
+            $key = $table.'|'.$day;
+
+            $sittings[$key] ??= ['table' => $table, 'day' => $day, 'orders' => 0, 'opened_at' => null, 'last_at' => null];
+            $sittings[$key]['orders']++;
+
+            $at = strtotime((string) $order->created_at);
+            $sittings[$key]['opened_at'] = min($sittings[$key]['opened_at'] ?? $at, $at);
+            $sittings[$key]['last_at'] = max($sittings[$key]['last_at'] ?? $at, $at);
+        }
+
+        $sittings = array_values($sittings);
+        $dwell = array_map(
+            fn (array $s): int => (int) round(($s['last_at'] - $s['opened_at']) / 60),
+            $sittings,
+        );
+
+        $tables = DB::table('cafe_tables')
+            ->where('tenant_id', $tenantId)
+            ->when($branchId !== null, fn ($q) => $q->where('branch_id', $branchId))
+            ->where('is_active', true)
+            ->count();
+
+        $days = max(1, (int) abs($from->diffInDays($to)) + 1);
+
+        // One sitting per table per day is a turn of one; 2.4 means the table was used two and
+        // a half times in a service day.
+        $turnover = $tables > 0 ? round(count($sittings) / ($tables * $days), 2) : null;
+
+        // Occupancy needs to know how long the room was open. The setting is the configured
+        // service day; absent a sane one the honest answer is "unknown" rather than a made-up
+        // denominator that would make a busy room look empty.
+        $dayMinutes = (int) ($this->operations->get($tenantId)['service_day_minutes'] ?? 0);
+        $occupiedMinutes = array_sum($dwell);
+        $occupancy = $tables > 0 && $dayMinutes > 0
+            ? round(($occupiedMinutes / ($tables * $dayMinutes * $days)) * 100, 1)
+            : null;
+
+        // --- break-even ----------------------------------------------------------------
+        // Contribution margin comes from the P&L so the two reports cannot disagree about it.
+        $pl = $this->profitAndLoss($tenantId, $from, $to, $branchId, true);
+
+        $netRevenue = (int) $pl['revenue']['net_minor'];
+        $materialCost = (int) $pl['cost_of_sales']['material_minor'];
+        $contribution = $netRevenue > 0 ? ($netRevenue - $materialCost) / $netRevenue : null;
+
+        // Fixed cost is every operating expense the ledger knows about, plus payroll that the
+        // ledger does not already carry. COGS is deliberately not in it: it is the variable side
+        // of the same equation, and counting it here would ask the shop to cover its ingredients
+        // twice — once below the margin and once above it.
+        $fixedCost = max(0, (int) $pl['expenses_minor'] + (int) ($pl['payroll_in_ledger'] ? 0 : $pl['payroll_minor']));
+
+        $breakEven = $contribution !== null && $contribution > 0
+            ? (int) round($fixedCost / $contribution)
+            : null;
+
+        return [
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'branch_id' => $branchId,
+            'days' => $days,
+            'orders' => $sold,
+            'revenue_minor' => $revenue,
+            'average_ticket_minor' => $sold > 0 ? (int) round($revenue / $sold) : 0,
+            'service' => [
+                'order_to_serve_minutes' => $ready->isEmpty() ? null : round($ready->avg(), 1),
+                'slowest_line_minutes' => $ready->isEmpty() ? null : (int) $ready->max(),
+                'lines_measured' => $ready->count(),
+            ],
+            'tables' => [
+                'table_dwell_minutes' => $dwell === [] ? null : round(array_sum($dwell) / count($dwell), 1),
+                'sittings' => count($sittings),
+                'active_tables' => $tables,
+                'table_turnover' => $turnover,
+                'occupancy_percent' => $occupancy,
+                // Surfaced so the screen can say why occupancy is blank instead of showing 0%.
+                'service_day_minutes' => $dayMinutes,
+            ],
+            'break_even' => [
+                'revenue_minor' => $breakEven,
+                'fixed_cost_minor' => $fixedCost,
+                'contribution_percent' => $contribution === null ? null : round($contribution * 100, 2),
+                // Null means the number cannot be trusted; the screen says which input is missing.
+                'complete' => $breakEven !== null,
             ],
         ];
     }

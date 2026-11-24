@@ -4257,7 +4257,9 @@
       "service_mode_none": "بدون سرویس سالن",
       "service_mode_table_hint": "برای هر سفارش سالن، انتخاب میز الزامی است.",
       "service_mode_pager_hint": "برای هر سفارش سالن، شماره پیجر الزامی است و میز پرسیده نمی‌شود.",
-      "service_mode_none_hint": "سرویس سالن ندارید؛ سفارش سالن به میز یا پیجر نیاز ندارد."
+      "service_mode_none_hint": "سرویس سالن ندارید؛ سفارش سالن به میز یا پیجر نیاز ندارد.",
+      "service_day_minutes": "طول روز کاری (دقیقه)",
+      "service_day_minutes_hint": "مبنای محاسبه ضریب اشغال و گردش میز در گزارش‌ها. صفر یعنی نامشخص ({min} تا {max})."
     },
     "recipes": {
       "title": "رسپی و بهای تمام‌شده",
@@ -4371,7 +4373,29 @@
       "no_receivables": "مطالبه باز وجود ندارد.",
       "customer": "مشتری",
       "outstanding": "مانده",
-      "oldest_days": "قدیمی‌ترین (روز)"
+      "oldest_days": "قدیمی‌ترین (روز)",
+      "tab_service_kpis": "شاخص‌های سرویس",
+      "minutes": "دقیقه",
+      "kpi_service_title": "سرعت سرویس",
+      "kpi_service_hint": "از ثبت سفارش تا آماده‌شدن هر قلم.",
+      "kpi_order_to_serve": "میانگین سفارش تا آماده",
+      "kpi_slowest_line": "کندترین قلم",
+      "kpi_lines_measured": "تعداد قلم اندازه‌گیری‌شده",
+      "kpi_average_ticket": "میانگین سبد",
+      "kpi_tables_title": "میزها",
+      "kpi_tables_hint": "مدت نشستن، گردش و ضریب اشغال میز.",
+      "kpi_dwell": "مدت نشستن روی میز",
+      "kpi_turnover": "گردش میز در روز",
+      "kpi_occupancy": "ضریب اشغال",
+      "kpi_sittings": "نشست‌ها / میزهای فعال",
+      "kpi_no_service_day": "ساعت کاری روزانه تنظیم نشده است؛ تا زمانی که در تنظیمات عملیاتی وارد نشود، ضریب اشغال محاسبه نمی‌شود.",
+      "kpi_break_even_title": "نقطه سر‌به‌سر",
+      "kpi_break_even_hint": "فروشی که هزینه ثابت را با حاشیه فعلی پوشش می‌دهد.",
+      "kpi_break_even": "فروش لازم",
+      "kpi_fixed_cost": "هزینه ثابت",
+      "kpi_contribution": "حاشیه مشارکت",
+      "kpi_orders": "سفارش‌ها",
+      "kpi_break_even_incomplete": "حاشیه مشارکت قابل محاسبه نیست (فروش صفر یا بهای مواد ناقص)؛ عدد سر‌به‌سر نمایش داده نمی‌شود."
     },
     "staff": {
       "title": "پرسنل و حقوق",

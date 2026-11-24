@@ -69,9 +69,35 @@ type Aging = {
   customers: { person_id: number; name: string; total_minor: number; oldest_days: number }[]
 }
 
-type ReportKind = "profit-loss" | "menu-engineering" | "control" | "ar-aging"
+type Kpis = {
+  from: string
+  to: string
+  days: number
+  orders: number
+  revenue_minor: number
+  average_ticket_minor: number
+  service: { order_to_serve_minutes: number | null; slowest_line_minutes: number | null; lines_measured: number }
+  tables: {
+    table_dwell_minutes: number | null
+    sittings: number
+    active_tables: number
+    table_turnover: number | null
+    occupancy_percent: number | null
+    service_day_minutes: number
+  }
+  break_even: {
+    revenue_minor: number | null
+    fixed_cost_minor: number
+    contribution_percent: number | null
+    complete: boolean
+  }
+}
 
-const TABS: ReportKind[] = ["profit-loss", "menu-engineering", "control", "ar-aging"]
+type ReportKind = "profit-loss" | "menu-engineering" | "control" | "ar-aging" | "service-kpis"
+
+// Service KPIs come first in the list: "how fast and how full" is the question asked every
+// morning, and the money reports answer the question asked at month end.
+const TABS: ReportKind[] = ["service-kpis", "profit-loss", "menu-engineering", "control", "ar-aging"]
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10)
@@ -117,6 +143,13 @@ export default function ReportsPageClient({ route: _route }: { route: ResolvedAd
     retry: false,
   })
 
+  const kpis = useQuery({
+    queryKey: ["cafe-report-kpis", qs],
+    enabled: tab === "service-kpis",
+    queryFn: async () => (await api<{ data: Kpis }>(`/api/v1/reports/service-kpis?${qs}`))?.data ?? null,
+    retry: false,
+  })
+
   const aging = useQuery({
     queryKey: ["cafe-report-aging", to],
     enabled: tab === "ar-aging",
@@ -156,6 +189,11 @@ export default function ReportsPageClient({ route: _route }: { route: ResolvedAd
     link.remove()
     URL.revokeObjectURL(url)
   }
+
+  // A null KPI is shown as an em dash, never as zero: "0 minutes to serve" and "we could not
+  // measure" are very different statements and only one of them is true here.
+  const minutes = (value: number | null | undefined) =>
+    value === null || value === undefined ? "—" : `${toLocaleDigits(String(value), locale)} ${t("minutes")}`
 
   const percent = (value: number | null | undefined) =>
     value === null || value === undefined ? "—" : `${toLocaleDigits(String(value), locale)}٪`
@@ -211,6 +249,79 @@ export default function ReportsPageClient({ route: _route }: { route: ResolvedAd
           ))}
         </div>
       </CafeSection>
+
+      {tab === "service-kpis" ? (
+        !kpis.data ? (
+          <CafeEmptyState message={t("unavailable")} />
+        ) : (
+          <>
+            <CafeSection title={t("kpi_service_title")} description={t("kpi_service_hint")}>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Stat label={t("kpi_order_to_serve")} value={minutes(kpis.data.service.order_to_serve_minutes)} />
+                <Stat label={t("kpi_slowest_line")} value={minutes(kpis.data.service.slowest_line_minutes)} />
+                <Stat
+                  label={t("kpi_lines_measured")}
+                  value={toLocaleDigits(String(kpis.data.service.lines_measured), locale)}
+                />
+                <Stat label={t("kpi_average_ticket")} value={<MoneyText amount={kpis.data.average_ticket_minor} />} />
+              </div>
+            </CafeSection>
+
+            <CafeSection title={t("kpi_tables_title")} description={t("kpi_tables_hint")}>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Stat label={t("kpi_dwell")} value={minutes(kpis.data.tables.table_dwell_minutes)} />
+                <Stat
+                  label={t("kpi_turnover")}
+                  value={
+                    kpis.data.tables.table_turnover === null
+                      ? "—"
+                      : toLocaleDigits(String(kpis.data.tables.table_turnover), locale)
+                  }
+                />
+                <Stat label={t("kpi_occupancy")} value={percent(kpis.data.tables.occupancy_percent)} />
+                <Stat
+                  label={t("kpi_sittings")}
+                  value={`${toLocaleDigits(String(kpis.data.tables.sittings), locale)} / ${toLocaleDigits(
+                    String(kpis.data.tables.active_tables),
+                    locale,
+                  )}`}
+                />
+              </div>
+
+              {/* Occupancy has a denominator; when it is missing say so rather than show 0%. */}
+              {kpis.data.tables.service_day_minutes <= 0 ? (
+                <p className="text-destructive text-xs" role="alert">
+                  {t("kpi_no_service_day")}
+                </p>
+              ) : null}
+            </CafeSection>
+
+            <CafeSection title={t("kpi_break_even_title")} description={t("kpi_break_even_hint")}>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Stat
+                  label={t("kpi_break_even")}
+                  value={
+                    kpis.data.break_even.revenue_minor === null ? (
+                      "—"
+                    ) : (
+                      <MoneyText amount={kpis.data.break_even.revenue_minor} />
+                    )
+                  }
+                />
+                <Stat label={t("kpi_fixed_cost")} value={<MoneyText amount={kpis.data.break_even.fixed_cost_minor} />} />
+                <Stat label={t("kpi_contribution")} value={percent(kpis.data.break_even.contribution_percent)} />
+                <Stat label={t("kpi_orders")} value={toLocaleDigits(String(kpis.data.orders), locale)} />
+              </div>
+
+              {!kpis.data.break_even.complete ? (
+                <p className="text-destructive text-xs" role="alert">
+                  {t("kpi_break_even_incomplete")}
+                </p>
+              ) : null}
+            </CafeSection>
+          </>
+        )
+      ) : null}
 
       {tab === "profit-loss" ? (
         pl.isLoading ? (

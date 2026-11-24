@@ -373,4 +373,186 @@ class CafeReportsTest extends TestCase
 
         $this->assertSame(0, $pl['payroll_minor']);
     }
+
+    // --- service KPIs -------------------------------------------------------------------
+
+    /** Mark every line of an order ready `$minutes` after it was taken. */
+    private function readyAfter(Order $order, int $minutes): void
+    {
+        DB::table('cafe_order_item_prep')->insert([
+            'tenant_id' => $this->tenant->id,
+            'order_id' => $order->id,
+            'order_item_id' => DB::table('order_items')->where('order_id', $order->id)->value('id'),
+            'status' => 'ready',
+            'marked_at' => $order->created_at->copy()->addMinutes($minutes),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function table(string $code): void
+    {
+        DB::table('cafe_tables')->insertOrIgnore([
+            'tenant_id' => $this->tenant->id,
+            'code' => $code,
+            'label' => $code,
+            'seats' => 4,
+            'is_active' => true,
+            'sort_order' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * Order to serve averages over the lines that were actually ticked.
+     *
+     * Two tickets, 6 and 14 minutes: 10 minutes is the answer. The average is over lines and
+     * not tickets because a ticket is only as fast as its slowest dish.
+     */
+    public function test_order_to_serve_is_measured_from_the_prep_ticks(): void
+    {
+        $latte = $this->dish('Latte', 50000);
+
+        $this->readyAfter($this->sell($latte, 1, 50000), 6);
+        $this->readyAfter($this->sell($latte, 1, 50000), 14);
+
+        $kpi = app(CafeReports::class)->serviceKpis($this->tenant->id, now()->subDay(), now()->addDay());
+
+        $this->assertSame(10.0, $kpi['service']['order_to_serve_minutes']);
+        $this->assertSame(14, $kpi['service']['slowest_line_minutes']);
+        $this->assertSame(2, $kpi['service']['lines_measured']);
+    }
+
+    /**
+     * A kitchen that has ticked nothing has an unknown service time, not a perfect one.
+     *
+     * This is the assertion that keeps "0 minutes" out of a report an owner would read as
+     * excellent rather than empty.
+     */
+    public function test_an_unticked_kitchen_reports_no_service_time_rather_than_zero(): void
+    {
+        $latte = $this->dish('Latte', 50000);
+        $this->sell($latte, 1, 50000);
+
+        $kpi = app(CafeReports::class)->serviceKpis($this->tenant->id, now()->subDay(), now()->addDay());
+
+        $this->assertNull($kpi['service']['order_to_serve_minutes']);
+        $this->assertSame(0, $kpi['service']['lines_measured']);
+    }
+
+    /**
+     * One sitting per table per day, and dwell from the first order to the last.
+     *
+     * T1 is used at 10:00 and 10:40: one sitting, 40 minutes, not two. T2 at 12:00 is a second
+     * sitting of zero minutes. Average dwell is 20 minutes; two sittings over two tables in one
+     * day is a turnover of 1.0.
+     */
+    public function test_dwell_and_turnover_are_per_table_per_day(): void
+    {
+        $latte = $this->dish('Latte', 50000);
+        $this->table('T1');
+        $this->table('T2');
+
+        $at = now()->setTime(10, 0);
+        $this->sell($latte, 1, 50000, ['created_at' => $at->copy(), 'meta' => ['table_code' => 'T1']]);
+        $this->sell($latte, 1, 50000, ['created_at' => $at->copy()->addMinutes(40), 'meta' => ['table_code' => 'T1']]);
+        $this->sell($latte, 1, 50000, ['created_at' => $at->copy()->addHours(2), 'meta' => ['table_code' => 'T2']]);
+
+        [$from, $to] = [now()->startOfDay(), now()->endOfDay()];
+        $kpi = app(CafeReports::class)->serviceKpis($this->tenant->id, $from, $to);
+
+        $this->assertSame(2, $kpi['tables']['sittings'], 'two orders at one table are one sitting');
+        $this->assertSame(20.0, $kpi['tables']['table_dwell_minutes']);
+        $this->assertSame(2, $kpi['tables']['active_tables']);
+        $this->assertSame(1.0, $kpi['tables']['table_turnover']);
+        $this->assertSame(1, $kpi['days']);
+    }
+
+    /**
+     * Occupancy without a configured service day is unknown, not 0%.
+     *
+     * With 720 minutes open, one table and one 40-minute sitting, occupancy is 40/720 = 5.6%.
+     */
+    public function test_occupancy_needs_a_service_day_and_says_so_when_it_is_missing(): void
+    {
+        $latte = $this->dish('Latte', 50000);
+        $this->table('T1');
+
+        $at = now()->setTime(10, 0);
+        $this->sell($latte, 1, 50000, ['created_at' => $at->copy(), 'meta' => ['table_code' => 'T1']]);
+        $this->sell($latte, 1, 50000, ['created_at' => $at->copy()->addMinutes(40), 'meta' => ['table_code' => 'T1']]);
+
+        [$from, $to] = [now()->startOfDay(), now()->endOfDay()];
+
+        app(\Modules\Cafe\Services\OperationsSettings::class)->put($this->tenant->id, ['service_day_minutes' => 0]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $off = app(CafeReports::class)->serviceKpis($this->tenant->id, $from, $to);
+        $this->assertNull($off['tables']['occupancy_percent']);
+        $this->assertSame(0, $off['tables']['service_day_minutes']);
+
+        app(\Modules\Cafe\Services\OperationsSettings::class)->put($this->tenant->id, ['service_day_minutes' => 720]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $on = app(CafeReports::class)->serviceKpis($this->tenant->id, $from, $to);
+        $this->assertSame(5.6, $on['tables']['occupancy_percent'], '40 minutes over a 720-minute day');
+    }
+
+    /**
+     * Break-even from the same margin the P&L reports.
+     *
+     * 500,000 of sales costs 150,000 in beans, so contribution is 70%. Rent of 210,000 is
+     * covered by 300,000 of sales: 300,000 × 70% = 210,000.
+     */
+    public function test_break_even_is_derived_from_the_profit_and_loss_margin(): void
+    {
+        $beans = $this->accProduct('Beans');
+        app(RecipeCosting::class)->receive($this->tenant->id, 'acc_product', $beans, 1000, 100);
+        $latte = $this->dish('Latte', 50000, [[$beans, 150]]);
+        $this->sell($latte, 10, 50000);
+
+        $rent = DB::table('acc_chart_accounts')->insertGetId([
+            'tenant_id' => $this->tenant->id,
+            'code' => '6102',
+            'name' => 'اجاره',
+            'type' => 'expense',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $entry = DB::table('acc_journal_entries')->insertGetId([
+            'tenant_id' => $this->tenant->id,
+            'document_date' => now()->toDateString(),
+            'status' => 'posted',
+            'description' => 'rent',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('acc_journal_lines')->insert([
+            'journal_entry_id' => $entry,
+            'account_id' => $rent,
+            'debit' => 210000,
+            'credit' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $kpi = app(CafeReports::class)->serviceKpis($this->tenant->id, now()->subDay(), now()->addDay());
+
+        $this->assertSame(70.0, $kpi['break_even']['contribution_percent']);
+        $this->assertSame(210000, $kpi['break_even']['fixed_cost_minor']);
+        $this->assertSame(300000, $kpi['break_even']['revenue_minor']);
+        $this->assertTrue($kpi['break_even']['complete']);
+    }
+
+    /** No sales means no margin, and a break-even with no margin is not a number to show. */
+    public function test_break_even_is_absent_without_sales(): void
+    {
+        $kpi = app(CafeReports::class)->serviceKpis($this->tenant->id, now()->subDay(), now()->addDay());
+
+        $this->assertNull($kpi['break_even']['revenue_minor']);
+        $this->assertFalse($kpi['break_even']['complete']);
+    }
 }

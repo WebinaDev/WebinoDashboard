@@ -31,6 +31,7 @@ type OperationsSettings = {
   kds_late_after_minutes: number
   table_overdue_after_minutes: number
   queue_stale_after_minutes: number
+  service_day_minutes: number
   enforce_delivery_minimum: boolean
   default_delivery_eta_minutes: number
 }
@@ -44,6 +45,8 @@ const NUMERIC: { key: keyof OperationsSettings; min: number; max: number }[] = [
   { key: "kds_late_after_minutes", min: 1, max: 240 },
   { key: "table_overdue_after_minutes", min: 5, max: 600 },
   { key: "queue_stale_after_minutes", min: 1, max: 120 },
+  // The denominator for occupancy and turnover. Zero is allowed and means "unknown".
+  { key: "service_day_minutes", min: 0, max: 1440 },
   { key: "default_delivery_eta_minutes", min: 5, max: 180 },
 ]
 
