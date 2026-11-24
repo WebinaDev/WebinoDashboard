@@ -11961,5 +11961,8 @@
     "week": "هفته",
     "cheques": "چک",
     "bills": "فاکتور خرید"
-  }
+  },
+  "accounting_reports_branch": "شعبه",
+  "accounting_reports_all_branches": "همه",
+  "accounting_reports_include_unassigned": "سندهای بدون شعبه هم بیاید"
 }

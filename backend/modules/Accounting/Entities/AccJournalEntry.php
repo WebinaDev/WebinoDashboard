@@ -16,6 +16,8 @@ class AccJournalEntry extends Model
 
     protected $fillable = [
         'tenant_id',        'fiscal_year_id',
+        // Which branch the entry belongs to; null = not branch specific (head office).
+        'branch_id',
         'document_no',
         'document_date',
         'description',

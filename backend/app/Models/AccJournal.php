@@ -24,6 +24,7 @@ class AccJournal extends Model
 
     protected $fillable = [
         'tenant_id',
+        'branch_id',
         'order_id',
         'number',
         'date',

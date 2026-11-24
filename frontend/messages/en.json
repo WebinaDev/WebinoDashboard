@@ -11963,5 +11963,8 @@
     "week": "Week",
     "cheques": "Cheques",
     "bills": "Supplier bills"
-  }
+  },
+  "accounting_reports_branch": "Branch",
+  "accounting_reports_all_branches": "All",
+  "accounting_reports_include_unassigned": "Include entries with no branch"
 }

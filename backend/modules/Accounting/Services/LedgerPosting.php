@@ -36,7 +36,7 @@ final class LedgerPosting
      * Post a set of lines as one journal entry.
      *
      * @param  list<array{code: string, debit?: float|int, credit?: float|int, description?: string|null}>  $lines
-     * @param  array{document_no?: string|null, document_date?: mixed, description?: string|null, created_by?: int|null, fiscal_year_id?: int|null, source?: string|null, status?: string|null}  $meta
+     * @param  array{document_no?: string|null, document_date?: mixed, description?: string|null, created_by?: int|null, fiscal_year_id?: int|null, source?: string|null, status?: string|null, branch_id?: int|null}  $meta
      */
     public function post(array $lines, array $meta = []): AccJournalEntry
     {
@@ -98,6 +98,9 @@ final class LedgerPosting
         return DB::transaction(function () use ($resolved, $meta, $date, $fiscalYearId, $debit, $credit): AccJournalEntry {
             $entry = AccJournalEntry::query()->create([
                 'fiscal_year_id' => $fiscalYearId ?? $this->yearIdFor($date),
+                // A journal belongs to one place; the lines inherit it. Null means "not branch
+                // specific", which reports show as unassigned rather than filing under branch 1.
+                'branch_id' => $meta['branch_id'] ?? null,
                 'document_no' => $meta['document_no'] ?? null,
                 'document_date' => $date,
                 'description' => $meta['description'] ?? null,

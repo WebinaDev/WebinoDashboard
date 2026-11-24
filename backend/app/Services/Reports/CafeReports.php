@@ -658,6 +658,7 @@ final class CafeReports
             ->where('je.tenant_id', $tenantId)
             ->whereBetween('je.document_date', [$from, $to])
             ->whereIn('je.status', ['posted', 'confirmed'])
+            ->when($branchId !== null, fn ($q) => $q->where('je.branch_id', $branchId))
             ->where('a.code', $vatCode)
             ->selectRaw('COALESCE(SUM(jl.credit),0) as output_vat')
             ->selectRaw('COALESCE(SUM(jl.debit),0) as input_vat')
@@ -714,14 +715,16 @@ final class CafeReports
     /** Operating expenses from the chart, grouped by account. */
     private function expenseLines(int $tenantId, Carbon $from, Carbon $to, ?int $branchId): array
     {
-        // Branch is not modelled on ledger lines; filtering here would silently drop expenses
-        // rather than narrow them, so the flag is reported instead of applied.
+        // Journals now carry a branch, so the filter narrows rather than silently dropping.
+        // An entry with no branch is head-office cost and stays out of a branch P&L unless it is
+        // explicitly asked for — summing it in would make one branch look unprofitable.
         $rows = DB::table('acc_journal_lines as jl')
             ->join('acc_journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
             ->join('acc_chart_accounts as a', 'jl.account_id', '=', 'a.id')
             ->where('je.tenant_id', $tenantId)
             ->whereBetween('je.document_date', [$from, $to])
             ->whereIn('je.status', ['posted', 'confirmed'])
+            ->when($branchId !== null, fn ($q) => $q->where('je.branch_id', $branchId))
             ->where('a.type', 'expense')
             // COGS is already counted from the frozen line costs; counting the ledger's COGS
             // account too would double it.

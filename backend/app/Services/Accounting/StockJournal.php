@@ -48,7 +48,7 @@ final class StockJournal
     }
 
     /**
-     * @param  array{reference?: string|null, description?: string|null, document_date?: mixed}  $meta
+     * @param  array{reference?: string|null, description?: string|null, document_date?: mixed, branch_id?: int|null}  $meta
      * @return array{posted: bool, value_minor: float, entry_id?: int}
      */
     private function post(int $tenantId, string $direction, float $valueMinor, array $meta): array
@@ -85,6 +85,8 @@ final class StockJournal
                 'document_date' => $meta['document_date'] ?? now(),
                 'description' => $meta['description'] ?? ($direction === 'inventory_in' ? 'ورود کالا به انبار' : 'خروج کالا از انبار'),
                 'document_no' => $meta['reference'] ?? null,
+                // A warehouse belongs to a branch, so its movements do too.
+                'branch_id' => $meta['branch_id'] ?? null,
                 'status' => 'posted',
             ],
         ));

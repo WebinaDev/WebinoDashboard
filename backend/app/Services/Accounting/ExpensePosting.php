@@ -89,6 +89,9 @@ final class ExpensePosting
                     'document_date' => $spentOn,
                     'description' => $data['title'],
                     'document_no' => $data['reference'] ?? null,
+                    // An expense can belong to one branch (that shop's electricity bill) or to
+                    // none (head office). It is never guessed.
+                    'branch_id' => $data['branch_id'] ?? null,
                     'status' => 'posted',
                     'created_by' => $userId,
                 ],
@@ -105,6 +108,7 @@ final class ExpensePosting
                 'expense_account_code' => $expenseCode,
                 'reference' => $data['reference'] ?? null,
                 'notes' => $data['notes'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
                 'journal_entry_id' => $entry->id,
                 'created_by' => $userId,
                 'created_at' => now(),

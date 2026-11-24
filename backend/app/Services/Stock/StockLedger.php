@@ -76,6 +76,8 @@ final class StockLedger
                 'reference' => $meta['reference_type'] ?? null,
                 'document_date' => $meta['document_date'] ?? null,
                 'description' => $meta['note'] ?? null,
+                // The warehouse's branch, resolved from the warehouse the goods landed in.
+                'branch_id' => $this->branchForWarehouse($tenantId, $meta['warehouse_id'] ?? null),
             ]);
 
             return [
@@ -132,6 +134,7 @@ final class StockLedger
                 'reference' => $meta['reference_type'] ?? null,
                 'document_date' => $meta['document_date'] ?? null,
                 'description' => $trimmed,
+                'branch_id' => $this->branchForWarehouse($tenantId, $meta['warehouse_id'] ?? null),
             ]);
 
             return ['value_minor' => $value, 'journal_entry_id' => $posted['entry_id'] ?? null];
@@ -165,8 +168,14 @@ final class StockLedger
 
             // A positive delta is stock found; negative is stock lost.
             $posted = $value >= 0
-                ? $this->journal->receive($tenantId, $value, ['description' => $meta['note'] ?? 'مازاد انبار'])
-                : $this->journal->issue($tenantId, $value, ['description' => $meta['note'] ?? 'کسری انبار']);
+                ? $this->journal->receive($tenantId, $value, [
+                    'description' => $meta['note'] ?? 'مازاد انبار',
+                    'branch_id' => $this->branchForWarehouse($tenantId, $meta['warehouse_id'] ?? null),
+                ])
+                : $this->journal->issue($tenantId, $value, [
+                    'description' => $meta['note'] ?? 'کسری انبار',
+                    'branch_id' => $this->branchForWarehouse($tenantId, $meta['warehouse_id'] ?? null),
+                ]);
 
             return [
                 'delta' => $result['delta'],
@@ -209,6 +218,26 @@ final class StockLedger
      * are summed for that product and written back. Without a warehouse id the item is put in
      * the tenant's default store, which is where the accounting screens look for it.
      */
+    /**
+     * The branch a warehouse belongs to, or null when it has none.
+     *
+     * Read rather than required: a shop with one branch never sets `acc_warehouses.branch_id`,
+     * and demanding it would make every receipt fail to post.
+     */
+    private function branchForWarehouse(int $tenantId, mixed $warehouseId): ?int
+    {
+        if ($warehouseId === null) {
+            return null;
+        }
+
+        $branchId = DB::table('acc_warehouses')
+            ->where('tenant_id', $tenantId)
+            ->where('id', (int) $warehouseId)
+            ->value('branch_id');
+
+        return $branchId === null ? null : (int) $branchId;
+    }
+
     private function syncWarehouseCache(int $tenantId, int $productId): void
     {
         if (! DB::getSchemaBuilder()->hasTable('acc_warehouse_stock')) {

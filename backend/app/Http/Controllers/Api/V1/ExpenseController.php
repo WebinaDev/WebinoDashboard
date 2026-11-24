@@ -45,6 +45,7 @@ class ExpenseController extends Controller
             ->leftJoin('acc_cash_accounts as c', 'e.cash_account_id', '=', 'c.id')
             ->where('e.tenant_id', $tenantId)
             ->when($request->filled('category'), fn ($q) => $q->where('e.category', (string) $request->input('category')))
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('e.branch_id', (int) $request->input('branch_id')))
             ->when($request->filled('from'), fn ($q) => $q->whereDate('e.spent_on', '>=', (string) $request->input('from')))
             ->when($request->filled('to'), fn ($q) => $q->whereDate('e.spent_on', '<=', (string) $request->input('to')))
             ->orderByDesc('e.spent_on')
@@ -72,6 +73,7 @@ class ExpenseController extends Controller
             'cash_account_id' => ['nullable', 'integer'],
             'reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'branch_id' => ['nullable', 'integer'],
         ]);
 
         $result = $this->expenses->record((int) $request->user()->tenant_id, $data, (int) $request->user()->id);
@@ -89,6 +91,7 @@ class ExpenseController extends Controller
             ->leftJoin('acc_persons as p', 'b.supplier_id', '=', 'p.id')
             ->where('b.tenant_id', $tenantId)
             ->when($request->filled('status'), fn ($q) => $q->where('b.status', (string) $request->input('status')))
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('b.branch_id', (int) $request->input('branch_id')))
             ->orderBy('b.due_on')
             ->orderByDesc('b.id')
             ->limit(200)
@@ -131,6 +134,7 @@ class ExpenseController extends Controller
             'due_on' => ['nullable', 'date'],
             'total_minor' => ['required', 'numeric', 'gt:0'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'branch_id' => ['nullable', 'integer'],
         ]);
 
         $result = $this->bills->create((int) $request->user()->tenant_id, $data, (int) $request->user()->id);
