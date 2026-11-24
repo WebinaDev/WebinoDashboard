@@ -19,6 +19,7 @@ use App\Services\Security\SecuritySettings;
 use App\Services\Shop\ShopSettings;
 use App\Services\Shop\StorefrontAppearanceService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class TenantSettingsController extends Controller
 {
@@ -359,6 +360,7 @@ class TenantSettingsController extends Controller
                 'admin_email' => '',
                 'timezone' => 'Asia/Tehran',
                 'enamad_file' => '',
+                'samandehi_verification' => '',
             ],
             'site.privacy' => [
                 'guest_checkout' => false,
@@ -435,6 +437,7 @@ class TenantSettingsController extends Controller
             'admin_email' => (string) ($stored['admin_email'] ?? ''),
             'timezone' => (string) ($stored['timezone'] ?? 'Asia/Tehran'),
             'enamad_file' => \App\Support\EnamadFile::normalize($stored['enamad_file'] ?? ''),
+            'samandehi_verification' => (string) ($stored['samandehi_verification'] ?? ''),
         ];
     }
 
@@ -444,6 +447,9 @@ class TenantSettingsController extends Controller
      */
     private function saveSiteGeneral(int $tenantId, ModuleSettingsService $settings, array $input): array
     {
+        Validator::make($input, [
+            'samandehi_verification' => ['sometimes', 'nullable', 'string', 'max:128', 'regex:/\A[A-Za-z0-9_-]+\z/'],
+        ])->validate();
         $previous = $settings->get($tenantId, 'settings', 'site.general', $this->defaultsFor('site.general'));
         $clean = [
             'site_title' => mb_substr(trim((string) ($input['site_title'] ?? '')), 0, 255),
@@ -453,6 +459,9 @@ class TenantSettingsController extends Controller
             'enamad_file' => array_key_exists('enamad_file', $input)
                 ? \App\Support\EnamadFile::normalize($input['enamad_file'])
                 : \App\Support\EnamadFile::normalize($previous['enamad_file'] ?? ''),
+            'samandehi_verification' => array_key_exists('samandehi_verification', $input)
+                ? (string) ($input['samandehi_verification'] ?? '')
+                : (string) ($previous['samandehi_verification'] ?? ''),
         ];
         $settings->put($tenantId, 'settings', 'site.general', $clean);
         $tenant = \App\Models\Tenant::query()->find($tenantId);

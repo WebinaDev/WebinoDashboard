@@ -158,4 +158,15 @@ class PublicSeoController extends Controller
 
         return EnamadFile::response((string) ($stored['enamad_file'] ?? ''), $code);
     }
+
+    public function platformVerification(Request $request, ModuleSettingsService $settings, \App\Services\Tenant\TenantResolver $resolver): \Illuminate\Http\JsonResponse
+    {
+        $tenant = $resolver->identifyFromRequest($request);
+        abort_unless($tenant, 404);
+        $stored = $settings->get((int) $tenant->id, 'settings', 'site.general', []);
+        $code = $stored['samandehi_verification'] ?? '';
+        $code = is_string($code) && preg_match('/\A[A-Za-z0-9_-]{1,128}\z/', $code) ? $code : '';
+
+        return response()->json(['data' => ['code' => $code]])->header('Cache-Control', 'no-store, private');
+    }
 }

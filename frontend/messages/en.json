@@ -3944,7 +3944,9 @@
       "timezone": "Timezone",
       "enamad_file": "eNamad verification file",
       "enamad_hint": "Enter the eNamad number only. An empty public text file is published at the site root, for example 4534534.txt.",
-      "enamad_public": "Public address: /{file}"
+      "enamad_public": "Public address: /{file}",
+      "samandehi_verification": "Samandehi verification code",
+      "samandehi_hint": "Enter and save the verification code. Both the verification meta tag and /verify-platform.txt will be available on the site. Use only English letters, numbers, hyphens, and underscores."
     },
     "site_privacy": {
       "title": "Privacy & accounts",
