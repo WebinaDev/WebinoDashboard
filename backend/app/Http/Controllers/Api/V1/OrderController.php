@@ -589,6 +589,22 @@ class OrderController extends Controller
                     $order->meta = $meta;
                     $order->save();
                     $refundedTotal = $already + $refundMinor;
+
+                    // A partial refund leaves `status` alone, so the status observer — which
+                    // only fires on a status edge — never runs. Post the credit note here or
+                    // the ledger keeps the revenue and VAT for goods the guest returned.
+                    try {
+                        app(\App\Services\Accounting\OrderAccountingSync::class)
+                            ->syncRefund($order->fresh()->load('items.product', 'items.variant', 'payments'));
+                    } catch (\Throwable $e) {
+                        // Money already went back to the guest; a ledger failure must not undo it
+                        // or fail the request. It is retried by the accounting sync screen.
+                        \Illuminate\Support\Facades\Log::warning('accounting.refund_sync_failed', [
+                            'order_id' => $order->id,
+                            'message' => $e->getMessage(),
+                        ]);
+                    }
+
                     if ($this->returnCompletesOrder($order->fresh()->load('items'), $refundedTotal)) {
                         app(\App\Services\Orders\OrderStatusService::class)->apply($order->fresh(), 'refunded');
                     }

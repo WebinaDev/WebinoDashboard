@@ -1014,6 +1014,12 @@ Route::prefix('v1')->group(function () {
             Route::middleware(['module:cafe_menu', 'can:kitchen.view,kitchen.station,catalog.*,pos.use'])->group(function () {
                 Route::get('/cafe/orders/{order}/prep', [CafeOperationsController::class, 'orderPrep'])->whereNumber('order');
                 Route::post('/cafe/orders/{order}/prep', [CafeOperationsController::class, 'itemPrep'])->whereNumber('order');
+                // The board's columns: read by every cook, edited by whoever manages stations.
+                Route::get('/cafe/kitchen-columns', [CafeOperationsController::class, 'kitchenColumns']);
+            });
+
+            Route::middleware(['module:cafe_menu', 'can:kitchen.station,catalog.*'])->group(function () {
+                Route::put('/cafe/kitchen-columns', [CafeOperationsController::class, 'kitchenColumnsUpdate']);
             });
 
             // Delivery areas carry money (a fee and a minimum), so they sit with the branch
@@ -1034,6 +1040,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/cafe/orders/{order}/amendments', [CafeOperationsController::class, 'amendmentRequest'])->whereNumber('order');
             });
             Route::middleware(['module:cafe_menu', 'can:accounting.approve,pos.approve,accounting.manage'])->group(function () {
+                // The approval queue: whoever may approve is exactly who needs to see it, and a
+                // cashier who may only *request* must not see other people's pending edits.
+                Route::get('/cafe/amendments/pending', [CafeOperationsController::class, 'amendmentsPending']);
                 Route::post('/cafe/amendments/{amendment}/approve', [CafeOperationsController::class, 'amendmentApprove'])->whereNumber('amendment');
                 Route::post('/cafe/amendments/{amendment}/reject', [CafeOperationsController::class, 'amendmentReject'])->whereNumber('amendment');
                 Route::post('/cafe/amendments/{amendment}/settle', [CafeOperationsController::class, 'amendmentSettle'])->whereNumber('amendment');
@@ -1066,6 +1075,8 @@ Route::prefix('v1')->group(function () {
 
             Route::middleware(['module:cafe_menu', 'can:reports.shop,reports.*,orders.*'])->group(function () {
                 Route::get('/cafe/manager/overview', [CafeManagerController::class, 'overview']);
+                // The same board as a spreadsheet, for comparing weeks in Excel and for printing.
+                Route::get('/cafe/manager/export', [CafeManagerController::class, 'export']);
             });
 
             Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {
@@ -1657,6 +1668,12 @@ Route::get('/import/wordpress/review-queue', [WordpressImportController::class, 
                 Route::post('/accounting/persons', [AccountingController::class, 'personsStore']);
                 Route::get('/accounting/accounts', [AccountingController::class, 'accountsIndex']);
                 Route::post('/accounting/accounts', [AccountingController::class, 'accountsStore']);
+
+                // Account coding: the role → code mapping the sales journal posts with. Kept in
+                // its own route group so an accountant can change the chart without a deploy.
+                Route::get('/accounting/coding', [AccountingController::class, 'codingShow']);
+                Route::put('/accounting/coding', [AccountingController::class, 'codingUpdate']);
+                Route::post('/accounting/coding/reset', [AccountingController::class, 'codingReset']);
 
                 Route::get('/accounting/invoices', [AccountingController::class, 'invoicesIndex']);
                 Route::get('/accounting/invoices/{invoice}', [AccountingController::class, 'invoiceShow'])->whereNumber('invoice');

@@ -20,7 +20,7 @@ import { formatDisplayDateTime } from "@/lib/format-date"
 
 import { CafeAdminShell, CafeEmptyState, cafeSelectClass } from "./cafe-admin-ui"
 
-type KitchenOrder = {
+  type KitchenOrder = {
   id: number
   number: string | number
   kitchen_status: string
@@ -38,7 +38,16 @@ type KitchenOrder = {
   custom_status?: Partial<OrderCustomStatus> | null
   total_minor: number
   created_at: string
-  items: { id: number; name?: string | null; quantity: number; selections?: { name_fa?: string; name_en?: string }[] }[]
+  /** Derived over every line: what the ticket as a whole is doing. */
+  prep_state?: "new" | "preparing" | "ready"
+  items: {
+    id: number
+    name?: string | null
+    quantity: number
+    selections?: { name_fa?: string; name_en?: string }[]
+    /** `new` until someone ticks the line. Per-line, not per-ticket. */
+    prep_status?: "new" | "preparing" | "ready" | "served"
+  }[]
 }
 
 const FLOW = ["new", "preparing", "ready", "served", "out_for_delivery", "done"] as const
@@ -110,6 +119,27 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
     refetchInterval: 8000,
   })
 
+  // Column labels are per tenant (and optionally per station), so the board must not hard-code
+  // the four words it shows next to each status.
+  const columnsQ = useQuery({
+    queryKey: ["cafe-kitchen-columns"],
+    queryFn: () =>
+      api<{ columns: { key: string; label_fa: string; label_en: string | null; is_active: boolean }[] }>(
+        "/api/v1/cafe/kitchen-columns",
+      ),
+    // A board that cannot read its columns is still usable with the built-in wording, so a
+    // failure here must not blank the kitchen screen.
+    retry: false,
+    staleTime: 5 * 60_000,
+  })
+
+  const columnLabel = (key: string): string | null => {
+    const col = (columnsQ.data?.columns ?? []).find((c) => c.key === key && c.is_active !== false)
+    if (!col) return null
+    const label = locale === "en" ? col.label_en || col.label_fa : col.label_fa
+    return label || null
+  }
+
   useEffect(() => {
     const ids = new Set(orders.map((o) => o.id))
     if (primed.current) {
@@ -137,6 +167,24 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
+
+  // Tick one dish without moving the whole ticket. A cook taps the line; the ticket's
+  // `kitchen_status` is left alone so a mixed ticket stays readable.
+  const prep = useMutation({
+    mutationFn: (payload: { orderId: number; itemId: number; status: "new" | "preparing" | "ready" }) =>
+      api(`/api/v1/cafe/orders/${payload.orderId}/prep`, {
+        method: "POST",
+        json: { order_item_id: payload.itemId, status: payload.status },
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["cafe-kitchen"] })
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  /** A ready line becomes "in progress" and back again; anything unticked starts preparing. */
+  const nextPrep = (current?: string): "preparing" | "ready" =>
+    current === "ready" || current === "served" ? "preparing" : "ready"
 
   return (
     <CafeAdminShell title={t("title")} description={t("description")}>
@@ -218,14 +266,46 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                   <p className="text-muted-foreground text-xs">{formatDisplayDateTime(order.created_at, locale)}</p>
                   {order.customer_note ? <p className="rounded-md bg-muted/40 px-2 py-1 text-xs">{order.customer_note}</p> : null}
                   <ul className="space-y-1 border-t pt-2">
-                    {order.items.map((item) => (
-                      <li key={item.id}>
-                        {toLocaleDigits(String(item.quantity), locale)}× {item.name}
-                        {item.selections?.length
-                          ? ` (${item.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en || s.name_fa)).join("، ")})`
-                          : ""}
-                      </li>
-                    ))}
+                    {order.items.map((item) => {
+                      const done = item.prep_status === "ready" || item.prep_status === "served"
+                      return (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            // Tapping the line is the whole interaction: no dialog, no modal.
+                            // A cook has one hand free and gloves on.
+                            className={`flex w-full items-start gap-2 rounded-md px-1 py-1 text-start transition-colors hover:bg-muted/60 ${
+                              done ? "text-muted-foreground line-through" : ""
+                            }`}
+                            disabled={prep.isPending}
+                            aria-pressed={done}
+                            aria-label={`${t("mark_ready")}: ${item.name}`}
+                            onClick={() =>
+                              prep.mutate({
+                                orderId: order.id,
+                                itemId: item.id,
+                                status: nextPrep(item.prep_status),
+                              })
+                            }
+                          >
+                            <span
+                              aria-hidden
+                              className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border ${
+                                done ? "border-primary bg-primary text-primary-foreground" : "border-input"
+                              }`}
+                            >
+                              {done ? "✓" : ""}
+                            </span>
+                            <span>
+                              {toLocaleDigits(String(item.quantity), locale)}× {item.name}
+                              {item.selections?.length
+                                ? ` (${item.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en || s.name_fa)).join("، ")})`
+                                : ""}
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
 
@@ -248,7 +328,10 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                   >
                     {FLOW.map((status) => (
                       <option key={status} value={status}>
-                        {t(`status.${status}`)}
+                        {/* A configured column label wins over the built-in wording, so a
+                            bakery that calls «ready» «آماده تحویل» sees its own word here
+                            too, not only on the settings screen. */}
+                        {columnLabel(status) ?? t(`status.${status}`)}
                       </option>
                     ))}
                   </select>

@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 
 import { MoneyText } from "@/components/currency/MoneyDisplay"
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +35,7 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import { cn } from "@/lib/utils"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
+import { drain, enqueue, isNetworkFailure, onReconnect, readQueue } from "./offline-queue"
 import {
   type CartLine,
   type CartModifier,
@@ -127,6 +129,19 @@ const TENDER_DEFAULT: Record<string, string> = {
 /** Big enough for a thumb, not a mouse. */
 const TAP = "min-h-11"
 
+/**
+ * Thrown when a sale was written to the offline queue instead of the server.
+ *
+ * It is not an error the cashier should see: the sale is safe, it just has not reached the
+ * API yet. Distinguishing it from a real failure is what lets onError clear the basket.
+ */
+class QueuedSaleError extends Error {
+  constructor() {
+    super("queued")
+    this.name = "QueuedSaleError"
+  }
+}
+
 export default function PosPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.pos")
   const queryClient = useQueryClient()
@@ -156,6 +171,9 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
   const [payments, setPayments] = useState<Array<{ tender: string; amount_minor: number; received_minor?: number | null }>>([])
   const [settleOpen, setSettleOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // True when the last sale was captured locally because the network was down.
+  const [queuedNotice, setQueuedNotice] = useState(false)
+  const [queuedCount, setQueuedCount] = useState(0)
   const [saved, setSaved] = useState<SavedOrder | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
 
@@ -408,11 +426,20 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
           : [],
       })
 
-      if (editingId !== null) {
-        return api<SavedOrder>(`/api/v1/cafe/pos/orders/${editingId}`, { method: "PUT", json: payload })
-      }
+      const path = editingId !== null ? `/api/v1/cafe/pos/orders/${editingId}` : "/api/v1/cafe/pos/orders"
+      const method = editingId !== null ? "PUT" : "POST"
 
-      return api<SavedOrder>("/api/v1/cafe/pos/orders", { method: "POST", json: payload })
+      try {
+        return await api<SavedOrder>(path, { method, json: payload })
+      } catch (error) {
+        // The guest has their coffee and the cashier has the money: a dropped connection must
+        // not destroy the only record of the sale. Queue it and let the till carry on.
+        if (isNetworkFailure(error)) {
+          enqueue({ path, method, body: payload })
+          throw new QueuedSaleError()
+        }
+        throw error
+      }
     },
     onSuccess: (order) => {
       setSaved(order)
@@ -425,7 +452,21 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
       setEditingId(null)
       setError(null)
     },
-    onError: (err) => setError(getApiErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof QueuedSaleError) {
+        // Saved locally: the basket is cleared exactly as on success, because the sale is safe.
+        setQueuedNotice(true)
+        setSettleOpen(false)
+        clearDraft()
+        setLines([])
+        setPayments([])
+        setEditingId(null)
+        setError(null)
+        void queryClient.invalidateQueries({ queryKey: ["cafe-workbench"] })
+        return
+      }
+      setError(getApiErrorMessage(err))
+    },
   })
 
   function startPayment() {
@@ -456,6 +497,30 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
       clearTimeout(timer)
     }
   }, [customerPhone])
+
+  /* ---------------------------------------------------------------- offline --- */
+
+  // Try to push anything queued while the connection was down. Runs on mount (a reload is
+  // often how a cashier recovers) and whenever the browser reports it is back online.
+  useEffect(() => {
+    const flush = () => {
+      setQueuedCount(readQueue().length)
+      void drain((row) =>
+        api(row.path, { method: row.method, json: row.body as Record<string, unknown> }),
+      ).then((result) => {
+        setQueuedCount(result.remaining)
+        if (result.synced > 0) {
+          toast.success(t("offline_synced", { count: result.synced }))
+          void queryClient.invalidateQueries({ queryKey: ["cafe-workbench"] })
+        }
+      })
+    }
+
+    flush()
+    return onReconnect(flush)
+    // `t` is stable for a locale; re-running on it would drain twice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient])
 
   // The bootstrap request is already scoped to the chosen branch, so the tables that arrive
   // are exactly the ones a cashier at that counter can seat. Filtering again here would only
@@ -490,6 +555,37 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
         </div>
       }
     >
+      {/* A queued sale is not lost, but the cashier must know it has not reached the API:
+          the receipt is not final until it syncs. */}
+      {queuedNotice || queuedCount > 0 ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm">
+          <span>
+            {queuedNotice
+              ? t("offline_saved")
+              : t("offline_pending", { count: queuedCount })}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setQueuedCount(readQueue().length)
+              void drain((row) =>
+                api(row.path, { method: row.method, json: row.body as Record<string, unknown> }),
+              ).then((result) => {
+                setQueuedCount(result.remaining)
+                if (result.synced > 0) {
+                  setQueuedNotice(false)
+                  toast.success(t("offline_synced", { count: result.synced }))
+                }
+              })
+            }}
+          >
+            {t("offline_retry")}
+          </Button>
+        </div>
+      ) : null}
+
       {draftNotice ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
           <span>{t("draft_found")}</span>

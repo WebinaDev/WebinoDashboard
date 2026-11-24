@@ -12,6 +12,8 @@ use App\Models\AccPerson;
 use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\TenantModule;
+use App\Models\AccAccountCoding;
+use App\Services\Accounting\AccountCoding;
 use App\Services\Accounting\AccountingIntegrationsRegistry;
 use App\Services\Accounting\MoadianService;
 use App\Services\Accounting\OrderAccountingSync;
@@ -208,6 +210,87 @@ class AccountingController extends Controller
         $account = AccAccount::query()->create(array_merge($data, ['tenant_id' => $tid]));
 
         return response()->json(['data' => $account], 201);
+    }
+
+    /**
+     * Account coding: which code plays which role in the sales journal.
+     *
+     * Returns the effective mapping (saved overrides folded over the shipped default chart)
+     * plus the roles and tenders the screen must render, so the UI never keeps its own list.
+     */
+    public function codingShow(Request $request, AccountCoding $coding): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+
+        return response()->json([
+            'data' => [
+                'coding' => $coding->get($tid),
+                'defaults' => AccountCoding::defaults(),
+                'tenders' => AccountCoding::TENDERS,
+                'roles' => array_keys(AccountCoding::defaults()),
+                'accounts' => AccAccount::query()
+                    ->where('tenant_id', $tid)
+                    ->orderBy('code')
+                    ->get(['id', 'code', 'name', 'type']),
+            ],
+        ]);
+    }
+
+    /**
+     * Save the mapping.
+     *
+     * Refused when a code does not exist in the tenant's chart, because a journal that names
+     * an account the ledger does not have is worse than a failed save.
+     */
+    public function codingUpdate(Request $request, AccountCoding $coding): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+
+        $data = $request->validate([
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['nullable', 'string', 'max:32'],
+            'tenders' => ['nullable', 'array'],
+            'tenders.*' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        $errors = $coding->validate($tid, $data);
+        if ($errors !== []) {
+            return response()->json([
+                'message' => 'حساب‌های انتخاب‌شده در دفتر کل وجود ندارند یا کد خالی است.',
+                'errors' => ['coding' => $errors],
+            ], 422);
+        }
+
+        return response()->json(['data' => $coding->put($tid, $data)]);
+    }
+
+    /**
+     * Clear an override so the role falls back to the shipped default.
+     */
+    public function codingReset(Request $request, AccountCoding $coding): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+
+        $data = $request->validate([
+            'role' => ['required_without:tender', 'nullable', 'string', 'max:32'],
+            'tender' => ['required_without:role', 'nullable', 'string', 'max:32'],
+        ]);
+
+        // `required_without` only guarantees one of the two keys is present, and a caller may
+        // still send `role: null`, so test for a non-empty string rather than key existence.
+        $tender = $data['tender'] ?? null;
+        $hasTender = is_string($tender) && $tender !== '';
+
+        $role = $hasTender ? AccAccountCoding::ROLE_TENDER : (string) ($data['role'] ?? '');
+        $match = $hasTender ? $tender : null;
+
+        abort_if($role === '' || ($role === AccAccountCoding::ROLE_TENDER && ! $hasTender), 422);
+
+        $q = AccAccountCoding::query()->where('tenant_id', $tid)->where('role', $role);
+        $match === null ? $q->whereNull('match_value') : $q->where('match_value', $match);
+        $q->delete();
+
+        return response()->json(['data' => $coding->get($tid)]);
     }
     /**
      * Prefer live ERP ledger; fall back to local journal lines when ERP unavailable.

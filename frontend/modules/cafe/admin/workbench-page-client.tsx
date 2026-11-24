@@ -1,6 +1,6 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   AlarmClock,
   Banknote,
@@ -23,6 +23,7 @@ import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "../../cafe/admin/cafe-admin-ui"
+import { SettleDialog } from "./settle-dialog"
 
 type QueueItem = {
   kind: string
@@ -88,7 +89,11 @@ const ROLES = ["", "cashier", "waiter", "cook", "branch_manager", "owner"] as co
 
 export default function WorkbenchPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.workbench")
+  const tPos = useTranslations("cafe_admin.pos")
   const [role, setRole] = useState<string>("")
+  const qc = useQueryClient()
+  // The order being settled. Null means the dialog is closed.
+  const [settling, setSettling] = useState<{ id: number; label: string; total: number } | null>(null)
 
   const query = useQuery({
     queryKey: ["cafe-workbench", role],
@@ -188,6 +193,22 @@ export default function WorkbenchPageClient({ route: _route }: { route: Resolved
                     <span className={item.late ? "text-destructive" : "text-muted-foreground"}>
                       {t("minutes_ago", { count: item.age_minutes })}
                     </span>
+                    {item.kinds.includes("settle") && item.order_id ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7"
+                        onClick={() =>
+                          setSettling({
+                            id: item.order_id as number,
+                            label: String(item.number ?? item.table?.code ?? item.order_id),
+                            total: item.total_minor,
+                          })
+                        }
+                      >
+                        {tPos("settle_confirm")}
+                      </Button>
+                    ) : null}
                   </div>
                 </li>
               )
@@ -238,6 +259,21 @@ export default function WorkbenchPageClient({ route: _route }: { route: Resolved
           </div>
         )}
       </CafeSection>
+
+      <SettleDialog
+        open={settling !== null}
+        onOpenChange={(open) => {
+          if (!open) setSettling(null)
+        }}
+        orderId={settling?.id ?? null}
+        orderLabel={settling?.label ?? ""}
+        totalMinor={settling?.total ?? 0}
+        onSettled={() => {
+          setSettling(null)
+          void qc.invalidateQueries({ queryKey: ["cafe-workbench"] })
+          void qc.invalidateQueries({ queryKey: ["cafe-kitchen"] })
+        }}
+      />
     </CafeAdminShell>
   )
 }

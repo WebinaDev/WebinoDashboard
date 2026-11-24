@@ -20,15 +20,33 @@ import type { CafeBranch, CafeEvent } from "@/themes/cafe-starter/types"
 
 import { CafeAdminShell, CafeAdvancedSection, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
 
+/**
+ * The full seating life. `no_show` matters most: it is the number that decides whether the
+ * shop keeps taking online bookings, and it did not exist until the lifecycle did.
+ */
+type ReservationStatus =
+  | "pending"
+  | "confirmed"
+  | "seated"
+  | "completed"
+  | "cancelled"
+  | "no_show"
+
 type Reservation = {
   id: number
   guest_name: string
   guest_phone: string
   party_size: number
   reserved_at: string
-  status: "pending" | "confirmed" | "cancelled"
+  status: ReservationStatus
   notes?: string | null
   branch?: CafeBranch | null
+  table_id?: number | null
+  confirmed_at?: string | null
+  seated_at?: string | null
+  no_show_at?: string | null
+  declined_at?: string | null
+  decline_reason?: string | null
 }
 
 type EventBooking = {
@@ -88,10 +106,10 @@ export default function ReservationsPageClient({ route: _route }: { route: Resol
   })
 
   const updateReservation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: "confirmed" | "cancelled" }) =>
+    mutationFn: ({ id, status, tableId }: { id: number; status: ReservationStatus; tableId?: number | null }) =>
       api<Reservation>(`/api/v1/cafe/reservations/${id}`, {
         method: "PATCH",
-        json: { status },
+        json: { status, ...(tableId === undefined ? {} : { table_id: tableId }) },
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
@@ -174,7 +192,7 @@ export default function ReservationsPageClient({ route: _route }: { route: Resol
                   <Badge variant={statusVariant(item.status)}>{t(`status_${item.status}`)}</Badge>
                 </div>
                 {item.status === "pending" ? (
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Button size="sm" onClick={() => updateReservation.mutate({ id: item.id, status: "confirmed" })}>
                       {t("confirm")}
                     </Button>
@@ -186,6 +204,46 @@ export default function ReservationsPageClient({ route: _route }: { route: Resol
                       {t("cancel")}
                     </Button>
                   </div>
+                ) : null}
+
+                {/* Confirmed: the guest may arrive, or may not. Recording which is the whole
+                    point of the lifecycle — a no-show never quietly rots in "confirmed". */}
+                {item.status === "confirmed" ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => updateReservation.mutate({ id: item.id, status: "seated" })}>
+                      {t("seat")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={updateReservation.isPending}
+                      onClick={() => updateReservation.mutate({ id: item.id, status: "no_show" })}
+                    >
+                      {t("no_show")}
+                    </Button>
+                  </div>
+                ) : null}
+
+                {/* Seated: closing the visit frees the table. */}
+                {item.status === "seated" ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateReservation.mutate({ id: item.id, status: "completed" })}
+                    >
+                      {t("complete")}
+                    </Button>
+                  </div>
+                ) : null}
+
+                {item.seated_at ? (
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    {t("seated_at")}: {formatDateTime(item.seated_at)}
+                  </p>
+                ) : null}
+                {item.no_show_at ? (
+                  <p className="text-muted-foreground mt-2 text-xs">{t("marked_no_show")}</p>
                 ) : null}
               </div>
             ))}

@@ -150,6 +150,10 @@ class CafeKitchenController extends Controller
     private function present(Order $order): array
     {
         $meta = is_array($order->meta) ? $order->meta : [];
+        // Per-line prep, so the board can tick one dish without moving the whole ticket.
+        // A mixed ticket (two coffees out, one pastry still baking) is otherwise unreadable.
+        $prep = app(\App\Services\Cafe\KitchenPrep::class)->forOrder($order);
+        $prepByItem = collect($prep['items'])->keyBy('order_item_id');
 
         return [
             'id' => $order->id,
@@ -178,7 +182,14 @@ class CafeKitchenController extends Controller
                 'quantity' => $item->quantity,
                 'unit_price_minor' => $item->unit_price_minor,
                 'selections' => is_array($item->meta) ? ($item->meta['selections'] ?? []) : [],
+                // `new` when nobody has touched the line yet; derived over every station
+                // working it, so a dish split across two stations reads ready only when both
+                // are done.
+                'prep_status' => $prepByItem->get($item->id)['status'] ?? 'new',
             ])->values(),
+            // Derived over all lines: what the ticket as a whole is doing, independent of
+            // `kitchen_status`, which a cook may not have moved yet.
+            'prep_state' => $prep['state'],
         ];
     }
 }

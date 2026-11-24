@@ -197,6 +197,7 @@
     "accounting_tax": "Tax",
     "accounting_tax_setup": "Tax setup",
     "accounting_chart": "Chart of accounts",
+    "accounting_coding": "Account coding",
     "accounting_journals": "Journals",
     "accounting_persons": "Persons",
     "accounting_products": "Accounting products",
@@ -403,7 +404,9 @@
     "cafe_branches": "Branches",
     "cafe_stations": "Kitchen stations",
     "cafe_workbench": "Workbench",
-    "cafe_pos": "New order"
+    "cafe_pos": "New order",
+    "cafe_delivery_zones": "Delivery zones",
+    "cafe_amendments": "Invoice amendments"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -948,7 +951,15 @@
       "bookings_heading": "Bookings",
       "seats": "Seats",
       "description": "Confirm table bookings and manage cafe events.",
-      "create_event_hint": "Publish an event guests can book seats for."
+      "create_event_hint": "Publish an event guests can book seats for.",
+      "seat": "Seat guest",
+      "no_show": "No-show",
+      "complete": "Complete visit",
+      "seated_at": "Seated at",
+      "marked_no_show": "Marked as no-show",
+      "status_seated": "Seated",
+      "status_completed": "Completed",
+      "status_no_show": "No-show"
     },
     "hours": {
       "title": "Opening hours",
@@ -1045,7 +1056,8 @@
       "custom_color": "Colour",
       "custom_guest": "Show this status to the guest",
       "custom_save": "Save status",
-      "custom_clear": "Clear status"
+      "custom_clear": "Clear status",
+      "mark_ready": "Mark as ready"
     },
     "inbox": {
       "title": "Guest feedback",
@@ -1337,7 +1349,10 @@
       "hour": "Hour",
       "orders_col": "Orders",
       "short_variance": "Short",
-      "over_variance": "Over"
+      "over_variance": "Over",
+      "export_xlsx": "Excel",
+      "export_csv": "CSV",
+      "print": "Print"
     },
     "branches": {
       "title": "Branches and multi-branch mode",
@@ -1538,7 +1553,76 @@
       "line_note_placeholder": "e.g. no sugar",
       "add_to_cart": "Add to basket",
       "saved_order": "Order {number} saved.",
-      "edit_saved": "Edit this order"
+      "edit_saved": "Edit this order",
+      "settled_ok": "Order settled",
+      "total_due": "Amount due",
+      "reference": "Reference",
+      "reference_hint": "Optional",
+      "add_tender": "Second payment method",
+      "fully_covered": "Fully covered",
+      "change_due": "Change due",
+      "settle_confirm": "Record payment",
+      "offline_saved": "The sale was saved on this device and will be sent when the connection returns.",
+      "offline_pending": "{count} sale(s) waiting to be sent.",
+      "offline_retry": "Retry now",
+      "offline_synced": "{count} sale(s) sent."
+    },
+    "delivery_zones": {
+      "title": "Delivery zones",
+      "description": "Set a fee and a minimum order per area. Addresses are matched on district name.",
+      "hint": "This zone's fee and minimum take priority over the general delivery settings.",
+      "new_zone": "New zone",
+      "edit_zone": "Edit zone",
+      "name": "Zone name",
+      "name_placeholder": "e.g. Velenjak",
+      "areas": "Districts / streets",
+      "areas_placeholder": "Velenjak, Saadat Abad, Shahrak Gharb",
+      "areas_hint": "Separate with commas or new lines. Each is matched against the address.",
+      "fee": "Delivery fee",
+      "minimum": "Minimum order",
+      "eta": "Estimated time (minutes)",
+      "eta_value": "{minutes} min",
+      "branch": "Branch",
+      "all_branches": "All branches",
+      "active": "Active",
+      "inactive": "Inactive",
+      "no_areas": "No districts",
+      "delete": "Delete",
+      "loading": "Loading…",
+      "empty": "No zones yet",
+      "empty_hint": "Without a zone, every delivery is charged the flat fee."
+    },
+    "amendments": {
+      "title": "Amend a paid invoice",
+      "description": "Change a settled order with a recorded reason and manager approval. The original invoice is never rewritten.",
+      "new_request": "New request",
+      "new_request_hint": "Only possible inside the edit window (30 minutes after payment by default).",
+      "order_id": "Order number",
+      "order_id_placeholder": "e.g. 1234",
+      "delta": "Amount difference",
+      "delta_placeholder": "positive: collect / negative: refund",
+      "delta_hint": "The money that has to be collected or refunded.",
+      "reason": "Reason",
+      "reason_placeholder": "e.g. wrong quantity",
+      "what_changed": "What changes",
+      "what_changed_placeholder": "A short note for the approver",
+      "submit_request": "Submit request",
+      "requested": "Request submitted",
+      "queue_title": "Awaiting a decision",
+      "queue_hint": "Unapproved requests, and approved ones whose money has not moved yet.",
+      "queue_empty": "Nothing is waiting.",
+      "loading": "Loading…",
+      "order": "Order",
+      "approve": "Approve",
+      "reject": "Reject",
+      "settle": "Settle the difference",
+      "tender": "Payment method",
+      "settled_via": "Settled via {tender}",
+      "rejected_default_reason": "Rejected by a manager",
+      "status_pending": "Pending",
+      "status_approved": "Approved",
+      "status_rejected": "Rejected",
+      "status_settled": "Settled"
     }
   },
   "themes": {
@@ -2995,7 +3079,8 @@
       "national_id": "National ID",
       "api_key": "API key",
       "sandbox": "Sandbox",
-      "show_on_invoice": "Show the VAT line on invoices"
+      "show_on_invoice": "Show the VAT line on invoices",
+      "coding": "Account coding"
     },
     "bots": {
       "enabled": "Bot enabled",
@@ -3752,6 +3837,34 @@
       "remove_item": "Remove link",
       "new_menu": "New menu",
       "home": "Home"
+    },
+    "accounting_coding": {
+      "title": "Sales account coding",
+      "description": "Choose which ledger account each role in a sales journal posts to. Changes apply to future journals; already-posted journals are left untouched.",
+      "tenders_title": "Payment method accounts",
+      "tenders_description": "Each tender settles into its own account: cash into the drawer, card and terminal into the bank. Previously everything landed in receivables.",
+      "reset": "Default",
+      "reset_hint": "Restore this product's default account",
+      "roles": {
+        "sales": "Sales revenue",
+        "sales_returns": "Sales returns",
+        "ar": "Accounts receivable",
+        "cash": "Cash on hand",
+        "bank": "Bank",
+        "vat": "VAT payable",
+        "cogs": "Cost of goods sold",
+        "inventory": "Inventory",
+        "discount": "Sales discounts",
+        "shipping": "Shipping revenue"
+      },
+      "tenders": {
+        "cash": "Cash",
+        "card_to_card": "Card to card",
+        "pos_terminal": "Card terminal",
+        "online": "Online payment",
+        "wallet": "Wallet",
+        "other": "Other"
+      }
     }
   },
   "commerce_gateways": {

@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Models\AccAccount;
+use App\Models\AccAccountCoding;
 use App\Models\AccInvoice;
 use App\Models\AccInvoiceLine;
 use App\Models\AccJournal;
@@ -40,7 +41,7 @@ final class OrderAccountingSync
 
     public function syncOrder(Order $order): AccInvoice
     {
-        $order->loadMissing('items');
+        $order->loadMissing('items.product', 'items.variant', 'payments');
 
         return DB::transaction(function () use ($order) {
             $existing = AccInvoice::query()
@@ -217,21 +218,46 @@ final class OrderAccountingSync
         return AccPerson::query()->create($data);
     }
 
+    /**
+     * Post the sales journal: debit what was actually received, credit revenue and VAT,
+     * then recognise cost of goods.
+     *
+     * Before account coding existed this posted the whole total to receivables and stopped
+     * there, so a cash sale inflated AR and no margin ever reached the ledger. The shape now:
+     *
+     *   Dr  cash / bank / AR per tender      (split by OrderPayments, not one lump)
+     *   Dr  discount                         (when a discount was given)
+     *   Cr  sales revenue                    (net of tax and discount)
+     *   Cr  VAT payable
+     *   Dr  COGS / Cr inventory              (only when the cost of every line is known)
+     *
+     * Anything the order cannot settle identically — an unpaid order that is still "processing"
+     * — leaves the remainder on receivables, which is the true position.
+     */
     private function ensureSaleJournal(Order $order, AccInvoice $invoice, ?AccPerson $person): AccJournal
     {
+        $tenantId = (int) $order->tenant_id;
+        $coding = app(AccountCoding::class);
+        // Create any account the tenant mapped but has not yet added to their chart, so a
+        // mapping saved first and a chart edited later cannot break posting.
+        $accounts = $coding->ensureAccounts($tenantId);
+
         $existing = AccJournal::query()
             ->where('tenant_id', $order->tenant_id)
             ->where('order_id', $order->id)
             ->where('source', 'order')
             ->first();
 
-        $ar = $this->ensureAccount((int) $order->tenant_id, '1101', 'Accounts receivable', 'asset');
-        $sales = $this->ensureAccount((int) $order->tenant_id, '4101', 'Sales revenue', 'revenue');
-        $vat = $this->ensureAccount((int) $order->tenant_id, '2101', 'VAT payable', 'liability');
-
-        $net = max(0, (int) $invoice->total_minor - (int) $invoice->tax_minor);
         $tax = (int) $invoice->tax_minor;
         $total = (int) $invoice->total_minor;
+        $discount = max(0, (int) ($invoice->discount_minor ?? 0));
+        // Revenue excludes what the guest was charged for delivery; shipping is its own line.
+        $shipping = $this->shippingMinor($order);
+        // `invoice.total_minor` is already net of discount, so gross revenue is total - tax -
+        // shipping + discount. Crediting gross and debiting the discount separately keeps the
+        // discount visible in the ledger instead of vanishing into a smaller revenue figure.
+        $gross = max(0, $total - $tax - $shipping + $discount);
+
         $desc = 'Order '.$order->number.' → invoice '.$invoice->number.($person ? ' ('.$person->name.')' : '');
 
         $payload = [
@@ -242,8 +268,8 @@ final class OrderAccountingSync
             'description' => $desc,
             'status' => 'posted',
             'source' => 'order',
-            'total_debit_minor' => $total,
-            'total_credit_minor' => $total,
+            'total_debit_minor' => 0,
+            'total_credit_minor' => 0,
         ];
 
         if ($existing) {
@@ -254,43 +280,141 @@ final class OrderAccountingSync
             $journal = AccJournal::query()->create($payload);
         }
 
-        AccJournalLine::query()->create([
-            'journal_id' => $journal->id,
-            'account_code' => $ar->code,
-            'account_name' => $ar->name,
-            'debit_minor' => $total,
-            'credit_minor' => 0,
-        ]);
-        AccJournalLine::query()->create([
-            'journal_id' => $journal->id,
-            'account_code' => $sales->code,
-            'account_name' => $sales->name,
-            'debit_minor' => 0,
-            'credit_minor' => $net,
-        ]);
-        if ($tax > 0) {
+        $debit = 0;
+        $credit = 0;
+
+        $line = function (AccAccount $account, int $dr, int $cr) use ($journal, &$debit, &$credit): void {
+            if ($dr === 0 && $cr === 0) {
+                return;
+            }
             AccJournalLine::query()->create([
                 'journal_id' => $journal->id,
-                'account_code' => $vat->code,
-                'account_name' => $vat->name,
-                'debit_minor' => 0,
-                'credit_minor' => $tax,
+                'account_code' => $account->code,
+                'account_name' => $account->name,
+                'debit_minor' => $dr,
+                'credit_minor' => $cr,
             ]);
-        } elseif ($net !== $total) {
-            // Keep journal balanced when tax is zero but totals differ by rounding.
-            AccJournalLine::query()->where('journal_id', $journal->id)->where('account_code', $sales->code)
-                ->update(['credit_minor' => $total]);
+            $debit += $dr;
+            $credit += $cr;
+        };
+
+        // 1. Credit side: gross revenue, shipping, VAT.
+        $line($accounts[AccAccountCoding::ROLE_SALES], 0, $gross);
+        if ($shipping > 0) {
+            $line($accounts[AccAccountCoding::ROLE_SHIPPING], 0, $shipping);
         }
+        if ($tax > 0) {
+            $line($accounts[AccAccountCoding::ROLE_VAT], 0, $tax);
+        }
+
+        // 2. Debit side: the discount given, then tenders received, then what is still owed.
+        if ($discount > 0) {
+            $line($accounts[AccAccountCoding::ROLE_DISCOUNT], $discount, 0);
+        }
+        $settled = $this->tenderSplit($order, $accounts, $line);
+        $outstanding = max(0, $total - $settled);
+        if ($outstanding > 0) {
+            $line($accounts[AccAccountCoding::ROLE_AR], $outstanding, 0);
+        }
+
+        // 3. Cost of goods. Skipped entirely when any sold line has no captured cost, because
+        //    posting a partial COGS silently overstates margin for the rest of the basket.
+        $cogs = $this->costOfGoods($order);
+        if ($cogs !== null && $cogs > 0 && isset($accounts[AccAccountCoding::ROLE_COGS])) {
+            $line($accounts[AccAccountCoding::ROLE_COGS], $cogs, 0);
+            $line($accounts[AccAccountCoding::ROLE_INVENTORY], 0, $cogs);
+        }
+
+        $journal->update([
+            'total_debit_minor' => $debit,
+            'total_credit_minor' => $credit,
+        ]);
 
         return $journal;
     }
 
-    private function ensureAccount(int $tenantId, string $code, string $name, string $type): AccAccount
+    /**
+     * Debit each tender into the account it actually lands in.
+     *
+     * @param  array<string, AccAccount>  $accounts
+     * @param  callable(AccAccount, int, int): void  $line
+     * @return int total settled, capped at the invoice total
+     */
+    private function tenderSplit(Order $order, array $accounts, callable $line): int
     {
-        return AccAccount::query()->firstOrCreate(
-            ['tenant_id' => $tenantId, 'code' => $code],
-            ['name' => $name, 'type' => $type]
-        );
+        $payments = $order->relationLoaded('payments')
+            ? $order->payments
+            : $order->payments()->get();
+
+        if ($payments->isEmpty()) {
+            return 0;
+        }
+
+        $total = (int) ($order->total_minor ?? 0);
+        $settled = 0;
+
+        foreach ($payments as $payment) {
+            $amount = (int) $payment->amount_minor;
+            if ($amount <= 0) {
+                continue;
+            }
+            // Never settle more than the sale; a rounding over-payment stays off the journal.
+            if ($total > 0 && $settled + $amount > $total) {
+                $amount = max(0, $total - $settled);
+            }
+            if ($amount === 0) {
+                break;
+            }
+
+            $key = 'tender:'.$payment->tender;
+            $account = $accounts[$key] ?? $accounts[AccAccountCoding::ROLE_AR];
+            $line($account, $amount, 0);
+            $settled += $amount;
+        }
+
+        return $settled;
+    }
+
+    /**
+     * Cost of the sold units, or null when any line's cost is unknown.
+     *
+     * Cost is read from the line snapshot, falling back to the catalogue for lines written
+     * before the snapshot column existed. The add-on delta is removed first: an add-on is
+     * priced at its own margin, and most have no purchase cost of their own.
+     */
+    private function costOfGoods(Order $order): ?int
+    {
+        $order->loadMissing('items.product', 'items.variant');
+        $total = 0;
+
+        foreach ($order->items as $item) {
+            $qty = (int) $item->quantity;
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $unitCost = $item->unit_cost_minor;
+            if ($unitCost === null) {
+                $unitCost = $item->variant?->purchase_price_minor
+                    ?? $item->product?->purchase_price_minor;
+            }
+
+            // A single unknown cost invalidates the whole figure; a zero would look like free
+            // goods and quietly flatter the margin.
+            if ($unitCost === null) {
+                return null;
+            }
+
+            $total += (int) $unitCost * $qty;
+        }
+
+        return $total;
+    }
+
+    /** What the guest was charged for delivery. */
+    private function shippingMinor(Order $order): int
+    {
+        return max(0, (int) ($order->shipping_minor ?? 0));
     }
 
     private function nextInvoiceNumber(int $tenantId, Order $order): string
@@ -302,5 +426,236 @@ final class OrderAccountingSync
         $n = AccInvoice::query()->where('tenant_id', $tenantId)->count() + 1;
 
         return 'INV-'.str_pad((string) $n, 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Reverse a refund against the sale it belongs to.
+     *
+     * Before this existed a refund moved money back to the guest and left the sale journal
+     * untouched: revenue and VAT stayed on the books for goods the shop no longer sold, and
+     * cost of goods stayed recognised against inventory that had come back. The ledger then
+     * overstated both turnover and margin by exactly the refunded amount.
+     *
+     * A credit note is a separate invoice of type `credit` (never a negative `sale`, so the
+     * original sale stays reproducible) with its own journal whose debit and credit sides are
+     * swapped. Amounts are stored positive — the columns are unsigned and a swapped journal
+     * is the ordinary double-entry way to reverse.
+     *
+     * Partial refunds are apportioned across the sale's lines by value, so a refund of one
+     * croissant out of five does not reverse the coffee's tax.
+     */
+    public function syncRefund(Order $order): ?AccInvoice
+    {
+        $order->loadMissing('items.product', 'items.variant', 'payments');
+
+        $refunded = $this->refundedMinor($order);
+        if ($refunded <= 0) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($order, $refunded) {
+            $sale = AccInvoice::query()
+                ->where('tenant_id', $order->tenant_id)
+                ->where('order_id', $order->id)
+                ->where('type', 'sale')
+                ->first();
+
+            // Nothing was ever posted, so there is nothing to reverse. Recognising a refund
+            // against no sale would credit revenue that was never debited.
+            if (! $sale) {
+                return null;
+            }
+
+            $tenantId = (int) $order->tenant_id;
+            $coding = app(AccountCoding::class);
+            $accounts = $coding->ensureAccounts($tenantId);
+
+            $number = 'CRN-'.($order->number ?: $order->id);
+            $existing = AccInvoice::query()
+                ->where('tenant_id', $order->tenant_id)
+                ->where('order_id', $order->id)
+                ->where('type', 'credit')
+                ->first();
+
+            // Apportion the refund across the sale. The sale total is the denominator, not the
+            // order total: a discount or a manual over-ride means the two differ, and the
+            // ledger must reverse what was actually posted.
+            $saleTotal = max(1, (int) $sale->total_minor);
+            $ratio = min(1, $refunded / $saleTotal);
+
+            $reverseTax = (int) round(((int) $sale->tax_minor) * $ratio);
+            $reverseNet = max(0, $refunded - $reverseTax);
+
+            $payload = [
+                'tenant_id' => $order->tenant_id,
+                'order_id' => $order->id,
+                'person_id' => $sale->person_id,
+                'number' => $number,
+                'type' => 'credit',
+                'status' => 'posted',
+                'issue_date' => now()->toDateString(),
+                'subtotal_minor' => $reverseNet,
+                'discount_minor' => 0,
+                'tax_minor' => $reverseTax,
+                'total_minor' => $refunded,
+                'currency' => $sale->currency ?: 'IRR',
+                'moadian_pattern' => (int) $sale->moadian_pattern,
+                'buyer_register_number' => (string) $sale->buyer_register_number,
+                'buyer_tax' => is_array($sale->buyer_tax) ? $sale->buyer_tax : [],
+                'meta' => [
+                    'order_number' => $order->number,
+                    'reverses_invoice' => $sale->number,
+                    'refund_minor' => $refunded,
+                    'refund_ratio' => round($ratio, 6),
+                ],
+            ];
+
+            if ($existing) {
+                $existing->update($payload);
+                AccInvoiceLine::query()->where('invoice_id', $existing->id)->delete();
+                $invoice = $existing;
+            } else {
+                $invoice = AccInvoice::query()->create(array_merge($payload, ['moadian_status' => null]));
+            }
+
+            // One line naming the refunded goods, so the credit note is readable on its own.
+            AccInvoiceLine::query()->create([
+                'invoice_id' => $invoice->id,
+                'product_id' => null,
+                'description' => 'Refund — order '.($order->number ?: $order->id),
+                'sku' => null,
+                'sstid' => '',
+                'qty' => 1,
+                'unit_price_minor' => $reverseNet,
+                'discount_minor' => 0,
+                'tax_minor' => $reverseTax,
+                'vat_rate' => (int) $sale->meta['vat_rate'] ?? 0,
+                'total_minor' => $refunded,
+                'meta' => ['kind' => 'refund'],
+            ]);
+
+            $journal = $this->ensureCreditJournal($order, $invoice, $accounts, $ratio, $reverseNet, $reverseTax);
+            $invoice->update(['journal_id' => $journal->id]);
+
+            return $invoice->fresh(['lines', 'order', 'person', 'journal']);
+        });
+    }
+
+    /**
+     * The reversing journal: every account that was credited is now debited, and vice versa.
+     *
+     * @param  array<string, AccAccount>  $accounts
+     */
+    private function ensureCreditJournal(
+        Order $order,
+        AccInvoice $invoice,
+        array $accounts,
+        float $ratio,
+        int $net,
+        int $tax,
+    ): AccJournal {
+        $existing = AccJournal::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('order_id', $order->id)
+            ->where('source', 'refund')
+            ->first();
+
+        $payload = [
+            'tenant_id' => $order->tenant_id,
+            'order_id' => $order->id,
+            'number' => $existing?->number ?: ('REF-'.$order->id.'-'.$invoice->id),
+            'date' => now()->toDateString(),
+            'description' => 'Refund for order '.($order->number ?: $order->id).' → credit '.$invoice->number,
+            'status' => 'posted',
+            'source' => 'refund',
+            'total_debit_minor' => 0,
+            'total_credit_minor' => 0,
+        ];
+
+        if ($existing) {
+            $existing->update($payload);
+            AccJournalLine::query()->where('journal_id', $existing->id)->delete();
+            $journal = $existing;
+        } else {
+            $journal = AccJournal::query()->create($payload);
+        }
+
+        $debit = 0;
+        $credit = 0;
+        $line = function (AccAccount $account, int $dr, int $cr) use ($journal, &$debit, &$credit): void {
+            if ($dr === 0 && $cr === 0) {
+                return;
+            }
+            AccJournalLine::query()->create([
+                'journal_id' => $journal->id,
+                'account_code' => $account->code,
+                'account_name' => $account->name,
+                'debit_minor' => $dr,
+                'credit_minor' => $cr,
+            ]);
+            $debit += $dr;
+            $credit += $cr;
+        };
+
+        // Mirror of the sale: revenue and VAT come back as debits, the refund goes out as a
+        // credit out of the drawer or bank it was originally taken into.
+        $line($accounts[AccAccountCoding::ROLE_SALES_RETURNS], $net, 0);
+        if ($tax > 0) {
+            $line($accounts[AccAccountCoding::ROLE_VAT], $tax, 0);
+        }
+
+        // Pay back out of the same account the sale settled into, so a cash refund hits the
+        // drawer and a card refund hits the bank.
+        $refundTender = $this->refundTender($order);
+        $key = 'tender:'.$refundTender;
+        $account = $accounts[$key] ?? $accounts[AccAccountCoding::ROLE_CASH];
+        $line($account, 0, $net + $tax);
+
+        // Return the goods to stock and take the cost back out of COGS, at the same mix the
+        // sale used. Only when the sale itself recognised cost — reversing what was never
+        // posted would invent an inventory credit.
+        $cogs = $this->costOfGoods($order);
+        if ($cogs !== null && $cogs > 0 && $ratio > 0) {
+            $reverseCogs = (int) round($cogs * $ratio);
+            if ($reverseCogs > 0) {
+                $line($accounts[AccAccountCoding::ROLE_INVENTORY], $reverseCogs, 0);
+                $line($accounts[AccAccountCoding::ROLE_COGS], 0, $reverseCogs);
+            }
+        }
+
+        $journal->update([
+            'total_debit_minor' => $debit,
+            'total_credit_minor' => $credit,
+        ]);
+
+        return $journal;
+    }
+
+    /** How much of this order has been refunded, across partial refunds. */
+    public function refundedMinor(Order $order): int
+    {
+        $meta = is_array($order->meta) ? $order->meta : [];
+
+        return max(0, (int) ($meta['partial_refund_minor'] ?? 0));
+    }
+
+    /**
+     * The tender a refund goes back out of: what the guest paid with, defaulting to cash.
+     *
+     * A refund against an order with no recorded tender is a cash refund, which is what a
+     * counter return is in practice.
+     */
+    private function refundTender(Order $order): string
+    {
+        $payments = $order->relationLoaded('payments') ? $order->payments : $order->payments()->get();
+        $first = $payments->first();
+
+        if ($first && is_string($first->tender) && $first->tender !== '') {
+            return $first->tender;
+        }
+
+        $tender = (string) ($order->payment_tender ?? '');
+
+        return $tender !== '' ? $tender : 'cash';
     }
 }

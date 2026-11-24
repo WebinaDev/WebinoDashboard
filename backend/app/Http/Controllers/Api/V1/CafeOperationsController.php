@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderAmendment;
 use App\Models\OrderItem;
 use App\Services\Cafe\DeliveryZones;
+use App\Services\Cafe\KitchenColumns;
 use App\Services\Cafe\KitchenPrep;
 use App\Services\Cafe\OperationsSettings;
 use App\Services\Cafe\OrderAmendments;
@@ -336,10 +337,89 @@ class CafeOperationsController extends Controller
         return response()->json(['data' => $this->amendments->settle($amendment, $data['tender'], $request->user())]);
     }
 
+    /**
+     * Every amendment awaiting a decision, across all orders.
+     *
+     * The per-order history was the only way to read amendments, so a manager had to already
+     * know which order had a pending edit. This is the queue that makes the approval flow
+     * reachable without hunting.
+     */
+    public function amendmentsPending(Request $request): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+
+        $rows = OrderAmendment::query()
+            ->where('tenant_id', $tid)
+            ->whereIn('status', [OrderAmendments::STATUS_PENDING, OrderAmendments::STATUS_APPROVED])
+            ->with('order:id,number,total_minor,status,customer_name')
+            ->latest()
+            ->limit(100)
+            ->get();
+
+        return response()->json(['data' => $rows]);
+    }
+
     public function amendmentsIndex(Request $request, Order $order): JsonResponse
     {
         abort_if((int) $request->user()->tenant_id !== (int) $order->tenant_id, 403);
 
         return response()->json(['data' => $this->amendments->history($order)]);
+    }
+
+    /**
+     * KDS column configuration: which prep states are columns, their order and their names.
+     *
+     * A bakery and a coffee bar do not want the same four words over the same four columns,
+     * and a station may want its own set. The board reads these instead of hard-coding labels.
+     */
+    public function kitchenColumns(Request $request, KitchenColumns $columns): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+        $stationId = $request->query('station_id');
+        $stationId = is_numeric($stationId) ? (int) $stationId : null;
+
+        return response()->json([
+            'data' => [
+                // What the board should render right now, resolved for this station.
+                'columns' => $columns->forStation($tid, $stationId),
+                // Everything the settings screen edits.
+                ...$columns->all($tid),
+                'keys' => KitchenColumns::KEYS,
+            ],
+        ]);
+    }
+
+    /**
+     * Replace a scope's columns. Wholesale, so a rename and a reorder are one request and two
+     * columns can never end up sharing a key.
+     */
+    public function kitchenColumnsUpdate(Request $request, KitchenColumns $columns): JsonResponse
+    {
+        $tid = (int) $request->user()->tenant_id;
+
+        $data = $request->validate([
+            'station_id' => ['nullable', 'integer', Rule::exists('cafe_kitchen_stations', 'id')->where('tenant_id', $tid)],
+            'columns' => ['required', 'array', 'min:1', 'max:8'],
+            'columns.*.key' => ['required', 'string', Rule::in(KitchenColumns::KEYS)],
+            'columns.*.label_fa' => ['required', 'string', 'max:60'],
+            'columns.*.label_en' => ['nullable', 'string', 'max:60'],
+            'columns.*.sort_order' => ['nullable', 'integer', 'min:0', 'max:99'],
+            'columns.*.is_active' => ['nullable', 'boolean'],
+        ]);
+
+        // A repeated key would render two columns claiming the same state.
+        $keys = array_map(fn (array $c): string => (string) $c['key'], $data['columns']);
+        if (count($keys) !== count(array_unique($keys))) {
+            return response()->json([
+                'message' => 'هر وضعیت فقط یک ستون می‌تواند داشته باشد.',
+                'errors' => ['columns' => ['duplicate_key']],
+            ], 422);
+        }
+
+        $stationId = isset($data['station_id']) ? (int) $data['station_id'] : null;
+
+        return response()->json([
+            'data' => $columns->replace($tid, $stationId, $data['columns']),
+        ]);
     }
 }

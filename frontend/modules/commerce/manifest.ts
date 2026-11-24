@@ -519,6 +519,22 @@ export const commerceManifest: ModuleManifest = {
       menuKey: "accounting",
     },
     {
+      // Account coding: which code plays which role in the sales journal. Sits next to the
+      // chart of accounts because the two are edited together — add the account, then map
+      // it to a role.
+      path: "accounting/coding",
+      submodule: "accounting",
+      page: "accounting",
+      labelKey: "nav.accounting_coding",
+      section: "commerce",
+      order: 23,
+      navGroup: "accounting",
+      navOrder: 4,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+      navHidden: true,
+    },
+    {
       path: "accounting/journals",
       submodule: "accounting",
       page: "accounting",
