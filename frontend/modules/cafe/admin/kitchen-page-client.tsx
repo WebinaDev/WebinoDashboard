@@ -17,6 +17,7 @@ import { api, type ApiListPayload } from "@/lib/api"
 import { asArray } from "@/lib/list-utils"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatDisplayDateTime } from "@/lib/format-date"
+import { useOnlineStatus } from "@/hooks/use-online-status"
 
 import { CafeAdminShell, CafeEmptyState, cafeSelectClass } from "./cafe-admin-ui"
 
@@ -90,6 +91,8 @@ function beep() {
   osc.stop(ctx.currentTime + 0.18)
 }
 
+const KITCHEN_CACHE_KEY = "webino.cafe.kitchen.board.v1"
+
 export default function KitchenPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.kitchen")
   const tCommon = useTranslations("common")
@@ -97,6 +100,26 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
   const queryClient = useQueryClient()
   const seen = useRef<Set<number>>(new Set())
   const primed = useRef(false)
+  const online = useOnlineStatus()
+
+  /**
+   * The board on a screen that lost its connection.
+   *
+   * A kitchen display is a wall-mounted tablet on shop Wi-Fi; when the router reboots the board
+   * used to go blank, which reads to a cook as "no orders" — the worst possible message. Every
+   * successful poll is mirrored to localStorage, and a failed poll restores it so the tickets
+   * already on the wall stay on the wall, visibly marked as stale.
+   */
+  const restoreCachedBoard = (): KitchenOrder[] => {
+    try {
+      const raw = window.localStorage.getItem(KITCHEN_CACHE_KEY)
+      if (!raw) return []
+      const parsed: unknown = JSON.parse(raw)
+      return Array.isArray(parsed) ? (parsed as KitchenOrder[]) : []
+    } catch {
+      return []
+    }
+  }
 
   // The board's clock. Ages are computed on the server, but they have to keep moving between
   // polls — a ticket must go red while the cook is looking at it, not at the next refresh.
@@ -122,6 +145,11 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
       )
       fetchedAtRef.current = Date.now()
       const rows = asArray<KitchenOrder>(payload)
+      try {
+        window.localStorage.setItem(KITCHEN_CACHE_KEY, JSON.stringify(rows))
+      } catch {
+        // Quota or private mode: the board still works, it just will not survive a reload offline.
+      }
       // One tick of overlap absorbs clock skew between browser and API without duplicates.
       sinceRef.current = new Date(Date.now() - 15_000).toISOString()
       if (!since) return rows
@@ -137,7 +165,15 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
         .sort((a, b) => (b.timing?.overdue_minutes ?? 0) - (a.timing?.overdue_minutes ?? 0) || b.id - a.id)
     },
     refetchInterval: 8000,
+    // Polling that fails must not throw the board away: a cook looking at five tickets should
+    // still see five tickets when the Wi-Fi drops.
+    retry: 1,
+    placeholderData: (previous) => previous,
+    throwOnError: false,
   })
+
+  // A failed poll falls back to the mirrored board rather than an empty grid.
+  const board = orders.length > 0 ? orders : restoreCachedBoard()
 
   // Column labels are per tenant (and optionally per station), so the board must not hard-code
   // the four words it shows next to each status.
@@ -226,11 +262,17 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
 
   return (
     <CafeAdminShell title={t("title")} description={t("description")}>
-      {orders.length === 0 ? (
+      {!online ? (
+        <p className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          {t("offline_banner")}
+        </p>
+      ) : null}
+
+      {board.length === 0 ? (
         <CafeEmptyState message={`${t("empty")} — ${t("empty_hint")}`} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {orders.map((order) => {
+          {board.map((order) => {
             const advanceTo = nextStatus(order.kitchen_status)
             const age = ticketAge(order)
             // An overdue ticket is louder than a new one: the border is the first thing a

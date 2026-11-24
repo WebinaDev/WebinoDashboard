@@ -1080,7 +1080,8 @@
       "custom_clear": "Clear status",
       "mark_ready": "Mark as ready",
       "age_minutes": "{minutes} min",
-      "age_hint": "Amber after {warn} min, red after {late} min"
+      "age_hint": "Amber after {warn} min, red after {late} min",
+      "offline_banner": "The connection is down. These tickets are the last saved state and are not updating."
     },
     "inbox": {
       "title": "Guest feedback",
