@@ -215,6 +215,75 @@ class CafeFloorTest extends TestCase
         $this->assertSame(320_000, $res->json('meta.summary.open_value_minor'));
     }
 
+    /**
+     * The two states the old board could not name.
+     *
+     * Both used to read as `served`, which is what a waiter sees for a table that has just been
+     * given its food and for a table whose bill has been sitting unpaid for two hours. One of
+     * those needs a coffee; the other needs a card reader.
+     */
+    public function test_a_served_table_with_no_payment_is_awaiting_settlement(): void
+    {
+        $staff = $this->user();
+        $this->table('E1', 4, ['status_changed_at' => now()->subMinutes(20)]);
+        $this->orderAt($staff, 'E1', 150_000, 'served');
+
+        $res = $this->actingAs($staff, 'sanctum')->getJson('/api/v1/cafe/floor', $this->h)->assertOk();
+        $row = collect($res->json('data'))->firstWhere('code', 'E1');
+
+        $this->assertSame(CafeTable::STATUS_AWAITING_SETTLEMENT, $row['status']);
+        $this->assertTrue($row['awaiting_settlement']);
+        $this->assertFalse($row['overdue']);
+        $this->assertSame(150_000, $row['unsettled_minor']);
+        $this->assertSame(150_000, $row['open_total_minor']);
+        $this->assertTrue($row['occupied'], 'waiting for the bill is still sitting at the table');
+    }
+
+    /** The same table, long past the point somebody should have collected. */
+    public function test_the_same_table_becomes_overdue_after_the_threshold(): void
+    {
+        $staff = $this->user();
+        $this->table('E2', 4);
+        $order = $this->orderAt($staff, 'E2', 90_000, 'served');
+        // The order's age is what the board measures, so age the order, not the table.
+        $order->forceFill(['created_at' => now()->subMinutes(\Modules\Cafe\Services\CafeFloorService::OVERDUE_AFTER_MINUTES + 10)])->save();
+
+        $res = $this->actingAs($staff, 'sanctum')->getJson('/api/v1/cafe/floor', $this->h)->assertOk();
+        $row = collect($res->json('data'))->firstWhere('code', 'E2');
+
+        $this->assertSame(CafeTable::STATUS_OVERDUE, $row['status']);
+        $this->assertTrue($row['overdue']);
+        $this->assertSame(1, $res->json('meta.summary.overdue'));
+    }
+
+    /** A paid table is not waiting for the till, however long the guests sit. */
+    public function test_a_paid_order_is_not_awaiting_settlement(): void
+    {
+        $staff = $this->user();
+        $this->table('E3', 4);
+        $order = $this->orderAt($staff, 'E3', 80_000, 'served');
+        $order->forceFill(['paid_at' => now()])->save();
+
+        $res = $this->actingAs($staff, 'sanctum')->getJson('/api/v1/cafe/floor', $this->h)->assertOk();
+        $row = collect($res->json('data'))->firstWhere('code', 'E3');
+
+        $this->assertSame(CafeTable::STATUS_SERVED, $row['status']);
+        $this->assertFalse($row['awaiting_settlement']);
+        $this->assertSame(0, $row['unsettled_minor']);
+    }
+
+    /** A derived reading is not a state a waiter may set. */
+    public function test_a_waiter_cannot_set_a_derived_status(): void
+    {
+        $staff = $this->user();
+        $table = $this->table('E4', 4);
+
+        $this->actingAs($staff, 'sanctum')
+            ->patchJson("/api/v1/cafe/floor/{$table->id}", ['status' => CafeTable::STATUS_AWAITING_SETTLEMENT], $this->h)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('status');
+    }
+
     public function test_a_waiter_cannot_touch_another_tenants_table(): void
     {
         $other = $this->createTenant(['domain' => 'other-floor.test', 'slug' => 'other-floor']);
