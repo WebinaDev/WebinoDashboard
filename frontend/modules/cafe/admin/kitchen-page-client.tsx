@@ -439,8 +439,12 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
                   {advanceTo ? (
+                    // A KDS is tapped with a thumb, often wet, never looked at closely. The
+                    // advance button is the one control a cook presses all shift, so it gets a
+                    // real target instead of the small default.
                     <Button
                       size="sm"
+                      className="min-h-11 px-4"
                       data-testid="kds-advance"
                       disabled={update.isPending}
                       onClick={() => update.mutate({ id: order.id, kitchen_status: advanceTo })}
@@ -449,7 +453,7 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                     </Button>
                   ) : null}
                   <select
-                    className={`${cafeSelectClass} h-8 w-auto min-w-[8rem]`}
+                    className={`${cafeSelectClass} h-11 w-auto min-w-[8rem]`}
                     aria-label={t("set_status")}
                     value={order.kitchen_status}
                     disabled={update.isPending}

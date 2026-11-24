@@ -257,22 +257,22 @@ export default function FloorPageClient({ route }: { route: ResolvedAdminRoute }
 
                 <div className="mt-auto flex flex-wrap gap-1">
                   {table.status !== "served" ? (
-                    <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => changeStatus(table, "served")}>
+                    <Button size="sm" variant="outline" className="h-9 px-2.5 text-xs" onClick={() => changeStatus(table, "served")}>
                       {t("set_served")}
                     </Button>
                   ) : null}
                   {table.status !== "cleaning" ? (
-                    <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => changeStatus(table, "cleaning")}>
+                    <Button size="sm" variant="outline" className="h-9 px-2.5 text-xs" onClick={() => changeStatus(table, "cleaning")}>
                       {t("set_cleaning")}
                     </Button>
                   ) : null}
                   {table.status !== "reserved" ? (
-                    <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => changeStatus(table, "reserved")}>
+                    <Button size="sm" variant="outline" className="h-9 px-2.5 text-xs" onClick={() => changeStatus(table, "reserved")}>
                       {t("set_reserved")}
                     </Button>
                   ) : null}
                   {table.status !== "free" ? (
-                    <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" onClick={() => changeStatus(table, "free")}>
+                    <Button size="sm" variant="secondary" className="h-9 px-2.5 text-xs" onClick={() => changeStatus(table, "free")}>
                       {t("set_free")}
                     </Button>
                   ) : null}

@@ -147,7 +147,7 @@ export function TablesCard() {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="size-8"
+                  className="size-10"
                   title={t("table_qr")}
                   aria-label={t("table_qr")}
                   onClick={async () => {
@@ -164,7 +164,7 @@ export function TablesCard() {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="size-8"
+                  className="size-10"
                   title={t("remove")}
                   aria-label={t("remove")}
                   onClick={() => remove.mutate(table.id)}
