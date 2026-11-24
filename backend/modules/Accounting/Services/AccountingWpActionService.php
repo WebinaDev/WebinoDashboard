@@ -236,20 +236,93 @@ class AccountingWpActionService
         });
     }
 
+    /**
+     * Delete a draft. A posted entry is not deletable: it is a record of something that
+     * happened, and removing it would silently change every report that already counted it.
+     */
     private function journalDelete(array $p): array
     {
         $id = (int) ($p['id'] ?? 0);
+
         if ($id) {
-            AccJournalEntry::query()->whereKey($id)->delete();
+            $entry = AccJournalEntry::query()->findOrFail($id);
+
+            if ((string) $entry->status === 'posted') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'id' => ['سند ثبت‌شده حذف نمی‌شود؛ برای اصلاح، سند اصلاحی بزنید.'],
+                ]);
+            }
+
+            $entry->delete();
         }
 
         return ['ok' => true];
     }
 
+    /**
+     * Post a draft entry — after checking it is a journal and not a list of numbers.
+     *
+     * Posting used to be a status flip. A draft with one line, or with 500 debit and 400 credit,
+     * posted happily and then sat in the trial balance as an imbalance that no report could
+     * explain, because nothing had ever refused it. An entry that cannot balance is rejected
+     * here, while a person is still looking at it.
+     *
+     * Drafts are editable (`journal_save` replaces their lines); posted entries are not, because
+     * the alternative is a posted figure that means something different tomorrow.
+     */
     private function journalPost(array $p): array
     {
         $id = (int) ($p['id'] ?? 0);
         $entry = AccJournalEntry::query()->findOrFail($id);
+
+        if ((string) $entry->status === 'posted') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'id' => ['این سند قبلاً ثبت شده است.'],
+            ]);
+        }
+
+        $lines = AccJournalLine::query()->where('journal_entry_id', $entry->id)->get();
+
+        if ($lines->count() < 2) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'lines' => ['سند باید حداقل دو ردیف داشته باشد.'],
+            ]);
+        }
+
+        $debit = 0.0;
+        $credit = 0.0;
+
+        foreach ($lines as $line) {
+            $dr = (float) $line->debit;
+            $cr = (float) $line->credit;
+
+            // One line, one side. A line that is both is a typo that always balances wrongly.
+            if ($dr > 0.0 && $cr > 0.0) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'lines' => ['هر ردیف یا بدهکار است یا بستانکار، نه هر دو.'],
+                ]);
+            }
+
+            $debit += $dr;
+            $credit += $cr;
+        }
+
+        if (abs($debit - $credit) > 0.01) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'lines' => [sprintf(
+                    'سند ناتراز است: بدهکار %s، بستانکار %s.',
+                    number_format($debit, 2),
+                    number_format($credit, 2),
+                )],
+            ]);
+        }
+
+        if ($debit <= 0.0) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'lines' => ['سند بدون مبلغ را نمی‌توان ثبت کرد.'],
+            ]);
+        }
+
         $entry->update(['status' => 'posted']);
 
         return ['ok' => true, 'posted' => true, 'entry' => $entry->fresh('lines')];
