@@ -169,6 +169,31 @@ class BranchOperationsController extends Controller
         return response()->json(['data' => $row->fresh()]);
     }
 
+    /**
+     * The overrides a branch currently has.
+     *
+     * The screen that sets these prices needs to show what is already set — otherwise an
+     * owner cannot tell an overridden item from a catalogue one, or find the override they
+     * want to clear. Delete-by-id existed but list did not, which is the wrong half.
+     */
+    public function priceOverrideIndex(Request $request): JsonResponse
+    {
+        $tenantId = (int) $request->user()->tenant_id;
+
+        $data = $request->validate([
+            'branch_id' => ['nullable', 'integer', Rule::exists('cafe_branches', 'id')->where('tenant_id', $tenantId)],
+        ]);
+
+        $rows = \App\Models\BranchProductPrice::query()
+            ->where('tenant_id', $tenantId)
+            ->when(isset($data['branch_id']), fn ($q) => $q->where('branch_id', $data['branch_id']))
+            ->orderByDesc('id')
+            ->limit(500)
+            ->get();
+
+        return response()->json(['data' => $rows]);
+    }
+
     /** Clear an override, so the branch inherits the catalogue price again. */
     public function priceOverrideDestroy(Request $request, int $override): JsonResponse
     {

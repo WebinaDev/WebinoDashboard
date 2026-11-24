@@ -1632,6 +1632,52 @@
       "status_approved": "Approved",
       "status_rejected": "Rejected",
       "status_settled": "Settled"
+    },
+    "nav": {
+      "cafe_branch_prices": "Branch prices",
+      "cafe_operations_settings": "Operations settings"
+    },
+    "branch_prices": {
+      "title": "Branch prices",
+      "description": "Set a price per branch. Where no override exists, the catalogue price applies.",
+      "section_add": "Set a price for a branch",
+      "section_add_hint": "Saving a product that is already overridden replaces its price instead of failing as a duplicate.",
+      "section_existing": "Current overrides for this branch",
+      "branch": "Branch",
+      "choose_branch": "Choose a branch",
+      "product": "Product",
+      "choose_product": "Choose a product",
+      "price": "Price",
+      "price_placeholder": "Leave blank to use the catalogue price",
+      "sale_price": "Sale price",
+      "sale_price_placeholder": "Optional",
+      "saved": "Branch price saved",
+      "pick_branch_first": "Pick a branch to see its prices.",
+      "empty": "No price override for this branch",
+      "empty_hint": "Every product sells at the catalogue price."
+    },
+    "operations_settings": {
+      "title": "Operations settings",
+      "description": "The timings behind the till and the floor: when the kitchen starts warning, and when a table counts as overdue.",
+      "section_timing": "Time thresholds",
+      "section_timing_hint": "All values are in minutes.",
+      "section_rules": "Service rules",
+      "paid_edit_window_minutes": "Edit window on a paid order",
+      "paid_edit_window_minutes_hint": "For this many minutes after payment (between {min} and {max}), the order can still be edited.",
+      "kds_warn_after_minutes": "Kitchen warning",
+      "kds_warn_after_minutes_hint": "A ticket waiting longer than this (between {min} and {max}) turns amber.",
+      "kds_late_after_minutes": "Kitchen late",
+      "kds_late_after_minutes_hint": "Longer than this (between {min} and {max}) means the ticket is late and turns red.",
+      "table_overdue_after_minutes": "Table overdue",
+      "table_overdue_after_minutes_hint": "A table occupied longer than this (between {min} and {max}) counts as overdue.",
+      "queue_stale_after_minutes": "Stale queue",
+      "queue_stale_after_minutes_hint": "An order unchanged for longer than this (between {min} and {max}) is treated as stale.",
+      "default_delivery_eta_minutes": "Default delivery ETA",
+      "default_delivery_eta_minutes_hint": "The delivery estimate shown to the guest (between {min} and {max} minutes).",
+      "flag_requires_approval": "Editing a paid order needs approval",
+      "flag_requires_approval_hint": "When on, a change after payment waits for a manager to approve it.",
+      "flag_delivery_minimum": "Enforce the delivery minimum",
+      "flag_delivery_minimum_hint": "When on, orders below the delivery minimum are refused."
     }
   },
   "themes": {

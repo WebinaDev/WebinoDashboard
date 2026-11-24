@@ -88,6 +88,7 @@ use Modules\Cafe\Http\Controllers\PublicCafeQuoteController;
                 Route::put('/branch-settings', [BranchOperationsController::class, 'settingsUpdate']);
                 Route::get('/branch-stock', [BranchOperationsController::class, 'stockIndex']);
                 Route::post('/branch-stock/count', [BranchOperationsController::class, 'stockCount']);
+                Route::get('/branch-prices', [BranchOperationsController::class, 'priceOverrideIndex']);
                 Route::post('/branch-prices', [BranchOperationsController::class, 'priceOverride']);
                 Route::delete('/branch-prices/{override}', [BranchOperationsController::class, 'priceOverrideDestroy'])->whereNumber('override');
                 Route::get('/oversold-orders', [BranchOperationsController::class, 'oversoldIndex']);
