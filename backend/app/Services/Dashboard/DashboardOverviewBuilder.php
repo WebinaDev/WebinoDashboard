@@ -1009,7 +1009,7 @@ final class DashboardOverviewBuilder
                     'fulfillment' => (string) ($meta['fulfillment'] ?? 'dine_in'),
                     'customer_name' => (string) ($o->customer_name ?: '—'),
                     'total_minor' => (int) $o->total_minor,
-                    'href' => '/dashboard/kitchen',
+                    'href' => '/dashboard/cafe/kitchen',
                     'item_count' => $o->relationLoaded('items') ? (int) $o->items->sum('quantity') : 0,
                 ];
             })
@@ -1056,7 +1056,7 @@ final class DashboardOverviewBuilder
                     'party_size' => (int) $r->party_size,
                     'reserved_at' => optional($r->reserved_at)?->toIso8601String() ?? '',
                     'status' => (string) $r->status,
-                    'href' => '/dashboard/reservations',
+                    'href' => '/dashboard/cafe/reservations',
                 ])
                 ->all()
             : [];
@@ -1101,7 +1101,7 @@ final class DashboardOverviewBuilder
                         'rating' => (int) ($f->rating ?? 0),
                         'comment' => (string) ($f->comment ?? ''),
                         'created_at' => optional($f->created_at)?->toIso8601String() ?? '',
-                        'href' => '/dashboard/inbox',
+                        'href' => '/dashboard/cafe/inbox',
                     ];
                 })
                 ->all()
@@ -1126,7 +1126,7 @@ final class DashboardOverviewBuilder
                         'name' => (string) ($p?->name ?: '—'),
                         'likes_count' => (int) $row->likes_count,
                         'image_url' => (string) ($p?->image_url ?: $p?->cover_image_url ?: ''),
-                        'href' => '/dashboard/menu',
+                        'href' => '/dashboard/cafe/menu',
                     ];
                 })
                 ->all()
@@ -1148,7 +1148,7 @@ final class DashboardOverviewBuilder
                         'likes_count' => (int) ($row['quantity'] ?? 0),
                         'metric' => 'sold',
                         'image_url' => (string) ($p?->image_url ?: $p?->cover_image_url ?: ''),
-                        'href' => '/dashboard/menu',
+                        'href' => '/dashboard/cafe/menu',
                     ];
                 }, array_slice($report['top_products'] ?? [], 0, 5));
             } catch (\Throwable) {
@@ -1176,54 +1176,54 @@ final class DashboardOverviewBuilder
                 'open' => $kitchenOpen,
                 'by_status' => $kitchenByStatus,
                 'preview' => $kitchenPreview,
-                'href' => '/dashboard/kitchen',
+                'href' => '/dashboard/cafe/kitchen',
             ],
             'menu' => [
                 'items_published' => $menuItems,
                 'items_draft' => $menuItemsDraft,
                 'menus_active' => $menusActive,
-                'href' => '/dashboard/menu',
+                'href' => '/dashboard/cafe/menu',
             ],
             'tables' => [
                 'total' => $tablesTotal,
                 'active' => $tablesActive,
-                'href' => '/dashboard/qr',
+                'href' => '/dashboard/cafe/qr',
             ],
             'branches' => [
                 'count' => $branches,
-                'href' => '/dashboard/qr',
+                'href' => '/dashboard/cafe/qr',
             ],
             'reservations' => [
                 'today' => $reservationsToday,
                 'pending' => $reservationsPending,
                 'upcoming' => $upcomingReservations,
-                'href' => '/dashboard/reservations',
+                'href' => '/dashboard/cafe/reservations',
             ],
             'events' => [
                 'upcoming' => $eventsUpcoming,
                 'bookings_pending' => $eventBookingsPending,
-                'href' => '/dashboard/reservations',
+                'href' => '/dashboard/cafe/reservations',
             ],
             'gallery' => [
                 'count' => $galleryCount,
-                'href' => '/dashboard/gallery',
+                'href' => '/dashboard/cafe/gallery',
             ],
             'engagement' => [
                 'feedback_count' => $feedbackCount,
                 'recent_feedback' => $feedbackRecent,
                 'popular_items' => $popular,
-                'href' => '/dashboard/inbox',
+                'href' => '/dashboard/cafe/inbox',
             ],
             'recent_orders' => $recentOrders,
             'shortcuts' => [
-                ['key' => 'kitchen', 'href' => '/dashboard/kitchen'],
-                ['key' => 'menu', 'href' => '/dashboard/menu'],
-                ['key' => 'reservations', 'href' => '/dashboard/reservations'],
-                ['key' => 'qr', 'href' => '/dashboard/qr'],
-                ['key' => 'inbox', 'href' => '/dashboard/inbox'],
-                ['key' => 'gallery', 'href' => '/dashboard/gallery'],
-                ['key' => 'hours', 'href' => '/dashboard/hours'],
-                ['key' => 'venue', 'href' => '/dashboard/venue'],
+                ['key' => 'kitchen', 'href' => '/dashboard/cafe/kitchen'],
+                ['key' => 'menu', 'href' => '/dashboard/cafe/menu'],
+                ['key' => 'reservations', 'href' => '/dashboard/cafe/reservations'],
+                ['key' => 'qr', 'href' => '/dashboard/cafe/qr'],
+                ['key' => 'inbox', 'href' => '/dashboard/cafe/inbox'],
+                ['key' => 'gallery', 'href' => '/dashboard/cafe/gallery'],
+                ['key' => 'hours', 'href' => '/dashboard/cafe/hours'],
+                ['key' => 'venue', 'href' => '/dashboard/cafe/venue'],
             ],
         ];
     }
