@@ -122,6 +122,36 @@ class ProductionTest extends TestCase
         $this->assertSame(500_000.0, round(40 * $this->unitCost($this->bunId), 4));
     }
 
+    /**
+     * A made batch lands on the same shelf map as a bought one.
+     *
+     * The recipe says what goes in, never where the result belongs; without the slot the answer
+     * to "where is the bread" existed for flour and not for what the shop made from it.
+     */
+    public function test_the_finished_batch_keeps_its_shelf_and_batch_label(): void
+    {
+        $production = app(Production::class);
+        $run = $production->draft($this->tenant->id, $this->bunId, 40, [
+            'batch_no' => 'B-1403-01',
+            'slot' => 'قفسه B۲',
+            'expires_on' => now()->addDays(3)->toDateString(),
+        ]);
+
+        $this->assertSame('قفسه B۲', $run['slot']);
+
+        $done = $production->complete($this->tenant->id, $run['id']);
+        $this->assertSame('قفسه B۲', $done['slot']);
+
+        $batch = DB::table('stock_batches')
+            ->where('tenant_id', $this->tenant->id)
+            ->where('subject_id', $this->bunId)
+            ->where('batch_no', 'B-1403-01')
+            ->first();
+
+        $this->assertNotNull($batch, 'the output batch must be recorded');
+        $this->assertSame('قفسه B۲', $batch->slot, 'the shelf must reach the ledger, not just the UI');
+    }
+
     /** A run is not repeatable: doing it twice would make the buns twice. */
     public function test_a_completed_run_cannot_run_again(): void
     {

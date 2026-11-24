@@ -109,6 +109,7 @@ type ProductionSummary = {
   input_value_minor: number;
   output_unit_cost_minor: number;
   batch_no: string | null;
+  slot: string | null;
   completed_at: string | null;
   created_at: string | null;
 };
@@ -145,6 +146,8 @@ const blankMove = {
   // batch and expiry support was reachable only by hand-written requests.
   batch_no: "",
   expires_on: "",
+  // Where on the shelf it went. Free text because every kitchen names its own places.
+  slot: "",
 };
 
 export default function StockPageClient({
@@ -275,6 +278,9 @@ export default function StockPageClient({
           note: moveForm.reason.trim() || null,
           batch_no: moveForm.batch_no.trim() || null,
           expires_on: moveForm.expires_on.trim() || null,
+          // Where it physically went: shelf B, fridge 2, the top of the dry store. Without it
+          // "we have 4 kg of butter" is true and useless at 8am when nobody can find it.
+          slot: moveForm.slot.trim() || null,
         },
       });
     },
@@ -358,6 +364,7 @@ export default function StockPageClient({
     recipe_yield: "1",
     batch_no: "",
     expires_on: "",
+    slot: "",
     note: "",
   });
   const [run, setRun] = useState<ProductionRun | null>(null);
@@ -383,6 +390,8 @@ export default function StockPageClient({
           recipe_yield: Number(runForm.recipe_yield) || 1,
           batch_no: runForm.batch_no.trim() || null,
           expires_on: runForm.expires_on.trim() || null,
+          // Where to put it once it exists — the same question the shelf asks about arrivals.
+          slot: runForm.slot.trim() || null,
           note: runForm.note.trim() || null,
         },
       }),
@@ -403,6 +412,7 @@ export default function StockPageClient({
         recipe_yield: "1",
         batch_no: "",
         expires_on: "",
+        slot: "",
         note: "",
       });
       await invalidate();
@@ -514,6 +524,19 @@ export default function StockPageClient({
                   value={moveForm.expires_on}
                   onChange={(e) =>
                     setMoveForm((f) => ({ ...f, expires_on: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="st-slot">{t("slot")}</Label>
+                {/* Free text, not a list: every kitchen names its own shelves, and a dropdown
+                    would be somebody else's shelf names. */}
+                <Input
+                  id="st-slot"
+                  value={moveForm.slot}
+                  placeholder={t("slot_placeholder")}
+                  onChange={(e) =>
+                    setMoveForm((f) => ({ ...f, slot: e.target.value }))
                   }
                 />
               </div>
@@ -934,6 +957,17 @@ export default function StockPageClient({
               placeholder={t("batch_optional")}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="run-slot">{t("slot")}</Label>
+            <Input
+              id="run-slot"
+              value={runForm.slot}
+              placeholder={t("slot_placeholder")}
+              onChange={(e) =>
+                setRunForm((f) => ({ ...f, slot: e.target.value }))
+              }
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -1008,6 +1042,7 @@ export default function StockPageClient({
                   <TableHead>{t("quantity")}</TableHead>
                   <TableHead>{t("production_value_short")}</TableHead>
                   <TableHead>{t("batch")}</TableHead>
+                  <TableHead>{t("slot")}</TableHead>
                   <TableHead>{t("status")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1022,6 +1057,7 @@ export default function StockPageClient({
                       <MoneyText amount={row.input_value_minor} />
                     </TableCell>
                     <TableCell dir="ltr">{row.batch_no ?? "—"}</TableCell>
+                    <TableCell>{row.slot ?? "—"}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -1053,6 +1089,7 @@ export default function StockPageClient({
                   <TableHead>{t("batch")}</TableHead>
                   <TableHead>{t("quantity")}</TableHead>
                   <TableHead>{t("expires_on")}</TableHead>
+                  <TableHead>{t("slot")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1078,6 +1115,8 @@ export default function StockPageClient({
                             })}
                       </Badge>
                     </TableCell>
+                    {/* Where to walk to reach the thing that is about to expire. */}
+                    <TableCell>{row.slot ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -42,6 +42,9 @@ return new class extends Migration
                 $table->decimal('produced_quantity', 16, 4);
                 $table->foreignId('warehouse_id')->nullable()->constrained('acc_warehouses')->nullOnDelete();
                 $table->string('batch_no', 64)->nullable();
+                // Where the finished batch sits: the same shelf question as an arrival, asked
+                // about something that did not arrive in a van.
+                $table->string('slot', 64)->nullable();
                 $table->date('expires_on')->nullable();
                 // Frozen at completion: the sum of `consumed_value_minor` on the lines, plus
                 // any labour/overhead the shop chose to add. Kept on the run so a later price

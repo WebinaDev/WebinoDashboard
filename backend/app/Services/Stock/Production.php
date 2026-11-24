@@ -106,6 +106,7 @@ final class Production
             'produced_quantity' => $producedQuantity,
             'warehouse_id' => $options['warehouse_id'] ?? null,
             'batch_no' => $this->trimOrNull($options['batch_no'] ?? null),
+            'slot' => $this->trimOrNull($options['slot'] ?? null),
             'expires_on' => $options['expires_on'] ?? null,
             'input_value_minor' => round($inputValue, 4),
             'output_unit_cost_minor' => $producedQuantity > 0 ? round($inputValue / $producedQuantity, 6) : 0,
@@ -204,6 +205,7 @@ final class Production
                 [
                     'warehouse_id' => $run->warehouse_id,
                     'batch_no' => $run->batch_no,
+                    'slot' => $run->slot,
                     'expires_on' => $run->expires_on,
                     'reference_type' => 'production_run',
                     'reference_id' => $runId,
@@ -256,6 +258,7 @@ final class Production
             'recipe_yield' => (float) $run->recipe_yield,
             'warehouse_id' => $run->warehouse_id === null ? null : (int) $run->warehouse_id,
             'batch_no' => $run->batch_no,
+            'slot' => $run->slot,
             'expires_on' => $run->expires_on,
             'input_value_minor' => (float) $run->input_value_minor,
             'output_unit_cost_minor' => (float) $run->output_unit_cost_minor,
@@ -284,7 +287,7 @@ final class Production
             ->where('r.tenant_id', $tenantId)
             ->orderByDesc('r.id')
             ->limit(max(1, min(100, $limit)))
-            ->get(['r.id', 'r.status', 'r.produced_quantity', 'r.input_value_minor', 'r.output_unit_cost_minor', 'r.batch_no', 'r.completed_at', 'r.created_at', 'p.name as output_name'])
+            ->get(['r.id', 'r.status', 'r.produced_quantity', 'r.input_value_minor', 'r.output_unit_cost_minor', 'r.batch_no', 'r.slot', 'r.completed_at', 'r.created_at', 'p.name as output_name'])
             ->map(fn ($row): array => [
                 'id' => (int) $row->id,
                 'status' => (string) $row->status,
@@ -293,6 +296,7 @@ final class Production
                 'input_value_minor' => (float) $row->input_value_minor,
                 'output_unit_cost_minor' => (float) $row->output_unit_cost_minor,
                 'batch_no' => $row->batch_no,
+                'slot' => $row->slot,
                 'completed_at' => $row->completed_at,
                 'created_at' => $row->created_at,
             ])->all();

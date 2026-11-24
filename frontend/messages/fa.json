@@ -4766,6 +4766,8 @@
       "nothing_expiring": "چیزی در حال انقضا نیست.",
       "batch": "بچ",
       "expires_on": "انقضا",
+      "slot": "قفسه / محل نگهداری",
+      "slot_placeholder": "مثلاً قفسه B۲ یا یخچال ۲",
       "expired": "منقضی شده",
       "days_left": "{days} روز مانده",
       "reorder_title": "پیشنهاد خرید",

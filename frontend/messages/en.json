@@ -2242,6 +2242,8 @@
       "nothing_expiring": "Nothing is expiring.",
       "batch": "Batch",
       "expires_on": "Expires",
+      "slot": "Shelf / location",
+      "slot_placeholder": "e.g. shelf B2 or fridge 2",
       "expired": "Expired",
       "days_left": "{days} days left",
       "reorder_title": "What to buy",
