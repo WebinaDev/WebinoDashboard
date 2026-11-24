@@ -75,6 +75,7 @@ use App\Http\Controllers\Api\V1\PortfolioItemController;
 use App\Http\Controllers\Api\V1\PricingController;
 use App\Http\Controllers\Api\V1\CafeReportsController;
 use App\Http\Controllers\Api\V1\RecipeController;
+use App\Http\Controllers\Api\V1\StockController;
 use App\Http\Controllers\Api\V1\StaffController;
 use App\Http\Controllers\Api\V1\StaffRotaController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
@@ -852,8 +853,24 @@ Route::prefix('v1')->group(function () {
                 Route::get('/recipes/{product}', [RecipeController::class, 'show'])->whereNumber('product');
                 Route::put('/recipes/{product}', [RecipeController::class, 'save'])->whereNumber('product');
                 Route::get('/stock/costing', [RecipeController::class, 'stock']);
-                Route::post('/stock/receive', [RecipeController::class, 'receive']);
-                Route::post('/stock/waste', [RecipeController::class, 'waste']);
+            });
+
+            // The stock ledger, with lots, transfers and the buying path. One capability per
+            // step of that path: a cook can record waste, a purchaser can raise a request, and
+            // only whoever holds `purchasing.approve` can authorise the spend.
+            Route::middleware(['module:cafe_menu', 'can:catalog.*,accounting.manage,pos.use,orders.*'])->group(function () {
+                Route::get('/stock/expiring', [StockController::class, 'expiring']);
+                Route::get('/stock/reorder', [StockController::class, 'reorder']);
+                Route::post('/stock/receive', [StockController::class, 'receive']);
+                Route::post('/stock/waste', [StockController::class, 'waste']);
+                Route::post('/stock/count', [StockController::class, 'count']);
+                Route::post('/stock/transfer', [StockController::class, 'transfer']);
+                Route::get('/stock/purchase-requests', [StockController::class, 'requests']);
+                Route::get('/stock/purchase-orders', [StockController::class, 'orders']);
+                Route::post('/stock/purchase-requests', [StockController::class, 'createRequest']);
+                Route::post('/stock/purchase-requests/{id}/decide', [StockController::class, 'decideRequest'])->whereNumber('id');
+                Route::post('/stock/purchase-requests/{id}/order', [StockController::class, 'createOrder'])->whereNumber('id');
+                Route::post('/stock/purchase-orders/{id}/receive', [StockController::class, 'receiveOrder'])->whereNumber('id');
             });
 
             Route::middleware(['module:pricing', 'can:catalog.*,commerce.*'])->group(function () {

@@ -44,6 +44,10 @@ final class RecipeCosting
 
     public const REASON_PRODUCTION = 'production';
 
+    public const REASON_TRANSFER_IN = 'transfer_in';
+
+    public const REASON_TRANSFER_OUT = 'transfer_out';
+
     // ------------------------------------------------------------------ costs ---
 
     /**
@@ -383,7 +387,72 @@ final class RecipeCosting
     }
 
     /**
-     * @param  array{reference_type?: string|null, reference_id?: int|null, note?: string|null, unit?: string|null, moved_at?: mixed, created_by?: int|null}  $meta
+     * Move stock from one store to another.
+     *
+     * Two rows, not one: a transfer is a departure and an arrival, and a single signed row
+     * cannot say which store lost the goods. Both carry the same reference so the pair is
+     * reconstructible, and the value is the average cost at the moment of the move — the
+     * receiving store should not inherit a cost the sending store never paid.
+     */
+    public function transfer(
+        int $tenantId,
+        string $subjectType,
+        int $subjectId,
+        ?int $fromWarehouseId,
+        ?int $toWarehouseId,
+        float $quantity,
+        array $meta = [],
+    ): array {
+        if ($quantity <= 0) {
+            throw new \InvalidArgumentException('A transfer needs a positive quantity.');
+        }
+
+        if ($fromWarehouseId === $toWarehouseId) {
+            throw new \InvalidArgumentException('A transfer between the same store is not a movement.');
+        }
+
+        $cost = $this->costFor($tenantId, $subjectType, $subjectId);
+
+        if ($cost['qty_on_hand'] < $quantity) {
+            // Unlike a sale, a transfer can wait: nothing is being served, and moving stock the
+            // store does not have would invent it in one place and destroy it in another.
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'quantity' => __('api.stock_transfer_exceeds_on_hand'),
+            ]);
+        }
+
+        // Both rows or neither: a departure without an arrival is stock that vanished.
+        return DB::transaction(function () use ($tenantId, $subjectType, $subjectId, $fromWarehouseId, $toWarehouseId, $quantity, $meta, $cost): array {
+            $this->consume($tenantId, $subjectType, $subjectId, $quantity, self::REASON_TRANSFER_OUT, array_merge($meta, [
+                'warehouse_id' => $fromWarehouseId,
+                'counterpart_warehouse_id' => $toWarehouseId,
+            ]));
+
+            // The total on hand does not change in a transfer; only where it sits does.
+            DB::table('ingredient_costs')
+                ->where('tenant_id', $tenantId)
+                ->where('subject_type', $subjectType)
+                ->where('subject_id', $subjectId)
+                ->update([
+                    'qty_on_hand' => DB::raw('qty_on_hand + '.round($quantity, 4)),
+                    'updated_at' => now(),
+                ]);
+
+            $this->recordMovement($tenantId, $subjectType, $subjectId, self::REASON_TRANSFER_IN, $quantity, $cost['avg_cost_minor'], array_merge($meta, [
+                'warehouse_id' => $toWarehouseId,
+                'counterpart_warehouse_id' => $fromWarehouseId,
+            ]));
+
+            return [
+                'quantity' => $quantity,
+                'unit_cost_minor' => $cost['avg_cost_minor'],
+                'value_minor' => round($quantity * $cost['avg_cost_minor'], 4),
+            ];
+        });
+    }
+
+    /**
+     * @param  array{reference_type?: string|null, reference_id?: int|null, note?: string|null, unit?: string|null, moved_at?: mixed, created_by?: int|null, warehouse_id?: int|null, batch_id?: int|null, counterpart_warehouse_id?: int|null}  $meta
      */
     private function recordMovement(
         int $tenantId,
@@ -404,6 +473,9 @@ final class RecipeCosting
             'value_minor' => round($signedQuantity * $unitCostMinor, 4),
             'reference_type' => $meta['reference_type'] ?? null,
             'reference_id' => $meta['reference_id'] ?? null,
+            'warehouse_id' => $meta['warehouse_id'] ?? null,
+            'batch_id' => $meta['batch_id'] ?? null,
+            'counterpart_warehouse_id' => $meta['counterpart_warehouse_id'] ?? null,
             'note' => $meta['note'] ?? null,
             'created_by' => $meta['created_by'] ?? (auth()->id() ?? null),
             'moved_at' => $meta['moved_at'] ?? now(),
