@@ -876,6 +876,11 @@ Route::prefix('v1')->group(function () {
                 // Opening stock from a sheet: preview parses and reports, commit receives.
                 Route::post('/stock/opening/preview', [StockController::class, 'openingPreview']);
                 Route::post('/stock/opening/commit', [StockController::class, 'openingCommit']);
+                // Making bread from flour: the inputs leave the shelf and the output lands on
+                // it, valued at what the inputs cost, in one transaction.
+                Route::get('/stock/production', [StockController::class, 'productionIndex']);
+                Route::post('/stock/production/draft', [StockController::class, 'productionDraft']);
+                Route::post('/stock/production/{id}/complete', [StockController::class, 'productionComplete'])->whereNumber('id');
                 Route::get('/stock/purchase-requests', [StockController::class, 'requests']);
                 Route::get('/stock/purchase-orders', [StockController::class, 'orders']);
                 Route::post('/stock/purchase-requests', [StockController::class, 'createRequest']);

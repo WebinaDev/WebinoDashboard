@@ -121,12 +121,24 @@ final class StockLedger
         return DB::transaction(function () use ($tenantId, $productId, $quantity, $trimmed, $meta): array {
             $note = trim($trimmed.' — '.((string) ($meta['note'] ?? '')));
 
+            // The reason is the caller's, not this method's: production consumes stock just as
+            // certainly as waste does, and reporting a bake as spoilage would make the waste
+            // report lie. Defaults to waste because that is what the screen sends.
+            $reasonCode = (string) ($meta['reason_code'] ?? RecipeCosting::REASON_WASTE);
+            $allowed = [
+                RecipeCosting::REASON_WASTE,
+                RecipeCosting::REASON_PRODUCTION,
+                RecipeCosting::REASON_TRANSFER_OUT,
+                RecipeCosting::REASON_SALE,
+                RecipeCosting::REASON_COUNT,
+            ];
+
             $value = $this->costing->consume(
                 $tenantId,
                 RecipeCosting::SUBJECT_ACC_PRODUCT,
                 $productId,
                 $quantity,
-                RecipeCosting::REASON_WASTE,
+                in_array($reasonCode, $allowed, true) ? $reasonCode : RecipeCosting::REASON_WASTE,
                 // The kind the screen asked for travels with the movement, so waste can be
                 // reported by cause and not only by total.
                 array_merge($meta, [
