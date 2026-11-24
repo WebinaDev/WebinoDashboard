@@ -2,6 +2,8 @@
 
 namespace Modules\Cafe\Entities;
 
+use App\Models\Product;
+use App\Models\User;
 use App\Support\Audit\RecordsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

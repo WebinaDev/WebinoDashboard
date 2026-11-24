@@ -124,7 +124,7 @@ class FixedAssetsTest extends TestCase
         $result = $assets->dispose($this->tenant->id, $created['asset_id'], 25_000_000);
 
         $this->assertSame(0.0, $this->balanceOf('1201'), 'the asset account is cleared');
-        $this->assertLessThan(0.0, $this->balanceOf('1209'));
+        $this->assertSame(0.0, $this->balanceOf('1209'), 'accumulated depreciation is cleared');
         $this->assertTrue($result['gain_minor'] !== 0.0, 'a sale above book value is a gain');
     }
 

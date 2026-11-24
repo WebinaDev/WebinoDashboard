@@ -17,6 +17,10 @@ class ProvisionContentSeeder
      */
     public function seed(Tenant $tenant, array $seed): void
     {
+        if (app()->environment('production')) {
+            throw new \RuntimeException(__('production.database_command_forbidden'));
+        }
+
         if (($seed['business_category_slug'] ?? $tenant->business_category_slug) === 'corporate') {
             $seed = array_merge($this->defaultCorporateSeed(), $seed);
         }

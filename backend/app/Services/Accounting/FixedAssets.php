@@ -6,6 +6,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Accounting\Entities\AccJournalEntry;
+use Modules\Accounting\Services\LedgerPosting;
 
 /**
  * Buying capital equipment and writing it down over its life.

@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Modules\Cafe\Entities\KitchenStation;
+use Modules\Cafe\Entities\StationProduct;
 
 /**
  * Answers "whose station does this ticket belong to?".

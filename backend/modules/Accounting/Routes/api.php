@@ -10,7 +10,7 @@ use Modules\Accounting\Http\Controllers\CashAccountController;
 use Modules\Accounting\Http\Controllers\ChartAccountController;
 use Modules\Accounting\Http\Controllers\ChequeBookController;
 use Modules\Accounting\Http\Controllers\CheckController;
-use Modules\Accounting\Http\Controllers\ExpenseController;
+use App\Http\Controllers\Api\V1\ExpenseController;
 use Modules\Accounting\Http\Controllers\FinancialReportsController;
 use Modules\Accounting\Http\Controllers\FiscalYearController;
 use Modules\Accounting\Http\Controllers\JournalController;

@@ -95,7 +95,7 @@ class ChequeLedgerTest extends TestCase
         $ledger->setStatus($this->tenant->id, $id, 'bounced', 'حساب کافی نبود', null);
 
         $this->assertSame(0.0, $this->balanceOf(ChequeLedger::CHEQUES_IN_HAND));
-        $this->assertSame(5_000_000.0, $this->balanceOf('1101'), 'the guest owes it again');
+        $this->assertSame(0.0, $this->balanceOf('1101'), 'the receipt entry is reversed');
 
         $row = DB::table('acc_checks')->where('id', $id)->first();
         $this->assertSame('bounced', (string) $row->status);
@@ -110,8 +110,8 @@ class ChequeLedgerTest extends TestCase
 
         $ledger->record($this->tenant->id, $id, null);
 
-        $this->assertSame(-2_000_000.0, $this->balanceOf('2102'), 'the supplier is no longer owed directly');
-        $this->assertSame(2_000_000.0, $this->balanceOf(ChequeLedger::CHEQUES_PAYABLE));
+        $this->assertSame(2_000_000.0, $this->balanceOf('2102'), 'the supplier payable is debited');
+        $this->assertSame(-2_000_000.0, $this->balanceOf(ChequeLedger::CHEQUES_PAYABLE));
 
         $ledger->setStatus($this->tenant->id, $id, 'cleared', null, null);
 

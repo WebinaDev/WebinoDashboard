@@ -38,7 +38,7 @@ class AccountingReceiptVoucherTest extends TestCase
         parent::setUp();
 
         $this->tenant = $this->createTenant(['domain' => 'receipts.test', 'slug' => 'receipts']);
-        $this->enableSubmodules($this->tenant->id, ['accounting.receipts' => true, 'accounting.journals' => true]);
+        $this->enableSubmodules($this->tenant->id, ['commerce.accounting' => true, 'accounting.receipts' => true, 'accounting.journals' => true]);
 
         RoleCapability::query()->firstOrCreate([
             'tenant_id' => $this->tenant->id,

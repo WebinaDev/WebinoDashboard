@@ -5,6 +5,7 @@ namespace App\Services\Accounting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Accounting\Entities\AccJournalEntry;
+use Modules\Accounting\Services\LedgerPosting;
 
 /**
  * Rent, electricity, repairs — the expenses a shop actually writes down.

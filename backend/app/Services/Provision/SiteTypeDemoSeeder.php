@@ -40,6 +40,10 @@ class SiteTypeDemoSeeder
      */
     public function shouldAutoSeed(Tenant $tenant): bool
     {
+        if (app()->environment('production')) {
+            return false;
+        }
+
         if ((bool) $tenant->setup_completed) {
             return false;
         }
@@ -95,6 +99,10 @@ class SiteTypeDemoSeeder
      */
     public function seed(Tenant $tenant, ?string $siteType = null, array $seed = [], bool $force = false): void
     {
+        if (app()->environment('production')) {
+            throw new \RuntimeException(__('production.database_command_forbidden'));
+        }
+
         if (! $force && ! $this->shouldAutoSeed($tenant)) {
             return;
         }

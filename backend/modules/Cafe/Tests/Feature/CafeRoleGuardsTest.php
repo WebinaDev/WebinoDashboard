@@ -31,16 +31,7 @@ class CafeRoleGuardsTest extends TestCase
         $this->enableSubmodules($this->tenant->id, [
             'cafe.menu' => true,
             'commerce.catalog' => true,
-        ]);
-
-        // The accounting module gate reads `tenant_modules`, not the submodule table, so a
-        // role that must be refused the ledger is refused by *capability* and not by the
-        // module being off for everyone.
-        \App\Models\TenantModule::query()->create([
-            'tenant_id' => $this->tenant->id,
-            'module_slug' => 'accounting',
-            'enabled' => true,
-            'licensed' => true,
+            'commerce.accounting' => true,
         ]);
 
         // Roles are seeded per tenant from the config matrix; a test tenant has none until it
@@ -89,7 +80,12 @@ class CafeRoleGuardsTest extends TestCase
     /** A waiter seats and serves; money is someone else's job. */
     public function test_a_waiter_cannot_touch_the_drawer(): void
     {
-        $this->actingAsRole('waiter');
+        $waiter = $this->actingAsRole('waiter');
+        $shift = \Modules\Cafe\Entities\CafeShift::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $waiter->id,
+            'status' => 'open',
+        ]);
 
         // The floor board is theirs.
         $this->getJson('/api/v1/cafe/floor')->assertOk();
@@ -98,7 +94,7 @@ class CafeRoleGuardsTest extends TestCase
         $this->postJson('/api/v1/cafe/pos/shift/open', [])->assertForbidden();
         $this->getJson('/api/v1/cafe/pos/shifts')->assertForbidden();
         // And a manager-level action — accepting a cash difference — is not theirs either.
-        $this->postJson('/api/v1/cafe/pos/shifts/1/count', [])->assertForbidden();
+        $this->postJson('/api/v1/cafe/pos/shifts/'.$shift->id.'/count', [])->assertForbidden();
     }
 
     /** A cashier sells but never reprices the menu. */
@@ -120,7 +116,7 @@ class CafeRoleGuardsTest extends TestCase
         $this->actingAsRole('branch_manager');
 
         $this->getJson('/api/v1/cafe/workbench')->assertOk();
-        $this->getJson('/api/v1/erp-accounting/journal')->assertForbidden();
+        $this->getJson('/api/v1/erp-accounting/journals')->assertForbidden();
     }
 
     /** An admin is unrestricted, so the guards above cannot be passing because nothing works. */
@@ -130,7 +126,7 @@ class CafeRoleGuardsTest extends TestCase
 
         $this->getJson('/api/v1/cafe/pos/bootstrap')->assertOk();
         $this->getJson('/api/v1/cafe/kitchen-orders')->assertOk();
-        $this->getJson('/api/v1/erp-accounting/journal')->assertOk();
+        $this->getJson('/api/v1/erp-accounting/journals')->assertOk();
     }
 
     /** A cook's board must not leak another shop's tickets, whatever capability they hold. */

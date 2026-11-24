@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\ReservationController;
 use Modules\Cafe\Http\Controllers\BranchOperationsController;
 use Modules\Cafe\Http\Controllers\CafeBranchController;
 use Modules\Cafe\Http\Controllers\CafeDeliveryController;

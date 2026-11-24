@@ -96,6 +96,7 @@ final class CashTransfer
                     ['code' => (string) $from->chart_code, 'credit' => $amount, 'description' => 'انتقال از '.$from->name],
                 ],
                 [
+                    'tenant_id' => $tenantId,
                     'description' => trim((string) ($meta['note'] ?? '')) !== ''
                         ? (string) $meta['note']
                         : 'انتقال وجه: '.$from->name.' → '.$to->name,

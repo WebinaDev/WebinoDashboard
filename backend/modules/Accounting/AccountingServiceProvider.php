@@ -17,11 +17,6 @@ use Illuminate\Support\ServiceProvider;
  *    Laravel matches the first registered route. The ERP module is therefore mounted at
  *    `/api/v1/erp-accounting` and keeps its own `acc_*` tables; the two ledgers coexist.
  *
- *    The prefix below omits the leading `/api` because `bootstrap/app.php` registers
- *    `routes/api.php` through `withRouting(api: …)`, which already applies it. These
- *    routes are registered by this provider, not by that file, but `api` is still in
- *    the middleware list so the group behaves identically to the rest of the API.
- *
  * 2. **Middleware.** The ERP uses `module:accounting` + `module.permission:accounting`.
  *    `module:` exists here ({@see \App\Http\Middleware\EnsureModuleEnabled}); the
  *    finer-grained `module.permission` alias does not, so the capability check uses the
@@ -35,7 +30,7 @@ use Illuminate\Support\ServiceProvider;
  */
 class AccountingServiceProvider extends ServiceProvider
 {
-    private const ROUTE_PREFIX = 'v1/erp-accounting';
+    private const ROUTE_PREFIX = 'api/v1/erp-accounting';
 
     public function boot(): void
     {
@@ -46,7 +41,7 @@ class AccountingServiceProvider extends ServiceProvider
             ->group(__DIR__.'/Routes/api.php');
 
         // Warehouse/product parity API consumed by the ERP-era dashboard clients.
-        Route::prefix('webinocrm/v1')
+        Route::prefix('api/webinocrm/v1')
             ->middleware(['api', 'auth:sanctum', 'module:accounting', 'can:accounting.manage'])
             ->group(__DIR__.'/Routes/webinocrm-v1.php');
     }

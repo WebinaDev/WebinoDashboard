@@ -36,10 +36,16 @@ final class LedgerPosting
      * Post a set of lines as one journal entry.
      *
      * @param  list<array{code: string, debit?: float|int, credit?: float|int, description?: string|null}>  $lines
-     * @param  array{document_no?: string|null, document_date?: mixed, description?: string|null, created_by?: int|null, fiscal_year_id?: int|null, source?: string|null, status?: string|null, branch_id?: int|null}  $meta
+     * @param  array{tenant_id?: int, document_no?: string|null, document_date?: mixed, description?: string|null, created_by?: int|null, fiscal_year_id?: int|null, source?: string|null, status?: string|null, branch_id?: int|null}  $meta
      */
     public function post(array $lines, array $meta = []): AccJournalEntry
     {
+        $activeTenant = AccChartAccount::currentTenantId();
+        $tenantId = isset($meta['tenant_id']) ? (int) $meta['tenant_id'] : $activeTenant;
+        if (! $tenantId || ($activeTenant !== null && $activeTenant !== $tenantId)) {
+            throw new \InvalidArgumentException('A valid matching tenant is required for ledger posting.');
+        }
+
         $resolved = [];
         $debit = 0.0;
         $credit = 0.0;
@@ -67,7 +73,7 @@ final class LedgerPosting
             }
 
             $resolved[] = [
-                'account' => $this->accountFor($code),
+                'account' => $this->accountFor($code, $tenantId),
                 'debit' => $dr,
                 'credit' => $cr,
                 'description' => $line['description'] ?? null,
@@ -93,11 +99,12 @@ final class LedgerPosting
         $date = $date instanceof \DateTimeInterface ? $date : \Illuminate\Support\Carbon::parse((string) $date);
 
         $fiscalYearId = $meta['fiscal_year_id'] ?? null;
-        $this->assertYearOpen($date, $fiscalYearId);
+        $this->assertYearOpen($date, $fiscalYearId, $tenantId);
 
-        return DB::transaction(function () use ($resolved, $meta, $date, $fiscalYearId, $debit, $credit): AccJournalEntry {
+        return DB::transaction(function () use ($resolved, $meta, $date, $fiscalYearId, $tenantId): AccJournalEntry {
             $entry = AccJournalEntry::query()->create([
-                'fiscal_year_id' => $fiscalYearId ?? $this->yearIdFor($date),
+                'tenant_id' => $tenantId,
+                'fiscal_year_id' => $fiscalYearId ?? $this->yearIdFor($date, $tenantId),
                 // A journal belongs to one place; the lines inherit it. Null means "not branch
                 // specific", which reports show as unassigned rather than filing under branch 1.
                 'branch_id' => $meta['branch_id'] ?? null,
@@ -110,6 +117,7 @@ final class LedgerPosting
 
             foreach ($resolved as $line) {
                 AccJournalLine::query()->create([
+                    'tenant_id' => $tenantId,
                     'journal_entry_id' => $entry->id,
                     'account_id' => $line['account']->id,
                     'debit' => $line['debit'],
@@ -151,7 +159,7 @@ final class LedgerPosting
         }
 
         $cashCode = $this->cashCodeFor($voucher);
-        $counterCode = $this->counterCodeFor((string) $voucher->type);
+        $counterCode = $this->counterCodeFor((string) $voucher->type, (int) $voucher->tenant_id);
         $isReceipt = (string) $voucher->type !== 'payment';
         $label = ($isReceipt ? 'رسید ' : 'پرداخت ').($voucher->number ?: '#'.$voucher->id);
 
@@ -166,6 +174,7 @@ final class LedgerPosting
             ];
 
         $entry = $this->post($lines, [
+            'tenant_id' => $voucher->tenant_id,
             'document_no' => ($isReceipt ? 'RC-' : 'PV-').$voucher->id,
             'document_date' => $voucher->document_date ?? now(),
             'description' => $label.($voucher->description ? ' — '.$voucher->description : ''),
@@ -188,7 +197,7 @@ final class LedgerPosting
      * journal already relies on this). Creating it with the shipped name and type beats
      * failing a sale because a settings screen was saved before the chart was edited.
      */
-    private function accountFor(string $code): AccChartAccount
+    private function accountFor(string $code, int $tenantId): AccChartAccount
     {
         // The chart is per tenant (`acc_chart_accounts` is unique on tenant_id+code), so this
         // must say *whose* 1110 it means. Querying by code alone was harmless while both tenants
@@ -198,10 +207,7 @@ final class LedgerPosting
         // covers console and queue paths where Auth is empty and the scope is skipped.
         $existing = AccChartAccount::query()
             ->where('code', $code)
-            ->when(
-                AccChartAccount::currentTenantId() !== null,
-                fn ($q) => $q->where('tenant_id', AccChartAccount::currentTenantId()),
-            )
+            ->where('tenant_id', $tenantId)
             ->first();
         if ($existing !== null) {
             return $existing;
@@ -216,6 +222,7 @@ final class LedgerPosting
             ?? ['name' => 'حساب '.$code, 'type' => \App\Services\Accounting\AccountCoding::typeForPrefix($code)];
 
         return AccChartAccount::query()->create([
+            'tenant_id' => $tenantId,
             'code' => $code,
             'name' => $def['name'],
             'type' => $def['type'],
@@ -226,26 +233,31 @@ final class LedgerPosting
     /** Cash/drawer code for a voucher, from coding with a tolerant fallback. */
     private function cashCodeFor(\Modules\Accounting\Entities\AccReceiptVoucher $voucher): string
     {
-        $coding = $this->coding();
+        $coding = $this->coding((int) $voucher->tenant_id);
 
         // A named cash account is more precise than the role default: a shop with a drawer
         // and three bank accounts must be able to say which one received the money. The
         // mapping is per cash-account id in `acc_cash_accounts.chart_code`.
         if ($voucher->cash_account_id !== null) {
-            $code = DB::table('acc_cash_accounts')
+            $account = DB::table('acc_cash_accounts')
+                ->where('tenant_id', $voucher->tenant_id)
                 ->where('id', $voucher->cash_account_id)
-                ->value('chart_code');
+                ->first(['chart_code', 'type']);
+
+            if (! $account) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'cash_account_id' => __('api.cash_account_not_found'),
+                ]);
+            }
+
+            $code = $account->chart_code;
 
             if (is_string($code) && trim($code) !== '') {
                 return trim($code);
             }
 
-            $type = DB::table('acc_cash_accounts')
-                ->where('id', $voucher->cash_account_id)
-                ->value('type');
-
             // `cash` lands in the drawer; a bank/terminal/gateway lands in the bank.
-            return (string) ($coding['roles'][$type === 'cash' ? 'cash' : 'bank'] ?? $coding['roles']['cash']);
+            return (string) ($coding['roles'][$account->type === 'cash' ? 'cash' : 'bank'] ?? $coding['roles']['cash']);
         }
 
         return (string) $coding['roles']['cash'];
@@ -257,9 +269,9 @@ final class LedgerPosting
      * A receipt from a customer settles a receivable; a payment to a supplier settles a
      * payable. Both come from coding, so a chart that numbers these differently still posts.
      */
-    private function counterCodeFor(string $type): string
+    private function counterCodeFor(string $type, int $tenantId): string
     {
-        $roles = $this->coding()['roles'];
+        $roles = $this->coding($tenantId)['roles'];
 
         if ($type === 'payment') {
             return (string) ($roles['ap'] ?? $roles['payable'] ?? '2102');
@@ -276,9 +288,9 @@ final class LedgerPosting
      *
      * @return array{roles: array<string, string>, tenders: array<string, string>}
      */
-    private function coding(): array
+    private function coding(?int $tenantId = null): array
     {
-        $tenantId = AccChartAccount::currentTenantId();
+        $tenantId ??= AccChartAccount::currentTenantId();
 
         if ($tenantId === null) {
             return ['roles' => $this->defaultRoles(), 'tenders' => []];
@@ -312,9 +324,9 @@ final class LedgerPosting
     }
 
     /** Refuse to post into a fiscal year the accountant has closed. */
-    private function assertYearOpen(\DateTimeInterface $date, ?int $fiscalYearId): void
+    private function assertYearOpen(\DateTimeInterface $date, ?int $fiscalYearId, int $tenantId): void
     {
-        $query = AccFiscalYear::query();
+        $query = AccFiscalYear::query()->where('tenant_id', $tenantId);
 
         if ($fiscalYearId !== null) {
             $query->whereKey($fiscalYearId);
@@ -324,6 +336,10 @@ final class LedgerPosting
 
         $year = $query->first();
 
+        if ($fiscalYearId !== null && $year === null) {
+            throw new \InvalidArgumentException('Fiscal year does not belong to the tenant.');
+        }
+
         if ($year !== null && (bool) $year->is_closed) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'document_date' => 'This date falls in a closed fiscal year ('.$year->title.'). Reopen it or choose another date.',
@@ -332,9 +348,10 @@ final class LedgerPosting
     }
 
     /** The fiscal year a document belongs to, when the caller did not name one. */
-    private function yearIdFor(\DateTimeInterface $date): ?int
+    private function yearIdFor(\DateTimeInterface $date, int $tenantId): ?int
     {
         return AccFiscalYear::query()
+            ->where('tenant_id', $tenantId)
             ->whereDate('starts_on', '<=', $date)
             ->whereDate('ends_on', '>=', $date)
             ->value('id');

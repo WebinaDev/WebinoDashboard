@@ -291,6 +291,7 @@ final class PayrollService
             ['code' => (string) $roles[\App\Models\AccAccountCoding::ROLE_INSURANCE_PAYABLE], 'credit' => $employeeInsurance + $employerInsurance, 'description' => 'بیمه پرداختنی'],
             ['code' => (string) $roles[\App\Models\AccAccountCoding::ROLE_PAYROLL_TAX_PAYABLE], 'credit' => $tax, 'description' => 'مالیات حقوق پرداختنی'],
         ], [
+            'tenant_id' => $tenantId,
             'document_no' => 'PAY-'.$run->id,
             'document_date' => $run->period_end,
             'description' => 'لیست حقوق '.$run->period_start.' تا '.$run->period_end,

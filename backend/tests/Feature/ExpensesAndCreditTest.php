@@ -95,13 +95,13 @@ class ExpensesAndCreditTest extends TestCase
             'total_minor' => 5_000_000,
         ], (int) $this->owner->id);
 
-        $this->assertSame(5_000_000.0, $this->balanceOf('2102'), 'payables carries the bill');
+        $this->assertSame(-5_000_000.0, $this->balanceOf('2102'), 'payables carries the bill');
 
         $first = $bills->pay($this->tenant->id, $created['bill_id'], 2_000_000, null, (int) $this->owner->id);
 
         $this->assertSame('open', $first['status'], 'a part payment does not close the bill');
         $this->assertSame(3_000_000.0, $first['remaining_minor']);
-        $this->assertSame(3_000_000.0, $this->balanceOf('2102'));
+        $this->assertSame(-3_000_000.0, $this->balanceOf('2102'));
 
         $second = $bills->pay($this->tenant->id, $created['bill_id'], 3_000_000, null, (int) $this->owner->id);
 

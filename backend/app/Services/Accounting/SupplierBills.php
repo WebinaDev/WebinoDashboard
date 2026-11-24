@@ -5,6 +5,7 @@ namespace App\Services\Accounting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Accounting\Entities\AccJournalEntry;
+use Modules\Accounting\Services\LedgerPosting;
 
 /**
  * What the shop owes its suppliers, with a due date.

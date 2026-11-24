@@ -160,6 +160,10 @@ class SetupController extends Controller
 
     public function importDemo(Request $request): \Illuminate\Http\JsonResponse
     {
+        if (app()->environment('production')) {
+            return response()->json(['message' => __('production.database_command_forbidden')], 403);
+        }
+
         $request->validate(['preset' => ['nullable', 'string', 'max:64']]);
         $preset = $request->input('preset', 'classic-kit');
 
