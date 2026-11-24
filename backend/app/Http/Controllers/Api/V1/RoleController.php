@@ -146,7 +146,12 @@ class RoleController extends Controller
     {
         $tenantId = (int) $request->user()->tenant_id;
         $users = User::query()->where('tenant_id', $tenantId)
-            ->whereIn('role', ['admin', 'staff', 'shop_manager', 'seller', 'accountant', 'author', 'editor'])
+            // Every role with a dashboard. The café roles were missing here, so a cashier or a
+            // cook existed but could not be given a capability override on the RBAC screen.
+            ->whereIn('role', [
+                'admin', 'staff', 'shop_manager', 'seller', 'accountant', 'author', 'editor',
+                'cashier', 'waiter', 'cook', 'branch_manager', 'owner',
+            ])
             ->orderBy('name')->get(['id', 'name', 'email', 'role', 'is_active']);
         $overrides = UserCapabilityOverride::query()->where('tenant_id', $tenantId)
             ->whereIn('user_id', $users->pluck('id'))

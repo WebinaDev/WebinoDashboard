@@ -9575,14 +9575,19 @@
     "roles": {
       "admin": "مدیر",
       "staff": "کارمند",
-      "shop_manager": "مدیر فروشگاه",
-      "seller": "فروشنده",
+      "shop_manager": "مدیر فروشگاه (نقش قدیمی)",
+      "seller": "فروشنده (نقش قدیمی)",
       "accountant": "حسابدار",
       "author": "نویسنده",
       "editor": "ویرایشگر",
       "customer": "مشتری",
       "partner": "همکار",
-      "subscriber": "مشترک"
+      "subscriber": "مشترک",
+      "cashier": "صندوق‌دار",
+      "waiter": "گارسون",
+      "cook": "آشپز",
+      "branch_manager": "مدیر شعبه",
+      "owner": "مالک"
     },
     "edit_heading": "ویرایش نقش",
     "capabilities_heading": "قابلیت‌ها",

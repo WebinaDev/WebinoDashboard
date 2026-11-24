@@ -279,7 +279,24 @@ export default function UsersDetailPageClient({ route }: { route: ResolvedAdminR
               value={String(account.role ?? "customer")}
               onChange={(e) => setAccount({ ...account, role: e.target.value })}
             >
-              {["customer", "partner", "subscriber", "staff", "admin", "shop_manager", "seller", "accountant", "author", "editor"].map(
+              {[
+                "customer",
+                "partner",
+                "subscriber",
+                "staff",
+                "admin",
+                "shop_manager",
+                "seller",
+                // The counter roles a café actually assigns.
+                "cashier",
+                "waiter",
+                "cook",
+                "branch_manager",
+                "owner",
+                "accountant",
+                "author",
+                "editor",
+              ].map(
                 (r) => (
                   <option key={r} value={r}>
                     {roleLabel(r)}

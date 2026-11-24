@@ -9577,14 +9577,19 @@
     "roles": {
       "admin": "Admin",
       "staff": "Staff",
-      "shop_manager": "Shop manager",
-      "seller": "Seller",
+      "shop_manager": "Shop manager (legacy)",
+      "seller": "Seller (legacy)",
       "accountant": "Accountant",
       "author": "Author",
       "editor": "Editor",
       "customer": "Customer",
       "partner": "Partner",
-      "subscriber": "Subscriber"
+      "subscriber": "Subscriber",
+      "cashier": "Cashier",
+      "waiter": "Waiter",
+      "cook": "Cook",
+      "branch_manager": "Branch manager",
+      "owner": "Owner"
     },
     "edit_heading": "Edit role",
     "capabilities_heading": "Capabilities",
