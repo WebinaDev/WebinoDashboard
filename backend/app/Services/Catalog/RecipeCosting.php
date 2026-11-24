@@ -287,8 +287,39 @@ final class RecipeCosting
     {
         $cost = $this->plateCost($tenantId, self::SUBJECT_PRODUCT, $productId);
 
-        if ($cost['lines'] !== []) {
-            foreach ($cost['lines'] as $line) {
+        $lines = $cost['lines'];
+        $complete = $cost['complete'];
+
+        // The add-ons the guest actually chose.
+        //
+        // The old code skipped modifier lines outright, so a latte with oat milk withdrew the
+        // beans and the milk but not the oat milk — the exact case where stock drift is
+        // noticeable, because oat milk is expensive and the till sells a lot of it. Each chosen
+        // add-on whose recipe has real lines is consumed, folded into the frozen breakdown (so
+        // a refund returns it), and added to the line's cost.
+        $modifierUnitCost = 0.0;
+        $modifiers = DB::table('order_item_modifiers')
+            ->where('order_item_id', $orderItemId)
+            ->whereNotNull('modifier_option_id')
+            ->get(['modifier_option_id', 'quantity']);
+
+        foreach ($modifiers as $modifier) {
+            $modifierId = (int) $modifier->modifier_option_id;
+            $modifierQty = max(1, (int) ($modifier->quantity ?? 1));
+
+            $sub = $this->plateCost($tenantId, self::SUBJECT_MODIFIER_OPTION, $modifierId);
+
+            if ($sub['lines'] === []) {
+                // An add-on with no recipe (a bottled drink, a sauce bought by the case) has no
+                // stock to move. Charging its *price* as cost would inflate COGS badly, so it
+                // contributes nothing here — the ingredient rows are the truth.
+                continue;
+            }
+
+            $complete = $complete && $sub['complete'];
+            $modifierUnitCost += $sub['unit_cost_minor'] * $modifierQty;
+
+            foreach ($sub['lines'] as $line) {
                 if (! $line['cost_known']) {
                     continue;
                 }
@@ -296,20 +327,36 @@ final class RecipeCosting
                 if ($componentType === self::SUBJECT_MODIFIER_OPTION) {
                     continue;
                 }
-                $this->consume(
-                    $tenantId,
-                    $componentType,
-                    (int) $line['component_id'],
-                    (float) $line['effective_quantity'] * $quantity,
-                    self::REASON_SALE,
-                    ['reference_type' => 'order', 'reference_id' => $orderId],
-                );
+
+                $lines[] = array_merge($line, [
+                    'component_type' => $componentType,
+                    'effective_quantity' => round((float) $line['effective_quantity'] * $modifierQty, 4),
+                    'from_modifier' => $modifierId,
+                ]);
             }
         }
 
+        foreach ($lines as $line) {
+            if (! $line['cost_known']) {
+                continue;
+            }
+            $componentType = (string) $line['component_type'];
+            if ($componentType === self::SUBJECT_MODIFIER_OPTION) {
+                continue;
+            }
+            $this->consume(
+                $tenantId,
+                $componentType,
+                (int) $line['component_id'],
+                (float) $line['effective_quantity'] * $quantity,
+                self::REASON_SALE,
+                ['reference_type' => 'order', 'reference_id' => $orderId],
+            );
+        }
+
         // Bought-in dishes (a bought cake) have no recipe: fall back to the item's own cost.
-        $unitCost = $cost['lines'] !== []
-            ? $cost['unit_cost_minor']
+        $unitCost = $cost['lines'] !== [] || $modifierUnitCost > 0
+            ? round($cost['unit_cost_minor'] + $modifierUnitCost, 4)
             : (float) (DB::table('products')->where('tenant_id', $tenantId)->where('id', $productId)->value('purchase_price_minor') ?? 0);
 
         $total = round($unitCost * $quantity, 4);
@@ -322,14 +369,14 @@ final class RecipeCosting
                 'unit_cost_minor' => round($unitCost, 4),
                 'quantity' => $quantity,
                 'total_cost_minor' => $total,
-                'complete' => $cost['complete'],
-                'breakdown' => json_encode($cost['lines'], JSON_UNESCAPED_UNICODE),
+                'complete' => $complete,
+                'breakdown' => json_encode($lines, JSON_UNESCAPED_UNICODE),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
         );
 
-        return ['unit_cost_minor' => $unitCost, 'total_cost_minor' => $total, 'complete' => $cost['complete']];
+        return ['unit_cost_minor' => $unitCost, 'total_cost_minor' => $total, 'complete' => $complete];
     }
 
     /**

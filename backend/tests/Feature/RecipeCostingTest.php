@@ -252,6 +252,92 @@ class RecipeCostingTest extends TestCase
         $this->assertSame(4000.0, $cogs['cogs_minor']);
     }
 
+    /**
+     * An add-on the guest actually chose is consumed too.
+     *
+     * The old code skipped modifier lines entirely, so a latte with oat milk withdrew the beans
+     * and the milk but not the oat milk — the exact add-on a café sells most of and notices the
+     * drift on first.
+     */
+    public function test_a_chosen_modifier_consumes_its_own_recipe(): void
+    {
+        $beans = $this->accProduct('Beans');
+        $this->costing->receive($this->tenant->id, 'acc_product', $beans, 1000, 100);
+        $oatMilk = $this->accProduct('Oat milk');
+        $this->costing->receive($this->tenant->id, 'acc_product', $oatMilk, 1000, 200);
+
+        $latte = $this->product('Latte', 90000);
+        DB::table('recipe_lines')->insert([
+            'tenant_id' => $this->tenant->id, 'subject_type' => 'product', 'subject_id' => $latte->id,
+            'component_type' => 'acc_product', 'component_id' => $beans, 'quantity' => 18,
+            'waste_percent' => 0, 'sort_order' => 1, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $groupId = (int) DB::table('product_modifiers')->insertGetId([
+            'tenant_id' => $this->tenant->id,
+            'product_id' => $latte->id,
+            'name_fa' => 'شیر',
+            'name_en' => 'Milk',
+            'min_select' => 0,
+            'max_select' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $optionId = (int) DB::table('product_modifier_options')->insertGetId([
+            'modifier_id' => $groupId,
+            'name_fa' => 'شیر جو',
+            'name_en' => 'Oat milk',
+            'price_minor' => 15000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // The add-on has its own recipe: 200 ml of oat milk per unit.
+        DB::table('recipe_lines')->insert([
+            'tenant_id' => $this->tenant->id, 'subject_type' => 'modifier_option', 'subject_id' => $optionId,
+            'component_type' => 'acc_product', 'component_id' => $oatMilk, 'quantity' => 200,
+            'waste_percent' => 0, 'sort_order' => 1, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $order = Order::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'number' => 'REC-3',
+            'status' => 'completed',
+            'subtotal_minor' => 105000,
+            'total_minor' => 105000,
+            'currency' => 'IRT',
+        ]);
+        $item = OrderItem::query()->create([
+            'order_id' => $order->id,
+            'product_id' => $latte->id,
+            'product_name' => 'Latte',
+            'quantity' => 1,
+            'unit_price_minor' => 90000,
+            'total_minor' => 90000,
+        ]);
+
+        DB::table('order_item_modifiers')->insert([
+            'order_item_id' => $item->id,
+            'modifier_option_id' => $optionId,
+            'name' => 'Oat milk',
+            'price_delta_minor' => 15000,
+            'quantity' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $result = $this->costing->consumeOrderLine($this->tenant->id, (int) $item->id, (int) $order->id, (int) $latte->id, 1);
+
+        // 18 g × 100 = 1800 for the beans, plus 200 ml × 200 = 40,000 for the oat milk.
+        $this->assertSame(41_800.0, $result['unit_cost_minor']);
+        $this->assertSame(982.0, $this->costing->costFor($this->tenant->id, 'acc_product', $beans)['qty_on_hand']);
+        $this->assertSame(800.0, $this->costing->costFor($this->tenant->id, 'acc_product', $oatMilk)['qty_on_hand']);
+
+        $frozen = DB::table('order_item_ingredient_costs')->where('order_item_id', $item->id)->first();
+        $this->assertStringContainsString('modifier_option', (string) $frozen->breakdown, 'the add-on is in the frozen breakdown so a refund can return it');
+    }
+
     /** A dish with no recipe falls back to its own typed cost instead of costing nothing. */
     public function test_a_dish_without_a_recipe_uses_its_typed_cost(): void
     {
