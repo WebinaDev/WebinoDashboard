@@ -1,0 +1,12 @@
+{
+  "name": "webino-printer-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Edge print agent: polls the dashboard for print jobs and puts them on paper, locally.",
+  "type": "module",
+  "bin": { "webino-printer-agent": "./agent.mjs" },
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node agent.mjs"
+  }
+}
