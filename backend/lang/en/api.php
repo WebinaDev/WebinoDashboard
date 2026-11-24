@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'payment_amount_must_be_positive' => 'The payment amount must be greater than zero.',
+    'payment_currency_conversion_failed' => 'The payment amount cannot be converted to rials. Check the exchange rate.',
+    'payment_amount_not_representable' => 'The payment amount must be positive and exactly representable in toman.',
+    'payment_amount_mismatch' => 'The payment amount does not match the original request.',
+    'payment_exchange_rate_required' => 'A rial exchange rate is required for :currency.',
+    'payment_foreign_amount_not_representable' => 'The payment amount cannot be represented exactly in the gateway currency.',
     'unauthorized' => 'Unauthorized',
     'invalid_credentials' => 'Invalid credentials.',
     'too_many_requests' => 'Too many requests. Please try again shortly.',
@@ -82,4 +88,9 @@ return [
     'user_message_no_bot' => 'This user has no linked bot chat.',
     'user_message_bot_unconfigured' => 'Bot is not configured.',
     'user_message_failed' => 'Failed to send the message.',
+    'cafe_payment_required' => 'At least one payment is required.',
+    'cafe_payment_unknown_tender' => 'The payment method is invalid.',
+    'cafe_payment_negative_amount' => 'The amount cannot be negative.',
+    'cafe_payment_received_too_low' => 'The received amount is less than the payment amount.',
+    'cafe_payment_exceeds_due' => 'Payments exceed the amount due.',
 ];

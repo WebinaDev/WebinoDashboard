@@ -21,7 +21,10 @@ class IranWalletDriver implements GatewayDriverInterface
         if ($miss = $this->missingRequired($config, ['merchant_id'])) {
             return $miss;
         }
-        $amountToman = max(1, (int) round($amountRial / 10));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
         $response = Http::timeout(30)->acceptJson()->asJson()->post('https://cpg.walleta.ir/payment/request.json', [
             'merchant_code' => (string) $config['merchant_id'],
             'invoice_reference' => (string) ($meta['order_id'] ?? uniqid('iw_', true)),
@@ -68,7 +71,13 @@ class IranWalletDriver implements GatewayDriverInterface
         if ($token === '') {
             return ['ok' => false, 'message' => 'توکن کیف‌پول ایران یافت نشد.'];
         }
-        $amountToman = (int) ($intentMeta['amount_toman'] ?? max(1, round($amountRial / 10)));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
+        if (isset($intentMeta['amount_toman']) && filter_var($intentMeta['amount_toman'], FILTER_VALIDATE_INT) !== $amountToman) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
         $response = Http::timeout(30)->acceptJson()->asJson()->post('https://cpg.walleta.ir/payment/verify.json', [
             'merchant_code' => (string) ($config['merchant_id'] ?? ''),
             'token' => $token,

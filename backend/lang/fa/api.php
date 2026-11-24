@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'payment_amount_must_be_positive' => 'مبلغ پرداخت باید بیشتر از صفر باشد.',
+    'payment_currency_conversion_failed' => 'تبدیل مبلغ پرداخت به ریال ممکن نیست. نرخ ارز را بررسی کنید.',
+    'payment_amount_not_representable' => 'مبلغ پرداخت باید مثبت و قابل تبدیل دقیق به تومان باشد.',
+    'payment_amount_mismatch' => 'مبلغ پرداخت با درخواست اولیه مطابقت ندارد.',
+    'payment_exchange_rate_required' => 'نرخ تبدیل ریال برای ارز :currency الزامی است.',
+    'payment_foreign_amount_not_representable' => 'مبلغ پرداخت به صورت دقیق در واحد ارز درگاه قابل نمایش نیست.',
     'unauthorized' => 'دسترسی غیرمجاز',
     'invalid_credentials' => 'اطلاعات ورود نامعتبر است.',
     'too_many_requests' => 'تعداد درخواست‌ها زیاد است؛ کمی بعد دوباره تلاش کنید.',
@@ -14,7 +20,7 @@ return [
     'cart_empty' => 'سبد خرید خالی است',
     'cafe_closed' => 'مجموعه در این ساعت سفارش نمی‌گیرد.',
     'cafe_order_limit' => 'سقف سفارش امروز پر شده است.',
-    'cafe_phone_invalid' => 'شماره موبایل معتبر نیست. مثال: ۰۹۱۲۱۲۳۴۵۶۷',
+    'cafe_phone_invalid' => 'شماره موبایل معتبر نیست.',
     'cafe_postal_invalid' => 'کد پستی باید ۱۰ رقم باشد.',
     'cafe_pin_required' => 'محل تحویل را روی نقشه مشخص کنید.',
     'cafe_out_of_zone' => 'این آدرس خارج از محدوده ارسال است.',
@@ -82,4 +88,9 @@ return [
     'user_message_no_bot' => 'این کاربر به ربات متصل نیست.',
     'user_message_bot_unconfigured' => 'ربات پیکربندی نشده است.',
     'user_message_failed' => 'ارسال پیام ناموفق بود.',
+    'cafe_payment_required' => 'حداقل یک پرداخت لازم است.',
+    'cafe_payment_unknown_tender' => 'روش پرداخت معتبر نیست.',
+    'cafe_payment_negative_amount' => 'مبلغ نمی‌تواند منفی باشد.',
+    'cafe_payment_received_too_low' => 'مبلغ دریافتی کمتر از مبلغ پرداخت است.',
+    'cafe_payment_exceeds_due' => 'مجموع پرداخت‌ها از مبلغ سفارش بیشتر است.',
 ];

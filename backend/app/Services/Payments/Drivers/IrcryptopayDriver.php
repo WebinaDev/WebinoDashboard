@@ -3,12 +3,14 @@
 namespace App\Services\Payments\Drivers;
 
 use App\Services\Payments\Drivers\Concerns\ChecksRequiredConfig;
+use App\Services\Payments\Drivers\Concerns\ConvertsFxAmount;
 use Illuminate\Support\Facades\Http;
 
 /** @see https://ircryptopay.online/ + WooCommerce ircrypto-for-woocommerce */
 class IrcryptopayDriver implements GatewayDriverInterface
 {
     use ChecksRequiredConfig;
+    use ConvertsFxAmount;
 
     public function code(): string { return 'ircryptopay'; }
     public function status(): string { return 'live'; }
@@ -19,13 +21,23 @@ class IrcryptopayDriver implements GatewayDriverInterface
             return $miss;
         }
         $currency = strtoupper((string) ($config['currency'] ?? 'IRR'));
-        $amount = $currency === 'IRR'
-            ? number_format($amountRial, 2, '.', '')
-            : number_format(max(1, $amountRial) / 10, 2, '.', '');
+        if (in_array($currency, ['IRR', 'IRT'], true)) {
+            if ($amountRial <= 0) {
+                return ['ok' => false, 'message' => __('api.payment_amount_must_be_positive')];
+            }
+            $currency = 'IRR';
+            $amount = $amountRial.'.00';
+        } else {
+            $fx = $this->fxMinorAmount($config, $amountRial, $currency);
+            if (! ($fx['ok'] ?? false)) {
+                return $fx;
+            }
+            $amount = $this->fxMajorAmount($fx['amount'], 2, $fx['currency']);
+        }
         $payload = array_filter([
             'amount_mode' => 'fixed',
             'amount' => $amount,
-            'price_currency' => $currency === 'IRT' ? 'IRR' : $currency,
+            'price_currency' => $currency,
             'external_ref' => (string) ($meta['order_id'] ?? ''),
             'success_url' => $callbackUrl,
             'cancel_url' => $callbackUrl.(str_contains($callbackUrl, '?') ? '&' : '?').'ircrypto_status=cancel',
@@ -61,7 +73,13 @@ class IrcryptopayDriver implements GatewayDriverInterface
         if (($callback['ircrypto_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت IRCrypto لغو شد.'];
         }
-        $id = (string) ($callback['id'] ?? $callback['invoice_id'] ?? $intentMeta['ircryptopay_id'] ?? '');
+        $id = (string) ($intentMeta['ircryptopay_id'] ?? '');
+        $callbackId = (string) ($callback['id'] ?? $callback['invoice_id'] ?? $id);
+        if ($id === '' || ! hash_equals($id, $callbackId)
+            || ! isset($intentMeta['amount_rial'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
         $status = strtolower((string) ($callback['status'] ?? $callback['payment_status'] ?? ''));
         if (in_array($status, ['paid', 'completed', 'confirmed', 'settled'], true) && $id !== '') {
             if (! $this->validWebhook($config, $callback)) {
@@ -69,9 +87,6 @@ class IrcryptopayDriver implements GatewayDriverInterface
             }
 
             return ['ok' => true, 'message' => 'verified', 'ref_id' => $id, 'meta' => $callback];
-        }
-        if ($id === '') {
-            return ['ok' => false, 'message' => 'شناسه فاکتور IRCrypto یافت نشد.'];
         }
         $response = Http::timeout(30)
             ->withToken((string) ($config['api_key'] ?? ''))

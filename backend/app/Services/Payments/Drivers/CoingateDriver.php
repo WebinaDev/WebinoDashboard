@@ -31,7 +31,7 @@ class CoingateDriver implements GatewayDriverInterface
         if (! ($fx['ok'] ?? false)) {
             return $fx;
         }
-        $price = number_format($fx['amount'] / 100, 2, '.', '');
+        $price = $this->fxMajorAmount($fx['amount'], 2, $fx['currency']);
         $base = ! empty($config['sandbox']) ? 'https://api-sandbox.coingate.com' : 'https://api.coingate.com';
         $response = Http::timeout(30)
             ->withToken((string) $config['api_token'], 'Token')
@@ -74,13 +74,12 @@ class CoingateDriver implements GatewayDriverInterface
         if (($callback['coingate_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت CoinGate لغو شد.'];
         }
-        $id = (string) ($callback['id'] ?? $callback['order_id'] ?? $intentMeta['coingate_id'] ?? '');
-        $status = strtolower((string) ($callback['status'] ?? ''));
-        if (in_array($status, ['paid', 'confirmed'], true) && $id !== '') {
-            return ['ok' => true, 'message' => 'verified', 'ref_id' => $id, 'meta' => $callback];
-        }
-        if ($id === '') {
-            return ['ok' => false, 'message' => 'شناسه سفارش CoinGate یافت نشد.'];
+        $id = (string) ($intentMeta['coingate_id'] ?? '');
+        $callbackId = (string) ($callback['id'] ?? $id);
+        if ($id === '' || ! hash_equals($id, $callbackId)
+            || ! isset($intentMeta['amount_rial'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
         $base = ! empty($config['sandbox']) ? 'https://api-sandbox.coingate.com' : 'https://api.coingate.com';
         $response = Http::timeout(30)
@@ -90,6 +89,10 @@ class CoingateDriver implements GatewayDriverInterface
         $paymentStatus = strtolower((string) data_get($response, 'status', ''));
         if (! in_array($paymentStatus, ['paid', 'confirmed'], true)) {
             return ['ok' => false, 'message' => 'تأیید CoinGate هنوز کامل نیست.', 'meta' => is_array($response) ? $response : []];
+        }
+        if ((string) data_get($response, 'id', '') !== $id
+            || ! $this->fxResponseMatches(data_get($response, 'price_amount'), data_get($response, 'price_currency'), $intentMeta)) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
 
         return [

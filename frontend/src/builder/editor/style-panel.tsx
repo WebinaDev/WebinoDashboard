@@ -189,8 +189,11 @@ export function StyleFields({ style, onChange, device, layout = false }: { style
         <Edges label={t("padding")} value={style.padding} onChange={(padding) => onChange({ padding })} />
         <Edges label={t("margin")} value={style.margin} onChange={(margin) => onChange({ margin })} />
         <TextIn label={t("width")} value={style.width} placeholder="100%" suggest="size" onChange={(width) => onChange({ width })} />
+        <TextIn label={t("min_width")} value={style.minWidth} placeholder="0" suggest="size" onChange={(minWidth) => onChange({ minWidth })} />
         <TextIn label={t("max_width")} value={style.maxWidth} placeholder="1200px" suggest="size" onChange={(maxWidth) => onChange({ maxWidth })} />
+        <TextIn label={t("height")} value={style.height} placeholder="auto" suggest="size" onChange={(height) => onChange({ height })} />
         <TextIn label={t("min_height")} value={style.minHeight} placeholder="0" suggest="size" onChange={(minHeight) => onChange({ minHeight })} />
+        <TextIn label={t("max_height")} value={style.maxHeight} placeholder="none" suggest="size" onChange={(maxHeight) => onChange({ maxHeight })} />
         <TextIn label={t("order")} value={style.order} placeholder="0" onChange={(order) => onChange({ order })} />
       </Group>
       <Group title={t("style_border")}>

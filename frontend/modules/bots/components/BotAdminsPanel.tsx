@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 
 import { FormSettingsSkeleton } from "@/components/TableListSkeleton"
@@ -21,17 +21,15 @@ export function BotAdminsPanel({ provider }: { provider: LiveBotProvider }) {
   const t = useTranslations("bots")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
-  const [admins, setAdmins] = useState("")
+  const inputId = useId()
+  const [draft, setDraft] = useState<{ provider: LiveBotProvider; value: string } | null>(null)
 
   const q = useQuery({
     queryKey: ["bots", provider, "settings"],
     queryFn: () => api<BotSettings>(settingsPath(provider)),
   })
 
-  useEffect(() => {
-    if (!q.data) return
-    setAdmins(asAdminIds(q.data.meta?.admin_chat_ids))
-  }, [q.data])
+  const admins = draft?.provider === provider ? draft.value : asAdminIds(q.data?.meta?.admin_chat_ids)
 
   const save = useMutation({
     mutationFn: () =>
@@ -47,6 +45,7 @@ export function BotAdminsPanel({ provider }: { provider: LiveBotProvider }) {
     onSuccess: async () => {
       toast.success(tCommon("saved"))
       await qc.invalidateQueries({ queryKey: ["bots", provider, "settings"] })
+      setDraft((current) => current?.provider === provider ? null : current)
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -57,8 +56,8 @@ export function BotAdminsPanel({ provider }: { provider: LiveBotProvider }) {
     <BotSection title={t("admins.title")} description={t("admins.hint")}>
       <div className="grid max-w-xl gap-3">
         <div className="space-y-1">
-          <Label>{t("engine.admins")}</Label>
-          <Input dir="ltr" value={admins} onChange={(e) => setAdmins(e.target.value)} placeholder="12345678, 87654321" />
+          <Label htmlFor={inputId}>{t("engine.admins")}</Label>
+          <Input id={inputId} dir="ltr" value={admins} onChange={(e) => setDraft({ provider, value: e.target.value })} placeholder="10001, 10002" />
           <p className="text-muted-foreground text-xs">{t("engine.adminsHint")}</p>
         </div>
         <Button disabled={save.isPending} onClick={() => save.mutate()}>

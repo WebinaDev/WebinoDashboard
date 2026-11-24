@@ -37,7 +37,7 @@ test("presets, classes, variables and safe custom css/attributes", () => {
   const w = applyPreset({ id: "w", type: "heading", props: { text: "own" }, advanced: { preset: "big" } }, { presets })
   assert.equal(w.props.tag, "h1")
   assert.equal(w.props.text, "own")
-  assert.match(designSystemCss({ classes: [{ id: "card", name: "c", style: { base: { radius: "8px" } } }], presets }), /\.wbc-card\{border-radius:8px\}.*\.wbp-big\{font-size:40px\}/)
+  assert.match(designSystemCss({ classes: [{ id: "card", name: "c", style: { base: { radius: "8px" } } }], presets }), /\.wbc-card\{border-radius:8px;--wb-radius:8px\}.*\.wbp-big\{font-size:40px\}/)
   assert.equal(variablesCss([{ id: "brand", name: "b", kind: "color", value: "#fff" }, { id: "bad", name: "x", kind: "other", value: "url(x)" }]), "--wb-v-brand:#fff")
   assert.equal(advancedClass({ classes: ["card", "Bad!"], preset: "big" }), "wbc-card wbp-big")
   assert.equal(scopedCss("color:red", ".x"), ".x{color:red}")

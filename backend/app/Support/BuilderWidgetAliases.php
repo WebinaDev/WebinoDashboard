@@ -19,22 +19,44 @@ class BuilderWidgetAliases
     public static function migrate(mixed $doc): array
     {
         $count = 0;
-        $walk = function (mixed $node) use (&$walk, &$count): mixed {
-            if (! is_array($node)) {
-                return $node;
+        $map = self::MAP;
+        $walkSections = function (mixed $sections) use (&$walkSections, &$count, $map): mixed {
+            if (! is_array($sections)) {
+                return $sections;
             }
-            foreach ($node as $key => $value) {
-                if ($key === 'type' && is_string($value) && isset(self::MAP[$value])) {
-                    $node[$key] = self::MAP[$value];
-                    $count++;
-                } elseif (is_array($value)) {
-                    $node[$key] = $walk($value);
+            foreach ($sections as $sectionIndex => $section) {
+                if (! is_array($section) || ! is_array($section['columns'] ?? null)) {
+                    continue;
                 }
+                foreach ($section['columns'] as $columnIndex => $column) {
+                    if (! is_array($column) || ! is_array($column['widgets'] ?? null)) {
+                        continue;
+                    }
+                    foreach ($column['widgets'] as $widgetIndex => $widget) {
+                        if (! is_array($widget)) {
+                            continue;
+                        }
+                        $type = $widget['type'] ?? null;
+                        if (is_string($type) && isset($map[$type])) {
+                            $widget['type'] = $map[$type];
+                            $count++;
+                        }
+                        if (array_key_exists('children', $widget)) {
+                            $widget['children'] = $walkSections($widget['children']);
+                        }
+                        $section['columns'][$columnIndex]['widgets'][$widgetIndex] = $widget;
+                    }
+                }
+                $sections[$sectionIndex] = $section;
             }
 
-            return $node;
+            return $sections;
         };
 
-        return [$walk($doc), $count];
+        if (is_array($doc) && array_key_exists('sections', $doc)) {
+            $doc['sections'] = $walkSections($doc['sections']);
+        }
+
+        return [$doc, $count];
     }
 }

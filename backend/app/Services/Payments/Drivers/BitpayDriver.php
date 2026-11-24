@@ -29,7 +29,10 @@ class BitpayDriver implements GatewayDriverInterface
         if ($miss = $this->missingRequired($config, ['api_key'])) {
             return $miss;
         }
-        $amountToman = max(1, (int) round($amountRial / 10));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
         $response = Http::timeout(30)->asForm()->post('https://bitpay.ir/payment/gateway-send', [
             'api' => (string) $config['api_key'],
             'amount' => $amountToman,

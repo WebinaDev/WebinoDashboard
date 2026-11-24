@@ -25,6 +25,23 @@ final class LoyaltyService
             return;
         }
 
+        DB::transaction(function () use ($order, $settings) {
+            $user = User::query()
+                ->where('tenant_id', $order->tenant_id)
+                ->whereKey($order->user_id)
+                ->lockForUpdate()
+                ->first();
+            if (! $user) {
+                return;
+            }
+
+            $this->awardOrderPoints($order, $settings);
+            $this->evaluateOrderMissions($order);
+        });
+    }
+
+    private function awardOrderPoints(Order $order, array $settings): void
+    {
         $exists = LoyaltyLedger::query()
             ->where('order_id', $order->id)
             ->where('points', '>', 0)
@@ -56,7 +73,6 @@ final class LoyaltyService
             }
         }
 
-        $this->evaluateOrderMissions($order);
     }
 
     public function awardWelcome(User $user): int

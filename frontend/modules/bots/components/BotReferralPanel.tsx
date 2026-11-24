@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 
 import { FormSettingsSkeleton } from "@/components/TableListSkeleton"
@@ -22,26 +22,26 @@ export function BotReferralPanel({ provider }: { provider: LiveBotProvider }) {
   const t = useTranslations("bots")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
-  const [enabled, setEnabled] = useState(false)
-  const [points, setPoints] = useState(50)
-  const [welcomeBonus, setWelcomeBonus] = useState(0)
-  const [webappUrl, setWebappUrl] = useState("")
+  const id = useId()
+  const [draft, setDraft] = useState<{ provider: LiveBotProvider; values: Partial<{ enabled: boolean; points: number; welcomeBonus: number; webappUrl: string }> } | null>(null)
 
   const q = useQuery({
     queryKey: ["bots", provider, "settings"],
     queryFn: () => api<BotSettings>(settingsPath(provider)),
   })
 
-  useEffect(() => {
-    if (!q.data) return
-    const m = q.data.meta ?? {}
-    const r = (m.referral ?? {}) as Record<string, unknown>
-    const club = (m.club ?? {}) as Record<string, unknown>
-    setEnabled(Boolean(r.enabled ?? m.addons?.referral))
-    setPoints(Number(r.points ?? club.referral_points ?? 50))
-    setWelcomeBonus(Number(r.welcome_bonus ?? 0))
-    setWebappUrl(String(r.webapp_base_url ?? club.webapp_base_url ?? ""))
-  }, [q.data])
+  const meta = q.data?.meta ?? {}
+  const referral = (meta.referral ?? {}) as Record<string, unknown>
+  const club = (meta.club ?? {}) as Record<string, unknown>
+  const values = draft?.provider === provider ? draft.values : {}
+  const enabled = values.enabled ?? Boolean(referral.enabled ?? meta.addons?.referral)
+  const points = values.points ?? Number(referral.points ?? club.referral_points ?? 50)
+  const welcomeBonus = values.welcomeBonus ?? Number(referral.welcome_bonus ?? 0)
+  const webappUrl = values.webappUrl ?? String(referral.webapp_base_url ?? club.webapp_base_url ?? "")
+  const update = (changes: typeof values) => setDraft((previous) => ({
+    provider,
+    values: { ...(previous?.provider === provider ? previous.values : {}), ...changes },
+  }))
 
   const save = useMutation({
     mutationFn: () =>
@@ -63,6 +63,7 @@ export function BotReferralPanel({ provider }: { provider: LiveBotProvider }) {
     onSuccess: async () => {
       toast.success(tCommon("saved"))
       await qc.invalidateQueries({ queryKey: ["bots", provider, "settings"] })
+      setDraft((previous) => previous?.provider === provider ? null : previous)
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -73,20 +74,20 @@ export function BotReferralPanel({ provider }: { provider: LiveBotProvider }) {
     <BotSection title={t("referral.title")} description={t("referral.hint")}>
       <div className="grid max-w-xl gap-3">
         <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={enabled} onCheckedChange={(v) => setEnabled(Boolean(v))} />
+          <Checkbox checked={enabled} onCheckedChange={(v) => update({ enabled: Boolean(v) })} />
           {t("referral.enabled")}
         </label>
         <div className="space-y-1">
-          <Label>{t("referral.points")}</Label>
-          <Input type="number" min={0} value={points} onChange={(e) => setPoints(Number(e.target.value) || 0)} />
+          <Label htmlFor={`${id}-points`}>{t("referral.points")}</Label>
+          <Input id={`${id}-points`} type="number" min={0} value={points} onChange={(e) => update({ points: Number(e.target.value) || 0 })} />
         </div>
         <div className="space-y-1">
-          <Label>{t("referral.welcomeBonus")}</Label>
-          <Input type="number" min={0} value={welcomeBonus} onChange={(e) => setWelcomeBonus(Number(e.target.value) || 0)} />
+          <Label htmlFor={`${id}-welcome`}>{t("referral.welcomeBonus")}</Label>
+          <Input id={`${id}-welcome`} type="number" min={0} value={welcomeBonus} onChange={(e) => update({ welcomeBonus: Number(e.target.value) || 0 })} />
         </div>
         <div className="space-y-1">
-          <Label>{t("referral.webappUrl")}</Label>
-          <Input dir="ltr" value={webappUrl} onChange={(e) => setWebappUrl(e.target.value)} placeholder="https://…" />
+          <Label htmlFor={`${id}-url`}>{t("referral.webappUrl")}</Label>
+          <Input id={`${id}-url`} dir="ltr" value={webappUrl} onChange={(e) => update({ webappUrl: e.target.value })} placeholder="https://…" />
         </div>
         {q.data?.meta?.bot_username ? (
           <p className="text-muted-foreground text-xs" dir="ltr">

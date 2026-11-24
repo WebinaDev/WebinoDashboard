@@ -26,6 +26,8 @@ class OrderPayment extends Model
     protected function casts(): array
     {
         return [
+            'superseded_at' => 'datetime',
+            'superseded_by' => 'integer',
             'amount_minor' => 'integer',
             'received_minor' => 'integer',
             'change_minor' => 'integer',

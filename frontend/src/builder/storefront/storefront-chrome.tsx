@@ -318,7 +318,7 @@ export function StockAlertForm({ slug }: { slug: string }) {
     >
       <label className="grid flex-1 gap-1 text-xs">
         <span>{t("stock_alert_cta")}</span>
-        <input className="sf-field h-10" dir="ltr" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="email@example.com" />
+        <input className="sf-field h-10" dir="ltr" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="user_001@example.local" />
       </label>
       <button type="submit" className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground">
         {t("stock_alert_cta")}

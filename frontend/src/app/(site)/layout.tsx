@@ -186,13 +186,14 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
 }
 
 async function SiteJsonLd() {
+  let seoRes: SeoPayload | null
   try {
-    const seoRes = await apiServer<SeoPayload>("/api/v1/public/seo/meta?path=/", {
+    seoRes = await apiServer<SeoPayload>("/api/v1/public/seo/meta?path=/", {
       revalidate: 60,
       tags: ["seo"],
     })
-    return <JsonLd data={seoRes?.data?.json_ld ?? null} />
   } catch {
     return null
   }
+  return <JsonLd data={seoRes?.data?.json_ld ?? null} />
 }

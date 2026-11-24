@@ -153,7 +153,7 @@ class Order extends Model
     /** Every tender recorded against this sale (several rows = split payment). */
     public function payments(): HasMany
     {
-        return $this->hasMany(OrderPayment::class);
+        return $this->hasMany(OrderPayment::class)->whereNull('superseded_at');
     }
 
     /** Amendment requests on a paid invoice. */

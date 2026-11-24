@@ -17,17 +17,18 @@ export function AnalyticsPagesPanel({ range }: { range: AnalyticsRange }) {
   const lng = useAnalyticsLocale()
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
+  const filterKey = JSON.stringify([search, range.from, range.to, perPage])
+  const [pagination, setPagination] = useState({ page: 1, filterKey })
+  if (pagination.filterKey !== filterKey) {
+    setPagination({ page: 1, filterKey })
+  }
+  const page = pagination.filterKey === filterKey ? pagination.page : 1
 
   useEffect(() => {
     const id = window.setTimeout(() => setSearch(searchInput.trim()), 350)
     return () => window.clearTimeout(id)
   }, [searchInput])
-
-  useEffect(() => {
-    setPage(1)
-  }, [search, range.from, range.to, perPage])
 
   const q = useAnalyticsQuery<PagesData>("pages", range, { search, page, per_page: perPage })
   const d = q.data
@@ -72,7 +73,7 @@ export function AnalyticsPagesPanel({ range }: { range: AnalyticsRange }) {
               page={d?.page ?? page}
               perPage={d?.per_page ?? perPage}
               found={d?.total ?? 0}
-              onPageChange={setPage}
+              onPageChange={(page) => setPagination({ page, filterKey })}
               onPerPageChange={setPerPage}
             />
           }

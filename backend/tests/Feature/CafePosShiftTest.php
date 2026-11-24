@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\RoleCapability;
 use App\Models\User;
 use App\Services\Cafe\CafeShiftService;
+use App\Services\Cafe\OrderPayments;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -36,9 +37,9 @@ class CafePosShiftTest extends TestCase
         $this->h = ['X-Tenant-Domain' => $this->tenant->domain];
 
         // The shift routes are gated on pos.use; 'staff' holds no capabilities unless granted.
-        RoleCapability::query()->firstOrCreate(['role' => 'staff', 'capability' => 'pos.use']);
+        RoleCapability::query()->firstOrCreate(['tenant_id' => $this->tenant->id, 'role' => 'staff', 'capability' => 'pos.use']);
         // The accountant audits drawers but must never be able to move cash.
-        RoleCapability::query()->firstOrCreate(['role' => 'accountant', 'capability' => 'accounting.manage']);
+        RoleCapability::query()->firstOrCreate(['tenant_id' => $this->tenant->id, 'role' => 'accountant', 'capability' => 'accounting.manage']);
     }
 
     private function cashier(): User
@@ -86,6 +87,26 @@ class CafePosShiftTest extends TestCase
         $this->assertSame(4, $totals['orders']);
         // float 500k + cash 200k
         $this->assertSame(700_000, $totals['expected_cash_minor']);
+    }
+
+    public function test_split_payments_count_only_current_amounts_by_tender(): void
+    {
+        $cashier = $this->cashier();
+        $shift = app(CafeShiftService::class)->openShift($cashier, ['opening_float_minor' => 10]);
+        $order = $this->order($cashier, 100, 'cash');
+        $payments = app(OrderPayments::class);
+        $payments->replace($order, [['tender' => 'cash', 'amount_minor' => 100]]);
+        $payments->replace($order, [
+            ['tender' => 'cash', 'amount_minor' => 30],
+            ['tender' => 'pos_terminal', 'amount_minor' => 70],
+        ]);
+
+        $totals = app(CafeShiftService::class)->computeTotals($shift);
+
+        $this->assertSame(30, $totals['cash_sales_minor']);
+        $this->assertSame(70, $totals['non_cash_sales_minor']);
+        $this->assertSame(40, $totals['expected_cash_minor']);
+        $this->assertSame(100, $totals['gross_sales_minor']);
     }
 
     public function test_cancelled_and_unpaid_orders_are_excluded(): void

@@ -207,13 +207,38 @@ class ShopExtrasTest extends TestCase
         ]);
 
         app(LoyaltyService::class)->awardForPaidOrder($order);
+        app(LoyaltyService::class)->awardForPaidOrder($order);
 
         $this->assertSame(5, (int) $this->user->fresh()->loyalty_points);
+        $this->assertDatabaseCount('loyalty_ledger', 1);
         $this->assertDatabaseHas('loyalty_ledger', [
             'order_id' => $order->id,
             'user_id' => $this->user->id,
             'points' => 5,
         ]);
+    }
+
+    public function test_loyalty_does_not_credit_a_user_from_another_tenant(): void
+    {
+        ShopSettings::saveLoyalty($this->tenant->id, ['enabled' => true, 'point_price_minor' => 1000]);
+        $other = Tenant::query()->create([
+            'name' => 'Site 2', 'slug' => 'site-002', 'domain' => 'site-002.example.local',
+            'license_key' => 'test', 'setup_completed' => true,
+        ]);
+        $user = User::factory()->create(['tenant_id' => $other->id, 'loyalty_points' => 0]);
+        $order = Order::query()->create([
+            'tenant_id' => $this->tenant->id, 'user_id' => $user->id, 'status' => 'paid',
+            'subtotal_minor' => 5000, 'total_minor' => 5000, 'currency' => 'IRR',
+        ]);
+        OrderItem::query()->create([
+            'order_id' => $order->id, 'product_id' => $this->makeProduct()->id,
+            'quantity' => 1, 'unit_price_minor' => 5000,
+        ]);
+
+        app(LoyaltyService::class)->awardForPaidOrder($order);
+
+        $this->assertSame(0, (int) $user->fresh()->loyalty_points);
+        $this->assertDatabaseMissing('loyalty_ledger', ['order_id' => $order->id]);
     }
 
     public function test_archive_in_stock_filter_hides_outofstock(): void

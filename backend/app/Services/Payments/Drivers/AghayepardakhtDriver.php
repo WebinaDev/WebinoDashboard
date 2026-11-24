@@ -26,7 +26,10 @@ class AghayepardakhtDriver implements GatewayDriverInterface
             return $miss;
         }
         $pin = ! empty($config['sandbox']) ? 'sandbox' : (string) $config['pin'];
-        $amountToman = max(1, (int) round($amountRial / 10));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
         $response = Http::timeout(30)->acceptJson()->asJson()->post('https://panel.aqayepardakht.ir/api/v2/create', array_filter([
             'pin' => $pin,
             'amount' => $amountToman,
@@ -66,7 +69,13 @@ class AghayepardakhtDriver implements GatewayDriverInterface
             return ['ok' => false, 'message' => 'پرداخت آقای‌پرداخت ناموفق یا لغو شد.'];
         }
         $pin = ! empty($config['sandbox']) ? 'sandbox' : (string) ($config['pin'] ?? '');
-        $amountToman = (int) ($intentMeta['amount_toman'] ?? max(1, round($amountRial / 10)));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
+        if (isset($intentMeta['amount_toman']) && filter_var($intentMeta['amount_toman'], FILTER_VALIDATE_INT) !== $amountToman) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
         $response = Http::timeout(30)->acceptJson()->asJson()->post('https://panel.aqayepardakht.ir/api/v2/verify', [
             'pin' => $pin,
             'amount' => $amountToman,

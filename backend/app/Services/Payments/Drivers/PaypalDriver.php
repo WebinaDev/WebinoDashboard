@@ -5,6 +5,8 @@ namespace App\Services\Payments\Drivers;
 use App\Services\Payments\Drivers\Concerns\ChecksRequiredConfig;
 use App\Services\Payments\Drivers\Concerns\ConvertsFxAmount;
 use Illuminate\Support\Facades\Http;
+use Brick\Math\BigDecimal;
+use Brick\Math\Exception\MathException;
 
 /** @see https://developer.paypal.com/docs/api/orders/v2/ */
 class PaypalDriver implements GatewayDriverInterface
@@ -27,7 +29,9 @@ class PaypalDriver implements GatewayDriverInterface
         if ($miss = $this->missingRequired($config, ['client_id', 'client_secret'])) {
             return $miss;
         }
-        $fx = $this->fxMinorAmount($config, $amountRial, (string) ($config['currency'] ?? 'USD'));
+        $currency = strtoupper((string) ($config['currency'] ?? 'USD'));
+        $zeroDecimal = in_array($currency, ['HUF', 'JPY', 'TWD'], true);
+        $fx = $this->fxMinorAmount($config, $amountRial, $currency, $zeroDecimal ? 0 : 2);
         if (! ($fx['ok'] ?? false)) {
             return $fx;
         }
@@ -35,7 +39,7 @@ class PaypalDriver implements GatewayDriverInterface
         if ($token === null) {
             return ['ok' => false, 'message' => 'احراز هویت PayPal ناموفق بود.'];
         }
-        $value = number_format($fx['amount'] / 100, 2, '.', '');
+        $value = $zeroDecimal ? (string) $fx['amount'] : $this->fxMajorAmount($fx['amount'], 2, $fx['currency']);
         $response = Http::timeout(30)
             ->withToken($token)
             ->acceptJson()
@@ -88,9 +92,12 @@ class PaypalDriver implements GatewayDriverInterface
         if (($callback['paypal_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت PayPal لغو شد.'];
         }
-        $orderId = (string) ($callback['token'] ?? $callback['orderID'] ?? $intentMeta['paypal_order_id'] ?? '');
-        if ($orderId === '') {
-            return ['ok' => false, 'message' => 'شناسه سفارش PayPal یافت نشد.'];
+        $orderId = (string) ($intentMeta['paypal_order_id'] ?? '');
+        $callbackOrderId = (string) ($callback['token'] ?? $callback['orderID'] ?? $orderId);
+        if ($orderId === '' || ! hash_equals($orderId, $callbackOrderId)
+            || ! isset($intentMeta['amount_rial'], $intentMeta['fx_amount'], $intentMeta['fx_currency'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
         $token = $this->accessToken($config);
         if ($token === null) {
@@ -103,12 +110,20 @@ class PaypalDriver implements GatewayDriverInterface
             ->post($this->apiBase($config).'/v2/checkout/orders/'.$orderId.'/capture')
             ->json();
         $status = (string) data_get($response, 'status', '');
-        if (! in_array($status, ['COMPLETED', 'APPROVED'], true)) {
-            // Already captured returns COMPLETED via GET sometimes; try status on purchase unit.
-            $puStatus = (string) data_get($response, 'purchase_units.0.payments.captures.0.status', '');
-            if ($puStatus !== 'COMPLETED') {
-                return ['ok' => false, 'message' => 'تأیید PayPal ناموفق بود.', 'meta' => is_array($response) ? $response : []];
-            }
+        $capture = data_get($response, 'purchase_units.0.payments.captures.0', []);
+        if ($status !== 'COMPLETED' || data_get($capture, 'status') !== 'COMPLETED') {
+            return ['ok' => false, 'message' => 'تأیید PayPal ناموفق بود.', 'meta' => is_array($response) ? $response : []];
+        }
+        try {
+            $scale = in_array(strtoupper((string) $intentMeta['fx_currency']), ['IRR', 'IRT', 'HUF', 'JPY', 'TWD'], true) ? 1 : 100;
+            $capturedAmount = BigDecimal::of((string) data_get($capture, 'amount.value', ''))->multipliedBy($scale)->toInt();
+        } catch (MathException $exception) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
+        if ((string) data_get($response, 'id', '') !== $orderId
+            || (string) $capturedAmount !== (string) $intentMeta['fx_amount']
+            || strtoupper((string) data_get($capture, 'amount.currency_code', '')) !== strtoupper((string) $intentMeta['fx_currency'])) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
 
         return [

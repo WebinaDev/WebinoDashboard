@@ -25,7 +25,7 @@ class CoinpaymentsDriver implements GatewayDriverInterface
             // allow rial_per_unit missing only if currency IRR
             return $fx;
         }
-        $amount = number_format($fx['amount'] / 100, 8, '.', '');
+        $amount = $this->fxMajorAmount($fx['amount'], 8, $fx['currency']);
         $ipn = preg_replace('#/callback/.*$#', '/webhook/coinpayments', $callbackUrl) ?: $callbackUrl;
         $params = [
             'version' => 1,
@@ -34,7 +34,7 @@ class CoinpaymentsDriver implements GatewayDriverInterface
             'amount' => $amount,
             'currency1' => $fx['currency'],
             'currency2' => (string) ($config['pay_currency'] ?? $fx['currency']),
-            'buyer_email' => (string) ($meta['email'] ?? 'buyer@example.com'),
+            'buyer_email' => (string) ($meta['email'] ?? 'test@example.local'),
             'item_name' => mb_substr($description, 0, 120),
             'invoice' => (string) ($meta['order_id'] ?? ''),
             'ipn_url' => $ipn,
@@ -72,14 +72,21 @@ class CoinpaymentsDriver implements GatewayDriverInterface
         if (($callback['coinpayments_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت CoinPayments لغو شد.'];
         }
-        $txn = (string) ($callback['txn_id'] ?? $intentMeta['coinpayments_txn_id'] ?? '');
+        $txn = (string) ($intentMeta['coinpayments_txn_id'] ?? '');
+        $callbackTxn = (string) ($callback['txn_id'] ?? $txn);
+        if ($txn === '' || ! hash_equals($txn, $callbackTxn)
+            || ! isset($intentMeta['amount_rial'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
         // IPN shortcut only when HMAC over the raw body validates.
         $status = (int) ($callback['status'] ?? -1);
-        if ($status >= 100 && $txn !== '' && $this->validIpn($config, $callback)) {
+        if ($status >= 100 && $this->validIpn($config, $callback)) {
+            if (! $this->fxResponseMatches($callback['amount1'] ?? null, $callback['currency1'] ?? null, $intentMeta)) {
+                return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+            }
+
             return ['ok' => true, 'message' => 'verified', 'ref_id' => $txn, 'meta' => $callback];
-        }
-        if ($txn === '') {
-            return ['ok' => false, 'message' => 'شناسه تراکنش CoinPayments یافت نشد.'];
         }
         $response = $this->api($config, [
             'version' => 1,
@@ -91,6 +98,9 @@ class CoinpaymentsDriver implements GatewayDriverInterface
         $txStatus = (int) data_get($response, 'result.status', -1);
         if ($txStatus < 100) {
             return ['ok' => false, 'message' => 'تأیید CoinPayments هنوز کامل نیست.', 'meta' => is_array($response) ? $response : []];
+        }
+        if (! $this->fxResponseMatches(data_get($response, 'result.amount1'), data_get($response, 'result.currency1'), $intentMeta)) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
 
         return [
@@ -132,8 +142,16 @@ class CoinpaymentsDriver implements GatewayDriverInterface
         if ($secret === '' || $hmac === '' || $raw === '') {
             return false;
         }
+        parse_str($raw, $signedPayload);
+        foreach (['txn_id', 'status', 'amount1', 'currency1', 'merchant'] as $key) {
+            $signedValue = $signedPayload[$key] ?? '';
+            $callbackValue = $callback[$key] ?? '';
+            if (! is_scalar($signedValue) || ! is_scalar($callbackValue) || (string) $signedValue !== (string) $callbackValue) {
+                return false;
+            }
+        }
         $merchant = (string) ($callback['merchant'] ?? '');
-        if ($merchant !== '' && $merchant !== (string) ($config['merchant_id'] ?? '')) {
+        if ($merchant === '' || ! hash_equals((string) ($config['merchant_id'] ?? ''), $merchant)) {
             return false;
         }
         $expected = hash_hmac('sha512', $raw, $secret);

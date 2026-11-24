@@ -32,7 +32,7 @@ class CryptomusDriver implements GatewayDriverInterface
         if (! ($fx['ok'] ?? false)) {
             return $fx;
         }
-        $amount = number_format($fx['amount'] / 100, 2, '.', '');
+        $amount = $this->fxMajorAmount($fx['amount'], 2, $fx['currency']);
         $orderId = (string) ($meta['order_id'] ?? Str::uuid());
         $payload = [
             'amount' => $amount,
@@ -78,22 +78,12 @@ class CryptomusDriver implements GatewayDriverInterface
 
     public function verify(array $config, int $amountRial, array $callback, array $intentMeta = []): array
     {
-        $status = strtolower((string) ($callback['status'] ?? $callback['payment_status'] ?? ''));
-        $uuid = (string) ($callback['uuid'] ?? $intentMeta['cryptomus_uuid'] ?? '');
-        if (in_array($status, ['paid', 'paid_over'], true) && $uuid !== '') {
-            if (! $this->validIpnSign($config, $callback)) {
-                return ['ok' => false, 'message' => 'امضای IPN کریپتوموس نامعتبر است.'];
-            }
-
-            return [
-                'ok' => true,
-                'message' => 'verified',
-                'ref_id' => $uuid,
-                'meta' => $callback,
-            ];
-        }
-        if ($uuid === '') {
-            return ['ok' => false, 'message' => 'شناسه پرداخت Cryptomus یافت نشد.'];
+        $uuid = (string) ($intentMeta['cryptomus_uuid'] ?? '');
+        $callbackUuid = (string) ($callback['uuid'] ?? $uuid);
+        if ($uuid === '' || ! hash_equals($uuid, $callbackUuid)
+            || ! isset($intentMeta['amount_rial'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
         $payload = ['uuid' => $uuid];
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
@@ -111,6 +101,10 @@ class CryptomusDriver implements GatewayDriverInterface
         if (! in_array($paymentStatus, ['paid', 'paid_over'], true)) {
             return ['ok' => false, 'message' => 'تأیید Cryptomus هنوز کامل نیست.', 'meta' => is_array($response) ? $response : []];
         }
+        if ((string) data_get($response, 'result.uuid', '') !== $uuid
+            || ! $this->fxResponseMatches(data_get($response, 'result.amount'), data_get($response, 'result.currency'), $intentMeta)) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
 
         return [
             'ok' => true,
@@ -124,22 +118,6 @@ class CryptomusDriver implements GatewayDriverInterface
     {
         return $this->missingRequired($config, ['merchant_id', 'api_key'])
             ?? ['ok' => true, 'message' => 'پیکربندی Cryptomus کامل است.'];
-    }
-
-    /** @param  array<string, mixed>  $config
-     * @param  array<string, mixed>  $callback */
-    private function validIpnSign(array $config, array $callback): bool
-    {
-        $sign = (string) ($callback['sign'] ?? '');
-        if ($sign === '') {
-            return true; // browser return without IPN signature
-        }
-        $payload = $callback;
-        unset($payload['sign']);
-        $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        $expected = md5(base64_encode((string) $body).(string) ($config['api_key'] ?? ''));
-
-        return hash_equals($expected, $sign);
     }
 
     private function webhookUrl(string $callbackUrl): string

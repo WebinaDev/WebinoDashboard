@@ -347,10 +347,16 @@ class PaymentCheckoutService
         // reinterpret them as the live store display currency.
         $currency = $this->amountCurrency($order);
         try {
-            return max(1, Currency::toGatewayRial($minor, $currency));
-        } catch (\InvalidArgumentException) {
-            return max(1, Currency::toGatewayRial($minor, 'IRT'));
+            $amount = Currency::toGatewayRial($minor, $currency);
+        } catch (\InvalidArgumentException $e) {
+            throw new \DomainException(__('api.payment_currency_conversion_failed'), previous: $e);
         }
+
+        if ($amount <= 0) {
+            throw new \DomainException(__('api.payment_amount_must_be_positive'));
+        }
+
+        return $amount;
     }
 
     protected function amountCurrency(Order $order): string
@@ -375,8 +381,8 @@ class PaymentCheckoutService
             $currency = $this->amountCurrency($order);
             try {
                 $unitRial = Currency::toGatewayRial($unit, $currency);
-            } catch (\InvalidArgumentException) {
-                $unitRial = Currency::toGatewayRial($unit, 'IRT');
+            } catch (\InvalidArgumentException $e) {
+                throw new \DomainException(__('api.payment_currency_conversion_failed'), previous: $e);
             }
             $items[] = [
                 'count' => $qty,

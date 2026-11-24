@@ -134,7 +134,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "audioLabel", label: "برچسب صوت" }, { kind: "text", key: "videoLabel", label: "برچسب ویدیو" },
       photoMode("coverMode", "حالت کاور در نبود تصویر"), logo, SEC, ...colors,
     ],
-    create: () => node("media-archive", { source: "live", logo: "", items: "", featured: 1, topTitle: "پرشنونده‌ترین‌ها", topCount: 4, filters: "همه,صوت,ویدیو,محرم,فاطمیه,اربعین", perPage: 8, audioLabel: "صوت", videoLabel: "ویدیو", coverMode: "arabesque", aspect: "auto", sectionBg: DARK, ...C }),
+    create: () => node("media-archive", { mediaLayout: "auto", audioTitle: "صوت‌ها", videoTitle: "ویدیوها", premiumLabel: "خرید اشتراک ویژه", premiumHref: "/subscribe", source: "live", logo: "", items: "", featured: 1, topTitle: "پرشنونده‌ترین‌ها", topCount: 4, filters: "همه,صوت,ویدیو,محرم,فاطمیه,اربعین", perPage: 8, audioLabel: "صوت", videoLabel: "ویدیو", coverMode: "arabesque", aspect: "auto", sectionBg: DARK, ...C }),
   },
   {
     type: "poetry-shop", label: "فروشگاه قاب‌ها (فیلتر + مرتب‌سازی)", category: "commerce",
@@ -199,7 +199,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       SOCIALS, { kind: "text", key: "copyright", label: "کپی‌رایت" }, { kind: "switch", key: "showCredit", label: "نشان طراحی وبینا" },
       { kind: "color", key: "bg", label: "رنگ زمینه" }, { kind: "color", key: "text", label: "رنگ متن" }, ...colors,
     ],
-    create: () => node("poetry-site-footer", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, socials: AKX_SOCIALS_DEFAULT, copyright: "", bg: "#1a0507", text: "#d8c3bd", ...C }),
+    create: () => node("poetry-site-footer", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, socials: AKX_SOCIALS_DEFAULT, copyright: "", showCredit: true, bg: "#1a0507", text: "#d8c3bd", ...C }),
   },
 ]
 
@@ -214,6 +214,7 @@ for (const d of POETRY_PAGE_WIDGETS) if (!d.fields.some((f) => "key" in f && f.k
   const chrome = d.category === "chrome"
   d.create = () => {
     const n = make()
+    if (d.fields.some((field) => field.key === "tone") && n.props.tone === undefined) n.props.tone = ""
     if (n.props.mobileFullWidth === undefined) n.props.mobileFullWidth = true
     if (!chrome && n.props.mobilePaddingY === undefined) n.props.mobilePaddingY = 44
     if (!chrome && n.props.mobileGap === undefined) n.props.mobileGap = 28

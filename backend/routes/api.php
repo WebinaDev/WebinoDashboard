@@ -926,24 +926,22 @@ Route::prefix('v1')->group(function () {
                 Route::post('/cafe/pricing/reverse', [CafePriceCalculatorController::class, 'reverse']);
                 Route::post('/cafe/pricing', [CafePriceCalculatorController::class, 'store']);
                 Route::delete('/cafe/pricing/{sheet}', [CafePriceCalculatorController::class, 'destroy'])->whereNumber('sheet');
-                // Cashier till. Reads and writes are split on purpose: the accountant holds
-                // accounting.manage and must be able to audit a drawer without being able to
-                // open, close, or move cash in one. Only a cashier or manager may write.
-                Route::middleware('can:pos.use,orders.*,reports.shop,accounting.manage')->group(function () {
-                    Route::get('/cafe/pos/shift', [CafeShiftController::class, 'current']);
-                    Route::get('/cafe/pos/shifts', [CafeShiftController::class, 'index']);
-                    Route::get('/cafe/pos/shifts/{shift}', [CafeShiftController::class, 'show'])->whereNumber('shift');
-                    Route::get('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'movements'])->whereNumber('shift');
-                });
-                Route::middleware('can:pos.use,orders.*')->group(function () {
-                    Route::post('/cafe/pos/shift/open', [CafeShiftController::class, 'open']);
-                    Route::post('/cafe/pos/shifts/{shift}/close', [CafeShiftController::class, 'close'])->whereNumber('shift');
-                    Route::post('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'storeMovement'])->whereNumber('shift');
-                });
                 Route::get('/cafe/engagement-settings', [CafeSettingsController::class, 'showEngagement']);
                 Route::patch('/cafe/engagement-settings', [CafeSettingsController::class, 'updateEngagement']);
                 Route::get('/cafe/feedback', [CafeEngagementInboxController::class, 'feedback']);
                 Route::get('/cafe/likes', [CafeEngagementInboxController::class, 'likes']);
+            });
+
+            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.*,reports.shop,accounting.manage'])->group(function () {
+                Route::get('/cafe/pos/shift', [CafeShiftController::class, 'current']);
+                Route::get('/cafe/pos/shifts', [CafeShiftController::class, 'index']);
+                Route::get('/cafe/pos/shifts/{shift}', [CafeShiftController::class, 'show'])->whereNumber('shift');
+                Route::get('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'movements'])->whereNumber('shift');
+            });
+            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.*'])->group(function () {
+                Route::post('/cafe/pos/shift/open', [CafeShiftController::class, 'open']);
+                Route::post('/cafe/pos/shifts/{shift}/close', [CafeShiftController::class, 'close'])->whereNumber('shift');
+                Route::post('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'storeMovement'])->whereNumber('shift');
             });
 
             Route::middleware(['module:cafe_qr', 'can:catalog.*,commerce.*'])->group(function () {

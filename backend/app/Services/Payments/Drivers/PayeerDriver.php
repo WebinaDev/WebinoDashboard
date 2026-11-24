@@ -26,7 +26,7 @@ class PayeerDriver implements GatewayDriverInterface
             return $fx;
         }
         $orderId = (string) ($meta['order_id'] ?? uniqid('pr_', true));
-        $amount = number_format($fx['amount'] / 100, 2, '.', '');
+        $amount = $this->fxMajorAmount($fx['amount'], 2, $fx['currency']);
         $desc = base64_encode(mb_substr($description, 0, 100));
         $sign = strtoupper(hash('sha256', implode(':', [
             (string) $config['merchant_id'],
@@ -77,7 +77,11 @@ class PayeerDriver implements GatewayDriverInterface
         }
         $orderId = (string) ($callback['m_orderid'] ?? '');
         $expectedOrder = (string) ($intentMeta['payeer_order_id'] ?? '');
-        if ($orderId === '' || ($expectedOrder !== '' && $orderId !== $expectedOrder)) {
+        if ($orderId === '' || $expectedOrder === '' || ! hash_equals($expectedOrder, $orderId)
+            || empty($config['secret_key']) || empty($config['merchant_id'])
+            || ! isset($intentMeta['amount_rial'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial
+            || ! $this->fxResponseMatches($callback['m_amount'] ?? null, $callback['m_curr'] ?? null, $intentMeta)) {
             return ['ok' => false, 'message' => 'شناسه سفارش پی‌یر هم‌خوانی ندارد.'];
         }
         $signParams = [
@@ -98,7 +102,7 @@ class PayeerDriver implements GatewayDriverInterface
             return ['ok' => false, 'message' => 'امضای پی‌یر نامعتبر است.'];
         }
         $shop = (string) ($callback['m_shop'] ?? '');
-        if ($shop !== '' && $shop !== (string) ($config['merchant_id'] ?? '')) {
+        if ($shop === '' || $shop !== (string) ($config['merchant_id'] ?? '')) {
             return ['ok' => false, 'message' => 'فروشگاه پی‌یر هم‌خوانی ندارد.'];
         }
 

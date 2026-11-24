@@ -3,17 +3,13 @@ import { test } from "node:test"
 
 import { POETRY_WIDGET_TYPES, POETRY_WIDGETS } from "./registry-poetry.ts"
 
-test("poetry widgets: types with Persian labels (includes story-strip and poem-carousel)", () => {
+test("poetry widgets: types with Persian labels (includes poem-carousel)", () => {
   assert.deepEqual(POETRY_WIDGETS.map((w) => w.type), [...POETRY_WIDGET_TYPES])
-  assert.ok(POETRY_WIDGET_TYPES.includes("story-strip"))
   for (const w of POETRY_WIDGETS) {
     assert.match(w.label, /[\u0600-\u06FF]/)
     assert.equal(w.create().type, w.type)
   }
-  const strip = POETRY_WIDGETS.find((w) => w.type === "story-strip")!
-  assert.equal(strip.create().props.variant, "poetry")
-  assert.equal(strip.create().props.layout, "carousel")
-  assert.ok(strip.fields.some((f) => f.key === "layout"))
+
 })
 
 test("poetry footer and poet-about expose socials (network|href)", () => {

@@ -79,6 +79,9 @@ import type { FieldDef, AdvancedProps, ShapeName, BoxEdges, BuilderDocument, Dev
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
 import { migrateDocument } from "../migrate"
+import { appendImportedDocument, chooseImportMode, missingDocumentDependencies, unknownWidgetTypes } from "../import-flow"
+import { collectPortableDependencies, mergePortableDependencies, readPortableDependencies } from "../portable-dependencies"
+import { publishAfterGlobals } from "../publish-flow"
 import { DynamicEditor, DynamicToggle, EXTENDED_KINDS, ExtendedField } from "./fields"
 import { isDynamic } from "../dynamic"
 import { ContextMenu, type MenuItem } from "./ContextMenu"
@@ -217,10 +220,12 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
 
   // Design-system edits (classes, presets, components) go to the globals draft; published with the page.
   const globalsTouched = useRef(false)
+  const globalsRevision = useRef(0)
   const globalsTimer = useRef<number | null>(null)
   const updateGlobals = useCallback((next: BuilderGlobals) => {
     setGlobals(next)
     globalsTouched.current = true
+    globalsRevision.current += 1
     if (globalsTimer.current) window.clearTimeout(globalsTimer.current)
     globalsTimer.current = window.setTimeout(() => {
       api("/api/v1/builder/globals", { method: "PUT", json: { settings: next } }).catch((error) => {
@@ -240,22 +245,30 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   }, [dashboardTheme.accent, globals, updateGlobals])
 
   async function publishGlobalsIfTouched() {
-    if (!globalsTouched.current) return
+    if (!globalsTouched.current) return true
+    const revision = globalsRevision.current
+    if (globalsTimer.current) window.clearTimeout(globalsTimer.current)
+    globalsTimer.current = null
     try {
       await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
       await api("/api/v1/builder/globals/publish", { method: "POST" })
-      globalsTouched.current = false
+      if (globalsRevision.current === revision) globalsTouched.current = false
+      return true
     } catch {
       toast.error(t("globals_publish_failed"))
+      return false
     }
   }
 
   async function publishGlobalsNow() {
     setPublishingGlobals(true)
+    const revision = globalsRevision.current
+    if (globalsTimer.current) window.clearTimeout(globalsTimer.current)
+    globalsTimer.current = null
     try {
       await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
       await api("/api/v1/builder/globals/publish", { method: "POST" })
-      globalsTouched.current = false
+      if (globalsRevision.current === revision) globalsTouched.current = false
       toast.success(t("published"))
     } catch {
       toast.error(t("globals_publish_failed"))
@@ -436,7 +449,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   }
 
   function exportJson() {
-    const blob = new Blob([exportPayload(doc, title)], { type: "application/json" })
+    const blob = new Blob([exportPayload(doc, title, collectPortableDependencies(doc, globals))], { type: "application/json" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
@@ -450,13 +463,42 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       toast.error(t("import_too_large"))
       return
     }
-    const imported = importPayload(await file.text())
-    if (!imported) {
+    let imported: BuilderDocument | null
+    let dependencies: ReturnType<typeof readPortableDependencies>
+    try {
+      const raw = await file.text()
+      imported = importPayload(raw, { preserveIds: true })
+      dependencies = readPortableDependencies(raw)
+    } catch {
       toast.error(t("import_invalid"))
       return
     }
-    const replace = doc.sections.length === 0 || window.confirm(t("import_replace_confirm"))
-    commit(replace ? imported : { ...doc, sections: [...doc.sections, ...imported.sections] })
+    if (!imported || dependencies === false) {
+      toast.error(t("import_invalid"))
+      return
+    }
+    const dependencySections = dependencies ? dependencies.components.flatMap((component) =>
+      [...component.sections, ...(component.variants ?? []).flatMap((variant) => variant.sections)]) : []
+    const unknown = unknownWidgetTypes({ ...imported, sections: [...imported.sections, ...dependencySections] }, (type) => type === COMPONENT_TYPE || Boolean(widgetDef(type)))
+    if (unknown.length && !window.confirm(t("import_unknown_widgets", { types: unknown.slice(0, 10).join(", ") }))) return
+    const merged = dependencies ? mergePortableDependencies(globals, dependencies) : null
+    if (merged?.conflicts.length) {
+      toast.error(t("import_dependency_conflict", { items: merged.conflicts.slice(0, 10).join(", ") }))
+      return
+    }
+    const missing = missingDocumentDependencies(imported, merged?.globals ?? globals)
+    if (missing.length && !window.confirm(t("import_missing_dependencies", { items: missing.slice(0, 10).join(", ") }))) return
+    const choice = chooseImportMode(
+      doc.sections.length > 0 || Boolean(doc.css) || Boolean(doc.page_settings && Object.keys(doc.page_settings).length),
+      () => window.confirm(t("import_replace_confirm")),
+      () => window.confirm(t("import_append_confirm")),
+    )
+    if (choice === "cancel") return
+    const result = choice === "replace" ? imported : appendImportedDocument(doc, imported)
+    if (!result) { toast.error(t("import_id_conflict")); return }
+    if (merged?.added && !window.confirm(t("import_dependencies_confirm", { count: merged.added }))) return
+    if (merged?.added) updateGlobals(merged.globals)
+    commit(result)
     toast.success(t("imported"))
   }
 
@@ -662,8 +704,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           json: { title, document: outDoc, ...(autosave ? { autosave: true } : {}) },
         })
         if (publish) {
-          await api(`/api/v1/builder/templates/${mode.chrome}/publish`, { method: "POST" })
-          await publishGlobalsIfTouched()
+          if (!await publishAfterGlobals(publishGlobalsIfTouched, () => api(`/api/v1/builder/templates/${mode.chrome}/publish`, { method: "POST" }))) { setSavedJson(snapshot); return }
           toast.success(t("published"))
         } else if (!autosave) toast.success(t("saved"))
         setSavedJson(snapshot)
@@ -686,8 +727,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           })
         }
         if (publish && id) {
-          await api(`/api/v1/theme-builder/templates/${id}/publish`, { method: "POST" })
-          await publishGlobalsIfTouched()
+          if (!await publishAfterGlobals(publishGlobalsIfTouched, () => api(`/api/v1/theme-builder/templates/${id}/publish`, { method: "POST" }))) { setSavedJson(snapshot); return }
           toast.success(t("published"))
         } else if (!autosave) toast.success(t("saved"))
         setSavedJson(snapshot)
@@ -700,8 +740,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           json: { title, document: outDoc, ...(autosave ? { autosave: true } : {}) },
         })
         if (publish) {
-          await api(`/api/v1/builder/${base}/${mode.id}/publish`, { method: "POST" })
-          await publishGlobalsIfTouched()
+          if (!await publishAfterGlobals(publishGlobalsIfTouched, () => api(`/api/v1/builder/${base}/${mode.id}/publish`, { method: "POST" }))) { setSavedJson(snapshot); return }
           toast.success(t("published"))
         } else if (!autosave) toast.success(t("saved"))
         setSavedJson(snapshot)
@@ -724,9 +763,8 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         })
       }
       if (publish) {
-        await api(`/api/v1/builder/pages/${id}/publish`, { method: "POST" })
-        await publishGlobalsIfTouched()
-          toast.success(t("published"))
+        if (!await publishAfterGlobals(publishGlobalsIfTouched, () => api(`/api/v1/builder/pages/${id}/publish`, { method: "POST" }))) { setSavedJson(snapshot); return }
+        toast.success(t("published"))
       } else if (!autosave) toast.success(t("saved"))
       setSavedJson(snapshot)
     } catch (error) {
@@ -735,7 +773,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         toast.error(t("locked_by_other"))
       } else if (error instanceof ApiError && error.status === 403) {
         toast.error(t("no_permission"))
-      } else if (!autosave) toast.error(t("save_failed"))
+      } else toast.error(t(autosave ? "autosave_failed" : "save_failed"))
     } finally {
       setSaving(false)
     }
@@ -1030,11 +1068,11 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             </button>
             <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "style" ? "bg-background text-primary shadow-sm" : ""}`} onClick={() => setTab("style")}>
               <Paintbrush className="size-3.5" aria-hidden />
-              {t("style")}
+              {t("tab_design")}
             </button>
             <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "advanced" ? "bg-background text-primary shadow-sm" : ""}`} onClick={() => setTab("advanced")}>
               <Settings2 className="size-3.5" aria-hidden />
-              {t("advanced")}
+              {t("settings")}
             </button>
           </div>
           {!selection ? (

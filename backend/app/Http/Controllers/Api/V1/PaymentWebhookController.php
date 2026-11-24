@@ -86,7 +86,9 @@ class PaymentWebhookController extends Controller
             return response()->json(['ok' => false, 'message' => 'intent not found'], 404);
         }
 
-        $order = Order::query()->find($intent->order_id);
+        $order = Order::query()
+            ->where('tenant_id', $intent->tenant_id)
+            ->find($intent->order_id);
         if (! $order) {
             return response()->json(['ok' => false, 'message' => 'order not found'], 404);
         }
@@ -120,15 +122,6 @@ class PaymentWebhookController extends Controller
             is_array($intent->meta) ? $intent->meta : []
         );
         if (! ($result['ok'] ?? false)) {
-            if ($intent->status !== 'completed') {
-                $intent->update([
-                    'status' => 'failed',
-                    'meta' => array_merge(is_array($intent->meta) ? $intent->meta : [], [
-                        'webhook_verify' => $result,
-                    ]),
-                ]);
-            }
-
             return response()->json(['ok' => false, 'message' => $result['message'] ?? 'verify failed'], 422);
         }
 

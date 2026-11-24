@@ -25,7 +25,10 @@ class PaypingDriver implements GatewayDriverInterface
         if ($token === '') {
             return ['ok' => false, 'message' => 'توکن پی‌پینگ خالی است.'];
         }
-        $amountToman = (int) max(1, round($amountRial / 10));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
         $response = Http::timeout(30)
             ->withToken($token)
             ->acceptJson()
@@ -69,7 +72,13 @@ class PaypingDriver implements GatewayDriverInterface
         if ($refId === '') {
             return ['ok' => false, 'message' => 'کد پیگیری پی‌پینگ یافت نشد.'];
         }
-        $amountToman = (int) ($intentMeta['amount_toman'] ?? max(1, round($amountRial / 10)));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
+        if (isset($intentMeta['amount_toman']) && filter_var($intentMeta['amount_toman'], FILTER_VALIDATE_INT) !== $amountToman) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
         $response = Http::timeout(30)
             ->withToken((string) ($config['api_token'] ?? ''))
             ->acceptJson()

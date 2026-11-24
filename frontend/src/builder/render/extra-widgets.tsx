@@ -33,6 +33,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react"
+import { useLocale } from "next-intl"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react"
@@ -45,6 +46,7 @@ import { useIsClassicSkin } from "./runtime"
 import { ClassicProductRow } from "@/themes/ecommerce-classic/components/ClassicHome"
 import { imageSrcSet, imageUrl, originalUrl } from "@/lib/image-url"
 import { Img } from "./img"
+import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 
 /* ------------------------------------------------------------------ utils */
 
@@ -646,7 +648,7 @@ export function MapWidget({ widget }: { widget: WidgetNode }) {
 
 /* ----------------------------------------------------------------- counter */
 
-function useInView<T extends Element>(): [RefObject<T>, boolean] {
+function useInView<T extends Element>(): [RefObject<T | null>, boolean] {
   const ref = useRef<T>(null)
   const [seen, setSeen] = useState(false)
   useEffect(() => {
@@ -666,6 +668,7 @@ function useInView<T extends Element>(): [RefObject<T>, boolean] {
 }
 
 export function CounterWidget({ widget }: { widget: WidgetNode }) {
+  const locale = normalizeUiLocale(useLocale())
   const rows = splitRows(propStr(widget.props, "items", "")).filter(([n]) => n)
   const [ref, seen] = useInView<HTMLDivElement>()
   const [progress, setProgress] = useState(0)
@@ -690,7 +693,7 @@ export function CounterWidget({ widget }: { widget: WidgetNode }) {
         return (
           <div key={i} className="rounded-2xl border border-border bg-card p-5 text-center">
             <strong className="block text-2xl font-black text-primary">
-              {value.toLocaleString("fa-IR")}
+              {formatNumber(value, locale)}
               {suffix ? <span className="ms-1 text-base">{suffix}</span> : null}
             </strong>
             <span className="mt-1 block text-xs text-foreground/70">{label}</span>

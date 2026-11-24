@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { tags?: unknown; paths?: unknown; host?: unknown }
   const tags = Array.isArray(body.tags) ? body.tags.filter((t): t is string => typeof t === "string" && ALLOWED_TAGS.has(t)) : ["builder"]
   const paths = Array.isArray(body.paths) ? body.paths.filter((p): p is string => typeof p === "string" && p.startsWith("/")).slice(0, 50) : []
-  for (const t of tags.length ? tags : ["builder"]) revalidateTag(t)
+  for (const t of tags.length ? tags : ["builder"]) revalidateTag(t, { expire: 0 })
   for (const p of paths) revalidatePath(p)
   // Edge nginx keeps its own page cache; purge it too (no-op unless EDGE_PURGE_URL is set).
   const edge = await purgeEdge(paths, typeof body.host === "string" ? body.host : undefined)

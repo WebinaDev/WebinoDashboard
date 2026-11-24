@@ -31,15 +31,10 @@ class NowpaymentsDriver implements GatewayDriverInterface
         if (! ($fx['ok'] ?? false)) {
             return $fx;
         }
-        $priceAmount = round($fx['amount'] / 100, 2);
+        $priceAmount = $this->fxMajorAmount($fx['amount'], 2, $fx['currency']);
         $base = ! empty($config['sandbox']) ? 'https://api-sandbox.nowpayments.io' : 'https://api.nowpayments.io';
         $ipn = $this->webhookUrl($callbackUrl, 'nowpayments');
-        $response = Http::timeout(30)
-            ->withHeaders(['x-api-key' => (string) $config['api_key']])
-            ->acceptJson()
-            ->asJson()
-            ->post($base.'/v1/invoice', array_filter([
-                'price_amount' => $priceAmount,
+        $payload = array_filter([
                 'price_currency' => strtolower($fx['currency']),
                 'pay_currency' => ($config['pay_currency'] ?? '') ?: null,
                 'order_id' => (string) ($meta['order_id'] ?? ''),
@@ -47,7 +42,14 @@ class NowpaymentsDriver implements GatewayDriverInterface
                 'ipn_callback_url' => $ipn,
                 'success_url' => $callbackUrl,
                 'cancel_url' => $callbackUrl.(str_contains($callbackUrl, '?') ? '&' : '?').'nowpayments_status=cancel',
-            ], fn ($v) => $v !== null && $v !== ''))->json();
+            ], fn ($v) => $v !== null && $v !== '');
+        $body = '{"price_amount":'.$priceAmount.','.substr(json_encode($payload, JSON_THROW_ON_ERROR), 1);
+        $response = Http::timeout(30)
+            ->withHeaders(['x-api-key' => (string) $config['api_key']])
+            ->acceptJson()
+            ->withBody($body, 'application/json')
+            ->post($base.'/v1/invoice')
+            ->json();
         $id = (string) data_get($response, 'id', '');
         $url = (string) data_get($response, 'invoice_url', '');
         if ($id === '' || $url === '') {
@@ -74,19 +76,13 @@ class NowpaymentsDriver implements GatewayDriverInterface
         if (($callback['nowpayments_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت NOWPayments لغو شد.'];
         }
-        // IPN path: payment_status / payment_id on body.
-        $status = strtolower((string) ($callback['payment_status'] ?? $callback['status'] ?? ''));
-        $paymentId = (string) ($callback['payment_id'] ?? $callback['invoice_id'] ?? $intentMeta['nowpayments_id'] ?? '');
-        if (in_array($status, ['finished', 'confirmed', 'sending'], true) && $paymentId !== '') {
-            return [
-                'ok' => true,
-                'message' => 'verified',
-                'ref_id' => $paymentId,
-                'meta' => $callback,
-            ];
-        }
-        if ($paymentId === '') {
-            return ['ok' => false, 'message' => 'شناسه پرداخت NOWPayments یافت نشد.'];
+        $invoiceId = (string) ($intentMeta['nowpayments_id'] ?? '');
+        $paymentId = (string) ($callback['payment_id'] ?? '');
+        if ($invoiceId === '' || $paymentId === ''
+            || (isset($callback['invoice_id']) && (string) $callback['invoice_id'] !== $invoiceId)
+            || ! isset($intentMeta['amount_rial'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
         $base = ! empty($config['sandbox']) ? 'https://api-sandbox.nowpayments.io' : 'https://api.nowpayments.io';
         $response = Http::timeout(30)
@@ -96,6 +92,11 @@ class NowpaymentsDriver implements GatewayDriverInterface
         $paymentStatus = strtolower((string) data_get($response, 'payment_status', ''));
         if (! in_array($paymentStatus, ['finished', 'confirmed'], true)) {
             return ['ok' => false, 'message' => 'تأیید NOWPayments هنوز کامل نیست.', 'meta' => is_array($response) ? $response : []];
+        }
+        if ((string) data_get($response, 'payment_id', '') !== $paymentId
+            || (string) data_get($response, 'invoice_id', '') !== $invoiceId
+            || ! $this->fxResponseMatches(data_get($response, 'price_amount'), data_get($response, 'price_currency'), $intentMeta)) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
 
         return [

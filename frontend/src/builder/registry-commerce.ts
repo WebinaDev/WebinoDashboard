@@ -377,6 +377,7 @@ export const COMMERCE_WIDGETS: WidgetDef[] = [
       { kind: "number", key: "limit", label: "تعداد (۰ = پیش‌فرض)", min: 0, max: 48 },
       { kind: "select", key: "variant", label: "پالت", options: [{ value: "", label: "فروشگاهی" }, { value: "poetry", label: "شعر (زرشکی/طلایی)" }] },
       { kind: "select", key: "layout", label: "نمایش", options: [{ value: "rings", label: "حلقه‌های دایره‌ای" }, { value: "carousel", label: "کروسل کارت (مثل محصولات)" }] },
+      { kind: "select", key: "tone", label: "زمینه", options: [{ value: "", label: "پیش‌فرض" }, { value: "glass", label: "شیشه‌ای" }] },
     ],
     create: () => node("story-strip", { title: "هایلایت‌ها", variant: "", layout: "rings" }),
   },

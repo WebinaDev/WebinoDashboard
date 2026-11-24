@@ -221,7 +221,11 @@ final class Currency
     {
         $unit = strtoupper($gatewayUnit);
         if (in_array($unit, ['IRT', 'TOMAN'], true)) {
-            return max(0, (int) round($rial / 10));
+            if ($rial % 10 !== 0) {
+                throw new \InvalidArgumentException('amount_not_representable_in_toman');
+            }
+
+            return max(0, intdiv($rial, 10));
         }
 
         return max(0, $rial);

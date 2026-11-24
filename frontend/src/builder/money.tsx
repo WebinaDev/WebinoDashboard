@@ -3,6 +3,11 @@
 /* Shared storefront price for every builder widget: dashboard currency + symbol glyph (same as MoneyDisplay). */
 
 import { createContext, createElement, useContext, useEffect, useState, type ReactNode } from "react"
+import { useLocale } from "next-intl"
+import { normalizeUiLocale } from "@/lib/locale"
+import { formatAmountDigits } from "./format-amount"
+
+export { formatAmountDigits } from "./format-amount"
 
 import { CurrencyMark } from "@/components/CurrencyMark"
 import {
@@ -64,18 +69,11 @@ export function parseAmount(raw: string | number | null | undefined): number {
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
-export function formatAmountDigits(amount: number, thousandSeparator = ","): string {
-  const grouped = Math.round(Math.max(0, amount))
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator === "," ? "٬" : thousandSeparator)
-  return grouped.replace(/\d/g, (d) => FA[Number(d)])
-}
-
 /** Plain-text fallback for attributes and translated strings (no glyph possible). */
-export function formatMoneyPlain(amount: number, cur: BuilderCurrency, from?: string | null): string {
+export function formatMoneyPlain(amount: number, cur: BuilderCurrency, from?: string | null, locale = "fa"): string {
   const n = convertAmount(amount, from, cur.currency)
   if (!(n > 0)) return ""
-  return `${formatAmountDigits(n, cur.thousandSeparator)} ${currencyLabel(cur.currency, "fa")}`
+  return `${formatAmountDigits(n, cur.thousandSeparator, locale)} ${currencyLabel(cur.currency, locale)}`
 }
 
 export function BuilderPrice({
@@ -92,20 +90,21 @@ export function BuilderPrice({
   className?: string
 }) {
   const cur = useBuilderCurrency()
+  const locale = normalizeUiLocale(useLocale())
   const n = convertAmount(parseAmount(amount), from, cur.currency)
   if (!(n > 0)) return null
   const o = convertAmount(parseAmount(original), from, cur.currency)
   const price = (
     <span className={["wb-price", className].filter(Boolean).join(" ")} dir="ltr" style={{ display: "inline-flex", alignItems: "baseline", gap: "0.25em", whiteSpace: "nowrap" }}>
-      <CurrencyMark symbol={cur.symbol} alt={currencyLabel(cur.currency, "fa")} />
-      <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatAmountDigits(n, cur.thousandSeparator)}</span>
+      <CurrencyMark symbol={cur.symbol} alt={currencyLabel(cur.currency, locale)} />
+      <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatAmountDigits(n, cur.thousandSeparator, locale)}</span>
     </span>
   )
   if (!(o > n)) return price
   return (
     <span className="wb-price-group" style={{ display: "inline-flex", alignItems: "baseline", gap: "0.5em", flexWrap: "wrap" }}>
       <s className="wb-price-original" aria-label="قیمت قبل از تخفیف" style={{ opacity: 0.55, fontSize: "0.85em", whiteSpace: "nowrap" }} dir="ltr">
-        {formatAmountDigits(o, cur.thousandSeparator)}
+        {formatAmountDigits(o, cur.thousandSeparator, locale)}
       </s>
       {price}
     </span>
@@ -126,10 +125,11 @@ export function salePair(p: Record<string, unknown> | null | undefined): { amoun
 /** `money(amount)` for JSX (glyph) and `money.text(amount)` for string-only slots. */
 export function useBuilderMoney(from?: string | null) {
   const cur = useBuilderCurrency()
+  const locale = normalizeUiLocale(useLocale())
   const money = (amount: number | string | null | undefined, original?: number | string | null): ReactNode => (
     <BuilderPrice amount={amount} original={original} from={from} />
   )
-  money.text = (amount: number | string | null | undefined) => formatMoneyPlain(parseAmount(amount), cur, from)
+  money.text = (amount: number | string | null | undefined) => formatMoneyPlain(parseAmount(amount), cur, from, locale)
   money.currency = cur
   return money
 }

@@ -188,8 +188,11 @@ class PaymentGatewayDriversTest extends TestCase
                 'url' => 'https://checkout.stripe.com/pay/cs_test_1',
             ]),
             'api.stripe.com/v1/checkout/sessions/cs_test_1' => Http::response([
+                'id' => 'cs_test_1',
                 'payment_status' => 'paid',
                 'payment_intent' => 'pi_1',
+                'amount_total' => 200,
+                'currency' => 'usd',
             ]),
         ]);
         $driver = new StripeDriver;
@@ -212,8 +215,9 @@ class PaymentGatewayDriversTest extends TestCase
                 'links' => [['rel' => 'approve', 'href' => 'https://paypal.test/approve']],
             ]),
             'api-m.sandbox.paypal.com/v2/checkout/orders/PO1/capture' => Http::response([
+                'id' => 'PO1',
                 'status' => 'COMPLETED',
-                'purchase_units' => [['payments' => ['captures' => [['id' => 'CAP1', 'status' => 'COMPLETED']]]]],
+                'purchase_units' => [['payments' => ['captures' => [['id' => 'CAP1', 'status' => 'COMPLETED', 'amount' => ['value' => '1.00', 'currency_code' => 'USD']]]]]],
             ]),
         ]);
         $driver = new PaypalDriver;
@@ -238,7 +242,7 @@ class PaymentGatewayDriversTest extends TestCase
     {
         Http::fake([
             'api.nowpayments.io/v1/invoice' => Http::response(['id' => 'inv1', 'invoice_url' => 'https://nowpayments.io/i/inv1']),
-            'api.nowpayments.io/v1/payment/pay1' => Http::response(['payment_id' => 'pay1', 'payment_status' => 'finished']),
+            'api.nowpayments.io/v1/payment/pay1' => Http::response(['payment_id' => 'pay1', 'invoice_id' => 'inv1', 'payment_status' => 'finished', 'price_amount' => '1.00', 'price_currency' => 'usd']),
         ]);
         $driver = new NowpaymentsDriver;
         $req = $driver->request([
@@ -256,9 +260,9 @@ class PaymentGatewayDriversTest extends TestCase
     {
         Http::fake([
             'api.cryptomus.com/v1/payment' => Http::response(['result' => ['uuid' => 'cu1', 'url' => 'https://pay.cryptomus.com/cu1']]),
-            'api.cryptomus.com/v1/payment/info' => Http::response(['result' => ['uuid' => 'cu1', 'payment_status' => 'paid']]),
+            'api.cryptomus.com/v1/payment/info' => Http::response(['result' => ['uuid' => 'cu1', 'payment_status' => 'paid', 'amount' => '1.00', 'currency' => 'USD']]),
             'api.coingate.com/v2/orders' => Http::response(['id' => 55, 'payment_url' => 'https://coingate.com/55']),
-            'api.coingate.com/v2/orders/55' => Http::response(['id' => 55, 'status' => 'paid']),
+            'api.coingate.com/v2/orders/55' => Http::response(['id' => 55, 'status' => 'paid', 'price_amount' => '1.00', 'price_currency' => 'USD']),
         ]);
         $crypto = new CryptomusDriver;
         $req = $crypto->request([

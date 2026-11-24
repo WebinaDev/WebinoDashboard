@@ -25,7 +25,10 @@ export type StyleProps = {
   borderStyle?: "none" | "solid" | "dashed"
   borderColor?: string
   radius?: string
+  height?: string
   minHeight?: string
+  maxHeight?: string
+  minWidth?: string
   maxWidth?: string
   gap?: string
   hidden?: boolean

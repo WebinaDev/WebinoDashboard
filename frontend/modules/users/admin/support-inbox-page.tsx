@@ -420,7 +420,7 @@ export default function SupportInboxPage({ route }: { route: ResolvedAdminRoute 
                     />
                   ) : ch === "email" ? (
                     <Input
-                      placeholder="support@example.com"
+                      placeholder="user_001@example.local"
                       value={draft.channels?.[ch]?.address ?? ""}
                       onChange={(e) => setChannel(ch, { address: e.target.value })}
                     />

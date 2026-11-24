@@ -23,9 +23,9 @@ export async function resolveServerLocale(): Promise<Locale> {
 
 export async function getServerTranslations(namespace?: string) {
   const locale = await resolveServerLocale()
-  return createTranslator({
+  return createTranslator<Record<string, Record<string, string>>, string>({
     locale,
-    messages: catalogs[locale],
+    messages: catalogs[locale] as unknown as Record<string, Record<string, string>>,
     namespace,
   })
 }

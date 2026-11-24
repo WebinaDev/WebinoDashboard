@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 
 import { FormSettingsSkeleton } from "@/components/TableListSkeleton"
@@ -22,8 +22,10 @@ export function BotConnectionPanel({ provider }: { provider: LiveBotProvider }) 
   const t = useTranslations("bots")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
-  const [mode, setMode] = useState<"webhook" | "polling">("webhook")
-  const [proxyUrl, setProxyUrl] = useState("")
+  const modeId = useId()
+  const proxyId = useId()
+  const [modeDraft, setModeDraft] = useState<{ provider: LiveBotProvider; value: "webhook" | "polling" } | null>(null)
+  const [proxyDraft, setProxyDraft] = useState<{ provider: LiveBotProvider; value: string } | null>(null)
 
   const settingsQ = useQuery({
     queryKey: ["bots", provider, "settings"],
@@ -36,12 +38,9 @@ export function BotConnectionPanel({ provider }: { provider: LiveBotProvider }) 
     retry: false,
   })
 
-  useEffect(() => {
-    const c = settingsQ.data?.meta?.connection
-    if (!c) return
-    setMode(c.mode === "polling" ? "polling" : "webhook")
-    setProxyUrl(String(c.proxy_url ?? ""))
-  }, [settingsQ.data])
+  const connection = settingsQ.data?.meta?.connection
+  const mode = modeDraft?.provider === provider ? modeDraft.value : connection?.mode === "polling" ? "polling" : "webhook"
+  const proxyUrl = proxyDraft?.provider === provider ? proxyDraft.value : String(connection?.proxy_url ?? "")
 
   const save = useMutation({
     mutationFn: () =>
@@ -61,6 +60,8 @@ export function BotConnectionPanel({ provider }: { provider: LiveBotProvider }) 
     onSuccess: async () => {
       toast.success(tCommon("saved"))
       await qc.invalidateQueries({ queryKey: ["bots", provider, "settings"] })
+      setModeDraft((current) => current?.provider === provider ? null : current)
+      setProxyDraft((current) => current?.provider === provider ? null : current)
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -93,9 +94,9 @@ export function BotConnectionPanel({ provider }: { provider: LiveBotProvider }) 
       <BotSection title={t("connection.modeTitle")} description={t("connection.modeHint")}>
         <div className="grid max-w-xl gap-3">
           <div className="space-y-1">
-            <Label>{t("connection.mode")}</Label>
-            <Select value={mode} onValueChange={(v) => setMode(v as "webhook" | "polling")}>
-              <SelectTrigger>
+            <Label htmlFor={modeId}>{t("connection.mode")}</Label>
+            <Select value={mode} onValueChange={(value) => setModeDraft({ provider, value: value as "webhook" | "polling" })}>
+              <SelectTrigger id={modeId}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -108,12 +109,13 @@ export function BotConnectionPanel({ provider }: { provider: LiveBotProvider }) 
             ) : null}
           </div>
           <div className="space-y-1">
-            <Label>{t("connection.proxy")}</Label>
+            <Label htmlFor={proxyId}>{t("connection.proxy")}</Label>
             <Input
+              id={proxyId}
               dir="ltr"
               className="font-mono text-xs"
               value={proxyUrl}
-              onChange={(e) => setProxyUrl(e.target.value)}
+              onChange={(e) => setProxyDraft({ provider, value: e.target.value })}
               placeholder="socks5://127.0.0.1:1080"
             />
             <p className="text-muted-foreground text-xs">{t("connection.proxyHint")}</p>

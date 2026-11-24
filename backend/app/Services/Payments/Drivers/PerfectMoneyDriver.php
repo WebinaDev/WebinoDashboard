@@ -26,7 +26,7 @@ class PerfectMoneyDriver implements GatewayDriverInterface
             return $fx;
         }
         $paymentId = (string) ($meta['order_id'] ?? uniqid('pm_', true));
-        $amount = number_format($fx['amount'] / 100, 2, '.', '');
+        $amount = $this->fxMajorAmount($fx['amount'], 2, $fx['currency']);
         $bridge = $this->formBridgeMeta('https://perfectmoney.com/api/step1.asp', [
             'PAYEE_ACCOUNT' => (string) $config['payee_account'],
             'PAYEE_NAME' => (string) ($config['title'] ?? 'Merchant'),
@@ -62,7 +62,16 @@ class PerfectMoneyDriver implements GatewayDriverInterface
         if (($callback['pm_status'] ?? '') === 'cancel') {
             return ['ok' => false, 'message' => 'پرداخت پرفکت‌مانی لغو شد.'];
         }
-        $passphrase = strtoupper(md5((string) ($config['alternate_passphrase'] ?? $config['passphrase'] ?? '')));
+        $secret = (string) ($config['alternate_passphrase'] ?? $config['passphrase'] ?? '');
+        $paymentId = (string) ($intentMeta['perfect_money_payment_id'] ?? '');
+        if ($secret === '' || $paymentId === ''
+            || ! hash_equals($paymentId, (string) ($callback['PAYMENT_ID'] ?? ''))
+            || ! isset($intentMeta['amount_rial'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial
+            || ! $this->fxResponseMatches($callback['PAYMENT_AMOUNT'] ?? null, $callback['PAYMENT_UNITS'] ?? null, $intentMeta)) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
+        $passphrase = strtoupper(md5($secret));
         $fields = [
             (string) ($callback['PAYMENT_ID'] ?? ''),
             (string) ($callback['PAYEE_ACCOUNT'] ?? ''),
@@ -79,7 +88,7 @@ class PerfectMoneyDriver implements GatewayDriverInterface
             return ['ok' => false, 'message' => 'امضای پرفکت‌مانی نامعتبر است.'];
         }
         $payee = (string) ($callback['PAYEE_ACCOUNT'] ?? '');
-        if ($payee !== '' && $payee !== (string) ($config['payee_account'] ?? '')) {
+        if ($payee === '' || $payee !== (string) ($config['payee_account'] ?? '')) {
             return ['ok' => false, 'message' => 'حساب پذیرنده پرفکت‌مانی هم‌خوانی ندارد.'];
         }
 

@@ -113,7 +113,7 @@ export default function PageClient({ route }: { route: ResolvedAdminRoute }) {
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {kpis.map((k) => (
-            <SmsSection title={k.label}>
+            <SmsSection key={k.label} title={k.label}>
 {k.value}</SmsSection>
           ))}
         </div>

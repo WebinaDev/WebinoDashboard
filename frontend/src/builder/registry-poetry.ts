@@ -41,7 +41,7 @@ const CAROUSEL_FIELDS: FieldDef[] = [
 ]
 
 export const POETRY_WIDGET_TYPES = [
-  "poetry-hero", "story-strip", "poem-list", "poem-carousel", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
+  "poetry-hero", "poem-list", "poem-carousel", "book-banner", "occasion-cards", "media-cards", "shop-showcase", "poet-about", "quote-block", "poetry-footer",
   "story-highlights", "audio-playlist", "video-gallery", "occasion-grid",
 ] as const
 
@@ -79,18 +79,6 @@ export const POETRY_WIDGETS: WidgetDef[] = [
       tone, frame, pattern, ...SECTION_BG_FIELDS,
     ],
     create: () => node("poetry-hero", { eyebrow: "محرم ۱۴۰۵", title: "اشعار آیینی", text: "", primaryLabel: "مشاهده اشعار", primaryHref: "/poems", secondaryLabel: "صوت و تصویر", secondaryHref: "/media", image: "", imageAlt: "", couplet: "", photoMode: "photo", logo: "", tone: "light", frame: "arch", pattern: true }),
-  },
-  {
-    /** Reuses shop ProductStory API + ClassicStoryStrip; poetry defaults to rectangular carousel cards. */
-    type: "story-strip", label: "هایلایت‌ها (استوری)", category: "content",
-    fields: [
-      { kind: "text", key: "title", label: "عنوان" },
-      { kind: "number", key: "limit", label: "تعداد (۰ = همه)", min: 0, max: 48 },
-      { kind: "select", key: "variant", label: "پالت", options: [{ value: "poetry", label: "شعر (زرشکی/طلایی)" }, { value: "", label: "فروشگاهی (پیش‌فرض)" }] },
-      { kind: "select", key: "layout", label: "نمایش", options: [{ value: "carousel", label: "کروسل کارت (مثل محصولات)" }, { value: "rings", label: "حلقه‌های دایره‌ای" }] },
-      { kind: "select", key: "tone", label: "زمینه", options: [{ value: "", label: "پیش‌فرض" }, { value: "glass", label: "شیشه‌ای (سفید نیمه‌شفاف با محو پس‌زمینه)" }] },
-    ],
-    create: () => node("story-strip", { title: "هایلایت‌ها", limit: 0, variant: "poetry", layout: "carousel" }),
   },
   {
     type: "poem-list", label: "فهرست آخرین اشعار (با پخش صوت)", category: "content",

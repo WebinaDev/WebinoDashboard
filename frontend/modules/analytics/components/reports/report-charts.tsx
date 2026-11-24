@@ -92,7 +92,6 @@ function useTooltip(config: ChartConfig, moneyKeys: string[], currency?: string,
     />
     )
   }
-  ReportTooltip.displayName = "ReportTooltip"
   return ReportTooltip
 }
 

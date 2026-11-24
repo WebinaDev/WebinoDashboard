@@ -23,7 +23,10 @@ class ParspalDriver implements GatewayDriverInterface
         $url = $sandbox
             ? 'https://sandbox.api.parspal.com/v1/payment/request'
             : 'https://api.parspal.com/v1/payment/request';
-        $amountToman = max(1, (int) round($amountRial / 10));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
         $response = Http::timeout(30)
             ->withHeaders(['ApiKey' => $apiKey, 'APIKEY' => $apiKey])
             ->acceptJson()->asJson()
@@ -74,7 +77,13 @@ class ParspalDriver implements GatewayDriverInterface
         $url = $sandbox
             ? 'https://sandbox.api.parspal.com/v1/payment/verify'
             : 'https://api.parspal.com/v1/payment/verify';
-        $amountToman = (int) ($intentMeta['amount_toman'] ?? max(1, round($amountRial / 10)));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
+        if (isset($intentMeta['amount_toman']) && filter_var($intentMeta['amount_toman'], FILTER_VALIDATE_INT) !== $amountToman) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
         $response = Http::timeout(30)
             ->withHeaders(['ApiKey' => $apiKey, 'APIKEY' => $apiKey])
             ->acceptJson()->asJson()

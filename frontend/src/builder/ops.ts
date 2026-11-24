@@ -1,6 +1,6 @@
 /** Editor operations: node lookup, meta (label/lock/hide), section moves, clipboard, paste style, import. */
 import { migrateDocument } from "./migrate"
-import { addSection, cloneSection, cloneWidget, defaultColumnId, findSelection, findWidget, insertWidget, isDocument } from "./tree"
+import { addSection, cloneSection, cloneWidget, defaultColumnId, findWidget, insertWidget } from "./tree"
 import type { AdvancedProps, BuilderDocument, ColumnNode, ResponsiveStyle, SectionNode, WidgetNode } from "./types"
 
 export type AnyNode =
@@ -150,8 +150,7 @@ export function pasteClip(doc: BuilderDocument, clip: Clip, selectedId: string |
     return { doc: insertWidget(base, columnId, index, widget), id: widget.id }
   }
   const section = cloneSection(clip.node)
-  const selection = findSelection(doc, selectedId)
-  const anchorId = selection?.kind === "section" ? selection.id : selection?.kind === "column" || selection?.kind === "widget" ? topSectionOf(doc, selectedId ?? "") : null
+  const anchorId = selectedId ? topSectionOf(doc, selectedId) : null
   const at = anchorId ? doc.sections.findIndex((item) => item.id === anchorId) : -1
   const sections = [...doc.sections]
   sections.splice(at >= 0 ? at + 1 : sections.length, 0, section)
@@ -160,7 +159,7 @@ export function pasteClip(doc: BuilderDocument, clip: Clip, selectedId: string |
 
 function topSectionOf(doc: BuilderDocument, id: string): string | null {
   for (const section of doc.sections) {
-    if (JSON.stringify(section).includes(`"id":"${id}"`)) return section.id
+    if (findNode({ ...doc, sections: [section] }, id)) return section.id
   }
   return null
 }
@@ -183,20 +182,70 @@ export function pasteStyle(doc: BuilderDocument, targetId: string, clip: Clip): 
 
 export const EXPORT_FORMAT = "webino-builder"
 
-export function exportPayload(doc: BuilderDocument, title: string): string {
-  return JSON.stringify({ format: EXPORT_FORMAT, exported_at: new Date().toISOString(), title, document: doc }, null, 2)
+export function exportPayload(doc: BuilderDocument, title: string, dependencies?: import("./portable-dependencies").PortableDependencies): string {
+  return JSON.stringify({ format: EXPORT_FORMAT, exported_at: new Date().toISOString(), title, document: doc, ...(dependencies ? { dependencies: { version: 1, ...dependencies } } : {}) }, null, 2)
 }
 
-/** Accepts our export envelope or a bare document; returns a migrated document with fresh ids, or null. */
-export function importPayload(text: string): BuilderDocument | null {
+export function isImportDocument(value: unknown): value is BuilderDocument {
+  const object = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v)
+  if (!object(value) || (value.version !== undefined && value.version !== 1 && value.version !== 2) || !Array.isArray(value.sections)) return false
+  const pending: { sections: unknown[]; depth: number }[] = [{ sections: value.sections, depth: 0 }]
+  while (pending.length) {
+    const { sections, depth } = pending.pop()!
+    if (depth > 64) return false
+    for (const section of sections) {
+      if (!object(section) || !Array.isArray(section.columns)) return false
+      for (const column of section.columns) {
+        if (!object(column) || typeof column.span !== "number" || !Number.isFinite(column.span) || !Array.isArray(column.widgets)) return false
+        for (const widget of column.widgets) {
+          if (!object(widget) || typeof widget.type !== "string" || !widget.type.trim() || widget.type.length > 200 || !object(widget.props)) return false
+          if (widget.children !== undefined) {
+            if (!Array.isArray(widget.children)) return false
+            pending.push({ sections: widget.children, depth: depth + 1 })
+          }
+        }
+      }
+    }
+  }
+  return true
+}
+
+/** Preserving valid IDs keeps document CSS and node links intact when replacing a page. */
+export function hasUniqueNodeIds(sections: SectionNode[]): boolean {
+  const seen = new Set<string>()
+  const add = (id: unknown) => {
+    if (typeof id !== "string" || !id || seen.has(id)) return false
+    seen.add(id)
+    return true
+  }
+  const pending = [...sections]
+  while (pending.length) {
+    const section = pending.pop()!
+    if (!add(section.id)) return false
+    for (const column of section.columns) {
+      if (!add(column.id)) return false
+      for (const widget of column.widgets) {
+        if (!add(widget.id)) return false
+        if (widget.children) pending.push(...widget.children)
+      }
+    }
+  }
+  return true
+}
+
+/** Accepts our export envelope or a bare document. Fresh IDs are the default for insertion. */
+export function importPayload(text: string, options?: { preserveIds?: boolean }): BuilderDocument | null {
   let value: unknown
   try {
     value = JSON.parse(text)
   } catch {
     return null
   }
+  if (value && typeof value === "object" && "document" in value && "format" in value && value.format !== EXPORT_FORMAT) return null
   const doc = value && typeof value === "object" && "document" in (value as object) ? (value as { document: unknown }).document : value
-  if (!isDocument(doc)) return null
-  const migrated = migrateDocument(doc)
+  if (!isImportDocument(doc)) return null
+  const migrated = { ...migrateDocument(doc) }
+  delete migrated.compiled
+  if (options?.preserveIds && hasUniqueNodeIds(migrated.sections)) return migrated
   return { ...migrated, sections: migrated.sections.map((section) => cloneSection(section)) }
 }

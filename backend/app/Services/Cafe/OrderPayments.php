@@ -33,7 +33,7 @@ final class OrderPayments
     public function replace(Order $order, array $payments, ?int $actorId = null): Order
     {
         if ($payments === []) {
-            throw ValidationException::withMessages(['payments' => 'At least one payment is required.']);
+            throw ValidationException::withMessages(['payments' => __('api.cafe_payment_required')]);
         }
 
         $normalized = [];
@@ -42,19 +42,19 @@ final class OrderPayments
         foreach ($payments as $index => $payment) {
             $tender = (string) ($payment['tender'] ?? '');
             if (! in_array($tender, self::TENDERS, true)) {
-                throw ValidationException::withMessages(["payments.$index.tender" => 'Unknown tender.']);
+                throw ValidationException::withMessages(["payments.$index.tender" => __('api.cafe_payment_unknown_tender')]);
             }
 
             $amount = (int) ($payment['amount_minor'] ?? 0);
             if ($amount < 0) {
-                throw ValidationException::withMessages(["payments.$index.amount_minor" => 'Amount cannot be negative.']);
+                throw ValidationException::withMessages(["payments.$index.amount_minor" => __('api.cafe_payment_negative_amount')]);
             }
 
             $received = isset($payment['received_minor']) ? (int) $payment['received_minor'] : null;
             if ($received !== null && $received < $amount) {
                 // Handing over less than the bill is a data-entry mistake, not a discount.
                 throw ValidationException::withMessages([
-                    "payments.$index.received_minor" => 'Received amount is less than the amount due.',
+                    "payments.$index.received_minor" => __('api.cafe_payment_received_too_low'),
                 ]);
             }
 
@@ -73,26 +73,28 @@ final class OrderPayments
             $total += $amount;
         }
 
-        $due = (int) $order->total_minor;
+        return DB::transaction(function () use ($order, $normalized, $total, $actorId) {
+            $order = Order::query()
+                ->where('tenant_id', $order->tenant_id)
+                ->lockForUpdate()
+                ->findOrFail($order->id);
 
-        if ($total > $due) {
-            // Overpayment is a real thing (tips), but it must be expressed as a tip rather
-            // than silently absorbed, or the drawer will not balance.
-            throw ValidationException::withMessages([
-                'payments' => 'Payments exceed the amount due; record the difference as a tip.',
-            ]);
-        }
-
-        return DB::transaction(function () use ($order, $normalized, $total, $due) {
-            OrderPayment::query()->where('order_id', $order->id)->delete();
-
-            foreach ($normalized as $row) {
-                OrderPayment::query()->create($row);
+            if ($total > (int) $order->total_minor) {
+                throw ValidationException::withMessages([
+                    'payments' => __('api.cafe_payment_exceeds_due'),
+                ]);
             }
 
-            $cash = collect($normalized)
-                ->filter(fn (array $row): bool => in_array($row['tender'], self::CASH_TENDERS, true))
-                ->sum('amount_minor');
+            OrderPayment::query()
+                ->where('tenant_id', $order->tenant_id)
+                ->where('order_id', $order->id)
+                ->whereNull('superseded_at')
+                ->update(['superseded_at' => now(), 'superseded_by' => $actorId]);
+
+            foreach ($normalized as $row) {
+                $row['branch_id'] = $order->branch_id;
+                OrderPayment::query()->create($row);
+            }
 
             // The first tender stays on the order for every existing report that reads it.
             $primary = $normalized[0]['tender'];
@@ -110,7 +112,9 @@ final class OrderPayments
     public function forOrder(Order $order): array
     {
         return OrderPayment::query()
+            ->where('tenant_id', $order->tenant_id)
             ->where('order_id', $order->id)
+            ->whereNull('superseded_at')
             ->orderBy('id')
             ->get()
             ->map(fn (OrderPayment $row): array => [
@@ -129,7 +133,9 @@ final class OrderPayments
     public function cashPortion(Order $order): int
     {
         return (int) OrderPayment::query()
+            ->where('tenant_id', $order->tenant_id)
             ->where('order_id', $order->id)
+            ->whereNull('superseded_at')
             ->whereIn('tender', self::CASH_TENDERS)
             ->sum('amount_minor');
     }

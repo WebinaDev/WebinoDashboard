@@ -25,7 +25,10 @@ class NextpayDriver implements GatewayDriverInterface
         if ($apiKey === '') {
             return ['ok' => false, 'message' => 'کلید API نکست‌پی خالی است.'];
         }
-        $amountToman = (int) max(1, round($amountRial / 10));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
         $response = Http::timeout(30)->asForm()->post('https://nextpay.org/nx/gateway/token', [
             'api_key' => $apiKey,
             'amount' => $amountToman,
@@ -58,7 +61,13 @@ class NextpayDriver implements GatewayDriverInterface
         if ($transId === '') {
             return ['ok' => false, 'message' => 'شناسه تراکنش نکست‌پی یافت نشد.'];
         }
-        $amountToman = (int) ($intentMeta['amount_toman'] ?? max(1, round($amountRial / 10)));
+        if ($amountRial <= 0 || $amountRial % 10 !== 0) {
+            return ['ok' => false, 'message' => __('api.payment_amount_not_representable')];
+        }
+        $amountToman = intdiv($amountRial, 10);
+        if (isset($intentMeta['amount_toman']) && filter_var($intentMeta['amount_toman'], FILTER_VALIDATE_INT) !== $amountToman) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
+        }
         $response = Http::timeout(30)->asForm()->post('https://nextpay.org/nx/gateway/verify', [
             'api_key' => (string) ($config['api_key'] ?? ''),
             'trans_id' => $transId,

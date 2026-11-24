@@ -29,7 +29,7 @@ class BinancePayDriver implements GatewayDriverInterface
         $payload = [
             'env' => ['terminalType' => 'WEB'],
             'merchantTradeNo' => $merchantTradeNo,
-            'orderAmount' => number_format($fx['amount'] / 100, 2, '.', ''),
+            'orderAmount' => $this->fxMajorAmount($fx['amount'], 2, $fx['currency']),
             'currency' => $fx['currency'],
             'description' => mb_substr($description, 0, 120),
             'goodsDetails' => [[
@@ -74,16 +74,22 @@ class BinancePayDriver implements GatewayDriverInterface
             return ['ok' => false, 'message' => 'پرداخت Binance Pay لغو شد.'];
         }
         // Never trust browser/webhook status alone — always confirm via signed order query.
-        $merchantTradeNo = (string) ($intentMeta['binance_merchant_trade_no'] ?? $callback['merchantTradeNo'] ?? '');
-        if ($merchantTradeNo === '') {
-            return ['ok' => false, 'message' => 'شناسه سفارش Binance Pay یافت نشد.'];
+        $merchantTradeNo = (string) ($intentMeta['binance_merchant_trade_no'] ?? '');
+        $callbackTradeNo = (string) ($callback['merchantTradeNo'] ?? $merchantTradeNo);
+        if ($merchantTradeNo === '' || ! hash_equals($merchantTradeNo, $callbackTradeNo)
+            || ! isset($intentMeta['amount_rial'])
+            || (string) $intentMeta['amount_rial'] !== (string) $amountRial) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
         $response = $this->signed($config, 'POST', '/binancepay/openapi/v2/order/query', [
             'merchantTradeNo' => $merchantTradeNo,
         ]);
-        $status = strtoupper((string) data_get($response, 'data.status', data_get($response, 'status', '')));
-        if (! in_array($status, ['PAID', 'SUCCESS', 'PAY_SUCCESS'], true)) {
+        $status = strtoupper((string) data_get($response, 'data.status', ''));
+        if (! in_array($status, ['PAID', 'PAY_SUCCESS'], true)) {
             return ['ok' => false, 'message' => 'تأیید Binance Pay هنوز کامل نیست.', 'meta' => is_array($response) ? $response : []];
+        }
+        if (! $this->fxResponseMatches(data_get($response, 'data.orderAmount'), data_get($response, 'data.currency'), $intentMeta)) {
+            return ['ok' => false, 'message' => __('api.payment_amount_mismatch')];
         }
 
         return [

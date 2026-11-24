@@ -54,3 +54,15 @@ test("export / import", () => {
   assert.notEqual(imported.sections[0].id, "s1")
   assert.equal(importPayload("{\"sections\":3}"), null)
 })
+
+test("pasting a section uses the selected node's actual top-level ancestor", () => {
+  const d = doc()
+  d.sections.push({ id: "s3", columns: [] })
+  d.sections[0].columns[0].widgets[0].props = { item: { id: "nested" } }
+  d.sections[1].columns[0].widgets[0].children = [{ id: "nested", columns: [{ id: "nested-column", span: 12, widgets: [] }] }]
+  const clip = makeClip(d, "s1")!
+  const pasted = pasteClip(d, clip, "nested")
+  assert.deepEqual(pasted.doc.sections.map((s) => s.id), ["s1", "s2", pasted.id, "s3"])
+  const pastedAtColumn = pasteClip(d, clip, "nested-column")
+  assert.deepEqual(pastedAtColumn.doc.sections.map((s) => s.id), ["s1", "s2", pastedAtColumn.id, "s3"])
+})

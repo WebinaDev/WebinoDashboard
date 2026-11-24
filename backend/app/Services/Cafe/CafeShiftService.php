@@ -5,6 +5,7 @@ namespace App\Services\Cafe;
 use App\Models\CafeShift;
 use App\Models\CafeShiftMovement;
 use App\Models\Order;
+use App\Models\OrderPayment;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -128,6 +129,13 @@ final class CafeShiftService
             ->whereNotIn('status', self::EXCLUDED_STATUSES)
             ->get(['id', 'status', 'payment_tender', 'amount_paid_minor', 'total_minor', 'discount_minor', 'shipping_minor', 'subtotal_minor', 'tax_minor', 'currency', 'number']);
 
+        $payments = OrderPayment::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('order_id', $orders->pluck('id'))
+            ->whereNull('superseded_at')
+            ->get(['order_id', 'tender', 'amount_minor'])
+            ->groupBy('order_id');
+
         $byTender = [];
         $grossMinor = 0;
         $netMinor = 0;
@@ -145,12 +153,17 @@ final class CafeShiftService
             // separately for the accountant without adding it to the grand total again.
             $taxTotal += (int) ($order->tax_minor ?? 0);
 
-            $tender = (string) ($order->payment_tender ?: 'unspecified');
-            if (! isset($byTender[$tender])) {
-                $byTender[$tender] = ['tender' => $tender, 'count' => 0, 'amount_minor' => 0];
+            $orderPayments = $payments->get($order->id);
+            $amounts = $orderPayments
+                ? $orderPayments->groupBy('tender')->map(fn ($rows) => (int) $rows->sum('amount_minor'))->all()
+                : [(string) ($order->payment_tender ?: 'unspecified') => $total];
+            foreach ($amounts as $tender => $amount) {
+                if (! isset($byTender[$tender])) {
+                    $byTender[$tender] = ['tender' => $tender, 'count' => 0, 'amount_minor' => 0];
+                }
+                $byTender[$tender]['count']++;
+                $byTender[$tender]['amount_minor'] += $amount;
             }
-            $byTender[$tender]['count']++;
-            $byTender[$tender]['amount_minor'] += $total;
         }
 
         $netMinor = $grossMinor - $discountTotal;
@@ -190,7 +203,7 @@ final class CafeShiftService
 
         // Non-cash turnover is what the accountant reconciles against the bank, so surface it
         // separately instead of burying it inside the grand total.
-        $nonCashSales = $grossMinor - $cashSales;
+        $nonCashSales = array_sum(array_column($byTender, 'amount_minor')) - $cashSales;
 
         return [
             'orders' => $orderCount,
