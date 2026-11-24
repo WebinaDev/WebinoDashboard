@@ -65,7 +65,13 @@ final class StockLedger
             // The batch is optional: a shop that does not track lots should not be forced to
             // type a number to receive bread. If they do track it, the quantity lands there.
             if (($meta['batch_no'] ?? null) !== null && (string) $meta['batch_no'] !== '') {
-                $this->addToBatch($tenantId, $productId, $quantity, $unitCostMinor, $meta);
+                $batchId = $this->addToBatch($tenantId, $productId, $quantity, $unitCostMinor, $meta);
+
+                // Point the movement at the lot it landed in, so a batch's history is a query
+                // and not a string match on a number somebody typed.
+                if ($movementId !== null) {
+                    DB::table('stock_movements')->where('id', $movementId)->update(['batch_id' => $batchId]);
+                }
             }
 
             $this->syncWarehouseCache($tenantId, $productId);
@@ -121,7 +127,13 @@ final class StockLedger
                 $productId,
                 $quantity,
                 RecipeCosting::REASON_WASTE,
-                array_merge($meta, ['note' => $note]),
+                // The kind the screen asked for travels with the movement, so waste can be
+                // reported by cause and not only by total.
+                array_merge($meta, [
+                    'note' => $note,
+                    'waste_kind' => $meta['kind'] ?? null,
+                    'batch_id' => $this->batchIdFor($tenantId, $productId, $meta['batch_no'] ?? null, $meta),
+                ]),
             );
 
             if (($meta['batch_no'] ?? null) !== null && (string) $meta['batch_no'] !== '') {
@@ -276,7 +288,7 @@ final class StockLedger
         }
     }
 
-    private function addToBatch(int $tenantId, int $productId, float $quantity, float $unitCostMinor, array $meta): void
+    private function addToBatch(int $tenantId, int $productId, float $quantity, float $unitCostMinor, array $meta): ?int
     {
         $existing = DB::table('stock_batches')
             ->where('tenant_id', $tenantId)
@@ -292,10 +304,10 @@ final class StockLedger
                 'updated_at' => now(),
             ]);
 
-            return;
+            return (int) $existing->id;
         }
 
-        DB::table('stock_batches')->insert([
+        $id = DB::table('stock_batches')->insertGetId([
             'tenant_id' => $tenantId,
             'warehouse_id' => $meta['warehouse_id'] ?? null,
             'subject_type' => RecipeCosting::SUBJECT_ACC_PRODUCT,
@@ -308,6 +320,34 @@ final class StockLedger
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        return (int) $id;
+    }
+
+    /**
+     * The lot's id, for the movement row.
+     *
+     * The ledger references a batch by its human number ("B-77"), because that is what is
+     * printed on the carton; reports want the id, so it is resolved here rather than joined
+     * later on a string.
+     */
+    private function batchIdFor(int $tenantId, int $productId, mixed $batchNo, array $meta = []): ?int
+    {
+        if ($batchNo === null || (string) $batchNo === '') {
+            return null;
+        }
+
+        $id = DB::table('stock_batches')
+            ->where('tenant_id', $tenantId)
+            ->where('subject_type', RecipeCosting::SUBJECT_ACC_PRODUCT)
+            ->where('subject_id', $productId)
+            ->where('batch_no', (string) $batchNo)
+            // Two stores can hold a lot with the same number; prefer the one named.
+            ->when(($meta['warehouse_id'] ?? null) !== null, fn ($q) => $q->where('warehouse_id', $meta['warehouse_id']))
+            ->orderBy('id')
+            ->value('id');
+
+        return $id === null ? null : (int) $id;
     }
 
     private function takeFromBatch(int $tenantId, int $productId, float $quantity, string $batchNo): void
@@ -377,6 +417,86 @@ final class StockLedger
      *
      * @return list<array<string, mixed>>
      */
+    /**
+     * What was lost, and what kind of loss it was.
+     *
+     * A single waste figure tells a manager that money left the building and nothing about
+     * where to stand to stop it: spoilage is a fridge, a staff meal is a policy, and breakage
+     * is a shelf. Grouped by cause and by item, the number becomes a decision.
+     *
+     * @return array{from: string, to: string, total_value_minor: float, by_kind: list<array<string, mixed>>, by_item: list<array<string, mixed>>}
+     */
+    public function wasteReport(int $tenantId, ?string $from = null, ?string $to = null): array
+    {
+        $from = $from ?? now()->startOfMonth()->toDateString();
+        $to = $to ?? now()->toDateString();
+
+        // `waste_kind` is null on rows written before the column existed; those stay in the
+        // total but are counted under `unspecified`, never silently folded into a cause.
+        $rows = DB::table('stock_movements as m')
+            ->leftJoin('acc_products as p', function ($join): void {
+                $join->on('p.id', '=', 'm.subject_id')
+                    ->where('m.subject_type', '=', RecipeCosting::SUBJECT_ACC_PRODUCT);
+            })
+            ->where('m.tenant_id', $tenantId)
+            ->where('m.reason', RecipeCosting::REASON_WASTE)
+            ->where('m.quantity', '<', 0)
+            // whereDate, not DATE(): the test suite runs on SQLite and production on MySQL.
+            ->whereDate('m.moved_at', '>=', $from)
+            ->whereDate('m.moved_at', '<=', $to)
+            ->select([
+                'm.subject_id',
+                'm.waste_kind',
+                // The name is filled in below, not with CONCAT/|| — one of them does not exist
+                // in the other database.
+                'p.name as product_name',
+                DB::raw('SUM(-m.quantity) as quantity'),
+                DB::raw('SUM(-COALESCE(m.value_minor,0)) as value_minor'),
+                DB::raw('COUNT(*) as lines'),
+            ])
+            ->groupBy('m.subject_id', 'm.waste_kind', 'p.name')
+            ->get();
+
+        $kinds = [];
+        $items = [];
+        $total = 0.0;
+
+        foreach ($rows as $row) {
+            $kind = (string) ($row->waste_kind ?? '') !== '' ? (string) $row->waste_kind : 'unspecified';
+            $value = (float) $row->value_minor;
+            $total += $value;
+
+            $kinds[$kind] ??= ['kind' => $kind, 'quantity' => 0.0, 'value_minor' => 0.0, 'lines' => 0];
+            $kinds[$kind]['quantity'] += (float) $row->quantity;
+            $kinds[$kind]['value_minor'] += $value;
+            $kinds[$kind]['lines'] += (int) $row->lines;
+
+            $items[(int) $row->subject_id] ??= [
+                'product_id' => (int) $row->subject_id,
+                'name' => $row->product_name ?? '#'.$row->subject_id,
+                'quantity' => 0.0,
+                'value_minor' => 0.0,
+            ];
+            $items[(int) $row->subject_id]['quantity'] += (float) $row->quantity;
+            $items[(int) $row->subject_id]['value_minor'] += $value;
+        }
+
+        usort($kinds, fn (array $a, array $b): int => $b['value_minor'] <=> $a['value_minor']);
+        usort($items, fn (array $a, array $b): int => $b['value_minor'] <=> $a['value_minor']);
+
+        foreach ($kinds as $index => $kind) {
+            $kinds[$index]['share_percent'] = $total > 0 ? round(($kind['value_minor'] / $total) * 100, 1) : null;
+        }
+
+        return [
+            'from' => $from,
+            'to' => $to,
+            'total_value_minor' => round($total, 4),
+            'by_kind' => $kinds,
+            'by_item' => array_slice($items, 0, 20),
+        ];
+    }
+
     public function reorderSuggestions(int $tenantId): array
     {
         $rows = DB::table('ingredient_costs as ic')

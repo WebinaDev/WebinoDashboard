@@ -79,6 +79,25 @@ type Suggestion = {
 
 type Warehouse = { id: number; name: string };
 
+type WasteReport = {
+  from: string;
+  to: string;
+  total_value_minor: number;
+  by_kind: {
+    kind: string;
+    quantity: number;
+    value_minor: number;
+    lines: number;
+    share_percent: number | null;
+  }[];
+  by_item: {
+    product_id: number;
+    name: string;
+    quantity: number;
+    value_minor: number;
+  }[];
+};
+
 const WASTE_KINDS = ["waste", "spoilage", "staff_meal", "other"] as const;
 
 const blankMove = {
@@ -87,6 +106,11 @@ const blankMove = {
   unit_cost_minor: "",
   reason: "",
   kind: "waste" as (typeof WASTE_KINDS)[number],
+  // A lot is optional, because a shop that does not track lots must not be forced to invent
+  // one — but a shop that does can only enter it here. Without these two fields the ledger's
+  // batch and expiry support was reachable only by hand-written requests.
+  batch_no: "",
+  expires_on: "",
 };
 
 export default function StockPageClient({
@@ -135,6 +159,24 @@ export default function StockPageClient({
     retry: false,
   });
 
+  /**
+   * Waste by cause, not just by total.
+   *
+   * The saving button on this page has asked for a kind (waste, spoilage, staff meal, other)
+   * since it was written; until the ledger stored it, all four arrived as one number and the
+   * question "should I fix the fridge or the shelf?" had no answer on this screen.
+   */
+  const wasteReport = useQuery({
+    queryKey: ["cafe-stock-waste-report"],
+    queryFn: async () => {
+      const res = await api<{ data: WasteReport }>(
+        "/api/v1/stock/waste-report",
+      );
+      return res?.data ?? null;
+    },
+    retry: false,
+  });
+
   const expiring = useQuery({
     queryKey: ["cafe-stock-expiring"],
     queryFn: async () => {
@@ -175,6 +217,7 @@ export default function StockPageClient({
             quantity: Number(moveForm.quantity),
             reason: moveForm.reason.trim(),
             kind: moveForm.kind,
+            batch_no: moveForm.batch_no.trim() || null,
           },
         });
       }
@@ -196,6 +239,8 @@ export default function StockPageClient({
           quantity: Number(moveForm.quantity),
           unit_cost_minor: Number(moveForm.unit_cost_minor),
           note: moveForm.reason.trim() || null,
+          batch_no: moveForm.batch_no.trim() || null,
+          expires_on: moveForm.expires_on.trim() || null,
         },
       });
     },
@@ -331,22 +376,50 @@ export default function StockPageClient({
           </div>
 
           {mode === "receive" ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="st-cost">{t("unit_cost")}</Label>
-              <Input
-                id="st-cost"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                value={moveForm.unit_cost_minor}
-                onChange={(e) =>
-                  setMoveForm((f) => ({
-                    ...f,
-                    unit_cost_minor: e.target.value,
-                  }))
-                }
-              />
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="st-cost">{t("unit_cost")}</Label>
+                <Input
+                  id="st-cost"
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={moveForm.unit_cost_minor}
+                  onChange={(e) =>
+                    setMoveForm((f) => ({
+                      ...f,
+                      unit_cost_minor: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="st-batch-in">{t("batch")}</Label>
+                <Input
+                  id="st-batch-in"
+                  dir="ltr"
+                  value={moveForm.batch_no}
+                  onChange={(e) =>
+                    setMoveForm((f) => ({ ...f, batch_no: e.target.value }))
+                  }
+                  placeholder={t("batch_optional")}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="st-expires">{t("expires_on")}</Label>
+                {/* Gregorian in the field, because a date input is a date input; the expiring
+                  table renders it Jalali like the rest of the app. */}
+                <Input
+                  id="st-expires"
+                  type="date"
+                  dir="ltr"
+                  value={moveForm.expires_on}
+                  onChange={(e) =>
+                    setMoveForm((f) => ({ ...f, expires_on: e.target.value }))
+                  }
+                />
+              </div>
+            </>
           ) : null}
 
           {mode === "waste" ? (
@@ -370,6 +443,18 @@ export default function StockPageClient({
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="st-batch">{t("batch")}</Label>
+                <Input
+                  id="st-batch"
+                  dir="ltr"
+                  value={moveForm.batch_no}
+                  onChange={(e) =>
+                    setMoveForm((f) => ({ ...f, batch_no: e.target.value }))
+                  }
+                  placeholder={t("batch_optional")}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="st-reason">{t("reason")}</Label>
@@ -616,6 +701,72 @@ export default function StockPageClient({
             </div>
           ) : null}
         </div>
+      </CafeSection>
+
+      <CafeSection
+        title={t("waste_report_title")}
+        description={t("waste_report_hint")}
+      >
+        {(wasteReport.data?.by_kind ?? []).length === 0 ? (
+          <CafeEmptyState message={t("waste_report_empty")} />
+        ) : (
+          <div className="space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {(wasteReport.data?.by_kind ?? []).map((row) => (
+                <div key={row.kind} className="rounded-lg border p-3">
+                  <p className="text-muted-foreground text-xs">
+                    {row.kind === "unspecified"
+                      ? t("waste_unspecified")
+                      : t(`kind_${row.kind}` as "kind_waste")}
+                  </p>
+                  <p className="text-lg font-semibold">
+                    <MoneyText amount={row.value_minor} />
+                  </p>
+                  <p className="text-muted-foreground text-xs tabular-nums">
+                    {row.share_percent === null
+                      ? "—"
+                      : `${toLocaleDigits(String(row.share_percent), locale)}٪`}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("item")}</TableHead>
+                    <TableHead>{t("quantity")}</TableHead>
+                    <TableHead>{t("waste_value")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(wasteReport.data?.by_item ?? []).map((row) => (
+                    <TableRow key={row.product_id}>
+                      <TableCell>{row.name}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {toLocaleDigits(
+                          String(Math.round(row.quantity * 1000) / 1000),
+                          locale,
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <MoneyText amount={row.value_minor} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <p className="text-muted-foreground text-xs">
+              {t("waste_report_period", {
+                from: toLocaleDigits(wasteReport.data?.from ?? "", locale),
+                to: toLocaleDigits(wasteReport.data?.to ?? "", locale),
+              })}
+            </p>
+          </div>
+        )}
       </CafeSection>
 
       <CafeSection title={t("expiring_title")} description={t("expiring_hint")}>

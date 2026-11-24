@@ -867,6 +867,8 @@ Route::prefix('v1')->group(function () {
             Route::middleware(['module:cafe_menu', 'can:catalog.*,accounting.manage,pos.use,orders.*'])->group(function () {
                 Route::get('/stock/expiring', [StockController::class, 'expiring']);
                 Route::get('/stock/reorder', [StockController::class, 'reorder']);
+                // Waste by cause: spoilage is a fridge, a staff meal is a policy.
+                Route::get('/stock/waste-report', [StockController::class, 'wasteReport']);
                 Route::post('/stock/receive', [StockController::class, 'receive']);
                 Route::post('/stock/waste', [StockController::class, 'waste']);
                 Route::post('/stock/count', [StockController::class, 'count']);

@@ -515,6 +515,8 @@ final class RecipeCosting
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
             'reason' => $reason,
+            // Only waste carries a kind; a sale with a "spoilage" label would be nonsense.
+            'waste_kind' => $reason === self::REASON_WASTE ? ($meta['waste_kind'] ?? null) : null,
             'quantity' => round($signedQuantity, 4),
             'unit_cost_minor' => round($unitCostMinor, 6),
             'value_minor' => round($signedQuantity * $unitCostMinor, 4),

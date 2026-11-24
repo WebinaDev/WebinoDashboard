@@ -203,6 +203,109 @@ class StockLedgerTest extends TestCase
         $this->assertFalse($expiring[0]['expired']);
     }
 
+    /**
+     * The batch fields the movement form sends are accepted by the endpoint it posts to.
+     *
+     * The ledger understood lots and expiry long before the screen did; this pins the wire
+     * contract so the form and the ledger cannot drift apart again.
+     */
+    public function test_the_movement_endpoint_accepts_a_batch_and_an_expiry(): void
+    {
+        $this->postJson('/api/v1/stock/receive', [
+            'product_id' => $this->productId,
+            'quantity' => 250,
+            'unit_cost_minor' => 120,
+            'warehouse_id' => $this->warehouseId,
+            'batch_no' => 'B-900',
+            'expires_on' => now()->addDays(5)->toDateString(),
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('stock_batches', [
+            'tenant_id' => $this->tenant->id,
+            'batch_no' => 'B-900',
+        ]);
+
+        $batch = DB::table('stock_batches')->where('batch_no', 'B-900')->first();
+        $this->assertSame(250.0, (float) $batch->quantity);
+        $this->assertNotNull($batch->expires_on);
+
+        // And a waste line can name the lot it came from, so the drawer-down hits the right one.
+        $this->postJson('/api/v1/stock/waste', [
+            'product_id' => $this->productId,
+            'quantity' => 50,
+            'reason' => 'شکستن ظرف',
+            'kind' => 'spoilage',
+            'warehouse_id' => $this->warehouseId,
+            'batch_no' => 'B-900',
+        ])->assertCreated();
+
+        $this->assertSame(200.0, (float) DB::table('stock_batches')->where('batch_no', 'B-900')->value('quantity'));
+
+        // The movement points at the lot, so a lot's history is a query and not a string match.
+        $batchId = (int) DB::table('stock_batches')->where('batch_no', 'B-900')->value('id');
+        $this->assertSame(
+            $batchId,
+            (int) DB::table('stock_movements')->where('reason', 'waste')->value('batch_id'),
+        );
+    }
+
+    /** Every waste line carries a kind, because "waste" alone does not say what to fix. */
+    public function test_waste_kinds_are_kept_apart(): void
+    {
+        foreach (['waste', 'spoilage', 'staff_meal', 'other'] as $index => $kind) {
+            $this->postJson('/api/v1/stock/waste', [
+                'product_id' => $this->productId,
+                'quantity' => 10,
+                'reason' => 'reason-'.$kind,
+                'kind' => $kind,
+                'warehouse_id' => $this->warehouseId,
+            ])->assertCreated();
+        }
+
+        // One kind each, so a report can say "half the loss was spoilage" and mean it. The
+        // kind used to be validated and dropped, which made the four labels decorative.
+        $rows = DB::table('stock_movements')
+            ->where('tenant_id', $this->tenant->id)
+            ->where('reason', 'waste')
+            ->pluck('waste_kind')
+            ->all();
+
+        $this->assertEqualsCanonicalizing(
+            ['waste', 'spoilage', 'staff_meal', 'other'],
+            array_values(array_filter($rows)),
+        );
+    }
+
+    /** The waste report answers "which cause cost me most", not just "how much did I lose". */
+    public function test_waste_is_reported_by_cause_and_by_item(): void
+    {
+        $ledger = app(StockLedger::class);
+        $ledger->receive($this->tenant->id, $this->productId, 1000, 100, ['warehouse_id' => $this->warehouseId]);
+
+        $ledger->issue($this->tenant->id, $this->productId, 100, 'expired milk', [
+            'warehouse_id' => $this->warehouseId,
+            'kind' => 'spoilage',
+        ]);
+        $ledger->issue($this->tenant->id, $this->productId, 50, 'dropped', [
+            'warehouse_id' => $this->warehouseId,
+            'kind' => 'waste',
+        ]);
+
+        $report = $ledger->wasteReport($this->tenant->id);
+
+        // 100 units at the 100 the ledger knows → 10,000; 50 → 5,000.
+        $this->assertSame(15000.0, round($report['total_value_minor'], 4));
+
+        $byKind = collect($report['by_kind'])->keyBy('kind');
+        $this->assertSame(10000.0, round((float) $byKind['spoilage']['value_minor'], 4));
+        $this->assertSame(5000.0, round((float) $byKind['waste']['value_minor'], 4));
+        $this->assertSame(150.0, (float) $byKind['spoilage']['quantity']);
+        $this->assertSame(66.7, (float) $byKind['spoilage']['share_percent']);
+
+        $this->assertSame($this->productId, $report['by_item'][0]['product_id']);
+        $this->assertSame(150.0, (float) $report['by_item'][0]['quantity']);
+    }
+
     /** The buying path: no order without approval, no stock without QC. */
     public function test_a_request_must_be_approved_before_it_becomes_an_order(): void
     {

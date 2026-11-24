@@ -2237,7 +2237,14 @@
       "opening_commit": "Record opening stock",
       "opening_summary": "{ready} of {total} rows are ready.",
       "opening_line": "line {line}",
-      "opening_done": "{count} opening stock rows recorded."
+      "opening_done": "{count} opening stock rows recorded.",
+      "batch_optional": "optional — leave blank if you do not track lots",
+      "waste_report_title": "Waste by cause",
+      "waste_report_hint": "What was lost and why — spoilage points at a fridge, a staff meal at a policy, breakage at a shelf.",
+      "waste_report_empty": "No waste recorded this month",
+      "waste_report_period": "{from} to {to}",
+      "waste_unspecified": "unspecified",
+      "waste_value": "Value"
     },
     "serving_windows": {
       "title": "Serving windows",

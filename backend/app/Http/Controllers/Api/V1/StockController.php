@@ -171,6 +171,23 @@ class StockController extends Controller
         ]);
     }
 
+    /** What went to waste, by cause and by item, for a period. */
+    public function wasteReport(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+        ]);
+
+        return response()->json([
+            'data' => $this->stock->wasteReport(
+                (int) $request->user()->tenant_id,
+                $data['from'] ?? null,
+                $data['to'] ?? null,
+            ),
+        ]);
+    }
+
     /** The shopping list, from the reorder points the shop already set. */
     public function reorder(Request $request): JsonResponse
     {

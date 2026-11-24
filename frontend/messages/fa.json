@@ -4759,7 +4759,14 @@
       "opening_commit": "ثبت موجودی اولیه",
       "opening_summary": "{ready} ردیف از {total} ردیف آمادهٔ ثبت است.",
       "opening_line": "خط {line}",
-      "opening_done": "{count} ردیف موجودی اولیه ثبت شد."
+      "opening_done": "{count} ردیف موجودی اولیه ثبت شد.",
+      "batch_optional": "اختیاری — اگر بچ را پیگیری نمی‌کنید خالی بگذارید",
+      "waste_report_title": "ضایعات به تفکیک علت",
+      "waste_report_hint": "چه چیزی و چرا از دست رفت — فاسد شدن یخچال را نشان می‌دهد، غذای پرسنل سیاست را، شکستن قفسه را.",
+      "waste_report_empty": "در این ماه ضایعاتی ثبت نشده",
+      "waste_report_period": "از {from} تا {to}",
+      "waste_unspecified": "بدون علت مشخص",
+      "waste_value": "ارزش"
     },
     "serving_windows": {
       "title": "ساعت سرو",
