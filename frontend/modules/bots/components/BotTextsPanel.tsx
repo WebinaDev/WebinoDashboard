@@ -53,7 +53,7 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
   }))
 
   const save = useMutation({
-    mutationFn: () =>
+    mutationFn: (_snapshot: typeof draft) =>
       api(settingsPath(provider), {
         method: "PUT",
         json: {
@@ -69,10 +69,10 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
           },
         },
       }),
-    onSuccess: async () => {
+    onSuccess: async (_result, snapshot) => {
       toast.success(tCommon("saved"))
       await qc.invalidateQueries({ queryKey: ["bots", provider, "settings"] })
-      setDraft((previous) => previous?.provider === provider ? null : previous)
+      setDraft((previous) => previous === snapshot ? null : previous)
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -127,7 +127,7 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
         </BotSection>
       ) : null}
 
-      <Button disabled={save.isPending} onClick={() => save.mutate()}>
+      <Button disabled={save.isPending} onClick={() => save.mutate(draft)}>
         {tCommon("save")}
       </Button>
     </div>
