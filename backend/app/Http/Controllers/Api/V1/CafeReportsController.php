@@ -117,6 +117,44 @@ class CafeReportsController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    /**
+     * What the menu costs to make today, against what it cost when it sold.
+     *
+     * Historical margins are frozen at the moment of sale and stay true; this is the other
+     * half of the question — would the dish still earn that if we cooked it now.
+     */
+    public function replacementCost(Request $request): JsonResponse|Response
+    {
+        [$from, $to, $branchId] = $this->range($request);
+
+        $data = $this->reports->replacementCost(
+            $this->tenantId($request),
+            $from,
+            $to,
+            $branchId,
+            (int) $request->query('limit', 50),
+        );
+
+        if ($this->wantsCsv($request)) {
+            return $this->csvRows('replacement-cost', [
+                'آیتم', 'تعداد فروش', 'بهای هر واحد در زمان فروش', 'بهای جایگزینی امروز', 'اختلاف', 'اختلاف درصد', 'حاشیه امروز ٪',
+            ], array_map(
+                fn (array $row) => [
+                    $row['name'],
+                    $row['quantity'],
+                    $row['historical_unit_cost_minor'],
+                    $row['replacement_unit_cost_minor'] ?? '—',
+                    $row['delta_minor'] ?? '—',
+                    $row['delta_percent'] ?? '—',
+                    $row['replacement_margin_percent'] ?? '—',
+                ],
+                $data['items'],
+            ));
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
     public function control(Request $request): JsonResponse|Response
     {
         [$from, $to, $branchId] = $this->range($request);

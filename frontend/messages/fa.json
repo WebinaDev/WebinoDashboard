@@ -4463,7 +4463,20 @@
       "vat_reconciles": "مطابق",
       "vat_differs": "اختلاف دارد",
       "vat_on_orders": "مالیات روی سفارش‌ها",
-      "vat_difference": "اختلاف"
+      "vat_difference": "اختلاف",
+      "tab_replacement_cost": "بهای جایگزینی",
+      "replacement_title": "بهای جایگزینی امروز",
+      "replacement_hint": "بهای هر بشقاب در زمان فروش، در برابر همان بشقاب با قیمت‌های امروز مواد.",
+      "replacement_average": "میانگین تغییر",
+      "replacement_rising": "گران‌تر شده",
+      "replacement_falling": "ارزان‌تر شده",
+      "replacement_incomplete": "{count} آیتم بدون بهای کامل",
+      "replacement_historical": "زمان فروش",
+      "replacement_today": "امروز",
+      "replacement_delta": "اختلاف",
+      "replacement_margin_today": "حاشیه امروز",
+      "replacement_uncosted": "بهای ناقص",
+      "replacement_footer": "بهای جایگزینی از میانگین موزون فعلی انبار حساب می‌شود. آیتمی که رسپی‌اش کامل نیست مقایسه نمی‌شود، چون عدد ناقص بدتر از نبود عدد است."
     },
     "staff": {
       "title": "پرسنل و حقوق",

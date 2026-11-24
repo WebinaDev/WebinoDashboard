@@ -840,6 +840,8 @@ Route::prefix('v1')->group(function () {
             Route::middleware(['can:reports.shop,accounting.manage,orders.*'])->group(function () {
                 Route::get('/reports/profit-loss', [CafeReportsController::class, 'profitAndLoss']);
                 Route::get('/reports/menu-engineering', [CafeReportsController::class, 'menuEngineering']);
+                // Today's replacement cost against the frozen cost at the time of sale.
+                Route::get('/reports/replacement-cost', [CafeReportsController::class, 'replacementCost']);
                 Route::get('/reports/control', [CafeReportsController::class, 'control']);
                 Route::get('/reports/ar-aging', [CafeReportsController::class, 'aging']);
                 Route::get('/reports/service-kpis', [CafeReportsController::class, 'service']);

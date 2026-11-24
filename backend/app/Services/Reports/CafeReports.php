@@ -130,6 +130,131 @@ final class CafeReports
     }
 
     /**
+     * What the menu costs to make *today*, next to what it cost when it was sold.
+     *
+     * Menu engineering answers "which dishes earn", using the cost frozen at the moment of
+     * sale — correct, and deliberately blind to the future. The other half of the question is
+     * "would we still earn that if we cooked it now", and a supplier's price rise shows up
+     * there weeks before it shows up in any historical margin.
+     *
+     * So this recomputes each dish's recipe at today's weighted average and compares:
+     *
+     *   historical unit cost  → what the plate actually cost when it sold
+     *   replacement cost      → what the same plate costs at today's prices
+     *   delta                 → the rise or fall, and the margin the dish would earn today
+     *
+     * A dish whose recipe is not fully costed is reported as such rather than compared: a
+     * replacement cost built on missing prices is a guess wearing a percent sign.
+     *
+     * @return array<string, mixed>
+     */
+    public function replacementCost(int $tenantId, Carbon $from, Carbon $to, ?int $branchId = null, int $limit = 50): array
+    {
+        $rows = DB::table('order_items as oi')
+            ->join('orders as o', 'oi.order_id', '=', 'o.id')
+            ->leftJoin('order_item_ingredient_costs as c', 'c.order_item_id', '=', 'oi.id')
+            ->where('o.tenant_id', $tenantId)
+            ->when($branchId !== null, fn ($q) => $q->where('o.branch_id', $branchId))
+            ->whereBetween('o.created_at', [$from, $to])
+            ->whereIn('o.status', self::SOLD)
+            ->groupBy('oi.product_id', 'oi.product_name')
+            ->select([
+                'oi.product_id',
+                'oi.product_name',
+                DB::raw('SUM(oi.quantity) as qty'),
+                DB::raw('COALESCE(SUM(oi.total_minor),0) as revenue'),
+                DB::raw('COALESCE(SUM(c.total_cost_minor),0) as historical_cost'),
+                DB::raw('COALESCE(SUM(c.quantity),0) as costed_qty'),
+            ])
+            ->orderByDesc('revenue')
+            ->limit(max(1, min(200, $limit)))
+            ->get();
+
+        $items = [];
+
+        foreach ($rows as $row) {
+            $productId = (int) $row->product_id;
+            $qty = (float) $row->qty;
+            $revenue = (int) $row->revenue;
+            $costedQty = (float) $row->costed_qty;
+
+            // A dish with no frozen cost line was never costed; there is nothing honest to
+            // compare, and pretending its historical cost was zero would show a huge rise.
+            if ($costedQty <= 0) {
+                continue;
+            }
+
+            $historicalUnit = (int) round((float) $row->historical_cost / $costedQty);
+
+            $today = $this->costing->plateCost(
+                $tenantId,
+                \App\Services\Catalog\RecipeCosting::SUBJECT_PRODUCT,
+                $productId,
+            );
+
+            if (! $today['complete']) {
+                $items[] = [
+                    'product_id' => $productId,
+                    'name' => $row->product_name,
+                    'quantity' => $qty,
+                    'revenue_minor' => $revenue,
+                    'historical_unit_cost_minor' => $historicalUnit,
+                    'replacement_unit_cost_minor' => null,
+                    'delta_minor' => null,
+                    'delta_percent' => null,
+                    'complete' => false,
+                    'missing_components' => $today['missing'],
+                ];
+
+                continue;
+            }
+
+            $replacement = (int) round($today['unit_cost_minor']);
+            $delta = $replacement - $historicalUnit;
+            $unitPrice = $costedQty > 0 ? (int) round($revenue / max(1.0, $qty)) : 0;
+
+            $items[] = [
+                'product_id' => $productId,
+                'name' => $row->product_name,
+                'quantity' => $qty,
+                'revenue_minor' => $revenue,
+                'unit_price_minor' => $unitPrice,
+                'historical_unit_cost_minor' => $historicalUnit,
+                'replacement_unit_cost_minor' => $replacement,
+                'delta_minor' => $delta,
+                'delta_percent' => $historicalUnit > 0 ? round(($delta / $historicalUnit) * 100, 2) : null,
+                // The margin this dish would earn at today's prices, in percentage points of
+                // its selling price — the number that decides whether a price change is due.
+                'replacement_margin_percent' => $unitPrice > 0 ? round((($unitPrice - $replacement) / $unitPrice) * 100, 2) : null,
+                'historical_margin_percent' => $unitPrice > 0 ? round((($unitPrice - $historicalUnit) / $unitPrice) * 100, 2) : null,
+                'complete' => true,
+                'missing_components' => [],
+            ];
+        }
+
+        $comparable = array_values(array_filter($items, fn (array $row): bool => $row['complete']));
+
+        // Most affected first: the dish whose cost rose most is the one to reprice or re-source.
+        usort($comparable, fn (array $a, array $b): int => abs((int) $b['delta_minor']) <=> abs((int) $a['delta_minor']));
+
+        $priced = array_column($comparable, 'delta_percent');
+        $avgDelta = $priced === [] ? null : round(array_sum($priced) / count($priced), 2);
+
+        return [
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'items' => array_merge($comparable, array_values(array_filter($items, fn (array $row): bool => ! $row['complete']))),
+            'summary' => [
+                'comparable_items' => count($comparable),
+                'incomplete_items' => count($items) - count($comparable),
+                'average_delta_percent' => $avgDelta,
+                'rising' => count(array_filter($comparable, fn (array $row): bool => (int) $row['delta_minor'] > 0)),
+                'falling' => count(array_filter($comparable, fn (array $row): bool => (int) $row['delta_minor'] < 0)),
+            ],
+        ];
+    }
+
+    /**
      * Menu engineering: the four quadrants of stars / plough horses / puzzles / dogs.
      *
      * The classification is the standard one — popularity against the mean, margin against the
