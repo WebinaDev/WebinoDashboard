@@ -168,4 +168,7 @@ return [
     'check_not_found' => 'Cheque not found.',
     'check_bounce_needs_reason' => 'A bounced cheque needs a reason.',
     'check_status_change' => 'Cheque movement: :status',
+    'amendment_journal' => 'Invoice amendment :order — :direction',
+    'amendment_collected' => 'difference collected',
+    'amendment_refunded' => 'difference refunded',
 ];

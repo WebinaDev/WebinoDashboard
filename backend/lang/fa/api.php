@@ -168,4 +168,7 @@ return [
     'check_not_found' => 'چک یافت نشد.',
     'check_bounce_needs_reason' => 'برای برگشت چک، دلیل را وارد کنید.',
     'check_status_change' => 'تغییر وضعیت چک: :status',
+    'amendment_journal' => 'اصلاح فاکتور :order — :direction',
+    'amendment_collected' => 'دریافت اختلاف',
+    'amendment_refunded' => 'برگشت اختلاف',
 ];
