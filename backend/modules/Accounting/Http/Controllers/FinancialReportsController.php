@@ -15,6 +15,12 @@ class FinancialReportsController extends Controller
             'type' => 'nullable|in:trial_balance,balance_sheet,profit_loss',
             'from' => 'nullable|date',
             'to' => 'nullable|date',
+            // Three branches in one panel used to share one P&L, which is enough to run one
+            // café and useless for running three.
+            'branch_id' => 'nullable|integer',
+            // Entries posted by a document with no branch (head office, a manual journal) are
+            // reported as unassigned rather than quietly filed under the first branch.
+            'include_unassigned' => 'nullable|boolean',
         ]);
 
         $type = $request->input('type', 'trial_balance');
@@ -37,6 +43,20 @@ class FinancialReportsController extends Controller
         }
         if ($request->filled('to')) {
             $base->whereDate('je.document_date', '<=', $request->input('to'));
+        }
+        if ($request->filled('branch_id')) {
+            $branchId = (int) $request->input('branch_id');
+
+            $base->where(function ($q) use ($branchId, $request): void {
+                $q->where('je.branch_id', $branchId);
+
+                // "All branches plus the head-office entries" is a real question; the default
+                // is a strict filter, because summing unassigned costs into one branch's P&L
+                // is the way a branch suddenly looks unprofitable.
+                if ($request->boolean('include_unassigned')) {
+                    $q->orWhereNull('je.branch_id');
+                }
+            });
         }
 
         $rows = $base->get()->map(function ($r) {

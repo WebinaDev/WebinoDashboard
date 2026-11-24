@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CafeTable extends Model
 {
+    use \App\Support\Audit\RecordsActivity;
+
     public const STATUS_FREE = 'free';
     public const STATUS_SEATED = 'seated';
     public const STATUS_ORDERING = 'ordering';
@@ -31,6 +33,8 @@ class CafeTable extends Model
         'branch_id',
         'code',
         'label',
+        // Which room: `سالن اصلی`, `تراس`, `بار`. A free label, because shops name their own.
+        'area',
         'seats',
         'is_active',
         'sort_order',

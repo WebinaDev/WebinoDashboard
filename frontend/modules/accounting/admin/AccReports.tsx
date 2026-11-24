@@ -23,6 +23,9 @@ export default function AccReports() {
   const [tab, setTab] = useState<ReportType>('trial_balance');
   const [from, setFrom] = useState<string | null>(null);
   const [to, setTo] = useState<string | null>(null);
+  // The ledger carries a branch now, so a report can be narrowed to one shop. Empty means all.
+  const [branchId, setBranchId] = useState('');
+  const [includeUnassigned, setIncludeUnassigned] = useState(false);
   const [data, setData] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +38,8 @@ export default function AccReports() {
       const params: Record<string, string> = { type: tab };
       if (from) params.from = from;
       if (to) params.to = to;
+      if (branchId.trim() !== '') params.branch_id = branchId.trim();
+      if (branchId.trim() !== '' && includeUnassigned) params.include_unassigned = '1';
       const res = await apiClient.get('/v1/erp-accounting/reports', { params });
       setData(unwrapData<unknown>(res));
     } catch (e) {
@@ -67,6 +72,26 @@ export default function AccReports() {
             <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReports.s_1669071d')}</label>
             <LocaleDatePicker value={to} onChange={setTo} />
           </div>
+          <div className="w-36">
+            <label className="mb-1 block text-sm font-medium">{t('accounting_reports_branch')}</label>
+            <input
+              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+              inputMode="numeric"
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              placeholder={t('accounting_reports_all_branches')}
+            />
+          </div>
+          {branchId.trim() !== '' ? (
+            <label className="flex items-center gap-2 pb-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeUnassigned}
+                onChange={(e) => setIncludeUnassigned(e.target.checked)}
+              />
+              {t('accounting_reports_include_unassigned')}
+            </label>
+          ) : null}
           <Button onClick={() => void load()} disabled={loading}>
             {loading ? t('auto.accounting_AccReports.s_51617f69') : t('auto.accounting_AccReports.s_de84d65e')}
           </Button>

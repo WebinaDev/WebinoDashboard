@@ -86,6 +86,9 @@ class CafePosController extends Controller
                     'free_delivery_from_minor' => (int) ($status['free_delivery_threshold_minor'] ?? 0),
                 ],
                 'loyalty_enabled' => (bool) (\App\Services\Shop\ShopSettings::getLoyalty($tenantId)['enabled'] ?? false),
+                // table | pager | none: which field a dine-in order needs, if any. Sent with
+                // the bootstrap so the till never has to guess.
+                'service' => app(\Modules\Cafe\Services\ServiceMode::class)->requirements($tenantId),
             ],
         ])->header('Cache-Control', 'no-store');
     }
@@ -95,7 +98,26 @@ class CafePosController extends Controller
     {
         $data = $this->validated($request);
 
-        $order = $this->intake->create((int) $request->user()->tenant_id, $data, $request->user());
+        $tenantId = (int) $request->user()->tenant_id;
+
+        // An offline till replays the sale it captured at the counter. The client reference is
+        // what makes that safe: the same reference returns the order that already exists instead
+        // of charging the guest a second time. `replayed` says so, because the cashier's "sale
+        // saved" toast should not claim a new order was created.
+        $clientRef = $request->input('client_ref');
+        if (is_string($clientRef) && $clientRef !== '') {
+            $existing = Order::query()
+                ->where('tenant_id', $tenantId)
+                ->where('client_ref', $clientRef)
+                ->with(['items.modifiers', 'payments', 'branch', 'user'])
+                ->first();
+
+            if ($existing !== null) {
+                return response()->json(['data' => $this->present($existing), 'meta' => ['replayed' => true]]);
+            }
+        }
+
+        $order = $this->intake->create($tenantId, $data + ['client_ref' => $clientRef], $request->user());
 
         return response()->json(['data' => $this->present($order)], 201);
     }
@@ -212,14 +234,28 @@ class CafePosController extends Controller
             ->limit(12)
             ->get(['id', 'name', 'phone', 'email', 'loyalty_points']);
 
+        // The guest's tier, not just their balance: a cashier choosing between two regulars is
+        // choosing between a silver and a gold, and "12,400 points" does not say which.
+        $tiers = app(\App\Services\Shop\LoyaltyTiers::class);
+
         return response()->json([
-            'data' => $rows->map(fn (User $user): array => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'phone' => $user->phone,
-                'email' => $user->email,
-                'points' => (int) $user->loyalty_points,
-            ])->all(),
+            'data' => $rows->map(function (User $user) use ($tenantId, $tiers): array {
+                $tier = $tiers->forUser($tenantId, (int) $user->id);
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'phone' => $user->phone,
+                    'email' => $user->email,
+                    'points' => (int) $user->loyalty_points,
+                    'tier' => [
+                        'key' => $tier['key'],
+                        'label_fa' => $tier['label_fa'],
+                        'label_en' => $tier['label_en'],
+                        'next' => $tier['next'],
+                    ],
+                ];
+            })->all(),
         ]);
     }
 
@@ -335,6 +371,12 @@ class CafePosController extends Controller
             'payments.*.amount_minor' => ['required_with:payments', 'integer', 'min:0'],
             'payments.*.received_minor' => ['nullable', 'integer', 'min:0'],
             'payments.*.reference' => ['nullable', 'string', 'max:120'],
+
+            // Set by the till's offline queue; unique per tenant, so a replay is idempotent.
+            'client_ref' => ['nullable', 'string', 'max:64'],
+
+            // Pager service: the guest waits for it to buzz instead of sitting at a table.
+            'pager_number' => ['nullable', 'string', 'max:16'],
         ]);
     }
 

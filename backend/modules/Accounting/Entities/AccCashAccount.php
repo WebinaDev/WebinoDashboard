@@ -9,11 +9,12 @@ use Modules\Accounting\Entities\Concerns\BelongsToTenant;
 class AccCashAccount extends Model
 {
     use BelongsToTenant;
+    use \App\Support\Audit\RecordsActivity;
 
     protected $table = 'acc_cash_accounts';
 
     protected $fillable = [
-        'tenant_id',        'name', 'type', 'bank_name', 'account_number', 'sheba', 'card_number', 'is_active', 'is_default',
+        'tenant_id',        'name', 'type', 'bank_name', 'account_number', 'sheba', 'card_number', 'chart_code', 'is_active', 'is_default',
     ];
 
     protected function casts(): array

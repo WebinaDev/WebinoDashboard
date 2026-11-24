@@ -67,11 +67,22 @@ class WarehouseService
         return ['document' => $doc];
     }
 
-    public function postDocument(int $id, string $type, bool $inbound): array
+    /**
+     * Post a warehouse document into the stock ledger.
+     *
+     * This used to write `acc_warehouse_stock` directly, which is why the shop had two stock
+     * figures that disagreed and a purchase that never reached the books. It now goes through
+     * {@see \App\Services\Stock\StockLedger}, so the movement is appended to the ledger, the
+     * weighted average moves, the value posts a journal, and `acc_warehouse_stock` is
+     * recomputed from the ledger instead of being a second opinion.
+     */
+    public function postDocument(int $id, string $type, bool $inbound, ?int $tenantId = null): array
     {
         $doc = AccWarehouseDocument::query()->where('type', $type)->findOrFail($id);
+        $tenantId ??= (int) $doc->tenant_id;
+        $ledger = app(\App\Services\Stock\StockLedger::class);
 
-        return DB::transaction(function () use ($doc, $inbound) {
+        return DB::transaction(function () use ($doc, $inbound, $tenantId, $ledger): array {
             $doc->update(['status' => 'posted']);
             foreach ($doc->items ?? [] as $row) {
                 $pid = (int) ($row['product_id'] ?? 0);
@@ -79,15 +90,23 @@ class WarehouseService
                 if (! $pid || $qty <= 0) {
                     continue;
                 }
-                $stock = AccWarehouseStock::query()->firstOrCreate(
-                    ['warehouse_id' => $doc->warehouse_id, 'product_id' => $pid],
-                    ['quantity' => 0, 'reorder_point' => null]
-                );
-                $delta = $inbound ? $qty : -$qty;
-                if (! $inbound && (float) $stock->quantity + $delta < 0) {
-                    throw new \RuntimeException(__('messages.insufficient_stock_for_product').$pid);
+
+                $meta = [
+                    'warehouse_id' => (int) $doc->warehouse_id,
+                    'reference_type' => 'warehouse_document',
+                    'reference_id' => (int) $doc->id,
+                    'note' => $doc->number ?? null,
+                ];
+
+                if ($inbound) {
+                    // A document with no price still has to move stock; it just does not move
+                    // value, and the ledger records that instead of inventing a cost.
+                    $ledger->receive($tenantId, $pid, $qty, (float) ($row['unit_cost'] ?? 0), $meta);
+
+                    continue;
                 }
-                $stock->update(['quantity' => (float) $stock->quantity + $delta]);
+
+                $ledger->issue($tenantId, $pid, $qty, 'خروج انبار — '.((string) ($doc->number ?? $doc->id)), $meta);
             }
 
             return ['posted' => true, 'document' => $doc->fresh()];
@@ -128,21 +147,32 @@ class WarehouseService
         return ['document' => $doc->fresh()];
     }
 
+    /**
+     * Post a stock count.
+     *
+     * The difference posts, not the counted figure: setting the quantity directly throws away
+     * the movement, and with it the only evidence of how much was missing.
+     */
     public function postAudit(int $id): array
     {
-        return DB::transaction(function () use ($id) {
-            $doc = AccWarehouseDocument::query()->where('type', 'audit')->findOrFail($id);
+        $doc = AccWarehouseDocument::query()->where('type', 'audit')->findOrFail($id);
+        $tenantId = (int) $doc->tenant_id;
+        $ledger = app(\App\Services\Stock\StockLedger::class);
+
+        return DB::transaction(function () use ($doc, $tenantId, $ledger): array {
             foreach ($doc->items ?? [] as $row) {
                 $pid = (int) ($row['product_id'] ?? 0);
                 $counted = isset($row['counted']) ? (float) $row['counted'] : null;
                 if (! $pid || $counted === null) {
                     continue;
                 }
-                $stock = AccWarehouseStock::query()->firstOrCreate(
-                    ['warehouse_id' => $doc->warehouse_id, 'product_id' => $pid],
-                    ['quantity' => 0, 'reorder_point' => null]
-                );
-                $stock->update(['quantity' => $counted]);
+
+                $ledger->count($tenantId, $pid, $counted, [
+                    'warehouse_id' => (int) $doc->warehouse_id,
+                    'reference_type' => 'warehouse_audit',
+                    'reference_id' => (int) $doc->id,
+                    'note' => 'شمارش انبار — '.((string) ($doc->number ?? $doc->id)),
+                ]);
             }
             $doc->update(['status' => 'posted']);
 

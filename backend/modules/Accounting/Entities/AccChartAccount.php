@@ -7,9 +7,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Accounting\Entities\Concerns\BelongsToTenant;
 
+/**
+ * A ledger account in the main chart.
+ *
+ * Audited: moving an account, renaming it or changing its type after entries have posted to
+ * it silently changes how every past report reads.
+ */
 class AccChartAccount extends Model
 {
     use BelongsToTenant;
+    use \App\Support\Audit\RecordsActivity;
 
     protected $table = 'acc_chart_accounts';
 

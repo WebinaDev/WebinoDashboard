@@ -48,7 +48,7 @@ class AccountingWpActionController extends Controller
             return response()->json([
                 'error' => [
                     'code' => 'UNKNOWN_ACCOUNTING_ACTION',
-                    'message' => __('messages.unknown_webinocrm_accounting_action').$action,
+                    'message' => __('api.unknown_webinocrm_accounting_action').$action,
                 ],
             ], 404);
         }
@@ -56,7 +56,7 @@ class AccountingWpActionController extends Controller
         try {
             $data = $this->wpActions->handle($action, $request);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['message' => __('messages.validation_failed'), 'errors' => $e->errors()], 422);
+            return response()->json(['message' => __('api.validation_failed'), 'errors' => $e->errors()], 422);
         }
 
         return response()->json(['data' => $data]);

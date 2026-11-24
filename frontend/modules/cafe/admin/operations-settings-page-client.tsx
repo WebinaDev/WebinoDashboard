@@ -24,12 +24,14 @@ import { CafeAdminShell, CafeSection } from "./cafe-admin-ui"
  */
 
 type OperationsSettings = {
+  service_mode: "table" | "pager" | "none"
   paid_edit_window_minutes: number
   paid_edit_requires_approval: boolean
   kds_warn_after_minutes: number
   kds_late_after_minutes: number
   table_overdue_after_minutes: number
   queue_stale_after_minutes: number
+  service_day_minutes: number
   enforce_delivery_minimum: boolean
   default_delivery_eta_minutes: number
 }
@@ -43,6 +45,8 @@ const NUMERIC: { key: keyof OperationsSettings; min: number; max: number }[] = [
   { key: "kds_late_after_minutes", min: 1, max: 240 },
   { key: "table_overdue_after_minutes", min: 5, max: 600 },
   { key: "queue_stale_after_minutes", min: 1, max: 120 },
+  // The denominator for occupancy and turnover. Zero is allowed and means "unknown".
+  { key: "service_day_minutes", min: 0, max: 1440 },
   { key: "default_delivery_eta_minutes", min: 5, max: 180 },
 ]
 
@@ -122,6 +126,28 @@ export default function OperationsSettingsPageClient({ route: _route }: { route:
               <p className="text-muted-foreground text-xs">{t(`${key}_hint`, { min, max })}</p>
             </div>
           ))}
+        </div>
+      </CafeSection>
+
+      <CafeSection title={t("section_service")} description={t("section_service_hint")}>
+        <div className="max-w-xs space-y-1.5">
+          <Label htmlFor="op-service-mode">{t("service_mode")}</Label>
+          <select
+            id="op-service-mode"
+            className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+            value={values.service_mode ?? "table"}
+            onChange={(e) =>
+              setDraft({
+                ...values,
+                service_mode: e.target.value as OperationsSettings["service_mode"],
+              })
+            }
+          >
+            <option value="table">{t("service_mode_table")}</option>
+            <option value="pager">{t("service_mode_pager")}</option>
+            <option value="none">{t("service_mode_none")}</option>
+          </select>
+          <p className="text-muted-foreground text-xs">{t(`service_mode_${values.service_mode ?? "table"}_hint`)}</p>
         </div>
       </CafeSection>
 

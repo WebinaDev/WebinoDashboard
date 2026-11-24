@@ -73,6 +73,11 @@ use App\Http\Controllers\Api\V1\Poetry\PublicPoetryController;
 use App\Http\Controllers\Api\V1\PollController;
 use App\Http\Controllers\Api\V1\PortfolioItemController;
 use App\Http\Controllers\Api\V1\PricingController;
+use App\Http\Controllers\Api\V1\CafeReportsController;
+use App\Http\Controllers\Api\V1\RecipeController;
+use App\Http\Controllers\Api\V1\StockController;
+use App\Http\Controllers\Api\V1\StaffController;
+use App\Http\Controllers\Api\V1\StaffRotaController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
 use App\Http\Controllers\Api\V1\ProductCatalogController;
 use App\Http\Controllers\Api\V1\ProductCompareController;
@@ -398,6 +403,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/cafe/events/{event}/bookings', [PublicReservationController::class, 'bookEvent'])->whereNumber('event')->middleware('throttle:public-writes');
             Route::get('/cafe/phone-gate', [PublicCafeEngagementController::class, 'checkPhoneGate']);
             Route::post('/cafe/phone-register', [PublicCafeEngagementController::class, 'registerPhone'])->middleware('throttle:public-writes');
+            // QR sticker scans. Cheap, throttled, and never able to fail a menu page.
+            Route::post('/cafe/qr/scan', [PublicCafeEngagementController::class, 'qrScan'])->middleware('throttle:60,1');
             Route::post('/cafe/products/{product}/like', [PublicCafeEngagementController::class, 'like'])->whereNumber('product')->middleware('throttle:public-writes');
             Route::post('/cafe/products/{product}/feedback', [PublicCafeEngagementController::class, 'feedback'])->whereNumber('product')->middleware('throttle:public-writes');
             Route::get('/cafe/cart', [PublicGuestCartController::class, 'show']);
@@ -801,6 +808,80 @@ Route::prefix('v1')->group(function () {
                 Route::post('/attribute-groups', [ProductAttributeController::class, 'groupsStore']);
                 Route::patch('/attribute-groups/{group}', [ProductAttributeController::class, 'groupsUpdate'])->whereNumber('group');
                 Route::delete('/attribute-groups/{group}', [ProductAttributeController::class, 'groupsDestroy'])->whereNumber('group');
+            });
+
+            // Staff rota, attendance and leave. A staff member may clock themselves and see
+            // their own week; managing the rota, deciding leave and running payroll needs
+            // `staff.manage` (checked again inside the controller).
+            // Self-service: any staff role may clock in and see their own week. The controller
+            // narrows what a non-manager sees, because a waiter who cannot clock in is a
+            // payroll dispute waiting to happen.
+            Route::get('/staff/week', [StaffRotaController::class, 'week']);
+            Route::post('/staff/clock', [StaffRotaController::class, 'clock']);
+            Route::post('/staff/leave', [StaffRotaController::class, 'requestLeave']);
+            Route::get('/staff/leave', [StaffRotaController::class, 'leaveIndex']);
+
+            Route::middleware(['can:staff.manage,users.manage,accounting.manage'])->group(function () {
+                Route::post('/staff/shifts', [StaffRotaController::class, 'saveShifts']);
+                Route::post('/staff/week/publish', [StaffRotaController::class, 'publish']);
+                Route::delete('/staff/shifts/{shift}', [StaffRotaController::class, 'destroyShift'])->whereNumber('shift');
+                Route::get('/staff/on-duty', [StaffRotaController::class, 'shiftIndex']);
+                Route::post('/staff/leave/{leave}/decide', [StaffRotaController::class, 'decideLeave'])->whereNumber('leave');
+                Route::get('/staff/contracts', [StaffRotaController::class, 'contracts']);
+                Route::post('/staff/contracts', [StaffRotaController::class, 'saveContract']);
+                Route::get('/staff/payroll', [StaffRotaController::class, 'payrollRuns']);
+                Route::get('/staff/payroll/{run}', [StaffRotaController::class, 'payrollShow'])->whereNumber('run');
+                Route::post('/staff/payroll', [StaffRotaController::class, 'payrollBuild']);
+                Route::post('/staff/payroll/{run}/post', [StaffRotaController::class, 'payrollPost'])->whereNumber('run');
+            });
+
+            // Money reports. Anyone who audits may read them; the export is the same data in a
+            // form an accountant can file.
+            Route::middleware(['can:reports.shop,accounting.manage,orders.*'])->group(function () {
+                Route::get('/reports/profit-loss', [CafeReportsController::class, 'profitAndLoss']);
+                Route::get('/reports/menu-engineering', [CafeReportsController::class, 'menuEngineering']);
+                // Today's replacement cost against the frozen cost at the time of sale.
+                Route::get('/reports/replacement-cost', [CafeReportsController::class, 'replacementCost']);
+                Route::get('/reports/control', [CafeReportsController::class, 'control']);
+                Route::get('/reports/ar-aging', [CafeReportsController::class, 'aging']);
+                Route::get('/reports/service-kpis', [CafeReportsController::class, 'service']);
+                // A number without a direction is not a fact a manager can act on.
+                Route::get('/reports/compare', [CafeReportsController::class, 'compare']);
+                // Charged on sales, paid on purchases, due — the return, from the ledger.
+                Route::get('/reports/vat', [CafeReportsController::class, 'vat']);
+            });
+
+            // Recipes and stock costing. Reading the cost of a dish is a catalogue act;
+            // recording a purchase price is what the accountant needs, so both are gated on the
+            // catalogue/accounting grants rather than left to anyone with a session.
+            Route::middleware(['module:catalog', 'can:catalog.*,commerce.*,accounting.manage'])->group(function () {
+                Route::get('/recipes/overview', [RecipeController::class, 'overview']);
+                Route::get('/recipes/{product}', [RecipeController::class, 'show'])->whereNumber('product');
+                Route::put('/recipes/{product}', [RecipeController::class, 'save'])->whereNumber('product');
+                Route::get('/stock/costing', [RecipeController::class, 'stock']);
+            });
+
+            // The stock ledger, with lots, transfers and the buying path. One capability per
+            // step of that path: a cook can record waste, a purchaser can raise a request, and
+            // only whoever holds `purchasing.approve` can authorise the spend.
+            Route::middleware(['module:cafe_menu', 'can:catalog.*,accounting.manage,pos.use,orders.*'])->group(function () {
+                Route::get('/stock/expiring', [StockController::class, 'expiring']);
+                Route::get('/stock/reorder', [StockController::class, 'reorder']);
+                // Waste by cause: spoilage is a fridge, a staff meal is a policy.
+                Route::get('/stock/waste-report', [StockController::class, 'wasteReport']);
+                Route::post('/stock/receive', [StockController::class, 'receive']);
+                Route::post('/stock/waste', [StockController::class, 'waste']);
+                Route::post('/stock/count', [StockController::class, 'count']);
+                Route::post('/stock/transfer', [StockController::class, 'transfer']);
+                // Opening stock from a sheet: preview parses and reports, commit receives.
+                Route::post('/stock/opening/preview', [StockController::class, 'openingPreview']);
+                Route::post('/stock/opening/commit', [StockController::class, 'openingCommit']);
+                Route::get('/stock/purchase-requests', [StockController::class, 'requests']);
+                Route::get('/stock/purchase-orders', [StockController::class, 'orders']);
+                Route::post('/stock/purchase-requests', [StockController::class, 'createRequest']);
+                Route::post('/stock/purchase-requests/{id}/decide', [StockController::class, 'decideRequest'])->whereNumber('id');
+                Route::post('/stock/purchase-requests/{id}/order', [StockController::class, 'createOrder'])->whereNumber('id');
+                Route::post('/stock/purchase-orders/{id}/receive', [StockController::class, 'receiveOrder'])->whereNumber('id');
             });
 
             Route::middleware(['module:pricing', 'can:catalog.*,commerce.*'])->group(function () {

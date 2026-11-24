@@ -17,6 +17,7 @@ import { api, type ApiListPayload } from "@/lib/api"
 import { asArray } from "@/lib/list-utils"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { formatDisplayDateTime } from "@/lib/format-date"
+import { useOnlineStatus } from "@/hooks/use-online-status"
 
 import { CafeAdminShell, CafeEmptyState, cafeSelectClass } from "./cafe-admin-ui"
 
@@ -40,6 +41,14 @@ import { CafeAdminShell, CafeEmptyState, cafeSelectClass } from "./cafe-admin-ui
   created_at: string
   /** Derived over every line: what the ticket as a whole is doing. */
   prep_state?: "new" | "preparing" | "ready"
+  /** Server-computed age of the ticket, against the tenant's KDS thresholds. */
+  timing?: {
+    elapsed_minutes: number
+    state: "ok" | "warn" | "late" | "finished"
+    warn_after_minutes: number
+    late_after_minutes: number
+    overdue_minutes: number
+  }
   items: {
     id: number
     name?: string | null
@@ -82,6 +91,8 @@ function beep() {
   osc.stop(ctx.currentTime + 0.18)
 }
 
+const KITCHEN_CACHE_KEY = "webino.cafe.kitchen.board.v1"
+
 export default function KitchenPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.kitchen")
   const tCommon = useTranslations("common")
@@ -89,12 +100,44 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
   const queryClient = useQueryClient()
   const seen = useRef<Set<number>>(new Set())
   const primed = useRef(false)
+  const online = useOnlineStatus()
+
+  /**
+   * The board on a screen that lost its connection.
+   *
+   * A kitchen display is a wall-mounted tablet on shop Wi-Fi; when the router reboots the board
+   * used to go blank, which reads to a cook as "no orders" — the worst possible message. Every
+   * successful poll is mirrored to localStorage, and a failed poll restores it so the tickets
+   * already on the wall stay on the wall, visibly marked as stale.
+   */
+  const restoreCachedBoard = (): KitchenOrder[] => {
+    try {
+      const raw = window.localStorage.getItem(KITCHEN_CACHE_KEY)
+      if (!raw) return []
+      const parsed: unknown = JSON.parse(raw)
+      return Array.isArray(parsed) ? (parsed as KitchenOrder[]) : []
+    } catch {
+      return []
+    }
+  }
+
+  // The board's clock. Ages are computed on the server, but they have to keep moving between
+  // polls — a ticket must go red while the cook is looking at it, not at the next refresh.
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  const fetchedAtRef = useRef(Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 15_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   // Live board: poll the cheap delta endpoint and merge rows into the cache, so a busy
   // shift never re-downloads every open ticket on each tick.
   const sinceRef = useRef<string>("")
   const { data: orders = [] } = useQuery({
     queryKey: ["cafe-kitchen"],
+    // Polling must keep trying: a screen that gives up after one failure shows an empty board
+    // for the rest of the shift even after the Wi-Fi comes back.
+    refetchOnReconnect: true,
     queryFn: async () => {
       const since = sinceRef.current
       const query = since ? `?since=${encodeURIComponent(since)}` : ""
@@ -103,7 +146,13 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
       const payload = await api<ApiListPayload<KitchenOrder[]>>(
         `/api/v1/cafe/kitchen-orders/live${query}`,
       )
+      fetchedAtRef.current = Date.now()
       const rows = asArray<KitchenOrder>(payload)
+      try {
+        window.localStorage.setItem(KITCHEN_CACHE_KEY, JSON.stringify(rows))
+      } catch {
+        // Quota or private mode: the board still works, it just will not survive a reload offline.
+      }
       // One tick of overlap absorbs clock skew between browser and API without duplicates.
       sinceRef.current = new Date(Date.now() - 15_000).toISOString()
       if (!since) return rows
@@ -112,12 +161,31 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
       )
       for (const row of rows) merged.set(row.id, row)
       // Finished tickets leave the board so the grid stays a to-do list, not a history.
+      // Most overdue first, then oldest: the top-left ticket is the one that needs a cook
+      // now, not the one that happens to have the highest id.
       return [...merged.values()]
         .filter((row) => !["served", "done", "cancelled"].includes(row.kitchen_status))
-        .sort((a, b) => b.id - a.id)
+        .sort((a, b) => (b.timing?.overdue_minutes ?? 0) - (a.timing?.overdue_minutes ?? 0) || b.id - a.id)
     },
     refetchInterval: 8000,
+    // Polling that fails must not throw the board away: a cook looking at five tickets should
+    // still see five tickets when the Wi-Fi drops.
+    retry: 1,
+    placeholderData: (previous) => previous,
+    throwOnError: false,
   })
+
+  // A failed poll falls back to the mirrored board rather than an empty grid.
+  const board = orders.length > 0 ? orders : restoreCachedBoard()
+
+  /**
+   * The board is showing something it could not refresh.
+   *
+   * The connection being down is only half the story: a poll can fail with the network up. Both
+   * cases must say the same thing to the cook, because in both the tickets on the wall may be
+   * stale — and "stale but complete" only works if it is labelled.
+   */
+  const boardIsStale = !online || (orders.length === 0 && board.length > 0)
 
   // Column labels are per tenant (and optionally per station), so the board must not hard-code
   // the four words it shows next to each status.
@@ -138,6 +206,24 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
     if (!col) return null
     const label = locale === "en" ? col.label_en || col.label_fa : col.label_fa
     return label || null
+  }
+
+  /**
+   * Minutes this ticket has been on the board, ticked locally.
+   *
+   * The server sends a snapshot age; between polls the local clock keeps it honest. The state
+   * (ok/warn/late) is re-derived from the live age so a ticket turns red on screen instead of
+   * waiting up to eight seconds for the next refresh.
+   */
+  const ticketAge = (order: KitchenOrder): { minutes: number; state: string } => {
+    const serverMinutes = order.timing?.elapsed_minutes ?? 0
+    const elapsedSinceFetch = Math.floor((nowMs - fetchedAtRef.current) / 60_000)
+    const minutes = Math.max(0, serverMinutes + elapsedSinceFetch)
+    const warn = order.timing?.warn_after_minutes ?? 10
+    const late = Math.max(warn + 1, order.timing?.late_after_minutes ?? 20)
+    const state =
+      order.timing?.state === "finished" ? "finished" : minutes >= late ? "late" : minutes >= warn ? "warn" : "ok"
+    return { minutes, state }
   }
 
   useEffect(() => {
@@ -188,16 +274,40 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
 
   return (
     <CafeAdminShell title={t("title")} description={t("description")}>
-      {orders.length === 0 ? (
+      {boardIsStale ? (
+        <p
+          className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+          data-testid="kds-stale-banner"
+          role="status"
+        >
+          {t("offline_banner")}
+        </p>
+      ) : null}
+
+      {board.length === 0 ? (
         <CafeEmptyState message={`${t("empty")} — ${t("empty_hint")}`} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {orders.map((order) => {
+          {board.map((order) => {
             const advanceTo = nextStatus(order.kitchen_status)
+            const age = ticketAge(order)
+            // An overdue ticket is louder than a new one: the border is the first thing a
+            // cook scanning the wall sees, and being late outranks being unstarted.
+            const ageClass =
+              age.state === "late"
+                ? "border-rose-500 bg-rose-50/60 dark:bg-rose-950/20"
+                : age.state === "warn"
+                  ? "border-amber-400"
+                  : order.kitchen_status === "new"
+                    ? "border-primary"
+                    : ""
             return (
               <article
                 key={order.id}
-                className={`rounded-xl border p-4 ${order.kitchen_status === "new" ? "border-primary" : ""}`}
+                className={`rounded-xl border p-4 ${ageClass}`}
+                data-testid="kds-ticket"
+                data-order-id={order.id}
+                data-kitchen-status={order.kitchen_status}
               >
                 <header className="mb-3 flex items-start justify-between gap-2">
                   <div>
@@ -213,6 +323,23 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                     <Badge variant={order.kitchen_status === "new" ? "default" : "secondary"}>
                       {t(`status.${order.kitchen_status}`)}
                     </Badge>
+                    {/* Elapsed time, always visible. Green is not used: "fine" should not
+                        compete for attention with "late". */}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${
+                        age.state === "late"
+                          ? "bg-rose-600 text-white"
+                          : age.state === "warn"
+                            ? "bg-amber-500 text-white"
+                            : "bg-muted text-muted-foreground"
+                      }`}
+                      title={t("age_hint", {
+                        warn: toLocaleDigits(String(order.timing?.warn_after_minutes ?? 10), locale),
+                        late: toLocaleDigits(String(order.timing?.late_after_minutes ?? 20), locale),
+                      })}
+                    >
+                      {t("age_minutes", { minutes: toLocaleDigits(String(age.minutes), locale) })}
+                    </span>
                     {order.custom_status?.label_fa ? (
                       <span
                         className="inline-flex max-w-[12rem] items-center gap-1 truncate rounded-full px-2 py-0.5 text-xs font-medium text-white"
@@ -279,6 +406,7 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                             }`}
                             disabled={prep.isPending}
                             aria-pressed={done}
+                            data-testid="kds-item"
                             aria-label={`${t("mark_ready")}: ${item.name}`}
                             onClick={() =>
                               prep.mutate({
@@ -311,8 +439,13 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
                   {advanceTo ? (
+                    // A KDS is tapped with a thumb, often wet, never looked at closely. The
+                    // advance button is the one control a cook presses all shift, so it gets a
+                    // real target instead of the small default.
                     <Button
                       size="sm"
+                      className="min-h-11 px-4"
+                      data-testid="kds-advance"
                       disabled={update.isPending}
                       onClick={() => update.mutate({ id: order.id, kitchen_status: advanceTo })}
                     >
@@ -320,7 +453,7 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                     </Button>
                   ) : null}
                   <select
-                    className={`${cafeSelectClass} h-8 w-auto min-w-[8rem]`}
+                    className={`${cafeSelectClass} h-11 w-auto min-w-[8rem]`}
                     aria-label={t("set_status")}
                     value={order.kitchen_status}
                     disabled={update.isPending}

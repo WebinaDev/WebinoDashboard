@@ -11,9 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * Only cash_in / cash_out / drop move the expected-cash figure. `no_sale` and `note` are
  * recorded for the audit trail but deliberately leave the drawer arithmetic untouched.
+ *
+ * Audited for the same reason: a drawer movement is somebody handling money, and the trail is
+ * the only place that says who.
  */
 class CafeShiftMovement extends Model
 {
+    use \App\Support\Audit\RecordsActivity;
+
     public const TYPE_CASH_IN = 'cash_in';
 
     public const TYPE_CASH_OUT = 'cash_out';

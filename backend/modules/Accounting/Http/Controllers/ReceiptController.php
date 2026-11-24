@@ -4,11 +4,8 @@ namespace Modules\Accounting\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Modules\Accounting\Entities\AccChartAccount;
-use Modules\Accounting\Entities\AccJournalEntry;
-use Modules\Accounting\Entities\AccJournalLine;
 use Modules\Accounting\Entities\AccReceiptVoucher;
+use Modules\Accounting\Services\LedgerPosting;
 
 class ReceiptController extends Controller
 {
@@ -22,44 +19,23 @@ class ReceiptController extends Controller
         return response()->json(['data' => $q->paginate(min((int) $request->input('per_page', 25), 100))]);
     }
 
+    /**
+     * Post a voucher to the ledger.
+     *
+     * This used to build the journal inline against codes 111 and 113 and always as a
+     * receipt — so a supplier payment was posted as money *in*, and a tenant whose chart
+     * numbered cash differently got a second cash account created behind their back.
+     * {@see LedgerPosting} now owns the postings for every document in this module.
+     */
     public function postReceipt(Request $request, int $id): JsonResponse
     {
-        $r = AccReceiptVoucher::query()->findOrFail($id);
-        if ($r->status === 'posted') {
-            return response()->json(['message' => __('messages.already_posted')], 422);
-        }
-        $cash = AccChartAccount::query()->where('code', '111')->where('is_postable', true)->first();
-        $ar = AccChartAccount::query()->where('code', '113')->where('is_postable', true)->first();
-        if (! $cash || ! $ar) {
-            return response()->json(['message' => __('messages.chart_accounts_111_and_113_required')], 422);
-        }
-        $amt = (float) $r->amount;
-        DB::transaction(function () use ($r, $cash, $ar, $amt, $request) {
-            $je = AccJournalEntry::query()->create([
-                'fiscal_year_id' => $r->fiscal_year_id,
-                'document_no' => 'RC-'.$r->id,
-                'document_date' => $r->document_date ?? now(),
-                'description' => 'Receipt '.$r->number,
-                'status' => 'posted',
-                'created_by' => $request->user()->id,
-            ]);
-            AccJournalLine::query()->create([
-                'journal_entry_id' => $je->id,
-                'account_id' => $cash->id,
-                'debit' => $amt,
-                'credit' => 0,
-                'description' => 'Cash',
-            ]);
-            AccJournalLine::query()->create([
-                'journal_entry_id' => $je->id,
-                'account_id' => $ar->id,
-                'debit' => 0,
-                'credit' => $amt,
-                'description' => 'AR',
-            ]);
-            $r->update(['status' => 'posted']);
-        });
+        $voucher = AccReceiptVoucher::query()->findOrFail($id);
 
-        return response()->json(['data' => $r->fresh()]);
+        $entry = app(LedgerPosting::class)->postVoucher($voucher);
+
+        return response()->json([
+            'data' => $voucher->fresh(['cashAccount', 'person', 'journalEntry']),
+            'meta' => ['journal_entry_id' => $entry->id, 'document_no' => $entry->document_no],
+        ]);
     }
 }

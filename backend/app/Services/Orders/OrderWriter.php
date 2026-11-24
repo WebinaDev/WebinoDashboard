@@ -96,6 +96,8 @@ class OrderWriter
                 'user_id' => $data['user_id'] ?? null,
                 'created_by' => $actor?->id,
                 'number' => $this->nextNumber($tenantId),
+                // Only a replayed offline sale carries this; the unique index makes the retry safe.
+                'client_ref' => $data['client_ref'] ?? null,
                 'status' => $status,
                 'subtotal_minor' => $subtotal,
                 'discount_minor' => $discount,

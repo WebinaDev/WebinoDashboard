@@ -191,6 +191,7 @@ export function toPayload(
     fulfillment: Fulfillment
     branchId: number | null
     tableCode: string | null
+    pagerNumber?: string
     customerName: string
     customerPhone: string
     customerNote: string
@@ -209,6 +210,8 @@ export function toPayload(
     fulfillment: options.fulfillment,
     branch_id: options.branchId,
     table_code: options.fulfillment === "dine_in" ? options.tableCode : null,
+    // Pager service: the buzzer the guest is holding, when the shop uses them.
+    pager_number: options.fulfillment === "dine_in" ? options.pagerNumber?.trim() || null : null,
     customer_name: options.customerName.trim() || null,
     customer_phone: options.customerPhone.trim() || null,
     customer_note: options.customerNote.trim() || null,

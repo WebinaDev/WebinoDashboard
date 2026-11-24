@@ -7,9 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Accounting\Entities\Concerns\BelongsToTenant;
 
+/**
+ * A warehouse document: receipt, issue, transfer or count.
+ *
+ * Audited: it is the paper behind a stock movement, and the ledger's movement row already
+ * says what changed — this says who wrote the document it came from.
+ */
 class AccWarehouseDocument extends Model
 {
     use BelongsToTenant;
+    use \App\Support\Audit\RecordsActivity;
 
     protected $table = 'acc_warehouse_documents';
 

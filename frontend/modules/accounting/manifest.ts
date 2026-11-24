@@ -45,6 +45,19 @@ export const accountingManifest: ModuleManifest = {
     { path: "accounting/cash-accounts", submodule: "cash", page: "cash-accounts", labelKey: "nav.accounting_cash_accounts", section: "accounting", order: 29, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/receipts", submodule: "receipts", page: "receipts", labelKey: "nav.accounting_receipts", section: "accounting", order: 30, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/checks", submodule: "checks", page: "checks", labelKey: "nav.accounting_checks", section: "accounting", order: 31, capability: "accounting.manage", menuKey: "accounting" },
+    // The reconciliation engine existed for months with no caller. This is the screen that calls it.
+    { path: "accounting/reconciliation", submodule: "cash", page: "reconciliation", labelKey: "nav.accounting_reconciliation", section: "accounting", order: 32, capability: "accounting.manage", menuKey: "accounting" },
+    // Rent, electricity, repairs — the most common thing a shop writes down, and previously
+    // only expressible by knowing which account to debit on the journal screen.
+    { path: "accounting/expenses", submodule: "cash", page: "expenses", labelKey: "nav.accounting_expenses", section: "accounting", order: 33, capability: "accounting.manage", menuKey: "accounting" },
+    // What the shop owes suppliers, with due dates — the bill between goods-in and money-out.
+    { path: "accounting/supplier-bills", submodule: "cash", page: "supplier-bills", labelKey: "nav.accounting_supplier_bills", section: "accounting", order: 34, capability: "accounting.manage", menuKey: "accounting" },
+    // The statement of account every customer eventually asks for, and the credit limit.
+    { path: "accounting/parties", submodule: "persons", page: "party-statements", labelKey: "nav.accounting_parties", section: "accounting", order: 35, capability: "accounting.manage", menuKey: "accounting" },
+    // The oven and the espresso machine: written down over their life, not vanished into a month.
+    { path: "accounting/fixed-assets", submodule: "cash", page: "fixed-assets", labelKey: "nav.accounting_fixed_assets", section: "accounting", order: 36, capability: "accounting.manage", menuKey: "accounting" },
+    // Where the money is now, and what is about to leave the bank.
+    { path: "accounting/treasury", submodule: "cash", page: "treasury", labelKey: "nav.accounting_treasury", section: "accounting", order: 37, capability: "accounting.manage,reports.shop", menuKey: "accounting" },
     { path: "accounting/warehouses", submodule: "warehouses", page: "warehouses", labelKey: "nav.accounting_warehouses", section: "accounting", order: 32, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/warehouse-stock", submodule: "warehouses", page: "warehouse-stock", labelKey: "nav.accounting_warehouse_stock", section: "accounting", order: 33, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/warehouse-inbound", submodule: "warehouses", page: "warehouse-inbound", labelKey: "nav.accounting_warehouse_inbound", section: "accounting", order: 34, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
