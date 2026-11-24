@@ -171,4 +171,13 @@ return [
     'amendment_journal' => 'اصلاح فاکتور :order — :direction',
     'amendment_collected' => 'دریافت اختلاف',
     'amendment_refunded' => 'برگشت اختلاف',
+    'stock_opening_empty_file' => 'فایل خالی است یا فقط سرصفحه دارد.',
+    'stock_opening_needs_columns' => 'ستون‌های «نام کالا»، «مقدار» و «بهای واحد» لازم است.',
+    'stock_opening_missing_name' => 'نام کالا خالی است.',
+    'stock_opening_unknown_product' => 'کالایی با نام «:name» در محصولات نیست؛ اول کالا را بسازید.',
+    'stock_opening_bad_quantity' => 'مقدار «:value» عدد معتبر نیست.',
+    'stock_opening_bad_cost' => 'بهای واحد «:value» معتبر نیست. بهای صفر موجودی را بی‌ارزش می‌کند و پذیرفته نمی‌شود.',
+    'stock_opening_unknown_warehouse' => 'انبار «:name» پیدا نشد.',
+    'stock_opening_note' => 'موجودی اولیه',
+    'stock_opening_done' => ':count ردیف موجودی اولیه ثبت شد.',
 ];

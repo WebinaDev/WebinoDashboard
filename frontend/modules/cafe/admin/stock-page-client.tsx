@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useLocale, useTranslations } from "next-intl"
-import { useState } from "react"
-import { toast } from "sonner"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
+import { useState } from "react";
+import { toast } from "sonner";
 
-import { MoneyText } from "@/components/currency/MoneyDisplay"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { MoneyText } from "@/components/currency/MoneyDisplay";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -17,13 +17,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import type { ResolvedAdminRoute } from "@/kernel/types"
-import { api } from "@/lib/api"
-import { getApiErrorMessage } from "@/lib/api-helpers"
-import { toLocaleDigits } from "@/lib/locale"
+} from "@/components/ui/table";
+import type { ResolvedAdminRoute } from "@/kernel/types";
+import { api } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/api-helpers";
+import { toLocaleDigits } from "@/lib/locale";
 
-import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
+import {
+  CafeAdminShell,
+  CafeEmptyState,
+  CafeSection,
+  cafeSelectClass,
+} from "./cafe-admin-ui";
 
 /**
  * انبار — one ledger, one truth.
@@ -34,105 +39,131 @@ import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./
  */
 
 type CostRow = {
-  subject_type: string
-  subject_id: number
-  name: string
-  unit: string | null
-  base_unit?: string | null
-  purchase_unit?: string | null
-  pack_size?: number | null
-  qty_on_hand: number
-  avg_cost_minor: number
-  last_cost_minor: number
-  reorder_point: number | null
-  low: boolean
-}
+  subject_type: string;
+  subject_id: number;
+  name: string;
+  unit: string | null;
+  base_unit?: string | null;
+  purchase_unit?: string | null;
+  pack_size?: number | null;
+  qty_on_hand: number;
+  avg_cost_minor: number;
+  last_cost_minor: number;
+  reorder_point: number | null;
+  low: boolean;
+};
 
 type ExpiringBatch = {
-  batch_id: number
-  batch_no: string | null
-  product_name: string | null
-  quantity: number
-  unit: string | null
-  expires_on: string
-  days_left: number
-  slot: string | null
-  expired: boolean
-}
+  batch_id: number;
+  batch_no: string | null;
+  product_name: string | null;
+  quantity: number;
+  unit: string | null;
+  expires_on: string;
+  days_left: number;
+  slot: string | null;
+  expired: boolean;
+};
 
 type Suggestion = {
-  product_id: number
-  name: string
-  on_hand: number
-  reorder_point: number
-  shortfall: number
-  suggested_quantity: number
-  purchase_unit: string | null
-  packs: number
-  estimated_cost_minor: number
-}
+  product_id: number;
+  name: string;
+  on_hand: number;
+  reorder_point: number;
+  shortfall: number;
+  suggested_quantity: number;
+  purchase_unit: string | null;
+  packs: number;
+  estimated_cost_minor: number;
+};
 
-type Warehouse = { id: number; name: string }
+type Warehouse = { id: number; name: string };
 
-const WASTE_KINDS = ["waste", "spoilage", "staff_meal", "other"] as const
+const WASTE_KINDS = ["waste", "spoilage", "staff_meal", "other"] as const;
 
-const blankMove = { product_id: "", quantity: "", unit_cost_minor: "", reason: "", kind: "waste" as (typeof WASTE_KINDS)[number] }
+const blankMove = {
+  product_id: "",
+  quantity: "",
+  unit_cost_minor: "",
+  reason: "",
+  kind: "waste" as (typeof WASTE_KINDS)[number],
+};
 
-export default function StockPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
-  const t = useTranslations("cafe_admin.stock")
-  const tCommon = useTranslations("common")
-  const locale = useLocale()
-  const queryClient = useQueryClient()
+export default function StockPageClient({
+  route: _route,
+}: {
+  route: ResolvedAdminRoute;
+}) {
+  const t = useTranslations("cafe_admin.stock");
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
+  const queryClient = useQueryClient();
 
-  const [moveForm, setMoveForm] = useState(blankMove)
-  const [mode, setMode] = useState<"waste" | "receive" | "count">("waste")
-  const [transfer, setTransfer] = useState({ product_id: "", from: "", to: "", quantity: "" })
+  const [moveForm, setMoveForm] = useState(blankMove);
+  const [mode, setMode] = useState<"waste" | "receive" | "count">("waste");
+  const [transfer, setTransfer] = useState({
+    product_id: "",
+    from: "",
+    to: "",
+    quantity: "",
+  });
 
   const costing = useQuery({
     queryKey: ["cafe-stock-costing"],
     queryFn: async () => {
       // `/stock/costing` returns the rows directly inside `data`; `needs_reorder` is the
       // backend's name for the low flag, mapped here so the table has one shape.
-      const res = await api<{ data: (Omit<CostRow, "low"> & { needs_reorder: boolean })[] }>("/api/v1/stock/costing")
-      return (res?.data ?? []).map((row) => ({ ...row, low: row.needs_reorder }))
+      const res = await api<{
+        data: (Omit<CostRow, "low"> & { needs_reorder: boolean })[];
+      }>("/api/v1/stock/costing");
+      return (res?.data ?? []).map((row) => ({
+        ...row,
+        low: row.needs_reorder,
+      }));
     },
     retry: false,
-  })
+  });
 
   const warehouses = useQuery({
     queryKey: ["cafe-warehouses"],
     queryFn: async () => {
-      const res = await api<{ data: { warehouses: Warehouse[] } }>("/api/v1/accounting/warehouses")
-      return res?.data?.warehouses ?? []
+      const res = await api<{ data: { warehouses: Warehouse[] } }>(
+        "/api/v1/accounting/warehouses",
+      );
+      return res?.data?.warehouses ?? [];
     },
     retry: false,
-  })
+  });
 
   const expiring = useQuery({
     queryKey: ["cafe-stock-expiring"],
     queryFn: async () => {
-      const res = await api<{ data: { batches: ExpiringBatch[] } }>("/api/v1/stock/expiring?days=7")
-      return res?.data?.batches ?? []
+      const res = await api<{ data: { batches: ExpiringBatch[] } }>(
+        "/api/v1/stock/expiring?days=7",
+      );
+      return res?.data?.batches ?? [];
     },
     retry: false,
-  })
+  });
 
   const reorder = useQuery({
     queryKey: ["cafe-stock-reorder"],
     queryFn: async () => {
-      const res = await api<{ data: { suggestions: Suggestion[] } }>("/api/v1/stock/reorder")
-      return res?.data?.suggestions ?? []
+      const res = await api<{ data: { suggestions: Suggestion[] } }>(
+        "/api/v1/stock/reorder",
+      );
+      return res?.data?.suggestions ?? [];
     },
     retry: false,
-  })
+  });
 
   const invalidate = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["cafe-stock-costing"] }),
       queryClient.invalidateQueries({ queryKey: ["cafe-stock-expiring"] }),
       queryClient.invalidateQueries({ queryKey: ["cafe-stock-reorder"] }),
-    ])
-  }
+    ]);
+  };
 
   const submitMove = useMutation({
     mutationFn: async () => {
@@ -145,14 +176,17 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
             reason: moveForm.reason.trim(),
             kind: moveForm.kind,
           },
-        })
+        });
       }
 
       if (mode === "count") {
         return api("/api/v1/stock/count", {
           method: "POST",
-          json: { product_id: Number(moveForm.product_id), counted_quantity: Number(moveForm.quantity) },
-        })
+          json: {
+            product_id: Number(moveForm.product_id),
+            counted_quantity: Number(moveForm.quantity),
+          },
+        });
       }
 
       return api("/api/v1/stock/receive", {
@@ -163,15 +197,15 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
           unit_cost_minor: Number(moveForm.unit_cost_minor),
           note: moveForm.reason.trim() || null,
         },
-      })
+      });
     },
     onSuccess: async () => {
-      setMoveForm(blankMove)
-      await invalidate()
-      toast.success(t("saved"))
+      setMoveForm(blankMove);
+      await invalidate();
+      toast.success(t("saved"));
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
-  })
+  });
 
   const submitTransfer = useMutation({
     mutationFn: () =>
@@ -185,19 +219,61 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
         },
       }),
     onSuccess: async () => {
-      setTransfer({ product_id: "", from: "", to: "", quantity: "" })
-      await invalidate()
-      toast.success(t("transferred"))
+      setTransfer({ product_id: "", from: "", to: "", quantity: "" });
+      await invalidate();
+      toast.success(t("transferred"));
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
-  })
+  });
 
-  const items = costing.data ?? []
+  /* ------------------------------------------------------- opening stock --- */
+
+  // A shop that has traded for a year opens with full shelves. It has that inventory in a
+  // spreadsheet, not in its head; the preview writes nothing and reports each line it cannot
+  // accept, and the commit receives the rest through the same ledger a purchase uses.
+  const [opening, setOpening] = useState("");
+  const [openingResult, setOpeningResult] = useState<{
+    ready?: number;
+    total?: number;
+    errors?: { line: number; message: string }[];
+    received?: number;
+    failed?: { line: number; message: string }[];
+  } | null>(null);
+
+  const previewOpening = useMutation({
+    mutationFn: () =>
+      api<{
+        ready: number;
+        total: number;
+        errors: { line: number; message: string }[];
+      }>("/api/v1/stock/opening/preview", {
+        method: "POST",
+        json: { body: opening },
+      }),
+    onSuccess: (res) => setOpeningResult(res),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  });
+
+  const commitOpening = useMutation({
+    mutationFn: () =>
+      api<{ received: number; failed: { line: number; message: string }[] }>(
+        "/api/v1/stock/opening/commit",
+        { method: "POST", json: { body: opening } },
+      ),
+    onSuccess: async (res) => {
+      setOpeningResult(res);
+      await invalidate();
+      toast.success(t("opening_done", { count: res.received }));
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  });
+
+  const items = costing.data ?? [];
   const canSubmitMove =
     moveForm.product_id !== "" &&
     Number(moveForm.quantity) > 0 &&
     (mode !== "waste" || moveForm.reason.trim() !== "") &&
-    (mode !== "receive" || moveForm.unit_cost_minor !== "")
+    (mode !== "receive" || moveForm.unit_cost_minor !== "");
 
   return (
     <CafeAdminShell title={t("title")} description={t("description")}>
@@ -222,11 +298,16 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
               id="st-product"
               className={cafeSelectClass}
               value={moveForm.product_id}
-              onChange={(e) => setMoveForm((f) => ({ ...f, product_id: e.target.value }))}
+              onChange={(e) =>
+                setMoveForm((f) => ({ ...f, product_id: e.target.value }))
+              }
             >
               <option value="">{t("choose_item")}</option>
               {items.map((row) => (
-                <option key={`${row.subject_type}-${row.subject_id}`} value={String(row.subject_id)}>
+                <option
+                  key={`${row.subject_type}-${row.subject_id}`}
+                  value={String(row.subject_id)}
+                >
                   {row.name}
                 </option>
               ))}
@@ -234,14 +315,18 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="st-qty">{mode === "count" ? t("counted") : t("quantity")}</Label>
+            <Label htmlFor="st-qty">
+              {mode === "count" ? t("counted") : t("quantity")}
+            </Label>
             <Input
               id="st-qty"
               type="number"
               min={0}
               step="0.001"
               value={moveForm.quantity}
-              onChange={(e) => setMoveForm((f) => ({ ...f, quantity: e.target.value }))}
+              onChange={(e) =>
+                setMoveForm((f) => ({ ...f, quantity: e.target.value }))
+              }
             />
           </div>
 
@@ -254,7 +339,12 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
                 min={0}
                 inputMode="numeric"
                 value={moveForm.unit_cost_minor}
-                onChange={(e) => setMoveForm((f) => ({ ...f, unit_cost_minor: e.target.value }))}
+                onChange={(e) =>
+                  setMoveForm((f) => ({
+                    ...f,
+                    unit_cost_minor: e.target.value,
+                  }))
+                }
               />
             </div>
           ) : null}
@@ -267,7 +357,12 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
                   id="st-kind"
                   className={cafeSelectClass}
                   value={moveForm.kind}
-                  onChange={(e) => setMoveForm((f) => ({ ...f, kind: e.target.value as (typeof WASTE_KINDS)[number] }))}
+                  onChange={(e) =>
+                    setMoveForm((f) => ({
+                      ...f,
+                      kind: e.target.value as (typeof WASTE_KINDS)[number],
+                    }))
+                  }
                 >
                   {WASTE_KINDS.map((kind) => (
                     <option key={kind} value={kind}>
@@ -281,7 +376,9 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
                 <Input
                   id="st-reason"
                   value={moveForm.reason}
-                  onChange={(e) => setMoveForm((f) => ({ ...f, reason: e.target.value }))}
+                  onChange={(e) =>
+                    setMoveForm((f) => ({ ...f, reason: e.target.value }))
+                  }
                   placeholder={t("reason_placeholder")}
                 />
               </div>
@@ -291,10 +388,15 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
 
         {/* Waste without a reason is unexplained shrinkage with a label; the button says so. */}
         {mode === "waste" && moveForm.reason.trim() === "" ? (
-          <p className="text-muted-foreground text-xs">{t("reason_required")}</p>
+          <p className="text-muted-foreground text-xs">
+            {t("reason_required")}
+          </p>
         ) : null}
 
-        <Button disabled={!canSubmitMove || submitMove.isPending} onClick={() => submitMove.mutate()}>
+        <Button
+          disabled={!canSubmitMove || submitMove.isPending}
+          onClick={() => submitMove.mutate()}
+        >
           {submitMove.isPending ? tCommon("saving") : t("save_movement")}
         </Button>
       </CafeSection>
@@ -307,11 +409,16 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
               id="tr-product"
               className={cafeSelectClass}
               value={transfer.product_id}
-              onChange={(e) => setTransfer((f) => ({ ...f, product_id: e.target.value }))}
+              onChange={(e) =>
+                setTransfer((f) => ({ ...f, product_id: e.target.value }))
+              }
             >
               <option value="">{t("choose_item")}</option>
               {items.map((row) => (
-                <option key={`tr-${row.subject_id}`} value={String(row.subject_id)}>
+                <option
+                  key={`tr-${row.subject_id}`}
+                  value={String(row.subject_id)}
+                >
                   {row.name}
                 </option>
               ))}
@@ -323,7 +430,9 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
               id="tr-from"
               className={cafeSelectClass}
               value={transfer.from}
-              onChange={(e) => setTransfer((f) => ({ ...f, from: e.target.value }))}
+              onChange={(e) =>
+                setTransfer((f) => ({ ...f, from: e.target.value }))
+              }
             >
               <option value="">{t("choose_store")}</option>
               {(warehouses.data ?? []).map((w) => (
@@ -339,7 +448,9 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
               id="tr-to"
               className={cafeSelectClass}
               value={transfer.to}
-              onChange={(e) => setTransfer((f) => ({ ...f, to: e.target.value }))}
+              onChange={(e) =>
+                setTransfer((f) => ({ ...f, to: e.target.value }))
+              }
             >
               <option value="">{t("choose_store")}</option>
               {(warehouses.data ?? []).map((w) => (
@@ -357,7 +468,9 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
               min={0}
               step="0.001"
               value={transfer.quantity}
-              onChange={(e) => setTransfer((f) => ({ ...f, quantity: e.target.value }))}
+              onChange={(e) =>
+                setTransfer((f) => ({ ...f, quantity: e.target.value }))
+              }
             />
           </div>
         </div>
@@ -397,16 +510,25 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
                   <TableRow key={`${row.subject_type}-${row.subject_id}`}>
                     <TableCell>{row.name}</TableCell>
                     <TableCell className="tabular-nums">
-                      {toLocaleDigits(String(row.qty_on_hand), locale)} {row.base_unit ?? row.unit ?? ""}
+                      {toLocaleDigits(String(row.qty_on_hand), locale)}{" "}
+                      {row.base_unit ?? row.unit ?? ""}
                     </TableCell>
                     <TableCell>
                       <MoneyText amount={Math.round(row.avg_cost_minor)} />
                     </TableCell>
                     <TableCell>
-                      <MoneyText amount={Math.round(row.qty_on_hand * row.avg_cost_minor)} />
+                      <MoneyText
+                        amount={Math.round(
+                          row.qty_on_hand * row.avg_cost_minor,
+                        )}
+                      />
                     </TableCell>
                     <TableCell>
-                      {row.low ? <Badge variant="destructive">{t("low")}</Badge> : <Badge variant="outline">{t("ok")}</Badge>}
+                      {row.low ? (
+                        <Badge variant="destructive">{t("low")}</Badge>
+                      ) : (
+                        <Badge variant="outline">{t("ok")}</Badge>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -414,6 +536,86 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
             </Table>
           </div>
         )}
+      </CafeSection>
+
+      <CafeSection title={t("opening_title")} description={t("opening_hint")}>
+        <div className="space-y-2">
+          <Label htmlFor="opening-body">{t("opening_body")}</Label>
+          <textarea
+            id="opening-body"
+            className="border-input bg-background min-h-32 w-full rounded-md border px-3 py-2 font-mono text-xs"
+            dir="ltr"
+            spellCheck={false}
+            placeholder={"نام کالا,مقدار,بهای واحد\nشیر,12,35000"}
+            value={opening}
+            onChange={(e) => {
+              setOpening(e.target.value);
+              setOpeningResult(null);
+            }}
+          />
+          <p className="text-muted-foreground text-xs">
+            {t("opening_columns")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              disabled={opening.trim() === "" || previewOpening.isPending}
+              onClick={() => previewOpening.mutate()}
+            >
+              {previewOpening.isPending
+                ? tCommon("saving")
+                : t("opening_preview")}
+            </Button>
+            <Button
+              disabled={
+                opening.trim() === "" ||
+                commitOpening.isPending ||
+                !openingResult ||
+                (openingResult.ready ?? 0) === 0
+              }
+              onClick={() => commitOpening.mutate()}
+            >
+              {commitOpening.isPending
+                ? tCommon("saving")
+                : t("opening_commit")}
+            </Button>
+          </div>
+
+          {openingResult ? (
+            <div className="space-y-2 rounded-lg border p-3 text-sm">
+              <p>
+                {t("opening_summary", {
+                  ready: toLocaleDigits(
+                    String(openingResult.ready ?? openingResult.received ?? 0),
+                    locale,
+                  ),
+                  total: toLocaleDigits(
+                    String(openingResult.total ?? openingResult.received ?? 0),
+                    locale,
+                  ),
+                })}
+              </p>
+              {(openingResult.errors ?? openingResult.failed ?? []).length >
+              0 ? (
+                <ul className="space-y-1">
+                  {(openingResult.errors ?? openingResult.failed ?? []).map(
+                    (row) => (
+                      <li
+                        key={`${row.line}-${row.message}`}
+                        className="text-destructive text-xs"
+                      >
+                        {t("opening_line", {
+                          line: toLocaleDigits(String(row.line), locale),
+                        })}{" "}
+                        — {row.message}
+                      </li>
+                    ),
+                  )}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </CafeSection>
 
       <CafeSection title={t("expiring_title")} description={t("expiring_hint")}>
@@ -436,13 +638,21 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
                     <TableCell>{row.product_name ?? "—"}</TableCell>
                     <TableCell dir="ltr">{row.batch_no ?? "—"}</TableCell>
                     <TableCell className="tabular-nums">
-                      {toLocaleDigits(String(row.quantity), locale)} {row.unit ?? ""}
+                      {toLocaleDigits(String(row.quantity), locale)}{" "}
+                      {row.unit ?? ""}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={row.expired ? "destructive" : "secondary"}>
+                      <Badge
+                        variant={row.expired ? "destructive" : "secondary"}
+                      >
                         {row.expired
                           ? t("expired")
-                          : t("days_left", { days: toLocaleDigits(String(row.days_left), locale) })}
+                          : t("days_left", {
+                              days: toLocaleDigits(
+                                String(row.days_left),
+                                locale,
+                              ),
+                            })}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -472,13 +682,20 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
                 {(reorder.data ?? []).map((row) => (
                   <TableRow key={row.product_id}>
                     <TableCell>{row.name}</TableCell>
-                    <TableCell className="tabular-nums">{toLocaleDigits(String(row.on_hand), locale)}</TableCell>
-                    <TableCell className="tabular-nums">{toLocaleDigits(String(row.reorder_point), locale)}</TableCell>
                     <TableCell className="tabular-nums">
-                      {toLocaleDigits(String(row.packs), locale)} {row.purchase_unit ?? ""}
+                      {toLocaleDigits(String(row.on_hand), locale)}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {toLocaleDigits(String(row.reorder_point), locale)}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {toLocaleDigits(String(row.packs), locale)}{" "}
+                      {row.purchase_unit ?? ""}
                     </TableCell>
                     <TableCell>
-                      <MoneyText amount={Math.round(row.estimated_cost_minor)} />
+                      <MoneyText
+                        amount={Math.round(row.estimated_cost_minor)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -488,5 +705,5 @@ export default function StockPageClient({ route: _route }: { route: ResolvedAdmi
         )}
       </CafeSection>
     </CafeAdminShell>
-  )
+  );
 }

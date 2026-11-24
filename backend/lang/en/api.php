@@ -171,4 +171,13 @@ return [
     'amendment_journal' => 'Invoice amendment :order — :direction',
     'amendment_collected' => 'difference collected',
     'amendment_refunded' => 'difference refunded',
+    'stock_opening_empty_file' => 'The file is empty or has only a header row.',
+    'stock_opening_needs_columns' => 'The name, quantity and unit cost columns are required.',
+    'stock_opening_missing_name' => 'The product name is empty.',
+    'stock_opening_unknown_product' => 'No product named ":name"; create it first.',
+    'stock_opening_bad_quantity' => 'Quantity ":value" is not a valid number.',
+    'stock_opening_bad_cost' => 'Unit cost ":value" is not valid. Zero cost would make the stock worthless, so it is refused.',
+    'stock_opening_unknown_warehouse' => 'No warehouse named ":name".',
+    'stock_opening_note' => 'Opening stock',
+    'stock_opening_done' => ':count opening stock rows recorded.',
 ];

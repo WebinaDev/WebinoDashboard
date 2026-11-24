@@ -2214,7 +2214,16 @@
       "nothing_to_buy": "Nothing to buy.",
       "reorder_point": "Reorder point",
       "suggested": "Suggested",
-      "estimated_cost": "Est. cost"
+      "estimated_cost": "Est. cost",
+      "opening_title": "Opening stock from a file",
+      "opening_hint": "Paste the stock sheet from your spreadsheet: preview first, then record. Every valid row gets its own stock and journal entry.",
+      "opening_body": "File contents (CSV/TSV)",
+      "opening_columns": "Columns: name, quantity, unit cost, and optionally warehouse, batch and expiry. Persian digits and Jalali dates are accepted.",
+      "opening_preview": "Preview",
+      "opening_commit": "Record opening stock",
+      "opening_summary": "{ready} of {total} rows are ready.",
+      "opening_line": "line {line}",
+      "opening_done": "{count} opening stock rows recorded."
     },
     "serving_windows": {
       "title": "Serving windows",

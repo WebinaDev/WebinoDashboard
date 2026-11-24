@@ -869,6 +869,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/stock/waste', [StockController::class, 'waste']);
                 Route::post('/stock/count', [StockController::class, 'count']);
                 Route::post('/stock/transfer', [StockController::class, 'transfer']);
+                // Opening stock from a sheet: preview parses and reports, commit receives.
+                Route::post('/stock/opening/preview', [StockController::class, 'openingPreview']);
+                Route::post('/stock/opening/commit', [StockController::class, 'openingCommit']);
                 Route::get('/stock/purchase-requests', [StockController::class, 'requests']);
                 Route::get('/stock/purchase-orders', [StockController::class, 'orders']);
                 Route::post('/stock/purchase-requests', [StockController::class, 'createRequest']);

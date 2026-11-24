@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Services\Stock\Purchasing;
+use App\Services\Stock\StockOpening;
 use App\Services\Stock\StockLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class StockController extends Controller
     public function __construct(
         private readonly StockLedger $stock,
         private readonly Purchasing $purchasing,
+        private readonly StockOpening $opening,
     ) {}
 
     /** Goods in (opening balance, an adjustment, or a delivery recorded by hand). */
@@ -112,6 +114,48 @@ class StockController extends Controller
         );
 
         return response()->json(['data' => $result], 201);
+    }
+
+    /**
+     * Opening stock from a CSV/TSV sheet, in two steps.
+     *
+     * The preview writes nothing and reports every row it cannot accept with its line number;
+     * the commit receives the parseable rows through the ledger, so each one posts its journal
+     * and enters the weighted-average cost engine exactly as a purchase would.
+     */
+    public function openingPreview(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'body' => ['required', 'string'],
+            'map' => ['nullable', 'array'],
+            'map.*' => ['string', 'max:64'],
+        ]);
+
+        return response()->json(['data' => $this->opening->preview(
+            (int) $request->user()->tenant_id,
+            (string) $data['body'],
+            is_array($data['map'] ?? null) ? $data['map'] : [],
+        )]);
+    }
+
+    public function openingCommit(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'body' => ['required', 'string'],
+            'map' => ['nullable', 'array'],
+            'map.*' => ['string', 'max:64'],
+            'document_date' => ['nullable', 'date'],
+        ]);
+
+        $result = $this->opening->commit(
+            (int) $request->user()->tenant_id,
+            (string) $data['body'],
+            is_array($data['map'] ?? null) ? $data['map'] : [],
+            (int) $request->user()->id,
+            $data['document_date'] ?? null,
+        );
+
+        return response()->json(['data' => $result, 'message' => __('api.stock_opening_done', ['count' => $result['received']])]);
     }
 
     /** What expires within `days`, soonest first. */
