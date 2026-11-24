@@ -73,7 +73,11 @@
     "accent_label": "Accent color",
     "theme_system": "System",
     "not_found_title": "Page not found",
-    "none": "None"
+    "none": "None",
+    "delete": "Delete",
+    "active": "Active",
+    "inactive": "Inactive",
+    "status": "Status"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -422,7 +426,8 @@
     "accounting_reconciliation": "Bank reconciliation",
     "cafe_stock": "Stock and purchasing",
     "accounting_supplier_bills": "Supplier bills",
-    "accounting_parties": "Party statements"
+    "accounting_parties": "Party statements",
+    "cafe_serving_windows": "Serving windows"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -878,7 +883,24 @@
       "day_tue": "Tuesday",
       "day_wed": "Wednesday",
       "day_thu": "Thursday",
-      "day_fri": "Friday"
+      "day_fri": "Friday",
+      "bulk_add_title": "Add items in bulk",
+      "bulk_add_hint": "Opening a new season means twenty new dishes — enter them at once, not one by one.",
+      "bulk_add_open": "Open the bulk-add form",
+      "bulk_add_close": "Close",
+      "bulk_add_placeholder": "Latte, 95000\nDouble espresso, 78000\nTea, 45000",
+      "bulk_add_format": "One item per line: name, price. Any comma or tab will do. Rows that cannot be read are reported; the rest are created.",
+      "bulk_add_submit": "Create items",
+      "bulk_add_done": "Items created.",
+      "preview_changed": "{count} items will change",
+      "preview_skipped": "{count} items are price-locked and will not change",
+      "preview_total": "Total",
+      "current_price": "Current price",
+      "new_price": "New price",
+      "margin_before": "Margin now",
+      "margin_after": "Margin after",
+      "locked": "locked",
+      "apply_preview": "Apply these changes"
     },
     "qr": {
       "title": "QR & branches",
@@ -2186,6 +2208,42 @@
       "reorder_point": "Reorder point",
       "suggested": "Suggested",
       "estimated_cost": "Est. cost"
+    },
+    "serving_windows": {
+      "title": "Serving windows",
+      "description": "When each item is served; outside these hours the till will not offer it.",
+      "new_window": "New serving window",
+      "label": "Label",
+      "label_placeholder": "e.g. Breakfast",
+      "target": "Applies to",
+      "target_product": "One product",
+      "target_category": "One category",
+      "product": "Product",
+      "category": "Category",
+      "choose": "— choose —",
+      "start_time": "From",
+      "end_time": "To",
+      "midnight_hint": "A window may cross midnight, e.g. 22:00 to 02:00.",
+      "weekdays": "Days",
+      "weekdays_hint": "No day selected means every day.",
+      "day_0": "Monday",
+      "day_1": "Tuesday",
+      "day_2": "Wednesday",
+      "day_3": "Thursday",
+      "day_4": "Friday",
+      "day_5": "Saturday",
+      "day_6": "Sunday",
+      "every_day": "Every day",
+      "window": "Window",
+      "next_day": "next day",
+      "save": "Save window",
+      "saved": "Saved.",
+      "deleted": "Deleted.",
+      "empty": "No windows yet — every item is always available.",
+      "enable": "Enable",
+      "disable": "Disable",
+      "delete_confirm_title": "Delete serving window",
+      "delete_confirm_body": "The window is removed and the item becomes always available again."
     }
   },
   "themes": {

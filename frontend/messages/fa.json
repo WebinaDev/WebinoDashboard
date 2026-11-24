@@ -73,7 +73,11 @@
     "accent_label": "رنگ تاکید",
     "theme_system": "سیستم",
     "not_found_title": "صفحه پیدا نشد",
-    "none": "ندارد"
+    "none": "ندارد",
+    "delete": "حذف",
+    "active": "فعال",
+    "inactive": "غیرفعال",
+    "status": "وضعیت"
   },
   "auth": {
     "loginTitle": "ورود",
@@ -422,7 +426,8 @@
     "accounting_reconciliation": "تطبیق بانکی",
     "cafe_stock": "انبار و خرید",
     "accounting_supplier_bills": "فاکتورهای خرید",
-    "accounting_parties": "کارت حساب اشخاص"
+    "accounting_parties": "کارت حساب اشخاص",
+    "cafe_serving_windows": "ساعت سرو"
   },
   "dashboard": {
     "title": "نمای کلی",
@@ -3402,7 +3407,24 @@
       "day_tue": "سه‌شنبه",
       "day_wed": "چهارشنبه",
       "day_thu": "پنجشنبه",
-      "day_fri": "جمعه"
+      "day_fri": "جمعه",
+      "bulk_add_title": "افزودن گروهی آیتم‌ها",
+      "bulk_add_hint": "برای شروع فصل جدید: بیست آیتم را یک‌جا وارد کنید، نه یکی‌یکی.",
+      "bulk_add_open": "باز کردن فرم افزودن گروهی",
+      "bulk_add_close": "بستن",
+      "bulk_add_placeholder": "لاته, 95000\nاسپرسو دوبل، 78000\nچای, 45000",
+      "bulk_add_format": "هر خط: نام، قیمت. جداکننده می‌تواند ویرگول فارسی یا لاتین یا Tab باشد. ردیف‌های ناقص گزارش می‌شوند و بقیه ثبت می‌شوند.",
+      "bulk_add_submit": "ثبت آیتم‌ها",
+      "bulk_add_done": "آیتم‌ها ثبت شدند.",
+      "preview_changed": "{count} آیتم تغییر می‌کند",
+      "preview_skipped": "{count} آیتم قیمت قفل دارد و تغییر نمی‌کند",
+      "preview_total": "جمع قیمت‌ها",
+      "current_price": "قیمت فعلی",
+      "new_price": "قیمت جدید",
+      "margin_before": "حاشیه فعلی",
+      "margin_after": "حاشیه جدید",
+      "locked": "قفل",
+      "apply_preview": "اعمال این تغییرات"
     },
     "qr": {
       "title": "کیوآر و شعب",
@@ -4708,6 +4730,42 @@
       "reorder_point": "نقطه سفارش",
       "suggested": "پیشنهاد",
       "estimated_cost": "هزینه تقریبی"
+    },
+    "serving_windows": {
+      "title": "ساعت سرو",
+      "description": "هر آیتم چه ساعت‌هایی سرو می‌شود؛ بیرون از این بازه، پوز آن را پیشنهاد نمی‌دهد.",
+      "new_window": "پنجره سرو جدید",
+      "label": "برچسب",
+      "label_placeholder": "مثلاً صبحانه",
+      "target": "محدوده",
+      "target_product": "یک آیتم",
+      "target_category": "یک دسته",
+      "product": "آیتم",
+      "category": "دسته",
+      "choose": "— انتخاب کنید —",
+      "start_time": "از ساعت",
+      "end_time": "تا ساعت",
+      "midnight_hint": "بازه می‌تواند از نیمه‌شب بگذرد؛ مثلاً ۲۲:۰۰ تا ۰۲:۰۰.",
+      "weekdays": "روزها",
+      "weekdays_hint": "هیچ روزی انتخاب نشود یعنی هر روز.",
+      "day_0": "دوشنبه",
+      "day_1": "سه‌شنبه",
+      "day_2": "چهارشنبه",
+      "day_3": "پنجشنبه",
+      "day_4": "جمعه",
+      "day_5": "شنبه",
+      "day_6": "یکشنبه",
+      "every_day": "هر روز",
+      "window": "بازه",
+      "next_day": "روز بعد",
+      "save": "ثبت پنجره",
+      "saved": "ذخیره شد.",
+      "deleted": "حذف شد.",
+      "empty": "هنوز پنجره‌ای تعریف نشده؛ همه آیتم‌ها همیشه سرو می‌شوند.",
+      "enable": "فعال‌سازی",
+      "disable": "غیرفعال‌سازی",
+      "delete_confirm_title": "حذف پنجره سرو",
+      "delete_confirm_body": "این بازه حذف می‌شود و آیتم دوباره همیشه سرو می‌شود."
     }
   },
   "themes": {

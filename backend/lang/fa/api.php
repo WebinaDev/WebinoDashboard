@@ -152,4 +152,8 @@ return [
     'party_over_credit_limit' => 'سقف اعتبار رعایت نمی‌شود؛ سقف :limit و مانده :balance.',
     'party_receipt' => 'دریافت از مشتری',
     'party_payment' => 'پرداخت به مشتری',
+    'serving_window_target_conflict' => 'یک پنجره سرو باید یا برای آیتم باشد یا برای دسته، نه هر دو.',
+    'serving_window_time_invalid' => 'ساعت شروع یا پایان معتبر نیست.',
+    'serving_window_empty' => 'ساعت شروع و پایان نمی‌توانند یکی باشند.',
+    'bulk_item_name_required' => 'نام آیتم خالی است.',
 ];

@@ -17,6 +17,8 @@ use Modules\Cafe\Http\Controllers\CafePrintingController;
 use Modules\Cafe\Http\Controllers\CafeQrController;
 use Modules\Cafe\Http\Controllers\CafeSettingsController;
 use Modules\Cafe\Http\Controllers\CafeShiftController;
+use Modules\Cafe\Http\Controllers\CafeMenuBulkController;
+use Modules\Cafe\Http\Controllers\CafeServingWindowController;
 use Modules\Cafe\Http\Controllers\CafeTableController;
 
 /*
@@ -39,6 +41,16 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::get('/menu-settings', [CafeSettingsController::class, 'showMenu']);
                 Route::patch('/menu-settings', [CafeSettingsController::class, 'updateMenu']);
                 Route::post('/bulk-price', [CafeSettingsController::class, 'bulkPrice']);
+                // What a price change would do, before it does it — including the new margin.
+                Route::post('/bulk-price/preview', [CafeMenuBulkController::class, 'previewPrice']);
+                // Twenty new dishes in one form, each row reported on its own.
+                Route::post('/menu/bulk-items', [CafeMenuBulkController::class, 'storeItems']);
+                // Breakfast until eleven, plates from twelve: a menu with times on it.
+                Route::get('/serving-windows', [CafeServingWindowController::class, 'index']);
+                Route::post('/serving-windows', [CafeServingWindowController::class, 'store']);
+                Route::patch('/serving-windows/{id}', [CafeServingWindowController::class, 'update'])->whereNumber('id');
+                Route::delete('/serving-windows/{id}', [CafeServingWindowController::class, 'destroy'])->whereNumber('id');
+                Route::get('/serving-windows/status', [CafeServingWindowController::class, 'status']);
                 // Price-list import: preview parses and reports, commit writes.
                 Route::post('/menu-import/preview', [CafeMenuImportController::class, 'preview']);
                 Route::post('/menu-import/commit', [CafeMenuImportController::class, 'commit']);

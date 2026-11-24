@@ -152,4 +152,8 @@ return [
     'party_over_credit_limit' => 'Over the credit limit: limit :limit, balance :balance.',
     'party_receipt' => 'Received from customer',
     'party_payment' => 'Paid to customer',
+    'serving_window_target_conflict' => 'A serving window targets either a product or a category, not both.',
+    'serving_window_time_invalid' => 'The start or end time is not valid.',
+    'serving_window_empty' => 'The start and end time cannot be the same.',
+    'bulk_item_name_required' => 'The item name is empty.',
 ];

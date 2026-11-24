@@ -38,6 +38,8 @@ export const cafeManifest: ModuleManifest = {
     // The stock ledger: waste with a reason, transfers between stores, lots and expiry, and
     // the shopping list built from the reorder points. Every movement posts its value.
     { path: "cafe/stock", submodule: "menu", page: "stock", labelKey: "nav.cafe_stock", section: "cafe", order: 39, capability: "catalog.*,accounting.manage,pos.use" },
+    // Breakfast until eleven, plates from twelve: a menu with times on it.
+    { path: "cafe/serving-windows", submodule: "menu", page: "serving-windows", labelKey: "nav.cafe_serving_windows", section: "cafe", order: 40, capability: "catalog.*" },
     // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
     // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
     { path: "cafe/pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use", menuKey: "pos" },

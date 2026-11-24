@@ -14,6 +14,16 @@ trait SerializesCatalogProduct
 
         $available = $product->is_available && ! $product->is_sold_out;
 
+        // Outside its serving window an item is not sold, whatever the flag says — the guest
+        // must not be able to order the soup at eight in the morning. The window is resolved
+        // from the already-loaded relation when a caller eager-loads it, and read once per
+        // request otherwise.
+        $window = $this->servingWindowStatus($product);
+
+        if (! $window['available']) {
+            $available = false;
+        }
+
         $data = [
             'id' => $product->id,
             'slug' => $product->slug,
@@ -28,6 +38,8 @@ trait SerializesCatalogProduct
             'discounted_price_minor' => $discounted,
             'currency' => $product->currency,
             'is_available' => $available,
+            'available_from' => $window['next_opens_at'],
+            'serving_window' => $window['label'],
             'is_sold_out' => $product->is_sold_out,
             'is_new' => $product->is_new,
             'is_featured' => $product->is_featured,
@@ -88,5 +100,46 @@ trait SerializesCatalogProduct
         }
 
         return $data;
+    }
+
+    /**
+     * Where a product stands against its serving window.
+     *
+     * Cached per request: a menu page serializes eighty products and each one would otherwise
+     * build the same window list. A shop with no windows pays one query.
+     *
+     * @return array{available: bool, label: ?string, next_opens_at: ?string}
+     */
+    private function servingWindowStatus(\App\Models\Product $product): array
+    {
+        $tenantId = (int) ($product->tenant_id ?? 0);
+
+        if ($tenantId <= 0) {
+            return ['available' => true, 'label' => null, 'next_opens_at' => null];
+        }
+
+        /** @var array<int, array{available: bool, label: ?string, next_opens_at: ?string}> $cache */
+        static $cache = [];
+
+        if (isset($cache[(int) $product->id])) {
+            return $cache[(int) $product->id];
+        }
+
+        try {
+            $status = app(\Modules\Cafe\Services\ServingWindows::class)->statusFor(
+                $tenantId,
+                (int) $product->id,
+                $product->category_id === null ? null : (int) $product->category_id,
+            );
+        } catch (\Throwable) {
+            // A menu that cannot read its windows still sells; a menu that throws does not.
+            $status = ['available' => true, 'label' => null, 'next_opens_at' => null];
+        }
+
+        return $cache[(int) $product->id] = [
+            'available' => (bool) $status['available'],
+            'label' => $status['label'],
+            'next_opens_at' => $status['next_opens_at'],
+        ];
     }
 }
