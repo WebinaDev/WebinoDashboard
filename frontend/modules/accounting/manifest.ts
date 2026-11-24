@@ -54,6 +54,8 @@ export const accountingManifest: ModuleManifest = {
     { path: "accounting/supplier-bills", submodule: "cash", page: "supplier-bills", labelKey: "nav.accounting_supplier_bills", section: "accounting", order: 34, capability: "accounting.manage", menuKey: "accounting" },
     // The statement of account every customer eventually asks for, and the credit limit.
     { path: "accounting/parties", submodule: "persons", page: "party-statements", labelKey: "nav.accounting_parties", section: "accounting", order: 35, capability: "accounting.manage", menuKey: "accounting" },
+    // The oven and the espresso machine: written down over their life, not vanished into a month.
+    { path: "accounting/fixed-assets", submodule: "cash", page: "fixed-assets", labelKey: "nav.accounting_fixed_assets", section: "accounting", order: 36, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/warehouses", submodule: "warehouses", page: "warehouses", labelKey: "nav.accounting_warehouses", section: "accounting", order: 32, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/warehouse-stock", submodule: "warehouses", page: "warehouse-stock", labelKey: "nav.accounting_warehouse_stock", section: "accounting", order: 33, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/warehouse-inbound", submodule: "warehouses", page: "warehouse-inbound", labelKey: "nav.accounting_warehouse_inbound", section: "accounting", order: 34, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },

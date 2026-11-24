@@ -65,6 +65,12 @@ Route::get('/parties', [ExpenseController::class, 'parties']);
 Route::get('/parties/{id}/statement', [ExpenseController::class, 'statement'])->whereNumber('id');
 Route::patch('/parties/{id}', [ExpenseController::class, 'updateParty'])->whereNumber('id');
 
+// The oven and the espresso machine: bought, written down over their life, and eventually sold.
+Route::get('/fixed-assets', [ExpenseController::class, 'assets']);
+Route::post('/fixed-assets', [ExpenseController::class, 'storeAsset']);
+Route::post('/fixed-assets/depreciate', [ExpenseController::class, 'depreciate']);
+Route::post('/fixed-assets/{id}/dispose', [ExpenseController::class, 'disposeAsset'])->whereNumber('id');
+
 Route::get('/reports', [FinancialReportsController::class, 'financialReports']);
 Route::get('/settings', [AccountingSettingsController::class, 'settings']);
 

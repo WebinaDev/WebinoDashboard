@@ -428,7 +428,8 @@
     "accounting_supplier_bills": "Supplier bills",
     "accounting_parties": "Party statements",
     "cafe_serving_windows": "Serving windows",
-    "cafe_order_board": "Order board"
+    "cafe_order_board": "Order board",
+    "accounting_fixed_assets": "Fixed assets"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -11894,5 +11895,42 @@
     "block": "Block",
     "unblock": "Unblock",
     "updated": "Saved."
+  },
+  "accounting_fixed_assets": {
+    "title": "Fixed assets",
+    "description": "The espresso machine, the oven, the fit-out — purchase, straight-line depreciation and disposal, each posting its own journal.",
+    "total_cost": "Total cost",
+    "total_book_value": "Remaining book value",
+    "new_asset": "Record an asset",
+    "name": "Asset",
+    "name_placeholder": "e.g. Espresso machine",
+    "category": "Category",
+    "serial_no": "Serial number",
+    "cost": "Cost",
+    "salvage": "Residual value",
+    "salvage_hint": "What you expect to get for it at the end; depreciable base is cost minus this.",
+    "useful_life": "Useful life (months)",
+    "acquired_on": "Acquired",
+    "on_credit": "Bought on credit (owed to supplier)",
+    "save": "Record asset",
+    "saved": "Asset recorded.",
+    "depreciation_run": "Monthly depreciation run",
+    "depreciation_hint": "Once a month. Running the same month again posts nothing twice.",
+    "period": "Month",
+    "run": "Run depreciation",
+    "depreciated": "Depreciation posted: {posted} assets, {skipped} skipped.",
+    "dispose_title": "Dispose of {name}",
+    "book_value": "Book value",
+    "proceeds": "Proceeds",
+    "dispose": "Dispose",
+    "disposed": "Disposal recorded.",
+    "empty": "No assets recorded yet.",
+    "monthly": "Monthly",
+    "accumulated": "Accumulated",
+    "status": "Status",
+    "status_active": "In use",
+    "status_fully": "Fully depreciated",
+    "status_disposed": "Disposed",
+    "months": "months"
   }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Services\Accounting\ExpensePosting;
 use App\Services\Accounting\PartyLedger;
+use App\Services\Accounting\FixedAssets;
 use App\Services\Accounting\SupplierBills;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class ExpenseController extends Controller
         private readonly ExpensePosting $expenses,
         private readonly SupplierBills $bills,
         private readonly PartyLedger $parties,
+        private readonly FixedAssets $assets,
     ) {}
 
     /** The categories the form offers, with their default chart code. */
@@ -196,6 +198,72 @@ class ExpenseController extends Controller
             'balance_minor' => $this->parties->balance($tenantId, $personId),
             'credit_limit' => (float) ($data['credit_limit'] ?? DB::table('acc_persons')->where('id', $personId)->value('credit_limit')),
         ]]);
+    }
+
+    // --- fixed assets -----------------------------------------------------------------
+
+    public function assets(Request $request): JsonResponse
+    {
+        $tenantId = (int) $request->user()->tenant_id;
+        $register = $this->assets->register($tenantId);
+
+        return response()->json(['data' => [
+            'assets' => $register,
+            'cost_minor' => array_sum(array_column($register, 'cost_minor')),
+            'book_value_minor' => array_sum(array_column($register, 'book_value_minor')),
+        ]]);
+    }
+
+    public function storeAsset(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:191'],
+            'category' => ['nullable', 'string', 'max:60'],
+            'serial_no' => ['nullable', 'string', 'max:100'],
+            'acquired_on' => ['nullable', 'date'],
+            'cost_minor' => ['required', 'numeric', 'gt:0'],
+            'salvage_minor' => ['nullable', 'numeric', 'min:0'],
+            'useful_life_months' => ['nullable', 'integer', 'min:1', 'max:600'],
+            'on_credit' => ['nullable', 'boolean'],
+            'paid_from_code' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $result = $this->assets->create((int) $request->user()->tenant_id, $data, (int) $request->user()->id);
+
+        return response()->json(['data' => $result], 201);
+    }
+
+    public function depreciate(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'period' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
+        ]);
+
+        $result = $this->assets->depreciate(
+            (int) $request->user()->tenant_id,
+            $data['period'] ?? null,
+            (int) $request->user()->id,
+        );
+
+        return response()->json(['data' => $result]);
+    }
+
+    public function disposeAsset(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'proceeds_minor' => ['nullable', 'numeric', 'min:0'],
+            'disposed_on' => ['nullable', 'date'],
+        ]);
+
+        $result = $this->assets->dispose(
+            (int) $request->user()->tenant_id,
+            $id,
+            (float) ($data['proceeds_minor'] ?? 0),
+            $data['disposed_on'] ?? null,
+            (int) $request->user()->id,
+        );
+
+        return response()->json(['data' => $result]);
     }
 
     /** Every party with a balance, for the credit-control screen. */

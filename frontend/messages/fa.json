@@ -428,7 +428,8 @@
     "accounting_supplier_bills": "فاکتورهای خرید",
     "accounting_parties": "کارت حساب اشخاص",
     "cafe_serving_windows": "ساعت سرو",
-    "cafe_order_board": "تابلوی سفارش‌ها"
+    "cafe_order_board": "تابلوی سفارش‌ها",
+    "accounting_fixed_assets": "دارایی‌های ثابت"
   },
   "dashboard": {
     "title": "نمای کلی",
@@ -11892,5 +11893,42 @@
     "block": "مسدود کردن",
     "unblock": "رفع مسدودی",
     "updated": "ذخیره شد."
+  },
+  "accounting_fixed_assets": {
+    "title": "دارایی‌های ثابت",
+    "description": "دستگاه اسپرسو، فِر، تجهیزات — خرید، استهلاک خط مستقیم و واگذاری، با سند خودکار.",
+    "total_cost": "بهای تمام دارایی‌ها",
+    "total_book_value": "ارزش دفتری باقی‌مانده",
+    "new_asset": "ثبت دارایی جدید",
+    "name": "نام دارایی",
+    "name_placeholder": "مثلاً دستگاه اسپرسو",
+    "category": "دسته",
+    "serial_no": "شماره سریال",
+    "cost": "بهای خرید",
+    "salvage": "ارزش باقیمانده",
+    "salvage_hint": "مبلغی که در پایان عمر مفید انتظار دارید؛ مبنای استهلاک = بها منهای این مبلغ.",
+    "useful_life": "عمر مفید (ماه)",
+    "acquired_on": "تاریخ خرید",
+    "on_credit": "خرید نسیه (بدهی به تأمین‌کننده)",
+    "save": "ثبت دارایی",
+    "saved": "دارایی ثبت شد.",
+    "depreciation_run": "اجرای استهلاک ماهانه",
+    "depreciation_hint": "هر ماه یک بار. اجرای دوباره همان ماه چیزی را دوبار ثبت نمی‌کند.",
+    "period": "ماه",
+    "run": "اجرای استهلاک",
+    "depreciated": "استهلاک ثبت شد: {posted} دارایی، {skipped} مورد رد شد.",
+    "dispose_title": "واگذاری {name}",
+    "book_value": "ارزش دفتری",
+    "proceeds": "مبلغ فروش",
+    "dispose": "واگذاری",
+    "disposed": "واگذاری ثبت شد.",
+    "empty": "هنوز دارایی ثبت نشده است.",
+    "monthly": "استهلاک ماهانه",
+    "accumulated": "استهلاک انباشته",
+    "status": "وضعیت",
+    "status_active": "در استفاده",
+    "status_fully": "کاملاً مستهلک",
+    "status_disposed": "واگذارشده",
+    "months": "ماه"
   }
 }

@@ -156,4 +156,13 @@ return [
     'serving_window_time_invalid' => 'The start or end time is not valid.',
     'serving_window_empty' => 'The start and end time cannot be the same.',
     'bulk_item_name_required' => 'The item name is empty.',
+    'asset_cost_positive' => 'The asset cost must be greater than zero.',
+    'asset_salvage_too_high' => 'The residual value cannot be more than the cost.',
+    'asset_not_found' => 'Asset not found.',
+    'asset_already_disposed' => 'This asset has already been disposed of.',
+    'asset_purchase' => 'Asset purchase: :name',
+    'asset_depreciation' => 'Depreciation of :name — :period',
+    'asset_disposal' => 'Disposal of asset: :name',
+    'asset_gain' => 'Gain on disposal: :name',
+    'asset_loss' => 'Loss on disposal: :name',
 ];

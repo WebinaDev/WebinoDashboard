@@ -156,4 +156,13 @@ return [
     'serving_window_time_invalid' => 'ساعت شروع یا پایان معتبر نیست.',
     'serving_window_empty' => 'ساعت شروع و پایان نمی‌توانند یکی باشند.',
     'bulk_item_name_required' => 'نام آیتم خالی است.',
+    'asset_cost_positive' => 'بهای دارایی باید بزرگ‌تر از صفر باشد.',
+    'asset_salvage_too_high' => 'ارزش باقیمانده نمی‌تواند از بهای دارایی بیشتر باشد.',
+    'asset_not_found' => 'دارایی یافت نشد.',
+    'asset_already_disposed' => 'این دارایی قبلاً واگذار شده است.',
+    'asset_purchase' => 'خرید دارایی: :name',
+    'asset_depreciation' => 'استهلاک :name — :period',
+    'asset_disposal' => 'واگذاری دارایی: :name',
+    'asset_gain' => 'سود واگذاری دارایی: :name',
+    'asset_loss' => 'زیان واگذاری دارایی: :name',
 ];
