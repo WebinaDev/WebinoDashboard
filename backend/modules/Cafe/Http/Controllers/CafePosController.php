@@ -86,6 +86,9 @@ class CafePosController extends Controller
                     'free_delivery_from_minor' => (int) ($status['free_delivery_threshold_minor'] ?? 0),
                 ],
                 'loyalty_enabled' => (bool) (\App\Services\Shop\ShopSettings::getLoyalty($tenantId)['enabled'] ?? false),
+                // table | pager | none: which field a dine-in order needs, if any. Sent with
+                // the bootstrap so the till never has to guess.
+                'service' => app(\Modules\Cafe\Services\ServiceMode::class)->requirements($tenantId),
             ],
         ])->header('Cache-Control', 'no-store');
     }
@@ -357,6 +360,9 @@ class CafePosController extends Controller
 
             // Set by the till's offline queue; unique per tenant, so a replay is idempotent.
             'client_ref' => ['nullable', 'string', 'max:64'],
+
+            // Pager service: the guest waits for it to buzz instead of sitting at a table.
+            'pager_number' => ['nullable', 'string', 'max:16'],
         ]);
     }
 

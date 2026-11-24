@@ -114,9 +114,12 @@ class ShopExtrasController extends Controller
     {
         $user = $request->user();
 
-        return response()->json(['data' => [
-            'points' => (int) ($user->loyalty_points ?? 0),
-            'settings' => ShopSettings::getLoyalty((int) $user->tenant_id),
-        ]]);
+        // The balance alone is not actionable: a guest also needs to know what a point is
+        // worth and which tier they are in (and how far the next one is).
+        return response()->json(['data' => array_merge(
+            app(\App\Services\Shop\LoyaltyTiers::class)->summary($user),
+            ['points' => (int) ($user->loyalty_points ?? 0)],
+            ['settings' => ShopSettings::getLoyalty((int) $user->tenant_id)],
+        )]);
     }
 }

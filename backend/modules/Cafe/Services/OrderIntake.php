@@ -15,12 +15,14 @@ use App\Services\Coupons\CouponService;
 use App\Services\Orders\OrderStatusService;
 use App\Services\Orders\OrderWriter;
 use App\Services\Shop\LoyaltyService;
+use App\Services\Shop\LoyaltyTiers;
 use App\Services\Shop\ShopSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Cafe\Entities\CafeBranch;
 use Modules\Cafe\Entities\CafeShift;
 use Modules\Cafe\Entities\CafeTable;
+use Modules\Cafe\Services\ServiceMode;
 
 /**
  * Ringing up a café order: the till's own create-and-edit path.
@@ -248,7 +250,7 @@ final class OrderIntake
 
         if ($type === 'loyalty') {
             try {
-                $loyalty = $this->priceLoyalty($tenantId, $payload);
+                $loyalty = $this->priceLoyalty($tenantId, $payload, $subtotal);
 
                 return [$loyalty['discount_minor'], null];
             } catch (ValidationException $e) {
@@ -298,6 +300,12 @@ final class OrderIntake
         }
 
         $branchId = $this->resolveBranch($tenantId, $payload, $actor);
+
+        // The shop's service mode decides whether a dine-in order names a table, a pager, or
+        // neither. Checked before the table is resolved so a pager-only shop is not told to
+        // pick a table it does not have.
+        app(ServiceMode::class)->assertServable($tenantId, $fulfillment, $payload);
+
         $table = $this->resolveTable($tenantId, $fulfillment, $payload, $branchId);
 
         $rawLines = $payload['items'] ?? null;
@@ -370,6 +378,12 @@ final class OrderIntake
             $meta['loyalty'] = ['points' => $loyalty['points'], 'discount_minor' => $loyalty['discount_minor']];
         }
 
+        // Pager shops hand the guest a buzzer instead of a table number.
+        $pager = $this->nullableString($payload['pager_number'] ?? null);
+        if ($pager !== null) {
+            $meta['pager_number'] = $pager;
+        }
+
         return [
             'order' => $order,
             'lines' => $lines,
@@ -416,7 +430,7 @@ final class OrderIntake
             // holds the usage. Guessing it here would let the two disagree.
             $discount = 0;
         } elseif ($type === 'loyalty') {
-            $loyalty = $this->priceLoyalty($tenantId, $payload);
+            $loyalty = $this->priceLoyalty($tenantId, $payload, $subtotal);
             $discount = $loyalty['discount_minor'];
         }
 
@@ -647,7 +661,7 @@ final class OrderIntake
      * @param  array<string, mixed>  $payload
      * @return array{user_id: int, points: int, discount_minor: int}
      */
-    private function priceLoyalty(int $tenantId, array $payload): array
+    private function priceLoyalty(int $tenantId, array $payload, int $billMinor = 0): array
     {
         $settings = ShopSettings::getLoyalty($tenantId);
         if (empty($settings['enabled'])) {
@@ -669,10 +683,24 @@ final class OrderIntake
             throw ValidationException::withMessages(['loyalty_points' => 'امتیاز مشتری کافی نیست.']);
         }
 
+        // What a point is worth is a setting of its own. Using the *earning* rate as the
+        // redemption rate — which this did — gives the whole margin away to anyone who saves
+        // points, and the cap keeps a large balance from zeroing the bill.
+        $redeem = app(LoyaltyTiers::class)->redemption($tenantId, $points, max(0, $billMinor));
+
+        if ($redeem['value_minor'] <= 0) {
+            throw ValidationException::withMessages([
+                'loyalty_points' => __('api.cafe_loyalty_no_value'),
+            ]);
+        }
+
         return [
             'user_id' => (int) $user->id,
-            'points' => $points,
-            'discount_minor' => $points * max(1, (int) $settings['point_price_minor']),
+            'points' => $redeem['points'],
+            'discount_minor' => $redeem['value_minor'],
+            // Surfaced so the till can say "capped at 50% of the bill" instead of silently
+            // spending fewer points than the cashier asked for.
+            'capped' => $redeem['capped'],
         ];
     }
 
@@ -833,6 +861,12 @@ final class OrderIntake
     private function resolveTable(int $tenantId, string $fulfillment, array $payload, ?int $branchId): ?CafeTable
     {
         if ($fulfillment !== 'dine_in') {
+            return null;
+        }
+
+        // No seat service, or pager service: a dine-in order carries no table.
+        $mode = app(ServiceMode::class);
+        if (! $mode->requiresTable($tenantId)) {
             return null;
         }
 

@@ -24,6 +24,7 @@ import { CafeAdminShell, CafeSection } from "./cafe-admin-ui"
  */
 
 type OperationsSettings = {
+  service_mode: "table" | "pager" | "none"
   paid_edit_window_minutes: number
   paid_edit_requires_approval: boolean
   kds_warn_after_minutes: number
@@ -122,6 +123,28 @@ export default function OperationsSettingsPageClient({ route: _route }: { route:
               <p className="text-muted-foreground text-xs">{t(`${key}_hint`, { min, max })}</p>
             </div>
           ))}
+        </div>
+      </CafeSection>
+
+      <CafeSection title={t("section_service")} description={t("section_service_hint")}>
+        <div className="max-w-xs space-y-1.5">
+          <Label htmlFor="op-service-mode">{t("service_mode")}</Label>
+          <select
+            id="op-service-mode"
+            className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+            value={values.service_mode ?? "table"}
+            onChange={(e) =>
+              setDraft({
+                ...values,
+                service_mode: e.target.value as OperationsSettings["service_mode"],
+              })
+            }
+          >
+            <option value="table">{t("service_mode_table")}</option>
+            <option value="pager">{t("service_mode_pager")}</option>
+            <option value="none">{t("service_mode_none")}</option>
+          </select>
+          <p className="text-muted-foreground text-xs">{t(`service_mode_${values.service_mode ?? "table"}_hint`)}</p>
         </div>
       </CafeSection>
 

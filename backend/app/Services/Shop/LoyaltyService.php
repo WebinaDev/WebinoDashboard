@@ -59,6 +59,12 @@ final class LoyaltyService
                 }
                 $points += $earned;
             }
+            // A tier earns its holder a bonus on every award. Applied here so both the
+            // storefront and the till get it from one place.
+            if ($points > 0) {
+                $points += app(LoyaltyTiers::class)->bonus((int) $order->tenant_id, (int) $order->user_id, $points);
+            }
+
             if ($points > 0) {
                 DB::transaction(function () use ($order, $points) {
                     LoyaltyLedger::query()->create([

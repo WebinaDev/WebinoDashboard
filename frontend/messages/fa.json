@@ -4140,7 +4140,11 @@
       "zone_minimum": "حداقل سفارش",
       "zone_uncovered": "این نشانی در هیچ منطقه ارسالی نیست.",
       "zone_below_minimum": "مبلغ سفارش کمتر از حداقل این منطقه است.",
-      "minutes_short": "دقیقه"
+      "minutes_short": "دقیقه",
+      "pager_title": "پیجر",
+      "pager_description": "شماره پیجری که به مشتری داده‌اید را وارد کنید.",
+      "pager_number": "شماره پیجر",
+      "pager_placeholder": "مثلاً ۱۲"
     },
     "delivery_zones": {
       "title": "مناطق ارسال",
@@ -4243,7 +4247,16 @@
       "flag_requires_approval": "ویرایش سفارش پرداخت‌شده نیاز به تأیید دارد",
       "flag_requires_approval_hint": "اگر روشن باشد، تغییر سفارش پس از پرداخت تا تأیید مدیر اعمال نمی‌شود.",
       "flag_delivery_minimum": "اجبار حداقل مبلغ سفارش ارسال",
-      "flag_delivery_minimum_hint": "اگر روشن باشد، سفارش زیر حداقل مبلغ ارسال پذیرفته نمی‌شود."
+      "flag_delivery_minimum_hint": "اگر روشن باشد، سفارش زیر حداقل مبلغ ارسال پذیرفته نمی‌شود.",
+      "section_service": "حالت سرویس",
+      "section_service_hint": "نحوه تحویل سفارش سالن را تعیین می‌کند و اینکه تیل چه چیزی باید بپرسد.",
+      "service_mode": "حالت سرویس",
+      "service_mode_table": "میز",
+      "service_mode_pager": "پیجر",
+      "service_mode_none": "بدون سرویس سالن",
+      "service_mode_table_hint": "برای هر سفارش سالن، انتخاب میز الزامی است.",
+      "service_mode_pager_hint": "برای هر سفارش سالن، شماره پیجر الزامی است و میز پرسیده نمی‌شود.",
+      "service_mode_none_hint": "سرویس سالن ندارید؛ سفارش سالن به میز یا پیجر نیاز ندارد."
     },
     "recipes": {
       "title": "رسپی و بهای تمام‌شده",
@@ -8466,7 +8479,16 @@
       "welcome_points": "امتیاز خوش‌آمدگویی",
       "referral_points": "امتیاز معرفی دوستان",
       "hint": "۰ = غیرفعال",
-      "daily_points": "امتیاز مأموریت روزانه"
+      "daily_points": "امتیاز مأموریت روزانه",
+      "point_value": "ارزش هر امتیاز (تومان)",
+      "point_value_hint": "مبلغی که هر امتیاز هنگام خرج کردن کسر می‌کند.",
+      "max_redeem_percent": "سقف استفاده از امتیاز (درصد فاکتور)",
+      "max_redeem_hint": "بدون سقف، موجودی بزرگ کل فاکتور را صفر می‌کند.",
+      "tiers": "سطوح باشگاه",
+      "tier_name": "نام سطح",
+      "tier_min_points": "حداقل امتیاز Lifetime",
+      "tier_accrual": "پاداش کسب (درصد)",
+      "tiers_hint": "سطح بر اساس مجموع امتیازهای کسب‌شده تعیین می‌شود، نه موجودی فعلی؛ خرج کردن امتیاز کسی را تنزل نمی‌دهد."
     },
     "eyebrow": "مرکز بازاریابی",
     "groups": {

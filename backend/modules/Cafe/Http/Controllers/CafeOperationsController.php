@@ -70,6 +70,8 @@ class CafeOperationsController extends Controller
             'data' => [
                 'settings' => $this->settings->get($tenantId),
                 'defaults' => OperationsSettings::defaults(),
+                // What the till must ask for on a dine-in order, decided once here.
+                'service' => app(\Modules\Cafe\Services\ServiceMode::class)->requirements($tenantId),
             ],
         ]);
     }
@@ -87,6 +89,7 @@ class CafeOperationsController extends Controller
             'queue_stale_after_minutes' => ['sometimes', 'integer', 'min:1', 'max:120'],
             'enforce_delivery_minimum' => ['sometimes', 'boolean'],
             'default_delivery_eta_minutes' => ['sometimes', 'integer', 'min:5', 'max:180'],
+            'service_mode' => ['sometimes', 'string', Rule::in(\Modules\Cafe\Services\ServiceMode::MODES)],
         ]);
 
         return response()->json(['data' => $this->settings->put($tenantId, $data)]);

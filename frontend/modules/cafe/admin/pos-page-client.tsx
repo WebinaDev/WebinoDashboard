@@ -96,6 +96,8 @@ type Bootstrap = {
   fulfillment: Record<Fulfillment, boolean>
   fees: PosFees
   loyalty_enabled: boolean
+  /** How the shop hands food over: a table, a pager, or neither. */
+  service?: { mode: "table" | "pager" | "none"; needs_table: boolean; needs_pager: boolean }
 }
 
 type GuestHit = { id: number; name: string | null; phone: string | null; email: string | null; points: number }
@@ -149,6 +151,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
   const [branchId, setBranchId] = useState<number | null>(null)
   const [fulfillment, setFulfillment] = useState<Fulfillment>("dine_in")
   const [tableCode, setTableCode] = useState<string | null>(null)
+  const [pagerNumber, setPagerNumber] = useState("")
   const [lines, setLines] = useState<CartLine[]>([])
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("")
@@ -479,6 +482,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
         fulfillment,
         branchId,
         tableCode,
+        pagerNumber,
         customerName,
         customerPhone,
         customerNote,
@@ -604,6 +608,10 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
   // are exactly the ones a cashier at that counter can seat. Filtering again here would only
   // hide rows the server deliberately included.
   const visibleTables = tables
+
+  // Default to table service when an older API payload has no `service`: that is the strictest
+  // mode, so the till asks for a table rather than silently dropping it.
+  const service = data?.service ?? { mode: "table" as const, needs_table: true, needs_pager: false }
 
   /* -------------------------------------------------------------------- view --- */
 
@@ -741,7 +749,23 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
             })}
           </div>
 
-          {fulfillment === "dine_in" ? (
+          {fulfillment === "dine_in" && service.needs_pager ? (
+            <CafeSection title={t("pager_title")} description={t("pager_description")}>
+              <div className="max-w-xs space-y-2">
+                <Label htmlFor="pos-pager">{t("pager_number")}</Label>
+                <Input
+                  id="pos-pager"
+                  value={pagerNumber}
+                  onChange={(e) => setPagerNumber(e.target.value)}
+                  className={TAP}
+                  inputMode="numeric"
+                  placeholder={t("pager_placeholder")}
+                />
+              </div>
+            </CafeSection>
+          ) : null}
+
+          {fulfillment === "dine_in" && service.needs_table ? (
             <CafeSection title={t("table_title")} description={t("table_description")}>
               {tables.length === 0 ? (
                 <CafeEmptyState message={t("table_empty")} />

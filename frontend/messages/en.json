@@ -1616,7 +1616,11 @@
       "zone_minimum": "Minimum order",
       "zone_uncovered": "This address is outside every delivery area.",
       "zone_below_minimum": "The basket is below this area's minimum order.",
-      "minutes_short": "min"
+      "minutes_short": "min",
+      "pager_title": "Pager",
+      "pager_description": "Enter the number of the pager you handed the guest.",
+      "pager_number": "Pager number",
+      "pager_placeholder": "e.g. 12"
     },
     "delivery_zones": {
       "title": "Delivery zones",
@@ -1719,7 +1723,16 @@
       "flag_requires_approval": "Editing a paid order needs approval",
       "flag_requires_approval_hint": "When on, a change after payment waits for a manager to approve it.",
       "flag_delivery_minimum": "Enforce the delivery minimum",
-      "flag_delivery_minimum_hint": "When on, orders below the delivery minimum are refused."
+      "flag_delivery_minimum_hint": "When on, orders below the delivery minimum are refused.",
+      "section_service": "Service mode",
+      "section_service_hint": "How a dine-in order is handed over, and what the till has to ask for.",
+      "service_mode": "Service mode",
+      "service_mode_table": "Table",
+      "service_mode_pager": "Pager",
+      "service_mode_none": "No seat service",
+      "service_mode_table_hint": "Every dine-in order must name a table.",
+      "service_mode_pager_hint": "Every dine-in order must name a pager; no table is asked for.",
+      "service_mode_none_hint": "There is no seat service; a dine-in order needs neither table nor pager."
     },
     "recipes": {
       "title": "Recipes and plate cost",
@@ -8466,7 +8479,16 @@
       "welcome_points": "Welcome points",
       "referral_points": "Referral points",
       "hint": "0 = disabled",
-      "daily_points": "Daily mission points"
+      "daily_points": "Daily mission points",
+      "point_value": "Value of a point (toman)",
+      "point_value_hint": "How much a point is worth when it is spent.",
+      "max_redeem_percent": "Redemption cap (% of bill)",
+      "max_redeem_hint": "Without a cap a big balance zeroes the whole bill.",
+      "tiers": "Loyalty tiers",
+      "tier_name": "Tier name",
+      "tier_min_points": "Minimum lifetime points",
+      "tier_accrual": "Accrual bonus (%)",
+      "tiers_hint": "The tier comes from lifetime earned points, not the current balance, so spending points never demotes anyone."
     },
     "eyebrow": "Marketing hub",
     "groups": {
