@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 
 import { FormSettingsSkeleton } from "@/components/TableListSkeleton"
@@ -34,24 +34,23 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
   const t = useTranslations("bots")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
-  const [templates, setTemplates] = useState<Record<string, string>>({})
-  const [texts, setTexts] = useState<Record<string, string>>({})
-  const [faq, setFaq] = useState("")
-  const [dailyPoints, setDailyPoints] = useState(0)
+  const id = useId()
+  const [draft, setDraft] = useState<{ provider: LiveBotProvider; templates?: Record<string, string>; texts?: Record<string, string>; faq?: string; dailyPoints?: number } | null>(null)
 
   const q = useQuery({
     queryKey: ["bots", provider, "settings"],
     queryFn: () => api<BotSettings>(settingsPath(provider)),
   })
 
-  useEffect(() => {
-    if (!q.data) return
-    const m = q.data.meta ?? {}
-    setTemplates({ ...(m.templates ?? {}) })
-    setTexts({ ...((m.texts as Record<string, string>) ?? {}) })
-    setFaq(faqToText(m.faq))
-    setDailyPoints(Number(((m.club ?? {}) as Record<string, unknown>).daily_points ?? 0))
-  }, [q.data])
+  const meta = q.data?.meta ?? {}
+  const current = draft?.provider === provider ? draft : null
+  const templates = { ...(meta.templates ?? {}), ...(current?.templates ?? {}) }
+  const texts = { ...((meta.texts as Record<string, string>) ?? {}), ...(current?.texts ?? {}) }
+  const faq = current?.faq ?? faqToText(meta.faq)
+  const dailyPoints = current?.dailyPoints ?? Number(((meta.club ?? {}) as Record<string, unknown>).daily_points ?? 0)
+  const update = (changes: Omit<NonNullable<typeof draft>, "provider">) => setDraft((previous) => ({
+    ...(previous?.provider === provider ? previous : {}), provider, ...changes,
+  }))
 
   const save = useMutation({
     mutationFn: () =>
@@ -73,6 +72,7 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
     onSuccess: async () => {
       toast.success(tCommon("saved"))
       await qc.invalidateQueries({ queryKey: ["bots", provider, "settings"] })
+      setDraft((previous) => previous?.provider === provider ? null : previous)
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -87,11 +87,12 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
         <div className="space-y-3">
           {TEMPLATE_KEYS.map((k) => (
             <div key={k} className="space-y-1">
-              <Label className="text-xs">{t(`engine.tpl.${k}`)}</Label>
+              <Label htmlFor={`${id}-template-${k}`} className="text-xs">{t(`engine.tpl.${k}`)}</Label>
               <textarea
+                id={`${id}-template-${k}`}
                 className={textareaClass}
                 value={templates[k] ?? ""}
-                onChange={(e) => setTemplates((prev) => ({ ...prev, [k]: e.target.value }))}
+                onChange={(e) => update({ templates: { ...current?.templates, [k]: e.target.value } })}
               />
             </div>
           ))}
@@ -102,11 +103,12 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
         <div className="space-y-3">
           {textFields.map((k) => (
             <div key={k} className="space-y-1">
-              <Label className="text-xs">{t(`texts.fields.${k}`)}</Label>
+              <Label htmlFor={`${id}-text-${k}`} className="text-xs">{t(`texts.fields.${k}`)}</Label>
               <textarea
+                id={`${id}-text-${k}`}
                 className={textareaClass}
                 value={texts[k] ?? ""}
-                onChange={(e) => setTexts((prev) => ({ ...prev, [k]: e.target.value }))}
+                onChange={(e) => update({ texts: { ...current?.texts, [k]: e.target.value } })}
               />
             </div>
           ))}
@@ -115,13 +117,13 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
 
       {q.data?.meta?.addons?.faq ? (
         <BotSection title={t("engine.faq")} description={t("engine.faqPh")}>
-          <textarea className={textareaClass} value={faq} onChange={(e) => setFaq(e.target.value)} placeholder={t("engine.faqPh")} />
+          <textarea aria-label={t("engine.faq")} className={textareaClass} value={faq} onChange={(e) => update({ faq: e.target.value })} placeholder={t("engine.faqPh")} />
         </BotSection>
       ) : null}
 
       {q.data?.meta?.addons?.loyalty ? (
         <BotSection title={t("engine.dailyPoints")}>
-          <InputNumber value={dailyPoints} onChange={setDailyPoints} />
+          <InputNumber label={t("engine.dailyPoints")} value={dailyPoints} onChange={(value) => update({ dailyPoints: value })} />
         </BotSection>
       ) : null}
 
@@ -132,10 +134,11 @@ export function BotTextsPanel({ provider }: { provider: LiveBotProvider }) {
   )
 }
 
-function InputNumber({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function InputNumber({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
     <input
       type="number"
+      aria-label={label}
       min={0}
       className="border-input bg-background h-9 w-32 rounded-md border px-3 text-sm"
       value={value}
