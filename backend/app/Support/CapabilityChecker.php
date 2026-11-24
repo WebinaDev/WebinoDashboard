@@ -3,8 +3,8 @@
 namespace App\Support;
 
 use App\Models\RoleCapability;
-use App\Models\UserCapabilityOverride;
 use App\Models\User;
+use App\Models\UserCapabilityOverride;
 use Illuminate\Support\Facades\Cache;
 
 class CapabilityChecker

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Api\V1\ThemeBuilderController;
 use App\Http\Controllers\Controller;
 use App\Kernel\SiteTypeProfiles;
 use App\Kernel\TenantActivationService;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Http\Controllers\Api\V1\ThemeBuilderController;
 use App\Services\Webino\WebinoLicenseClient;
 use Illuminate\Http\Request;
 

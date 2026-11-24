@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\BuilderFormFilesController;
 use App\Models\PricingSetting;
+use App\Models\Tenant;
 use App\Services\AiContent\AiQueue;
 use App\Services\Analytics\AnalyticsRollup;
 use App\Services\Bots\Engine\BotMessenger;
@@ -16,7 +17,6 @@ use App\Services\Marketplace\TorobWebhookQueue;
 use App\Services\Orders\OrderStock;
 use App\Services\Pricing\ExchangeRateService;
 use App\Services\Pricing\PricingCalculator;
-use App\Models\Tenant;
 use App\Services\Security\SecurityEventLogger;
 use App\Services\Sms\SmsLocalFeatures;
 use App\Services\Support\CsatCampaignService;

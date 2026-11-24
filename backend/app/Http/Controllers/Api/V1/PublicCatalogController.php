@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
 use App\Http\Controllers\Api\V1\Concerns\SerializesCatalogProduct;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
-use App\Models\CafeBranch;
 use App\Models\Category;
 use App\Models\Menu;
 use App\Models\MenuBanner;
@@ -21,6 +20,7 @@ use App\Services\Shop\ShopSettings;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Cafe\Entities\CafeBranch;
 
 class PublicCatalogController extends Controller
 {

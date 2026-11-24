@@ -11,6 +11,14 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!--
+            Tests that ship with a module live next to the code they cover, so a module
+            can be installed or removed with its tests. They still use the `Tests\`
+            namespace and the shared `Tests\TestCase`, which the autoloader resolves.
+        -->
+        <testsuite name="Modules">
+            <directory>modules/*/Tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

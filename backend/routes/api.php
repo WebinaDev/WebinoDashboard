@@ -1,166 +1,151 @@
 <?php
 
-use App\Http\Controllers\OpenApiController;
-use App\Http\Controllers\Api\V1\Poetry\PoetryAdminController;
-use App\Http\Controllers\Api\V1\Poetry\PublicPoetryController;
-use App\Http\Controllers\Api\V1\AcademyCourseController;
 use App\Http\Controllers\Api\V1\AcademyAdminExtrasController;
+use App\Http\Controllers\Api\V1\AcademyCourseController;
 use App\Http\Controllers\Api\V1\AcademyStudentController;
-use App\Http\Controllers\Api\V1\AccountPortalController;
 use App\Http\Controllers\Api\V1\AccountingController;
+use App\Http\Controllers\Api\V1\AccountPortalController;
+use App\Http\Controllers\Api\V1\ActivityLogController;
 use App\Http\Controllers\Api\V1\AiContentController;
 use App\Http\Controllers\Api\V1\AiRecommendationController;
-use App\Http\Controllers\Api\V1\ActivityLogController;
+use App\Http\Controllers\Api\V1\AllergenController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
-use App\Http\Controllers\Api\V1\ErpAnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\ImpersonationController;
-use App\Http\Controllers\Api\V1\OtpAuthController;
 use App\Http\Controllers\Api\V1\BlogCategoryController;
 use App\Http\Controllers\Api\V1\BlogPostController;
-use App\Http\Controllers\Api\V1\BranchOperationsController;
 use App\Http\Controllers\Api\V1\BootstrapController;
-use App\Http\Controllers\Api\V1\BuildPipelineController;
-use App\Http\Controllers\Api\V1\CoreUpdateController;
-use App\Http\Controllers\Api\V1\CartController;
-use App\Http\Controllers\Api\V1\CafeSettingsController;
-use App\Http\Controllers\Api\V1\CafeShiftController;
-use App\Http\Controllers\Api\V1\CafeEngagementInboxController;
-use App\Http\Controllers\Api\V1\CafeTableController;
-use App\Http\Controllers\Api\V1\CafeKitchenController;
-use App\Http\Controllers\Api\V1\CafeFloorController;
-use App\Http\Controllers\Api\V1\CafeDeliveryController;
-use App\Http\Controllers\Api\V1\CafeManagerController;
-use App\Http\Controllers\Api\V1\CafeOperationsController;
-use App\Http\Controllers\Api\V1\CafePosController;
-use App\Http\Controllers\Api\V1\CafePriceCalculatorController;
-use App\Http\Controllers\Api\V1\CafeBranchController;
-use App\Http\Controllers\Api\V1\CafePdfController;
-use App\Http\Controllers\Api\V1\CafeQrController;
-use App\Http\Controllers\Api\V1\AllergenController;
-use App\Http\Controllers\Api\V1\MenuController;
-use App\Http\Controllers\Api\V1\MenuBannerController;
-use App\Http\Controllers\Api\V1\NavMenuController;
-use App\Http\Controllers\Api\V1\ProductModifierController;
-use App\Http\Controllers\Api\V1\ReservationController;
-use App\Http\Controllers\Api\V1\PublicPortfolioController;
-use App\Http\Controllers\Api\V1\PublicReservationController;
-use App\Http\Controllers\Api\V1\PublicCafeEngagementController;
-use App\Http\Controllers\Api\V1\PublicCafeGuestController;
-use App\Http\Controllers\Api\V1\PublicCafePdfController;
-use App\Http\Controllers\Api\V1\PublicCafeQuoteController;
-use App\Http\Controllers\Api\V1\PublicGuestCartController;
-use App\Http\Controllers\Api\V1\PublicShopCheckoutController;
-use App\Http\Controllers\Api\V1\CategoryController;
-use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\BotController;
+use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\BuilderController;
 use App\Http\Controllers\Api\V1\BuilderGlobalsController;
+use App\Http\Controllers\Api\V1\BuildPipelineController;
+use App\Http\Controllers\Api\V1\BulkSaleController;
+use App\Http\Controllers\Api\V1\C2cController;
+use App\Http\Controllers\Api\V1\CartController;
+use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CmsController;
-use App\Http\Controllers\Api\V1\PublicBuilderController;
-use App\Http\Controllers\Api\V1\ThemeBuilderController;
-use App\Http\Controllers\Api\V1\WordpressImportController;
+use App\Http\Controllers\Api\V1\CoffeeController;
+use App\Http\Controllers\Api\V1\CoreUpdateController;
+use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\CustomerNoteController;
+use App\Http\Controllers\Api\V1\DashboardOverviewController;
+use App\Http\Controllers\Api\V1\ErpAnnouncementController;
+use App\Http\Controllers\Api\V1\GeoController;
+use App\Http\Controllers\Api\V1\GoogleOAuthController;
+use App\Http\Controllers\Api\V1\ImpersonationController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\KernelController;
 use App\Http\Controllers\Api\V1\LicenseController;
 use App\Http\Controllers\Api\V1\LinkHubInboxController;
 use App\Http\Controllers\Api\V1\LinkHubProfileController;
 use App\Http\Controllers\Api\V1\LinkHubSettingsController;
-use App\Http\Controllers\Api\V1\PublicLinkHubController;
+use App\Http\Controllers\Api\V1\LoyaltyMissionController;
 use App\Http\Controllers\Api\V1\MagazineArticleController;
 use App\Http\Controllers\Api\V1\MagazineTaxonomyController;
 use App\Http\Controllers\Api\V1\MarketingController;
 use App\Http\Controllers\Api\V1\MarketingPopupController;
-use App\Http\Controllers\Api\V1\LoyaltyMissionController;
+use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\MediaTermController;
+use App\Http\Controllers\Api\V1\MenuBannerController;
+use App\Http\Controllers\Api\V1\MenuController;
 use App\Http\Controllers\Api\V1\MobileContractController;
+use App\Http\Controllers\Api\V1\ModirPayamakController;
 use App\Http\Controllers\Api\V1\ModuleController;
-use App\Http\Controllers\Api\V1\ModuleMarketplaceController;
 use App\Http\Controllers\Api\V1\ModuleInstallController;
+use App\Http\Controllers\Api\V1\ModuleMarketplaceController;
+use App\Http\Controllers\Api\V1\NavMenuController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\OrderDocumentController;
+use App\Http\Controllers\Api\V1\OtpAuthController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
 use App\Http\Controllers\Api\V1\PaymentFormBridgeController;
 use App\Http\Controllers\Api\V1\PaymentGatewaySettingsController;
 use App\Http\Controllers\Api\V1\PaymentIntentController;
-use App\Http\Controllers\Api\V1\PaymentWebhookController;
-use App\Http\Controllers\Api\V1\TenantBillingController;
 use App\Http\Controllers\Api\V1\PaymentsHubController;
+use App\Http\Controllers\Api\V1\PaymentWebhookController;
+use App\Http\Controllers\Api\V1\PerformanceSettingsController;
+use App\Http\Controllers\Api\V1\Poetry\PoetryAdminController;
+use App\Http\Controllers\Api\V1\Poetry\PublicPoetryController;
+use App\Http\Controllers\Api\V1\PollController;
 use App\Http\Controllers\Api\V1\PortfolioItemController;
-use App\Http\Controllers\Api\V1\BrandController;
-use App\Http\Controllers\Api\V1\BulkSaleController;
-use App\Http\Controllers\Api\V1\C2cController;
-use App\Http\Controllers\Api\V1\CoffeeController;
-use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\PricingController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
 use App\Http\Controllers\Api\V1\ProductCatalogController;
+use App\Http\Controllers\Api\V1\ProductCompareController;
 use App\Http\Controllers\Api\V1\ProductController;
-use App\Http\Controllers\Api\V1\ProductTagController;
 use App\Http\Controllers\Api\V1\ProductDownloadController;
+use App\Http\Controllers\Api\V1\ProductEngagementController;
+use App\Http\Controllers\Api\V1\ProductModifierController;
 use App\Http\Controllers\Api\V1\ProductQuestionController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
-use App\Http\Controllers\Api\V1\ShopExtrasController;
+use App\Http\Controllers\Api\V1\ProductStoryController;
+use App\Http\Controllers\Api\V1\ProductTagController;
 use App\Http\Controllers\Api\V1\ProductVariantController;
-use App\Http\Controllers\Api\V1\WalletController;
-use App\Http\Controllers\Api\V1\CustomerController;
-use App\Http\Controllers\Api\V1\CustomerNoteController;
-use App\Http\Controllers\Api\V1\UserAdminController;
-use App\Http\Controllers\Api\V1\DashboardOverviewController;
-use App\Http\Controllers\Api\V1\StaffController;
-use App\Http\Controllers\Api\V1\SupportTicketController;
-use App\Http\Controllers\Api\V1\RoleController;
-use App\Http\Controllers\Api\V1\BotController;
-use Modules\Commerce\Http\Controllers\CouponController;
-use App\Http\Controllers\Api\V1\ModirPayamakController;
-use App\Http\Controllers\Api\V1\PublicCatalogController;
-use App\Http\Controllers\Api\V1\PublicCafeController;
 use App\Http\Controllers\Api\V1\ProvisionController;
 use App\Http\Controllers\Api\V1\PublicAcademyController;
+use App\Http\Controllers\Api\V1\PublicAnalyticsController;
 use App\Http\Controllers\Api\V1\PublicBlogController;
+use App\Http\Controllers\Api\V1\PublicBuilderController;
+use App\Http\Controllers\Api\V1\PublicBuilderFormController;
+use Modules\Cafe\Http\Controllers\PublicCafeController;
+use Modules\Cafe\Http\Controllers\PublicCafeEngagementController;
+use Modules\Cafe\Http\Controllers\PublicCafeGuestController;
+use Modules\Cafe\Http\Controllers\PublicCafePdfController;
+use Modules\Cafe\Http\Controllers\PublicCafeQuoteController;
+use App\Http\Controllers\Api\V1\PublicCatalogController;
 use App\Http\Controllers\Api\V1\PublicCmsController;
 use App\Http\Controllers\Api\V1\PublicConsultationController;
 use App\Http\Controllers\Api\V1\PublicCorporateController;
+use App\Http\Controllers\Api\V1\PublicGuestCartController;
 use App\Http\Controllers\Api\V1\PublicKernelController;
+use App\Http\Controllers\Api\V1\PublicLinkHubController;
 use App\Http\Controllers\Api\V1\PublicMagazineController;
+use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
+use App\Http\Controllers\Api\V1\PublicPortfolioController;
+use App\Http\Controllers\Api\V1\PublicReservationController;
 use App\Http\Controllers\Api\V1\PublicResumeController;
-use App\Http\Controllers\Api\V1\PublicSiteController;
-use App\Http\Controllers\Api\V1\SiteStatusController;
-use App\Http\Controllers\Api\V1\GeoController;
-use App\Http\Controllers\Api\V1\GoogleOAuthController;
-use App\Http\Controllers\Api\V1\ShopExtrasAdminController;
-use App\Http\Controllers\Api\V1\SeoAdminController;
 use App\Http\Controllers\Api\V1\PublicSeoController;
-use App\Http\Controllers\Api\V1\PerformanceSettingsController;
-use App\Http\Controllers\Api\V1\SecurityHubController;
-use App\Http\Controllers\Api\V1\PollController;
-use App\Http\Controllers\Api\V1\ProductCompareController;
-use App\Http\Controllers\Api\V1\ProductEngagementController;
-use App\Http\Controllers\Api\V1\ProductStoryController;
+use App\Http\Controllers\Api\V1\PublicShopCheckoutController;
+use App\Http\Controllers\Api\V1\PublicSiteController;
+use App\Http\Controllers\Api\V1\PublicStorefrontController;
 use App\Http\Controllers\Api\V1\PublicVendorStoreController;
 use App\Http\Controllers\Api\V1\PublicWishlistController;
-use App\Http\Controllers\Api\V1\PublicStorefrontController;
-use App\Http\Controllers\Api\V1\VendorPortalController;
-use App\Http\Controllers\Api\V1\PublicAnalyticsController;
-use App\Http\Controllers\Api\V1\PublicBuilderFormController;
-use App\Http\Controllers\Api\V1\PublicOrderPaymentController;
 use App\Http\Controllers\Api\V1\ReportsController;
+use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\ResumeProfileController;
+use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\SecurityHubController;
+use App\Http\Controllers\Api\V1\SeoAdminController;
 use App\Http\Controllers\Api\V1\SetupController;
 use App\Http\Controllers\Api\V1\ShippingCarrierSettingsController;
 use App\Http\Controllers\Api\V1\ShippingHubController;
 use App\Http\Controllers\Api\V1\ShippingZonesController;
+use App\Http\Controllers\Api\V1\ShopExtrasAdminController;
+use App\Http\Controllers\Api\V1\ShopExtrasController;
 use App\Http\Controllers\Api\V1\SiteConsultationController;
+use App\Http\Controllers\Api\V1\SiteStatusController;
+use App\Http\Controllers\Api\V1\StaffController;
+use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\TapinController;
 use App\Http\Controllers\Api\V1\TeamMemberController;
+use App\Http\Controllers\Api\V1\TenantBillingController;
 use App\Http\Controllers\Api\V1\TenantController;
-use App\Http\Controllers\Api\V1\OrderDocumentController;
 use App\Http\Controllers\Api\V1\TenantSettingsController;
-use App\Http\Controllers\Api\V1\ThemeController;
 use App\Http\Controllers\Api\V1\TestimonialController;
+use App\Http\Controllers\Api\V1\ThemeBuilderController;
+use App\Http\Controllers\Api\V1\ThemeController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
+use App\Http\Controllers\Api\V1\UserAdminController;
+use App\Http\Controllers\Api\V1\VendorPortalController;
+use App\Http\Controllers\Api\V1\WalletController;
+use App\Http\Controllers\Api\V1\WordpressImportController;
+use App\Http\Controllers\OpenApiController;
 use Illuminate\Support\Facades\Route;
+use Modules\Commerce\Http\Controllers\CouponController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/openapi.json', [OpenApiController::class, 'show']);
@@ -915,192 +900,6 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/variants/{variant}', [ProductVariantController::class, 'destroy'])->whereNumber('variant');
             });
 
-            Route::middleware(['module:cafe_menu', 'can:catalog.*,commerce.*'])->group(function () {
-                Route::get('/cafe/menu-settings', [CafeSettingsController::class, 'showMenu']);
-                Route::patch('/cafe/menu-settings', [CafeSettingsController::class, 'updateMenu']);
-                Route::post('/cafe/bulk-price', [CafeSettingsController::class, 'bulkPrice']);
-                // «پیشنهاد قیمت آیتم‌ها»: live calculation, saved cost sheets, applying a price.
-                Route::get('/cafe/pricing', [CafePriceCalculatorController::class, 'index']);
-                Route::post('/cafe/pricing/calculate', [CafePriceCalculatorController::class, 'calculate']);
-                Route::post('/cafe/pricing/allocate', [CafePriceCalculatorController::class, 'allocate']);
-                Route::post('/cafe/pricing/reverse', [CafePriceCalculatorController::class, 'reverse']);
-                Route::post('/cafe/pricing', [CafePriceCalculatorController::class, 'store']);
-                Route::delete('/cafe/pricing/{sheet}', [CafePriceCalculatorController::class, 'destroy'])->whereNumber('sheet');
-                Route::get('/cafe/engagement-settings', [CafeSettingsController::class, 'showEngagement']);
-                Route::patch('/cafe/engagement-settings', [CafeSettingsController::class, 'updateEngagement']);
-                Route::get('/cafe/feedback', [CafeEngagementInboxController::class, 'feedback']);
-                Route::get('/cafe/likes', [CafeEngagementInboxController::class, 'likes']);
-            });
-
-            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.*,reports.shop,accounting.manage'])->group(function () {
-                Route::get('/cafe/pos/shift', [CafeShiftController::class, 'current']);
-                Route::get('/cafe/pos/shifts', [CafeShiftController::class, 'index']);
-                Route::get('/cafe/pos/shifts/{shift}', [CafeShiftController::class, 'show'])->whereNumber('shift');
-                Route::get('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'movements'])->whereNumber('shift');
-            });
-            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.*'])->group(function () {
-                Route::post('/cafe/pos/shift/open', [CafeShiftController::class, 'open']);
-                Route::post('/cafe/pos/shifts/{shift}/close', [CafeShiftController::class, 'close'])->whereNumber('shift');
-                Route::post('/cafe/pos/shifts/{shift}/movements', [CafeShiftController::class, 'storeMovement'])->whereNumber('shift');
-            });
-
-            Route::middleware(['module:cafe_qr', 'can:catalog.*,commerce.*'])->group(function () {
-                Route::get('/cafe/qr-settings', [CafeQrController::class, 'showSettings']);
-                Route::patch('/cafe/qr-settings', [CafeQrController::class, 'updateSettings']);
-                Route::get('/cafe/qr', [CafeQrController::class, 'menuQr']);
-                Route::get('/cafe/menu-pdf', [CafePdfController::class, 'menuPdf']);
-
-                Route::get('/cafe/tables', [CafeTableController::class, 'index']);
-                Route::post('/cafe/tables', [CafeTableController::class, 'store']);
-                Route::patch('/cafe/tables/{table}', [CafeTableController::class, 'update'])->whereNumber('table');
-                Route::delete('/cafe/tables/{table}', [CafeTableController::class, 'destroy'])->whereNumber('table');
-            });
-
-            // Multi-branch operations. Reading stock and settings is open to anyone who can
-            // run the floor; changing them needs the branch-management capability.
-            Route::middleware(['module:cafe_menu', 'can:branches.manage,catalog.*'])->group(function () {
-                Route::apiResource('cafe/branches', CafeBranchController::class)->only(['index', 'store', 'update', 'destroy']);
-                // Multi-branch switchboard, per-branch stock, price overrides.
-                Route::get('/cafe/branch-settings', [BranchOperationsController::class, 'settingsShow']);
-                Route::put('/cafe/branch-settings', [BranchOperationsController::class, 'settingsUpdate']);
-                Route::get('/cafe/branch-stock', [BranchOperationsController::class, 'stockIndex']);
-                Route::post('/cafe/branch-stock/count', [BranchOperationsController::class, 'stockCount']);
-                Route::post('/cafe/branch-prices', [BranchOperationsController::class, 'priceOverride']);
-                Route::delete('/cafe/branch-prices/{override}', [BranchOperationsController::class, 'priceOverrideDestroy'])->whereNumber('override');
-                Route::get('/cafe/oversold-orders', [BranchOperationsController::class, 'oversoldIndex']);
-
-                // Kitchen stations: routing, membership, and the per-station KDS board.
-                Route::get('/cafe/stations', [BranchOperationsController::class, 'stationsIndex']);
-                Route::post('/cafe/stations', [BranchOperationsController::class, 'stationsStore']);
-                Route::patch('/cafe/stations/{station}', [BranchOperationsController::class, 'stationsUpdate'])->whereNumber('station');
-                Route::delete('/cafe/stations/{station}', [BranchOperationsController::class, 'stationsDestroy'])->whereNumber('station');
-                Route::post('/cafe/stations/{station}/assign', [BranchOperationsController::class, 'stationsAssign'])->whereNumber('station');
-                Route::delete('/cafe/stations/{station}/users/{user}', [BranchOperationsController::class, 'stationsUnassignUser'])->whereNumber('station')->whereNumber('user');
-            });
-
-            // The kitchen board is its own access path. A cook holds kitchen.view and
-            // nothing else, so it cannot live inside the catalog.* menu-management group.
-            Route::middleware(['module:cafe_menu', 'can:kitchen.view,kitchen.station,catalog.*,reports.shop,orders.*'])->group(function () {
-                Route::get('/cafe/kitchen-orders', [CafeKitchenController::class, 'index']);
-                Route::get('/cafe/kitchen-orders/live', [CafeKitchenController::class, 'live']);
-                Route::patch('/cafe/kitchen-orders/{order}', [CafeKitchenController::class, 'update'])->whereNumber('order');
-            });
-
-            // Daily operations: workbench queue + live floor map. A cashier, waiter and cook
-            // all open this page; the role filter decides which lanes they see.
-            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,orders.floor,kitchen.view,catalog.*'])->group(function () {
-                Route::get('/cafe/workbench', [CafeOperationsController::class, 'workbench']);
-            });
-
-            // The till: one bootstrap call for the whole screen, then order entry. A waiter
-            // holds `orders.create` but no `pos.use`, so both grants open these.
-            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,catalog.*'])->group(function () {
-                Route::get('/cafe/pos/bootstrap', [CafePosController::class, 'bootstrap']);
-                Route::get('/cafe/pos/guests', [CafePosController::class, 'guests']);
-                Route::post('/cafe/pos/quote', [CafePosController::class, 'quote']);
-                Route::post('/cafe/pos/orders', [CafePosController::class, 'store']);
-                Route::get('/cafe/pos/orders/{order}', [CafePosController::class, 'show'])->whereNumber('order');
-                Route::put('/cafe/pos/orders/{order}', [CafePosController::class, 'update'])->whereNumber('order');
-            });
-
-            // Split payment, void-with-reason, per-line KDS ticks.
-            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,catalog.*'])->group(function () {
-                Route::middleware('can:pos.use,orders.void,catalog.*')->group(function () {
-                    Route::post('/cafe/orders/{order}/settle', [CafeOperationsController::class, 'settle'])->whereNumber('order');
-                });
-                Route::post('/cafe/orders/{order}/cancel', [CafeOperationsController::class, 'cancel'])->whereNumber('order');
-            });
-
-            Route::middleware(['module:cafe_menu', 'can:kitchen.view,kitchen.station,catalog.*,pos.use'])->group(function () {
-                Route::get('/cafe/orders/{order}/prep', [CafeOperationsController::class, 'orderPrep'])->whereNumber('order');
-                Route::post('/cafe/orders/{order}/prep', [CafeOperationsController::class, 'itemPrep'])->whereNumber('order');
-                // The board's columns: read by every cook, edited by whoever manages stations.
-                Route::get('/cafe/kitchen-columns', [CafeOperationsController::class, 'kitchenColumns']);
-            });
-
-            Route::middleware(['module:cafe_menu', 'can:kitchen.station,catalog.*'])->group(function () {
-                Route::put('/cafe/kitchen-columns', [CafeOperationsController::class, 'kitchenColumnsUpdate']);
-            });
-
-            // Delivery areas carry money (a fee and a minimum), so they sit with the branch
-            // managers rather than with every till.
-            Route::middleware(['module:cafe_menu', 'can:branches.manage,catalog.*'])->group(function () {
-                Route::get('/cafe/delivery-zones', [CafeOperationsController::class, 'zonesIndex']);
-                Route::post('/cafe/delivery-zones', [CafeOperationsController::class, 'zonesStore']);
-                Route::patch('/cafe/delivery-zones/{zone}', [CafeOperationsController::class, 'zonesUpdate'])->whereNumber('zone');
-                Route::delete('/cafe/delivery-zones/{zone}', [CafeOperationsController::class, 'zonesDestroy'])->whereNumber('zone');
-            });
-            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,orders.*'])->group(function () {
-                Route::get('/cafe/delivery-quote', [CafeOperationsController::class, 'zonesQuote']);
-            });
-
-            // Amending a paid invoice: request is open to the till, approval is not.
-            Route::middleware(['module:cafe_menu', 'can:pos.use,orders.*'])->group(function () {
-                Route::get('/cafe/orders/{order}/amendments', [CafeOperationsController::class, 'amendmentsIndex'])->whereNumber('order');
-                Route::post('/cafe/orders/{order}/amendments', [CafeOperationsController::class, 'amendmentRequest'])->whereNumber('order');
-            });
-            Route::middleware(['module:cafe_menu', 'can:accounting.approve,pos.approve,accounting.manage'])->group(function () {
-                // The approval queue: whoever may approve is exactly who needs to see it, and a
-                // cashier who may only *request* must not see other people's pending edits.
-                Route::get('/cafe/amendments/pending', [CafeOperationsController::class, 'amendmentsPending']);
-                Route::post('/cafe/amendments/{amendment}/approve', [CafeOperationsController::class, 'amendmentApprove'])->whereNumber('amendment');
-                Route::post('/cafe/amendments/{amendment}/reject', [CafeOperationsController::class, 'amendmentReject'])->whereNumber('amendment');
-                Route::post('/cafe/amendments/{amendment}/settle', [CafeOperationsController::class, 'amendmentSettle'])->whereNumber('amendment');
-            });
-
-            // Operational thresholds shared by the workbench, KDS and delivery.
-            Route::middleware(['module:cafe_menu', 'can:settings.manage,catalog.*'])->group(function () {
-                Route::get('/cafe/operations-settings', [CafeOperationsController::class, 'settingsShow']);
-                Route::put('/cafe/operations-settings', [CafeOperationsController::class, 'settingsUpdate']);
-            });
-
-            // --- POS operations -------------------------------------------------
-            // Waiter floor board, courier run sheet, and the manager KPI rollup each carry
-            // their own gate. They must not inherit the catalog/commerce requirement of the
-            // tables CRUD above: a waiter or driver holds orders.own, not catalog.*.
-            Route::middleware(['module:cafe_menu', 'can:orders.own,orders.*,catalog.*,pos.use'])->group(function () {
-                Route::get('/cafe/floor', [CafeFloorController::class, 'index']);
-                Route::patch('/cafe/floor/{table}', [CafeFloorController::class, 'updateStatus'])->whereNumber('table');
-                Route::post('/cafe/floor/{table}/free', [CafeFloorController::class, 'free'])->whereNumber('table');
-            });
-
-            Route::middleware(['module:cafe_menu', 'can:orders.own,orders.*'])->group(function () {
-                Route::get('/cafe/deliveries', [CafeDeliveryController::class, 'index']);
-                Route::post('/cafe/deliveries/{order}/claim', [CafeDeliveryController::class, 'claim'])->whereNumber('order');
-                Route::post('/cafe/deliveries/{order}/pick-up', [CafeDeliveryController::class, 'pickUp'])->whereNumber('order');
-                Route::post('/cafe/deliveries/{order}/deliver', [CafeDeliveryController::class, 'deliver'])->whereNumber('order');
-                Route::post('/cafe/deliveries/{order}/fail', [CafeDeliveryController::class, 'fail'])->whereNumber('order');
-                Route::post('/cafe/deliveries/{order}/release', [CafeDeliveryController::class, 'release'])->whereNumber('order');
-            });
-
-            Route::middleware(['module:cafe_menu', 'can:reports.shop,reports.*,orders.*'])->group(function () {
-                Route::get('/cafe/manager/overview', [CafeManagerController::class, 'overview']);
-                // The same board as a spreadsheet, for comparing weeks in Excel and for printing.
-                Route::get('/cafe/manager/export', [CafeManagerController::class, 'export']);
-            });
-
-            Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {
-                Route::get('/cafe/reservations', [ReservationController::class, 'index']);
-                Route::patch('/cafe/reservations/{reservation}', [ReservationController::class, 'updateReservation'])->whereNumber('reservation');
-                Route::post('/cafe/events', [ReservationController::class, 'storeEvent']);
-                Route::patch('/cafe/events/{event}', [ReservationController::class, 'updateEvent'])->whereNumber('event');
-                Route::patch('/cafe/event-bookings/{booking}', [ReservationController::class, 'updateEventBooking'])->whereNumber('booking');
-            });
-
-            Route::middleware(['module:cafe_hours', 'can:catalog.*,commerce.*'])->group(function () {
-                Route::get('/cafe/hours-settings', [CafeSettingsController::class, 'showHours']);
-                Route::patch('/cafe/hours-settings', [CafeSettingsController::class, 'updateHours']);
-            });
-
-            Route::middleware(['module:cafe_gallery', 'can:catalog.*,commerce.*'])->group(function () {
-                Route::get('/cafe/gallery-settings', [CafeSettingsController::class, 'showGallery']);
-                Route::patch('/cafe/gallery-settings', [CafeSettingsController::class, 'updateGallery']);
-            });
-
-            Route::middleware(['module:cafe_venue', 'can:catalog.*,commerce.*'])->group(function () {
-                Route::get('/cafe/venue-settings', [CafeSettingsController::class, 'showVenue']);
-                Route::patch('/cafe/venue-settings', [CafeSettingsController::class, 'updateVenue']);
-            });
 
             Route::middleware(['module:orders', 'can:orders.*,orders.own,pos.use'])->group(function () {
                 Route::get('/orders', [OrderController::class, 'index']);

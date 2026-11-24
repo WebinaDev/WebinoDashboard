@@ -1,10 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Accounting\Http\Controllers\AccInvoiceController;
 use Modules\Accounting\Http\Controllers\AccountingDashboardController;
 use Modules\Accounting\Http\Controllers\AccountingSettingsController;
 use Modules\Accounting\Http\Controllers\AccountingWpActionController;
-use Modules\Accounting\Http\Controllers\AccInvoiceController;
 use Modules\Accounting\Http\Controllers\CashAccountController;
 use Modules\Accounting\Http\Controllers\ChartAccountController;
 use Modules\Accounting\Http\Controllers\CheckController;

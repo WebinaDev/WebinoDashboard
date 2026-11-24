@@ -44,7 +44,7 @@ class PublicCacheAndInternalThrottleTest extends TestCase
     {
         $this->assertTrue(PublicResponseCache::isVolatile(new \App\Models\Cart));
         $this->assertTrue(PublicResponseCache::isVolatile(new \App\Models\SecurityEvent));
-        $this->assertFalse(PublicResponseCache::isVolatile(new \App\Models\CafeEvent));
+        $this->assertFalse(PublicResponseCache::isVolatile(new \Modules\Cafe\Entities\CafeEvent));
         $this->assertFalse(PublicResponseCache::isVolatile($this->tenant));
         $v = PublicResponseCache::version($this->tenant->id);
         usleep(2000);

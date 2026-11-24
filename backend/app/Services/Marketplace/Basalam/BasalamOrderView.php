@@ -3,8 +3,8 @@
 namespace App\Services\Marketplace\Basalam;
 
 use App\Models\Order;
-use App\Support\Currency;
 use App\Services\Marketplace\MarketplacePricing;
+use App\Support\Currency;
 
 /**
  * Normalize a Basalam vendor invoice for the order screen (WP Webino_Basalam_Order_View parity).

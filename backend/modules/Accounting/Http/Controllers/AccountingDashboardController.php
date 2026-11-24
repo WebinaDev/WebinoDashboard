@@ -5,9 +5,9 @@ namespace Modules\Accounting\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Modules\Accounting\Entities\AccFiscalYear;
 use Modules\Accounting\Entities\AccJournalEntry;
+use Modules\Accounting\Entities\AccountingInvoice;
 use Modules\Accounting\Entities\AccPerson;
 use Modules\Accounting\Entities\AccWarehouse;
-use Modules\Accounting\Entities\AccountingInvoice;
 
 class AccountingDashboardController extends Controller
 {

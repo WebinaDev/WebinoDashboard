@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\CafeEvent;
 use App\Models\EventBooking;
 use App\Models\Reservation;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Modules\Cafe\Entities\CafeEvent;
 
 class ReservationController extends Controller
 {

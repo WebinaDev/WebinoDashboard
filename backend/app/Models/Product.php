@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Support\Audit\RecordsActivity;
 use App\Services\Media\ImageSizes;
+use App\Support\Audit\RecordsActivity;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;

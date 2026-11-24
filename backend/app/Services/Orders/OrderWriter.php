@@ -343,10 +343,10 @@ class OrderWriter
         }
 
         if ($actor !== null && $actor->id !== null) {
-            $shiftBranch = \App\Models\CafeShift::query()
+            $shiftBranch = \Modules\Cafe\Entities\CafeShift::query()
                 ->where('tenant_id', $tenantId)
                 ->where('user_id', $actor->id)
-                ->where('status', \App\Models\CafeShift::STATUS_OPEN)
+                ->where('status', \Modules\Cafe\Entities\CafeShift::STATUS_OPEN)
                 ->whereNotNull('branch_id')
                 ->value('branch_id');
 
@@ -355,7 +355,7 @@ class OrderWriter
             }
         }
 
-        $branches = \App\Models\CafeBranch::query()
+        $branches = \Modules\Cafe\Entities\CafeBranch::query()
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->limit(2)

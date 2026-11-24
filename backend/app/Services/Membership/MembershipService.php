@@ -2,6 +2,7 @@
 
 namespace App\Services\Membership;
 
+use App\Http\Middleware\EnsureStaffRole;
 use App\Models\Membership\MembershipDownload;
 use App\Models\Membership\MembershipGrant;
 use App\Models\Membership\MembershipPlan;
@@ -10,7 +11,6 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Http\Middleware\EnsureStaffRole;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;

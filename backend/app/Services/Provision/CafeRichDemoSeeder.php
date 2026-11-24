@@ -3,8 +3,6 @@
 namespace App\Services\Provision;
 
 use App\Models\Allergen;
-use App\Models\CafeBranch;
-use App\Models\CafeEvent;
 use App\Models\Category;
 use App\Models\Menu;
 use App\Models\MenuBanner;
@@ -12,6 +10,8 @@ use App\Models\Product;
 use App\Models\ProductModifier;
 use App\Models\Tenant;
 use App\Services\Modules\ModuleSettingsService;
+use Modules\Cafe\Entities\CafeBranch;
+use Modules\Cafe\Entities\CafeEvent;
 
 /**
  * Sales-ready Persian cafe sample (venue, hours, gallery, menus, categories,

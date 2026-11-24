@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use App\Services\Payments\Drivers\StripeDriver;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class StripeVerificationIntegrityTest extends TestCase

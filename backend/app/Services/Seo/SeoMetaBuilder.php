@@ -2,11 +2,11 @@
 
 namespace App\Services\Seo;
 
-use App\Support\Currency;
 use App\Models\BlogPost;
 use App\Models\CmsPage;
 use App\Models\Product;
 use App\Models\Tenant;
+use App\Support\Currency;
 
 final class SeoMetaBuilder
 {

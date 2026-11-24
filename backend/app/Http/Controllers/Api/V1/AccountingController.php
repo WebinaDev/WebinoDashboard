@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\AccAccount;
+use App\Models\AccAccountCoding;
 use App\Models\AccInvoice;
 use App\Models\AccJournal;
 use App\Models\AccJournalLine;
@@ -12,7 +13,6 @@ use App\Models\AccPerson;
 use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\TenantModule;
-use App\Models\AccAccountCoding;
 use App\Services\Accounting\AccountCoding;
 use App\Services\Accounting\AccountingIntegrationsRegistry;
 use App\Services\Accounting\MoadianService;
