@@ -100,7 +100,23 @@ final class DayCloseService
                 })
                 ->update(['day_close_id' => $close->id]);
 
-            return $close->fresh();
+            $closed = $close->fresh();
+
+            // The day is signed off. Anything that monitors the shop's money wants this event,
+            // and it is queued after the transaction commits so it cannot describe a close that
+            // was then rolled back.
+            try {
+                app(\App\Services\Webhooks\WebhookDispatcher::class)->queue($tenantId, 'day.closed', [
+                    'day_close_id' => (int) $closed->id,
+                    'business_date' => $closed->business_date,
+                    'gross_sales_minor' => (int) $closed->gross_sales_minor,
+                    'variance_minor' => (int) $closed->variance_minor,
+                ]);
+            } catch (\Throwable) {
+                // A notification must never be why a day cannot be closed.
+            }
+
+            return $closed;
         });
     }
 

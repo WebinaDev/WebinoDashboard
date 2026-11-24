@@ -131,6 +131,24 @@ class CafeShiftController extends Controller
             }
         }
 
+        // The shift is closed and its numbers are final: this is the moment an accounting or
+        // monitoring integration wants to hear about it.
+        try {
+            app(\App\Services\Webhooks\WebhookDispatcher::class)->queue(
+                (int) $request->user()->tenant_id,
+                'shift.closed',
+                [
+                    'shift_id' => (int) $closed->id,
+                    'branch_id' => $closed->branch_id === null ? null : (int) $closed->branch_id,
+                    'counted_cash_minor' => (int) $closed->counted_cash_minor,
+                    'variance_minor' => (int) $closed->variance_minor,
+                    'closed_at' => $closed->closed_at,
+                ],
+            );
+        } catch (\Throwable) {
+            // A notification must never be why a drawer cannot be closed.
+        }
+
         return response()->json([
             'data' => $this->present($closed->fresh()),
             'journal' => $journal,

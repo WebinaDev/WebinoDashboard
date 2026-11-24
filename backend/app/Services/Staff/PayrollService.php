@@ -297,6 +297,22 @@ final class PayrollService
             'created_by' => $actor->id,
         ]);
 
+        // A posted payroll run is news an accountant's system wants: it is the largest single
+        // expense of most months and it happens once.
+        try {
+            app(\App\Services\Webhooks\WebhookDispatcher::class)->queue($tenantId, 'payroll.posted', [
+                'run_id' => (int) $run->id,
+                'period_start' => $run->period_start,
+                'period_end' => $run->period_end,
+                'gross_total_minor' => $gross,
+                'net_total_minor' => $net,
+                'tax_total_minor' => $tax,
+                'journal_entry_id' => $entry->id,
+            ]);
+        } catch (\Throwable) {
+            // A notification must never be why a payroll run fails to post.
+        }
+
         DB::table('cafe_payroll_runs')->where('id', $run->id)->update([
             'status' => 'posted',
             'journal_entry_id' => $entry->id,
