@@ -59,6 +59,10 @@ final class AccountCoding
             AccAccountCoding::ROLE_DISCOUNT => ['code' => '4103', 'name' => 'تخفیفات فروش', 'type' => 'revenue'],
             AccAccountCoding::ROLE_SHIPPING => ['code' => '4104', 'name' => 'درآمد ارسال', 'type' => 'revenue'],
             AccAccountCoding::ROLE_COGS => ['code' => '5101', 'name' => 'بهای تمام‌شده کالای فروش‌رفته', 'type' => 'expense'],
+            AccAccountCoding::ROLE_WAGE_EXPENSE => ['code' => '6101', 'name' => 'هزینه حقوق و دستمزد', 'type' => 'expense'],
+            AccAccountCoding::ROLE_SALARIES_PAYABLE => ['code' => '2104', 'name' => 'حقوق پرداختنی', 'type' => 'liability'],
+            AccAccountCoding::ROLE_INSURANCE_PAYABLE => ['code' => '2103', 'name' => 'بیمه تأمین اجتماعی پرداختنی', 'type' => 'liability'],
+            AccAccountCoding::ROLE_PAYROLL_TAX_PAYABLE => ['code' => '2105', 'name' => 'مالیات حقوق پرداختنی', 'type' => 'liability'],
         ];
     }
 

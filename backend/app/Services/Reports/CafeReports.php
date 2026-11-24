@@ -434,10 +434,14 @@ final class CafeReports
             return 0;
         }
 
+        // Gross plus the employer's share: both are real cost to the business. Net pay alone
+        // would understate payroll by the insurance and the withheld tax that the shop still
+        // pays over on the employee's behalf.
         return (int) round((float) DB::table('cafe_payroll_runs')
             ->where('tenant_id', $tenantId)
-            ->whereBetween('period_start', [$from->toDateString(), $to->toDateString()])
+            ->where('period_start', '>=', $from->toDateString())
+            ->where('period_start', '<=', $to->toDateString())
             ->where('status', 'posted')
-            ->sum('net_total_minor'));
+            ->sum(DB::raw('gross_total_minor + employer_insurance_total_minor')));
     }
 }

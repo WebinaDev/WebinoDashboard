@@ -75,6 +75,8 @@ use App\Http\Controllers\Api\V1\PortfolioItemController;
 use App\Http\Controllers\Api\V1\PricingController;
 use App\Http\Controllers\Api\V1\CafeReportsController;
 use App\Http\Controllers\Api\V1\RecipeController;
+use App\Http\Controllers\Api\V1\StaffController;
+use App\Http\Controllers\Api\V1\StaffRotaController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
 use App\Http\Controllers\Api\V1\ProductCatalogController;
 use App\Http\Controllers\Api\V1\ProductCompareController;
@@ -805,9 +807,31 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/attribute-groups/{group}', [ProductAttributeController::class, 'groupsDestroy'])->whereNumber('group');
             });
 
-            // Recipes and stock costing. Reading the cost of a dish is a catalogue act;
-            // recording a purchase price is what the accountant needs, so both are gated on the
-            // catalogue/accounting grants rather than left to anyone with a session.
+            // Staff rota, attendance and leave. A staff member may clock themselves and see
+            // their own week; managing the rota, deciding leave and running payroll needs
+            // `staff.manage` (checked again inside the controller).
+            // Self-service: any staff role may clock in and see their own week. The controller
+            // narrows what a non-manager sees, because a waiter who cannot clock in is a
+            // payroll dispute waiting to happen.
+            Route::get('/staff/week', [StaffRotaController::class, 'week']);
+            Route::post('/staff/clock', [StaffRotaController::class, 'clock']);
+            Route::post('/staff/leave', [StaffRotaController::class, 'requestLeave']);
+            Route::get('/staff/leave', [StaffRotaController::class, 'leaveIndex']);
+
+            Route::middleware(['can:staff.manage,users.manage,accounting.manage'])->group(function () {
+                Route::post('/staff/shifts', [StaffRotaController::class, 'saveShifts']);
+                Route::post('/staff/week/publish', [StaffRotaController::class, 'publish']);
+                Route::delete('/staff/shifts/{shift}', [StaffRotaController::class, 'destroyShift'])->whereNumber('shift');
+                Route::get('/staff/on-duty', [StaffRotaController::class, 'shiftIndex']);
+                Route::post('/staff/leave/{leave}/decide', [StaffRotaController::class, 'decideLeave'])->whereNumber('leave');
+                Route::get('/staff/contracts', [StaffRotaController::class, 'contracts']);
+                Route::post('/staff/contracts', [StaffRotaController::class, 'saveContract']);
+                Route::get('/staff/payroll', [StaffRotaController::class, 'payrollRuns']);
+                Route::get('/staff/payroll/{run}', [StaffRotaController::class, 'payrollShow'])->whereNumber('run');
+                Route::post('/staff/payroll', [StaffRotaController::class, 'payrollBuild']);
+                Route::post('/staff/payroll/{run}/post', [StaffRotaController::class, 'payrollPost'])->whereNumber('run');
+            });
+
             // Money reports. Anyone who audits may read them; the export is the same data in a
             // form an accountant can file.
             Route::middleware(['can:reports.shop,accounting.manage,orders.*'])->group(function () {
@@ -817,6 +841,9 @@ Route::prefix('v1')->group(function () {
                 Route::get('/reports/ar-aging', [CafeReportsController::class, 'aging']);
             });
 
+            // Recipes and stock costing. Reading the cost of a dish is a catalogue act;
+            // recording a purchase price is what the accountant needs, so both are gated on the
+            // catalogue/accounting grants rather than left to anyone with a session.
             Route::middleware(['module:catalog', 'can:catalog.*,commerce.*,accounting.manage'])->group(function () {
                 Route::get('/recipes/overview', [RecipeController::class, 'overview']);
                 Route::get('/recipes/{product}', [RecipeController::class, 'show'])->whereNumber('product');

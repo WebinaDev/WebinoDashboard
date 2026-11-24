@@ -316,4 +316,61 @@ class CafeReportsTest extends TestCase
         $this->assertSame(4, $all['revenue']['orders']);
         $this->assertSame(1, $one['revenue']['orders'], 'the branch filter has to be applied, not just echoed');
     }
+
+    /**
+     * A posted payroll run feeds the P&L exactly once.
+     *
+     * The run is not posted to the ledger here, so the wage expense is not among the ledger
+     * expenses and payroll must be added on top. Gross plus the employer's insurance is the
+     * cost to the business: net pay alone would hide both the insurance and the withheld tax
+     * the shop still pays over.
+     */
+    public function test_a_posted_payroll_run_is_counted_once_at_its_full_cost(): void
+    {
+        $latte = $this->dish('Latte', 50000);
+        $this->sell($latte, 10, 50000);
+
+        DB::table('cafe_payroll_runs')->insert([
+            'tenant_id' => $this->tenant->id,
+            'period_start' => now()->toDateString(),
+            'period_end' => now()->toDateString(),
+            'status' => 'posted',
+            'gross_total_minor' => 30_000_000,
+            'employee_insurance_total_minor' => 2_100_000,
+            'employer_insurance_total_minor' => 6_900_000,
+            'tax_total_minor' => 290_000,
+            'net_total_minor' => 27_610_000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $pl = app(CafeReports::class)->profitAndLoss($this->tenant->id, now()->subDay(), now()->addDay());
+
+        $this->assertSame(36_900_000, $pl['payroll_minor'], 'gross + employer insurance');
+        $this->assertFalse($pl['payroll_in_ledger']);
+        $this->assertSame(36_900_000, $pl['prime_cost_minor'], 'no material cost on an uncosted dish');
+        $this->assertSame(500000 - 36_900_000, $pl['operating_profit_minor']);
+    }
+
+    /** A draft run is a plan, not a cost: only posted payroll reaches the P&L. */
+    public function test_a_draft_payroll_run_is_not_a_cost_yet(): void
+    {
+        $latte = $this->dish('Latte', 50000);
+        $this->sell($latte, 1, 50000);
+
+        DB::table('cafe_payroll_runs')->insert([
+            'tenant_id' => $this->tenant->id,
+            'period_start' => now()->toDateString(),
+            'period_end' => now()->toDateString(),
+            'status' => 'draft',
+            'gross_total_minor' => 30_000_000,
+            'net_total_minor' => 27_610_000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $pl = app(CafeReports::class)->profitAndLoss($this->tenant->id, now()->subDay(), now()->addDay());
+
+        $this->assertSame(0, $pl['payroll_minor']);
+    }
 }
