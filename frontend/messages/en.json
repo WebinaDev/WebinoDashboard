@@ -1660,7 +1660,8 @@
       "pager_title": "Pager",
       "pager_description": "Enter the number of the pager you handed the guest.",
       "pager_number": "Pager number",
-      "pager_placeholder": "e.g. 12"
+      "pager_placeholder": "e.g. 12",
+      "tier_next": "{count} to next tier"
     },
     "delivery_zones": {
       "title": "Delivery zones",

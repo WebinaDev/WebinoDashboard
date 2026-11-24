@@ -234,14 +234,28 @@ class CafePosController extends Controller
             ->limit(12)
             ->get(['id', 'name', 'phone', 'email', 'loyalty_points']);
 
+        // The guest's tier, not just their balance: a cashier choosing between two regulars is
+        // choosing between a silver and a gold, and "12,400 points" does not say which.
+        $tiers = app(\App\Services\Shop\LoyaltyTiers::class);
+
         return response()->json([
-            'data' => $rows->map(fn (User $user): array => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'phone' => $user->phone,
-                'email' => $user->email,
-                'points' => (int) $user->loyalty_points,
-            ])->all(),
+            'data' => $rows->map(function (User $user) use ($tenantId, $tiers): array {
+                $tier = $tiers->forUser($tenantId, (int) $user->id);
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'phone' => $user->phone,
+                    'email' => $user->email,
+                    'points' => (int) $user->loyalty_points,
+                    'tier' => [
+                        'key' => $tier['key'],
+                        'label_fa' => $tier['label_fa'],
+                        'label_en' => $tier['label_en'],
+                        'next' => $tier['next'],
+                    ],
+                ];
+            })->all(),
         ]);
     }
 
