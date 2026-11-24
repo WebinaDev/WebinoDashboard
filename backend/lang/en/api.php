@@ -43,6 +43,8 @@ return [
     'staff_leave_range_invalid' => 'Leave cannot end before it starts.',
     'staff_leave_not_found' => 'Leave request not found.',
     'staff_leave_already_decided' => 'This request has already been decided.',
+    'cafe_print_no_route' => 'No printer is routed to this station; the ticket was not printed.',
+    'cafe_api_key_no_scopes' => 'An API key needs at least one scope.',
     'cafe_shift_already_open' => 'You already have an open shift; close it first.',
     'cafe_shift_already_closed' => 'This shift has already been closed.',
     'cafe_shift_closed_immutable' => 'A closed shift cannot be changed.',

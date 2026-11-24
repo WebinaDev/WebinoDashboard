@@ -326,6 +326,8 @@ final class OrderIntake
             'shipping_minor' => $shipping,
             'coupon_code' => $couponCode,
             'sales_channel' => $fulfillment === 'delivery' ? 'phone' : 'in_store',
+            // Present only on a replay from the till's offline queue.
+            'client_ref' => $this->nullableString($payload['client_ref'] ?? null),
             'is_pos' => true,
             // A till order is in the kitchen the moment it is sent: there is no gateway for
             // it to wait on, and the guest is standing in front of the cashier.

@@ -43,6 +43,8 @@ return [
     'staff_leave_range_invalid' => 'پایان مرخصی قبل از شروع آن است.',
     'staff_leave_not_found' => 'درخواست مرخصی پیدا نشد.',
     'staff_leave_already_decided' => 'این درخواست قبلاً بررسی شده است.',
+    'cafe_print_no_route' => 'برای این ایستگاه هیچ چاپگری مسیریابی نشده است؛ بلیت چاپ نشد.',
+    'cafe_api_key_no_scopes' => 'کلید API باید حداقل یک دسترسی داشته باشد.',
     'cafe_shift_already_open' => 'یک شیفت باز برای شما وجود دارد؛ اول آن را ببندید.',
     'cafe_shift_already_closed' => 'این شیفت قبلاً بسته شده است.',
     'cafe_shift_closed_immutable' => 'شیفت بسته‌شده قابل تغییر نیست.',

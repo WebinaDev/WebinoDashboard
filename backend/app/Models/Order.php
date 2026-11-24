@@ -72,6 +72,7 @@ class Order extends Model
         'user_id',
         'created_by',
         'number',
+        'client_ref',
         'status',
         'total_minor',
         'subtotal_minor',

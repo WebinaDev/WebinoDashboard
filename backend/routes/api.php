@@ -402,6 +402,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/cafe/events/{event}/bookings', [PublicReservationController::class, 'bookEvent'])->whereNumber('event')->middleware('throttle:public-writes');
             Route::get('/cafe/phone-gate', [PublicCafeEngagementController::class, 'checkPhoneGate']);
             Route::post('/cafe/phone-register', [PublicCafeEngagementController::class, 'registerPhone'])->middleware('throttle:public-writes');
+            // QR sticker scans. Cheap, throttled, and never able to fail a menu page.
+            Route::post('/cafe/qr/scan', [PublicCafeEngagementController::class, 'qrScan'])->middleware('throttle:60,1');
             Route::post('/cafe/products/{product}/like', [PublicCafeEngagementController::class, 'like'])->whereNumber('product')->middleware('throttle:public-writes');
             Route::post('/cafe/products/{product}/feedback', [PublicCafeEngagementController::class, 'feedback'])->whereNumber('product')->middleware('throttle:public-writes');
             Route::get('/cafe/cart', [PublicGuestCartController::class, 'show']);

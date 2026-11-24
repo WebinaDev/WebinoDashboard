@@ -66,13 +66,24 @@ function writeQueue(rows: QueuedWrite[]): void {
   }
 }
 
+/**
+ * A reference for one sale, generated once and reused on every retry.
+ *
+ * `crypto.randomUUID` is not available on http:// origins in some browsers (a shop running the
+ * dashboard over plain HTTP on the local network is exactly that), so there is a fallback that
+ * stays unique enough for a single till.
+ */
+export function newClientRef(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+  return `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 export function enqueue(entry: Omit<QueuedWrite, "id" | "createdAt" | "attempts">): QueuedWrite {
   const row: QueuedWrite = {
     ...entry,
-    id:
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `w-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    id: newClientRef(),
     createdAt: new Date().toISOString(),
     attempts: 0,
   }

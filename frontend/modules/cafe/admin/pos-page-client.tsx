@@ -35,7 +35,7 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
 import { cn } from "@/lib/utils"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
-import { drain, enqueue, isNetworkFailure, onReconnect, readQueue } from "./offline-queue"
+import { drain, enqueue, isNetworkFailure, newClientRef, onReconnect, readQueue } from "./offline-queue"
 import {
   type CartLine,
   type CartModifier,
@@ -501,13 +501,19 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
       const path = editingId !== null ? `/api/v1/cafe/pos/orders/${editingId}` : "/api/v1/cafe/pos/orders"
       const method = editingId !== null ? "PUT" : "POST"
 
+      // A new sale carries a client reference so a replay after a dropped connection returns
+      // the order that already exists instead of charging the guest twice. Generated here,
+      // before the request, because it has to be the same value on every retry.
+      const body =
+        method === "POST" ? { ...payload, client_ref: newClientRef() } : payload
+
       try {
-        return await api<SavedOrder>(path, { method, json: payload })
+        return await api<SavedOrder>(path, { method, json: body })
       } catch (error) {
         // The guest has their coffee and the cashier has the money: a dropped connection must
         // not destroy the only record of the sale. Queue it and let the till carry on.
         if (isNetworkFailure(error)) {
-          enqueue({ path, method, body: payload })
+          enqueue({ path, method, body })
           throw new QueuedSaleError()
         }
         throw error

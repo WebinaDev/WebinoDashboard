@@ -29,6 +29,9 @@ export const cafeManifest: ModuleManifest = {
     // Rota, attendance, leave, contracts and payroll. A staff member can open it to clock in
     // and see their own week; the API narrows the rest.
     { path: "cafe/staff", submodule: "menu", page: "staff", labelKey: "nav.staff", section: "cafe", order: 36, capability: "staff.manage,users.manage,reports.shop,pos.use" },
+    // Printing hardware and routing, receipt layout, QR scan analytics, webhooks and API keys.
+    // One screen because they are the same job: connecting the shop to the outside world.
+    { path: "cafe/settings-integrations", submodule: "menu", page: "settings-integrations", labelKey: "nav.settings_integrations", section: "cafe", order: 37, capability: "settings.manage,branches.manage,reports.shop" },
     // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
     // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
     { path: "cafe/pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use", menuKey: "pos" },

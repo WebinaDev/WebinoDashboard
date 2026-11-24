@@ -95,7 +95,26 @@ class CafePosController extends Controller
     {
         $data = $this->validated($request);
 
-        $order = $this->intake->create((int) $request->user()->tenant_id, $data, $request->user());
+        $tenantId = (int) $request->user()->tenant_id;
+
+        // An offline till replays the sale it captured at the counter. The client reference is
+        // what makes that safe: the same reference returns the order that already exists instead
+        // of charging the guest a second time. `replayed` says so, because the cashier's "sale
+        // saved" toast should not claim a new order was created.
+        $clientRef = $request->input('client_ref');
+        if (is_string($clientRef) && $clientRef !== '') {
+            $existing = Order::query()
+                ->where('tenant_id', $tenantId)
+                ->where('client_ref', $clientRef)
+                ->with(['items.modifiers', 'payments', 'branch', 'user'])
+                ->first();
+
+            if ($existing !== null) {
+                return response()->json(['data' => $this->present($existing), 'meta' => ['replayed' => true]]);
+            }
+        }
+
+        $order = $this->intake->create($tenantId, $data + ['client_ref' => $clientRef], $request->user());
 
         return response()->json(['data' => $this->present($order)], 201);
     }
@@ -335,6 +354,9 @@ class CafePosController extends Controller
             'payments.*.amount_minor' => ['required_with:payments', 'integer', 'min:0'],
             'payments.*.received_minor' => ['nullable', 'integer', 'min:0'],
             'payments.*.reference' => ['nullable', 'string', 'max:120'],
+
+            // Set by the till's offline queue; unique per tenant, so a replay is idempotent.
+            'client_ref' => ['nullable', 'string', 'max:64'],
         ]);
     }
 

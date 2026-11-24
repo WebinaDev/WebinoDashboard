@@ -68,6 +68,24 @@ final class OrderStatusService
                     }
                 });
             }
+            // Outbound hooks. Queued rows, not sent here: a slow customer endpoint must not
+            // hold a transaction that is holding the order's row lock.
+            if ($from !== $to) {
+                DB::afterCommit(function () use ($locked, $from, $to, $refund) {
+                    try {
+                        app(\App\Services\Webhooks\WebhookDispatcher::class)->orderEvent(
+                            (int) $locked->tenant_id,
+                            $locked->fresh() ?? $locked,
+                            $from,
+                            $to,
+                            $refund,
+                        );
+                    } catch (\Throwable) {
+                        // A webhook is a notification; it must never be why a sale fails.
+                    }
+                });
+            }
+
             $order->setRawAttributes($locked->getAttributes(), true);
             $order->syncOriginal();
             $order->exists = true;

@@ -6,11 +6,13 @@ use Modules\Cafe\Http\Controllers\CafeBranchController;
 use Modules\Cafe\Http\Controllers\CafeDeliveryController;
 use Modules\Cafe\Http\Controllers\CafeEngagementInboxController;
 use Modules\Cafe\Http\Controllers\CafeFloorController;
+use Modules\Cafe\Http\Controllers\CafeIntegrationsController;
 use Modules\Cafe\Http\Controllers\CafeKitchenController;
 use Modules\Cafe\Http\Controllers\CafeManagerController;
 use Modules\Cafe\Http\Controllers\CafeOperationsController;
 use Modules\Cafe\Http\Controllers\CafePosController;
 use Modules\Cafe\Http\Controllers\CafePriceCalculatorController;
+use Modules\Cafe\Http\Controllers\CafePrintingController;
 use Modules\Cafe\Http\Controllers\CafeQrController;
 use Modules\Cafe\Http\Controllers\CafeSettingsController;
 use Modules\Cafe\Http\Controllers\CafeShiftController;
@@ -183,6 +185,37 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::post('/amendments/{amendment}/approve', [CafeOperationsController::class, 'amendmentApprove'])->whereNumber('amendment');
                 Route::post('/amendments/{amendment}/reject', [CafeOperationsController::class, 'amendmentReject'])->whereNumber('amendment');
                 Route::post('/amendments/{amendment}/settle', [CafeOperationsController::class, 'amendmentSettle'])->whereNumber('amendment');
+            });
+
+            // Printing: the hardware, its routing, and how a receipt looks. Reading is open to
+            // whoever runs service (a shift supervisor needs to know why the grill is silent);
+            // changing hardware is a branch-management act.
+            Route::middleware(['module:cafe_menu', 'can:pos.use,catalog.*,branches.manage'])->group(function () {
+                Route::get('/printers', [CafePrintingController::class, 'index']);
+                Route::get('/receipt-layout', [CafePrintingController::class, 'layoutShow']);
+                // The Edge agent's poll: which printers, what to print.
+                Route::post('/print/job', [CafePrintingController::class, 'job']);
+            });
+            Route::middleware(['module:cafe_menu', 'can:branches.manage,catalog.*'])->group(function () {
+                Route::post('/printers', [CafePrintingController::class, 'savePrinter']);
+                Route::delete('/printers/{printer}', [CafePrintingController::class, 'destroyPrinter'])->whereNumber('printer');
+                Route::post('/print-routes', [CafePrintingController::class, 'saveRoute']);
+                Route::delete('/print-routes/{route}', [CafePrintingController::class, 'destroyRoute'])->whereNumber('route');
+                Route::put('/receipt-layout', [CafePrintingController::class, 'layoutUpdate']);
+            });
+
+            // QR analytics, webhooks and API keys. A key can reach the shop's data, so
+            // issuing one is an owner/manager act, not a cashier's.
+            Route::middleware(['module:cafe_menu', 'can:reports.shop,catalog.*,settings.manage'])->group(function () {
+                Route::get('/qr/stats', [CafeIntegrationsController::class, 'qrStats']);
+            });
+            Route::middleware(['module:cafe_menu', 'can:settings.manage,branches.manage'])->group(function () {
+                Route::get('/webhooks', [CafeIntegrationsController::class, 'webhooks']);
+                Route::post('/webhooks', [CafeIntegrationsController::class, 'saveWebhook']);
+                Route::delete('/webhooks/{webhook}', [CafeIntegrationsController::class, 'destroyWebhook'])->whereNumber('webhook');
+                Route::get('/api-keys', [CafeIntegrationsController::class, 'apiKeys']);
+                Route::post('/api-keys', [CafeIntegrationsController::class, 'issueKey']);
+                Route::delete('/api-keys/{key}', [CafeIntegrationsController::class, 'revokeKey'])->whereNumber('key');
             });
 
             // Operational thresholds shared by the workbench, KDS and delivery.
