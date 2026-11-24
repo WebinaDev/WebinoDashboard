@@ -935,10 +935,10 @@
       "events_heading": "Events",
       "empty_reservations": "No reservations yet.",
       "empty_events": "No events yet.",
-      "guest_name": "Guest",
+      "guest_name": "Guest name",
       "guest_phone": "Phone",
       "party_size": "Party size",
-      "reserved_at": "Reserved at",
+      "reserved_at": "Reserved for",
       "status": "Status",
       "notes": "Notes",
       "confirm": "Confirm",
@@ -971,7 +971,12 @@
       "marked_no_show": "Marked as no-show",
       "status_seated": "Seated",
       "status_completed": "Completed",
-      "status_no_show": "No-show"
+      "status_no_show": "No-show",
+      "new_booking": "Take a booking",
+      "new_booking_hint": "A reservation taken over the phone or at the door.",
+      "any_branch": "No preference",
+      "save_booking": "Save booking",
+      "booking_created": "Booking saved."
     },
     "hours": {
       "title": "Opening hours",

@@ -255,6 +255,8 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
 
             Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/reservations', [ReservationController::class, 'index']);
+                // Bookings taken at the door or over the telephone, where most of them come from.
+                Route::post('/reservations', [ReservationController::class, 'storeReservation']);
                 Route::patch('/reservations/{reservation}', [ReservationController::class, 'updateReservation'])->whereNumber('reservation');
                 Route::post('/events', [ReservationController::class, 'storeEvent']);
                 Route::patch('/events/{event}', [ReservationController::class, 'updateEvent'])->whereNumber('event');

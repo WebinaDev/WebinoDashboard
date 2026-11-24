@@ -3459,7 +3459,7 @@
       "events_heading": "رویدادها",
       "empty_reservations": "رزروی ثبت نشده است.",
       "empty_events": "رویدادی ثبت نشده است.",
-      "guest_name": "مهمان",
+      "guest_name": "نام مهمان",
       "guest_phone": "تلفن",
       "party_size": "تعداد نفر",
       "reserved_at": "زمان رزرو",
@@ -3495,7 +3495,12 @@
       "marked_no_show": "به‌عنوان عدم حضور ثبت شد",
       "status_seated": "نشسته",
       "status_completed": "پایان‌یافته",
-      "status_no_show": "عدم حضور"
+      "status_no_show": "عدم حضور",
+      "new_booking": "ثبت رزرو تلفنی",
+      "new_booking_hint": "رزروی که همین حالا با تلفن یا دم در گرفته‌اید.",
+      "any_branch": "فرقی نمی‌کند",
+      "save_booking": "ثبت رزرو",
+      "booking_created": "رزرو ثبت شد."
     },
     "hours": {
       "title": "ساعات کاری",

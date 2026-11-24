@@ -68,6 +68,16 @@ type ReservationsPayload = {
   events: AdminEvent[]
 }
 
+/** The booking a host takes while the guest is still on the telephone. */
+const emptyBooking = {
+  guest_name: "",
+  guest_phone: "",
+  party_size: 2,
+  reserved_at: "",
+  branch_id: "" as string | number,
+  notes: "",
+}
+
 const emptyEvent = {
   title_fa: "",
   title_en: "",
@@ -94,6 +104,7 @@ export default function ReservationsPageClient({ route: _route }: { route: Resol
   const { formatDateTime, formatNumber, locale } = useLocaleNext()
   const queryClient = useQueryClient()
   const [eventForm, setEventForm] = useState(emptyEvent)
+  const [bookingForm, setBookingForm] = useState(emptyBooking)
 
   const { data, isLoading } = useQuery({
     queryKey: ["cafe-reservations"],
@@ -114,6 +125,27 @@ export default function ReservationsPageClient({ route: _route }: { route: Resol
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
       toast.success(t("updated"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const createReservation = useMutation({
+    mutationFn: () =>
+      api<Reservation>("/api/v1/cafe/reservations", {
+        method: "POST",
+        json: {
+          guest_name: bookingForm.guest_name.trim(),
+          guest_phone: bookingForm.guest_phone.trim(),
+          party_size: Number(bookingForm.party_size),
+          reserved_at: bookingForm.reserved_at,
+          notes: bookingForm.notes.trim() || null,
+          branch_id: bookingForm.branch_id ? Number(bookingForm.branch_id) : null,
+        },
+      }),
+    onSuccess: async () => {
+      setBookingForm(emptyBooking)
+      await queryClient.invalidateQueries({ queryKey: ["cafe-reservations"] })
+      toast.success(t("booking_created"))
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -250,6 +282,93 @@ export default function ReservationsPageClient({ route: _route }: { route: Resol
           </div>
         )}
       </CafeSection>
+
+      <CafeAdvancedSection
+        title={t("new_booking")}
+        description={t("new_booking_hint")}
+        showLabel={tMenu("show_advanced")}
+        hideLabel={tMenu("hide_advanced")}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="bk-name">{t("guest_name")}</Label>
+            <Input
+              id="bk-name"
+              value={bookingForm.guest_name}
+              onChange={(e) => setBookingForm((f) => ({ ...f, guest_name: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="bk-phone">{t("guest_phone")}</Label>
+            <Input
+              id="bk-phone"
+              dir="ltr"
+              inputMode="tel"
+              value={bookingForm.guest_phone}
+              onChange={(e) => setBookingForm((f) => ({ ...f, guest_phone: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="bk-party">{t("party_size")}</Label>
+            <Input
+              id="bk-party"
+              type="number"
+              min={1}
+              max={50}
+              value={bookingForm.party_size}
+              onChange={(e) => setBookingForm((f) => ({ ...f, party_size: Number(e.target.value) }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("reserved_at")}</Label>
+            <LocaleDatePicker
+              locale={locale}
+              withTime
+              value={bookingForm.reserved_at}
+              onChange={(value) => setBookingForm((f) => ({ ...f, reserved_at: value ?? "" }))}
+              aria-label={t("reserved_at")}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="bk-branch">{t("branch")}</Label>
+            <select
+              id="bk-branch"
+              className={cafeSelectClass}
+              value={String(bookingForm.branch_id)}
+              onChange={(e) => setBookingForm((f) => ({ ...f, branch_id: e.target.value }))}
+            >
+              <option value="">{t("any_branch")}</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name_fa || branch.name_en}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="bk-notes">{t("notes")}</Label>
+            <Textarea
+              id="bk-notes"
+              rows={2}
+              value={bookingForm.notes}
+              onChange={(e) => setBookingForm((f) => ({ ...f, notes: e.target.value }))}
+            />
+          </div>
+        </div>
+        <div className="mt-3">
+          <Button
+            disabled={
+              createReservation.isPending ||
+              bookingForm.guest_name.trim() === "" ||
+              bookingForm.guest_phone.trim() === "" ||
+              bookingForm.reserved_at === ""
+            }
+            onClick={() => createReservation.mutate()}
+          >
+            {createReservation.isPending ? tCommon("saving") : t("save_booking")}
+          </Button>
+        </div>
+      </CafeAdvancedSection>
 
       <CafeAdvancedSection
         title={t("create_event")}
