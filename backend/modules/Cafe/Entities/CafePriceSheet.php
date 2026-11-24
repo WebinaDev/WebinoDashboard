@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class CafePriceSheet extends Model
 {
+    use \App\Support\Audit\RecordsActivity;
+
     protected $fillable = [
         'tenant_id',
         'product_id',

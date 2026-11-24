@@ -8,6 +8,7 @@ use Modules\Accounting\Entities\Concerns\BelongsToTenant;
 class AccFiscalYear extends Model
 {
     use BelongsToTenant;
+    use \App\Support\Audit\RecordsActivity;
 
     protected $table = 'acc_fiscal_years';
 

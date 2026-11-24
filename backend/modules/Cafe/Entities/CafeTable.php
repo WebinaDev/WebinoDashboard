@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CafeTable extends Model
 {
+    use \App\Support\Audit\RecordsActivity;
+
     public const STATUS_FREE = 'free';
     public const STATUS_SEATED = 'seated';
     public const STATUS_ORDERING = 'ordering';

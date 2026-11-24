@@ -9,6 +9,7 @@ use Modules\Accounting\Entities\Concerns\BelongsToTenant;
 class AccCheck extends Model
 {
     use BelongsToTenant;
+    use \App\Support\Audit\RecordsActivity;
 
     protected $table = 'acc_checks';
 
