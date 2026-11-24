@@ -123,9 +123,18 @@ final class CafeShiftService
         $from = $shift->opened_at ? Carbon::parse($shift->opened_at) : Carbon::parse($shift->created_at);
         $to = $shift->closed_at ? Carbon::parse($shift->closed_at) : now();
 
+        // An order belongs to this shift if it says so, or — for everything recorded before
+        // `orders.shift_id` existed — if it was created inside the window. The OR is what keeps
+        // historical shifts reporting the same numbers they always did, while a sale replayed
+        // from an offline till at 09:10 for yesterday's 21:40 shift still lands in that drawer.
         $orders = Order::query()
             ->where('tenant_id', $tenantId)
-            ->whereBetween('created_at', [$from, $to])
+            ->where(function ($q) use ($shift, $from, $to): void {
+                $q->where('shift_id', $shift->id)
+                    ->orWhere(function ($w) use ($from, $to): void {
+                        $w->whereNull('shift_id')->whereBetween('created_at', [$from, $to]);
+                    });
+            })
             ->whereNotIn('status', self::EXCLUDED_STATUSES)
             ->get(['id', 'status', 'payment_tender', 'amount_paid_minor', 'total_minor', 'discount_minor', 'shipping_minor', 'subtotal_minor', 'tax_minor', 'currency', 'number']);
 

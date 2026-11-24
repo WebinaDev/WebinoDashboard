@@ -50,6 +50,12 @@ import {
   readQueue,
 } from "./offline-queue";
 import {
+  attributionFields,
+  forgetShift,
+  rememberShift,
+  shiftAgeMinutes,
+} from "./offline-shift";
+import {
   type CartLine,
   type CartModifier,
   type DiscountType,
@@ -127,6 +133,12 @@ type Bootstrap = {
   fulfillment: Record<Fulfillment, boolean>;
   fees: PosFees;
   loyalty_enabled: boolean;
+  /** The cashier's open drawer, or null when the shop runs without shifts. */
+  shift?: {
+    id: number;
+    branch_id: number | null;
+    opened_at: string | null;
+  } | null;
   /** How the shop hands food over: a table, a pager, or neither. */
   service?: {
     mode: "table" | "pager" | "none";
@@ -256,6 +268,10 @@ export default function PosPageClient({
   // True when the last sale was captured locally because the network was down.
   const [queuedNotice, setQueuedNotice] = useState(false);
   const [queuedCount, setQueuedCount] = useState(0);
+  // Age of the drawer context this tab is holding, in minutes; null while it is fresh.
+  const [shiftStaleMinutes, setShiftStaleMinutes] = useState<number | null>(
+    null,
+  );
   const [saved, setSaved] = useState<SavedOrder | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -325,6 +341,23 @@ export default function PosPageClient({
   });
 
   const data = boot.data;
+
+  // Write the drawer down while there is still a network to ask. Offline, OrderIntake can no
+  // longer read the cashier's open shift, and a sale would land with no branch and no drawer.
+  useEffect(() => {
+    if (!boot.isSuccess) return;
+    const shift = data?.shift;
+    if (shift && shift.id) {
+      rememberShift({
+        shift_id: shift.id,
+        branch_id: shift.branch_id ?? null,
+        opened_at: shift.opened_at,
+      });
+    } else {
+      forgetShift();
+    }
+  }, [boot.isSuccess, data?.shift]);
+
   const tables = useMemo(() => data?.tables ?? [], [data]);
   const products = useMemo(() => data?.products ?? [], [data]);
 
@@ -629,9 +662,11 @@ export default function PosPageClient({
       // A new sale carries a client reference so a replay after a dropped connection returns
       // the order that already exists instead of charging the guest twice. Generated here,
       // before the request, because it has to be the same value on every retry.
+      // The drawer this sale was taken at. Online the server could work it out itself, but
+      // offline the shift is gone by the time the sale replays — so it travels with the sale.
       const body =
         method === "POST"
-          ? { ...payload, client_ref: newClientRef() }
+          ? { ...payload, client_ref: newClientRef(), ...attributionFields() }
           : payload;
 
       try {
@@ -711,6 +746,10 @@ export default function PosPageClient({
   // often how a cashier recovers) and whenever the browser reports it is back online.
   useEffect(() => {
     const flush = () => {
+      const age = shiftAgeMinutes();
+      // 120 minutes is past any normal shift gap and short enough that a tab woken from sleep
+      // gets told before the cashier starts selling into a dead drawer context.
+      setShiftStaleMinutes(age !== null && age > 120 ? age : null);
       setQueuedCount(readQueue().length);
       void drain((row) =>
         api(row.path, {
@@ -812,6 +851,17 @@ export default function PosPageClient({
           >
             {t("offline_retry")}
           </Button>
+        </div>
+      ) : null}
+
+      {/* A remembered shift older than a couple of hours means this tab has been offline (or
+          asleep) for a while. Sales are still attributable — they happened then — but the
+          cashier should know the drawer context is not live. */}
+      {shiftStaleMinutes !== null ? (
+        <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+          {t("offline_shift_stale", {
+            minutes: toLocaleDigits(String(shiftStaleMinutes), locale),
+          })}
         </div>
       ) : null}
 

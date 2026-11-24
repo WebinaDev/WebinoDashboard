@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Modules\Cafe\Entities\CafeBranch;
+use Modules\Cafe\Entities\CafeShift;
 use Modules\Cafe\Entities\CafeTable;
 use Modules\Cafe\Services\CafeOrdering;
 use Modules\Cafe\Services\OrderIntake;
@@ -89,8 +90,41 @@ class CafePosController extends Controller
                 // table | pager | none: which field a dine-in order needs, if any. Sent with
                 // the bootstrap so the till never has to guess.
                 'service' => app(\Modules\Cafe\Services\ServiceMode::class)->requirements($tenantId),
+                // The open drawer, so the till can remember it while it still has a network.
+                // Offline, `OrderIntake::resolveBranch` can no longer read the cashier's shift —
+                // it would fall back to "no branch" and the cash pickup at close would come
+                // out short with no way to say which counter it belonged to.
+                'shift' => $this->openShift($tenantId, (int) $request->user()->id),
             ],
         ])->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * The cashier's open shift, in the smallest shape the till can store and replay.
+     *
+     * Deliberately not the shift's money: expected cash is derived on the server from the sales
+     * themselves, and sending a figure to the browser would let a stale tab restate a drawer.
+     *
+     * @return array{id: int, branch_id: int|null, opened_at: string|null}|null
+     */
+    private function openShift(int $tenantId, int $userId): ?array
+    {
+        $shift = CafeShift::query()
+            ->where('tenant_id', $tenantId)
+            ->where('user_id', $userId)
+            ->where('status', CafeShift::STATUS_OPEN)
+            ->orderByDesc('id')
+            ->first(['id', 'branch_id', 'opened_at']);
+
+        if ($shift === null) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $shift->id,
+            'branch_id' => $shift->branch_id === null ? null : (int) $shift->branch_id,
+            'opened_at' => $shift->opened_at?->toIso8601String(),
+        ];
     }
 
     /** Create an order from the till. */
@@ -367,6 +401,10 @@ class CafePosController extends Controller
         return $request->validate([
             'fulfillment' => [$partial ? 'sometimes' : 'required', 'string', Rule::in(OrderIntake::FULFILLMENTS)],
             'branch_id' => ['nullable', 'integer'],
+            // Sent by an offline till, which wrote the drawer down while it still had a network.
+            // Without it the replayed sale would be attributed to whatever shift is open when it
+            // finally arrives — or to none.
+            'shift_id' => ['nullable', 'integer'],
             'table_code' => ['nullable', 'string', 'max:32'],
             'customer_name' => ['nullable', 'string', 'max:255'],
             'customer_phone' => ['nullable', 'string', 'max:32'],

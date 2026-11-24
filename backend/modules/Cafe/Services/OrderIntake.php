@@ -325,6 +325,10 @@ final class OrderIntake
 
         $order = [
             'branch_id' => $branchId,
+            // The drawer, recorded as a fact rather than re-derived from a timestamp later.
+            // A sale replayed from an offline till arrives hours after it was taken, and a
+            // timestamp window would put its cash into no shift at all.
+            'shift_id' => $this->resolveShift($tenantId, $payload, $actor),
             'table_number' => $table?->code,
             'customer_name' => $this->nullableString($payload['customer_name'] ?? null),
             'customer_phone' => $this->normalizePhone($payload['customer_phone'] ?? null),
@@ -867,6 +871,42 @@ final class OrderIntake
             ->pluck('id');
 
         return $branches->count() === 1 ? (int) $branches->first() : null;
+    }
+
+    /**
+     * Which shift this sale belongs to.
+     *
+     * An explicit `shift_id` from the till wins — that is the whole point: the browser writes
+     * down the drawer while it still has a network, and replays it with the sale. Otherwise the
+     * cashier's currently open shift, if they have one. A shift that belongs to another tenant
+     * is ignored rather than trusted, and a stale id (the cashier closed that shift an hour ago)
+     * is still honoured, because the sale happened inside it.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolveShift(int $tenantId, array $payload, User $actor): ?int
+    {
+        $explicit = $payload['shift_id'] ?? null;
+
+        if ($explicit !== null && (int) $explicit > 0) {
+            $owned = CafeShift::query()
+                ->where('tenant_id', $tenantId)
+                ->whereKey((int) $explicit)
+                ->exists();
+
+            if ($owned) {
+                return (int) $explicit;
+            }
+        }
+
+        $open = CafeShift::query()
+            ->where('tenant_id', $tenantId)
+            ->where('user_id', $actor->id)
+            ->where('status', CafeShift::STATUS_OPEN)
+            ->orderByDesc('id')
+            ->value('id');
+
+        return $open === null ? null : (int) $open;
     }
 
     /**

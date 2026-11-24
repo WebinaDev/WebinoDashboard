@@ -1652,6 +1652,7 @@
       "change_due": "Change due",
       "settle_confirm": "Record payment",
       "offline_saved": "The sale was saved on this device and will be sent when the connection returns.",
+      "offline_shift_stale": "This tab has not refreshed the drawer context for about {minutes} minutes. Offline sales are still attributed to that drawer, but reload once to be sure.",
       "offline_pending": "{count} sale(s) waiting to be sent.",
       "offline_retry": "Retry now",
       "offline_synced": "{count} sale(s) sent.",
