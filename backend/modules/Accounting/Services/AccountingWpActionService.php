@@ -95,12 +95,24 @@ class AccountingWpActionService
             'receipt_voucher_post' => $this->receiptPost($p),
             'receipt_voucher_delete' => $this->receiptDelete($p),
             'receipt_voucher_next_number' => $this->receiptNextNumber($p),
+            // The dashboard screen calls these shorter names. They used to fall through to
+            // the catch-all below and return `ok: true` without writing anything, so a
+            // cashier's receipt vanished with a success toast. Kept as explicit aliases
+            // rather than a prefix match: the two vocabularies must stay greppable.
+            'receipt_save' => $this->receiptSave($p, $request),
+            'receipt_post' => $this->receiptPost($p),
+            'receipt_delete' => $this->receiptDelete($p),
+            'receipt_next_number' => $this->receiptNextNumber($p),
             'check_list' => ['items' => AccCheck::query()->orderByDesc('id')->limit(200)->get()->all(), 'total' => AccCheck::query()->count()],
             'check_get' => ['check' => AccCheck::query()->find($p['id'] ?? 0)],
             'check_save' => $this->checkSave($p, $request),
             'check_delete' => $this->checkDelete($p),
             'check_set_status' => $this->checkSetStatus($p),
-            default => ['ok' => true],
+            // Deliberately no `default => ['ok' => true]`. A successful-looking reply for an
+            // action nobody implemented is how the receipt form above saved nothing for
+            // months. The controller validates the action list first, so reaching here with
+            // an unknown key is a programming error and must be loud.
+            default => throw new \InvalidArgumentException('Unknown accounting action ['.$action.'].'),
         };
     }
 
@@ -367,7 +379,7 @@ class AccountingWpActionService
     private function seedChart(): array
     {
         if (AccChartAccount::query()->exists()) {
-            return ['count' => 0, 'message' => __('messages.chart_already_seeded')];
+            return ['count' => 0, 'message' => __('api.chart_already_seeded')];
         }
 
         $roots = [
@@ -523,6 +535,7 @@ class AccountingWpActionService
             'account_number' => 'nullable|string|max:100',
             'sheba' => 'nullable|string|max:30',
             'card_number' => 'nullable|string|max:30',
+            'chart_code' => 'nullable|string|max:32',
             'is_active' => 'nullable|boolean',
             'is_default' => 'nullable|boolean',
         ])->validate();
@@ -547,18 +560,41 @@ class AccountingWpActionService
         return ['ok' => true];
     }
 
+    /**
+     * Create or edit a receipt/payment voucher.
+     *
+     * The dashboard form speaks `date` and stores a single `amount`; the table speaks
+     * `document_date`. Both are accepted here and normalised, because a form field name is
+     * not a good reason for a save to fail validation silently.
+     *
+     * `type` decides the direction: `receipt` (money in from a customer) or `payment`
+     * (money out to a supplier/staff). A posted voucher is immutable — editing it would let
+     * a settled amount change after the journal was cut.
+     */
     private function receiptSave(array $p, Request $request): array
     {
+        $p['type'] = in_array(($p['type'] ?? ''), ['receipt', 'payment'], true) ? $p['type'] : 'receipt';
+        // The form posts `date`; the column is `document_date`.
+        if (! array_key_exists('document_date', $p) && array_key_exists('date', $p)) {
+            $p['document_date'] = $p['date'];
+        }
+        // A till sends an empty string for "no person / no cash account".
+        foreach (['person_id', 'cash_account_id', 'fiscal_year_id'] as $key) {
+            if (($p[$key] ?? null) === '') {
+                $p[$key] = null;
+            }
+        }
+
         $data = validator($p, [
             'id' => ['nullable', ExistsForTenant::in('acc_receipt_vouchers')],
-            'type' => 'nullable|string|max:30',
+            'type' => 'required|string|in:receipt,payment',
             'number' => 'nullable|string|max:50',
             'fiscal_year_id' => ['nullable', ExistsForTenant::in('acc_fiscal_years')],
             'cash_account_id' => ['nullable', ExistsForTenant::in('acc_cash_accounts')],
             'person_id' => ['nullable', ExistsForTenant::in('acc_persons')],
-            'amount' => 'nullable|numeric',
+            'amount' => 'required|numeric|min:0.01',
             'document_date' => 'nullable|date',
-            'status' => 'nullable|string|max:30',
+            'status' => 'nullable|string|in:draft,posted,cancelled',
             'description' => 'nullable|string',
         ])->validate();
 
@@ -566,21 +602,36 @@ class AccountingWpActionService
 
         if (! empty($data['id'])) {
             $row = AccReceiptVoucher::query()->findOrFail($data['id']);
+            if ($row->status === 'posted') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'id' => __('api.already_posted'),
+                ]);
+            }
             $row->update(collect($data)->except('id')->all());
         } else {
             $row = AccReceiptVoucher::query()->create(collect($data)->except('id')->all());
         }
 
-        return ['voucher' => $row->fresh()];
+        return ['voucher' => $row->fresh(['cashAccount', 'person'])];
     }
 
+    /**
+     * Post a voucher to the ledger.
+     *
+     * Until this existed `post` only flipped `status = posted` and cut no journal, so the
+     * voucher list showed money the books had never seen. The journal is built from the
+     * tenant's account coding (`AccountCoding`), not from hard-coded 111/113, and it is
+     * refused when the amount is zero or the voucher has already moved the ledger once.
+     */
     private function receiptPost(array $p): array
     {
         $id = (int) ($p['id'] ?? 0);
         $row = AccReceiptVoucher::query()->findOrFail($id);
-        $row->update(['status' => 'posted']);
 
-        return ['voucher' => $row];
+        $ledger = app(\Modules\Accounting\Services\LedgerPosting::class);
+        $journal = $ledger->postVoucher($row);
+
+        return ['voucher' => $row->fresh(['cashAccount', 'person']), 'journal' => $journal];
     }
 
     private function receiptDelete(array $p): array

@@ -59,7 +59,25 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::post('/pos/shift/open', [CafeShiftController::class, 'open']);
                 Route::post('/pos/shifts/{shift}/close', [CafeShiftController::class, 'close'])->whereNumber('shift');
                 Route::post('/pos/shifts/{shift}/movements', [CafeShiftController::class, 'storeMovement'])->whereNumber('shift');
+                // Blind count: submit the physical count without closing, then read X/Z.
+                Route::post('/pos/shifts/{shift}/count', [CafeShiftController::class, 'submitCount'])->whereNumber('shift');
+                Route::get('/pos/shifts/{shift}/x-report', [CafeShiftController::class, 'xReport'])->whereNumber('shift');
+                Route::get('/pos/shifts/{shift}/z-report', [CafeShiftController::class, 'zReport'])->whereNumber('shift');
+                Route::post('/pos/shifts/{shift}/journal', [CafeShiftController::class, 'postJournal'])->whereNumber('shift');
             });
+
+            // Manager acts on the drawer: accepting a difference, refusing a count, closing
+            // the day. Deliberately not in the cashier's group above — a cashier who can
+            // approve their own shortfall is a control that only exists on paper.
+            Route::middleware(['module:cafe_menu', 'can:pos.approve,accounting.approve,reports.shop,accounting.manage,orders.*'])
+                ->group(function () {
+                    Route::get('/pos/counts/pending', [CafeShiftController::class, 'pendingCounts']);
+                    Route::post('/pos/shifts/{shift}/count/approve', [CafeShiftController::class, 'approveCount'])->whereNumber('shift');
+                    Route::post('/pos/shifts/{shift}/count/reject', [CafeShiftController::class, 'rejectCount'])->whereNumber('shift');
+                    Route::get('/pos/day', [CafeShiftController::class, 'dayPreview']);
+                    Route::post('/pos/day/close', [CafeShiftController::class, 'dayClose']);
+                    Route::get('/pos/day/history', [CafeShiftController::class, 'dayHistory']);
+                });
 
             Route::middleware(['module:cafe_qr', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/qr-settings', [CafeQrController::class, 'showSettings']);
@@ -147,6 +165,8 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::patch('/delivery-zones/{zone}', [CafeOperationsController::class, 'zonesUpdate'])->whereNumber('zone');
                 Route::delete('/delivery-zones/{zone}', [CafeOperationsController::class, 'zonesDestroy'])->whereNumber('zone');
             });
+            // The till lookup, for whoever is ringing up: a cashier holds `pos.use` but not
+            // `orders.create`, and a delivery order cannot be priced without its area.
             Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,orders.*'])->group(function () {
                 Route::get('/delivery-quote', [CafeOperationsController::class, 'zonesQuote']);
             });

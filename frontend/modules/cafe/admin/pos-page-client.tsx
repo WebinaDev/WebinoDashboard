@@ -167,6 +167,20 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
   const [loyaltyPoints, setLoyaltyPoints] = useState(0)
 
   const [deliveryAddress, setDeliveryAddress] = useState("")
+  // Which delivery area covers the address, and what it charges. Resolved by the server so
+  // the fee and the minimum are the same numbers the saved order will use — the till used to
+  // always send `deliveryZoneId: null`, so a shop that set up districts still charged everyone
+  // the flat fee and never enforced its minimum.
+  const [zoneQuote, setZoneQuote] = useState<{
+    zone_id: number | null
+    zone_name: string | null
+    fee_minor: number
+    minimum_minor: number
+    eta_minutes: number
+    meets_minimum: boolean
+    covered: boolean
+  } | null>(null)
+  const [zoneLookupFailed, setZoneLookupFailed] = useState(false)
 
   const [payments, setPayments] = useState<Array<{ tender: string; amount_minor: number; received_minor?: number | null }>>([])
   const [settleOpen, setSettleOpen] = useState(false)
@@ -182,6 +196,46 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
   // and shows the answer rather than its own guess — a total the guest is told and then charged
   // differently is the one bug at a counter that cannot be explained afterwards.
   const [serverQuote, setServerQuote] = useState<{ discount: number; total: number; couponError: string | null } | null>(null)
+
+  // Delivery areas for the address being typed. Debounced, and only asked for while the
+  // order is actually a delivery: a dine-in sale must not pay for a zone lookup.
+  useEffect(() => {
+    if (fulfillment !== "delivery" || deliveryAddress.trim().length < 3) {
+      setZoneQuote(null)
+      setZoneLookupFailed(false)
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams({ address: deliveryAddress.trim() })
+      if (branchId) params.set("branch_id", String(branchId))
+
+      void api<{
+        zone_id: number | null
+        zone_name: string | null
+        fee_minor: number
+        minimum_minor: number
+        eta_minutes: number
+        meets_minimum: boolean
+        covered: boolean
+      }>(`/api/v1/cafe/delivery-quote?${params.toString()}`, { signal: controller.signal })
+        .then((res) => {
+          setZoneQuote(res ?? null)
+          setZoneLookupFailed(false)
+        })
+        .catch((e: unknown) => {
+          // An aborted request is the older keystroke losing a race, not a failure.
+          if (e instanceof Error && e.name === "AbortError") return
+          setZoneLookupFailed(true)
+        })
+    }, 500)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [fulfillment, deliveryAddress, branchId])
 
   const boot = useQuery({
     queryKey: ["cafe-pos-bootstrap", branchId],
@@ -279,10 +333,26 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
     loyaltyMinor: serverQuote?.discount ?? 0,
   })
 
-  const localTotals = useMemo(
-    () => totalDueMinor(lines, discountMinor, fulfillment, data?.fees),
-    [lines, discountMinor, fulfillment, data?.fees],
-  )
+  const localTotals = useMemo(() => {
+    const base = totalDueMinor(lines, discountMinor, fulfillment, data?.fees)
+
+    // A covered zone replaces the flat delivery fee. The server does the same in
+    // `OrderIntake::shippingMinor`, so the till and the saved order cannot disagree.
+    if (fulfillment === "delivery" && zoneQuote?.covered) {
+      const adjusted = base.total - (data?.fees?.delivery_minor ?? 0) + zoneQuote.fee_minor
+      return { ...base, total: Math.max(0, adjusted) }
+    }
+
+    return base
+  }, [lines, discountMinor, fulfillment, data?.fees, zoneQuote])
+
+  // Below the area's minimum the shop has said it will not deliver. The server refuses too;
+  // catching it here means the cashier sees why before the guest is told a total.
+  const belowZoneMinimum =
+    fulfillment === "delivery" &&
+    zoneQuote?.covered === true &&
+    zoneQuote.minimum_minor > 0 &&
+    localTotals.subtotal - localTotals.discount < zoneQuote.minimum_minor
 
   // A server quote wins whenever it is fresher than the basket it priced. The `quoteKey`
   // guard is what stops a stale answer from a slow request overwriting a newer basket.
@@ -392,6 +462,8 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
     setCouponCode("")
     setLoyaltyPoints(0)
     setDeliveryAddress("")
+    setZoneQuote(null)
+    setZoneLookupFailed(false)
     setTableCode(null)
     setSaved(null)
     setEditingId(null)
@@ -412,7 +484,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
         customerNote,
         userId,
         deliveryAddress,
-        deliveryZoneId: null,
+        deliveryZoneId: zoneQuote?.covered ? zoneQuote.zone_id : null,
         discountType,
         discountPercent,
         discountAmountMinor: discountAmount,
@@ -704,6 +776,38 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
                   className={TAP}
                   placeholder={t("delivery_address_placeholder")}
                 />
+
+                {/* Which area, what it charges, and whether the basket clears its minimum.
+                    A cashier quoting a delivery fee has to be able to see the rule being
+                    applied, not just the resulting number. */}
+                {zoneLookupFailed ? (
+                  <p className="text-destructive text-xs" role="alert">
+                    {t("zone_lookup_failed")}
+                  </p>
+                ) : zoneQuote === null ? null : zoneQuote.covered ? (
+                  <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs">
+                    <Badge variant="outline">{zoneQuote.zone_name ?? t("zone_unnamed")}</Badge>
+                    <span>
+                      {t("zone_fee")}: <MoneyText amount={zoneQuote.fee_minor} />
+                    </span>
+                    <span>
+                      {t("zone_eta")}: {zoneQuote.eta_minutes} {t("minutes_short")}
+                    </span>
+                    {zoneQuote.minimum_minor > 0 ? (
+                      <span className={belowZoneMinimum ? "text-destructive font-medium" : undefined}>
+                        {t("zone_minimum")}: <MoneyText amount={zoneQuote.minimum_minor} />
+                      </span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs">{t("zone_uncovered")}</p>
+                )}
+
+                {belowZoneMinimum ? (
+                  <p className="text-destructive text-xs" role="alert">
+                    {t("zone_below_minimum")}
+                  </p>
+                ) : null}
               </div>
             </CafeSection>
           ) : null}
@@ -1019,7 +1123,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
               <Button
                 type="button"
                 className={cn(TAP, "w-full")}
-                disabled={lines.length === 0 || submit.isPending}
+                disabled={lines.length === 0 || submit.isPending || belowZoneMinimum}
                 onClick={startPayment}
               >
                 {t("pay_and_save")}
@@ -1028,7 +1132,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
                 type="button"
                 variant="outline"
                 className={cn(TAP, "w-full")}
-                disabled={lines.length === 0 || submit.isPending}
+                disabled={lines.length === 0 || submit.isPending || belowZoneMinimum}
                 onClick={() => submit.mutate({ settle: false })}
               >
                 {editingId !== null ? t("update_open") : t("save_open")}
@@ -1170,17 +1274,24 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setSettleOpen(false)}>
-              {t("cancel")}
-            </Button>
-            <Button
-              type="button"
-              disabled={outstanding < 0 || outstanding > 0 || submit.isPending}
-              onClick={() => submit.mutate({ settle: true })}
-            >
-              {t("confirm_payment")}
-            </Button>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:items-center">
+            {belowZoneMinimum ? (
+              <p className="text-destructive text-xs sm:me-auto" role="alert">
+                {t("zone_below_minimum")}
+              </p>
+            ) : null}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setSettleOpen(false)}>
+                {t("cancel")}
+              </Button>
+              <Button
+                type="button"
+                disabled={outstanding !== 0 || submit.isPending || belowZoneMinimum}
+                onClick={() => submit.mutate({ settle: true })}
+              >
+                {t("confirm_payment")}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

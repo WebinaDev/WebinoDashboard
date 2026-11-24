@@ -51,6 +51,7 @@ final class AccountCoding
             AccAccountCoding::ROLE_AR => ['code' => '1101', 'name' => 'حساب‌های دریافتنی', 'type' => 'asset'],
             AccAccountCoding::ROLE_CASH => ['code' => '1102', 'name' => 'موجودی نقد و صندوق', 'type' => 'asset'],
             AccAccountCoding::ROLE_BANK => ['code' => '1103', 'name' => 'موجودی بانک', 'type' => 'asset'],
+            AccAccountCoding::ROLE_AP => ['code' => '2102', 'name' => 'حساب‌های پرداختنی', 'type' => 'liability'],
             AccAccountCoding::ROLE_VAT => ['code' => '2101', 'name' => 'مالیات بر ارزش افزوده پرداختنی', 'type' => 'liability'],
             AccAccountCoding::ROLE_INVENTORY => ['code' => '1301', 'name' => 'موجودی کالا', 'type' => 'asset'],
             AccAccountCoding::ROLE_SALES => ['code' => '4101', 'name' => 'درآمد فروش', 'type' => 'revenue'],

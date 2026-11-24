@@ -73,6 +73,7 @@ use App\Http\Controllers\Api\V1\Poetry\PublicPoetryController;
 use App\Http\Controllers\Api\V1\PollController;
 use App\Http\Controllers\Api\V1\PortfolioItemController;
 use App\Http\Controllers\Api\V1\PricingController;
+use App\Http\Controllers\Api\V1\RecipeController;
 use App\Http\Controllers\Api\V1\ProductAttributeController;
 use App\Http\Controllers\Api\V1\ProductCatalogController;
 use App\Http\Controllers\Api\V1\ProductCompareController;
@@ -801,6 +802,18 @@ Route::prefix('v1')->group(function () {
                 Route::post('/attribute-groups', [ProductAttributeController::class, 'groupsStore']);
                 Route::patch('/attribute-groups/{group}', [ProductAttributeController::class, 'groupsUpdate'])->whereNumber('group');
                 Route::delete('/attribute-groups/{group}', [ProductAttributeController::class, 'groupsDestroy'])->whereNumber('group');
+            });
+
+            // Recipes and stock costing. Reading the cost of a dish is a catalogue act;
+            // recording a purchase price is what the accountant needs, so both are gated on the
+            // catalogue/accounting grants rather than left to anyone with a session.
+            Route::middleware(['module:catalog', 'can:catalog.*,commerce.*,accounting.manage'])->group(function () {
+                Route::get('/recipes/overview', [RecipeController::class, 'overview']);
+                Route::get('/recipes/{product}', [RecipeController::class, 'show'])->whereNumber('product');
+                Route::put('/recipes/{product}', [RecipeController::class, 'save'])->whereNumber('product');
+                Route::get('/stock/costing', [RecipeController::class, 'stock']);
+                Route::post('/stock/receive', [RecipeController::class, 'receive']);
+                Route::post('/stock/waste', [RecipeController::class, 'waste']);
             });
 
             Route::middleware(['module:pricing', 'can:catalog.*,commerce.*'])->group(function () {

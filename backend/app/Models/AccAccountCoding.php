@@ -25,6 +25,12 @@ class AccAccountCoding extends Model
 
     public const ROLE_AR = 'ar';
 
+    /**
+     * Accounts payable. A payment voucher settles a payable; without a role for it the
+     * counter side had to be guessed at code 211, which no tenant had mapped.
+     */
+    public const ROLE_AP = 'ap';
+
     public const ROLE_CASH = 'cash';
 
     public const ROLE_BANK = 'bank';

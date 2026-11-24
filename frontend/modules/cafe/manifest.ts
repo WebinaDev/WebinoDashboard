@@ -14,9 +14,16 @@ export const cafeManifest: ModuleManifest = {
     { path: "cafe/qr", submodule: "qr", labelKey: "nav.qr", section: "cafe", order: 28, capability: "catalog.*" },
     { path: "cafe/reservations", submodule: "reservations", labelKey: "nav.reservations", section: "cafe", order: 29, capability: "catalog.*" },
     { path: "cafe/venue", submodule: "venue", labelKey: "nav.venue", section: "cafe", order: 30, capability: "catalog.*" },
-    { path: "cafe/kitchen", submodule: "menu", page: "kitchen", labelKey: "nav.kitchen", section: "cafe", order: 31, capability: "catalog.*" },
+    // The board a cook works from. This was gated on `catalog.*`, which a cook does not hold
+    // — the API allowed `kitchen.view` through but the screen never rendered, so the one role
+    // whose entire job is this page could not open it. Any of the kitchen grants opens it, and
+    // the API still narrows the tickets to the user's assigned stations.
+    { path: "cafe/kitchen", submodule: "menu", page: "kitchen", labelKey: "nav.kitchen", section: "cafe", order: 31, capability: "kitchen.view,kitchen.station,catalog.*", menuKey: "pos" },
     { path: "cafe/inbox", submodule: "engagement", page: "inbox", labelKey: "nav.inbox", section: "cafe", order: 32, capability: "catalog.*" },
     { path: "cafe/pricing", submodule: "menu", page: "pricing", labelKey: "nav.pricing", section: "cafe", order: 33, capability: "catalog.*" },
+    // Recipes and plate cost. The menu's price is a guess until somebody knows what the dish
+    // costs, so this sits next to pricing rather than inside it.
+    { path: "cafe/recipes", submodule: "menu", page: "recipes", labelKey: "nav.recipes", section: "cafe", order: 34, capability: "catalog.*,accounting.manage" },
     // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
     // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
     { path: "cafe/pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use", menuKey: "pos" },

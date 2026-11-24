@@ -15,7 +15,7 @@ class AccReceiptVoucher extends Model
 
     protected $fillable = [
         'tenant_id',        'type', 'number', 'fiscal_year_id', 'cash_account_id', 'person_id', 'amount',
-        'document_date', 'status', 'description', 'created_by',
+        'document_date', 'status', 'description', 'created_by', 'journal_entry_id',
     ];
 
     protected function casts(): array
@@ -44,5 +44,11 @@ class AccReceiptVoucher extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** The ledger entry this voucher posted, once it has been confirmed. */
+    public function journalEntry(): BelongsTo
+    {
+        return $this->belongsTo(AccJournalEntry::class, 'journal_entry_id');
     }
 }

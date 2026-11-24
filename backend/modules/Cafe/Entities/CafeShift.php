@@ -25,6 +25,18 @@ class CafeShift extends Model
 
     public const STATUS_CLOSED = 'closed';
 
+    /** The cashier has submitted a count; it is waiting for a manager to approve it. */
+    public const STATUS_PENDING_APPROVAL = 'pending_approval';
+
+    /** Count states. A shift is `counted` only once the count has been accepted. */
+    public const COUNT_COUNTED = 'counted';
+
+    public const COUNT_PENDING = 'pending_approval';
+
+    public const COUNT_APPROVED = 'approved';
+
+    public const COUNT_REJECTED = 'rejected';
+
     protected $fillable = [
         'tenant_id',
         'branch_id',
@@ -32,10 +44,18 @@ class CafeShift extends Model
         'status',
         'opening_float_minor',
         'counted_cash_minor',
+        'count_status',
+        'counted_by',
+        'counted_at',
+        'approved_by',
+        'approved_at',
+        'approval_note',
         'expected_cash_minor',
         'variance_minor',
         'totals',
         'note',
+        'journal_entry_id',
+        'day_close_id',
         'opened_at',
         'closed_at',
     ];
@@ -48,6 +68,8 @@ class CafeShift extends Model
             'expected_cash_minor' => 'integer',
             'variance_minor' => 'integer',
             'totals' => 'array',
+            'counted_at' => 'datetime',
+            'approved_at' => 'datetime',
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',
         ];
@@ -71,5 +93,34 @@ class CafeShift extends Model
     public function isOpen(): bool
     {
         return (string) $this->status === self::STATUS_OPEN;
+    }
+
+    /**
+     * A count that has not been accepted yet.
+     *
+     * While this is true the drawer's expected figure must not leave the server for the
+     * cashier: a blind count is the whole point of the separation, and the UI shows what the
+     * API gives it. Auditors still see it — checking a cashier is exactly their job.
+     */
+    public function isAwaitingApproval(): bool
+    {
+        return (string) $this->status === self::STATUS_PENDING_APPROVAL
+            || (string) $this->count_status === self::COUNT_PENDING;
+    }
+
+    /** Whoever counted the drawer, when that is not the cashier who opened it. */
+    public function countedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'counted_by');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function dayClose(): BelongsTo
+    {
+        return $this->belongsTo(CafeDayClose::class, 'day_close_id');
     }
 }

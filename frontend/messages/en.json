@@ -415,7 +415,8 @@
     "venue": "Venue",
     "wallet_settings": "Wallet settings",
     "wallet_withdrawals": "Wallet withdrawals",
-    "wp_import": "WordPress import"
+    "wp_import": "WordPress import",
+    "recipes": "Recipes and plate cost"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -1066,7 +1067,9 @@
       "custom_guest": "Show this status to the guest",
       "custom_save": "Save status",
       "custom_clear": "Clear status",
-      "mark_ready": "Mark as ready"
+      "mark_ready": "Mark as ready",
+      "age_minutes": "{minutes} min",
+      "age_hint": "Amber after {warn} min, red after {late} min"
     },
     "inbox": {
       "title": "Guest feedback",
@@ -1222,7 +1225,37 @@
       "no_access": "You do not have access to this section.",
       "load_error": "Could not load the till data.",
       "amount_invalid": "Enter a valid amount.",
-      "count_required": "Enter the counted cash."
+      "count_required": "Enter the counted cash.",
+      "blind_hint": "Blind count: the expected drawer is not shown until you record what you counted.",
+      "blind_expected_hidden": "Shown after the count is recorded.",
+      "print_x": "X report",
+      "print_z": "Z report",
+      "print_blocked": "The browser blocked the print window; allow pop-ups to print.",
+      "submit_count_btn": "Submit count for approval",
+      "count_submitted": "Count submitted; waiting for a manager.",
+      "count_approved": "Count approved.",
+      "count_rejected": "Count rejected; the cashier has to count again.",
+      "count_status_pending_approval": "The count is waiting for a manager's approval.",
+      "count_status_rejected": "The count was rejected; count the drawer again.",
+      "count_status_counted": "The count is recorded.",
+      "approvals_title": "Counts waiting for approval",
+      "approvals_hint": "Only a manager accepts a drawer difference. Your note is stored with the approval.",
+      "approval_note": "Approval note",
+      "approval_note_ph": "e.g. the shortfall was checked against the change fund",
+      "approve_btn": "Approve",
+      "reject_btn": "Reject and recount",
+      "reject_default_reason": "Count the drawer again",
+      "counted_at": "Counted at",
+      "actions": "Actions",
+      "day_title": "Close the business day",
+      "day_hint": "A day closes only when no shift is still open.",
+      "day_date": "Business date",
+      "day_close_btn": "Close day",
+      "day_close_confirm_title": "Close the business day",
+      "day_close_confirm_body": "Closing freezes the day's totals permanently. Continue?",
+      "day_closed": "The business day is closed.",
+      "day_empty": "No day has been closed yet.",
+      "status": "Status"
     },
     "floor": {
       "title": "Floor & tables",
@@ -1574,7 +1607,15 @@
       "offline_saved": "The sale was saved on this device and will be sent when the connection returns.",
       "offline_pending": "{count} sale(s) waiting to be sent.",
       "offline_retry": "Retry now",
-      "offline_synced": "{count} sale(s) sent."
+      "offline_synced": "{count} sale(s) sent.",
+      "zone_lookup_failed": "Could not resolve the delivery area; check the fee manually.",
+      "zone_unnamed": "Unnamed area",
+      "zone_fee": "Delivery fee",
+      "zone_eta": "ETA",
+      "zone_minimum": "Minimum order",
+      "zone_uncovered": "This address is outside every delivery area.",
+      "zone_below_minimum": "The basket is below this area's minimum order.",
+      "minutes_short": "min"
     },
     "delivery_zones": {
       "title": "Delivery zones",
@@ -1678,6 +1719,58 @@
       "flag_requires_approval_hint": "When on, a change after payment waits for a manager to approve it.",
       "flag_delivery_minimum": "Enforce the delivery minimum",
       "flag_delivery_minimum_hint": "When on, orders below the delivery minimum are refused."
+    },
+    "recipes": {
+      "title": "Recipes and plate cost",
+      "description": "What each menu item is made of, and what a plate costs.",
+      "stat_products": "Menu items",
+      "stat_with_recipe": "With a recipe",
+      "stat_average_margin": "Average margin",
+      "menu_title": "Menu items",
+      "menu_hint": "An item without a recipe uses a cost typed by hand.",
+      "search": "Search items",
+      "loading": "Loading…",
+      "empty_menu": "No items to show.",
+      "col_item": "Item",
+      "col_price": "Price",
+      "col_cost": "Cost",
+      "col_margin": "Margin",
+      "col_recipe": "Recipe",
+      "col_actions": "Actions",
+      "col_on_hand": "On hand",
+      "col_avg_cost": "Average cost",
+      "col_last_cost": "Last cost",
+      "col_status": "Status",
+      "no_cost": "Unknown",
+      "has_recipe": "Recorded",
+      "no_recipe": "No recipe",
+      "edit_recipe": "Edit recipe",
+      "editor_title": "Recipe",
+      "editor_hint": "Quantities are in each ingredient's own unit; the waste percentage is added on top.",
+      "unit_cost": "Cost per plate",
+      "cost_complete": "Fully costed",
+      "cost_incomplete": "Incomplete — some ingredients have no cost",
+      "save_recipe": "Save recipe",
+      "saved": "Recipe saved.",
+      "add_line": "Add ingredient",
+      "remove": "Remove",
+      "component_type": "Type",
+      "component_id": "Item id",
+      "type_stock_item": "Stock item",
+      "type_menu_item": "Menu item",
+      "type_addon": "Add-on",
+      "quantity": "Quantity",
+      "waste": "Waste %",
+      "unit": "Unit",
+      "missing_costs": "Some ingredients have no purchase cost yet, so this item's margin is not real.",
+      "stock_title": "Stock and purchase cost",
+      "stock_hint": "The weighted average comes from recorded purchases, not the latest invoice.",
+      "receive_btn": "Record purchase",
+      "received": "Purchase recorded and the average cost updated.",
+      "stock_empty": "No stock has been recorded yet.",
+      "reorder": "Reorder",
+      "out_of_stock": "Out of stock",
+      "healthy": "Healthy"
     }
   },
   "themes": {
@@ -11159,5 +11252,11 @@
   },
   "payments": {
     "pay_unavailable": "Payment gateway is not enabled in this build."
+  },
+  "accounting_cash": {
+    "balance": "Balance",
+    "unlinked": "No ledger account",
+    "chart_code": "Chart account code",
+    "chart_code_hint": "The account this drawer/bank posts to, e.g. 111 cash or 112 bank."
   }
 }

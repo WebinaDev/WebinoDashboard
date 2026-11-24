@@ -46,13 +46,13 @@ class AccInvoiceController extends Controller
     {
         $inv = AccountingInvoice::query()->findOrFail($id);
         if ($inv->status === 'posted') {
-            return response()->json(['message' => __('messages.already_posted')], 422);
+            return response()->json(['message' => __('api.already_posted')], 422);
         }
 
         $ar = AccChartAccount::query()->where('code', '113')->where('is_postable', true)->first();
         $rev = AccChartAccount::query()->where('code', '401')->where('is_postable', true)->first();
         if (! $ar || ! $rev) {
-            return response()->json(['message' => __('messages.chart_accounts_113_and_401_required_seed_chart')], 422);
+            return response()->json(['message' => __('api.chart_accounts_113_and_401_required_seed_chart')], 422);
         }
 
         $total = (float) $inv->total;

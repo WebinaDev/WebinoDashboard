@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
+import { useLocale } from '@/hooks/use-locale-next';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -30,6 +31,11 @@ type CashAccount = {
   account_number: string;
   sheba: string;
   card_number: string;
+  chart_code?: string | null;
+  /** Debit minus credit on the account's chart code, from posted journals. */
+  balance?: number;
+  /** False when the row has no chart account yet, so `balance` would be a guess. */
+  balance_known?: boolean;
   is_active: boolean;
   is_default: boolean;
 };
@@ -47,12 +53,14 @@ const BLANK = {
   account_number: '',
   sheba: '',
   card_number: '',
+  chart_code: '',
   is_active: true,
   is_default: false,
 };
 
 export default function AccCashAccounts() {
   const t = useTranslations();
+  const { formatNumber } = useLocale();
 
   const [rows, setRows] = useState<CashAccount[]>([]);
   const [page, setPage] = useState(1);
@@ -105,6 +113,7 @@ export default function AccCashAccounts() {
       account_number: row.account_number ?? '',
       sheba: row.sheba ?? '',
       card_number: row.card_number ?? '',
+      chart_code: row.chart_code ?? '',
       is_active: Boolean(row.is_active),
       is_default: Boolean(row.is_default),
     });
@@ -156,6 +165,7 @@ export default function AccCashAccounts() {
               <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_acc84041')}</th>
               <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_45dd06ba')}</th>
               <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_d2e35a1f')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('accounting_cash.balance')}</th>
               <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_0481ee91')}</th>
               <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_7d8e887c')}</th>
               <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_6f637966')}</th>
@@ -169,6 +179,15 @@ export default function AccCashAccounts() {
                 <td className="px-3 py-2">{row.id}</td>
                 <td className="px-3 py-2">{row.name}</td>
                 <td className="px-3 py-2">{TYPE_KEYS[row.type] ? t(TYPE_KEYS[row.type]) : row.type}</td>
+                <td className="px-3 py-2 tabular-nums">
+                  {row.balance_known ? (
+                    formatNumber(Number(row.balance ?? 0))
+                  ) : (
+                    // No chart account means there is no balance to show. Printing 0 would
+                    // read as "empty drawer" when it actually means "not linked".
+                    <span className="text-muted-foreground text-xs">{t('accounting_cash.unlinked')}</span>
+                  )}
+                </td>
                 <td className="px-3 py-2">{row.bank_name}</td>
                 <td className="px-3 py-2">{row.account_number}</td>
                 <td className="px-3 py-2">
@@ -184,7 +203,7 @@ export default function AccCashAccounts() {
               </tr>
             ))}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={8} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccCashAccounts.s_35e7797d')}</td></tr>
+              <tr><td colSpan={9} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccCashAccounts.s_35e7797d')}</td></tr>
             )}
           </tbody>
         </table>
@@ -231,6 +250,15 @@ export default function AccCashAccounts() {
             <div>
               <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_a6d8db07')}</label>
               <Input value={form.card_number} onChange={e => setForm({ ...form, card_number: e.target.value })} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">{t('accounting_cash.chart_code')}</label>
+              <Input
+                value={form.chart_code}
+                placeholder="1102"
+                onChange={e => setForm({ ...form, chart_code: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">{t('accounting_cash.chart_code_hint')}</p>
             </div>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm">

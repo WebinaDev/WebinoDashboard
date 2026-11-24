@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Modules\Cafe\Services\KitchenStations;
+use Modules\Cafe\Services\OperationsSettings;
 
 class CafeKitchenController extends Controller
 {
     private const STATUSES = ['new', 'preparing', 'ready', 'served', 'out_for_delivery', 'done'];
 
-    public function __construct(private readonly KitchenStations $stations) {}
+    public function __construct(
+        private readonly KitchenStations $stations,
+        private readonly OperationsSettings $settings,
+    ) {}
 
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -89,6 +93,11 @@ class CafeKitchenController extends Controller
             'meta' => [
                 'server_time' => now()->toIso8601String(),
                 'since' => $sinceAt?->toIso8601String(),
+                // The board colours tickets from these, so the thresholds live in one place.
+                'kds' => [
+                    'warn_after_minutes' => $this->settings->int((int) $tid, 'kds_warn_after_minutes'),
+                    'late_after_minutes' => $this->settings->int((int) $tid, 'kds_late_after_minutes'),
+                ],
             ],
         ])->header('Cache-Control', 'no-store');
     }
@@ -146,6 +155,63 @@ class CafeKitchenController extends Controller
         return response()->json(['data' => $this->present($order->fresh()->load('items.product:id,name'))]);
     }
 
+    /**
+     * How long this ticket has been waiting, and whether that is too long.
+     *
+     * A kitchen board without a clock is a list, not a queue: the ticket at the top is the one
+     * that arrived first, not the one about to be fifteen minutes late. The thresholds are the
+     * tenant's (`kds_warn_after_minutes` / `kds_late_after_minutes`), measured from when the
+     * order became the kitchen's problem — not from creation, or a ticket that sat unpaid for
+     * ten minutes would arrive already amber.
+     *
+     * The clock stops when the ticket is done: a finished order must not keep ageing into red
+     * behind the cook's back, or the whole board becomes red and means nothing.
+     *
+     * @return array<string, mixed>
+     */
+    private function timing(Order $order): array
+    {
+        $tenantId = (int) $order->tenant_id;
+        $warnAfter = $this->settings->int($tenantId, 'kds_warn_after_minutes');
+        $lateAfter = max($warnAfter + 1, $this->settings->int($tenantId, 'kds_late_after_minutes'));
+
+        $meta = is_array($order->meta) ? $order->meta : [];
+        $kitchenStatus = (string) ($meta['kitchen_status'] ?? 'new');
+
+        // The clock starts when the ticket is created. For an online order that is the moment
+        // it was paid (unpaid ones never reach this board), and for a ticket rung up at the
+        // till it is the moment the guest ordered — both are the kitchen's problem from then.
+        $startedAt = $order->created_at;
+
+        $finishedAt = in_array($kitchenStatus, ['served', 'done', 'out_for_delivery'], true)
+            ? ($order->updated_at ?? now())
+            : null;
+
+        $reference = $finishedAt ?? now();
+        $minutes = $startedAt === null
+            ? 0
+            : (int) max(0, $startedAt->diffInMinutes($reference, false));
+
+        $state = match (true) {
+            $finishedAt !== null => 'finished',
+            $minutes >= $lateAfter => 'late',
+            $minutes >= $warnAfter => 'warn',
+            default => 'ok',
+        };
+
+        return [
+            'elapsed_minutes' => $minutes,
+            'state' => $state,
+            'started_at' => $startedAt?->toIso8601String(),
+            'finished_at' => $finishedAt?->toIso8601String(),
+            'warn_after_minutes' => $warnAfter,
+            'late_after_minutes' => $lateAfter,
+            'overdue_minutes' => $state === 'late' ? $minutes - $lateAfter : 0,
+            // Sorting key for the board: the most overdue ticket first.
+            'priority' => $state === 'late' ? $minutes - $lateAfter : ($state === 'finished' ? -1 : $minutes),
+        ];
+    }
+
     /** @return array<string, mixed> */
     private function present(Order $order): array
     {
@@ -190,6 +256,7 @@ class CafeKitchenController extends Controller
             // Derived over all lines: what the ticket as a whole is doing, independent of
             // `kitchen_status`, which a cook may not have moved yet.
             'prep_state' => $prep['state'],
+            'timing' => $this->timing($order),
         ];
     }
 }
