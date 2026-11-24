@@ -7,9 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Accounting\Entities\Concerns\BelongsToTenant;
 
+/**
+ * Money received or paid, as a document.
+ *
+ * Audited: a receipt voucher settles a balance, and a settled balance somebody can quietly
+ * edit is a settled balance nobody can prove.
+ */
 class AccReceiptVoucher extends Model
 {
     use BelongsToTenant;
+    use \App\Support\Audit\RecordsActivity;
 
     protected $table = 'acc_receipt_vouchers';
 

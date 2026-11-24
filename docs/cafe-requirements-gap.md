@@ -192,7 +192,7 @@
 - کوپن پیشرفته (سقف استفاده، حداقل سفارش، بازه اعتبار): ✅
 - برنامه کاری پرسنل (شیفت هفتگی/مرخصی/اضافه‌کار): ✅ `ScheduleService` + `StaffRotaController` + صفحه پرسنل
 - حقوق و دستمزد ماهانه + بیمه/مالیات + سند: ✅ `PayrollService` (سند + وبهوک `payroll.posted`)
-- گزارش فعالیت کارکنان: ✅ صفحه `users/activity` + پوشش `RecordsActivity` (بخش ۱)
+- گزارش فعالیت کارکنان: ✅ صفحه `users/activity`؛ پوشش لاگ اکنون شامل منو، میز، کوپن، `AccAccount`/`AccChartAccount`/`AccPerson`/`AccInvoice`/`AccPriceList`/`AccReceiptVoucher`/`AccWarehouseDocument` و `CafeShiftMovement` (`AuditCoverageTest`)
 
 ---
 
