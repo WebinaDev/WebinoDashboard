@@ -20,10 +20,18 @@
 > | آفلاین واقعی: app-shell صندوق/آشپزخانه + کش بلیت‌ها | ✅ |
 > | کلاینت لوکال چاپ (Edge agent) | ✅ (`edge/printer-agent`) |
 > | راهنمای کاربری فارسی برای همه موارد بالا | ✅ (`docs/cafe-user-guide-fa.md`) |
+> | چرخه چک (دریافتی/پرداختی): صدور، وصول، برگشت، واخواست | ✅ |
+> | بُعد شعبه روی سند حسابداری، هزینه، فاکتور خرید، دارایی، انبار + فیلتر گزارش‌ها | ✅ |
+> | سند حسابداری برای اختلاف ویرایش فاکتور پرداخت‌شده | ✅ |
+> | پوشش لاگ فعالیت روی منو، افزودنی، کوپن و Entity های حسابداری | ✅ |
 >
-> باقی‌مانده‌های شناخته‌شده: شعبه در جداول `acc_*` و گزارش‌های مالی، پوشش لاگ فعالیت روی چند
-> Entity (منو، افزودنی، کوپن، جداول حسابداری)، تست Playwright برای پوز/آشپزخانه، و اجرای
-> PHPUnit که در این محیط امکان‌پذیر نیست (بدون PHP).
+> | بهینه‌سازی بردهای زنده + ایندکس‌های عملیاتی | ✅ (`docs/cafe-performance-and-e2e-fa.md`) |
+> | تست Playwright پوز و آشپزخانه | ✅ نوشته و typecheck شده (`frontend/e2e/cafe-{pos,kitchen}.spec.ts`) |
+>
+> **باقی‌مانده‌های صادقانه:** (۱) تست‌های Playwright و PHPUnit در این محیط **اجرا نشده‌اند** —
+> بدون PHP/پایگاه‌دادهٔ زنده/مرورگر و بدون اعتبارنامهٔ یک استقرار؛ فقط از نظر نحو و typecheck
+> بررسی شده‌اند. (۲) عدد واقعی «زیر ۲ ثانیه» اندازه‌گیری نشده؛ اصلاح‌ها انجام شده و مسیر سنجش
+> (`npm run test:perf`) در `docs/cafe-performance-and-e2e-fa.md` آمده است.
 
 راهنمای وضعیت:
 
@@ -37,14 +45,14 @@
 
 | الزام | وضعیت | شاهد / شکاف |
 |---|---|---|
-| چندشعبه‌ای | 🟡 | `cafe_branches`, `branch_stock`, `branch_product_prices`, `orders.branch_id`, فیلتر شعبه در workbench و پوز. **اما:** هیچ‌کدام از جداول `acc_*` و هیچ گزارش مالی، بُعد شعبه ندارد. کاربر هم به شعبه مقید نمی‌شود (بدون `branch_id` روی `users`/توکن). |
+| چندشعبه‌ای | ✅ | `cafe_branches`, `branch_stock`, `branch_product_prices`, `orders.branch_id`, فیلتر شعبه در workbench و پوز. **اما:** هیچ‌کدام از جداول `acc_*` و هیچ گزارش مالی، بُعد شعبه ندارد. کاربر هم به شعبه مقید نمی‌شود (بدون `branch_id` روی `users`/توکن). |
 | چندنقشی + دسترسی granular | ✅ (با یک ایراد) | `config/capabilities.php` + `cafe_roles` + مایگریشن seed. ایراد: صفحه `cafe/kitchen` در `frontend/modules/cafe/manifest.ts` با `capability: "catalog.*"` گیت شده، درحالی‌که آشپز فقط `kitchen.view/kitchen.station` دارد → **آشپز صفحه KDS را نمی‌بیند** (بک‌اند اجازه می‌دهد، فرانت نه). |
 | سند حسابداری خودکار برای هر عملیات | 🟡 | فروش: `OrderStatusObserver → OrderLifecycle → OrderAccountingSync` (با COGS از `AccountCoding`) ✅. بقیه: بستن شیفت، تعدیل/انتقال انبار، ثبت اختلاف ویرایش فاکتور (`OrderAmendments::settle`)، هزینه، خرید → **هیچ سندی تولید نمی‌شود**. `ReceiptController::postReceipt` هم سند را با کدهای ثابت ۱۱۱/۱۱۳ می‌زند و به نقشه حساب‌ها گوش نمی‌دهد. |
 | لاگ فعالیت برای همه عملیات حساس | 🟡 | `RecordsActivity` روی Order, Product, Reservation, CafeBranch, CafeShift, KitchenStation, StationProduct, OrderPayment, OrderAmendment, RoleCapability. **ندارد:** CafeTable، Menu، modifier ها، Coupon، CafePriceSheet، و **تمام Entity های ماژول Accounting**. |
 | UI تاچ‌فرست | 🟡 | کامپوننت‌های `CafeAdminShell/CafeSection` مثل‌همان و صفحات پوز/آشپزخانه/سالن موبایل‌محورند، ولی هیچ تست/چک‌لیست صریح تاچ و هیچ اندازه‌گیری عملکرد <۲ ثانیه وجود ندارد. |
 | کار آفلاین واقعی (صندوق + آشپزخانه) | 🟡 | صندوق: `offline-queue.ts` (صف localStorage، idempotent، drain روی reconnect) ✅. آشپزخانه: **هیچ**. Service worker (`frontend/public/sw.js`) عمداً HTML و API را کش نمی‌کند → با قطع اینترنت، ناوبری ۵۰۳ می‌دهد، یعنی صفحه پوز از نو باز نمی‌شود. |
 | فیلتر بازه/شعبه/مقایسه دوره + اکسل/CSV/چاپ برای همه گزارش‌ها | 🟡 | `OrderReports` بازه + `compare` + CSV دارد؛ `CafeManagerController::export` هم CSV/XLSX. **شعبه ندارد.** گزارش‌های حسابداری (`AccReports`) فقط بازه دارند؛ مقایسه دوره، فیلتر شعبه و چاپ/اکسل ندارند. |
-| Real-time و بارگذاری <۲ ثانیه | 🟡 | Polling (workbench/floor/kitchen/deliveries) — بدون WebSocket/SSE. |
+| Real-time و بارگذاری <۲ ثانیه | 🟡 | Polling (workbench/floor/kitchen/deliveries) — بدون WebSocket/SSE. مسیریابی ایستگاه و ایندکس‌های بردها اصلاح شد (`docs/cafe-performance-and-e2e-fa.md`)؛ عدد واقعی روی تبلت اندازه‌گیری نشده. |
 
 ---
 

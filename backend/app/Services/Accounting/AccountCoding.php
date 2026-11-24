@@ -67,6 +67,59 @@ final class AccountCoding
     }
 
     /**
+     * Accounts the product posts to that are not a *role* — cheques, fixed assets, the expense
+     * categories, gains and losses on disposal.
+     *
+     * They are kept apart from `defaults()` on purpose: a role is something an accountant can
+     * remap to their own numbering, whereas these are ordinary chart accounts that simply have
+     * to exist. Without them a fresh tenant posted rent to an account called «حساب 6102» typed
+     * as an *asset*, which is how a P&L ends up with no expenses on it while the ledger is
+     * perfectly balanced.
+     *
+     * @return array<string, array{name: string, type: string}>
+     */
+    public static function namedCodes(): array
+    {
+        return [
+            '1104' => ['name' => 'چک‌های در جریان وصول', 'type' => 'asset'],
+            '1201' => ['name' => 'دارایی‌های ثابت', 'type' => 'asset'],
+            '1209' => ['name' => 'استهلاک انباشته دارایی‌های ثابت', 'type' => 'asset'],
+            '1301' => ['name' => 'موجودی کالا', 'type' => 'asset'],
+            '2106' => ['name' => 'چک‌های پرداختنی', 'type' => 'liability'],
+            '4102' => ['name' => 'برگشت از فروش', 'type' => 'revenue'],
+            '4201' => ['name' => 'سود واگذاری دارایی', 'type' => 'revenue'],
+            '5101' => ['name' => 'بهای تمام‌شده کالای فروش‌رفته', 'type' => 'expense'],
+            '6102' => ['name' => 'اجاره', 'type' => 'expense'],
+            '6103' => ['name' => 'آب، برق و گاز', 'type' => 'expense'],
+            '6104' => ['name' => 'تعمیر و نگهداری', 'type' => 'expense'],
+            '6105' => ['name' => 'ملزومات', 'type' => 'expense'],
+            '6106' => ['name' => 'حمل و نقل', 'type' => 'expense'],
+            '6107' => ['name' => 'بازاریابی', 'type' => 'expense'],
+            '6108' => ['name' => 'هزینه استهلاک', 'type' => 'expense'],
+            '6198' => ['name' => 'زیان واگذاری دارایی', 'type' => 'expense'],
+            '6199' => ['name' => 'سایر هزینه‌ها', 'type' => 'expense'],
+        ];
+    }
+
+    /**
+     * The type an unknown code implies, from its own numbering.
+     *
+     * Used only when nothing else knows the code, so a chart the accountant extended by hand
+     * still posts with a sane type instead of silently landing in assets.
+     */
+    public static function typeForPrefix(string $code): string
+    {
+        return match (mb_substr(trim($code), 0, 1)) {
+            '1' => 'asset',
+            '2' => 'liability',
+            '3' => 'equity',
+            '4' => 'revenue',
+            '5', '6', '7' => 'expense',
+            default => 'asset',
+        };
+    }
+
+    /**
      * Which default account a tender settles into when the tenant has not mapped it.
      *
      * This is the fix for "every tender debits receivables": cash must land in the drawer,

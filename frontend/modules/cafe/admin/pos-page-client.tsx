@@ -701,7 +701,11 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
       ) : null}
 
       {saved ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm">
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm"
+          data-testid="pos-saved"
+          data-order-number={saved.number}
+        >
           <span className="font-medium">{t("saved_order", { number: saved.number })}</span>
           <Button
             type="button"
@@ -898,6 +902,8 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
                     <button
                       key={product.id}
                       type="button"
+                      data-testid="pos-product"
+                      data-product-name={product.name}
                       onClick={() => {
                         if (needsChoice) setPickProduct(product)
                         else addLine(product, null, [], null)
@@ -931,7 +937,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
             {lines.length === 0 ? (
               <CafeEmptyState message={t("cart_empty")} />
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-2" data-testid="pos-cart-lines">
                 {lines.map((line) => (
                   <li key={line.key} className="rounded-lg border p-2">
                     <div className="flex items-start justify-between gap-2">
@@ -1152,6 +1158,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
             <div className="grid gap-2">
               <Button
                 type="button"
+                data-testid="pos-pay"
                 className={cn(TAP, "w-full")}
                 disabled={lines.length === 0 || submit.isPending || belowZoneMinimum}
                 onClick={startPayment}
@@ -1161,6 +1168,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
               <Button
                 type="button"
                 variant="outline"
+                data-testid="pos-save-open"
                 className={cn(TAP, "w-full")}
                 disabled={lines.length === 0 || submit.isPending || belowZoneMinimum}
                 onClick={() => submit.mutate({ settle: false })}
@@ -1184,7 +1192,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
 
       {/* --------------------------------------------------------- settle modal --- */}
       <Dialog open={settleOpen} onOpenChange={setSettleOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg" data-testid="pos-settle-dialog">
           <DialogHeader>
             <DialogTitle>{t("settle_title")}</DialogTitle>
             <DialogDescription>{t("settle_description")}</DialogDescription>
@@ -1316,6 +1324,7 @@ export default function PosPageClient({ route: _route }: { route: ResolvedAdminR
               </Button>
               <Button
                 type="button"
+                data-testid="pos-confirm-payment"
                 disabled={outstanding !== 0 || submit.isPending || belowZoneMinimum}
                 onClick={() => submit.mutate({ settle: true })}
               >

@@ -196,7 +196,12 @@ final class LedgerPosting
         }
 
         $defaults = $this->defaultAccounts();
-        $def = $defaults[$code] ?? ['name' => 'حساب '.$code, 'type' => 'asset'];
+        $def = $defaults[$code]
+            ?? \App\Services\Accounting\AccountCoding::namedCodes()[$code]
+            // A code nobody named still has to be typed correctly: the first digit of an
+            // Iranian chart says asset/liability/equity/revenue/expense, and defaulting every
+            // unknown code to `asset` is how rent disappears from the profit and loss.
+            ?? ['name' => 'حساب '.$code, 'type' => \App\Services\Accounting\AccountCoding::typeForPrefix($code)];
 
         return AccChartAccount::query()->create([
             'code' => $code,

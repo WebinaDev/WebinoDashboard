@@ -135,6 +135,9 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
   const sinceRef = useRef<string>("")
   const { data: orders = [] } = useQuery({
     queryKey: ["cafe-kitchen"],
+    // Polling must keep trying: a screen that gives up after one failure shows an empty board
+    // for the rest of the shift even after the Wi-Fi comes back.
+    refetchOnReconnect: true,
     queryFn: async () => {
       const since = sinceRef.current
       const query = since ? `?since=${encodeURIComponent(since)}` : ""
@@ -174,6 +177,15 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
 
   // A failed poll falls back to the mirrored board rather than an empty grid.
   const board = orders.length > 0 ? orders : restoreCachedBoard()
+
+  /**
+   * The board is showing something it could not refresh.
+   *
+   * The connection being down is only half the story: a poll can fail with the network up. Both
+   * cases must say the same thing to the cook, because in both the tickets on the wall may be
+   * stale — and "stale but complete" only works if it is labelled.
+   */
+  const boardIsStale = !online || (orders.length === 0 && board.length > 0)
 
   // Column labels are per tenant (and optionally per station), so the board must not hard-code
   // the four words it shows next to each status.
@@ -262,8 +274,12 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
 
   return (
     <CafeAdminShell title={t("title")} description={t("description")}>
-      {!online ? (
-        <p className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+      {boardIsStale ? (
+        <p
+          className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+          data-testid="kds-stale-banner"
+          role="status"
+        >
           {t("offline_banner")}
         </p>
       ) : null}
@@ -286,7 +302,13 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                     ? "border-primary"
                     : ""
             return (
-              <article key={order.id} className={`rounded-xl border p-4 ${ageClass}`}>
+              <article
+                key={order.id}
+                className={`rounded-xl border p-4 ${ageClass}`}
+                data-testid="kds-ticket"
+                data-order-id={order.id}
+                data-kitchen-status={order.kitchen_status}
+              >
                 <header className="mb-3 flex items-start justify-between gap-2">
                   <div>
                     <p className="text-base font-semibold">#{toLocaleDigits(String(order.number), locale)}</p>
@@ -384,6 +406,7 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                             }`}
                             disabled={prep.isPending}
                             aria-pressed={done}
+                            data-testid="kds-item"
                             aria-label={`${t("mark_ready")}: ${item.name}`}
                             onClick={() =>
                               prep.mutate({
@@ -418,6 +441,7 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                   {advanceTo ? (
                     <Button
                       size="sm"
+                      data-testid="kds-advance"
                       disabled={update.isPending}
                       onClick={() => update.mutate({ id: order.id, kitchen_status: advanceTo })}
                     >
