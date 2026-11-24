@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -37,7 +37,8 @@ import { CafeAdminShell, CafeEmptyState, CafeSection } from "./cafe-admin-ui"
  * before adding another one — and clear the stale ones without hunting for their ids.
  */
 
-type Branch = { id: number; name: string }
+/** A branch carries both names; the board shows the one matching the UI language. */
+type Branch = { id: number; name_fa: string; name_en: string }
 type Product = { id: number; name: string; price_minor: number | null }
 
 type Override = {
@@ -54,6 +55,7 @@ export default function BranchPricesPageClient({ route: _route }: { route: Resol
   const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
 
+  const locale = useLocale()
   const [branchId, setBranchId] = useState("")
   const [productId, setProductId] = useState("")
   const [price, setPrice] = useState("")
@@ -117,7 +119,7 @@ export default function BranchPricesPageClient({ route: _route }: { route: Resol
               <SelectContent>
                 {(branches.data ?? []).map((b) => (
                   <SelectItem key={b.id} value={String(b.id)}>
-                    {b.name}
+                    {locale === "fa" ? b.name_fa : b.name_en}
                   </SelectItem>
                 ))}
               </SelectContent>
