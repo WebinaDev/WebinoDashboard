@@ -1661,7 +1661,10 @@
       "pager_description": "Enter the number of the pager you handed the guest.",
       "pager_number": "Pager number",
       "pager_placeholder": "e.g. 12",
-      "tier_next": "{count} to next tier"
+      "tier_next": "{count} to next tier",
+      "unavailable_sold_out": "sold out",
+      "unavailable_unavailable": "unavailable",
+      "unavailable_branch_off": "not at this branch"
     },
     "delivery_zones": {
       "title": "Delivery zones",

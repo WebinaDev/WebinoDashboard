@@ -464,6 +464,25 @@ final class OrderIntake
                 throw ValidationException::withMessages(["items.$index.product_id" => 'این محصول یافت نشد.']);
             }
 
+            // The till filters sold-out items, but a filter in a screen is advice, not a rule:
+            // a stale tab, a retried offline write, or a direct call would still sell it. The
+            // refusal belongs here, where every order — counter, phone or guest — goes through.
+            //
+            // The branch check is deliberately not duplicated here: `isAvailableAtBranch` is
+            // already enforced for the counter feed, and refusing on a branch flag stored as
+            // null would block a catalogue nobody has ever 86'd per branch.
+            if ((bool) $product->is_sold_out) {
+                throw ValidationException::withMessages([
+                    "items.$index.product_id" => '«'.$product->name.'» تمام شده است و قابل فروش نیست.',
+                ]);
+            }
+
+            if (! $product->is_available) {
+                throw ValidationException::withMessages([
+                    "items.$index.product_id" => '«'.$product->name.'» غیرفعال است و قابل فروش نیست.',
+                ]);
+            }
+
             $variant = null;
             $variantId = isset($raw['product_variant_id']) ? (int) $raw['product_variant_id'] : 0;
             if ($variantId > 0) {

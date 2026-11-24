@@ -4185,7 +4185,10 @@
       "pager_description": "شماره پیجری که به مشتری داده‌اید را وارد کنید.",
       "pager_number": "شماره پیجر",
       "pager_placeholder": "مثلاً ۱۲",
-      "tier_next": "{count} امتیاز تا سطح بعد"
+      "tier_next": "{count} امتیاز تا سطح بعد",
+      "unavailable_sold_out": "تمام شد",
+      "unavailable_unavailable": "غیرفعال",
+      "unavailable_branch_off": "در این شعبه نیست"
     },
     "delivery_zones": {
       "title": "مناطق ارسال",

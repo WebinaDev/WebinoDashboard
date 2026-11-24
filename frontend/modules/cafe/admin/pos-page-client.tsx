@@ -95,6 +95,12 @@ type PosProduct = {
   category?: string | null;
   price_minor?: number;
   available: boolean;
+  /**
+   * Why the till cannot sell this right now: `sold_out`, `unavailable`, or `branch_off`.
+   * Null when it can. The server refuses the sale either way; this is so the cashier sees a
+   * reason instead of a dish that quietly disappeared from the grid.
+   */
+  unavailable_reason?: "sold_out" | "unavailable" | "branch_off" | null;
   variants: Variant[];
   modifiers: Modifier[];
 };
@@ -398,7 +404,11 @@ export default function PosPageClient({
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return products.filter((p) => {
-      if (!p.available) return false;
+      // A `branch_off` item is not stocked here at all, so it does not belong on this counter's
+      // grid. A sold-out one does: the cashier needs to see that the kitchen has run out, and a
+      // dish that simply vanishes reads as a bug.
+      if (!p.available && p.unavailable_reason === "branch_off") return false;
+      if (!p.available && p.unavailable_reason == null) return false;
       if (category && p.category !== category) return false;
       if (!needle) return true;
       return (
@@ -1072,18 +1082,42 @@ export default function PosPageClient({
                       type="button"
                       data-testid="pos-product"
                       data-product-name={product.name}
+                      // Sold out is disabled, not removed: a greyed button with a label tells the
+                      // cashier what the kitchen knows, and stops the tap before the server does.
+                      disabled={!product.available}
+                      aria-disabled={!product.available}
+                      title={
+                        product.available
+                          ? undefined
+                          : t(
+                              `unavailable_${product.unavailable_reason ?? "unavailable"}`,
+                            )
+                      }
                       onClick={() => {
+                        if (!product.available) return;
                         if (needsChoice) setPickProduct(product);
                         else addLine(product, null, [], null);
                       }}
-                      className="hover:border-primary/60 hover:bg-muted/50 flex min-h-20 flex-col items-start justify-between gap-1 rounded-lg border p-2 text-start transition-colors"
+                      className={`flex min-h-20 flex-col items-start justify-between gap-1 rounded-lg border p-2 text-start transition-colors ${
+                        product.available
+                          ? "hover:border-primary/60 hover:bg-muted/50"
+                          : "cursor-not-allowed opacity-50"
+                      }`}
                     >
                       <span className="line-clamp-2 text-sm font-medium">
                         {product.name}
                       </span>
-                      <span className="text-muted-foreground text-xs">
-                        <MoneyText amount={product.price_minor ?? 0} />
-                      </span>
+                      {product.available ? (
+                        <span className="text-muted-foreground text-xs">
+                          <MoneyText amount={product.price_minor ?? 0} />
+                        </span>
+                      ) : (
+                        <Badge variant="destructive" className="text-[10px]">
+                          {t(
+                            `unavailable_${product.unavailable_reason ?? "unavailable"}`,
+                          )}
+                        </Badge>
+                      )}
                     </button>
                   );
                 })}

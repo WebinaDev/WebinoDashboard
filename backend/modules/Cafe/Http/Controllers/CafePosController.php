@@ -268,7 +268,10 @@ class CafePosController extends Controller
     {
         $products = Product::query()
             ->where('tenant_id', $tenantId)
+            // `is_hidden` is the catalogue's own "do not sell this" flag; a hidden product must
+            // not reach a till even when somebody left it published.
             ->where('status', 'publish')
+            ->where('is_hidden', false)
             ->with([
                 'variants:id,product_id,name,price_minor,sort_order',
                 'modifiers.options',
@@ -280,12 +283,34 @@ class CafePosController extends Controller
             ->get();
 
         return $products->map(function (Product $product) use ($branchId): array {
-            // A branch can 86 an item for itself; it must not be offered at that counter.
-            if ($branchId !== null && ! $product->isAvailableAtBranch($branchId)) {
+            // Why this item cannot be sold right now, or null when it can.
+            //
+            // The till used to answer `available => true` for everything and skip the sold-out
+            // flag entirely: a dish marked 86 on the menu screen disappeared from the online
+            // menu — `CafeOrdering` filters `is_sold_out` and `is_available` — and kept selling
+            // at the counter. A counter that sells what the kitchen has run out of is the one
+            // failure a POS must not have.
+            //
+            // The item is still returned (rather than dropped) so the cashier sees a greyed
+            // button with a reason instead of wondering where the dish went.
+            $unavailableBecause = match (true) {
+                ! $product->is_available => 'unavailable',
+                (bool) $product->is_sold_out => 'sold_out',
+                $branchId !== null && ! $product->isAvailableAtBranch($branchId) => 'branch_off',
+                default => null,
+            };
+
+            if ($unavailableBecause !== null) {
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
+                    'sku' => $product->sku,
+                    'category' => $product->category?->name,
+                    'price_minor' => $branchId !== null
+                        ? $product->branchPriceMinor($branchId)
+                        : $product->storefrontPriceMinor(),
                     'available' => false,
+                    'unavailable_reason' => $unavailableBecause,
                     'variants' => [],
                     'modifiers' => [],
                 ];
@@ -300,6 +325,7 @@ class CafePosController extends Controller
                 'category' => $product->category?->name,
                 'price_minor' => $price,
                 'available' => true,
+                'unavailable_reason' => null,
                 'variants' => $product->variants->map(fn ($variant): array => [
                     'id' => $variant->id,
                     'name' => $variant->name,
