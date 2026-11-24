@@ -12,12 +12,14 @@
             <directory>tests/Feature</directory>
         </testsuite>
         <!--
-            Tests that ship with a module live next to the code they cover, so a module
-            can be installed or removed with its tests. They still use the `Tests\`
-            namespace and the shared `Tests\TestCase`, which the autoloader resolves.
+            Tests that ship with a module live next to the code they cover, so a module can
+            be installed or removed with its tests. They keep the `Tests\Feature\` and
+            `Tests\Unit\` namespaces; `composer.json` maps those to both `tests/` and
+            `modules/Cafe/Tests/`, so they run with the shared `Tests\TestCase`.
         -->
         <testsuite name="Modules">
-            <directory>modules/*/Tests</directory>
+            <directory>modules/*/Tests/Feature</directory>
+            <directory>modules/*/Tests/Unit</directory>
         </testsuite>
     </testsuites>
     <source>
