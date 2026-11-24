@@ -5,6 +5,7 @@ use Modules\Accounting\Http\Controllers\AccInvoiceController;
 use Modules\Accounting\Http\Controllers\AccountingDashboardController;
 use Modules\Accounting\Http\Controllers\AccountingSettingsController;
 use Modules\Accounting\Http\Controllers\AccountingWpActionController;
+use Modules\Accounting\Http\Controllers\BankReconciliationController;
 use Modules\Accounting\Http\Controllers\CashAccountController;
 use Modules\Accounting\Http\Controllers\ChartAccountController;
 use Modules\Accounting\Http\Controllers\CheckController;
@@ -34,6 +35,8 @@ Route::get('/persons', [PersonController::class, 'index']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/invoices', [AccInvoiceController::class, 'invoices']);
 Route::get('/cash-accounts', [CashAccountController::class, 'cashAccounts']);
+// The reconciliation engine had no caller for months. This is the caller.
+Route::post('/cash-accounts/reconcile', [BankReconciliationController::class, 'reconcile']);
 Route::get('/receipts', [ReceiptController::class, 'receipts']);
 Route::get('/checks', [CheckController::class, 'checks']);
 Route::get('/chart', [ChartAccountController::class, 'chartOfAccounts']);

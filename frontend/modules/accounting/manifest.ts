@@ -45,6 +45,8 @@ export const accountingManifest: ModuleManifest = {
     { path: "accounting/cash-accounts", submodule: "cash", page: "cash-accounts", labelKey: "nav.accounting_cash_accounts", section: "accounting", order: 29, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/receipts", submodule: "receipts", page: "receipts", labelKey: "nav.accounting_receipts", section: "accounting", order: 30, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/checks", submodule: "checks", page: "checks", labelKey: "nav.accounting_checks", section: "accounting", order: 31, capability: "accounting.manage", menuKey: "accounting" },
+    // The reconciliation engine existed for months with no caller. This is the screen that calls it.
+    { path: "accounting/reconciliation", submodule: "cash", page: "reconciliation", labelKey: "nav.accounting_reconciliation", section: "accounting", order: 32, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/warehouses", submodule: "warehouses", page: "warehouses", labelKey: "nav.accounting_warehouses", section: "accounting", order: 32, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/warehouse-stock", submodule: "warehouses", page: "warehouse-stock", labelKey: "nav.accounting_warehouse_stock", section: "accounting", order: 33, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
     { path: "accounting/warehouse-inbound", submodule: "warehouses", page: "warehouse-inbound", labelKey: "nav.accounting_warehouse_inbound", section: "accounting", order: 34, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
