@@ -36,6 +36,10 @@ Route::get('/persons', [PersonController::class, 'index']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/invoices', [AccInvoiceController::class, 'invoices']);
 Route::get('/cash-accounts', [CashAccountController::class, 'cashAccounts']);
+Route::get('/cash-account-types', [CashAccountController::class, 'types']);
+// Moving money between the shop's own accounts: the operation every shop performs weekly and
+// previously had to fake with two manual journals, where a wrong code turns a transfer into a sale.
+Route::post('/cash-accounts/transfer', [CashAccountController::class, 'transfer']);
 // The reconciliation engine had no caller for months. This is the caller.
 Route::post('/cash-accounts/reconcile', [BankReconciliationController::class, 'reconcile']);
 Route::get('/receipts', [ReceiptController::class, 'receipts']);

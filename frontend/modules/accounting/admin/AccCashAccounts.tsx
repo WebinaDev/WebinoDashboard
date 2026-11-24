@@ -1,27 +1,42 @@
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
+import { useTranslations } from "next-intl";
 
-import { useState, useCallback, useEffect } from 'react';
-import apiClient from '@/features/modules/accounting/lib/api-client';
-import { normalizeListPayload } from '@/lib/list-utils';
-import { getAxiosMessage } from '@/features/modules/accounting/lib/api-helpers';
-import { accountingWpAction } from '@/features/modules/accounting/lib/accounting-wp';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Pagination } from '@/components/ui/pagination';
-import { useLocale } from '@/hooks/use-locale-next';
+import { useState, useCallback, useEffect } from "react";
+import apiClient from "@/features/modules/accounting/lib/api-client";
+import { normalizeListPayload } from "@/lib/list-utils";
+import { getAxiosMessage } from "@/features/modules/accounting/lib/api-helpers";
+import { accountingWpAction } from "@/features/modules/accounting/lib/accounting-wp";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
+import { useLocale } from "@/hooks/use-locale-next";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from '@/components/ui/dialog';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CashAccount = {
   id: number;
@@ -41,19 +56,23 @@ type CashAccount = {
 };
 
 const TYPE_KEYS: Record<string, string> = {
-  bank: 'auto.accounting_AccCashAccounts.s_4e7ba293',
-  cash: 'auto.accounting_AccCashAccounts.s_c9138ef5',
-  petty_cash: 'auto.accounting_AccCashAccounts.s_e101ceae',
+  bank: "auto.accounting_AccCashAccounts.s_4e7ba293",
+  cash: "auto.accounting_AccCashAccounts.s_c9138ef5",
+  petty_cash: "auto.accounting_AccCashAccounts.s_e101ceae",
+  // A card terminal and a payment gateway are money the shop has earned but not yet received.
+  // They used to be forced into `bank`, which hid how much cash was still sitting with the PSP.
+  terminal: "accounting_cash.type_terminal",
+  gateway: "accounting_cash.type_gateway",
 };
 
 const BLANK = {
-  name: '',
-  type: 'bank',
-  bank_name: '',
-  account_number: '',
-  sheba: '',
-  card_number: '',
-  chart_code: '',
+  name: "",
+  type: "bank",
+  bank_name: "",
+  account_number: "",
+  sheba: "",
+  card_number: "",
+  chart_code: "",
   is_active: true,
   is_default: false,
 };
@@ -77,13 +96,30 @@ export default function AccCashAccounts() {
 
   const [deleteTarget, setDeleteTarget] = useState<CashAccount | null>(null);
 
+  // Treasury transfer — money moving between the shop's own accounts.
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferSaving, setTransferSaving] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferDone, setTransferDone] = useState<string | null>(null);
+  const [transfer, setTransferForm] = useState({
+    from_account_id: "",
+    to_account_id: "",
+    amount_minor: "",
+    note: "",
+  });
+
   const fetchRows = useCallback(async (p: number) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get('/v1/erp-accounting/cash-accounts', { params: { page: p, per_page: 50 } });
+      const res = await apiClient.get("/v1/erp-accounting/cash-accounts", {
+        params: { page: p, per_page: 50 },
+      });
       const raw = res.data as Record<string, unknown>;
-      const pg = (raw.current_page != null ? raw : (raw.data as Record<string, unknown>) ?? raw);
+      const pg =
+        raw.current_page != null
+          ? raw
+          : ((raw.data as Record<string, unknown>) ?? raw);
       setRows(normalizeListPayload(pg) as unknown as CashAccount[]);
       setPageCount(Number(pg.last_page) || 1);
       setTotal(Number(pg.total) || 0);
@@ -95,7 +131,41 @@ export default function AccCashAccounts() {
     }
   }, []);
 
-  useEffect(() => { void fetchRows(1); }, [fetchRows]);
+  useEffect(() => {
+    void fetchRows(1);
+  }, [fetchRows]);
+
+  const submitTransfer = async () => {
+    setTransferSaving(true);
+    setTransferError(null);
+    try {
+      await apiClient.post("/v1/erp-accounting/cash-accounts/transfer", {
+        from_account_id: Number(transfer.from_account_id),
+        to_account_id: Number(transfer.to_account_id),
+        amount_minor: Number(transfer.amount_minor),
+        note: transfer.note || null,
+      });
+      // The whole point of the panel is the new balances, so refresh rather than trust
+      // arithmetic done on the client.
+      await fetchRows(page);
+      setTransferDone(
+        t("accounting_cash.transfer_done", {
+          amount: formatNumber(Number(transfer.amount_minor)),
+        }),
+      );
+      setTransferForm({
+        from_account_id: "",
+        to_account_id: "",
+        amount_minor: "",
+        note: "",
+      });
+      setTransferOpen(false);
+    } catch (e) {
+      setTransferError(getAxiosMessage(e));
+    } finally {
+      setTransferSaving(false);
+    }
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -107,13 +177,13 @@ export default function AccCashAccounts() {
   const openEdit = (row: CashAccount) => {
     setEditing(row);
     setForm({
-      name: row.name ?? '',
-      type: row.type ?? 'bank',
-      bank_name: row.bank_name ?? '',
-      account_number: row.account_number ?? '',
-      sheba: row.sheba ?? '',
-      card_number: row.card_number ?? '',
-      chart_code: row.chart_code ?? '',
+      name: row.name ?? "",
+      type: row.type ?? "bank",
+      bank_name: row.bank_name ?? "",
+      account_number: row.account_number ?? "",
+      sheba: row.sheba ?? "",
+      card_number: row.card_number ?? "",
+      chart_code: row.chart_code ?? "",
       is_active: Boolean(row.is_active),
       is_default: Boolean(row.is_default),
     });
@@ -127,7 +197,7 @@ export default function AccCashAccounts() {
     try {
       const body: Record<string, unknown> = { ...form };
       if (editing?.id) body.id = editing.id;
-      await accountingWpAction('cash_account_save', body);
+      await accountingWpAction("cash_account_save", body);
       setFormOpen(false);
       void fetchRows(page);
     } catch (e) {
@@ -140,7 +210,7 @@ export default function AccCashAccounts() {
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
-      await accountingWpAction('cash_account_delete', { id: deleteTarget.id });
+      await accountingWpAction("cash_account_delete", { id: deleteTarget.id });
       setDeleteTarget(null);
       void fetchRows(page);
     } catch (e) {
@@ -152,142 +222,433 @@ export default function AccCashAccounts() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button size="sm" onClick={openCreate}>{t('auto.accounting_AccCashAccounts.s_e34fff4e')}</Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setTransferError(null);
+            setTransferOpen(true);
+          }}
+        >
+          {t("accounting_cash.transfer_action")}
+        </Button>
+        <Button size="sm" onClick={openCreate}>
+          {t("auto.accounting_AccCashAccounts.s_e34fff4e")}
+        </Button>
       </div>
 
+      {transferDone && (
+        <p className="text-sm text-emerald-600">{transferDone}</p>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccCashAccounts.s_51617f69')}</p>}
+      {loading && (
+        <p className="text-sm text-muted-foreground">
+          {t("auto.accounting_AccCashAccounts.s_51617f69")}
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_acc84041')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_45dd06ba')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_d2e35a1f')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('accounting_cash.balance')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_0481ee91')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_7d8e887c')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_6f637966')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_523e2d7c')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_8d1cc546')}</th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("auto.accounting_AccCashAccounts.s_acc84041")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("auto.accounting_AccCashAccounts.s_45dd06ba")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("auto.accounting_AccCashAccounts.s_d2e35a1f")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("accounting_cash.balance")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("auto.accounting_AccCashAccounts.s_0481ee91")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("auto.accounting_AccCashAccounts.s_7d8e887c")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("auto.accounting_AccCashAccounts.s_6f637966")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("auto.accounting_AccCashAccounts.s_523e2d7c")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("auto.accounting_AccCashAccounts.s_8d1cc546")}
+              </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(row => (
+            {rows.map((row) => (
               <tr key={row.id} className="border-b">
                 <td className="px-3 py-2">{row.id}</td>
                 <td className="px-3 py-2">{row.name}</td>
-                <td className="px-3 py-2">{TYPE_KEYS[row.type] ? t(TYPE_KEYS[row.type]) : row.type}</td>
+                <td className="px-3 py-2">
+                  {TYPE_KEYS[row.type] ? t(TYPE_KEYS[row.type]) : row.type}
+                </td>
                 <td className="px-3 py-2 tabular-nums">
                   {row.balance_known ? (
                     formatNumber(Number(row.balance ?? 0))
                   ) : (
                     // No chart account means there is no balance to show. Printing 0 would
                     // read as "empty drawer" when it actually means "not linked".
-                    <span className="text-muted-foreground text-xs">{t('accounting_cash.unlinked')}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {t("accounting_cash.unlinked")}
+                    </span>
                   )}
                 </td>
                 <td className="px-3 py-2">{row.bank_name}</td>
                 <td className="px-3 py-2">{row.account_number}</td>
                 <td className="px-3 py-2">
-                  <Badge variant={row.is_active ? 'default' : 'outline'}>{row.is_active ? t('auto.accounting_AccCashAccounts.s_afcb410b') : t('auto.accounting_AccCashAccounts.s_a7b8355e')}</Badge>
+                  <Badge variant={row.is_active ? "default" : "outline"}>
+                    {row.is_active
+                      ? t("auto.accounting_AccCashAccounts.s_afcb410b")
+                      : t("auto.accounting_AccCashAccounts.s_a7b8355e")}
+                  </Badge>
                 </td>
                 <td className="px-3 py-2">
-                  <Badge variant={row.is_default ? 'default' : 'outline'}>{row.is_default ? t('auto.accounting_AccCashAccounts.s_afcb410b') : t('auto.accounting_AccCashAccounts.s_a7b8355e')}</Badge>
+                  <Badge variant={row.is_default ? "default" : "outline"}>
+                    {row.is_default
+                      ? t("auto.accounting_AccCashAccounts.s_afcb410b")
+                      : t("auto.accounting_AccCashAccounts.s_a7b8355e")}
+                  </Badge>
                 </td>
                 <td className="px-3 py-2 gap-x-1 rtl:gap-x-reverse">
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('auto.accounting_AccCashAccounts.s_ac60ae7a')}</Button>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>{t('auto.accounting_AccCashAccounts.s_2d2bbdc2')}</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openEdit(row)}
+                  >
+                    {t("auto.accounting_AccCashAccounts.s_ac60ae7a")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => setDeleteTarget(row)}
+                  >
+                    {t("auto.accounting_AccCashAccounts.s_2d2bbdc2")}
+                  </Button>
                 </td>
               </tr>
             ))}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={9} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccCashAccounts.s_35e7797d')}</td></tr>
+              <tr>
+                <td
+                  colSpan={9}
+                  className="px-3 py-4 text-center text-muted-foreground"
+                >
+                  {t("auto.accounting_AccCashAccounts.s_35e7797d")}
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
 
       {pageCount > 1 && (
-        <Pagination page={page} pageCount={pageCount} total={total} onPageChange={p => fetchRows(p)} />
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          onPageChange={(p) => fetchRows(p)}
+        />
       )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? t('auto.accounting_AccCashAccounts.s_28453caf') : t('auto.accounting_AccCashAccounts.s_8d844b40')}</DialogTitle>
-            <DialogDescription>{editing ? t('auto.accounting_AccCashAccounts.s_4b293939') : t('auto.accounting_AccCashAccounts.s_c6b15b0d')}</DialogDescription>
+            <DialogTitle>
+              {editing
+                ? t("auto.accounting_AccCashAccounts.s_28453caf")
+                : t("auto.accounting_AccCashAccounts.s_8d844b40")}
+            </DialogTitle>
+            <DialogDescription>
+              {editing
+                ? t("auto.accounting_AccCashAccounts.s_4b293939")
+                : t("auto.accounting_AccCashAccounts.s_c6b15b0d")}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_45dd06ba')}</label>
-              <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+              <label className="mb-1 block text-sm font-medium">
+                {t("auto.accounting_AccCashAccounts.s_45dd06ba")}
+              </label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_d2e35a1f')}</label>
-              <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <label className="mb-1 block text-sm font-medium">
+                {t("auto.accounting_AccCashAccounts.s_d2e35a1f")}
+              </label>
+              <Select
+                value={form.type}
+                onValueChange={(v) => setForm({ ...form, type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bank">{t('auto.accounting_AccCashAccounts.s_4e7ba293')}</SelectItem>
-                  <SelectItem value="cash">{t('auto.accounting_AccCashAccounts.s_c9138ef5')}</SelectItem>
-                  <SelectItem value="petty_cash">{t('auto.accounting_AccCashAccounts.s_e101ceae')}</SelectItem>
+                  <SelectItem value="bank">
+                    {t("auto.accounting_AccCashAccounts.s_4e7ba293")}
+                  </SelectItem>
+                  <SelectItem value="cash">
+                    {t("auto.accounting_AccCashAccounts.s_c9138ef5")}
+                  </SelectItem>
+                  <SelectItem value="petty_cash">
+                    {t("auto.accounting_AccCashAccounts.s_e101ceae")}
+                  </SelectItem>
+                  <SelectItem value="terminal">
+                    {t("accounting_cash.type_terminal")}
+                  </SelectItem>
+                  <SelectItem value="gateway">
+                    {t("accounting_cash.type_gateway")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_0481ee91')}</label>
-              <Input value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} />
+              <label className="mb-1 block text-sm font-medium">
+                {t("auto.accounting_AccCashAccounts.s_0481ee91")}
+              </label>
+              <Input
+                value={form.bank_name}
+                onChange={(e) =>
+                  setForm({ ...form, bank_name: e.target.value })
+                }
+              />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_7d8e887c')}</label>
-              <Input value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} />
+              <label className="mb-1 block text-sm font-medium">
+                {t("auto.accounting_AccCashAccounts.s_7d8e887c")}
+              </label>
+              <Input
+                value={form.account_number}
+                onChange={(e) =>
+                  setForm({ ...form, account_number: e.target.value })
+                }
+              />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_3253f77a')}</label>
-              <Input value={form.sheba} onChange={e => setForm({ ...form, sheba: e.target.value })} />
+              <label className="mb-1 block text-sm font-medium">
+                {t("auto.accounting_AccCashAccounts.s_3253f77a")}
+              </label>
+              <Input
+                value={form.sheba}
+                onChange={(e) => setForm({ ...form, sheba: e.target.value })}
+              />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_a6d8db07')}</label>
-              <Input value={form.card_number} onChange={e => setForm({ ...form, card_number: e.target.value })} />
+              <label className="mb-1 block text-sm font-medium">
+                {t("auto.accounting_AccCashAccounts.s_a6d8db07")}
+              </label>
+              <Input
+                value={form.card_number}
+                onChange={(e) =>
+                  setForm({ ...form, card_number: e.target.value })
+                }
+              />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">{t('accounting_cash.chart_code')}</label>
+              <label className="mb-1 block text-sm font-medium">
+                {t("accounting_cash.chart_code")}
+              </label>
               <Input
                 value={form.chart_code}
                 placeholder="1102"
-                onChange={e => setForm({ ...form, chart_code: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, chart_code: e.target.value })
+                }
               />
-              <p className="mt-1 text-xs text-muted-foreground">{t('accounting_cash.chart_code_hint')}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("accounting_cash.chart_code_hint")}
+              </p>
             </div>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="h-4 w-4 rounded border-input" />
-                {t('auto.accounting_AccCashAccounts.s_6f637966')}
+                <input
+                  type="checkbox"
+                  checked={form.is_active}
+                  onChange={(e) =>
+                    setForm({ ...form, is_active: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-input"
+                />
+                {t("auto.accounting_AccCashAccounts.s_6f637966")}
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.is_default} onChange={e => setForm({ ...form, is_default: e.target.checked })} className="h-4 w-4 rounded border-input" />
-                {t('auto.accounting_AccCashAccounts.s_523e2d7c')}
+                <input
+                  type="checkbox"
+                  checked={form.is_default}
+                  onChange={(e) =>
+                    setForm({ ...form, is_default: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-input"
+                />
+                {t("auto.accounting_AccCashAccounts.s_523e2d7c")}
               </label>
             </div>
-            {formError && <p className="text-sm text-destructive">{formError}</p>}
+            {formError && (
+              <p className="text-sm text-destructive">{formError}</p>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>{t('auto.accounting_AccCashAccounts.s_106dfb4e')}</Button>
-            <Button onClick={save} disabled={saving}>{saving ? t('auto.accounting_AccCashAccounts.s_4b7554d6') : t('auto.accounting_AccCashAccounts.s_08545fb6')}</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>
+              {t("auto.accounting_AccCashAccounts.s_106dfb4e")}
+            </Button>
+            <Button onClick={save} disabled={saving}>
+              {saving
+                ? t("auto.accounting_AccCashAccounts.s_4b7554d6")
+                : t("auto.accounting_AccCashAccounts.s_08545fb6")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null); }}>
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("accounting_cash.transfer_title")}</DialogTitle>
+            <DialogDescription>
+              {t("accounting_cash.transfer_hint")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                {t("accounting_cash.transfer_from")}
+              </label>
+              <Select
+                value={transfer.from_account_id}
+                onValueChange={(v) =>
+                  setTransferForm({ ...transfer, from_account_id: v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={t("accounting_cash.transfer_pick")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {rows.map((row) => (
+                    <SelectItem key={row.id} value={String(row.id)}>
+                      {row.name}
+                      {row.balance_known
+                        ? ` — ${formatNumber(Number(row.balance ?? 0))}`
+                        : ` — ${t("accounting_cash.unlinked")}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                {t("accounting_cash.transfer_to")}
+              </label>
+              <Select
+                value={transfer.to_account_id}
+                onValueChange={(v) =>
+                  setTransferForm({ ...transfer, to_account_id: v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={t("accounting_cash.transfer_pick")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {rows
+                    // Moving money to the same account is a no-op the server refuses; not
+                    // offering it means nobody has to find out from an error.
+                    .filter(
+                      (row) => String(row.id) !== transfer.from_account_id,
+                    )
+                    .map((row) => (
+                      <SelectItem key={row.id} value={String(row.id)}>
+                        {row.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                {t("accounting_cash.transfer_amount")}
+              </label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                dir="ltr"
+                value={transfer.amount_minor}
+                onChange={(e) =>
+                  setTransferForm({ ...transfer, amount_minor: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                {t("accounting_cash.transfer_note")}
+              </label>
+              <Input
+                value={transfer.note}
+                onChange={(e) =>
+                  setTransferForm({ ...transfer, note: e.target.value })
+                }
+              />
+            </div>
+            {transferError && (
+              <p className="text-sm text-destructive">{transferError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferOpen(false)}>
+              {t("auto.accounting_AccCashAccounts.s_106dfb4e")}
+            </Button>
+            <Button
+              onClick={() => void submitTransfer()}
+              disabled={
+                transferSaving ||
+                !transfer.from_account_id ||
+                !transfer.to_account_id ||
+                !(Number(transfer.amount_minor) > 0)
+              }
+            >
+              {transferSaving
+                ? t("auto.accounting_AccCashAccounts.s_4b7554d6")
+                : t("accounting_cash.transfer_action")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('auto.accounting_AccCashAccounts.s_a00b2048')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name ?? '' })}</AlertDialogDescription>
+            <AlertDialogTitle>
+              {t("auto.accounting_AccCashAccounts.s_a00b2048")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("common.confirmDeleteNamed", {
+                name: deleteTarget?.name ?? "",
+              })}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('auto.accounting_AccCashAccounts.s_106dfb4e')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>{t('auto.accounting_AccCashAccounts.s_2d2bbdc2')}</AlertDialogAction>
+            <AlertDialogCancel>
+              {t("auto.accounting_AccCashAccounts.s_106dfb4e")}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>
+              {t("auto.accounting_AccCashAccounts.s_2d2bbdc2")}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

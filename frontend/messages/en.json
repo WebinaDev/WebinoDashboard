@@ -11836,6 +11836,17 @@
     "pay_unavailable": "Payment gateway is not enabled in this build."
   },
   "accounting_cash": {
+    "type_terminal": "Card terminal",
+    "type_gateway": "Payment gateway",
+    "transfer_action": "Transfer",
+    "transfer_title": "Transfer between accounts",
+    "transfer_hint": "Money moves from one of the shop’s own accounts to another. It is neither income nor expense — only an asset moving.",
+    "transfer_from": "From",
+    "transfer_to": "To",
+    "transfer_pick": "Pick an account",
+    "transfer_amount": "Amount",
+    "transfer_note": "Note (optional)",
+    "transfer_done": "Transfer recorded: {amount}",
     "balance": "Balance",
     "unlinked": "No ledger account",
     "chart_code": "Chart account code",
