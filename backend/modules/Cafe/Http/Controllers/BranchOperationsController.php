@@ -4,7 +4,6 @@ namespace Modules\Cafe\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\BranchStock;
-use App\Models\KitchenStation;
 use App\Services\Orders\BranchStockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -305,7 +304,7 @@ class BranchOperationsController extends Controller
             return response()->json(['message' => 'product_id or category_id is required'], 422);
         }
 
-        \App\Models\StationProduct::query()->firstOrCreate([
+        \Modules\Cafe\Entities\StationProduct::query()->firstOrCreate([
             'station_id' => $station->id,
             'product_id' => $data['product_id'] ?? null,
             'category_id' => $data['category_id'] ?? null,

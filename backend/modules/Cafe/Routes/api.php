@@ -9,18 +9,12 @@ use Modules\Cafe\Http\Controllers\CafeFloorController;
 use Modules\Cafe\Http\Controllers\CafeKitchenController;
 use Modules\Cafe\Http\Controllers\CafeManagerController;
 use Modules\Cafe\Http\Controllers\CafeOperationsController;
-use Modules\Cafe\Http\Controllers\CafePdfController;
 use Modules\Cafe\Http\Controllers\CafePosController;
 use Modules\Cafe\Http\Controllers\CafePriceCalculatorController;
 use Modules\Cafe\Http\Controllers\CafeQrController;
 use Modules\Cafe\Http\Controllers\CafeSettingsController;
 use Modules\Cafe\Http\Controllers\CafeShiftController;
 use Modules\Cafe\Http\Controllers\CafeTableController;
-use Modules\Cafe\Http\Controllers\PublicCafeController;
-use Modules\Cafe\Http\Controllers\PublicCafeEngagementController;
-use Modules\Cafe\Http\Controllers\PublicCafeGuestController;
-use Modules\Cafe\Http\Controllers\PublicCafePdfController;
-use Modules\Cafe\Http\Controllers\PublicCafeQuoteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,7 +65,6 @@ use Modules\Cafe\Http\Controllers\PublicCafeQuoteController;
                 Route::get('/qr-settings', [CafeQrController::class, 'showSettings']);
                 Route::patch('/qr-settings', [CafeQrController::class, 'updateSettings']);
                 Route::get('/qr', [CafeQrController::class, 'menuQr']);
-                Route::get('/menu-pdf', [CafePdfController::class, 'menuPdf']);
 
                 Route::get('/tables', [CafeTableController::class, 'index']);
                 Route::post('/tables', [CafeTableController::class, 'store']);

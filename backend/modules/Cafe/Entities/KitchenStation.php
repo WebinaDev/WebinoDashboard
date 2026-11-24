@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Cafe\Entities;
 
 use App\Support\Audit\RecordsActivity;
 use Illuminate\Database\Eloquent\Model;
