@@ -12090,5 +12090,9 @@
     "leaf_issued": "Issued",
     "leaf_cancelled": "Cancelled",
     "leaf_lost": "Lost"
+  },
+  "accounting_report_export": {
+    "csv": "Export CSV",
+    "print": "Print"
   }
 }

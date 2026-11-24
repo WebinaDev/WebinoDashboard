@@ -90,6 +90,10 @@ Route::get('/treasury/cash-flow', [\App\Http\Controllers\Api\V1\TreasuryControll
 Route::get('/treasury/forecast', [\App\Http\Controllers\Api\V1\TreasuryController::class, 'forecast']);
 
 Route::get('/reports', [FinancialReportsController::class, 'financialReports']);
+// An accountant needs the file, not just the screen: month-end packs go to auditors and banks.
+Route::get('/reports/export', [FinancialReportsController::class, 'export']);
+// A print view, not a print button: the dashboard's dialog prints the sidebar too.
+Route::get('/reports/print', [FinancialReportsController::class, 'printable']);
 Route::get('/settings', [AccountingSettingsController::class, 'settings']);
 
 Route::get('/warehouses', [WarehouseReadController::class, 'warehouses']);

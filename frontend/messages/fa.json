@@ -12090,5 +12090,9 @@
     "leaf_issued": "صادرشده",
     "leaf_cancelled": "باطل‌شده",
     "leaf_lost": "مفقود"
+  },
+  "accounting_report_export": {
+    "csv": "خروجی CSV",
+    "print": "چاپ"
   }
 }

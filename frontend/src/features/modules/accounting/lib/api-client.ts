@@ -1,7 +1,7 @@
-import { unwrapApiData } from "@webina/ui"
+import { unwrapApiData } from "@webina/ui";
 
-import { ApiError } from "@/lib/api"
-import { getApiErrorMessage } from "@/lib/api-helpers"
+import { ApiError } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/api-helpers";
 
 /**
  * Minimal axios-shaped client for the pages ported from WebinoERP.
@@ -22,9 +22,9 @@ import { getApiErrorMessage } from "@/lib/api-helpers"
  *   what the ported pages check (`err.status === 422`).
  */
 
-const BASE = "/api"
+const BASE = "/api";
 
-type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 type RequestOptions = {
   /**
@@ -35,36 +35,41 @@ type RequestOptions = {
    * force a cast in every ported page for a value that is serialised with `String()`
    * anyway.
    */
-  params?: Record<string, unknown>
-  signal?: AbortSignal
-}
+  params?: Record<string, unknown>;
+  signal?: AbortSignal;
+};
 
 /** What the ported pages treat a response as: `{ data }` with the envelope removed. */
-export type ApiResult<T> = { data: T; status: number }
+export type ApiResult<T> = { data: T; status: number };
 
 function buildUrl(path: string, params?: RequestOptions["params"]): string {
-  const url = `${BASE}${path.startsWith("/") ? path : `/${path}`}`
-  if (!params) return url
+  const url = `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  if (!params) return url;
 
-  const search = new URLSearchParams()
+  const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value === null || value === undefined || value === "") continue
-    search.set(key, String(value))
+    if (value === null || value === undefined || value === "") continue;
+    search.set(key, String(value));
   }
 
-  const query = search.toString()
+  const query = search.toString();
 
-  return query ? `${url}?${query}` : url
+  return query ? `${url}?${query}` : url;
 }
 
-async function request<T>(method: Method, path: string, body?: unknown, options?: RequestOptions): Promise<ApiResult<T>> {
+async function request<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+  options?: RequestOptions,
+): Promise<ApiResult<T>> {
   const headers: Record<string, string> = {
     Accept: "application/json",
     "X-Requested-With": "XMLHttpRequest",
-  }
+  };
 
   if (body !== undefined) {
-    headers["Content-Type"] = "application/json"
+    headers["Content-Type"] = "application/json";
   }
 
   const response = await fetch(buildUrl(path, options?.params), {
@@ -73,26 +78,63 @@ async function request<T>(method: Method, path: string, body?: unknown, options?
     credentials: "same-origin",
     signal: options?.signal,
     body: body === undefined ? undefined : JSON.stringify(body),
-  })
+  });
 
   // 204 has no body and is a success, so it must not reach response.json().
-  const payload = response.status === 204 ? null : await response.json().catch(() => null)
+  const payload =
+    response.status === 204 ? null : await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new ApiError(getApiErrorMessage(payload), response.status, payload)
+    throw new ApiError(getApiErrorMessage(payload), response.status, payload);
   }
 
-  return { data: unwrapApiData<T>(payload), status: response.status }
+  return { data: unwrapApiData<T>(payload), status: response.status };
+}
+
+/**
+ * Fetch an endpoint that answers with a file rather than a JSON envelope.
+ *
+ * The JSON path above parses every response with `response.json()`, which would turn a CSV into
+ * `null` and a print view into an exception. Downloads and print views are the two places the
+ * dashboard hands something to the browser that it does not render itself, so they get their own
+ * entry point — same origin, same cookies, same error handling.
+ */
+async function download(path: string, options?: RequestOptions): Promise<Blob> {
+  const response = await fetch(buildUrl(path, options?.params), {
+    method: "GET",
+    headers: { Accept: "*/*", "X-Requested-With": "XMLHttpRequest" },
+    credentials: "same-origin",
+    signal: options?.signal,
+  });
+
+  if (!response.ok) {
+    // A failed export answers with JSON, so read it the same way the JSON path does rather than
+    // throwing "unexpected token <" at the user.
+    const payload = await response.json().catch(() => null);
+
+    throw new ApiError(getApiErrorMessage(payload), response.status, payload);
+  }
+
+  return response.blob();
 }
 
 const apiClient = {
-  get: <T = unknown>(path: string, options?: RequestOptions) => request<T>("GET", path, undefined, options),
-  post: <T = unknown>(path: string, body?: unknown, options?: RequestOptions) => request<T>("POST", path, body, options),
-  put: <T = unknown>(path: string, body?: unknown, options?: RequestOptions) => request<T>("PUT", path, body, options),
-  patch: <T = unknown>(path: string, body?: unknown, options?: RequestOptions) => request<T>("PATCH", path, body, options),
-  delete: <T = unknown>(path: string, options?: RequestOptions) => request<T>("DELETE", path, undefined, options),
-}
+  get: <T = unknown>(path: string, options?: RequestOptions) =>
+    request<T>("GET", path, undefined, options),
+  post: <T = unknown>(path: string, body?: unknown, options?: RequestOptions) =>
+    request<T>("POST", path, body, options),
+  put: <T = unknown>(path: string, body?: unknown, options?: RequestOptions) =>
+    request<T>("PUT", path, body, options),
+  patch: <T = unknown>(
+    path: string,
+    body?: unknown,
+    options?: RequestOptions,
+  ) => request<T>("PATCH", path, body, options),
+  delete: <T = unknown>(path: string, options?: RequestOptions) =>
+    request<T>("DELETE", path, undefined, options),
+  download,
+};
 
-export default apiClient
+export default apiClient;
 
-export type ApiClient = typeof apiClient
+export type ApiClient = typeof apiClient;
