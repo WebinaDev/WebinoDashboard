@@ -4,9 +4,9 @@ namespace App\Services\Payments\Drivers;
 
 use App\Services\Payments\Drivers\Concerns\ChecksRequiredConfig;
 use App\Services\Payments\Drivers\Concerns\ConvertsFxAmount;
-use Illuminate\Support\Facades\Http;
 use Brick\Math\BigDecimal;
 use Brick\Math\Exception\MathException;
+use Illuminate\Support\Facades\Http;
 
 /** @see https://developer.paypal.com/docs/api/orders/v2/ */
 class PaypalDriver implements GatewayDriverInterface

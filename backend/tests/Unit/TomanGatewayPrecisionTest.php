@@ -4,13 +4,13 @@ namespace Tests\Unit;
 
 use App\Services\Payments\Drivers\AghayepardakhtDriver;
 use App\Services\Payments\Drivers\BitpayDriver;
+use App\Services\Payments\Drivers\Concerns\ConvertsFxAmount;
 use App\Services\Payments\Drivers\EasypayDriver;
 use App\Services\Payments\Drivers\IranWalletDriver;
 use App\Services\Payments\Drivers\NextpayDriver;
 use App\Services\Payments\Drivers\ParspalDriver;
 use App\Services\Payments\Drivers\PaypingDriver;
 use App\Services\Payments\Drivers\ZarinpalDriver;
-use App\Services\Payments\Drivers\Concerns\ConvertsFxAmount;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 

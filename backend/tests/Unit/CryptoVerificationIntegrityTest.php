@@ -2,15 +2,15 @@
 
 namespace Tests\Unit;
 
-use App\Services\Payments\Drivers\CoingateDriver;
 use App\Services\Payments\Drivers\BinancePayDriver;
+use App\Services\Payments\Drivers\CoingateDriver;
 use App\Services\Payments\Drivers\CoinpaymentsDriver;
 use App\Services\Payments\Drivers\CryptomusDriver;
 use App\Services\Payments\Drivers\NowpaymentsDriver;
 use App\Services\Payments\Drivers\PayeerDriver;
 use App\Services\Payments\Drivers\PerfectMoneyDriver;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CryptoVerificationIntegrityTest extends TestCase

@@ -4156,6 +4156,52 @@
       "status_approved": "تأییدشده",
       "status_rejected": "ردشده",
       "status_settled": "تسویه‌شده"
+    },
+    "nav": {
+      "cafe_branch_prices": "قیمت شعب",
+      "cafe_operations_settings": "تنظیمات عملیاتی"
+    },
+    "branch_prices": {
+      "title": "قیمت شعب",
+      "description": "برای هر شعبه قیمت جداگانه بگذارید؛ هرجا قیمتی ثبت نشود، قیمت کاتالوگ اعمال می‌شود.",
+      "section_add": "ثبت قیمت برای یک شعبه",
+      "section_add_hint": "اگر برای این کالا از قبل قیمتی ثبت شده باشد، به‌جای خطای تکراری، همان قیمت به‌روز می‌شود.",
+      "section_existing": "قیمت‌های ثبت‌شده این شعبه",
+      "branch": "شعبه",
+      "choose_branch": "شعبه را انتخاب کنید",
+      "product": "کالا",
+      "choose_product": "کالا را انتخاب کنید",
+      "price": "قیمت",
+      "price_placeholder": "خالی بگذارید تا قیمت کاتالوگ اعمال شود",
+      "sale_price": "قیمت فروش ویژه",
+      "sale_price_placeholder": "اختیاری",
+      "saved": "قیمت شعبه ذخیره شد",
+      "pick_branch_first": "برای دیدن قیمت‌ها، اول یک شعبه انتخاب کنید.",
+      "empty": "برای این شعبه قیمت جداگانه‌ای ثبت نشده",
+      "empty_hint": "همه کالاها با قیمت کاتالوگ فروخته می‌شوند."
+    },
+    "operations_settings": {
+      "title": "تنظیمات عملیاتی",
+      "description": "آستانه‌های زمانی صندوق و سالن؛ همان‌هایی که تعیین می‌کنند کِی هشدار آشپزخانه روشن شود و کِی میز معوق حساب شود.",
+      "section_timing": "آستانه‌های زمانی",
+      "section_timing_hint": "همه مقادیر به دقیقه هستند.",
+      "section_rules": "قواعد سرویس",
+      "paid_edit_window_minutes": "مهلت ویرایش سفارش پرداخت‌شده",
+      "paid_edit_window_minutes_hint": "پس از پرداخت، تا این تعداد دقیقه (بین {min} تا {max}) ویرایش سفارش مجاز است.",
+      "kds_warn_after_minutes": "هشدار آشپزخانه",
+      "kds_warn_after_minutes_hint": "سفارشی که بیشتر از این مدت (بین {min} تا {max}) در صف مانده، زرد می‌شود.",
+      "kds_late_after_minutes": "تأخیر آشپزخانه",
+      "kds_late_after_minutes_hint": "بیشتر از این مدت (بین {min} تا {max}) یعنی سفارش دیر شده و قرمز می‌شود.",
+      "table_overdue_after_minutes": "میز معوق",
+      "table_overdue_after_minutes_hint": "میزی که بیشتر از این مدت (بین {min} تا {max}) اشغال مانده، معوق حساب می‌شود.",
+      "queue_stale_after_minutes": "صف راکد",
+      "queue_stale_after_minutes_hint": "سفارش بدون تغییر بیش از این مدت (بین {min} تا {max})، کهنه تلقی می‌شود.",
+      "default_delivery_eta_minutes": "زمان پیش‌فرض ارسال",
+      "default_delivery_eta_minutes_hint": "زمان تخمینی ارسال که به مشتری نشان داده می‌شود (بین {min} تا {max} دقیقه).",
+      "flag_requires_approval": "ویرایش سفارش پرداخت‌شده نیاز به تأیید دارد",
+      "flag_requires_approval_hint": "اگر روشن باشد، تغییر سفارش پس از پرداخت تا تأیید مدیر اعمال نمی‌شود.",
+      "flag_delivery_minimum": "اجبار حداقل مبلغ سفارش ارسال",
+      "flag_delivery_minimum_hint": "اگر روشن باشد، سفارش زیر حداقل مبلغ ارسال پذیرفته نمی‌شود."
     }
   },
   "themes": {

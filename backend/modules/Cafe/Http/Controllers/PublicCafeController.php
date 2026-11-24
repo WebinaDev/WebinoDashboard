@@ -1,0 +1,34 @@
+<?php
+
+namespace Modules\Cafe\Http\Controllers;
+
+use App\Http\Controllers\Api\V1\Concerns\ResolvesPublicTenant;
+use App\Http\Controllers\Controller;
+use App\Services\Modules\ModuleSettingsService;
+use Illuminate\Http\Request;
+use Modules\Cafe\Services\CafeOrdering;
+
+class PublicCafeController extends Controller
+{
+    use ResolvesPublicTenant;
+
+    public function venue(Request $request, ModuleSettingsService $settings, CafeOrdering $ordering): \Illuminate\Http\JsonResponse
+    {
+        $tenant = $this->publicTenant($request);
+        $tid = $tenant->id;
+
+        return response()->json([
+            'data' => [
+                'tenant' => [
+                    'name' => $tenant->store_display_name ?? $tenant->name,
+                    'active_theme_slug' => $tenant->active_theme_slug,
+                ],
+                'menu' => $settings->get($tid, 'cafe', 'menu', ModuleSettingsService::cafeMenuDefaults()),
+                'hours' => $settings->get($tid, 'cafe', 'hours', ModuleSettingsService::cafeHoursDefaults()),
+                'gallery' => $settings->get($tid, 'cafe', 'gallery', ModuleSettingsService::cafeGalleryDefaults()),
+                'venue' => $settings->get($tid, 'cafe', 'venue', ModuleSettingsService::cafeVenueDefaults()),
+                'ordering' => $ordering->publicStatus($tid),
+            ],
+        ])->header('Cache-Control', 'no-cache, must-revalidate');
+    }
+}

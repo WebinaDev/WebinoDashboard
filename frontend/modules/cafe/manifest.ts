@@ -46,6 +46,12 @@ export const cafeManifest: ModuleManifest = {
     { path: "cafe/delivery-zones", submodule: "menu", page: "delivery-zones", labelKey: "nav.cafe_delivery_zones", section: "cafe", order: 40, capability: "branches.manage", menuKey: "cafe_delivery_zones" },
     // Kitchen stations: which station prepares which item, and who works which station.
     { path: "cafe/stations", submodule: "menu", page: "stations", labelKey: "nav.cafe_stations", section: "cafe", order: 39, capability: "branches.manage", menuKey: "cafe_stations" },
+    // Per-branch price overrides: a chain charges more at one counter than another. The
+    // POST/DELETE pair existed since the multi-branch work but nothing could reach it.
+    { path: "cafe/branch-prices", submodule: "menu", page: "branch-prices", labelKey: "nav.cafe_branch_prices", section: "cafe", order: 41, capability: "branches.manage", menuKey: "cafe_branch_prices" },
+    // Service thresholds: the edit window on a paid order, kitchen warn/late marks, how
+    // long a table may sit occupied. Owner-level (`settings.manage`), same as the till's.
+    { path: "cafe/operations-settings", submodule: "menu", page: "operations-settings", labelKey: "nav.cafe_operations_settings", section: "cafe", order: 42, capability: "settings.manage", menuKey: "cafe_operations_settings" },
   ],
   siteRoutes: [
     { path: "catalogue", submodule: "menu", labelKey: "site.catalogue" },

@@ -40,7 +40,10 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Tests\\": [
+                "tests/",
+                "modules/Cafe/Tests"
+            ]
         }
     },
     "scripts": {

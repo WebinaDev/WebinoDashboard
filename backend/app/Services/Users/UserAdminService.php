@@ -3,16 +3,16 @@
 namespace App\Services\Users;
 
 use App\Models\BotSession;
-use App\Models\Tenant;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductReview;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Auth\OtpSettings;
 use App\Services\Bots\BotClientFactory;
+use App\Services\Modules\ModuleSettingsService;
 use App\Services\Notifications\TenantMailer;
 use App\Services\Sms\ModirPayamakClient;
-use App\Services\Auth\OtpSettings;
-use App\Services\Modules\ModuleSettingsService;
 use App\Services\Wallet\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

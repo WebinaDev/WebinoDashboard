@@ -2,9 +2,6 @@
 
 namespace App\Services\Dashboard;
 
-use App\Models\CafeBranch;
-use App\Models\CafeEvent;
-use App\Models\CafeTable;
 use App\Models\EventBooking;
 use App\Models\Menu;
 use App\Models\Order;
@@ -29,6 +26,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Modules\Cafe\Entities\CafeBranch;
+use Modules\Cafe\Entities\CafeEvent;
+use Modules\Cafe\Entities\CafeTable;
 
 /**
  * Aggregated admin home overview (parity with WP Webino_Dashboard_Home_Overview).

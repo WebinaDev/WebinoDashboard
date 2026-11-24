@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Kernel\TenantActivationService;
 use App\Kernel\ThemeCatalog;
-use App\Models\CafeEvent;
 use App\Models\Category;
 use App\Models\MenuBanner;
 use App\Models\Product;
@@ -14,6 +13,7 @@ use App\Services\Provision\CafeRichDemoSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Modules\Cafe\Entities\CafeEvent;
 
 /**
  * Loads a complete Persian demo cafe into the single tenant so every cafe skin can be shown to prospects.

@@ -8,12 +8,12 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Product;
-use App\Services\Cafe\CafeGuestAuth;
-use App\Services\Cafe\CafeOrdering;
 use App\Services\Orders\OrderStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Cafe\Services\CafeGuestAuth;
+use Modules\Cafe\Services\CafeOrdering;
 
 class PublicGuestCartController extends Controller
 {

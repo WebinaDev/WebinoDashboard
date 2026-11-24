@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Coupon;
 use App\Services\Coupons\OfferTemplates;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class OfferTemplatesTest extends TestCase
 {

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\CmsPage;
 use App\Models\BlogPost;
+use App\Models\CmsPage;
 use App\Models\DashboardModule;
 use App\Models\Tenant;
 use App\Models\TenantModule;

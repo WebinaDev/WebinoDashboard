@@ -2,7 +2,6 @@
 
 namespace App\Services\Marketplace\Basalam;
 
-use App\Support\Currency;
 use App\Models\MarketplaceOrderMap;
 use App\Models\Order;
 use App\Models\OrderNote;
@@ -13,6 +12,7 @@ use App\Services\Marketplace\MarketplaceOrderImporter;
 use App\Services\Marketplace\MarketplacePricing;
 use App\Services\Marketplace\MarketplaceSettingsService;
 use App\Services\Marketplace\MarketplaceSync;
+use App\Support\Currency;
 
 /**
  * Basalam orders (port of OrderManager, FetchOrders/SyncOrder and the order action services):

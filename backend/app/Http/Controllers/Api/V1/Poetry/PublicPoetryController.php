@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1\Poetry;
 
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use App\Models\Poetry\PoetryMedia;
 use App\Models\Poetry\PoetryPoem;
 use App\Models\Poetry\PoetryTerm;
+use App\Services\Membership\MembershipService;
 use App\Services\Poetry\PoetryPresenter;
 use App\Services\Poetry\PoetryScope;
 use App\Services\Poetry\PoetryText;
-use App\Services\Membership\MembershipService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PublicPoetryController extends Controller
 {

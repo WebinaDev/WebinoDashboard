@@ -2,9 +2,9 @@
 
 namespace App\Models\Poetry;
 
+use App\Services\Poetry\PoetryText;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\Poetry\PoetryText;
 
 class PoetryPoem extends Model
 {

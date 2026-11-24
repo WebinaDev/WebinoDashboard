@@ -17,9 +17,9 @@ use App\Services\Pricing\PricingCalculator;
 use App\Services\Pricing\PricingSettings;
 use App\Services\Pricing\ReferencePriceService;
 use Illuminate\Http\Request;
-use RuntimeException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 
 class PricingController extends Controller
 {
