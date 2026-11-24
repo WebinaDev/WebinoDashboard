@@ -686,16 +686,31 @@ class AccountingWpActionService
         return ['ok' => true];
     }
 
+    /**
+     * A status change posts the movement it implies, so a bounced cheque reopens the debt.
+     *
+     * The old version flipped the column and nothing else, which left the bank balance claiming
+     * money the bank had already handed back.
+     */
     private function checkSetStatus(array $p): array
     {
         $data = validator($p, [
             'id' => ['required', ExistsForTenant::in('acc_checks')],
-            'status' => 'required|string|max:30',
+            'status' => ['required', 'string', 'in:issued,deposited,cleared,bounced,returned,pending,collected,spent,cancelled'],
+            'note' => ['nullable', 'string', 'max:255'],
         ])->validate();
-        $row = AccCheck::query()->findOrFail($data['id']);
-        $row->update(['status' => $data['status']]);
 
-        return ['check' => $row];
+        $row = AccCheck::query()->findOrFail($data['id']);
+
+        $updated = app(\App\Services\Accounting\ChequeLedger::class)->setStatus(
+            (int) $row->tenant_id,
+            (int) $row->id,
+            (string) $data['status'],
+            isset($data['note']) ? (string) $data['note'] : null,
+            auth()->id(),
+        );
+
+        return ['check' => $updated];
     }
 
     private function invoiceGet(array $p): array

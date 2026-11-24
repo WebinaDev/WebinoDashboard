@@ -50,6 +50,7 @@ Route::put('/user-defaults', [AccountingSettingsController::class, 'userDefaults
 Route::get('/invoices/next-number', [AccInvoiceController::class, 'nextInvoiceNumber']);
 Route::post('/invoices/{id}/confirm', [AccInvoiceController::class, 'confirmInvoice'])->whereNumber('id');
 Route::post('/receipts/{id}/post', [ReceiptController::class, 'postReceipt'])->whereNumber('id');
+Route::post('/checks', [CheckController::class, 'store']);
 Route::post('/checks/{id}/set-status', [CheckController::class, 'setCheckStatus'])->whereNumber('id');
 Route::get('/ledger', [LedgerController::class, 'ledger']);
 

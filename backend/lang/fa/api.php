@@ -165,4 +165,7 @@ return [
     'asset_disposal' => 'واگذاری دارایی: :name',
     'asset_gain' => 'سود واگذاری دارایی: :name',
     'asset_loss' => 'زیان واگذاری دارایی: :name',
+    'check_not_found' => 'چک یافت نشد.',
+    'check_bounce_needs_reason' => 'برای برگشت چک، دلیل را وارد کنید.',
+    'check_status_change' => 'تغییر وضعیت چک: :status',
 ];

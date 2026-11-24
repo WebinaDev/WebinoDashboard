@@ -165,4 +165,7 @@ return [
     'asset_disposal' => 'Disposal of asset: :name',
     'asset_gain' => 'Gain on disposal: :name',
     'asset_loss' => 'Loss on disposal: :name',
+    'check_not_found' => 'Cheque not found.',
+    'check_bounce_needs_reason' => 'A bounced cheque needs a reason.',
+    'check_status_change' => 'Cheque movement: :status',
 ];
