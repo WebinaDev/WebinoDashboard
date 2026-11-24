@@ -427,7 +427,8 @@
     "cafe_stock": "Stock and purchasing",
     "accounting_supplier_bills": "Supplier bills",
     "accounting_parties": "Party statements",
-    "cafe_serving_windows": "Serving windows"
+    "cafe_serving_windows": "Serving windows",
+    "cafe_order_board": "Order board"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -2244,6 +2245,31 @@
       "disable": "Disable",
       "delete_confirm_title": "Delete serving window",
       "delete_confirm_body": "The window is removed and the item becomes always available again."
+    },
+    "order_board": {
+      "title": "Order board",
+      "description": "Every open order at once, column by column — the view you get by looking across the room.",
+      "branch": "Branch",
+      "all_branches": "All",
+      "search": "Search",
+      "search_placeholder": "Number, table, name or mobile",
+      "live_hint": "This board refreshes itself every 10 seconds.",
+      "column_waiting": "Waiting",
+      "column_preparing": "Preparing",
+      "column_ready": "Ready",
+      "column_served": "Served",
+      "column_to_settle": "To settle",
+      "column_empty": "Empty",
+      "fulfillment_dine_in": "Dine-in",
+      "fulfillment_takeaway": "Takeaway",
+      "fulfillment_delivery": "Delivery",
+      "fulfillment_pickup": "Pickup",
+      "table": "Table",
+      "late": "{minutes} min late",
+      "settle": "Settle",
+      "settled": "Settled.",
+      "refresh": "Refresh",
+      "empty": "No open orders."
     }
   },
   "themes": {

@@ -427,7 +427,8 @@
     "cafe_stock": "انبار و خرید",
     "accounting_supplier_bills": "فاکتورهای خرید",
     "accounting_parties": "کارت حساب اشخاص",
-    "cafe_serving_windows": "ساعت سرو"
+    "cafe_serving_windows": "ساعت سرو",
+    "cafe_order_board": "تابلوی سفارش‌ها"
   },
   "dashboard": {
     "title": "نمای کلی",
@@ -4766,6 +4767,31 @@
       "disable": "غیرفعال‌سازی",
       "delete_confirm_title": "حذف پنجره سرو",
       "delete_confirm_body": "این بازه حذف می‌شود و آیتم دوباره همیشه سرو می‌شود."
+    },
+    "order_board": {
+      "title": "تابلوی سفارش‌ها",
+      "description": "همه سفارش‌های باز در یک نگاه، ستون به ستون؛ همان چیزی که با نگاه به سالن می‌بینید.",
+      "branch": "شعبه",
+      "all_branches": "همه",
+      "search": "جستجو",
+      "search_placeholder": "شماره، میز، نام یا موبایل",
+      "live_hint": "این تابلو هر ۱۰ ثانیه خودکار به‌روز می‌شود.",
+      "column_waiting": "در انتظار آماده‌سازی",
+      "column_preparing": "در حال آماده‌سازی",
+      "column_ready": "آماده",
+      "column_served": "سرو شده",
+      "column_to_settle": "منتظر تسویه",
+      "column_empty": "خالی",
+      "fulfillment_dine_in": "سالن",
+      "fulfillment_takeaway": "بیرون‌بر",
+      "fulfillment_delivery": "ارسال",
+      "fulfillment_pickup": "تحویل حضوری",
+      "table": "میز",
+      "late": "{minutes} دقیقه دیرکرد",
+      "settle": "تسویه",
+      "settled": "تسویه شد.",
+      "refresh": "به‌روزرسانی",
+      "empty": "سفارش بازی نیست."
     }
   },
   "themes": {
