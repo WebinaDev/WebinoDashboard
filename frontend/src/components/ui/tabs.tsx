@@ -7,21 +7,38 @@ import { cn } from "@/lib/utils"
 export function Tabs({
   className,
   value,
+  defaultValue,
   onValueChange,
   children,
 }: {
   className?: string
-  value: string
-  onValueChange: (v: string) => void
+  /**
+   * Controlled value. Pages ported from the ERP pass `defaultValue` instead and let the
+   * component hold the selection, so both are accepted: `defaultValue` seeds local state
+   * and `value` keeps overriding it when supplied.
+   */
+  value?: string
+  defaultValue?: string
+  onValueChange?: (v: string) => void
   children: React.ReactNode
 }) {
+  const [internal, setInternal] = React.useState(defaultValue ?? "")
+  const current = value ?? internal
+  const handleChange = (v: string) => {
+    if (value === undefined) setInternal(v)
+    onValueChange?.(v)
+  }
+
+  // Children receive the resolved value, not the raw prop: an uncontrolled caller
+  // passing only `defaultValue` would otherwise hand `undefined` down and TabsContent
+  // would render nothing.
   return (
-    <div className={cn("w-full", className)} data-tabs-value={value}>
+    <div className={cn("w-full", className)} data-tabs-value={current}>
       {React.Children.map(children, (child) => {
         if (!React.isValidElement(child)) return child
         return React.cloneElement(child as React.ReactElement<{ tabsValue?: string; onTabsChange?: (v: string) => void }>, {
-          tabsValue: value,
-          onTabsChange: onValueChange,
+          tabsValue: current,
+          onTabsChange: handleChange,
         })
       })}
     </div>

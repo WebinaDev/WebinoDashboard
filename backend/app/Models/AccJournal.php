@@ -2,12 +2,24 @@
 
 namespace App\Models;
 
+use App\Support\Audit\RecordsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AccJournal extends Model
 {
+    use RecordsActivity;
+
+    /**
+     * Journal lines are audited through AccJournalLine, and `totals` change on every
+     * repost — neither tells a reader anything they cannot get from the lines.
+     *
+     * A manual journal (source = manual/admin) is the one entry a person writes by hand,
+     * so its created/updated events are exactly what the trail is for.
+     */
+    protected array $activityHidden = ['total_debit_minor', 'total_credit_minor'];
+
     protected $table = 'accounting_journals';
 
     protected $fillable = [

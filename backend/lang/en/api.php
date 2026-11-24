@@ -93,4 +93,12 @@ return [
     'cafe_payment_negative_amount' => 'The amount cannot be negative.',
     'cafe_payment_received_too_low' => 'The received amount is less than the payment amount.',
     'cafe_payment_exceeds_due' => 'Payments exceed the amount due.',
+    'production_command_forbidden' => 'This command is not permitted in production.',
+    'already_posted' => 'This document is already posted.',
+    'chart_already_seeded' => 'The chart of accounts has already been seeded.',
+    'chart_accounts_111_and_113_required' => 'Accounts 111 and 113 must exist in the chart of accounts.',
+    'chart_accounts_113_and_401_required_seed_chart' => 'Accounts 113 and 401 are required; seed the chart of accounts first.',
+    'insufficient_stock_for_product' => 'There is not enough stock for this product.',
+    'unknown_webinocrm_accounting_action' => 'The requested accounting action is not recognised.',
+    'validation_failed' => 'The submitted data is invalid.',
 ];

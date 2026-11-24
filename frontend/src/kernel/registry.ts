@@ -2,6 +2,7 @@ import type { ModuleManifest, SiteTypeSlug } from "./types"
 import externalRegistry from "../../modules-external/.registry.json"
 
 import { academyManifest } from "../../modules/academy/manifest"
+import { accountingManifest } from "../../modules/accounting/manifest"
 import { aiContentManifest } from "../../modules/ai-content/manifest"
 import { analyticsManifest } from "../../modules/analytics/manifest"
 import { blogManifest } from "../../modules/blog/manifest"
@@ -66,6 +67,10 @@ const GIT_TRANSITION_MANIFESTS: ModuleManifest[] = [
   { ...corporateManifest, distribution: "git" },
   { ...linkHubManifest, distribution: "git" },
   { ...poetryManifest, distribution: "git" },
+  // The ERP ledger ships in this repo (it is ported, not downloaded), but is marked git
+  // like its siblings so `EnsureModuleEnabled` checks that the code is present before
+  // serving its routes.
+  { ...accountingManifest, distribution: "git" },
 ]
 
 function loadExternalOverrides(): ModuleManifest[] {

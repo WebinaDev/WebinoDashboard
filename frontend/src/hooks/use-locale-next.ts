@@ -34,3 +34,10 @@ export function useLocaleNext() {
     getCalendarConfig: () => getCalendarConfig(locale as "fa" | "en"),
   }
 }
+
+/**
+ * The ERP calls this hook `useLocale`; here it has always been `useLocaleNext`.
+ * Re-exported under both names so ported ERP pages and existing call sites share one
+ * implementation instead of drifting into two.
+ */
+export { useLocaleNext as useLocale }

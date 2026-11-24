@@ -93,4 +93,12 @@ return [
     'cafe_payment_negative_amount' => 'مبلغ نمی‌تواند منفی باشد.',
     'cafe_payment_received_too_low' => 'مبلغ دریافتی کمتر از مبلغ پرداخت است.',
     'cafe_payment_exceeds_due' => 'مجموع پرداخت‌ها از مبلغ سفارش بیشتر است.',
+    'production_command_forbidden' => 'این عملیات در محیط عملیاتی مجاز نیست.',
+    'already_posted' => 'این سند قبلاً ثبت شده است.',
+    'chart_already_seeded' => 'کدینگ حساب‌ها قبلاً ایجاد شده است.',
+    'chart_accounts_111_and_113_required' => 'حساب‌های ۱۱۱ و ۱۱۳ باید در کدینگ حساب‌ها وجود داشته باشند.',
+    'chart_accounts_113_and_401_required_seed_chart' => 'حساب‌های ۱۱۳ و ۴۰۱ لازم است؛ ابتدا کدینگ حساب‌ها را ایجاد کنید.',
+    'insufficient_stock_for_product' => 'موجودی انبار برای این کالا کافی نیست.',
+    'unknown_webinocrm_accounting_action' => 'عملیات حسابداری درخواستی شناخته نشد.',
+    'validation_failed' => 'داده‌های ارسالی معتبر نیست.',
 ];

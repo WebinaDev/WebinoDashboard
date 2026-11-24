@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Audit\RecordsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class AccAccountCoding extends Model
 {
+    use RecordsActivity;
+
     protected $table = 'accounting_account_coding';
 
     public const ROLE_SALES = 'sales';
