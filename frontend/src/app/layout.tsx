@@ -38,6 +38,14 @@ const messageCatalog = {
   en: enMessages,
 } as const
 
+/**
+ * Named date/number formats for `useFormatter`. The app formats through its own
+ * helpers (Intl.NumberFormat / Intl.DateTimeFormat wrappers), so the catalogue is
+ * empty — it is passed to NextIntlClientProvider purely so the provider does not
+ * ask next-intl for a config file it will never find in the standalone build.
+ */
+const UI_FORMATS = {}
+
 /** Dashboard-only namespaces never read by storefront/theme code; left out of public pages' HTML. */
 const ADMIN_ONLY_NAMESPACES = ["cafe_admin", "reports", "orders_admin", "users_admin", "content_admin", "pos_admin"] as const
 
@@ -60,9 +68,15 @@ export default async function RootLayout({
     : Object.fromEntries(Object.entries(fullMessages).filter(([k]) => !(ADMIN_ONLY_NAMESPACES as readonly string[]).includes(k)))
   const dir = pageLang?.dir ?? htmlDir(locale)
   const apiOrigin = getApiOrigin()
-  // Pass now/timeZone explicitly so NextIntlClientProviderServer never calls
-  // getNow/getTimeZone (those require next-intl/plugin + i18n/request.ts, which
-  // break Docker standalone).
+  // Pass locale/messages/formats/now/timeZone explicitly so
+  // NextIntlClientProviderServer never falls back to a next-intl config lookup
+  // (getLocale/getMessages/getFormats/getNow/getTimeZone all go through
+  // `next-intl/config`, which requires the next-intl plugin + i18n/request.ts,
+  // and those break Docker standalone). next-intl 4 added `formats` to that
+  // fallback list: without the prop the provider awaited getFormats() and threw
+  // "Couldn't find next-intl config file" on every server render — a 500 on
+  // every page that was not already in the ISR cache. Nothing here uses named
+  // formats, so an empty catalogue is the whole requirement.
   const now = new Date()
   const timeZone =
     process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE?.trim() || "Asia/Tehran"
@@ -91,6 +105,7 @@ export default async function RootLayout({
         <NextIntlClientProvider
           locale={locale}
           messages={messages}
+          formats={UI_FORMATS}
           now={now}
           timeZone={timeZone}
         >
