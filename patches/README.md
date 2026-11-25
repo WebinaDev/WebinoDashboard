@@ -22,12 +22,12 @@ From the root of a `main` checkout:
 git apply patches/main-accounting-port.patch
 ```
 
-26 files, 1547 lines. Applies to `eab7793` with no fuzz.
+27 files. Applies to `eab7793` with no fuzz.
 
 ## What was broken
 
-Twelve separate defects. Each one was confirmed by reading the code path that fails, not
-inferred.
+Thirteen separate defects. Each one was confirmed by running or reading the code path that
+fails, not inferred.
 
 **Build**
 
@@ -70,6 +70,27 @@ inferred.
     existed server-side. Now has create/edit/delete and accepts both spellings.
 12. `api-client` unwrapped `data` and discarded envelope `meta`, so `last_page` never reached
     the list pages and each rendered a single page. Now preserved via `unwrapApiResponse`.
+13. `modules/accounting/admin/cheque-books-page.tsx` did not exist, although the manifest
+    declares `accounting/cheque-books` with `page: "cheque-books"` and the component
+    (`AccChequeBooks.tsx`) and client (`cheque-books-page-client.tsx`) are both present.
+    On `main` commerce won that path, so the gap was unreachable; once the ledger wins its
+    own routes, `loadAdminPage` would have failed the dynamic import at runtime. Added,
+    following `checks-page.tsx` exactly.
+
+## Which module answers which path
+
+Running the real resolver (`resolveAdminRoute`) over all 40 distinct `accounting/*` paths:
+
+| | pristine `main` | `main` + patch |
+|---|---|---|
+| resolved to the full ledger | 14, all pointing at `modules/erp-accounting/…`, a folder that does not exist | **25, every page file present** |
+| resolved to the commerce till page | 26 | 15 (its unique paths: overview, tax, coding, orders-sync, moadian, integrations, payroll, …) |
+| admin routes with a missing page file | 14 | **0 of 408** |
+
+The sidebar shows 25 accounting links. One URL appears twice (`accounting/orders-sync`): a
+nav group's parent link reuses the URL of its lowest-`navOrder` child. That is pre-existing
+`buildAdminNav` behaviour, not introduced here — pristine `main` has the same single
+duplicate on `accounting`. Left alone, since changing it would affect every module's nav.
 
 Deliberately **not** touched: `main`'s `Routes/api.php` and its controllers, which are ahead
 of this branch. Nothing here is dead code — the frontend's 25 endpoints, 21 wp-actions and
@@ -92,9 +113,26 @@ Run on a checkout of `main` (`eab7793`) with `main`'s own `package-lock.json`:
 | frontend warehouse-ajax → controller (7) | — | **0 missing** |
 | tables/columns written by provisioning | — | **all present in schema** |
 | brace/paren balance, 13 changed PHP files | — | **balanced** |
+| `resolveAdminRoute` over 40 `accounting/*` paths | 14 → nonexistent folder | **25 ledger / 15 commerce, 0 unresolved** |
+| admin routes with a page file (408, all modules) | 14 missing | **0 missing** |
 
 `npm run check:english` exits 1 both with and without the patch (24 pre-existing hardcoded
 strings, none in accounting; the patched files add none).
+
+## Reproducing the route/nav checks
+
+`patches/verify-scripts/` holds the three scripts used for the tables above. They are not
+part of the patch — copy them into `frontend/scripts/` of a `main` checkout with
+`node_modules` installed, then run:
+
+```bash
+node --experimental-strip-types --import ./scripts/ts-resolve.mjs scripts/all-pages-exist.mjs
+node --experimental-strip-types --import ./scripts/ts-resolve.mjs scripts/who-wins-accounting.mjs
+node --experimental-strip-types --import ./scripts/ts-resolve.mjs scripts/nav-accounting.mjs
+```
+
+They import the real `registry.ts` and `route-resolver.ts`, so they report what the app
+would actually resolve rather than restating the manifests.
 
 ## Not verified here
 

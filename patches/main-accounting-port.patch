@@ -1,5 +1,5 @@
 diff --git a/backend/app/Http/Controllers/Api/V1/ModuleController.php b/backend/app/Http/Controllers/Api/V1/ModuleController.php
-index 65fc27e3..edde3d8c 100644
+index 65fc27e..edde3d8 100644
 --- a/backend/app/Http/Controllers/Api/V1/ModuleController.php
 +++ b/backend/app/Http/Controllers/Api/V1/ModuleController.php
 @@ -95,9 +95,47 @@ public function update(Request $request, string $slug): \Illuminate\Http\JsonRes
@@ -51,7 +51,7 @@ index 65fc27e3..edde3d8c 100644
 +    }
  }
 diff --git a/backend/app/Http/Middleware/EnsureModuleEnabled.php b/backend/app/Http/Middleware/EnsureModuleEnabled.php
-index 4504501a..2ec113c6 100644
+index 4504501..2ec113c 100644
 --- a/backend/app/Http/Middleware/EnsureModuleEnabled.php
 +++ b/backend/app/Http/Middleware/EnsureModuleEnabled.php
 @@ -30,7 +30,10 @@ public function handle(Request $request, Closure $next, string $slug): Response
@@ -101,7 +101,7 @@ index 4504501a..2ec113c6 100644
      private function impliedByCommerce(int $tenantId, string $moduleSlug, string $subSlug): bool
      {
 diff --git a/backend/app/Kernel/ModuleAliasMap.php b/backend/app/Kernel/ModuleAliasMap.php
-index b8f27b4c..fcdfdfad 100644
+index b8f27b4..fcdfdfa 100644
 --- a/backend/app/Kernel/ModuleAliasMap.php
 +++ b/backend/app/Kernel/ModuleAliasMap.php
 @@ -61,6 +61,13 @@ final class ModuleAliasMap
@@ -119,7 +119,7 @@ index b8f27b4c..fcdfdfad 100644
      ];
  
 diff --git a/backend/app/Kernel/SiteTypeProfiles.php b/backend/app/Kernel/SiteTypeProfiles.php
-index 1da16aab..63f79361 100644
+index 1da16aa..63f7936 100644
 --- a/backend/app/Kernel/SiteTypeProfiles.php
 +++ b/backend/app/Kernel/SiteTypeProfiles.php
 @@ -6,6 +6,24 @@ final class SiteTypeProfiles
@@ -218,7 +218,7 @@ index 1da16aab..63f79361 100644
                      'academy' => ['courses', 'lessons'],
                      'cms' => ['pages', 'menus', 'seo'],
 diff --git a/backend/app/Kernel/TenantActivationService.php b/backend/app/Kernel/TenantActivationService.php
-index 32109080..5b3332d7 100644
+index 3210908..5b3332d 100644
 --- a/backend/app/Kernel/TenantActivationService.php
 +++ b/backend/app/Kernel/TenantActivationService.php
 @@ -269,6 +269,18 @@ public function applySiteType(Tenant $tenant, string $siteTypeSlug): void
@@ -241,7 +241,7 @@ index 32109080..5b3332d7 100644
          try {
              $demoSeeder->seed($tenant->fresh(), $siteTypeSlug);
 diff --git a/backend/app/Services/Accounting/FinancialReport.php b/backend/app/Services/Accounting/FinancialReport.php
-index d0e3e72a..9f6d6c7a 100644
+index d0e3e72..9f6d6c7 100644
 --- a/backend/app/Services/Accounting/FinancialReport.php
 +++ b/backend/app/Services/Accounting/FinancialReport.php
 @@ -100,8 +100,12 @@ public function build(Request $request): array
@@ -259,7 +259,7 @@ index d0e3e72a..9f6d6c7a 100644
          }
  
 diff --git a/backend/modules/Accounting/AccountingServiceProvider.php b/backend/modules/Accounting/AccountingServiceProvider.php
-index 4525f773..da606661 100644
+index 4525f77..da60666 100644
 --- a/backend/modules/Accounting/AccountingServiceProvider.php
 +++ b/backend/modules/Accounting/AccountingServiceProvider.php
 @@ -17,7 +17,9 @@
@@ -290,7 +290,7 @@ index 4525f773..da606661 100644
  
 diff --git a/backend/modules/Accounting/Database/Migrations/2026_11_25_000001_enable_accounting_for_all_tenants.php b/backend/modules/Accounting/Database/Migrations/2026_11_25_000001_enable_accounting_for_all_tenants.php
 new file mode 100644
-index 00000000..7c694427
+index 0000000..7c69442
 --- /dev/null
 +++ b/backend/modules/Accounting/Database/Migrations/2026_11_25_000001_enable_accounting_for_all_tenants.php
 @@ -0,0 +1,133 @@
@@ -428,7 +428,7 @@ index 00000000..7c694427
 +    }
 +};
 diff --git a/backend/modules/Accounting/Database/Seeders/AccChartIranSeeder.php b/backend/modules/Accounting/Database/Seeders/AccChartIranSeeder.php
-index 8062f7fd..5eafc176 100644
+index 8062f7f..5eafc17 100644
 --- a/backend/modules/Accounting/Database/Seeders/AccChartIranSeeder.php
 +++ b/backend/modules/Accounting/Database/Seeders/AccChartIranSeeder.php
 @@ -2,6 +2,7 @@
@@ -508,7 +508,7 @@ index 8062f7fd..5eafc176 100644
 +    }
  }
 diff --git a/backend/modules/Accounting/Http/Controllers/ChartAccountController.php b/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
-index 63047d22..1bd0fe66 100644
+index 63047d2..1bd0fe6 100644
 --- a/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
 +++ b/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
 @@ -4,6 +4,7 @@
@@ -567,7 +567,7 @@ index 63047d22..1bd0fe66 100644
              'type' => 'sometimes|string|max:50',
 diff --git a/backend/modules/Accounting/Services/AccountingProvisioningService.php b/backend/modules/Accounting/Services/AccountingProvisioningService.php
 new file mode 100644
-index 00000000..b226391b
+index 0000000..b226391
 --- /dev/null
 +++ b/backend/modules/Accounting/Services/AccountingProvisioningService.php
 @@ -0,0 +1,75 @@
@@ -647,7 +647,7 @@ index 00000000..b226391b
 +    }
 +}
 diff --git a/backend/modules/Accounting/Services/AccountingWpActionService.php b/backend/modules/Accounting/Services/AccountingWpActionService.php
-index 0da3beab..f37eb582 100644
+index 0da3bea..f37eb58 100644
 --- a/backend/modules/Accounting/Services/AccountingWpActionService.php
 +++ b/backend/modules/Accounting/Services/AccountingWpActionService.php
 @@ -4,6 +4,7 @@
@@ -687,7 +687,7 @@ index 0da3beab..f37eb582 100644
  
      private function personSave(array $p, Request $request): array
 diff --git a/backend/modules/Accounting/manifest.json b/backend/modules/Accounting/manifest.json
-index c757ea81..db37234c 100644
+index c757ea8..db37234 100644
 --- a/backend/modules/Accounting/manifest.json
 +++ b/backend/modules/Accounting/manifest.json
 @@ -4,9 +4,13 @@
@@ -707,7 +707,7 @@ index c757ea81..db37234c 100644
      "dashboard",
 diff --git a/backend/tests/Feature/ErpAccountingAllSiteTypesTest.php b/backend/tests/Feature/ErpAccountingAllSiteTypesTest.php
 new file mode 100644
-index 00000000..037eb9fd
+index 0000000..037eb9f
 --- /dev/null
 +++ b/backend/tests/Feature/ErpAccountingAllSiteTypesTest.php
 @@ -0,0 +1,212 @@
@@ -924,7 +924,7 @@ index 00000000..037eb9fd
 +    }
 +}
 diff --git a/frontend/messages/en.json b/frontend/messages/en.json
-index f79cd070..dbd0231a 100644
+index f79cd07..dbd0231 100644
 --- a/frontend/messages/en.json
 +++ b/frontend/messages/en.json
 @@ -365,6 +365,7 @@
@@ -955,7 +955,7 @@ index f79cd070..dbd0231a 100644
        "s_d13a2741": "End date",
        "s_d9ba4168": "Inactive"
 diff --git a/frontend/messages/fa.json b/frontend/messages/fa.json
-index 53fb9d2d..2e0b5c18 100644
+index 53fb9d2..2e0b5c1 100644
 --- a/frontend/messages/fa.json
 +++ b/frontend/messages/fa.json
 @@ -365,6 +365,7 @@
@@ -986,7 +986,7 @@ index 53fb9d2d..2e0b5c18 100644
        "s_d13a2741": "تاریخ پایان",
        "s_d9ba4168": "غیرفعال"
 diff --git a/frontend/modules/accounting/admin/AccFiscalYear.tsx b/frontend/modules/accounting/admin/AccFiscalYear.tsx
-index b6581fa1..65416326 100644
+index b6581fa..6541632 100644
 --- a/frontend/modules/accounting/admin/AccFiscalYear.tsx
 +++ b/frontend/modules/accounting/admin/AccFiscalYear.tsx
 @@ -1,24 +1,74 @@
@@ -1288,7 +1288,7 @@ index b6581fa1..65416326 100644
    );
  }
 diff --git a/frontend/modules/accounting/admin/AccJournals.tsx b/frontend/modules/accounting/admin/AccJournals.tsx
-index 71802a44..a6f4681b 100644
+index 71802a4..a6f4681 100644
 --- a/frontend/modules/accounting/admin/AccJournals.tsx
 +++ b/frontend/modules/accounting/admin/AccJournals.tsx
 @@ -103,7 +103,8 @@ export default function AccJournals() {
@@ -1302,7 +1302,7 @@ index 71802a44..a6f4681b 100644
        setError(getAxiosMessage(e));
      } finally {
 diff --git a/frontend/modules/accounting/admin/AccReports.tsx b/frontend/modules/accounting/admin/AccReports.tsx
-index 61488577..517cf5fa 100644
+index 6148857..517cf5f 100644
 --- a/frontend/modules/accounting/admin/AccReports.tsx
 +++ b/frontend/modules/accounting/admin/AccReports.tsx
 @@ -190,13 +190,13 @@ export default function AccReports() {
@@ -1346,8 +1346,21 @@ index 61488577..517cf5fa 100644
  /* ─── Trial Balance ─── */
  
  function TrialBalanceTable({ rows }: { rows: TrialRow[] }) {
+diff --git a/frontend/modules/accounting/admin/cheque-books-page.tsx b/frontend/modules/accounting/admin/cheque-books-page.tsx
+new file mode 100644
+index 0000000..5b6c40e
+--- /dev/null
++++ b/frontend/modules/accounting/admin/cheque-books-page.tsx
+@@ -0,0 +1,7 @@
++import type { ResolvedAdminRoute } from "@/kernel/types"
++
++import PageClient from "./cheque-books-page-client"
++
++export default function Page({ route }: { route: ResolvedAdminRoute }) {
++  return <PageClient route={route} />
++}
 diff --git a/frontend/modules/accounting/manifest.ts b/frontend/modules/accounting/manifest.ts
-index 5df26ed7..6b621fad 100644
+index 5df26ed..6b621fa 100644
 --- a/frontend/modules/accounting/manifest.ts
 +++ b/frontend/modules/accounting/manifest.ts
 @@ -13,10 +13,14 @@ import type { ModuleManifest } from "@/kernel/types";
@@ -1368,7 +1381,7 @@ index 5df26ed7..6b621fad 100644
      "dashboard",
      "persons",
 diff --git a/frontend/src/builder/render/extra-widgets.tsx b/frontend/src/builder/render/extra-widgets.tsx
-index 9247047c..3e3ab0ae 100644
+index 9247047..3e3ab0a 100644
 --- a/frontend/src/builder/render/extra-widgets.tsx
 +++ b/frontend/src/builder/render/extra-widgets.tsx
 @@ -648,7 +648,7 @@ export function MapWidget({ widget }: { widget: WidgetNode }) {
@@ -1381,7 +1394,7 @@ index 9247047c..3e3ab0ae 100644
    const [seen, setSeen] = useState(false)
    useEffect(() => {
 diff --git a/frontend/src/config/business-presets/index.ts b/frontend/src/config/business-presets/index.ts
-index 0eb21b55..844952bd 100644
+index 0eb21b5..844952b 100644
 --- a/frontend/src/config/business-presets/index.ts
 +++ b/frontend/src/config/business-presets/index.ts
 @@ -30,7 +30,10 @@ export const BUSINESS_PRESETS: Record<string, BusinessNavPreset> = {
@@ -1397,7 +1410,7 @@ index 0eb21b55..844952bd 100644
  }
  
 diff --git a/frontend/src/features/modules/accounting/lib/api-client.ts b/frontend/src/features/modules/accounting/lib/api-client.ts
-index b8c9d2d7..a35a8e2b 100644
+index b8c9d2d..a35a8e2 100644
 --- a/frontend/src/features/modules/accounting/lib/api-client.ts
 +++ b/frontend/src/features/modules/accounting/lib/api-client.ts
 @@ -1,4 +1,4 @@
@@ -1450,7 +1463,7 @@ index b8c9d2d7..a35a8e2b 100644
  
  /**
 diff --git a/frontend/src/kernel/registry.ts b/frontend/src/kernel/registry.ts
-index ae58d4bd..7cc608ac 100644
+index ae58d4b..7cc608a 100644
 --- a/frontend/src/kernel/registry.ts
 +++ b/frontend/src/kernel/registry.ts
 @@ -50,6 +50,11 @@ const BUNDLED_MANIFESTS: ModuleManifest[] = [
@@ -1477,7 +1490,7 @@ index ae58d4bd..7cc608ac 100644
  
  function loadExternalOverrides(): ModuleManifest[] {
 diff --git a/frontend/src/kernel/route-resolver.ts b/frontend/src/kernel/route-resolver.ts
-index a385001b..da755184 100644
+index a385001..da75518 100644
 --- a/frontend/src/kernel/route-resolver.ts
 +++ b/frontend/src/kernel/route-resolver.ts
 @@ -114,6 +114,22 @@ export function isSubmoduleEnabled(
@@ -1526,7 +1539,7 @@ index a385001b..da755184 100644
        const sectionOrder = route.order ?? mod.adminNav?.order ?? 99
        const menuKey = route.menuKey ?? route.path.split("/")[0] ?? route.path
 diff --git a/frontend/src/lib/list-utils.ts b/frontend/src/lib/list-utils.ts
-index 6817e409..370e39ee 100644
+index 6817e40..370e39e 100644
 --- a/frontend/src/lib/list-utils.ts
 +++ b/frontend/src/lib/list-utils.ts
 @@ -19,6 +19,15 @@ export function readListMeta(raw: unknown): Record<string, unknown> {
