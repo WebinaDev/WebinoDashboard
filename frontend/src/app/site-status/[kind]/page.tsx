@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ kind: str
   }
 }
 
-/** Internal rewrite target for coming_soon / suspended sites (see src/middleware.ts). */
+/** Internal rewrite target for coming_soon / suspended sites (see src/proxy.ts). */
 export default async function SiteStatusPage({ params }: { params: Promise<{ kind: string }> }) {
   const { kind } = await params
   const res = await apiServer<StatusPayload>("/api/v1/public/site-status", { revalidate: false }).catch(() => null)

@@ -5,13 +5,13 @@
 # as WebinoERP docker/php/Dockerfile.platform — artisan serve is the runtime.
 #
 # PHP_IMAGE / COMPOSER_IMAGE can be overridden for IR Hub mirrors:
-#   hub.hamdocker.ir/library/php:8.3-cli-bookworm
+#   hub.hamdocker.ir/library/php:8.5-cli-bookworm
 #   hub.hamdocker.ir/library/composer:2
 # COMPOSER_MIRROR: set via build-arg (IR builds pass Aliyun; Packagist often fails with curl error 18).
 #
 # All FROM-related ARGs MUST be declared before the first FROM (BuildKit global scope).
 # COPY --from=${VAR} is unsupported; use a named stage instead.
-ARG PHP_IMAGE=php:8.3-fpm-bookworm
+ARG PHP_IMAGE=php:8.5-fpm-bookworm
 ARG COMPOSER_IMAGE=composer:2
 
 FROM ${COMPOSER_IMAGE} AS composer_src
@@ -20,7 +20,7 @@ FROM ${PHP_IMAGE}
 
 ARG APT_MIRROR=
 ARG FORCE_APT_IPV4=1
-ARG REDIS_PECL_VERSION=6.0.2
+ARG REDIS_PECL_VERSION=6.3.0
 # Empty by default; IR builds pass Aliyun via --build-arg COMPOSER_MIRROR=...
 ARG COMPOSER_MIRROR=
 
@@ -45,11 +45,19 @@ RUN set -eux; \
         git unzip libzip-dev libpq-dev libxml2-dev libsqlite3-dev curl nginx-light wget \
         libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype6-dev; \
     docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype; \
-    docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql opcache pcntl gd; \
+    # Only compile what the base image lacks: dom/xml/pdo_sqlite are built in, PHP 8.5
+    # ships OPcache built in, and rebuilding dom on 8.5 fails on lexbor headers.
+    missing=""; \
+    for ext in dom xml zip pdo_sqlite pdo_pgsql pcntl gd; do \
+      php -m | grep -qix "$ext" || missing="$missing $ext"; \
+    done; \
+    if [ -n "$missing" ]; then docker-php-ext-install $missing; fi; \
+    php -m | grep -qi 'zend opcache' || docker-php-ext-install opcache; \
     chmod +x /tmp/install-redis.sh; \
     REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh; \
     rm -f /tmp/install-redis.sh; \
-    docker-php-ext-enable redis opcache; \
+    docker-php-ext-enable redis; \
+    php -m | grep -qi 'zend opcache' || docker-php-ext-enable opcache; \
     rm -rf /var/lib/apt/lists/*
 
 RUN echo "expose_php=Off" > /usr/local/etc/php/conf.d/zz-webina-fingerprint.ini

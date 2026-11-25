@@ -1,6 +1,6 @@
 /**
- * Must live in `src/` beside `src/app`. Next.js resolves middleware from the
- * parent of the app directory and ignores a root `middleware.ts` when `src/app`
+ * Must live in `src/` beside `src/app`. Next.js resolves proxy (formerly middleware) from the
+ * parent of the app directory and ignores a root `proxy.ts` when `src/app`
  * exists — that left the auth gate unloaded, so anonymous RSC renders treated
  * a failed activations fetch as "every module disabled" and called notFound().
  */
@@ -465,7 +465,7 @@ function stripPagesPrefix(to: string): string {
   return `/${m[1]}${m[2] ?? ""}`
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname === "/_next/image") return rewriteImageOptimizerSource(request) ?? NextResponse.next()
   const res = await handle(request)
   if (res && !request.cookies.get("webina_site")) {

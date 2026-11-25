@@ -1,4 +1,4 @@
-import { createTranslator } from "use-intl/core"
+import { createTranslator, type AbstractIntlMessages } from "use-intl/core"
 import { cookies } from "next/headers"
 
 import { requestPageLang } from "@/builder/page-lang"
@@ -7,10 +7,12 @@ import { defaultLocale, isLocale, type Locale } from "../../i18n"
 import enMessages from "../../messages/en.json"
 import faMessages from "../../messages/fa.json"
 
-const catalogs = {
+// Loosely typed on purpose: callers pass the namespace as a plain string, and use-intl 4
+// otherwise derives a key union over both catalogs (TS2589 / TS2322).
+const catalogs: Record<Locale, AbstractIntlMessages> = {
   fa: faMessages,
   en: enMessages,
-} as const
+}
 
 export async function resolveServerLocale(): Promise<Locale> {
   // Builder pages with their own language switch server-rendered UI strings too (see requestPageLang).
