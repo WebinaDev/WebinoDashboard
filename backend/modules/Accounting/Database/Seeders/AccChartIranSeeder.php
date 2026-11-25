@@ -2,6 +2,7 @@
 
 namespace Modules\Accounting\Database\Seeders;
 
+use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Entities\AccChartAccount;
 
 /**
@@ -61,6 +62,69 @@ class AccChartIranSeeder
             ]);
 
             $codeToId[$row['code']] = $account->id;
+            $inserted++;
+        }
+
+        return ['inserted' => $inserted, 'skipped' => $skipped];
+    }
+
+    /**
+     * Seed the chart for one explicit tenant, without an authenticated user.
+     *
+     * Used by first-run provisioning (`AccountingProvisioningService`), which runs
+     * during site setup where the request user may not belong to the tenant being
+     * provisioned. Inserts go through the query builder so the tenant-stamping hook
+     * cannot reject the explicit `tenant_id`.
+     *
+     * @return array{inserted:int, skipped:int}
+     */
+    public static function runForTenant(int $tenantId): array
+    {
+        $rows = require __DIR__.'/../data/chart-iran.php';
+
+        $codeToId = [];
+        $inserted = 0;
+        $skipped = 0;
+        $now = now();
+
+        // Shortest code first: parent codes are prefixes of their children (1, 11, 1101).
+        usort($rows, fn (array $a, array $b): int => strlen((string) $a['code']) <=> strlen((string) $b['code']));
+
+        foreach ($rows as $row) {
+            $existing = DB::table('acc_chart_accounts')
+                ->where('tenant_id', $tenantId)
+                ->where('code', $row['code'])
+                ->value('id');
+
+            if ($existing !== null) {
+                $skipped++;
+                $codeToId[$row['code']] = (int) $existing;
+
+                continue;
+            }
+
+            $parentId = null;
+
+            if (! empty($row['parent_code'])) {
+                $parentId = $codeToId[$row['parent_code']]
+                    ?? DB::table('acc_chart_accounts')
+                        ->where('tenant_id', $tenantId)
+                        ->where('code', $row['parent_code'])
+                        ->value('id');
+            }
+
+            $id = DB::table('acc_chart_accounts')->insertGetId([
+                'tenant_id' => $tenantId,
+                'code' => $row['code'],
+                'name' => $row['name'],
+                'parent_id' => $parentId,
+                'type' => $row['type'],
+                'is_postable' => (bool) $row['is_postable'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            $codeToId[$row['code']] = (int) $id;
             $inserted++;
         }
 

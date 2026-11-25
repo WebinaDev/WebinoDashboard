@@ -114,6 +114,22 @@ export function isSubmoduleEnabled(
     )
   }
 
+  // The full ledger's submodules were seeded together, but a tenant that only has
+  // some rows (older backfill, partial toggle) must still see the whole section.
+  // Any enabled accounting submodule implies the rest, matching the backend's
+  // module-level fallback in EnsureModuleEnabled.
+  if (moduleSlug === "accounting") {
+    return (
+      enabled("accounting", submoduleSlug) ||
+      activations.some(
+        (a) =>
+          a.module_slug === "accounting" &&
+          a.enabled &&
+          (ignoreLicense || a.licensed !== false),
+      )
+    )
+  }
+
   if (moduleSlug === "commerce" && submoduleSlug === "account") {
     return (
       enabled("commerce", "account") ||
@@ -341,13 +357,21 @@ export function buildAdminNav(activations: TenantActivation[]) {
     }
   >()
 
+  // Two modules can claim the same dashboard path (the full ledger and the
+  // commerce till ledger both declare `accounting/*`). Manifest order decides
+  // the winner for routing, so the nav must too — otherwise the sidebar shows
+  // the same link twice, pointing at two different pages.
+  const seenUrls = new Set<string>()
+
   for (const mod of MODULE_MANIFESTS) {
     for (const route of mod.adminRoutes) {
       if (route.path.includes(":")) continue
       if (route.path.endsWith("/new")) continue
       if (route.path === "catalog") continue
       if (route.navHidden) continue
+      if (seenUrls.has(route.path)) continue
       if (!isSubmoduleEnabled(activations, mod.slug, route.submodule, { ignoreLicense: true })) continue
+      seenUrls.add(route.path)
       const section = route.section
       const sectionOrder = route.order ?? mod.adminNav?.order ?? 99
       const menuKey = route.menuKey ?? route.path.split("/")[0] ?? route.path

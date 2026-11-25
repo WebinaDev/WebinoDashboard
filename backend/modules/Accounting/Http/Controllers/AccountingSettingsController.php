@@ -23,6 +23,38 @@ class AccountingSettingsController extends Controller
         ]);
     }
 
+    public function settingsUpdate(Request $request): JsonResponse
+    {
+        $tenantId = (int) $request->user()->tenant_id;
+
+        $data = $request->validate([
+            'currency' => 'nullable|string|max:10',
+            'currency_symbol' => 'nullable|string|max:20',
+            'decimals' => 'nullable|integer|min:0|max:4',
+            'thousand_separator' => 'nullable|string|max:2',
+            'decimal_separator' => 'nullable|string|max:2',
+            'fiscal_year_id' => ['nullable', 'integer', Rule::exists('acc_fiscal_years', 'id')->where('tenant_id', $tenantId)],
+        ]);
+
+        $money = AccountingMoney::saveSettings($data);
+
+        if (array_key_exists('fiscal_year_id', $data)) {
+            AccountingSetting::set(
+                'accounting_default_fiscal_year_id',
+                $data['fiscal_year_id'] === null ? '' : (string) $data['fiscal_year_id'],
+                'accounting',
+            );
+        }
+
+        $fyId = AccountingSetting::get('accounting_default_fiscal_year_id');
+
+        return response()->json([
+            'data' => array_merge($money, [
+                'fiscal_year_id' => $fyId ? (int) $fyId : null,
+            ]),
+        ]);
+    }
+
     public function userDefaults(Request $request): JsonResponse
     {
         $uid = $request->user()->id;

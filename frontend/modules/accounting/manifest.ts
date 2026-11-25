@@ -11,12 +11,22 @@ import type { ModuleManifest } from "@/kernel/types"
  * `/api/v1/erp-accounting` API.
  *
  * Every route here maps to a real file: `modules/accounting/admin/{page}-page.tsx`.
+ *
+ * The slug is `accounting` — the same slug the backend module registers — because
+ * tenant activations are keyed by it. As `erp-accounting` the nav checks never
+ * matched a backend row, and the page loader looked for
+ * `modules/erp-accounting/...`, which does not exist. Only the API prefix keeps
+ * the `erp-accounting` name, to avoid colliding with the till ledger's
+ * `/api/v1/accounting/*`.
+ *
+ * Available on every site type: the ledger is standalone (`acc_*` tables, no
+ * commerce dependency), so magazine/blog/resume/corporate sites get it too.
  */
 export const accountingManifest: ModuleManifest = {
-  slug: "erp-accounting",
+  slug: "accounting",
   nameFa: "حسابداری",
   nameEn: "Accounting",
-  siteTypes: ["cafe", "ecommerce", "coffee"],
+  siteTypes: ["ecommerce", "magazine", "cafe", "coffee", "resume", "blog", "corporate"],
   submodules: [
     "dashboard",
     "persons",

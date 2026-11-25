@@ -50,6 +50,11 @@ const BUNDLED_MANIFESTS: ModuleManifest[] = [
  * After install from org-git they land under modules-external/ (see .registry.json).
  */
 const GIT_TRANSITION_MANIFESTS: ModuleManifest[] = [
+  // The full ledger first: it and commerce both claim `accounting/*` paths, and
+  // the route resolver returns the first exact match. Commerce's till ledger
+  // used to win every shared path, so the ERP pages were unreachable. Commerce
+  // keeps the paths only it declares (tax, moadian, integrations, …).
+  { ...accountingManifest, distribution: "git" },
   { ...commerceManifest, distribution: "git" },
   { ...coffeeProfileManifest, distribution: "git" },
   { ...blogManifest, distribution: "git" },
@@ -67,10 +72,6 @@ const GIT_TRANSITION_MANIFESTS: ModuleManifest[] = [
   { ...corporateManifest, distribution: "git" },
   { ...linkHubManifest, distribution: "git" },
   { ...poetryManifest, distribution: "git" },
-  // The ERP ledger ships in this repo (it is ported, not downloaded), but is marked git
-  // like its siblings so `EnsureModuleEnabled` checks that the code is present before
-  // serving its routes.
-  { ...accountingManifest, distribution: "git" },
 ]
 
 function loadExternalOverrides(): ModuleManifest[] {

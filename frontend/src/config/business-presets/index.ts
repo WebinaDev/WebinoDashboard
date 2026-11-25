@@ -30,7 +30,10 @@ export const BUSINESS_PRESETS: Record<string, BusinessNavPreset> = {
   },
   personal: {
     preset: "personal",
-    hiddenSlugs: ["catalog", "cart", "checkout", "inventory", "marketing", "accounting"],
+    // Accounting stays visible on every preset: invoicing and expenses are not
+    // shop-only, and hiding the nav made the ledger unreachable on personal sites
+    // even though the module was enabled for them.
+    hiddenSlugs: ["catalog", "cart", "checkout", "inventory", "marketing"],
   },
 }
 

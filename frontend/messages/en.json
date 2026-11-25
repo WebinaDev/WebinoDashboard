@@ -415,7 +415,8 @@
     "venue": "Venue",
     "wallet_settings": "Wallet settings",
     "wallet_withdrawals": "Wallet withdrawals",
-    "wp_import": "WordPress import"
+    "wp_import": "WordPress import",
+    "section_accounting": "Accounting"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",
@@ -10814,7 +10815,13 @@
       "s_83c22977": "سال مالی‌ای یافت نشد",
       "s_acc84041": "ID",
       "s_d13a2741": "End date",
-      "s_d9ba4168": "Inactive"
+      "s_d9ba4168": "Inactive",
+      "s_3b2e1a9f": "New fiscal year",
+      "s_9c4d2e71": "Actions",
+      "s_4a1b8c03": "Edit",
+      "s_7e5f2a16": "Delete",
+      "s_2c8e4d51": "Cancel",
+      "s_5d6f3a28": "Save"
     },
     "accounting_AccInvoices": {
       "s_08545fb6": "Save",

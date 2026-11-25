@@ -1,4 +1,4 @@
-import { unwrapApiData } from "@webina/ui"
+import { unwrapApiResponse } from "@webina/ui"
 
 import { ApiError } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
@@ -39,8 +39,14 @@ type RequestOptions = {
   signal?: AbortSignal
 }
 
-/** What the ported pages treat a response as: `{ data }` with the envelope removed. */
-export type ApiResult<T> = { data: T; status: number }
+/**
+ * What the ported pages treat a response as: `{ data }` with the envelope removed.
+ *
+ * `meta` carries the paginator fields (`last_page`, `total`, …) the envelope
+ * preserves. Dropping it made every list report one page no matter how many rows
+ * existed, so pagination controls never advanced.
+ */
+export type ApiResult<T> = { data: T; status: number; meta?: Record<string, unknown> | null }
 
 function buildUrl(path: string, params?: RequestOptions["params"]): string {
   const url = `${BASE}${path.startsWith("/") ? path : `/${path}`}`
@@ -82,7 +88,9 @@ async function request<T>(method: Method, path: string, body?: unknown, options?
     throw new ApiError(getApiErrorMessage(payload), response.status, payload)
   }
 
-  return { data: unwrapApiData<T>(payload), status: response.status }
+  const unwrapped = unwrapApiResponse<T>(payload)
+
+  return { data: unwrapped.data, status: response.status, meta: unwrapped.meta }
 }
 
 const apiClient = {

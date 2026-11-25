@@ -269,6 +269,18 @@ final class TenantActivationService
 
         $this->clearCache($tenant->id);
 
+        // Accounting ships on every site type now; a tenant that opens the ledger
+        // must find a chart and a fiscal year, not an empty screen. Best-effort:
+        // provisioning must never fail site setup.
+        if (in_array('accounting', $profileParents, true)) {
+            try {
+                app(\Modules\Accounting\Services\AccountingProvisioningService::class)
+                    ->ensureSeededForTenant((int) $tenant->id);
+            } catch (\Throwable) {
+                // The module still activates; the operator can seed from Settings.
+            }
+        }
+
         // Demo + suggested template: gated in seeder (empty + never-seeded + unfinished only).
         try {
             $demoSeeder->seed($tenant->fresh(), $siteTypeSlug);

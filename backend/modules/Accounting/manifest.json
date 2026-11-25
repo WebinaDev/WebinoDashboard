@@ -4,9 +4,13 @@
   "name_en": "Accounting",
   "distribution": "git",
   "site_types": [
+    "ecommerce",
+    "magazine",
     "cafe",
     "coffee",
-    "ecommerce"
+    "resume",
+    "blog",
+    "corporate"
   ],
   "submodules": [
     "dashboard",
