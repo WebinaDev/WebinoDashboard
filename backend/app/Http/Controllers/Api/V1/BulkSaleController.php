@@ -82,25 +82,59 @@ class BulkSaleController extends Controller
             return response()->json(['message' => __('Sale end date must be in the future.')], 400);
         }
 
+        if ($action === 'history') {
+            $tenantId = (int) ($request->user()?->tenant_id ?? 0);
+            $history = cache()->get("bulk_sale_history_{$tenantId}", []);
+
+            return response()->json(['data' => is_array($history) ? $history : []]);
+        }
+
         $ok = 0;
         $failed = 0;
         $skipped = 0;
         $errors = [];
+        $succeededItems = [];
+        $failedItems = [];
         foreach ($ids as $pid) {
+            $productTitle = (string) (Product::query()->whereKey((int) $pid)->value('title') ?? "#{$pid}");
             $result = $action === 'remove'
                 ? $this->removeProduct((int) $pid)
                 : $this->applyProduct((int) $pid, $percent, $startsAt, $endsAt);
             if ($result === true) {
                 $ok++;
+                if (count($succeededItems) < 50) {
+                    $succeededItems[] = ['id' => (int) $pid, 'title' => $productTitle];
+                }
             } elseif ($result === 'skipped') {
                 $skipped++;
+                $failedItems[] = ['id' => (int) $pid, 'title' => $productTitle, 'reason' => 'قیمت پایه نامعتبر یا صفر'];
             } else {
                 $failed++;
-                if (count($errors) < 10 && is_string($result)) {
-                    $errors[] = ['id' => (int) $pid, 'message' => $result];
+                $reason = is_string($result) ? $result : 'خطای نامشخص';
+                $failedItems[] = ['id' => (int) $pid, 'title' => $productTitle, 'reason' => $reason];
+                if (count($errors) < 10) {
+                    $errors[] = ['id' => (int) $pid, 'message' => $reason];
                 }
             }
         }
+
+        $tenantId = (int) ($request->user()?->tenant_id ?? 0);
+        $history = cache()->get("bulk_sale_history_{$tenantId}", []);
+        if (! is_array($history)) {
+            $history = [];
+        }
+        array_unshift($history, [
+            'id' => uniqid('bs_', true),
+            'action' => $action,
+            'percent' => $percent,
+            'ok' => $ok,
+            'failed' => $failed,
+            'skipped' => $skipped,
+            'total' => count($ids),
+            'failed_items' => array_slice($failedItems, 0, 100),
+            'created_at' => now()->toIso8601String(),
+        ]);
+        cache()->put("bulk_sale_history_{$tenantId}", array_slice($history, 0, 20), now()->addDays(30));
 
         return response()->json([
             'data' => [
@@ -110,6 +144,8 @@ class BulkSaleController extends Controller
                 'skipped' => $skipped,
                 'total' => count($ids),
                 'errors' => $errors,
+                'succeeded_items' => $succeededItems,
+                'failed_items' => $failedItems,
             ],
         ]);
     }
