@@ -1,12 +1,16 @@
 import { PublishedDocument } from "@/builder/public-document"
 import { classicFooterDocument } from "@/builder/templates/classic"
 import type { SiteChromeProps } from "@/themes/shared/types"
+import { ClassicCouponSticky } from "./ClassicCouponSticky"
 
 export async function SiteFooter({ siteName }: SiteChromeProps) {
   return (
-    <PublishedDocument
-      document={classicFooterDocument(siteName)}
-      runtime={{ siteName, themeSlug: "ecommerce-classic" }}
-    />
+    <>
+      <PublishedDocument
+        document={classicFooterDocument(siteName)}
+        runtime={{ siteName, themeSlug: "ecommerce-classic" }}
+      />
+      <ClassicCouponSticky />
+    </>
   )
 }

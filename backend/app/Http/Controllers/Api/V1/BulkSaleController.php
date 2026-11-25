@@ -168,7 +168,7 @@ class BulkSaleController extends Controller
             }
         }
 
-        return $q->orderByDesc('id')->limit(self::BATCH_LIMIT)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        return $q->orderByDesc('id')->pluck('id')->map(fn ($id) => (int) $id)->all();
     }
 
     /** @return array<string, mixed>|null */
@@ -209,7 +209,7 @@ class BulkSaleController extends Controller
 
     private function calcSale(int $regular, float $percent): int
     {
-        return (int) max(0, round($regular * (1 - ($percent / 100))));
+        return (int) max(0, round(($regular * (1 - ($percent / 100))) / 1000) * 1000);
     }
 
     private function applyProduct(int $productId, float $percent, CarbonInterface $startsAt, CarbonInterface $endsAt): true|string

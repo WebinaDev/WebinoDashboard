@@ -790,13 +790,26 @@ function MethodEditor({
           />
         </div>
         {method.method_id === "flat_rate" ? (
-          <div className="grid gap-1">
-            <Label className="text-xs">{labels.cost} (تیپاکس / پیک / پست)</Label>
-            <Input
-              type="number"
-              defaultValue={Number(settings.cost ?? 0)}
-              onBlur={(e) => onChange({ settings: { ...settings, cost: Number(e.target.value) || 0 } })}
-            />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-1">
+              <Label className="text-xs">{labels.cost} (تیپاکس / پیک / پست)</Label>
+              <Input
+                type="number"
+                defaultValue={Number(settings.cost ?? 0)}
+                onBlur={(e) => onChange({ settings: { ...settings, cost: Number(e.target.value) || 0 } })}
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs">حالت محاسبه هزینه</Label>
+              <select
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={String(settings.cost_mode ?? "per_order")}
+                onChange={(e) => onChange({ settings: { ...settings, cost_mode: e.target.value } })}
+              >
+                <option value="per_order">به ازای هر سفارش (ثابت)</option>
+                <option value="per_item">به ازای هر عدد کالا</option>
+              </select>
+            </div>
           </div>
         ) : null}
         {method.method_id === "free_shipping" ? (
