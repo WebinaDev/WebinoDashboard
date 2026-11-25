@@ -36,9 +36,12 @@ export function MapPinPicker({
   const circleRef = useRef<Leaflet.Circle | null>(null)
   const libRef = useRef<typeof Leaflet | null>(null)
   const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
   const [failed, setFailed] = useState(false)
   const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
 
   function place(p: LatLng, emit: boolean) {
     const L = libRef.current

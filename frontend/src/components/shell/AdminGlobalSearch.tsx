@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react"
 
 import type { NavSection } from "@/hooks/useDashboardNav"
 import {
@@ -144,6 +144,10 @@ type Props = {
   className?: string
 }
 
+const subscribeShortcut = () => () => {}
+const getShortcut = () => /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl+K"
+const getServerShortcut = () => "Ctrl+K"
+
 export function AdminGlobalSearch({ navSections, className }: Props) {
   const t = useTranslations("shell.search")
   const locale = useLocale()
@@ -151,7 +155,14 @@ export function AdminGlobalSearch({ navSections, className }: Props) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [debounced, setDebounced] = useState("")
-  const [shortcutLabel, setShortcutLabel] = useState("Ctrl+K")
+  const shortcutLabel = useSyncExternalStore(subscribeShortcut, getShortcut, getServerShortcut)
+  const changeOpen = useCallback((next: boolean) => {
+    setOpen(next)
+    if (!next) {
+      setQuery("")
+      setDebounced("")
+    }
+  }, [])
 
   const navHits = useMemo(() => flattenNav(navSections), [navSections])
   const filteredNav = useMemo(() => matchNav(navHits, query), [navHits, query])
@@ -164,25 +175,14 @@ export function AdminGlobalSearch({ navSections, className }: Props) {
   }, [query])
 
   useEffect(() => {
-    if (/Mac|iPhone|iPad/.test(navigator.platform)) setShortcutLabel("⌘K")
-  }, [])
-
-  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return
       event.preventDefault()
-      setOpen((v) => !v)
+      changeOpen(!open)
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [])
-
-  useEffect(() => {
-    if (!open) {
-      setQuery("")
-      setDebounced("")
-    }
-  }, [open])
+  }, [changeOpen, open])
 
   const entityQ = useQuery({
     queryKey: ["admin-global-search", debounced],
@@ -320,7 +320,7 @@ export function AdminGlobalSearch({ navSections, className }: Props) {
   }, [entityQ.data])
 
   function go(href: string) {
-    setOpen(false)
+    changeOpen(false)
     router.push(href)
   }
 
@@ -361,7 +361,7 @@ export function AdminGlobalSearch({ navSections, className }: Props) {
         <Search className="size-4" />
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={changeOpen}>
         <DialogContent
           dir={htmlDir(locale)}
           className="overflow-hidden p-0 sm:max-w-xl"

@@ -75,6 +75,65 @@ export function rowsToLines(rows: Record<string, string>[], keys: string[]): str
   return rows.map((row) => keys.map((key) => (row[key] ?? "").replaceAll("|", "/").replaceAll("\n", "\\n")).join("|")).join("\n")
 }
 
+export type RepeaterEdit =
+  | { kind: "set"; index: number; key: string; value: string }
+  | { kind: "move"; index: number; delta: number }
+  | { kind: "delete"; index: number }
+  | { kind: "add" }
+
+export function repeaterRows(value: unknown, keys: string[]): Record<string, string>[] {
+  if (!Array.isArray(value)) return parseRows(value, keys)
+  return value.map((row) => parseRows([row], keys)[0] ?? Object.fromEntries(keys.map((key) => [key, ""])))
+}
+
+export function editRepeater(value: unknown, keys: string[], edit: RepeaterEdit): unknown {
+  if (typeof value === "string") {
+    const lines = value.split("\n")
+    const visible = lines.flatMap((line, index) => line.trim() ? [index] : [])
+    if (edit.kind === "add") {
+      const next = keys.map(() => "").join("|")
+      return value ? value + (value.endsWith("\n") ? "" : "\n") + next : next
+    }
+    if (!Number.isInteger(edit.index) || edit.index < 0 || edit.index >= visible.length) return value
+    const lineIndex = visible[edit.index]
+    if (edit.kind === "delete") {
+      lines.splice(lineIndex, 1)
+    } else if (edit.kind === "move") {
+      const target = edit.index + edit.delta
+      if (!Number.isInteger(target) || target < 0 || target >= visible.length) return value
+      const targetIndex = visible[target]
+      ;[lines[lineIndex], lines[targetIndex]] = [lines[targetIndex], lines[lineIndex]]
+    } else {
+      const fieldIndex = keys.indexOf(edit.key)
+      if (fieldIndex < 0) return value
+      const cells = lines[lineIndex].split("|")
+      while (cells.length <= fieldIndex) cells.push("")
+      cells[fieldIndex] = edit.value.replaceAll("|", "/").replaceAll("\n", "\\n")
+      lines[lineIndex] = cells.join("|")
+    }
+    return lines.join("\n")
+  }
+  const structured = Array.isArray(value)
+  const rows: unknown[] = structured ? [...value] : parseRows(value, keys)
+  if (edit.kind === "add") {
+    rows.push(Object.fromEntries(keys.map((key) => [key, ""])))
+  } else {
+    if (!Number.isInteger(edit.index) || edit.index < 0 || edit.index >= rows.length) return value
+    if (edit.kind === "delete") {
+      rows.splice(edit.index, 1)
+    } else if (edit.kind === "move") {
+      const target = edit.index + edit.delta
+      if (!Number.isInteger(target) || target < 0 || target >= rows.length) return value
+      ;[rows[edit.index], rows[target]] = [rows[target], rows[edit.index]]
+    } else {
+      if (!keys.includes(edit.key)) return value
+      const row = rows[edit.index]
+      rows[edit.index] = { ...(row && typeof row === "object" && !Array.isArray(row) ? row : {}), [edit.key]: edit.value }
+    }
+  }
+  return structured ? rows : rowsToLines(rows as Record<string, string>[], keys)
+}
+
 /** `datetime-local` value (local time, minutes) for a stored date string; ISO values with Z/offset are converted. */
 export function toLocalInput(value: string): string {
   if (!value) return ""
