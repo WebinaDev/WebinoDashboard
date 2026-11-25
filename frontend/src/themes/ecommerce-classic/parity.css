@@ -8255,3 +8255,94 @@ section.wb-full-bleed:has(.sfc-hero) {
   min-width: 0;
   flex: 1 1 auto;
 }
+
+/* ===================================================================
+   Sticky bottom-left coupon progress widget (collapsible to side tab)
+   ========================================================================== */
+.sfc-coupon-sticky {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 44;
+  transition: left 0.25s ease, transform 0.15s ease;
+}
+.sfc-coupon-sticky.is-collapsed {
+  left: 0;
+}
+.sfc-coupon-sticky__card {
+  width: min(280px, calc(100vw - 32px));
+  background: #fff;
+  border: 1px solid var(--sfc-border, #e5e7eb);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 28px rgba(2, 25, 89, 0.14);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.sfc-coupon-sticky__card:active {
+  cursor: grabbing;
+}
+.sfc-coupon-sticky__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.sfc-coupon-sticky__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sfc-navy, #021959);
+}
+.sfc-coupon-sticky__close {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 0;
+  background: #f3f4f6;
+  color: #4b5563;
+  border-radius: 8px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+.sfc-coupon-sticky__desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sfc-text2, #4d5e8a);
+}
+.sfc-coupon-sticky__bar {
+  margin-top: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e8edf3;
+  overflow: hidden;
+}
+.sfc-coupon-sticky__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--sfc-primary, #e775ae), #ff7aae);
+  transition: width 0.3s ease;
+}
+.sfc-coupon-sticky__tab {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 44px;
+  border: 1px solid var(--sfc-border, #e5e7eb);
+  border-left: 0;
+  border-radius: 0 12px 12px 0;
+  background: var(--sfc-primary, #ef4056);
+  color: #fff;
+  box-shadow: 4px 4px 16px rgba(2, 25, 89, 0.16);
+  cursor: pointer;
+}
+@media (max-width: 768px) {
+  .sfc-coupon-sticky {
+    bottom: 74px;
+    left: 10px;
+  }
+  .sfc-coupon-sticky.is-collapsed {
+    left: 0;
+  }
+}

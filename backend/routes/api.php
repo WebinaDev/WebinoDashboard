@@ -832,6 +832,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/pricing/bulk-price-change/preview', [PricingController::class, 'bulkPricePreview']);
                 Route::get('/pricing/bulk-price-change/state', [PricingController::class, 'bulkPriceState']);
                 Route::get('/pricing/bulk-price-change/jobs', [PricingController::class, 'bulkPriceJobs']);
+                Route::get('/pricing/bulk-price-change/jobs/{job}/items', [PricingController::class, 'bulkPriceJobItems'])->whereNumber('job');
                 Route::post('/pricing/bulk-price-change/jobs/{job}/pause', [PricingController::class, 'bulkPricePause'])->whereNumber('job');
                 Route::post('/pricing/bulk-price-change/jobs/{job}/resume', [PricingController::class, 'bulkPriceResume'])->whereNumber('job');
                 Route::post('/pricing/bulk-price-change/jobs/{job}/cancel', [PricingController::class, 'bulkPriceCancel'])->whereNumber('job');

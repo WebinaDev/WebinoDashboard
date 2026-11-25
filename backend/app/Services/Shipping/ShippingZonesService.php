@@ -341,6 +341,16 @@ class ShippingZonesService
                 return [];
             }
         }
+        $totalQty = 1;
+        if ($lines !== null) {
+            $sum = 0;
+            foreach ($lines as $line) {
+                $sum += max(1, (int) ($line['qty'] ?? $line['quantity'] ?? 1));
+            }
+            if ($sum > 0) {
+                $totalQty = $sum;
+            }
+        }
         $freeOnly = ! empty($global['free_shipping_only']);
         $matched = [];
         foreach ($cfg['zones'] ?? [] as $zone) {
@@ -355,7 +365,7 @@ class ShippingZonesService
                 if ($freeOnly && ! in_array($methodId, ['free_shipping', 'local_pickup'], true)) {
                     continue;
                 }
-                $cost = $this->methodCost($method, $cartSubtotalMinor, (int) ($global['free_shipping_min'] ?? 0), $city);
+                $cost = $this->methodCost($method, $cartSubtotalMinor, (int) ($global['free_shipping_min'] ?? 0), $city, $totalQty);
                 if ($cost === null) {
                     continue;
                 }
@@ -459,10 +469,11 @@ class ShippingZonesService
     /**
      * @param  array<string, mixed>  $method
      */
-    protected function methodCost(array $method, int $cartSubtotal, int $globalFreeMin, ?string $city = null): ?int
+    protected function methodCost(array $method, int $cartSubtotal, int $globalFreeMin, ?string $city = null, int $totalQty = 1): ?int
     {
         $settings = is_array($method['settings'] ?? null) ? $method['settings'] : [];
         $id = (string) ($method['method_id'] ?? '');
+        $perItemMultiplier = (($settings['cost_mode'] ?? 'per_order') === 'per_item') ? max(1, $totalQty) : 1;
 
         return match ($id) {
             'local_pickup' => 0,
@@ -472,10 +483,10 @@ class ShippingZonesService
             ) ? 0 : null,
             'flat_rate', 'post_pishtaz', 'post_vizhe',
             'courier_dedicated', 'courier_snapp', 'courier_tapsi', 'courier_tapsi_auto', 'courier_alopeyk', 'courier_zap'
-                => max(0, (int) ($settings['cost'] ?? 0)),
-            'tapin' => max(0, (int) ($settings['fallback_cost'] ?? $settings['cost'] ?? 0)),
+                => max(0, (int) ($settings['cost'] ?? 0)) * $perItemMultiplier,
+            'tapin' => max(0, (int) ($settings['fallback_cost'] ?? $settings['cost'] ?? 0)) * $perItemMultiplier,
             'flat_city' => $this->cityCost($settings, $city, $cartSubtotal),
-            default => max(0, (int) ($settings['cost'] ?? 0)),
+            default => max(0, (int) ($settings['cost'] ?? 0)) * $perItemMultiplier,
         };
     }
 
@@ -483,7 +494,7 @@ class ShippingZonesService
     protected function defaultMethodSettings(string $methodId): array
     {
         return match ($methodId) {
-            'flat_rate' => ['cost' => 0],
+            'flat_rate' => ['cost' => 0, 'cost_mode' => 'per_order'],
             'free_shipping' => ['min_amount' => 0],
             'local_pickup' => [],
             'tapin' => ['fallback_cost' => 0, 'service' => 'pishtaz'],

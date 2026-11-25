@@ -96,7 +96,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [applyOpen, setApplyOpen] = useState(false)
   const [removeOpen, setRemoveOpen] = useState(false)
-  const [scopeMode, setScopeMode] = useState<"selected" | "filters">("selected")
+  const [scopeMode, setScopeMode] = useState<"selected" | "filters" | "all">("selected")
   const [percent, setPercent] = useState("10")
   const [duration, setDuration] = useState<DurationMode>("7")
   const [endDate, setEndDate] = useState("")
@@ -239,7 +239,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
   const percentValid = Number(percent) > 0 && Number(percent) < 100
   const durationValid = duration !== "custom" || endDate !== ""
 
-  function openApply(mode: "selected" | "filters") {
+  function openApply(mode: "selected" | "filters" | "all") {
     if (mode === "selected" && selectedIds.length === 0) {
       toast.error(t("need_selection"))
       return
@@ -248,7 +248,7 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
     setApplyOpen(true)
   }
 
-  function openRemove(mode: "selected" | "filters") {
+  function openRemove(mode: "selected" | "filters" | "all") {
     if (mode === "selected" && selectedIds.length === 0) {
       toast.error(t("need_selection"))
       return
@@ -398,6 +398,12 @@ export default function SalePricesPage(_props: { route: ResolvedAdminRoute }) {
 
       <div className="bg-background/95 border-border sticky bottom-0 z-10 -mx-4 border-t px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
         <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => openRemove("all")}>
+            حذف تخفیف همه محصولات سایت
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => openApply("all")}>
+            اعمال روی همه محصولات سایت
+          </Button>
           <Button type="button" variant="outline" onClick={() => openRemove("selected")}>
             {t("remove")}
           </Button>

@@ -549,6 +549,22 @@ class PricingController extends Controller
         return response()->json(['data' => $jobs]);
     }
 
+    public function bulkPriceJobItems(Request $request, BulkPriceJob $job): \Illuminate\Http\JsonResponse
+    {
+        abort_if($job->tenant_id !== $request->user()->tenant_id, 403);
+        $status = $request->query('status');
+        $q = \Illuminate\Support\Facades\DB::table('bulk_price_job_items as i')
+            ->leftJoin('products as p', 'p.id', '=', 'i.product_id')
+            ->where('i.job_id', $job->id)
+            ->select(['i.product_id', 'i.status', 'i.stage', 'i.reason', 'i.created_at', 'p.name as product_name']);
+        if (is_string($status) && in_array($status, ['updated', 'skipped', 'failed'], true)) {
+            $q->where('i.status', $status);
+        }
+        $items = $q->orderByDesc('i.id')->limit(200)->get();
+
+        return response()->json(['data' => $items]);
+    }
+
     public function bulkPricePause(Request $request, BulkPriceJob $job, BulkPriceChangeService $bulk): \Illuminate\Http\JsonResponse
     {
         abort_if($job->tenant_id !== $request->user()->tenant_id, 403);

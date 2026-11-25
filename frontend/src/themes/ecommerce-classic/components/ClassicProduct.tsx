@@ -602,8 +602,8 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               </div>
             ) : null}
             <div className="sfc-buy__row">
-              <span className={`sfc-dot ${product.inStock ? "is-ok" : "is-out"}`} aria-hidden="true" />
-              <span>{product.inStock ? tx("product.in_stock") : tx("product.out_of_stock")}</span>
+              <span className={`sfc-dot ${(variant ? variant.inStock : product.inStock) ? "is-ok" : "is-out"}`} aria-hidden="true" />
+              <span>{(variant ? variant.inStock : product.inStock) ? tx("product.in_stock") : tx("product.out_of_stock")}</span>
             </div>
             {typeof stock === "number" ? (
               <div className="sfc-buy__split">

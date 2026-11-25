@@ -47,13 +47,23 @@ export function useVariantSelection(variants: ShopVariant[], onChange?: (variant
   const [flatId, setFlatId] = useState<number | null>(null)
 
   useEffect(() => {
-    const first = variants.find((v) => v.inStock) ?? null
-    if (!first) return
+    if (!variants.length) return
     if (axes.length) {
+      const currentValid = variants.some((v) =>
+        axes.every((a) => picked[a.key] && optionOf(v, a.key) === picked[a.key]),
+      )
+      if (currentValid) return
+      const first = variants.find((v) => v.inStock) ?? variants[0] ?? null
+      if (!first) return
       setPicked(Object.fromEntries(axes.map((a) => [a.key, optionOf(first, a.key) ?? ""])))
     } else {
+      const currentValid = flatId !== null && variants.some((v) => v.id === flatId)
+      if (currentValid) return
+      const first = variants.find((v) => v.inStock) ?? variants[0] ?? null
+      if (!first) return
       setFlatId(first.id)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variants, axes])
 
   const variant = useMemo(() => {
@@ -83,16 +93,27 @@ export function useVariantSelection(variants: ShopVariant[], onChange?: (variant
 
   function choose(axisKey: string, value: string) {
     const next = { ...picked, [axisKey]: value }
-    const exact = variants.find((v) => v.inStock && axes.every((a) => optionOf(v, a.key) === next[a.key]))
-    if (!exact) {
-      // Keep the new value and move the other axes to the closest in-stock combination.
-      const best = variants
-        .filter((v) => v.inStock && optionOf(v, axisKey) === value)
-        .sort((a, b) => axes.filter((x) => optionOf(b, x.key) === next[x.key]).length - axes.filter((x) => optionOf(a, x.key) === next[x.key]).length)[0]
-      if (best) {
-        setPicked(Object.fromEntries(axes.map((a) => [a.key, optionOf(best, a.key) ?? ""])))
-        return
-      }
+    const exactInStock = variants.find((v) => v.inStock && axes.every((a) => optionOf(v, a.key) === next[a.key]))
+    if (exactInStock) {
+      setPicked(next)
+      return
+    }
+    const exactAny = variants.find((v) => axes.every((a) => optionOf(v, a.key) === next[a.key]))
+    if (exactAny) {
+      setPicked(next)
+      return
+    }
+    // Keep the new value and move the other axes to the closest matching combination (preferring in-stock).
+    const pool = variants.filter((v) => v.inStock && optionOf(v, axisKey) === value)
+    const candidates = pool.length ? pool : variants.filter((v) => optionOf(v, axisKey) === value)
+    const best = candidates.sort(
+      (a, b) =>
+        axes.filter((x) => optionOf(b, x.key) === next[x.key]).length -
+        axes.filter((x) => optionOf(a, x.key) === next[x.key]).length,
+    )[0]
+    if (best) {
+      setPicked(Object.fromEntries(axes.map((a) => [a.key, optionOf(best, a.key) ?? ""])))
+      return
     }
     setPicked(next)
   }
