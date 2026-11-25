@@ -240,6 +240,36 @@ index 32109080..5b3332d7 100644
          // Demo + suggested template: gated in seeder (empty + never-seeded + unfinished only).
          try {
              $demoSeeder->seed($tenant->fresh(), $siteTypeSlug);
+diff --git a/backend/modules/Accounting/AccountingServiceProvider.php b/backend/modules/Accounting/AccountingServiceProvider.php
+index 4525f773..da606661 100644
+--- a/backend/modules/Accounting/AccountingServiceProvider.php
++++ b/backend/modules/Accounting/AccountingServiceProvider.php
+@@ -17,7 +17,9 @@
+  *    Laravel matches the first registered route. The ERP module is therefore mounted at
+  *    `/api/v1/erp-accounting` and keeps its own `acc_*` tables; the two ledgers coexist.
+  *
+- * 2. **Middleware.** The ERP uses `module:accounting` + `module.permission:accounting`.
++ * 2. **Middleware.** The ERP uses `module:erp-accounting` + `module.permission:accounting`.
++ *    `module:accounting` resolves to the commerce till ledger (`commerce.accounting`),
++ *    which is a different switch - gating the ERP on it 403'd every ERP call.
+  *    `module:` exists here ({@see \App\Http\Middleware\EnsureModuleEnabled}); the
+  *    finer-grained `module.permission` alias does not, so the capability check uses the
+  *    existing `can:` middleware with this codebase's `accounting.manage` capability —
+@@ -37,12 +39,12 @@ public function boot(): void
+         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
+ 
+         Route::prefix(self::ROUTE_PREFIX)
+-            ->middleware(['api', 'auth:sanctum', 'module:accounting', 'can:accounting.manage'])
++            ->middleware(['api', 'auth:sanctum', 'module:erp-accounting', 'can:accounting.manage'])
+             ->group(__DIR__.'/Routes/api.php');
+ 
+         // Warehouse/product parity API consumed by the ERP-era dashboard clients.
+         Route::prefix('api/webinocrm/v1')
+-            ->middleware(['api', 'auth:sanctum', 'module:accounting', 'can:accounting.manage'])
++            ->middleware(['api', 'auth:sanctum', 'module:erp-accounting', 'can:accounting.manage'])
+             ->group(__DIR__.'/Routes/webinocrm-v1.php');
+     }
+ 
 diff --git a/backend/modules/Accounting/Database/Migrations/2026_11_25_000001_enable_accounting_for_all_tenants.php b/backend/modules/Accounting/Database/Migrations/2026_11_25_000001_enable_accounting_for_all_tenants.php
 new file mode 100644
 index 00000000..7c694427
@@ -459,705 +489,6 @@ index 8062f7fd..5eafc176 100644
 +        return ['inserted' => $inserted, 'skipped' => $skipped];
 +    }
  }
-diff --git a/backend/modules/Accounting/Entities/AccFiscalYear.php b/backend/modules/Accounting/Entities/AccFiscalYear.php
-index 5f71606c..3a2f13f1 100644
---- a/backend/modules/Accounting/Entities/AccFiscalYear.php
-+++ b/backend/modules/Accounting/Entities/AccFiscalYear.php
-@@ -2,6 +2,7 @@
- 
- namespace Modules\Accounting\Entities;
- 
-+use Illuminate\Database\Eloquent\Casts\Attribute;
- use Illuminate\Database\Eloquent\Model;
- use Modules\Accounting\Entities\Concerns\BelongsToTenant;
- 
-@@ -13,6 +14,8 @@ class AccFiscalYear extends Model
- 
-     protected $fillable = ['tenant_id', 'title', 'starts_on', 'ends_on', 'is_closed'];
- 
-+    protected $appends = ['start_date', 'end_date', 'is_active'];
-+
-     protected function casts(): array
-     {
-         return [
-@@ -21,4 +24,26 @@ protected function casts(): array
-             'is_closed' => 'boolean',
-         ];
-     }
-+
-+    /**
-+     * Legacy/ERP field names, appended so both conventions serialize.
-+     *
-+     * The ported dashboard pages read `start_date`/`end_date`/`is_active` while the
-+     * table stores `starts_on`/`ends_on`/`is_closed` — without these accessors the
-+     * fiscal-year table rendered blank dates and badges.
-+     */
-+    protected function startDate(): Attribute
-+    {
-+        return Attribute::get(fn () => $this->starts_on);
-+    }
-+
-+    protected function endDate(): Attribute
-+    {
-+        return Attribute::get(fn () => $this->ends_on);
-+    }
-+
-+    protected function isActive(): Attribute
-+    {
-+        return Attribute::get(fn () => ! $this->is_closed);
-+    }
- }
-diff --git a/backend/modules/Accounting/Http/Controllers/AccountingDashboardController.php b/backend/modules/Accounting/Http/Controllers/AccountingDashboardController.php
-index fe2e4ee4..07e74d34 100644
---- a/backend/modules/Accounting/Http/Controllers/AccountingDashboardController.php
-+++ b/backend/modules/Accounting/Http/Controllers/AccountingDashboardController.php
-@@ -6,20 +6,46 @@
- use Modules\Accounting\Entities\AccFiscalYear;
- use Modules\Accounting\Entities\AccJournalEntry;
- use Modules\Accounting\Entities\AccountingInvoice;
-+use Modules\Accounting\Entities\AccountingSetting;
- use Modules\Accounting\Entities\AccPerson;
- use Modules\Accounting\Entities\AccWarehouse;
-+use Modules\Accounting\Entities\AccWarehouseStock;
-+use Modules\Accounting\Support\AccountingQuery;
- 
- class AccountingDashboardController extends Controller
- {
-     public function summary(): JsonResponse
-     {
-+        $fiscalYearId = AccountingSetting::get('accounting_default_fiscal_year_id');
-+        $fiscalYear = $fiscalYearId
-+            ? AccFiscalYear::query()->find($fiscalYearId)
-+            : AccFiscalYear::query()->orderByDesc('starts_on')->first();
-+
-+        $totals = AccountingQuery::journalLines()
-+            ->join('acc_journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
-+            ->selectRaw('COALESCE(SUM(jl.debit), 0) as total_debit, COALESCE(SUM(jl.credit), 0) as total_credit')
-+            ->when($fiscalYear, fn ($q) => $q->where('je.fiscal_year_id', $fiscalYear->id))
-+            ->first();
-+
-+        $lowStock = AccWarehouseStock::query()
-+            ->with(['product', 'warehouse'])
-+            ->whereNotNull('reorder_point')
-+            ->whereColumn('quantity', '<=', 'reorder_point')
-+            ->limit(10)
-+            ->get();
-+
-         return response()->json([
-             'data' => [
-                 'fiscal_years_count' => AccFiscalYear::query()->count(),
-                 'journal_entries_count' => AccJournalEntry::query()->count(),
-+                'draft_journals_count' => AccJournalEntry::query()->where('status', 'draft')->count(),
-                 'persons_count' => AccPerson::query()->count(),
-                 'invoices_count' => AccountingInvoice::query()->count(),
-                 'warehouses_count' => AccWarehouse::query()->count(),
-+                'current_fiscal_year' => $fiscalYear,
-+                'total_debit' => (float) ($totals->total_debit ?? 0),
-+                'total_credit' => (float) ($totals->total_credit ?? 0),
-+                'low_stock' => $lowStock,
-             ],
-         ]);
-     }
-diff --git a/backend/modules/Accounting/Http/Controllers/AccountingSettingsController.php b/backend/modules/Accounting/Http/Controllers/AccountingSettingsController.php
-index 7bb779d3..31e0980a 100644
---- a/backend/modules/Accounting/Http/Controllers/AccountingSettingsController.php
-+++ b/backend/modules/Accounting/Http/Controllers/AccountingSettingsController.php
-@@ -23,6 +23,38 @@ public function settings(): JsonResponse
-         ]);
-     }
- 
-+    public function settingsUpdate(Request $request): JsonResponse
-+    {
-+        $tenantId = (int) $request->user()->tenant_id;
-+
-+        $data = $request->validate([
-+            'currency' => 'nullable|string|max:10',
-+            'currency_symbol' => 'nullable|string|max:20',
-+            'decimals' => 'nullable|integer|min:0|max:4',
-+            'thousand_separator' => 'nullable|string|max:2',
-+            'decimal_separator' => 'nullable|string|max:2',
-+            'fiscal_year_id' => ['nullable', 'integer', Rule::exists('acc_fiscal_years', 'id')->where('tenant_id', $tenantId)],
-+        ]);
-+
-+        $money = AccountingMoney::saveSettings($data);
-+
-+        if (array_key_exists('fiscal_year_id', $data)) {
-+            AccountingSetting::set(
-+                'accounting_default_fiscal_year_id',
-+                $data['fiscal_year_id'] === null ? '' : (string) $data['fiscal_year_id'],
-+                'accounting',
-+            );
-+        }
-+
-+        $fyId = AccountingSetting::get('accounting_default_fiscal_year_id');
-+
-+        return response()->json([
-+            'data' => array_merge($money, [
-+                'fiscal_year_id' => $fyId ? (int) $fyId : null,
-+            ]),
-+        ]);
-+    }
-+
-     public function userDefaults(Request $request): JsonResponse
-     {
-         $uid = $request->user()->id;
-diff --git a/backend/modules/Accounting/Http/Controllers/ChartAccountController.php b/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
-index 63047d22..9f36465b 100644
---- a/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
-+++ b/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
-@@ -4,6 +4,7 @@
- 
- use Illuminate\Http\JsonResponse;
- use Illuminate\Http\Request;
-+use Illuminate\Validation\Rule;
- use Modules\Accounting\Database\Seeders\AccChartIranSeeder;
- use Modules\Accounting\Entities\AccChartAccount;
- use Modules\Accounting\Support\ExistsForTenant;
-@@ -43,10 +44,9 @@ public function chartOfAccounts(Request $request): JsonResponse
- 
-     public function seedChartIran(Request $request): JsonResponse
-     {
--        if (app()->environment('production')) {
--            return response()->json(['message' => __('api.production_command_forbidden')], 403);
--        }
--
-+        // Tenant-scoped by the model's trait, so this is safe in production: it
-+        // only ever fills the signed-in tenant's own chart. The old production
-+        // block made first-run setup impossible on live shops.
-         $request->validate(['truncate' => 'prohibited']);
-         $result = AccChartIranSeeder::run();
- 
-@@ -55,8 +55,10 @@ public function seedChartIran(Request $request): JsonResponse
- 
-     public function storeChartAccount(Request $request): JsonResponse
-     {
-+        $tenantId = (int) $request->user()->tenant_id;
-+
-         $data = $request->validate([
--            'code' => 'required|string|max:32|unique:acc_chart_accounts,code',
-+            'code' => ['required', 'string', 'max:32', Rule::unique('acc_chart_accounts', 'code')->where('tenant_id', $tenantId)],
-             'name' => 'required|string|max:191',
-             'parent_id' => ['nullable', ExistsForTenant::in('acc_chart_accounts')],
-             'type' => 'required|string|max:50',
-@@ -70,8 +72,10 @@ public function storeChartAccount(Request $request): JsonResponse
-     public function updateChartAccount(Request $request, int $id): JsonResponse
-     {
-         $row = AccChartAccount::query()->findOrFail($id);
-+        $tenantId = (int) $request->user()->tenant_id;
-+
-         $data = $request->validate([
--            'code' => 'sometimes|string|max:32|unique:acc_chart_accounts,code,'.$row->id,
-+            'code' => ['sometimes', 'string', 'max:32', Rule::unique('acc_chart_accounts', 'code')->where('tenant_id', $tenantId)->ignore($row->id)],
-             'name' => 'sometimes|string|max:191',
-             'parent_id' => ['nullable', ExistsForTenant::in('acc_chart_accounts')],
-             'type' => 'sometimes|string|max:50',
-diff --git a/backend/modules/Accounting/Http/Controllers/FiscalYearController.php b/backend/modules/Accounting/Http/Controllers/FiscalYearController.php
-index 0ce1dfa5..991733f4 100644
---- a/backend/modules/Accounting/Http/Controllers/FiscalYearController.php
-+++ b/backend/modules/Accounting/Http/Controllers/FiscalYearController.php
-@@ -3,12 +3,70 @@
- namespace Modules\Accounting\Http\Controllers;
- 
- use Illuminate\Http\JsonResponse;
-+use Illuminate\Http\Request;
- use Modules\Accounting\Entities\AccFiscalYear;
-+use Modules\Accounting\Support\AppliesIndexQuery;
- 
- class FiscalYearController extends Controller
- {
--    public function index(): JsonResponse
-+    use AppliesIndexQuery;
-+
-+    public function index(Request $request): JsonResponse
-+    {
-+        $query = AccFiscalYear::query();
-+
-+        $paginator = $this->applyIndexQuery(
-+            $query,
-+            $request,
-+            [],
-+            ['title'],
-+            ['starts_on', 'ends_on', 'created_at'],
-+            'starts_on',
-+            'desc',
-+        );
-+
-+        return $this->paginatedJsonResponse($paginator);
-+    }
-+
-+    public function show(int $id): JsonResponse
-     {
--        return response()->json(['data' => AccFiscalYear::query()->orderByDesc('starts_on')->get()]);
-+        return response()->json(['data' => AccFiscalYear::query()->findOrFail($id)]);
-+    }
-+
-+    public function store(Request $request): JsonResponse
-+    {
-+        $data = $request->validate([
-+            'title' => 'required|string|max:100',
-+            'starts_on' => 'required|date',
-+            'ends_on' => 'required|date|after:starts_on',
-+            'is_closed' => 'nullable|boolean',
-+        ]);
-+
-+        $row = AccFiscalYear::query()->create($data + ['is_closed' => $data['is_closed'] ?? false]);
-+
-+        return response()->json(['data' => $row], 201);
-+    }
-+
-+    public function update(Request $request, int $id): JsonResponse
-+    {
-+        $row = AccFiscalYear::query()->findOrFail($id);
-+
-+        $data = $request->validate([
-+            'title' => 'sometimes|string|max:100',
-+            'starts_on' => 'sometimes|date',
-+            'ends_on' => 'sometimes|date|after:starts_on',
-+            'is_closed' => 'sometimes|boolean',
-+        ]);
-+
-+        $row->update($data);
-+
-+        return response()->json(['data' => $row->fresh()]);
-+    }
-+
-+    public function destroy(int $id): JsonResponse
-+    {
-+        AccFiscalYear::query()->whereKey($id)->delete();
-+
-+        return response()->json([], 204);
-     }
- }
-diff --git a/backend/modules/Accounting/Http/Controllers/JournalController.php b/backend/modules/Accounting/Http/Controllers/JournalController.php
-index 760a2433..140437b3 100644
---- a/backend/modules/Accounting/Http/Controllers/JournalController.php
-+++ b/backend/modules/Accounting/Http/Controllers/JournalController.php
-@@ -3,12 +3,174 @@
- namespace Modules\Accounting\Http\Controllers;
- 
- use Illuminate\Http\JsonResponse;
-+use Illuminate\Http\Request;
-+use Illuminate\Support\Facades\DB;
- use Modules\Accounting\Entities\AccJournalEntry;
-+use Modules\Accounting\Entities\AccJournalLine;
-+use Modules\Accounting\Support\AppliesIndexQuery;
-+use Modules\Accounting\Support\ExistsForTenant;
- 
- class JournalController extends Controller
- {
--    public function index(): JsonResponse
-+    use AppliesIndexQuery;
-+
-+    public function index(Request $request): JsonResponse
-+    {
-+        $query = AccJournalEntry::query()->with('lines');
-+
-+        if ($request->filled('fiscal_year_id')) {
-+            $query->where('fiscal_year_id', $request->input('fiscal_year_id'));
-+        }
-+        if ($request->filled('status')) {
-+            $query->where('status', $request->input('status'));
-+        }
-+        if ($request->filled('from')) {
-+            $query->whereDate('document_date', '>=', $request->input('from'));
-+        }
-+        if ($request->filled('to')) {
-+            $query->whereDate('document_date', '<=', $request->input('to'));
-+        }
-+
-+        $paginator = $this->applyIndexQuery(
-+            $query,
-+            $request,
-+            [],
-+            ['document_no', 'description'],
-+            ['document_date', 'created_at'],
-+            'document_date',
-+            'desc',
-+        );
-+
-+        return $this->paginatedJsonResponse($paginator);
-+    }
-+
-+    public function show(int $id): JsonResponse
-+    {
-+        $entry = AccJournalEntry::query()->with('lines.account')->findOrFail($id);
-+
-+        return response()->json(['data' => $entry]);
-+    }
-+
-+    public function store(Request $request): JsonResponse
-+    {
-+        $data = $this->validateJournal($request);
-+
-+        $entry = DB::transaction(function () use ($data, $request) {
-+            $entry = AccJournalEntry::query()->create([
-+                'fiscal_year_id' => $data['fiscal_year_id'] ?? null,
-+                'document_no' => $data['document_no'] ?? null,
-+                'document_date' => $data['document_date'],
-+                'description' => $data['description'] ?? null,
-+                'status' => 'draft',
-+                'created_by' => $request->user()->id,
-+            ]);
-+
-+            $this->writeLines($entry, $data['lines']);
-+
-+            return $entry;
-+        });
-+
-+        return response()->json(['data' => $entry->fresh('lines')], 201);
-+    }
-+
-+    public function update(Request $request, int $id): JsonResponse
-+    {
-+        $entry = AccJournalEntry::query()->findOrFail($id);
-+
-+        if ($entry->status === 'posted') {
-+            return response()->json(['message' => __('messages.posted_journal_is_immutable')], 422);
-+        }
-+
-+        $data = $this->validateJournal($request);
-+
-+        DB::transaction(function () use ($entry, $data) {
-+            $entry->update([
-+                'fiscal_year_id' => $data['fiscal_year_id'] ?? $entry->fiscal_year_id,
-+                'document_no' => $data['document_no'] ?? $entry->document_no,
-+                'document_date' => $data['document_date'],
-+                'description' => $data['description'] ?? $entry->description,
-+            ]);
-+
-+            AccJournalLine::query()->where('journal_entry_id', $entry->id)->delete();
-+            $this->writeLines($entry, $data['lines']);
-+        });
-+
-+        return response()->json(['data' => $entry->fresh('lines')]);
-+    }
-+
-+    public function post(Request $request, int $id): JsonResponse
-+    {
-+        $entry = AccJournalEntry::query()->with('lines')->findOrFail($id);
-+
-+        if ($entry->status === 'posted') {
-+            return response()->json(['message' => __('messages.already_posted')], 422);
-+        }
-+
-+        $debit = (float) $entry->lines->sum('debit');
-+        $credit = (float) $entry->lines->sum('credit');
-+
-+        if ($entry->lines->isEmpty() || abs($debit - $credit) >= 0.01 || $debit <= 0) {
-+            return response()->json(['message' => __('messages.journal_must_be_balanced')], 422);
-+        }
-+
-+        $entry->update(['status' => 'posted']);
-+
-+        return response()->json(['data' => $entry->fresh('lines')]);
-+    }
-+
-+    public function destroy(int $id): JsonResponse
-+    {
-+        $entry = AccJournalEntry::query()->findOrFail($id);
-+
-+        if ($entry->status === 'posted') {
-+            return response()->json(['message' => __('messages.posted_journal_is_immutable')], 422);
-+        }
-+
-+        $entry->delete();
-+
-+        return response()->json([], 204);
-+    }
-+
-+    /**
-+     * @return array<string, mixed>
-+     */
-+    private function validateJournal(Request $request): array
-+    {
-+        $data = $request->validate([
-+            'fiscal_year_id' => ['nullable', ExistsForTenant::in('acc_fiscal_years')],
-+            'document_no' => 'nullable|string|max:50',
-+            'document_date' => 'required|date',
-+            'description' => 'nullable|string',
-+            'lines' => 'required|array|min:2',
-+            'lines.*.account_id' => ['required', ExistsForTenant::in('acc_chart_accounts')],
-+            'lines.*.debit' => 'nullable|numeric|min:0',
-+            'lines.*.credit' => 'nullable|numeric|min:0',
-+            'lines.*.description' => 'nullable|string',
-+        ]);
-+
-+        $debit = collect($data['lines'])->sum(fn ($l) => (float) ($l['debit'] ?? 0));
-+        $credit = collect($data['lines'])->sum(fn ($l) => (float) ($l['credit'] ?? 0));
-+
-+        if (abs($debit - $credit) >= 0.01 || $debit <= 0) {
-+            abort(response()->json(['message' => __('messages.journal_must_be_balanced')], 422));
-+        }
-+
-+        return $data;
-+    }
-+
-+    /**
-+     * @param  list<array<string, mixed>>  $lines
-+     */
-+    private function writeLines(AccJournalEntry $entry, array $lines): void
-     {
--        return response()->json(['data' => AccJournalEntry::query()->orderByDesc('document_date')->limit(50)->get()]);
-+        foreach ($lines as $line) {
-+            AccJournalLine::query()->create([
-+                'journal_entry_id' => $entry->id,
-+                'account_id' => $line['account_id'],
-+                'debit' => $line['debit'] ?? 0,
-+                'credit' => $line['credit'] ?? 0,
-+                'description' => $line['description'] ?? null,
-+            ]);
-+        }
-     }
- }
-diff --git a/backend/modules/Accounting/Http/Controllers/PersonController.php b/backend/modules/Accounting/Http/Controllers/PersonController.php
-index 73c420a0..934fbfa5 100644
---- a/backend/modules/Accounting/Http/Controllers/PersonController.php
-+++ b/backend/modules/Accounting/Http/Controllers/PersonController.php
-@@ -14,14 +14,67 @@ class PersonController extends Controller
-     public function index(Request $request): JsonResponse
-     {
-         $query = AccPerson::query();
-+
-+        if ($request->filled('type')) {
-+            $query->where('type', $request->input('type'));
-+        }
-+
-         $paginator = $this->applyIndexQuery(
-             $query,
-             $request,
-             [],
--            ['name', 'mobile'],
-+            ['name', 'mobile', 'national_id', 'economic_code'],
-             ['id', 'name', 'created_at'],
-         );
- 
-         return $this->paginatedJsonResponse($paginator);
-     }
-+
-+    public function show(int $id): JsonResponse
-+    {
-+        return response()->json(['data' => AccPerson::query()->findOrFail($id)]);
-+    }
-+
-+    public function store(Request $request): JsonResponse
-+    {
-+        $data = $request->validate([
-+            'name' => 'required|string|max:255',
-+            'type' => 'nullable|string|max:50',
-+            'national_id' => 'nullable|string|max:50',
-+            'economic_code' => 'nullable|string|max:50',
-+            'mobile' => 'nullable|string|max:50',
-+            'address' => 'nullable|string',
-+            'category' => 'nullable|string|max:100',
-+        ]);
-+
-+        $row = AccPerson::query()->create($data);
-+
-+        return response()->json(['data' => $row], 201);
-+    }
-+
-+    public function update(Request $request, int $id): JsonResponse
-+    {
-+        $row = AccPerson::query()->findOrFail($id);
-+
-+        $data = $request->validate([
-+            'name' => 'sometimes|string|max:255',
-+            'type' => 'nullable|string|max:50',
-+            'national_id' => 'nullable|string|max:50',
-+            'economic_code' => 'nullable|string|max:50',
-+            'mobile' => 'nullable|string|max:50',
-+            'address' => 'nullable|string',
-+            'category' => 'nullable|string|max:100',
-+        ]);
-+
-+        $row->update($data);
-+
-+        return response()->json(['data' => $row->fresh()]);
-+    }
-+
-+    public function destroy(int $id): JsonResponse
-+    {
-+        AccPerson::query()->whereKey($id)->delete();
-+
-+        return response()->json([], 204);
-+    }
- }
-diff --git a/backend/modules/Accounting/Http/Controllers/ProductController.php b/backend/modules/Accounting/Http/Controllers/ProductController.php
-index 7f9d08fd..e32ac409 100644
---- a/backend/modules/Accounting/Http/Controllers/ProductController.php
-+++ b/backend/modules/Accounting/Http/Controllers/ProductController.php
-@@ -5,19 +5,84 @@
- use Illuminate\Http\JsonResponse;
- use Illuminate\Http\Request;
- use Modules\Accounting\Entities\AccProduct;
-+use Modules\Accounting\Support\AppliesIndexQuery;
- 
- class ProductController extends Controller
- {
-+    use AppliesIndexQuery;
-+
-     public function index(Request $request): JsonResponse
-     {
--        $q = AccProduct::query()->orderBy('name');
-+        $query = AccProduct::query();
-+
-         if ($request->filled('q')) {
--            $s = '%'.$request->string('q').'%';
--            $q->where(function ($q) use ($s) {
--                $q->where('name', 'like', $s)->orWhere('barcode', 'like', $s);
-+            $term = '%'.$request->string('q').'%';
-+            $query->where(function ($q) use ($term) {
-+                $q->where('name', 'like', $term)->orWhere('barcode', 'like', $term);
-             });
-         }
-+        if ($request->filled('category')) {
-+            $query->where('category', $request->input('category'));
-+        }
-+
-+        $paginator = $this->applyIndexQuery(
-+            $query,
-+            $request,
-+            [],
-+            ['name', 'barcode'],
-+            ['id', 'name', 'created_at'],
-+            'name',
-+            'asc',
-+        );
-+
-+        return $this->paginatedJsonResponse($paginator);
-+    }
-+
-+    public function show(int $id): JsonResponse
-+    {
-+        return response()->json(['data' => AccProduct::query()->findOrFail($id)]);
-+    }
-+
-+    public function store(Request $request): JsonResponse
-+    {
-+        $data = $request->validate([
-+            'name' => 'required|string|max:255',
-+            'unit' => 'nullable|string|max:50',
-+            'barcode' => 'nullable|string|max:100',
-+            'category' => 'nullable|string|max:100',
-+            'buy_price' => 'nullable|numeric|min:0',
-+            'sell_price' => 'nullable|numeric|min:0',
-+            'inventory_controlled' => 'nullable|boolean',
-+        ]);
-+
-+        $row = AccProduct::query()->create($data + ['inventory_controlled' => $data['inventory_controlled'] ?? true]);
-+
-+        return response()->json(['data' => $row], 201);
-+    }
-+
-+    public function update(Request $request, int $id): JsonResponse
-+    {
-+        $row = AccProduct::query()->findOrFail($id);
-+
-+        $data = $request->validate([
-+            'name' => 'sometimes|string|max:255',
-+            'unit' => 'nullable|string|max:50',
-+            'barcode' => 'nullable|string|max:100',
-+            'category' => 'nullable|string|max:100',
-+            'buy_price' => 'nullable|numeric|min:0',
-+            'sell_price' => 'nullable|numeric|min:0',
-+            'inventory_controlled' => 'sometimes|boolean',
-+        ]);
-+
-+        $row->update($data);
-+
-+        return response()->json(['data' => $row->fresh()]);
-+    }
-+
-+    public function destroy(int $id): JsonResponse
-+    {
-+        AccProduct::query()->whereKey($id)->delete();
- 
--        return response()->json(['data' => $q->paginate(min((int) $request->input('per_page', 25), 100))]);
-+        return response()->json([], 204);
-     }
- }
-diff --git a/backend/modules/Accounting/Http/Controllers/WarehouseController.php b/backend/modules/Accounting/Http/Controllers/WarehouseController.php
-new file mode 100644
-index 00000000..c6b35519
---- /dev/null
-+++ b/backend/modules/Accounting/Http/Controllers/WarehouseController.php
-@@ -0,0 +1,76 @@
-+<?php
-+
-+namespace Modules\Accounting\Http\Controllers;
-+
-+use Illuminate\Http\JsonResponse;
-+use Illuminate\Http\Request;
-+use Modules\Accounting\Entities\AccWarehouse;
-+use Modules\Accounting\Support\AppliesIndexQuery;
-+
-+class WarehouseController extends Controller
-+{
-+    use AppliesIndexQuery;
-+
-+    public function index(Request $request): JsonResponse
-+    {
-+        $query = AccWarehouse::query();
-+
-+        $paginator = $this->applyIndexQuery(
-+            $query,
-+            $request,
-+            [],
-+            ['name', 'code', 'location', 'address'],
-+            ['id', 'name', 'created_at'],
-+            'name',
-+            'asc',
-+        );
-+
-+        return $this->paginatedJsonResponse($paginator);
-+    }
-+
-+    public function show(int $id): JsonResponse
-+    {
-+        return response()->json(['data' => AccWarehouse::query()->findOrFail($id)]);
-+    }
-+
-+    public function store(Request $request): JsonResponse
-+    {
-+        $data = $request->validate([
-+            'name' => 'required|string|max:255',
-+            'code' => 'nullable|string|max:64',
-+            'description' => 'nullable|string',
-+            'address' => 'nullable|string',
-+            'location' => 'nullable|string',
-+            'is_default' => 'nullable|boolean',
-+        ]);
-+
-+        $row = AccWarehouse::query()->create($data + ['is_default' => $data['is_default'] ?? false]);
-+
-+        return response()->json(['data' => $row], 201);
-+    }
-+
-+    public function update(Request $request, int $id): JsonResponse
-+    {
-+        $row = AccWarehouse::query()->findOrFail($id);
-+
-+        $data = $request->validate([
-+            'name' => 'sometimes|string|max:255',
-+            'code' => 'nullable|string|max:64',
-+            'description' => 'nullable|string',
-+            'address' => 'nullable|string',
-+            'location' => 'nullable|string',
-+            'is_default' => 'sometimes|boolean',
-+        ]);
-+
-+        $row->update($data);
-+
-+        return response()->json(['data' => $row->fresh()]);
-+    }
-+
-+    public function destroy(int $id): JsonResponse
-+    {
-+        AccWarehouse::query()->whereKey($id)->delete();
-+
-+        return response()->json([], 204);
-+    }
-+}
 diff --git a/backend/modules/Accounting/Services/AccountingProvisioningService.php b/backend/modules/Accounting/Services/AccountingProvisioningService.php
 new file mode 100644
 index 00000000..2dab1458
@@ -1477,27 +808,43 @@ index 00000000..037eb9fd
 +        $this->deleteJson("/api/v1/erp-accounting/products/{$product['id']}")->assertNoContent();
 +    }
 +}
+diff --git a/frontend/messages/en.json b/frontend/messages/en.json
+index f79cd070..92454de8 100644
+--- a/frontend/messages/en.json
++++ b/frontend/messages/en.json
+@@ -365,6 +365,7 @@
+     "resume_volunteering": "Volunteering",
+     "sale_prices": "Strikethrough prices",
+     "section_access": "People & platform",
++    "section_accounting": "Accounting",
+     "section_admin": "Admin",
+     "section_bots": "Bots",
+     "section_cafe": "Cafe management",
+diff --git a/frontend/messages/fa.json b/frontend/messages/fa.json
+index 53fb9d2d..5de62bef 100644
+--- a/frontend/messages/fa.json
++++ b/frontend/messages/fa.json
+@@ -365,6 +365,7 @@
+     "resume_volunteering": "فعالیت‌های داوطلبانه",
+     "sale_prices": "قیمت خط‌خورده",
+     "section_access": "دسترسی",
++    "section_accounting": "حسابداری",
+     "section_admin": "مدیریت",
+     "section_bots": "ربات‌ها",
+     "section_cafe": "مدیریت کافه",
 diff --git a/frontend/modules/accounting/manifest.ts b/frontend/modules/accounting/manifest.ts
-index 9222f18e..35f70d92 100644
+index 5df26ed7..6b621fad 100644
 --- a/frontend/modules/accounting/manifest.ts
 +++ b/frontend/modules/accounting/manifest.ts
-@@ -11,12 +11,22 @@ import type { ModuleManifest } from "@/kernel/types"
-  * `/api/v1/erp-accounting` API.
-  *
+@@ -13,10 +13,14 @@ import type { ModuleManifest } from "@/kernel/types";
   * Every route here maps to a real file: `modules/accounting/admin/{page}-page.tsx`.
-+ *
-+ * The slug is `accounting` — the same slug the backend module registers — because
-+ * tenant activations are keyed by it. As `erp-accounting` the nav checks never
-+ * matched a backend row, and the page loader looked for
-+ * `modules/erp-accounting/...`, which does not exist. Only the API prefix keeps
-+ * the `erp-accounting` name, to avoid colliding with the till ledger's
-+ * `/api/v1/accounting/*`.
-+ *
-+ * Available on every site type: the ledger is standalone (`acc_*` tables, no
-+ * commerce dependency), so magazine/blog/resume/corporate sites get it too.
   */
  export const accountingManifest: ModuleManifest = {
 -  slug: "erp-accounting",
++  // Slug must match the backend module (`backend/modules/Accounting/manifest.json`)
++  // and the activation rows: `loadAdminPage` imports
++  // `modules/${moduleSlug}/admin/{page}-page`, and this folder is `modules/accounting`.
++  // The API prefix stays `erp-accounting` (see AccountingServiceProvider).
 +  slug: "accounting",
    nameFa: "حسابداری",
    nameEn: "Accounting",
@@ -1506,6 +853,19 @@ index 9222f18e..35f70d92 100644
    submodules: [
      "dashboard",
      "persons",
+diff --git a/frontend/src/builder/render/extra-widgets.tsx b/frontend/src/builder/render/extra-widgets.tsx
+index 9247047c..3e3ab0ae 100644
+--- a/frontend/src/builder/render/extra-widgets.tsx
++++ b/frontend/src/builder/render/extra-widgets.tsx
+@@ -648,7 +648,7 @@ export function MapWidget({ widget }: { widget: WidgetNode }) {
+ 
+ /* ----------------------------------------------------------------- counter */
+ 
+-function useInView<T extends Element>(): [RefObject<T>, boolean] {
++function useInView<T extends Element>(): [RefObject<T | null>, boolean] {
+   const ref = useRef<T>(null)
+   const [seen, setSeen] = useState(false)
+   useEffect(() => {
 diff --git a/frontend/src/config/business-presets/index.ts b/frontend/src/config/business-presets/index.ts
 index 0eb21b55..844952bd 100644
 --- a/frontend/src/config/business-presets/index.ts
