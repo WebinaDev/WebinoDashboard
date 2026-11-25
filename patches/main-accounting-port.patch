@@ -240,6 +240,24 @@ index 32109080..5b3332d7 100644
          // Demo + suggested template: gated in seeder (empty + never-seeded + unfinished only).
          try {
              $demoSeeder->seed($tenant->fresh(), $siteTypeSlug);
+diff --git a/backend/app/Services/Accounting/FinancialReport.php b/backend/app/Services/Accounting/FinancialReport.php
+index d0e3e72a..9f6d6c7a 100644
+--- a/backend/app/Services/Accounting/FinancialReport.php
++++ b/backend/app/Services/Accounting/FinancialReport.php
+@@ -100,8 +100,12 @@ public function build(Request $request): array
+                 'type' => $type,
+                 'meta' => $meta,
+                 'assets' => $rows->filter(fn ($r) => str_contains(strtolower((string) $r['type']), 'asset'))->values(),
++                // Equity belongs on this side of the statement. Filtering only on
++                // 'liabilit' / 'payable' dropped the capital accounts entirely, so the
++                // printed balance sheet never balanced: assets against liabilities alone.
+                 'liabilities_equity' => $rows->filter(fn ($r) => str_contains(strtolower((string) $r['type']), 'liabilit')
+-                    || str_contains(strtolower((string) $r['type']), 'payable'))->values(),
++                    || str_contains(strtolower((string) $r['type']), 'payable')
++                    || str_contains(strtolower((string) $r['type']), 'equity'))->values(),
+             ];
+         }
+ 
 diff --git a/backend/modules/Accounting/AccountingServiceProvider.php b/backend/modules/Accounting/AccountingServiceProvider.php
 index 4525f773..da606661 100644
 --- a/backend/modules/Accounting/AccountingServiceProvider.php
@@ -489,19 +507,76 @@ index 8062f7fd..5eafc176 100644
 +        return ['inserted' => $inserted, 'skipped' => $skipped];
 +    }
  }
+diff --git a/backend/modules/Accounting/Http/Controllers/ChartAccountController.php b/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
+index 63047d22..1bd0fe66 100644
+--- a/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
++++ b/backend/modules/Accounting/Http/Controllers/ChartAccountController.php
+@@ -4,6 +4,7 @@
+ 
+ use Illuminate\Http\JsonResponse;
+ use Illuminate\Http\Request;
++use Illuminate\Validation\Rule;
+ use Modules\Accounting\Database\Seeders\AccChartIranSeeder;
+ use Modules\Accounting\Entities\AccChartAccount;
+ use Modules\Accounting\Support\ExistsForTenant;
+@@ -43,10 +44,9 @@ public function chartOfAccounts(Request $request): JsonResponse
+ 
+     public function seedChartIran(Request $request): JsonResponse
+     {
+-        if (app()->environment('production')) {
+-            return response()->json(['message' => __('api.production_command_forbidden')], 403);
+-        }
+-
++        // No production block: seeding the chart of accounts is an ordinary first-run step
++        // for a live shop, not a destructive command. The seeder only inserts codes the
++        // tenant does not already have, and `truncate` stays prohibited.
+         $request->validate(['truncate' => 'prohibited']);
+         $result = AccChartIranSeeder::run();
+ 
+@@ -56,7 +56,14 @@ public function seedChartIran(Request $request): JsonResponse
+     public function storeChartAccount(Request $request): JsonResponse
+     {
+         $data = $request->validate([
+-            'code' => 'required|string|max:32|unique:acc_chart_accounts,code',
++            'code' => [
++                'required',
++                'string',
++                'max:32',
++                // Scoped to the tenant: `unique:acc_chart_accounts,code` alone made one
++                // shop's code 1101 reject the same code for every other shop.
++                Rule::unique('acc_chart_accounts', 'code')->where('tenant_id', $request->user()?->tenant_id),
++            ],
+             'name' => 'required|string|max:191',
+             'parent_id' => ['nullable', ExistsForTenant::in('acc_chart_accounts')],
+             'type' => 'required|string|max:50',
+@@ -71,7 +78,14 @@ public function updateChartAccount(Request $request, int $id): JsonResponse
+     {
+         $row = AccChartAccount::query()->findOrFail($id);
+         $data = $request->validate([
+-            'code' => 'sometimes|string|max:32|unique:acc_chart_accounts,code,'.$row->id,
++            'code' => [
++                'sometimes',
++                'string',
++                'max:32',
++                Rule::unique('acc_chart_accounts', 'code')
++                    ->where('tenant_id', $request->user()?->tenant_id)
++                    ->ignore($row->id),
++            ],
+             'name' => 'sometimes|string|max:191',
+             'parent_id' => ['nullable', ExistsForTenant::in('acc_chart_accounts')],
+             'type' => 'sometimes|string|max:50',
 diff --git a/backend/modules/Accounting/Services/AccountingProvisioningService.php b/backend/modules/Accounting/Services/AccountingProvisioningService.php
 new file mode 100644
-index 00000000..2dab1458
+index 00000000..b226391b
 --- /dev/null
 +++ b/backend/modules/Accounting/Services/AccountingProvisioningService.php
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,75 @@
 +<?php
 +
 +namespace Modules\Accounting\Services;
 +
 +use Illuminate\Support\Facades\DB;
 +use Modules\Accounting\Database\Seeders\AccChartIranSeeder;
-+use Modules\Accounting\Entities\AccChartAccount;
 +
 +/**
 + * First-run setup for a tenant's ledger: default chart of accounts + current
@@ -571,6 +646,46 @@ index 00000000..2dab1458
 +        ];
 +    }
 +}
+diff --git a/backend/modules/Accounting/Services/AccountingWpActionService.php b/backend/modules/Accounting/Services/AccountingWpActionService.php
+index 0da3beab..f37eb582 100644
+--- a/backend/modules/Accounting/Services/AccountingWpActionService.php
++++ b/backend/modules/Accounting/Services/AccountingWpActionService.php
+@@ -4,6 +4,7 @@
+ 
+ use Illuminate\Http\Request;
+ use Illuminate\Support\Facades\DB;
++use Modules\Accounting\Database\Seeders\AccChartIranSeeder;
+ use Modules\Accounting\Entities\AccCashAccount;
+ use Modules\Accounting\Entities\AccChartAccount;
+ use Modules\Accounting\Entities\AccCheck;
+@@ -455,21 +456,13 @@ private function seedChart(): array
+             return ['count' => 0, 'message' => __('api.chart_already_seeded')];
+         }
+ 
+-        $roots = [
+-            ['code' => '1', 'name' => 'Assets', 'type' => 'asset'],
+-            ['code' => '2', 'name' => 'Liabilities', 'type' => 'liability'],
+-            ['code' => '3', 'name' => 'Equity', 'type' => 'equity'],
+-            ['code' => '4', 'name' => 'Revenue', 'type' => 'revenue'],
+-            ['code' => '5', 'name' => 'Expense', 'type' => 'expense'],
+-        ];
+-
+-        $n = 0;
+-        foreach ($roots as $r) {
+-            AccChartAccount::query()->create($r + ['is_postable' => false]);
+-            $n++;
+-        }
++        // The full Iranian chart, not five bare roots: confirming an invoice posts to the
++        // postable accounts 113 (receivables) and 401 (sales), and a five-root chart has
++        // neither, so the seed button used to leave the ledger unusable. The seeder is
++        // tenant-scoped and skips codes that already exist.
++        $result = AccChartIranSeeder::run();
+ 
+-        return ['count' => $n];
++        return ['count' => $result['inserted'], 'skipped' => $result['skipped']];
+     }
+ 
+     private function personSave(array $p, Request $request): array
 diff --git a/backend/modules/Accounting/manifest.json b/backend/modules/Accounting/manifest.json
 index c757ea81..db37234c 100644
 --- a/backend/modules/Accounting/manifest.json
@@ -809,7 +924,7 @@ index 00000000..037eb9fd
 +    }
 +}
 diff --git a/frontend/messages/en.json b/frontend/messages/en.json
-index f79cd070..92454de8 100644
+index f79cd070..dbd0231a 100644
 --- a/frontend/messages/en.json
 +++ b/frontend/messages/en.json
 @@ -365,6 +365,7 @@
@@ -820,8 +935,27 @@ index f79cd070..92454de8 100644
      "section_admin": "Admin",
      "section_bots": "Bots",
      "section_cafe": "Cafe management",
+@@ -11507,12 +11508,18 @@
+     "accounting_AccFiscalYear": {
+       "s_182b1c89": "Refresh",
+       "s_1a9bdb20": "Title",
++      "s_2c8e4d51": "Year closed",
++      "s_3b2e1a9f": "Title, start date and end date are required",
++      "s_4a1b8c03": "Edit fiscal year",
+       "s_51617f69": "Loading…",
+       "s_55518965": "Status",
++      "s_5d6f3a28": "Delete this fiscal year?",
+       "s_6f637966": "Active",
+       "s_79432b0c": "Fiscal year",
++      "s_7e5f2a16": "The period the financial documents and reports belong to.",
+       "s_7f1e4c29": "Start date",
+       "s_83c22977": "سال مالی‌ای یافت نشد",
++      "s_9c4d2e71": "New fiscal year",
+       "s_acc84041": "ID",
+       "s_d13a2741": "End date",
+       "s_d9ba4168": "Inactive"
 diff --git a/frontend/messages/fa.json b/frontend/messages/fa.json
-index 53fb9d2d..5de62bef 100644
+index 53fb9d2d..2e0b5c18 100644
 --- a/frontend/messages/fa.json
 +++ b/frontend/messages/fa.json
 @@ -365,6 +365,7 @@
@@ -832,6 +966,386 @@ index 53fb9d2d..5de62bef 100644
      "section_admin": "مدیریت",
      "section_bots": "ربات‌ها",
      "section_cafe": "مدیریت کافه",
+@@ -11507,12 +11508,18 @@
+     "accounting_AccFiscalYear": {
+       "s_182b1c89": "بروزرسانی",
+       "s_1a9bdb20": "عنوان",
++      "s_2c8e4d51": "سال بسته شده",
++      "s_3b2e1a9f": "عنوان، تاریخ شروع و تاریخ پایان الزامی است",
++      "s_4a1b8c03": "ویرایش سال مالی",
+       "s_51617f69": "در حال بارگذاری…",
+       "s_55518965": "وضعیت",
++      "s_5d6f3a28": "این سال مالی حذف شود؟",
+       "s_6f637966": "فعال",
+       "s_79432b0c": "سال مالی",
++      "s_7e5f2a16": "دوره‌ای که اسناد و گزارش‌های مالی به آن تعلق دارند.",
+       "s_7f1e4c29": "تاریخ شروع",
+       "s_83c22977": "سال مالی‌ای یافت نشد",
++      "s_9c4d2e71": "سال مالی جدید",
+       "s_acc84041": "شناسه",
+       "s_d13a2741": "تاریخ پایان",
+       "s_d9ba4168": "غیرفعال"
+diff --git a/frontend/modules/accounting/admin/AccFiscalYear.tsx b/frontend/modules/accounting/admin/AccFiscalYear.tsx
+index b6581fa1..65416326 100644
+--- a/frontend/modules/accounting/admin/AccFiscalYear.tsx
++++ b/frontend/modules/accounting/admin/AccFiscalYear.tsx
+@@ -1,24 +1,74 @@
+ 'use client';
+ 
++import { useState } from 'react';
+ import { useTranslations } from 'next-intl';
+ 
+-import { useQuery } from '@tanstack/react-query';
++import { useQuery, useQueryClient } from '@tanstack/react-query';
+ import apiClient from '@/features/modules/accounting/lib/api-client';
++import { accountingWpAction } from '@/features/modules/accounting/lib/accounting-wp';
+ import { getAxiosMessage } from '@/features/modules/accounting/lib/api-helpers';
+ import { normalizeListPayload } from '@/lib/list-utils';
+ import { Button } from '@/components/ui/button';
+ import { Badge } from '@/components/ui/badge';
++import { Input } from '@/components/ui/input';
++import { Label } from '@/components/ui/label';
++import { Switch } from '@/components/ui/switch';
++import {
++  Dialog,
++  DialogContent,
++  DialogDescription,
++  DialogFooter,
++  DialogHeader,
++  DialogTitle,
++} from '@/components/ui/dialog';
++import {
++  AlertDialog,
++  AlertDialogAction,
++  AlertDialogCancel,
++  AlertDialogContent,
++  AlertDialogDescription,
++  AlertDialogFooter,
++  AlertDialogHeader,
++  AlertDialogTitle,
++} from '@/components/ui/alert-dialog';
+ 
++/**
++ * The API answers with the entity's own column names (`starts_on`, `ends_on`,
++ * `is_closed`). Older payloads used `start_date` / `end_date` / `is_active`, and the page
++ * used to read only those - which left every date column blank and the status badge stuck
++ * on "inactive". Both spellings are accepted so a cached payload still renders.
++ */
+ type FiscalYear = {
+   id: number;
+   title: string;
+-  start_date: string;
+-  end_date: string;
+-  is_active: boolean;
++  starts_on?: string;
++  ends_on?: string;
++  is_closed?: boolean;
++  start_date?: string;
++  end_date?: string;
++  is_active?: boolean;
+ };
+ 
++type Form = { title: string; starts_on: string; ends_on: string; is_closed: boolean };
++
++const BLANK: Form = { title: '', starts_on: '', ends_on: '', is_closed: false };
++
++const startsOn = (fy: FiscalYear) => fy.starts_on ?? fy.start_date ?? '';
++const endsOn = (fy: FiscalYear) => fy.ends_on ?? fy.end_date ?? '';
++/** `is_closed` is the stored column; `is_active` is its negation in older payloads. */
++const isOpen = (fy: FiscalYear) =>
++  fy.is_closed !== undefined ? !fy.is_closed : Boolean(fy.is_active);
++
+ export default function AccFiscalYear() {
+   const t = useTranslations();
++  const qc = useQueryClient();
++
++  const [dialogOpen, setDialogOpen] = useState(false);
++  const [editing, setEditing] = useState<FiscalYear | null>(null);
++  const [form, setForm] = useState<Form>(BLANK);
++  const [saving, setSaving] = useState(false);
++  const [formError, setFormError] = useState<string | null>(null);
++  const [deleteTarget, setDeleteTarget] = useState<FiscalYear | null>(null);
+ 
+   const query = useQuery({
+     queryKey: ['accounting', 'fiscal-years'],
+@@ -32,21 +82,87 @@ export default function AccFiscalYear() {
+   const loading = query.isFetching;
+   const error = query.isError ? getAxiosMessage(query.error) : null;
+ 
++  const refresh = () => void qc.invalidateQueries({ queryKey: ['accounting', 'fiscal-years'] });
++
++  const openCreate = () => {
++    setEditing(null);
++    setForm(BLANK);
++    setFormError(null);
++    setDialogOpen(true);
++  };
++
++  const openEdit = (fy: FiscalYear) => {
++    setEditing(fy);
++    setForm({
++      title: fy.title ?? '',
++      starts_on: String(startsOn(fy)).slice(0, 10),
++      ends_on: String(endsOn(fy)).slice(0, 10),
++      is_closed: !isOpen(fy),
++    });
++    setFormError(null);
++    setDialogOpen(true);
++  };
++
++  const submit = async () => {
++    // The backend validates `ends_on` after `starts_on`; catching it here keeps the dialog
++    // open with the reason instead of closing and showing an empty list.
++    if (!form.title.trim() || !form.starts_on || !form.ends_on) {
++      setFormError(t('auto.accounting_AccFiscalYear.s_3b2e1a9f'));
++      return;
++    }
++
++    setSaving(true);
++    setFormError(null);
++    try {
++      await accountingWpAction('fiscal_year_save', {
++        ...(editing ? { id: editing.id } : {}),
++        title: form.title.trim(),
++        starts_on: form.starts_on,
++        ends_on: form.ends_on,
++        is_closed: form.is_closed ? 1 : 0,
++      });
++      setDialogOpen(false);
++      refresh();
++    } catch (e) {
++      setFormError(getAxiosMessage(e));
++    } finally {
++      setSaving(false);
++    }
++  };
++
++  const remove = async () => {
++    if (!deleteTarget) return;
++    try {
++      await accountingWpAction('fiscal_year_delete', { id: deleteTarget.id });
++      refresh();
++    } catch (e) {
++      setFormError(getAxiosMessage(e));
++    } finally {
++      setDeleteTarget(null);
++    }
++  };
++
+   return (
+     <div className="space-y-6">
+       <div className="flex flex-wrap items-center justify-between gap-2">
+         <h2 className="text-lg font-semibold">{t('auto.accounting_AccFiscalYear.s_79432b0c')}</h2>
+-        <Button variant="outline" size="sm" onClick={() => void query.refetch()} disabled={loading}>
+-          {t('auto.accounting_AccFiscalYear.s_182b1c89')}
+-        </Button>
++        <div className="flex gap-2">
++          <Button variant="outline" size="sm" onClick={() => void query.refetch()} disabled={loading}>
++            {t('auto.accounting_AccFiscalYear.s_182b1c89')}
++          </Button>
++          <Button size="sm" onClick={openCreate}>
++            {t('auto.accounting_AccFiscalYear.s_9c4d2e71')}
++          </Button>
++        </div>
+       </div>
+ 
+       {error && <p className="text-sm text-destructive">{error}</p>}
++      {formError && !dialogOpen && <p className="text-sm text-destructive">{formError}</p>}
+       {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccFiscalYear.s_51617f69')}</p>}
+ 
+       {!loading && rows.length > 0 && (
+         <div className="overflow-x-auto rounded-md border">
+-          <table className="w-full min-w-[500px] text-sm">
++          <table className="w-full min-w-[600px] text-sm">
+             <thead>
+               <tr className="border-b bg-muted/40">
+                 <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccFiscalYear.s_acc84041')}</th>
+@@ -54,6 +170,7 @@ export default function AccFiscalYear() {
+                 <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccFiscalYear.s_7f1e4c29')}</th>
+                 <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccFiscalYear.s_d13a2741')}</th>
+                 <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccFiscalYear.s_55518965')}</th>
++                <th className="px-2 py-2 text-end font-medium">{t('common.edit')}</th>
+               </tr>
+             </thead>
+             <tbody>
+@@ -61,13 +178,30 @@ export default function AccFiscalYear() {
+                 <tr key={fy.id} className="border-b border-border/60">
+                   <td className="px-2 py-1.5 tabular-nums">{fy.id}</td>
+                   <td className="px-2 py-1.5">{fy.title}</td>
+-                  <td className="px-2 py-1.5">{fy.start_date}</td>
+-                  <td className="px-2 py-1.5">{fy.end_date}</td>
++                  <td className="px-2 py-1.5 tabular-nums">{String(startsOn(fy)).slice(0, 10)}</td>
++                  <td className="px-2 py-1.5 tabular-nums">{String(endsOn(fy)).slice(0, 10)}</td>
+                   <td className="px-2 py-1.5">
+-                    <Badge variant={fy.is_active ? 'default' : 'outline'}>
+-                      {fy.is_active ? t('auto.accounting_AccFiscalYear.s_6f637966') : t('auto.accounting_AccFiscalYear.s_d9ba4168')}
++                    <Badge variant={isOpen(fy) ? 'default' : 'outline'}>
++                      {isOpen(fy)
++                        ? t('auto.accounting_AccFiscalYear.s_6f637966')
++                        : t('auto.accounting_AccFiscalYear.s_d9ba4168')}
+                     </Badge>
+                   </td>
++                  <td className="px-2 py-1.5 text-end">
++                    <div className="flex justify-end gap-1">
++                      <Button variant="ghost" size="sm" onClick={() => openEdit(fy)}>
++                        {t('common.edit')}
++                      </Button>
++                      <Button
++                        variant="ghost"
++                        size="sm"
++                        className="text-destructive"
++                        onClick={() => setDeleteTarget(fy)}
++                      >
++                        {t('common.delete')}
++                      </Button>
++                    </div>
++                  </td>
+                 </tr>
+               ))}
+             </tbody>
+@@ -78,6 +212,83 @@ export default function AccFiscalYear() {
+       {!loading && !error && rows.length === 0 && (
+         <p className="text-sm text-muted-foreground">{t('auto.accounting_AccFiscalYear.s_83c22977')}</p>
+       )}
++
++      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
++        <DialogContent>
++          <DialogHeader>
++            <DialogTitle>
++              {editing
++                ? t('auto.accounting_AccFiscalYear.s_4a1b8c03')
++                : t('auto.accounting_AccFiscalYear.s_9c4d2e71')}
++            </DialogTitle>
++            <DialogDescription>{t('auto.accounting_AccFiscalYear.s_7e5f2a16')}</DialogDescription>
++          </DialogHeader>
++
++          <div className="space-y-3">
++            <div className="space-y-1.5">
++              <Label htmlFor="fy-title">{t('auto.accounting_AccFiscalYear.s_1a9bdb20')}</Label>
++              <Input
++                id="fy-title"
++                value={form.title}
++                onChange={(e) => setForm({ ...form, title: e.target.value })}
++              />
++            </div>
++            <div className="grid gap-3 sm:grid-cols-2">
++              <div className="space-y-1.5">
++                <Label htmlFor="fy-start">{t('auto.accounting_AccFiscalYear.s_7f1e4c29')}</Label>
++                <Input
++                  id="fy-start"
++                  type="date"
++                  value={form.starts_on}
++                  onChange={(e) => setForm({ ...form, starts_on: e.target.value })}
++                />
++              </div>
++              <div className="space-y-1.5">
++                <Label htmlFor="fy-end">{t('auto.accounting_AccFiscalYear.s_d13a2741')}</Label>
++                <Input
++                  id="fy-end"
++                  type="date"
++                  value={form.ends_on}
++                  onChange={(e) => setForm({ ...form, ends_on: e.target.value })}
++                />
++              </div>
++            </div>
++            <div className="flex items-center justify-between gap-2">
++              <Label htmlFor="fy-closed">{t('auto.accounting_AccFiscalYear.s_2c8e4d51')}</Label>
++              <Switch
++                id="fy-closed"
++                checked={form.is_closed}
++                onCheckedChange={(v) => setForm({ ...form, is_closed: Boolean(v) })}
++              />
++            </div>
++            {formError && <p className="text-sm text-destructive">{formError}</p>}
++          </div>
++
++          <DialogFooter>
++            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
++              {t('common.cancel')}
++            </Button>
++            <Button onClick={() => void submit()} disabled={saving}>
++              {t('common.save')}
++            </Button>
++          </DialogFooter>
++        </DialogContent>
++      </Dialog>
++
++      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(o) => !o && setDeleteTarget(null)}>
++        <AlertDialogContent>
++          <AlertDialogHeader>
++            <AlertDialogTitle>{t('auto.accounting_AccFiscalYear.s_5d6f3a28')}</AlertDialogTitle>
++            <AlertDialogDescription>
++              {deleteTarget?.title}
++            </AlertDialogDescription>
++          </AlertDialogHeader>
++          <AlertDialogFooter>
++            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
++            <AlertDialogAction onClick={() => void remove()}>{t('common.delete')}</AlertDialogAction>
++          </AlertDialogFooter>
++        </AlertDialogContent>
++      </AlertDialog>
+     </div>
+   );
+ }
+diff --git a/frontend/modules/accounting/admin/AccJournals.tsx b/frontend/modules/accounting/admin/AccJournals.tsx
+index 71802a44..a6f4681b 100644
+--- a/frontend/modules/accounting/admin/AccJournals.tsx
++++ b/frontend/modules/accounting/admin/AccJournals.tsx
+@@ -103,7 +103,8 @@ export default function AccJournals() {
+       if (fyId !== 'all') params.fiscal_year_id = fyId;
+       const res = await apiClient.get('/v1/erp-accounting/journals', { params });
+       setJournals(normalizeListPayload(res.data) as Journal[]);
+-      setLastPage(Number(readListMeta(res.data).last_page ?? 1));
++      // The paginator's `last_page` lives in the envelope `meta`, not next to the rows.
++      setLastPage(Number(res.meta?.last_page ?? readListMeta(res.data).last_page ?? 1));
+     } catch (e) {
+       setError(getAxiosMessage(e));
+     } finally {
+diff --git a/frontend/modules/accounting/admin/AccReports.tsx b/frontend/modules/accounting/admin/AccReports.tsx
+index 61488577..517cf5fa 100644
+--- a/frontend/modules/accounting/admin/AccReports.tsx
++++ b/frontend/modules/accounting/admin/AccReports.tsx
+@@ -190,13 +190,13 @@ export default function AccReports() {
+         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+ 
+         <TabsContent value="trial_balance">
+-          {data ? <TrialBalanceTable rows={data as TrialRow[]} /> : null}
++          {data ? <TrialBalanceTable rows={reportRows<TrialRow>(data)} /> : null}
+         </TabsContent>
+         <TabsContent value="balance_sheet">
+           {data ? <BalanceSheetView data={data as BSData} /> : null}
+         </TabsContent>
+         <TabsContent value="profit_loss">
+-          {data ? <ProfitLossTable rows={data as PLRow[]} /> : null}
++          {data ? <ProfitLossTable rows={reportRows<PLRow>(data)} /> : null}
+         </TabsContent>
+       </Tabs>
+ 
+@@ -209,6 +209,24 @@ export default function AccReports() {
+   );
+ }
+ 
++/**
++ * Pull the row array out of a report payload.
++ *
++ * `FinancialReportsController` answers with `{ type, rows, totals }`, and the envelope
++ * formatter unwraps to that object - so `data` is the report, not the rows. Passing it
++ * straight to the tables made `Array.isArray(rows)` false and every trial balance and
++ * P&L render its empty state. The balance sheet reads `data.assets` and needs no change.
++ */
++function reportRows<T>(data: unknown): T[] {
++  if (Array.isArray(data)) return data as T[];
++  if (data && typeof data === "object") {
++    const rows = (data as { rows?: unknown }).rows;
++    if (Array.isArray(rows)) return rows as T[];
++  }
++
++  return [];
++}
++
+ /* ─── Trial Balance ─── */
+ 
+ function TrialBalanceTable({ rows }: { rows: TrialRow[] }) {
 diff --git a/frontend/modules/accounting/manifest.ts b/frontend/modules/accounting/manifest.ts
 index 5df26ed7..6b621fad 100644
 --- a/frontend/modules/accounting/manifest.ts
@@ -882,6 +1396,59 @@ index 0eb21b55..844952bd 100644
    },
  }
  
+diff --git a/frontend/src/features/modules/accounting/lib/api-client.ts b/frontend/src/features/modules/accounting/lib/api-client.ts
+index b8c9d2d7..a35a8e2b 100644
+--- a/frontend/src/features/modules/accounting/lib/api-client.ts
++++ b/frontend/src/features/modules/accounting/lib/api-client.ts
+@@ -1,4 +1,4 @@
+-import { unwrapApiData } from "@webina/ui";
++import { unwrapApiResponse } from "@webina/ui";
+ 
+ import { ApiError } from "@/lib/api";
+ import { getApiErrorMessage } from "@/lib/api-helpers";
+@@ -16,8 +16,9 @@ import { getApiErrorMessage } from "@/lib/api-helpers";
+  * - **Same-origin.** Requests go to `/api/...` with no host, so the Next proxy forwards
+  *   them to Laravel. A browser calling `localhost` directly would break on every deployed
+  *   host.
+- * - **Envelope unwrapping.** `unwrapApiData` runs here, not in the pages, so a page that
+- *   reads `res.data.rows` gets the same shape the ERP gave it.
++ * - **Envelope unwrapping.** `unwrapApiResponse` runs here, not in the pages, so a page
++ *   that reads `res.data.rows` gets the same shape the ERP gave it, and `res.meta` keeps
++ *   the paginator fields the envelope carries.
+  * - **Typed errors.** Failures throw {@link ApiError} carrying the HTTP status, which is
+  *   what the ported pages check (`err.status === 422`).
+  */
+@@ -40,7 +41,18 @@ type RequestOptions = {
+ };
+ 
+ /** What the ported pages treat a response as: `{ data }` with the envelope removed. */
+-export type ApiResult<T> = { data: T; status: number };
++export type ApiResult<T> = {
++  data: T;
++  status: number;
++  /**
++   * Envelope `meta`, i.e. Laravel paginator fields (`last_page`, `total`, …).
++   *
++   * `ApiResponseFormatter` hoists a paginated response's `meta` to the envelope, so
++   * unwrapping `data` alone throws the page count away and every list renders a single
++   * page. The ported pages read `res.meta.last_page`, so it has to survive here.
++   */
++  meta?: Record<string, unknown> | null;
++};
+ 
+ function buildUrl(path: string, params?: RequestOptions["params"]): string {
+   const url = `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
+@@ -88,7 +100,9 @@ async function request<T>(
+     throw new ApiError(getApiErrorMessage(payload), response.status, payload);
+   }
+ 
+-  return { data: unwrapApiData<T>(payload), status: response.status };
++  const unwrapped = unwrapApiResponse<T>(payload);
++
++  return { data: unwrapped.data, status: response.status, meta: unwrapped.meta };
+ }
+ 
+ /**
 diff --git a/frontend/src/kernel/registry.ts b/frontend/src/kernel/registry.ts
 index ae58d4bd..7cc608ac 100644
 --- a/frontend/src/kernel/registry.ts
