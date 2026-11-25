@@ -28,6 +28,13 @@ use Illuminate\Support\ServiceProvider;
  *    existing `can:` middleware with this codebase's `accounting.manage` capability —
  *    the same capability the current accounting routes already require.
  *
+ *    The module parameter is `erp-accounting`, not `accounting`: in this application
+ *    `module:accounting` is the commerce till ledger's alias
+ *    ({@see \App\Kernel\ModuleAliasMap}), so using it here gated the ERP ledger on
+ *    `commerce.accounting` — a row backfilled with `enabled=false` — and every ERP
+ *    call answered 403 MODULE_NOT_ACTIVE. `module:erp-accounting` resolves to this
+ *    module's own `accounting.dashboard` submodule instead.
+ *
  * 3. **No licensing.** The ERP module ships licence-check and module-clone endpoints
  *    that talk to its Core module. This application has no Core licence system, so those
  *    controllers and routes are not registered. Warehouse REST parity
@@ -42,12 +49,12 @@ class AccountingServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
 
         Route::prefix(self::ROUTE_PREFIX)
-            ->middleware(['api', 'auth:sanctum', 'module:accounting', 'can:accounting.manage'])
+            ->middleware(['api', 'auth:sanctum', 'module:erp-accounting', 'can:accounting.manage'])
             ->group(__DIR__.'/Routes/api.php');
 
         // Warehouse/product parity API consumed by the ERP-era dashboard clients.
         Route::prefix('webinocrm/v1')
-            ->middleware(['api', 'auth:sanctum', 'module:accounting', 'can:accounting.manage'])
+            ->middleware(['api', 'auth:sanctum', 'module:erp-accounting', 'can:accounting.manage'])
             ->group(__DIR__.'/Routes/webinocrm-v1.php');
     }
 

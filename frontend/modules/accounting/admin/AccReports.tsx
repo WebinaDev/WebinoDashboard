@@ -15,6 +15,19 @@ type BSRow = { code: string; name: string; balance: number };
 type BSData = { assets: BSRow[]; liabilities_equity: BSRow[] };
 type PLRow = { code: string; name: string; type: string; balance: number };
 
+/**
+ * The API wraps trial-balance / P&L rows as `{ type, rows }` and the balance
+ * sheet as `{ type, assets, liabilities_equity }`. Reading the wrapper as an
+ * array made both tables render "no data" even when the ledger had entries.
+ */
+function reportRows(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data as Record<string, unknown>[];
+  if (data && typeof data === 'object' && 'rows' in data && Array.isArray((data as { rows: unknown }).rows)) {
+    return (data as { rows: Record<string, unknown>[] }).rows;
+  }
+  return [];
+}
+
 type ReportType = 'trial_balance' | 'balance_sheet' | 'profit_loss';
 
 export default function AccReports() {
@@ -75,13 +88,13 @@ export default function AccReports() {
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
         <TabsContent value="trial_balance">
-          {data ? <TrialBalanceTable rows={data as TrialRow[]} /> : null}
+          {data ? <TrialBalanceTable rows={reportRows(data) as TrialRow[]} /> : null}
         </TabsContent>
         <TabsContent value="balance_sheet">
           {data ? <BalanceSheetView data={data as BSData} /> : null}
         </TabsContent>
         <TabsContent value="profit_loss">
-          {data ? <ProfitLossTable rows={data as PLRow[]} /> : null}
+          {data ? <ProfitLossTable rows={reportRows(data) as PLRow[]} /> : null}
         </TabsContent>
       </Tabs>
 

@@ -366,25 +366,12 @@ class AccountingWpActionService
 
     private function seedChart(): array
     {
-        if (AccChartAccount::query()->exists()) {
-            return ['count' => 0, 'message' => __('messages.chart_already_seeded')];
-        }
+        // Full Iranian chart (with 111/113/401), not just the five roots: invoice
+        // confirm and receipt posting need the postable accounts, and seeding only
+        // roots left every fresh tenant unable to post its first document.
+        $result = \Modules\Accounting\Database\Seeders\AccChartIranSeeder::run();
 
-        $roots = [
-            ['code' => '1', 'name' => 'Assets', 'type' => 'asset'],
-            ['code' => '2', 'name' => 'Liabilities', 'type' => 'liability'],
-            ['code' => '3', 'name' => 'Equity', 'type' => 'equity'],
-            ['code' => '4', 'name' => 'Revenue', 'type' => 'revenue'],
-            ['code' => '5', 'name' => 'Expense', 'type' => 'expense'],
-        ];
-
-        $n = 0;
-        foreach ($roots as $r) {
-            AccChartAccount::query()->create($r + ['is_postable' => false]);
-            $n++;
-        }
-
-        return ['count' => $n];
+        return ['count' => $result['inserted'], 'inserted' => $result['inserted'], 'skipped' => $result['skipped']];
     }
 
     private function personSave(array $p, Request $request): array

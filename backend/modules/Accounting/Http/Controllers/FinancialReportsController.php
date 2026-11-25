@@ -55,7 +55,11 @@ class FinancialReportsController extends Controller
 
         if ($type === 'balance_sheet') {
             $assets = $rows->filter(fn ($r) => str_contains(strtolower($r['type']), 'asset'));
-            $liab = $rows->filter(fn ($r) => str_contains(strtolower($r['type']), 'liabilit') || str_contains(strtolower($r['type']), 'payable'));
+            // Liabilities + equity together: a balance sheet without equity never
+            // balances, and the chart seeds equity as its own type ('equity').
+            $liab = $rows->filter(fn ($r) => str_contains(strtolower($r['type']), 'liabilit')
+                || str_contains(strtolower($r['type']), 'payable')
+                || str_contains(strtolower($r['type']), 'equity'));
 
             return response()->json([
                 'data' => [
