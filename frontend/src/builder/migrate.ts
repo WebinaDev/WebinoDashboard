@@ -1,5 +1,9 @@
 import type { BuilderDocument, SectionNode, WidgetNode } from "./types"
 
+export function isSupportedDocumentVersion(doc: { version?: unknown }): boolean {
+  return doc.version === undefined || doc.version === 1 || doc.version === 2
+}
+
 function markLegacy(sections: SectionNode[]): SectionNode[] {
   return sections.map((section) => ({
     ...section,
@@ -18,6 +22,6 @@ function markLegacy(sections: SectionNode[]): SectionNode[] {
  * Idempotent and pure.
  */
 export function migrateDocument(doc: BuilderDocument): BuilderDocument {
-  if (doc.version === 2) return doc
+  if (doc.version !== 1 && doc.version !== undefined) return doc
   return { ...doc, version: 2, sections: markLegacy(doc.sections ?? []) }
 }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { migrateDocument } from "./migrate.ts"
+import { isSupportedDocumentVersion, migrateDocument } from "./migrate.ts"
 import { documentCss } from "./style.ts"
 import type { BuilderDocument } from "./types.ts"
 
@@ -29,6 +29,14 @@ test("v1 documents migrate to v2 with every section (incl. nested) marked legacy
   assert.equal(v2.sections[0].columns[0].widgets[0].children?.[0].legacy, true)
   assert.equal(migrateDocument(v2), v2)
   assert.equal(v1.sections[0].legacy, undefined, "input not mutated")
+})
+
+test("does not rewrite documents with an unknown version", () => {
+  const future = { ...v1, version: 3 } as unknown as BuilderDocument
+  assert.equal(migrateDocument(future), future)
+  assert.equal(isSupportedDocumentVersion(future), false)
+  assert.equal(isSupportedDocumentVersion(v1), true)
+  assert.equal(isSupportedDocumentVersion({}), true)
 })
 
 test("legacy sections emit no span/layout rules (render unchanged)", () => {

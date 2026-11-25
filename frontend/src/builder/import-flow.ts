@@ -3,6 +3,14 @@ import type { BuilderGlobals } from "./globals"
 
 export type ImportMode = "replace" | "append" | "cancel"
 
+export function insertLibraryDocument(current: BuilderDocument, incoming: BuilderDocument, index: number): BuilderDocument | null {
+  const result = appendImportedDocument(current, incoming)
+  if (!result) return null
+  const sections = [...current.sections]
+  sections.splice(Math.min(Math.max(index, 0), sections.length), 0, ...incoming.sections)
+  return { ...result, sections }
+}
+
 /** Unknown widget types remain in the document; callers can warn before importing. */
 export function unknownWidgetTypes(document: BuilderDocument, isKnown: (type: string) => boolean): string[] {
   const unknown = new Set<string>()

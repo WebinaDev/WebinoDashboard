@@ -26,3 +26,17 @@ test("portable imports reject duplicate IDs and preserve existing globals on con
   const expected = [["variables:accent"], globals.variables, globals.variables, false]
   assert.deepEqual(actual, expected)
 })
+
+test("portable imports reject malformed responsive styles", () => {
+  const document: BuilderDocument = { version: 2, sections: [] }
+  const envelope = JSON.parse(exportPayload(document, "Test", { components: [], classes: [], presets: [], queries: [], variables: [] }))
+  envelope.dependencies.classes = [{ id: "card", name: "Card", style: { base: "invalid" } }]
+  assert.equal(readPortableDependencies(JSON.stringify(envelope)), false)
+})
+
+test("portable imports reject IDs that global settings would discard", () => {
+  const document: BuilderDocument = { version: 2, sections: [] }
+  const envelope = JSON.parse(exportPayload(document, "Test", { components: [], classes: [], presets: [], queries: [], variables: [] }))
+  envelope.dependencies.variables = [{ id: "invalid_id", name: "Invalid", kind: "color", value: "#fff" }]
+  assert.equal(readPortableDependencies(JSON.stringify(envelope)), false)
+})

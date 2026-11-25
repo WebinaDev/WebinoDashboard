@@ -29,6 +29,10 @@ describe("builder JSON import", () => {
     assert.notEqual(result.sections[0].id, "w")
     assert.notEqual(result.sections[0].columns[0].widgets[0].id, "w")
   })
+  it("rejects invalid node IDs when custom CSS could reference them", () => {
+    const invalidIds = { ...doc, css: "#w { color: red }", sections: [{ ...doc.sections[0], id: "w" }] }
+    assert.equal(importPayload(JSON.stringify(invalidIds), { preserveIds: true }), null)
+  })
   it("rejects malformed and unsupported documents", () => {
     for (const value of ["{", JSON.stringify({ version: 3, sections: [] }), JSON.stringify({ sections: [null] }), JSON.stringify({ sections: [{ columns: [{ span: 12, widgets: [{ type: "heading" }] }] }] })]) {
       assert.equal(importPayload(value), null)

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
-import { appendImportedDocument, chooseImportMode, missingDocumentDependencies, unknownWidgetTypes } from "./import-flow"
+import { appendImportedDocument, chooseImportMode, insertLibraryDocument, missingDocumentDependencies, unknownWidgetTypes } from "./import-flow"
 import type { BuilderDocument } from "./types"
 
 describe("JSON import choice", () => {
@@ -25,6 +25,10 @@ describe("JSON import choice", () => {
 describe("append import", () => {
   const current: BuilderDocument = { version: 2, css: ".old{}", sections: [{ id: "old", columns: [{ id: "col-old", span: 12, widgets: [] }] }] }
   const imported: BuilderDocument = { version: 2, css: "#new{}", sections: [{ id: "new", columns: [{ id: "col-new", span: 12, widgets: [] }] }] }
+  it("inserts library page CSS and nodes at the requested location without ID collisions", () => {
+    const result = insertLibraryDocument(current, imported, 0)!
+    assert.deepEqual([result.sections.map((section) => section.id), result.css, insertLibraryDocument(current, current, 0)], [["new", "old"], ".old{}\n#new{}", null])
+  })
   it("preserves IDs and both CSS blocks while invalidating compiled CSS", () => {
     const result = appendImportedDocument({ ...current, compiled: { v: 1, bp: "", hash: "", css: "stale" } }, imported)!
     assert.deepEqual(result.sections.map((s) => s.id), ["old", "new"])

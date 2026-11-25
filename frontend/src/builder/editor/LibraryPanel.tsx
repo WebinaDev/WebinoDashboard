@@ -24,7 +24,9 @@ export function LibraryPanel({ onInsert, refreshKey }: { onInsert: (doc: Builder
 
   async function insert(item: Item) {
     const row = await api<{ document: unknown }>(`/api/v1/builder/library/${item.id}`).catch(() => null)
-    const doc = row ? importPayload(JSON.stringify(row.document)) : null
+    const source = row?.document
+    const hasCss = item.kind === "page" && source !== null && typeof source === "object" && "css" in source && typeof source.css === "string" && Boolean(source.css.trim())
+    const doc = row ? importPayload(JSON.stringify(source), { preserveIds: hasCss }) : null
     if (!doc) {
       toast.error(t("load_failed"))
       return

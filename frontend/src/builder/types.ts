@@ -223,7 +223,7 @@ export type EditorApi = {
 export const DND_WIDGET = "application/x-webino-widget"
 export const DND_NODE = "application/x-webino-node"
 
-export type FieldDef =
+export type FieldDef = (
   | { kind: "text" | "textarea" | "color" | "url"; key: string; label: string }
   | { kind: "number"; key: string; label: string; min?: number; max?: number }
   | { kind: "select"; key: string; label: string; options: { value: string; label: string }[] }
@@ -240,6 +240,7 @@ export type FieldDef =
   | { kind: "repeater"; key: string; label: string; fields: RepeaterSubField[] }
   /** «منوها» picker: stores a nav-menu slug; inspector edits the menu's items inline (same data as admin Menus). */
   | { kind: "nav-menu"; key: string; label: string }
+) & { panel?: "content" | "design" | "settings" }
 
 export type RepeaterSubField = { key: string; label: string; kind: "text" | "url" | "media" | "icon" | "textarea" | "select"; options?: { value: string; label: string }[] }
 

@@ -60,7 +60,7 @@ const CORE_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "media", key: "src", label: "تصویر" },
       { kind: "text", key: "alt", label: "متن جایگزین" },
-      ...IMAGE_BLOB_FIELDS,
+      ...IMAGE_BLOB_FIELDS.map((field) => field.key === "stickers" ? field : { ...field, panel: "design" as const }),
     ],
     create: () => node("image", { src: "", alt: "", frameStyle: "default" }),
   },
@@ -71,13 +71,13 @@ const CORE_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "text", key: "label", label: "برچسب" },
       { kind: "link", key: "href", label: "پیوند" },
-      { kind: "select", key: "tone", label: "رنگ", options: [
+      { kind: "select", key: "tone", label: "رنگ", panel: "design", options: [
         { value: "pink", label: "صورتی" },
         { value: "navy", label: "سرمه‌ای" },
         { value: "ghost", label: "خطی" },
         BUTTON_DOODLE_TONE,
       ] },
-      ...BUTTON_DOODLE_FIELDS,
+      ...BUTTON_DOODLE_FIELDS.map((field) => ({ ...field, panel: "design" as const })),
     ],
     create: () => node("button", { label: "مشاهده", href: "/shop", tone: "pink" }),
   },
@@ -85,14 +85,14 @@ const CORE_WIDGETS: WidgetDef[] = [
     type: "spacer",
     label: "فاصله",
     category: "basic",
-    fields: [{ kind: "number", key: "size", label: "ارتفاع", min: 4, max: 240 }],
+    fields: [{ kind: "number", key: "size", label: "ارتفاع", min: 4, max: 240, panel: "design" }],
     create: () => node("spacer", { size: 32 }),
   },
   {
     type: "divider",
     label: "جداکننده",
     category: "basic",
-    fields: [{ kind: "color", key: "color", label: "رنگ" }],
+    fields: [{ kind: "color", key: "color", label: "رنگ", panel: "design" }],
     create: () => node("divider", { color: "#e6eef6" }),
   },
   {
@@ -143,7 +143,7 @@ const CORE_WIDGETS: WidgetDef[] = [
       { kind: "media", key: "image", label: "تصویر" },
       { kind: "text", key: "cta", label: "دکمه" },
       { kind: "link", key: "href", label: "پیوند" },
-      { kind: "select", key: "trigger", label: "تریگر", options: [
+      { kind: "select", panel: "settings", key: "trigger", label: "تریگر", options: [
         { value: "load", label: "ورود به صفحه" },
         { value: "delay", label: "با تأخیر" },
         { value: "scroll", label: "اسکرول درصدی" },
@@ -152,22 +152,22 @@ const CORE_WIDGETS: WidgetDef[] = [
         { value: "inactivity", label: "عدم فعالیت" },
         { value: "exit", label: "قصد خروج" },
       ]},
-      { kind: "number", key: "delayMs", label: "تأخیر (ms)", min: 0, max: 60000 },
-      { kind: "slider", key: "scrollPercent", label: "درصد اسکرول", min: 5, max: 100, step: 5, unit: "٪" },
-      { kind: "text", key: "elementId", label: "شناسه المان (برای «رسیدن به المان»)" },
-      { kind: "number", key: "inactivitySec", label: "ثانیه عدم فعالیت", min: 3, max: 600 },
-      { kind: "select", key: "frequency", label: "تکرار", options: [
+      { kind: "number", panel: "settings", key: "delayMs", label: "تأخیر (ms)", min: 0, max: 60000 },
+      { kind: "slider", panel: "settings", key: "scrollPercent", label: "درصد اسکرول", min: 5, max: 100, step: 5, unit: "٪" },
+      { kind: "text", panel: "settings", key: "elementId", label: "شناسه المان (برای «رسیدن به المان»)" },
+      { kind: "number", panel: "settings", key: "inactivitySec", label: "ثانیه عدم فعالیت", min: 3, max: 600 },
+      { kind: "select", panel: "settings", key: "frequency", label: "تکرار", options: [
         { value: "session", label: "یک بار در هر نشست" },
         { value: "once", label: "فقط یک بار" },
         { value: "days", label: "هر چند روز" },
         { value: "always", label: "هر بار" },
       ]},
-      { kind: "number", key: "frequencyDays", label: "فاصله (روز)", min: 1, max: 365 },
-      { kind: "number", key: "minPageViews", label: "حداقل بازدید صفحه در نشست", min: 0, max: 50 },
-      { kind: "number", key: "minSessions", label: "حداقل تعداد نشست", min: 0, max: 50 },
-      { kind: "text", key: "referrer", label: "ارجاع‌دهنده شامل" },
-      { kind: "select", key: "device", label: "دستگاه", options: [{ value: "all", label: "همه" }, { value: "desktop", label: "دسکتاپ" }, { value: "mobile", label: "موبایل" }] },
-      { kind: "select", key: "layout", label: "چیدمان", options: [
+      { kind: "number", panel: "settings", key: "frequencyDays", label: "فاصله (روز)", min: 1, max: 365 },
+      { kind: "number", panel: "settings", key: "minPageViews", label: "حداقل بازدید صفحه در نشست", min: 0, max: 50 },
+      { kind: "number", panel: "settings", key: "minSessions", label: "حداقل تعداد نشست", min: 0, max: 50 },
+      { kind: "text", panel: "settings", key: "referrer", label: "ارجاع‌دهنده شامل" },
+      { kind: "select", panel: "settings", key: "device", label: "دستگاه", options: [{ value: "all", label: "همه" }, { value: "desktop", label: "دسکتاپ" }, { value: "mobile", label: "موبایل" }] },
+      { kind: "select", panel: "design", key: "layout", label: "چیدمان", options: [
         { value: "modal", label: "وسط صفحه" },
         { value: "slide-in", label: "کشویی گوشه" },
         { value: "bar-top", label: "نوار بالا" },
@@ -176,8 +176,8 @@ const CORE_WIDGETS: WidgetDef[] = [
         { value: "offcanvas-start", label: "کشوی کناری (راست)" },
         { value: "offcanvas-end", label: "کشوی کناری (چپ)" },
       ]},
-      { kind: "switch", key: "closeButton", label: "دکمه بستن" },
-      { kind: "switch", key: "overlayClose", label: "بستن با کلیک بیرون" },
+      { kind: "switch", panel: "settings", key: "closeButton", label: "دکمه بستن" },
+      { kind: "switch", panel: "settings", key: "overlayClose", label: "بستن با کلیک بیرون" },
     ],
     create: () =>
       node("popup", {

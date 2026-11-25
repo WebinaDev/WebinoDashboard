@@ -247,5 +247,6 @@ export function importPayload(text: string, options?: { preserveIds?: boolean })
   const migrated = { ...migrateDocument(doc) }
   delete migrated.compiled
   if (options?.preserveIds && hasUniqueNodeIds(migrated.sections)) return migrated
+  if (options?.preserveIds && typeof migrated.css === "string" && migrated.css.trim()) return null
   return { ...migrated, sections: migrated.sections.map((section) => cloneSection(section)) }
 }

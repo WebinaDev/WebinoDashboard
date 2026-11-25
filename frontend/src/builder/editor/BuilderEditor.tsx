@@ -78,10 +78,11 @@ import {
 import type { FieldDef, AdvancedProps, ShapeName, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
-import { migrateDocument } from "../migrate"
-import { appendImportedDocument, chooseImportMode, missingDocumentDependencies, unknownWidgetTypes } from "../import-flow"
+import { isSupportedDocumentVersion, migrateDocument } from "../migrate"
+import { appendImportedDocument, chooseImportMode, insertLibraryDocument, missingDocumentDependencies, unknownWidgetTypes } from "../import-flow"
 import { collectPortableDependencies, mergePortableDependencies, readPortableDependencies } from "../portable-dependencies"
-import { publishAfterGlobals } from "../publish-flow"
+import { fieldsForPanel } from "../field-panels"
+import { createGlobalsWriteQueue, publishAfterGlobals } from "../publish-flow"
 import { DynamicEditor, DynamicToggle, EXTENDED_KINDS, ExtendedField } from "./fields"
 import { isDynamic } from "../dynamic"
 import { ContextMenu, type MenuItem } from "./ContextMenu"
@@ -222,17 +223,19 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const globalsTouched = useRef(false)
   const globalsRevision = useRef(0)
   const globalsTimer = useRef<number | null>(null)
+  const unsupportedSourceDocument = useRef(false)
+  const enqueueGlobalsWrite = useMemo(() => createGlobalsWriteQueue(), [])
   const updateGlobals = useCallback((next: BuilderGlobals) => {
     setGlobals(next)
     globalsTouched.current = true
     globalsRevision.current += 1
     if (globalsTimer.current) window.clearTimeout(globalsTimer.current)
     globalsTimer.current = window.setTimeout(() => {
-      api("/api/v1/builder/globals", { method: "PUT", json: { settings: next } }).catch((error) => {
+      enqueueGlobalsWrite(() => api("/api/v1/builder/globals", { method: "PUT", json: { settings: next } })).catch((error) => {
         toast.error(error instanceof ApiError && error.status === 403 ? t("no_permission") : t("save_failed"))
       })
     }, 700)
-  }, [t])
+  }, [t, enqueueGlobalsWrite])
   const designApi = useMemo(() => ({ globals, updateGlobals }), [globals, updateGlobals])
 
   // Site follows the dashboard accent: keep the stored hex in step so the storefront matches after publish.
@@ -250,8 +253,10 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     if (globalsTimer.current) window.clearTimeout(globalsTimer.current)
     globalsTimer.current = null
     try {
-      await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
-      await api("/api/v1/builder/globals/publish", { method: "POST" })
+      await enqueueGlobalsWrite(async () => {
+        await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
+        await api("/api/v1/builder/globals/publish", { method: "POST" })
+      })
       if (globalsRevision.current === revision) globalsTouched.current = false
       return true
     } catch {
@@ -266,8 +271,10 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     if (globalsTimer.current) window.clearTimeout(globalsTimer.current)
     globalsTimer.current = null
     try {
-      await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
-      await api("/api/v1/builder/globals/publish", { method: "POST" })
+      await enqueueGlobalsWrite(async () => {
+        await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
+        await api("/api/v1/builder/globals/publish", { method: "POST" })
+      })
       if (globalsRevision.current === revision) globalsTouched.current = false
       toast.success(t("published"))
     } catch {
@@ -292,16 +299,20 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   useEffect(() => {
     let cancel = false
     async function load() {
+      function loadedDocument(document: BuilderDocument): BuilderDocument {
+        unsupportedSourceDocument.current = !isSupportedDocumentVersion(document)
+        return migrateDocument(document)
+      }
       try {
         if (mode.kind === "chrome") {
           const row = await api<TemplatePayload>(`/api/v1/builder/templates/${mode.chrome}`)
           if (cancel) return
-          const initial = isDocument(row.document) && row.document.sections.length
+          const initial = isDocument(row.document) && (row.document.sections.length || !isSupportedDocumentVersion(row.document))
             ? row.document
             : mode.chrome === "header"
               ? classicHeaderDocument()
               : classicFooterDocument()
-          setDoc(migrateDocument(initial))
+          setDoc(loadedDocument(initial))
           setTitle(row.title || (mode.chrome === "header" ? t("header") : t("footer")))
           setChromeId(row.id ?? null)
         } else if (mode.kind === "theme") {
@@ -311,7 +322,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           } else {
             const row = await api<TemplatePayload>(`/api/v1/theme-builder/templates/${mode.id}`)
             if (cancel) return
-            setDoc(isDocument(row.document) ? migrateDocument(row.document) : emptyDocument())
+            setDoc(isDocument(row.document) ? loadedDocument(row.document) : emptyDocument())
             setTitle(row.title || t("create"))
             if (row.id) setPageId(row.id)
           }
@@ -319,14 +330,14 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           const base = mode.kind === "product" ? "products" : mode.kind === "post" ? "posts" : "articles"
           const row = await api<PagePayload>(`/api/v1/builder/${base}/${mode.id}`)
           if (cancel) return
-          setDoc(isDocument(row.document) ? migrateDocument(row.document) : emptyDocument())
+          setDoc(isDocument(row.document) ? loadedDocument(row.document) : emptyDocument())
           setTitle(row.title)
           setSlug(row.slug)
           setPageId(row.id)
         } else if (mode.id !== "new") {
           const row = await api<PagePayload>(`/api/v1/builder/pages/${mode.id}`)
           if (cancel) return
-          setDoc(isDocument(row.document) ? migrateDocument(row.document) : emptyDocument())
+          setDoc(isDocument(row.document) ? loadedDocument(row.document) : emptyDocument())
           setTitle(row.title)
           setSlug(row.slug)
           setPageId(row.id)
@@ -442,6 +453,14 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     }
     const selection = findSelection(doc, selectedId)
     const at = selection?.kind === "section" ? doc.sections.findIndex((item) => item.id === selection.id) + 1 : doc.sections.length
+    if (kind === "page" && typeof part.css === "string" && part.css.trim()) {
+      const result = insertLibraryDocument(doc, part, at)
+      if (!result) { toast.error(t("import_id_conflict")); return }
+      if (!window.confirm(t("library_css_confirm"))) return
+      commit(result)
+      setSelectedId(part.sections[0]?.id ?? null)
+      return
+    }
     const sections = [...doc.sections]
     sections.splice(at < 0 ? sections.length : at, 0, ...part.sections)
     commit({ ...doc, sections })
@@ -693,6 +712,10 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   }, [canAutosave, dirty, docJson])
 
   async function save(publish: boolean, autosave = false) {
+    if (unsupportedSourceDocument.current || !isSupportedDocumentVersion(doc)) {
+      toast.error(t("unsupported_document_version"))
+      return
+    }
     if (autosave && saving) return
     const snapshot = docJson
     const outDoc = compileDocument(doc, globals.breakpoints)
@@ -1196,12 +1219,26 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                   onChange={(key, value) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, props: { ...widget.props, [key]: value } })))}
                 />
               ) : tab === "advanced" ? (
+                <>
+                <WidgetFields
+                  type={selection.widget.type}
+                  props={selection.widget.props}
+                  panel="settings"
+                  onChange={(key, value) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, props: { ...widget.props, [key]: value } })))}
+                />
                 <AdvancedFields
                   value={selection.widget.advanced ?? {}}
                   onChange={(patch) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, advanced: { ...(widget.advanced ?? {}), ...patch } })))}
                 />
+                </>
               ) : (
                 <>
+                <WidgetFields
+                  type={selection.widget.type}
+                  props={selection.widget.props}
+                  panel="design"
+                  onChange={(key, value) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, props: { ...widget.props, [key]: value } })))}
+                />
                 <DesignSystemFields
                   node={selection.widget}
                   widget={selection.widget}
@@ -1362,12 +1399,13 @@ function FieldMark({ name }: { name: string }) {
   return <Icon className="size-3.5 shrink-0 text-foreground/45" aria-hidden />
 }
 
-function WidgetFields({ type, props, onChange }: { type: string; props: Record<string, unknown>; onChange: (key: string, value: unknown) => void }) {
+function WidgetFields({ type, props, onChange, panel = "content" }: { type: string; props: Record<string, unknown>; onChange: (key: string, value: unknown) => void; panel?: "content" | "design" | "settings" }) {
   const def = widgetDef(type)
-  if (!def?.fields.length) return null
+  const fields = fieldsForPanel(def?.fields ?? [], panel)
+  if (!fields.length) return null
   return (
     <div className="grid gap-2">
-      {def.fields.map((rawField) => {
+      {fields.map((rawField) => {
         // Bounded numbers render as sliders.
         const field: FieldDef =
           rawField.kind === "number" && rawField.min !== undefined && rawField.max !== undefined && rawField.max - rawField.min <= 100
