@@ -4,80 +4,124 @@ namespace Modules\Accounting\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Services\Accounting\CashTransfer;
 use Modules\Accounting\Entities\AccCashAccount;
-use Modules\Accounting\Support\AppliesIndexQuery;
+use Modules\Accounting\Support\AccountingQuery;
 
+/**
+ * The shop's money accounts — drawer, petty cash, bank, card terminal, payment gateway.
+ *
+ * The list used to show name/IBAN and nothing else, which made the screen a phone book: a
+ * manager could not answer "how much is in this drawer right now" without opening the ledger
+ * and finding the account by hand. Each row now carries a balance derived from the journals
+ * that touched its chart account, so the balance is one query and always agrees with the
+ * trial balance by construction.
+ */
 class CashAccountController extends Controller
 {
-    use AppliesIndexQuery;
-
     public function cashAccounts(Request $request): JsonResponse
     {
-        $query = AccCashAccount::query();
+        $request->validate([
+            'type' => 'nullable|string|max:30',
+            'active_only' => 'nullable|boolean',
+        ]);
 
-        $paginator = $this->applyIndexQuery(
-            $query,
-            $request,
-            [],
-            ['name', 'bank_name', 'account_number', 'sheba'],
-            ['id', 'name', 'created_at'],
-            'name',
-            'asc',
+        $page = AccCashAccount::query()
+            ->when($request->filled('type'), fn ($q) => $q->where('type', $request->input('type')))
+            ->when($request->boolean('active_only'), fn ($q) => $q->where('is_active', true))
+            ->orderBy('name')
+            ->paginate(min((int) $request->input('per_page', 50), 100));
+
+        $balances = $this->balancesFor(
+            $page->getCollection()->pluck('chart_code')->filter()->unique()->all(),
         );
 
-        return $this->paginatedJsonResponse($paginator);
+        $page->getCollection()->transform(function (AccCashAccount $account) use ($balances): AccCashAccount {
+            $code = (string) ($account->chart_code ?? '');
+            $account->setAttribute('balance', $balances[$code] ?? 0.0);
+            // A row with no chart account cannot be reconciled; say so rather than showing
+            // a confident zero that is really "unknown".
+            $account->setAttribute('balance_known', $code !== '' && array_key_exists($code, $balances));
+
+            return $account;
+        });
+
+        return response()->json(['data' => $page]);
     }
 
-    public function show(int $id): JsonResponse
+    /** The vocabulary the screens and reports agree on. */
+    public function types(): JsonResponse
     {
-        return response()->json(['data' => AccCashAccount::query()->findOrFail($id)]);
+        return response()->json(['data' => collect(AccCashAccount::TYPES)->map(fn (string $type): array => [
+            'key' => $type,
+            'label' => AccCashAccount::TYPE_LABELS[$type] ?? $type,
+            'settled' => in_array($type, AccCashAccount::SETTLED_TYPES, true),
+        ])->all()]);
     }
 
-    public function store(Request $request): JsonResponse
+    /**
+     * Move money between the shop's own accounts.
+     *
+     * Not revenue and not an expense: both sides are asset accounts, so the entry debits the
+     * destination and credits the source for the same amount and nothing in the P&L moves.
+     */
+    public function transfer(Request $request, CashTransfer $transfers): JsonResponse
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'nullable|string|max:50',
-            'bank_name' => 'nullable|string|max:255',
-            'account_number' => 'nullable|string|max:100',
-            'sheba' => 'nullable|string|max:50',
-            'card_number' => 'nullable|string|max:50',
-            'is_active' => 'nullable|boolean',
-            'is_default' => 'nullable|boolean',
+            'from_account_id' => ['required', 'integer', 'min:1'],
+            'to_account_id' => ['required', 'integer', 'min:1'],
+            'amount_minor' => ['required', 'numeric', 'gt:0'],
+            'note' => ['nullable', 'string', 'max:255'],
+            'document_date' => ['nullable', 'date'],
+            'branch_id' => ['nullable', 'integer'],
         ]);
 
-        $row = AccCashAccount::query()->create($data + [
-            'is_active' => $data['is_active'] ?? true,
-            'is_default' => $data['is_default'] ?? false,
-        ]);
-
-        return response()->json(['data' => $row], 201);
+        return response()->json(['data' => $transfers->transfer(
+            (int) $request->user()->tenant_id,
+            (int) $data['from_account_id'],
+            (int) $data['to_account_id'],
+            (float) $data['amount_minor'],
+            $data + ['created_by' => (int) $request->user()->id],
+        )], 201);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    /**
+     * Debit-minus-credit per chart code, as a map.
+     *
+     * One grouped query for the whole page rather than a query per row: fifty accounts each
+     * summing the ledger is how a list screen ends up slower than the report it replaced.
+     *
+     * @param  list<string>  $codes
+     * @return array<string, float>
+     */
+    private function balancesFor(array $codes): array
     {
-        $row = AccCashAccount::query()->findOrFail($id);
+        if ($codes === []) {
+            return [];
+        }
 
-        $data = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'type' => 'nullable|string|max:50',
-            'bank_name' => 'nullable|string|max:255',
-            'account_number' => 'nullable|string|max:100',
-            'sheba' => 'nullable|string|max:50',
-            'card_number' => 'nullable|string|max:50',
-            'is_active' => 'sometimes|boolean',
-            'is_default' => 'sometimes|boolean',
-        ]);
+        $rows = AccountingQuery::journalLines()
+            ->join('acc_journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
+            ->join('acc_chart_accounts as a', 'jl.account_id', '=', 'a.id')
+            // A draft journal is not money yet; only posted documents move a balance.
+            ->where(function ($w): void {
+                $w->where('je.status', 'posted')->orWhereNull('je.status');
+            })
+            ->whereIn('a.code', $codes)
+            ->groupBy('a.code')
+            ->select([
+                'a.code',
+                DB::raw('SUM(jl.debit) as total_debit'),
+                DB::raw('SUM(jl.credit) as total_credit'),
+            ])
+            ->get();
 
-        $row->update($data);
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(string) $row->code] = round((float) $row->total_debit - (float) $row->total_credit, 2);
+        }
 
-        return response()->json(['data' => $row->fresh()]);
-    }
-
-    public function destroy(int $id): JsonResponse
-    {
-        AccCashAccount::query()->whereKey($id)->delete();
-
-        return response()->json([], 204);
+        return $out;
     }
 }

@@ -14,9 +14,32 @@ export const cafeManifest: ModuleManifest = {
     { path: "cafe/qr", submodule: "qr", labelKey: "nav.qr", section: "cafe", order: 28, capability: "catalog.*" },
     { path: "cafe/reservations", submodule: "reservations", labelKey: "nav.reservations", section: "cafe", order: 29, capability: "catalog.*" },
     { path: "cafe/venue", submodule: "venue", labelKey: "nav.venue", section: "cafe", order: 30, capability: "catalog.*" },
-    { path: "cafe/kitchen", submodule: "menu", page: "kitchen", labelKey: "nav.kitchen", section: "cafe", order: 31, capability: "catalog.*" },
+    // The board a cook works from. This was gated on `catalog.*`, which a cook does not hold
+    // — the API allowed `kitchen.view` through but the screen never rendered, so the one role
+    // whose entire job is this page could not open it. Any of the kitchen grants opens it, and
+    // the API still narrows the tickets to the user's assigned stations.
+    { path: "cafe/kitchen", submodule: "menu", page: "kitchen", labelKey: "nav.kitchen", section: "cafe", order: 31, capability: "kitchen.view,kitchen.station,catalog.*", menuKey: "pos" },
     { path: "cafe/inbox", submodule: "engagement", page: "inbox", labelKey: "nav.inbox", section: "cafe", order: 32, capability: "catalog.*" },
     { path: "cafe/pricing", submodule: "menu", page: "pricing", labelKey: "nav.pricing", section: "cafe", order: 33, capability: "catalog.*" },
+    // Recipes and plate cost. The menu's price is a guess until somebody knows what the dish
+    // costs, so this sits next to pricing rather than inside it.
+    { path: "cafe/recipes", submodule: "menu", page: "recipes", labelKey: "nav.recipes", section: "cafe", order: 34, capability: "catalog.*,accounting.manage" },
+    // Money reports: P&L with material cost, menu engineering, staff control, AR aging.
+    { path: "cafe/reports", submodule: "menu", page: "reports", labelKey: "nav.reports", section: "cafe", order: 35, capability: "reports.shop,accounting.manage,orders.*" },
+    // Rota, attendance, leave, contracts and payroll. A staff member can open it to clock in
+    // and see their own week; the API narrows the rest.
+    { path: "cafe/staff", submodule: "menu", page: "staff", labelKey: "nav.staff", section: "cafe", order: 36, capability: "staff.manage,users.manage,reports.shop,pos.use" },
+    // Printing hardware and routing, receipt layout, QR scan analytics, webhooks and API keys.
+    // One screen because they are the same job: connecting the shop to the outside world.
+    { path: "cafe/settings-integrations", submodule: "menu", page: "settings-integrations", labelKey: "nav.settings_integrations", section: "cafe", order: 37, capability: "settings.manage,branches.manage,reports.shop" },
+    // A café already has its price list in a spreadsheet; retyping it one dish at a time is
+    // where a migration stops. Upload, map the columns, preview, then commit.
+    { path: "cafe/menu-import", submodule: "menu", page: "menu-import", labelKey: "nav.menu_import", section: "cafe", order: 38, capability: "catalog.*" },
+    // The stock ledger: waste with a reason, transfers between stores, lots and expiry, and
+    // the shopping list built from the reorder points. Every movement posts its value.
+    { path: "cafe/stock", submodule: "menu", page: "stock", labelKey: "nav.cafe_stock", section: "cafe", order: 39, capability: "catalog.*,accounting.manage,pos.use" },
+    // Breakfast until eleven, plates from twelve: a menu with times on it.
+    { path: "cafe/serving-windows", submodule: "menu", page: "serving-windows", labelKey: "nav.cafe_serving_windows", section: "cafe", order: 40, capability: "catalog.*" },
     // Cashier till: open/close a shift, reconcile the drawer. Gated on pos.use as well so a
     // cashier account (no catalog.*) can reach it, and managers/accountants can audit it.
     { path: "cafe/pos-shift", submodule: "menu", page: "pos-shift", labelKey: "nav.pos_shift", section: "cafe", order: 34, capability: "pos.use", menuKey: "pos" },
@@ -31,6 +54,8 @@ export const cafeManifest: ModuleManifest = {
     // The shift's home screen: prioritized queue + live table map. Every counter role
     // opens this, so its gate accepts any of the operational capabilities.
     { path: "cafe/workbench", submodule: "menu", page: "workbench", labelKey: "nav.cafe_workbench", section: "cafe", order: 24, capability: "pos.use,orders.create,orders.floor,kitchen.view,catalog.*", menuKey: "pos" },
+    // The workbench ranks what to do next; this board answers "where is table six's food".
+    { path: "cafe/order-board", submodule: "menu", page: "order-board", labelKey: "nav.cafe_order_board", section: "cafe", order: 25, capability: "pos.use,orders.*,kitchen.view,reports.shop", menuKey: "pos" },
     // The till itself: type, table/guest, items with add-ons, one discount, split payment.
     // `orders.create` alone opens it because a waiter takes orders without holding a drawer.
     { path: "cafe/pos", submodule: "menu", page: "pos", labelKey: "nav.cafe_pos", section: "cafe", order: 23, capability: "pos.use,orders.create", menuKey: "pos" },

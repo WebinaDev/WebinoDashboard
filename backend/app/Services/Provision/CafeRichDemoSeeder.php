@@ -35,6 +35,10 @@ class CafeRichDemoSeeder
         bool $overwrite = false,
         ?string $brandOverride = null,
     ): array {
+        if (app()->environment('production')) {
+            throw new \RuntimeException(__('production.database_command_forbidden'));
+        }
+
         $tid = (int) $tenant->id;
         $brand = filled($brandOverride)
             ? trim((string) $brandOverride)

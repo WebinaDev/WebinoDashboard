@@ -168,6 +168,20 @@ final class OrderAmendments
             'settled_at' => now(),
         ])->save();
 
+        // The money moved, so the books must move with it. Without this the day's sales figure
+        // and the drawer disagreed by exactly the amendment, and the difference read as a
+        // cashier's shortfall.
+        try {
+            app(\App\Services\Accounting\AmendmentPosting::class)->post($amendment, (int) $actor->id);
+        } catch (\Throwable $e) {
+            // A settlement that already took money must not be rolled back by a posting failure;
+            // it is reported instead, and the amendment is still findable by its own id.
+            \Illuminate\Support\Facades\Log::warning('amendment.journal_failed', [
+                'amendment_id' => $amendment->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
         return $amendment->fresh();
     }
 

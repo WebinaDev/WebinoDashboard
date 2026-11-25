@@ -9,7 +9,7 @@ import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { DYNAMIC_TAGS, isDynamic, type DynamicBinding, type DynamicKind } from "../dynamic"
 import { COLOR_TOKENS } from "../globals"
-import { parseRows, rowsToLines, toLocalInput } from "../props"
+import { editRepeater, repeaterRows, toLocalInput } from "../props"
 import { WIcon } from "../render/extra-widgets"
 import type { FieldDef, RepeaterSubField } from "../types"
 
@@ -87,40 +87,47 @@ function SubField({ field, value, onChange }: { field: RepeaterSubField; value: 
   return <input className={input} dir={field.kind === "url" ? "ltr" : undefined} value={value} onChange={(event) => onChange(event.target.value)} />
 }
 
-/** Repeater: edits rows and stores them in the legacy `a|b|c` line format so existing renderers keep working. */
-export function RepeaterInput({ value, fields, onChange }: { value: unknown; fields: RepeaterSubField[]; onChange: (value: string) => void }) {
+export function RepeaterInput({ value, fields, onChange }: { value: unknown; fields: RepeaterSubField[]; onChange: (value: unknown) => void }) {
   const t = useTranslations("builder")
+  const [pendingRow, setPendingRow] = useState(false)
+  const [pendingValue, setPendingValue] = useState("")
   const keys = fields.map((field) => field.key)
-  const rows = parseRows(value, keys)
-  const write = (next: Record<string, string>[]) => onChange(rowsToLines(next, keys))
-  const move = (index: number, delta: number) => {
-    const target = index + delta
-    if (target < 0 || target >= rows.length) return
-    const next = [...rows]
-    ;[next[index], next[target]] = [next[target], next[index]]
-    write(next)
+  const rows = repeaterRows(value, keys)
+  const showPendingRow = pendingRow && keys.length === 1 && !Array.isArray(value)
+  const visibleRows = showPendingRow ? [...rows, { [keys[0]]: pendingValue }] : rows
+  const move = (index: number, delta: number) => onChange(editRepeater(value, keys, { kind: "move", index, delta }))
+  const setField = (index: number, key: string, next: string) => {
+    if (showPendingRow && index === rows.length) {
+      setPendingValue(next)
+      if (!next.trim()) return
+      onChange(editRepeater(value, keys, { kind: "add", initial: { [key]: next } }))
+      setPendingRow(false)
+      setPendingValue("")
+      return
+    }
+    onChange(editRepeater(value, keys, { kind: "set", index, key, value: next }))
   }
   return (
     <div className="grid gap-2">
-      {rows.map((row, index) => (
+      {visibleRows.map((row, index) => (
         <div key={index} className="grid gap-1 rounded-lg border border-border bg-card p-2">
           <div className="flex items-center justify-between text-[11px] text-foreground/60">
             <span>#{index + 1}</span>
             <span className="flex gap-1">
-              <button type="button" aria-label={t("move_up")} onClick={() => move(index, -1)}><ArrowUp className="size-3.5" /></button>
-              <button type="button" aria-label={t("move_down")} onClick={() => move(index, 1)}><ArrowDown className="size-3.5" /></button>
-              <button type="button" aria-label={t("delete")} onClick={() => write(rows.filter((_, i) => i !== index))}><Trash2 className="size-3.5 text-red-500" /></button>
+              <button type="button" aria-label={t("move_up")} disabled={showPendingRow && index === rows.length} onClick={() => move(index, -1)}><ArrowUp className="size-3.5" /></button>
+              <button type="button" aria-label={t("move_down")} disabled={showPendingRow && index === rows.length} onClick={() => move(index, 1)}><ArrowDown className="size-3.5" /></button>
+              <button type="button" aria-label={t("delete")} onClick={() => { if (showPendingRow && index === rows.length) { setPendingRow(false); setPendingValue("") } else onChange(editRepeater(value, keys, { kind: "delete", index })) }}><Trash2 className="size-3.5 text-red-500" /></button>
             </span>
           </div>
           {fields.map((field) => (
             <label key={field.key} className="grid gap-0.5 text-[11px]">
               {field.label}
-              <SubField field={field} value={row[field.key] ?? ""} onChange={(v) => write(rows.map((r, i) => (i === index ? { ...r, [field.key]: v } : r)))} />
+              <SubField field={field} value={row[field.key] ?? ""} onChange={(v) => setField(index, field.key, v)} />
             </label>
           ))}
         </div>
       ))}
-      <button type="button" className="flex items-center justify-center gap-1 rounded-md border border-dashed py-1.5 text-xs" onClick={() => write([...rows, Object.fromEntries(keys.map((key) => [key, ""]))])}>
+      <button type="button" disabled={showPendingRow} className="flex items-center justify-center gap-1 rounded-md border border-dashed py-1.5 text-xs" onClick={() => keys.length === 1 && !Array.isArray(value) ? setPendingRow(true) : onChange(editRepeater(value, keys, { kind: "add" }))}>
         <Plus className="size-3.5" aria-hidden />
         {t("repeater_add")}
       </button>
@@ -152,7 +159,7 @@ export function ExtendedField({ field, props, onChange }: { field: FieldDef; pro
         </div>
       )
     case "slider": {
-      const num = typeof value === "number" ? value : field.min
+      const num = typeof value === "number" ? value : field.defaultValue ?? field.min
       return (
         <div className="flex items-center gap-2">
           <input type="range" className="min-w-0 flex-1 accent-primary" min={field.min} max={field.max} step={field.step ?? 1} value={num} onChange={(event) => onChange(field.key, Number(event.target.value))} />

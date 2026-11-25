@@ -268,6 +268,9 @@ final class OrderAccountingSync
             'description' => $desc,
             'status' => 'posted',
             'source' => 'order',
+            // The order knows which branch sold it; the journal follows, so a branch P&L is
+            // possible at all.
+            'branch_id' => $order->branch_id === null ? null : (int) $order->branch_id,
             'total_debit_minor' => 0,
             'total_credit_minor' => 0,
         ];

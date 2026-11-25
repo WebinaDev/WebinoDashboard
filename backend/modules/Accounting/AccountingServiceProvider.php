@@ -17,23 +17,13 @@ use Illuminate\Support\ServiceProvider;
  *    Laravel matches the first registered route. The ERP module is therefore mounted at
  *    `/api/v1/erp-accounting` and keeps its own `acc_*` tables; the two ledgers coexist.
  *
- *    The prefix below omits the leading `/api` because `bootstrap/app.php` registers
- *    `routes/api.php` through `withRouting(api: …)`, which already applies it. These
- *    routes are registered by this provider, not by that file, but `api` is still in
- *    the middleware list so the group behaves identically to the rest of the API.
- *
- * 2. **Middleware.** The ERP uses `module:accounting` + `module.permission:accounting`.
+ * 2. **Middleware.** The ERP uses `module:erp-accounting` + `module.permission:accounting`.
+ *    `module:accounting` resolves to the commerce till ledger (`commerce.accounting`),
+ *    which is a different switch - gating the ERP on it 403'd every ERP call.
  *    `module:` exists here ({@see \App\Http\Middleware\EnsureModuleEnabled}); the
  *    finer-grained `module.permission` alias does not, so the capability check uses the
  *    existing `can:` middleware with this codebase's `accounting.manage` capability —
  *    the same capability the current accounting routes already require.
- *
- *    The module parameter is `erp-accounting`, not `accounting`: in this application
- *    `module:accounting` is the commerce till ledger's alias
- *    ({@see \App\Kernel\ModuleAliasMap}), so using it here gated the ERP ledger on
- *    `commerce.accounting` — a row backfilled with `enabled=false` — and every ERP
- *    call answered 403 MODULE_NOT_ACTIVE. `module:erp-accounting` resolves to this
- *    module's own `accounting.dashboard` submodule instead.
  *
  * 3. **No licensing.** The ERP module ships licence-check and module-clone endpoints
  *    that talk to its Core module. This application has no Core licence system, so those
@@ -42,7 +32,7 @@ use Illuminate\Support\ServiceProvider;
  */
 class AccountingServiceProvider extends ServiceProvider
 {
-    private const ROUTE_PREFIX = 'v1/erp-accounting';
+    private const ROUTE_PREFIX = 'api/v1/erp-accounting';
 
     public function boot(): void
     {
@@ -53,7 +43,7 @@ class AccountingServiceProvider extends ServiceProvider
             ->group(__DIR__.'/Routes/api.php');
 
         // Warehouse/product parity API consumed by the ERP-era dashboard clients.
-        Route::prefix('webinocrm/v1')
+        Route::prefix('api/webinocrm/v1')
             ->middleware(['api', 'auth:sanctum', 'module:erp-accounting', 'can:accounting.manage'])
             ->group(__DIR__.'/Routes/webinocrm-v1.php');
     }

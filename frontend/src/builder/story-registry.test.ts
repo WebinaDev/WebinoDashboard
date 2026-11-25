@@ -14,6 +14,9 @@ describe("story-strip compatibility", () => {
     assert.equal(props.layout, "rings")
     const fields = matches[0].fields.map((field) => field.key)
     for (const key of ["title", "limit", "variant", "layout", "tone"]) assert.ok(fields.includes(key))
+    assert.equal(matches[0].fields.find((field) => field.key === "tone")?.panel, "design")
+    assert.equal(matches[0].fields.find((field) => field.key === "layout")?.panel, "design")
+    assert.equal(matches[0].fields.find((field) => field.key === "limit")?.panel, "settings")
   })
   it("preserves existing story settings while importing legacy documents", () => {
     const props = { title: "Example", limit: 3, variant: "poetry", layout: "carousel", tone: "glass" }

@@ -63,6 +63,9 @@ return [
     'pos.settle' => 'pos.settle',
     // Ask for an edit to a paid invoice. Approving it is `accounting.approve`.
     'orders.amend' => 'orders.amend',
+    // Build the rota, decide leave, run payroll. A staff member clocks in and sees their own
+    // week without it.
+    'staff.manage' => 'staff.manage',
 
     /** Wildcard granting all capabilities (admin only). */
     'all' => '*',
@@ -97,6 +100,7 @@ return [
         'reports.shop',
         'reports.financial',
         'activity.view',
+        'staff.manage',
         'content.manage',
         'account.portal',
         'partner.portal',
@@ -200,6 +204,7 @@ return [
             'reports.shop',
             'reports.*',
             'users.manage',
+            'staff.manage',
             'activity.view',
             'branches.manage',
         ],
@@ -209,6 +214,7 @@ return [
             'reports.shop',
             'reports.financial',
             'reports.*',
+            'staff.manage',
             'activity.view',
         ],
         'owner' => [
@@ -242,7 +248,7 @@ return [
 
     'route_prefixes' => [
         'api/v1/customers' => 'users.manage',
-        'api/v1/staff' => 'users.manage',
+        'api/v1/staff' => 'staff.manage',
         'api/v1/roles' => 'rbac.manage',
         'api/v1/accounting' => 'accounting.manage',
         'api/v1/products/pos-search' => 'pos.use',

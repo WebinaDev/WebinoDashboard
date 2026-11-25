@@ -35,6 +35,7 @@ class AccountingWpActionController extends Controller
         'cash_accounts_list', 'cash_account_get', 'cash_account_save', 'cash_account_delete',
         'receipt_voucher_list', 'receipt_voucher_get', 'receipt_voucher_save',
         'receipt_voucher_post', 'receipt_voucher_delete', 'receipt_voucher_next_number',
+        'receipt_save', 'receipt_post', 'receipt_delete', 'receipt_next_number',
         'check_list', 'check_get', 'check_save', 'check_delete', 'check_set_status',
     ];
 
@@ -48,7 +49,7 @@ class AccountingWpActionController extends Controller
             return response()->json([
                 'error' => [
                     'code' => 'UNKNOWN_ACCOUNTING_ACTION',
-                    'message' => __('messages.unknown_webinocrm_accounting_action').$action,
+                    'message' => __('api.unknown_webinocrm_accounting_action').$action,
                 ],
             ], 404);
         }
@@ -56,7 +57,7 @@ class AccountingWpActionController extends Controller
         try {
             $data = $this->wpActions->handle($action, $request);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['message' => __('messages.validation_failed'), 'errors' => $e->errors()], 422);
+            return response()->json(['message' => __('api.validation_failed'), 'errors' => $e->errors()], 422);
         }
 
         return response()->json(['data' => $data]);

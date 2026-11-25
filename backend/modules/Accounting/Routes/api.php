@@ -5,9 +5,12 @@ use Modules\Accounting\Http\Controllers\AccInvoiceController;
 use Modules\Accounting\Http\Controllers\AccountingDashboardController;
 use Modules\Accounting\Http\Controllers\AccountingSettingsController;
 use Modules\Accounting\Http\Controllers\AccountingWpActionController;
+use Modules\Accounting\Http\Controllers\BankReconciliationController;
 use Modules\Accounting\Http\Controllers\CashAccountController;
 use Modules\Accounting\Http\Controllers\ChartAccountController;
+use Modules\Accounting\Http\Controllers\ChequeBookController;
 use Modules\Accounting\Http\Controllers\CheckController;
+use App\Http\Controllers\Api\V1\ExpenseController;
 use Modules\Accounting\Http\Controllers\FinancialReportsController;
 use Modules\Accounting\Http\Controllers\FiscalYearController;
 use Modules\Accounting\Http\Controllers\JournalController;
@@ -16,106 +19,84 @@ use Modules\Accounting\Http\Controllers\PersonController;
 use Modules\Accounting\Http\Controllers\ProductController;
 use Modules\Accounting\Http\Controllers\ReceiptController;
 use Modules\Accounting\Http\Controllers\WarehouseAjaxParityController;
-use Modules\Accounting\Http\Controllers\WarehouseController;
 use Modules\Accounting\Http\Controllers\WarehouseReadController;
 
 /*
 |--------------------------------------------------------------------------
-| API — /api/v1/erp-accounting (full double-entry ledger, acc_* tables)
+| API — /api/v1/accounting (parity with webinocrm-dashboard accounting pages)
 |--------------------------------------------------------------------------
-|
-| REST surface: every resource has index/show/store/update/destroy. The
-| WordPress-parity `wp-action/*` and `warehouse-ajax/*` endpoints below are kept
-| for the ported dashboard pages, which mutate through them.
 */
 
 Route::get('/summary', [AccountingDashboardController::class, 'summary']);
 Route::get('/dashboard', [AccountingDashboardController::class, 'summary']);
 
-// Fiscal years
 Route::get('/fiscal-years', [FiscalYearController::class, 'index']);
-Route::get('/fiscal-years/{id}', [FiscalYearController::class, 'show'])->whereNumber('id');
-Route::post('/fiscal-years', [FiscalYearController::class, 'store']);
-Route::patch('/fiscal-years/{id}', [FiscalYearController::class, 'update'])->whereNumber('id');
-Route::delete('/fiscal-years/{id}', [FiscalYearController::class, 'destroy'])->whereNumber('id');
-
-// Journals
 Route::get('/journals', [JournalController::class, 'index']);
-Route::get('/journals/{id}', [JournalController::class, 'show'])->whereNumber('id');
-Route::post('/journals', [JournalController::class, 'store']);
-Route::patch('/journals/{id}', [JournalController::class, 'update'])->whereNumber('id');
-Route::post('/journals/{id}/post', [JournalController::class, 'post'])->whereNumber('id');
-Route::delete('/journals/{id}', [JournalController::class, 'destroy'])->whereNumber('id');
 
-// Persons
 Route::get('/persons', [PersonController::class, 'index']);
-Route::get('/persons/{id}', [PersonController::class, 'show'])->whereNumber('id');
-Route::post('/persons', [PersonController::class, 'store']);
-Route::patch('/persons/{id}', [PersonController::class, 'update'])->whereNumber('id');
-Route::delete('/persons/{id}', [PersonController::class, 'destroy'])->whereNumber('id');
-
-// Products
 Route::get('/products', [ProductController::class, 'index']);
-Route::get('/products/{id}', [ProductController::class, 'show'])->whereNumber('id');
-Route::post('/products', [ProductController::class, 'store']);
-Route::patch('/products/{id}', [ProductController::class, 'update'])->whereNumber('id');
-Route::delete('/products/{id}', [ProductController::class, 'destroy'])->whereNumber('id');
-
-// Invoices
 Route::get('/invoices', [AccInvoiceController::class, 'invoices']);
-Route::get('/invoices/next-number', [AccInvoiceController::class, 'nextInvoiceNumber']);
-Route::get('/invoices/{id}', [AccInvoiceController::class, 'show'])->whereNumber('id');
-Route::post('/invoices', [AccInvoiceController::class, 'store']);
-Route::patch('/invoices/{id}', [AccInvoiceController::class, 'update'])->whereNumber('id');
-Route::delete('/invoices/{id}', [AccInvoiceController::class, 'destroy'])->whereNumber('id');
-Route::post('/invoices/{id}/confirm', [AccInvoiceController::class, 'confirmInvoice'])->whereNumber('id');
-
-// Cash accounts
 Route::get('/cash-accounts', [CashAccountController::class, 'cashAccounts']);
-Route::get('/cash-accounts/{id}', [CashAccountController::class, 'show'])->whereNumber('id');
-Route::post('/cash-accounts', [CashAccountController::class, 'store']);
-Route::patch('/cash-accounts/{id}', [CashAccountController::class, 'update'])->whereNumber('id');
-Route::delete('/cash-accounts/{id}', [CashAccountController::class, 'destroy'])->whereNumber('id');
-
-// Receipts
+Route::get('/cash-account-types', [CashAccountController::class, 'types']);
+// Moving money between the shop's own accounts: the operation every shop performs weekly and
+// previously had to fake with two manual journals, where a wrong code turns a transfer into a sale.
+Route::post('/cash-accounts/transfer', [CashAccountController::class, 'transfer']);
+// The reconciliation engine had no caller for months. This is the caller.
+Route::post('/cash-accounts/reconcile', [BankReconciliationController::class, 'reconcile']);
 Route::get('/receipts', [ReceiptController::class, 'receipts']);
-Route::get('/receipts/{id}', [ReceiptController::class, 'show'])->whereNumber('id');
-Route::post('/receipts', [ReceiptController::class, 'store']);
-Route::patch('/receipts/{id}', [ReceiptController::class, 'update'])->whereNumber('id');
-Route::delete('/receipts/{id}', [ReceiptController::class, 'destroy'])->whereNumber('id');
-Route::post('/receipts/{id}/post', [ReceiptController::class, 'postReceipt'])->whereNumber('id');
-
-// Checks
 Route::get('/checks', [CheckController::class, 'checks']);
-Route::get('/checks/{id}', [CheckController::class, 'show'])->whereNumber('id');
-Route::post('/checks', [CheckController::class, 'store']);
-Route::patch('/checks/{id}', [CheckController::class, 'update'])->whereNumber('id');
-Route::delete('/checks/{id}', [CheckController::class, 'destroy'])->whereNumber('id');
-Route::post('/checks/{id}/set-status', [CheckController::class, 'setCheckStatus'])->whereNumber('id');
-
-// Chart of accounts
 Route::get('/chart', [ChartAccountController::class, 'chartOfAccounts']);
 Route::post('/chart/seed', [ChartAccountController::class, 'seedChartIran']);
 Route::post('/chart', [ChartAccountController::class, 'storeChartAccount']);
 Route::patch('/chart/{id}', [ChartAccountController::class, 'updateChartAccount'])->whereNumber('id');
 Route::delete('/chart/{id}', [ChartAccountController::class, 'destroyChartAccount'])->whereNumber('id');
-
-// Settings + user defaults
-Route::get('/settings', [AccountingSettingsController::class, 'settings']);
-Route::put('/settings', [AccountingSettingsController::class, 'settingsUpdate']);
 Route::get('/user-defaults', [AccountingSettingsController::class, 'userDefaults']);
 Route::put('/user-defaults', [AccountingSettingsController::class, 'userDefaultsPut']);
+Route::get('/invoices/next-number', [AccInvoiceController::class, 'nextInvoiceNumber']);
+Route::post('/invoices/{id}/confirm', [AccInvoiceController::class, 'confirmInvoice'])->whereNumber('id');
+Route::post('/receipts/{id}/post', [ReceiptController::class, 'postReceipt'])->whereNumber('id');
+Route::post('/checks', [CheckController::class, 'store']);
+Route::post('/checks/{id}/set-status', [CheckController::class, 'setCheckStatus'])->whereNumber('id');
 
-// Ledger + reports
+// Cheque books: the printed serial range, which leaf was written on, and what is missing.
+Route::get('/cheque-books', [ChequeBookController::class, 'index']);
+Route::post('/cheque-books', [ChequeBookController::class, 'store']);
+Route::post('/cheque-books/{id}/issue', [ChequeBookController::class, 'issue'])->whereNumber('id');
+Route::post('/cheque-books/{id}/leaves/{leaf}/spoil', [ChequeBookController::class, 'spoil'])->whereNumber('id')->whereNumber('leaf');
+Route::get('/cheque-books/{id}/reconcile', [ChequeBookController::class, 'reconcile'])->whereNumber('id');
 Route::get('/ledger', [LedgerController::class, 'ledger']);
-Route::get('/reports', [FinancialReportsController::class, 'financialReports']);
 
-// Warehouses (REST CRUD; document flows stay on warehouse-ajax below)
-Route::get('/warehouses', [WarehouseController::class, 'index']);
-Route::get('/warehouses/{id}', [WarehouseController::class, 'show'])->whereNumber('id');
-Route::post('/warehouses', [WarehouseController::class, 'store']);
-Route::patch('/warehouses/{id}', [WarehouseController::class, 'update'])->whereNumber('id');
-Route::delete('/warehouses/{id}', [WarehouseController::class, 'destroy'])->whereNumber('id');
+// Expenses, supplier bills and party credit: the three things that previously could only be
+// expressed by hand-writing a journal.
+Route::get('/expenses', [ExpenseController::class, 'index']);
+Route::get('/expense-categories', [ExpenseController::class, 'categories']);
+Route::post('/expenses', [ExpenseController::class, 'store']);
+Route::get('/supplier-bills', [ExpenseController::class, 'bills']);
+Route::post('/supplier-bills', [ExpenseController::class, 'storeBill']);
+Route::post('/supplier-bills/{id}/pay', [ExpenseController::class, 'payBill'])->whereNumber('id');
+Route::get('/parties', [ExpenseController::class, 'parties']);
+Route::get('/parties/{id}/statement', [ExpenseController::class, 'statement'])->whereNumber('id');
+Route::patch('/parties/{id}', [ExpenseController::class, 'updateParty'])->whereNumber('id');
+
+// The oven and the espresso machine: bought, written down over their life, and eventually sold.
+Route::get('/fixed-assets', [ExpenseController::class, 'assets']);
+Route::post('/fixed-assets', [ExpenseController::class, 'storeAsset']);
+Route::post('/fixed-assets/depreciate', [ExpenseController::class, 'depreciate']);
+Route::post('/fixed-assets/{id}/dispose', [ExpenseController::class, 'disposeAsset'])->whereNumber('id');
+
+// Treasury: where the money is now, where it went, and what is due out of the bank.
+Route::get('/treasury/accounts', [\App\Http\Controllers\Api\V1\TreasuryController::class, 'accounts']);
+Route::get('/treasury/cash-flow', [\App\Http\Controllers\Api\V1\TreasuryController::class, 'cashFlow']);
+Route::get('/treasury/forecast', [\App\Http\Controllers\Api\V1\TreasuryController::class, 'forecast']);
+
+Route::get('/reports', [FinancialReportsController::class, 'financialReports']);
+// An accountant needs the file, not just the screen: month-end packs go to auditors and banks.
+Route::get('/reports/export', [FinancialReportsController::class, 'export']);
+// A print view, not a print button: the dashboard's dialog prints the sidebar too.
+Route::get('/reports/print', [FinancialReportsController::class, 'printable']);
+Route::get('/settings', [AccountingSettingsController::class, 'settings']);
+
+Route::get('/warehouses', [WarehouseReadController::class, 'warehouses']);
 Route::get('/warehouse-stock', [WarehouseReadController::class, 'warehouseStock']);
 Route::get('/warehouse-inbound', [WarehouseReadController::class, 'warehouseInbound']);
 Route::get('/warehouse-outbound', [WarehouseReadController::class, 'warehouseOutbound']);

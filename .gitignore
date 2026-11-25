@@ -11,3 +11,7 @@ frontend/.next
 frontend/tsconfig.tsbuildinfo
 backend/vendor
 backend/.phpunit.cache
+
+# Edge print agent: local config holds a token; the spool holds unsent jobs.
+edge/printer-agent/config.json
+edge/printer-agent/spool/

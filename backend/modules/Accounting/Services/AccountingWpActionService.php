@@ -4,6 +4,7 @@ namespace Modules\Accounting\Services;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Modules\Accounting\Database\Seeders\AccChartIranSeeder;
 use Modules\Accounting\Entities\AccCashAccount;
 use Modules\Accounting\Entities\AccChartAccount;
 use Modules\Accounting\Entities\AccCheck;
@@ -95,12 +96,24 @@ class AccountingWpActionService
             'receipt_voucher_post' => $this->receiptPost($p),
             'receipt_voucher_delete' => $this->receiptDelete($p),
             'receipt_voucher_next_number' => $this->receiptNextNumber($p),
+            // The dashboard screen calls these shorter names. They used to fall through to
+            // the catch-all below and return `ok: true` without writing anything, so a
+            // cashier's receipt vanished with a success toast. Kept as explicit aliases
+            // rather than a prefix match: the two vocabularies must stay greppable.
+            'receipt_save' => $this->receiptSave($p, $request),
+            'receipt_post' => $this->receiptPost($p),
+            'receipt_delete' => $this->receiptDelete($p),
+            'receipt_next_number' => $this->receiptNextNumber($p),
             'check_list' => ['items' => AccCheck::query()->orderByDesc('id')->limit(200)->get()->all(), 'total' => AccCheck::query()->count()],
             'check_get' => ['check' => AccCheck::query()->find($p['id'] ?? 0)],
             'check_save' => $this->checkSave($p, $request),
             'check_delete' => $this->checkDelete($p),
             'check_set_status' => $this->checkSetStatus($p),
-            default => ['ok' => true],
+            // Deliberately no `default => ['ok' => true]`. A successful-looking reply for an
+            // action nobody implemented is how the receipt form above saved nothing for
+            // months. The controller validates the action list first, so reaching here with
+            // an unknown key is a programming error and must be loud.
+            default => throw new \InvalidArgumentException('Unknown accounting action ['.$action.'].'),
         };
     }
 
@@ -224,20 +237,93 @@ class AccountingWpActionService
         });
     }
 
+    /**
+     * Delete a draft. A posted entry is not deletable: it is a record of something that
+     * happened, and removing it would silently change every report that already counted it.
+     */
     private function journalDelete(array $p): array
     {
         $id = (int) ($p['id'] ?? 0);
+
         if ($id) {
-            AccJournalEntry::query()->whereKey($id)->delete();
+            $entry = AccJournalEntry::query()->findOrFail($id);
+
+            if ((string) $entry->status === 'posted') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'id' => ['سند ثبت‌شده حذف نمی‌شود؛ برای اصلاح، سند اصلاحی بزنید.'],
+                ]);
+            }
+
+            $entry->delete();
         }
 
         return ['ok' => true];
     }
 
+    /**
+     * Post a draft entry — after checking it is a journal and not a list of numbers.
+     *
+     * Posting used to be a status flip. A draft with one line, or with 500 debit and 400 credit,
+     * posted happily and then sat in the trial balance as an imbalance that no report could
+     * explain, because nothing had ever refused it. An entry that cannot balance is rejected
+     * here, while a person is still looking at it.
+     *
+     * Drafts are editable (`journal_save` replaces their lines); posted entries are not, because
+     * the alternative is a posted figure that means something different tomorrow.
+     */
     private function journalPost(array $p): array
     {
         $id = (int) ($p['id'] ?? 0);
         $entry = AccJournalEntry::query()->findOrFail($id);
+
+        if ((string) $entry->status === 'posted') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'id' => ['این سند قبلاً ثبت شده است.'],
+            ]);
+        }
+
+        $lines = AccJournalLine::query()->where('journal_entry_id', $entry->id)->get();
+
+        if ($lines->count() < 2) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'lines' => ['سند باید حداقل دو ردیف داشته باشد.'],
+            ]);
+        }
+
+        $debit = 0.0;
+        $credit = 0.0;
+
+        foreach ($lines as $line) {
+            $dr = (float) $line->debit;
+            $cr = (float) $line->credit;
+
+            // One line, one side. A line that is both is a typo that always balances wrongly.
+            if ($dr > 0.0 && $cr > 0.0) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'lines' => ['هر ردیف یا بدهکار است یا بستانکار، نه هر دو.'],
+                ]);
+            }
+
+            $debit += $dr;
+            $credit += $cr;
+        }
+
+        if (abs($debit - $credit) > 0.01) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'lines' => [sprintf(
+                    'سند ناتراز است: بدهکار %s، بستانکار %s.',
+                    number_format($debit, 2),
+                    number_format($credit, 2),
+                )],
+            ]);
+        }
+
+        if ($debit <= 0.0) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'lines' => ['سند بدون مبلغ را نمی‌توان ثبت کرد.'],
+            ]);
+        }
+
         $entry->update(['status' => 'posted']);
 
         return ['ok' => true, 'posted' => true, 'entry' => $entry->fresh('lines')];
@@ -366,12 +452,17 @@ class AccountingWpActionService
 
     private function seedChart(): array
     {
-        // Full Iranian chart (with 111/113/401), not just the five roots: invoice
-        // confirm and receipt posting need the postable accounts, and seeding only
-        // roots left every fresh tenant unable to post its first document.
-        $result = \Modules\Accounting\Database\Seeders\AccChartIranSeeder::run();
+        if (AccChartAccount::query()->exists()) {
+            return ['count' => 0, 'message' => __('api.chart_already_seeded')];
+        }
 
-        return ['count' => $result['inserted'], 'inserted' => $result['inserted'], 'skipped' => $result['skipped']];
+        // The full Iranian chart, not five bare roots: confirming an invoice posts to the
+        // postable accounts 113 (receivables) and 401 (sales), and a five-root chart has
+        // neither, so the seed button used to leave the ledger unusable. The seeder is
+        // tenant-scoped and skips codes that already exist.
+        $result = AccChartIranSeeder::run();
+
+        return ['count' => $result['inserted'], 'skipped' => $result['skipped']];
     }
 
     private function personSave(array $p, Request $request): array
@@ -510,6 +601,7 @@ class AccountingWpActionService
             'account_number' => 'nullable|string|max:100',
             'sheba' => 'nullable|string|max:30',
             'card_number' => 'nullable|string|max:30',
+            'chart_code' => 'nullable|string|max:32',
             'is_active' => 'nullable|boolean',
             'is_default' => 'nullable|boolean',
         ])->validate();
@@ -534,18 +626,41 @@ class AccountingWpActionService
         return ['ok' => true];
     }
 
+    /**
+     * Create or edit a receipt/payment voucher.
+     *
+     * The dashboard form speaks `date` and stores a single `amount`; the table speaks
+     * `document_date`. Both are accepted here and normalised, because a form field name is
+     * not a good reason for a save to fail validation silently.
+     *
+     * `type` decides the direction: `receipt` (money in from a customer) or `payment`
+     * (money out to a supplier/staff). A posted voucher is immutable — editing it would let
+     * a settled amount change after the journal was cut.
+     */
     private function receiptSave(array $p, Request $request): array
     {
+        $p['type'] = in_array(($p['type'] ?? ''), ['receipt', 'payment'], true) ? $p['type'] : 'receipt';
+        // The form posts `date`; the column is `document_date`.
+        if (! array_key_exists('document_date', $p) && array_key_exists('date', $p)) {
+            $p['document_date'] = $p['date'];
+        }
+        // A till sends an empty string for "no person / no cash account".
+        foreach (['person_id', 'cash_account_id', 'fiscal_year_id'] as $key) {
+            if (($p[$key] ?? null) === '') {
+                $p[$key] = null;
+            }
+        }
+
         $data = validator($p, [
             'id' => ['nullable', ExistsForTenant::in('acc_receipt_vouchers')],
-            'type' => 'nullable|string|max:30',
+            'type' => 'required|string|in:receipt,payment',
             'number' => 'nullable|string|max:50',
             'fiscal_year_id' => ['nullable', ExistsForTenant::in('acc_fiscal_years')],
             'cash_account_id' => ['nullable', ExistsForTenant::in('acc_cash_accounts')],
             'person_id' => ['nullable', ExistsForTenant::in('acc_persons')],
-            'amount' => 'nullable|numeric',
+            'amount' => 'required|numeric|min:0.01',
             'document_date' => 'nullable|date',
-            'status' => 'nullable|string|max:30',
+            'status' => 'nullable|string|in:draft,posted,cancelled',
             'description' => 'nullable|string',
         ])->validate();
 
@@ -553,21 +668,36 @@ class AccountingWpActionService
 
         if (! empty($data['id'])) {
             $row = AccReceiptVoucher::query()->findOrFail($data['id']);
+            if ($row->status === 'posted') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'id' => __('api.already_posted'),
+                ]);
+            }
             $row->update(collect($data)->except('id')->all());
         } else {
             $row = AccReceiptVoucher::query()->create(collect($data)->except('id')->all());
         }
 
-        return ['voucher' => $row->fresh()];
+        return ['voucher' => $row->fresh(['cashAccount', 'person'])];
     }
 
+    /**
+     * Post a voucher to the ledger.
+     *
+     * Until this existed `post` only flipped `status = posted` and cut no journal, so the
+     * voucher list showed money the books had never seen. The journal is built from the
+     * tenant's account coding (`AccountCoding`), not from hard-coded 111/113, and it is
+     * refused when the amount is zero or the voucher has already moved the ledger once.
+     */
     private function receiptPost(array $p): array
     {
         $id = (int) ($p['id'] ?? 0);
         $row = AccReceiptVoucher::query()->findOrFail($id);
-        $row->update(['status' => 'posted']);
 
-        return ['voucher' => $row];
+        $ledger = app(\Modules\Accounting\Services\LedgerPosting::class);
+        $journal = $ledger->postVoucher($row);
+
+        return ['voucher' => $row->fresh(['cashAccount', 'person']), 'journal' => $journal];
     }
 
     private function receiptDelete(array $p): array
@@ -622,16 +752,31 @@ class AccountingWpActionService
         return ['ok' => true];
     }
 
+    /**
+     * A status change posts the movement it implies, so a bounced cheque reopens the debt.
+     *
+     * The old version flipped the column and nothing else, which left the bank balance claiming
+     * money the bank had already handed back.
+     */
     private function checkSetStatus(array $p): array
     {
         $data = validator($p, [
             'id' => ['required', ExistsForTenant::in('acc_checks')],
-            'status' => 'required|string|max:30',
+            'status' => ['required', 'string', 'in:issued,deposited,cleared,bounced,returned,pending,collected,spent,cancelled'],
+            'note' => ['nullable', 'string', 'max:255'],
         ])->validate();
-        $row = AccCheck::query()->findOrFail($data['id']);
-        $row->update(['status' => $data['status']]);
 
-        return ['check' => $row];
+        $row = AccCheck::query()->findOrFail($data['id']);
+
+        $updated = app(\App\Services\Accounting\ChequeLedger::class)->setStatus(
+            (int) $row->tenant_id,
+            (int) $row->id,
+            (string) $data['status'],
+            isset($data['note']) ? (string) $data['note'] : null,
+            auth()->id(),
+        );
+
+        return ['check' => $updated];
     }
 
     private function invoiceGet(array $p): array

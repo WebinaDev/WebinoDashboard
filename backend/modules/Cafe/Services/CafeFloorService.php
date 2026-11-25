@@ -29,6 +29,16 @@ class CafeFloorService
         'completed',
     ];
 
+    /**
+     * How long a table may sit with nothing left to serve before it counts as late.
+     *
+     * A café table that finished eating twenty minutes ago is normal; one that finished an hour
+     * and a half ago is a table nobody is watching. The threshold is a constant rather than a
+     * column because it is a judgement about cafés, not a setting each shop should have to tune
+     * before the board means anything.
+     */
+    public const OVERDUE_AFTER_MINUTES = 90;
+
     /** Orders that must be ignored entirely. */
     public const DEAD_ORDER_STATUSES = [
         'pending_payment',
@@ -51,6 +61,9 @@ class CafeFloorService
             ->where('tenant_id', $tenantId)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->with('branch:id,name_fa,name_en,slug')
+            // Ordered by room first, so the board's grid follows the building rather than the
+            // alphabet: a waiter walks one hall at a time.
+            ->orderBy('area')
             ->orderBy('sort_order')
             ->orderBy('code')
             ->get();
@@ -108,12 +121,20 @@ class CafeFloorService
         $latest = $openOrders->sortByDesc('created_at')->first();
 
         $stored = (string) ($table->status ?: CafeTable::STATUS_FREE);
-        $derived = $this->deriveStatus($stored, $openOrders);
+        $seatedMinutes = $this->seatedMinutes($openOrders, $table);
+        // What the till is still owed at this table. Shown next to the open total because the
+        // two are different numbers the moment part of a bill has been paid.
+        $unsettledMinor = (int) $openOrders
+            ->filter(fn (Order $order) => $this->isUnsettled($order))
+            ->sum(fn (Order $order) => (int) $order->total_minor);
+        $derived = $this->deriveStatus($stored, $openOrders, $seatedMinutes);
 
         return [
             'id' => $table->id,
             'code' => (string) $table->code,
             'label' => $table->label,
+            // Grouping the board by room is what makes a twenty-table floor readable.
+            'area' => $table->area,
             'seats' => (int) $table->seats,
             'is_active' => (bool) $table->is_active,
             'status' => $derived,
@@ -124,7 +145,13 @@ class CafeFloorService
             'open_total_minor' => $openTotal,
             'active_order_id' => $table->active_order_id ?: optional($latest)->id,
             'oldest_order_at' => optional($openOrders->sortBy('created_at')->first())->created_at?->toIso8601String(),
-            'seated_minutes' => $this->seatedMinutes($openOrders, $table),
+            'seated_minutes' => $seatedMinutes,
+            // Bill printed, money not in yet. The waiter's queue, as opposed to the kitchen's.
+            'awaiting_settlement' => $derived === CafeTable::STATUS_AWAITING_SETTLEMENT,
+            // Same table, still open long after it should have been paid.
+            'overdue' => $derived === CafeTable::STATUS_OVERDUE,
+            'overdue_after_minutes' => self::OVERDUE_AFTER_MINUTES,
+            'unsettled_minor' => $unsettledMinor,
             'reservation_name' => $table->reservation_name,
             'reserved_for_at' => optional($table->reserved_for_at)->toIso8601String(),
             'branch' => $table->relationLoaded('branch') && $table->branch
@@ -138,7 +165,7 @@ class CafeFloorService
      *
      * @param  Collection<int, Order>  $openOrders
      */
-    private function deriveStatus(string $stored, Collection $openOrders): string
+    private function deriveStatus(string $stored, Collection $openOrders, ?int $seatedMinutes = null): string
     {
         // Cleaning and reserved are deliberate states a waiter set; do not guess over them.
         if ($stored === CafeTable::STATUS_CLEANING || $stored === CafeTable::STATUS_RESERVED) {
@@ -157,7 +184,36 @@ class CafeFloorService
             fn (Order $order) => in_array((string) $order->status, ['pending', 'paid', 'processing', 'preparing', 'ready'], true)
         );
 
-        return $awaitingKitchen ? CafeTable::STATUS_ORDERING : CafeTable::STATUS_SERVED;
+        if ($awaitingKitchen) {
+            return CafeTable::STATUS_ORDERING;
+        }
+
+        // The food is out and nothing is on its way. What is left is the bill, which is a
+        // different job from "served" — it belongs to the till, not the kitchen.
+        $everythingServed = $openOrders->every(
+            fn (Order $order) => in_array((string) $order->status, ['served', 'completed', 'shipped', 'out_for_delivery'], true),
+        );
+
+        if (! $everythingServed) {
+            return CafeTable::STATUS_SERVED;
+        }
+
+        // `paid_at` is the honest signal that money arrived (OrderStatusService stamps it once,
+        // and nothing resets it). Without it, a table whose guests are finished eating and whose
+        // bill is unpaid looked exactly like one that had already paid.
+        $unsettled = $openOrders->filter(fn (Order $order) => $this->isUnsettled($order));
+
+        if ((int) $unsettled->sum(fn (Order $order) => (int) $order->total_minor) <= 0) {
+            return CafeTable::STATUS_SERVED;
+        }
+
+        // Past the late threshold it is not merely awaiting settlement, it is a table nobody has
+        // collected from — the one thing a floor board should shout about.
+        if ($seatedMinutes !== null && $seatedMinutes >= self::OVERDUE_AFTER_MINUTES) {
+            return CafeTable::STATUS_OVERDUE;
+        }
+
+        return CafeTable::STATUS_AWAITING_SETTLEMENT;
     }
 
     /**

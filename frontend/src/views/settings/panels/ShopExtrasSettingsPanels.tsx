@@ -303,6 +303,13 @@ type Reward = {
   is_active?: boolean
 }
 
+/** The shipped tier ladder, shown until the tenant saves its own. Matches LoyaltyTiers::defaults(). */
+const DEFAULT_TIERS = [
+  { key: "bronze", label_fa: "برنزی", label_en: "Bronze", min_points: 0, accrual_percent: 0 },
+  { key: "silver", label_fa: "نقره‌ای", label_en: "Silver", min_points: 5000, accrual_percent: 10 },
+  { key: "gold", label_fa: "طلایی", label_en: "Gold", min_points: 20000, accrual_percent: 20 },
+]
+
 export function ShopLoyaltySettingsPanel() {
   const t = useTranslations("settings_hub")
   const tLoyalty = useTranslations("marketing_hub.loyalty")
@@ -313,6 +320,9 @@ export function ShopLoyaltySettingsPanel() {
     welcome_points?: number
     referral_points?: number
     daily_points?: number
+    point_value_minor?: number
+    max_redeem_percent?: number
+    tiers?: { key: string; label_fa: string; label_en: string; min_points: number; accrual_percent: number }[]
   }>("shop", "loyalty")
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsMsg, setRewardsMsg] = useState<string | null>(null)
@@ -384,6 +394,73 @@ export function ShopLoyaltySettingsPanel() {
               onChange={(e) => setDraft({ ...draft, referral_points: Number(e.target.value) })}
             />
             <p className="text-muted-foreground text-xs">{tLoyalty("hint")}</p>
+          </div>
+          <div className="grid max-w-xs gap-2">
+            <Label>{tLoyalty("point_value")}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={Number(draft.point_value_minor ?? 100)}
+              onChange={(e) => setDraft({ ...draft, point_value_minor: Number(e.target.value) })}
+            />
+            <p className="text-muted-foreground text-xs">{tLoyalty("point_value_hint")}</p>
+          </div>
+          <div className="grid max-w-xs gap-2">
+            <Label>{tLoyalty("max_redeem_percent")}</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={Number(draft.max_redeem_percent ?? 50)}
+              onChange={(e) => setDraft({ ...draft, max_redeem_percent: Number(e.target.value) })}
+            />
+            <p className="text-muted-foreground text-xs">{tLoyalty("max_redeem_hint")}</p>
+          </div>
+          <div className="space-y-2">
+            <Label>{tLoyalty("tiers")}</Label>
+            {(draft.tiers && draft.tiers.length > 0 ? draft.tiers : DEFAULT_TIERS).map((tier, index) => (
+              <div key={tier.key} className="grid max-w-lg grid-cols-3 gap-2 rounded border p-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">{tLoyalty("tier_name")}</Label>
+                  <Input
+                    value={tier.label_fa}
+                    onChange={(e) => {
+                      const rows = [...(draft.tiers ?? DEFAULT_TIERS)]
+                      rows[index] = { ...tier, label_fa: e.target.value }
+                      setDraft({ ...draft, tiers: rows })
+                    }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{tLoyalty("tier_min_points")}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={tier.min_points}
+                    onChange={(e) => {
+                      const rows = [...(draft.tiers ?? DEFAULT_TIERS)]
+                      rows[index] = { ...tier, min_points: Number(e.target.value) }
+                      setDraft({ ...draft, tiers: rows })
+                    }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{tLoyalty("tier_accrual")}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={tier.accrual_percent}
+                    onChange={(e) => {
+                      const rows = [...(draft.tiers ?? DEFAULT_TIERS)]
+                      rows[index] = { ...tier, accrual_percent: Number(e.target.value) }
+                      setDraft({ ...draft, tiers: rows })
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+            <p className="text-muted-foreground text-xs">{tLoyalty("tiers_hint")}</p>
           </div>
           <div className="grid max-w-xs gap-2">
             <Label>{tLoyalty("daily_points")}</Label>

@@ -28,6 +28,13 @@ final class OrderLifecycle
         $to = (string) $order->status;
         $this->stock->sync($order, $from, $to);
         $order->refresh();
+        // Ingredients are a second, finer stock layer: the product row says "we sold a latte",
+        // the recipe says "18 g of beans, 240 ml of milk and a cup left the shelf". It runs on
+        // the same edge, after stock, and never throws — a sale that took money must not be
+        // undone by a missing cost on one ingredient.
+        $this->syncIngredients($order, $from, $to);
+        $order->refresh();
+        $order->refresh();
         // Branch stock moves on the same edge as tenant stock, but it is allowed to go
         // negative (an offline sale has already taken the money). Nothing here may throw.
         $this->syncBranchStock($order, $from, $to);
@@ -40,6 +47,94 @@ final class OrderLifecycle
         $order->refresh();
         $this->syncAccounting($order, $from);
         app(\App\Services\Membership\MembershipService::class)->syncOrder($order, $from, $to);
+    }
+
+    /**
+     * Withdraw recipe ingredients when an order becomes a sale, and put them back when it is
+     * refunded or cancelled.
+     *
+     * Tolerant by design: the frozen per-line cost is written inside the same call, so a
+     * failure leaves the line uncosted rather than the order unsold.
+     */
+    private function syncIngredients(Order $order, ?string $from, string $to): void
+    {
+        $sales = \App\Services\Reports\OrderReports::salesStatuses();
+        $was = $from !== null && in_array($from, $sales, true);
+        $now = in_array($to, $sales, true);
+
+        if ($was === $now) {
+            return;
+        }
+
+        try {
+            $costing = app(\App\Services\Catalog\RecipeCosting::class);
+            $order->loadMissing('items');
+
+            foreach ($order->items as $item) {
+                $productId = (int) ($item->product_id ?? 0);
+                if ($productId <= 0) {
+                    continue;
+                }
+
+                if ($now) {
+                    $result = $costing->consumeOrderLine(
+                        (int) $order->tenant_id,
+                        (int) $item->id,
+                        (int) $order->id,
+                        $productId,
+                        (float) $item->quantity,
+                    );
+                    // `order_items.unit_cost_minor` is what the accounting COGS line reads.
+                    if ($result['unit_cost_minor'] > 0) {
+                        $item->forceFill(['unit_cost_minor' => (int) round($result['unit_cost_minor'])])->save();
+                    }
+                } else {
+                    $this->restoreIngredients($order, $item);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('recipe.ingredient_sync_failed', [
+                'order_id' => $order->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /** Put a cancelled or refunded line's ingredients back at the cost they left at. */
+    private function restoreIngredients(Order $order, \App\Models\OrderItem $item): void
+    {
+        $frozen = \Illuminate\Support\Facades\DB::table('order_item_ingredient_costs')
+            ->where('order_item_id', $item->id)
+            ->first();
+
+        if ($frozen === null) {
+            return;
+        }
+
+        $breakdown = json_decode((string) ($frozen->breakdown ?? '[]'), true);
+        if (! is_array($breakdown)) {
+            return;
+        }
+
+        $costing = app(\App\Services\Catalog\RecipeCosting::class);
+
+        foreach ($breakdown as $line) {
+            if (! is_array($line) || empty($line['cost_known'])) {
+                continue;
+            }
+            if ((string) ($line['component_type'] ?? '') === \App\Services\Catalog\RecipeCosting::SUBJECT_MODIFIER_OPTION) {
+                continue;
+            }
+
+            $costing->receive(
+                (int) $order->tenant_id,
+                (string) $line['component_type'],
+                (int) $line['component_id'],
+                (float) ($line['effective_quantity'] ?? 0) * (float) ($item->quantity ?? 0),
+                (float) ($line['unit_cost_minor'] ?? 0),
+                ['reference_type' => 'order_restore', 'reference_id' => $order->id],
+            );
+        }
     }
 
     /**

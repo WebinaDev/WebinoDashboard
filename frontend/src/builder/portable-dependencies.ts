@@ -1,6 +1,7 @@
 import type { BuilderGlobals } from "./globals"
 import type { BuilderDocument, SectionNode, WidgetNode } from "./types"
 import { EXPORT_FORMAT, hasUniqueNodeIds, isImportDocument } from "./ops"
+import { safeToken } from "./style"
 
 export type PortableDependencies = Pick<BuilderGlobals, "components" | "classes" | "presets" | "queries" | "variables">
 
@@ -18,6 +19,7 @@ export function readPortableDependencies(text: string): PortableDependencies | n
     const ids = new Set<string>()
     for (const entry of entries) {
       if (!object(entry) || typeof entry.id !== "string" || !entry.id || entry.id.length > 128 || ids.has(entry.id) || typeof entry.name !== "string") return false
+      if (key !== "queries" && !safeToken(entry.id)) return false
       ids.add(entry.id)
     }
   }
@@ -25,13 +27,14 @@ export function readPortableDependencies(text: string): PortableDependencies | n
     const document = { version: 2, sections }
     return isImportDocument(document) && hasUniqueNodeIds(document.sections)
   }
+  const validStyle = (style: unknown) => object(style) && ["base", "tablet", "mobile"].every((key) => style[key] === undefined || object(style[key]))
   const components = bundle.components as Record<string, unknown>[]
   if (!components.every((item) => validSections(item.sections) && Array.isArray(item.props) && item.props.every((prop: unknown) =>
     object(prop) && ["key", "label", "widget", "prop"].every((key) => typeof prop[key] === "string")) &&
     (item.variants === undefined || (Array.isArray(item.variants) && item.variants.every((variant: unknown) =>
       object(variant) && typeof variant.id === "string" && typeof variant.name === "string" && validSections(variant.sections)))))) return false
-  if (!(bundle.classes as Record<string, unknown>[]).every((item) => object(item.style))) return false
-  if (!(bundle.presets as Record<string, unknown>[]).every((item) => typeof item.widget === "string" && object(item.style) && (item.props === undefined || object(item.props)))) return false
+  if (!(bundle.classes as Record<string, unknown>[]).every((item) => validStyle(item.style))) return false
+  if (!(bundle.presets as Record<string, unknown>[]).every((item) => typeof item.widget === "string" && validStyle(item.style) && (item.props === undefined || object(item.props)))) return false
   if (!(bundle.queries as Record<string, unknown>[]).every((item) => ["products", "posts", "collection"].includes(String(item.source)) &&
     (item.filters === undefined || (Array.isArray(item.filters) && item.filters.every((filter: unknown) => object(filter) && typeof filter.key === "string" && typeof filter.value === "string"))))) return false
   if (!(bundle.variables as Record<string, unknown>[]).every((item) => ["color", "size", "font", "other"].includes(String(item.kind)) && typeof item.value === "string")) return false

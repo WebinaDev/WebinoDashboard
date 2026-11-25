@@ -2,7 +2,7 @@
 
 import { ChevronDown } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
-import { useEffect, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -29,18 +29,15 @@ export function ListFiltersCollapsible({
   const t = useTranslations("ui")
   const locale = normalizeUiLocale(useLocale())
   const isMobile = useIsMobile()
-  const [open, setOpen] = useState(() => defaultOpen ?? activeCount > 0)
-
-  useEffect(() => {
-    if (defaultOpen !== undefined) return
-    setOpen(!isMobile || activeCount > 0)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMobile, defaultOpen])
+  const [selection, setSelection] = useState<{ mobile: boolean; defaultOpen?: boolean; open: boolean } | null>(null)
+  const open = selection && selection.mobile === isMobile && selection.defaultOpen === defaultOpen
+    ? selection.open
+    : defaultOpen ?? (!isMobile || activeCount > 0)
 
   return (
     <Collapsible
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(next) => setSelection({ mobile: isMobile, defaultOpen, open: next })}
       className={cn("rounded-lg border border-border bg-card/60 shadow-soft", className)}
     >
       <CollapsibleTrigger asChild>

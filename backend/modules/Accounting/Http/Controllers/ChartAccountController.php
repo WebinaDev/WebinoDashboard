@@ -44,9 +44,9 @@ class ChartAccountController extends Controller
 
     public function seedChartIran(Request $request): JsonResponse
     {
-        // Tenant-scoped by the model's trait, so this is safe in production: it
-        // only ever fills the signed-in tenant's own chart. The old production
-        // block made first-run setup impossible on live shops.
+        // No production block: seeding the chart of accounts is an ordinary first-run step
+        // for a live shop, not a destructive command. The seeder only inserts codes the
+        // tenant does not already have, and `truncate` stays prohibited.
         $request->validate(['truncate' => 'prohibited']);
         $result = AccChartIranSeeder::run();
 
@@ -55,10 +55,15 @@ class ChartAccountController extends Controller
 
     public function storeChartAccount(Request $request): JsonResponse
     {
-        $tenantId = (int) $request->user()->tenant_id;
-
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:32', Rule::unique('acc_chart_accounts', 'code')->where('tenant_id', $tenantId)],
+            'code' => [
+                'required',
+                'string',
+                'max:32',
+                // Scoped to the tenant: `unique:acc_chart_accounts,code` alone made one
+                // shop's code 1101 reject the same code for every other shop.
+                Rule::unique('acc_chart_accounts', 'code')->where('tenant_id', $request->user()?->tenant_id),
+            ],
             'name' => 'required|string|max:191',
             'parent_id' => ['nullable', ExistsForTenant::in('acc_chart_accounts')],
             'type' => 'required|string|max:50',
@@ -72,10 +77,15 @@ class ChartAccountController extends Controller
     public function updateChartAccount(Request $request, int $id): JsonResponse
     {
         $row = AccChartAccount::query()->findOrFail($id);
-        $tenantId = (int) $request->user()->tenant_id;
-
         $data = $request->validate([
-            'code' => ['sometimes', 'string', 'max:32', Rule::unique('acc_chart_accounts', 'code')->where('tenant_id', $tenantId)->ignore($row->id)],
+            'code' => [
+                'sometimes',
+                'string',
+                'max:32',
+                Rule::unique('acc_chart_accounts', 'code')
+                    ->where('tenant_id', $request->user()?->tenant_id)
+                    ->ignore($row->id),
+            ],
             'name' => 'sometimes|string|max:191',
             'parent_id' => ['nullable', ExistsForTenant::in('acc_chart_accounts')],
             'type' => 'sometimes|string|max:50',

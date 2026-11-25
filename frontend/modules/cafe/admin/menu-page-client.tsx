@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import { useConfirm } from "@/components/ConfirmDialog"
 import { MediaPickerField } from "@/components/content/MediaPickerField"
+import { MoneyText } from "@/components/currency/MoneyDisplay"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -173,6 +174,26 @@ const emptyProduct = {
   views: [] as { type: "model3d" | "spin360"; url: string; poster_url: string; frames: number }[],
 }
 
+type PricePreviewRow = {
+  id: number
+  name: string
+  current_price_minor: number
+  new_price_minor: number
+  delta_minor: number
+  cost_minor: number
+  current_margin_percent: number | null
+  new_margin_percent: number | null
+  locked: boolean
+}
+
+type PricePreview = {
+  rows: PricePreviewRow[]
+  changed: number
+  skipped: number
+  total_before_minor: number
+  total_after_minor: number
+}
+
 export default function MenuPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const t = useTranslations("cafe_admin.menu")
@@ -236,6 +257,11 @@ export default function MenuPageClient({ route: _route }: { route: ResolvedAdmin
   const [bulkAvailable, setBulkAvailable] = useState(true)
   const [bulkMenuId, setBulkMenuId] = useState("")
   const [bulkPercent, setBulkPercent] = useState("")
+  // The preview is the point: "10% more" is not "10% more profit", and an item with a locked
+  // price silently does not move at all.
+  const [pricePreview, setPricePreview] = useState<PricePreview | null>(null)
+  const [bulkAddOpen, setBulkAddOpen] = useState(false)
+  const [bulkAddText, setBulkAddText] = useState("")
 
   const toggleCategoryVat = useMutation({
     mutationFn: (v: { id: number; vat_applicable: boolean }) =>
@@ -354,6 +380,63 @@ export default function MenuPageClient({ route: _route }: { route: ResolvedAdmin
       setSelectedIds([])
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       toast.success(t("bulk_applied"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const previewPrice = useMutation({
+    mutationFn: async () =>
+      (await api<{ data: PricePreview }>("/api/v1/cafe/bulk-price/preview", {
+        method: "POST",
+        json: { product_ids: selectedIds, percent: Number(bulkPercent) },
+      }))?.data ?? null,
+    onSuccess: (data) => setPricePreview(data),
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const applyPrice = useMutation({
+    mutationFn: () =>
+      api("/api/v1/cafe/bulk-price", {
+        method: "POST",
+        json: { product_ids: selectedIds, percent: Number(bulkPercent) },
+      }),
+    onSuccess: async () => {
+      setPricePreview(null)
+      setBulkPercent("")
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      toast.success(t("bulk_applied"))
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  /**
+   * Twenty dishes in one form.
+   *
+   * One per line as `name, price`, because that is what a shop has: a price list pasted out of
+   * a spreadsheet. Rows that fail are reported individually — nineteen good items must not be
+   * lost to a twentieth with no price.
+   */
+  const bulkAdd = useMutation({
+    mutationFn: async () => {
+      const items = bulkAddText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line !== "")
+        .map((line) => {
+          const [name, price] = line.split(/[,،\t]/)
+          return { name: (name ?? "").trim(), price_minor: Number((price ?? "").replace(/[^\d.]/g, "")) }
+        })
+        .filter((row) => row.name !== "" && Number.isFinite(row.price_minor) && row.price_minor >= 0)
+
+      return api<{ data: { created_count: number; failed_count: number } }>("/api/v1/cafe/menu/bulk-items", {
+        method: "POST",
+        json: { items, menu_id: bulkMenuId ? Number(bulkMenuId) : null },
+      })
+    },
+    onSuccess: async () => {
+      setBulkAddText("")
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      toast.success(t("bulk_add_done"))
     },
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
@@ -1602,24 +1685,91 @@ export default function MenuPageClient({ route: _route }: { route: ResolvedAdmin
                 </Button>
                 <Button
                   variant="outline"
-                  disabled={bulkUpdate.isPending || bulkPercent === ""}
-                  onClick={() =>
-                    api("/api/v1/cafe/bulk-price", {
-                      method: "POST",
-                      json: { product_ids: selectedIds, percent: Number(bulkPercent) },
-                    })
-                      .then(async () => {
-                        toast.success(t("bulk_applied"))
-                        await queryClient.invalidateQueries({ queryKey: ["products"] })
-                      })
-                      .catch((e: Error) => toast.error(getApiErrorMessage(e)))
-                  }
+                  disabled={previewPrice.isPending || bulkPercent === ""}
+                  onClick={() => previewPrice.mutate()}
                 >
                   {t("bulk_price")}
                 </Button>
               </div>
+
+              {/* The preview, because "10% more" is not "10% more profit" and an item with a
+                  locked price does not move at all. */}
+              {pricePreview ? (
+                <div className="mt-4 space-y-2">
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span>{t("preview_changed", { count: pricePreview.changed })}</span>
+                    <span className="text-muted-foreground">{t("preview_skipped", { count: pricePreview.skipped })}</span>
+                    <span className="tabular-nums">
+                      {t("preview_total")}: <MoneyText amount={pricePreview.total_before_minor} /> →{" "}
+                      <MoneyText amount={pricePreview.total_after_minor} />
+                    </span>
+                  </div>
+                  <div className="max-h-72 overflow-auto rounded-lg border">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40 text-muted-foreground sticky top-0">
+                        <tr>
+                          <th className="p-2 text-start">{tCatalog("name")}</th>
+                          <th className="p-2 text-end">{t("current_price")}</th>
+                          <th className="p-2 text-end">{t("new_price")}</th>
+                          <th className="p-2 text-end">{t("margin_before")}</th>
+                          <th className="p-2 text-end">{t("margin_after")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pricePreview.rows.map((row) => (
+                          <tr key={row.id} className={row.locked ? "border-t opacity-60" : "border-t"}>
+                            <td className="p-2">
+                              {row.name}
+                              {row.locked ? <span className="text-muted-foreground ms-1 text-xs">({t("locked")})</span> : null}
+                            </td>
+                            <td className="p-2 text-end tabular-nums"><MoneyText amount={row.current_price_minor} /></td>
+                            <td className="p-2 text-end tabular-nums"><MoneyText amount={row.new_price_minor} /></td>
+                            <td className="p-2 text-end tabular-nums">{row.current_margin_percent ?? "—"}</td>
+                            <td className="p-2 text-end tabular-nums">{row.new_margin_percent ?? "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button disabled={applyPrice.isPending || pricePreview.changed === 0} onClick={() => applyPrice.mutate()}>
+                      {t("apply_preview")}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setPricePreview(null)}>
+                      {tCatalog("cancel_edit")}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </CafeSection>
           ) : null}
+
+          {/* Bulk add: the form that makes opening a new season possible. */}
+          <CafeSection
+            title={t("bulk_add_title")}
+            description={t("bulk_add_hint")}
+            actions={
+              <Button variant="outline" onClick={() => setBulkAddOpen((v) => !v)}>
+                {bulkAddOpen ? t("bulk_add_close") : t("bulk_add_open")}
+              </Button>
+            }
+          >
+            {bulkAddOpen ? (
+              <div className="space-y-2">
+                <Textarea
+                  rows={8}
+                  dir="ltr"
+                  value={bulkAddText}
+                  onChange={(e) => setBulkAddText(e.target.value)}
+                  placeholder={t("bulk_add_placeholder")}
+                />
+                <p className="text-muted-foreground text-xs">{t("bulk_add_format")}</p>
+                <Button disabled={bulkAdd.isPending || bulkAddText.trim() === ""} onClick={() => bulkAdd.mutate()}>
+                  {bulkAdd.isPending ? tCommon("saving") : t("bulk_add_submit")}
+                </Button>
+              </div>
+            ) : null}
+          </CafeSection>
 
           <CafeSection title={tCatalog("products_heading")}>
             {products.length === 0 ? (

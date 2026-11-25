@@ -1,31 +1,23 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/features/modules/accounting/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/features/modules/accounting/lib/api-helpers';
 
 export function useAccountingGet(path: string) {
-  const [data, setData] = useState<unknown>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const query = useQuery({
+    queryKey: ['accounting', 'get', path],
+    queryFn: async () => {
       const res = await apiClient.get(path);
-      setData(unwrapData<unknown>(res));
-    } catch (e) {
-      setError(getAxiosMessage(e));
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [path]);
+      return unwrapData<unknown>(res);
+    },
+    retry: false,
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { data, error, loading, reload: load };
+  return {
+    data: query.isError ? null : query.data ?? null,
+    error: query.isError ? getAxiosMessage(query.error) : null,
+    loading: query.isFetching,
+    reload: query.refetch,
+  };
 }

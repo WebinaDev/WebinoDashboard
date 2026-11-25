@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Menu extends Model
 {
+    use \App\Support\Audit\RecordsActivity;
+
     protected $fillable = [
         'tenant_id',
         'name',

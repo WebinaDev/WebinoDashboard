@@ -4,7 +4,6 @@ namespace Modules\Accounting\Services;
 
 use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Database\Seeders\AccChartIranSeeder;
-use Modules\Accounting\Entities\AccChartAccount;
 
 /**
  * First-run setup for a tenant's ledger: default chart of accounts + current

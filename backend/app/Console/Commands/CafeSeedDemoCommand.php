@@ -38,6 +38,12 @@ class CafeSeedDemoCommand extends Command
         TenantActivationService $activation,
         CafeRichDemoSeeder $richDemo,
     ): int {
+        if (app()->environment('production')) {
+            $this->error(__('production.database_command_forbidden'));
+
+            return self::FAILURE;
+        }
+
         $tenant = Tenant::query()->first();
         if (! $tenant) {
             $this->error('No tenant found. Run the installer / provisioning first.');

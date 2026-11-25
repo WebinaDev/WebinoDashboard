@@ -5,8 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * A counterparty: the customer or supplier a journal and an invoice point at.
+ *
+ * Audited, because renaming a partner or changing their national id silently rewrites the
+ * meaning of invoices already issued to them.
+ */
 class AccPerson extends Model
 {
+    use \App\Support\Audit\RecordsActivity;
+
     protected $table = 'accounting_persons';
 
     protected $fillable = [

@@ -6,24 +6,24 @@ function node(type: string, props: Record<string, unknown>): WidgetNode {
   return { id: uid("w"), type, props }
 }
 
-const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }, { value: "blush", label: "صورتی روشن" }, { value: "glass", label: "شیشه‌ای (نیمه‌شفاف با محو پس‌زمینه)" }, { value: "glass-dark", label: "شیشه‌ای تیره (متن روشن)" }] }
+const tone: FieldDef = { panel: "design", kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }, { value: "transparent", label: "شفاف (زمینه بخش)" }, { value: "blush", label: "صورتی روشن" }, { value: "glass", label: "شیشه‌ای (نیمه‌شفاف با محو پس‌زمینه)" }, { value: "glass-dark", label: "شیشه‌ای تیره (متن روشن)" }] }
 /** Shared section background: image + colour/gradient overlay (e.g. dark crimson) with opacity 0–100. */
 export const SECTION_BG_FIELDS: FieldDef[] = [
-  { kind: "media", key: "bgImage", label: "تصویر پس‌زمینه بخش", accept: "image" },
-  { kind: "color", key: "bgOverlay", label: "رنگ/گرادیان روکش (مثلاً زرشکی تیره)" },
-  { kind: "slider", key: "bgOverlayOpacity", label: "شفافیت روکش", min: 0, max: 100, step: 5, unit: "%" },
+  { kind: "media", key: "bgImage", label: "تصویر پس‌زمینه بخش", accept: "image", panel: "design" },
+  { kind: "color", key: "bgOverlay", label: "رنگ/گرادیان روکش (مثلاً زرشکی تیره)", panel: "design" },
+  { kind: "slider", key: "bgOverlayOpacity", label: "شفافیت روکش", min: 0, max: 100, step: 5, unit: "%", panel: "design" },
 ]
 /** Optional colour overrides for the glass widgets (empty = site theme tokens). */
-export const V2_COLOR_FIELDS: FieldDef[] = [
+export const V2_COLOR_FIELDS: FieldDef[] = ([
   { kind: "color", key: "accentColor", label: "رنگ تأکید (دکمه‌ها و نوار پیشرفت)" },
   { kind: "color", key: "highlightColor", label: "رنگ برجسته (عنوان‌ها و آیکن‌ها)" },
   { kind: "color", key: "textColor", label: "رنگ متن" },
   { kind: "color", key: "glassBg", label: "رنگ پس‌زمینه کارت شیشه‌ای" },
   { kind: "color", key: "glassBorder", label: "رنگ حاشیه کارت شیشه‌ای" },
-]
+] satisfies FieldDef[]).map((field) => ({ ...field, panel: "design" as const }))
 const RATIO_OPTS = [{ value: "4/5", label: "عمودی ۴:۵" }, { value: "3/4", label: "عمودی ۳:۴" }, { value: "2/3", label: "عمودی ۲:۳" }, { value: "1/1", label: "مربع" }, { value: "16/10", label: "افقی" }]
-const frame: FieldDef = { kind: "select", key: "frame", label: "قاب تصویر", options: [{ value: "arch", label: "محرابی (طاق)" }, { value: "rounded", label: "گرد" }, { value: "square", label: "ساده" }] }
-const pattern: FieldDef = { kind: "switch", key: "pattern", label: "پس‌زمینه نقش اسلیمی" }
+const frame: FieldDef = { panel: "design", kind: "select", key: "frame", label: "قاب تصویر", options: [{ value: "arch", label: "محرابی (طاق)" }, { value: "rounded", label: "گرد" }, { value: "square", label: "ساده" }] }
+const pattern: FieldDef = { panel: "design", kind: "switch", key: "pattern", label: "پس‌زمینه نقش اسلیمی" }
 const SOCIALS: FieldDef = { kind: "repeater", key: "socials", label: "شبکه‌های اجتماعی", fields: [
   { key: "network", label: "شبکه", kind: "select", options: [{ value: "eitaa", label: "ایتا" }, { value: "telegram", label: "تلگرام" }, { value: "instagram", label: "اینستاگرام" }, { value: "bale", label: "بله" }, { value: "youtube", label: "یوتیوب" }, { value: "aparat", label: "آپارات" }] },
   { key: "href", label: "نشانی", kind: "url" },
@@ -33,11 +33,11 @@ const LOGO: FieldDef = { kind: "media", key: "logo", label: "لوگو برای �
 const ICONS = [{ value: "flame", label: "شعله" }, { value: "moon", label: "ماه" }, { value: "star", label: "ستاره" }, { value: "book", label: "کتاب" }, { value: "music", label: "صوت" }, { value: "video", label: "ویدیو" }]
 
 const CAROUSEL_FIELDS: FieldDef[] = [
-  { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "carousel", label: "اسلایدر (کاروسل)" }, { value: "grid", label: "شبکه (چند ردیف)" }, { value: "grid3", label: "ساده سه‌ستونی" }] },
-  { kind: "number", key: "slidesDesktop", label: "تعداد اسلاید در دسکتاپ", min: 1, max: 8 },
-  { kind: "slider", key: "slidesMobile", label: "تعداد اسلاید در موبایل", min: 1, max: 3, step: 0.1 },
-  { kind: "switch", key: "autoplay", label: "پخش خودکار" },
-  { kind: "number", key: "autoplayInterval", label: "فاصله پخش خودکار (ثانیه)", min: 2, max: 30 },
+  { kind: "select", key: "layout", label: "چیدمان", options: [{ value: "carousel", label: "اسلایدر (کاروسل)" }, { value: "grid", label: "شبکه (چند ردیف)" }, { value: "grid3", label: "ساده سه‌ستونی" }], panel: "design" },
+  { kind: "number", key: "slidesDesktop", label: "تعداد اسلاید در دسکتاپ", min: 1, max: 8, panel: "design" },
+  { kind: "slider", key: "slidesMobile", label: "تعداد اسلاید در موبایل", min: 1, max: 3, step: 0.1, panel: "design" },
+  { kind: "switch", key: "autoplay", label: "پخش خودکار", panel: "settings" },
+  { kind: "number", key: "autoplayInterval", label: "فاصله پخش خودکار (ثانیه)", min: 2, max: 30, panel: "settings" },
 ]
 
 export const POETRY_WIDGET_TYPES = [

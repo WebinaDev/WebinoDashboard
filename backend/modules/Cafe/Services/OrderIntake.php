@@ -15,12 +15,14 @@ use App\Services\Coupons\CouponService;
 use App\Services\Orders\OrderStatusService;
 use App\Services\Orders\OrderWriter;
 use App\Services\Shop\LoyaltyService;
+use App\Services\Shop\LoyaltyTiers;
 use App\Services\Shop\ShopSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Cafe\Entities\CafeBranch;
 use Modules\Cafe\Entities\CafeShift;
 use Modules\Cafe\Entities\CafeTable;
+use Modules\Cafe\Services\ServiceMode;
 
 /**
  * Ringing up a café order: the till's own create-and-edit path.
@@ -248,7 +250,7 @@ final class OrderIntake
 
         if ($type === 'loyalty') {
             try {
-                $loyalty = $this->priceLoyalty($tenantId, $payload);
+                $loyalty = $this->priceLoyalty($tenantId, $payload, $subtotal);
 
                 return [$loyalty['discount_minor'], null];
             } catch (ValidationException $e) {
@@ -298,6 +300,12 @@ final class OrderIntake
         }
 
         $branchId = $this->resolveBranch($tenantId, $payload, $actor);
+
+        // The shop's service mode decides whether a dine-in order names a table, a pager, or
+        // neither. Checked before the table is resolved so a pager-only shop is not told to
+        // pick a table it does not have.
+        app(ServiceMode::class)->assertServable($tenantId, $fulfillment, $payload);
+
         $table = $this->resolveTable($tenantId, $fulfillment, $payload, $branchId);
 
         $rawLines = $payload['items'] ?? null;
@@ -317,6 +325,10 @@ final class OrderIntake
 
         $order = [
             'branch_id' => $branchId,
+            // The drawer, recorded as a fact rather than re-derived from a timestamp later.
+            // A sale replayed from an offline till arrives hours after it was taken, and a
+            // timestamp window would put its cash into no shift at all.
+            'shift_id' => $this->resolveShift($tenantId, $payload, $actor),
             'table_number' => $table?->code,
             'customer_name' => $this->nullableString($payload['customer_name'] ?? null),
             'customer_phone' => $this->normalizePhone($payload['customer_phone'] ?? null),
@@ -326,6 +338,8 @@ final class OrderIntake
             'shipping_minor' => $shipping,
             'coupon_code' => $couponCode,
             'sales_channel' => $fulfillment === 'delivery' ? 'phone' : 'in_store',
+            // Present only on a replay from the till's offline queue.
+            'client_ref' => $this->nullableString($payload['client_ref'] ?? null),
             'is_pos' => true,
             // A till order is in the kitchen the moment it is sent: there is no gateway for
             // it to wait on, and the guest is standing in front of the cashier.
@@ -366,6 +380,12 @@ final class OrderIntake
 
         if ($loyalty !== null) {
             $meta['loyalty'] = ['points' => $loyalty['points'], 'discount_minor' => $loyalty['discount_minor']];
+        }
+
+        // Pager shops hand the guest a buzzer instead of a table number.
+        $pager = $this->nullableString($payload['pager_number'] ?? null);
+        if ($pager !== null) {
+            $meta['pager_number'] = $pager;
         }
 
         return [
@@ -414,7 +434,7 @@ final class OrderIntake
             // holds the usage. Guessing it here would let the two disagree.
             $discount = 0;
         } elseif ($type === 'loyalty') {
-            $loyalty = $this->priceLoyalty($tenantId, $payload);
+            $loyalty = $this->priceLoyalty($tenantId, $payload, $subtotal);
             $discount = $loyalty['discount_minor'];
         }
 
@@ -446,6 +466,25 @@ final class OrderIntake
 
             if (! $product) {
                 throw ValidationException::withMessages(["items.$index.product_id" => 'این محصول یافت نشد.']);
+            }
+
+            // The till filters sold-out items, but a filter in a screen is advice, not a rule:
+            // a stale tab, a retried offline write, or a direct call would still sell it. The
+            // refusal belongs here, where every order — counter, phone or guest — goes through.
+            //
+            // The branch check is deliberately not duplicated here: `isAvailableAtBranch` is
+            // already enforced for the counter feed, and refusing on a branch flag stored as
+            // null would block a catalogue nobody has ever 86'd per branch.
+            if ((bool) $product->is_sold_out) {
+                throw ValidationException::withMessages([
+                    "items.$index.product_id" => '«'.$product->name.'» تمام شده است و قابل فروش نیست.',
+                ]);
+            }
+
+            if (! $product->is_available) {
+                throw ValidationException::withMessages([
+                    "items.$index.product_id" => '«'.$product->name.'» غیرفعال است و قابل فروش نیست.',
+                ]);
             }
 
             $variant = null;
@@ -645,7 +684,7 @@ final class OrderIntake
      * @param  array<string, mixed>  $payload
      * @return array{user_id: int, points: int, discount_minor: int}
      */
-    private function priceLoyalty(int $tenantId, array $payload): array
+    private function priceLoyalty(int $tenantId, array $payload, int $billMinor = 0): array
     {
         $settings = ShopSettings::getLoyalty($tenantId);
         if (empty($settings['enabled'])) {
@@ -667,10 +706,24 @@ final class OrderIntake
             throw ValidationException::withMessages(['loyalty_points' => 'امتیاز مشتری کافی نیست.']);
         }
 
+        // What a point is worth is a setting of its own. Using the *earning* rate as the
+        // redemption rate — which this did — gives the whole margin away to anyone who saves
+        // points, and the cap keeps a large balance from zeroing the bill.
+        $redeem = app(LoyaltyTiers::class)->redemption($tenantId, $points, max(0, $billMinor));
+
+        if ($redeem['value_minor'] <= 0) {
+            throw ValidationException::withMessages([
+                'loyalty_points' => __('api.cafe_loyalty_no_value'),
+            ]);
+        }
+
         return [
             'user_id' => (int) $user->id,
-            'points' => $points,
-            'discount_minor' => $points * max(1, (int) $settings['point_price_minor']),
+            'points' => $redeem['points'],
+            'discount_minor' => $redeem['value_minor'],
+            // Surfaced so the till can say "capped at 50% of the bill" instead of silently
+            // spending fewer points than the cashier asked for.
+            'capped' => $redeem['capped'],
         ];
     }
 
@@ -821,6 +874,42 @@ final class OrderIntake
     }
 
     /**
+     * Which shift this sale belongs to.
+     *
+     * An explicit `shift_id` from the till wins — that is the whole point: the browser writes
+     * down the drawer while it still has a network, and replays it with the sale. Otherwise the
+     * cashier's currently open shift, if they have one. A shift that belongs to another tenant
+     * is ignored rather than trusted, and a stale id (the cashier closed that shift an hour ago)
+     * is still honoured, because the sale happened inside it.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolveShift(int $tenantId, array $payload, User $actor): ?int
+    {
+        $explicit = $payload['shift_id'] ?? null;
+
+        if ($explicit !== null && (int) $explicit > 0) {
+            $owned = CafeShift::query()
+                ->where('tenant_id', $tenantId)
+                ->whereKey((int) $explicit)
+                ->exists();
+
+            if ($owned) {
+                return (int) $explicit;
+            }
+        }
+
+        $open = CafeShift::query()
+            ->where('tenant_id', $tenantId)
+            ->where('user_id', $actor->id)
+            ->where('status', CafeShift::STATUS_OPEN)
+            ->orderByDesc('id')
+            ->value('id');
+
+        return $open === null ? null : (int) $open;
+    }
+
+    /**
      * A dine-in order must name a real, active table in the right branch.
      *
      * `table_number` holds the *code*, which is what the floor board and the guest QR flow
@@ -831,6 +920,12 @@ final class OrderIntake
     private function resolveTable(int $tenantId, string $fulfillment, array $payload, ?int $branchId): ?CafeTable
     {
         if ($fulfillment !== 'dine_in') {
+            return null;
+        }
+
+        // No seat service, or pager service: a dine-in order carries no table.
+        $mode = app(ServiceMode::class);
+        if (! $mode->requiresTable($tenantId)) {
             return null;
         }
 

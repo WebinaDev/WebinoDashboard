@@ -42,7 +42,7 @@ class AppServiceProvider extends ServiceProvider
                     return;
                 }
 
-                $blocked = ['db:seed', 'db:wipe', 'migrate:fresh', 'migrate:refresh', 'migrate:reset', 'migrate:rollback'];
+                $blocked = ['db:seed', 'db:wipe', 'migrate:fresh', 'migrate:refresh', 'migrate:reset', 'migrate:rollback', 'cafe:seed-demo'];
                 if (in_array($event->command, $blocked, true)
                     || ($event->command === 'migrate' && $event->input->hasParameterOption('--seed'))) {
                     throw new \RuntimeException(__('production.database_command_forbidden'));

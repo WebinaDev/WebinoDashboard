@@ -103,6 +103,59 @@ class ReservationController extends Controller
         return response()->json(['data' => $reservation->fresh()->load('branch', 'table')]);
     }
 
+    /**
+     * Take a booking over the phone.
+     *
+     * The public endpoint has existed all along, which meant the only way into the book was a
+     * guest with a working internet connection. Every restaurant takes most of its bookings on
+     * the telephone, and the host was left writing them on paper — the one place a booking
+     * system cannot see them.
+     *
+     * Differences from the public endpoint, both deliberate:
+     *  - `reserved_at` may be in the past, because a host records the table people are already
+     *    sitting at, and refusing that would push them back to paper;
+     *  - `source` is stamped `phone` rather than left at its default, so the report that asks
+     *    "where do our bookings come from" has an answer.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeReservation(Request $request)
+    {
+        $tid = (int) $request->user()->tenant_id;
+
+        $data = $request->validate([
+            'guest_name' => ['required', 'string', 'max:255'],
+            'guest_phone' => ['required', 'string', 'max:32'],
+            'party_size' => ['required', 'integer', 'min:1', 'max:50'],
+            'reserved_at' => ['required', 'date'],
+            'branch_id' => ['nullable', 'integer', Rule::exists('cafe_branches', 'id')->where('tenant_id', $tid)],
+            'table_id' => ['nullable', 'integer', Rule::exists('cafe_tables', 'id')->where('tenant_id', $tid)],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            // A host who just took the booking has already confirmed it with the guest.
+            'status' => ['nullable', 'string', 'in:pending,confirmed'],
+        ]);
+
+        $status = (string) ($data['status'] ?? 'confirmed');
+
+        $reservation = Reservation::query()->create([
+            'tenant_id' => $tid,
+            'branch_id' => $data['branch_id'] ?? null,
+            'table_id' => $data['table_id'] ?? null,
+            'guest_name' => $data['guest_name'],
+            'guest_phone' => $data['guest_phone'],
+            'party_size' => $data['party_size'],
+            'reserved_at' => $data['reserved_at'],
+            'notes' => $data['notes'] ?? null,
+            'status' => $status,
+            'source' => 'phone',
+            // Stamped here rather than on a later transition: this booking was confirmed at the
+            // moment it was taken, and lead time is measured from that moment.
+            'confirmed_at' => $status === 'confirmed' ? now() : null,
+        ]);
+
+        return response()->json(['data' => $reservation->load('branch', 'table')], 201);
+    }
+
     public function storeEvent(Request $request): \Illuminate\Http\JsonResponse
     {
         $tid = $request->user()->tenant_id;

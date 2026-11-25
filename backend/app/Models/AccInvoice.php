@@ -6,8 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * A tax invoice, and its Moadian lifecycle.
+ *
+ * Audited: the difference between `draft`, `issued` and `accepted` is the difference between a
+ * document the shop can change and one the tax authority has already seen. A status change
+ * here is never a cosmetic edit.
+ */
 class AccInvoice extends Model
 {
+    use \App\Support\Audit\RecordsActivity;
+
     protected $table = 'accounting_invoices';
 
     protected $fillable = [

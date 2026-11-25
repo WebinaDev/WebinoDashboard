@@ -430,6 +430,14 @@ final class ShopSettings
             'welcome_points' => 0,
             'referral_points' => 0,
             'daily_points' => 0,
+            // What a point is worth when spent, kept separate from what it takes to earn one.
+            'point_value_minor' => 100,
+            // A redemption may never take more than this share of the bill: without a cap a
+            // big balance turns the scheme into an unlimited discount.
+            'max_redeem_percent' => 50,
+            // Tier ladder. `min_points` is lifetime earned, and the accrual bonus is what the
+            // guest actually gets for reaching a tier.
+            'tiers' => [],
         ];
     }
 

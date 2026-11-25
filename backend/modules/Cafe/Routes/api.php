@@ -1,19 +1,25 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\ReservationController;
 use Modules\Cafe\Http\Controllers\BranchOperationsController;
 use Modules\Cafe\Http\Controllers\CafeBranchController;
 use Modules\Cafe\Http\Controllers\CafeDeliveryController;
 use Modules\Cafe\Http\Controllers\CafeEngagementInboxController;
 use Modules\Cafe\Http\Controllers\CafeFloorController;
+use Modules\Cafe\Http\Controllers\CafeIntegrationsController;
 use Modules\Cafe\Http\Controllers\CafeKitchenController;
+use Modules\Cafe\Http\Controllers\CafeMenuImportController;
 use Modules\Cafe\Http\Controllers\CafeManagerController;
 use Modules\Cafe\Http\Controllers\CafeOperationsController;
 use Modules\Cafe\Http\Controllers\CafePosController;
 use Modules\Cafe\Http\Controllers\CafePriceCalculatorController;
+use Modules\Cafe\Http\Controllers\CafePrintingController;
 use Modules\Cafe\Http\Controllers\CafeQrController;
 use Modules\Cafe\Http\Controllers\CafeSettingsController;
 use Modules\Cafe\Http\Controllers\CafeShiftController;
+use Modules\Cafe\Http\Controllers\CafeMenuBulkController;
+use Modules\Cafe\Http\Controllers\CafeServingWindowController;
 use Modules\Cafe\Http\Controllers\CafeTableController;
 
 /*
@@ -36,6 +42,19 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::get('/menu-settings', [CafeSettingsController::class, 'showMenu']);
                 Route::patch('/menu-settings', [CafeSettingsController::class, 'updateMenu']);
                 Route::post('/bulk-price', [CafeSettingsController::class, 'bulkPrice']);
+                // What a price change would do, before it does it — including the new margin.
+                Route::post('/bulk-price/preview', [CafeMenuBulkController::class, 'previewPrice']);
+                // Twenty new dishes in one form, each row reported on its own.
+                Route::post('/menu/bulk-items', [CafeMenuBulkController::class, 'storeItems']);
+                // Breakfast until eleven, plates from twelve: a menu with times on it.
+                Route::get('/serving-windows', [CafeServingWindowController::class, 'index']);
+                Route::post('/serving-windows', [CafeServingWindowController::class, 'store']);
+                Route::patch('/serving-windows/{id}', [CafeServingWindowController::class, 'update'])->whereNumber('id');
+                Route::delete('/serving-windows/{id}', [CafeServingWindowController::class, 'destroy'])->whereNumber('id');
+                Route::get('/serving-windows/status', [CafeServingWindowController::class, 'status']);
+                // Price-list import: preview parses and reports, commit writes.
+                Route::post('/menu-import/preview', [CafeMenuImportController::class, 'preview']);
+                Route::post('/menu-import/commit', [CafeMenuImportController::class, 'commit']);
                 // «پیشنهاد قیمت آیتم‌ها»: live calculation, saved cost sheets, applying a price.
                 Route::get('/pricing', [CafePriceCalculatorController::class, 'index']);
                 Route::post('/pricing/calculate', [CafePriceCalculatorController::class, 'calculate']);
@@ -59,7 +78,25 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::post('/pos/shift/open', [CafeShiftController::class, 'open']);
                 Route::post('/pos/shifts/{shift}/close', [CafeShiftController::class, 'close'])->whereNumber('shift');
                 Route::post('/pos/shifts/{shift}/movements', [CafeShiftController::class, 'storeMovement'])->whereNumber('shift');
+                // Blind count: submit the physical count without closing, then read X/Z.
+                Route::post('/pos/shifts/{shift}/count', [CafeShiftController::class, 'submitCount'])->whereNumber('shift');
+                Route::get('/pos/shifts/{shift}/x-report', [CafeShiftController::class, 'xReport'])->whereNumber('shift');
+                Route::get('/pos/shifts/{shift}/z-report', [CafeShiftController::class, 'zReport'])->whereNumber('shift');
+                Route::post('/pos/shifts/{shift}/journal', [CafeShiftController::class, 'postJournal'])->whereNumber('shift');
             });
+
+            // Manager acts on the drawer: accepting a difference, refusing a count, closing
+            // the day. Deliberately not in the cashier's group above — a cashier who can
+            // approve their own shortfall is a control that only exists on paper.
+            Route::middleware(['module:cafe_menu', 'can:pos.approve,accounting.approve,reports.shop,accounting.manage,orders.*'])
+                ->group(function () {
+                    Route::get('/pos/counts/pending', [CafeShiftController::class, 'pendingCounts']);
+                    Route::post('/pos/shifts/{shift}/count/approve', [CafeShiftController::class, 'approveCount'])->whereNumber('shift');
+                    Route::post('/pos/shifts/{shift}/count/reject', [CafeShiftController::class, 'rejectCount'])->whereNumber('shift');
+                    Route::get('/pos/day', [CafeShiftController::class, 'dayPreview']);
+                    Route::post('/pos/day/close', [CafeShiftController::class, 'dayClose']);
+                    Route::get('/pos/day/history', [CafeShiftController::class, 'dayHistory']);
+                });
 
             Route::middleware(['module:cafe_qr', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/qr-settings', [CafeQrController::class, 'showSettings']);
@@ -147,6 +184,8 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::patch('/delivery-zones/{zone}', [CafeOperationsController::class, 'zonesUpdate'])->whereNumber('zone');
                 Route::delete('/delivery-zones/{zone}', [CafeOperationsController::class, 'zonesDestroy'])->whereNumber('zone');
             });
+            // The till lookup, for whoever is ringing up: a cashier holds `pos.use` but not
+            // `orders.create`, and a delivery order cannot be priced without its area.
             Route::middleware(['module:cafe_menu', 'can:pos.use,orders.create,orders.*'])->group(function () {
                 Route::get('/delivery-quote', [CafeOperationsController::class, 'zonesQuote']);
             });
@@ -163,6 +202,37 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
                 Route::post('/amendments/{amendment}/approve', [CafeOperationsController::class, 'amendmentApprove'])->whereNumber('amendment');
                 Route::post('/amendments/{amendment}/reject', [CafeOperationsController::class, 'amendmentReject'])->whereNumber('amendment');
                 Route::post('/amendments/{amendment}/settle', [CafeOperationsController::class, 'amendmentSettle'])->whereNumber('amendment');
+            });
+
+            // Printing: the hardware, its routing, and how a receipt looks. Reading is open to
+            // whoever runs service (a shift supervisor needs to know why the grill is silent);
+            // changing hardware is a branch-management act.
+            Route::middleware(['module:cafe_menu', 'can:pos.use,catalog.*,branches.manage'])->group(function () {
+                Route::get('/printers', [CafePrintingController::class, 'index']);
+                Route::get('/receipt-layout', [CafePrintingController::class, 'layoutShow']);
+                // The Edge agent's poll: which printers, what to print.
+                Route::post('/print/job', [CafePrintingController::class, 'job']);
+            });
+            Route::middleware(['module:cafe_menu', 'can:branches.manage,catalog.*'])->group(function () {
+                Route::post('/printers', [CafePrintingController::class, 'savePrinter']);
+                Route::delete('/printers/{printer}', [CafePrintingController::class, 'destroyPrinter'])->whereNumber('printer');
+                Route::post('/print-routes', [CafePrintingController::class, 'saveRoute']);
+                Route::delete('/print-routes/{route}', [CafePrintingController::class, 'destroyRoute'])->whereNumber('route');
+                Route::put('/receipt-layout', [CafePrintingController::class, 'layoutUpdate']);
+            });
+
+            // QR analytics, webhooks and API keys. A key can reach the shop's data, so
+            // issuing one is an owner/manager act, not a cashier's.
+            Route::middleware(['module:cafe_menu', 'can:reports.shop,catalog.*,settings.manage'])->group(function () {
+                Route::get('/qr/stats', [CafeIntegrationsController::class, 'qrStats']);
+            });
+            Route::middleware(['module:cafe_menu', 'can:settings.manage,branches.manage'])->group(function () {
+                Route::get('/webhooks', [CafeIntegrationsController::class, 'webhooks']);
+                Route::post('/webhooks', [CafeIntegrationsController::class, 'saveWebhook']);
+                Route::delete('/webhooks/{webhook}', [CafeIntegrationsController::class, 'destroyWebhook'])->whereNumber('webhook');
+                Route::get('/api-keys', [CafeIntegrationsController::class, 'apiKeys']);
+                Route::post('/api-keys', [CafeIntegrationsController::class, 'issueKey']);
+                Route::delete('/api-keys/{key}', [CafeIntegrationsController::class, 'revokeKey'])->whereNumber('key');
             });
 
             // Operational thresholds shared by the workbench, KDS and delivery.
@@ -198,6 +268,8 @@ use Modules\Cafe\Http\Controllers\CafeTableController;
 
             Route::middleware(['module:cafe_reservations', 'can:catalog.*,commerce.*'])->group(function () {
                 Route::get('/reservations', [ReservationController::class, 'index']);
+                // Bookings taken at the door or over the telephone, where most of them come from.
+                Route::post('/reservations', [ReservationController::class, 'storeReservation']);
                 Route::patch('/reservations/{reservation}', [ReservationController::class, 'updateReservation'])->whereNumber('reservation');
                 Route::post('/events', [ReservationController::class, 'storeEvent']);
                 Route::patch('/events/{event}', [ReservationController::class, 'updateEvent'])->whereNumber('event');

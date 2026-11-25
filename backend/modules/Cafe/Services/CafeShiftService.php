@@ -123,9 +123,18 @@ final class CafeShiftService
         $from = $shift->opened_at ? Carbon::parse($shift->opened_at) : Carbon::parse($shift->created_at);
         $to = $shift->closed_at ? Carbon::parse($shift->closed_at) : now();
 
+        // An order belongs to this shift if it says so, or — for everything recorded before
+        // `orders.shift_id` existed — if it was created inside the window. The OR is what keeps
+        // historical shifts reporting the same numbers they always did, while a sale replayed
+        // from an offline till at 09:10 for yesterday's 21:40 shift still lands in that drawer.
         $orders = Order::query()
             ->where('tenant_id', $tenantId)
-            ->whereBetween('created_at', [$from, $to])
+            ->where(function ($q) use ($shift, $from, $to): void {
+                $q->where('shift_id', $shift->id)
+                    ->orWhere(function ($w) use ($from, $to): void {
+                        $w->whereNull('shift_id')->whereBetween('created_at', [$from, $to]);
+                    });
+            })
             ->whereNotIn('status', self::EXCLUDED_STATUSES)
             ->get(['id', 'status', 'payment_tender', 'amount_paid_minor', 'total_minor', 'discount_minor', 'shipping_minor', 'subtotal_minor', 'tax_minor', 'currency', 'number']);
 
@@ -141,6 +150,7 @@ final class CafeShiftService
         $netMinor = 0;
         $discountTotal = 0;
         $taxTotal = 0;
+        $shippingTotal = 0;
         $orderCount = 0;
 
         foreach ($orders as $order) {
@@ -152,6 +162,9 @@ final class CafeShiftService
             // Tax lives in its own column and is already inside `total_minor`; report it
             // separately for the accountant without adding it to the grand total again.
             $taxTotal += (int) ($order->tax_minor ?? 0);
+            // Delivery charged to the guest. Revenue excludes it, so the journal can carry
+            // it on its own line; without it here the sales line silently absorbs delivery.
+            $shippingTotal += (int) ($order->shipping_minor ?? 0);
 
             $orderPayments = $payments->get($order->id);
             $amounts = $orderPayments
@@ -211,6 +224,7 @@ final class CafeShiftService
             'net_sales_minor' => $netMinor,
             'discounts_minor' => $discountTotal,
             'tax_minor' => $taxTotal,
+            'shipping_minor' => $shippingTotal,
             'cash_sales_minor' => $cashSales,
             'non_cash_sales_minor' => $nonCashSales,
             'by_tender' => array_values($byTender),
@@ -240,6 +254,7 @@ final class CafeShiftService
             'net_sales_minor' => 0,
             'discounts_minor' => 0,
             'tax_minor' => 0,
+            'shipping_minor' => 0,
             'cash_sales_minor' => 0,
             'non_cash_sales_minor' => 0,
             'by_tender' => [],
@@ -283,8 +298,13 @@ final class CafeShiftService
      * The cashier submits a physical count; the expected figure is recomputed one last time
      * and both are frozen onto the row, so the variance it reports is the variance everyone
      * will see forever after.
+     *
+     * A difference is not automatically accepted. Closing with cash missing needs a second
+     * signature — either a manager closing it (`$approver`), or a count a manager approved
+     * beforehand via {@see approveCount()}. Without that, a cashier closing a drawer 200,000
+     * short is a one-person operation, which is the situation the control exists to prevent.
      */
-    public function closeShift(User $user, CafeShift $shift, array $data): CafeShift
+    public function closeShift(User $user, CafeShift $shift, array $data, ?User $approver = null): CafeShift
     {
         $this->assertOwnership($user, $shift);
 
@@ -294,7 +314,7 @@ final class CafeShiftService
             ]);
         }
 
-        return DB::transaction(function () use ($shift, $data) {
+        return DB::transaction(function () use ($shift, $data, $user, $approver) {
             $shift->counted_cash_minor = (int) $data['counted_cash_minor'];
 
             $totals = $this->computeTotals($shift);
@@ -304,6 +324,29 @@ final class CafeShiftService
             $totals['variance_minor'] = $shift->variance_minor;
             $shift->totals = $totals;
 
+            $approved = $approver !== null || (string) $shift->count_status === CafeShift::COUNT_APPROVED;
+
+            if ($shift->variance_minor !== 0 && ! $approved) {
+                // Hold the drawer open, but record the count so a manager can act on it. The
+                // cashier sees "waiting for approval", not a variance they can talk away.
+                $shift->count_status = CafeShift::COUNT_PENDING;
+                $shift->counted_by = $user->id;
+                $shift->counted_at = now();
+                $shift->save();
+
+                throw ValidationException::withMessages([
+                    'counted_cash_minor' => __('api.cafe_shift_variance_needs_approval'),
+                ]);
+            }
+
+            if ($approver !== null && $shift->variance_minor !== 0) {
+                $shift->approved_by = $approver->id;
+                $shift->approved_at = now();
+            }
+
+            $shift->count_status = CafeShift::COUNT_APPROVED;
+            $shift->counted_by ??= $user->id;
+            $shift->counted_at ??= now();
             $shift->status = CafeShift::STATUS_CLOSED;
             $shift->closed_at = now();
             $shift->note = $data['note'] ?? $shift->note;
@@ -311,6 +354,91 @@ final class CafeShiftService
 
             return $shift;
         });
+    }
+
+    /**
+     * Submit a count without closing the drawer.
+     *
+     * This is the blind step: the cashier enters what they physically counted and the shift
+     * stays open, waiting. Nothing about the expected figure is returned to them until a
+     * manager decides, which is what makes the count worth doing.
+     */
+    public function submitCount(User $user, CafeShift $shift, int $countedMinor, ?string $note = null): CafeShift
+    {
+        $this->assertOwnership($user, $shift);
+
+        if (! $shift->isOpen()) {
+            throw ValidationException::withMessages([
+                'shift' => __('api.cafe_shift_already_closed'),
+            ]);
+        }
+
+        $shift->counted_cash_minor = $countedMinor;
+        $shift->counted_by = $user->id;
+        $shift->counted_at = now();
+        $shift->count_status = CafeShift::COUNT_PENDING;
+        if ($note !== null) {
+            $shift->note = $note;
+        }
+        $shift->save();
+
+        return $shift;
+    }
+
+    /**
+     * A manager accepts the submitted count.
+     *
+     * Approving is the moment the variance becomes the shop's loss rather than the cashier's
+     * open question, so it stamps who and when onto the row.
+     */
+    public function approveCount(User $approver, CafeShift $shift, ?string $note = null): CafeShift
+    {
+        abort_if((int) $approver->tenant_id !== (int) $shift->tenant_id, 403);
+
+        if ((string) $shift->count_status !== CafeShift::COUNT_PENDING && $shift->isOpen() === false) {
+            throw ValidationException::withMessages([
+                'shift' => __('api.cafe_shift_no_count_to_approve'),
+            ]);
+        }
+
+        if ($shift->counted_cash_minor === null) {
+            throw ValidationException::withMessages([
+                'shift' => __('api.cafe_shift_no_count_to_approve'),
+            ]);
+        }
+
+        $expected = $this->computeTotals($shift)['expected_cash_minor'];
+
+        $shift->count_status = CafeShift::COUNT_APPROVED;
+        $shift->approved_by = $approver->id;
+        $shift->approved_at = now();
+        $shift->approval_note = $note;
+        $shift->expected_cash_minor = $expected;
+        $shift->variance_minor = (int) $shift->counted_cash_minor - $expected;
+        $shift->save();
+
+        return $shift;
+    }
+
+    /** A manager rejects the count: the cashier has to count the drawer again. */
+    public function rejectCount(User $approver, CafeShift $shift, string $reason): CafeShift
+    {
+        abort_if((int) $approver->tenant_id !== (int) $shift->tenant_id, 403);
+
+        if ((string) $shift->count_status !== CafeShift::COUNT_PENDING) {
+            throw ValidationException::withMessages([
+                'shift' => __('api.cafe_shift_no_count_to_approve'),
+            ]);
+        }
+
+        $shift->count_status = CafeShift::COUNT_REJECTED;
+        $shift->approved_by = $approver->id;
+        $shift->approved_at = now();
+        $shift->approval_note = $reason;
+        $shift->counted_cash_minor = null;
+        $shift->save();
+
+        return $shift;
     }
 
     /**

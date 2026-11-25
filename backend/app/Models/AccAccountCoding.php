@@ -25,6 +25,12 @@ class AccAccountCoding extends Model
 
     public const ROLE_AR = 'ar';
 
+    /**
+     * Accounts payable. A payment voucher settles a payable; without a role for it the
+     * counter side had to be guessed at code 211, which no tenant had mapped.
+     */
+    public const ROLE_AP = 'ap';
+
     public const ROLE_CASH = 'cash';
 
     public const ROLE_BANK = 'bank';
@@ -38,6 +44,15 @@ class AccAccountCoding extends Model
     public const ROLE_DISCOUNT = 'discount';
 
     public const ROLE_SHIPPING = 'shipping';
+
+    /** Payroll: the wage expense and the three things held back from a payslip. */
+    public const ROLE_WAGE_EXPENSE = 'wage_expense';
+
+    public const ROLE_SALARIES_PAYABLE = 'salaries_payable';
+
+    public const ROLE_INSURANCE_PAYABLE = 'insurance_payable';
+
+    public const ROLE_PAYROLL_TAX_PAYABLE = 'payroll_tax_payable';
 
     public const ROLE_TENDER = 'tender';
 

@@ -120,10 +120,10 @@ const dashboardPage = fs.readFileSync(
 assert.doesNotMatch(dashboardPage, /next-intl\/server/)
 assert.match(dashboardPage, /readRequestLocale/)
 
-assert.equal(fs.existsSync(path.join(frontendRoot, "src/middleware.ts")), true)
-assert.equal(fs.existsSync(path.join(frontendRoot, "middleware.ts")), false)
+assert.equal(fs.existsSync(path.join(frontendRoot, "src/proxy.ts")), true)
+assert.equal(fs.existsSync(path.join(frontendRoot, "proxy.ts")), false)
 
-const middleware = fs.readFileSync(path.join(frontendRoot, "src/middleware.ts"), "utf8")
+const middleware = fs.readFileSync(path.join(frontendRoot, "src/proxy.ts"), "utf8")
 assert.match(middleware, /Authorization = `Bearer \$\{token\}`/)
 assert.doesNotMatch(middleware, /Cookie: request\.headers\.get\("cookie"\)/)
 

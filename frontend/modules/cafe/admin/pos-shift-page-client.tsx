@@ -60,6 +60,72 @@ type Shift = {
   closed_at?: string | null
   totals: ShiftTotals
   cashier?: { id: number; name: string } | null
+  /** counted | pending_approval | approved | rejected */
+  count_status?: string | null
+  counted_by?: number | null
+  counted_at?: string | null
+  approved_by?: number | null
+  approved_at?: string | null
+  approval_note?: string | null
+  journal_entry_id?: number | null
+  day_close_id?: number | null
+  /** True when the server withheld the expected figure because the count is blind. */
+  blind?: boolean
+}
+
+type TillReport = {
+  kind: "X" | "Z"
+  shift_id: number
+  cashier?: string | null
+  status: string
+  opened_at?: string | null
+  closed_at?: string | null
+  generated_at?: string | null
+  sales: {
+    orders: number
+    gross_minor: number
+    net_minor: number
+    discounts_minor: number
+    tax_minor: number
+    shipping_minor: number
+  }
+  tenders: { tender: string; count: number; amount_minor: number }[]
+  drawer: {
+    opening_float_minor: number
+    cash_sales_minor: number
+    cash_in_minor: number
+    cash_out_minor: number
+    drops_minor: number
+    expected_minor: number | null
+    counted_minor: number | null
+    variance_minor: number | null
+    over_short?: "over" | "short" | null
+    blind?: boolean
+  }
+  movements: Movement[]
+  signoff: {
+    counted_by?: number | null
+    counted_at?: string | null
+    approved_by?: number | null
+    approved_at?: string | null
+    journal_entry_id?: number | null
+  }
+}
+
+type DayClose = {
+  id: number
+  business_date?: string | null
+  status: string
+  shifts: number
+  gross_sales_minor: number
+  cash_sales_minor: number
+  non_cash_sales_minor: number
+  discounts_minor: number
+  tax_minor: number
+  expected_cash_minor: number
+  counted_cash_minor: number
+  variance_minor: number
+  closed_at?: string | null
 }
 
 type Movement = {
@@ -71,6 +137,15 @@ type Movement = {
 }
 
 const MOVEMENT_TYPES = ["cash_in", "cash_out", "drop", "no_sale", "note"] as const
+
+/** Escape text going into the printed receipt document. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
 
 /** Parse a Persian or Latin digit string into a number, tolerating separators. */
 function parseAmount(raw: string): number {
@@ -101,6 +176,8 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
   const [movementReason, setMovementReason] = useState("")
   const [varianceOnly, setVarianceOnly] = useState(false)
   const [statusFilter, setStatusFilter] = useState("")
+  const [approvalNote, setApprovalNote] = useState("")
+  const [dayDate, setDayDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   const current = useQuery({
     queryKey: ["cafe-pos-shift"],
@@ -134,11 +211,35 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
     },
   })
 
+  // Drawers waiting for a manager. Failing is fine — a cashier's account has no right to this
+  // list, and the screen simply hides the panel instead of showing an error for a screen they
+  // were never meant to use.
+  const pending = useQuery({
+    queryKey: ["cafe-pos-counts-pending"],
+    queryFn: async () => {
+      const res = await api<{ data: Shift[] }>("/api/v1/cafe/pos/counts/pending")
+      return res?.data ?? []
+    },
+    retry: false,
+    refetchInterval: 30_000,
+  })
+
+  const dayHistory = useQuery({
+    queryKey: ["cafe-pos-day-history"],
+    queryFn: async () => {
+      const res = await api<{ data: DayClose[] }>("/api/v1/cafe/pos/day/history")
+      return res?.data ?? []
+    },
+    retry: false,
+  })
+
   const invalidateAll = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["cafe-pos-shift"] }),
       queryClient.invalidateQueries({ queryKey: ["cafe-pos-shifts"] }),
       queryClient.invalidateQueries({ queryKey: ["cafe-pos-shift-movements"] }),
+      queryClient.invalidateQueries({ queryKey: ["cafe-pos-counts-pending"] }),
+      queryClient.invalidateQueries({ queryKey: ["cafe-pos-day-history"] }),
     ])
   }
 
@@ -177,10 +278,137 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
     onError: (e: Error) => toast.error(getApiErrorMessage(e)),
   })
 
+  /** Blind step: record the count, do not close, do not reveal the expected figure. */
+  const submitCount = useMutation({
+    mutationFn: (payload: { counted_cash_minor: number; note?: string }) =>
+      api(`/api/v1/cafe/pos/shifts/${shift!.id}/count`, { method: "POST", json: payload }),
+    onSuccess: async () => {
+      toast.success(t("count_submitted"))
+      setCountedInput("")
+      await invalidateAll()
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const approveCount = useMutation({
+    mutationFn: ({ id, note }: { id: number; note?: string }) =>
+      api(`/api/v1/cafe/pos/shifts/${id}/count/approve`, { method: "POST", json: { note } }),
+    onSuccess: async () => {
+      toast.success(t("count_approved"))
+      setApprovalNote("")
+      await invalidateAll()
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const rejectCount = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      api(`/api/v1/cafe/pos/shifts/${id}/count/reject`, { method: "POST", json: { reason } }),
+    onSuccess: async () => {
+      toast.success(t("count_rejected"))
+      setApprovalNote("")
+      await invalidateAll()
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  const closeDay = useMutation({
+    mutationFn: (payload: { business_date: string }) =>
+      api("/api/v1/cafe/pos/day/close", { method: "POST", json: payload }),
+    onSuccess: async () => {
+      toast.success(t("day_closed"))
+      await invalidateAll()
+    },
+    onError: (e: Error) => toast.error(getApiErrorMessage(e)),
+  })
+
+  /**
+   * Print an X or Z report.
+   *
+   * A report printed from the screen would need the whole app's stylesheet to look right on
+   * paper, so this builds a self-contained receipt-width document and prints that.
+   */
+  async function printReport(kind: "X" | "Z") {
+    if (!shift) return
+    try {
+      const res = await api<{ data: TillReport }>(`/api/v1/cafe/pos/shifts/${shift.id}/${kind.toLowerCase()}-report`)
+      const report = res?.data
+      if (!report) return
+
+      const row = (label: string, value: string) =>
+        `<tr><td>${escapeHtml(label)}</td><td class="v">${escapeHtml(value)}</td></tr>`
+      const money = (value?: number | null) =>
+        value === null || value === undefined ? "-" : Number(value).toLocaleString("fa-IR")
+
+      const tenders = report.tenders
+        .map((tender) => row(tender.tender, `${money(tender.amount_minor)} × ${money(tender.count)}`))
+        .join("")
+
+      const html = `<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8">
+<title>${kind === "X" ? "گزارش X" : "گزارش Z"} — شیفت ${report.shift_id}</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  body { font-family: Tahoma, sans-serif; font-size: 11px; color: #000; }
+  h1 { font-size: 14px; margin: 0 0 2px; text-align: center; }
+  .meta { text-align: center; font-size: 10px; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 1px 0; }
+  td.v { text-align: left; font-variant-numeric: tabular-nums; }
+  .sep { border-top: 1px dashed #000; margin: 5px 0; }
+  .tot td { font-weight: bold; }
+</style></head><body>
+<h1>${kind === "X" ? "گزارش موقت (X)" : "گزارش بستن (Z)"}</h1>
+<div class="meta">شیفت ${report.shift_id}${report.cashier ? " — " + escapeHtml(report.cashier) : ""}</div>
+<div class="meta">${escapeHtml(report.generated_at ?? "")}</div>
+<div class="sep"></div>
+<table>
+${row("تعداد سفارش", money(report.sales.orders))}
+${row("فروش کل", money(report.sales.gross_minor))}
+${row("تخفیف", money(report.sales.discounts_minor))}
+${row("مالیات", money(report.sales.tax_minor))}
+${row("ارسال", money(report.sales.shipping_minor))}
+</table>
+<div class="sep"></div>
+<table>${tenders}</table>
+<div class="sep"></div>
+<table>
+${row("موجودی اولیه", money(report.drawer.opening_float_minor))}
+${row("فروش نقدی", money(report.drawer.cash_sales_minor))}
+${row("ورود نقد", money(report.drawer.cash_in_minor))}
+${row("خروج نقد", money(report.drawer.cash_out_minor))}
+${row("تحویل به گاوصندوق", money(report.drawer.drops_minor))}
+<tr class="tot">${row("نقد مورد انتظار", money(report.drawer.expected_minor))}</tr>
+<tr class="tot">${row("شمارش‌شده", money(report.drawer.counted_minor))}</tr>
+<tr class="tot">${row("اختلاف", money(report.drawer.variance_minor))}</tr>
+</table>
+<div class="sep"></div>
+<div class="meta">امضای صندوق‌دار: ____________</div>
+<div class="meta">امضای مدیر: ____________</div>
+<script>window.onload = () => { window.focus(); window.print(); }</script>
+</body></html>`
+
+      const win = window.open("", "_blank", "width=380,height=640")
+      if (!win) {
+        toast.error(t("print_blocked"))
+        return
+      }
+      win.document.write(html)
+      win.document.close()
+    } catch (e) {
+      toast.error(getApiErrorMessage(e as Error))
+    }
+  }
+
   const totals = shift?.totals ?? {}
-  const expected = totals.expected_cash_minor ?? shift?.expected_cash_minor ?? 0
+  // `blind` comes from the server: while a count is outstanding the expected figure is not
+  // sent at all, so a cashier cannot read the answer off the screen and type it back.
+  const blind = Boolean(shift?.blind)
+  const expected = blind ? null : (totals.expected_cash_minor ?? shift?.expected_cash_minor ?? 0)
   const countedPreview = countedInput.trim() === "" ? null : parseAmount(countedInput)
-  const previewVariance = countedPreview === null || Number.isNaN(countedPreview) ? null : countedPreview - expected
+  const previewVariance =
+    countedPreview === null || Number.isNaN(countedPreview) || expected === null
+      ? null
+      : countedPreview - expected
 
   const tenderLabel = (tender: string) => {
     // Server sends the raw tender id; reuse existing catalogue keys where they exist.
@@ -319,9 +547,26 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
             ) : null}
           </CafeSection>
 
-          <CafeSection title={t("drawer_title")}>
+          <CafeSection
+            title={t("drawer_title")}
+            description={blind ? t("blind_hint") : undefined}
+            actions={
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => void printReport("X")}>
+                  {t("print_x")}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => void printReport("Z")}>
+                  {t("print_z")}
+                </Button>
+              </div>
+            }
+          >
             <div className="grid gap-3 sm:grid-cols-3">
-              <Stat label={t("expected_cash")} value={money(expected)} hint={t("expected_cash_hint")} />
+              <Stat
+                label={t("expected_cash")}
+                value={expected === null ? "—" : money(expected)}
+                hint={blind ? t("blind_expected_hidden") : t("expected_cash_hint")}
+              />
               <div className="rounded-xl border p-3">
                 <p className="text-muted-foreground mb-1.5 text-xs">{t("counted_cash")}</p>
                 <Input
@@ -340,6 +585,14 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
               </div>
             </div>
 
+            {/* Where the count stands. A difference needs a manager, and saying so here is
+                cheaper than a cashier discovering it after typing a number twice. */}
+            {shift.count_status && shift.count_status !== "approved" ? (
+              <p className="text-muted-foreground text-xs">
+                {t(`count_status_${shift.count_status}`)}
+              </p>
+            ) : null}
+
             <div className="space-y-1.5">
               <Label htmlFor="close-note">{t("note_label")}</Label>
               <Input
@@ -350,10 +603,97 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
               />
             </div>
 
-            <Button onClick={submitClose} disabled={closeShift.isPending} size="lg" variant="destructive">
-              {t("close_btn")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={submitClose} disabled={closeShift.isPending} size="lg" variant="destructive">
+                {t("close_btn")}
+              </Button>
+              {/* The blind path, for a drawer that will not balance: record the count and let
+                  a manager decide, instead of the cashier retyping until the red goes away. */}
+              <Button
+                onClick={() => {
+                  const value = parseAmount(countedInput)
+                  if (Number.isNaN(value)) {
+                    toast.error(t("count_required"))
+                    return
+                  }
+                  submitCount.mutate({
+                    counted_cash_minor: value,
+                    note: noteInput.trim() || undefined,
+                  })
+                }}
+                disabled={submitCount.isPending}
+                size="lg"
+                variant="outline"
+              >
+                {t("submit_count_btn")}
+              </Button>
+            </div>
           </CafeSection>
+
+          {(pending.data?.length ?? 0) > 0 ? (
+            <CafeSection title={t("approvals_title")} description={t("approvals_hint")}>
+              <div className="mb-2 max-w-md space-y-1.5">
+                <Label htmlFor="approval-note">{t("approval_note")}</Label>
+                <Input
+                  id="approval-note"
+                  value={approvalNote}
+                  onChange={(e) => setApprovalNote(e.target.value)}
+                  placeholder={t("approval_note_ph")}
+                />
+              </div>
+              <div className="overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("cashier")}</TableHead>
+                      <TableHead>{t("counted_cash")}</TableHead>
+                      <TableHead>{t("counted_at")}</TableHead>
+                      <TableHead>{t("actions")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pending.data!.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>{row.cashier?.name ?? "-"}</TableCell>
+                        <TableCell>{money(row.counted_cash_minor)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDisplayDateTime(row.counted_at, locale)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                approveCount.mutate({ id: row.id, note: approvalNote.trim() || undefined })
+                              }
+                              disabled={approveCount.isPending}
+                            >
+                              {t("approve_btn")}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                rejectCount.mutate({
+                                  id: row.id,
+                                  // The reason is what the cashier is told; an empty one is
+                                  // useless to them, so refuse it here.
+                                  reason: approvalNote.trim() || t("reject_default_reason"),
+                                })
+                              }
+                              disabled={rejectCount.isPending}
+                            >
+                              {t("reject_btn")}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CafeSection>
+          ) : null}
 
           <CafeSection title={t("movements_title")} description={t("movements_hint")}>
             <div className="grid gap-3 sm:grid-cols-4">
@@ -424,6 +764,79 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
           </CafeSection>
         </>
       )}
+
+      {/* Day close. Sits below the till because it is the manager's end-of-day act, not
+          something a cashier does between customers. */}
+      <CafeSection
+        title={t("day_title")}
+        description={t("day_hint")}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="date"
+              value={dayDate}
+              onChange={(e) => setDayDate(e.target.value)}
+              className="w-40"
+              aria-label={t("day_date")}
+            />
+            <Button
+              size="sm"
+              onClick={() => {
+                confirm({
+                  title: t("day_close_confirm_title"),
+                  description: t("day_close_confirm_body"),
+                  confirmLabel: t("day_close_btn"),
+                  onConfirm: () => closeDay.mutateAsync({ business_date: dayDate }),
+                })
+              }}
+              disabled={closeDay.isPending}
+            >
+              {t("day_close_btn")}
+            </Button>
+          </div>
+        }
+      >
+        {(dayHistory.data?.length ?? 0) === 0 ? (
+          <CafeEmptyState message={t("day_empty")} />
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("day_date")}</TableHead>
+                  <TableHead>{t("orders_count")}</TableHead>
+                  <TableHead>{t("gross_sales")}</TableHead>
+                  <TableHead>{t("cash_sales")}</TableHead>
+                  <TableHead>{t("variance")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dayHistory.data!.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>{row.business_date}</TableCell>
+                    <TableCell>{toLocaleDigits(row.shifts, locale)}</TableCell>
+                    <TableCell>{money(row.gross_sales_minor)}</TableCell>
+                    <TableCell>{money(row.cash_sales_minor)}</TableCell>
+                    <TableCell>
+                      {row.variance_minor === 0 ? (
+                        <Badge variant="secondary">{t("balanced")}</Badge>
+                      ) : (
+                        varianceBadge(row.variance_minor)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={row.status === "closed" ? "secondary" : "outline"}>
+                        {row.status === "closed" ? t("status_closed") : t("status_open")}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CafeSection>
 
       <CafeSection
         title={t("history_title")}

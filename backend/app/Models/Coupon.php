@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Coupon extends Model
 {
     use SoftDeletes;
+    use \App\Support\Audit\RecordsActivity;
 
     protected $fillable = [
         'tenant_id',

@@ -58,9 +58,10 @@ type SeoPayload = {
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const [tenantRes, seoRes] = await Promise.all([
+    const [tenantRes, seoRes, platformRes] = await Promise.all([
       apiServer<TenantPayload>("/api/v1/public/tenant", { revalidate: 60, tags: ["tenant"] }),
       apiServer<SeoPayload>("/api/v1/public/seo/meta?path=/", { revalidate: 60, tags: ["seo"] }),
+      apiServer<{ data?: { code?: string } }>("/api/v1/public/platform-verification", { revalidate: false }),
     ])
     const favicon = tenantRes?.data?.branding?.favicon_url
     const meta = seoRes?.data?.meta
@@ -70,6 +71,9 @@ export async function generateMetadata(): Promise<Metadata> {
     if (verification?.bing) other["msvalidate.01"] = verification.bing
     if (verification?.yandex) other["yandex-verification"] = verification.yandex
     if (verification?.pinterest) other["p:domain_verify"] = verification.pinterest
+    if (platformRes?.data?.code && /^[A-Za-z0-9_-]{1,128}$/.test(platformRes.data.code)) {
+      other["platform-verification"] = platformRes.data.code
+    }
     return {
       title: meta?.title || tenantRes?.data?.store_display_name || tenantRes?.data?.name,
       description: meta?.description || undefined,

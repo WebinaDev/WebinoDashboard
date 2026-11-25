@@ -40,7 +40,10 @@ class CafeFloorController extends Controller
         abort_if((int) $request->user()->tenant_id !== (int) $table->tenant_id, 403);
 
         $data = $request->validate([
-            'status' => ['required', 'string', Rule::in(CafeTable::STATUSES)],
+            // Only settable states. `awaiting_settlement` and `overdue` are readings of the
+            // orders and the clock; letting a waiter set them would let the board claim a table
+            // is settled while it still has an unpaid bill.
+            'status' => ['required', 'string', Rule::in(CafeTable::SETTABLE_STATUSES)],
             'reservation_name' => ['nullable', 'string', 'max:120'],
             'reserved_for_at' => ['nullable', 'date'],
             'active_order_id' => ['nullable', 'integer', Rule::exists('orders', 'id')->where('tenant_id', $table->tenant_id)],
@@ -99,6 +102,8 @@ class CafeFloorController extends Controller
      */
     private function summary(array $tables): array
     {
+        // Counted over every status the board can show, including the two derived ones, so the
+        // summary line and the tiles always add up to the same floor.
         $counts = array_fill_keys(CafeTable::STATUSES, 0);
         $seated = 0;
         $openValue = 0;

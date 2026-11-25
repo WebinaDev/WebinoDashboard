@@ -40,7 +40,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 
 import { useCatalog, useProductQuery } from "../storefront/use-catalog"
 import { StoreProductCard } from "../storefront/ui"
-import { linkAttrs, propBool, propNum, propStr } from "../props"
+import { linkAttrs, propBool, propNum, propStr, repeaterCells } from "../props"
 import type { WidgetNode } from "../types"
 import { useIsClassicSkin } from "./runtime"
 import { ClassicProductRow } from "@/themes/ecommerce-classic/components/ClassicHome"
@@ -168,7 +168,7 @@ export function ProductQueryWidget({ widget }: { widget: WidgetNode }) {
 /* ------------------------------------------------------------ banner grid */
 
 export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
-  const rows = splitRows(propStr(widget.props, "items", ""))
+  const rows = repeaterCells(widget.props.items, ["image", "href", "alt", "mobileImage"])
   const cols = Math.max(1, Math.min(4, propNum(widget.props, "columns", 2)))
   const _ratio = propStr(widget.props, "ratio", "16/7")
   void _ratio
@@ -226,7 +226,7 @@ export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
 /* ------------------------------------------------------------------- tabs */
 
 export function TabsWidget({ widget }: { widget: WidgetNode }) {
-  const rows = splitRows(propStr(widget.props, "items", ""))
+  const rows = repeaterCells(widget.props.items, ["title", "body"])
   const [active, setActive] = useState(0)
   if (!rows.length) return null
   const current = rows[Math.min(active, rows.length - 1)]
@@ -256,7 +256,7 @@ export function TabsWidget({ widget }: { widget: WidgetNode }) {
 /* -------------------------------------------------------- accordion / FAQ */
 
 export function AccordionWidget({ widget }: { widget: WidgetNode }) {
-  const rows = splitRows(propStr(widget.props, "items", "")).filter(([q]) => q)
+  const rows = repeaterCells(widget.props.items, ["q", "a"]).filter(([q]) => q)
   const title = propStr(widget.props, "title", "")
   const schema = propBool(widget.props, "faqSchema", true)
   const firstOpen = propBool(widget.props, "firstOpen", true)
@@ -318,7 +318,7 @@ export function IconBoxWidget({ widget }: { widget: WidgetNode }) {
 }
 
 export function IconListWidget({ widget }: { widget: WidgetNode }) {
-  const rows = splitRows(propStr(widget.props, "items", ""))
+  const rows = repeaterCells(widget.props.items, ["icon", "text", "href"])
   const inline = propStr(widget.props, "direction", "column") === "row"
   if (!rows.length) return null
   return (
@@ -369,7 +369,7 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
   const layout = propStr(widget.props, "layout", "strip") || "strip"
   const skin = propStr(widget.props, "skin", "default") || "default"
   const limit = Math.max(1, Math.min(24, propNum(widget.props, "limit", 8)))
-  const manual = splitRows(propStr(widget.props, "items", "")).filter(([name, text]) => name || text)
+  const manual = repeaterCells(widget.props.items, ["name", "text", "rating", "image", "role"]).filter(([name, text]) => name || text)
   const [rows, setRows] = useState<TestimonialRow[] | null>(source === "manual" ? [] : null)
 
   useEffect(() => {
@@ -404,7 +404,7 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
     }
     // manual rows are only used when source=manual; intentional deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, limit, propStr(widget.props, "items", "")])
+  }, [source, limit, widget.props.items])
 
   if (!rows || !rows.length) {
     if (source === "manual" && !manual.length) return null
@@ -669,7 +669,7 @@ function useInView<T extends Element>(): [RefObject<T | null>, boolean] {
 
 export function CounterWidget({ widget }: { widget: WidgetNode }) {
   const locale = normalizeUiLocale(useLocale())
-  const rows = splitRows(propStr(widget.props, "items", "")).filter(([n]) => n)
+  const rows = repeaterCells(widget.props.items, ["value", "label", "suffix"]).filter(([n]) => n)
   const [ref, seen] = useInView<HTMLDivElement>()
   const [progress, setProgress] = useState(0)
   useEffect(() => {
@@ -721,7 +721,7 @@ const NETWORK_LABEL: Record<string, string> = {
 }
 
 export function SocialIconsWidget({ widget }: { widget: WidgetNode }) {
-  const rows = splitRows(propStr(widget.props, "items", "")).filter(([, href]) => href)
+  const rows = repeaterCells(widget.props.items, ["network", "href"]).filter(([, href]) => href)
   if (!rows.length) return null
   return (
     <div className="flex flex-wrap gap-2">

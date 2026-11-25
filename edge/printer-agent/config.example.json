@@ -1,0 +1,14 @@
+{
+  "apiBase": "https://panel.example.com",
+  "token": "PUT_A_SANCTUM_TOKEN_HERE",
+  "branchId": 1,
+  "document": "kitchen",
+  "stationId": null,
+  "pollSeconds": 4,
+  "spoolDir": "./spool",
+  "printers": {
+    "Bar printer": { "command": "lp -d BarPrinter -o media=80mm" },
+    "Kitchen": { "command": "lp -d KitchenPrinter" }
+  },
+  "defaultPrinter": "Kitchen"
+}

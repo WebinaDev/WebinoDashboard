@@ -1,4 +1,4 @@
-import type { ModuleManifest } from "@/kernel/types"
+import type { ModuleManifest } from "@/kernel/types";
 
 /**
  * Full ERP ledger (double-entry journals, chart of accounts, receivables/payables,
@@ -11,18 +11,12 @@ import type { ModuleManifest } from "@/kernel/types"
  * `/api/v1/erp-accounting` API.
  *
  * Every route here maps to a real file: `modules/accounting/admin/{page}-page.tsx`.
- *
- * The slug is `accounting` — the same slug the backend module registers — because
- * tenant activations are keyed by it. As `erp-accounting` the nav checks never
- * matched a backend row, and the page loader looked for
- * `modules/erp-accounting/...`, which does not exist. Only the API prefix keeps
- * the `erp-accounting` name, to avoid colliding with the till ledger's
- * `/api/v1/accounting/*`.
- *
- * Available on every site type: the ledger is standalone (`acc_*` tables, no
- * commerce dependency), so magazine/blog/resume/corporate sites get it too.
  */
 export const accountingManifest: ModuleManifest = {
+  // Slug must match the backend module (`backend/modules/Accounting/manifest.json`)
+  // and the activation rows: `loadAdminPage` imports
+  // `modules/${moduleSlug}/admin/{page}-page`, and this folder is `modules/accounting`.
+  // The API prefix stays `erp-accounting` (see AccountingServiceProvider).
   slug: "accounting",
   nameFa: "حسابداری",
   nameEn: "Accounting",
@@ -43,26 +37,271 @@ export const accountingManifest: ModuleManifest = {
   ],
   adminNav: { section: "accounting", order: 20 },
   adminRoutes: [
-    { path: "accounting", submodule: "dashboard", page: "dashboard", labelKey: "nav.accounting", section: "accounting", order: 20, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/fiscal-year", submodule: "settings", page: "fiscal-year", labelKey: "nav.accounting_fiscal_year", section: "accounting", order: 21, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/chart", submodule: "journals", page: "chart", labelKey: "nav.accounting_chart", section: "accounting", order: 22, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/journals", submodule: "journals", page: "journals", labelKey: "nav.accounting_journals", section: "accounting", order: 23, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/ledger", submodule: "ledger", page: "ledger", labelKey: "nav.accounting_ledger", section: "accounting", order: 24, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/reports", submodule: "reports", page: "reports", labelKey: "nav.accounting_reports", section: "accounting", order: 25, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/persons", submodule: "persons", page: "persons", labelKey: "nav.accounting_persons", section: "accounting", order: 26, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/products", submodule: "products", page: "products", labelKey: "nav.accounting_products", section: "accounting", order: 27, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/invoices", submodule: "invoices", page: "invoices", labelKey: "nav.accounting_invoices", section: "accounting", order: 28, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/cash-accounts", submodule: "cash", page: "cash-accounts", labelKey: "nav.accounting_cash_accounts", section: "accounting", order: 29, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/receipts", submodule: "receipts", page: "receipts", labelKey: "nav.accounting_receipts", section: "accounting", order: 30, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/checks", submodule: "checks", page: "checks", labelKey: "nav.accounting_checks", section: "accounting", order: 31, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/warehouses", submodule: "warehouses", page: "warehouses", labelKey: "nav.accounting_warehouses", section: "accounting", order: 32, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/warehouse-stock", submodule: "warehouses", page: "warehouse-stock", labelKey: "nav.accounting_warehouse_stock", section: "accounting", order: 33, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/warehouse-inbound", submodule: "warehouses", page: "warehouse-inbound", labelKey: "nav.accounting_warehouse_inbound", section: "accounting", order: 34, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/warehouse-outbound", submodule: "warehouses", page: "warehouse-outbound", labelKey: "nav.accounting_warehouse_outbound", section: "accounting", order: 35, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/warehouse-audit", submodule: "warehouses", page: "warehouse-audit", labelKey: "nav.accounting_warehouse_audit", section: "accounting", order: 36, navHidden: true, capability: "accounting.manage", menuKey: "accounting" },
-    { path: "accounting/settings", submodule: "settings", page: "settings", labelKey: "nav.accounting_settings", section: "accounting", order: 37, capability: "accounting.manage", menuKey: "accounting" },
+    {
+      path: "accounting",
+      submodule: "dashboard",
+      page: "dashboard",
+      labelKey: "nav.accounting",
+      section: "accounting",
+      order: 20,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/fiscal-year",
+      submodule: "settings",
+      page: "fiscal-year",
+      labelKey: "nav.accounting_fiscal_year",
+      section: "accounting",
+      order: 21,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/chart",
+      submodule: "journals",
+      page: "chart",
+      labelKey: "nav.accounting_chart",
+      section: "accounting",
+      order: 22,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/journals",
+      submodule: "journals",
+      page: "journals",
+      labelKey: "nav.accounting_journals",
+      section: "accounting",
+      order: 23,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/ledger",
+      submodule: "ledger",
+      page: "ledger",
+      labelKey: "nav.accounting_ledger",
+      section: "accounting",
+      order: 24,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/reports",
+      submodule: "reports",
+      page: "reports",
+      labelKey: "nav.accounting_reports",
+      section: "accounting",
+      order: 25,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/persons",
+      submodule: "persons",
+      page: "persons",
+      labelKey: "nav.accounting_persons",
+      section: "accounting",
+      order: 26,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/products",
+      submodule: "products",
+      page: "products",
+      labelKey: "nav.accounting_products",
+      section: "accounting",
+      order: 27,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/invoices",
+      submodule: "invoices",
+      page: "invoices",
+      labelKey: "nav.accounting_invoices",
+      section: "accounting",
+      order: 28,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/cash-accounts",
+      submodule: "cash",
+      page: "cash-accounts",
+      labelKey: "nav.accounting_cash_accounts",
+      section: "accounting",
+      order: 29,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/receipts",
+      submodule: "receipts",
+      page: "receipts",
+      labelKey: "nav.accounting_receipts",
+      section: "accounting",
+      order: 30,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/checks",
+      submodule: "checks",
+      page: "checks",
+      labelKey: "nav.accounting_checks",
+      section: "accounting",
+      order: 31,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    // The paper behind the cheques: which printed serials are used, void, or missing. That count
+    // is what the bank asks for when you stop payment, and it cannot be derived from cheques alone.
+    {
+      path: "accounting/cheque-books",
+      submodule: "checks",
+      page: "cheque-books",
+      labelKey: "nav.accounting_cheque_books",
+      section: "accounting",
+      order: 38,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    // The reconciliation engine existed for months with no caller. This is the screen that calls it.
+    {
+      path: "accounting/reconciliation",
+      submodule: "cash",
+      page: "reconciliation",
+      labelKey: "nav.accounting_reconciliation",
+      section: "accounting",
+      order: 32,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    // Rent, electricity, repairs — the most common thing a shop writes down, and previously
+    // only expressible by knowing which account to debit on the journal screen.
+    {
+      path: "accounting/expenses",
+      submodule: "cash",
+      page: "expenses",
+      labelKey: "nav.accounting_expenses",
+      section: "accounting",
+      order: 33,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    // What the shop owes suppliers, with due dates — the bill between goods-in and money-out.
+    {
+      path: "accounting/supplier-bills",
+      submodule: "cash",
+      page: "supplier-bills",
+      labelKey: "nav.accounting_supplier_bills",
+      section: "accounting",
+      order: 34,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    // The statement of account every customer eventually asks for, and the credit limit.
+    {
+      path: "accounting/parties",
+      submodule: "persons",
+      page: "party-statements",
+      labelKey: "nav.accounting_parties",
+      section: "accounting",
+      order: 35,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    // The oven and the espresso machine: written down over their life, not vanished into a month.
+    {
+      path: "accounting/fixed-assets",
+      submodule: "cash",
+      page: "fixed-assets",
+      labelKey: "nav.accounting_fixed_assets",
+      section: "accounting",
+      order: 36,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    // Where the money is now, and what is about to leave the bank.
+    {
+      path: "accounting/treasury",
+      submodule: "cash",
+      page: "treasury",
+      labelKey: "nav.accounting_treasury",
+      section: "accounting",
+      order: 37,
+      capability: "accounting.manage,reports.shop",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/warehouses",
+      submodule: "warehouses",
+      page: "warehouses",
+      labelKey: "nav.accounting_warehouses",
+      section: "accounting",
+      order: 32,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/warehouse-stock",
+      submodule: "warehouses",
+      page: "warehouse-stock",
+      labelKey: "nav.accounting_warehouse_stock",
+      section: "accounting",
+      order: 33,
+      navHidden: true,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/warehouse-inbound",
+      submodule: "warehouses",
+      page: "warehouse-inbound",
+      labelKey: "nav.accounting_warehouse_inbound",
+      section: "accounting",
+      order: 34,
+      navHidden: true,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/warehouse-outbound",
+      submodule: "warehouses",
+      page: "warehouse-outbound",
+      labelKey: "nav.accounting_warehouse_outbound",
+      section: "accounting",
+      order: 35,
+      navHidden: true,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/warehouse-audit",
+      submodule: "warehouses",
+      page: "warehouse-audit",
+      labelKey: "nav.accounting_warehouse_audit",
+      section: "accounting",
+      order: 36,
+      navHidden: true,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
+    {
+      path: "accounting/settings",
+      submodule: "settings",
+      page: "settings",
+      labelKey: "nav.accounting_settings",
+      section: "accounting",
+      order: 37,
+      capability: "accounting.manage",
+      menuKey: "accounting",
+    },
   ],
 
   /** Accounting has no public pages: every route behind it needs `accounting.manage`. */
   siteRoutes: [],
-}
+};

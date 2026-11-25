@@ -9,11 +9,12 @@ use Modules\Accounting\Entities\Concerns\BelongsToTenant;
 class AccCheck extends Model
 {
     use BelongsToTenant;
+    use \App\Support\Audit\RecordsActivity;
 
     protected $table = 'acc_checks';
 
     protected $fillable = [
-        'tenant_id',        'type', 'number', 'bank', 'amount', 'due_date', 'status', 'cash_account_id', 'person_id',
+        'tenant_id',        'type', 'number', 'bank', 'amount', 'due_date', 'status', 'cash_account_id', 'person_id', 'cheque_book_id',
     ];
 
     protected function casts(): array
@@ -32,5 +33,10 @@ class AccCheck extends Model
     public function person(): BelongsTo
     {
         return $this->belongsTo(AccPerson::class, 'person_id');
+    }
+
+    public function chequeBook(): BelongsTo
+    {
+        return $this->belongsTo(AccChequeBook::class, 'cheque_book_id');
     }
 }

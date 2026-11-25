@@ -40,7 +40,7 @@ class CafeServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
 
-        Route::prefix('v1/cafe')
+        Route::prefix('api/v1/cafe')
             ->middleware(['api', 'auth:sanctum'])
             ->group(__DIR__.'/Routes/api.php');
     }

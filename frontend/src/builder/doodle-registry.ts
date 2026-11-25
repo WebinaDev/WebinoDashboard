@@ -49,13 +49,13 @@ const CTA_DOODLE_FIELDS: FieldDef[] = [
 export function withDoodleContentFields(defs: WidgetDef[]): WidgetDef[] {
   return defs.map((def) => {
     if (def.type === "icon-cards") {
-      return { ...def, fields: [...def.fields, ...DOODLE_CARD_FIELDS] }
+      return { ...def, fields: [...def.fields, ...DOODLE_CARD_FIELDS.map((field) => ({ ...field, panel: "design" as const }))] }
     }
     if (def.type === "section-heading") {
-      return { ...def, fields: [...def.fields, ...SECTION_EYEBROW_FIELDS] }
+      return { ...def, fields: [...def.fields, ...SECTION_EYEBROW_FIELDS.map((field) => ({ ...field, panel: "design" as const }))] }
     }
     if (def.type === "cta-banner") {
-      return { ...def, fields: [...def.fields, ...CTA_DOODLE_FIELDS] }
+      return { ...def, fields: [...def.fields, ...CTA_DOODLE_FIELDS.map((field) => ({ ...field, panel: "design" as const }))] }
     }
     return def
   })

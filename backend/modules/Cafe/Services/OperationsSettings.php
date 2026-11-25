@@ -33,6 +33,13 @@ final class OperationsSettings
             'table_overdue_after_minutes' => 90,
             // A ticket with no one working it for this long is surfaced first.
             'queue_stale_after_minutes' => 8,
+            // table | pager | none — whether a dine-in order names a table, names a pager, or
+            // needs neither because there is no seat service at all.
+            'service_mode' => 'table',
+            // How long the room is open in a day, in minutes. Occupancy and table turnover
+            // are ratios against this; without it they would be reported as zero, which reads
+            // as an empty restaurant rather than an unconfigured one.
+            'service_day_minutes' => 720,
             // Delivery: block an order under the zone minimum rather than silently accepting it.
             'enforce_delivery_minimum' => true,
             'default_delivery_eta_minutes' => 35,

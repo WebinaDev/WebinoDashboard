@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/features/modules/accounting/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/features/modules/accounting/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
@@ -27,37 +28,29 @@ type FiscalYear = { id: number; title: string };
 export default function AccChartOfAccounts() {
   const t = useTranslations();
 
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [fys, setFys] = useState<FiscalYear[]>([]);
   const [fyId, setFyId] = useState('all');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    apiClient
-      .get('/v1/erp-accounting/fiscal-years', { params: { per_page: 100 } })
-      .then((r) => setFys(normalizeListPayload(r.data) as unknown as FiscalYear[]))
-      .catch(() => {});
-  }, []);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const fiscalYearsQuery = useQuery({
+    queryKey: ['accounting', 'fiscal-years'],
+    queryFn: async () => {
+      const res = await apiClient.get('/v1/erp-accounting/fiscal-years', { params: { per_page: 100 } });
+      return normalizeListPayload(res.data) as unknown as FiscalYear[];
+    },
+    retry: false,
+  });
+  const chartQuery = useQuery({
+    queryKey: ['accounting', 'chart', fyId],
+    queryFn: async () => {
       const params: Record<string, string> = {};
       if (fyId !== 'all') params.fiscal_year_id = fyId;
       const res = await apiClient.get('/v1/erp-accounting/chart', { params });
-      setAccounts(unwrapData<Account[]>(res));
-    } catch (e) {
-      setError(getAxiosMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [fyId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+      return unwrapData<Account[]>(res);
+    },
+    retry: false,
+  });
+  const fys = fiscalYearsQuery.data ?? [];
+  const accounts = chartQuery.data ?? [];
+  const loading = chartQuery.isFetching;
+  const error = chartQuery.isError ? getAxiosMessage(chartQuery.error) : null;
 
   return (
     <div className="space-y-6">
@@ -75,7 +68,7 @@ export default function AccChartOfAccounts() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => void chartQuery.refetch()} disabled={loading}>
             {t('auto.accounting_AccChartOfAccounts.s_182b1c89')}
           </Button>
         </div>

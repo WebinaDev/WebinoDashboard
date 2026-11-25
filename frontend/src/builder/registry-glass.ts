@@ -1,7 +1,7 @@
 import type { FieldDef } from "./types"
 
 /** Shared glass surface fields for generic content widgets (pricing, FAQ, forms, …). */
-export const GLASS_TONE_FIELDS: FieldDef[] = [
+export const GLASS_TONE_FIELDS: FieldDef[] = ([
   { kind: "select", key: "tone", label: "زمینه", options: [
     { value: "default", label: "پیش‌فرض" },
     { value: "glass", label: "شیشه‌ای (نیمه‌شفاف با محو پس‌زمینه)" },
@@ -10,10 +10,10 @@ export const GLASS_TONE_FIELDS: FieldDef[] = [
   { kind: "color", key: "textColor", label: "رنگ متن" },
   { kind: "color", key: "glassBg", label: "رنگ پس‌زمینه شیشه‌ای" },
   { kind: "color", key: "glassBorder", label: "رنگ حاشیه شیشه‌ای" },
-]
+] satisfies FieldDef[]).map((field) => ({ ...field, panel: "design" as const }))
 
 /** Tone fields for storefront widgets (product page parts, grids, reviews). Rendered by store-tone.tsx. */
-export const STORE_TONE_FIELDS: FieldDef[] = [
+export const STORE_TONE_FIELDS: FieldDef[] = ([
   { kind: "select", key: "tone", label: "زمینه رنگی", options: [
     { value: "", label: "پیش‌فرض قالب" },
     { value: "dark", label: "تیره (متن روشن)" },
@@ -25,4 +25,4 @@ export const STORE_TONE_FIELDS: FieldDef[] = [
   { kind: "color", key: "textColor", label: "رنگ متن" },
   { kind: "color", key: "glassBg", label: "رنگ پس‌زمینه کارت‌ها" },
   { kind: "color", key: "glassBorder", label: "رنگ حاشیه" },
-]
+] satisfies FieldDef[]).map((field) => ({ ...field, panel: "design" as const }))

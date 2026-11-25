@@ -2,92 +2,76 @@
 
 namespace Modules\Accounting\Http\Controllers;
 
+use App\Services\Accounting\FinancialReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Modules\Accounting\Support\AccountingQuery;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * The three statements an accountant actually asks for, in three shapes:
+ * JSON for the screen, CSV for the file, HTML for the printer.
+ */
 class FinancialReportsController extends Controller
 {
+    public function __construct(private readonly FinancialReport $reports) {}
+
     public function financialReports(Request $request): JsonResponse
     {
-        $request->validate([
-            'type' => 'nullable|in:trial_balance,balance_sheet,profit_loss',
-            'from' => 'nullable|date',
-            'to' => 'nullable|date',
-        ]);
+        return response()->json(['data' => $this->reports->build($request)]);
+    }
 
-        $type = $request->input('type', 'trial_balance');
+    public function export(Request $request): StreamedResponse
+    {
+        $report = $this->reports->build($request);
+        $csv = $this->reports->toCsv($report);
 
-        $base = AccountingQuery::journalLines()
-            ->join('acc_journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
-            ->join('acc_chart_accounts as a', 'jl.account_id', '=', 'a.id')
-            ->select([
-                'a.id as account_id',
-                'a.code',
-                'a.name',
-                'a.type',
-                DB::raw('SUM(jl.debit) as sum_debit'),
-                DB::raw('SUM(jl.credit) as sum_credit'),
-            ])
-            ->groupBy('a.id', 'a.code', 'a.name', 'a.type');
+        $filename = 'accounting-'.$report['type'].'-'.date('Y-m-d').'.csv';
 
-        if ($request->filled('from')) {
-            $base->whereDate('je.document_date', '>=', $request->input('from'));
-        }
-        if ($request->filled('to')) {
-            $base->whereDate('je.document_date', '<=', $request->input('to'));
-        }
+        return response()->streamDownload(function () use ($csv): void {
+            echo $csv;
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
 
-        $rows = $base->get()->map(function ($r) {
-            $balance = (float) $r->sum_debit - (float) $r->sum_credit;
+    /**
+     * A print view rather than a "print" button.
+     *
+     * The browser's print dialog on the dashboard prints the sidebar, the header and the
+     * buttons; what an auditor needs is the statement on its own page with the period in the
+     * header. This returns exactly that, so Cmd-P gives the paper a shop expects.
+     */
+    public function printable(Request $request): \Illuminate\Http\Response
+    {
+        $report = $this->reports->build($request);
+        $type = (string) $report['type'];
+        $title = match ($type) {
+            'balance_sheet' => 'ترازنامه',
+            'profit_loss' => 'صورت سود و زیان',
+            default => 'تراز آزمایشی',
+        };
 
-            return [
-                'account_id' => $r->account_id,
-                'code' => $r->code,
-                'name' => $r->name,
-                'type' => $r->type,
-                'debit' => (float) $r->sum_debit,
-                'credit' => (float) $r->sum_credit,
-                'balance' => $balance,
-            ];
-        });
+        $rows = $type === 'balance_sheet'
+            ? array_merge(
+                array_map(fn ($r) => $r + ['group' => 'دارایی‌ها'], $report['assets']->all()),
+                array_map(fn ($r) => $r + ['group' => 'بدهی‌ها و سرمایه'], $report['liabilities_equity']->all()),
+            )
+            : $report['rows']->all();
 
-        if ($type === 'balance_sheet') {
-            $assets = $rows->filter(fn ($r) => str_contains(strtolower($r['type']), 'asset'));
-            // Liabilities + equity together: a balance sheet without equity never
-            // balances, and the chart seeds equity as its own type ('equity').
-            $liab = $rows->filter(fn ($r) => str_contains(strtolower($r['type']), 'liabilit')
-                || str_contains(strtolower($r['type']), 'payable')
-                || str_contains(strtolower($r['type']), 'equity'));
+        $totals = $report['totals'] ?? [];
 
-            return response()->json([
-                'data' => [
-                    'type' => $type,
-                    'assets' => $assets->values(),
-                    'liabilities_equity' => $liab->values(),
-                ],
-            ]);
-        }
-
-        if ($type === 'profit_loss') {
-            $pl = $rows->filter(fn ($r) => str_contains(strtolower($r['type']), 'revenue')
-                || str_contains(strtolower($r['type']), 'expense')
-                || str_contains(strtolower($r['type']), 'cost'));
-
-            return response()->json([
-                'data' => [
-                    'type' => $type,
-                    'rows' => $pl->values(),
-                ],
-            ]);
-        }
-
-        return response()->json([
-            'data' => [
-                'type' => 'trial_balance',
-                'rows' => $rows->values(),
+        return response()->view('accounting.report-print', [
+            'title' => $title,
+            'report' => $report,
+            'rows' => $rows,
+            'totals' => $totals,
+            'labels' => [
+                'debit' => 'جمع بدهکار',
+                'credit' => 'جمع بستانکار',
+                'difference' => 'اختلاف',
+                'revenue' => 'درآمد',
+                'expense' => 'هزینه',
+                'profit' => 'سود',
             ],
+            'printedAt' => now(),
         ]);
     }
 }

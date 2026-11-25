@@ -21,8 +21,8 @@ class ThrottleApiToken
         $limit = max(1, $limit);
 
         $token = $user?->currentAccessToken();
-        $key = $token !== null
-            ? 'api-token:'.$token->id
+        $key = $token instanceof \Illuminate\Database\Eloquent\Model && $token->getKey() !== null
+            ? 'api-token:'.$token->getKey()
             : 'api-user:'.($user?->id ?? 'guest').'|'.$request->ip();
 
         $authSensitive = $this->isAuthSensitive($request);

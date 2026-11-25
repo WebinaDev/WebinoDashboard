@@ -57,8 +57,15 @@ const ROLE_TABS = [
   "subscriber",
   "staff",
   "admin",
+  // Legacy commerce roles, kept for shops that still hold them.
   "shop_manager",
   "seller",
+  // Counter roles: a café hires a cashier and a cook, not a "seller".
+  "cashier",
+  "waiter",
+  "cook",
+  "branch_manager",
+  "owner",
   "accountant",
   "author",
   "editor",

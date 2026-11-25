@@ -1,0 +1,359 @@
+<?php
+
+namespace Modules\Accounting\Services;
+
+use Illuminate\Support\Facades\DB;
+use Modules\Accounting\Entities\AccChartAccount;
+use Modules\Accounting\Entities\AccFiscalYear;
+use Modules\Accounting\Entities\AccJournalEntry;
+use Modules\Accounting\Entities\AccJournalLine;
+
+/**
+ * The one place the accounting module writes a journal entry from a document.
+ *
+ * Before this class, journalling was duplicated three ways with three different conventions:
+ * `ReceiptController` hard-coded codes 111/113, `AccountingWpActionService` only flipped a
+ * status without cutting a journal, and the cafe module posted sales through a *different*
+ * ledger (`accounting_journals`, minor units). Three conventions meant three sets of numbers
+ * that could not be reconciled.
+ *
+ * Two invariants are enforced here, not left to callers:
+ *
+ *  1. **Balanced or nothing.** A journal whose debit total differs from its credit total is
+ *     rejected before a row is written. Posting an unbalanced entry is worse than failing:
+ *     the trial balance then cannot be trusted and every later report inherits the error.
+ *
+ *  2. **A closed fiscal year is closed.** `acc_fiscal_years.is_closed` existed but nothing
+ *     honoured it, so a back-dated entry could still land in a year the accountant had
+ *     already signed off. A posting dated inside a closed year is refused.
+ *
+ * Amounts are in the chart's major unit (toman/rial as `decimal(18,2)`), which is what every
+ * `acc_*` table already stores — unlike the cafe ledger, which holds minor units.
+ */
+final class LedgerPosting
+{
+    /**
+     * Post a set of lines as one journal entry.
+     *
+     * @param  list<array{code: string, debit?: float|int, credit?: float|int, description?: string|null}>  $lines
+     * @param  array{tenant_id?: int, document_no?: string|null, document_date?: mixed, description?: string|null, created_by?: int|null, fiscal_year_id?: int|null, source?: string|null, status?: string|null, branch_id?: int|null}  $meta
+     */
+    public function post(array $lines, array $meta = []): AccJournalEntry
+    {
+        $activeTenant = AccChartAccount::currentTenantId();
+        $tenantId = isset($meta['tenant_id']) ? (int) $meta['tenant_id'] : $activeTenant;
+        if (! $tenantId || ($activeTenant !== null && $activeTenant !== $tenantId)) {
+            throw new \InvalidArgumentException('A valid matching tenant is required for ledger posting.');
+        }
+
+        $resolved = [];
+        $debit = 0.0;
+        $credit = 0.0;
+
+        foreach ($lines as $line) {
+            $code = trim((string) ($line['code'] ?? ''));
+            if ($code === '') {
+                throw new \InvalidArgumentException('A journal line needs an account code.');
+            }
+
+            $dr = round((float) ($line['debit'] ?? 0), 2);
+            $cr = round((float) ($line['credit'] ?? 0), 2);
+
+            if ($dr < 0 || $cr < 0) {
+                throw new \InvalidArgumentException('Journal amounts cannot be negative; swap the debit and credit instead.');
+            }
+
+            // A zero line carries no information and only makes a journal harder to read.
+            if ($dr === 0.0 && $cr === 0.0) {
+                continue;
+            }
+
+            if ($dr > 0.0 && $cr > 0.0) {
+                throw new \InvalidArgumentException('A journal line is either a debit or a credit, never both.');
+            }
+
+            $resolved[] = [
+                'account' => $this->accountFor($code, $tenantId),
+                'debit' => $dr,
+                'credit' => $cr,
+                'description' => $line['description'] ?? null,
+            ];
+
+            $debit += $dr;
+            $credit += $cr;
+        }
+
+        if ($resolved === []) {
+            throw new \InvalidArgumentException('A journal entry needs at least one non-zero line.');
+        }
+
+        if (abs($debit - $credit) > 0.01) {
+            throw new \InvalidArgumentException(sprintf(
+                'Journal is unbalanced: debit %.2f, credit %.2f.',
+                $debit,
+                $credit,
+            ));
+        }
+
+        $date = $meta['document_date'] ?? now();
+        $date = $date instanceof \DateTimeInterface ? $date : \Illuminate\Support\Carbon::parse((string) $date);
+
+        $fiscalYearId = $meta['fiscal_year_id'] ?? null;
+        $this->assertYearOpen($date, $fiscalYearId, $tenantId);
+
+        return DB::transaction(function () use ($resolved, $meta, $date, $fiscalYearId, $tenantId): AccJournalEntry {
+            $entry = AccJournalEntry::query()->create([
+                'tenant_id' => $tenantId,
+                'fiscal_year_id' => $fiscalYearId ?? $this->yearIdFor($date, $tenantId),
+                // A journal belongs to one place; the lines inherit it. Null means "not branch
+                // specific", which reports show as unassigned rather than filing under branch 1.
+                'branch_id' => $meta['branch_id'] ?? null,
+                'document_no' => $meta['document_no'] ?? null,
+                'document_date' => $date,
+                'description' => $meta['description'] ?? null,
+                'status' => $meta['status'] ?? 'posted',
+                'created_by' => $meta['created_by'] ?? auth()->id(),
+            ]);
+
+            foreach ($resolved as $line) {
+                AccJournalLine::query()->create([
+                    'tenant_id' => $tenantId,
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $line['account']->id,
+                    'debit' => $line['debit'],
+                    'credit' => $line['credit'],
+                    'description' => $line['description'],
+                ]);
+            }
+
+            return $entry->fresh(['lines.account']);
+        });
+    }
+
+    /**
+     * Post a receipt or payment voucher against the cash account it names.
+     *
+     * The shape is the accounting definition, not a preference:
+     *
+     *   receipt (money in)   Dr cash account / Cr the party account  (or treasury income)
+     *   payment (money out)  Dr the party account / Cr cash account
+     *
+     * The counter-account comes from the tenant's account coding so an accountant can point
+     * "receivable" at whatever code their chart uses. When the tenant never mapped one, the
+     * voucher still posts: the counter side goes to the default receivable for a receipt and
+     * payable for a payment, which is what those codes mean.
+     */
+    public function postVoucher(\Modules\Accounting\Entities\AccReceiptVoucher $voucher): AccJournalEntry
+    {
+        if ($voucher->status === 'posted') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'id' => 'This voucher is already posted to the ledger.',
+            ]);
+        }
+
+        $amount = round((float) $voucher->amount, 2);
+        if ($amount <= 0) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'amount' => 'A voucher must carry a positive amount before it can be posted.',
+            ]);
+        }
+
+        $cashCode = $this->cashCodeFor($voucher);
+        $counterCode = $this->counterCodeFor((string) $voucher->type, (int) $voucher->tenant_id);
+        $isReceipt = (string) $voucher->type !== 'payment';
+        $label = ($isReceipt ? 'رسید ' : 'پرداخت ').($voucher->number ?: '#'.$voucher->id);
+
+        $lines = $isReceipt
+            ? [
+                ['code' => $cashCode, 'debit' => $amount, 'description' => $label],
+                ['code' => $counterCode, 'credit' => $amount, 'description' => $label],
+            ]
+            : [
+                ['code' => $counterCode, 'debit' => $amount, 'description' => $label],
+                ['code' => $cashCode, 'credit' => $amount, 'description' => $label],
+            ];
+
+        $entry = $this->post($lines, [
+            'tenant_id' => $voucher->tenant_id,
+            'document_no' => ($isReceipt ? 'RC-' : 'PV-').$voucher->id,
+            'document_date' => $voucher->document_date ?? now(),
+            'description' => $label.($voucher->description ? ' — '.$voucher->description : ''),
+            'fiscal_year_id' => $voucher->fiscal_year_id,
+            'created_by' => auth()->id() ?? $voucher->created_by,
+        ]);
+
+        $voucher->forceFill([
+            'status' => 'posted',
+            'journal_entry_id' => $entry->id,
+        ])->save();
+
+        return $entry;
+    }
+
+    /**
+     * The chart account for a code, created on demand.
+     *
+     * Account coding may name a code the tenant has not added to their chart yet (the sales
+     * journal already relies on this). Creating it with the shipped name and type beats
+     * failing a sale because a settings screen was saved before the chart was edited.
+     */
+    private function accountFor(string $code, int $tenantId): AccChartAccount
+    {
+        // The chart is per tenant (`acc_chart_accounts` is unique on tenant_id+code), so this
+        // must say *whose* 1110 it means. Querying by code alone was harmless while both tenants
+        // happened to seed the same default chart — and wrong the moment one of them renamed or
+        // re-typed an account, because every shop after that posted to the first shop's line.
+        // The model's tenant scope handles it while a user is signed in; the explicit filter
+        // covers console and queue paths where Auth is empty and the scope is skipped.
+        $existing = AccChartAccount::query()
+            ->where('code', $code)
+            ->where('tenant_id', $tenantId)
+            ->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $defaults = $this->defaultAccounts();
+        $def = $defaults[$code]
+            ?? \App\Services\Accounting\AccountCoding::namedCodes()[$code]
+            // A code nobody named still has to be typed correctly: the first digit of an
+            // Iranian chart says asset/liability/equity/revenue/expense, and defaulting every
+            // unknown code to `asset` is how rent disappears from the profit and loss.
+            ?? ['name' => 'حساب '.$code, 'type' => \App\Services\Accounting\AccountCoding::typeForPrefix($code)];
+
+        return AccChartAccount::query()->create([
+            'tenant_id' => $tenantId,
+            'code' => $code,
+            'name' => $def['name'],
+            'type' => $def['type'],
+            'is_postable' => true,
+        ]);
+    }
+
+    /** Cash/drawer code for a voucher, from coding with a tolerant fallback. */
+    private function cashCodeFor(\Modules\Accounting\Entities\AccReceiptVoucher $voucher): string
+    {
+        $coding = $this->coding((int) $voucher->tenant_id);
+
+        // A named cash account is more precise than the role default: a shop with a drawer
+        // and three bank accounts must be able to say which one received the money. The
+        // mapping is per cash-account id in `acc_cash_accounts.chart_code`.
+        if ($voucher->cash_account_id !== null) {
+            $account = DB::table('acc_cash_accounts')
+                ->where('tenant_id', $voucher->tenant_id)
+                ->where('id', $voucher->cash_account_id)
+                ->first(['chart_code', 'type']);
+
+            if (! $account) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'cash_account_id' => __('api.cash_account_not_found'),
+                ]);
+            }
+
+            $code = $account->chart_code;
+
+            if (is_string($code) && trim($code) !== '') {
+                return trim($code);
+            }
+
+            // `cash` lands in the drawer; a bank/terminal/gateway lands in the bank.
+            return (string) ($coding['roles'][$account->type === 'cash' ? 'cash' : 'bank'] ?? $coding['roles']['cash']);
+        }
+
+        return (string) $coding['roles']['cash'];
+    }
+
+    /**
+     * The other side of a voucher.
+     *
+     * A receipt from a customer settles a receivable; a payment to a supplier settles a
+     * payable. Both come from coding, so a chart that numbers these differently still posts.
+     */
+    private function counterCodeFor(string $type, int $tenantId): string
+    {
+        $roles = $this->coding($tenantId)['roles'];
+
+        if ($type === 'payment') {
+            return (string) ($roles['ap'] ?? $roles['payable'] ?? '2102');
+        }
+
+        return (string) ($roles['ar'] ?? '1101');
+    }
+
+    /**
+     * Effective mapping for the active tenant.
+     *
+     * Reuses the cafe ledger's `AccountCoding` so there is exactly one answer to "which code
+     * is sales", and falls back to shipped defaults outside a request.
+     *
+     * @return array{roles: array<string, string>, tenders: array<string, string>}
+     */
+    private function coding(?int $tenantId = null): array
+    {
+        $tenantId ??= AccChartAccount::currentTenantId();
+
+        if ($tenantId === null) {
+            return ['roles' => $this->defaultRoles(), 'tenders' => []];
+        }
+
+        return app(\App\Services\Accounting\AccountCoding::class)->get($tenantId);
+    }
+
+    /** @return array<string, string> */
+    private function defaultRoles(): array
+    {
+        $roles = [];
+        foreach (\App\Services\Accounting\AccountCoding::defaults() as $role => $def) {
+            $roles[$role] = $def['code'];
+        }
+        // Kept for callers that still say 'payable'; `ap` is the shipped name.
+        $roles['ap'] ??= '2102';
+
+        return $roles;
+    }
+
+    /** @return array<string, array{name: string, type: string}> */
+    private function defaultAccounts(): array
+    {
+        $out = [];
+        foreach (\App\Services\Accounting\AccountCoding::defaults() as $def) {
+            $out[$def['code']] = ['name' => $def['name'], 'type' => $def['type']];
+        }
+
+        return $out;
+    }
+
+    /** Refuse to post into a fiscal year the accountant has closed. */
+    private function assertYearOpen(\DateTimeInterface $date, ?int $fiscalYearId, int $tenantId): void
+    {
+        $query = AccFiscalYear::query()->where('tenant_id', $tenantId);
+
+        if ($fiscalYearId !== null) {
+            $query->whereKey($fiscalYearId);
+        } else {
+            $query->whereDate('starts_on', '<=', $date)->whereDate('ends_on', '>=', $date);
+        }
+
+        $year = $query->first();
+
+        if ($fiscalYearId !== null && $year === null) {
+            throw new \InvalidArgumentException('Fiscal year does not belong to the tenant.');
+        }
+
+        if ($year !== null && (bool) $year->is_closed) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'document_date' => 'This date falls in a closed fiscal year ('.$year->title.'). Reopen it or choose another date.',
+            ]);
+        }
+    }
+
+    /** The fiscal year a document belongs to, when the caller did not name one. */
+    private function yearIdFor(\DateTimeInterface $date, int $tenantId): ?int
+    {
+        return AccFiscalYear::query()
+            ->where('tenant_id', $tenantId)
+            ->whereDate('starts_on', '<=', $date)
+            ->whereDate('ends_on', '>=', $date)
+            ->value('id');
+    }
+}

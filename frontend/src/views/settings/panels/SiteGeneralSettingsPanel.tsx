@@ -14,6 +14,7 @@ type Payload = {
   admin_email?: string
   timezone?: string
   enamad_file?: string
+  samandehi_verification?: string
 }
 
 function enamadCode(raw: string): string {
@@ -87,6 +88,18 @@ export function SiteGeneralSettingsPanel() {
                 {t("enamad_public", { file: `${enamadCode(draft.enamad_file ?? "")}.txt` })}
               </p>
             ) : null}
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="samandehi-verification">{t("samandehi_verification")}</Label>
+            <Input
+              id="samandehi-verification"
+              dir="ltr"
+              maxLength={128}
+              value={draft.samandehi_verification ?? ""}
+              onChange={(e) => setDraft({ ...draft, samandehi_verification: e.target.value })}
+              aria-describedby="samandehi-verification-hint"
+            />
+            <p id="samandehi-verification-hint" className="text-muted-foreground text-xs">{t("samandehi_hint")}</p>
           </div>
         </CardContent>
       </Card>
