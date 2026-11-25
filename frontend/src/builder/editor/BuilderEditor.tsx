@@ -496,15 +496,15 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       toast.error(t("import_invalid"))
       return
     }
-    const dependencySections = dependencies ? dependencies.components.flatMap((component) =>
-      [...component.sections, ...(component.variants ?? []).flatMap((variant) => variant.sections)]) : []
-    const unknown = unknownWidgetTypes({ ...imported, sections: [...imported.sections, ...dependencySections] }, (type) => type === COMPONENT_TYPE || Boolean(widgetDef(type)))
-    if (unknown.length && !window.confirm(t("import_unknown_widgets", { types: unknown.slice(0, 10).join(", ") }))) return
     const merged = dependencies ? mergePortableDependencies(globals, dependencies) : null
     if (merged?.conflicts.length) {
       toast.error(t("import_dependency_conflict", { items: merged.conflicts.slice(0, 10).join(", ") }))
       return
     }
+    const dependencySections = dependencies ? dependencies.components.flatMap((component) =>
+      [...component.sections, ...(component.variants ?? []).flatMap((variant) => variant.sections)]) : []
+    const unknown = unknownWidgetTypes({ ...imported, sections: [...imported.sections, ...dependencySections] }, (type) => type === COMPONENT_TYPE || Boolean(widgetDef(type)), merged?.globals ?? globals)
+    if (unknown.length && !window.confirm(t("import_unknown_widgets", { types: unknown.slice(0, 10).join(", ") }))) return
     const missing = missingDocumentDependencies(imported, merged?.globals ?? globals)
     if (missing.length && !window.confirm(t("import_missing_dependencies", { items: missing.slice(0, 10).join(", ") }))) return
     const choice = chooseImportMode(
@@ -1400,6 +1400,7 @@ function FieldMark({ name }: { name: string }) {
 }
 
 function WidgetFields({ type, props, onChange, panel = "content" }: { type: string; props: Record<string, unknown>; onChange: (key: string, value: unknown) => void; panel?: "content" | "design" | "settings" }) {
+  const t = useTranslations("builder")
   const def = widgetDef(type)
   const fields = fieldsForPanel(def?.fields ?? [], panel)
   if (!fields.length) return null
@@ -1409,13 +1410,13 @@ function WidgetFields({ type, props, onChange, panel = "content" }: { type: stri
         // Bounded numbers render as sliders.
         const field: FieldDef =
           rawField.kind === "number" && rawField.min !== undefined && rawField.max !== undefined && rawField.max - rawField.min <= 100
-            ? { kind: "slider", key: rawField.key, label: rawField.label, min: rawField.min, max: rawField.max }
+            ? { ...rawField, kind: "slider", min: rawField.min, max: rawField.max }
             : rawField
         const value = props[field.key]
         const label = (
           <span className="flex items-center gap-1.5">
             <FieldMark name={field.key} />
-            {field.label}
+            {field.labelKey ? t(field.labelKey as Parameters<typeof t>[0]) : field.label}
             <DynamicToggle field={field} value={value} onChange={onChange} />
           </span>
         )
@@ -1448,7 +1449,7 @@ function WidgetFields({ type, props, onChange, panel = "content" }: { type: stri
             <label key={field.key} className="grid gap-1 text-xs">
               {label}
               <select className="h-9 rounded-md border px-2" value={typeof value === "string" ? value : field.options[0]?.value} onChange={(event) => onChange(field.key, event.target.value)}>
-                {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                {field.options.map((option) => <option key={option.value} value={option.value}>{option.labelKey ? t(option.labelKey as Parameters<typeof t>[0]) : option.label}</option>)}
               </select>
             </label>
           )

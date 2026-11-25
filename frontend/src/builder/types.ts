@@ -226,7 +226,7 @@ export const DND_NODE = "application/x-webino-node"
 export type FieldDef = (
   | { kind: "text" | "textarea" | "color" | "url"; key: string; label: string }
   | { kind: "number"; key: string; label: string; min?: number; max?: number }
-  | { kind: "select"; key: string; label: string; options: { value: string; label: string }[] }
+  | { kind: "select"; key: string; label: string; options: { value: string; label: string; labelKey?: string }[] }
   | { kind: "switch"; key: string; label: string }
   /** Media library picker; stores the URL string. */
   | { kind: "media"; key: string; label: string; accept?: "image" | "video" | "all" }
@@ -234,13 +234,13 @@ export type FieldDef = (
   | { kind: "icon"; key: string; label: string; options: { value: string; label: string }[] }
   /** Link: URL string in `key`, plus `${key}NewTab` / `${key}Nofollow` booleans (backward compatible). */
   | { kind: "link"; key: string; label: string }
-  | { kind: "slider"; key: string; label: string; min: number; max: number; step?: number; unit?: string }
+  | { kind: "slider"; key: string; label: string; min: number; max: number; step?: number; unit?: string; defaultValue?: number }
   | { kind: "date" | "time" | "datetime"; key: string; label: string }
   /** Array of objects; legacy `label|href` line strings are read through `parseRows`. */
   | { kind: "repeater"; key: string; label: string; fields: RepeaterSubField[] }
   /** «منوها» picker: stores a nav-menu slug; inspector edits the menu's items inline (same data as admin Menus). */
   | { kind: "nav-menu"; key: string; label: string }
-) & { panel?: "content" | "design" | "settings" }
+) & { panel?: "content" | "design" | "settings"; labelKey?: string }
 
 export type RepeaterSubField = { key: string; label: string; kind: "text" | "url" | "media" | "icon" | "textarea" | "select"; options?: { value: string; label: string }[] }
 

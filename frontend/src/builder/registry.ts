@@ -92,7 +92,24 @@ const CORE_WIDGETS: WidgetDef[] = [
     type: "divider",
     label: "جداکننده",
     category: "basic",
-    fields: [{ kind: "color", key: "color", label: "رنگ", panel: "design" }],
+    fields: [
+      { kind: "color", key: "color", label: "رنگ خط", labelKey: "divider_color", panel: "design" },
+      { kind: "slider", key: "dividerThickness", label: "ضخامت خط", labelKey: "divider_thickness", min: 1, max: 24, defaultValue: 1, unit: "px", panel: "design" },
+      { kind: "slider", key: "dividerWidth", label: "عرض خط", labelKey: "divider_width", min: 1, max: 100, defaultValue: 100, unit: "%", panel: "design" },
+      { kind: "select", key: "dividerLineStyle", label: "نوع خط", labelKey: "divider_line_style", panel: "design", options: [
+        { value: "default", label: "پیش‌فرض", labelKey: "divider_style_default" },
+        { value: "solid", label: "پیوسته", labelKey: "divider_style_solid" },
+        { value: "dashed", label: "خط‌چین", labelKey: "divider_style_dashed" },
+        { value: "dotted", label: "نقطه‌چین", labelKey: "divider_style_dotted" },
+        { value: "double", label: "دوتایی", labelKey: "divider_style_double" },
+      ] },
+      { kind: "select", key: "dividerAlignment", label: "تراز", labelKey: "divider_alignment", panel: "design", options: [
+        { value: "default", label: "پیش‌فرض", labelKey: "divider_style_default" },
+        { value: "start", label: "ابتدا", labelKey: "divider_align_start" },
+        { value: "center", label: "وسط", labelKey: "divider_align_center" },
+        { value: "end", label: "انتها", labelKey: "divider_align_end" },
+      ] },
+    ],
     create: () => node("divider", { color: "#e6eef6" }),
   },
   {

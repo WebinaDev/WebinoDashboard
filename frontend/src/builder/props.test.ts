@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { editRepeater, linkAttrs, parseLinks, parseRows, repeaterRows, rowsToLines, toLocalInput } from "./props"
+import { editRepeater, linkAttrs, parseLinks, parseRows, repeaterCells, repeaterRows, rowsToLines, toLocalInput } from "./props"
 
 test("repeater rows round-trip the legacy line format", () => {
   const keys = ["label", "href"]
@@ -38,6 +38,7 @@ test("repeater edits preserve structured rows and their unexposed data", () => {
 
 test("legacy repeater edits retain their line format", () => {
   const keys = ["label", "href"]
+  assert.deepEqual(repeaterRows(" first |/one\\nnext ", keys), [{ label: " first ", href: "/one\nnext " }])
   const original = "first|/one\nsecond|/two"
   assert.equal(editRepeater(original, keys, { kind: "set", index: 1, key: "label", value: "updated" }), "first|/one\nupdated|/two")
   assert.equal(editRepeater(original, keys, { kind: "move", index: 0, delta: 1 }), "second|/two\nfirst|/one")
@@ -45,6 +46,13 @@ test("legacy repeater edits retain their line format", () => {
   const extended = "first|/one|hidden\n\nsecond|/two|extra"
   assert.equal(editRepeater(extended, keys, { kind: "set", index: 1, key: "label", value: "updated" }), "first|/one|hidden\n\nupdated|/two|extra")
   assert.equal(editRepeater(extended, keys, { kind: "move", index: 1, delta: -1 }), "second|/two|extra\n\nfirst|/one|hidden")
+})
+
+test("rendered repeater cells support structured JSON and the legacy line format", () => {
+  const keys = ["image", "href", "alt", "mobileImage"]
+  const expected = [["/banner.jpg", "/shop", "Banner", "/mobile.jpg"]]
+  assert.deepEqual(repeaterCells("/banner.jpg|/shop|Banner|/mobile.jpg", keys), expected)
+  assert.deepEqual(repeaterCells([{ image: "/banner.jpg", href: "/shop", alt: "Banner", mobileImage: "/mobile.jpg", hidden: 1 }], keys), expected)
 })
 
 test("link attrs for new tab / nofollow", () => {

@@ -12,14 +12,25 @@ export function insertLibraryDocument(current: BuilderDocument, incoming: Builde
 }
 
 /** Unknown widget types remain in the document; callers can warn before importing. */
-export function unknownWidgetTypes(document: BuilderDocument, isKnown: (type: string) => boolean): string[] {
+export function unknownWidgetTypes(document: BuilderDocument, isKnown: (type: string) => boolean, globals?: Pick<BuilderGlobals, "components">): string[] {
   const unknown = new Set<string>()
+  const visited = new Set<string>()
   const pending = [...document.sections]
   while (pending.length) {
     const section = pending.pop()!
     for (const column of section.columns) for (const widget of column.widgets) {
       if (!isKnown(widget.type)) unknown.add(widget.type)
       if (widget.children) pending.push(...widget.children)
+      if (widget.type === "component" && typeof widget.props.component === "string") {
+        const component = globals?.components.find((item) => item.id === widget.props.component)
+        const variantId = typeof widget.props.variant === "string" ? widget.props.variant : ""
+        const instanceKey = JSON.stringify([widget.props.component, variantId])
+        if (component && !visited.has(instanceKey)) {
+          visited.add(instanceKey)
+          const variant = component.variants?.find((item) => item.id === variantId)
+          pending.push(...(variant?.sections ?? component.sections))
+        }
+      }
     }
   }
   return [...unknown]
@@ -48,6 +59,7 @@ export function missingDocumentDependencies(document: BuilderDocument, globals: 
         const component = globals.components.find((item) => item.id === id)
         if (!component) { missing.add(`component:${id}`); continue }
         const variant = typeof widget.props.variant === "string" ? component.variants?.find((item) => item.id === widget.props.variant) : undefined
+        if (typeof widget.props.variant === "string" && widget.props.variant && !variant) missing.add(`component-variant:${id}:${widget.props.variant}`)
         const instanceKey = JSON.stringify([id, variant?.id ?? null])
         if (visited.has(instanceKey)) continue
         visited.add(instanceKey)

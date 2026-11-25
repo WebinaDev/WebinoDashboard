@@ -70,6 +70,10 @@ export function parseRows(value: unknown, keys: string[]): Record<string, string
     })
 }
 
+export function repeaterCells(value: unknown, keys: string[]): string[][] {
+  return parseRows(value, keys).map((row) => keys.map((key) => row[key]))
+}
+
 /** Serialise repeater rows back to the legacy line format for widgets that read strings. */
 export function rowsToLines(rows: Record<string, string>[], keys: string[]): string {
   return rows.map((row) => keys.map((key) => (row[key] ?? "").replaceAll("|", "/").replaceAll("\n", "\\n")).join("|")).join("\n")
@@ -79,10 +83,16 @@ export type RepeaterEdit =
   | { kind: "set"; index: number; key: string; value: string }
   | { kind: "move"; index: number; delta: number }
   | { kind: "delete"; index: number }
-  | { kind: "add" }
+  | { kind: "add"; initial?: Record<string, string> }
 
 export function repeaterRows(value: unknown, keys: string[]): Record<string, string>[] {
-  if (!Array.isArray(value)) return parseRows(value, keys)
+  if (typeof value === "string") {
+    return value.split("\n").filter((line) => line.trim()).map((line) => {
+      const cells = line.split("|")
+      return Object.fromEntries(keys.map((key, index) => [key, (cells[index] ?? "").replace(/\\n/g, "\n")]))
+    })
+  }
+  if (!Array.isArray(value)) return []
   return value.map((row) => parseRows([row], keys)[0] ?? Object.fromEntries(keys.map((key) => [key, ""])))
 }
 
@@ -91,7 +101,7 @@ export function editRepeater(value: unknown, keys: string[], edit: RepeaterEdit)
     const lines = value.split("\n")
     const visible = lines.flatMap((line, index) => line.trim() ? [index] : [])
     if (edit.kind === "add") {
-      const next = keys.map(() => "").join("|")
+      const next = rowsToLines([edit.initial ?? {}], keys)
       return value ? value + (value.endsWith("\n") ? "" : "\n") + next : next
     }
     if (!Number.isInteger(edit.index) || edit.index < 0 || edit.index >= visible.length) return value
@@ -116,7 +126,7 @@ export function editRepeater(value: unknown, keys: string[], edit: RepeaterEdit)
   const structured = Array.isArray(value)
   const rows: unknown[] = structured ? [...value] : parseRows(value, keys)
   if (edit.kind === "add") {
-    rows.push(Object.fromEntries(keys.map((key) => [key, ""])))
+    rows.push(Object.fromEntries(keys.map((key) => [key, edit.initial?.[key] ?? ""])))
   } else {
     if (!Number.isInteger(edit.index) || edit.index < 0 || edit.index >= rows.length) return value
     if (edit.kind === "delete") {
