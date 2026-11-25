@@ -39,6 +39,13 @@ const LOCALE_MENU_ITEMS = [
   { code: "en" as const, labelKey: "locale_en" as const, flag: "🇬🇧" },
 ]
 
+function applyLanguage(nextLocale: "en" | "fa") {
+  document.cookie = `NEXT_LOCALE=${nextLocale};path=/;max-age=31536000`
+  localStorage.setItem("locale", nextLocale)
+  document.documentElement.lang = nextLocale
+  document.documentElement.dir = htmlDir(nextLocale)
+}
+
 export function LocaleThemeToolbar({
   compact,
   languageOnly,
@@ -55,10 +62,7 @@ export function LocaleThemeToolbar({
   const lng = normalizeUiLocale(locale)
 
   function changeLanguage(nextLocale: "en" | "fa") {
-    document.cookie = `NEXT_LOCALE=${nextLocale};path=/;max-age=31536000`
-    localStorage.setItem("locale", nextLocale)
-    document.documentElement.lang = nextLocale
-    document.documentElement.dir = htmlDir(nextLocale)
+    applyLanguage(nextLocale)
     void api("/api/v1/account/preferences", {
       method: "PATCH",
       json: { locale: nextLocale },
