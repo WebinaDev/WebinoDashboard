@@ -13,10 +13,14 @@ import type { ModuleManifest } from "@/kernel/types";
  * Every route here maps to a real file: `modules/accounting/admin/{page}-page.tsx`.
  */
 export const accountingManifest: ModuleManifest = {
-  slug: "erp-accounting",
+  // Slug must match the backend module (`backend/modules/Accounting/manifest.json`)
+  // and the activation rows: `loadAdminPage` imports
+  // `modules/${moduleSlug}/admin/{page}-page`, and this folder is `modules/accounting`.
+  // The API prefix stays `erp-accounting` (see AccountingServiceProvider).
+  slug: "accounting",
   nameFa: "حسابداری",
   nameEn: "Accounting",
-  siteTypes: ["cafe", "ecommerce", "coffee"],
+  siteTypes: ["ecommerce", "magazine", "cafe", "coffee", "resume", "blog", "corporate"],
   submodules: [
     "dashboard",
     "persons",

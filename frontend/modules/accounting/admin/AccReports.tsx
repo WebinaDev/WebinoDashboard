@@ -190,13 +190,13 @@ export default function AccReports() {
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
         <TabsContent value="trial_balance">
-          {data ? <TrialBalanceTable rows={data as TrialRow[]} /> : null}
+          {data ? <TrialBalanceTable rows={reportRows<TrialRow>(data)} /> : null}
         </TabsContent>
         <TabsContent value="balance_sheet">
           {data ? <BalanceSheetView data={data as BSData} /> : null}
         </TabsContent>
         <TabsContent value="profit_loss">
-          {data ? <ProfitLossTable rows={data as PLRow[]} /> : null}
+          {data ? <ProfitLossTable rows={reportRows<PLRow>(data)} /> : null}
         </TabsContent>
       </Tabs>
 
@@ -207,6 +207,24 @@ export default function AccReports() {
       )}
     </div>
   );
+}
+
+/**
+ * Pull the row array out of a report payload.
+ *
+ * `FinancialReportsController` answers with `{ type, rows, totals }`, and the envelope
+ * formatter unwraps to that object - so `data` is the report, not the rows. Passing it
+ * straight to the tables made `Array.isArray(rows)` false and every trial balance and
+ * P&L render its empty state. The balance sheet reads `data.assets` and needs no change.
+ */
+function reportRows<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object") {
+    const rows = (data as { rows?: unknown }).rows;
+    if (Array.isArray(rows)) return rows as T[];
+  }
+
+  return [];
 }
 
 /* ─── Trial Balance ─── */

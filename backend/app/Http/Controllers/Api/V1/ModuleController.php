@@ -95,9 +95,47 @@ class ModuleController extends Controller
         $tm->enabled = $data['enabled'];
         $tm->save();
 
+        // Route middleware reads submodule rows, not this top-level switch, so
+        // toggling a module here must flip its submodules too — otherwise the
+        // module looks on in this list while its API still answers 403.
+        $this->syncSubmodules((int) $tenantId, $slug, (bool) $data['enabled'], (bool) $tm->licensed);
+
+        // A freshly enabled ledger needs a chart and a fiscal year before the
+        // first invoice can post. Best-effort, like site-type provisioning.
+        if ($data['enabled'] && $slug === 'accounting') {
+            try {
+                app(\Modules\Accounting\Services\AccountingProvisioningService::class)
+                    ->ensureSeededForTenant((int) $tenantId);
+            } catch (\Throwable) {
+                // The module is on; the operator can seed from Settings.
+            }
+        }
+
         Cache::forget("modules:tenant:{$tenantId}");
         Cache::forget("kernel:tenant:{$tenantId}:activations");
 
         return response()->json(['data' => $tm]);
+    }
+
+    /**
+     * Mirror the module switch onto its submodule rows.
+     *
+     * Enabling turns every known submodule on (licensed with the module); disabling
+     * turns them off. Rows are upserted so a module whose catalog entry exists but
+     * whose activations were never seeded still becomes usable from this screen.
+     */
+    private function syncSubmodules(int $tenantId, string $slug, bool $enabled, bool $licensed): void
+    {
+        $subSlugs = Submodule::query()
+            ->where('module_slug', $slug)
+            ->pluck('slug')
+            ->all();
+
+        foreach ($subSlugs as $subSlug) {
+            TenantSubmoduleActivation::query()->updateOrCreate(
+                ['tenant_id' => $tenantId, 'module_slug' => $slug, 'submodule_slug' => $subSlug],
+                ['enabled' => $enabled, 'licensed' => $licensed]
+            );
+        }
     }
 }

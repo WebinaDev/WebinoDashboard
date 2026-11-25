@@ -30,7 +30,10 @@ class EnsureModuleEnabled
                 ->where('submodule_slug', $subSlug)
                 ->first();
 
-            if ((! $row || ! $row->enabled) && ! $this->impliedByCommerce($user->tenant_id, $moduleSlug, $subSlug)) {
+            if ((! $row || ! $row->enabled)
+                && ! $this->impliedByCommerce($user->tenant_id, $moduleSlug, $subSlug)
+                && ! $this->moduleEnabled($user->tenant_id, $moduleSlug)
+            ) {
                 return $this->disabled($slug);
             }
 
@@ -78,6 +81,33 @@ class EnsureModuleEnabled
         $tenant = $user->relationLoaded('tenant') ? $user->tenant : $user->tenant()->first();
 
         return $tenant?->isLicenseEntitled() ?? false;
+    }
+
+    /**
+     * Module-level switch as a fallback for alias checks.
+     *
+     * The Modules screen toggles `tenant_modules`, while this middleware used to read
+     * only the single submodule row the alias points at. Turning a module on there
+     * therefore left its API answering 403 MODULE_NOT_ACTIVE. A module that is on at
+     * the top level — or has any submodule on — is on for its aliased routes too,
+     * matching the frontend's `isModuleEnabled` rule.
+     */
+    private function moduleEnabled(int $tenantId, string $moduleSlug): bool
+    {
+        $moduleRow = TenantModule::query()
+            ->where('tenant_id', $tenantId)
+            ->where('module_slug', $moduleSlug)
+            ->first();
+
+        if ($moduleRow && $moduleRow->enabled) {
+            return true;
+        }
+
+        return TenantSubmoduleActivation::query()
+            ->where('tenant_id', $tenantId)
+            ->where('module_slug', $moduleSlug)
+            ->where('enabled', true)
+            ->exists();
     }
 
     /** Cafe tenants often lack users.* rows; commerce implies customer/staff admin APIs. */

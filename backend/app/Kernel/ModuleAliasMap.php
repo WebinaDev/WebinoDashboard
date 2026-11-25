@@ -61,6 +61,13 @@ final class ModuleAliasMap
         'ai_recommendations' => ['analytics', 'reports'],
         'ai-content' => ['ai-content', 'studio'],
         'accounting' => ['commerce', 'accounting'],
+        // The full ERP ledger (acc_* tables) is a module of its own, `accounting`.
+        // `module:accounting` above must keep pointing at the commerce till ledger
+        // (`/api/v1/accounting/*`), so the ERP routes use `module:erp-accounting`
+        // and resolve to the accounting module's dashboard submodule. Without this
+        // alias the ERP routes checked commerce.accounting — a row the backfill
+        // migration created with enabled=false — and every call answered 403.
+        'erp-accounting' => ['accounting', 'dashboard'],
         'account' => ['commerce', 'account'],
     ];
 

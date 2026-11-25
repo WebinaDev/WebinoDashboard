@@ -100,8 +100,12 @@ final class FinancialReport
                 'type' => $type,
                 'meta' => $meta,
                 'assets' => $rows->filter(fn ($r) => str_contains(strtolower((string) $r['type']), 'asset'))->values(),
+                // Equity belongs on this side of the statement. Filtering only on
+                // 'liabilit' / 'payable' dropped the capital accounts entirely, so the
+                // printed balance sheet never balanced: assets against liabilities alone.
                 'liabilities_equity' => $rows->filter(fn ($r) => str_contains(strtolower((string) $r['type']), 'liabilit')
-                    || str_contains(strtolower((string) $r['type']), 'payable'))->values(),
+                    || str_contains(strtolower((string) $r['type']), 'payable')
+                    || str_contains(strtolower((string) $r['type']), 'equity'))->values(),
             ];
         }
 

@@ -19,6 +19,15 @@ export function readListMeta(raw: unknown): Record<string, unknown> {
       return meta as Record<string, unknown>
     }
   }
+  // Laravel's LengthAwarePaginator serializes pagination fields at the top level
+  // (current_page, last_page, …), not under `meta`. Endpoints that return the
+  // paginator directly used to report one page no matter how many rows existed.
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>
+    if ("last_page" in obj || "current_page" in obj || "total" in obj) {
+      return obj
+    }
+  }
   return {}
 }
 

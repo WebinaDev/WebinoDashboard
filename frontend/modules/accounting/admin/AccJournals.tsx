@@ -103,7 +103,8 @@ export default function AccJournals() {
       if (fyId !== 'all') params.fiscal_year_id = fyId;
       const res = await apiClient.get('/v1/erp-accounting/journals', { params });
       setJournals(normalizeListPayload(res.data) as Journal[]);
-      setLastPage(Number(readListMeta(res.data).last_page ?? 1));
+      // The paginator's `last_page` lives in the envelope `meta`, not next to the rows.
+      setLastPage(Number(res.meta?.last_page ?? readListMeta(res.data).last_page ?? 1));
     } catch (e) {
       setError(getAxiosMessage(e));
     } finally {

@@ -6,6 +6,24 @@ final class SiteTypeProfiles
 {
     public const TYPES = ['ecommerce', 'magazine', 'cafe', 'coffee', 'resume', 'blog', 'corporate'];
 
+    /**
+     * The full ERP ledger, on every site type.
+     *
+     * Accounting is not shop-only: a magazine selling subscriptions, a corporate site
+     * invoicing clients, or a blog with paid posts all need journals, persons and
+     * invoices. The module is standalone (`acc_*` tables, no commerce dependency), so
+     * it ships everywhere instead of only where a till exists. Mirrors
+     * `modules/Accounting/manifest.json` submodules.
+     *
+     * @return array<string, list<string>>
+     */
+    public static function accountingModules(): array
+    {
+        return [
+            'accounting' => ['dashboard', 'persons', 'products', 'invoices', 'journals', 'ledger', 'reports', 'cash', 'checks', 'receipts', 'warehouses', 'settings'],
+        ];
+    }
+
     /** @return array<string, array{name_fa: string, name_en: string, theme: string, modules: array<string, list<string>>}> */
     public static function all(): array
     {
@@ -14,7 +32,7 @@ final class SiteTypeProfiles
                 'name_fa' => 'فروشگاه اینترنتی',
                 'name_en' => 'E-commerce',
                 'theme' => 'ecommerce-starter',
-                'modules' => array_merge(self::coreModules(), [
+                'modules' => array_merge(self::coreModules(), self::accountingModules(), [
                     'corporate' => ['testimonials'],
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory', 'accounting'],
                     'users' => ['customers', 'staff', 'rbac'],
@@ -32,7 +50,7 @@ final class SiteTypeProfiles
                 'name_fa' => 'مجله آموزشی',
                 'name_en' => 'Educational Magazine',
                 'theme' => 'magazine-default',
-                'modules' => array_merge(self::coreModules(), [
+                'modules' => array_merge(self::coreModules(), self::accountingModules(), [
                     'corporate' => ['testimonials'],
                     'magazine' => ['issues', 'articles', 'series', 'authors'],
                     'academy' => ['courses', 'lessons'],
@@ -48,11 +66,10 @@ final class SiteTypeProfiles
                 'name_fa' => 'کافه و رستوران',
                 'name_en' => 'Cafe & Restaurant',
                 'theme' => 'cafe-starter',
-                'modules' => array_merge(self::coreModules(), [
+                'modules' => array_merge(self::coreModules(), self::accountingModules(), [
                     'corporate' => ['testimonials'],
                     'cafe' => ['menu', 'reservations', 'hours', 'gallery', 'venue', 'qr', 'engagement'],
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'cart', 'checkout', 'orders', 'pos', 'accounting'],
-                    'accounting' => ['dashboard', 'persons', 'products', 'invoices', 'journals', 'ledger', 'reports', 'cash', 'checks', 'receipts', 'warehouses', 'settings'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'marketing' => ['coupons', 'bot-broadcast', 'bot-campaigns', 'sms'],
@@ -68,10 +85,9 @@ final class SiteTypeProfiles
                 'name_fa' => 'قهوه',
                 'name_en' => 'Coffee',
                 'theme' => 'ecommerce-starter',
-                'modules' => array_merge(self::coreModules(), [
+                'modules' => array_merge(self::coreModules(), self::accountingModules(), [
                     'corporate' => ['testimonials'],
                     'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory', 'accounting'],
-                    'accounting' => ['dashboard', 'persons', 'products', 'invoices', 'journals', 'ledger', 'reports', 'cash', 'checks', 'receipts', 'warehouses', 'settings'],
                     'coffee-profile' => ['profile'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
@@ -88,7 +104,7 @@ final class SiteTypeProfiles
                 'name_fa' => 'رزومه',
                 'name_en' => 'Resume',
                 'theme' => 'resume-default',
-                'modules' => array_merge(self::coreModules(), [
+                'modules' => array_merge(self::coreModules(), self::accountingModules(), [
                     'resume' => ['profile', 'experience', 'education', 'skills', 'projects', 'contact'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'link-hub' => ['home', 'page', 'profiles', 'inbox', 'settings'],
@@ -98,7 +114,7 @@ final class SiteTypeProfiles
                 'name_fa' => 'وبلاگ',
                 'name_en' => 'Blog',
                 'theme' => 'magazine-default',
-                'modules' => array_merge(self::coreModules(), [
+                'modules' => array_merge(self::coreModules(), self::accountingModules(), [
                     'corporate' => ['testimonials'],
                     'blog' => ['posts', 'categories'],
                     'cms' => ['pages', 'menus', 'seo'],
@@ -112,7 +128,7 @@ final class SiteTypeProfiles
                 'name_fa' => 'شرکتی',
                 'name_en' => 'Corporate',
                 'theme' => 'corporate-default',
-                'modules' => array_merge(self::coreModules(), [
+                'modules' => array_merge(self::coreModules(), self::accountingModules(), [
                     'corporate' => ['portfolio', 'team', 'testimonials', 'announcements', 'consultations'],
                     'academy' => ['courses', 'lessons'],
                     'cms' => ['pages', 'menus', 'seo'],

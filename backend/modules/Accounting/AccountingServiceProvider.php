@@ -17,7 +17,9 @@ use Illuminate\Support\ServiceProvider;
  *    Laravel matches the first registered route. The ERP module is therefore mounted at
  *    `/api/v1/erp-accounting` and keeps its own `acc_*` tables; the two ledgers coexist.
  *
- * 2. **Middleware.** The ERP uses `module:accounting` + `module.permission:accounting`.
+ * 2. **Middleware.** The ERP uses `module:erp-accounting` + `module.permission:accounting`.
+ *    `module:accounting` resolves to the commerce till ledger (`commerce.accounting`),
+ *    which is a different switch - gating the ERP on it 403'd every ERP call.
  *    `module:` exists here ({@see \App\Http\Middleware\EnsureModuleEnabled}); the
  *    finer-grained `module.permission` alias does not, so the capability check uses the
  *    existing `can:` middleware with this codebase's `accounting.manage` capability —
@@ -37,12 +39,12 @@ class AccountingServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
 
         Route::prefix(self::ROUTE_PREFIX)
-            ->middleware(['api', 'auth:sanctum', 'module:accounting', 'can:accounting.manage'])
+            ->middleware(['api', 'auth:sanctum', 'module:erp-accounting', 'can:accounting.manage'])
             ->group(__DIR__.'/Routes/api.php');
 
         // Warehouse/product parity API consumed by the ERP-era dashboard clients.
         Route::prefix('api/webinocrm/v1')
-            ->middleware(['api', 'auth:sanctum', 'module:accounting', 'can:accounting.manage'])
+            ->middleware(['api', 'auth:sanctum', 'module:erp-accounting', 'can:accounting.manage'])
             ->group(__DIR__.'/Routes/webinocrm-v1.php');
     }
 

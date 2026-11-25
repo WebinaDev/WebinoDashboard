@@ -648,7 +648,7 @@ export function MapWidget({ widget }: { widget: WidgetNode }) {
 
 /* ----------------------------------------------------------------- counter */
 
-function useInView<T extends Element>(): [RefObject<T>, boolean] {
+function useInView<T extends Element>(): [RefObject<T | null>, boolean] {
   const ref = useRef<T>(null)
   const [seen, setSeen] = useState(false)
   useEffect(() => {

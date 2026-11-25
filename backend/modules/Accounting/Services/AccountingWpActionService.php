@@ -4,6 +4,7 @@ namespace Modules\Accounting\Services;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Modules\Accounting\Database\Seeders\AccChartIranSeeder;
 use Modules\Accounting\Entities\AccCashAccount;
 use Modules\Accounting\Entities\AccChartAccount;
 use Modules\Accounting\Entities\AccCheck;
@@ -455,21 +456,13 @@ class AccountingWpActionService
             return ['count' => 0, 'message' => __('api.chart_already_seeded')];
         }
 
-        $roots = [
-            ['code' => '1', 'name' => 'Assets', 'type' => 'asset'],
-            ['code' => '2', 'name' => 'Liabilities', 'type' => 'liability'],
-            ['code' => '3', 'name' => 'Equity', 'type' => 'equity'],
-            ['code' => '4', 'name' => 'Revenue', 'type' => 'revenue'],
-            ['code' => '5', 'name' => 'Expense', 'type' => 'expense'],
-        ];
+        // The full Iranian chart, not five bare roots: confirming an invoice posts to the
+        // postable accounts 113 (receivables) and 401 (sales), and a five-root chart has
+        // neither, so the seed button used to leave the ledger unusable. The seeder is
+        // tenant-scoped and skips codes that already exist.
+        $result = AccChartIranSeeder::run();
 
-        $n = 0;
-        foreach ($roots as $r) {
-            AccChartAccount::query()->create($r + ['is_postable' => false]);
-            $n++;
-        }
-
-        return ['count' => $n];
+        return ['count' => $result['inserted'], 'skipped' => $result['skipped']];
     }
 
     private function personSave(array $p, Request $request): array

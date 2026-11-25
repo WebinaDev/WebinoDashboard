@@ -1,4 +1,4 @@
-import { unwrapApiData } from "@webina/ui";
+import { unwrapApiResponse } from "@webina/ui";
 
 import { ApiError } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/api-helpers";
@@ -16,8 +16,9 @@ import { getApiErrorMessage } from "@/lib/api-helpers";
  * - **Same-origin.** Requests go to `/api/...` with no host, so the Next proxy forwards
  *   them to Laravel. A browser calling `localhost` directly would break on every deployed
  *   host.
- * - **Envelope unwrapping.** `unwrapApiData` runs here, not in the pages, so a page that
- *   reads `res.data.rows` gets the same shape the ERP gave it.
+ * - **Envelope unwrapping.** `unwrapApiResponse` runs here, not in the pages, so a page
+ *   that reads `res.data.rows` gets the same shape the ERP gave it, and `res.meta` keeps
+ *   the paginator fields the envelope carries.
  * - **Typed errors.** Failures throw {@link ApiError} carrying the HTTP status, which is
  *   what the ported pages check (`err.status === 422`).
  */
@@ -40,7 +41,18 @@ type RequestOptions = {
 };
 
 /** What the ported pages treat a response as: `{ data }` with the envelope removed. */
-export type ApiResult<T> = { data: T; status: number };
+export type ApiResult<T> = {
+  data: T;
+  status: number;
+  /**
+   * Envelope `meta`, i.e. Laravel paginator fields (`last_page`, `total`, …).
+   *
+   * `ApiResponseFormatter` hoists a paginated response's `meta` to the envelope, so
+   * unwrapping `data` alone throws the page count away and every list renders a single
+   * page. The ported pages read `res.meta.last_page`, so it has to survive here.
+   */
+  meta?: Record<string, unknown> | null;
+};
 
 function buildUrl(path: string, params?: RequestOptions["params"]): string {
   const url = `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
@@ -88,7 +100,9 @@ async function request<T>(
     throw new ApiError(getApiErrorMessage(payload), response.status, payload);
   }
 
-  return { data: unwrapApiData<T>(payload), status: response.status };
+  const unwrapped = unwrapApiResponse<T>(payload);
+
+  return { data: unwrapped.data, status: response.status, meta: unwrapped.meta };
 }
 
 /**
